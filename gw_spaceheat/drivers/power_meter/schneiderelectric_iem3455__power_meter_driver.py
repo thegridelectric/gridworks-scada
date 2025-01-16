@@ -8,7 +8,7 @@ from result import Result
 from actors.config import ScadaSettings
 from gwproto.data_classes.components.electric_meter_component import ElectricMeterComponent
 from drivers.driver_result import DriverResult
-from drivers.power_meter.power_meter_driver import PowerMeterDriver
+from drivers.power_meter.deprecated_power_meter_driver import DeprecatedPowerMeterDriver
 from pymodbus.client.sync import ModbusSerialClient
 from gwproto.enums import MakeModel, TelemetryName
 from gwproto.data_classes.data_channel import DataChannel
@@ -17,7 +17,7 @@ PORT = "/dev/ttyUSB0"
 BAUD = 9600
 
 
-class SchneiderElectricIem3455_PowerMeterDriver(PowerMeterDriver):
+class SchneiderElectricIem3455_PowerMeterDriver(DeprecatedPowerMeterDriver):
     SERIAL_NUMBER_ADDR = 130
     CURRENT_RMS_MICRO_A_ADDR = 3000
 

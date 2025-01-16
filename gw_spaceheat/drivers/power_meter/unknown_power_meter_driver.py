@@ -7,11 +7,11 @@ from actors.config import ScadaSettings
 from gwproto.data_classes.components.electric_meter_component import \
     ElectricMeterComponent
 from drivers.driver_result import DriverResult
-from drivers.power_meter.power_meter_driver import PowerMeterDriver
+from drivers.power_meter.deprecated_power_meter_driver import DeprecatedPowerMeterDriver
 from gwproto.enums import MakeModel, TelemetryName
 
 
-class UnknownPowerMeterDriver(PowerMeterDriver):
+class UnknownPowerMeterDriver(DeprecatedPowerMeterDriver):
     def __init__(self, component: ElectricMeterComponent, settings: ScadaSettings):
         super(UnknownPowerMeterDriver, self).__init__(component=component, settings=settings)
         if component.cac.MakeModel != MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:

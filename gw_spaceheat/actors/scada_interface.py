@@ -8,6 +8,8 @@ from actors.config import ScadaSettings
 from actors.scada_data import ScadaData
 from gwproactor.proactor_interface import ServicesInterface
 
+from data_classes.house_0_layout import House0Layout
+
 
 class ScadaInterface(ServicesInterface, ActorInterface, ABC):
 
@@ -21,3 +23,8 @@ class ScadaInterface(ServicesInterface, ActorInterface, ABC):
     def data(self) -> ScadaData:
         ...
 
+
+    @property
+    @abstractmethod
+    def hardware_layout(self) -> House0Layout:
+        ...

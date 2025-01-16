@@ -51,6 +51,7 @@ from gwproactor.persister import TimedRollingFilePersister
 from gwproactor.proactor_implementation import Proactor
 
 from data_classes.house_0_names import H0N
+from drivers.power_meter.power_meter_driver import POWER_METER_LOGGER_NAME
 from enums import MainAutoState, TopState
 from named_types import (AdminDispatch, AdminKeepAlive, AdminReleaseControl, ChannelFlatlined, DispatchContractGoDormant,
                         DispatchContractGoLive, EnergyInstruction, FsmEvent, GameOn, Glitch, GoDormant, 
@@ -245,7 +246,7 @@ class Scada(ScadaInterface, Proactor):
         self._dispatch_live_hack = False
         self.pending_dispatch: Optional[AnalogDispatch] = None
         self.logger.add_category_logger(
-            PowerMeter.POWER_METER_LOGGER_NAME,
+            POWER_METER_LOGGER_NAME,
             level=settings.power_meter_logging_level,
         )
         if actor_nodes is not None:

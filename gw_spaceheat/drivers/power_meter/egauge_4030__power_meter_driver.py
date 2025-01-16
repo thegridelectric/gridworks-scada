@@ -5,16 +5,15 @@ import struct
 from typing import Any
 from typing import Optional
 
-from gwproactor.logger import LoggerOrAdapter
+from gwproto import ShNode
 from gwproto.named_types import ElectricMeterChannelConfig
 from pyModbusTCP.client import ModbusClient
 from result import Err
 from result import Ok
 from result import Result
 
-from actors.config import ScadaSettings
+from actors.scada_interface import ScadaInterface
 from gwproto.data_classes.data_channel import DataChannel
-from gwproto.data_classes.components.electric_meter_component import ElectricMeterComponent
 from drivers.driver_result import DriverResult
 from drivers.exceptions import DriverWarning
 from drivers.power_meter.egauge import ModbusClientSettings
@@ -22,6 +21,7 @@ from drivers.power_meter.egauge import RegisterType
 from drivers.power_meter.egauge.registers import readF32
 from drivers.power_meter.egauge.registers import readT16
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
+
 
 class EGaugeReadFailed(DriverWarning):
     offset: int
@@ -125,11 +125,11 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
     _curr_connect_delay = 0.5
     _last_connect_time: float = 0.0
 
+    def __init__(self, node: ShNode, services: ScadaInterface) -> None:
+        super().__init__(node, services)
 
-    def __init__(self, component: ElectricMeterComponent, settings: ScadaSettings, logger: LoggerOrAdapter):
-        super().__init__(component, settings, logger=logger)
         self._client_settings = ModbusClientSettings(
-            port=self.component.gt.ModbusPort,
+            port=self._component.gt.ModbusPort,
             timeout=self.CLIENT_TIMEOUT
         )
 
@@ -161,7 +161,7 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
                     path_dbg |= 0x00000008
                     self._last_connect_time = now
                     try:
-                        self._client_settings.host = socket.gethostbyname(self.component.gt.ModbusHost)
+                        self._client_settings.host = socket.gethostbyname(self._component.gt.ModbusHost)
                         self._modbus_client = ModbusClient(**self._client_settings.model_dump())
                     except socket.gaierror as e:
                         path_dbg |= 0x00000010
@@ -188,15 +188,15 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
             )
         )
         if not result.value.connected or result.value.warnings:
-            if self.logger.isEnabledFor(logging.DEBUG):
-                self.logger.info(f"TryConnectResult:\n{result.value}")
+            if self._logger.isEnabledFor(logging.DEBUG):
+                self._logger.info(f"TryConnectResult:\n{result.value}")
                 log_path = True
-            elif self.logger.isEnabledFor(logging.INFO) and result.value.warnings:
+            elif self._logger.isEnabledFor(logging.INFO) and result.value.warnings:
                 log_path = True
             else:
                 log_path = False
             if log_path:
-                self.logger.info(f"--eGauge.try_connect  path:0x{path_dbg:08x}")
+                self._logger.info(f"--eGauge.try_connect  path:0x{path_dbg:08x}")
         return result
 
     def start(self) -> Result[DriverResult[TryConnectResult], Exception]:
@@ -229,7 +229,7 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
     def read_power_w(self, channel: DataChannel) -> Result[DriverResult[int | None], Exception]:
         egauge_config = next(
             (
-                cfg for cfg in self.component.gt.ConfigList
+                cfg for cfg in self._component.gt.ConfigList
                 if cfg.ChannelName == channel.Name
             ),
             None
@@ -272,7 +272,7 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
     def read_current_rms_micro_amps(self, channel: DataChannel) -> Result[DriverResult[int | None], Exception]:
         raise NotImplementedError
 
-    def validate_config(self, config: ElectricMeterChannelConfig) -> None:
+    def _validate_config(self, config: ElectricMeterChannelConfig) -> None:
         egauge_config = config.EgaugeRegisterConfig
         if egauge_config is None:
             raise ValueError("Misconfigured eGaugeConfig for power. eGaugeConfig is None.")

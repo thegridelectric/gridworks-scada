@@ -11,10 +11,10 @@ from gwproactor import Subscription
 from actors.config import ScadaSettings
 from gwproto.data_classes.components.electric_meter_component import \
     ElectricMeterComponent
-from drivers.power_meter.power_meter_driver import PowerMeterDriver
+from drivers.power_meter.deprecated_power_meter_driver import DeprecatedPowerMeterDriver
 from gwproto.enums import MakeModel
 from gwproto.data_classes.data_channel import DataChannel
-class OpenenergyEmonpi_PowerMeterDriver(PowerMeterDriver):
+class OpenenergyEmonpi_PowerMeterDriver(DeprecatedPowerMeterDriver):
     def __init__(self, component: ElectricMeterComponent, settings: ScadaSettings):
         super(OpenenergyEmonpi_PowerMeterDriver, self).__init__(component=component, settings=settings)
         if component.cac.MakeModel != MakeModel.OPENENERGY__EMONPI:
