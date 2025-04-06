@@ -198,9 +198,9 @@ class SiegLoop(ScadaActor):
 
         # Control parameters (match defulats in SiegLoop)
    
-        self.proportional_gain = .8
-        self.derivative_gain = 0.05
-        self.integral_gain = 0.2
+        self.proportional_gain = .2
+        self.derivative_gain = 15
+        self.integral_gain = 0.00009
         self.anticipatory_threshold_f = 10.0
         self.min_lift_f_for_anticipation = 1.0
         self.t1 = 15 # seconds where some flow starts going through the Sieg Loop
@@ -717,7 +717,7 @@ class SiegLoop(ScadaActor):
                 self.trigger_valve_event(ValveEvent.ResetToFullySend)
             else:
                 self.trigger_valve_event(ValveEvent.StopKeepingLess)
-        self.log(f"Movement {task_id} completed: {self.time_percent_keep}%, state {self.valve_state}")
+        self.log(f"Movement {task_id} completed: {round(self.time_percent_keep)}%, state {self.valve_state}")
 
     async def prepare_new_movement_task(self, target_percent: float) -> str:
         """Create a new movement task with proper cleanup of existing tasks.
@@ -802,7 +802,7 @@ class SiegLoop(ScadaActor):
 
             # At the end of the method, after movement is complete:
             if task_id == self._current_task_id:
-                self.log(f"{round(self.time_percent_keep)} keep [{task_id} COMPLETED]")
+                # self.log(f"{round(self.time_percent_keep)} keep [{task_id} COMPLETED]")
                 self.complete_move(task_id)
                 
                 # Check if we need to trigger ReachT2 event

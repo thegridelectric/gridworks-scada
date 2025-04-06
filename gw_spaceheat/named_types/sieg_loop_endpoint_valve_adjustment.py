@@ -3,7 +3,7 @@ import time
 from typing import Literal
 
 from gwproto.property_format import HandleName, UTCMilliseconds
-from pydantic import BaseModel, Field, PositiveInt, model_validator
+from pydantic import BaseModel, Field, PositiveInt, StrictInt, model_validator
 from typing_extensions import Self
 
 class SiegLoopEndpointValveAdjustment(BaseModel):
@@ -15,7 +15,7 @@ class SiegLoopEndpointValveAdjustment(BaseModel):
     """ 
     FromHandle: HandleName
     ToHandle: HandleName
-    HpKeepPercent: PositiveInt
+    HpKeepPercent: StrictInt
     Seconds: PositiveInt
     CreatedMs: UTCMilliseconds = Field(default_factory=lambda: int(time.time() * 1000))
     TypeName: Literal["sieg.loop.endpoint.valve.adjustment"] = "sieg.loop.endpoint.valve.adjustment"
