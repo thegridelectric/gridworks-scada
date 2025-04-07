@@ -139,8 +139,6 @@ class SiegLoop(ScadaActor):
     def __init__(self, name: str, services: ScadaInterface):
         super().__init__(name, services)
         self._stop_requested = False
-        self.time_percent_keep: float = 100
-        self.flow_percent_keep: float = 100
         self.resetting = False
         self._movement_task = None # Track the current movement task
         self.move_start_s: float = 0
@@ -196,14 +194,17 @@ class SiegLoop(ScadaActor):
         self.target_lwt = 110.0 # Default target LWT in °F
         self.hp_boss_state = HpBossState.HpOn
 
-        # Control parameters (match defulats in SiegLoop)
-   
-        self.proportional_gain = .2
-        self.derivative_gain = 15
-        self.integral_gain = 0.00009
-        self.anticipatory_threshold_f = 10.0
-        self.min_lift_f_for_anticipation = 1.0
-        self.t1 = 15 # seconds where some flow starts going through the Sieg Loop
+        self.time_percent_keep: float = 100
+        # self.flow_percent_keep is a property
+
+        # Control parameters using time percent keep
+        self.ultimate_gain = 1.0  # Ku
+        self.ultimate_gain_seconds = 230 # Tu
+        # Applying Ziegler-Nichols with 
+        self.proportional_gain = .2  #  P = 0.2*Ku
+        self.derivative_gain = 15 # D = 0.33 * P /Tu
+        self.integral_gain = 0.00009 #  I =  0.1 × P ÷ Tu
+        self.t1 = 16 # seconds where some flow starts going through the Sieg Loop
         self.t2 = 95 # seconds where all flow starts going through the Sieg Loop
         
         self.control_interval_seconds = 30 
@@ -226,41 +227,6 @@ class SiegLoop(ScadaActor):
     # Control loop
     ##############################################
 
-    def return_delta_percent_0(self) -> float:
-        """Calculate delta percentage adjustment for the next 5 seconds"""
-        # 1. If we don't have visiblity, trigger "Blind" which will go to FullSend
-        if self.lift_f is None or self.lwt_f is None:
-            self.trigger_control_event(ControlEvent.Blind)
-            return 0
-        
-        if self.control_state not in [SiegControlState.Hover, SiegControlState.Active]:
-            raise Exception(f"HUH. should not be running controlloop ")
-        
-        # 2. Measure the current state
-        temp_diff_from_target = self.target_lwt - self.lwt_f
-
-        # 3. Proportional control based on how far we are from target
-        # If LWT is below target, increase recirculation (more keep)
-        # If LWT is above target, decrease recirculation (less keep)
-        p_term  = self.proportional_gain * temp_diff_from_target
-
-        # 4. Add anticipatory logic (look-ahead)
-        # If approaching target quickly, start moving valve before reaching target
-        if abs(temp_diff_from_target) < self.anticipatory_threshold_f and self.lift_f > self.min_lift_f_for_anticipation:
-            # If approaching target fast, start opening valve early
-            a_term = -self.lift_f * self.derivative_gain  # Adjust multiplier based on testing
-        else:
-            a_term = 0
-        percent_adjustment = p_term +  a_term
-        self.log(f"p_term {round(p_term,1)}, a_term {round(a_term,1)}")
-        # Calculate maximum movement possible in the control interval (physical limitation)
-        max_movement = int(100 * self.control_interval_seconds / 2*self.FULL_RANGE_S)
-        if percent_adjustment > 0:
-            bounded_adjustment = min(percent_adjustment, max_movement)
-        else:
-            bounded_adjustment = max(percent_adjustment, -max_movement)
-
-        return bounded_adjustment
 
     def return_delta_percent(self) -> float:
         """Calculate delta percentage adjustment for the next control interval using a PID controller"""
@@ -1005,6 +971,9 @@ class SiegLoop(ScadaActor):
         return self.to_fahrenheit(current_lwt / 1000)
 
     @property
+    
+
+    @property
     def lift_f(self) -> Optional[float]:
         """ The lift of the heat pump: leaving water temp minus entering water temp.
         Returns 0 if this is negative (e.g. during defrost). Returns None if missing 
@@ -1021,3 +990,132 @@ class SiegLoop(ScadaActor):
         if self.lift_f is None:
             return True
         return False
+
+    def flow_from_time(self, time_percent_keep: float) -> float:
+        """Convert valve position (time_percent_keep) to actual flow percentage (flow_percent_keep)
+        
+        Uses experimentally determined correlation data to map between valve position time
+        and the resulting flow percentage.
+        
+        Args:
+            time_percent_keep: Valve position percentage (0-100)
+            
+        Returns:
+            flow_percent_keep: Actual flow percentage through keep path (0-100)
+        """
+        # Experimental mapping between time_percent_keep and flow_percent_keep
+        fn = [[0.0, 0.0], [1.0, 0.0], [2.0, 0.0], [3.0, 0.0], [4.0, 0.0], [5.0, 0.0], 
+            [6.0, 0.0], [7.0, 0.0], [8.0, 0.0], [9.0, 0.0], [10.0, 0.0], [11.0, 0.0], 
+            [12.0, 0.0], [13.0, 0.0], [14.0, 0.0], [15.0, 0.0], [16.0, 0.0], [17.0, 1.75], 
+            [18.0, 4.5], [19.0, 7.25], [20.0, 10.0], [21.0, 12.75], [22.0, 15.5], 
+            [23.0, 18.25], [24.0, 21.0], [25.0, 23.75], [26.0, 26.5], [27.0, 29.25], 
+            [28.0, 32.0], [29.0, 34.75], [30.0, 37.5], [31.0, 40.25], [32.0, 43.0], 
+            [33.0, 45.75], [34.0, 48.5], [35.0, 51.25], [36.0, 54.0], [37.0, 54.25], 
+            [38.0, 55.5], [39.0, 56.75], [40.0, 58.0], [41.0, 59.25], [42.0, 60.5], 
+            [43.0, 61.75], [44.0, 63.0], [45.0, 64.25], [46.0, 65.5], [47.0, 66.75], 
+            [48.0, 68.0], [49.0, 69.25], [50.0, 70.5], [51.0, 71.75], [52.0, 73.0], 
+            [53.0, 74.25], [54.0, 75.5], [55.0, 76.75], [56.0, 78.0], [57.0, 79.25], 
+            [58.0, 80.5], [59.0, 81.75], [60.0, 83.0], [61.0, 84.25], [62.0, 84.9], 
+            [63.0, 85.35], [64.0, 85.8], [65.0, 86.25], [66.0, 86.7], [67.0, 87.15], 
+            [68.0, 87.6], [69.0, 88.05], [70.0, 88.5], [71.0, 88.95], [72.0, 89.4], 
+            [73.0, 89.85], [74.0, 90.3], [75.0, 90.75], [76.0, 91.2], [77.0, 91.65], 
+            [78.0, 92.1], [79.0, 92.55], [80.0, 93.0], [81.0, 93.45], [82.0, 93.9], 
+            [83.0, 94.35], [84.0, 94.8], [85.0, 95.25], [86.0, 95.7], [87.0, 96.15], 
+            [88.0, 96.6], [89.0, 97.05], [90.0, 97.5], [91.0, 97.95], [92.0, 98.4], 
+            [93.0, 98.85], [94.0, 99.3], [95.0, 100.0], [96.0, 100.0], [97.0, 100.0], 
+            [98.0, 100.0], [99.0, 100.0], [100.0, 100.0]]
+        
+        # Handle edge cases
+        if time_percent_keep <= 0:
+            return 0
+        if time_percent_keep >= 100:
+            return 100
+        
+        # Find the two closest points in our mapping
+        for i in range(len(fn) - 1):
+            if fn[i][0] <= time_percent_keep <= fn[i+1][0]:
+                # Linear interpolation
+                t0, f0 = fn[i]
+                t1, f1 = fn[i+1]
+                
+                # Avoid division by zero
+                if t1 == t0:
+                    return f0
+                    
+                # Calculate interpolated flow percentage
+                ratio = (time_percent_keep - t0) / (t1 - t0)
+                return f0 + ratio * (f1 - f0)
+        
+        # Should not reach here with proper input
+        return 0
+
+    def time_from_flow(self, flow_percent_keep: float) -> float:
+        """Convert actual flow percentage (flow_percent_keep) to valve position (time_percent_keep)
+        
+        Inverse of flow_from_time - uses the same experimental data to map flow percentages
+        back to the required valve position.
+        
+        Args:
+            flow_percent_keep: Actual flow percentage through keep path (0-100)
+            
+        Returns:
+            time_percent_keep: Required valve position percentage (16-95)
+        """
+        # Use the same mapping as in flow_from_time
+        fn = [[0.0, 0.0], [1.0, 0.0], [2.0, 0.0], [3.0, 0.0], [4.0, 0.0], [5.0, 0.0], 
+            [6.0, 0.0], [7.0, 0.0], [8.0, 0.0], [9.0, 0.0], [10.0, 0.0], [11.0, 0.0], 
+            [12.0, 0.0], [13.0, 0.0], [14.0, 0.0], [15.0, 0.0], [16.0, 0.0], [17.0, 1.75], 
+            [18.0, 4.5], [19.0, 7.25], [20.0, 10.0], [21.0, 12.75], [22.0, 15.5], 
+            [23.0, 18.25], [24.0, 21.0], [25.0, 23.75], [26.0, 26.5], [27.0, 29.25], 
+            [28.0, 32.0], [29.0, 34.75], [30.0, 37.5], [31.0, 40.25], [32.0, 43.0], 
+            [33.0, 45.75], [34.0, 48.5], [35.0, 51.25], [36.0, 54.0], [37.0, 54.25], 
+            [38.0, 55.5], [39.0, 56.75], [40.0, 58.0], [41.0, 59.25], [42.0, 60.5], 
+            [43.0, 61.75], [44.0, 63.0], [45.0, 64.25], [46.0, 65.5], [47.0, 66.75], 
+            [48.0, 68.0], [49.0, 69.25], [50.0, 70.5], [51.0, 71.75], [52.0, 73.0], 
+            [53.0, 74.25], [54.0, 75.5], [55.0, 76.75], [56.0, 78.0], [57.0, 79.25], 
+            [58.0, 80.5], [59.0, 81.75], [60.0, 83.0], [61.0, 84.25], [62.0, 84.9], 
+            [63.0, 85.35], [64.0, 85.8], [65.0, 86.25], [66.0, 86.7], [67.0, 87.15], 
+            [68.0, 87.6], [69.0, 88.05], [70.0, 88.5], [71.0, 88.95], [72.0, 89.4], 
+            [73.0, 89.85], [74.0, 90.3], [75.0, 90.75], [76.0, 91.2], [77.0, 91.65], 
+            [78.0, 92.1], [79.0, 92.55], [80.0, 93.0], [81.0, 93.45], [82.0, 93.9], 
+            [83.0, 94.35], [84.0, 94.8], [85.0, 95.25], [86.0, 95.7], [87.0, 96.15], 
+            [88.0, 96.6], [89.0, 97.05], [90.0, 97.5], [91.0, 97.95], [92.0, 98.4], 
+            [93.0, 98.85], [94.0, 99.3], [95.0, 100.0], [96.0, 100.0], [97.0, 100.0], 
+            [98.0, 100.0], [99.0, 100.0], [100.0, 100.0]]
+        
+        # Handle edge cases
+        if flow_percent_keep <= 0:
+            return 0
+        if flow_percent_keep >= 100:
+            return 100
+        
+        # Find the two closest points in our mapping (searching by flow percentage this time)
+        for i in range(len(fn) - 1):
+            if fn[i][1] <= flow_percent_keep <= fn[i+1][1]:
+                # Linear interpolation
+                t0, f0 = fn[i]
+                t1, f1 = fn[i+1]
+                
+                # Avoid division by zero
+                if f1 == f0:
+                    return t0
+                    
+                # Calculate interpolated time percentage
+                ratio = (flow_percent_keep - f0) / (f1 - f0)
+                return t0 + ratio * (t1 - t0)
+        
+        # Special case - if flow percentage is very low and not caught in the loop
+        if flow_percent_keep < fn[0][1]:
+            return 0
+            
+        # Special case - if flow percentage is very high and not caught in the loop
+        if flow_percent_keep > fn[-1][1]:
+            return 100
+        
+        # Should not reach here with proper input
+        return 0
+
+    @property
+    def flow_percent_keep(self) -> float:
+        """Calculate the current flow percentage through the keep path based on valve position"""
+        return self.flow_from_time(self.time_percent_keep)
