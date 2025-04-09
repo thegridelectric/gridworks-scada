@@ -293,21 +293,22 @@ class SiegLoop(ScadaActor):
         Returns:
             Temperature change (°F) per percentage point change in flow keep
         """
-        if self.lift_f is None:
-            return None
+        # if self.lift_f is None:
+        #     return None
             
-        # Convert flow_percent_keep to fraction
-        k = self.flow_percent_keep / 100
+        # # Convert flow_percent_keep to fraction
+        # k = self.flow_percent_keep / 100
         
-        # Avoid division by zero or very small denominators
-        if k >= 0.99:
-            return -1000  # Very high sensitivity
+        # # Avoid division by zero or very small denominators
+        # if k >= 0.99:
+        #     return -1000  # Very high sensitivity
             
-        # Calculate the sensitivity using the formula
-        # Note: we divide by 100 to get sensitivity per percentage point rather than per fraction
-        sensitivity = -self.lift_f / ((1 - k) ** 2) / 100
+        # # Calculate the sensitivity using the formula
+        # # Note: we divide by 100 to get sensitivity per percentage point rather than per fraction
+        # sensitivity = -self.lift_f / ((1 - k) ** 2) / 100
         
-        return sensitivity
+        # return sensitivity
+        return 1
 
     def target_too_low(self) -> bool:
         """ Returns true if current target water temp is too low to hit"""
@@ -319,12 +320,15 @@ class SiegLoop(ScadaActor):
 
     def time_to_leave_startup_hover(self) -> bool:
         """ Trigger for """
-        # if self.lift_f is None:
-        #     return False
-        # if self.lift_f >4:
+        if self.lift_f is None:
+            return False
+        # if self.lift_f > 4:
         #     return True
-        if time.time() - self.hp_start_s > self.LG_STARTUP_HOVER_UNTIL_S:
+        if (time.time() - self.hp_start_s > self.LG_STARTUP_HOVER_UNTIL_S): 
             self.log(f"Leaving startup having waited {self.LG_STARTUP_HOVER_UNTIL_S} seconds")
+            return True
+        elif self.lift_f > 6:
+            self.log(f"Lift {self.lift_f} is greater than 6. Leaving startup hover")
             return True
         return False
   
@@ -424,6 +428,8 @@ class SiegLoop(ScadaActor):
         self.log(f"Calculated target time: {round(time_target_percent,1)}% keep")
         await self.prepare_new_movement_task(time_target_percent)
         # and now wait another 25 seconds to settle down
+        self.log(f"Letting this leave startup hover movement happen")
+        await asyncio.sleep(30)
         self.log(f"Waiting 25 more seconds to settle down")
         await asyncio.sleep(25)
         self.moving_to_calculated_target = False
@@ -835,7 +841,7 @@ class SiegLoop(ScadaActor):
         # Generate a new task ID for this movement
         new_task_id = str(uuid.uuid4())[-4:]
         self._current_task_id = new_task_id
-        self.log(f"Task {new_task_id}: target {time_target_percent}")
+        self.log(f"Task {new_task_id}: target {round(time_target_percent,1)}")
         
         # Cancel any existing movement task
         await self.clean_up_old_task()
@@ -1061,6 +1067,7 @@ class SiegLoop(ScadaActor):
 
             if seconds_into_control_loop == 0 and milliseconds < 100:
                 # We're at the top of a control interval (within 100ms)
+                self.log(f"Moving to calculated target: {self.moving_to_calculated_target}")
                 if self.is_blind():
                     # Blind: * -> MovingToFullSend
                     self.trigger_control_event(ControlEvent.Blind)
@@ -1068,7 +1075,7 @@ class SiegLoop(ScadaActor):
                 elif self.control_state == SiegControlState.StartupHover and self.time_to_leave_startup_hover():
                     self.trigger_control_event(ControlEvent.NeedLessKeep)
                     asyncio.create_task(self.leave_startup_hover())
-                if self.control_state == SiegControlState.Active:
+                elif self.control_state == SiegControlState.Active:
                     if not self.moving_to_calculated_target:
                         # Run temperature control without awaiting to avoid blocking
                         asyncio.create_task(self.run_temperature_control())
