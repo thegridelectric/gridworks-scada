@@ -623,7 +623,6 @@ class Atn(ActorInterface, Proactor):
                     or (datetime.now().minute <= self.create_graph_minute and self.flo_params)):
                 if self.contract_handler.latest_hb is None:
                     self.log("No active contract.")
-                # await self.run_fake_d(session)
             
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
