@@ -677,7 +677,8 @@ class SiegLoop(ScadaActor):
         self.log("Waiting another 5 seconds")
         await asyncio.sleep(5)
         # InitializationComplete: Initializing -> Dormant
-        self.trigger_control_event(ControlEvent.InitializationComplete)
+        if self.control_state == SiegControlState.Initializing:
+            self.trigger_control_event(ControlEvent.InitializationComplete)
         if self.hp_boss_state in [HpBossState.PreparingToTurnOn, HpBossState.HpOn]:
             # HpPreparing: Dormant -> MovingToStartupHover
             self.trigger_control_event(ControlEvent.HpPreparing)
