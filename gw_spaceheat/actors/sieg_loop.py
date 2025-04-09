@@ -16,7 +16,7 @@ from transitions import Machine
 from actors.hp_boss import SiegLoopReady, HpBossState
 from actors.scada_actor import ScadaActor
 from actors.scada_interface import ScadaInterface
-from enums import LogLevel
+from enums import HpModel, LogLevel
 from named_types import (ActuatorsReady, Glitch, ResetHpKeepValue, SetLwtControlParams,
     SetTargetLwt, SingleMachineState,  SiegLoopEndpointValveAdjustment)
 
@@ -47,9 +47,9 @@ class ValveEvent(GwStrEnum):
 class SiegControlState(GwStrEnum):
     Initializing = auto() # Scada just started up
     Dormant = auto()  # Heat pump off
-    MovingToKeep = auto()  # Moving to t2 position 
+    MovingToStartupHover = auto()  # Moving to t2 position 
     MovingToFullSend = auto() # 
-    Hover = auto()  # Waiting at t2 position
+    StartupHover = auto()  # Waiting at t2 position
     Active = auto()  # Normal proportional control
 
     @classmethod
@@ -67,6 +67,8 @@ class ControlEvent(GwStrEnum):
     ReachT2 = auto()
     ReachFullSend = auto()
     NeedLessKeep = auto()
+    DefrostDetected = auto()
+    LeavingDefrostDetected = auto()
     Blind = auto()
 
 
@@ -135,6 +137,8 @@ class SiegLoop(ScadaActor):
     """
     FULL_RANGE_S = 70
     RESET_S = 10
+    #relay on       <- 2m -> pump on <- 2.5m <- tiny lift -> 2*m <-5 degF Lift ->  2min <- ramp -> 17 <- 30 degF Lift
+    LG_STARTUP_HOVER_UNTIL_S = 2 * 60          + 2.5 * 60          + 2 * 60 - 70 # 70: time to move to full keep
 
     def __init__(self, name: str, services: ScadaInterface):
         super().__init__(name, services)
@@ -142,6 +146,8 @@ class SiegLoop(ScadaActor):
         self.resetting = False
         self._movement_task = None # Track the current movement task
         self.move_start_s: float = 0
+         
+        self.hp_model = self.settings.hp_model
         self.latest_move_duration_s: float = 0
         # Define transitions with callback
         self.control_transitions = [
@@ -149,10 +155,10 @@ class SiegLoop(ScadaActor):
             {"trigger": "HpTurnsOff", "source": "*", "dest": "MovingToFullSend"},
             {"trigger": "Blind", "source": "*", "dest": "MovingToFullSend"},
             {"trigger": "ReachFullSend", "source": "MovingToFullSend", "dest":"Dormant"},
-            {"trigger": "HpPreparing", "source": "Dormant", "dest": "MovingToKeep"},
-            {"trigger": "HpPreparing", "source": "MovingToFullSend", "dest": "MovingToKeep"},
-            {"trigger": "ReachT2", "source": "MovingToKeep", "dest": "Hover"},
-            {"trigger": "NeedLessKeep", "source": "Hover", "dest": "Active"},
+            {"trigger": "HpPreparing", "source": "Dormant", "dest": "MovingToStartupHover"},
+            {"trigger": "HpPreparing", "source": "MovingToFullSend", "dest": "MovingToStartupHover"},
+            {"trigger": "ReachT2", "source": "MovingToStartupHover", "dest": "StartupHover"},
+            {"trigger": "NeedLessKeep", "source": "StartupHover", "dest": "Active"},
         ]
         
         self.transitions = [
@@ -193,6 +199,7 @@ class SiegLoop(ScadaActor):
         # Heat pump LWT control settings
         self.target_lwt = 110.0 # Default target LWT in °F
         self.hp_boss_state = HpBossState.HpOn
+        self.hp_start_s: float = time.time() # Track time since
 
         self.time_percent_keep: float = 100
         # self.flow_percent_keep is a property
@@ -201,12 +208,12 @@ class SiegLoop(ScadaActor):
         self.ultimate_gain = 1.0  # Ku
         self.ultimate_gain_seconds = 230 # Tu
         # Applying Ziegler-Nichols with 
-        self.proportional_gain = .2  #  P = 0.2*Ku
-        self.derivative_gain = 15 # D = 0.33 * P /Tu
-        self.integral_gain = 0.00009 #  I =  0.1 × P ÷ Tu
+        self.proportional_gain = .4  #  P = 0.2*Ku
+        self.derivative_gain = 15 # D = 0.33 * P * Tu
+        self.integral_gain = 0.00017 #  I =  0.1 × P ÷ Tu
         self.t1 = 16 # seconds where some flow starts going through the Sieg Loop
         self.t2 = 95 # seconds where all flow starts going through the Sieg Loop
-        
+        self.moving_to_calculated_target = False
         self.control_interval_seconds = 30 
 
     def start(self) -> None:
@@ -224,26 +231,123 @@ class SiegLoop(ScadaActor):
         ...
 
     ##############################################
-    # Control loop
+    # Control loop mechanics
     ##############################################
 
+    def calc_startup_position(self) -> Optional[float]:
+        if self.hp_model != HpModel.LgHighTempHydroKitPlusMultiV:
+            raise Exception("Haven't set up sieg loop except for LG Hydrokit!")
 
-    def return_delta_percent(self) -> float:
-        """Calculate delta percentage adjustment for the next control interval using a PID controller"""
-        # 1. If we don't have visibility, trigger "Blind" which will go to FullSend
-        if self.lift_f is None or self.lwt_f is None:
-            self.trigger_control_event(ControlEvent.Blind)
-            return 0
+        if self.hp_model == HpModel.LgHighTempHydroKitPlusMultiV:
+            LG_STARTUP_LIFT_F = 5
+            flow_percent = self.calc_eq_flow_percent(lift_f=LG_STARTUP_LIFT_F)
+            if flow_percent is None:
+                self.trigger_control_event(ControlEvent.Blind)
+                return None
         
-        if self.control_state not in [SiegControlState.Hover, SiegControlState.Active]:
+        # convert to time percent
+        time_percent = self.time_from_flow(flow_percent)
+        self.log(f"startup flow: {round(time_percent, 1)}% time keep")
+        self.log(f"  (Flow equivalent: {round(flow_percent, 1)}% flow keep)")
+        return time_percent
+
+    def calc_eq_flow_percent(self, lift_f: Optional[float] = None) -> Optional[float]:
+        """Calculate the theoretical equilibrium flow keep percentage to achieve target LWT, from current
+         sieg_cold_temp_f and target_lwt. If lift is not given then it uses current lift.
+         Using the formula: k = 1 - lift/(target - tsc)
+
+        where k is flow_fraction
+         Returns None if temps are not available
+         Derivation:s
+         target = lift + ewt
+         ewt = k*target + (1-k)*tsc
+         target = k(target-tsc) + tsc + lift
+         k = 1 - lift/(target-tsc)
+         """
+        
+        if self.lift_f is None or self.sieg_cold_temp_f is None:
+            self.log("Missing temp readings for equilibrium calc")
+            return None
+
+        if lift_f is None:
+            lift_f = self.lift_f
+        # Avoid division by zero or negative values
+        temp_diff = self.target_lwt - self.sieg_cold_temp_f
+        if temp_diff <= 0:
+            self.log(f"Target LWT {self.target_lwt}°F is lower than Sieg cold temp {self.sieg_cold_temp_f}°F")
+            return 0 
+
+        k = 1 - (self.lift_f / temp_diff)
+        eq_flow_percent = max(0, min(k, 1)) * 100
+        self.log(f"Calculated target flow: {round(eq_flow_percent, 1)}% keep")
+        self.log(f"  Target LWT: {round(self.target_lwt, 1)}°F")
+        self.log(f"  Current Lift: {round(self.lift_f, 1)}°F")
+        self.log(f"  Sieg Cold: {round(self.sieg_cold_temp_f, 1)}°F")
+        return eq_flow_percent
+
+    def calc_flow_sensitivity(self) -> Optional[float]:
+        """ calculate dLWT/d%k at the current operating point
+        
+        The sensitivity follows the formula dLWT/d%k = -Lift/(1-%k)^2
+
+        Returns:
+            Temperature change (°F) per percentage point change in flow keep
+        """
+        if self.lift_f is None:
+            return None
+            
+        # Convert flow_percent_keep to fraction
+        k = self.flow_percent_keep / 100
+        
+        # Avoid division by zero or very small denominators
+        if k >= 0.99:
+            return -1000  # Very high sensitivity
+            
+        # Calculate the sensitivity using the formula
+        # Note: we divide by 100 to get sensitivity per percentage point rather than per fraction
+        sensitivity = -self.lift_f / ((1 - k) ** 2) / 100
+        
+        return sensitivity
+
+    def target_too_low(self) -> bool:
+        """ Returns true if current target water temp is too low to hit"""
+        if self.sieg_cold_temp_f is None or self.lift_f is None:
+            return True
+        if self.sieg_cold_temp_f + self.lift_f > self.target_lwt:
+            return True
+        return False
+
+    def time_to_leave_startup_hover(self) -> bool:
+        """ Trigger for """
+        # if self.lift_f is None:
+        #     return False
+        # if self.lift_f >4:
+        #     return True
+        if time.time() - self.hp_start_s > self.LG_STARTUP_HOVER_UNTIL_S:
+            self.log(f"Leaving startup having waited {self.LG_STARTUP_HOVER_UNTIL_S} seconds")
+            return True
+        return False
+  
+    def calc_time_delta_percent(self, use_sensitivity: bool = True) -> Optional[float]:
+        """Calculate delta percentage adjustment for the next control interval using a PID controller
+        
+        Returns None if blind
+        """
+
+        if self.control_state not in [SiegControlState.StartupHover, SiegControlState.Active]:
             raise Exception(f"Should not be running control loop in state {self.control_state}")
-        
+
+        sensitivity = self.calc_flow_sensitivity()
+        # 1. If we don't have visibility, trigger "Blind" which will go to FullSend
+        if self.lift_f is None or self.lwt_f is None or sensitivity is None:
+            return None
+
         # 2. Calculate error
-        current_error = self.target_lwt - self.lwt_f
+        err = self.target_lwt - self.lwt_f
         
         # 3. Calculate PID terms
         # Proportional term
-        p_term = self.proportional_gain * current_error
+        p_flow_delta = self.proportional_gain * err
         
         # Derivative term (rate of change of error)
         # Store time and error for derivative calculation
@@ -251,19 +355,16 @@ class SiegLoop(ScadaActor):
         if not hasattr(self, 'last_error_time') or not hasattr(self, 'last_error'):
             # First run, initialize values
             self.last_error_time = current_time
-            self.last_error = current_error
-            d_term = 0
+            self.last_error = err
+            d_flow_delta = 0
         else:
-            # Calculate derivative only if enough time has passed
             time_delta = current_time - self.last_error_time
-            self.log(f"time_delta is {round(time_delta)}")
-            error_delta = current_error - self.last_error
-            self.log(f"error delta is {error_delta}")
-            d_term = self.derivative_gain * (error_delta / time_delta)
-            self.log(f"d_term is {d_term}")
+            error_delta = err - self.last_error
+            d_flow_delta = self.derivative_gain * (error_delta / time_delta)
+            
             # Update last values for next iteration
             self.last_error_time = current_time
-            self.last_error = current_error
+            self.last_error = err
 
         # Integral term
         if not hasattr(self, 'error_integral'):
@@ -271,53 +372,80 @@ class SiegLoop(ScadaActor):
         
         # Add current error to integral, with anti-windup protection
         max_integral = 50  # Limit integral windup
-        self.error_integral += current_error * self.control_interval_seconds
+        self.error_integral += err * self.control_interval_seconds
         self.error_integral = max(-max_integral, min(self.error_integral, max_integral))
         
-        i_term = self.integral_gain * self.error_integral
-        
-        # 4. Calculate total adjustment
-        percent_adjustment = p_term + i_term + d_term
-        
-        self.log(f"PID: P={round(p_term,1)}, I={round(i_term,1)}, D={round(d_term,1)}, Total={round(percent_adjustment,1)}")
-        
-        # 5. Calculate maximum movement possible in the control interval (physical limitation)
-        max_movement = 100 * self.control_interval_seconds / (2 * self.FULL_RANGE_S)
-        
-        # 6. Bound the adjustment to the physical limits of the valve
-        if percent_adjustment > 0:
-            bounded_adjustment = min(percent_adjustment, max_movement)
+        i_flow_delta = self.integral_gain * self.error_integral
+
+        # 4. Calculate total flow adjustment
+        orig_adjustment = p_flow_delta + i_flow_delta + d_flow_delta
+        if use_sensitivity:
+            self.log(f"Sensitivity {round(sensitivity, 2)}.")
+            flow_percent_adjustment = orig_adjustment/sensitivity
+            
         else:
-            bounded_adjustment = max(percent_adjustment, -max_movement)
+            flow_percent_adjustment = orig_adjustment
         
+        # Convert to time_percent_keep
+        target_flow_percent = self.flow_percent_keep + flow_percent_adjustment
+        target_time_percent = self.time_from_flow(target_flow_percent)
+        time_percent_adjustment = target_time_percent - self.time_percent_keep
+
+        # 5. Calculate maximum movement possible in the control interval (physical limitation)
+        max_time_percent = 100 * self.control_interval_seconds / (self.FULL_RANGE_S)
+
+        # 6. Bound the adjustment to the physical limits of the valve
+        if time_percent_adjustment > 0:
+            bounded_adjustment = min(time_percent_adjustment, max_time_percent)
+        else:
+            bounded_adjustment = max(time_percent_adjustment, -max_time_percent)
+        
+        self.log(f"PID adjustment:")
+        self.log(f"  Error: {round(err, 1)}°F")
+        if use_sensitivity:
+            self.log(f"  Sensitivity: {round(sensitivity, 3)}°F per % flow")
+            self.log(f"  P: {round(p_flow_delta/sensitivity, 1)}% flow, I: {round(i_flow_delta/sensitivity, 1)}% flow,  D: {round(d_flow_delta/sensitivity, 1)}% flow")
+        else:
+            self.log(f"  P: {round(p_flow_delta, 1)}% flow, I: {round(i_flow_delta, 1)}% flow,  D: {round(d_flow_delta, 1)}% flow")
+        self.log(f"  Flow adjustment: {round(flow_percent_adjustment,1)}%")
+        self.log(f"  Time adjustment: {round(time_percent_adjustment,1)}%")
+        self.log(f"  Bounded time adjustment: {round(bounded_adjustment,1)}%")
+
         return bounded_adjustment
+
+    async def leave_startup_hover(self) -> None:
+        """ Move to the estimated valve position for hitting 
+        target temp with 5 degrees of lift"""
+        self.moving_to_calculated_target = True
+        flow_target_percent = self.calc_eq_flow_percent(lift_f = 5)
+        if flow_target_percent is None:
+            raise Exception(f"Should not get here if blind")
+        time_target_percent = self.time_from_flow(flow_target_percent)
+        self.log(f"Calculated target time: {round(time_target_percent,1)}% keep")
+        await self.prepare_new_movement_task(time_target_percent)
+        # and now wait another 25 seconds to settle down
+        self.log(f"Waiting 25 more seconds to settle down")
+        await asyncio.sleep(25)
+        self.moving_to_calculated_target = False
     
     async def run_temperature_control(self) -> None:
-        """Check current temperatures and adjust valve position if needed. Only used
-        when control state is Hover (at the t2 percent where the loop is exactly keepoing
-        everything) or Active"""
+        """Check current temperatures and adjust valve position if needed. Only
+        used when control state is Active"""
 
         #TODO think through safety to make sure it doesn't stay in 100% keep
         # if temps go away
         if self.lwt_f is None or self.ewt_f is None or self.lift_f is None:
-            self.log("Missing temperature readings, skipping control adjustment")
+            self.log("Missing temperature readings, Blind ... aborting!")
+            self.trigger_control_event(ControlEvent.Blind)
             return
 
+        self.log(f"LWT {round(self.lwt_f,1)} | Target {round(self.target_lwt,1)} | Lift {round(self.lift_f,1)}")
         # Calculate target percent
-        delta_percent = self.return_delta_percent()
-        max_movement = int(100 * self.control_interval_seconds / self.FULL_RANGE_S)
-        response = delta_percent/max_movement
-        # If in Hover state and delta is finally negative (need less keep), 
-        # transition to Active state
-        if self.control_state == SiegControlState.Hover:
-            if delta_percent < 0:
-                self.trigger_control_event(ControlEvent.NeedLessKeep)
-            else:
-                self.log(f"{round(self.lwt_f,1)} [Target {round(self.target_lwt,1)}]; Lift {round(self.lift_f,1)}.")
-                self.log(f"Still hovering ... waiting for delta_percent to go negative. currently {round(delta_percent,2)}")
-                return
-       
-        self.log(f"{round(self.lwt_f,1)} [Target {round(self.target_lwt,1)}]; Lift {round(self.lift_f,1)}.  Response: {round(response * 100)}%")
+        delta_percent = self.calc_time_delta_percent()
+        if delta_percent is None:
+            self.trigger_control_event(ControlEvent.Blind)
+            return
+        
         # Only move if significant change needed (avoid hunting)
         if abs(delta_percent) >= 0.5:
             # Calculate new position
@@ -331,21 +459,28 @@ class SiegLoop(ScadaActor):
     ##############################################
 
     def on_enter_moving_to_keep(self, event):
-        """Called when entering the MovingToKeep state"""
+        """Called when entering the MovingToStartupHover state"""
         self.log(f"Moving to keep position (t2: {self.t2}%) to prepare for heat pump start")
-        
+        if self.hp_model == HpModel.LgHighTempHydroKitPlusMultiV:
+            self._send_to(
+                self.hp_boss,
+                SiegLoopReady()
+            )
+        else:
+            raise Exception("Think through how Sieg Loop works for Samsung")
+        self.hp_start_s = time.time()
         # Create a new task for the movement to t2
         asyncio.create_task(self.prepare_new_movement_task(self.t2))
 
-    def on_enter_hover(self, event):
+    def on_enter_startup_hover(self, event):
         """Called when entering the Hover state"""
         self.log(f"Hovering at t2 position ({self.t2}%) waiting for heat pump to establish flow")
-        # We don't need to do anything special here - just wait
-        # Maybe send a notification that we're hovering?
-        self._send_to(
-            self.hp_boss,
-            SiegLoopReady()
-        )
+
+        if self.hp_model in [HpModel.SamsungFiveTonneHydroKit, HpModel.SamsungFourTonneHydroKit]:
+            self._send_to(
+                self.hp_boss,
+                SiegLoopReady()
+            )
 
     def on_enter_dormant(self, event):
         """Called when entering the Dormant state"""
@@ -385,10 +520,10 @@ class SiegLoop(ScadaActor):
         self.log(f"{event}: {orig_state} -> {self.control_state}")
 
         # Manually call the appropriate callback based on the new state
-        if self.control_state == SiegControlState.MovingToKeep and orig_state != SiegControlState.MovingToKeep:
+        if self.control_state == SiegControlState.MovingToStartupHover and orig_state != SiegControlState.MovingToStartupHover:
             self.on_enter_moving_to_keep(event)
-        elif self.control_state == SiegControlState.Hover and orig_state != SiegControlState.Hover:
-            self.on_enter_hover(event)
+        elif self.control_state == SiegControlState.StartupHover and orig_state != SiegControlState.StartupHover:
+            self.on_enter_startup_hover(event)
         elif self.control_state == SiegControlState.Active and orig_state != SiegControlState.Active:
             self.on_enter_active(event)
         elif self.control_state == SiegControlState.Dormant and orig_state != SiegControlState.Dormant:
@@ -528,7 +663,7 @@ class SiegLoop(ScadaActor):
         # InitializationComplete: Initializing -> Dormant
         self.trigger_control_event(ControlEvent.InitializationComplete)
         if self.hp_boss_state in [HpBossState.PreparingToTurnOn, HpBossState.HpOn]:
-            # HpPreparing: Dormant -> MovingToKeepf
+            # HpPreparing: Dormant -> MovingToStartupHover
             self.trigger_control_event(ControlEvent.HpPreparing)
 
     async def process_analog_dispatch(self, from_node: ShNode, payload: AnalogDispatch) -> None:    
@@ -612,7 +747,9 @@ class SiegLoop(ScadaActor):
                     self.log(f"NOT entering control loop: EWT: {self.ewt_f} LWT: {self.lwt_f}")
                 else:
                     self.trigger_control_event(ControlEvent.HpPreparing)
-                
+        elif payload.State == HpBossState.HpOn:
+            self.hp_start_s = time.time()
+
     def process_set_target_lwt(self, from_node: ShNode, payload: SetTargetLwt) -> None:
         self.target_lwt = payload.TargetLwtF
         self.log(f"Target lwt is now {self.target_lwt}")
@@ -685,11 +822,12 @@ class SiegLoop(ScadaActor):
                 self.trigger_valve_event(ValveEvent.StopKeepingLess)
         self.log(f"Movement {task_id} completed: {round(self.time_percent_keep)}%, state {self.valve_state}")
 
-    async def prepare_new_movement_task(self, target_percent: float) -> str:
+    async def prepare_new_movement_task(self, time_target_percent: float) -> str:
         """Create a new movement task with proper cleanup of existing tasks.
         
         Args:
-            target_percent: The target valve position percentage
+            time_target_percent: The target valve position percentage, as a percentage
+            of time moving from one end of its range to the other
             
         Returns:
             task_id: The ID of the new task
@@ -697,14 +835,14 @@ class SiegLoop(ScadaActor):
         # Generate a new task ID for this movement
         new_task_id = str(uuid.uuid4())[-4:]
         self._current_task_id = new_task_id
-        self.log(f"Task {new_task_id}: target {target_percent}")
+        self.log(f"Task {new_task_id}: target {time_target_percent}")
         
         # Cancel any existing movement task
         await self.clean_up_old_task()
         
         # Create a new task for the movement
         self._movement_task = asyncio.create_task(
-            self._move_to_target_percent_keep(target_percent, new_task_id)
+            self._move_to_target_percent_keep(time_target_percent, new_task_id)
         )
         
         return new_task_id
@@ -714,7 +852,7 @@ class SiegLoop(ScadaActor):
         if self.time_percent_keep == target_percent:
             self.log(f"Already at target {round(target_percent,2)}%")
             # Check if we need to trigger ReachT2 event
-            if self.control_state == SiegControlState.MovingToKeep and target_percent == self.t2:
+            if self.control_state == SiegControlState.MovingToStartupHover and target_percent == self.t2:
                 self.trigger_control_event(ControlEvent.ReachT2)
             elif self.control_state == SiegControlState.MovingToFullSend and target_percent == 0:
                     self.trigger_control_event(ControlEvent.ReachFullSend)
@@ -772,7 +910,7 @@ class SiegLoop(ScadaActor):
                 self.complete_move(task_id)
                 
                 # Check if we need to trigger ReachT2 event
-                if self.control_state == SiegControlState.MovingToKeep and target_percent == self.t2:
+                if self.control_state == SiegControlState.MovingToStartupHover and target_percent == self.t2:
                     self.trigger_control_event(ControlEvent.ReachT2)
                 # Check if we need to trigger ReachFullSend event
                 elif self.control_state == SiegControlState.MovingToFullSend and target_percent == 0:
@@ -923,10 +1061,19 @@ class SiegLoop(ScadaActor):
 
             if seconds_into_control_loop == 0 and milliseconds < 100:
                 # We're at the top of a control interval (within 100ms)
-                if not self.is_blind() \
-                    and self.control_state in [SiegControlState.Hover, SiegControlState.Active]:
-                    # Run temperature control without awaiting to avoid blocking
-                    asyncio.create_task(self.run_temperature_control())
+                if self.is_blind():
+                    # Blind: * -> MovingToFullSend
+                    self.trigger_control_event(ControlEvent.Blind)
+
+                elif self.control_state == SiegControlState.StartupHover and self.time_to_leave_startup_hover():
+                    self.trigger_control_event(ControlEvent.NeedLessKeep)
+                    asyncio.create_task(self.leave_startup_hover())
+                if self.control_state == SiegControlState.Active:
+                    if not self.moving_to_calculated_target:
+                        # Run temperature control without awaiting to avoid blocking
+                        asyncio.create_task(self.run_temperature_control())
+                    else:
+                        self.log("Not running PID loop ... still moving to calculated target")
         
             next_second = 1.0 - (now.microsecond / 1_000_000)
             await asyncio.sleep(next_second)
@@ -971,7 +1118,13 @@ class SiegLoop(ScadaActor):
         return self.to_fahrenheit(current_lwt / 1000)
 
     @property
-    
+    def sieg_cold_temp_f(self) -> Optional[float]:
+        """Water temp entering the Siegenthaler loop. Hack for now: returns store cold pipe,
+        will only work correctly when the ISO valve is closed"""
+        hack_c = self.scada_services.data.latest_channel_values.get(H0CN.store_cold_pipe)
+        if hack_c is None:
+            return None
+        return self.to_fahrenheit(hack_c / 1000)
 
     @property
     def lift_f(self) -> Optional[float]:
@@ -985,6 +1138,12 @@ class SiegLoop(ScadaActor):
             return None
         lift_f = max(0, self.lwt_f - self.ewt_f)
         return lift_f
+
+    def seconds_since_hp_on(self) -> Optional[float]:
+        if not (self.hp_boss_state == HpBossState.HpOn):
+            return None
+        else:
+            return time.time() - self.hp_start_s
 
     def is_blind(self) -> bool:
         if self.lift_f is None:
