@@ -197,7 +197,7 @@ class SiegLoop(ScadaActor):
         
 
         # Heat pump LWT control settings
-        self.target_lwt = 110.0 # Default target LWT in °F
+        self.target_lwt = 155.0 # Default target LWT in °F
         self.hp_boss_state = HpBossState.HpOn
         self.hp_start_s: float = time.time() # Track time since
 
