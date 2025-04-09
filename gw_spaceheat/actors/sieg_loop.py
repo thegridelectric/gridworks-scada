@@ -234,7 +234,7 @@ class SiegLoop(ScadaActor):
     # Control loop mechanics
     ##############################################
 
-    def calc_startup_position(self) -> Optional[float]:
+    def calc_startup_position(self, lift) -> Optional[float]:
         if self.hp_model != HpModel.LgHighTempHydroKitPlusMultiV:
             raise Exception("Haven't set up sieg loop except for LG Hydrokit!")
 
@@ -254,7 +254,7 @@ class SiegLoop(ScadaActor):
     def calc_eq_flow_percent(self, lift_f: Optional[float] = None) -> Optional[float]:
         """Calculate the theoretical equilibrium flow keep percentage to achieve target LWT, from current
          sieg_cold_temp_f and target_lwt. If lift is not given then it uses current lift.
-         Using the formula: k = 1 - lift/(target - tsc)
+         Using the formula: k = 1 - (lift/(target - tsc))
 
         where k is flow_fraction
          Returns None if temps are not available
@@ -280,9 +280,12 @@ class SiegLoop(ScadaActor):
         k = 1 - (self.lift_f / temp_diff)
         eq_flow_percent = max(0, min(k, 1)) * 100
         self.log(f"Calculated target flow: {round(eq_flow_percent, 1)}% keep")
-        self.log(f"  Target LWT: {round(self.target_lwt, 1)}°F")
-        self.log(f"  Current Lift: {round(self.lift_f, 1)}°F")
-        self.log(f"  Sieg Cold: {round(self.sieg_cold_temp_f, 1)}°F")
+        self.log(f"  Target LWT: {round(self.target_lwt, 1)}°F, Sieg Cold  {round(self.sieg_cold_temp_f, 1)}°F")
+        self.log(f"  temp diff: {round(temp_diff, 1)}°F")
+        self.log(f"  lift: {round(lift_f, 1)}°F")
+        self.log(f"  lift/temp_diff: {round(lift_f/temp_diff,1)}")
+        self.log(f"  1 - lift/temp_diff: {round(k, 2)}")
+        
         return eq_flow_percent
 
     def calc_flow_sensitivity(self) -> Optional[float]:
@@ -300,12 +303,12 @@ class SiegLoop(ScadaActor):
         # k = self.flow_percent_keep / 100
         
         # # Avoid division by zero or very small denominators
-        # if k >= 0.99:
-        #     return -1000  # Very high sensitivity
+        # if k >= 0.95:
+        #     return 10  # Very high sensitivity
             
         # # Calculate the sensitivity using the formula
         # # Note: we divide by 100 to get sensitivity per percentage point rather than per fraction
-        # sensitivity = -self.lift_f / ((1 - k) ** 2) / 100
+        # sensitivity = self.lift_f / ((1 - k) ** 2) / 100
         
         # return sensitivity
         return 1
@@ -324,12 +327,11 @@ class SiegLoop(ScadaActor):
             return False
         # if self.lift_f > 4:
         #     return True
-        if (time.time() - self.hp_start_s > self.LG_STARTUP_HOVER_UNTIL_S): 
-            self.log(f"Leaving startup having waited {self.LG_STARTUP_HOVER_UNTIL_S} seconds")
+        time_since_start = time.time() - self.hp_start_s
+        if (time_since_start > 180) and self.lift_f >= 4.5: 
+            self.log(f"Leaving startup after {round(time_since_start)} seconds. Lift {round(self.lift_f,1)}°F")
             return True
-        elif self.lift_f > 6:
-            self.log(f"Lift {self.lift_f} is greater than 6. Leaving startup hover")
-            return True
+
         return False
   
     def calc_time_delta_percent(self, use_sensitivity: bool = True) -> Optional[float]:
@@ -411,17 +413,23 @@ class SiegLoop(ScadaActor):
             self.log(f"  P: {round(p_flow_delta/sensitivity, 1)}% flow, I: {round(i_flow_delta/sensitivity, 1)}% flow,  D: {round(d_flow_delta/sensitivity, 1)}% flow")
         else:
             self.log(f"  P: {round(p_flow_delta, 1)}% flow, I: {round(i_flow_delta, 1)}% flow,  D: {round(d_flow_delta, 1)}% flow")
+        self.log(f"  Flow target: {round(flow_percent_adjustment + self.flow_percent_keep,1)}%")
         self.log(f"  Flow adjustment: {round(flow_percent_adjustment,1)}%")
         self.log(f"  Time adjustment: {round(time_percent_adjustment,1)}%")
         self.log(f"  Bounded time adjustment: {round(bounded_adjustment,1)}%")
 
         return bounded_adjustment
 
-    async def leave_startup_hover(self) -> None:
+    async def leave_startup_hover(self, lift_f: Optional[float] = None) -> None:
         """ Move to the estimated valve position for hitting 
         target temp with 5 degrees of lift"""
+        if self.lift_f is None:
+            raise Exception("should not be blind here")
+        if lift_f is None:
+            lift_f = self.lift_f
+        
         self.moving_to_calculated_target = True
-        flow_target_percent = self.calc_eq_flow_percent(lift_f = 5)
+        flow_target_percent = self.calc_eq_flow_percent(lift_f)
         if flow_target_percent is None:
             raise Exception(f"Should not get here if blind")
         time_target_percent = self.time_from_flow(flow_target_percent)
@@ -430,8 +438,8 @@ class SiegLoop(ScadaActor):
         # and now wait another 25 seconds to settle down
         self.log(f"Letting this leave startup hover movement happen")
         await asyncio.sleep(30)
-        self.log(f"Waiting 25 more seconds to settle down")
-        await asyncio.sleep(25)
+        self.log(f"Waiting 2 minutes to see to how well this works")
+        await asyncio.sleep(120)
         self.moving_to_calculated_target = False
     
     async def run_temperature_control(self) -> None:
@@ -1074,7 +1082,7 @@ class SiegLoop(ScadaActor):
 
                 elif self.control_state == SiegControlState.StartupHover and self.time_to_leave_startup_hover():
                     self.trigger_control_event(ControlEvent.NeedLessKeep)
-                    asyncio.create_task(self.leave_startup_hover())
+                    asyncio.create_task(self.leave_startup_hover(lift_f=5))
                 elif self.control_state == SiegControlState.Active:
                     if not self.moving_to_calculated_target:
                         # Run temperature control without awaiting to avoid blocking
@@ -1251,9 +1259,9 @@ class SiegLoop(ScadaActor):
         
         # Handle edge cases
         if flow_percent_keep <= 0:
-            return 0
+            return 16
         if flow_percent_keep >= 100:
-            return 100
+            return 95
         
         # Find the two closest points in our mapping (searching by flow percentage this time)
         for i in range(len(fn) - 1):
