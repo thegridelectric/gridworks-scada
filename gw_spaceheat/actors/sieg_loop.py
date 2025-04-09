@@ -438,8 +438,8 @@ class SiegLoop(ScadaActor):
         # and now wait another 25 seconds to settle down
         self.log(f"Letting this leave startup hover movement happen")
         await asyncio.sleep(30)
-        self.log(f"Waiting 2 minutes to see to how well this works")
-        await asyncio.sleep(120)
+        self.log(f"Waiting 4 minutes to see to how well this works")
+        await asyncio.sleep(240)
         self.moving_to_calculated_target = False
     
     async def run_temperature_control(self) -> None:
