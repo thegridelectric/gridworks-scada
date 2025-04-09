@@ -518,7 +518,7 @@ class SiegLoop(ScadaActor):
         # Trigger the state machine transition
         if event == ControlEvent.Blind:
             self.Blind()
-        if event == ControlEvent.HpTurnsOff:
+        elif event == ControlEvent.HpTurnsOff:
             self.HpTurnsOff()
         elif event == ControlEvent.HpPreparing:
             self.HpPreparing()
