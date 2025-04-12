@@ -327,10 +327,10 @@ class SiegLoop(ScadaActor):
             return False
         # if self.lift_f > 4:
         #     return True
-        time_since_start = time.time() - self.hp_start_s
-        if (time_since_start > 180) and self.lift_f >= 4.5: 
-            self.log(f"Leaving startup after {round(time_since_start)} seconds. Lift {round(self.lift_f,1)}°F")
-            return True
+        # time_since_start = time.time() - self.hp_start_s
+        # if (time_since_start > 180) and self.lift_f >= 4.5: 
+        #     self.log(f"Leaving startup after {round(time_since_start)} seconds. Lift {round(self.lift_f,1)}°F")
+        #     return True
 
         return False
   
