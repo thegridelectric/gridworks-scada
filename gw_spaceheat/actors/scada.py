@@ -491,7 +491,7 @@ class Scada(ScadaInterface, Proactor):
         self._renew_admin_timeout(timeout_seconds=payload.TimeoutSeconds)
         event = payload.DispatchTrigger
         self.log(f"AdminDispatch event is {event.EventName}")
-
+        self.event = event
         to_name = event.ToHandle.split(".")[-1]
         # TODO: change this to work if relays etc are NOT on primary scada
         if communicator := self.get_communicator(to_name):
