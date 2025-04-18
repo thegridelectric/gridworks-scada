@@ -234,22 +234,21 @@ class SiegLoop(ScadaActor):
     # Control loop mechanics
     ##############################################
 
-    def calc_startup_position(self, lift) -> Optional[float]:
-        if self.hp_model != HpModel.LgHighTempHydroKitPlusMultiV:
-            raise Exception("Haven't set up sieg loop except for LG Hydrokit!")
+    def time_to_leave_startup_hover(self) -> bool:
+        """  """
+        if self.lwt_f is None:
+            return False
+        if self.target_lwt - self.lwt_f < 5:
+            self.log(f"lwt within 5 of target {self.target_lwt} - leaving hover")
+            return True
+        # if self.lift_f > 4:
+        #     return True
+        # time_since_start = time.time() - self.hp_start_s
+        # if (time_since_start > 180) and self.lift_f >= 4.5: 
+        #     self.log(f"Leaving startup after {round(time_since_start)} seconds. Lift {round(self.lift_f,1)}°F")
+        #     return True
 
-        if self.hp_model == HpModel.LgHighTempHydroKitPlusMultiV:
-            LG_STARTUP_LIFT_F = 5
-            flow_percent = self.calc_eq_flow_percent(lift_f=LG_STARTUP_LIFT_F)
-            if flow_percent is None:
-                self.trigger_control_event(ControlEvent.Blind)
-                return None
-        
-        # convert to time percent
-        time_percent = self.time_from_flow(flow_percent)
-        self.log(f"startup flow: {round(time_percent, 1)}% time keep")
-        self.log(f"  (Flow equivalent: {round(flow_percent, 1)}% flow keep)")
-        return time_percent
+        return False
 
     def calc_eq_flow_percent(self, lift_f: Optional[float] = None) -> Optional[float]:
         """Calculate the theoretical equilibrium flow keep percentage to achieve target LWT, from current
@@ -277,6 +276,7 @@ class SiegLoop(ScadaActor):
             self.log(f"Target LWT {self.target_lwt}°F is lower than Sieg cold temp {self.sieg_cold_temp_f}°F")
             return 0 
 
+        
         k = 1 - (self.lift_f / temp_diff)
         eq_flow_percent = max(0, min(k, 1)) * 100
         self.log(f"Calculated target flow: {round(eq_flow_percent, 1)}% keep")
@@ -321,18 +321,6 @@ class SiegLoop(ScadaActor):
             return True
         return False
 
-    def time_to_leave_startup_hover(self) -> bool:
-        """ Trigger for """
-        if self.lift_f is None:
-            return False
-        # if self.lift_f > 4:
-        #     return True
-        # time_since_start = time.time() - self.hp_start_s
-        # if (time_since_start > 180) and self.lift_f >= 4.5: 
-        #     self.log(f"Leaving startup after {round(time_since_start)} seconds. Lift {round(self.lift_f,1)}°F")
-        #     return True
-
-        return False
   
     def calc_time_delta_percent(self, use_sensitivity: bool = True) -> Optional[float]:
         """Calculate delta percentage adjustment for the next control interval using a PID controller
@@ -437,9 +425,7 @@ class SiegLoop(ScadaActor):
         await self.prepare_new_movement_task(time_target_percent)
         # and now wait another 25 seconds to settle down
         self.log(f"Letting this leave startup hover movement happen")
-        await asyncio.sleep(30)
-        self.log(f"Waiting 4 minutes to see to how well this works")
-        await asyncio.sleep(240)
+        await asyncio.sleep(10)
         self.moving_to_calculated_target = False
     
     async def run_temperature_control(self) -> None:
