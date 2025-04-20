@@ -50,6 +50,7 @@ class AtnSettings(ProactorSettings):
     model_config = SettingsConfigDict(env_prefix="ATN_", extra="ignore")
     contract_rep_logging_level: int = logging.INFO
     flo_logging_level: int = logging.INFO
+    monitor_only: bool = False
     
     @model_validator(mode="before")
     @classmethod
