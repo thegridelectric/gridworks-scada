@@ -869,7 +869,8 @@ class HomeAlone(ScadaActor):
     def is_onpeak(self) -> bool:
         time_now = datetime.now(self.timezone)
         time_in_2min = time_now + timedelta(minutes=2)
-        peak_hours = [7,8,9,10,11] + [16,17,18,19]
+        #peak_hours = [7,8,9,10,11] + [16,17,18,19]
+        peak_hours = [0,1,2,3,4,5,6,7,8,9,10,11] + [16,17,18,19,20,21,22,23]
         if (time_now.hour in peak_hours or time_in_2min.hour in peak_hours):
             # and time_now.weekday() < 5):
             return True
