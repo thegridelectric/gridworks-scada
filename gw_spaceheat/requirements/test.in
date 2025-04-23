@@ -3,6 +3,4 @@ coverage
 httpx
 mypy
 black
-gridworks-proactor[tests] >=1.1.9
-# gridworks-proactor[tests] @ git+https://github.com/thegridelectric/gridworks-proactor.git@dev
 pytest-asyncio

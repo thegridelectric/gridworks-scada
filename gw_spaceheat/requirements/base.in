@@ -10,8 +10,8 @@ transitions
 gridworks-protocol >=1.2.3
 # gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@dev
 
-gridworks-proactor >=1.1.9
-# gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@dev
+# gridworks-proactor >=1.1.9
+gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@2.X/has-a
 smbus2
 pymodbus
 pyserial

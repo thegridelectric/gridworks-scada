@@ -1,19 +1,24 @@
 """Scada implementation"""
 import os
-import random
 import asyncio
 import enum
+import typing
 import uuid
-import threading
 import time
 import pytz
-from typing import Any, List, Optional, cast
+from typing import Any, List, Optional
 
 import dotenv
+from gwproactor import CommunicatorInterface
+from gwproactor import LinkSettings
+from gwproactor import ProactorLogger
+from gwproactor import ServicesInterface
+from gwproactor.actors.actor import PrimeActor
+from gwproactor.codecs import CodecFactory
+from gwproactor.config.proactor_config import ProactorName
+from gwproto import HardwareLayout
 from transitions import Machine
 from gwproto.message import Header
-from gwproactor.external_watchdog import SystemDWatchdogCommandBuilder
-from gwproactor.links.link_settings import LinkSettings
 from gwproto import create_message_model
 
 from gwproto.enums import ActorClass
@@ -31,22 +36,15 @@ from gwproto.named_types import (
 
 from gwproto.messages import ReportEvent
 from gwproto import MQTTCodec
-from result import Ok
-from result import Result
-
-from gwproactor import ActorInterface
 from actors.scada_data import ScadaData
-from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
 from gwproto.data_classes.sh_node import ShNode
 from gwproactor import QOS
 
 from gwproactor.links import Transition
 from gwproactor.message import MQTTReceiptPayload
-from gwproactor.persister import TimedRollingFilePersister
-from gwproactor.proactor_implementation import Proactor
 
-from actors.subscription_handler import ChannelSubscription, StateMachineSubscription
+from actors.subscription_handler import StateMachineSubscription
 from actors.home_alone import HomeAlone
 from actors.atomic_ally import AtomicAlly
 from actors import ContractHandler
@@ -139,6 +137,49 @@ class AdminCodec(MQTTCodec):
                 f"  got: {src} -> {dst}"
             )
 
+class ScadaCodecFactory(CodecFactory):
+    ATN_MQTT: str = "gridworks_mqtt"
+    LOCAL_MQTT: str = "local_mqtt"
+    ADMIN_MQTT: str = "admin"
+
+
+    def get_codec(
+        self,
+        link_name: str,
+        link: LinkSettings,
+        proactor_name: ProactorName,
+        layout: HardwareLayout,
+    ) -> MQTTCodec:
+        if not isinstance(layout, House0Layout):
+            raise ValueError(
+                "ERROR. ScadaCodecFactory requires hardware layout "
+                "to be an instance of House0Layout but received layout type "
+                f"<{type(layout)}>"
+            )
+        if link_name == self.ATN_MQTT:
+            return GridworksMQTTCodec(layout)
+        elif link_name == self.LOCAL_MQTT:
+            scada_node = layout.node(H0N.primary_scada)
+            remote_actor_node_names = {
+                node.name
+                for node in layout.nodes.values()
+                if (layout.parent_node(node) != scada_node
+                    and node != scada_node
+                    and node.has_actor
+                )
+            } | {layout.scada2_gnode_name().replace(".", "-")}
+            return LocalMQTTCodec(
+                primary_scada=True,
+                remote_node_names=remote_actor_node_names
+            )
+        elif link_name == self.ADMIN_MQTT:
+            return AdminCodec(proactor_name.publication_name)
+        return super().get_codec(
+            link_name=link_name,
+            link=link,
+            proactor_name=proactor_name,
+            layout=layout,
+        )
 
 class ScadaCmdDiagnostic(enum.Enum):
     SUCCESS = "Success"
@@ -150,7 +191,7 @@ class ScadaCmdDiagnostic(enum.Enum):
     IGNORING_ATN_DISPATCH = "IgnoringAtnDispatch"
 
 
-class Scada(ScadaInterface, Proactor):
+class Scada(PrimeActor):
     ASYNC_POWER_REPORT_THRESHOLD = 0.05
     DEFAULT_ACTORS_MODULE = "actors"
     ATN_MQTT = "gridworks"
@@ -162,6 +203,7 @@ class Scada(ScadaInterface, Proactor):
     _last_snap_s: int
     _channels_reported: bool
     _admin_timeout_task: Optional[asyncio.Task] = None
+    _stop_requested: bool = False
 
     top_states = ["Auto", "Admin"]
     top_transitions = [
@@ -181,63 +223,14 @@ class Scada(ScadaInterface, Proactor):
         {"trigger": "AutoWakesUp", "source": "Dormant", "dest": "HomeAlone"},
     ]
 
-    def __init__(
-        self,
-        name: str,
-        settings: ScadaSettings,
-        hardware_layout: House0Layout,
-        actor_nodes: Optional[List[ShNode]] = None,
-    ):
-        if not isinstance(hardware_layout, House0Layout):
+    def __init__(self, name: str, services: ServicesInterface) -> None:
+        super().__init__(name, services)
+        if not isinstance(services.hardware_layout, House0Layout):
             raise Exception("Make sure to pass House0Layout object as hardware_layout!")
         self.is_simulated = False
-        self._layout: House0Layout = hardware_layout
-        self._data = ScadaData(settings, hardware_layout)
-        super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
-        scada2_gnode_name = (
-            f"{hardware_layout.scada_g_node_alias}.{H0N.secondary_scada}"
-        )
-        remote_actor_node_names = {
-            node.name
-            for node in self._layout.nodes.values()
-            if self._layout.parent_node(node) != self._node
-            and node != self._node
-            and node.has_actor
-        } | {scada2_gnode_name.replace(".", "-")}
-        self._links.add_mqtt_link(
-            LinkSettings(
-                client_name=self.LOCAL_MQTT,
-                gnode_name=scada2_gnode_name,
-                spaceheat_name=H0N.secondary_scada,
-                mqtt=self.settings.local_mqtt,
-                codec=LocalMQTTCodec(
-                    primary_scada=True, remote_node_names=remote_actor_node_names
-                ),
-                downstream=True,
-            )
-        )
-        self._links.add_mqtt_link(
-            LinkSettings(
-                client_name=self.ATN_MQTT,
-                gnode_name=self._layout.atn_g_node_alias,
-                spaceheat_name=H0N.atn,
-                mqtt=self.settings.gridworks_mqtt,
-                codec=GridworksMQTTCodec(self._layout),
-                upstream=True,
-            )
-        )
-        if self.settings.admin.enabled:
-            self._links.add_mqtt_link(
-                LinkSettings(
-                    client_name=self.ADMIN_MQTT,
-                    gnode_name=self.settings.admin.name,
-                    spaceheat_name=self.settings.admin.name,
-                    subscription_name=self.publication_name,
-                    mqtt=self.settings.admin,
-                    codec=AdminCodec(self.publication_name),
-                ),
-            )
-        self._links.log_subscriptions("construction")
+        self._layout: House0Layout = typing.cast(House0Layout, services.hardware_layout)
+        self._data = ScadaData(self.settings, self._layout)
+        # super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
         now = int(time.time())
         self._channels_reported = False
         self._last_report_second = int(now - (now % self.settings.seconds_per_report))
@@ -245,16 +238,6 @@ class Scada(ScadaInterface, Proactor):
         self.pending_dispatch: Optional[AnalogDispatch] = None
 
         self.set_home_alone_command_tree()
-        if actor_nodes is not None:
-            for actor_node in actor_nodes:
-                self.add_communicator(
-                    ActorInterface.load(
-                        actor_node.Name,
-                        str(actor_node.actor_class),
-                        self,
-                        self.DEFAULT_ACTORS_MODULE,
-                    )
-                )
         self.top_state: TopState = TopState.Auto
         self.top_machine = Machine(
             model=self,
@@ -280,7 +263,7 @@ class Scada(ScadaInterface, Proactor):
             node=self.node,
             logger=self.logger.add_category_logger(
                 ContractHandler.LOGGER_NAME,
-                level=settings.contract_rep_logging_level,
+                level=self.settings.contract_rep_logging_level,
             )
         )
         self.initialize_hierarchical_state_data()
@@ -290,16 +273,24 @@ class Scada(ScadaInterface, Proactor):
                 publisher_name=self.layout.h0n.hp_scada_ops_relay)                       
         ]
 
-    def _start_derived_tasks(self):
-        self._tasks.append(
-            asyncio.create_task(self.report_sending_task(), name="report_sender")
-        )
-        self._tasks.append(
-            asyncio.create_task(self.snap_sending_task(), name="snap_sender")
-        )
-        self._tasks.append(
-            asyncio.create_task(self.state_tracker(), name="scada top_state_tracker")
-        )
+    def stop(self):
+        self._stop_requested = True
+
+    @property
+    def logger(self) -> ProactorLogger:
+        return self.services.logger
+
+    def start_tasks(self) -> typing.Sequence[asyncio.Task]:
+        return [
+            asyncio.create_task(self.report_sending_task(), name="report_sender"),
+            asyncio.create_task(self.snap_sending_task(), name="snap_sender"),
+            asyncio.create_task(self.state_tracker(), name="scada top_state_tracker"),
+        ]
+
+    @classmethod
+    def get_codec_factory(cls) -> ScadaCodecFactory:
+        return ScadaCodecFactory()
+
 
     #######################################
     # Messages
@@ -412,6 +403,9 @@ class Scada(ScadaInterface, Proactor):
                     self.log(f"Trouble with process_synced_reading: \n {e}")
             case _:
                 raise ValueError(f"Scada does not expect to receive[{type(payload)}!]")
+
+    def get_communicator(self, name: str) -> Optional[CommunicatorInterface]:
+        return self.services.get_communicator(name)
 
     #####################################################################
     # Process Messages
@@ -708,7 +702,7 @@ class Scada(ScadaInterface, Proactor):
         self._send_to(self.atn, self.contract_handler.latest_scada_hb)
 
     def process_synced_readings(self, from_node: ShNode, payload: SyncedReadings):
-        self._logger.path(
+        self.logger.path(
             "++process_synced_readingsfrom: %s  channels: %d",
             from_node.Name,
             len(payload.ChannelNameList),
@@ -1024,13 +1018,12 @@ class Scada(ScadaInterface, Proactor):
         self._send_to(self.atomic_ally, self.contract_handler.latest_scada_hb.Contract
         )
 
-    def _derived_recv_activated(
+    def recv_activated(
         self, transition: Transition
-    ) -> Result[bool, BaseException]:
+    ):
         """Overwrites base method. Triggered when link state is activated"""
-        if transition.link_name == self.upstream_client:
+        if transition.link_name == self.services.upstream_client:
             self._send_to(self.atn, self.layout_lite)
-        return Ok()
 
     ###########################################################
     # Command Trees - the handles of the Spaceheat Nodes form a tree
@@ -1308,12 +1301,12 @@ class Scada(ScadaInterface, Proactor):
         
         # if its meant for an actor spawned by primary_scada (aka communicator)
         # call its process_message
-        elif communicator_by_name[to_node.Name] in set(self._communicators.keys()):
+        elif communicator_by_name[to_node.Name] in self.services.get_communicator_names():
             self.get_communicator(communicator_by_name[to_node.Name]).process_message(
                 Message(Src=from_node.Name, Dst=to_node.Name, Payload=payload)
             )
         elif to_node.Name == H0N.admin:
-            self._links.publish_message(
+            self.services.publish_message(
                 link_name=self.ADMIN_MQTT,
                 message=Message(
                     Src=self.publication_name, Dst=to_node.Name, Payload=payload
@@ -1322,7 +1315,7 @@ class Scada(ScadaInterface, Proactor):
             )
         elif to_node.Name == H0N.atn:
             #self._links.publish_upstream(payload)
-            self._links.publish_message(
+            self.services.publish_message(
                 link_name=self.ATN_MQTT,
                 message=Message(
                     Src=self.publication_name, Dst=to_node.Name, Payload=payload
@@ -1330,14 +1323,14 @@ class Scada(ScadaInterface, Proactor):
                 qos=QOS.AtMostOnce,
             )
         else:  # publish to local for actors on LAN not run by primary_scada
-            self._links.publish_message(
+            self.services.publish_message(
                 link_name=Scada.LOCAL_MQTT,
                 message=Message(Src=from_node.Name, Dst=to_node.Name, Payload=payload),
                 qos=QOS.AtMostOnce,
                 use_link_topic=True,
             )
 
-    def _derived_process_message(self, message: Message):
+    def process_internal_message(self, message: Message[Any]) -> None:
         """Plumbing: messages received on the internal proactor queue
 
         Replaces proactor _derived_process_message. Either routes to the appropriate
@@ -1357,7 +1350,7 @@ class Scada(ScadaInterface, Proactor):
         else:
             self.process_scada_message(from_node=from_node, payload=message.Payload)
 
-    def _derived_process_mqtt_message(
+    def process_mqtt_message(
         self, message: Message[MQTTReceiptPayload], decoded: Message[Any]
     ) -> None:
 
@@ -1369,7 +1362,7 @@ class Scada(ScadaInterface, Proactor):
         if message.Payload.client_name == self.LOCAL_MQTT:
             # store and pass on all the events from scada2
             if isinstance(decoded.Payload, EventBase):
-                self.generate_event(decoded.Payload)
+                self.services.generate_event(decoded.Payload)
                 return
         elif message.Payload.client_name == self.ATN_MQTT:
             if src != self.layout.atn_g_node_alias:
@@ -1400,33 +1393,6 @@ class Scada(ScadaInterface, Proactor):
 
     def init(self) -> None:
         """Called after constructor so derived functions can be used in setup."""
-
-    @classmethod
-    def make_event_persister(cls, settings: ScadaSettings) -> TimedRollingFilePersister:
-        return TimedRollingFilePersister(
-            settings.paths.event_dir,
-            max_bytes=settings.persister.max_bytes,
-            pat_watchdog_args=SystemDWatchdogCommandBuilder.pat_args(
-                str(settings.paths.name)
-            ),
-        )
-
-    def run_in_thread(self, daemon: bool = True) -> threading.Thread:
-        """Basic function for running the scada"""
-
-        async def _async_run_forever():
-            try:
-                await self.run_forever()
-
-            finally:
-                self.stop()
-
-        def _run_forever():
-            asyncio.run(_async_run_forever())
-
-        thread = threading.Thread(target=_run_forever, daemon=daemon)
-        thread.start()
-        return thread
 
     #####################################################################
     # Admin related
@@ -1469,7 +1435,7 @@ class Scada(ScadaInterface, Proactor):
 
     @property
     def name(self):
-        return self._name
+        return self.services.name
 
     @property
     def node(self) -> ShNode:
@@ -1477,15 +1443,16 @@ class Scada(ScadaInterface, Proactor):
 
     @property
     def publication_name(self) -> str:
-        return self._layout.scada_g_node_alias
+        return self.services.publication_name
 
     @property
     def subscription_name(self) -> str:
-        return H0N.primary_scada
+        return self.services.subscription_name
 
     @property
     def settings(self) -> ScadaSettings:
-        return cast(ScadaSettings, self._settings)
+        return typing.cast(ScadaSettings, self.services.settings)
+
 
     @property
     def hardware_layout(self) -> House0Layout:

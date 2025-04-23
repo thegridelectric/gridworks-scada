@@ -24,7 +24,6 @@ from enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName
 from data_classes.house_0_names import House0RelayIdx
 from gwproactor import QOS, ActorInterface
 from gwproactor.config import LoggerLevels
-from gwproactor.links.link_settings import LinkSettings
 from gwproactor.message import DBGCommands, DBGPayload, MQTTReceiptPayload
 from gwproactor.proactor_implementation import Proactor
 from gwproto import Message, MQTTCodec, create_message_model

@@ -1,30 +1,59 @@
 """Parentless (Scada2) implementation"""
-import importlib
-import asyncio
-import threading
+import typing
 from typing import Any, Optional
-from typing import List
 
-from gwproactor.external_watchdog import SystemDWatchdogCommandBuilder
-from gwproactor.persister import TimedRollingFilePersister
+from gwproactor import CodecFactory
+from gwproactor import LinkSettings
+from gwproactor import PrimeActor
+from gwproactor import ProactorLogger
+from gwproactor import ProactorName
+from gwproactor import ServicesInterface
+from gwproto import HardwareLayout
+from gwproto import MQTTCodec
 from gwproto.message import Header
-from gwproactor.links.link_settings import LinkSettings
 from gwproto.message import Message
 from gwproto.named_types import PowerWatts, Report, SyncedReadings
+
 from data_classes.house_0_names import H0N
 from data_classes.house_0_layout import House0Layout
 from gwproto.data_classes.sh_node import ShNode
 
-from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
 from gwproactor import QOS
-from gwproactor import ActorInterface
 from gwproactor.message import MQTTReceiptPayload
-from gwproactor.proactor_implementation import Proactor
 from actors.scada import (
     LocalMQTTCodec,
 )
 from named_types import Glitch, SnapshotSpaceheat
+
+class Scada2CodecFactory(CodecFactory):
+    LOCAL_MQTT: str = "local_mqtt"
+
+    def get_codec(
+            self,
+            link_name: str,
+            link: LinkSettings,
+            proactor_name: ProactorName,
+            layout: HardwareLayout,
+    ) -> MQTTCodec:
+        if not isinstance(layout, House0Layout):
+            raise ValueError(
+                "ERROR. ScadaCodecFactory requires hardware layout "
+                "to be an instance of House0Layout but received layout type "
+                f"<{type(layout)}>"
+            )
+        if link_name == self.LOCAL_MQTT:
+            return LocalMQTTCodec(
+                primary_scada=False,
+                remote_node_names={layout.scada_g_node_alias.replace(".", "-")}
+            )
+        return super().get_codec(
+            link_name=link_name,
+            link=link,
+            proactor_name=proactor_name,
+            layout=layout,
+        )
+
 
 class Scada2Data:
     latest_snap: Optional[SnapshotSpaceheat]
@@ -33,123 +62,72 @@ class Scada2Data:
         self.latest_snap = None
         self.latest_report = None
 
-class Parentless(ScadaInterface, Proactor):
+class Parentless(PrimeActor):
     ASYNC_POWER_REPORT_THRESHOLD = 0.05
     DEFAULT_ACTORS_MODULE = "actors"
-    LOCAL_MQTT = "local"
+    LOCAL_MQTT: str = Scada2CodecFactory.LOCAL_MQTT
     _data: Scada2Data
     _publication_name: str
 
-    def __init__(
-        self,
-        name: str,
-        settings: ScadaSettings,
-        hardware_layout: House0Layout,
-        actors_package_name: Optional[str] = None
-    ):
-        if type(hardware_layout) is not House0Layout:
-            raise Exception(f"hardware_layout is of type {type(hardware_layout)}!!")
-        self._publication_name = f"{hardware_layout.scada_g_node_alias}.{name}"
-        super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
-        remote_node_names: set[str] = {self._layout.scada_g_node_alias.replace(".", "-")}
-        self._links.add_mqtt_link(
-            LinkSettings(
-                client_name=Parentless.LOCAL_MQTT,
-                gnode_name=self._layout.scada_g_node_alias,
-                spaceheat_name=H0N.primary_scada,
-                mqtt=self.settings.local_mqtt,
-                codec=LocalMQTTCodec(
-                    primary_scada=False,
-                    remote_node_names=remote_node_names,
-                ),
-                upstream=True,
-            )
-        )
-        self._layout: House0Layout = hardware_layout
-        self._links.log_subscriptions("construction")
+    def __init__(self, name: str, services: ServicesInterface) -> None:
+        if not isinstance(services.hardware_layout, House0Layout):
+            raise Exception("Make sure to pass House0Layout object as hardware_layout!")
+        super().__init__(name, services)
         self._data = Scada2Data()
-        self.actors_package_name = actors_package_name
-        if actors_package_name is None:
-            self.actors_package_name = self.DEFAULT_ACTORS_MODULE
 
-        actor_nodes = self.get_actor_nodes()
-        for actor_node in actor_nodes:
-            self.add_communicator(
-                ActorInterface.load(
-                    actor_node.Name,
-                    str(actor_node.actor_class),
-                    self,                    self.DEFAULT_ACTORS_MODULE
-                )
-            )
+    @property
+    def hardware_layout(self) -> House0Layout:
+        return typing.cast(House0Layout, self.services.hardware_layout)
+
+    @property
+    def layout(self) -> House0Layout:
+        return self.hardware_layout
+
+    @classmethod
+    def get_codec_factory(cls) -> Scada2CodecFactory:
+        return Scada2CodecFactory()
 
     def init(self) -> None:
         """Called after constructor so derived functions can be used in setup."""
 
-    @classmethod
-    def make_event_persister(cls, settings: ScadaSettings) -> TimedRollingFilePersister:
-        return TimedRollingFilePersister(
-            settings.paths.event_dir,
-            max_bytes=settings.persister.max_bytes,
-            pat_watchdog_args=SystemDWatchdogCommandBuilder.pat_args(
-                str(settings.paths.name)
-            ),
-        )
-
-    def get_actor_nodes(self) -> List[ShNode]:
-        actors_package = importlib.import_module(self.actors_package_name)
-        actor_nodes = []
-        my_kids = [node for node in self._layout.nodes.values() if 
-                   self._layout.parent_node(node) == self._node and 
-                   node != self._node and
-                   node.has_actor]
-        for node in my_kids:
-            if not getattr(actors_package, node.actor_class):
-                raise ValueError(
-                    f"ERROR. Actor class {node.actor_class} for node {node.Name} "
-                    f"not in actors package {self.actors_package_name}"
-                )
-            else:
-                actor_nodes.append(node)
-        return actor_nodes
-
     @property
     def name(self):
-        return self._name
-
-    @property
-    def subscription_name(self) -> str:
-        return H0N.secondary_scada
-
-    @property
-    def publication_name(self) -> str:
-        return self._publication_name
+        return self.services.name
 
     @property
     def node(self) -> ShNode:
         return self._node
 
     @property
-    def settings(self):
-        return self._settings
+    def publication_name(self) -> str:
+        return self.services.publication_name
+
+    @property
+    def subscription_name(self) -> str:
+        return self.services.subscription_name
+
+    @property
+    def settings(self) -> ScadaSettings:
+        return typing.cast(ScadaSettings, self.services.settings)
 
     @property
     def data(self) -> Scada2Data:
         return self._data  
  
     @property
-    def hardware_layout(self) -> House0Layout:
-        return self._layout
+    def logger(self) -> ProactorLogger:
+        return self.services.logger
 
     def _publish_to_local(self, from_node: ShNode, payload, qos: QOS = QOS.AtMostOnce):
-        return self._links.publish_message(
+        return self.services.publish_message(
             Parentless.LOCAL_MQTT,
             Message(Src=from_node.Name, Payload=payload),
             qos=qos,
             use_link_topic=True
         )
 
-    def _derived_process_message(self, message: Message):
-        self._logger.path("++Parentless._derived_process_message %s/%s", message.Header.Src, message.Header.MessageType)
+    def process_internal_message(self, message: Message[Any]) -> None:
+        self.logger.path("++Parentless.process_internal_message %s/%s", message.Header.Src, message.Header.MessageType)
         path_dbg = 0
         match message.Payload:
             case Glitch():
@@ -161,7 +139,7 @@ class Parentless(ScadaInterface, Proactor):
                         ),
                     Payload=message.Payload
                 )
-                self._links.publish_message(
+                self.services.publish_message(
                     Parentless.LOCAL_MQTT,
                     new_msg,
                     QOS.AtMostOnce,
@@ -176,7 +154,7 @@ class Parentless(ScadaInterface, Proactor):
                         ),
                     Payload=message.Payload
                 )
-                self._links.publish_message(
+                self.services.publish_message(
                     Parentless.LOCAL_MQTT,
                     new_msg,
                     QOS.AtMostOnce,
@@ -192,7 +170,7 @@ class Parentless(ScadaInterface, Proactor):
                         ),
                     Payload=message.Payload
                 )
-                self._links.publish_message(
+                self.services.publish_message(
                     Parentless.LOCAL_MQTT,
                     new_msg,
                     QOS.AtMostOnce,
@@ -202,12 +180,12 @@ class Parentless(ScadaInterface, Proactor):
                 raise ValueError(
                     f"There is no handler for message payload type [{type(message.Payload)}]"
                 )
-        self._logger.path("--Parentless._derived_process_message  path:0x%08X", path_dbg)
+        self.logger.path("--Parentless.process_internal_message  path:0x%08X", path_dbg)
 
-    def _derived_process_mqtt_message(
-        self, message: Message[MQTTReceiptPayload], decoded: Any
-    ):
-        self._logger.path("++Parentless._derived_process_mqtt_message %s", message.Payload.message.topic)
+    def process_mqtt_message(
+        self, mqtt_client_message: Message[MQTTReceiptPayload], decoded: Message[Any]
+    ) -> None:
+        self.logger.path("++Parentless.process_mqtt_message %s", mqtt_client_message.Payload.message.topic)
         path_dbg = 0
         match decoded.Payload:
             case Report():
@@ -219,7 +197,7 @@ class Parentless(ScadaInterface, Proactor):
             case _:
                 # Intentionally ignored for forward compatibility
                 path_dbg |= 0x00000004
-        self._logger.path("--Parentless._derived_process_mqtt_message  path:0x%08X", path_dbg)
+        self.logger.path("--Parentless.process_mqtt_message  path:0x%08X", path_dbg)
 
     def process_snapshot(self, payload: SnapshotSpaceheat)-> None:
         self._data.latest_snap = payload
@@ -227,16 +205,3 @@ class Parentless(ScadaInterface, Proactor):
     def process_report(self, payload: Report)-> None:
         self._data.latest_report = payload
     
-    def run_in_thread(self, daemon: bool = True) -> threading.Thread:
-        async def _async_run_forever():
-            try:
-                await self.run_forever()
-
-            finally:
-                self.stop()
-
-        def _run_forever():
-            asyncio.run(_async_run_forever())
-        thread = threading.Thread(target=_run_forever, daemon=daemon)
-        thread.start()
-        return thread

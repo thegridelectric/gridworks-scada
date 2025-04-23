@@ -48,8 +48,6 @@ coverage==6.4.1
     # via -r gw_spaceheat/requirements/test.in
 cryptography==3.4.8
     # via ownca
-freezegun==1.5.1
-    # via gridworks-proactor
 frozenlist==1.4.0
     # via
     #   aiohttp
@@ -57,15 +55,10 @@ frozenlist==1.4.0
 gridworks==1.2.0
     # via gridworks-protocol
 gridworks-cert==0.4.4
-    # via
-    #   -r gw_spaceheat/requirements/dev.in
-    #   gridworks-proactor
-gridworks-proactor[tests]==1.1.9
-    # via
-    #   -r gw_spaceheat/requirements/base.in
-    #   -r gw_spaceheat/requirements/dev.in
-    #   -r gw_spaceheat/requirements/test.in
-gridworks-protocol==1.2.3
+    # via -r gw_spaceheat/requirements/dev.in
+gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@2.X/has-a
+    # via -r gw_spaceheat/requirements/base.in
+gridworks-protocol==1.2.4
     # via
     #   -r gw_spaceheat/requirements/base.in
     #   gridworks-proactor
@@ -174,14 +167,9 @@ pyserial==3.5
 pytest==7.2.2
     # via
     #   -r gw_spaceheat/requirements/test.in
-    #   gridworks-proactor
     #   pytest-asyncio
 pytest-asyncio==0.20.3
-    # via
-    #   -r gw_spaceheat/requirements/test.in
-    #   gridworks-proactor
-python-dateutil==2.8.2
-    # via freezegun
+    # via -r gw_spaceheat/requirements/test.in
 python-dotenv==1.0.0
     # via
     #   -r gw_spaceheat/requirements/base.in
@@ -210,7 +198,6 @@ shellingham==1.5.3
 six==1.16.0
     # via
     #   pymodbus
-    #   python-dateutil
     #   transitions
 smbus2==0.4.1
     # via -r gw_spaceheat/requirements/base.in

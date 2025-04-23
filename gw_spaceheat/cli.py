@@ -1,3 +1,5 @@
+import asyncio
+import logging
 from pathlib import Path
 from typing import Annotated
 from typing import Optional
@@ -5,14 +7,19 @@ from typing import Optional
 import dotenv
 import rich
 import typer
+from gwproactor import run_async_main
+from gwproactor.logging_setup import enable_aiohttp_logging
 from trogon import Trogon
 from typer.main import get_group
 
 from admin.cli import app as admin_cli
 from actors.config import ScadaSettings
 from layout_gen.genlayout import app as layout_cli
+from scada2_app import Scada2App
+from scada_app import ScadaApp
 
 __version__: str = "0.2.0"
+
 
 app = typer.Typer(
     no_args_is_help=True,
@@ -42,6 +49,78 @@ def config(env_file: str = ".env"):
 def commands(ctx: typer.Context) -> None:
     """CLI command builder."""
     Trogon(get_group(app), click_context=ctx).run()
+
+@app.command()
+def run(
+    env_file: str = ".env",
+    *,
+    dry_run: bool = False,
+    verbose: bool = False,
+    message_summary: bool = False,
+    aiohttp_logging: bool = False,
+    paho_logging: bool = False,
+    power_meter_logging: bool = False,
+    power_meter_logging_verbose: bool = False,
+    seconds_per_report: Optional[int] = None,
+) -> None:
+    """Run the Scada."""
+    if aiohttp_logging:
+        enable_aiohttp_logging()
+    settings = ScadaApp.get_settings(
+        env_file=env_file,
+    )
+    if paho_logging:
+        settings.paho_logging = True
+    if power_meter_logging:
+        if settings.power_meter_logging_level > logging.INFO:
+            settings.power_meter_logging_level = logging.INFO
+    if power_meter_logging_verbose:
+        if settings.power_meter_logging_level > logging.DEBUG:
+            settings.power_meter_logging_level = logging.DEBUG
+    if seconds_per_report is not None:
+        settings.seconds_per_report = seconds_per_report
+    asyncio.run(
+        run_async_main(
+            app_type=ScadaApp,
+            app_settings=settings,
+            env_file=env_file,
+            dry_run=dry_run,
+            verbose=verbose,
+            message_summary=message_summary,
+        )
+    )
+
+
+
+@app.command()
+def run_s2(
+    env_file: str = ".env",
+    *,
+    dry_run: bool = False,
+    verbose: bool = False,
+    message_summary: bool = False,
+    aiohttp_logging: bool = False,
+    paho_logging: bool = False,
+) -> None:
+    """Run scada2"""
+    if aiohttp_logging:
+        enable_aiohttp_logging()
+    settings = Scada2App.get_settings(
+        env_file=env_file,
+    )
+    if paho_logging:
+        settings.paho_logging = True
+    asyncio.run(
+        run_async_main(
+            app_type=Scada2App,
+            app_settings=settings,
+            env_file=env_file,
+            dry_run=dry_run,
+            verbose=verbose,
+            message_summary=message_summary,
+        )
+    )
+
 
 def version_callback(value: bool):
     if value:

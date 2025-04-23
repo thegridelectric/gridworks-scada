@@ -221,3 +221,6 @@ class House0Layout(HardwareLayout):
     @property
     def charge_discharge_relay(self) -> ShNode:
         return self.node(H0N.store_charge_discharge_relay)
+
+    def scada2_gnode_name(self) -> str:
+        return f"{self.scada_g_node_alias}.{H0N.secondary_scada}"

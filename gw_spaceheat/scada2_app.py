@@ -1,0 +1,102 @@
+import typing
+from typing import Any
+from pathlib import Path
+from types import ModuleType
+
+from gwproactor import ProactorSettings
+from gwproactor.app import App
+from gwproactor.config import MQTTClient
+from gwproactor.config.links import LinkSettings
+from gwproactor.config.proactor_config import ProactorName
+from gwproactor.external_watchdog import SystemDWatchdogCommandBuilder
+from gwproactor.persister import TimedRollingFilePersister
+from gwproto import HardwareLayout
+
+import actors
+from actors import Parentless
+from actors.config import ScadaSettings
+from actors.scada import ScadaCodecFactory
+from data_classes import house_0_names
+from data_classes.house_0_layout import House0Layout
+from data_classes.house_0_names import H0N
+
+
+class Scada2App(App):
+    LOCAL_MQTT: str = ScadaCodecFactory.LOCAL_MQTT
+
+    @classmethod
+    def app_settings_type(cls) -> type[ScadaSettings]:
+        return ScadaSettings
+
+    @classmethod
+    def prime_actor_type(cls) -> type[Parentless]:
+        return Parentless
+
+    @classmethod
+    def actors_module(cls) -> ModuleType:
+        return actors
+
+    @classmethod
+    def paths_name(cls) -> str:
+        return "scada2"
+
+    def _load_hardware_layout(self, layout_path: str | Path) -> House0Layout:
+        return House0Layout.load(layout_path)
+
+    def _get_name(self, layout: HardwareLayout) -> ProactorName:
+        return ProactorName(
+            long_name=typing.cast(House0Layout, layout).scada2_gnode_name(),
+            short_name=house_0_names.H0N.secondary_scada
+        )
+
+    def _get_link_settings(
+            self,
+            name: ProactorName,
+            layout: HardwareLayout,
+            brokers: dict[str, MQTTClient]
+    ) -> dict[str, LinkSettings]:
+        return {
+            self.LOCAL_MQTT: LinkSettings(
+                broker_name=self.LOCAL_MQTT,
+                peer_long_name=self._layout.scada_g_node_alias,
+                peer_short_name=H0N.primary_scada,
+                upstream=True,
+            )
+        }
+
+    def _make_persister(self, settings: ProactorSettings) -> TimedRollingFilePersister:
+        return TimedRollingFilePersister(
+            settings.paths.event_dir,
+            max_bytes=settings.persister.max_bytes,
+            pat_watchdog_args=SystemDWatchdogCommandBuilder.pat_args(
+                str(settings.paths.name)
+            ),
+        )
+
+
+    @classmethod
+    def get_settings(cls, *args: Any, **kwargs: Any) -> ScadaSettings:
+        return typing.cast(
+            ScadaSettings,
+            super().get_settings(*args, **kwargs)
+        )
+
+
+
+    # def get_actor_nodes(self) -> List[ShNode]:
+    #     actors_package = importlib.import_module(self.actors_package_name)
+    #     actor_nodes = []
+    #     my_kids = [node for node in self._layout.nodes.values() if
+    #                self._layout.parent_node(node) == self._node and
+    #                node != self._node and
+    #                node.has_actor]
+    #     for node in my_kids:
+    #         if not getattr(actors_package, node.actor_class):
+    #             raise ValueError(
+    #                 f"ERROR. Actor class {node.actor_class} for node {node.Name} "
+    #                 f"not in actors package {self.actors_package_name}"
+    #             )
+    #         else:
+    #             actor_nodes.append(node)
+    #     return actor_nodes
+    #
