@@ -182,8 +182,9 @@ class SynthGenerator(ScadaActor):
     def update_energy(self) -> None:
         time_now = datetime.now(self.timezone)
         latest_temperatures = self.latest_temperatures.copy()
-        storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
-        simulated_layers = [self.to_fahrenheit(v/1000) for k,v in storage_temperatures.items()]        
+        buffer_temp_channels = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4]
+        buffer_temperatures = {k:v for k,v in latest_temperatures.items() if k in buffer_temp_channels}
+        simulated_layers = [self.to_fahrenheit(v/1000) for k,v in buffer_temperatures.items()]        
         self.usable_kwh = 0
         while True:
             if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
@@ -230,7 +231,7 @@ class SynthGenerator(ScadaActor):
              if 16<=t.hour<=19]
             )
         # Find the maximum storage
-        simulated_layers = [self.params.MaxEwtF + 10] * 12
+        simulated_layers = [self.params.MaxEwtF + 10] * 4
         max_storage_kwh = 0
         while True:
             if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
