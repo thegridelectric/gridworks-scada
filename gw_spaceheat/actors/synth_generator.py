@@ -16,6 +16,7 @@ from gwproactor import MonitoredName, ServicesInterface
 from gwproactor.message import PatInternalWatchdogMessage
 
 from actors.scada_actor import ScadaActor
+from enums import HomeAloneStrategy
 from data_classes.house_0_names import H0CN
 from named_types import (Ha1Params, HeatingForecast,
                          WeatherForecast, ScadaParams)
@@ -178,12 +179,21 @@ class SynthGenerator(ScadaActor):
                 self.fill_missing_store_temps()
                 self.temperatures_available = True
 
+
     # Compute usable and required energy
     def update_energy(self) -> None:
         time_now = datetime.now(self.timezone)
         latest_temperatures = self.latest_temperatures.copy()
-        storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
-        simulated_layers = [self.to_fahrenheit(v/1000) for k,v in storage_temperatures.items()]        
+
+        if self.layout.ha_strategy == HomeAloneStrategy.Winter:
+            storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
+            simulated_layers = [self.to_fahrenheit(v/1000) for k,v in storage_temperatures.items()]
+        elif self.layout.ha_strategy == HomeAloneStrategy.Shoulder: 
+            buffer_temp_channels = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4]
+            buffer_temperatures = {k:v for k,v in latest_temperatures.items() if k in buffer_temp_channels}
+            simulated_layers = [self.to_fahrenheit(v/1000) for k,v in buffer_temperatures.items()]    
+        else:
+            raise Exception(f"not prepared for home alone strategy {self.layout.ha_strategy}")    
         self.usable_kwh = 0
         while True:
             if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
@@ -230,7 +240,13 @@ class SynthGenerator(ScadaActor):
              if 16<=t.hour<=19]
             )
         # Find the maximum storage
-        simulated_layers = [self.params.MaxEwtF + 10] * 12
+        if self.layout.ha_strategy == HomeAloneStrategy.Winter:
+            simulated_layers = [self.params.MaxEwtF + 10] * 12
+        elif self.layout.ha_strategy == HomeAloneStrategy.Shoulder:
+            simulated_layers = [self.params.MaxEwtF + 10] * 4
+        else:
+            raise Exception(f"not prepared for home alone strategy {self.layout.ha_strategy}")
+    
         max_storage_kwh = 0
         while True:
             if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):

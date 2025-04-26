@@ -47,7 +47,7 @@ from gwproactor.persister import TimedRollingFilePersister
 from gwproactor.proactor_implementation import Proactor
 
 from actors.subscription_handler import ChannelSubscription, StateMachineSubscription
-from actors.home_alone import HomeAlone
+from actors.home_alone_loader import HomeAlone
 from actors.atomic_ally import AtomicAlly
 from actors import ContractHandler
 from data_classes.house_0_names import H0N
@@ -1151,6 +1151,7 @@ class Scada(ScadaInterface, Proactor):
         """ Enforces that auto_state [Atn, HomeAlone, Dormant] is consistent
         with the top_state reported by `h` [Dormant v anything else] and `aa` [Dormant v anything else]
         """
+        
         h: HomeAlone = self.get_communicator(H0N.home_alone)
         aa: AtomicAlly = self.get_communicator(H0N.atomic_ally)
 

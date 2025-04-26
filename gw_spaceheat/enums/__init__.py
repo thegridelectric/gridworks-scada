@@ -19,6 +19,7 @@ from gw.enums import MarketTypeName
 from enums.atomic_ally_state import AtomicAllyState
 from enums.contract_status import ContractStatus
 from enums.change_keep_send import ChangeKeepSend
+from enums.home_alone_strategy import HomeAloneStrategy
 from enums.home_alone_top_state import HomeAloneTopState
 from enums.hp_model import HpModel
 from enums.hp_loop_keep_send import HpLoopKeepSend
@@ -42,6 +43,7 @@ __all__ = [
     "MarketTypeName",
     "HpModel",
     "ChangeKeepSend",
+    "HomeAloneStrategy",
     "HomeAloneTopState",  # [home.alone.top.state.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#homealonetopstate)
     "HpLoopKeepSend",
     "LogLevel",  # [log.level.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#loglevel)
