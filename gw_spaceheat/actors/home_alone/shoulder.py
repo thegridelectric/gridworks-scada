@@ -18,6 +18,7 @@ from data_classes.house_0_names import H0N, H0CN
 from gwproto.data_classes.components.dfr_component import DfrComponent
 
 from actors.scada_actor import ScadaActor
+from actors.scada_interface import ScadaInterface
 from named_types import (
             GoDormant, Glitch, Ha1Params, HeatingForecast,
             NewCommandTree, SingleMachineState, StratBossTrigger, 
@@ -111,7 +112,7 @@ class HomeAlone(ScadaActor):
     ]
     
 
-    def __init__(self, name: str, services: ServicesInterface):
+    def __init__(self, name: str, services: ScadaInterface):
         super().__init__(name, services)
         self.cn: H0CN = self.layout.channel_names
         

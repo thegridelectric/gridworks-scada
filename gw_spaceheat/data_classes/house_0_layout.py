@@ -12,6 +12,7 @@ from gwproto.data_classes.hardware_layout import (
     LoadError,
 )
 from data_classes.house_0_names import H0CN, H0N
+from enums.home_alone_strategy import HomeAloneStrategy
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.data_classes.synth_channel import SynthChannel
 from gwproto.default_decoders import (
@@ -88,6 +89,13 @@ class House0Layout(HardwareLayout):
         self.h0n = H0N(self.total_store_tanks, self.zone_list)
 
     @property
+    def ha_strategy(self) -> str:
+        """Returns the current home alone strategy"""
+        # Could be stored as a property or derived from a node
+        ha_node = self.nodes.get(H0N.home_alone)
+        return HomeAloneStrategy(HomeAloneStrategy(getattr(ha_node, "Strategy", None)))
+    
+    @property
     def actuators(self) -> List[ShNode]:
         return self.relays + self.zero_tens
     
@@ -104,6 +112,7 @@ class House0Layout(HardwareLayout):
             node for node in self.nodes.values()
             if node.ActorClass == ActorClass.ZeroTenOutputer
         ]
+
 
     # overwrites base class to return correct object
     @classmethod

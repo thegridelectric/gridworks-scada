@@ -4,7 +4,7 @@ from actors.api_flow_module import ApiFlowModule
 from actors.api_tank_module import ApiTankModule
 from actors.atomic_ally import AtomicAlly
 from actors.contract_handler import ContractHandler
-from actors.home_alone_shoulder import HomeAlone
+from actors.home_alone_loader import HomeAlone
 from actors.honeywell_thermostat import HoneywellThermostat
 from actors.hp_relay_boss import HpRelayBoss
 from actors.hubitat import Hubitat
@@ -27,7 +27,7 @@ __all__ = [
     "ApiTankModule",
     "AtomicAlly",
     "ContractHandler",
-    "HomeAlone",
+    "HomeAlone", # the factory/loader that selects which strategy
     "HoneywellThermostat",
     "HpRelayBoss",
     "Hubitat",

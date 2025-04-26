@@ -771,6 +771,7 @@
       "ActorHierarchyName": "s.h",
       "DisplayName": "HomeAlone",
       "Name": "h",
+      "Strategy": "Shoulder",
       "Handle": "auto.h",
       "ShNodeId": "b982c966-8e59-4c07-b4a7-64ebc4a40ac7",
       "TypeName": "spaceheat.node.gt",
