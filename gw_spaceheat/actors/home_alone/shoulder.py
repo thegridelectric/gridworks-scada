@@ -530,10 +530,7 @@ class HomeAlone(ScadaActor):
         self.sieg_valve_dormant(from_node=self.normal_node)
         self.turn_off_store_pump(from_node=self.normal_node)         
         self.valved_to_discharge_store(from_node=self.normal_node)
-
-        if self.is_onpeak():
-            self.log("Is on peak: turning off HP")
-            self.turn_off_HP(from_node=self.normal_node)
+        self.turn_off_HP(from_node=self.normal_node)
 
         try:
             self.log("Setting 010 defaults inside initialize_actuators")
