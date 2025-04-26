@@ -47,7 +47,7 @@ from gwproactor.persister import TimedRollingFilePersister
 from gwproactor.proactor_implementation import Proactor
 
 from actors.subscription_handler import ChannelSubscription, StateMachineSubscription
-from actors.home_alone import HomeAlone
+from actors.home_alone_shoulder import HomeAlone
 from actors.atomic_ally import AtomicAlly
 from actors import ContractHandler
 from data_classes.house_0_names import H0N
