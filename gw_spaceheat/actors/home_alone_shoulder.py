@@ -80,7 +80,7 @@ class HomeAlone(ScadaActor):
         {"trigger": "BufferFull", "source": "Initializing", "dest": "HpOffStoreOff"},
         {"trigger": "OnPeakStart", "source": "Initializing", "dest": "HpOffStoreOff"},
         # Starting at: HP on, Store off ============= HP -> buffer
-        {"trigger": "BufferFull", "source": "HpOnStoreOff", "dest": "HpOnStoreOff"},
+        {"trigger": "BufferFull", "source": "HpOnStoreOff", "dest": "HpOffStoreOff"},
         {"trigger": "OnPeakStart", "source": "HpOnStoreOff", "dest": "HpOffStoreOff"},
         # Starting at: HP off, Store off ============ idle
         {"trigger": "BufferNeedsCharge", "source": "HpOffStoreOff", "dest": "HpOnStoreOff"},
