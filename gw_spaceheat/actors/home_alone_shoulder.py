@@ -832,6 +832,7 @@ class HomeAlone(ScadaActor):
     def is_buffer_ready(self) -> bool:
         if datetime.now(self.timezone).hour not in [4,5,6]+[13,14,15]:
             self.log("No onpeak period coming up soon.")
+            self.buffer_declared_ready = False
             return True
         total_usable_kwh = self.data.latest_channel_values[H0N.usable_energy] / 1000
         required_buffer_energy = self.data.latest_channel_values[H0N.required_energy] / 1000
