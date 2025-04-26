@@ -185,10 +185,10 @@ class SynthGenerator(ScadaActor):
         time_now = datetime.now(self.timezone)
         latest_temperatures = self.latest_temperatures.copy()
 
-        if self.layout.ha_strategy == HomeAloneStrategy.Winter:
+        if self.layout.ha_strategy == HomeAloneStrategy.WinterTou:
             storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
             simulated_layers = [self.to_fahrenheit(v/1000) for k,v in storage_temperatures.items()]
-        elif self.layout.ha_strategy == HomeAloneStrategy.Shoulder: 
+        elif self.layout.ha_strategy == HomeAloneStrategy.ShoulderTou: 
             buffer_temp_channels = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4]
             buffer_temperatures = {k:v for k,v in latest_temperatures.items() if k in buffer_temp_channels}
             simulated_layers = [self.to_fahrenheit(v/1000) for k,v in buffer_temperatures.items()]    
@@ -240,9 +240,9 @@ class SynthGenerator(ScadaActor):
              if 16<=t.hour<=19]
             )
         # Find the maximum storage
-        if self.layout.ha_strategy == HomeAloneStrategy.Winter:
+        if self.layout.ha_strategy == HomeAloneStrategy.WinterTou:
             simulated_layers = [self.params.MaxEwtF + 10] * 12
-        elif self.layout.ha_strategy == HomeAloneStrategy.Shoulder:
+        elif self.layout.ha_strategy == HomeAloneStrategy.ShoulderTou:
             simulated_layers = [self.params.MaxEwtF + 10] * 4
         else:
             raise Exception(f"not prepared for home alone strategy {self.layout.ha_strategy}")

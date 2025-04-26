@@ -21,7 +21,7 @@ from gwproto.enums import (
     RelayClosedOrOpen
 )
 from enums import TurnHpOnOff, ChangeKeepSend
-from named_types import FsmEvent
+from named_types import FsmEvent, NewCommandTree
 from pydantic import ValidationError
 
 
@@ -712,7 +712,7 @@ class ScadaActor(Actor):
         Activate the valve controlling how much water is flowing out of the
         Siegenthaler loop. This will result in the flow out beginning to decrease
         if relay 15 is in SendLess position, or beginning to increase if relay 15
-        is in the SendMore position
+        is in the SendMore position. De-energized state
         """
         if from_node is None:
             from_node = self.node
@@ -735,7 +735,7 @@ class ScadaActor(Actor):
     def sieg_valve_dormant(self, from_node: Optional[ShNode] = None) -> None:
         """
         Stop sending a signal to move the valve controlling how much water is 
-        flowing out of the Siegenthaler loop. 
+        flowing out of the Siegenthaler loop.  Energized state.
         """
         if from_node is None:
             from_node = self.node
@@ -928,6 +928,35 @@ class ScadaActor(Actor):
         if boss is None:
             boss = self.node
         return [n for n in self.layout.nodes.values() if self.the_boss_of(n) == boss]
+
+    def set_command_tree(self, boss_node: ShNode) -> None:
+        """ Sets handles for a command tree like this:
+           ```
+            boss
+            ├── relay1 (vdc)
+            ├── relay2 (tstat_common)
+            └── all other relays and 0-10s
+        ```
+        Throws exception if boss_node is not in my chain of command
+        """
+        # TODO: if boss_node is not in my chain of command,
+        # raise an error
+        my_handle_prefix = f"{self.node.handle}."
+        if not boss_node.handle.startswith(my_handle_prefix) and boss_node != self.node:
+            raise Exception(f"{self.node.handle} cannot set command tree for boss_node {boss_node.handle}!")
+
+        for node in self.my_actuators():
+            if node.Name not in [H0N.hp_scada_ops_relay, H0N.hp_loop_keep_send, H0N.hp_loop_on_off]:
+                node.Handle =  f"{boss_node.handle}.{node.Name}"
+        self._send_to(
+            self.atn,
+            NewCommandTree(
+                FromGNodeAlias=self.layout.scada_g_node_alias,
+                ShNodes=list(self.layout.nodes.values()),
+                UnixMs=int(time.time() * 1000),
+            ),
+        )
+        self.log(f"Set {boss_node.handle} command tree")
 
     def _send_to(self, dst: ShNode, payload: Any, src: Optional[ShNode] = None) -> None:
         if dst is None:

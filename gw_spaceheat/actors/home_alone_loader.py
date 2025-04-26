@@ -1,23 +1,9 @@
 # Modify actors/home_alone.py to be a loader module
 import importlib
-import sys
-from typing import Any
 from gwproto.enums import ActorClass
 from enums import HomeAloneStrategy
 from actors.scada_actor import ScadaActor
 from actors.scada_interface import ScadaInterface
-
-def _get_home_alone_class(strategy: HomeAloneStrategy = HomeAloneStrategy.Winter):
-    """Dynamically determine which HomeAlone implementation to use"""
-    if strategy == HomeAloneStrategy.Winter:
-        winter_module = importlib.import_module("actors.home_alone.winter")
-        return winter_module.HomeAlone
-    elif strategy == HomeAloneStrategy.Shoulder:
-        shoulder_module = importlib.import_module("actors.home_alone.shoulder")
-        return shoulder_module.HomeAlone
-    else:
-        raise Exception(f"Do not have home alone strategy {strategy.value}!")
-
 
 class HomeAlone(ScadaActor):
     def __init__(self, name: str, services: ScadaInterface):
@@ -31,10 +17,12 @@ class HomeAlone(ScadaActor):
         strategy = HomeAloneStrategy(getattr(node, "Strategy", None))
 
         # Dynamically load the implementation class
-        if strategy == HomeAloneStrategy.Winter:
-            module_name = "actors.home_alone.winter"
+        if strategy == HomeAloneStrategy.WinterTou:
+            module_name = "actors.home_alone.winter_tou"
+        elif strategy == HomeAloneStrategy.ShoulderTou:
+            module_name = "actors.home_alone.shoulder_tou"
         else:
-            module_name = "actors.home_alone.shoulder"
+            raise Exception(f"Unknown strategy {strategy}")
 
         module = importlib.import_module(module_name)
         impl_class = getattr(module, "HomeAlone")
