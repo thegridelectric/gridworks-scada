@@ -194,8 +194,8 @@ class ScadaCmdDiagnostic(enum.Enum):
 class Scada(PrimeActor):
     ASYNC_POWER_REPORT_THRESHOLD = 0.05
     DEFAULT_ACTORS_MODULE = "actors"
-    ATN_MQTT = "gridworks"
-    LOCAL_MQTT = "local"
+    ATN_MQTT = "gridworks_mqtt"
+    LOCAL_MQTT = "local_mqtt"
     ADMIN_MQTT = "admin"
 
     _data: ScadaData

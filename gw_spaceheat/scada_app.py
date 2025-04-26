@@ -81,7 +81,7 @@ class ScadaApp(App):
         return {
             self.ATN_MQTT: LinkSettings(
                 broker_name=self.ATN_MQTT,
-                peer_long_name=self._layout.atn_g_node_alias,
+                peer_long_name=layout.atn_g_node_alias,
                 peer_short_name=H0N.atn,
                 upstream=True,
             ),
@@ -95,7 +95,7 @@ class ScadaApp(App):
                 broker_name=self.ADMIN_MQTT,
                 peer_long_name=H0N.admin,
                 peer_short_name=H0N.admin,
-                link_subscription_short_name=self.proactor.publication_name
+                link_subscription_short_name=name.publication_name
             ),
         }
 
@@ -108,3 +108,8 @@ class ScadaApp(App):
             ),
         )
 
+    @property
+    def scada(self) -> Scada:
+        if self.prime_actor is None:
+            raise ValueError("'scada' property accessed before instantiation")
+        return typing.cast(Scada, self.prime_actor)
