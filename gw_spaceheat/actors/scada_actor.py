@@ -358,7 +358,7 @@ class ScadaActor(Actor):
                 f"{from_node.handle} sending DischargeStore to Store ChargeDischarge {self.store_charge_discharge_relay.handle}"
             )
         except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
+            self.log(f"Tried to change the charge/discharge store relay but didn't have the rights: {e}")
 
     def valved_to_charge_store(self, from_node: Optional[ShNode] = None) -> None:
         """
