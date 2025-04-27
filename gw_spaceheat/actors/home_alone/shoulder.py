@@ -463,7 +463,7 @@ class HomeAlone(ScadaActor):
             elif self.state==HomeAloneState.HpOnStoreOff:
                 if self.is_onpeak():
                     self.trigger_normal_event(HomeAloneEvent.OnPeakStart)
-                elif self.is_buffer_full() or self.is_buffer_ready():
+                elif self.is_buffer_full():
                     self.trigger_normal_event(HomeAloneEvent.BufferFull)
                 
             elif self.state==HomeAloneState.HpOffStoreOff:
