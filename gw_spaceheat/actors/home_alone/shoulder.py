@@ -831,7 +831,7 @@ class HomeAlone(ScadaActor):
             return False
 
     def is_buffer_ready(self) -> bool:
-        if datetime.now(self.timezone).hour not in [4,5,6]+[13,14,15]:
+        if datetime.now(self.timezone).hour not in [5,6]+[14,15]:
             self.log("No onpeak period coming up soon.")
             self.buffer_declared_ready = False
             return True
