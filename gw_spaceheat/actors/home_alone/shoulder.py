@@ -475,7 +475,7 @@ class HomeAlone(ScadaActor):
                         required = self.data.latest_channel_values[H0N.required_energy] / 1000
                         if self.buffer_declared_ready:
                             if self.full_buffer_energy is None:
-                                if usable > 0.7*required:
+                                if usable > 0.9*required:
                                     self.log("The buffer was already declared ready during this off-peak period")
                                 else:
                                     self.trigger_normal_event(HomeAloneEvent.BufferNeedsCharge)
@@ -836,7 +836,18 @@ class HomeAlone(ScadaActor):
             self.buffer_declared_ready = False
             return True
         total_usable_kwh = self.data.latest_channel_values[H0N.usable_energy] / 1000
-        required_buffer_energy = self.data.latest_channel_values[H0N.required_energy] / 1000
+        required_onpeak = self.data.latest_channel_values[H0N.required_energy] / 1000
+
+        # Add the requirement of getting to the start of onpeak
+        now = datetime.now(self.timezone)
+        onpeak_duration_hours = 5 if now.hour in [5,6] else 4
+        onpeak_start_hour = 7 if now.hour in [5,6] else 16
+        onpeak_start_time = self.timezone.localize(datetime(now.year, now.month, now.day, onpeak_start_hour, 0))
+        time_to_onpeak = onpeak_start_time - now
+        hours_to_onpeak = round(time_to_onpeak.total_seconds() / 3600, 2)
+        self.log(f"There are {hours_to_onpeak} hours left to the start of onpeak")
+        required_buffer_energy = required_onpeak * (1 + hours_to_onpeak/onpeak_duration_hours)
+
         if total_usable_kwh >= required_buffer_energy:
             self.log(f"Buffer ready for onpeak (usable {round(total_usable_kwh,1)} kWh >= required {round(required_buffer_energy,1)} kWh)")
             self.buffer_declared_ready = True
