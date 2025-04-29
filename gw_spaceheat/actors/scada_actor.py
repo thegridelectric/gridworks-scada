@@ -443,7 +443,7 @@ class ScadaActor(Actor):
                 f"{from_node.handle} sending CloseRelay to HpScadaOpsRelay {self.hp_scada_ops_relay.handle}"
             )
         except ValidationError as e:
-            self.log(f"Tried to tell HpRelayBoss to turn on HP but didn't have rights: {e}")
+            self.log(f"Tried to tell HpScadaOpsRelay to turn on HP but didn't have rights: {e}")
 
     def turn_off_HP(self, from_node: Optional[ShNode] = None) -> None:
         """  Turn off heat pump by sending trigger to HpRelayBoss
@@ -469,7 +469,7 @@ class ScadaActor(Actor):
                 f"{from_node.handle} sending OpenRelay to HpScadaOpsRelay {self.hp_scada_ops_relay.handle}"
             )
         except ValidationError as e:
-            self.log(f"Tried to tell HpRelayBoss to turn off HP but didn't have rights: {e}")
+            self.log(f"Tried to tell HpScadaOpsRelay to turn off HP but didn't have rights: {e}")
 
     def close_thermistor_common_relay(self, from_node: Optional[ShNode] = None) -> None:
         """
@@ -940,8 +940,7 @@ class ScadaActor(Actor):
             raise Exception(f"{self.node.handle} cannot set command tree for boss_node {boss_node.handle}!")
 
         for node in self.my_actuators():
-            if node.Name not in [H0N.hp_scada_ops_relay, H0N.hp_loop_keep_send, H0N.hp_loop_on_off]:
-                node.Handle =  f"{boss_node.handle}.{node.Name}"
+            node.Handle =  f"{boss_node.handle}.{node.Name}"
         self._send_to(
             self.atn,
             NewCommandTree(

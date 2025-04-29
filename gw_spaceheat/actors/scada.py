@@ -1087,9 +1087,7 @@ class Scada(ScadaInterface, Proactor):
             if node.Name == H0N.vdc_relay and boss.name != H0N.admin:
                 node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
             else:
-                node.Handle = (
-                    f"{boss.handle}.{node.Name}"
-                )
+                node.Handle = (f"{boss.handle}.{node.Name}")
         self._send_to(
             self.atn,
             NewCommandTree(
