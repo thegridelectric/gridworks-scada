@@ -19,7 +19,7 @@ from gwproto.data_classes.components.dfr_component import DfrComponent
 
 from actors.scada_actor import ScadaActor
 from actors.scada_interface import ScadaInterface
-from named_types import (
+from named_types import (ActuatorsReady,
             GoDormant, Glitch, Ha1Params, HeatingForecast,
             NewCommandTree, SingleMachineState, WakeUp)
 from enums import HomeAloneStrategy, HomeAloneTopState, LogLevel
@@ -97,6 +97,7 @@ class HomeAloneTouBase(ScadaActor):
             raise Exception(f"HomeAlone requires {H0N.home_alone_onpeak_backup} node!!")
         self.set_command_tree(boss_node=self.normal_node)
         self.latest_temperatures: Dict[str, int] = {} # 
+        self.actuators_ready = False
 
     @property
     def normal_node(self) -> ShNode:
@@ -291,6 +292,9 @@ class HomeAloneTouBase(ScadaActor):
         raise NotImplementedError
 
     def initialize_actuators(self):
+        if not self.actuators_ready:
+            self.log(f"Waiting to initialize actuators until they are ready!")
+            return
         self.log("Initializing relays")
         if self.top_state != HomeAloneTopState.Normal:
             raise Exception("Can not go into initialize relays if top state is not Normal")
@@ -468,6 +472,8 @@ class HomeAloneTouBase(ScadaActor):
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         from_node = self.layout.node(message.Header.Src, None)
         match message.Payload:
+            case ActuatorsReady():
+                self.process_actuators_ready(from_node, message.Payload)
             case GoDormant():
                 if len(self.my_actuators()) > 0:
                     raise Exception("HomeAlone sent GoDormant with live actuators under it!")
@@ -488,6 +494,12 @@ class HomeAloneTouBase(ScadaActor):
                     self.log(f"State: {self.normal_node_state()}")
                     self.engage_brain()
         return Ok(True)
+
+    def process_actuators_ready(self, from_node: ShNode, payload: ActuatorsReady) -> None:
+        """Move to full send on startup"""
+        if not self.actuators_ready:
+            self.actuators_ready = True
+            self.initialize_actuators()
 
     def process_wake_up(self, from_node: ShNode, payload: WakeUp) -> None:
         if self.top_state != HomeAloneTopState.Dormant:

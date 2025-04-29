@@ -7,7 +7,7 @@ import uuid
 import threading
 import time
 import pytz
-from typing import Any, List, Optional, cast
+from typing import Any, Dict, List, Optional, cast
 
 import dotenv
 from transitions import Machine
@@ -53,7 +53,7 @@ from actors import ContractHandler
 from data_classes.house_0_names import H0N
 from enums import (AtomicAllyState, ContractStatus, HomeAloneTopState, MainAutoEvent, MainAutoState, 
                     TopState)
-from named_types import (
+from named_types import ( ActuatorsReady,
     AdminDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
     Glitch, GoDormant, LayoutLite, NewCommandTree, NoNewContractWarning,
     ScadaParams, SendLayout, SingleMachineState,
@@ -286,6 +286,26 @@ class Scada(ScadaInterface, Proactor):
         )
         self.initialize_hierarchical_state_data()
         self.state_machine_subscriptions: List[StateMachineSubscription] = [  ]
+        self.channel_subscriptions: Dict[str, ChannelSubscription] = {}
+
+        # Initialize actuator tracking
+        self.ready_actuators = set()
+        self.all_actuators_ready = False
+
+        # Define which actuators must report ready
+        self.required_actuators = {
+            self.relay_multiplexer, 
+            self.zero_ten_out_multiplexer,
+        }
+
+        # Define which actors depend on actuator readiness
+        self.actuator_dependents = {
+            self.home_alone,
+            #self.sieg_loop,
+            #self.hp_boss,
+            #self.atomic_ally,
+            # self.pico_cycler,
+        }
 
     def _start_derived_tasks(self):
         self._tasks.append(
@@ -306,6 +326,11 @@ class Scada(ScadaInterface, Proactor):
         """Process NamedTypes sent to primary scada"""
         # Todo: turn msg into GwBase
         match payload:
+            case ActuatorsReady():
+                try:
+                    self.process_actuators_ready(from_node, payload)
+                except Exception as e:
+                    self.log(f"Trouble with process_actuators_ready: \n {e}")
             case AdminDispatch():
                 try:
                     self.process_admin_dispatch(from_node, payload)
@@ -413,6 +438,21 @@ class Scada(ScadaInterface, Proactor):
     #####################################################################
     # Process Messages
     #####################################################################
+
+    def process_actuators_ready(
+            self, from_node: ShNode, payload: ActuatorsReady
+    ) -> None:
+        """Tracks which actuators are ready and notifies dependent actors when all are ready"""
+        self.ready_actuators.add(from_node)
+        self.log(f"Actuator {from_node.name} is ready. {len(self.ready_actuators)}/{len(self.required_actuators)}")
+
+        # Check if all required actuators are ready
+        if self.required_actuators.issubset(self.ready_actuators):
+            self.all_actuators_ready = True
+            self.log("All actuators are ready!")
+            # Notify dependent actors that need to know when actuators are ready
+            for dependent in self.actuator_dependents:
+                self._send_to(dependent, ActuatorsReady())
 
     def process_admin_dispatch(
         self, from_node: ShNode, payload: AdminDispatch
@@ -1439,6 +1479,14 @@ class Scada(ScadaInterface, Proactor):
     @property
     def home_alone(self) -> ShNode:
         return self.layout.node(H0N.home_alone)
+
+    @property
+    def relay_multiplexer(self) -> ShNode:
+        return self.layout.node(H0N.relay_multiplexer)
+
+    @property
+    def zero_ten_out_multiplexer(self) -> ShNode:
+        return self.layout.node(H0N.zero_ten_out_multiplexer)
 
     @property
     def synth_generator(self) -> ShNode:
