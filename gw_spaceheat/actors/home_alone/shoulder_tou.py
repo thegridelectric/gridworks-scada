@@ -153,15 +153,14 @@ class HomeAlone(HomeAloneTouBase):
         if self.top_state != HomeAloneTopState.Normal:
             self.log(f"brain is only for Normal top state, not {self.top_state}")
             return
+
         if self.state == HaShoulderState.Dormant:
             self.alert("BadHomeAloneState", f"TopState Normal, state Dormant!")
-        waking_up = (self.state==HaShoulderState.Initializing)
-        if waking_up:
-            if self.state == HaShoulderState.Dormant:
-                self.trigger_normal_event(HaShoulderEvent.WakeUp)
-                self.time_since_blind = None
-            if not self.relays_initialized:
-                self.initialize_actuators()
+            self.trigger_normal_event(HaShoulderEvent.WakeUp)
+
+        if not self.relays_initialized:
+            self.initialize_actuators()
+
         previous_state = self.state
 
         if self.is_onpeak():

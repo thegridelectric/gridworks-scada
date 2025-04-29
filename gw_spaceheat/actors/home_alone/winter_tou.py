@@ -163,13 +163,14 @@ class HomeAlone(HomeAloneTouBase):
         if self.top_state != HomeAloneTopState.Normal:
             self.log(f"brain is only for Normal top state, not {self.top_state}")
             return
-        waking_up = (self.state==HaWinterState.Initializing)
-        if waking_up:
-            if self.state == HaWinterState.Dormant:
-                self.trigger_normal_event(HaWinterEvent.WakeUp)
-                self.time_since_blind = None
-            if not self.relays_initialized:
-                self.initialize_actuators()
+
+        if self.state == HaWinterState.Dormant:
+            self.alert("BadHomeAloneState", f"TopState Normal, state Dormant!")
+            self.trigger_normal_event(HaWinterEvent.WakeUp)
+        
+        if not self.relays_initialized:
+            self.initialize_actuators()
+
         previous_state = self.state
 
         if self.is_onpeak():
@@ -286,46 +287,6 @@ class HomeAlone(HomeAloneTouBase):
             self.valved_to_charge_store(from_node=self.normal_node)
         else:
             self.valved_to_discharge_store(from_node=self.normal_node)
-
-    def initialize_actuators(self):
-        self.log("Initializing relays")
-        if self.top_state != HomeAloneTopState.Normal:
-            raise Exception("Can not go into initialize relays if top state is not Normal")
-        
-        h_normal_relays =  {
-            relay
-            for relay in self.my_actuators()
-            if relay.ActorClass == ActorClass.Relay and
-            self.the_boss_of(relay) == self.normal_node
-        }
-
-        target_relays: List[ShNode] = list(h_normal_relays - {
-                self.store_charge_discharge_relay, # keep as it was
-                self.hp_failsafe_relay,
-                self.hp_scada_ops_relay, # keep as it was unless on peak
-                self.aquastat_control_relay,
-                 self.hp_loop_on_off,
-            }
-        )
-        target_relays.sort(key=lambda x: x.Name)
-        self.log("de-energizing most relays")
-        for relay in target_relays:
-            self.de_energize(relay, from_node=self.normal_node)
-        self.log("Taking care of critical relays")
-        self.hp_failsafe_switch_to_scada(from_node=self.normal_node)
-        self.aquastat_ctrl_switch_to_scada(from_node=self.normal_node)
-        self.sieg_valve_dormant(from_node=self.normal_node)
-
-        if self.is_onpeak():
-            self.log("Is on peak: turning off HP")
-            self.turn_off_HP(from_node=self.normal_node)
-
-        try:
-            self.log("Setting 010 defaults inside initialize_actuators")
-            self.set_010_defaults()
-        except ValueError as e:
-            self.log(f"Trouble with set_010_defaults: {e}")
-        self.relays_initialized = True
 
     def fill_missing_store_temps(self):
         if list(self.latest_temperatures.keys()) == self.temperature_channel_names:

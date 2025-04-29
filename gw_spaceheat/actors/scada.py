@@ -244,7 +244,8 @@ class Scada(ScadaInterface, Proactor):
         self._last_snap_s = int(now - (now % self.settings.seconds_per_snapshot))
         self.pending_dispatch: Optional[AnalogDispatch] = None
 
-        self.set_home_alone_command_tree()
+        home_alone_normal = self.layout.node(H0N.home_alone_normal)
+        self.set_command_tree(home_alone_normal)
         if actor_nodes is not None:
             for actor_node in actor_nodes:
                 self.add_communicator(
@@ -284,11 +285,7 @@ class Scada(ScadaInterface, Proactor):
             )
         )
         self.initialize_hierarchical_state_data()
-        self.state_machine_subscriptions: List[StateMachineSubscription] = [
-            StateMachineSubscription(
-                subscriber_name=self.layout.h0n.strat_boss,
-                publisher_name=self.layout.h0n.hp_scada_ops_relay)                       
-        ]
+        self.state_machine_subscriptions: List[StateMachineSubscription] = [  ]
 
     def _start_derived_tasks(self):
         self._tasks.append(
@@ -619,8 +616,6 @@ class Scada(ScadaInterface, Proactor):
                 self.update_env_variable(
                     "SCADA_LOAD_OVERESTIMATION_PERCENT", new.LoadOverestimationPercent
                 )
-            if new.StratBossDist010 != old.StratBossDist010:
-                self.update_env_variable("SCADA_STRATBOSS_DIST_010V", new.StratBossDist010)
 
             response = ScadaParams(
                 FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
@@ -814,7 +809,7 @@ class Scada(ScadaInterface, Proactor):
             contract = self.contract_handler.latest_scada_hb.Contract
             self.DispatchContractLive()
             self.log("DispatchContractLive: HomeAlone -> Atn")
-            self.set_atn_command_tree()
+            self.set_command_tree(self.atomic_ally)
             # Wake up atn, tell home alone to go dormant
             self._send_to(self.atomic_ally, contract)
             self._send_to(self.home_alone, GoDormant(ToName=self.home_alone.name)
@@ -825,7 +820,7 @@ class Scada(ScadaInterface, Proactor):
                 return
             self.ContractGracePeriodEnds()
             self.log("ContractGracePeriodEnds: Atn -> HomeAlone")
-            self.set_home_alone_command_tree()
+            self.set_command_tree(self.home_alone)
             self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
             self._send_to(self.atomic_ally, GoDormant(ToName=H0N.atomic_ally))
         elif trigger == MainAutoEvent.AtnReleasesControl:
@@ -834,7 +829,7 @@ class Scada(ScadaInterface, Proactor):
                 return
             self.AtnReleasesControl()
             self.log("AtnReleasesControls: Atn -> HomeAlone")
-            self.set_home_alone_command_tree()
+            self.set_command_tree(self.home_alone)
             self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
             self._send_to(self.atomic_ally, GoDormant(ToName=H0N.atomic_ally))
         elif trigger == MainAutoEvent.AllyGivesUp:
@@ -843,7 +838,7 @@ class Scada(ScadaInterface, Proactor):
                 return
             self.AllyGivesUp()
             self.log("AllyGivesUp: Atn -> HomeAlone")
-            self.set_home_alone_command_tree()
+            self.set_command_tree(self.home_alone)
             self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
             self._send_to(self.atomic_ally, GoDormant(ToName=H0N.atomic_ally))
         elif trigger == MainAutoEvent.AutoGoesDormant:
@@ -854,7 +849,7 @@ class Scada(ScadaInterface, Proactor):
             self.log(f"AutoGoesDormant: {self.auto_state} -> Dormant")
             self.log(f"auto_state {self.auto_state}")
             # ADMIN CONTROL FOREST: a single tree, controlling all actuators
-            self.set_admin_command_tree()
+            self.set_command_tree(self.admin)
 
             # Let the active nodes know they've lost control of their actuators
             for direct_report in [self.atomic_ally,self.home_alone,self.layout.pico_cycler]:
@@ -867,7 +862,7 @@ class Scada(ScadaInterface, Proactor):
                 return
             self.AutoWakesUp()
             self.log("AutoWakesUp: Dormant -> HomeAlone")
-            self.set_home_alone_command_tree()
+            self.set_command_tree(self.home_alone)
             self._send_to(self.home_alone, WakeUp(ToName=H0N.home_alone))
             self._send_to(self.layout.pico_cycler, WakeUp(ToName=H0N.pico_cycler))
             
@@ -1037,30 +1032,23 @@ class Scada(ScadaInterface, Proactor):
     # where the line of direct report is required for following a command
     ##########################################################
 
-    def set_home_alone_command_tree(self) -> None:
-        """ HomeAlone Base Command Tree
-        
-         - All actuators except for HpScadaOps and PicoCycler report to AtomicAlly
-         - HpRelayBoss reports to Atomic Ally, 
-         - StratBoss reports to Atomic Ally
-        
-         TODO: Add ascii representation 
+    def set_command_tree(self, boss: ShNode) -> None:
+        """ Command Tree
+        ```
+        boss
+        ├─────────────────────────────────pico-cycler
+        ├── relay2 (tstat_common)           └── relay1 (vdc) 
+        └── all other relays and 0-10s
+        ```
         """
 
-        hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
-        hp_relay_boss.Handle = f"{H0N.auto}.{H0N.home_alone}.{hp_relay_boss.Name}"
-        
-        strat_boss = self.layout.node(H0N.strat_boss)
-        strat_boss.Handle = f"{H0N.auto}.{H0N.home_alone}.{strat_boss.Name}"
 
         for node in self.layout.actuators:
-            if node.Name == H0N.vdc_relay:
+            if node.Name == H0N.vdc_relay and boss.name != H0N.admin:
                 node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
-            elif node.Name == H0N.hp_scada_ops_relay:
-                node.Handle = f"{H0N.auto}.{H0N.home_alone}.{hp_relay_boss.Name}.{node.Name}"
             else:
                 node.Handle = (
-                    f"{H0N.auto}.{H0N.home_alone}.{node.Name}"
+                    f"{boss.handle}.{node.Name}"
                 )
         self._send_to(
             self.atn,
@@ -1070,64 +1058,6 @@ class Scada(ScadaInterface, Proactor):
                 UnixMs=int(time.time() * 1000),
             ),
         )
-
-    def set_admin_command_tree(self) -> None:
-        """ Admin Base Command Tree
-        
-         - All actuators except for HpScadaOps report directly to admin
-         - HpRelayBoss reports to admin
-         - StratBoss reports to admin
-        """
-        hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
-        hp_relay_boss.Handle = f"{H0N.admin}.{hp_relay_boss.Name}"
-        
-        strat_boss = self.layout.node(H0N.strat_boss)
-        strat_boss.Handle = f"{H0N.admin}.{strat_boss.Name}"
-
-        for node in self.layout.actuators:
-            if node.Name == H0N.hp_scada_ops_relay:
-                node.Handle = f"{H0N.admin}.{hp_relay_boss.Name}.{node.Name}"
-            else:
-                node.Handle = f"{H0N.admin}.{node.Name}"
-        self._send_to(
-            self.atn,
-            NewCommandTree(
-                FromGNodeAlias=self.layout.scada_g_node_alias,
-                ShNodes=list(self.layout.nodes.values()),
-                UnixMs=int(time.time() * 1000),
-            ),
-        )
-
-    def set_atn_command_tree(self) -> None:
-        """ Atn Base Command Tree
-        
-         - All actuators except for HpScadaOps and PicoCycler report to AtomicAlly
-         - HpRelayBoss reports to Atomic Ally, 
-         - StratBoss reports to Atomic Ally
-         TODO: Add ascii representation 
-        """
-        hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
-        hp_relay_boss.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{hp_relay_boss.Name}"
-        
-        strat_boss = self.layout.node(H0N.strat_boss)
-        strat_boss.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{strat_boss.Name}"
-
-        for node in self.layout.actuators:
-            if node.Name == H0N.vdc_relay:
-                node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
-            elif node.Name == H0N.hp_scada_ops_relay:
-                node.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{hp_relay_boss.Name}.{node.Name}"
-            else:
-                node.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{node.Name}"
-        self._send_to(
-            self.atn,
-            NewCommandTree(
-                FromGNodeAlias=self.layout.scada_g_node_alias,
-                ShNodes=list(self.layout.nodes.values()),
-                UnixMs=int(time.time() * 1000),
-            ),
-        )
-
 
     #######################################
     # Contract management
@@ -1384,8 +1314,6 @@ class Scada(ScadaInterface, Proactor):
                 return
             src = H0N.admin
             # TODO: make admin conversation less hacky?
-            if decoded.Payload.TypeName == "strat.boss.trigger":
-                to_node = self.layout.node(H0N.strat_boss)
         else:
             raise ValueError(
                 "ERROR. No mqtt handler for mqtt client %s", message.Payload.client_name

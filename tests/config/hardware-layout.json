@@ -855,26 +855,6 @@
       "Version": "200"
     },
     {
-      "ActorClass": "HpRelayBoss",
-      "ActorHierarchyName": "s.hp-relay-boss",
-      "DisplayName": "Heatpump Relay Boss",
-      "Handle": "auto.h.n.hp-relay-boss",
-      "Name": "hp-relay-boss",
-      "ShNodeId": "406a023b-fe07-4ae3-99f2-682db5c19cb1",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "200"
-    },
-    {
-      "ActorClass": "StratBoss",
-      "ActorHierarchyName": "s.strat-boss",
-      "DisplayName": "Stratification Boss",
-      "Handle": "auto.h.n.strat-boss",
-      "Name": "strat-boss",
-      "ShNodeId": "6d7fe5f4-dad2-47a0-812b-fdf76522df02",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "200"
-    },
-    {
       "ActorClass": "Relay",
       "ActorHierarchyName": "s.relay1",
       "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",

@@ -69,14 +69,6 @@ class ScadaActor(Actor):
     def synth_generator(self) -> ShNode:
         return self.layout.node(H0N.synth_generator)
 
-    @property
-    def strat_boss(self) -> ShNode:
-        return self.layout.node(H0N.strat_boss)
-
-    @property
-    def hp_relay_boss(self) -> ShNode:
-        return self.layout.node(H0N.hp_relay_boss)
-
     def my_actuators(self) -> List[ShNode]:
         """Get all actuator nodes that are descendants of this node in the handle hierarchy"""
         my_handle_prefix = f"{self.node.handle}."
@@ -430,25 +422,25 @@ class ScadaActor(Actor):
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
     def turn_on_HP(self, from_node: Optional[ShNode] = None) -> None:
-        """ Turn on heat pump by sending trigger to HpRelayBoss
+        """ Turn on heat pump
 
-        from_node defaults to self.node if no from_node sent.
-        Will log an error and do nothing if from_node is not the boss of HpRelayBoss
         """
         if from_node is None:
             from_node = self.node
         try:
             event = FsmEvent(
                 FromHandle=from_node.handle,
-                ToHandle=self.hp_relay_boss.handle,
-                EventType= TurnHpOnOff.enum_name(),
-                EventName=TurnHpOnOff.TurnOn,
+                ToHandle=self.hp_scada_ops_relay.handle,
+                EventType=ChangeRelayState.enum_name(),
+                EventName=ChangeRelayState.CloseRelay,
+                # EventType= TurnHpOnOff.enum_name(),
+                # EventName=TurnHpOnOff.TurnOn,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
-            self._send_to(self.hp_relay_boss, event, from_node)
+            self._send_to(self.hp_scada_ops_relay, event, from_node)
             self.log(
-                f"{from_node.handle} sending CloseRelay to HpRelayBoss {self.hp_relay_boss.handle}"
+                f"{from_node.handle} sending CloseRelay to HpScadaOpsRelay {self.hp_scada_ops_relay.handle}"
             )
         except ValidationError as e:
             self.log(f"Tried to tell HpRelayBoss to turn on HP but didn't have rights: {e}")
@@ -464,15 +456,17 @@ class ScadaActor(Actor):
         try:
             event = FsmEvent(
                 FromHandle=from_node.handle,
-                ToHandle=self.hp_relay_boss.handle,
-                EventType=TurnHpOnOff.enum_name(),
-                EventName=TurnHpOnOff.TurnOff,
+                ToHandle=self.hp_scada_ops_relay.handle,
+                EventType=ChangeRelayState.enum_name(),
+                EventName=ChangeRelayState.OpenRelay,
+                # EventType=TurnHpOnOff.enum_name(),
+                # EventName=TurnHpOnOff.TurnOff,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
-            self._send_to(self.hp_relay_boss, event, from_node)
+            self._send_to(self.hp_scada_ops_relay, event, from_node)
             self.log(
-                f"{from_node.handle} sending OpenRelay to HpRelayBoss {self.hp_relay_boss.handle}"
+                f"{from_node.handle} sending OpenRelay to HpScadaOpsRelay {self.hp_scada_ops_relay.handle}"
             )
         except ValidationError as e:
             self.log(f"Tried to tell HpRelayBoss to turn off HP but didn't have rights: {e}")

@@ -1,6 +1,6 @@
 import asyncio
 from abc import abstractmethod
-from typing import List, Optional, Sequence, cast
+from typing import Dict, List, Optional, Sequence, cast
 from enum import auto
 import time
 import uuid
@@ -96,6 +96,7 @@ class HomeAloneTouBase(ScadaActor):
         if H0N.home_alone_onpeak_backup not in self.layout.nodes:
             raise Exception(f"HomeAlone requires {H0N.home_alone_onpeak_backup} node!!")
         self.set_command_tree(boss_node=self.normal_node)
+        self.latest_temperatures: Dict[str, int] = {} # 
 
     @property
     def normal_node(self) -> ShNode:
