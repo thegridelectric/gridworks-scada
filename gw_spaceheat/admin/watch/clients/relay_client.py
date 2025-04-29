@@ -306,13 +306,14 @@ class RelayWatchClient(AdminSubClient):
                 else relay_config.de_energizing_event
         )
 
-        if relay_name == H0N.hp_scada_ops_relay:
-            to_handle = f"{H0N.admin}.{H0N.hp_relay_boss}"
-            event_type = TurnHpOnOff.enum_name()
-            if trigger == ChangeRelayPin.DeEnergize:
-                event_name = TurnHpOnOff.TurnOn
-            else:
-                event_name = TurnHpOnOff.TurnOff
+        # TODO: ADD BACK WITH SIEG
+        # if relay_name == H0N.hp_scada_ops_relay:
+        #     to_handle = f"{H0N.admin}.{H0N.hp_boss}"
+        #     event_type = TurnHpOnOff.enum_name()
+        #     if trigger == ChangeRelayPin.DeEnergize:
+        #         event_name = TurnHpOnOff.TurnOn
+        #     else:
+        #         event_name = TurnHpOnOff.TurnOff
 
         event = FsmEvent(
             FromHandle=H0N.admin,
