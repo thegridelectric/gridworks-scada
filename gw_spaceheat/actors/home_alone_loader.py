@@ -18,18 +18,17 @@ class HomeAlone(ScadaActor):
 
         # Dynamically load the implementation class
         if strategy == HomeAloneStrategy.WinterTou:
-            module_name = "actors.home_alone.winter_tou"
+            module = importlib.import_module("actors.home_alone.winter_tou")
+            impl_class = getattr(module, "WinterTouHomeAlone")
         elif strategy == HomeAloneStrategy.ShoulderTou:
-            module_name = "actors.home_alone.shoulder_tou"
+            module = importlib.import_module("actors.home_alone.shoulder_tou")
+            impl_class = getattr(module, "ShoulderTouHomeAlone")
         else:
             raise Exception(f"Unknown strategy {strategy}")
 
-        module = importlib.import_module(module_name)
-        impl_class = getattr(module, "HomeAlone")
-
         # Create the implementation instance
         self._impl = impl_class(name, services)
-        services.logger.error(f"Creating HomeAlone with strategy: {strategy.value}, using {impl_class.__module__}.{impl_class.__name__}")
+        services.logger.error(f"Creating HomeAlone with strategy {strategy.value}, using {impl_class.__module__}.{impl_class.__name__}")
 
     # Forward all properties and methods to the implementation
     @property

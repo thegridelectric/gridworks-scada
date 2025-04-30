@@ -1,19 +1,17 @@
-from typing import List, Optional
-from enum import auto
 import time
 from datetime import datetime
-from gw.enums import GwStrEnum
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.enums import ActorClass
-from transitions import Machine
-from data_classes.house_0_names import H0N, H0CN
+from enum import auto
+from typing import List, Optional
 
-from actors.scada_interface import ScadaInterface
 from actors.home_alone.home_alone_tou_base import HomeAloneTouBase
-from named_types import SingleMachineState
+from actors.scada_interface import ScadaInterface
+from data_classes.house_0_names import H0CN, H0N
 from enums import HomeAloneStrategy, HomeAloneTopState
+from gw.enums import GwStrEnum
+from named_types import SingleMachineState
+from transitions import Machine
 
- 
+
 class HaWinterState(GwStrEnum):
     Initializing = auto()
     HpOnStoreOff = auto()
@@ -50,7 +48,7 @@ class HaWinterEvent(GwStrEnum):
     def enum_name(cls) -> str:
         return "ha.winter.event"
 
-class HomeAlone(HomeAloneTouBase):
+class WinterTouHomeAlone(HomeAloneTouBase):
     states = HaWinterState.values()
 
     transitions = [
@@ -93,8 +91,8 @@ class HomeAlone(HomeAloneTouBase):
         
         self.machine = Machine(
             model=self,
-            states=HomeAlone.states,
-            transitions=HomeAlone.transitions,
+            states=WinterTouHomeAlone.states,
+            transitions=WinterTouHomeAlone.transitions,
             initial=HaWinterState.Initializing,
             send_event=True,
         )   
@@ -104,7 +102,38 @@ class HomeAlone(HomeAloneTouBase):
         now_ms = int(time.time() * 1000)
         orig_state = self.state
         
-        self.trigger(event)
+        if event == HaWinterEvent.OnPeakStart:
+            self.OnPeakStart()
+        elif event  == HaWinterEvent.OffPeakStart:
+            self.OffPeakStart()
+        elif event  == HaWinterEvent.OnPeakBufferFull:
+            self.OnPeakBufferFull()
+        elif event  == HaWinterEvent.OffPeakBufferFullStorageNotReady:
+            self.OffPeakBufferFullStorageNotReady()
+        elif event  == HaWinterEvent.OffPeakBufferFullStorageReady:
+            self.OffPeakBufferFullStorageReady ()
+        elif event  == HaWinterEvent.OffPeakBufferEmpty:
+            self.OffPeakBufferEmpty()
+        elif event  == HaWinterEvent.OnPeakBufferEmpty:
+            self.OnPeakBufferEmpty()
+        elif event  == HaWinterEvent.OffPeakStorageReady:
+            self.OffPeakStorageReady()
+        elif event  == HaWinterEvent.OffPeakStorageNotReady:
+            self.OffPeakStorageNotReady()
+        elif event  == HaWinterEvent.OnPeakStorageColderThanBuffer:
+            self.OnPeakStorageColderThanBuffer()
+        elif event  == HaWinterEvent.OnPeakStorageColderThanBuffer:
+            self.OnPeakStorageColderThanBuffer()
+        elif event  == HaWinterEvent.TemperaturesAvailable:
+            self.TemperaturesAvailable()
+        elif event  == HaWinterEvent.GoDormant:
+            self.GoDormant()
+        elif event  == HaWinterEvent.WakeUp:
+            self.WakeUp()
+        else:
+             raise Exception(f"Unkonnwn event {event}")
+
+
         self.log(f"{event}: {orig_state} -> {self.state}")
         self._send_to(
             self.primary_scada,
@@ -165,7 +194,7 @@ class HomeAlone(HomeAloneTouBase):
             return
 
         if self.state == HaWinterState.Dormant:
-            self.alert("BadHomeAloneState", f"TopState Normal, state Dormant!")
+            self.alert("BadHomeAloneState", "TopState Normal, state Dormant!")
             self.trigger_normal_event(HaWinterEvent.WakeUp)
         
         if not self.relays_initialized:
