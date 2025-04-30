@@ -84,8 +84,6 @@ class H0N:
     relay_multiplexer = "relay-multiplexer"
     synth_generator = "synth-generator"
     zero_ten_out_multiplexer = "dfr-multiplexer"
-    hp_relay_boss = "hp-relay-boss"
-    strat_boss = "strat-boss"
     pump_doctor = "pump-doc"
 
     # core power-metered nodes

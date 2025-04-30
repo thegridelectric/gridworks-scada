@@ -7,20 +7,20 @@ from gw.enums import GwStrEnum
 class HomeAloneStrategy(GwStrEnum):
     """
     Values:
-      - Winter
-      - Shoulder
+      - WinterTou
+      - ShoulderTou
 
     For more information:
       - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
       - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#homealonetopstate)
     """
-    Winter = auto()
-    Shoulder = auto()
+    WinterTou = auto()
+    ShoulderTou = auto()
 
 
     @classmethod
     def default(cls) -> "HomeAloneStrategy":
-        return cls.Winter
+        return cls.WinterTou
 
     @classmethod
     def values(cls) -> List[str]:

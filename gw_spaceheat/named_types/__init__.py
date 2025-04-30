@@ -1,5 +1,6 @@
 """ List of all the types """
 
+from named_types.actuators_ready import ActuatorsReady
 from named_types.admin_dispatch import AdminDispatch
 from named_types.admin_keep_alive import AdminKeepAlive
 from named_types.admin_release_control import AdminReleaseControl
@@ -33,14 +34,13 @@ from named_types.send_layout import SendLayout
 from named_types.single_machine_state import SingleMachineState
 from named_types.slow_contract_heartbeat import SlowContractHeartbeat
 from named_types.snapshot_spaceheat import SnapshotSpaceheat
-from named_types.strat_boss_ready import StratBossReady
-from named_types.strat_boss_trigger import StratBossTrigger
 from named_types.suit_up import SuitUp
 from named_types.wake_up import WakeUp
 from named_types.weather_forecast import WeatherForecast
 
 __all__ = [
     "RemainingElecEvent",
+    "ActuatorsReady",
     "AdminDispatch",
     "AdminKeepAlive",
     "AdminReleaseControl",
@@ -74,8 +74,6 @@ __all__ = [
     "SingleMachineState",
     "SnapshotSpaceheat",
     "SuitUp",
-    "StratBossReady",
-    "StratBossTrigger",
     "WakeUp",
     "WeatherForecast",
 ]

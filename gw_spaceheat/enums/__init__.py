@@ -30,8 +30,6 @@ from enums.market_price_unit import MarketPriceUnit
 from enums.market_quantity_unit import MarketQuantityUnit
 from enums.pico_cycler_event import PicoCyclerEvent
 from enums.pico_cycler_state import PicoCyclerState
-from enums.strat_boss_event import StratBossEvent
-from enums.strat_boss_state import StratBossState
 from enums.top_event import TopEvent
 from enums.top_state import TopState
 from enums.turn_hp_on_off import TurnHpOnOff
@@ -53,8 +51,6 @@ __all__ = [
     "MarketQuantityUnit",  # [market.quantity.unit.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#marketquantityunit)
     "PicoCyclerEvent",  # [pico.cycler.event.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#picocyclerevent)
     "PicoCyclerState",  # [pico.cycler.state.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#picocyclerstate)
-    "StratBossEvent",
-    "StratBossState",
     "TopEvent",  # [top.event.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#topevent)
     "TopState",  # [top.state.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#topstate)
     "TurnHpOnOff",

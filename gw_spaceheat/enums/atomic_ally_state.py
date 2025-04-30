@@ -12,7 +12,6 @@ class AtomicAllyState(GwStrEnum):
     HpOffStoreOff = auto()
     HpOffStoreDischarge = auto()
     HpOffOilBoilerTankAquastat = auto()
-    StratBoss = auto()
 
     @classmethod
     def default(cls) -> "AtomicAllyState":
