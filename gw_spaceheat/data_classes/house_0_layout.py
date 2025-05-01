@@ -12,7 +12,8 @@ from gwproto.data_classes.hardware_layout import (
     LoadError,
 )
 from data_classes.house_0_names import H0CN, H0N
-from enums.home_alone_strategy import HomeAloneStrategy
+from enums import FlowManifoldVariant, HomeAloneStrategy
+
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.data_classes.synth_channel import SynthChannel
 from gwproto.default_decoders import (
@@ -25,7 +26,7 @@ from gwproto.named_types import ComponentAttributeClassGt
 class House0Layout(HardwareLayout):
     zone_list: List[str]
     total_store_tanks: int
-    strategy: Literal["House0"] = "House0"
+    flow_manifold_variant: str = "House0"
 
 
     def __init__(  # noqa: PLR0913
@@ -51,12 +52,13 @@ class House0Layout(HardwareLayout):
             )
         if "TotalStoreTanks" not in layout:
             raise DcError("House0 requires TotalStoreTanks")
-        if "Strategy" not in layout:
-            raise DcError("House0 requires strategy")
-        if not self.layout["Strategy"] == "House0":
-            raise DcError("House0 requires House0 strategy!")
+        if "FlowManifoldVariant" not in layout:
+            raise DcError("House0 requires FlowManifoldVariant")
+        if not self.layout["FlowManifoldVariant"] in FlowManifoldVariant.values():
+            raise DcError(f"FlowManifoldVariant must belong to {FlowManifoldVariant.values()}!")
         self.zone_list = layout["ZoneList"]
         self.total_store_tanks = layout["TotalStoreTanks"]
+
         self.channel_names = H0CN(self.total_store_tanks, self.zone_list)
         if not isinstance(self.total_store_tanks, int):
             raise TypeError("TotalStoreTanks must be an integer")
@@ -67,6 +69,7 @@ class House0Layout(HardwareLayout):
         if not 1 <= len(self.zone_list) <= 6:
             raise ValueError("Must have between 1 and 6 store zones")
         self.h0n = H0N(self.total_store_tanks, self.zone_list)
+        
 
     @property
     def ha_strategy(self) -> str:

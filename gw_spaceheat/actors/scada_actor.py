@@ -20,7 +20,7 @@ from gwproto.enums import (
     ChangeStoreFlowRelay,
     RelayClosedOrOpen
 )
-from enums import TurnHpOnOff, ChangeKeepSend
+from enums import FlowManifoldVariant, TurnHpOnOff, ChangeKeepSend
 from named_types import FsmEvent, NewCommandTree
 from pydantic import ValidationError
 
@@ -68,6 +68,18 @@ class ScadaActor(Actor):
     @property
     def synth_generator(self) -> ShNode:
         return self.layout.node(H0N.synth_generator)
+
+    @property
+    def hp_boss(self) -> ShNode:
+        return self.layout.node(H0N.hp_boss)
+
+    @property
+    def sieg_loop(self) -> ShNode:
+        return self.layout.node(H0N.sieg_loop)
+
+    @property
+    def pico_cycler(self) -> ShNode:
+        return self.layout.nodes[H0N.pico_cycler]
 
     def my_actuators(self) -> List[ShNode]:
         """Get all actuator nodes that are descendants of this node in the handle hierarchy"""
@@ -427,23 +439,36 @@ class ScadaActor(Actor):
         """
         if from_node is None:
             from_node = self.node
-        try:
-            event = FsmEvent(
-                FromHandle=from_node.handle,
-                ToHandle=self.hp_scada_ops_relay.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.CloseRelay,
-                # EventType= TurnHpOnOff.enum_name(),
-                # EventName=TurnHpOnOff.TurnOn,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(self.hp_scada_ops_relay, event, from_node)
-            self.log(
-                f"{from_node.handle} sending CloseRelay to HpScadaOpsRelay {self.hp_scada_ops_relay.handle}"
-            )
-        except ValidationError as e:
-            self.log(f"Tried to tell HpScadaOpsRelay to turn on HP but didn't have rights: {e}")
+        if self.layout.flow_manifold_variant == FlowManifoldVariant.House0:
+            try:
+                event = FsmEvent(
+                    FromHandle=from_node.handle,
+                    ToHandle=self.hp_scada_ops_relay.handle,
+                    EventType=ChangeRelayState.enum_name(),
+                    EventName=ChangeRelayState.CloseRelay,
+                    SendTimeUnixMs=int(time.time() * 1000),
+                    TriggerId=str(uuid.uuid4()),
+                )
+                self._send_to(self.hp_scada_ops_relay, event, from_node)
+                self.log(f"{from_node.handle} sending CloseRelay to HpScadaOpsRelay {self.hp_scada_ops_relay.handle}")
+            except ValidationError as e:
+                self.log(f"Tried to tell HpScadaOpsRelay to turn on HP but didn't have rights: {e}")
+        elif self.layout.flow_manifold_variant == FlowManifoldVariant.House0Sieg:
+            try:
+                event = FsmEvent(
+                    FromHandle=from_node.handle,
+                    ToHandle=self.hp_boss.handle,
+                    EventType=TurnHpOnOff.enum_name(),
+                    EventName=TurnHpOnOff.TurnOn,
+                    SendTimeUnixMs=int(time.time() * 1000),
+                    TriggerId=str(uuid.uuid4()),
+                )
+                self._send_to(self.hp_boss, event, from_node)
+                self.log(f"{from_node.handle} sending TurnOn to HpBoss {self.hp_boss.handle}")
+            except ValidationError as e:
+                self.log(f"Tried to tell HpBoss to turn on HP but didn't have rights: {e}")
+        else:
+            raise Exception(f"Unknown FlowManifoldVariant {self.layout.flow_manifold_variant}")
 
     def turn_off_HP(self, from_node: Optional[ShNode] = None) -> None:
         """  Turn off heat pump by sending trigger to HpRelayBoss
@@ -453,23 +478,39 @@ class ScadaActor(Actor):
         """
         if from_node is None:
             from_node = self.node
-        try:
-            event = FsmEvent(
-                FromHandle=from_node.handle,
-                ToHandle=self.hp_scada_ops_relay.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.OpenRelay,
-                # EventType=TurnHpOnOff.enum_name(),
-                # EventName=TurnHpOnOff.TurnOff,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(self.hp_scada_ops_relay, event, from_node)
-            self.log(
-                f"{from_node.handle} sending OpenRelay to HpScadaOpsRelay {self.hp_scada_ops_relay.handle}"
-            )
-        except ValidationError as e:
-            self.log(f"Tried to tell HpScadaOpsRelay to turn off HP but didn't have rights: {e}")
+
+        if self.layout.flow_manifold_variant == FlowManifoldVariant.House0:
+            try:
+                event = FsmEvent(
+                    FromHandle=from_node.handle,
+                    ToHandle=self.hp_scada_ops_relay.handle,
+                    EventType=ChangeRelayState.enum_name(),
+                    EventName=ChangeRelayState.OpenRelay,
+                    SendTimeUnixMs=int(time.time() * 1000),
+                    TriggerId=str(uuid.uuid4()),
+                )
+                self._send_to(self.hp_scada_ops_relay, event, from_node)
+                self.log(
+                    f"{from_node.handle} sending OpenRelay to HpScadaOpsRelay {self.hp_scada_ops_relay.handle}"
+                )
+            except ValidationError as e:
+                self.log(f"Tried to tell HpScadaOpsRelay to turn off HP but didn't have rights: {e}")
+        elif self.layout.flow_manifold_variant == FlowManifoldVariant.House0Sieg:
+            try:
+                event = FsmEvent(
+                    FromHandle=from_node.handle,
+                    ToHandle=self.hp_boss.handle,
+                    EventType=TurnHpOnOff.enum_name(),
+                    EventName=TurnHpOnOff.TurnOff,
+                    SendTimeUnixMs=int(time.time() * 1000),
+                    TriggerId=str(uuid.uuid4()),
+                )
+                self._send_to(self.hp_boss, event, from_node)
+                self.log(f"{from_node.handle} sending TurnOff to HpBoss {self.hp_boss.handle}")
+            except ValidationError as e:
+                self.log(f"Tried to tell HpBoss to turn off HP but didn't have rights: {e}")
+        else:
+            raise Exception(f"Unknown FlowManifoldVariant {self.layout.flow_manifold_variant}")
 
     def close_thermistor_common_relay(self, from_node: Optional[ShNode] = None) -> None:
         """
@@ -923,24 +964,64 @@ class ScadaActor(Actor):
             boss = self.node
         return [n for n in self.layout.nodes.values() if self.the_boss_of(n) == boss]
 
+    def set_hierarchical_fsm_handles(self, boss_node: ShNode) -> None:
+        """ 
+        ```
+        boss
+        ├────────────────────── hp-boss
+        └─────sieg-loop         └── relay6 (hp_scada_ops_relay)                                          
+                ├─ relay14 (hp_loop_on_off)
+                └─ relay15 (hp_loop_keep_send)
+        ```
+        """
+        self.log(f"Setting fsm handles under {boss_node.name}")
+        hp_boss = self.layout.node(H0N.hp_boss)
+        hp_boss.Handle = f"{boss_node.handle}.{hp_boss.Name}"
+
+        scada_ops_relay = self.layout.node(H0N.hp_scada_ops_relay)
+        scada_ops_relay.Handle = f"{hp_boss.Handle}.{scada_ops_relay.Name}"
+
+        sieg_loop = self.layout.node(H0N.sieg_loop)
+        sieg_loop.Handle = f"{boss_node.handle}.{sieg_loop.Name}"
+
+        sieg_keep_send =  self.layout.node(H0N.hp_loop_keep_send)
+        sieg_keep_send.Handle = f"{sieg_loop.Handle}.{sieg_keep_send.Name}"
+
+        sieg_on_off = self.layout.node(H0N.hp_loop_on_off)
+        sieg_on_off.Handle = f"{sieg_loop.Handle}.{sieg_on_off.Name}"
+
     def set_command_tree(self, boss_node: ShNode) -> None:
-        """ Sets handles for a command tree like this:
+        """ 
+        If FlowManifoldVariant is House0Sieg:
            ```
             boss
-            ├── relay1 (vdc)
+            ├─────────────────────────────────────────── hp-boss
+            ├───────────────────────────sieg-loop           └── relay6 (hp_scada_ops_relay)                                          
+            ├                             ├─ relay14 (hp_loop_on_off)
+            ├── relay1 (vdc)              └─ relay15 (hp_loop_keep_send)
             ├── relay2 (tstat_common)
-            └── all other relays and 0-10s
-        ```
+            └── all other relays and 0-10s  
+        ```      
+        If FlowManifoldVariant is House0, all actuators report directly to boss  
         Throws exception if boss_node is not in my chain of command
         """
-        # TODO: if boss_node is not in my chain of command,
-        # raise an error
+
         my_handle_prefix = f"{self.node.handle}."
         if not boss_node.handle.startswith(my_handle_prefix) and boss_node != self.node:
             raise Exception(f"{self.node.handle} cannot set command tree for boss_node {boss_node.handle}!")
 
-        for node in self.my_actuators():
-            node.Handle =  f"{boss_node.handle}.{node.Name}"
+        if self.layout.flow_manifold_variant == FlowManifoldVariant.House0:
+            # all actuators report to boss
+            for node in self.my_actuators():
+                node.Handle =  f"{boss_node.handle}.{node.Name}"
+        elif self.layout.flow_manifold_variant == FlowManifoldVariant.House0Sieg:
+            self.set_hierarchical_fsm_handles(boss_node)
+            for node in self.my_actuators():
+                if node.Name not in [H0N.hp_scada_ops_relay, H0N.hp_loop_keep_send, H0N.hp_loop_on_off]:
+                    node.Handle =  f"{boss_node.handle}.{node.Name}"
+        else:
+            raise Exception(f"Unkonwn FlowManifoldVariant {self.layout.flow_manifold_variant}")
+
         self._send_to(
             self.atn,
             NewCommandTree(

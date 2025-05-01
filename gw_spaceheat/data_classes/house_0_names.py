@@ -85,6 +85,8 @@ class H0N:
     synth_generator = "synth-generator"
     zero_ten_out_multiplexer = "dfr-multiplexer"
     pump_doctor = "pump-doc"
+    hp_boss = "hp-boss"
+    sieg_loop = "sieg-loop"
 
     # core power-metered nodes
     hp_odu = "hp-odu"
