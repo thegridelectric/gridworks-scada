@@ -19,7 +19,7 @@ mosquitto_sub -h localhost -p 1883 -u sara -P [LOOK UP MOSQUITTO IN 1PASSWORD] -
 mosquitto_pub -h localhost -u sara -P [LOOK UP MOSQUITTO IN 1PASSWORD] -t foo -m "hi"
 ```
 
-**warning** The SCADA repos (gw-scada-spaceheat-python, starter-scripts) are installed in the home directory but the packages have not been added so the code won't work yet. Going through a housecleaning
+**warning** The SCADA repos (gridworks-scada, starter-scripts) are installed in the home directory but the packages have not been added so the code won't work yet. Going through a housecleaning
 process for this (e.g. removing the pendulum package from the gridworks package as the pendulum team is small enough that it did not keep pendulum up to date with python 3.12 on a 32 bit architecture.)
 
 
@@ -112,7 +112,7 @@ Use ssh -A pi@LAN to bring my keys
 In /home/pi
 
 ```
-git@github.com:thegridelectric/gw-scada-spaceheat-python.git
+git@github.com:thegridelectric/gridworks-scada.git
 git clone git@github.com:thegridelectric/starter-scripts.git
 ```
 

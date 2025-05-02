@@ -12,6 +12,7 @@ from gwproto.data_classes.hardware_layout import (
     LoadError,
 )
 from data_classes.house_0_names import H0CN, H0N
+from enums.home_alone_strategy import HomeAloneStrategy
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.data_classes.synth_channel import SynthChannel
 from gwproto.default_decoders import (
@@ -25,9 +26,7 @@ class House0Layout(HardwareLayout):
     zone_list: List[str]
     total_store_tanks: int
     strategy: Literal["House0"] = "House0"
-    strat_boss_exemption_zones: List[str]
-    strat_boss_exemption_hours: List[int]
-    exempted_strat_boss_dist_010v: int # distribution pump 010 when some zones are exempted
+
 
     def __init__(  # noqa: PLR0913
         self,
@@ -50,24 +49,6 @@ class House0Layout(HardwareLayout):
             raise DcError(
                 "House0 requires ZoneList, a list of the thermostat zone names!"
             )
-        if "StratBossExemptionZones" not in layout:
-            self.strat_boss_exemption_zones = []
-        else:
-            self.strat_boss_exemption_zones = layout["StratBossExemptionZones"]
-        if "StratBossExemptionHours" not in layout:
-            self.strat_boss_exemption_hours = []
-        else:
-            self.strat_boss_exemption_hours = layout["StratBossExemptionHours"]
-        if "ExemptedStratBossDist010V" not in layout:
-            self.exempted_strat_boss_dist_010v = 80
-        else:
-            self.exempted_strat_boss_dist_010v = layout["ExemptedStratBossDist010V"]
-        if not isinstance(self.exempted_strat_boss_dist_010v, int) or\
-            self.exempted_strat_boss_dist_010v < 0 or \
-            self.exempted_strat_boss_dist_010v > 100:
-            raise ValueError("ExemptedStratBossDist010V must be an integer between 0 and 100")
-        if not all(isinstance(hour, int) and 0 <= hour <= 23 for hour in self.strat_boss_exemption_hours):
-            raise ValueError("All elements in StratBossExemptionHours must be integers between 0 and 23 (inclusive).")
         if "TotalStoreTanks" not in layout:
             raise DcError("House0 requires TotalStoreTanks")
         if "Strategy" not in layout:
@@ -88,6 +69,13 @@ class House0Layout(HardwareLayout):
         self.h0n = H0N(self.total_store_tanks, self.zone_list)
 
     @property
+    def ha_strategy(self) -> str:
+        """Returns the current home alone strategy"""
+        # Could be stored as a property or derived from a node
+        ha_node = self.nodes.get(H0N.home_alone)
+        return HomeAloneStrategy(HomeAloneStrategy(getattr(ha_node, "Strategy", None)))
+    
+    @property
     def actuators(self) -> List[ShNode]:
         return self.relays + self.zero_tens
     
@@ -104,6 +92,7 @@ class House0Layout(HardwareLayout):
             node for node in self.nodes.values()
             if node.ActorClass == ActorClass.ZeroTenOutputer
         ]
+
 
     # overwrites base class to return correct object
     @classmethod

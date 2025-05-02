@@ -771,6 +771,7 @@
       "ActorHierarchyName": "s.h",
       "DisplayName": "HomeAlone",
       "Name": "h",
+      "Strategy": "Shoulder",
       "Handle": "auto.h",
       "ShNodeId": "b982c966-8e59-4c07-b4a7-64ebc4a40ac7",
       "TypeName": "spaceheat.node.gt",
@@ -850,26 +851,6 @@
       "DisplayName": "I2c Relay Multiplexer",
       "Name": "relay-multiplexer",
       "ShNodeId": "fc81c64e-b04a-4b87-9861-0c9348b56f5b",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "200"
-    },
-    {
-      "ActorClass": "HpRelayBoss",
-      "ActorHierarchyName": "s.hp-relay-boss",
-      "DisplayName": "Heatpump Relay Boss",
-      "Handle": "auto.h.n.hp-relay-boss",
-      "Name": "hp-relay-boss",
-      "ShNodeId": "406a023b-fe07-4ae3-99f2-682db5c19cb1",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "200"
-    },
-    {
-      "ActorClass": "StratBoss",
-      "ActorHierarchyName": "s.strat-boss",
-      "DisplayName": "Stratification Boss",
-      "Handle": "auto.h.n.strat-boss",
-      "Name": "strat-boss",
-      "ShNodeId": "6d7fe5f4-dad2-47a0-812b-fdf76522df02",
       "TypeName": "spaceheat.node.gt",
       "Version": "200"
     },

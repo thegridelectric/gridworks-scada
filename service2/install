@@ -1,16 +1,16 @@
-$HOME/gw-scada-spaceheat-python/service2/uninstall > /dev/null 2>&1
+$HOME/gridworks-scada/service2/uninstall > /dev/null 2>&1
 
-sudo ln -s $HOME/gw-scada-spaceheat-python/service2/gwspaceheat2.service /lib/systemd/system
-sudo ln -s $HOME/gw-scada-spaceheat-python/service2/gwspaceheat2-restart.service /lib/systemd/system
-sudo ln -s $HOME/gw-scada-spaceheat-python/service2/gwspaceheat2-restart.timer /lib/systemd/system
+sudo ln -s $HOME/gridworks-scada/service2/gwspaceheat2.service /lib/systemd/system
+sudo ln -s $HOME/gridworks-scada/service2/gwspaceheat2-restart.service /lib/systemd/system
+sudo ln -s $HOME/gridworks-scada/service2/gwspaceheat2-restart.timer /lib/systemd/system
 
 sudo systemctl enable /lib/systemd/system/gwspaceheat2.service
 sudo systemctl start gwspaceheat2
 sudo systemctl enable /lib/systemd/system/gwspaceheat2-restart.timer
 sudo systemctl start gwspaceheat2-restart.timer
 
-ln -s $HOME/gw-scada-spaceheat-python/service2/gw2status $HOME/.local/bin
-ln -s $HOME/gw-scada-spaceheat-python/service2/gw2pause $HOME/.local/bin
-ln -s $HOME/gw-scada-spaceheat-python/service2/gw2start $HOME/.local/bin
-ln -s $HOME/gw-scada-spaceheat-python/service2/gw2stop $HOME/.local/bin
-ln -s $HOME/gw-scada-spaceheat-python/service2/gw2restart $HOME/.local/bin
+ln -s $HOME/gridworks-scada/service2/gw2status $HOME/.local/bin
+ln -s $HOME/gridworks-scada/service2/gw2pause $HOME/.local/bin
+ln -s $HOME/gridworks-scada/service2/gw2start $HOME/.local/bin
+ln -s $HOME/gridworks-scada/service2/gw2stop $HOME/.local/bin
+ln -s $HOME/gridworks-scada/service2/gw2restart $HOME/.local/bin

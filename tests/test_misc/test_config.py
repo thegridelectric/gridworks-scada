@@ -48,7 +48,6 @@ def test_scada_settings_defaults(clean_scada_env):
         load_overestimation_percent=0,
         monitor_only=False,
         oil_boiler_for_onpeak_backup=True,
-        stratboss_dist_010v=100,
         pico_cycler_state_logging=False,
         power_meter_logging_level=logging.WARNING,
         relay_multiplexer_logging_level=logging.INFO,

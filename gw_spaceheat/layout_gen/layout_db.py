@@ -677,22 +677,6 @@ class LayoutDb:
                     ActorClass=ActorClass.NoActor,
                     DisplayName="HomeAlone Scada Blind",
                 ),
-                SpaceheatNodeGt(
-                    ShNodeId=self.make_node_id(H0N.hp_relay_boss),
-                    Name=H0N.hp_relay_boss,
-                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.hp_relay_boss}",
-                    Handle="auto.h.n.hp-relay-boss",
-                    ActorClass=ActorClass.HpRelayBoss,
-                    DisplayName="Heatpump Relay Boss",
-                ),
-                SpaceheatNodeGt(
-                    ShNodeId=self.make_node_id(H0N.strat_boss),
-                    Name=H0N.strat_boss,
-                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.strat_boss}",
-                    Handle="auto.h.n.strat-boss",
-                    ActorClass=ActorClass.StratBoss,
-                    DisplayName="Stratification Boss",
-                ),
             ]
         )
     

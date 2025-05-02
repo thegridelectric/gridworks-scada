@@ -309,8 +309,7 @@ def add_relays(
             ]
 
         db.add_components(
-            [
-                I2cMultichannelDtRelayComponentGt(
+            [I2cMultichannelDtRelayComponentGt(
                     ComponentId=db.make_component_id(component_display_name),
                     ComponentAttributeClassId=db.cac_id_by_alias(
                         MakeModel.KRIDA__DOUBLEEMR16I2CV3
@@ -379,7 +378,7 @@ def add_relays(
             ShNodeId=db.make_node_id(H0N.hp_scada_ops_relay),
             Name=H0N.hp_scada_ops_relay,
             ActorHierarchyName=f"{H0N.primary_scada}.{H0N.hp_scada_ops_relay}",
-            Handle=f"auto.{H0N.home_alone}.{H0N.home_alone_normal}.{H0N.hp_relay_boss}.{H0N.hp_scada_ops_relay}",
+            Handle=f"auto.{H0N.home_alone}.{H0N.home_alone_normal}.{H0N.hp_scada_ops_relay}",
             ActorClass=ActorClass.Relay,
             DisplayName="Hp Scada Ops Relay",
             ComponentId=db.component_id_by_alias(component_display_name),

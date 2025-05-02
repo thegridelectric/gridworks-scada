@@ -9,7 +9,6 @@ from data_classes.house_0_layout import House0Layout
 
 
 class ScadaAppInterface(AppInterface, ABC):
-
     @property
     @abstractmethod
     def settings(self) -> ScadaSettings:

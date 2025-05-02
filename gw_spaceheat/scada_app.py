@@ -15,8 +15,8 @@ from gwproto import HardwareLayout
 
 import actors
 from actors import Scada
+from actors import ScadaInterface
 from actors.config import ScadaSettings
-from actors.scada import ScadaCodecFactory
 from data_classes import house_0_names
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0N
@@ -24,9 +24,9 @@ from scada_app_interface import ScadaAppInterface
 
 
 class ScadaApp(App, ScadaAppInterface):
-    ATN_MQTT: str = ScadaCodecFactory.ATN_MQTT
-    LOCAL_MQTT: str = ScadaCodecFactory.LOCAL_MQTT
-    ADMIN_MQTT: str = ScadaCodecFactory.ADMIN_MQTT
+    ATN_MQTT: str = ScadaInterface.ATN_MQTT
+    LOCAL_MQTT: str = ScadaInterface.LOCAL_MQTT
+    ADMIN_MQTT: str = ScadaInterface.ADMIN_MQTT
 
     @classmethod
     def app_settings_type(cls) -> type[ScadaSettings]:

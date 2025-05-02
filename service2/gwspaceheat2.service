@@ -6,11 +6,11 @@ After=multi-user.target
 Type=simple
 Restart=always
 User=pi
-Environment=VIRTUAL_ENV=/home/pi/gw-scada-spaceheat-python/gw_spaceheat/venv
-Environment=PYTHONPATH=/home/pi/gw-scada-spaceheat-python/gw_spaceheat
+Environment=VIRTUAL_ENV=/home/pi/gridworks-scada/gw_spaceheat/venv
+Environment=PYTHONPATH=/home/pi/gridworks-scada/gw_spaceheat
 Environment=SCADA_RUNNING_AS_SERVICE=1
-ExecStart=/home/pi/gw-scada-spaceheat-python/gw_spaceheat/venv/bin/python \
-    /home/pi/gw-scada-spaceheat-python/gw_spaceheat/run_scada.py \
+ExecStart=/home/pi/gridworks-scada/gw_spaceheat/venv/bin/python \
+    /home/pi/gridworks-scada/gw_spaceheat/run_scada.py \
     --s2 \
     --message-summary
 RestartSec=1

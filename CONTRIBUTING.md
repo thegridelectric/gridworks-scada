@@ -12,9 +12,9 @@ Here is a list of important resources for contributors:
 - [Code of Conduct]
 
 [mit license]: https://opensource.org/licenses/MIT
-[source code]: https://github.com/thegridelectric/gw-scada-spaceheat-python
-[documentation]: https://gridworks-proactor.readthedocs.io/en/latest/
-[issue tracker]: https://github.com/thegridelectric/gw-scada-spaceheat-python/issues
+[source code]: https://github.com/thegridelectric/gridworks-scada
+[documentation]: https://gridworks.readthedocs.io/en/latest/
+[issue tracker]: https://github.com/thegridelectric/gridworks-scada/issues
 
 ## How to report a bug
 

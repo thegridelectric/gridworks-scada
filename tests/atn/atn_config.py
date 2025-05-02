@@ -48,5 +48,7 @@ class AtnSettings(AppSettings):
     fuel_sub_usd_per_mwh: int = 250 # hack until we account for COP etc
     hp_model: HpModel = HpModel.SamsungFiveTonneHydroKit # TODO: move to layout
     model_config = SettingsConfigDict(env_prefix="ATN_", extra="ignore")
-    hinge: bool = False
     contract_rep_logging_level: int = logging.INFO
+    flo_logging_level: int = logging.INFO
+    monitor_only: bool = False
+

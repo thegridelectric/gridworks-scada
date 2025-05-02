@@ -38,6 +38,7 @@ from result import Err, Ok, Result
 from transitions import Machine
 from data_classes.house_0_names import House0RelayIdx
 from actors.scada_actor import ScadaActor
+from actors.scada_interface import ScadaInterface
 from enums import LogLevel, ChangeKeepSend, HpLoopKeepSend
 from named_types import FsmEvent, Glitch, SingleMachineState
 
