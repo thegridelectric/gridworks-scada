@@ -208,7 +208,7 @@ class Atn(PrimeActor):
     MAIN_LOOP_SLEEP_SECONDS = 61
     HEARTBEAT_INTERVAL_S = 60
     P_NODE = "hw1.isone.ver.keene"
-    SCADA_MQTT = "scada"
+    SCADA_MQTT = "scada_mqtt"
     data: AtnData
     event_loop_thread: Optional[threading.Thread] = None
     bid_runner: Optional[threading.Thread]

@@ -107,7 +107,7 @@ class ScadaApp(App, ScadaAppInterface):
             self.LOCAL_MQTT: LinkSettings(
                 broker_name=self.LOCAL_MQTT,
                 peer_long_name=typing.cast(House0Layout, layout).scada2_gnode_name(),
-                peer_short_name=H0N.atn,
+                peer_short_name=H0N.secondary_scada,
                 downstream=True,
             ),
             self.ADMIN_MQTT: LinkSettings(

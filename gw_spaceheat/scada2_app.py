@@ -14,14 +14,16 @@ from gwproto import HardwareLayout
 
 import actors
 from actors import Parentless
+from actors import ScadaInterface
 from actors.config import ScadaSettings
 from actors.scada import ScadaCodecFactory
 from data_classes import house_0_names
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0N
+from scada_app_interface import ScadaAppInterface
 
 
-class Scada2App(App):
+class Scada2App(App, ScadaAppInterface):
     LOCAL_MQTT: str = ScadaCodecFactory.LOCAL_MQTT
 
     @classmethod
@@ -58,7 +60,7 @@ class Scada2App(App):
         return {
             self.LOCAL_MQTT: LinkSettings(
                 broker_name=self.LOCAL_MQTT,
-                peer_long_name=self._layout.scada_g_node_alias,
+                peer_long_name=self.hardware_layout.scada_g_node_alias,
                 peer_short_name=H0N.primary_scada,
                 upstream=True,
             )
@@ -82,6 +84,21 @@ class Scada2App(App):
         )
 
 
+    @property
+    def settings(self) -> ScadaSettings:
+        return typing.cast(ScadaSettings, super().settings)
+
+    @property
+    def prime_actor(self) -> ScadaInterface:
+        return typing.cast(ScadaInterface, super().prime_actor)
+
+    @property
+    def scada(self) -> ScadaInterface:
+        return self.prime_actor
+
+    @property
+    def hardware_layout(self) -> House0Layout:
+        return typing.cast(House0Layout, super().hardware_layout)
 
     # def get_actor_nodes(self) -> List[ShNode]:
     #     actors_package = importlib.import_module(self.actors_package_name)

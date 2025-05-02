@@ -4,6 +4,7 @@ from types import ModuleType
 from typing import Optional
 
 from gwproactor import App
+from gwproactor import get_app
 from gwproactor import LinkSettings
 from gwproactor import Proactor
 from gwproactor import ProactorName
@@ -13,7 +14,7 @@ from gwproto import HardwareLayout
 
 import actors
 from actors.atn import Atn
-from atn import AtnSettings
+from tests.atn.atn_config import AtnSettings
 from data_classes import house_0_names
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0N
@@ -21,15 +22,27 @@ from data_classes.house_0_names import H0N
 
 class AtnApp(App):
 
-    SCADA_MQTT = "scada_mqtt"
+    SCADA_MQTT: str = Atn.SCADA_MQTT
 
     @classmethod
     def app_settings_type(cls) -> type[AtnSettings]:
         return AtnSettings
 
+    @property
+    def settings(self) -> AtnSettings:
+        return typing.cast(AtnSettings, super().settings)
+
     @classmethod
     def prime_actor_type(cls) -> type[Atn]:
         return Atn
+
+    @property
+    def prime_actor(self) -> Atn:
+        return typing.cast(Atn, super().prime_actor)
+
+    @property
+    def atn(self) -> Atn:
+        return self.prime_actor
 
     @classmethod
     def actors_module(cls) -> ModuleType:
@@ -37,7 +50,7 @@ class AtnApp(App):
 
     @classmethod
     def paths_name(cls) -> str:
-        return "scada"
+        return "atn"
 
     @classmethod
     def get_settings(
@@ -89,3 +102,16 @@ class AtnApp(App):
         #       in the hardware layout
         proactor._web_manager.disable()  # noqa
         return proactor
+
+    @classmethod
+    def get_repl_app(
+            cls,
+            *,
+            start: bool = True,
+            **kwargs: typing.Any
+    ) -> "AtnApp":
+        app = typing.cast(AtnApp, get_app(app_type=AtnApp, **kwargs))
+        if start:
+            app.instantiate()
+            app.run_in_thread()
+        return app
