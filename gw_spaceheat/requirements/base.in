@@ -10,7 +10,7 @@ transitions
 gridworks-protocol >=1.2.6
 # gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@dev
 
-gridworks-proactor >=2.0.2
+gridworks-proactor >=3.0.0
 # gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@dev
 smbus2
 pymodbus

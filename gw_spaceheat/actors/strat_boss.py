@@ -7,7 +7,7 @@ from typing import List, Sequence
 from data_classes.house_0_names import H0CN, H0N
 from gwproto.message import Message
 from gwproactor.message import PatInternalWatchdogMessage
-from gwproactor import MonitoredName, ServicesInterface
+from gwproactor import MonitoredName, AppInterface
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import TelemetryName, RelayClosedOrOpen
 from gwproto.named_types import AnalogDispatch, FsmFullReport
@@ -79,7 +79,7 @@ class StratBoss(ScadaActor):
         {"trigger": "BossCancels", "source": "Active", "dest": "Dormant"},
     ]
 
-    def __init__(self, name: str, services: ServicesInterface):
+    def __init__(self, name: str, services: AppInterface):
         super().__init__(name, services)
         self._stop_requested: bool = False
         self.hp_model = self.settings.hp_model # TODO: will move to hardware layout

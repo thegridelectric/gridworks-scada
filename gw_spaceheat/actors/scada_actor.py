@@ -1,13 +1,18 @@
 import time
+import typing
 import uuid
-from typing import Any, Dict, List, Optional, cast
+from abc import ABC
+from typing import Any, Dict, List, Optional
 import pytz
+from gwproactor import AppInterface
+from gwproactor import QOS
+
+from actors.config import ScadaSettings
 from actors.scada_data import ScadaData
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0N, House0RelayIdx
 from gw.errors import DcError
-from actors.scada_interface import ScadaInterface
-from gwproactor import Actor,  QOS
+from gwproactor import Actor
 from gwproto import Message
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import (
@@ -24,13 +29,30 @@ from enums import TurnHpOnOff, ChangeKeepSend
 from named_types import FsmEvent
 from pydantic import ValidationError
 
+from scada_app_interface import ScadaAppInterface
 
-class ScadaActor(Actor):
 
-    def __init__(self, name: str, services: ScadaInterface):
+# from scada_app import ScadaApp
+
+
+class ScadaActor(Actor, ABC):
+
+    def __init__(self, name: str, services: ScadaAppInterface):
+        if not isinstance(services, ScadaAppInterface):
+            raise ValueError(
+                "ERROR. ScadaActor requires services to be a ScadaAppInterface. "
+                f"Received type {type(services)}."
+            )
         super().__init__(name, services)
-        self.settings = services.settings
         self.timezone = pytz.timezone(self.settings.timezone_str)
+
+    @property
+    def services(self) -> ScadaAppInterface:
+        return typing.cast(ScadaAppInterface, self._services)
+
+    @property
+    def settings(self) -> ScadaSettings:
+        return self.services.settings
 
     @property
     def node(self) -> ShNode:
@@ -39,15 +61,11 @@ class ScadaActor(Actor):
 
     @property
     def layout(self) -> House0Layout:
-        try:
-            layout = cast(House0Layout, self.services.hardware_layout)
-        except Exception as e:
-            raise Exception(f"Failed to cast layout as House0Layout!! {e}")
-        return layout
+        return self.services.hardware_layout
 
     @property
     def data(self) -> ScadaData:
-        return self._services.data
+        return self.services.prime_actor.data
 
     @property
     def atn(self) -> ShNode:
@@ -940,12 +958,12 @@ class ScadaActor(Actor):
         
         message = Message(Src=src.name, Dst=communicator_by_name[dst.Name], Payload=payload)
 
-        if communicator_by_name[dst.name] in set(self.services._communicators.keys()) | {
+        if communicator_by_name[dst.name] in set(self.services.get_communicator_names()) | {
             self.services.name
         }:  # noqa: SLF001
             self.services.send(message)
         elif dst.Name == H0N.admin:
-            self.services._links.publish_message(
+            self.services.publish_message(
                 link_name=self.services.ADMIN_MQTT,
                 message=Message(
                     Src=self.services.publication_name, Dst=dst.Name, Payload=payload
@@ -953,9 +971,9 @@ class ScadaActor(Actor):
                 qos=QOS.AtMostOnce,
             ) # noqa: SLF001
         elif dst.Name == H0N.atn:
-            self.services._links.publish_upstream(payload)  # noqa: SLF001
+            self.services.publish_upstream(payload)  # noqa: SLF001
         else:
-            self.services._links.publish_message(
+            self.services.publish_message(
                 self.services.LOCAL_MQTT, message
             )  # noqa: SLF001
 

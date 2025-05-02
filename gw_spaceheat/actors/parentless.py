@@ -7,7 +7,7 @@ from gwproactor import LinkSettings
 from gwproactor import PrimeActor
 from gwproactor import ProactorLogger
 from gwproactor import ProactorName
-from gwproactor import ServicesInterface
+from gwproactor import AppInterface
 from gwproto import HardwareLayout
 from gwproto import MQTTCodec
 from gwproto.message import Header
@@ -69,7 +69,7 @@ class Parentless(PrimeActor):
     _data: Scada2Data
     _publication_name: str
 
-    def __init__(self, name: str, services: ServicesInterface) -> None:
+    def __init__(self, name: str, services: AppInterface) -> None:
         if not isinstance(services.hardware_layout, House0Layout):
             raise Exception("Make sure to pass House0Layout object as hardware_layout!")
         super().__init__(name, services)

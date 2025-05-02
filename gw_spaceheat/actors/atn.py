@@ -23,7 +23,7 @@ from gwproactor import LinkSettings
 from gwproactor import PrimeActor
 from gwproactor import ProactorLogger
 from gwproactor import ProactorName
-from gwproactor import ServicesInterface
+from gwproactor import AppInterface
 from gwproto import HardwareLayout
 
 from actors.flo import DGraph
@@ -217,7 +217,7 @@ class Atn(PrimeActor):
     _stop_requested: bool = False
 
 
-    def __init__(self, name: str, services: ServicesInterface) -> None:
+    def __init__(self, name: str, services: AppInterface) -> None:
         super().__init__(name, services)
         # self._web_manager.disable()
         self.data = AtnData(self.layout)

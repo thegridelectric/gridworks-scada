@@ -1,6 +1,7 @@
 import logging
 
 from gwproactor import AppSettings
+from gwproactor.config.mqtt import TLSInfo
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 
@@ -28,7 +29,7 @@ class ScadaSettings(AppSettings):
     contract_rep_logging_level: int = logging.INFO
     relay_multiplexer_logging_level: int = logging.INFO
     paho_logging: bool = False
-    local_mqtt: MQTTClient = MQTTClient()
+    local_mqtt: MQTTClient = MQTTClient(tls=TLSInfo(use_tls=False))
     gridworks_mqtt: MQTTClient = MQTTClient()
     seconds_per_report: int = 300
     seconds_per_snapshot: int = 30

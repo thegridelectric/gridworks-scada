@@ -22,6 +22,8 @@ from gw.errors import DcError
 from data_classes.house_0_layout import House0Layout
 from gwproto.enums import ActorClass
 
+from scada_app import ScadaApp
+
 
 def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     """Parse command line arguments"""
@@ -233,8 +235,6 @@ def print_web_server_info(
     settings: ScadaSettings,
 ) -> None:
     scada = try_scada_load(
-        requested_aliases,
-        layout,
         settings,
         raise_errors=False
     )
@@ -335,16 +335,19 @@ def print_layout_table(layout: House0Layout):
         table.add_row(node.Name, component_txt, cac_txt, make_model_text, actor_text)
     print(table)
 
-def try_scada_load(requested_names: Optional[set[str]], layout: House0Layout, settings: ScadaSettings, raise_errors: bool = False) -> Optional[Scada]:
+def try_scada_load(settings: ScadaSettings, raise_errors: bool = False) -> Optional[Scada]:
     settings = settings.model_copy(deep=True)
     settings.paths.mkdirs()
-    scada_node, actor_nodes = get_nodes_run_by_scada(requested_names, layout, Scada.DEFAULT_ACTORS_MODULE)
     scada = None
     for k, v in settings.model_fields.items():
         if isinstance(v, MQTTClient):
             v.tls.use_tls = False
     try:
-        scada = Scada(name=scada_node.Name, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
+        scada_app = ScadaApp(
+            app_settings=settings,
+        )
+        # scada_app.instantiate()
+        scada = scada_app.scada
     except (
             DcError,
             KeyError,
@@ -378,8 +381,6 @@ def show_layout(
         print_channels(layout, raise_errors=raise_errors)
     print_layout_table(layout)
     scada = try_scada_load(
-        requested_names,
-        layout,
         settings,
         raise_errors=raise_errors
     )

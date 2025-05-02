@@ -3,7 +3,7 @@ import uuid
 import asyncio
 from data_classes.house_0_names import H0CN, H0N
 from gwproto.message import Message
-from gwproactor import ServicesInterface
+from gwproactor import AppInterface
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.named_types import FsmFullReport
 from gwproto.enums import ChangeRelayState
@@ -16,7 +16,7 @@ from named_types import FsmEvent, Glitch, StratBossReady
 
 class HpRelayBoss(ScadaActor):
     TURN_ON_ANYWAY_S = 120 # turn on the heat pump after 2 minutes without strat-boss
-    def __init__(self, name: str, services: ServicesInterface):
+    def __init__(self, name: str, services: AppInterface):
         super().__init__(name, services)
         self.hp_model = self.settings.hp_model # TODO: will move to hardware layout
         self.waiting_for_strat_boss: bool = False

@@ -20,9 +20,10 @@ from actors.scada import ScadaCodecFactory
 from data_classes import house_0_names
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0N
+from scada_app_interface import ScadaAppInterface
 
 
-class ScadaApp(App):
+class ScadaApp(App, ScadaAppInterface):
     ATN_MQTT: str = ScadaCodecFactory.ATN_MQTT
     LOCAL_MQTT: str = ScadaCodecFactory.LOCAL_MQTT
     ADMIN_MQTT: str = ScadaCodecFactory.ADMIN_MQTT
@@ -31,9 +32,22 @@ class ScadaApp(App):
     def app_settings_type(cls) -> type[ScadaSettings]:
         return ScadaSettings
 
+    @property
+    def settings(self) -> ScadaSettings:
+        return typing.cast(ScadaSettings, self._settings)
+
     @classmethod
     def prime_actor_type(cls) -> type[Scada]:
         return Scada
+
+    @property
+    def prime_actor(self) -> Scada:
+        return typing.cast(Scada, super().prime_actor)
+
+
+    @property
+    def scada(self) -> Scada:
+        return self.prime_actor
 
     @classmethod
     def actors_module(cls) -> ModuleType:
@@ -65,6 +79,11 @@ class ScadaApp(App):
 
     def _load_hardware_layout(self, layout_path: str | Path) -> House0Layout:
         return House0Layout.load(layout_path)
+
+    @property
+    def hardware_layout(self) -> House0Layout:
+        return typing.cast(House0Layout, self.config.layout)
+
 
     def _get_name(self, layout: HardwareLayout) -> ProactorName:
         return ProactorName(
@@ -108,8 +127,3 @@ class ScadaApp(App):
             ),
         )
 
-    @property
-    def scada(self) -> Scada:
-        if self.prime_actor is None:
-            raise ValueError("'scada' property accessed before instantiation")
-        return typing.cast(Scada, self.prime_actor)

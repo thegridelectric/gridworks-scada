@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime, timedelta
 import pytz
 from gw.enums import GwStrEnum
-from gwproactor import ServicesInterface,  MonitoredName
+from gwproactor import AppInterface,  MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwproto.data_classes.sh_node import ShNode
@@ -137,7 +137,7 @@ class HomeAlone(ScadaActor):
     ]
     
 
-    def __init__(self, name: str, services: ServicesInterface):
+    def __init__(self, name: str, services: AppInterface):
         super().__init__(name, services)
         self.cn: H0CN = self.layout.channel_names
         

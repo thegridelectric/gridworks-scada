@@ -6,7 +6,7 @@ from typing import Dict, List, cast, Sequence, Optional
 from gw.enums import GwStrEnum
 from gwproto.message import Message
 from gwproto.data_classes.data_channel import DataChannel
-from gwproactor import  ServicesInterface, MonitoredName
+from gwproactor import  AppInterface, MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import (
     I2cMultichannelDtRelayComponent,
@@ -56,7 +56,7 @@ class Relay(ScadaActor):
     def __init__(
         self,
         name: str,
-        services: ServicesInterface,
+        services: AppInterface,
     ):
         super().__init__(name, services)
         self.component = cast(I2cMultichannelDtRelayComponent, self.node.component)

@@ -12,7 +12,7 @@ import dotenv
 from gwproactor import CommunicatorInterface
 from gwproactor import LinkSettings
 from gwproactor import ProactorLogger
-from gwproactor import ServicesInterface
+from gwproactor import AppInterface
 from gwproactor.actors.actor import PrimeActor
 from gwproactor.codecs import CodecFactory
 from gwproactor.config.proactor_config import ProactorName
@@ -23,6 +23,7 @@ from gwproto import create_message_model
 
 from gwproto.enums import ActorClass
 
+from actors.scada_interface import ScadaInterface
 from data_classes.house_0_layout import House0Layout
 from gwproto.messages import FsmFullReport
 from gwproto.messages import EventBase
@@ -47,7 +48,7 @@ from gwproactor.message import MQTTReceiptPayload
 from actors.subscription_handler import StateMachineSubscription
 from actors.home_alone import HomeAlone
 from actors.atomic_ally import AtomicAlly
-from actors import ContractHandler
+from actors.contract_handler import ContractHandler
 from data_classes.house_0_names import H0N
 from enums import (AtomicAllyState, ContractStatus, HomeAloneTopState, MainAutoEvent, MainAutoState, 
                     TopState)
@@ -191,7 +192,7 @@ class ScadaCmdDiagnostic(enum.Enum):
     IGNORING_ATN_DISPATCH = "IgnoringAtnDispatch"
 
 
-class Scada(PrimeActor):
+class Scada(PrimeActor, ScadaInterface):
     ASYNC_POWER_REPORT_THRESHOLD = 0.05
     DEFAULT_ACTORS_MODULE = "actors"
     ATN_MQTT = "gridworks_mqtt"
@@ -223,7 +224,7 @@ class Scada(PrimeActor):
         {"trigger": "AutoWakesUp", "source": "Dormant", "dest": "HomeAlone"},
     ]
 
-    def __init__(self, name: str, services: ServicesInterface) -> None:
+    def __init__(self, name: str, services: AppInterface) -> None:
         super().__init__(name, services)
         if not isinstance(services.hardware_layout, House0Layout):
             raise Exception("Make sure to pass House0Layout object as hardware_layout!")
@@ -279,6 +280,10 @@ class Scada(PrimeActor):
     @property
     def logger(self) -> ProactorLogger:
         return self.services.logger
+
+    @property
+    def data(self) -> ScadaData:
+        return self._data
 
     def start_tasks(self) -> typing.Sequence[asyncio.Task]:
         return [
@@ -1251,7 +1256,7 @@ class Scada(PrimeActor):
     def send_report(self):
         report = self._data.make_report(self._last_report_second)
         self._data.reports_to_store[report.Id] = report
-        self.generate_event(ReportEvent(Report=report))  # noqa
+        self.services.generate_event(ReportEvent(Report=report))  # noqa
         self._data.flush_recent_readings()
 
     def send_snap(self):
@@ -1435,7 +1440,7 @@ class Scada(PrimeActor):
 
     @property
     def name(self):
-        return self.services.name
+        return self.node.name
 
     @property
     def node(self) -> ShNode:
@@ -1481,10 +1486,6 @@ class Scada(PrimeActor):
     @property
     def synth_generator(self) -> ShNode:
         return self.layout.node(H0N.synth_generator)
-
-    @property
-    def data(self) -> ScadaData:
-        return self._data
 
     @property
     def layout_lite(self) -> LayoutLite:
