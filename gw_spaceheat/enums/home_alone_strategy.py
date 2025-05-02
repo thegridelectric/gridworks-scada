@@ -9,6 +9,7 @@ class HomeAloneStrategy(GwStrEnum):
     Values:
       - WinterTou
       - ShoulderTou
+      - Summer
 
     For more information:
       - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
@@ -16,7 +17,7 @@ class HomeAloneStrategy(GwStrEnum):
     """
     WinterTou = auto()
     ShoulderTou = auto()
-
+    Summer = auto()
 
     @classmethod
     def default(cls) -> "HomeAloneStrategy":
@@ -32,4 +33,4 @@ class HomeAloneStrategy(GwStrEnum):
 
     @classmethod
     def enum_version(cls) -> str:
-        return "000"
+        return "001"

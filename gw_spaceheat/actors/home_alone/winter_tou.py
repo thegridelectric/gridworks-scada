@@ -197,7 +197,7 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             self.alert("BadHomeAloneState", "TopState Normal, state Dormant!")
             self.trigger_normal_event(HaWinterEvent.WakeUp)
         
-        if not self.relays_initialized:
+        if not self.actuators_initialized:
             self.initialize_actuators()
 
         previous_state = self.state
