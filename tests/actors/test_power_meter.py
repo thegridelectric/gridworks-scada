@@ -5,6 +5,7 @@ import typing
 
 from gwproto.enums import ActorClass
 from data_classes.house_0_layout import House0Layout
+from scada_app import ScadaApp
 from tests.utils.fragment_runner import AsyncFragmentRunner
 from tests.utils.fragment_runner import ProtocolFragment
 from gwproactor_test import await_for
@@ -30,12 +31,15 @@ from gwproto.messages import PowerWatts
 from command_line_utils import get_nodes_run_by_scada
 
 def test_power_meter_small():
-    settings = ScadaSettings()
+    settings = ScadaApp.get_settings()
+    settings.is_simulated = True
     if uses_tls(settings):
         copy_keys("scada", settings)
     settings.paths.mkdirs()
-    layout = House0Layout.load(settings.paths.hardware_layout)
-    scada = Scada(H0N.primary_scada, settings, layout)
+    scada_app = ScadaApp(app_settings=settings)
+    scada_app.instantiate()
+    scada = scada_app.scada
+    layout = scada.layout
     # Raise exception if initiating node is anything except the unique power meter node
     with pytest.raises(Exception):
         PowerMeter(H0N.primary_scada, services=scada)

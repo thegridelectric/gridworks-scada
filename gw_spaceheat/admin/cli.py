@@ -1,13 +1,12 @@
 import logging
 from enum import StrEnum
+from pathlib import Path
 from typing import Annotated
 from typing import Optional
 
 import dotenv
 import rich
 import typer
-
-from gwproactor.command_line_utils import print_settings
 
 from admin.tdemo.cli import app as tdemo_cli
 from admin.settings import AdminClientSettings
@@ -123,7 +122,13 @@ def config(
 ) -> None:
     """Show admin settings."""
     settings = watch_settings(target, env_file, verbose, paho_verbose)
-    print_settings(settings=settings, env_file=env_file)
+    rich.print(
+        f"Env file: <{env_file}>  exists: {bool(env_file and Path(env_file).exists())}"
+    )
+    rich.print(settings)
+    missing_tls_paths_ = settings.check_tls_paths_present(raise_error=False)
+    if missing_tls_paths_:
+        rich.print(missing_tls_paths_)
 
 
 def version_callback(value: bool):

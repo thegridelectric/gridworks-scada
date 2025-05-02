@@ -2,7 +2,7 @@
 import time
 from typing import cast
 
-from gwproactor import ServicesInterface
+from gwproactor import AppInterface
 from gwproactor.message import Message
 from data_classes.house_0_names import H0N
 from gwproto.named_types import AnalogDispatch
@@ -13,7 +13,7 @@ class ZeroTenOutputer(ScadaActor):
     def __init__(
         self,
         name: str,
-        services: ServicesInterface,
+        services: AppInterface,
     ):
         super().__init__(name, services)
         self.node

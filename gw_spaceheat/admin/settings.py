@@ -2,15 +2,15 @@ import logging
 from typing import Optional
 from typing import Self
 
+from gwproactor import AppSettings
 from gwproactor.config import MQTTClient
 from pydantic import model_validator
 from pydantic_settings import SettingsConfigDict
 
-from gwproactor import ProactorSettings
 from data_classes.house_0_names import H0N
 
 
-class AdminClientSettings(ProactorSettings):
+class AdminClientSettings(AppSettings):
     target_gnode: str = ""
     default_timeout_seconds: int = int(5*60)
     link: MQTTClient = MQTTClient()
@@ -21,11 +21,6 @@ class AdminClientSettings(ProactorSettings):
         env_nested_delimiter="__",
         extra="ignore",
     )
-
-    @model_validator(mode="before")
-    @classmethod
-    def pre_root_validator(cls, values: dict) -> dict:
-        return ProactorSettings.update_paths_name(values, H0N.admin)
 
     @model_validator(mode="after")
     def validate(self) -> Self:

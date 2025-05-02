@@ -8,11 +8,10 @@ import numpy as np
 from typing import Optional, Sequence
 from result import Ok, Result
 from datetime import datetime,  timezone
-from actors.scada_data import ScadaData
 from gwproto import Message
 
 from gwproto.named_types import SingleReading
-from gwproactor import MonitoredName, ServicesInterface
+from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 
 from actors.scada_actor import ScadaActor
@@ -20,12 +19,13 @@ from enums import HomeAloneStrategy
 from data_classes.house_0_names import H0CN
 from named_types import (Ha1Params, HeatingForecast,
                          WeatherForecast, ScadaParams)
+from scada_app_interface import ScadaAppInterface
 
 
 class SynthGenerator(ScadaActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
 
-    def __init__(self, name: str, services: ServicesInterface):
+    def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
         self.cn: H0CN = self.layout.channel_names
         self._stop_requested: bool = False
@@ -60,10 +60,6 @@ class SynthGenerator(ScadaActor):
         self.forecasts: Optional[HeatingForecast]= None
         self.weather_forecast: Optional[WeatherForecast] = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
-    
-    @property
-    def data(self) -> ScadaData:
-        return self._services.data
     
     @property
     def params(self) -> Ha1Params:

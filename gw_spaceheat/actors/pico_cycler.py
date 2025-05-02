@@ -4,7 +4,7 @@ import uuid
 from enum import auto
 from typing import Dict, List, Optional, Sequence
 from gw.enums import GwStrEnum
-from gwproactor import MonitoredName, Problems, ServicesInterface
+from gwproactor import MonitoredName, Problems, AppInterface
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from data_classes.house_0_names import H0N
@@ -93,7 +93,7 @@ class PicoCycler(ScadaActor):
     ] + [{"trigger":"WakeUp","source": "Dormant", "dest": "PicosLive"}]
     
 
-    def __init__(self, name: str, services: ServicesInterface):
+    def __init__(self, name: str, services: AppInterface):
         super().__init__(name, services)
         self.pico_relay = self.layout.node(H0N.vdc_relay)
         self.pico_actors = [
