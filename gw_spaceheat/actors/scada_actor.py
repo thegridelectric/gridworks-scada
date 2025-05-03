@@ -20,6 +20,9 @@ from gwproto.enums import (
     ChangeStoreFlowRelay,
     RelayClosedOrOpen
 )
+from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import (
+    I2cMultichannelDtRelayComponent,
+)
 from enums import TurnHpOnOff, ChangeKeepSend
 from named_types import FsmEvent, NewCommandTree
 from pydantic import ValidationError
@@ -168,81 +171,58 @@ class ScadaActor(Actor):
     # Relay controls
     ################################
 
-    def de_energize(self, relay: ShNode, from_node=None) -> None:
+    def de_energize(self, relay: ShNode, from_node: Optional[ShNode] = None):
         if relay.ActorClass != ActorClass.Relay:
-            self.log(f"Can only energize relays! ignoring energize {relay}")
+            self.log(f"Can only de-energize relays! ignoring energize {relay}")
             return
-        if relay == self.hp_scada_ops_relay:
-            self.log(f"Can only manage HpScadaOps relay {relay.name} via its boss {self.hp_relay_boss.Name}!")
+        component = cast(I2cMultichannelDtRelayComponent, relay.component)
+        relay_config = next(
+            (x for x in component.gt.ConfigList if x.ActorName == relay.name),
+            None,
+        )
+        if relay_config is None:
+            self.log(f"Unrecognized relay {relay.name}. Not de-energizing")
             return
-        zone_by_failsafe_relay: Dict[ShNode, str] = {}
-        zone_by_ops_relay: Dict[ShNode, str] = {}
-        for zone in self.layout.zone_list:
-            zone_by_failsafe_relay[self.stat_failsafe_relay(zone)] = zone
-            zone_by_ops_relay[self.stat_ops_relay(zone)] = zone
-        if relay in zone_by_failsafe_relay:
-            self.heatcall_ctrl_to_stat(zone_by_failsafe_relay[relay], from_node)
-        elif relay in zone_by_ops_relay:
-            self.stat_ops_open_relay(zone_by_ops_relay[relay], from_node)
-        elif relay == self.vdc_relay:
-            self.close_vdc_relay(from_node)
-        elif relay == self.tstat_common_relay:
-            self.close_tstat_common_relay(from_node)
-        elif relay == self.store_charge_discharge_relay:
-            self.valved_to_discharge_store(from_node)
-        elif relay == self.hp_failsafe_relay:
-            self.hp_failsafe_switch_to_aquastat(from_node)
-        elif relay == self.thermistor_common_relay:
-            self.close_thermistor_common_relay(from_node)
-        elif relay == self.aquastat_control_relay:
-            self.aquastat_ctrl_switch_to_boiler(from_node)
-        elif relay == self.store_pump_failsafe:
-            self.turn_off_store_pump(from_node)
-        elif relay == self.primary_pump_failsafe:
-            self.primary_pump_failsafe_to_hp(from_node)
-        elif relay == self.primary_pump_scada_ops:
-            self.turn_off_primary_pump(from_node)
-        elif relay == self.hp_loop_on_off:
-            self.sieg_valve_active(from_node)
-        elif relay == self.hp_loop_keep_send:
-            self.change_to_hp_send_more(from_node)
-        else:
-            self.log(f"Unrecognized relay {relay}! Not de-energizing")
+        try:
+            event = FsmEvent(
+                FromHandle=self.node.handle if from_node is None else from_node.handle,
+                ToHandle=relay.handle,
+                EventType=relay_config.EventType,
+                EventName=relay_config.DeEnergizingEvent,
+                SendTimeUnixMs=int(time.time() * 1000),
+                TriggerId=str(uuid.uuid4()),
+            )
+            self._send_to(relay, event, from_node)
+            self.log(f"{relay_config.DeEnergizingEvent} to {relay.name} (de-energizing)")
+        except ValidationError as e:
+            self.log(f"Tried to de-energize {relay.name} but didn't have the rights: {e}")
 
-    def energize(self, relay: ShNode, from_node=None) -> None:
+    def energize(self, relay: ShNode, from_node: Optional[ShNode] = None):
         if relay.ActorClass != ActorClass.Relay:
-            self.log(f"Can only energize relays! ignoring energize {relay}")
+            self.log(f"Can only de-energize relays! ignoring energize {relay}")
             return
-        if relay == self.hp_scada_ops_relay:
-            self.log(f"Can only manage HpScadaOps relay {relay.name} via its boss {self.hp_relay_boss.Name}!")
+        component = cast(I2cMultichannelDtRelayComponent, relay.component)
+        relay_config = next(
+            (x for x in component.gt.ConfigList if x.ActorName == relay.name),
+            None,
+        )
+        if relay_config is None:
+            self.log(f"Unrecognized relay {relay.name}. Not de-energizing")
             return
-        zone_by_failsafe_relay: Dict[ShNode, str] = {}
-        zone_by_ops_relay: Dict[ShNode, str] = {}
-        for zone in self.layout.zone_list:
-            zone_by_failsafe_relay[self.stat_failsafe_relay(zone)] = zone
-            zone_by_ops_relay[self.stat_ops_relay(zone)] = zone
-        if relay in zone_by_failsafe_relay:
-            self.heatcall_ctrl_to_scada(zone_by_failsafe_relay[relay], from_node)
-        elif zone in zone_by_ops_relay:
-            self.stat_ops_close_relay(zone_by_ops_relay[relay], from_node)
-        if relay == self.vdc_relay:
-            self.open_vdc_relay(from_node)
-        elif relay == self.tstat_common_relay:
-            self.open_tstat_common_relay(from_node)
-        elif relay == self.store_charge_discharge_relay:
-            self.valved_to_charge_store(from_node)
-        elif relay == self.hp_failsafe_relay:
-            self.hp_failsafe_switch_to_scada(from_node)
-        elif relay == self.aquastat_control_relay:
-            self.aquastat_ctrl_switch_to_scada(from_node)
-        elif relay == self.store_pump_failsafe:
-            self.turn_on_store_pump(from_node)
-        elif relay == self.primary_pump_failsafe:
-            self.primary_pump_failsafe_to_scada(from_node)
-        elif relay == self.primary_pump_scada_ops:
-            self.turn_on_primary_pump(from_node)
-        else:
-            self.log(f"Unrecognized relay {relay}! Not energizing")
+        try:
+            event = FsmEvent(
+                FromHandle=self.node.handle if from_node is None else from_node.handle,
+                ToHandle=relay.handle,
+                EventType=relay_config.EventType,
+                EventName=relay_config.EnergizingEvent,
+                SendTimeUnixMs=int(time.time() * 1000),
+                TriggerId=str(uuid.uuid4()),
+            )
+            self._send_to(relay, event, from_node)
+            self.log(f"{relay_config.EnergizingEvent} to {relay.name} (energizing)")
+        except ValidationError as e:
+            self.log(f"Tried to energize {relay.name} but didn't have the rights: {e}")
+
 
     def close_vdc_relay(self, trigger_id: Optional[str] = None, from_node: Optional[ShNode] = None) -> None:
         """
