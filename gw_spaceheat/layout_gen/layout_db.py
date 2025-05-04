@@ -677,6 +677,22 @@ class LayoutDb:
                     ActorClass=ActorClass.NoActor,
                     DisplayName="HomeAlone Scada Blind",
                 ),
+                SpaceheatNodeGt(
+                    ShNodeId=self.make_node_id(H0N.hp_boss),
+                    Name=H0N.hp_boss,
+                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.hp_boss}",
+                    Handle="auto.h.n.hp-boss",
+                    ActorClass=ActorClass.HpBoss,
+                    DisplayName="HeatpumpBoss",
+                ),
+                SpaceheatNodeGt(
+                    ShNodeId=self.make_node_id(H0N.sieg_loop),
+                    Name=H0N.sieg_loop,
+                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.sieg_loop}",
+                    Handle=f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{H0N.sieg_loop}",
+                    ActorClass=ActorClass.SiegLoop,
+                    DisplayName="Siegenthaler Loop",
+                ),
             ]
         )
     
