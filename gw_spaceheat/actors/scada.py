@@ -940,7 +940,6 @@ class Scada(ScadaInterface, Proactor):
     def auto_trigger(self, trigger: MainAutoEvent) -> None:
         """ Pulls trigger, updates command tree and sends appropriate messages
         """
-        self.log("In auto_trigger")
         if trigger == MainAutoEvent.DispatchContractLive:
             if self.auto_state != MainAutoState.HomeAlone:
                 self.log(f"Ignoring DispatchContractLive tigger in auto_state {self.auto_state}")
@@ -987,9 +986,9 @@ class Scada(ScadaInterface, Proactor):
             if self.auto_state == MainAutoState.Dormant:
                 self.log(f"Ignoring AutoWakesUp trigger in auto_state {self.auto_state}")
                 return
+            prev_state = self.auto_state
             self.AutoGoesDormant()
-            self.log(f"AutoGoesDormant: {self.auto_state} -> Dormant")
-            self.log(f"auto_state {self.auto_state}")
+            self.log(f"AutoGoesDormant: {prev_state} -> {self.auto_state}")
             # ADMIN CONTROL FOREST: a single tree, controlling all actuators
             self.set_command_tree(self.admin)
 

@@ -67,7 +67,6 @@ class HomeAloneTouBase(ScadaActor):
         self.hardware_layout = self._services.hardware_layout
         
         self.time_since_blind: Optional[float] = None
-        self.relays_initialized = False
         self.scadablind_scada = False
         self.scadablind_boiler = False
         
@@ -97,6 +96,7 @@ class HomeAloneTouBase(ScadaActor):
             raise Exception(f"HomeAlone requires {H0N.home_alone_onpeak_backup} node!!")
         self.set_command_tree(boss_node=self.normal_node)
         self.latest_temperatures: Dict[str, int] = {} # 
+        self.actuators_initialized = False
         self.actuators_ready = False
 
     @property
@@ -175,7 +175,7 @@ class HomeAloneTouBase(ScadaActor):
             raise Exception(f"Unknown top event {cause}")
         
         if self.top_state == HomeAloneTopState.Dormant:
-            self.relays_initialized = False
+            self.actuators_initialized = False
 
         self._send_to(
             self.primary_scada,
@@ -293,7 +293,7 @@ class HomeAloneTouBase(ScadaActor):
 
     def initialize_actuators(self):
         if not self.actuators_ready:
-            self.log(f"Waiting to initialize actuators until they are ready!")
+            self.log(f"Waiting to initialize actuators until actuator drivers are ready!")
             return
         self.log("Initializing relays")
         if self.top_state != HomeAloneTopState.Normal:
@@ -336,7 +336,7 @@ class HomeAloneTouBase(ScadaActor):
             self.set_010_defaults()
         except ValueError as e:
             self.log(f"Trouble with set_010_defaults: {e}")
-        self.relays_initialized = True
+        self.actuators_initialized = True
 
     def trigger_house_cold_onpeak_event(self) -> None:
         """
