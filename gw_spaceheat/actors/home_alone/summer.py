@@ -138,7 +138,9 @@ class SummerHomeAlone(ScadaActor):
             self.energize(relay, from_node=self.normal_node)
         
     def start(self) -> None:
-        ...
+        self.services.add_task(
+            asyncio.create_task(self.main(), name="HomeAlone keepalive")
+        )
 
     def stop(self) -> None:
         self._stop_requested = True
