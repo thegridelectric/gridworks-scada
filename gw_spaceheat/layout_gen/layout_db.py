@@ -25,7 +25,7 @@ from gwproto.named_types.electric_meter_component_gt import ElectricMeterCompone
 from gwproto.property_format import SpaceheatName
 from gwproto.data_classes.telemetry_tuple import ChannelStub
 from data_classes.house_0_names import H0N, H0CN
-
+from enums import FlowManifoldVariant
 
 class ChannelStubDb(ChannelStub):
     CapturedByNodeName: SpaceheatName
@@ -119,6 +119,7 @@ ChanneStubDbByName: Dict[str, ChannelStubDb] = {
 
 @dataclass
 class StubConfig:
+    flow_manifold_variant: FlowManifoldVariant = FlowManifoldVariant.House0
     atn_gnode_alias: str = "d1.isone.ct.newhaven.orange1"
     terminal_asset_alias: Optional[str] = None
     zone_list: typing.Sequence[str] = field(default_factory=tuple)
@@ -129,6 +130,7 @@ class StubConfig:
     power_meter_component_alias: str = "Dummy Power Meter Component"
     power_meter_node_display_name: str = "Dummy Power Meter"
     boost_element_display_name: str = "Dummy Boost Element"
+    
 
 class LayoutIDMap:
     REMOTE_HARDWARE_LAYOUT_PATH: str = "/home/pi/.config/gridworks/scada/hardware-layout.json"
@@ -598,7 +600,7 @@ class LayoutDb:
         else:
             self.misc["TotalStoreTanks"] =  self.loaded.total_store_tanks
         self.misc["Strategy"] = "House0"
-
+        self.misc["FlowManifoldVariant"]  = cfg.flow_manifold_variant
         self.add_nodes(
             [
                 SpaceheatNodeGt(
@@ -677,7 +679,12 @@ class LayoutDb:
                     ActorClass=ActorClass.NoActor,
                     DisplayName="HomeAlone Scada Blind",
                 ),
-                SpaceheatNodeGt(
+                
+            ]
+        )
+        if cfg.flow_manifold_variant == FlowManifoldVariant.House0Sieg:
+            self.add_nodes(
+                [SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.hp_boss),
                     Name=H0N.hp_boss,
                     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.hp_boss}",
@@ -693,8 +700,8 @@ class LayoutDb:
                     ActorClass=ActorClass.SiegLoop,
                     DisplayName="Siegenthaler Loop",
                 ),
-            ]
-        )
+                ]
+            )
 
         self.add_synth_channels(
             [SynthChannelGt(

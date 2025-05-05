@@ -129,6 +129,7 @@ class SiegLoop(ScadaActor):
 
     def __init__(self, name: str, services: ScadaInterface):
         super().__init__(name, services)
+        self.keep_seconds: float = self.FULL_RANGE_S
         self._stop_requested = False
         self.resetting = False
         self._movement_task = None # Track the current movement task
@@ -188,8 +189,6 @@ class SiegLoop(ScadaActor):
         self.hp_boss_state = HpBossState.HpOn
         self.hp_start_s: float = time.time() # Track time since
 
-        self.keep_seconds: float = self.FULL_RANGE_S
-        # self.flow_percent_keep is a property
 
         # Control parameters using time percent keep
         self.ultimate_gain = 1.0  # Ku
@@ -208,6 +207,7 @@ class SiegLoop(ScadaActor):
             raise Exception(f"First flow point should be [x,0]!")
         if self.flow_from_time_points[-1][1] != 100:
             raise Exception(f"Last flow point should be [x,100]!")
+        self.log(f"Starting with keep seconds at {round(self.keep_seconds,1)} s")
 
     def start(self) -> None:
         """ Required method. """
@@ -406,17 +406,19 @@ class SiegLoop(ScadaActor):
         # Derivative term (rate of change of error)
         # Store time and error for derivative calculation
         current_time = time.time()
-        if not hasattr(self, 'last_lwt_time') or not hasattr(self, 'last_lwt_f'):
-            raise Exception("Expects update_derivative_calcs to be run first!")
-        last_lwt_f = self.last_lwt_f
-        if last_lwt_f is None:
-            self.trigger_control_event(ControlEvent.Blind)
-            return
-        last_error = self.target_lwt - last_lwt_f
-        time_delta_s = current_time - self.last_lwt_time
-        error_delta = err - last_error
-        if time_delta_s is None:
-            raise Exception("That's really odd - why is time_delta_s None")
+        if len(self.lwt_readings) <= 1:
+            error_delta = 0
+            time_delta_s = 1
+        else:
+            last_lwt_time, last_lwt_f = self.lwt_readings[-2]
+            if current_time - last_lwt_time < 20:
+                error_delta = 0
+                self.log(f"That's strange, last_lwt_time is {round(current_time - last_lwt_time)} seconds ago!")
+            else:
+                last_error = self.target_lwt - last_lwt_f
+                time_delta_s = current_time - last_lwt_time
+                error_delta = err - last_error
+
         d_flow_delta = self.derivative_gain * (error_delta / time_delta_s)
 
         # Integral term
@@ -479,7 +481,8 @@ class SiegLoop(ScadaActor):
             raise Exception(f"Should not get here if blind")
         keep_seconds_target = self.time_from_flow(flow_target_percent)
         self.log(f"Calculated target time: {round(keep_seconds_target,1)}% keep")
-        await self._prepare_new_movement_task(keep_seconds_target)
+        delta_s = self.keep_seconds - keep_seconds_target
+        await self._prepare_new_movement_task(delta_s)
         # and now wait another 25 seconds to settle downftrigger_control_event(ControlEvent.ReachFullSend)
         self.log(f"Letting this leave startup hover movement happen")
         await asyncio.sleep(10)
@@ -505,10 +508,7 @@ class SiegLoop(ScadaActor):
         
         # Only move if significant change needed (avoid hunting)
         if abs(delta_s) >= 0.5:
-            # Calculate new position
-            target_seconds = self.keep_seconds + delta_s
-            target_seconds = max(0, min(100, target_seconds))
-            await self._prepare_new_movement_task(target_seconds)
+            await self._prepare_new_movement_task(delta_s)
 
 
     ##############################################
@@ -527,7 +527,8 @@ class SiegLoop(ScadaActor):
             raise Exception("Think through how Sieg Loop works for Samsung")
         self.hp_start_s = time.time()
         # Create a new task for the movement to t2
-        asyncio.create_task(self._prepare_new_movement_task(self.t2))
+        delta_s = self.t2 - self.keep_seconds
+        asyncio.create_task(self._prepare_new_movement_task(delta_s))
 
     def on_enter_startup_hover(self, event):
         """Called when entering the Hover state"""
@@ -554,8 +555,7 @@ class SiegLoop(ScadaActor):
 
     def on_enter_moving_to_full_send(self, event):
         self.log(f"Moving to full send")
-        asyncio.create_task(self._prepare_new_movement_task(0))
-
+        asyncio.create_task(self._prepare_new_movement_task(-self.keep_seconds - 10))
         
     def trigger_control_event(self, event: ControlEvent) -> None:
         now_ms = int(time.time() * 1000)
@@ -725,7 +725,7 @@ class SiegLoop(ScadaActor):
         if not self.actuators_ready:
             raise Exception("Call AFTER actuators ready")
         self.log("Initializing Sieg valve to FullySend position")
-        await self._prepare_new_movement_task(0)
+        await self._prepare_new_movement_task(-self.FULL_RANGE_S)
 
         # Let movement complete
         await asyncio.sleep(self.FULL_RANGE_S)
@@ -857,7 +857,7 @@ class SiegLoop(ScadaActor):
 
     async def clean_up_old_task(self) -> None:
         if hasattr(self, '_movement_task') and self._movement_task and not self._movement_task.done():
-            self.log(f"Cancelling previous movement task")
+            self.log(f"Cancelling movement task {self._current_task_id}")
             self._movement_task.cancel()
             
             # Wait for the task to actually complete
@@ -880,15 +880,17 @@ class SiegLoop(ScadaActor):
 
     def complete_move(self, task_id: str) -> None:
         if self.valve_state == SiegValveState.KeepingMore:
-            if self.keep_seconds == 100:
-                self.trigger_valve_event(ValveEvent.ResetToFullyKeep)
-            else:
-                self.trigger_valve_event(ValveEvent.StopKeepingMore)
+            # Allowing keep_seconds more than FULL_RANGE_SECONDS
+            #if self.keep_seconds == self.FULL_RANGE_S:
+            #     self.trigger_valve_event(ValveEvent.ResetToFullyKeep)
+            # else:
+            self.trigger_valve_event(ValveEvent.StopKeepingMore)
         elif self.valve_state == SiegValveState.KeepingLess:
-            if self.keep_seconds == 0:
-                self.trigger_valve_event(ValveEvent.ResetToFullySend)
-            else:
-                self.trigger_valve_event(ValveEvent.StopKeepingLess)
+            # Allowing keep_seconds less than 0
+            # if self.keep_seconds == 0:
+            #     self.trigger_valve_event(ValveEvent.ResetToFullySend)
+            # else:
+            self.trigger_valve_event(ValveEvent.StopKeepingLess)
         self.log(f"Movement {task_id} completed: {round(self.keep_seconds)}%, state {self.valve_state}")
 
     async def _monitor_startup_hover(self) -> None:
@@ -927,14 +929,19 @@ class SiegLoop(ScadaActor):
         Returns:
             task_id: The ID of the new task
         """
-        # Generate a new task ID for this movement
-        new_task_id = str(uuid.uuid4())[-4:]
-        self._current_task_id = new_task_id
-        self.log(f"Task {new_task_id}: target {round(delta_s,1)}s")
         
         # Cancel any existing movement task
         await self.clean_up_old_task()
         
+        # Generate a new task ID for this movement
+        new_task_id = str(uuid.uuid4())[-4:]
+        self._current_task_id = new_task_id
+
+        if delta_s > 0:
+            self.log(f"Task {new_task_id}: move to keep for {round(delta_s,1)} seconds")
+        else:
+            self.log(f"Task {new_task_id}: move to send for {round(-delta_s,1)} seconds")
+
         # Create a new task for the movement
         self._movement_task = asyncio.create_task(
             self._adjust_keep_seconds(delta_s, new_task_id)
@@ -956,39 +963,44 @@ class SiegLoop(ScadaActor):
         # Determine direction
         moving_to_more_keep = 0 < delta_s
         
+
         # Wait a moment to ensure the state machine has settled
         await asyncio.sleep(0.2)
-        self.log(f"{round(self.keep_seconds)} keep [{task_id} MOVING {round(delta_s,1)} s STARTING]")
         # Set the appropriate state
         try:
             if moving_to_more_keep:
-                self.log(f"Starting movement to MORE keep ({round(self.keep_seconds,1)}s -> {round(delta_s,1)}s)")
                 self.trigger_valve_event(ValveEvent.StartKeepingMore)
                 # Now process the movement in a loop
-                while self.keep_seconds < target_seconds:
+                delta_so_far = 0
+                while delta_so_far < delta_s:
                     # Check if this task has been superseded
                     if task_id != self._current_task_id:
                         self.log(f"Task {task_id} has been superseded, stopping")
                         break
-                    incremental_delta_s = min(1, (target_seconds - self.keep_seconds) * 100/self.FULL_RANGE_S)
-                    await self._keep_more(task_id, incremental_delta_s)
-
+                    incremental_delta_s = min(1, delta_s - delta_so_far)
+                    self.log(f"keep seconds {round(self.keep_seconds,1)}  [{task_id}]")
+                    start_s = time.time()
+                    await self._keep_more(start_s, task_id, incremental_delta_s)
+                    delta_so_far += time.time() - start_s
                     # Allow for cancellation to be processed
                     await asyncio.sleep(0)
             else:
-                self.log(f"Starting movement to LESS keep ({round(self.keep_seconds,1)}s -> {round(delta_s,1)}s)")
                 self.trigger_valve_event(ValveEvent.StartKeepingLess)
                 
                 # Now process the movement in a loop
-                while self.keep_seconds > target_seconds:
+                delta_so_far = 0
+                print(f"delta_so_far is {delta_so_far} and delta_s is {delta_s}")
+                while delta_so_far > delta_s:
                     # Check if this task has been superseded
                     if task_id != self._current_task_id:
                         self.log(f"Task {task_id} has been superseded, stopping")
                         break
                         
-                    incremental_delta_s = min(1, (self.keep_seconds  - target_seconds) * 100/self.FULL_RANGE_S)
-                    await self._keep_less(task_id, incremental_delta_s)
-    
+                    incremental_delta_s = min(1, delta_so_far - delta_s)
+                    self.log(f"keep seconds {round(self.keep_seconds,1)}  [{task_id}]")
+                    start_s = time.time()
+                    await self._keep_less(start_s, task_id, incremental_delta_s)
+                    delta_so_far -= time.time() - start_s
                     # Allow for cancellation to be processed
                     await asyncio.sleep(0)
 
@@ -1005,7 +1017,7 @@ class SiegLoop(ScadaActor):
                 #     self.trigger_control_event(ControlEvent.ReachFullSend)
 
         except asyncio.CancelledError:
-            self.log(f"Movement cancelled at {self.keep_seconds}%")
+            self.log(f"Movement cancelled at {self.keep_seconds} seconds from FullSend")
             # Let the cancellation propagate to the caller - don't set state here
             # as clean_up_old_task handles the FSM state transition
             raise
@@ -1018,27 +1030,29 @@ class SiegLoop(ScadaActor):
             # Always set the task to None when complete, whether successful or not
             self._movement_task = None
 
-    async def _keep_less(self, task_id: str, fraction: Optional[float] = None) -> None:
+    async def _keep_less(self, start_s: float, task_id: str, fraction: Optional[float] = None) -> None:
         """keep 1 second less, or fraction less (if fraction exists and is less than 1)"""
         # Check if we're still the current task
         if task_id != self._current_task_id:
             return
         if self.valve_state != SiegValveState.KeepingLess:
             raise Exception(f"Only call _keep_one_percent_less in state KeepingLess, not {self.valve_state}")
+            
         sleep_s = 1
         if fraction:
             if fraction > 1:
                 raise Exception("fraction needs to be less than 1")
             sleep_s = fraction
         orig_keep = self.keep_seconds
+        
         await asyncio.sleep(sleep_s)
-
+        now = time.time()
+        delta_s = now - start_s
         # Check again if we're still the current task after sleeping
         if task_id != self._current_task_id:
             return
         
-        self.keep_seconds = max(0, orig_keep - sleep_s)
-        # self.log(f"{self.percent_keep}% keep [{task_id}]")
+        self.keep_seconds = max(0, orig_keep - delta_s)
         self._send_to(
             self.primary_scada,
             SingleReading(
@@ -1048,7 +1062,7 @@ class SiegLoop(ScadaActor):
             )
         )
 
-    async def _keep_more(self, task_id: str, fraction: Optional[float] = None) -> None:
+    async def _keep_more(self, start_s: float, task_id: str, fraction: Optional[float] = None) -> None:
         """Or keep fraction percent more ... REQUIRES fraction to be less than 1"""
         # Check if we're still the current task
         if task_id != self._current_task_id:
@@ -1063,13 +1077,13 @@ class SiegLoop(ScadaActor):
 
         orig_keep = self.keep_seconds
         await asyncio.sleep(sleep_s)
-
+        now = time.time()
+        delta_s = now - start_s
         # Check again if we're still the current task after sleeping
         if task_id != self._current_task_id:
             return
         
-        self.keep_seconds = min(self.FULL_RANGE_S, orig_keep + sleep_s)
-        # self.log(f"{self.percent_keep}% keep [{task_id}]")
+        self.keep_seconds = min(self.FULL_RANGE_S, orig_keep + delta_s)
         self._send_to(
             self.primary_scada,
             SingleReading(

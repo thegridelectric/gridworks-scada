@@ -438,8 +438,8 @@ class AtomicAlly(ScadaActor):
                 self.fill_missing_store_temps()
                 print("Successfully filled in the missing storage temperatures.")
                 self.temperatures_available = True
-        total_usable_kwh = self.data.latest_channel_values[H0N.usable_energy]
-        required_storage = self.data.latest_channel_values[H0N.required_energy]
+        total_usable_kwh = self.data.latest_channel_values[H0CN.usable_energy]
+        required_storage = self.data.latest_channel_values[H0CN.required_energy]
         if total_usable_kwh is None or required_storage is None:
             self.temperatures_available = False
 

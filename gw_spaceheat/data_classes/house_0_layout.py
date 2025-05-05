@@ -26,7 +26,6 @@ from gwproto.named_types import ComponentAttributeClassGt
 class House0Layout(HardwareLayout):
     zone_list: List[str]
     total_store_tanks: int
-    flow_manifold_variant: str = "House0"
 
 
     def __init__(  # noqa: PLR0913
@@ -56,6 +55,7 @@ class House0Layout(HardwareLayout):
             raise DcError("House0 requires FlowManifoldVariant")
         if not self.layout["FlowManifoldVariant"] in FlowManifoldVariant.values():
             raise DcError(f"FlowManifoldVariant must belong to {FlowManifoldVariant.values()}!")
+        self.flow_manifold_variant: FlowManifoldVariant = FlowManifoldVariant(self.layout["FlowManifoldVariant"])
         self.zone_list = layout["ZoneList"]
         self.total_store_tanks = layout["TotalStoreTanks"]
 
