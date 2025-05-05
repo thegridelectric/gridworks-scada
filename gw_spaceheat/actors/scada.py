@@ -560,6 +560,7 @@ class Scada(ScadaInterface, Proactor):
         # HUGE HACK - 
         to_node = self.layout.node(payload.AboutName)
         boss_handle = '.'.join(to_node.handle.split('.')[:-1])
+        self.log(f"About name is {payload.AboutName}")
         self._send_to(to_node, AnalogDispatch(FromGNodeAlias=payload.FromGNodeAlias,
                                               FromHandle=boss_handle,
                                               ToHandle=to_node.handle,
