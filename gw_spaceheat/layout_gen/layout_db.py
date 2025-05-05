@@ -695,7 +695,20 @@ class LayoutDb:
                 ),
             ]
         )
-    
+
+        self.add_synth_channels(
+            [SynthChannelGt(
+            Id = self.make_synth_channel_id(H0CN.hp_keep_seconds_x_10),
+            Name = H0CN.hp_keep_seconds_x_10,
+            CreatedByNodeName = H0N.sieg_loop,
+            TelemetryName = TelemetryName.Unknown,
+            TerminalAssetAlias = self.terminal_asset_alias,
+            Strategy = "Integrate relay motion",
+            DisplayName = "Percent keep in the Siegenthaler loop",
+            SyncReportMinutes = 1
+            )
+        ]
+        )
 
     def add_stubs(self, cfg: Optional[StubConfig] = None):
         if cfg is None:
