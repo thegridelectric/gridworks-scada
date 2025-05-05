@@ -1191,34 +1191,31 @@ class Scada(ScadaInterface, Proactor):
 
         If boss is admin, then all relays report directly to admin
         """
-        if boss.name == H0N.admin:
-            for node in self.layout.actuators:
-                node.Handle = (f"{boss.handle}.{node.Name}")
-        else:
-            if self.layout.flow_manifold_variant == FlowManifoldVariant.House0:
-                for node in self.layout.actuators:
-                    if node.Name == H0N.vdc_relay:
-                        node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
-                    else:
-                        node.Handle = (f"{boss.handle}.{node.Name}")
-            elif self.layout.flow_manifold_variant == FlowManifoldVariant.House0Sieg:
-                hp_boss = self.layout.node(H0N.hp_boss)
-                hp_boss.Handle = f"{boss.handle}.{hp_boss.Name}"
-                
-                sieg_loop = self.layout.node(H0N.sieg_loop)
-                sieg_loop.Handle = f"{boss.handle}.{H0N.sieg_loop}"
 
-                for node in self.layout.actuators:
-                    if node.Name == H0N.vdc_relay:
-                        node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
-                    elif node.Name == H0N.hp_scada_ops_relay:
-                        node.Handle = f"{boss.handle}.{hp_boss.Name}.{node.Name}"
-                    elif node.Name in [H0N.hp_loop_keep_send, H0N.hp_loop_on_off] and boss.name != H0N.admin:
-                        node.Handle = f"{boss.handle}.{H0N.sieg_loop}.{node.Name}"
-                    else:
-                        node.Handle = (f"{boss.handle}.{node.Name}")
-            else:
-                raise Exception(f"Unknown FlowManifoldVariant {self.layout.flow_manifold_variant}")
+        if self.layout.flow_manifold_variant == FlowManifoldVariant.House0:
+            for node in self.layout.actuators:
+                if node.Name == H0N.vdc_relay and boss != self.admin:
+                    node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
+                else:
+                    node.Handle = (f"{boss.handle}.{node.Name}")
+        elif self.layout.flow_manifold_variant == FlowManifoldVariant.House0Sieg:
+            hp_boss = self.layout.node(H0N.hp_boss)
+            hp_boss.Handle = f"{boss.handle}.{hp_boss.Name}"
+            
+            sieg_loop = self.layout.node(H0N.sieg_loop)
+            sieg_loop.Handle = f"{boss.handle}.{H0N.sieg_loop}"
+
+            for node in self.layout.actuators:
+                if node.Name == H0N.vdc_relay:
+                    node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
+                elif node.Name == H0N.hp_scada_ops_relay:
+                    node.Handle = f"{boss.handle}.{hp_boss.Name}.{node.Name}"
+                elif node.Name in [H0N.hp_loop_keep_send, H0N.hp_loop_on_off] and boss.name != H0N.admin:
+                    node.Handle = f"{boss.handle}.{H0N.sieg_loop}.{node.Name}"
+                else:
+                    node.Handle = (f"{boss.handle}.{node.Name}")
+        else:
+            raise Exception(f"Unknown FlowManifoldVariant {self.layout.flow_manifold_variant}")
 
         self._send_to(
             self.atn,
