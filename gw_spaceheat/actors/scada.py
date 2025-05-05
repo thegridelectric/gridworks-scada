@@ -1652,7 +1652,7 @@ class Scada(ScadaInterface, Proactor):
         return LayoutLite(
             FromGNodeAlias=self.layout.scada_g_node_alias,
             FromGNodeInstanceId=self.layout.scada_g_node_id,
-            Strategy=self.layout.strategy,
+            Strategy=self.layout.flow_manifold_variant,
             ZoneList=self.layout.zone_list,
             TotalStoreTanks=self.layout.total_store_tanks,
             TankModuleComponents=[node.component.gt for node in tank_nodes],
