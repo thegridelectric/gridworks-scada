@@ -855,7 +855,7 @@ class SiegLoop(ScadaActor):
             #     self.trigger_valve_event(ValveEvent.ResetToFullySend)
             # else:
             self.trigger_valve_event(ValveEvent.StopKeepingLess)
-        self.log(f"Movement {task_id} completed: {round(self.keep_seconds)}%, state {self.valve_state}")
+        self.log(f"Movement {task_id} completed: {round(self.keep_seconds, 1)} seconds, state {self.valve_state}")
 
     async def _monitor_startup_hover(self) -> None:
         """Monitor LWT and other conditions to determine when to leave startup hover state"""
