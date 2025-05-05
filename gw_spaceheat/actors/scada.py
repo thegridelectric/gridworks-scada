@@ -569,7 +569,7 @@ class Scada(ScadaInterface, Proactor):
                                               TriggerId=payload.TriggerId,
                                               UnixTimeMs=payload.UnixTimeMs))
         # to_node = self.layout.node_by_handle(payload.ToHandle)
-        # if to_node:
+        # if to_node:gi
         #     self.log(f"Sending to {to_node.Name}")
         #     self._send_to(to_node.Name, payload)
 
