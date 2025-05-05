@@ -19,7 +19,7 @@ from actors.scada_actor import ScadaActor
 from actors.scada_interface import ScadaInterface
 from enums import HpModel, LogLevel
 from named_types import (ActuatorsReady, Glitch, ResetHpKeepValue, SetLwtControlParams,
-    SetTargetLwt, SingleMachineState,  SiegLoopEndpointValveAdjustment)
+    SetTargetLwt, SingleMachineState)
 
 from transitions import Machine
 class SiegValveState(GwStrEnum):
@@ -703,11 +703,6 @@ class SiegLoop(ScadaActor):
                     self.process_set_target_lwt(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with process_set_target_lwt: {e}")
-            case SiegLoopEndpointValveAdjustment():
-                try:
-                    asyncio.create_task(self.process_sieg_loop_endpoint_valve_adjustment(from_node, payload), name="analog_dispatch")
-                except Exception as e:
-                    self.log(f"Trouble withprocess_sieg_loop_endpoint_valve_adjustmen: {e}")
             case SingleMachineState():
                 self.process_single_machine_state(from_node, payload)
             case _: 
@@ -822,38 +817,6 @@ class SiegLoop(ScadaActor):
     def process_set_target_lwt(self, from_node: ShNode, payload: SetTargetLwt) -> None:
         self.target_lwt = payload.TargetLwtF
         self.log(f"Target lwt is now {self.target_lwt}")
-
-    async def process_sieg_loop_endpoint_valve_adjustment(
-        self, from_node: ShNode, payload: SiegLoopEndpointValveAdjustment
-    ) -> None:
-        if from_node != self.boss:
-            self.log(f"sieg loop expects commands from its boss {self.boss.Handle}, not {from_node.Handle}")
-            return
-
-        if self.boss.handle != payload.FromHandle:
-            self.log(f"boss's handle {self.boss.handle} does not match payload FromHandle {payload.FromHandle}")
-            return
-
-        if payload.HpKeepPercent != self.keep_seconds:
-            self.send_glitch(f"Ignoring SiegLoopEndpointValveAdjustment w {payload.HpKeepPercent} - our keep percent is {self.keep_seconds}")
-            return
-        if self._movement_task: 
-            self.send_glitch("Ignoring SiegLoopEndpointValveAdjustment - moving already")
-            return
-        elif self.valve_state not in [SiegValveState.FullyKeep, SiegValveState.FullySend]:
-            self.send_glitch(f"Ignoring SiegLoopEndpointValveAdjustment - percent keep at {self.keep_seconds} and state {self.valve_state}")
-
-        # Generate a new task ID for this movement
-        new_task_id = str(uuid.uuid4())[-4:]
-        self._current_task_id = new_task_id
-        # Create a new task for the movement
-        if self.valve_state == SiegValveState.FullyKeep:
-            new_task = self.keep_harder(payload.Seconds, new_task_id)
-            self.log(f"Keeping harder in FullyKeep state for {payload.Seconds} seconds")
-        else:
-            new_task = self.send_harder(payload.Seconds, new_task_id)
-            self.log(f"Sending harder in {self.valve_state} state for {payload.Seconds} seconds")
-        self._movement_task = asyncio.create_task(new_task) 
 
     async def clean_up_old_task(self) -> None:
         if hasattr(self, '_movement_task') and self._movement_task and not self._movement_task.done():
