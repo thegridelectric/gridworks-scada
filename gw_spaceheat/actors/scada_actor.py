@@ -33,6 +33,7 @@ class ScadaActor(Actor):
     def __init__(self, name: str, services: ScadaInterface):
         super().__init__(name, services)
         self.settings = services.settings
+        self.scada_services = services
         self.timezone = pytz.timezone(self.settings.timezone_str)
 
     @property
@@ -770,7 +771,7 @@ class ScadaActor(Actor):
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
-    def change_to_hp_send_more(self, from_node: Optional[ShNode] = None) -> None:
+    def change_to_hp_keep_less(self, from_node: Optional[ShNode] = None) -> None:
         """
         Sets the Keep/Send relay so that if relay 14 is On, the Siegenthaler
         valve moves towards sending MORE water out of the Siegenthaler loop (SendMore)
@@ -782,7 +783,7 @@ class ScadaActor(Actor):
                 FromHandle=from_node.handle,
                 ToHandle=self.hp_loop_keep_send.handle,
                 EventType=ChangeKeepSend.enum_name(),
-                EventName=ChangeKeepSend.ChangeToSendMore,
+                EventName=ChangeKeepSend.ChangeToKeepLess,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
@@ -793,7 +794,7 @@ class ScadaActor(Actor):
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
-    def change_to_hp_send_less(self, from_node: Optional[ShNode] = None) -> None:
+    def change_to_hp_keep_more(self, from_node: Optional[ShNode] = None) -> None:
         """
         Sets the Keep/Send relay so that if relay 15 is On, the Siegenthaler
         valve moves towards sending LESS water out of the Siegenthaler loop (SendLess)
@@ -805,7 +806,7 @@ class ScadaActor(Actor):
                 FromHandle=from_node.handle,
                 ToHandle=self.hp_loop_keep_send.handle,
                 EventType=ChangeKeepSend.enum_name(),
-                EventName=ChangeKeepSend.ChangeToSendLess,
+                EventName=ChangeKeepSend.ChangeToKeepMore,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
@@ -1056,3 +1057,6 @@ class ScadaActor(Actor):
         if self.data.latest_machine_state[self.hp_scada_ops_relay.Name].State == RelayClosedOrOpen.RelayClosed:
             return True
         return False
+
+    def to_fahrenheit(self, temp_c: float) -> float:
+        return 32 + (temp_c * 9 / 5)

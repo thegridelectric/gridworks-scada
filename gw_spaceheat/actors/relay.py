@@ -341,7 +341,7 @@ class Relay(ScadaActor):
         elif self.name == H0N.hp_loop_keep_send:
             self.my_state_enum = HpLoopKeepSend
             self.my_event_enum = ChangeKeepSend
-            if self.de_energizing_event != ChangeKeepSend.ChangeToSendMore:
+            if self.de_energizing_event != ChangeKeepSend.ChangeToKeepLess:
                 raise Exception(f"Expect ChangeToSendMore as de-energizing event for {self.name}!")
         elif self.name in stat_failsafe_names:
             self.my_state_enum = HeatcallSource

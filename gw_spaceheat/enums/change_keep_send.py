@@ -12,8 +12,8 @@ class ChangeKeepSend(GwStrEnum):
     HpLoop relay - change to send more or send less
     """
 
-    ChangeToSendMore = auto()
-    ChangeToSendLess = auto()
+    ChangeToKeepLess = auto()
+    ChangeToKeepMore = auto()
 
     @classmethod
     def values(cls) -> List[str]:
@@ -24,7 +24,7 @@ class ChangeKeepSend(GwStrEnum):
 
     @classmethod
     def default(cls) -> "ChangeKeepSend":
-        return cls.ChangeToSendMore
+        return cls.ChangeToKeepLess
 
     @classmethod
     def enum_name(cls) -> str:
