@@ -362,9 +362,9 @@ class SiegLoop(ScadaActor):
         reference_time: Optional[float] = None
         reference_temp: Optional[float] = None
         min_time_difference = 10.0  # Minimum 10 seconds between readings
-        
 
-        for timestamp, temp in self.lwt_readings:
+        # Iterate backwards (newest to oldest)
+        for timestamp, temp in reversed(list(self.lwt_readings)[:-1]):  # Skip the current reading
             if current_time - timestamp >= min_time_difference:
                 reference_time = timestamp
                 reference_temp = temp
