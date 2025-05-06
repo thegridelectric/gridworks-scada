@@ -235,9 +235,11 @@ class SiegLoop(ScadaActor):
 
         # TODO: if ISO valve is open use buffer depth 3
         sieg_cold_f=self.coldest_store_temp_f
-        if sieg_cold_f is None:
+        if sieg_cold_f is None or self.lift_f is None:
             return False
-        target_flow_percent = self.calc_eq_flow_percent(lift_f = self.lift_f, sieg_cold_f=sieg_cold_f)
+        target_flow_percent = self.calc_eq_flow_percent(
+            lift_f = self.lift_f + 3, 
+            sieg_cold_f=sieg_cold_f)
         lwt_f = self.lwt_f
     
         # 
@@ -260,13 +262,16 @@ class SiegLoop(ScadaActor):
         time_til_target_lwt =  (self.target_lwt - lwt_f) / slope
         now = datetime.now()
         s = now.second % 10
-        self.log(f"s is {s}")
-
-        self.log(f"Rate of change for LWT: {round(slope * 60, 1)} °F/min, {round(slope,1)} °F/s")
-        self.log(f"Using coldest store temp {round(sieg_cold_f,1)}°F, target {self.target_lwt}°F")
-        self.log(f"time til target lwt, using slope: {round(time_til_target_lwt, 1)}")
-        self.log(f"target flow percent: {round(target_flow_percent,1)}%")
-        self.log(f"target keep seconds {round(target_keep_s,1)}")
+        
+        if s == 0:
+            self.log(f"Rate of change for LWT: {round(slope * 60, 1)} °F/min, {round(slope,1)} °F/s")
+            self.log(f"Using coldest store temp {round(sieg_cold_f,1)}°F, target {self.target_lwt}°F")
+            self.log(f"target flow percent: {round(target_flow_percent,1)}%")
+            self.log(f"time to move: {round(time_to_move,1)}")
+            self.log(f"time til target lwt, using slope: {round(time_til_target_lwt, 1)}")
+            
+            if self.lift_f:
+                self.log(f"Current lift: {round(self.lift_f)}°F")
 
        
         buffer_time = 3.0 # 3 second buffer
@@ -274,6 +279,8 @@ class SiegLoop(ScadaActor):
             self.log(f"Rate of change for LWT: {round(slope * 60, 1)} °F/min ({round(slope,1)} °F/s)")
             self.log(f"Time until target: {round(time_til_target_lwt)}")
             self.log(f"Seconds to move valve: {round(time_to_move)}")
+            if self.lift_f:
+                self.log(f"Current lift: {round(self.lift_f)}°F")
             return True
 
         return False
@@ -312,7 +319,7 @@ class SiegLoop(ScadaActor):
             return 0 
 
         
-        k = 1 - (self.lift_f / temp_diff)
+        k = 1 - (lift_f / temp_diff)
         eq_flow_percent = max(0, min(k, 1)) * 100
         # if sieg_cold_f != self.sieg_cold_temp_f:
         #     self.log(f"Using sieg cold of {round(sieg_cold_f,1)}°F instead of actual {round(sieg_cold_f, 1)}°F")
