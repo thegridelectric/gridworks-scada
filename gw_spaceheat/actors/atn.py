@@ -267,6 +267,8 @@ class Atn(ActorInterface, Proactor):
         self.send_bid_minute: int = 57
         min_minute = min(max(3, datetime.now().minute), self.send_bid_minute-2)
         self.create_graph_minute: int = random.randint(min_minute, self.send_bid_minute-1)
+        # TODO: read strategy from hardware layout: node = hardware_layout.node(...)
+        self.buffer_flo = False
 
     @property
     def name(self) -> str:
@@ -683,6 +685,7 @@ class Atn(ActorInterface, Proactor):
             InitialBottomTempF=int(b),
             InitialThermocline1= int(th1*2),
             InitialThermocline2= int(th2*2),
+            StorageVolumeGallons = 120 if self.buffer_flo else 360,
             # TODO: price and weather forecasts should include the current hour if we are running a partial hour
             LmpForecast=self.price_forecast.lmp_usd_per_mwh,
             DistPriceForecast=self.price_forecast.dp_usd_per_mwh,
@@ -928,11 +931,13 @@ class Atn(ActorInterface, Proactor):
         if not self.temperatures_available:
             self.log("Not enough tank temperatures available to compute top temperature and thermocline!")
             return None
-        all_store_layers = sorted([x for x in self.temperature_channel_names if "tank" in x])
+        all_layers = sorted(
+            [x for x in self.temperature_channel_names if ("buffer" if self.buffer_flo else "tank") in x]
+        )
         try:
             tank_temps = {
                 key: self.to_fahrenheit(self.latest_temperatures[key] / 1000) 
-                for key in all_store_layers
+                for key in all_layers
             }
         except KeyError as e:
             self.log(f"Failed to get all the tank temps in get_three_layer_storage_model! Bailing on process {e}")
@@ -1023,6 +1028,8 @@ class Atn(ActorInterface, Proactor):
                 return top_temp, top_temp, top_temp, thermocline1, thermocline1
     
     async def get_buffer_available_kwh(self):
+        if self.buffer_flo:
+            return 0
         if self.temperature_channel_names is None:
             self.send_layout()
             await asyncio.sleep(5)
