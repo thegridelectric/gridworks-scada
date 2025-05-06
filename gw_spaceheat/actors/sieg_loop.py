@@ -119,7 +119,7 @@ class SiegLoop(ScadaActor):
 
     """
     flow_from_time_points = [
-            [9.1, 0], [11.2, 11.4], [14.7, 24.1], [18.2, 39.0], [22.4, 51.7],
+            [7,0], [9, 8], [11.2, 11.4], [14.7, 24.1], [18.2, 39.0], [22.4, 51.7],
             [28.7, 66.6], [35.7, 75.2], [39.9, 80.6], [42.7, 83.7], [67.2, 100]
         ]
     FULL_RANGE_S = 70
@@ -197,8 +197,8 @@ class SiegLoop(ScadaActor):
         self.proportional_gain = .4  #  P = 0.2*Ku
         self.derivative_gain = 15 # D = 0.33 * P * Tu
         self.integral_gain = 0.00017 #  I =  0.1 × P ÷ Tu
-        self.t1 = 16 # seconds where some flow starts going through the Sieg Loop
-        self.t2 = 95 # seconds where all flow starts going through the Sieg Loop
+        self.t1 = 7 # seconds where some flow starts going through the Sieg Loop
+        self.t2 = 67 # seconds where all flow starts going through the Sieg Loop
         self.moving_to_calculated_target = False
         self.control_interval_seconds = 30
 
@@ -233,6 +233,8 @@ class SiegLoop(ScadaActor):
 
         # TODO: if ISO valve is open use buffer depth 3
         sieg_cold_f=self.coldest_store_temp_f
+        if sieg_cold_f is None:
+            return False
         target_flow_percent = self.calc_eq_flow_percent(lift_f = self.lift_f, sieg_cold_f=sieg_cold_f)
         lwt_f = self.lwt_f
     
@@ -243,7 +245,6 @@ class SiegLoop(ScadaActor):
             return False
         
         target_keep_s = self.time_from_flow(target_flow_percent)
-        
         # This is how long it will take to move
         delta_s = self.keep_seconds - target_keep_s
 
@@ -252,9 +253,19 @@ class SiegLoop(ScadaActor):
             raise Exception("Expects update_derivative_calcs to be run first!")
         slope = self.lwt_slope
         if slope <= 0:
-            raise Exception(f"Don't expext a slope of {round(slope)}")
+            return False
+        
         seconds_before_target =  (self.target_lwt - lwt_f) / slope
+        now = datetime.now()
+        s = now.second % 10
+        if s == 0:
+            self.log(f"Rate of change for LWT: {round(slope * 60, 1)} °F/min, {round(slope,1)} °F/s")
+            self.log(f"Using coldest store temp {round(sieg_cold_f,1)}°F, target {self.target_lwt}°F")
+            self.log(f"seconds before target, using slope: {round(seconds_before_target, 1)}")
+            self.log(f"target flow percent: {round(target_flow_percent,1)}%")
+            self.log(f"target keep seconds {round(target_keep_s,1)} ... {round(delta_s,1)}s to move there")
 
+       
         buffer_time = 3.0 # 3 second buffer
         if seconds_before_target - delta_s > buffer_time:
             self.log(f"Rate of change for LWT: {round(slope * 60, 1)} °F/min")
