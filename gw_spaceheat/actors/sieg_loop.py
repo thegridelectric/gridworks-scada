@@ -228,7 +228,9 @@ class SiegLoop(ScadaActor):
     ##############################################
 
     def time_to_leave_startup_hover(self) -> bool:
-        """ Yes if  """
+        """ Yes if the time it would take to move to roughly the correct valve position
+        is about how long it will take for the temperature to be at target given the current
+        rate of change of lwt"""
 
 
         # TODO: if ISO valve is open use buffer depth 3
@@ -246,7 +248,7 @@ class SiegLoop(ScadaActor):
         
         target_keep_s = self.time_from_flow(target_flow_percent)
         # This is how long it will take to move
-        delta_s = self.keep_seconds - target_keep_s
+        time_to_move = self.keep_seconds - target_keep_s
 
         
         if not hasattr(self, 'lwt_slope'):
@@ -255,22 +257,23 @@ class SiegLoop(ScadaActor):
         if slope <= 0:
             return False
         
-        seconds_before_target =  (self.target_lwt - lwt_f) / slope
+        time_til_target_lwt =  (self.target_lwt - lwt_f) / slope
         now = datetime.now()
         s = now.second % 10
-        if s == 0:
-            self.log(f"Rate of change for LWT: {round(slope * 60, 1)} °F/min, {round(slope,1)} °F/s")
-            self.log(f"Using coldest store temp {round(sieg_cold_f,1)}°F, target {self.target_lwt}°F")
-            self.log(f"seconds before target, using slope: {round(seconds_before_target, 1)}")
-            self.log(f"target flow percent: {round(target_flow_percent,1)}%")
-            self.log(f"target keep seconds {round(target_keep_s,1)} ... {round(delta_s,1)}s to move there")
+        self.log(f"s is {s}")
+
+        self.log(f"Rate of change for LWT: {round(slope * 60, 1)} °F/min, {round(slope,1)} °F/s")
+        self.log(f"Using coldest store temp {round(sieg_cold_f,1)}°F, target {self.target_lwt}°F")
+        self.log(f"time til target lwt, using slope: {round(time_til_target_lwt, 1)}")
+        self.log(f"target flow percent: {round(target_flow_percent,1)}%")
+        self.log(f"target keep seconds {round(target_keep_s,1)}")
 
        
         buffer_time = 3.0 # 3 second buffer
-        if seconds_before_target - delta_s > buffer_time:
-            self.log(f"Rate of change for LWT: {round(slope * 60, 1)} °F/min")
-            self.log(f"Seconds before target: {round(seconds_before_target)}")
-            self.log(f"Seconds to move valve: {round(delta_s)}")
+        if time_til_target_lwt - time_to_move < buffer_time:
+            self.log(f"Rate of change for LWT: {round(slope * 60, 1)} °F/min ({round(slope,1)} °F/s)")
+            self.log(f"Time until target: {round(time_til_target_lwt)}")
+            self.log(f"Seconds to move valve: {round(time_to_move)}")
             return True
 
         return False
@@ -311,14 +314,14 @@ class SiegLoop(ScadaActor):
         
         k = 1 - (self.lift_f / temp_diff)
         eq_flow_percent = max(0, min(k, 1)) * 100
-        if sieg_cold_f != self.sieg_cold_temp_f:
-            self.log(f"Using sieg cold of {round(sieg_cold_f,1)}°F instead of actual {round(sieg_cold_f, 1)}°F")
-        self.log(f"Calculated target flow: {round(eq_flow_percent, 1)}% keep")
-        self.log(f"  Target LWT: {round(self.target_lwt, 1)}°F, Sieg Cold  {round(sieg_cold_f, 1)}°F")
-        self.log(f"  temp diff: {round(temp_diff, 1)}°F")
-        self.log(f"  lift: {round(lift_f, 1)}°F")
-        self.log(f"  lift/temp_diff: {round(lift_f/temp_diff,1)}")
-        self.log(f"  1 - lift/temp_diff: {round(k, 2)}")
+        # if sieg_cold_f != self.sieg_cold_temp_f:
+        #     self.log(f"Using sieg cold of {round(sieg_cold_f,1)}°F instead of actual {round(sieg_cold_f, 1)}°F")
+        # self.log(f"Calculated target flow: {round(eq_flow_percent, 1)}% keep")
+        # self.log(f"  Target LWT: {round(self.target_lwt, 1)}°F, Sieg Cold  {round(sieg_cold_f, 1)}°F")
+        # self.log(f"  temp diff: {round(temp_diff, 1)}°F")
+        # self.log(f"  lift: {round(lift_f, 1)}°F")
+        # self.log(f"  lift/temp_diff: {round(lift_f/temp_diff,1)}")
+        # self.log(f"  1 - lift/temp_diff: {round(k, 2)}")
         
         return eq_flow_percent
 
@@ -478,18 +481,21 @@ class SiegLoop(ScadaActor):
 
         return bounded_adjustment
 
-    async def leave_startup_hover(self, lift_f: Optional[float] = None) -> None:
+    async def leave_startup_hover(self) -> None:
         """ Move to the estimated valve position for hitting 
         target temp with 5 degrees of lift"""
         if self.lift_f is None:
             raise Exception("should not be blind here")
-        if lift_f is None:
-            lift_f = self.lift_f
+        lift_f = self.lift_f
         
         self.moving_to_calculated_target = True
-        flow_target_percent = self.calc_eq_flow_percent(lift_f)
+        sieg_cold_f = self.coldest_store_temp_f
+        if sieg_cold_f is None:
+            sieg_cold_f = self.sieg_cold_temp_f
+        flow_target_percent = self.calc_eq_flow_percent(lift_f=self.lift_f, sieg_cold_f=sieg_cold_f)
         if flow_target_percent is None:
             raise Exception(f"Should not get here if blind")
+        self.log(f"flow_target_percent is {round(flow_target_percent)}")
         keep_seconds_target = self.time_from_flow(flow_target_percent)
         self.log(f"Calculated target time: {round(keep_seconds_target,1)}% keep")
         delta_s = self.keep_seconds - keep_seconds_target
@@ -879,7 +885,7 @@ class SiegLoop(ScadaActor):
                 if self.time_to_leave_startup_hover():
                     self.log("Leaving startup hover based on LWT rate of change")
                     self.trigger_control_event(ControlEvent.NeedLessKeep)
-                    asyncio.create_task(self.leave_startup_hover(lift_f=5))
+                    asyncio.create_task(self.leave_startup_hover())
                     break
                 
                 # Check every second
@@ -1273,6 +1279,8 @@ class SiegLoop(ScadaActor):
             points.append([point[1], point[0]])
 
         x = flow_percent_keep
+        if not (0<=x and x<=100):
+            raise Exception(f"time_from_flow requires 0<=x<=100! Not {x}")
         # Find the segment x lies within
         for i in range(1, len(points)):
             x0, y0 = points[i - 1]
