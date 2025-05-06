@@ -400,7 +400,7 @@ class SiegLoop(ScadaActor):
         temp_delta = lwt_f - reference_temp
         
         self.lwt_slope = temp_delta / time_delta
-        self.log(f"LWT slope: {round(self.lwt_slope * 60, 2)} °F/min over {round(time_delta, 1)} seconds")
+        #self.log(f"LWT slope: {round(self.lwt_slope * 60, 2)} °F/min over {round(time_delta, 1)} seconds")
 
     def calculate_delta_seconds(self) -> Optional[float]:
         """Calculate delta seconds for the next control interval using a PID controller
@@ -434,6 +434,7 @@ class SiegLoop(ScadaActor):
             last_lwt_time, last_lwt_f = self.lwt_readings[-2]
             if current_time - last_lwt_time < 20:
                 error_delta = 0
+                time_delta_s = 1
                 self.log(f"That's strange, last_lwt_time is {round(current_time - last_lwt_time)} seconds ago!")
             else:
                 last_error = self.target_lwt - last_lwt_f
@@ -505,11 +506,11 @@ class SiegLoop(ScadaActor):
         self.log(f"flow_target_percent is {round(flow_target_percent)}")
         keep_seconds_target = self.time_from_flow(flow_target_percent)
         self.log(f"Calculated target time: {round(keep_seconds_target,1)}% keep")
-        delta_s = self.keep_seconds - keep_seconds_target
+        delta_s = keep_seconds_target - self.keep_seconds
         await self._prepare_new_movement_task(delta_s)
-        # and now wait another 25 seconds to settle downftrigger_control_event(ControlEvent.ReachFullSend)
-        self.log(f"Letting this leave startup hover movement happen")
-        await asyncio.sleep(10)
+        # and now wait another 25 seconds to settle down trigger_control_event(ControlEvent.ReachFullSend)
+        self.log(f"Waiting another 2 minutes to see how this level works")
+        await asyncio.sleep(120)
         self.moving_to_calculated_target = False
     
     async def run_temperature_control(self) -> None:
