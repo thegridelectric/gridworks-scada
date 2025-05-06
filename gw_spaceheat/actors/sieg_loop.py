@@ -126,7 +126,7 @@ class SiegLoop(ScadaActor):
     RESET_S = 10
     #relay on       <- 2m -> pump on <- 2.5m <- tiny lift -> 2*m <-5 degF Lift ->  2min <- ramp -> 17 <- 30 degF Lift
     LG_STARTUP_HOVER_UNTIL_S = 2 * 60          + 2.5 * 60          + 2 * 60 - 70 # 70: time to move to full keep
-
+    PID_SENSITIVITY = 1.5
     def __init__(self, name: str, services: ScadaInterface):
         super().__init__(name, services)
         self.keep_seconds: float = self.FULL_RANGE_S
@@ -194,9 +194,9 @@ class SiegLoop(ScadaActor):
         self.ultimate_gain = 1.0  # Ku
         self.ultimate_gain_seconds = 230 # Tu
         # Applying Ziegler-Nichols with 
-        self.proportional_gain = .4  #  P = 0.2*Ku
-        self.derivative_gain = 15 # D = 0.33 * P * Tu
-        self.integral_gain = 0.00017 #  I =  0.1 × P ÷ Tu
+        self.proportional_gain = .4 * self.PID_SENSITIVITY #  P = 0.2*Ku
+        self.derivative_gain = 15 * self.PID_SENSITIVITY # D = 0.33 * P * Tu
+        self.integral_gain = 0.00017 * self.PID_SENSITIVITY #  I =  0.1 × P ÷ Tu
         self.t1 = 7 # seconds where some flow starts going through the Sieg Loop
         self.t2 = 67 # seconds where all flow starts going through the Sieg Loop
         self.moving_to_calculated_target = False
@@ -257,6 +257,7 @@ class SiegLoop(ScadaActor):
             raise Exception("Expects update_derivative_calcs to be run first!")
         slope = self.lwt_slope
         if slope <= 0:
+            self.log(f"Rate of change for LWT: {round(slope * 60, 1)} °F/min")
             return False
         
         time_til_target_lwt =  (self.target_lwt - lwt_f) / slope
@@ -494,13 +495,13 @@ class SiegLoop(ScadaActor):
         target temp with 5 degrees of lift"""
         if self.lift_f is None:
             raise Exception("should not be blind here")
-        lift_f = self.lift_f
+        lift_f = self.lift_f + 3
         
         self.moving_to_calculated_target = True
         sieg_cold_f = self.coldest_store_temp_f
         if sieg_cold_f is None:
             sieg_cold_f = self.sieg_cold_temp_f
-        flow_target_percent = self.calc_eq_flow_percent(lift_f=self.lift_f, sieg_cold_f=sieg_cold_f)
+        flow_target_percent = self.calc_eq_flow_percent(lift_f=lift_f, sieg_cold_f=sieg_cold_f)
         if flow_target_percent is None:
             raise Exception(f"Should not get here if blind")
         self.log(f"flow_target_percent is {round(flow_target_percent)}")
@@ -509,8 +510,8 @@ class SiegLoop(ScadaActor):
         delta_s = keep_seconds_target - self.keep_seconds
         await self._prepare_new_movement_task(delta_s)
         # and now wait another 25 seconds to settle down trigger_control_event(ControlEvent.ReachFullSend)
-        self.log(f"Waiting another 2 minutes to see how this level works")
-        await asyncio.sleep(120)
+        self.log(f"Waiting 1 minute to see how this level works")
+        await asyncio.sleep(60)
         self.moving_to_calculated_target = False
     
     async def run_temperature_control(self) -> None:
@@ -1162,7 +1163,7 @@ class SiegLoop(ScadaActor):
 
                 elif self.control_state == SiegControlState.StartupHover and self.time_to_leave_startup_hover():
                     self.trigger_control_event(ControlEvent.NeedLessKeep)
-                    asyncio.create_task(self.leave_startup_hover(lift_f=5))
+                    asyncio.create_task(self.leave_startup_hover())
                 elif self.control_state == SiegControlState.Active:
                     if not self.moving_to_calculated_target:
                         # Run temperature control without awaiting to avoid blocking
@@ -1214,7 +1215,7 @@ class SiegLoop(ScadaActor):
 
     @property
     def coldest_store_temp_f(self) -> Optional[float]:
-        t = self.scada_services.data.latest_channel_values.get("tank3-depth4")
+        t = self.scada_services.data.latest_channel_values.get("store-cold-pipe")
         if t is None:
             return None
         return self.to_fahrenheit(t / 1000)
