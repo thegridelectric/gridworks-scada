@@ -18,7 +18,8 @@ class HomeAloneStrategy(GwStrEnum):
     WinterTou = auto()
     ShoulderTou = auto()
     Summer = auto()
-
+    ShoulderSeig = auto()
+  
     @classmethod
     def default(cls) -> "HomeAloneStrategy":
         return cls.WinterTou

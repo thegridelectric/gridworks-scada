@@ -126,7 +126,7 @@ class SiegLoop(ScadaActor):
     RESET_S = 10
     #relay on       <- 2m -> pump on <- 2.5m <- tiny lift -> 2*m <-5 degF Lift ->  2min <- ramp -> 17 <- 30 degF Lift
     LG_STARTUP_HOVER_UNTIL_S = 2 * 60          + 2.5 * 60          + 2 * 60 - 70 # 70: time to move to full keep
-    PID_SENSITIVITY = 1.5
+
     def __init__(self, name: str, services: ScadaInterface):
         super().__init__(name, services)
         self.keep_seconds: float = self.FULL_RANGE_S
@@ -194,9 +194,10 @@ class SiegLoop(ScadaActor):
         self.ultimate_gain = 1.0  # Ku
         self.ultimate_gain_seconds = 230 # Tu
         # Applying Ziegler-Nichols with 
-        self.proportional_gain = .4 * self.PID_SENSITIVITY #  P = 0.2*Ku
-        self.derivative_gain = 15 * self.PID_SENSITIVITY # D = 0.33 * P * Tu
-        self.integral_gain = 0.00017 * self.PID_SENSITIVITY #  I =  0.1 × P ÷ Tu
+        self.pid_sensitivity = 2
+        self.proportional_gain = .4 * self.pid_sensitivity #  P = 0.2*Ku
+        self.derivative_gain = 15 * self.pid_sensitivity # D = 0.33 * P * Tu
+        self.integral_gain = 0.00017 * self.pid_sensitivity #  I =  0.1 × P ÷ Tu
         self.t1 = 7 # seconds where some flow starts going through the Sieg Loop
         self.t2 = 67 # seconds where all flow starts going through the Sieg Loop
         self.moving_to_calculated_target = False
