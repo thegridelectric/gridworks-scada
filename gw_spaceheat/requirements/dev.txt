@@ -56,7 +56,7 @@ gridworks==1.2.0
     # via gridworks-protocol
 gridworks-cert==0.4.4
     # via -r gw_spaceheat/requirements/dev.in
-gridworks-proactor==3.0.1
+gridworks-proactor==3.0.2
     # via -r gw_spaceheat/requirements/base.in
 gridworks-protocol==1.2.6
     # via
@@ -116,7 +116,7 @@ packaging==21.3
     # via
     #   build
     #   pytest
-paho-mqtt==1.6.1
+paho-mqtt==2.1.0
     # via
     #   -r gw_spaceheat/requirements/base.in
     #   gridworks-proactor

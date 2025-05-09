@@ -63,7 +63,7 @@ frozenlist==1.4.0
     #   aiosignal
 gridworks==1.2.0
     # via gridworks-protocol
-gridworks-proactor==3.0.1
+gridworks-proactor==3.0.2
     # via -r gw_spaceheat/requirements/base.in
 gridworks-protocol==1.2.6
     # via
@@ -97,7 +97,7 @@ multidict==6.0.4
     #   yarl
 numpy==1.24.2
     # via -r gw_spaceheat/requirements/base.in
-paho-mqtt==1.6.1
+paho-mqtt==2.1.0
     # via
     #   -r gw_spaceheat/requirements/base.in
     #   gridworks-proactor
