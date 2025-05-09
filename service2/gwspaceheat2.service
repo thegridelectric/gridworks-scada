@@ -10,8 +10,7 @@ Environment=VIRTUAL_ENV=/home/pi/gridworks-scada/gw_spaceheat/venv
 Environment=PYTHONPATH=/home/pi/gridworks-scada/gw_spaceheat
 Environment=SCADA_RUNNING_AS_SERVICE=1
 ExecStart=/home/pi/gridworks-scada/gw_spaceheat/venv/bin/python \
-    /home/pi/gridworks-scada/gw_spaceheat/run_scada.py \
-    --s2 \
+    /home/pi/gridworks-scada/gw_spaceheat/gws run-s2 \
     --message-summary
 RestartSec=1
 WatchdogSec=20
