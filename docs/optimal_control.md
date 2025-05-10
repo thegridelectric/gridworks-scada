@@ -26,17 +26,18 @@ GridWorks' approach avoids this issue by recognizing that determining the optima
 
 Between times $t$ and $t+1$:
 
-- Forecasted weather: $20 \degree F$ outside air, $2 \ mph$ wind
-  - House heating load: $4 \ kWh$
+- Forecasted weather: $20 \degree F$ outside air, $2 \ mph$ wind. Our data-driven models use this weather forecast to predict the following parameters for the duration of the time step:
+  - House average heating requirement: $4 \ kW$
   - House RSWT: $140\degree F$
   - Heat pump average COP: $2$
 
-- Energy difference between state $x_{t+1}$ and $x_t$: $2 \ kWh$
-  - Total heat output: $6 \ kWh$
-  - Total electricity input: $3 \ kWh$
+- Energy difference between state $x_{t+1}$ and $x_t$: $2 \ kWh$. Adding this to the house's heat requirement, we get:
+  - Total required heat output: $4+2=6 \ kWh$
+  - Total required electricity input: $6/2 = 3 \ kWh$
 
-- Forecasted cost of electricity: $20 \ cts/kWh$
-  - Cost of edge: $0.60\$$
+- Forecasted cost of electricity: $20 \ cts/kWh$ 
+  - Cost of edge: $3\cdot 0.20 = 0.60\$$
+  - If the RSWT constraint is not met, the path could result in underheating the house. So the cost of the edge is increased to discourage taking that path unless it is the only option available.
 
 
 Finding the optimal control trajectory between two states at different time steps is therefore reduced to identifying the lowest-cost path between the corresponding nodes in the graph. This is a well-established problem in computer science and can be solved efficiently using Dijkstra’s algorithm for shortest paths.
