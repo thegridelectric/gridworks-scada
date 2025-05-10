@@ -18,11 +18,11 @@ In GridWorks' framework, a state variable $x$ represents the temperature distrib
 
 The main challenge in MPC is formulating the appropriate optimization problem. In existing literature, it is typically formulated as a continuous optimization problem, incorporating system dynamics as constraints. However, the inherent complexity of heat pump and thermal energy storage systems (characterized by discrete on/off and charge/discharge behavior, along with nonlinear dynamics) makes it challenging to model them in such a way without resulting in a Mixed-Integer Nonlinear Programming (MINLP) formulation, which is notoriously difficult to solve efficiently from a computational standpoint.
 
-GridWorks' approach avoids this issue by recognizing that determining the optimal control sequence for a HP+TES system over time can be formulated as a shortest path problem. By defining a discrete set of feasible states at each time step, the problem can be modeled as a directed graph, where nodes represent available system states and edges represent valid transitions between them. Each edge is assigned a cost corresponding to the cost of electricity required to move from the tail node (state $x_t$) to the head node (state $x_{t+1}$) under the circumstances of that given time step (weather, house parameters, heat pump parameters, electricity price).
+GridWorks' approach avoids this issue by recognizing that determining the optimal control sequence for a HP+TES system over time can be formulated as a shortest path problem. By defining a discrete set of feasible states at each time step, the problem can be modeled as a directed graph, where nodes represent available system states and edges represent valid transitions between them. Each edge is assigned a cost $c_t$ corresponding to the cost of electricity required to move from the tail node (state $x_t$) to the head node (state $x_{t+1}$) under the circumstances of that given time step (weather, house parameters, heat pump parameters, electricity price).
 
 <img src="img/node_edge.png" style="display: block; margin-left: auto; margin-right: auto; width: 240px; margin-bottom: 20px">
 
-<u>Example computing edge cost</u>
+### Example computing edge cost $c_t$
 
 Between times $t$ and $t+1$:
 
