@@ -32,7 +32,7 @@ Between times $t$ and $t+1$:
   - Heat pump average COP: $2$
 
 - Energy difference between state $x_{t+1}$ and $x_t$: $2 \ kWh$
-  - Total heat output: $ 6 \ kWh$
+  - Total heat output: $6 \ kWh$
   - Total electricity input: $3 \ kWh$
 
 - Forecasted cost of electricity: $20 \ cts/kWh$
