@@ -37,7 +37,7 @@ Between times $t$ and $t+1$:
 
 - Forecasted cost of electricity: $20 \ cts/kWh$ 
   - Cost of edge: $3\cdot 0.20 = 0.60\$$
-  - If the RSWT constraint is not met, the path could result in underheating the house. So the cost of the edge is increased to discourage taking that path unless it is the only option available.
+  - If the RSWT constraint is not met, the path could result in underheating the house. So the cost of the edge is increased (soft constraint) to discourage taking that path unless it is the only option available.
 
 
 Finding the optimal control trajectory between two states at different time steps is therefore reduced to identifying the lowest-cost path between the corresponding nodes in the graph. This is a well-established problem in computer science and can be solved efficiently using Dijkstra’s algorithm for shortest paths.
