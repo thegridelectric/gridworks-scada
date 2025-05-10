@@ -1,8 +1,8 @@
 # Optimal control of the heat pump and thermal energy storage system
 
-GridWorks' approach to optimally control the heat pump and thermal energy storage system (HP+TES) based on electricity prices is an innovative variant of Model Predictive Control (MPC), in which an optimization problem is solved periodically to inform control decisions. The optimization problem being solved ensures that the system minimizes the cost of electricity consumed by the heat pump over a specified time horizon, while ensuring that the house's heating load is always delivered, either through the heat pump or through the storage.
+GridWorks' approach to optimally control the heat pump and thermal energy storage system (HP+TES) is an innovative variant of Model Predictive Control (MPC), in which an optimization problem is solved periodically to inform control decisions.
 
-GridWorks’ method leverages the current state of the system, weather and electricity price forecasts, and data-driven models of both the heat pump and the building to make the best decisions. For example, the algorithm dynamically selects the optimal water temperature based on weather conditions and thermodynamic behavior, while also maximizing efficiency by accounting for the variation of the heat pump’s coefficient of performance (COP) with outdoor air temperature.
+GridWorks’ method leverages the current state of the system, weather and electricity price forecasts, and data-driven models of both the heat pump and the building to make the best decisions while always ensuring the home remains comfortably heated. For example, the algorithm dynamically selects the optimal water temperature based on weather conditions and thermodynamic behavior, while also maximizing efficiency by accounting for the variation of the heat pump’s coefficient of performance (COP) with outdoor air temperature.
 
 ## Nomenclature
 
