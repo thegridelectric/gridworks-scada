@@ -6,13 +6,13 @@ GridWorks’ method leverages the current state of the system, weather and elect
 
 ## Nomenclature
 
-The optimization horizon is set to $H$ hours, which are divided into $N$ time steps so that time is discretized as $t=0,1,...,N$. At a given time $t$, the system's state is denoted by $x_t$ and the control input is denoted by $u_t$. 
+The optimization horizon is set to $H$ hours, which are divided into $N$ time steps so that time is discretized as $t=0,1,...,N$. At a given time $t$, the system's state is denoted by $x_t$ and the control input is denoted by $u_t$. The cost of taking input $u_t$ at the state $x_t$ is $c_t = f(u_t,x_t)$.
 
-$$x_t \xrightarrow{u_t} x_{t+1}$$
+$$x_t \xrightarrow{u_t, c_t} x_{t+1}$$
 
-The goal is to find the sequence of inputs $\vec{u} = (u_0, u_{1}, ..., u_{N-1}$) that, applied to the system in an initial state $x_{0}$, leads to a sequence of states $\vec{x} = (x_0 , x_1,...,x_N)$ such that an objective function $f(\vec{u}, \vec{x})$ is minimized under a set of constraints.
+The goal is to find the sequence of inputs $\vec{u} = (u_0, u_{1}, ..., u_{N-1}$) that, applied to the system in an initial state $x_{0}$, leads to a sequence of states $\vec{x} = (x_0 , x_1,...,x_N)$ such that the sum of costs $\sum_{t=0}^{N-1}c_t = \sum_{t=0}^{N-1} f(x_t, u_t)$ is minimized under a set of constraints.
 
-In GridWorks' framework, a state variable $x$ represents the temperature distribution within the thermal storage tanks, while a control input $u$ corresponds to the electrical power supplied to the heat pump. The objective is to minimize the sum of electricity costs at each time step. Among the key constraints is the requirement that the temperature of the water supplied to the house must meet or exceed the Required Source Water Temperature (RSWT) at all times. The RSWT varies dynamically based on weather conditions and the building’s heating demands. The horizon is typically set to 48 hours with hourly time steps, meaning $H=N=48$.
+In GridWorks' framework, a state variable $x$ represents the temperature distribution within the thermal storage tanks, while a control input $u$ corresponds to the electrical power supplied to the heat pump. The cost function to minimize is the associated electricity cost (along with soft constraints). Among the key constraints is the requirement that the temperature of the water supplied to the house must meet or exceed the Required Source Water Temperature (RSWT) at all times. The RSWT varies dynamically based on weather conditions and the building’s heating demands. The horizon is typically set to 48 hours with hourly time steps, meaning $H=N=48$.
 
 ## Optimization problem formulation
 
