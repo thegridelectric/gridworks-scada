@@ -46,3 +46,7 @@ Finding the optimal control trajectory between two states at different time step
 
 ## Super-graphs
 The approach presented above relies on identifying a well-chosen set of available states (nodes) and a system model that accurately defines the relationships between them (edges). For complex systems like the one developed by GridWorks, the number of nodes and edges needed to capture system behavior can be very large, making it computationally intensive to compute the available edges at each time step. However, GridWorks recognized that the edges calculated at each time step are actually a subset of a larger, fixed set of possible transitions. This insight enables the construction of a super-graph, a pre-computed graph containing all feasible nodes and edges, allowing the system to efficiently select only the relevant edges during runtime.
+
+## Ongoing work
+GridWorks has included a new loop in the system that allows to control the heat pump's leaving water temperature. This increases the available flexibility when optimizing over the temperature of the water going to the storage and house.
+This fundamental change in the system is easily incorporated in the current optimal control framework, as it simply requires adapting the model of the system dynamics and using it to compute a new super-graph.
