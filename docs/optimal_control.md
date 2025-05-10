@@ -20,7 +20,7 @@ The main challenge in MPC is formulating the appropriate optimization problem. I
 
 GridWorks' approach avoids this issue by recognizing that determining the optimal control sequence for a HP+TES system over time can be formulated as a shortest path problem. By defining a discrete set of feasible states at each time step, the problem can be modeled as a directed graph, where nodes represent available system states and edges represent valid transitions between them. Each edge is assigned a cost corresponding to the cost of electricity required to move from the tail node (state $x_t$) to the head node (state $x_{t+1}$) under the circumstances of that given time step (weather, house parameters, heat pump parameters, electricity price).
 
-<img src="img/node_edge.png" style="display: block; margin-left: auto; margin-right: auto; width:100%; max-width: 240px; margin-bottom: 20px">
+<img src="img/node_edge.png" style="display: block; margin-left: auto; margin-right: auto; width:50%; max-width: 240px; margin-bottom: 20px">
 
 <u>Example computing edge cost</u>
 
