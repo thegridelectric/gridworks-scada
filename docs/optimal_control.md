@@ -41,7 +41,7 @@ Between times $t$ and $t+1$:
 
 Finding the optimal control trajectory between two states at different time steps is therefore reduced to identifying the lowest-cost path between the corresponding nodes in the graph. This is a well-established problem in computer science and can be solved efficiently using Dijkstra’s algorithm for shortest paths.
 
-<img src="img/shortest_path.png" style="display: block; margin-left: auto; margin-right: auto; width:600px; margin-bottom: 20px">
+<img src="img/shortest_path.png" style="display: block; margin-left: auto; margin-right: auto; width:700px; margin-bottom: 20px">
 
 ## Super-graphs
 The approach presented above relies on identifying a well-chosen set of available states (nodes) and a system model that accurately defines the relationships between them (edges). For complex systems like the one developed by GridWorks, the number of nodes and edges needed to capture system behavior can be very large, making it computation computationally intensive to compute the available edges at each time step. However, GridWorks recognized that the edges calculated at each time step are actually a subset of a larger, static set of possible transitions. This insight enables the construction of a super-graph, a pre-computed graph containing all feasible nodes and edges, allowing the system to efficiently select only the relevant edges during runtime.
