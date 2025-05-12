@@ -549,7 +549,7 @@ class ApiFlowModule(ScadaActor):
             )
 
         # Process empty ticklist
-        if len(data.RelativeMillisecondList)==0:
+        if len(data.RelativeMicrosecondList)==0:
             if self.latest_gpm is None:
                 self.publish_zero_flow()
             elif self.latest_gpm > self._component.gt.AsyncCaptureThresholdGpmTimes100/100:
