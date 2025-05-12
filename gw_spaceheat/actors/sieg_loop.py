@@ -404,8 +404,11 @@ class SiegLoop(ScadaActor):
         self.lwt_slope = temp_delta / time_delta
         #self.log(f"LWT slope: {round(self.lwt_slope * 60, 2)} °F/min over {round(time_delta, 1)} seconds")
 
-    def calculate_delta_seconds(self) -> Optional[float]:
-        """Calculate delta seconds for the next control interval using a PID controller
+
+    def calculate_delta_seconds(self, seconds_hack: bool = False) -> Optional[float]:
+        """Calculate delta seconds for the next PID control interval, using
+        ratio of flow as the independent variable. If seconds_hack is true, use
+        the keep_seconds as the independant variable
         
         Returns None if blind
         """
@@ -424,7 +427,7 @@ class SiegLoop(ScadaActor):
         
         # 3. Calculate PID terms
         # Proportional term
-        p_flow_delta = self.proportional_gain * err
+        proportional_term = self.proportional_gain * err
         
         # Derivative term (rate of change of error)
         # Store time and error for derivative calculation
@@ -443,7 +446,7 @@ class SiegLoop(ScadaActor):
                 time_delta_s = current_time - last_lwt_time
                 error_delta = err - last_error
 
-        d_flow_delta = self.derivative_gain * (error_delta / time_delta_s)
+        derivative_term = self.derivative_gain * (error_delta / time_delta_s)
 
         # Integral term
         if not hasattr(self, 'error_integral'):
@@ -454,25 +457,33 @@ class SiegLoop(ScadaActor):
         self.error_integral += err * self.control_interval_seconds
         self.error_integral = max(-max_integral, min(self.error_integral, max_integral))
         
-        i_flow_delta = self.integral_gain * self.error_integral
+        integral_term = self.integral_gain * self.error_integral
 
+        self.log(f"PID adjustment:")
+        self.log(f"  Error: {round(err, 1)}°F")
         # 4. Calculate total flow adjustment
-        flow_percent_adjustment = p_flow_delta + i_flow_delta + d_flow_delta
+        if seconds_hack:
+            self.log(f"  P: {round(proportional_term, 1)} s, I: {round(integral_term, 1)} s,  D: {round(derivative_term, 1)} s")
+            delta_s = proportional_term + integral_term + derivative_term
+        else:
+            flow_percent_adjustment = proportional_term + integral_term + derivative_term
+            self.log(f"  P: {round(proportional_term, 1)}% flow, I: {round(integral_term, 1)}% flow,  D: {round(derivative_term, 1)}% flow")
+            # Consider adjusting the PID using modeling of an expected rate of
+            # change of the leaving water temperature as a function of flow percent
+            #sensitivity = self.calc_flow_sensitivity()
+            # if use_sensitivity:
+            #     self.log(f"Sensitivity {round(sensitivity, 2)}.")
+            #     flow_percent_adjustment = orig_adjustment/sensitivity
 
-        # Consider adjusting the PID using modeling of an expected rate of 
-        # change of the leaving water temperature as a function of flow percent
-        #sensitivity = self.calc_flow_sensitivity()
-        # if use_sensitivity:
-        #     self.log(f"Sensitivity {round(sensitivity, 2)}.")
-        #     flow_percent_adjustment = orig_adjustment/sensitivity
+            # else:
+            #    flow_percent_adjustment = orig_adjustment
             
-        # else:
-        #    flow_percent_adjustment = orig_adjustment
-        
-        # Convert to time_percent_keep
-        target_flow_percent = self.flow_percent_keep + flow_percent_adjustment
-        target_time_s = self.time_from_flow(target_flow_percent)
-        delta_s = target_time_s - self.keep_seconds
+            # Convert to time_percent_keep
+            target_flow_percent = self.flow_percent_keep + flow_percent_adjustment
+            target_time_s = self.time_from_flow(target_flow_percent)
+            delta_s = target_time_s - self.keep_seconds
+            self.log(f"  Flow target: {round(flow_percent_adjustment + self.flow_percent_keep,1)}%")
+            self.log(f"  Flow adjustment: {round(flow_percent_adjustment,1)}%")
 
         # 6. Bound the adjustment to the physical limits of the valve
         if delta_s > 0:
@@ -480,12 +491,6 @@ class SiegLoop(ScadaActor):
         else:
             bounded_adjustment = max(delta_s, -self.control_interval_seconds)
         
-        self.log(f"PID adjustment:")
-        self.log(f"  Error: {round(err, 1)}°F")
-
-        self.log(f"  P: {round(p_flow_delta, 1)}% flow, I: {round(i_flow_delta, 1)}% flow,  D: {round(d_flow_delta, 1)}% flow")
-        self.log(f"  Flow target: {round(flow_percent_adjustment + self.flow_percent_keep,1)}%")
-        self.log(f"  Flow adjustment: {round(flow_percent_adjustment,1)}%")
         self.log(f"  Time adjustment: {round(delta_s,1)} seconds")
         self.log(f"  Bounded time adjustment: {round(bounded_adjustment,1)} seconds")
 
@@ -528,7 +533,7 @@ class SiegLoop(ScadaActor):
 
         self.log(f"LWT {round(self.lwt_f,1)} | Target {round(self.target_lwt,1)} | Lift {round(self.lift_f,1)}")
         # Calculate target percent
-        delta_s = self.calculate_delta_seconds()
+        delta_s = self.calculate_delta_seconds(seconds_hack=True)
         if delta_s is None:
             self.trigger_control_event(ControlEvent.Blind)
             return
