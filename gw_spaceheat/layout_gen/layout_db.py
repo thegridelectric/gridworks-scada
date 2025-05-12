@@ -25,7 +25,7 @@ from gwproto.named_types.electric_meter_component_gt import ElectricMeterCompone
 from gwproto.property_format import SpaceheatName
 from gwproto.data_classes.telemetry_tuple import ChannelStub
 from data_classes.house_0_names import H0N, H0CN
-from enums import FlowManifoldVariant
+from enums import FlowManifoldVariant, HomeAloneStrategy
 
 class ChannelStubDb(ChannelStub):
     CapturedByNodeName: SpaceheatName
@@ -119,6 +119,7 @@ ChanneStubDbByName: Dict[str, ChannelStubDb] = {
 
 @dataclass
 class StubConfig:
+    home_alone_strategy: HomeAloneStrategy = HomeAloneStrategy.WinterTou
     flow_manifold_variant: FlowManifoldVariant = FlowManifoldVariant.House0
     atn_gnode_alias: str = "d1.isone.ct.newhaven.orange1"
     terminal_asset_alias: Optional[str] = None
@@ -657,6 +658,7 @@ class LayoutDb:
                     Handle="auto.h",
                     ActorClass=ActorClass.HomeAlone,
                     DisplayName="HomeAlone",
+                    Strategy=cfg.home_alone_strategy,
                 ),
                 SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.home_alone_normal),
