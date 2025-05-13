@@ -51,7 +51,7 @@ class SiegControlState(GwStrEnum):
     MovingToStartupHover = auto()  # Moving to t2 position 
     MovingToFullSend = auto() # 
     StartupHover = auto()  # Waiting at t2 position
-    Active = auto()  # Normal proportional control
+    PID = auto()  # Normal proportional control
 
     @classmethod
     def values(cls) -> List[str]:
@@ -146,7 +146,7 @@ class SiegLoop(ScadaActor):
             {"trigger": "HpPreparing", "source": "Dormant", "dest": "MovingToStartupHover"},
             {"trigger": "HpPreparing", "source": "MovingToFullSend", "dest": "MovingToStartupHover"},
             {"trigger": "ReachT2", "source": "MovingToStartupHover", "dest": "StartupHover"},
-            {"trigger": "NeedLessKeep", "source": "StartupHover", "dest": "Active"},
+            {"trigger": "NeedLessKeep", "source": "StartupHover", "dest": "PID"},
         ]
         
         self.transitions = [
@@ -413,7 +413,7 @@ class SiegLoop(ScadaActor):
         Returns None if blind
         """
 
-        if self.control_state not in [SiegControlState.StartupHover, SiegControlState.Active]:
+        if self.control_state not in [SiegControlState.StartupHover, SiegControlState.PID]:
             raise Exception(f"Should not be running control loop in state {self.control_state}")
 
         lwt_f = self.lwt_f
@@ -628,7 +628,7 @@ class SiegLoop(ScadaActor):
             self.on_enter_moving_to_keep(event)
         elif self.control_state == SiegControlState.StartupHover and orig_state != SiegControlState.StartupHover:
             self.on_enter_startup_hover(event)
-        elif self.control_state == SiegControlState.Active and orig_state != SiegControlState.Active:
+        elif self.control_state == SiegControlState.PID and orig_state != SiegControlState.PID:
             self.on_enter_active(event)
         elif self.control_state == SiegControlState.Dormant and orig_state != SiegControlState.Dormant:
             self.on_enter_dormant(event)
@@ -1170,7 +1170,7 @@ class SiegLoop(ScadaActor):
                 elif self.control_state == SiegControlState.StartupHover and self.time_to_leave_startup_hover():
                     self.trigger_control_event(ControlEvent.NeedLessKeep)
                     asyncio.create_task(self.leave_startup_hover())
-                elif self.control_state == SiegControlState.Active:
+                elif self.control_state == SiegControlState.PID:
                     if not self.moving_to_calculated_target:
                         # Run temperature control without awaiting to avoid blocking
                         asyncio.create_task(self.run_temperature_control())
