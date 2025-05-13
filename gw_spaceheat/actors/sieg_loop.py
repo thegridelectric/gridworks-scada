@@ -52,6 +52,8 @@ class SiegControlState(GwStrEnum):
     MovingToFullSend = auto() # 
     StartupHover = auto()  # Waiting at t2 position
     PID = auto()  # Normal proportional control
+    MovingToDefrostHover = auto()
+    DefrostHover = auto()
 
     @classmethod
     def values(cls) -> List[str]:
@@ -71,6 +73,7 @@ class ControlEvent(GwStrEnum):
     DefrostDetected = auto()
     LeavingDefrostDetected = auto()
     Blind = auto()
+    ReachDefrostHover = auto()
 
 
 class SiegLoop(ScadaActor):
@@ -147,6 +150,10 @@ class SiegLoop(ScadaActor):
             {"trigger": "HpPreparing", "source": "MovingToFullSend", "dest": "MovingToStartupHover"},
             {"trigger": "ReachT2", "source": "MovingToStartupHover", "dest": "StartupHover"},
             {"trigger": "NeedLessKeep", "source": "StartupHover", "dest": "PID"},
+            {"trigger": "DefrostDetected", "source": "PID", "dest": "MovingToDefrostHover"}
+            {"trigger": "ReachDefrostHover", "source": "MovingToDefrostHover", "DefrostHover" }
+            {"trigger": "LeavingDefrostDetected", "source": "DefrostHover", "dest": "PID"}
+             
         ]
         
         self.transitions = [
@@ -522,7 +529,7 @@ class SiegLoop(ScadaActor):
     
     async def run_temperature_control(self) -> None:
         """Check current temperatures and adjust valve position if needed. Only
-        used when control state is Active"""
+        used when control state is PID"""
 
         #TODO think through safety to make sure it doesn't stay in 100% keep
         # if temps go away
@@ -582,7 +589,7 @@ class SiegLoop(ScadaActor):
         """Called when entering the Dormant state"""
         self.log("Heat pump off, entering dormant state")
 
-    def on_enter_active(self, event):
+    def on_enter_pid(self, event):
         ... # Nothing to do hear yet
 
     def on_enter_moving_to_full_send(self, event):
@@ -629,7 +636,7 @@ class SiegLoop(ScadaActor):
         elif self.control_state == SiegControlState.StartupHover and orig_state != SiegControlState.StartupHover:
             self.on_enter_startup_hover(event)
         elif self.control_state == SiegControlState.PID and orig_state != SiegControlState.PID:
-            self.on_enter_active(event)
+            self.on_enter_pid(event)
         elif self.control_state == SiegControlState.Dormant and orig_state != SiegControlState.Dormant:
             self.on_enter_dormant(event)
         elif self.control_state == SiegControlState.MovingToFullSend and orig_state != SiegControlState.MovingToFullSend:
