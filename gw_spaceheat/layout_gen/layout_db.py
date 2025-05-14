@@ -116,11 +116,11 @@ ChanneStubDbByName: Dict[str, ChannelStubDb] = {
 }
 
 
-
 @dataclass
 class StubConfig:
     home_alone_strategy: HomeAloneStrategy = HomeAloneStrategy.WinterTou
     flow_manifold_variant: FlowManifoldVariant = FlowManifoldVariant.House0
+    use_sieg_loop: bool = False
     atn_gnode_alias: str = "d1.isone.ct.newhaven.orange1"
     terminal_asset_alias: Optional[str] = None
     zone_list: typing.Sequence[str] = field(default_factory=tuple)
@@ -601,7 +601,8 @@ class LayoutDb:
         else:
             self.misc["TotalStoreTanks"] =  self.loaded.total_store_tanks
         self.misc["Strategy"] = "House0"
-        self.misc["FlowManifoldVariant"]  = cfg.flow_manifold_variant
+        self.misc["FlowManifoldVariant"] = cfg.flow_manifold_variant
+        self.misc["UseSiegLoop"] = cfg.use_sieg_loop
         self.add_nodes(
             [
                 SpaceheatNodeGt(
@@ -684,7 +685,7 @@ class LayoutDb:
                 
             ]
         )
-        if cfg.flow_manifold_variant == FlowManifoldVariant.House0Sieg:
+        if cfg.use_sieg_loop:
             self.add_nodes(
                 [SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.hp_boss),
@@ -705,19 +706,19 @@ class LayoutDb:
                 ]
             )
 
-        self.add_synth_channels(
-            [SynthChannelGt(
-            Id = self.make_synth_channel_id(H0CN.hp_keep_seconds_x_10),
-            Name = H0CN.hp_keep_seconds_x_10,
-            CreatedByNodeName = H0N.sieg_loop,
-            TelemetryName = TelemetryName.Unknown,
-            TerminalAssetAlias = self.terminal_asset_alias,
-            Strategy = "Integrate relay motion",
-            DisplayName = "Percent keep in the Siegenthaler loop",
-            SyncReportMinutes = 1
+            self.add_synth_channels(
+                [SynthChannelGt(
+                Id = self.make_synth_channel_id(H0CN.hp_keep_seconds_x_10),
+                Name = H0CN.hp_keep_seconds_x_10,
+                CreatedByNodeName = H0N.sieg_loop,
+                TelemetryName = TelemetryName.Unknown,
+                TerminalAssetAlias = self.terminal_asset_alias,
+                Strategy = "Integrate relay motion",
+                DisplayName = "Percent keep in the Siegenthaler loop",
+                SyncReportMinutes = 1
+                )
+            ]
             )
-        ]
-        )
 
     def add_stubs(self, cfg: Optional[StubConfig] = None):
         if cfg is None:

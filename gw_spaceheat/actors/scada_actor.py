@@ -77,10 +77,14 @@ class ScadaActor(Actor):
 
     @property
     def hp_boss(self) -> ShNode:
+        if not self.layout.use_sieg_loop:
+            raise Exception(f"Should not be calling for hp_boss if not using sieg loop") 
         return self.layout.node(H0N.hp_boss)
 
     @property
     def sieg_loop(self) -> ShNode:
+        if not self.layout.use_sieg_loop:
+            raise Exception(f"Should not be calling for sieg_loop if not using sieg loop") 
         return self.layout.node(H0N.sieg_loop)
 
     @property
@@ -422,21 +426,8 @@ class ScadaActor(Actor):
         """
         if from_node is None:
             from_node = self.node
-        if self.layout.flow_manifold_variant == FlowManifoldVariant.House0:
-            try:
-                event = FsmEvent(
-                    FromHandle=from_node.handle,
-                    ToHandle=self.hp_scada_ops_relay.handle,
-                    EventType=ChangeRelayState.enum_name(),
-                    EventName=ChangeRelayState.CloseRelay,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=str(uuid.uuid4()),
-                )
-                self._send_to(self.hp_scada_ops_relay, event, from_node)
-                self.log(f"{from_node.handle} sending CloseRelay to HpScadaOpsRelay {self.hp_scada_ops_relay.handle}")
-            except ValidationError as e:
-                self.log(f"Tried to tell HpScadaOpsRelay to turn on HP but didn't have rights: {e}")
-        elif self.layout.flow_manifold_variant == FlowManifoldVariant.House0Sieg:
+    
+        if self.layout.use_sieg_loop:
             try:
                 event = FsmEvent(
                     FromHandle=from_node.handle,
@@ -450,8 +441,22 @@ class ScadaActor(Actor):
                 self.log(f"{from_node.handle} sending TurnOn to HpBoss {self.hp_boss.handle}")
             except ValidationError as e:
                 self.log(f"Tried to tell HpBoss to turn on HP but didn't have rights: {e}")
+
         else:
-            raise Exception(f"Unknown FlowManifoldVariant {self.layout.flow_manifold_variant}")
+            try:
+                event = FsmEvent(
+                    FromHandle=from_node.handle,
+                    ToHandle=self.hp_scada_ops_relay.handle,
+                    EventType=ChangeRelayState.enum_name(),
+                    EventName=ChangeRelayState.CloseRelay,
+                    SendTimeUnixMs=int(time.time() * 1000),
+                    TriggerId=str(uuid.uuid4()),
+                )
+                self._send_to(self.hp_scada_ops_relay, event, from_node)
+                self.log(f"{from_node.handle} sending CloseRelay to HpScadaOpsRelay {self.hp_scada_ops_relay.handle}")
+            except ValidationError as e:
+                self.log(f"Tried to tell HpScadaOpsRelay to turn on HP but didn't have rights: {e}")
+        
 
     def turn_off_HP(self, from_node: Optional[ShNode] = None) -> None:
         """  Turn off heat pump by sending trigger to HpRelayBoss
@@ -462,7 +467,21 @@ class ScadaActor(Actor):
         if from_node is None:
             from_node = self.node
 
-        if self.layout.flow_manifold_variant == FlowManifoldVariant.House0:
+        if self.layout.use_sieg_loop:
+            try:
+                event = FsmEvent(
+                    FromHandle=from_node.handle,
+                    ToHandle=self.hp_boss.handle,
+                    EventType=TurnHpOnOff.enum_name(),
+                    EventName=TurnHpOnOff.TurnOff,
+                    SendTimeUnixMs=int(time.time() * 1000),
+                    TriggerId=str(uuid.uuid4()),
+                )
+                self._send_to(self.hp_boss, event, from_node)
+                self.log(f"{from_node.handle} sending TurnOff to HpBoss {self.hp_boss.handle}")
+            except ValidationError as e:
+                self.log(f"Tried to tell HpBoss to turn off HP but didn't have rights: {e}")
+        else:
             try:
                 event = FsmEvent(
                     FromHandle=from_node.handle,
@@ -478,23 +497,7 @@ class ScadaActor(Actor):
                 )
             except ValidationError as e:
                 self.log(f"Tried to tell HpScadaOpsRelay to turn off HP but didn't have rights: {e}")
-        elif self.layout.flow_manifold_variant == FlowManifoldVariant.House0Sieg:
-            try:
-                event = FsmEvent(
-                    FromHandle=from_node.handle,
-                    ToHandle=self.hp_boss.handle,
-                    EventType=TurnHpOnOff.enum_name(),
-                    EventName=TurnHpOnOff.TurnOff,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=str(uuid.uuid4()),
-                )
-                self._send_to(self.hp_boss, event, from_node)
-                self.log(f"{from_node.handle} sending TurnOff to HpBoss {self.hp_boss.handle}")
-            except ValidationError as e:
-                self.log(f"Tried to tell HpBoss to turn off HP but didn't have rights: {e}")
-        else:
-            raise Exception(f"Unknown FlowManifoldVariant {self.layout.flow_manifold_variant}")
-
+            
     def close_thermistor_common_relay(self, from_node: Optional[ShNode] = None) -> None:
         """
         Close thermistor common relay (de-energizing relay 2).
@@ -957,6 +960,8 @@ class ScadaActor(Actor):
                 └─ relay15 (hp_loop_keep_send)
         ```
         """
+        if not self.layout.use_sieg_loop:
+            raise Exception(f"don't call this unless layout uses sieg loop")
         self.log(f"Setting fsm handles under {boss_node.name}")
         hp_boss = self.layout.node(H0N.hp_boss)
         hp_boss.Handle = f"{boss_node.handle}.{hp_boss.Name}"
@@ -993,17 +998,14 @@ class ScadaActor(Actor):
         if not boss_node.handle.startswith(my_handle_prefix) and boss_node != self.node:
             raise Exception(f"{self.node.handle} cannot set command tree for boss_node {boss_node.handle}!")
 
-        if self.layout.flow_manifold_variant == FlowManifoldVariant.House0:
-            # all actuators report to boss
-            for node in self.my_actuators():
-                node.Handle =  f"{boss_node.handle}.{node.Name}"
-        elif self.layout.flow_manifold_variant == FlowManifoldVariant.House0Sieg:
+        if self.layout.use_sieg_loop:
             self.set_hierarchical_fsm_handles(boss_node)
             for node in self.my_actuators():
                 if node.Name not in [H0N.hp_scada_ops_relay, H0N.hp_loop_keep_send, H0N.hp_loop_on_off]:
                     node.Handle =  f"{boss_node.handle}.{node.Name}"
         else:
-            raise Exception(f"Unkonwn FlowManifoldVariant {self.layout.flow_manifold_variant}")
+            for node in self.my_actuators():
+                node.Handle =  f"{boss_node.handle}.{node.Name}"
 
         self._send_to(
             self.atn,
@@ -1128,6 +1130,16 @@ class ScadaActor(Actor):
             return None
         return max(0, lwt_f - ewt_f)
 
+    def hottest_store_temp_f(self) -> Optional[float]:
+        """Returns tank1 depth 1 in deg F if it exists, else None
+        TODO: replace with something that doesn't have a string in it
+        """
+        
+        t = self.scada_services.data.latest_channel_values.get("tank1-depth1")
+        if t is None:
+            return None
+        return self.to_fahrenheit(t / 1000)
+
     def coldest_store_temp_f(self) -> Optional[float]:
         """Returns tank3 depth 4 in deg F if it exists, else None
         TODO: replace with something that doesn't have a string in it
@@ -1138,6 +1150,16 @@ class ScadaActor(Actor):
             return None
         return self.to_fahrenheit(t / 1000)
 
+    def hottest_buffer_temp_f(self) -> Optional[float]:
+        """Returns buffer depth 1 in deg F if it exists, else None
+        TODO: replace with something that doesn't have a string in it
+        """
+        
+        t = self.scada_services.data.latest_channel_values.get("buffer-depth1")
+        if t is None:
+            return None
+        return self.to_fahrenheit(t / 1000)
+    
     def coldest_buffer_temp_f(self) -> Optional[float]:
         """Returns buffer depth 4 in deg F if it exists, else None
         TODO: replace with something that doesn't have a string in it

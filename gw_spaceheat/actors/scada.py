@@ -285,12 +285,14 @@ class Scada(ScadaInterface, Proactor):
             )
         )
         self.initialize_hierarchical_state_data()
-        self.state_machine_subscriptions: List[StateMachineSubscription] = [ 
-             StateMachineSubscription(
+        
+        self.state_machine_subscriptions: List[StateMachineSubscription] = []
+        if self.layout.use_sieg_loop:
+            self.state_machine_subscriptions.append(StateMachineSubscription(
                 subscriber_name=self.sieg_loop.name,
                 publisher_name=self.hp_boss.name
-            )
-        ]
+            ))
+        
 
         self.channel_subscriptions: Dict[str, ChannelSubscription] = {}
 
@@ -305,11 +307,9 @@ class Scada(ScadaInterface, Proactor):
         }
 
         # Define which actors depend on actuator readiness
-        self.actuator_dependents = {
-            self.home_alone,
-            self.sieg_loop,
-            self.hp_boss,
-        }
+        self.actuator_dependents = {self.home_alone}
+        if self.layout.use_sieg_loop:
+            self.actuator_dependents |= {self.sieg_loop,self.hp_boss}
 
     def _start_derived_tasks(self):
         self._tasks.append(
@@ -1192,16 +1192,9 @@ class Scada(ScadaInterface, Proactor):
         If FlowManifoldVariant is House0, all actuators other than relay1 report 
         directly to boss.
 
-        If boss is admin, then all relays report directly to admin
         """
 
-        if self.layout.flow_manifold_variant == FlowManifoldVariant.House0:
-            for node in self.layout.actuators:
-                if node.Name == H0N.vdc_relay and boss != self.admin:
-                    node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
-                else:
-                    node.Handle = (f"{boss.handle}.{node.Name}")
-        elif self.layout.flow_manifold_variant == FlowManifoldVariant.House0Sieg:
+        if self.layout.use_sieg_loop:
             hp_boss = self.layout.node(H0N.hp_boss)
             hp_boss.Handle = f"{boss.handle}.{hp_boss.Name}"
             
@@ -1218,7 +1211,12 @@ class Scada(ScadaInterface, Proactor):
                 else:
                     node.Handle = (f"{boss.handle}.{node.Name}")
         else:
-            raise Exception(f"Unknown FlowManifoldVariant {self.layout.flow_manifold_variant}")
+            # For no sieg loop, everybody but the vdc relay reports directly to boss
+            for node in self.layout.actuators:
+                if node.Name == H0N.vdc_relay and boss != self.admin:
+                    node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
+                else:
+                    node.Handle = (f"{boss.handle}.{node.Name}")
 
         self._send_to(
             self.atn,
@@ -1624,10 +1622,14 @@ class Scada(ScadaInterface, Proactor):
 
     @property
     def hp_boss(self) -> ShNode:
+        if not self.layout.use_sieg_loop:
+            raise Exception(f"Should not call for hp_boss unless layout uses sieg loop!")
         return self.layout.node(H0N.hp_boss)
 
     @property
     def sieg_loop(self) -> ShNode:
+        if not self.layout.use_sieg_loop:
+            raise Exception(f"Should not call for sieg_loop unless layout uses sieg loop!")
         return self.layout.node(H0N.sieg_loop)
 
     @property
