@@ -49,7 +49,7 @@ gridworks-cert==0.4.3
     # via gridworks-proactor
 gridworks-proactor[tests]==1.1.9
     # via -r gw_spaceheat/requirements/test.in
-gridworks-protocol==1.2.3
+gridworks-protocol==1.2.4
     # via gridworks-proactor
 h11==0.14.0
     # via httpcore

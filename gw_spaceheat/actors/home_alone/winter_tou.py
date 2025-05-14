@@ -249,8 +249,8 @@ class WinterTouHomeAlone(HomeAloneTouBase):
                     if self.is_storage_ready():
                         self.trigger_normal_event(HaWinterEvent.OffPeakBufferFullStorageReady)
                     else:
-                        usable = self.data.latest_channel_values[H0N.usable_energy] / 1000
-                        required = self.data.latest_channel_values[H0N.required_energy] / 1000
+                        usable = self.data.latest_channel_values[H0CN.usable_energy] / 1000
+                        required = self.data.latest_channel_values[H0CN.required_energy] / 1000
                         if usable < required:
                             self.trigger_normal_event(HaWinterEvent.OffPeakBufferFullStorageNotReady)
                         else:
@@ -272,8 +272,8 @@ class WinterTouHomeAlone(HomeAloneTouBase):
                     if self.is_buffer_empty():
                         self.trigger_normal_event(HaWinterEvent.OffPeakBufferEmpty)
                     elif not self.is_storage_ready():
-                        usable = self.data.latest_channel_values[H0N.usable_energy] / 1000
-                        required = self.data.latest_channel_values[H0N.required_energy] / 1000
+                        usable = self.data.latest_channel_values[H0CN.usable_energy] / 1000
+                        required = self.data.latest_channel_values[H0CN.required_energy] / 1000
                         if self.storage_declared_ready:
                             if self.full_storage_energy is None:
                                 if usable > 0.9*required:
@@ -387,8 +387,8 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             return False
 
     def is_storage_ready(self) -> bool:
-        total_usable_kwh = self.data.latest_channel_values[H0N.usable_energy] / 1000
-        required_storage = self.data.latest_channel_values[H0N.required_energy] / 1000
+        total_usable_kwh = self.data.latest_channel_values[H0CN.usable_energy] / 1000
+        required_storage = self.data.latest_channel_values[H0CN.required_energy] / 1000
 
         if total_usable_kwh >= required_storage:
             self.log(f"Storage ready (usable {round(total_usable_kwh,1)} kWh >= required {round(required_storage,1)} kWh)")
@@ -408,7 +408,7 @@ class WinterTouHomeAlone(HomeAloneTouBase):
         
     def is_storage_empty(self):
         if not self.is_simulated:
-            total_usable_kwh = self.data.latest_channel_values[H0N.usable_energy] / 1000
+            total_usable_kwh = self.data.latest_channel_values[H0CN.usable_energy] / 1000
         else:
             total_usable_kwh = 0
         if total_usable_kwh < 0.2:

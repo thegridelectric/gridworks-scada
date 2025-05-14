@@ -37,8 +37,8 @@ from gwproto.named_types import AnalogDispatch, SendSnap, MachineStates
 from actors.atn_contract_handler import AtnContractHandler
 from enums import ContractStatus, LogLevel
 from named_types import (AtnBid, FloParamsHouse0, Glitch, Ha1Params, LatestPrice, LayoutLite, 
-                         NoNewContractWarning, PriceQuantityUnitless, 
-                         ScadaParams, SendLayout,
+                         NoNewContractWarning, ResetHpKeepValue,
+                         ScadaParams, SendLayout, SetLwtControlParams, SiegLoopEndpointValveAdjustment,
                          SlowContractHeartbeat,  SnapshotSpaceheat)
 
 from paho.mqtt.client import MQTTMessageInfo
@@ -1485,6 +1485,88 @@ class Atn(ActorInterface, Proactor):
             except Exception as e:
                 self.logger.error(f"Failed to set LoadOverestimationPercent! {e}")
 
+    def set_keep_seconds(self, val: int = 0) -> None:
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.scada.name,
+                Payload=AnalogDispatch(
+                    FromGNodeAlias=self.layout.atn_g_node_alias,
+                    FromHandle=f"{H0N.atn}",
+                    ToHandle=f"{H0N.atn}.{H0N.atomic_ally}",
+                    AboutName=H0N.sieg_loop,
+                    Value=val,
+                    TriggerId=str(uuid.uuid4()),
+                    UnixTimeMs=int(time.time() * 1000),
+                ),
+            )
+        )
+
+    def reset_keep_seconds(self, new_seconds: float) -> None:
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.scada.name,
+                Payload=ResetHpKeepValue(
+                    FromHandle=f"{H0N.atn}",
+                    ToHandle=f"{H0N.atn}.{H0N.atomic_ally}",
+                    HpKeepSecondsTimes10=round(new_seconds * 10),
+                ),
+            )
+        )
+
+    def send_harder(self, seconds: int) -> None:
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.scada.name,
+                Payload=SiegLoopEndpointValveAdjustment(
+                    FromHandle=f"{H0N.atn}",
+                    ToHandle=f"{H0N.atn}.{H0N.atomic_ally}",
+                    HpKeepPercent=0,
+                    Seconds=seconds,
+                ),
+            )
+        )
+
+    def set_lwt_control_params(self,
+        proportional_gain: float = 5.0,
+        integral_gain: float = 2,
+        derivative_gain: float = 1,
+        control_interval_seconds: int = 5,
+        t1: int = 15,
+        t2: int = 65
+    ) -> None:
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.scada.name,
+                Payload=SetLwtControlParams(
+                    FromHandle=H0N.atn,
+                    ToHandle=f"{H0N.atn}.{H0N.atomic_ally}",
+                    ProportionalGain=proportional_gain,
+                    IntegralGain=integral_gain,
+                    DerivativeGain=derivative_gain,
+                    ControlIntervalSeconds=control_interval_seconds,
+                    T1=t1,
+                    T2=t2,
+                ),
+            )
+        )
+
+    def keep_harder(self, seconds: int) -> None:
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.scada.name,
+                Payload=SiegLoopEndpointValveAdjustment(
+                    FromHandle=f"{H0N.atn}",
+                    ToHandle=f"{H0N.atn}.{H0N.atomic_ally}",
+                    HpKeepPercent=100,
+                    Seconds=seconds,
+                ),
+            )
+        )
 
     def set_dist_010(self, val: int = 30) -> None:
         self.send_threadsafe(

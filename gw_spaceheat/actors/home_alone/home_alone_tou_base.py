@@ -244,8 +244,8 @@ class HomeAloneTouBase(ScadaActor):
         return True
 
     def temperatures_available(self) -> bool:
-        total_usable_kwh = self.data.latest_channel_values[H0N.usable_energy]
-        required_storage = self.data.latest_channel_values[H0N.required_energy]
+        total_usable_kwh = self.data.latest_channel_values[H0CN.usable_energy]
+        required_storage = self.data.latest_channel_values[H0CN.required_energy]
         if total_usable_kwh is None or required_storage is None:
             return False
 
@@ -554,8 +554,8 @@ class HomeAloneTouBase(ScadaActor):
         
     def is_storage_empty(self):
         if not self.is_simulated:
-            if H0N.usable_energy in self.data.latest_channel_values.keys():
-                total_usable_kwh = self.data.latest_channel_values[H0N.usable_energy] / 1000
+            if H0CN.usable_energy in self.data.latest_channel_values.keys():
+                total_usable_kwh = self.data.latest_channel_values[H0CN.usable_energy] / 1000
             else:
                 total_usable_kwh = 0
         else:
