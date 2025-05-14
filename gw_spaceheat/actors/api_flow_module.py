@@ -518,7 +518,8 @@ class ApiFlowModule(ScadaActor):
             # Slow turner: empty ticklist does not necessarily mean no flow
             elif self.slow_turner:
                 if not self.latest_tick_ns:
-                    self.log("NO LATEST TICK NS")
+                    ... # TODO: come up with a fix that publishes 0 when restarting SCADA and no flow
+                    # self.log("NO LATEST TICK NS")
                 elif time.time()*1e9 - self.latest_tick_ns > self._component.gt.NoFlowMs*1000:
                     self.publish_zero_flow()
             elif self.latest_gpm > self._component.gt.AsyncCaptureThresholdGpmTimes100/100:
