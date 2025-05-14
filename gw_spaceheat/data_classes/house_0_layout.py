@@ -70,6 +70,9 @@ class House0Layout(HardwareLayout):
             raise ValueError("Must have between 1 and 6 store zones")
         self.h0n = H0N(self.total_store_tanks, self.zone_list)
         
+        #TODO: verify that if FlowManifoldVariant is House0Sieg, that
+        # the layout has the siegenthaler relays and the sieg-flow
+        # flow meter
 
     @property
     def ha_strategy(self) -> str:

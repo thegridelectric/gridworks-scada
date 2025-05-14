@@ -8,6 +8,7 @@ from enum import auto
 from data_classes.house_0_names import H0CN
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
+from gwproto.enums import TelemetryName
 from gwproto.message import Message
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.named_types import FsmFullReport, SingleReading, AnalogDispatch
@@ -52,8 +53,7 @@ class SiegControlState(GwStrEnum):
     MovingToFullSend = auto() # 
     StartupHover = auto()  # Waiting at t2 position
     PID = auto()  # Normal proportional control
-    MovingToDefrostHover = auto()
-    DefrostHover = auto()
+    Defrost = auto() # Going through defrost
 
     @classmethod
     def values(cls) -> List[str]:
@@ -64,16 +64,15 @@ class SiegControlState(GwStrEnum):
         return "sieg.control.state"
 
 class ControlEvent(GwStrEnum):
+    Blind = auto()
+    DefrostDetected = auto()
     InitializationComplete = auto()
     HpTurnsOff = auto()
     HpPreparing = auto()
+    LeavingDefrostDetected = auto()
+    LeaveStartupHover = auto()
     ReachT2 = auto()
     ReachFullSend = auto()
-    NeedLessKeep = auto()
-    DefrostDetected = auto()
-    LeavingDefrostDetected = auto()
-    Blind = auto()
-    ReachDefrostHover = auto()
 
 
 class SiegLoop(ScadaActor):
@@ -133,11 +132,13 @@ class SiegLoop(ScadaActor):
     def __init__(self, name: str, services: ScadaInterface):
         super().__init__(name, services)
         self.keep_seconds: float = self.FULL_RANGE_S
+        self.target_seconds_for_leaving_defrost: Optional[float] = None # 
         self._stop_requested = False
         self.resetting = False
         self._movement_task = None # Track the current movement task
         self.move_start_s: float = 0
-         
+        self.idu_w_readings = deque(maxlen=15)
+        self.odu_w_readings = deque(maxlen=15)
         self.hp_model = self.settings.hp_model
         self.latest_move_duration_s: float = 0
         # Define transitions with callback
@@ -149,10 +150,9 @@ class SiegLoop(ScadaActor):
             {"trigger": "HpPreparing", "source": "Dormant", "dest": "MovingToStartupHover"},
             {"trigger": "HpPreparing", "source": "MovingToFullSend", "dest": "MovingToStartupHover"},
             {"trigger": "ReachT2", "source": "MovingToStartupHover", "dest": "StartupHover"},
-            {"trigger": "NeedLessKeep", "source": "StartupHover", "dest": "PID"},
-            {"trigger": "DefrostDetected", "source": "PID", "dest": "MovingToDefrostHover"}
-            {"trigger": "ReachDefrostHover", "source": "MovingToDefrostHover", "DefrostHover" }
-            {"trigger": "LeavingDefrostDetected", "source": "DefrostHover", "dest": "PID"}
+            {"trigger": "LeaveStartupHover", "source": "StartupHover", "dest": "PID"},
+            {"trigger": "DefrostDetected", "source": "PID", "dest": "Defrost"}
+            {"trigger": "LeavingDefrostDetected", "source": "Defrost", "dest": "PID"}
              
         ]
         
@@ -240,7 +240,6 @@ class SiegLoop(ScadaActor):
         is about how long it will take for the temperature to be at target given the current
         rate of change of lwt"""
 
-
         # TODO: if ISO valve is open use buffer depth 3
         sieg_cold_f=self.coldest_store_temp_f
         if sieg_cold_f is None or self.lift_f is None:
@@ -327,7 +326,6 @@ class SiegLoop(ScadaActor):
             self.log(f"Target LWT {self.target_lwt}°F is lower than Sieg cold temp {sieg_cold_f}°F")
             return 0 
 
-        
         k = 1 - (lift_f / temp_diff)
         eq_flow_percent = max(0, min(k, 1)) * 100
         # if sieg_cold_f != self.sieg_cold_temp_f:
@@ -410,7 +408,6 @@ class SiegLoop(ScadaActor):
         
         self.lwt_slope = temp_delta / time_delta
         #self.log(f"LWT slope: {round(self.lwt_slope * 60, 2)} °F/min over {round(time_delta, 1)} seconds")
-
 
     def calculate_delta_seconds(self, seconds_hack: bool = False) -> Optional[float]:
         """Calculate delta seconds for the next PID control interval, using
@@ -524,7 +521,20 @@ class SiegLoop(ScadaActor):
         await self._prepare_new_movement_task(delta_s)
         # and now wait another 25 seconds to settle down trigger_control_event(ControlEvent.ReachFullSend)
         self.log(f"Waiting 1 minute to see how this level works")
-        await asyncio.sleep(60)
+        await asyncio.sleep(delta_s + 60)
+        self.moving_to_calculated_target = False
+
+    async def leave_defrost(self) -> None:
+        """ Go back to the target seconds set when we entered defrost"""
+        self.moving_to_calculated_target = True
+        if self.target_seconds_for_leaving_defrost is None:
+            delta_s = self.keep_seconds
+        else:
+            delta_s = self.target_seconds_for_leaving_defrost - self.keep_seconds
+            self.log(f"Moving back to {round(self.target_seconds_for_leaving_defrost,1)} seconds")
+        asyncio.create_task(self._prepare_new_movement_task(delta_s))
+        # wait another minute before going back into PID adjustments
+        await asyncio.sleep(delta_s + 60)
         self.moving_to_calculated_target = False
     
     async def run_temperature_control(self) -> None:
@@ -589,13 +599,31 @@ class SiegLoop(ScadaActor):
         """Called when entering the Dormant state"""
         self.log("Heat pump off, entering dormant state")
 
-    def on_enter_pid(self, event):
-        ... # Nothing to do hear yet
-
     def on_enter_moving_to_full_send(self, event):
         self.log(f"Moving to full send")
         asyncio.create_task(self._prepare_new_movement_task(-self.keep_seconds - 10))
+
+    def on_enter_defrost(self, event) -> None:
+        """ Set the target seconds for leaving defrost and then move to full keep.
         
+        Since keep_seconds is an inaccurate integration that gets off as we do
+        the PID, use the percent flow as measured from the Siegenthaler and primary
+        flow meter. 
+        
+        """
+        flow_percent = self.get_current_flow_percent()
+        if flow_percent is None:
+            self.target_seconds_for_leaving_defrost = self.keep_seconds
+        else:
+            self.target_seconds_for_leaving_defrost = self.time_from_flow(flow_percent)
+
+        self.log(f"Setting target seconds for leaving defrost to {round(self.target_seconds_for_leaving_defrost,1)}")
+        nominal_delta_s = self.FULL_RANGE_S - self.target_seconds_for_leaving_defrost
+
+        # Go 15 seconds more for good measure
+        asyncio.create_task(self._prepare_new_movement_task(nominal_delta_s + 15))
+
+
     def trigger_control_event(self, event: ControlEvent) -> None:
         now_ms = int(time.time() * 1000)
         orig_state = self.control_state
@@ -606,18 +634,22 @@ class SiegLoop(ScadaActor):
         # Trigger the state machine transition
         if event == ControlEvent.Blind:
             self.Blind()
+        elif event == ControlEvent.DefrostDetected:
+            self.DefrostDetected()
+        elif event == ControlEvent.InitializationComplete:
+            self.InitializationComplete()
         elif event == ControlEvent.HpTurnsOff:
             self.HpTurnsOff()
         elif event == ControlEvent.HpPreparing:
             self.HpPreparing()
+        elif event == ControlEvent.LeavingDefrostDetected:
+            self.LeavingDefrostDetected()
+        elif event == ControlEvent.LeaveStartupHover:
+            self.LeaveStartupHover()
         elif event == ControlEvent.ReachT2:
             self.ReachT2()
         elif event == ControlEvent.ReachFullSend:
             self.ReachFullSend()
-        elif event == ControlEvent.NeedLessKeep:
-            self.NeedLessKeep()
-        elif event == ControlEvent.InitializationComplete:
-            self.InitializationComplete()
         else:
             raise Exception(f"Unknown control event {event}")
 
@@ -635,12 +667,17 @@ class SiegLoop(ScadaActor):
             self.on_enter_moving_to_keep(event)
         elif self.control_state == SiegControlState.StartupHover and orig_state != SiegControlState.StartupHover:
             self.on_enter_startup_hover(event)
-        elif self.control_state == SiegControlState.PID and orig_state != SiegControlState.PID:
-            self.on_enter_pid(event)
+        elif self.control_state == SiegControlState.PID and orig_state == SiegControlState.StartupHover:
+            asyncio.create_task(self.leave_startup_hover())
+        elif self.control_state == SiegControlState.PID and orig_state == SiegControlState.Defrost:
+            asyncio.create_task(self.leave_defrost())
         elif self.control_state == SiegControlState.Dormant and orig_state != SiegControlState.Dormant:
             self.on_enter_dormant(event)
         elif self.control_state == SiegControlState.MovingToFullSend and orig_state != SiegControlState.MovingToFullSend:
             self.on_enter_moving_to_full_send(event)
+        elif self.control_state == SiegControlState.Defrost:
+            self.on_enter_defrost(event)
+
 
         self._send_to(
             self.primary_scada,
@@ -896,6 +933,7 @@ class SiegLoop(ScadaActor):
             self.trigger_valve_event(ValveEvent.StopKeepingLess)
         self.log(f"Movement {task_id} completed: {round(self.keep_seconds, 1)} seconds, state {self.valve_state}")
 
+
     async def _monitor_startup_hover(self) -> None:
         """Monitor LWT and other conditions to determine when to leave startup hover state"""
         try:
@@ -906,7 +944,7 @@ class SiegLoop(ScadaActor):
                 # Check if it's time to leave startup hover
                 if self.time_to_leave_startup_hover():
                     self.log("Leaving startup hover based on LWT rate of change")
-                    self.trigger_control_event(ControlEvent.NeedLessKeep)
+                    self.trigger_control_event(ControlEvent.LeaveStartupHover)
                     asyncio.create_task(self.leave_startup_hover())
                     break
                 
@@ -1156,27 +1194,30 @@ class SiegLoop(ScadaActor):
         return [MonitoredName(self.name, 400)]
     
     async def main(self):
-        # This loop happens either every flatline_seconds or every second
+        # This loop happens either every every second
         while not self._stop_requested:
             now = datetime.now()
-            # Determine if we're at the top of a 5-second interval
+
+            self.update_power_readings()
+            if self.control_state == SiegControlState.PID:
+                self.check_for_defrost()
+            elif self.control_state == SiegControlState.Defrost:
+                self.check_for_leaving_defrost()
+            elif self.control_state == SiegControlState.StartupHover: 
+                if self.time_to_leave_startup_hover():
+                    self.trigger_control_event(ControlEvent.LeaveStartupHover)
             seconds_into_control_loop = now.second % self.control_interval_seconds
             milliseconds = now.microsecond / 1000
-
             if seconds_into_control_loop == 0 and milliseconds < 100:
                 # We're at the top of a control interval (within 100ms)
                 self.log(f"Moving to calculated target: {self.moving_to_calculated_target}")
                 
                 # Update derivative calculations
                 self.update_derivative_calcs()
-                
                 if self.is_blind():
                     # Blind: * -> MovingToFullSend
                     self.trigger_control_event(ControlEvent.Blind)
 
-                elif self.control_state == SiegControlState.StartupHover and self.time_to_leave_startup_hover():
-                    self.trigger_control_event(ControlEvent.NeedLessKeep)
-                    asyncio.create_task(self.leave_startup_hover())
                 elif self.control_state == SiegControlState.PID:
                     if not self.moving_to_calculated_target:
                         # Run temperature control without awaiting to avoid blocking
@@ -1234,6 +1275,20 @@ class SiegLoop(ScadaActor):
         return self.to_fahrenheit(t / 1000)
 
     @property
+    def sieg_flow_gpm(self) -> Optional[float]:
+        sieg_x_100 = self.scada_services.data.latest_channel_values.get(H0CN.sieg_flow)
+        if sieg_x_100 is None:
+            return None
+        return sieg_x_100 / 100
+
+    @property
+    def primary_flow_gpm(self) -> Optional[float]:
+        primary_x_100 = self.scada_services.data.latest_channel_values.get(H0CN.primary_flow)
+        if primary_x_100 is None:
+            return None
+        return primary_x_100 / 100
+
+    @property
     def sieg_cold_temp_f(self) -> Optional[float]:
         """Water temp entering the Siegenthaler loop. Hack for now: returns store cold pipe,
         will only work correctly when the ISO valve is closed"""
@@ -1265,6 +1320,19 @@ class SiegLoop(ScadaActor):
         if self.lift_f is None:
             return True
         return False
+
+    ####################
+    # Flow related
+    ####################
+
+    def get_current_flow_percent(self) -> Optional[float]:
+        sieg = self.sieg_flow_gpm
+        primary = self.primary_flow_gpm
+        if sieg is None or primary is None:
+            return None
+        if primary == 0:
+            return None
+        return 100 * sieg / primary
 
     def flow_from_time(self, time_s: float) -> float:
         """Convert valve position in seconds (time_s,  seconds from valve 
@@ -1302,7 +1370,9 @@ class SiegLoop(ScadaActor):
 
         x = flow_percent_keep
         if not (0<=x and x<=100):
-            raise Exception(f"time_from_flow requires 0<=x<=100! Not {x}")
+            old_x = x
+            x = max(0, min(x, 100))
+            self.log(f"changing flow percent keep from {old_x} to {x}")
         # Find the segment x lies within
         for i in range(1, len(points)):
             x0, y0 = points[i - 1]
@@ -1317,3 +1387,112 @@ class SiegLoop(ScadaActor):
     def flow_percent_keep(self) -> float:
         """Calculate the current flow percentage through the keep path based on valve position"""
         return self.flow_from_time(self.keep_seconds)
+
+    ######################
+    # Defrost related
+    ######################
+
+    def check_for_leaving_defrost(self) -> None:
+        """ Determine when to go back to PID as defrost is finishing"""
+        try: 
+            good_readings = self.update_power_readings()
+        except Exception as e:
+            self.log(f"Trouble with update_power_readings: {e}")
+        if good_readings:
+            if self.control_state == SiegControlState.Defrost:
+                if self.hp_model == HpModel.LgHighTempHydroKitPlusMultiV:
+                    if self.lg_high_temp_hydrokit_leaving_defrost():
+                        self.trigger_control_event(ControlEvent.LeavingDefrostDetected)
+                        self.log("Leaving defrost detected")
+                elif self.hp_model in [HpModel.SamsungFourTonneHydroKit,
+                                    HpModel.SamsungFiveTonneHydroKit]:
+                    if self.samsung_entering_defrost():
+                        self.trigger_control_event(ControlEvent.LeavingDefrostDetected)
+                        self.log("Defrost detected!")
+
+    def lg_high_temp_hydrokit_leaving_defrost(self) -> bool:
+        """
+        LG is leaving defrost if lift is more than 4
+        """
+        if self.lift_f is None:
+            return False
+        if self.lift_f > 4:
+            return True
+        return False
+
+    def samsung_leaving_defrost(self) -> bool:
+        """
+        Samsung is leaving defrost if lift is more than 4
+        """
+        if self.lift_f is None:
+            return False
+        if self.lift_f > 4:
+            return True
+        return False
+
+    def check_for_defrost(self) -> None:
+        """
+        Responsible for helping to detect and triggering the defrost state change
+        """
+
+        try: 
+            good_readings = self.update_power_readings()
+        except Exception as e:
+            self.log(f"Trouble with update_power_readings: {e}")
+        if good_readings:
+            if self.control_state == SiegControlState.PID:
+                if self.hp_model == HpModel.LgHighTempHydroKitPlusMultiV:
+                    if self.lg_high_temp_hydrokit_entering_defrost():
+                        self.trigger_control_event(ControlEvent.DefrostDetected)
+                        self.log("Defrost detected!")
+                elif self.hp_model in [HpModel.SamsungFourTonneHydroKit,
+                                    HpModel.SamsungFiveTonneHydroKit]:
+                    if self.samsung_entering_defrost():
+                        self.trigger_control_event(ControlEvent.DefrostDetected)
+                        self.log("Defrost detected!")
+
+    def lg_high_temp_hydrokit_entering_defrost(self) -> bool:
+        """
+        The Lg High Temp Hydrokit is entering defrost if:  
+          - Indoor Unit Power > Outdoor Unit Power and
+          - IDU Power going up and
+          - ODU power going down
+        """
+        entering_defrost = True
+        if self.odu_w_readings[-1] > self.idu_w_readings[0]:
+            entering_defrost = False
+        elif self.idu_w_readings[-1] <= self.idu_w_readings[0]: # idu not going up
+            entering_defrost = False
+        elif self.odu_w_readings[-1] >= self.odu_w_readings[0]: # odu not going down
+            entering_defrost = False
+        return entering_defrost
+    
+    def samsung_entering_defrost(self) -> bool:
+        """
+        The Samsung High Temp Hydrokit is entering defrost if:  
+          - IDU Power  - ODU Power > 1500
+          - ODU Power < 500
+        """
+        entering_defrost = True
+        if self.idu_w_readings[-1] - self.odu_w_readings[-1] < 1500:
+            entering_defrost = False
+        elif self.odu_w_readings[-1] > 500:
+            entering_defrost = False
+        return entering_defrost
+
+    def update_power_readings(self) -> bool:
+        odu_pwr_channel = self.layout.channel(H0CN.hp_odu_pwr)
+        idu_pwr_channel = self.layout.channel(H0CN.hp_idu_pwr)
+        assert odu_pwr_channel.TelemetryName == TelemetryName.PowerW
+        if odu_pwr_channel.Name not in self.data.latest_channel_values:
+            return False
+        if idu_pwr_channel.Name not in self.data.latest_channel_values:
+            return False
+        odu_pwr = self.data.latest_channel_values[odu_pwr_channel.Name]
+        idu_pwr = self.data.latest_channel_values[idu_pwr_channel.Name]
+        if (odu_pwr is None) or (idu_pwr is None):
+            return False 
+        self.hp_power_w = odu_pwr + idu_pwr
+        self.odu_w_readings.append(odu_pwr)
+        self.idu_w_readings.append(idu_pwr)
+        return True

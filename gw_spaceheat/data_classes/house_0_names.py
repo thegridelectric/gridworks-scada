@@ -112,6 +112,7 @@ class H0N:
     dist_flow = "dist-flow"
     primary_flow = "primary-flow"
     store_flow = "store-flow"
+    sieg_flow = "sieg-flow"
 
     # relay nodes
     vdc_relay: Literal["relay1"] = "relay1"
@@ -178,6 +179,7 @@ class H0CN:
     dist_flow = H0N.dist_flow
     primary_flow = H0N.primary_flow
     store_flow = H0N.store_flow
+    sieg_flow = H0N.sie
     dist_flow_hz = f"{H0N.dist_flow}-hz"
     primary_flow_hz = f"{H0N.primary_flow}-hz"
     store_flow_hz = f"{H0N.store_flow}-hz"
