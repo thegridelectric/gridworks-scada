@@ -104,6 +104,7 @@ class H0N:
     store_hot_pipe = "store-hot-pipe"
     store_cold_pipe = "store-cold-pipe"
     oat = "oat"
+    sieg_cold = "sieg-cold"
     buffer = TankNodes("buffer")
     tank: ClassVar[Dict[int, TankNodes]] = {}
     zone: ClassVar[Dict[str, ZoneNodes]] = {}
@@ -171,6 +172,7 @@ class H0CN:
     buffer_hot_pipe = H0N.buffer_hot_pipe
     buffer_cold_pipe = H0N.buffer_cold_pipe
     oat = H0N.oat
+    sieg_cold = H0N.sieg_cold
     buffer = TankChannelNames("buffer")
     tank: ClassVar[Dict[int, TankChannelNames]] = {}
     zone: ClassVar[Dict[int, ZoneChannelNames]] = {}
@@ -179,7 +181,7 @@ class H0CN:
     dist_flow = H0N.dist_flow
     primary_flow = H0N.primary_flow
     store_flow = H0N.store_flow
-    sieg_flow = H0N.sie
+    sieg_flow = H0N.sieg_flow
     dist_flow_hz = f"{H0N.dist_flow}-hz"
     primary_flow_hz = f"{H0N.primary_flow}-hz"
     store_flow_hz = f"{H0N.store_flow}-hz"

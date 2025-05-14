@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, cast
 import pytz
 from actors.scada_data import ScadaData
 from data_classes.house_0_layout import House0Layout
-from data_classes.house_0_names import H0N, House0RelayIdx
+from data_classes.house_0_names import H0N, H0CN, House0RelayIdx
 from gw.errors import DcError
 from actors.scada_interface import ScadaInterface
 from gwproactor import Actor,  QOS
@@ -18,7 +18,9 @@ from gwproto.enums import (
     ChangePrimaryPumpControl,
     ChangeRelayState,
     ChangeStoreFlowRelay,
-    RelayClosedOrOpen
+    RelayClosedOrOpen,
+    StoreFlowRelay,
+    TelemetryName
 )
 from enums import FlowManifoldVariant, TurnHpOnOff, ChangeKeepSend
 from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import (
@@ -1051,12 +1053,117 @@ class ScadaActor(Actor):
     # Data related
     ##########################################
 
-    def hp_relay_closed(self) -> bool:
-        if self.hp_scada_ops_relay.Name not in self.data.latest_machine_state:
-            raise Exception("We should know the state of the hp ops relay!")
-        if self.data.latest_machine_state[self.hp_scada_ops_relay.Name].State == RelayClosedOrOpen.RelayClosed:
-            return True
-        return False
+    def odu_pwr(self) -> Optional[float]:
+        """Returns the latest Heat Pump outdoor unit power in Watts, or None
+        if it does not exist"""
+        odu_pwr_channel = self.layout.channel(H0CN.hp_odu_pwr)
+        assert odu_pwr_channel.TelemetryName == TelemetryName.PowerW
+        return self.scada_services.data.latest_channel_values.get(H0CN.hp_odu_pwr)
 
+    def idu_pwr(self) -> Optional[float]:
+        """Returns the latest Heat Pump indoor unit power in Watts, or None
+        if it does not exist"""
+        idu_pwr_channel = self.layout.channel(H0CN.hp_idu_pwr)
+        assert idu_pwr_channel.TelemetryName == TelemetryName.PowerW
+        return self.scada_services.data.latest_channel_values.get(H0CN.hp_idu_pwr)
+        
     def to_fahrenheit(self, temp_c: float) -> float:
         return 32 + (temp_c * 9 / 5)
+
+    def lwt_f(self) -> Optional[float]:
+        """Returns the latest Heat pump leaving water temp in deg F, or None
+        if it does not exist"""
+        t = self.scada_services.data.latest_channel_values.get(H0CN.hp_lwt)
+        if t is None:
+            return None
+        return self.to_fahrenheit(t / 1000)
+
+    def ewt_f(self) -> Optional[float]:
+        """Returns the latest Heat pump entering water temp in deg F, or None
+        if it does not exist"""
+        t = self.scada_services.data.latest_channel_values.get(H0CN.hp_ewt)
+        if t is None:
+            return None
+        return self.to_fahrenheit(t / 1000)
+
+    def sieg_cold_f(self) -> Optional[float]:
+        """Returns the latest Siegenthaler Cold temp in deg F, or None
+        if it does not exist"""
+        t = self.scada_services.data.latest_channel_values.get(H0CN.sieg_cold)
+        if t is None:
+            return None
+        return self.to_fahrenheit(t / 1000)
+
+    def sieg_flow_gpm(self) -> Optional[float]:
+        """Returns the latest siegenthaler flow in gallons per minute, or None
+        if it does not exist"""
+        sieg_x_100 = self.scada_services.data.latest_channel_values.get(H0CN.sieg_flow)
+        if sieg_x_100 is None:
+            return None
+        return sieg_x_100 / 100
+
+    def primary_flow_gpm(self) -> Optional[float]:
+        """Returns the latest primary flow in gallons per minute, or None
+        if it does not exist"""
+        primary_x_100 = self.scada_services.data.latest_channel_values.get(H0CN.primary_flow)
+        if primary_x_100 is None:
+            return None
+        return primary_x_100 / 100
+
+    def store_cold_pipe_f(self) -> Optional[float]:
+        """Returns the latest cold store pipe water temp in deg F, or None
+        if it does not exist"""
+        t = self.scada_services.data.latest_channel_values.get(H0CN.store_cold_pipe)
+        if t is None:
+            return None
+        return self.to_fahrenheit(t / 1000)
+
+    def lift_f(self) -> Optional[float]:
+        """ The lift of the heat pump: leaving water temp minus entering water temp.
+        Returns 0 if this is negative (e.g. during defrost). Returns None if missing 
+        a key temp. 
+        """
+        lwt_f = self.lwt_f(); ewt_f = self.ewt_f()
+        if lwt_f is None or ewt_f is None:
+            return None
+        return max(0, lwt_f - ewt_f)
+
+    def coldest_store_temp_f(self) -> Optional[float]:
+        """Returns tank3 depth 4 in deg F if it exists, else None
+        TODO: replace with something that doesn't have a string in it
+        """
+        
+        t = self.scada_services.data.latest_channel_values.get("tank3-depth4")
+        if t is None:
+            return None
+        return self.to_fahrenheit(t / 1000)
+
+    def coldest_buffer_temp_f(self) -> Optional[float]:
+        """Returns buffer depth 4 in deg F if it exists, else None
+        TODO: replace with something that doesn't have a string in it
+        """
+        
+        t = self.scada_services.data.latest_channel_values.get("buffer-depth4")
+        if t is None:
+            return None
+        return self.to_fahrenheit(t / 1000)
+
+    def charge_discharge_relay_state(self) -> StoreFlowRelay:
+        """ Returns DischargingStore if relay 3 is de-energized (ISO Valve opened, charge/discharge
+        valve in discharge position.) Returns Charging store if energized (ISO Valve closed, charge/discharge
+        valve in charge position) """
+        sms = self.scada_services.data.latest_machine_state.get(H0CN.charge_discharge_relay_state)
+        if sms is None:
+            raise Exception(f"That's strange! Should have a rela state for the charge discharge relay!")
+        if sms.StateEnum != StoreFlowRelay.enum_name():
+            raise Exception(f"That's strange. Expected StateEnum 'store.flow.relay' but got {sms.StateEnum}")
+        return StoreFlowRelay(sms.State)
+
+    def hp_relay_state(self) -> RelayClosedOrOpen:
+        sms = self.data.latest_machine_state[H0CN.hp_scada_ops_relay_state]
+        if sms is None:
+            raise Exception(f"That's strange! Should have a rela state for the Hp Scada Ops relay!")
+        if sms.StateEnum != RelayClosedOrOpen.enum_name():
+            raise Exception(f"That's strange. Expected StateEnum 'relay.closed.or.open' but got {sms.StateEnum}")
+        return RelayClosedOrOpen(sms.State)
+ 

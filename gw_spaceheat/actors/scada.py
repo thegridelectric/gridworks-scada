@@ -57,7 +57,7 @@ from named_types import ( ActuatorsReady,
     AdminDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
     Glitch, GoDormant, LayoutLite, NewCommandTree, NoNewContractWarning, ResetHpKeepValue,
     ScadaParams, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment, 
-    SingleMachineState,SlowContractHeartbeat, SuitUp, WakeUp,
+    SiegTargetTooLow, SingleMachineState,SlowContractHeartbeat, SuitUp, WakeUp,
 )
 
 ScadaMessageDecoder = create_message_model(
@@ -431,6 +431,9 @@ class Scada(ScadaInterface, Proactor):
                     self.process_sieg_loop_endpoint_valve_adjustment(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with process_sieg_loop_endpoint_valve_adjustment: \n {e}")
+            case SiegTargetTooLow():
+                # send up to atn so we have a record
+                self._send_to(self.atn, payload)
             case SingleMachineState():
                 try:
                     self.process_single_machine_state(from_node, payload)

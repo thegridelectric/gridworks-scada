@@ -8,7 +8,7 @@ from enum import auto
 from data_classes.house_0_names import H0CN
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
-from gwproto.enums import TelemetryName
+from gwproto.enums import TelemetryName, StoreFlowRelay
 from gwproto.message import Message
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.named_types import FsmFullReport, SingleReading, AnalogDispatch
@@ -20,7 +20,7 @@ from actors.scada_actor import ScadaActor
 from actors.scada_interface import ScadaInterface
 from enums import HpModel, LogLevel
 from named_types import (ActuatorsReady, Glitch, ResetHpKeepValue, SetLwtControlParams,
-    SetTargetLwt, SingleMachineState)
+    SetTargetLwt, SiegTargetTooLow,  SingleMachineState)
 
 from transitions import Machine
 class SiegValveState(GwStrEnum):
@@ -134,6 +134,7 @@ class SiegLoop(ScadaActor):
         self.keep_seconds: float = self.FULL_RANGE_S
         self.target_seconds_for_leaving_defrost: Optional[float] = None # 
         self._stop_requested = False
+        self.target_temp_too_low: bool = False
         self.resetting = False
         self._movement_task = None # Track the current movement task
         self.move_start_s: float = 0
@@ -241,15 +242,13 @@ class SiegLoop(ScadaActor):
         rate of change of lwt"""
 
         # TODO: if ISO valve is open use buffer depth 3
-        sieg_cold_f=self.coldest_store_temp_f
-        if sieg_cold_f is None or self.lift_f is None:
+        lift_f = self.lift_f()
+        if lift_f is None:
+            self.trigger_control_event(ControlEvent.Blind)
             return False
-        target_flow_percent = self.calc_eq_flow_percent(
-            lift_f = self.lift_f + 3, 
-            sieg_cold_f=sieg_cold_f)
-        lwt_f = self.lwt_f
+        target_flow_percent = self.calc_eq_flow_percent(lift_f + 3)
+        lwt_f = self.lwt_f()
     
-        # 
         if target_flow_percent is None or lwt_f is None:
             self.log("Blind! Unable to calculate when to leave hover")
             self.trigger_control_event(ControlEvent.Blind)
@@ -259,7 +258,6 @@ class SiegLoop(ScadaActor):
         # This is how long it will take to move
         time_to_move = self.keep_seconds - target_keep_s
 
-        
         if not hasattr(self, 'lwt_slope'):
             raise Exception("Expects update_derivative_calcs to be run first!")
         slope = self.lwt_slope
@@ -268,18 +266,21 @@ class SiegLoop(ScadaActor):
             return False
         
         time_til_target_lwt =  (self.target_lwt - lwt_f) / slope
+
+        # logging
         now = datetime.now()
         s = now.second % 10
-        
-        if s == 0:
-            self.log(f"Rate of change for LWT: {round(slope * 60, 1)} °F/min, {round(slope,1)} °F/s")
-            self.log(f"Using coldest store temp {round(sieg_cold_f,1)}°F, target {self.target_lwt}°F")
-            self.log(f"target flow percent: {round(target_flow_percent,1)}%")
-            self.log(f"time to move: {round(time_to_move,1)}")
-            self.log(f"time til target lwt, using slope: {round(time_til_target_lwt, 1)}")
-            
-            if self.lift_f:
-                self.log(f"Current lift: {round(self.lift_f)}°F")
+        sieg_cold_f = self.anticipated_sieg_cold_f()
+        if sieg_cold_f is not None:
+            if s == 0:
+                self.log(f"Rate of change for LWT: {round(slope * 60, 1)} °F/min, {round(slope,1)} °F/s")
+                self.log(f"Using anticipated sieg {round(sieg_cold_f,1)}°F, target {self.target_lwt}°F")
+                self.log(f"target flow percent: {round(target_flow_percent,1)}%")
+                self.log(f"time to move: {round(time_to_move,1)}")
+                self.log(f"time til target lwt, using slope: {round(time_til_target_lwt, 1)}")
+                
+                if self.lift_f:
+                    self.log(f"Current lift: {round(lift_f)}°F")
 
        
         buffer_time = 3.0 # 3 second buffer
@@ -288,16 +289,21 @@ class SiegLoop(ScadaActor):
             self.log(f"Time until target: {round(time_til_target_lwt)}")
             self.log(f"Seconds to move valve: {round(time_to_move)}")
             if self.lift_f:
-                self.log(f"Current lift: {round(self.lift_f)}°F")
+                self.log(f"Current lift: {round(lift_f)}°F")
             return True
 
         return False
 
     def calc_eq_flow_percent(self, 
-            lift_f: Optional[float] = None,
-            sieg_cold_f: Optional[float] = None) -> Optional[float]:
-        """Calculate the theoretical equilibrium flow keep percentage to achieve target LWT, from current
+            lift_f: Optional[float] = None) -> Optional[float]:
+        """Calculate the theoretical equilibrium flow keep percentage to achieve target LWT,
          sieg_cold_temp_f and target_lwt. If lift is not given then it uses current lift.
+
+         If the control state is StartupHover or Defrost, that means water is not flowing 
+         past the sieg cold temperature sensor and the _anticipated_ sieg cold temperature
+         is used.
+
+         Let tsc be shorthand for sieg_cold_temp_f
          Using the formula: k = 1 - (lift/(target - tsc))
 
          If lift is not given, uses current lift
@@ -311,19 +317,21 @@ class SiegLoop(ScadaActor):
          target = k(target-sieg_cold) + sieg_cold + lift
          k = 1 - lift/(target-sieg_cold)
          """
-        
-        if self.lift_f is None or self.sieg_cold_temp_f is None:
+        if lift_f is None:
+            lift_f = self.lift_f()
+        if self.control_state in [SiegControlState.StartupHover, SiegControlState.Defrost]:
+            tsc = self.anticipated_sieg_cold_f()
+        else:
+            tsc = self.sieg_cold_f()
+        lift_f = self.lift_f()
+        if lift_f is None or tsc is None:
             self.log("Missing temp readings for equilibrium calc")
             return None
 
-        if lift_f is None:
-            lift_f = self.lift_f
         # Avoid division by zero or negative values
-        if sieg_cold_f is None:
-            sieg_cold_f = self.sieg_cold_temp_f
-        temp_diff = self.target_lwt - sieg_cold_f
+        temp_diff = self.target_lwt - tsc
         if temp_diff <= 0:
-            self.log(f"Target LWT {self.target_lwt}°F is lower than Sieg cold temp {sieg_cold_f}°F")
+            self.log(f"Target LWT {self.target_lwt}°F is lower than anticipated Sieg cold temp {tsc}°F")
             return 0 
 
         k = 1 - (lift_f / temp_diff)
@@ -364,18 +372,38 @@ class SiegLoop(ScadaActor):
         # return sensitivity
         return 1
 
-    def target_too_low(self) -> bool:
-        """ Returns true if current target water temp is too low to hit"""
-        if self.sieg_cold_temp_f is None or self.lift_f is None:
-            return True
-        if self.sieg_cold_temp_f + self.lift_f > self.target_lwt:
-            return True
-        return False
+    def check_target_temp(self) -> None:
+        """ Returns true if current target water temp is too low to hit.
+
+        Only call this in the PID control state"""
+
+        if self.control_state != SiegControlState.PID:
+            raise Exception(f"target_too_low only ")
+        tsc = self.sieg_cold_f(); lift = self.lift_f()
+        if tsc is None or lift is None:
+            self.trigger_control_event(ControlEvent.Blind)
+            return
+        if tsc + lift > self.target_lwt:
+            if self.target_temp_too_low is False:
+                self._send_to(self.primary_scada,
+                              SiegTargetTooLow(
+                                  FromGNodeAlias=self.layout.scada_g_node_alias,
+                                  TargetLwtFx10=round(self.target_lwt * 10),
+                                  SiegColdFx10=round(tsc * 10),
+                                  HeatPumpDeltaTx10=round(lift*10),
+                                  TimeMs=int(time.time() * 1000)
+                              ))
+                self.log(f"Target temperature is too low! sieg cold: {round(tsc,1)}, lift: {round(lift,1)}, target: {self.target_lwt}")
+                self.target_temp_too_low = True
+        else:
+            if self.target_temp_too_low is True:
+                self.target_temp_too_low = False
+                self.log(f"Should now be able to hit target temp! sieg cold: {round(tsc,1)}, lift: {round(lift,1)}, target: {self.target_lwt}")
 
     def update_derivative_calcs(self) -> None:
         """Calculated self.lwt_slope - the rate of change of leaving water temperature (deg f per second)"
         """
-        lwt_f = self.lwt_f
+        lwt_f = self.lwt_f()
         if lwt_f is None:
             self.log("Not updating lwt derivative calcs ... blind!")
             return
@@ -420,7 +448,7 @@ class SiegLoop(ScadaActor):
         if self.control_state not in [SiegControlState.StartupHover, SiegControlState.PID]:
             raise Exception(f"Should not be running control loop in state {self.control_state}")
 
-        lwt_f = self.lwt_f
+        lwt_f = self.lwt_f()
         lift_f = self.lift_f
         # 1. If we don't have visibility, trigger "Blind" which will go to FullSend
         if lift_f is None or lwt_f is None:
@@ -508,9 +536,9 @@ class SiegLoop(ScadaActor):
         lift_f = self.lift_f + 3
         
         self.moving_to_calculated_target = True
-        sieg_cold_f = self.coldest_store_temp_f
+        sieg_cold_f = self.store_cold_pipe_f
         if sieg_cold_f is None:
-            sieg_cold_f = self.sieg_cold_temp_f
+            sieg_cold_f = self.anticipated_sieg_cold_f
         flow_target_percent = self.calc_eq_flow_percent(lift_f=lift_f, sieg_cold_f=sieg_cold_f)
         if flow_target_percent is None:
             raise Exception(f"Should not get here if blind")
@@ -536,19 +564,21 @@ class SiegLoop(ScadaActor):
         # wait another minute before going back into PID adjustments
         await asyncio.sleep(delta_s + 60)
         self.moving_to_calculated_target = False
-    
-    async def run_temperature_control(self) -> None:
+
+    async def run_pid(self) -> None:
         """Check current temperatures and adjust valve position if needed. Only
         used when control state is PID"""
 
         #TODO think through safety to make sure it doesn't stay in 100% keep
         # if temps go away
-        if self.lwt_f is None or self.ewt_f is None or self.lift_f is None:
+
+        lwt_f = self.lwt_f(); lift_f = self.lift_f()
+        if lwt_f is None or lift_f is None:
             self.log("Missing temperature readings, Blind ... aborting!")
             self.trigger_control_event(ControlEvent.Blind)
             return
 
-        self.log(f"LWT {round(self.lwt_f,1)} | Target {round(self.target_lwt,1)} | Lift {round(self.lift_f,1)}")
+        self.log(f"LWT {round(lwt_f,1)} | Target {round(self.target_lwt,1)} | Lift {round(lift_f,1)}")
         # Calculate target percent
         delta_s = self.calculate_delta_seconds(seconds_hack=True)
         if delta_s is None:
@@ -885,7 +915,7 @@ class SiegLoop(ScadaActor):
                 self.log(f"That's strange! Got PreparingToTurnOn when control state is {self.control_state}")
             else:
                 if self.is_blind():
-                    self.log(f"NOT entering control loop: EWT: {self.ewt_f} LWT: {self.lwt_f}")
+                    self.log(f"NOT entering control loop: EWT: {self.ewt_f()} LWT: {self.lwt_f()}")
                 else:
                     self.trigger_control_event(ControlEvent.HpPreparing)
         elif payload.State == HpBossState.HpOn:
@@ -1219,9 +1249,11 @@ class SiegLoop(ScadaActor):
                     self.trigger_control_event(ControlEvent.Blind)
 
                 elif self.control_state == SiegControlState.PID:
-                    if not self.moving_to_calculated_target:
+                    self.check_target_temp()
+                    # Consider adding additional control states
+                    if not self.moving_to_calculated_target and not self.target_temp_too_low:
                         # Run temperature control without awaiting to avoid blocking
-                        asyncio.create_task(self.run_temperature_control())
+                        asyncio.create_task(self.run_pid())
                     else:
                         self.log("Not running PID loop ... still moving to calculated target")
         
@@ -1253,62 +1285,24 @@ class SiegLoop(ScadaActor):
             )
         self.log(summary)
 
-    @property
-    def lwt_f(self) -> Optional[float]:
-        current_lwt = self.scada_services.data.latest_channel_values.get(H0CN.hp_lwt)
-        if current_lwt is None:
-            return None
-        return self.to_fahrenheit(current_lwt / 1000)
+    def anticipated_sieg_cold_f(self) -> Optional[float]:
+        """Returns the anticipated water temperature at the cold side of the mixing T into
+        the siegenthaler loop. If the ISO valve is closed, it uses the coldest store tank
+        temp. If the ISO valve is open, it uses the coldest buffer tank temp 
 
-    @property
-    def ewt_f(self) -> Optional[float]:
-        current_lwt = self.scada_services.data.latest_channel_values.get(H0CN.hp_ewt)
-        if current_lwt is None:
-            return None
-        return self.to_fahrenheit(current_lwt / 1000)
+        If a tank temp sensor is none, revert to the (wired) sieg cold
 
-    @property
-    def coldest_store_temp_f(self) -> Optional[float]:
-        t = self.scada_services.data.latest_channel_values.get("store-cold-pipe")
-        if t is None:
-            return None
-        return self.to_fahrenheit(t / 1000)
-
-    @property
-    def sieg_flow_gpm(self) -> Optional[float]:
-        sieg_x_100 = self.scada_services.data.latest_channel_values.get(H0CN.sieg_flow)
-        if sieg_x_100 is None:
-            return None
-        return sieg_x_100 / 100
-
-    @property
-    def primary_flow_gpm(self) -> Optional[float]:
-        primary_x_100 = self.scada_services.data.latest_channel_values.get(H0CN.primary_flow)
-        if primary_x_100 is None:
-            return None
-        return primary_x_100 / 100
-
-    @property
-    def sieg_cold_temp_f(self) -> Optional[float]:
-        """Water temp entering the Siegenthaler loop. Hack for now: returns store cold pipe,
-        will only work correctly when the ISO valve is closed"""
-        hack_c = self.scada_services.data.latest_channel_values.get(H0CN.store_cold_pipe)
-        if hack_c is None:
-            return None
-        return self.to_fahrenheit(hack_c / 1000)
-
-    @property
-    def lift_f(self) -> Optional[float]:
-        """ The lift of the heat pump: leaving water temp minus entering water temp.
-        Returns 0 if this is negative (e.g. during defrost). Returns None if missing 
-        a key temp. 
+        TODO: pay attention to distribution pump and do some mix of distribution rwt and
+        coldest buffer tank temp, using flow meters to get the mix correct
         """
-        if self.lwt_f is None:
-            return None
-        if self.ewt_f is None:
-            return None
-        lift_f = max(0, self.lwt_f - self.ewt_f)
-        return lift_f
+  
+        if self.charge_discharge_relay_state() == StoreFlowRelay.DischargingStore:
+            t = self.coldest_buffer_temp_f()
+        else:
+            t = self.coldest_store_temp_f()
+        if t is None:
+            t = self.sieg_cold_f()
+        return t
 
     def seconds_since_hp_on(self) -> Optional[float]:
         if not (self.hp_boss_state == HpBossState.HpOn):
@@ -1317,7 +1311,7 @@ class SiegLoop(ScadaActor):
             return time.time() - self.hp_start_s
 
     def is_blind(self) -> bool:
-        if self.lift_f is None:
+        if self.lift_f() is None:
             return True
         return False
 
@@ -1326,8 +1320,8 @@ class SiegLoop(ScadaActor):
     ####################
 
     def get_current_flow_percent(self) -> Optional[float]:
-        sieg = self.sieg_flow_gpm
-        primary = self.primary_flow_gpm
+        sieg = self.sieg_flow_gpm()
+        primary = self.primary_flow_gpm()
         if sieg is None or primary is None:
             return None
         if primary == 0:
@@ -1414,9 +1408,10 @@ class SiegLoop(ScadaActor):
         """
         LG is leaving defrost if lift is more than 4
         """
-        if self.lift_f is None:
+        lift_f = self.lift_f()
+        if lift_f is None:
             return False
-        if self.lift_f > 4:
+        if lift_f > 4:
             return True
         return False
 
@@ -1424,9 +1419,10 @@ class SiegLoop(ScadaActor):
         """
         Samsung is leaving defrost if lift is more than 4
         """
-        if self.lift_f is None:
+        lift_f = self.lift_f()
+        if lift_f is None:
             return False
-        if self.lift_f > 4:
+        if lift_f > 4:
             return True
         return False
 
@@ -1481,18 +1477,10 @@ class SiegLoop(ScadaActor):
         return entering_defrost
 
     def update_power_readings(self) -> bool:
-        odu_pwr_channel = self.layout.channel(H0CN.hp_odu_pwr)
-        idu_pwr_channel = self.layout.channel(H0CN.hp_idu_pwr)
-        assert odu_pwr_channel.TelemetryName == TelemetryName.PowerW
-        if odu_pwr_channel.Name not in self.data.latest_channel_values:
-            return False
-        if idu_pwr_channel.Name not in self.data.latest_channel_values:
-            return False
-        odu_pwr = self.data.latest_channel_values[odu_pwr_channel.Name]
-        idu_pwr = self.data.latest_channel_values[idu_pwr_channel.Name]
+        odu_pwr = self.odu_pwr()
+        idu_pwr = self.idu_pwr()
         if (odu_pwr is None) or (idu_pwr is None):
             return False 
-        self.hp_power_w = odu_pwr + idu_pwr
         self.odu_w_readings.append(odu_pwr)
         self.idu_w_readings.append(idu_pwr)
         return True

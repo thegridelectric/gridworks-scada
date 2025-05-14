@@ -35,6 +35,7 @@ from named_types.send_layout import SendLayout
 from named_types.set_lwt_control_params import SetLwtControlParams
 from named_types.set_target_lwt import SetTargetLwt
 from named_types.sieg_loop_endpoint_valve_adjustment import SiegLoopEndpointValveAdjustment
+from named_types.sieg_target_too_low import SiegTargetTooLow
 from named_types.single_machine_state import SingleMachineState
 from named_types.slow_contract_heartbeat import SlowContractHeartbeat
 from named_types.snapshot_spaceheat import SnapshotSpaceheat
@@ -79,6 +80,7 @@ __all__ = [
     "SetLwtControlParams",
     "SetTargetLwt",
     "SiegLoopEndpointValveAdjustment",
+    "SiegTargetTooLow",
     "SingleMachineState",
     "SnapshotSpaceheat",
     "SuitUp",
