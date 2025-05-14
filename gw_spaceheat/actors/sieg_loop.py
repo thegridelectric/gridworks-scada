@@ -125,9 +125,7 @@ class SiegLoop(ScadaActor):
             [28.7, 66.6], [35.7, 75.2], [39.9, 80.6], [42.7, 83.7], [67.2, 100]
         ]
     FULL_RANGE_S = 70
-    RESET_S = 10
-    #relay on       <- 2m -> pump on <- 2.5m <- tiny lift -> 2*m <-5 degF Lift ->  2min <- ramp -> 17 <- 30 degF Lift
-    LG_STARTUP_HOVER_UNTIL_S = 2 * 60          + 2.5 * 60          + 2 * 60 - 70 # 70: time to move to full keep
+    MAIN_LOOP_SLEEP_S = 2
 
     def __init__(self, name: str, services: ScadaInterface):
         super().__init__(name, services)
@@ -152,11 +150,10 @@ class SiegLoop(ScadaActor):
             {"trigger": "HpPreparing", "source": "MovingToFullSend", "dest": "MovingToStartupHover"},
             {"trigger": "ReachT2", "source": "MovingToStartupHover", "dest": "StartupHover"},
             {"trigger": "LeaveStartupHover", "source": "StartupHover", "dest": "PID"},
-            {"trigger": "DefrostDetected", "source": "PID", "dest": "Defrost"}
-            {"trigger": "LeavingDefrostDetected", "source": "Defrost", "dest": "PID"}
+            {"trigger": "DefrostDetected", "source": "PID", "dest": "Defrost"},
+            {"trigger": "LeavingDefrostDetected", "source": "Defrost", "dest": "PID"},
              
         ]
-        
         self.transitions = [
             {"trigger": "StartKeepingMore", "source": "FullySend", "dest": "KeepingMore", "before": "before_keeping_more"},
             {"trigger": "StartKeepingMore", "source": "SteadyBlend", "dest": "KeepingMore", "before": "before_keeping_more"},
@@ -190,13 +187,11 @@ class SiegLoop(ScadaActor):
         )
         self.valve_state: SiegValveState = SiegValveState.FullyKeep
         self.actuators_ready: bool = False
-        
 
         # Heat pump LWT control settings
-        self.target_lwt = 155.0 # Default target LWT in °F
+        self.target_lwt_from_boss: Optional[float] = None
         self.hp_boss_state = HpBossState.HpOn
         self.hp_start_s: float = time.time() # Track time since
-
 
         # Control parameters using time percent keep
         self.ultimate_gain = 1.0  # Ku
@@ -231,6 +226,31 @@ class SiegLoop(ScadaActor):
     async def join(self) -> None:
         """IOLoop will take care of shutting down the associated task."""
         ...
+
+    ##############################################
+    # Managing the target temperature
+    ##############################################
+
+    @property
+    def target_lwt(self) -> float:
+        """Returns target from boss if it exists. Otherwise
+        returns default target which comes from the top of whatever
+        tank is getting filled (store or buffer)"""
+        if self.target_lwt_from_boss is not None:
+            return self.target_lwt_from_boss
+        return self.default_target_lwt()
+    
+    def default_target_lwt(self) -> float:
+        """ Returns top depth of whatever tank is getting filled (store or buffer).
+        If that does not exist, it reverts to 130F
+        """
+        if self.charge_discharge_relay_state == StoreFlowRelay.DischargingStore:
+            t = self.hottest_buffer_temp_f()
+        else:
+            t = self.hottest_store_temp_f()
+        if t is None:
+            t = 130
+        return t
 
     ##############################################
     # Control loop mechanics
@@ -922,8 +942,10 @@ class SiegLoop(ScadaActor):
             self.hp_start_s = time.time()
 
     def process_set_target_lwt(self, from_node: ShNode, payload: SetTargetLwt) -> None:
-        self.target_lwt = payload.TargetLwtF
-        self.log(f"Target lwt is now {self.target_lwt}")
+        if from_node.Handle != payload.FromHandle:
+            raise Exception(f"from_node handle {from_node.Handle} does not match payload {payload.FromHandle}")
+        self.target_lwt_from_boss = payload.TargetLwtF
+        self.log(f"Boss just set target lwt to {self.target_lwt}")
 
     async def clean_up_old_task(self) -> None:
         if hasattr(self, '_movement_task') and self._movement_task and not self._movement_task.done():
@@ -1257,8 +1279,8 @@ class SiegLoop(ScadaActor):
                     else:
                         self.log("Not running PID loop ... still moving to calculated target")
         
-            next_second = 1.0 - (now.microsecond / 1_000_000)
-            await asyncio.sleep(next_second)
+            nap_time = self.MAIN_LOOP_SLEEP_S - (now.microsecond / 1_000_000)
+            await asyncio.sleep(nap_time)
 
             # Report status periodically
             if now.second == 0 and now.minute % 5 == 0:

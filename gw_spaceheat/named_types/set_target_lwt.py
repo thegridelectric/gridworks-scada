@@ -19,4 +19,9 @@ class SetTargetLwt(BaseModel):
         """
         Axiom 1: FromHandle is boss of ToHandle
         """
-        ...
+        immediate_boss = ".".join(self.ToHandle.split(".")[:-1])
+        if immediate_boss != self.FromHandle:
+            raise ValueError(
+                f"FromHandle {self.FromHandle} must be immediate boss of ToHandle {self.ToHandle}"
+            )
+        return self
