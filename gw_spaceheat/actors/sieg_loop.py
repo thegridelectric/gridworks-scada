@@ -296,7 +296,7 @@ class SiegLoop(ScadaActor):
         if sieg_cold_f is not None:
             if s == 0:
                 self.log(f"Rate of change for LWT: {round(slope * 60, 1)} °F/min, {round(slope,1)} °F/s")
-                self.log(f"Using anticipated sieg {round(sieg_cold_f,1)}°F, target {self.target_lwt}°F")
+                self.log(f"Using anticipated sieg {round(sieg_cold_f,1)}°F, target {round(self.target_lwt, 1)}°F")
                 self.log(f"target flow percent: {round(target_flow_percent,1)}%")
                 self.log(f"time to move: {round(time_to_move,1)}")
                 self.log(f"time til target lwt, using slope: {round(time_til_target_lwt, 1)}")
@@ -344,7 +344,8 @@ class SiegLoop(ScadaActor):
         if self.control_state in [SiegControlState.StartupHover, SiegControlState.Defrost]:
             tsc = self.anticipated_sieg_cold_f()
         else:
-            tsc = self.sieg_cold_f()
+            # tsc = self.sieg_cold_f()
+            self.anticipated_sieg_cold_f()
         lift_f = self.lift_f()
         if lift_f is None or tsc is None:
             self.log("Missing temp readings for equilibrium calc")
