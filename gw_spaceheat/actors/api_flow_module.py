@@ -150,12 +150,6 @@ class ApiFlowModule(ScadaActor):
             raise ValueError("Not set up to send gallons right now")
         
     @property
-    def pico_cycler(self) -> Optional[ShNode]:
-        if H0N.pico_cycler in self.layout.nodes:
-            return self.layout.nodes[H0N.pico_cycler]
-        return None
-
-    @property
     def last_sync_s(self) -> int:
         '''Rounds down self.latest_sync_send_s to the nearest multiple of self.capture_s'''
         last_sync_s = self.latest_sync_send_s - (
