@@ -193,6 +193,8 @@ class SiegLoop(ScadaActor):
         self.hp_boss_state = HpBossState.HpOn
         self.hp_start_s: float = time.time() # Track time since
 
+        self.lwt_slope: Optional[float] = None # used to figure out when to leave hover
+
         # Control parameters using time percent keep
         self.ultimate_gain = 1.0  # Ku
         self.ultimate_gain_seconds = 230 # Tu
@@ -278,11 +280,11 @@ class SiegLoop(ScadaActor):
         # This is how long it will take to move
         time_to_move = self.keep_seconds - target_keep_s
 
-        if not hasattr(self, 'lwt_slope'):
-            raise Exception("Expects update_derivative_calcs to be run first!")
         slope = self.lwt_slope
+        if slope is None:
+            raise Exception("Expects update_derivative_calcs to be run first!")
+        
         if slope <= 0:
-            self.log(f"Rate of change for LWT: {round(slope * 60, 1)} °F/min")
             return False
         
         time_til_target_lwt =  (self.target_lwt - lwt_f) / slope
@@ -1246,6 +1248,9 @@ class SiegLoop(ScadaActor):
     
     async def main(self):
         # This loop happens either every every second
+
+        loop_counter = 0
+        loop_mod = int(300 / self.MAIN_LOOP_SLEEP_S)
         while not self._stop_requested:
             now = datetime.now()
 
@@ -1281,8 +1286,9 @@ class SiegLoop(ScadaActor):
             nap_time = self.MAIN_LOOP_SLEEP_S - (now.microsecond / 1_000_000)
             await asyncio.sleep(nap_time)
 
-            # Report status periodically
-            if now.second == 0 and now.minute % 5 == 0:
+
+            # Report status every 5 minutes
+            if loop_counter == 0:
                 self._send(PatInternalWatchdogMessage(src=self.name))
                 self._send_to(
                 self.primary_scada,
@@ -1292,7 +1298,9 @@ class SiegLoop(ScadaActor):
                         ScadaReadTimeUnixMs=int(time.time() *1000)
                     )
                 )
-            
+            # increment and wrap the counter
+            loop_counter = (loop_counter + 1) % loop_mod
+
     def send_glitch(self, summary: str, log_level: LogLevel=LogLevel.Info) -> None:
         self._send_to(
                 self.primary_scada,
