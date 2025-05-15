@@ -551,15 +551,14 @@ class SiegLoop(ScadaActor):
     async def leave_startup_hover(self) -> None:
         """ Move to the estimated valve position for hitting 
         target temp with 5 degrees of lift"""
-        if self.lift_f is None:
+        lift_f = self.lift_f()
+        if lift_f is None:
             raise Exception("should not be blind here")
-        lift_f = self.lift_f + 3
+        lift_f += 3
         
         self.moving_to_calculated_target = True
-        sieg_cold_f = self.store_cold_pipe_f
-        if sieg_cold_f is None:
-            sieg_cold_f = self.anticipated_sieg_cold_f
-        flow_target_percent = self.calc_eq_flow_percent(lift_f=lift_f, sieg_cold_f=sieg_cold_f)
+
+        flow_target_percent = self.calc_eq_flow_percent(lift_f + 3)
         if flow_target_percent is None:
             raise Exception(f"Should not get here if blind")
         self.log(f"flow_target_percent is {round(flow_target_percent)}")
