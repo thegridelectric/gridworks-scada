@@ -98,6 +98,7 @@ class ApiFlowModule(ScadaActor):
         self.slow_turner: bool = False
         if self._component.gt.ConstantGallonsPerTick > 0.5:
             self.slow_turner = True
+            self.publish_zero_flow()
 
         self.validate_config_params()
         
