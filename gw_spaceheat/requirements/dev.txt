@@ -67,7 +67,9 @@ h11==0.14.0
 httpcore==1.0.7
     # via httpx
 httpx==0.28.1
-    # via -r gw_spaceheat/requirements/test.in
+    # via
+    #   -r gw_spaceheat/requirements/base.in
+    #   -r gw_spaceheat/requirements/test.in
 idna==2.10
     # via
     #   anyio

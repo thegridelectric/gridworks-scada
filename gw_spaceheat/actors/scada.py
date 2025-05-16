@@ -5,6 +5,8 @@ import enum
 import typing
 import uuid
 import time
+
+import httpx
 import pytz
 from typing import Any, List, Optional
 
@@ -1227,6 +1229,11 @@ class Scada(PrimeActor, ScadaInterface):
         self._data.reports_to_store[report.Id] = report
         self.services.generate_event(ReportEvent(Report=report))  # noqa
         self._data.flush_recent_readings()
+        httpx.post(
+            "http://127.0.0.1:8082/events",
+            json=ReportEvent(Report=report).model_dump(),
+        )
+
 
     def send_snap(self):
         snapshot = self._data.make_snapshot()
