@@ -51,13 +51,13 @@ from actors.home_alone_loader import HomeAlone
 from actors.atomic_ally import AtomicAlly
 from actors import ContractHandler
 from data_classes.house_0_names import H0N
-from enums import (AtomicAllyState, ContractStatus, HomeAloneTopState, MainAutoEvent, MainAutoState, 
-                    TopState)
+from enums import (AtomicAllyState, ContractStatus, FlowManifoldVariant, HomeAloneTopState, 
+                   MainAutoEvent, MainAutoState, TopState)
 from named_types import ( ActuatorsReady,
     AdminDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
-    Glitch, GoDormant, LayoutLite, NewCommandTree, NoNewContractWarning,
-    ScadaParams, SendLayout, SingleMachineState,
-    SlowContractHeartbeat, SuitUp, WakeUp,
+    Glitch, GoDormant, LayoutLite, NewCommandTree, NoNewContractWarning, ResetHpKeepValue,
+    ScadaParams, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment, 
+    SiegTargetTooLow, SingleMachineState,SlowContractHeartbeat, SuitUp, WakeUp,
 )
 
 ScadaMessageDecoder = create_message_model(
@@ -285,7 +285,15 @@ class Scada(ScadaInterface, Proactor):
             )
         )
         self.initialize_hierarchical_state_data()
-        self.state_machine_subscriptions: List[StateMachineSubscription] = [  ]
+        
+        self.state_machine_subscriptions: List[StateMachineSubscription] = []
+        if self.layout.use_sieg_loop:
+            self.state_machine_subscriptions.append(StateMachineSubscription(
+                subscriber_name=self.sieg_loop.name,
+                publisher_name=self.hp_boss.name
+            ))
+        
+
         self.channel_subscriptions: Dict[str, ChannelSubscription] = {}
 
         # Initialize actuator tracking
@@ -299,13 +307,9 @@ class Scada(ScadaInterface, Proactor):
         }
 
         # Define which actors depend on actuator readiness
-        self.actuator_dependents = {
-            self.home_alone,
-            #self.sieg_loop,
-            #self.hp_boss,
-            #self.atomic_ally,
-            # self.pico_cycler,
-        }
+        self.actuator_dependents = {self.home_alone}
+        if self.layout.use_sieg_loop:
+            self.actuator_dependents |= {self.sieg_loop,self.hp_boss}
 
     def _start_derived_tasks(self):
         self._tasks.append(
@@ -391,6 +395,11 @@ class Scada(ScadaInterface, Proactor):
                     self.process_power_watts(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with process_power_watts: \n {e}")
+            case ResetHpKeepValue():
+                try:
+                    self.process_reset_hp_keep_value(from_node, payload)
+                except Exception as e:
+                    self.log(f"Trouble with process_reset_hp_keep_value: \n {e}")
             case ScadaParams():
                 try:
                     self.process_scada_params(from_node, payload)
@@ -407,6 +416,24 @@ class Scada(ScadaInterface, Proactor):
                     self._send_to(from_node, self._data.make_snapshot())
                 except Exception as e:
                     self.log(f"Trouble with SendSnap: {e}")
+            case SetLwtControlParams():
+                try:
+                    self.process_set_lwt_control_params(from_node, payload)
+                except Exception as e:
+                    self.log(f"Trouble with process_set_lwt_control_params: {e}")
+            case SetTargetLwt():
+                try:
+                    self.process_set_target_lwt(from_node, payload)
+                except Exception as e:
+                    self.log(f"Trouble with process_set_target_lwt: {e}")
+            case SiegLoopEndpointValveAdjustment():
+                try:
+                    self.process_sieg_loop_endpoint_valve_adjustment(from_node, payload)
+                except Exception as e:
+                    self.log(f"Trouble with process_sieg_loop_endpoint_valve_adjustment: \n {e}")
+            case SiegTargetTooLow():
+                # send up to atn so we have a record
+                self._send_to(self.atn, payload)
             case SingleMachineState():
                 try:
                     self.process_single_machine_state(from_node, payload)
@@ -536,6 +563,7 @@ class Scada(ScadaInterface, Proactor):
         # HUGE HACK - 
         to_node = self.layout.node(payload.AboutName)
         boss_handle = '.'.join(to_node.handle.split('.')[:-1])
+        self.log(f"About name is {payload.AboutName}")
         self._send_to(to_node, AnalogDispatch(FromGNodeAlias=payload.FromGNodeAlias,
                                               FromHandle=boss_handle,
                                               ToHandle=to_node.handle,
@@ -544,7 +572,7 @@ class Scada(ScadaInterface, Proactor):
                                               TriggerId=payload.TriggerId,
                                               UnixTimeMs=payload.UnixTimeMs))
         # to_node = self.layout.node_by_handle(payload.ToHandle)
-        # if to_node:
+        # if to_node:gi
         #     self.log(f"Sending to {to_node.Name}")
         #     self._send_to(to_node.Name, payload)
 
@@ -573,6 +601,26 @@ class Scada(ScadaInterface, Proactor):
         self, from_node: ShNode, payload: FsmFullReport
     ) -> None:
         self._data.recent_fsm_reports[payload.TriggerId] = payload
+
+    def process_reset_hp_keep_value(
+            self, from_node: ShNode, payload: ResetHpKeepValue
+    ) -> None:
+        to_node = self.sieg_loop
+        if to_node is None:
+            self.log(f"Ignoring reset.hp.keep.value to {payload.ToHandle} -> not a known node")
+            return
+        boss = self.layout.boss_node(to_node)
+        if boss is None:
+            self.log(f"That's funny! no boss for {payload.ToHandle}")
+            return
+        if to_node.Handle is None:
+            return
+        if boss.Handle is None:
+            return
+        new_payload = ResetHpKeepValue(FromHandle=boss.Handle, ToHandle=to_node.Handle,
+                                       FromValue=payload.FromValue, ToValue=payload.ToValue)
+        self.log(f"Got ResetHpKeepValue. Sending {new_payload} to {to_node.Name} from {boss.name}")
+        self._send_to(to_node, new_payload, boss)
 
     def process_machine_states(
         self, from_node: ShNode, payload: MachineStates
@@ -668,6 +716,64 @@ class Scada(ScadaInterface, Proactor):
             )
             self.logger.error(f"Sending back {response}")
             self._send_to(self.atn, response)
+
+    def process_set_lwt_control_params(
+            self, from_node: ShNode, payload: SetLwtControlParams
+    ) -> None:
+        to_node = self.sieg_loop
+        if to_node is None:
+            self.log(f"Ignoring set.lwt.control.params to {payload.ToHandle} -> not a known node")
+            return
+        boss = self.layout.boss_node(to_node)
+        if boss is None:
+            self.log(f"That's funny! no boss for {payload.ToHandle}")
+            return
+        if to_node.Handle is None:
+            return
+        if boss.Handle is None:
+            return
+        payload.ToHandle = to_node.Handle
+        payload.FromHandle = boss.Handle
+        self._send_to(to_node, payload, boss)
+
+    def process_set_target_lwt(
+            self, from_node: ShNode, payload: SetTargetLwt
+    ) -> None:
+        to_node = self.sieg_loop
+        if to_node is None:
+            self.log(f"Ignoring set.target.lwt to {payload.ToHandle} -> not a known node")
+            return
+        boss = self.layout.boss_node(to_node)
+        if boss is None:
+            self.log(f"That's funny! no boss for {payload.ToHandle}")
+            return
+        if to_node.Handle is None:
+            return
+        if boss.Handle is None:
+            return
+        payload.ToHandle = to_node.Handle
+        payload.FromHandle = boss.Handle
+        self._send_to(to_node, payload, boss)
+
+    def process_sieg_loop_endpoint_valve_adjustment(
+        self, from_node: ShNode, payload: SiegLoopEndpointValveAdjustment
+    ) -> None:
+        to_node = self.sieg_loop
+        if to_node is None:
+            self.log(f"Ignoring reset.hp.keep.value to {payload.ToHandle} -> not a known node")
+            return
+        boss = self.layout.boss_node(to_node)
+        if boss is None:
+            self.log(f"That's funny! no boss for {payload.ToHandle}")
+            return
+        if to_node.Handle is None:
+            return
+        if boss.Handle is None:
+            return
+        new_payload = SiegLoopEndpointValveAdjustment(FromHandle=boss.Handle, ToHandle=to_node.Handle,
+                                        HpKeepPercent=payload.HpKeepPercent, Seconds=payload.Seconds)
+        self.log(f"GotSiegLoopEndpointValveAdjustment. Sending to {to_node.Name}")
+        self._send_to(to_node, new_payload, boss)
 
     def process_single_machine_state(
         self, from_node: ShNode, payload: SingleMachineState
@@ -1073,20 +1179,45 @@ class Scada(ScadaInterface, Proactor):
 
     def set_command_tree(self, boss: ShNode) -> None:
         """ Command Tree
+        If FlowManifoldVariant is House0Sieg:
         ```
-        boss
-        ├─────────────────────────────────pico-cycler
-        ├── relay2 (tstat_common)           └── relay1 (vdc) 
-        └── all other relays and 0-10s
+        boss                                                 pico-flow
+        ├───────────────────────────────────────── hp-boss      └── relay1 (VDC)
+        ├──────────────────────────────sieg-loop     └── relay6 (hp_scada_ops_relay)                                          
+        ├── relay2 (tstat_common)        ├─ relay14 (hp_loop_on_off)
+        └── all other relays and 0-10s   └─ relay15 (hp_loop_keep_send)
+        
+        
         ```
+        If FlowManifoldVariant is House0, all actuators other than relay1 report 
+        directly to boss.
+
         """
 
+        if self.layout.use_sieg_loop:
+            hp_boss = self.layout.node(H0N.hp_boss)
+            hp_boss.Handle = f"{boss.handle}.{hp_boss.Name}"
+            
+            sieg_loop = self.layout.node(H0N.sieg_loop)
+            sieg_loop.Handle = f"{boss.handle}.{H0N.sieg_loop}"
 
-        for node in self.layout.actuators:
-            if node.Name == H0N.vdc_relay and boss.name != H0N.admin:
-                node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
-            else:
-                node.Handle = (f"{boss.handle}.{node.Name}")
+            for node in self.layout.actuators:
+                if node.Name == H0N.vdc_relay and boss != self.admin:
+                    node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
+                elif node.Name == H0N.hp_scada_ops_relay:
+                    node.Handle = f"{boss.handle}.{hp_boss.Name}.{node.Name}"
+                elif node.Name in [H0N.hp_loop_keep_send, H0N.hp_loop_on_off]:
+                    node.Handle = f"{boss.handle}.{H0N.sieg_loop}.{node.Name}"
+                else:
+                    node.Handle = (f"{boss.handle}.{node.Name}")
+        else:
+            # For no sieg loop, everybody but the vdc relay reports directly to boss
+            for node in self.layout.actuators:
+                if node.Name == H0N.vdc_relay and boss != self.admin:
+                    node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
+                else:
+                    node.Handle = (f"{boss.handle}.{node.Name}")
+
         self._send_to(
             self.atn,
             NewCommandTree(
@@ -1490,6 +1621,22 @@ class Scada(ScadaInterface, Proactor):
         return self.layout.node(H0N.synth_generator)
 
     @property
+    def hp_boss(self) -> ShNode:
+        if not self.layout.use_sieg_loop:
+            raise Exception(f"Should not call for hp_boss unless layout uses sieg loop!")
+        return self.layout.node(H0N.hp_boss)
+
+    @property
+    def sieg_loop(self) -> ShNode:
+        if not self.layout.use_sieg_loop:
+            raise Exception(f"Should not call for sieg_loop unless layout uses sieg loop!")
+        return self.layout.node(H0N.sieg_loop)
+
+    @property
+    def pico_cycler(self) -> ShNode:
+        return self.layout.node(H0N.pico_cycler)
+
+    @property
     def data(self) -> ScadaData:
         return self._data
 
@@ -1508,7 +1655,7 @@ class Scada(ScadaInterface, Proactor):
         return LayoutLite(
             FromGNodeAlias=self.layout.scada_g_node_alias,
             FromGNodeInstanceId=self.layout.scada_g_node_id,
-            Strategy=self.layout.strategy,
+            Strategy=self.layout.flow_manifold_variant,
             ZoneList=self.layout.zone_list,
             TotalStoreTanks=self.layout.total_store_tanks,
             TankModuleComponents=[node.component.gt for node in tank_nodes],

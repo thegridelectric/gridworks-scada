@@ -211,8 +211,8 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
                     if self.is_buffer_empty():
                         self.trigger_normal_event(HaShoulderEvent.BufferNeedsCharge)
                     elif not self.is_buffer_ready():
-                        usable = (self.data.latest_channel_values[H0N.usable_energy] / 1000)
-                        required = (self.data.latest_channel_values[H0N.required_energy] / 1000)
+                        usable = (self.data.latest_channel_values[H0CN.usable_energy] / 1000)
+                        required = (self.data.latest_channel_values[H0CN.required_energy] / 1000)
                         if self.buffer_declared_ready:
                             if self.full_buffer_energy is None:
                                 if usable > 0.9 * required:
@@ -314,8 +314,8 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
             self.log("No onpeak period coming up soon.")
             self.buffer_declared_ready = False
             return True
-        total_usable_kwh = self.data.latest_channel_values[H0N.usable_energy] / 1000
-        required_onpeak = self.data.latest_channel_values[H0N.required_energy] / 1000
+        total_usable_kwh = self.data.latest_channel_values[H0CN.usable_energy] / 1000
+        required_onpeak = self.data.latest_channel_values[H0CN.required_energy] / 1000
 
         # Add the requirement of getting to the start of onpeak
         now = datetime.now(self.timezone)

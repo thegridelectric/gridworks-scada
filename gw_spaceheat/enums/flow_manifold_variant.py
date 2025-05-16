@@ -4,25 +4,23 @@ from typing import List
 from gw.enums import GwStrEnum
 
 
-class HomeAloneStrategy(GwStrEnum):
+class FlowManifoldVariant(GwStrEnum):
     """
     Values:
-      - WinterTou
-      - ShoulderTou
-      - Summer
+      - House0
+      - House0Sieg
 
     For more information:
       - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
       - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#homealonetopstate)
     """
-    WinterTou = auto()
-    ShoulderTou = auto()
-    Summer = auto()
-    ShoulderSeig = auto()
-  
+    House0 = auto()
+    House0Sieg = auto()
+
+
     @classmethod
-    def default(cls) -> "HomeAloneStrategy":
-        return cls.WinterTou
+    def default(cls) -> "FlowManifoldVariant":
+        return cls.House0
 
     @classmethod
     def values(cls) -> List[str]:
@@ -30,8 +28,8 @@ class HomeAloneStrategy(GwStrEnum):
 
     @classmethod
     def enum_name(cls) -> str:
-        return "home.alone.strategy"
+        return "flow.manifold.variant"
 
     @classmethod
     def enum_version(cls) -> str:
-        return "001"
+        return "000"

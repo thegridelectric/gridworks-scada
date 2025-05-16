@@ -65,7 +65,7 @@ gridworks-proactor[tests]==1.1.9
     #   -r gw_spaceheat/requirements/base.in
     #   -r gw_spaceheat/requirements/dev.in
     #   -r gw_spaceheat/requirements/test.in
-gridworks-protocol==1.2.3
+gridworks-protocol==1.2.4
     # via
     #   -r gw_spaceheat/requirements/base.in
     #   gridworks-proactor
