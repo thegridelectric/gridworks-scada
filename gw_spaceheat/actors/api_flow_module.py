@@ -511,10 +511,10 @@ class ApiFlowModule(ScadaActor):
         self.latest_gpm = first_frequency * 60 * gallons_per_tick        
         self.latest_hz = first_frequency
         channel_names = [self.gpm_channel.Name]
-        values = [self.latest_gpm]
+        values = [int(self.latest_gpm * 100)]
         if self._component.gt.SendHz:
             channel_names.append(self.hz_channel.Name)
-            values.append(self.latest_hz)
+            values.append(int(self.latest_hz * 1e6))
         self._send_to(
             self.primary_scada, 
             SyncedReadings(
