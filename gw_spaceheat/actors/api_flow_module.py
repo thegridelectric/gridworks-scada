@@ -527,7 +527,7 @@ class ApiFlowModule(ScadaActor):
             self.pico_cycler,
             ChannelReadings(
                 ChannelName=self.gpm_channel.Name,
-                ValueList=[self.latest_gpm],
+                ValueList=[int(self.latest_gpm*100)],
                 ScadaReadTimeUnixMsList=[int(self.latest_tick_ns/1e6)],
             ),
         )
