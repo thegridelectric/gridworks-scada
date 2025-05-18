@@ -497,10 +497,14 @@ class ApiFlowModule(ScadaActor):
     def publish_first_frequency(self):
         if not self.latest_tick_ns:
             return
+        # seconds_since_last_tick = (self.nano_timestamps[0]-self.latest_tick_ns)*1e9
+        # if not self.slow_turner and seconds_since_last_tick > 5:
+        #     self.publish_zero_flow()
+        #     return
         # Frequency between last timestamp from prev list and first from current list
         first_frequency = 1/(self.nano_timestamps[0]-self.latest_tick_ns)*1e9
-        # Not a slow turner: if there was less than 2s since last tick ignore this
-        if not self.slow_turner and first_frequency > 0.5:
+        # Not a slow turner: if there was less than 5s since last tick ignore this
+        if not self.slow_turner and first_frequency > 1/5:
             return
         # Compute GPM and publish
         if self._component.gt.GpmFromHzMethod != GpmFromHzMethod.Constant:
@@ -650,8 +654,8 @@ class ApiFlowModule(ScadaActor):
             return micro_hz_readings
         
         # Post flow between the latest tick and the first tick
-        if self.latest_tick_ns:
-            self.publish_first_frequency()
+        # if self.latest_tick_ns:
+        #     self.publish_first_frequency()
 
         # Sort timestamps and compute frequencies
         timestamps = sorted(self.nano_timestamps)
