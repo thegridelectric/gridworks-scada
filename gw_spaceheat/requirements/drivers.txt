@@ -60,6 +60,7 @@ certifi==2025.4.26
     #   httpx
 click==8.1.7
     # via
+    #   gridworks-proactor
     #   textual-dev
     #   trogon
     #   typer
@@ -69,7 +70,7 @@ frozenlist==1.4.0
     #   aiosignal
 gridworks==1.2.0
     # via gridworks-protocol
-gridworks-proactor==3.0.2
+gridworks-proactor==4.0.1
     # via -r gw_spaceheat/requirements/base.in
 gridworks-protocol==1.2.6
     # via
