@@ -154,6 +154,7 @@ class HomeAloneTouBase(ScadaActor):
         Trigger top event. Set relays_initialized to False if top state
         is Dormant. Report state change.
         """
+        orig_state = self.top_state
         now_ms = int(time.time() * 1000)
         if cause == TopStateEvent.HouseColdOnpeak:
             self.HouseColdOnpeak()
@@ -174,8 +175,10 @@ class HomeAloneTouBase(ScadaActor):
         else:
             raise Exception(f"Unknown top event {cause}")
         
-        if self.top_state == HomeAloneTopState.Dormant:
+        self.log(f"Top State {cause.value}: {orig_state} -> {self.top_state}")
+        if self.top_state == HomeAloneTopState.Normal:
             self.actuators_initialized = False
+            self.log(f"need to initialize actuators again")
 
         self._send_to(
             self.primary_scada,
