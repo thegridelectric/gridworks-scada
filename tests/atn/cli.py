@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from pathlib import Path
 from typing import Optional
@@ -6,13 +5,12 @@ from typing import Optional
 import dotenv
 import rich
 import typer
-from gwproactor import run_async_main
 from gwproactor.logging_setup import enable_aiohttp_logging
 from trogon import Trogon
 from typer.main import get_group
 
 try:
-    from tests.atn.atn_config import AtnSettings
+    from tests.atn.atn_config import AtnSettings  # noqa: F401
     from tests.atn.atn_app import AtnApp
 except ImportError as e:
     raise ImportError(
@@ -78,15 +76,12 @@ def run(
             settings.power_meter_logging_level = logging.DEBUG
     if seconds_per_report is not None:
         settings.seconds_per_report = seconds_per_report
-    asyncio.run(
-        run_async_main(
-            app_type=AtnApp,
-            app_settings=settings,
-            env_file=env_file,
-            dry_run=dry_run,
-            verbose=verbose,
-            message_summary=message_summary,
-        )
+    AtnApp.main(
+        app_settings=settings,
+        env_file=env_file,
+        dry_run=dry_run,
+        verbose=verbose,
+        message_summary=message_summary,
     )
 
 

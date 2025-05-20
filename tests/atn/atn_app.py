@@ -4,7 +4,6 @@ from types import ModuleType
 from typing import Optional
 
 from gwproactor import App
-from gwproactor import get_app
 from gwproactor import LinkSettings
 from gwproactor import Proactor
 from gwproactor import ProactorName
@@ -110,8 +109,7 @@ class AtnApp(App):
             start: bool = True,
             **kwargs: typing.Any
     ) -> "AtnApp":
-        app = typing.cast(AtnApp, get_app(app_type=AtnApp, **kwargs))
+        app = typing.cast(AtnApp, AtnApp.make_app_for_cli(**kwargs))
         if start:
-            app.instantiate()
             app.run_in_thread()
         return app

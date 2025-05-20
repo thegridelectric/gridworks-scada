@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from pathlib import Path
 from typing import Annotated
@@ -7,7 +6,6 @@ from typing import Optional
 import dotenv
 import rich
 import typer
-from gwproactor import run_async_main
 from gwproactor.logging_setup import enable_aiohttp_logging
 from trogon import Trogon
 from typer.main import get_group
@@ -79,15 +77,12 @@ def run(
             settings.power_meter_logging_level = logging.DEBUG
     if seconds_per_report is not None:
         settings.seconds_per_report = seconds_per_report
-    asyncio.run(
-        run_async_main(
-            app_type=ScadaApp,
-            app_settings=settings,
-            env_file=env_file,
-            dry_run=dry_run,
-            verbose=verbose,
-            message_summary=message_summary,
-        )
+    ScadaApp.main(
+        app_settings=settings,
+        env_file=env_file,
+        dry_run=dry_run,
+        verbose=verbose,
+        message_summary=message_summary,
     )
 
 
@@ -110,15 +105,12 @@ def run_s2(
     )
     if paho_logging:
         settings.paho_logging = True
-    asyncio.run(
-        run_async_main(
-            app_type=Scada2App,
-            app_settings=settings,
-            env_file=env_file,
-            dry_run=dry_run,
-            verbose=verbose,
-            message_summary=message_summary,
-        )
+    ScadaApp.main(
+        app_settings=settings,
+        env_file=env_file,
+        dry_run=dry_run,
+        verbose=verbose,
+        message_summary=message_summary,
     )
 
 

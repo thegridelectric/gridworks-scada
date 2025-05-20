@@ -42,6 +42,12 @@ class Scada2App(App, ScadaAppInterface):
     def paths_name(cls) -> str:
         return "scada2"
 
+    # We don't expect this function to be called, but we
+    # make it consisten in case it is called. See similar note in Scada.
+    @classmethod
+    def default_env_path(cls) -> Path:
+        return Path(".env")
+
     def _load_hardware_layout(self, layout_path: str | Path) -> House0Layout:
         return House0Layout.load(layout_path)
 
