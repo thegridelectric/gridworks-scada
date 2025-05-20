@@ -42,6 +42,8 @@ from named_types.snapshot_spaceheat import SnapshotSpaceheat
 from named_types.suit_up import SuitUp
 from named_types.wake_up import WakeUp
 from named_types.weather_forecast import WeatherForecast
+from named_types.start_listening_to_atn import StartListeningToAtn
+from named_types.stop_listening_to_atn import StopListeningToAtn
 
 __all__ = [
     "RemainingElecEvent",
@@ -83,6 +85,8 @@ __all__ = [
     "SiegTargetTooLow",
     "SingleMachineState",
     "SnapshotSpaceheat",
+    "StartListeningToAtn",
+    "StopListeningToAtn",
     "SuitUp",
     "WakeUp",
     "WeatherForecast",

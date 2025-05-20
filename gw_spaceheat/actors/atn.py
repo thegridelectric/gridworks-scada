@@ -36,10 +36,11 @@ from gwproto.messages import (EventBase, PowerWatts, Report, ReportEvent)
 from gwproto.named_types import AnalogDispatch, SendSnap, MachineStates
 from actors.atn_contract_handler import AtnContractHandler
 from enums import ContractStatus, LogLevel
-from named_types import (AtnBid, FloParamsHouse0, Glitch, Ha1Params, LatestPrice, LayoutLite, 
-                         NoNewContractWarning, ResetHpKeepValue,
-                         ScadaParams, SendLayout, SetLwtControlParams, SiegLoopEndpointValveAdjustment,
-                         SlowContractHeartbeat,  SnapshotSpaceheat)
+from named_types import (
+    AtnBid, FloParamsHouse0, Glitch, Ha1Params, LatestPrice, LayoutLite, NoNewContractWarning, 
+    ResetHpKeepValue, ScadaParams, SendLayout, SetLwtControlParams, SiegLoopEndpointValveAdjustment,
+    SlowContractHeartbeat,  SnapshotSpaceheat, StartListeningToAtn, StopListeningToAtn
+)
 
 from paho.mqtt.client import MQTTMessageInfo
 from pydantic import BaseModel
@@ -380,6 +381,11 @@ class Atn(ActorInterface, Proactor):
                 self.process_snapshot(decoded.Payload)
             case SlowContractHeartbeat():
                 self.contract_handler.process_slow_contract_heartbeat(decoded.Payload)
+            case StartListeningToAtn():
+                self.start_sending_contracts()
+            case StopListeningToAtn():
+                # TODO: break current active contract as well
+                self.stop_sending_contracts()
             case EventBase():
                 path_dbg |= 0x00000020
                 self._process_event(decoded.Payload)
