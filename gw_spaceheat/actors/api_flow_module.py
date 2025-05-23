@@ -98,6 +98,7 @@ class ApiFlowModule(ScadaActor):
         self.slow_turner: bool = False
         if self._component.gt.ConstantGallonsPerTick > 0.5:
             self.slow_turner = True
+            self.publish_zero_flow()
 
         self.validate_config_params()
         
@@ -487,6 +488,48 @@ class ApiFlowModule(ScadaActor):
             ),
         )
 
+    def publish_first_frequency(self):
+        if not self.latest_tick_ns:
+            return
+        # seconds_since_last_tick = (self.nano_timestamps[0]-self.latest_tick_ns)*1e9
+        # if not self.slow_turner and seconds_since_last_tick > 5:
+        #     self.publish_zero_flow()
+        #     return
+        # Frequency between last timestamp from prev list and first from current list
+        first_frequency = 1/(self.nano_timestamps[0]-self.latest_tick_ns)*1e9
+        # Not a slow turner: if there was less than 5s since last tick ignore this
+        if not self.slow_turner and first_frequency > 1/5:
+            return
+        # Compute GPM and publish
+        if self._component.gt.GpmFromHzMethod != GpmFromHzMethod.Constant:
+            raise ValueError(f"Don't have method to handle GpmFromHzMethod {self._component.gt.GpmFromHzMethod}")
+        if self.gpm_channel.TelemetryName != TelemetryName.GpmTimes100.value:
+            raise ValueError(f"Expectedfor GpmTimes100 for {self.gpm_channel.Name}, got {self.gpm_channel.TelemetryName}")
+        gallons_per_tick = self._component.gt.ConstantGallonsPerTick
+        self.latest_gpm = first_frequency * 60 * gallons_per_tick        
+        self.latest_hz = first_frequency
+        channel_names = [self.gpm_channel.Name]
+        values = [int(self.latest_gpm * 100)]
+        if self._component.gt.SendHz:
+            channel_names.append(self.hz_channel.Name)
+            values.append(int(self.latest_hz * 1e6))
+        self._send_to(
+            self.primary_scada, 
+            SyncedReadings(
+                ChannelNameList=channel_names,
+                ValueList=values,
+                ScadaReadTimeUnixMs=int(self.latest_tick_ns/1e6),
+            )
+        )
+        self._send_to(
+            self.pico_cycler,
+            ChannelReadings(
+                ChannelName=self.gpm_channel.Name,
+                ValueList=[int(self.latest_gpm*100)],
+                ScadaReadTimeUnixMsList=[int(self.latest_tick_ns/1e6)],
+            ),
+        )
+
     def _process_ticklist_reed(self, data: TicklistReed) -> None:
         if data.HwUid != self.hw_uid:
             self.log(f"{self.name}: Ignoring data from pico {data.HwUid} - expect {self.hw_uid}!")
@@ -584,31 +627,34 @@ class ApiFlowModule(ScadaActor):
 
         # Single tick
         if len(self.nano_timestamps)==1:
-            final_tick_ns = self.nano_timestamps[-1]
             if self.latest_tick_ns is not None:
-                final_nonzero_hz = 1e9 / (final_tick_ns - self.latest_tick_ns)
+                frequency_hz = 1e9 / (self.nano_timestamps[0] - self.latest_tick_ns)
             else:
-                final_nonzero_hz = 0
+                frequency_hz = 0
             if self.slow_turner:
                 micro_hz_readings = ChannelReadings(
                     ChannelName=self.hz_channel.Name,
-                    ValueList=[int(final_nonzero_hz * 1e6)],
-                    ScadaReadTimeUnixMsList=[int(final_tick_ns/1e6)]
+                    ValueList=[int(frequency_hz * 1e6)],
+                    ScadaReadTimeUnixMsList=[int(self.nano_timestamps[0]/1e6)]
                 )
             else:
                 micro_hz_readings = ChannelReadings(
                     ChannelName=self.hz_channel.Name,
-                    ValueList=[int(final_nonzero_hz * 1e6), 0],
-                    ScadaReadTimeUnixMsList=[int(final_tick_ns/1e6), int(final_tick_ns/1e6)+100]
+                    ValueList=[int(frequency_hz * 1e6), 0],
+                    ScadaReadTimeUnixMsList=[int(self.nano_timestamps[0]/1e6), int(self.nano_timestamps[0]/1e6)+100]
                 )
-            self.latest_tick_ns = final_tick_ns
-            self.latest_hz = final_nonzero_hz if self.slow_turner else 0
+            self.latest_tick_ns = self.nano_timestamps[-1]
+            self.latest_hz = frequency_hz if self.slow_turner else 0
             return micro_hz_readings
+        
+        # Post flow between the latest tick and the first tick
+        # if self.latest_tick_ns:
+        #     self.publish_first_frequency()
 
         # Sort timestamps and compute frequencies
         timestamps = sorted(self.nano_timestamps)
-        frequencies = [1/(t2-t1)*1e9 for t1,t2 in zip(self.nano_timestamps[:-1], self.nano_timestamps[1:])]
-        frequencies = frequencies + [frequencies[-1]]
+        frequencies = [1/(t2-t1)*1e9 for t1,t2 in zip(timestamps[:-1], timestamps[1:])]
+        timestamps = timestamps[:-1]
 
         if not self.slow_turner:
             # Remove outliers
@@ -649,7 +695,7 @@ class ApiFlowModule(ScadaActor):
             sampled_timestamps = timestamps
             smoothed_frequencies = frequencies
             self.latest_hz = smoothed_frequencies[-1]
-            self.latest_tick_ns = sampled_timestamps[-1]
+            self.latest_tick_ns = sorted(self.nano_timestamps)[-1]
             return ChannelReadings(
                 ChannelName=self.hz_channel.Name,
                 ValueList=[int(x*1e6) for x in smoothed_frequencies],
@@ -662,7 +708,7 @@ class ApiFlowModule(ScadaActor):
             smoothed_frequencies = [self.latest_hz]*len(frequencies)
             for t in range(len(frequencies)-1):
                 smoothed_frequencies[t+1] = (1-alpha)*smoothed_frequencies[t] + alpha*frequencies[t+1]
-            sampled_timestamps = list(timestamps)
+            sampled_timestamps = timestamps
 
         # [Processing] Butterworth filter
         elif self._component.gt.HzCalcMethod == HzCalcMethod.BasicButterWorth:
@@ -685,8 +731,6 @@ class ApiFlowModule(ScadaActor):
                     if sampled_timestamps[i]>=timestamps[1]
                 ]
                 sampled_timestamps = [x for x in sampled_timestamps if x>=timestamps[1]]
-                frequencies = frequencies[1:]
-                timestamps = timestamps[1:]
             else:
                 self.log(f"Warning: ticklist was too short ({len(frequencies)} instead of minimum 20) for butterworth.")
                 sampled_timestamps = timestamps
@@ -730,7 +774,7 @@ class ApiFlowModule(ScadaActor):
                 micro_hz_list.append(int(smoothed_frequencies[i] * 1e6))
                 unix_ms_times.append(int(sampled_timestamps[i] / 1e6))
         self.latest_hz = micro_hz_list[-1]/1e6
-        self.latest_tick_ns = sampled_timestamps[-1]
+        self.latest_tick_ns = sorted(self.nano_timestamps)[-1]
         micro_hz_list = [x if x>0 else 0 for x in micro_hz_list]
         
         return ChannelReadings(
