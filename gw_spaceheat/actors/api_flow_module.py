@@ -575,7 +575,7 @@ class ApiFlowModule(ScadaActor):
         self.last_heard = time.time()
 
         # Report ticklist if specified in hardware layout
-        if self._component.gt.SendTickLists and len(data.RelativeMicrosecondList)>1:
+        if self._component.gt.SendTickLists:
             self._send_to(
                 self.atn,
                 TicklistHallReport(
