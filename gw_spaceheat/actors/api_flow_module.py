@@ -98,7 +98,6 @@ class ApiFlowModule(ScadaActor):
         self.slow_turner: bool = False
         if self._component.gt.ConstantGallonsPerTick > 0.5:
             self.slow_turner = True
-            self.publish_zero_flow()
 
         self.validate_config_params()
         
@@ -198,6 +197,9 @@ class ApiFlowModule(ScadaActor):
         return [MonitoredName(self.name, self.flatline_seconds() * 2.1)]
 
     async def main(self):
+        if self.slow_turner:
+            self.publish_zero_flow()
+            
         while not self._stop_requested:
             '''
             Checks if the pico flatlined
