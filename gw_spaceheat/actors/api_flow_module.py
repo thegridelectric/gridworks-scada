@@ -197,6 +197,9 @@ class ApiFlowModule(ScadaActor):
         return [MonitoredName(self.name, self.flatline_seconds() * 2.1)]
 
     async def main(self):
+        if self.slow_turner:
+            self.publish_zero_flow()
+            
         while not self._stop_requested:
             '''
             Checks if the pico flatlined
