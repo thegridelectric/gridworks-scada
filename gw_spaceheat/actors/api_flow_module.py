@@ -559,7 +559,7 @@ class ApiFlowModule(ScadaActor):
                 if not self.latest_tick_ns:
                     ... # TODO: come up with a fix that publishes 0 when restarting SCADA and no flow
                     # self.log("NO LATEST TICK NS")
-                elif time.time()*1e9 - self.latest_tick_ns > self._component.gt.NoFlowMs*1000:
+                elif time.time()*1e9 - self.latest_tick_ns > self._component.gt.NoFlowMs*1e6:
                     self.publish_zero_flow()
             elif self.latest_gpm > self._component.gt.AsyncCaptureThresholdGpmTimes100/100:
                 self.publish_zero_flow()
