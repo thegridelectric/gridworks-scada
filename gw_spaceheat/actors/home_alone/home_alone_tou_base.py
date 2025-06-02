@@ -16,7 +16,7 @@ from result import Ok, Result
 from transitions import Machine
 from data_classes.house_0_names import H0N, H0CN
 from gwproto.data_classes.components.dfr_component import DfrComponent
-
+from enums import HomeAloneStrategy
 from actors.scada_actor import ScadaActor
 from actors.scada_interface import ScadaInterface
 from named_types import (ActuatorsReady,
@@ -69,7 +69,9 @@ class HomeAloneTouBase(ScadaActor):
         self.time_since_blind: Optional[float] = None
         self.scadablind_scada = False
         self.scadablind_boiler = False
-        
+        self.strategy = HomeAloneStrategy(getattr(self.node, "Strategy", None))
+        if self.strategy is None:
+            raise Exception("Expect to have a HomeAlone strategy!!")
         self.top_machine = Machine(
             model=self,
             states=HomeAloneTouBase.top_states,
@@ -200,8 +202,9 @@ class HomeAloneTouBase(ScadaActor):
         await asyncio.sleep(5)
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
+
             self.log(f"Top state: {self.top_state}")
-            self.log(f"State: {self.normal_node_state()}")
+            self.log(f"HaStrategy: {self.strategy.value}  |  State: {self.normal_node_state()}")
 
             # update zone setpoints if just before a new onpeak
             if  self.just_before_onpeak() or self.zone_setpoints=={}:

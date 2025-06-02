@@ -81,6 +81,7 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
             send_event=True,
         )
         self.state: HaShoulderState = HaShoulderState.Initializing
+        self.log("STARTING ShoulderTou HomeAlone")
 
     def trigger_normal_event(self, event: HaShoulderEvent) -> None:
         now_ms = int(time.time() * 1000)

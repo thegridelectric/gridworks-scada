@@ -72,6 +72,7 @@ class SummerHomeAlone(ScadaActor):
         self.top_state: SummerTopState = SummerTopState.EverythingOff
         self.set_command_tree(boss_node=self.normal_node)
         self.actuators_ready = False
+        self.log("Starting Summer Home Alone")
 
     def trigger_top_event(self, cause: SummerTopEvent) -> None:
         """
@@ -193,4 +194,4 @@ class SummerHomeAlone(ScadaActor):
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
-            self.log(f"State: {self.top_state}")
+            self.log(f"HaStrategy: Summer  |  State: {self.top_state}")
