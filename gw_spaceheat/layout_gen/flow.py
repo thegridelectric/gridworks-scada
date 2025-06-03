@@ -31,7 +31,7 @@ class HallCfg(BaseModel):
     ConstantGallonsPerTick: float = SAIER_CONSTANT_GALLONS_PER_TICK
     SendHz: bool = True
     NoFlowMs: int = 250
-    PublishEmptyTicklistAfterS: int = 10
+    PublishEmptyTicklistAfterS: int = 7
     PublishTicklistPeriodS: int = 10 
     ExpAlpha: Optional[float] = 0.2
     CutoffFrequency: Optional[float] = None
