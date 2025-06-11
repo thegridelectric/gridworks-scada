@@ -51,9 +51,9 @@ from actors.home_alone_loader import HomeAlone
 from actors.atomic_ally import AtomicAlly
 from actors import ContractHandler
 from data_classes.house_0_names import H0N
-from enums import (AtomicAllyState, ContractStatus, FlowManifoldVariant, HomeAloneTopState, 
+from enums import (AtomicAllyState,  ChangeRelayState, ContractStatus, FlowManifoldVariant, HomeAloneTopState, 
                    MainAutoEvent, MainAutoState, TopState)
-from named_types import ( ActuatorsReady,
+from named_types import ( ActuatorsReady, FsmEvent
     AdminDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
     Glitch, GoDormant, LayoutLite, NewCommandTree, NoNewContractWarning, ResetHpKeepValue,
     ScadaParams, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment, 
@@ -496,7 +496,27 @@ class Scada(ScadaInterface, Proactor):
 
         to_name = event.ToHandle.split(".")[-1]
         if to_name == "hp-boss":
-            self.log(f"received {payload}")
+            if payload.DispatchTrigger.EventName == "TurnOn":
+                event = FsmEvent(
+                    FromHandle="admin",
+                    ToHandle="admin.relay6",
+                    EventType=ChangeRelayState.enum_name(),
+                    EventName=ChangeRelayState.CloseRelay,
+                    SendTimeUnixMs=int(time.time() * 1000),
+                    TriggerId=str(uuid.uuid4()),
+                )
+            else:
+                event = FsmEvent(
+                    FromHandle="admin",
+                    ToHandle="admin.relay6",
+                    EventType=ChangeRelayState.enum_name(),
+                    EventName=ChangeRelayState.OpenRelay,
+                    SendTimeUnixMs=int(time.time() * 1000),
+                    TriggerId=str(uuid.uuid4()),
+                )
+            
+            to_name = "relay6"
+
         # TODO: change this to work if relays etc are NOT on primary scada
         if communicator := self.get_communicator(to_name):
             communicator.process_message(
