@@ -495,6 +495,8 @@ class Scada(ScadaInterface, Proactor):
         self.log(f"AdminDispatch event is {event.EventName}")
 
         to_name = event.ToHandle.split(".")[-1]
+        if to_name == "hp-boss":
+            self.log(f"received {payload}")
         # TODO: change this to work if relays etc are NOT on primary scada
         if communicator := self.get_communicator(to_name):
             communicator.process_message(
