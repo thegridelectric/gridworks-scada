@@ -149,8 +149,6 @@ class House0Layout(HardwareLayout):
     def check_actors_when_not_using_sieg_loop(cls, nodes: dict[str, ShNode]) -> None:
         if H0N.sieg_loop in nodes.keys():
             raise DcError(f"If not using sieg loop, should not have node {H0N.sieg_loop}!")
-        if H0N.hp_boss in nodes.keys():
-            raise DcError (f"If not using sieg loop, should not have node {H0N.hp_boss}!")
 
     @property
     def ha_strategy(self) -> str:

@@ -682,12 +682,7 @@ class LayoutDb:
                     ActorClass=ActorClass.NoActor,
                     DisplayName="HomeAlone Scada Blind",
                 ),
-                
-            ]
-        )
-        if cfg.use_sieg_loop:
-            self.add_nodes(
-                [SpaceheatNodeGt(
+                SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.hp_boss),
                     Name=H0N.hp_boss,
                     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.hp_boss}",
@@ -695,6 +690,12 @@ class LayoutDb:
                     ActorClass=ActorClass.HpBoss,
                     DisplayName="HeatpumpBoss",
                 ),
+                
+            ]
+        )
+        if cfg.use_sieg_loop:
+            self.add_nodes(
+                [
                 SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.sieg_loop),
                     Name=H0N.sieg_loop,
