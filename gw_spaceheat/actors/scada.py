@@ -39,6 +39,7 @@ from actors.scada_data import ScadaData
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
 from gwproto.data_classes.sh_node import ShNode
+from gwproto.enums import ChangeRelayState
 from gwproactor import QOS
 
 from gwproactor.links import Transition
@@ -51,9 +52,9 @@ from actors.home_alone_loader import HomeAlone
 from actors.atomic_ally import AtomicAlly
 from actors import ContractHandler
 from data_classes.house_0_names import H0N
-from enums import (AtomicAllyState,  ChangeRelayState, ContractStatus, FlowManifoldVariant, HomeAloneTopState, 
+from enums import (AtomicAllyState,  ContractStatus, FlowManifoldVariant, HomeAloneTopState, 
                    MainAutoEvent, MainAutoState, TopState)
-from named_types import ( ActuatorsReady, FsmEvent
+from named_types import ( ActuatorsReady, FsmEvent,
     AdminDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
     Glitch, GoDormant, LayoutLite, NewCommandTree, NoNewContractWarning, ResetHpKeepValue,
     ScadaParams, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment, 
