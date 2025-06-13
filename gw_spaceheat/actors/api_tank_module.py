@@ -369,12 +369,6 @@ class ApiTankModule(ScadaActor):
             raise ValueError("Disconnected thermistor!")
         return r_therm
 
-    @property
-    def pico_cycler(self) -> Optional[ShNode]:
-        if H0N.pico_cycler in self.layout.nodes:
-            return self.layout.nodes[H0N.pico_cycler]
-        return None
-
     def pico_state_log(self, note: str) -> None:
         log_str = f"[PicoRelated] {note}"
         if self.settings.pico_cycler_state_logging:

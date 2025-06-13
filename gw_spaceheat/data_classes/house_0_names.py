@@ -84,7 +84,8 @@ class H0N:
     relay_multiplexer = "relay-multiplexer"
     synth_generator = "synth-generator"
     zero_ten_out_multiplexer = "dfr-multiplexer"
-    pump_doctor = "pump-doc"
+    hp_boss = "hp-boss"
+    sieg_loop = "sieg-loop"
 
     # core power-metered nodes
     hp_odu = "hp-odu"
@@ -103,6 +104,7 @@ class H0N:
     store_hot_pipe = "store-hot-pipe"
     store_cold_pipe = "store-cold-pipe"
     oat = "oat"
+    sieg_cold = "sieg-cold"
     buffer = TankNodes("buffer")
     tank: ClassVar[Dict[int, TankNodes]] = {}
     zone: ClassVar[Dict[str, ZoneNodes]] = {}
@@ -111,31 +113,21 @@ class H0N:
     dist_flow = "dist-flow"
     primary_flow = "primary-flow"
     store_flow = "store-flow"
-
-    # synth channels
-    usable_energy = "usable-energy"
-    required_energy = "required-energy"
+    sieg_flow = "sieg-flow"
 
     # relay nodes
-    vdc_relay: Literal["relay1"] = f"relay{House0RelayIdx.vdc}"
-    tstat_common_relay: Literal["relay2"] = f"relay{House0RelayIdx.tstat_common}"
-    store_charge_discharge_relay: Literal["relay3"] = (
-        f"relay{House0RelayIdx.store_charge_disharge}"
-    )
-    hp_failsafe_relay: Literal["relay5"] = f"relay{House0RelayIdx.hp_failsafe}"
-    hp_scada_ops_relay: Literal["relay6"] = f"relay{House0RelayIdx.hp_scada_ops}"
+    vdc_relay: Literal["relay1"] = "relay1"
+    tstat_common_relay: Literal["relay2"] = "relay2"
+    store_charge_discharge_relay: Literal["relay3"] = "relay3"
+    hp_failsafe_relay: Literal["relay5"] = "relay5"
+    hp_scada_ops_relay: Literal["relay6"] = "relay6"
     thermistor_common_relay: Literal["relay7"] = "relay7"
-    aquastat_ctrl_relay: Literal["relay8"] = f"relay{House0RelayIdx.aquastat_ctrl}"
-    store_pump_failsafe: Literal["relay9"] = (
-        f"relay{House0RelayIdx.store_pump_failsafe}"
-    )
-    boiler_scada_ops: Literal["relay10"] = f"relay{House0RelayIdx.boiler_scada_ops}"
-    primary_pump_scada_ops: Literal["relay11"] = (
-        f"relay{House0RelayIdx.primary_pump_ops}"
-    )
-    primary_pump_failsafe: Literal["relay12"] = (
-        f"relay{House0RelayIdx.primary_pump_failsafe}"
-    )
+    aquastat_ctrl_relay: Literal["relay8"] = "relay8"
+    store_pump_failsafe: Literal["relay9"] = "relay9"
+
+    boiler_scada_ops: Literal["relay10"] = "relay10"
+    primary_pump_scada_ops: Literal["relay11"] = "relay11"
+    primary_pump_failsafe: Literal["relay12"] = "relay12"
     hp_loop_on_off: Literal["relay14"] = "relay14"
     hp_loop_keep_send: Literal["relay15"] = "relay15"
 
@@ -180,6 +172,7 @@ class H0CN:
     buffer_hot_pipe = H0N.buffer_hot_pipe
     buffer_cold_pipe = H0N.buffer_cold_pipe
     oat = H0N.oat
+    sieg_cold = H0N.sieg_cold
     buffer = TankChannelNames("buffer")
     tank: ClassVar[Dict[int, TankChannelNames]] = {}
     zone: ClassVar[Dict[int, ZoneChannelNames]] = {}
@@ -188,22 +181,20 @@ class H0CN:
     dist_flow = H0N.dist_flow
     primary_flow = H0N.primary_flow
     store_flow = H0N.store_flow
+    sieg_flow = H0N.sieg_flow
     dist_flow_hz = f"{H0N.dist_flow}-hz"
     primary_flow_hz = f"{H0N.primary_flow}-hz"
     store_flow_hz = f"{H0N.store_flow}-hz"
 
     # Synth Channels
-    required_energy = H0N.required_energy
-    usable_energy = H0N.usable_energy
+    required_energy = "required-energy"
+    usable_energy = "usable-energy"
+    hp_keep_seconds_x_10 = "hp-keep-seconds-x-10"
 
     # relay state channels
-    vdc_relay_state: Literal["vdc-relay1"] = f"vdc-{H0N.vdc_relay}"
-    tstat_common_relay_state: Literal["tstat-common-relay2"] = (
-        f"tstat-common-{H0N.tstat_common_relay}"
-    )
-    charge_discharge_relay_state: Literal["charge-discharge-relay3"] = (
-        f"charge-discharge-{H0N.store_charge_discharge_relay}"
-    )
+    vdc_relay_state: Literal["vdc-relay1"] = "vdc-relay1"
+    tstat_common_relay_state: Literal["tstat-common-relay2"] = "tstat-common-relay2"
+    charge_discharge_relay_state: Literal["charge-discharge-relay3"] = "charge-discharge-relay3"
     hp_failsafe_relay_state = f"hp-failsafe-{H0N.hp_failsafe_relay}"
     thermistor_common_relay_state = f"thermistor-common-{H0N.thermistor_common_relay}"
     hp_scada_ops_relay_state = f"hp-scada-ops-{H0N.hp_scada_ops_relay}"

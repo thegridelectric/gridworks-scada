@@ -178,8 +178,13 @@ class SynthGenerator(ScadaActor):
 
     # Compute usable and required energy
     def update_energy(self) -> None:
+        
         time_now = datetime.now(self.timezone)
         latest_temperatures = self.latest_temperatures.copy()
+
+        if self.layout.ha_strategy in [HomeAloneStrategy.Summer]:
+            #self.log(f"Does not calculate usable/required energy in {self.layout.ha_strategy} ")
+            return
 
         if self.layout.ha_strategy == HomeAloneStrategy.WinterTou:
             storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}

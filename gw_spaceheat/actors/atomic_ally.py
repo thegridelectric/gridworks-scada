@@ -21,7 +21,7 @@ from transitions import Machine
 
 from actors.scada_actor import ScadaActor
 from actors.scada_data import ScadaData
-from enums import AtomicAllyState, LogLevel
+from enums import AtomicAllyState, HomeAloneStrategy, LogLevel
 from named_types import (
     AllyGivesUp,  Glitch, GoDormant, Ha1Params, HeatingForecast,
     SingleMachineState, SlowContractHeartbeat, SlowDispatchContract, SuitUp
@@ -172,6 +172,13 @@ class AtomicAlly(ScadaActor):
         if from_node != self.primary_scada:
             raise Exception("contract should come from scada!")
         
+        if self.layout.ha_strategy in [HomeAloneStrategy.Summer]:
+            self.log(f"Cannot wake up - in summer mode")
+            self._send_to(
+                self.primary_scada,
+                AllyGivesUp(Reason="In Summer Mode ... does not enter DispatchContracts"))
+            return
+
         if not self.forecasts:
             self.log("Cannot Wake up - missing forecasts!")
             self._send_to(
@@ -427,8 +434,8 @@ class AtomicAlly(ScadaActor):
                 self.fill_missing_store_temps()
                 print("Successfully filled in the missing storage temperatures.")
                 self.temperatures_available = True
-        total_usable_kwh = self.data.latest_channel_values[H0N.usable_energy]
-        required_storage = self.data.latest_channel_values[H0N.required_energy]
+        total_usable_kwh = self.data.latest_channel_values[H0CN.usable_energy]
+        required_storage = self.data.latest_channel_values[H0CN.required_energy]
         if total_usable_kwh is None or required_storage is None:
             self.temperatures_available = False
 

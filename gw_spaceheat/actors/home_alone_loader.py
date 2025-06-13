@@ -23,6 +23,9 @@ class HomeAlone(ScadaActor):
         elif strategy == HomeAloneStrategy.ShoulderTou:
             module = importlib.import_module("actors.home_alone.shoulder_tou")
             impl_class = getattr(module, "ShoulderTouHomeAlone")
+        elif strategy == HomeAloneStrategy.Summer:
+            module = importlib.import_module("actors.home_alone.summer")
+            impl_class = getattr(module, "SummerHomeAlone")
         else:
             raise Exception(f"Unknown strategy {strategy}")
 
