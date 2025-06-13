@@ -8,7 +8,7 @@ from typing import List, Literal, Optional, Sequence
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 from gw.errors import DcError
-from gwproactor import MonitoredName, Problems, ServicesInterface
+from gwproactor import MonitoredName, Problems, AppInterface
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwproto.data_classes.components import PicoTankModuleComponent
@@ -44,7 +44,7 @@ class ApiTankModule(ScadaActor):
     def __init__(
         self,
         name: str,
-        services: ServicesInterface,
+        services: AppInterface,
     ):
         super().__init__(name, services)
         component = services.hardware_layout.component(name)

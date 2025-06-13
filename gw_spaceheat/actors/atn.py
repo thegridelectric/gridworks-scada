@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import cached_property
 from typing import Any, Dict, List, Optional, Tuple, cast, Callable
+from typing import Sequence
 
 import numpy as np
 import pytz
@@ -17,17 +18,23 @@ import aiohttp
 import random
 import rich
 import httpx
+from gwproactor import CodecFactory
+from gwproactor import LinkSettings
+from gwproactor import PrimeActor
+from gwproactor import ProactorLogger
+from gwproactor import ProactorName
+from gwproactor import AppInterface
+from gwproto import HardwareLayout
+
 from actors.flo import DGraph
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0CN, H0N
 from enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName
 from data_classes.house_0_names import House0RelayIdx
-from gwproactor import QOS, ActorInterface
+from gwproactor import QOS
 from gwproactor.config import LoggerLevels
-from gwproactor.links.link_settings import LinkSettings
 from gwproactor.logger import LoggerOrAdapter
 from gwproactor.message import DBGCommands, DBGPayload, MQTTReceiptPayload
-from gwproactor.proactor_implementation import Proactor
 from gwproto import Message, MQTTCodec, create_message_model
 from gwproto.data_classes.data_channel import DataChannel
 from gwproto.data_classes.sh_node import ShNode
@@ -37,7 +44,7 @@ from gwproto.named_types import AnalogDispatch, SendSnap, MachineStates
 from actors.atn_contract_handler import AtnContractHandler
 from enums import ContractStatus, LogLevel
 from named_types import (
-    AtnBid, FloParamsHouse0, Glitch, Ha1Params, LatestPrice, LayoutLite, NoNewContractWarning, 
+    AtnBid, FloParamsHouse0, Glitch, Ha1Params, LatestPrice, LayoutLite, NoNewContractWarning,
     ResetHpKeepValue, ScadaParams, SendLayout, SetLwtControlParams, SiegLoopEndpointValveAdjustment,
     SlowContractHeartbeat,  SnapshotSpaceheat, StartListeningToAtn, StopListeningToAtn
 )
@@ -127,7 +134,7 @@ class BidRunner(threading.Thread):
 
                 # Explicitly delete the graph to free memory
                 del g
-                
+
                 break
         except Exception as e:
             self.logger.info(f"An error occured running Dijkstra or getting bid: {e}")
@@ -173,6 +180,22 @@ class AtnMQTTCodec(MQTTCodec):
                 f"  got: {src} -> {dst}"
             )
 
+class AtnCodecFactory(CodecFactory):
+    def get_codec(
+        self,
+        link_name: str,
+        link: LinkSettings,
+        proactor_name: ProactorName,
+        layout: HardwareLayout,
+    ) -> MQTTCodec:
+        if not isinstance(layout, House0Layout):
+            raise ValueError(
+                "ERROR. ScadaCodecFactory requires hardware layout "
+                "to be an instance of House0Layout but received layout type "
+                f"<{type(layout)}>"
+            )
+        return AtnMQTTCodec(layout)
+
 
 class Telemetry(BaseModel):
     Value: int
@@ -193,36 +216,23 @@ class AtnData:
         self.latest_report = None
 
     
-class Atn(ActorInterface, Proactor):
+class Atn(PrimeActor):
     MAIN_LOOP_SLEEP_SECONDS = 61
     HEARTBEAT_INTERVAL_S = 60
     P_NODE = "hw1.isone.ver.keene"
-    SCADA_MQTT = "scada"
+    SCADA_MQTT = "scada_mqtt"
     data: AtnData
     event_loop_thread: Optional[threading.Thread] = None
     bid_runner: Optional[threading.Thread]
     dashboard: Optional[Dashboard]
     ha1_params: Optional[Ha1Params]
+    _stop_requested: bool = False
 
-    def __init__(
-        self,
-        name: str,
-        settings: AtnSettings,
-        hardware_layout: House0Layout,
-    ):
-        super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
-        self._web_manager.disable()
-        self.data = AtnData(hardware_layout)
-        self._links.add_mqtt_link(
-            LinkSettings(
-                client_name=Atn.SCADA_MQTT,
-                gnode_name=self.hardware_layout.scada_g_node_alias,
-                spaceheat_name=H0N.primary_scada,
-                mqtt=settings.scada_mqtt,
-                codec=AtnMQTTCodec(self.layout),
-                downstream=True,
-            )
-        )
+
+    def __init__(self, name: str, services: AppInterface) -> None:
+        super().__init__(name, services)
+        # self._web_manager.disable()
+        self.data = AtnData(self.layout)
         self.is_simulated = self.settings.is_simulated
         self.latest_channel_values: Dict[str, int] = {}
         self.timezone = pytz.timezone(self.settings.timezone_str)
@@ -259,11 +269,11 @@ class Atn(ActorInterface, Proactor):
             layout=self.layout,
             logger=self.logger.add_category_logger(
                 AtnContractHandler.LOGGER_NAME,
-                level=settings.contract_rep_logging_level
+                level=self.settings.contract_rep_logging_level
             ),
-            send_threadsafe=self.send_threadsafe,
+            send_threadsafe=self.services.send_threadsafe,
         )
-        self.bid_runner: BidRunner = None
+        self.bid_runner: Optional[BidRunner] = None
         self.sending_contracts: bool = True
         self.send_bid_minute: int = 57
         min_minute = min(max(3, datetime.now().minute), self.send_bid_minute-2)
@@ -271,13 +281,21 @@ class Atn(ActorInterface, Proactor):
         # TODO: read strategy from hardware layout: node = hardware_layout.node(...)
         self.buffer_flo = False
 
+    @classmethod
+    def get_codec_factory(cls) -> AtnCodecFactory:
+        return AtnCodecFactory()
+
+    @property
+    def logger(self) -> ProactorLogger:
+        return self.services.logger
+
     @property
     def name(self) -> str:
         return self._name
 
     @cached_property
     def short_name(self) -> str:
-        return self.layout.atn_g_node_alias.split(".")[-1]
+        return self.services.subscription_name
 
     @property
     def node(self) -> ShNode:
@@ -289,70 +307,78 @@ class Atn(ActorInterface, Proactor):
 
     @property
     def publication_name(self) -> str:
-        return self.layout.atn_g_node_alias
+        return self.services.publication_name
 
     @property
     def subscription_name(self) -> str:
-        return H0N.atn
+        return self.services.subscription_name
 
     @property
     def settings(self) -> AtnSettings:
-        return cast(AtnSettings, self._settings)
+        return cast(AtnSettings, self.services.settings)
 
     @property
     def layout(self) -> House0Layout:
-        return cast(House0Layout, self._layout)
-
-    def init(self):
-        """Called after constructor so derived functions can be used in setup."""
+        return cast(House0Layout, self.services.hardware_layout)
 
     def _publish_to_scada(self, payload, qos: QOS = QOS.AtMostOnce) -> MQTTMessageInfo:
-        return self._links.publish_message(
+        return self.services.publish_message(
             Atn.SCADA_MQTT, Message(Src=self.publication_name, Payload=payload), qos=qos
         )
 
-    def _derived_process_message(self, message: Message):
-        self._logger.path(
-            "++Atn._derived_process_message %s/%s",
+    def process_internal_message(self, message: Message):
+        path_dbg = 0
+        self.logger.path(
+            "++Atn.process_internal_message %s/%s",
             message.Header.Src,
             message.Header.MessageType,
         )
         if message.Header.Dst == self.scada.name:
+            path_dbg |= 0x00000001
             self._publish_to_scada(message.Payload)
         else:
+            path_dbg |= 0x00000002
             self.process_atn_message(message)
-    
+        self.logger.path("--Atn.process_internal_message  path:0x%08X",path_dbg)
+
+
     def process_atn_message(self, message: Message):
+        self.logger.path(
+            "++Atn.process_atn_message %s/%s",
+            message.Header.Src,
+            message.Header.MessageType,
+        )
         path_dbg = 0
         match message.Payload:
             case AtnBid():
+                path_dbg |= 0x00000001
                 bid = message.Payload
                 self.contract_handler.latest_bid = bid
-                self._links.publish_message(
+                self.services.publish_message(
                     self.SCADA_MQTT, 
                     Message(Src=self.publication_name, Dst="broadcast", Payload=bid)
                 )  
                 self.log(f"Bid: {bid}")
                 self.sent_bid = True
             case Glitch():
-                self._links.publish_message(
+                path_dbg |= 0x00000002
+                self.services.publish_message(
                     self.SCADA_MQTT,
                     Message(Src=self.publication_name, Dst="broadcast", Payload=message.Payload)
                 )
             case LatestPrice():
-                path_dbg |= 0x00000100
+                path_dbg |= 0x00000004
                 self.process_latest_price(message.Payload)
                 # self._publish_to_scada(message.Payload) # so we can record in database
             case _:
-                path_dbg |= 0x00000040
+                path_dbg |= 0x00000008
+        self.logger.path("--Atn._derived_process_message  path:0x%08X", path_dbg)
 
-        self._logger.path("--Atn._derived_process_message  path:0x%08X", path_dbg)
-
-    def _derived_process_mqtt_message(
+    def process_mqtt_message(
         self, message: Message[MQTTReceiptPayload], decoded: Any
     ):
-        self._logger.path(
-            "++Atn._derived_process_mqtt_message %s", message.Payload.message.topic
+        self.logger.path(
+            "++Atn.process_mqtt_message %s", message.Payload.message.topic
         )
         path_dbg = 0
         if message.Payload.client_name != self.SCADA_MQTT:
@@ -360,24 +386,24 @@ class Atn(ActorInterface, Proactor):
                 f"There are no messages expected to be received from [{message.Payload.client_name}] mqtt broker. "
                 f"Received\n\t topic: [{message.Payload.message.topic}]"
             )
-        self.stats.add_message(decoded)
         match decoded.Payload:
             case LayoutLite():
                 path_dbg |= 0x00000001
                 self.process_layout_lite(decoded.Payload)
             case NoNewContractWarning():
-                self.process_no_new_contract_warning(decoded.Payload)                    
-            case PowerWatts():
                 path_dbg |= 0x00000002
+                self.process_no_new_contract_warning(decoded.Payload)
+            case PowerWatts():
+                path_dbg |= 0x00000004
                 self.process_power_watts(decoded.Payload)
             case Report():
-                path_dbg |= 0x00000004
+                path_dbg |= 0x00000008
                 self.process_report(decoded.Payload)
             case ScadaParams():
-                path_dbg |= 0x00000008
+                path_dbg |= 0x00000010
                 self.process_scada_params(decoded.Payload)
             case SnapshotSpaceheat():
-                path_dbg |= 0x00000010
+                path_dbg |= 0x00000020
                 self.process_snapshot(decoded.Payload)
             case SlowContractHeartbeat():
                 self.contract_handler.process_slow_contract_heartbeat(decoded.Payload)
@@ -387,23 +413,23 @@ class Atn(ActorInterface, Proactor):
                 # TODO: break current active contract as well
                 self.stop_sending_contracts()
             case EventBase():
-                path_dbg |= 0x00000020
+                path_dbg |= 0x00000040
                 self._process_event(decoded.Payload)
                 if (
                     decoded.Payload.TypeName
                     == ReportEvent.model_fields["TypeName"].default
                 ):
-                    path_dbg |= 0x00000040
+                    path_dbg |= 0x00000080
                     self.process_report(decoded.Payload.Report)
                 elif (
                     decoded.Payload.TypeName
                     == SnapshotSpaceheat.model_fields["TypeName"].default
                 ):
-                    path_dbg |= 0x00000080
+                    path_dbg |= 0x00000100
                     self.process_snapshot(decoded.Payload)
             case _:
-                path_dbg |= 0x00000100
-        self._logger.path("--Atn._derived_process_mqtt_message  path:0x%08X", path_dbg)
+                path_dbg |= 0x00000200
+        self.logger.path("--Atn.process_mqtt_message  path:0x%08X", path_dbg)
 
     def process_no_new_contract_warning(self, payload: NoNewContractWarning) -> None:
         """
@@ -412,7 +438,7 @@ class Atn(ActorInterface, Proactor):
         hb = self.contract_handler.latest_hb
         if hb:
             if hb.Status == ContractStatus.Created:
-                self.send_threadsafe(
+                self.services.send_threadsafe(
                     Message(
                         Src=self.name,
                         Dst=self.scada.name,
@@ -461,7 +487,7 @@ class Atn(ActorInterface, Proactor):
         if self.settings.dashboard.print_gui and self.dashboard:
             self.dashboard.process_snapshot(snapshot)
         if self.settings.dashboard.print_snap:
-            self._logger.warning(self.snapshot_str(snapshot))
+            self.logger.warning(self.snapshot_str(snapshot))
         for reading in snapshot.LatestReadingList:
             self.latest_channel_values[reading.ChannelName] = reading.Value
         if self.is_simulated and self.temperature_channel_names is not None:
@@ -509,7 +535,7 @@ class Atn(ActorInterface, Proactor):
                 f.write(event.model_dump_json(indent=2))
 
     def snap(self):
-        self.send_threadsafe(
+        self.services.send_threadsafe(
             Message(
                 Src=self.name,
                 Dst=self.scada.name,
@@ -520,7 +546,7 @@ class Atn(ActorInterface, Proactor):
         )
 
     def send_new_params(self, new: Ha1Params) -> None:
-        self.send_threadsafe(
+        self.services.send_threadsafe(
             Message(
                 Src=self.name,
                 Dst=self.scada.name,
@@ -536,7 +562,7 @@ class Atn(ActorInterface, Proactor):
         )
 
     def send_layout(self) -> None:
-        self.send_threadsafe(
+        self.services.send_threadsafe(
             Message(
                 Src=self.name,
                 Dst=self.scada.name,
@@ -557,30 +583,15 @@ class Atn(ActorInterface, Proactor):
         self.sending_contracts = True
         self.log("Start sending contracts")
 
-    def start(self):
-        if self.event_loop_thread is not None:
-            raise ValueError("ERROR. start() already called once.")
-        self.event_loop_thread = threading.Thread(
-            target=asyncio.run, args=[self.run_forever()]
-        )
-        self.event_loop_thread.start()
-
-    def stop_and_join_thread(self):
-        self.contract_handler._stop_requested = True
-        self.stop()
-        if self.event_loop_thread is not None and self.event_loop_thread.is_alive():
-            self.event_loop_thread.join()
-
-    def _start_derived_tasks(self):
-        self._tasks.append(asyncio.create_task(self.main(), name="atn-main"))
-        self._tasks.append(asyncio.create_task(
-                self.contract_handler.contract_heartbeat_task(), 
+    def start_tasks(self) -> Sequence[asyncio.Task[Any]]:
+        return  [
+            asyncio.create_task(self.main(), name="atn-main"),
+            asyncio.create_task(
+                self.contract_handler.contract_heartbeat_task(),
                 name="contract_heartbeat"
-            )
-        )
-        self._tasks.append(
+            ),
             asyncio.create_task(self.fake_market_maker(), name="fake market maker")
-        )
+        ]
 
     async def main(self):
         async with aiohttp.ClientSession() as session:
@@ -611,8 +622,8 @@ class Atn(ActorInterface, Proactor):
                                 self.flo_params.InitialBottomTempF = int(b)
                                 self.flo_params.InitialThermocline1 = int(th1*2)
                                 self.flo_params.InitialThermocline2 = int(th2*2)
-                                self._links.publish_message(
-                                    self.SCADA_MQTT, 
+                                self.services.publish_message(
+                                    self.SCADA_MQTT,
                                     Message(Src=self.publication_name, Dst="broadcast", Payload=self.flo_params)
                                 )
                                 self.bid_runner.get_bid(self.flo_params)
@@ -625,14 +636,14 @@ class Atn(ActorInterface, Proactor):
                         self.flo_params = None
                         self.sent_bid = False
                     else:
-                        self.log(f"No graph exists. Waiting for minute {self.create_graph_minute} to create graph.")                
+                        self.log(f"No graph exists. Waiting for minute {self.create_graph_minute} to create graph.")
 
                 # TODO: not sure what this is for
-                if not ((datetime.now().minute >= self.create_graph_minute and not self.flo_params) 
+                if not ((datetime.now().minute >= self.create_graph_minute and not self.flo_params)
                         or (datetime.now().minute <= self.create_graph_minute and self.flo_params)):
                     if self.contract_handler.latest_hb is None:
                         self.log("No active contract.")
-            
+
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     async def run_d(self, session: aiohttp.ClientSession) -> None:
@@ -711,16 +722,16 @@ class Atn(ActorInterface, Proactor):
             BufferAvailableKwh=buffer_available_kwh,
             HouseAvailableKwh=house_available_kwh
         )
-        self._links.publish_message(
+        self.services.publish_message(
             self.SCADA_MQTT, 
             Message(Src=self.publication_name, Dst="broadcast", Payload=self.flo_params)
         )
         self.bid_runner = BidRunner(
-            params=self.flo_params, 
+            params=self.flo_params,
             atn_settings=self.settings,
             atn_name=self.name, 
             atn_g_node_alias=self.layout.atn_g_node_alias,
-            send_threadsafe=self.send_threadsafe,
+            send_threadsafe=self.services.send_threadsafe,
             on_complete=self._cleanup_bid_runner,
             logger=self.logger.add_category_logger(
                 DGraph.LOGGER_NAME,
@@ -784,7 +795,7 @@ class Atn(ActorInterface, Proactor):
                 CreatedMs=int(time.time() * 1000)
             )
             self.contract_handler.latest_bid = None
-            self.send_threadsafe(
+            self.services.send_threadsafe(
                 Message(Src=self.name, Dst=self.name, Payload=glitch))
             self.log("Sent glitch for invalid bid timeframe and set latest bid to None")
             return
@@ -801,7 +812,7 @@ class Atn(ActorInterface, Proactor):
         pq_pairs = [
             (x.PriceTimes1000, x.QuantityTimes1000) for x in self.contract_handler.latest_bid.PqPairs
         ]
-        sorted_pq_pairs = sorted(pq_pairs, key=lambda pair: pair[0])
+        sorted_pq_pairs = sorted(pq_pairs, key=lambda pair_: pair_[0])
         # Quantity is AvgkW, so QuantityTimes1000 is avg_w
         assert self.contract_handler.latest_bid.QuantityUnit == MarketQuantityUnit.AvgkW
         for pair in sorted_pq_pairs:
@@ -910,7 +921,7 @@ class Atn(ActorInterface, Proactor):
         except:
             self.log("Could not find RSWT!")
             return None
-        
+
     async def kmeans(self, data, k=3, max_iters=100, tol=1e-4):
         data = np.array(data).reshape(-1, 1)
         centroids = data[np.random.choice(len(data), k, replace=False)]
@@ -927,8 +938,8 @@ class Atn(ActorInterface, Proactor):
                 break
             centroids = new_centroids
         return labels
-        
-    async def get_three_layer_storage_model(self) -> Optional[Tuple[float, int]]:
+
+    async def get_three_layer_storage_model(self) -> Optional[Tuple[float, int, int, int, int]]:
         # Get all storage tank temperatures in a dict
         if self.temperature_channel_names is None:
             self.send_layout()
@@ -1086,7 +1097,7 @@ class Atn(ActorInterface, Proactor):
         house_availale_kwh = round(house_availale_kwh,2)
         self.log(f"House available kWh: {house_availale_kwh}")
         return house_availale_kwh
-    
+
     async def get_weather(self, session: aiohttp.ClientSession) -> None:
         config_dir = self.settings.paths.config_dir
         weather_file = Path(f"{config_dir}/weather.json")
@@ -1216,7 +1227,7 @@ class Atn(ActorInterface, Proactor):
                     Details="Local file had a forecast" if local_available else "Local file did not have a forecast",
                     CreatedMs=int(time.time() * 1000)
                 )
-                self.send_threadsafe(
+                self.services.send_threadsafe(
                     Message(Src=self.name, Dst=self.name, Payload=glitch))
                 self.log("Sent glitch")
                 # Return price read locally or 0
@@ -1230,7 +1241,7 @@ class Atn(ActorInterface, Proactor):
                     Details="An error occured while attempting to read from local file",
                     CreatedMs=int(time.time() * 1000)
                 )
-                self.send_threadsafe(
+                self.services.send_threadsafe(
                     Message(Src=self.name, Dst=self.name, Payload=glitch))
                 self.log("Sent glitch")
                 return 0
@@ -1346,7 +1357,7 @@ class Atn(ActorInterface, Proactor):
             )
         self.log(f"Trying to Broadcasting price(x1000) {usd_per_mwh} at the top of the hour.")
         try:
-            self.send_threadsafe(
+            self.services.send_threadsafe(
                 Message(Src=self.name, Dst=self.name, Payload=price)
             )
         except Exception as e:
@@ -1355,24 +1366,6 @@ class Atn(ActorInterface, Proactor):
     def log(self, note: str) -> None:
         log_str = f"[atn] {note}"
         self.services.logger.error(log_str)
-
-    def summary_str(self) -> str:
-        """Summarize results in a string"""
-        s = (
-            f"Atn [{self.node.Name}] total: {self._stats.num_received}  "
-            f"report:{self._stats.total_received(Report.model_fields['TypeName'].default)}  "
-            f"snapshot:{self._stats.total_received(SnapshotSpaceheat.model_fields['TypeName'].default)}"
-        )
-        if self._stats.num_received_by_topic:
-            s += "\n  Received by topic:"
-            for topic in sorted(self._stats.num_received_by_topic):
-                s += f"\n    {self._stats.num_received_by_topic[topic]:3d}: [{topic}]"
-        if self._stats.num_received_by_type:
-            s += "\n  Received by message_type:"
-            for message_type in sorted(self._stats.num_received_by_type):
-                s += f"\n    {self._stats.num_received_by_type[message_type]:3d}: [{message_type}]"
-
-        return s
 
     def set_alpha(self, alpha: float) -> None:
         if self.ha1_params is None:
@@ -1575,7 +1568,7 @@ class Atn(ActorInterface, Proactor):
         )
 
     def set_dist_010(self, val: int = 30) -> None:
-        self.send_threadsafe(
+        self.services.send_threadsafe(
             Message(
                 Src=self.name,
                 Dst=self.scada.name,
@@ -1592,7 +1585,7 @@ class Atn(ActorInterface, Proactor):
         )
 
     def set_primary_010(self, val: int = 50) -> None:
-        self.send_threadsafe(
+        self.services.send_threadsafe(
             Message(
                 Src=self.name,
                 Dst=self.scada.name,
@@ -1609,7 +1602,7 @@ class Atn(ActorInterface, Proactor):
         )
 
     def set_store_010(self, val: int = 30) -> None:
-        self.send_threadsafe(
+        self.services.send_threadsafe(
             Message(
                 Src=self.name,
                 Dst=self.scada.name,
@@ -1648,7 +1641,7 @@ class Atn(ActorInterface, Proactor):
     ):
         if isinstance(command, str):
             command = DBGCommands(command)
-        self.send_threadsafe(
+        self.services.send_threadsafe(
             Message(
                 Src=self.name,
                 Dst=self.scada.name,

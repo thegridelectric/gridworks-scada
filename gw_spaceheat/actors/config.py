@@ -1,9 +1,10 @@
 import logging
 
+from gwproactor import AppSettings
 from gwproactor.config.mqtt import TLSInfo
-from pydantic import model_validator, BaseModel
+from pydantic import BaseModel
+
 from data_classes.house_0_names import H0N
-from gwproactor import ProactorSettings
 from gwproactor.config import MQTTClient
 from pydantic_settings import SettingsConfigDict
 from enums import HpModel
@@ -19,14 +20,15 @@ class AdminLinkSettings(MQTTClient):
     name: str = H0N.admin
     max_timeout_seconds: float = 60 * 60 * 24
 
-class ScadaSettings(ProactorSettings):
+class ScadaSettings(AppSettings):
     """Settings for the GridWorks scada."""
     #logging related (temporary)
     pico_cycler_state_logging: bool = False
     power_meter_logging_level: int = logging.WARNING
     contract_rep_logging_level: int = logging.INFO
     relay_multiplexer_logging_level: int = logging.INFO
-    local_mqtt: MQTTClient = MQTTClient()
+    paho_logging: bool = False
+    local_mqtt: MQTTClient = MQTTClient(tls=TLSInfo(use_tls=False))
     gridworks_mqtt: MQTTClient = MQTTClient()
     seconds_per_report: int = 300
     seconds_per_snapshot: int = 30
@@ -53,16 +55,4 @@ class ScadaSettings(ProactorSettings):
     hp_model: HpModel = HpModel.SamsungFiveTonneHydroKit # TODO: move to layout
     model_config = SettingsConfigDict(env_prefix="SCADA_", extra="ignore")
 
-    HpModel.LgHighTempHydroKitPlusMultiV
 
-    @model_validator(mode="before")
-    @classmethod
-    def pre_root_validator(cls, values: dict) -> dict:
-        """local_mqtt configuration should be without TLS unless explicitly requested."""
-        if "local_mqtt" not in values:
-            values["local_mqtt"] = MQTTClient(tls=TLSInfo(use_tls=False))
-        elif "tls" not in values["local_mqtt"]:
-            values["local_mqtt"]["tls"] = TLSInfo(use_tls=False)
-        elif "use_tls" not in values["local_mqtt"]["tls"]:
-            values["local_mqtt"]["tls"]["use_tls"] = False
-        return values

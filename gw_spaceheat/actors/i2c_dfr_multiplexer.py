@@ -4,8 +4,8 @@ import time
 import smbus2
 from typing import Any, Dict, List, Optional, Sequence, cast
 
-from gwproactor import  MonitoredName
-from gwproactor.message import PatInternalWatchdogMessage
+from gwproactor import  MonitoredName, AppInterface
+from gwproactor.message import Message, PatInternalWatchdogMessage
 from gwproto.data_classes.components.dfr_component import DfrComponent
 from data_classes.house_0_layout import House0Layout
 from gwproto.data_classes.sh_node import ShNode
@@ -38,7 +38,7 @@ class I2cDfrMultiplexer(ScadaActor):
     def __init__(
         self,
         name: str,
-        services: ScadaInterface,
+        services: AppInterface,
     ):
         super().__init__(name, services)
         self.is_simulated = self.settings.is_simulated

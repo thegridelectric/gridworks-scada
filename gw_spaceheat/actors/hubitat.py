@@ -5,7 +5,7 @@ from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 from gwproactor import Actor
 from gwproactor import Problems
-from gwproactor import ServicesInterface
+from gwproactor import AppInterface
 from gwproto import Message
 from gwproto.data_classes.components.hubitat_component import HubitatComponent
 from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
@@ -26,7 +26,7 @@ class Hubitat(Actor, HubitatWebServerInterface):
     def __init__(
         self,
         name: str,
-        services: ServicesInterface,
+        services: AppInterface,
     ):
         component = services.hardware_layout.component(name)
         if not isinstance(component, HubitatComponent):

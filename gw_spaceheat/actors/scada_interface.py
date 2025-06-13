@@ -1,23 +1,19 @@
-"""GridWorks Scada functionality beyond proactor.ServicesInterface"""
+"""GridWorks Scada functionality beyond proactor.AppInterface"""
 
 from abc import ABC
 from abc import abstractmethod
 
 from gwproactor import ActorInterface
-from actors.config import ScadaSettings
 from actors.scada_data import ScadaData
-from gwproactor.proactor_interface import ServicesInterface
 
 
-class ScadaInterface(ServicesInterface, ActorInterface, ABC):
-
-    @property
-    @abstractmethod
-    def settings(self) -> ScadaSettings:
-        ...
+class ScadaInterface(ActorInterface, ABC):
+    ATN_MQTT: str = "gridworks_mqtt"
+    LOCAL_MQTT: str = "local_mqtt"
+    ADMIN_MQTT: str = "admin"
 
     @property
     @abstractmethod
     def data(self) -> ScadaData:
-        ...
+        raise NotImplementedError
 

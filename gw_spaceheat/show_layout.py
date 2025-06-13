@@ -13,14 +13,13 @@ from rich import print
 from rich.table import Table
 from rich.text import Text
 
-from actors import Scada
 from actors.config import ScadaSettings
-from command_line_utils import get_nodes_run_by_scada
 from command_line_utils import get_requested_names
-from gwproactor.config import MQTTClient
 from gw.errors import DcError
 from data_classes.house_0_layout import House0Layout
 from gwproto.enums import ActorClass
+
+from scada_app import ScadaApp
 
 
 def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
@@ -228,21 +227,17 @@ def print_layout_urls(layout: House0Layout) -> None:
                 print(f"    {k}: {str(v)}")
 
 def print_web_server_info(
-    layout: House0Layout,
-    requested_aliases: Optional[set[str]],
     settings: ScadaSettings,
 ) -> None:
-    scada = try_scada_load(
-        requested_aliases,
-        layout,
+    scada_app = try_scada_load(
         settings,
         raise_errors=False
     )
-    if scada is None:
+    if scada_app is None:
         print("Cannot print Web server configs and routes since Scada could not be loaded")
     else:
-        web_configs = scada.get_web_server_configs()
-        web_routes = scada.get_web_server_route_strings()
+        web_configs = scada_app.get_web_server_configs()
+        web_routes = scada_app.get_web_server_route_strings()
         print(f"Web server configs: {len(web_configs)}")
         if web_configs.keys() != web_routes.keys():
            print(
@@ -335,16 +330,15 @@ def print_layout_table(layout: House0Layout):
         table.add_row(node.Name, component_txt, cac_txt, make_model_text, actor_text)
     print(table)
 
-def try_scada_load(requested_names: Optional[set[str]], layout: House0Layout, settings: ScadaSettings, raise_errors: bool = False) -> Optional[Scada]:
+def try_scada_load(settings: ScadaSettings, raise_errors: bool = False) -> Optional[ScadaApp]:
     settings = settings.model_copy(deep=True)
     settings.paths.mkdirs()
-    scada_node, actor_nodes = get_nodes_run_by_scada(requested_names, layout, Scada.DEFAULT_ACTORS_MODULE)
-    scada = None
-    for k, v in settings.model_fields.items():
-        if isinstance(v, MQTTClient):
-            v.tls.use_tls = False
+    scada_app = None
     try:
-        scada = Scada(name=scada_node.Name, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
+        scada_app = ScadaApp(
+            app_settings=settings,
+        )
+        scada_app.instantiate()
     except (
             DcError,
             KeyError,
@@ -358,32 +352,29 @@ def try_scada_load(requested_names: Optional[set[str]], layout: House0Layout, se
         print("Use '-r' to see full error stack.")
         if raise_errors:
             raise e
-    return scada
+    return scada_app
 
 def show_layout(
         layout: House0Layout,
-        requested_names: Optional[set[str]],
         settings: ScadaSettings,
         raise_errors: bool = False,
         errors: Optional[list[LoadError]] = None,
         table_only: bool = False,
-) -> Scada:
+) -> ScadaApp:
     if errors is None:
         errors = []
     if not table_only:
         print_component_dicts(layout)
         print_layout_members(layout, errors)
         print_layout_urls(layout)
-        print_web_server_info(layout, requested_names, settings)
+        print_web_server_info(settings)
         print_channels(layout, raise_errors=raise_errors)
     print_layout_table(layout)
-    scada = try_scada_load(
-        requested_names,
-        layout,
+    scada_app = try_scada_load(
         settings,
         raise_errors=raise_errors
     )
-    return scada
+    return scada_app
 
 def main(argv: Optional[Sequence[str]] = None) -> list[LoadError]:
     args = parse_args(argv)
@@ -408,7 +399,6 @@ def main(argv: Optional[Sequence[str]] = None) -> list[LoadError]:
     )
     show_layout(
         layout,
-        requested_names,
         settings,
         raise_errors=args.raise_errors,
         errors=errors,
