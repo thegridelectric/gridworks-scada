@@ -60,7 +60,7 @@ class ScadaApp(App, ScadaAppInterface):
     # Scada uses dotenv.find_dotenv($PWD/.env) in multiple clis and also
     # internally in at least two places (updating env vars and in eGauge
     # "be_the_proxy()"). We don't expect this function to be called, but we
-    # make it consisten in case it is called.
+    # make it consistent in case it is called.
     @classmethod
     def default_env_path(cls) -> Path:
         return Path(".env")
