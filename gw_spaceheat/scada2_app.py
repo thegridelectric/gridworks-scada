@@ -43,7 +43,7 @@ class Scada2App(App, ScadaAppInterface):
         return "scada2"
 
     # We don't expect this function to be called, but we
-    # make it consisten in case it is called. See similar note in Scada.
+    # make it consistent in case it is called. See similar note in Scada.
     @classmethod
     def default_env_path(cls) -> Path:
         return Path(".env")

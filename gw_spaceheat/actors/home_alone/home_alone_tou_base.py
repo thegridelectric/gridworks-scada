@@ -16,7 +16,7 @@ from result import Ok, Result
 from transitions import Machine
 from data_classes.house_0_names import H0N, H0CN
 from gwproto.data_classes.components.dfr_component import DfrComponent
-
+from enums import HomeAloneStrategy
 from actors.scada_actor import ScadaActor
 from actors.scada_interface import ScadaInterface
 from named_types import (ActuatorsReady,
@@ -67,10 +67,11 @@ class HomeAloneTouBase(ScadaActor):
         self.hardware_layout = self._services.hardware_layout
         
         self.time_since_blind: Optional[float] = None
-        self.relays_initialized = False
         self.scadablind_scada = False
         self.scadablind_boiler = False
-        
+        self.strategy = HomeAloneStrategy(getattr(self.node, "Strategy", None))
+        if self.strategy is None:
+            raise Exception("Expect to have a HomeAlone strategy!!")
         self.top_machine = Machine(
             model=self,
             states=HomeAloneTouBase.top_states,
@@ -97,6 +98,7 @@ class HomeAloneTouBase(ScadaActor):
             raise Exception(f"HomeAlone requires {H0N.home_alone_onpeak_backup} node!!")
         self.set_command_tree(boss_node=self.normal_node)
         self.latest_temperatures: Dict[str, int] = {} # 
+        self.actuators_initialized = False
         self.actuators_ready = False
 
     @property
@@ -154,6 +156,7 @@ class HomeAloneTouBase(ScadaActor):
         Trigger top event. Set relays_initialized to False if top state
         is Dormant. Report state change.
         """
+        orig_state = self.top_state
         now_ms = int(time.time() * 1000)
         if cause == TopStateEvent.HouseColdOnpeak:
             self.HouseColdOnpeak()
@@ -174,8 +177,10 @@ class HomeAloneTouBase(ScadaActor):
         else:
             raise Exception(f"Unknown top event {cause}")
         
-        if self.top_state == HomeAloneTopState.Dormant:
-            self.relays_initialized = False
+        self.log(f"Top State {cause.value}: {orig_state} -> {self.top_state}")
+        if self.top_state == HomeAloneTopState.Normal:
+            self.actuators_initialized = False
+            self.log(f"need to initialize actuators again")
 
         self._send_to(
             self.primary_scada,
@@ -197,8 +202,9 @@ class HomeAloneTouBase(ScadaActor):
         await asyncio.sleep(5)
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
+
             self.log(f"Top state: {self.top_state}")
-            self.log(f"State: {self.normal_node_state()}")
+            self.log(f"HaStrategy: {self.strategy.value}  |  State: {self.normal_node_state()}")
 
             # update zone setpoints if just before a new onpeak
             if  self.just_before_onpeak() or self.zone_setpoints=={}:
@@ -244,8 +250,8 @@ class HomeAloneTouBase(ScadaActor):
         return True
 
     def temperatures_available(self) -> bool:
-        total_usable_kwh = self.data.latest_channel_values[H0N.usable_energy]
-        required_storage = self.data.latest_channel_values[H0N.required_energy]
+        total_usable_kwh = self.data.latest_channel_values[H0CN.usable_energy]
+        required_storage = self.data.latest_channel_values[H0CN.required_energy]
         if total_usable_kwh is None or required_storage is None:
             return False
 
@@ -293,7 +299,7 @@ class HomeAloneTouBase(ScadaActor):
 
     def initialize_actuators(self):
         if not self.actuators_ready:
-            self.log(f"Waiting to initialize actuators until they are ready!")
+            self.log(f"Waiting to initialize actuators until actuator drivers are ready!")
             return
         self.log("Initializing relays")
         if self.top_state != HomeAloneTopState.Normal:
@@ -336,7 +342,7 @@ class HomeAloneTouBase(ScadaActor):
             self.set_010_defaults()
         except ValueError as e:
             self.log(f"Trouble with set_010_defaults: {e}")
-        self.relays_initialized = True
+        self.actuators_initialized = True
 
     def trigger_house_cold_onpeak_event(self) -> None:
         """
@@ -554,8 +560,8 @@ class HomeAloneTouBase(ScadaActor):
         
     def is_storage_empty(self):
         if not self.is_simulated:
-            if H0N.usable_energy in self.data.latest_channel_values.keys():
-                total_usable_kwh = self.data.latest_channel_values[H0N.usable_energy] / 1000
+            if H0CN.usable_energy in self.data.latest_channel_values.keys():
+                total_usable_kwh = self.data.latest_channel_values[H0CN.usable_energy] / 1000
             else:
                 total_usable_kwh = 0
         else:

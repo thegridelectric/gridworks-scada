@@ -43,10 +43,11 @@ from gwproto.messages import (EventBase, PowerWatts, Report, ReportEvent)
 from gwproto.named_types import AnalogDispatch, SendSnap, MachineStates
 from actors.atn_contract_handler import AtnContractHandler
 from enums import ContractStatus, LogLevel
-from named_types import (AtnBid, FloParamsHouse0, Glitch, Ha1Params, LatestPrice, LayoutLite, 
-                         NoNewContractWarning,
-                         ScadaParams, SendLayout,
-                         SlowContractHeartbeat,  SnapshotSpaceheat)
+from named_types import (
+    AtnBid, FloParamsHouse0, Glitch, Ha1Params, LatestPrice, LayoutLite, NoNewContractWarning,
+    ResetHpKeepValue, ScadaParams, SendLayout, SetLwtControlParams, SiegLoopEndpointValveAdjustment,
+    SlowContractHeartbeat,  SnapshotSpaceheat, StartListeningToAtn, StopListeningToAtn
+)
 
 from paho.mqtt.client import MQTTMessageInfo
 from pydantic import BaseModel
@@ -277,6 +278,8 @@ class Atn(PrimeActor):
         self.send_bid_minute: int = 57
         min_minute = min(max(3, datetime.now().minute), self.send_bid_minute-2)
         self.create_graph_minute: int = random.randint(min_minute, self.send_bid_minute-1)
+        # TODO: read strategy from hardware layout: node = hardware_layout.node(...)
+        self.buffer_flo = False
 
     @classmethod
     def get_codec_factory(cls) -> AtnCodecFactory:
@@ -404,6 +407,11 @@ class Atn(PrimeActor):
                 self.process_snapshot(decoded.Payload)
             case SlowContractHeartbeat():
                 self.contract_handler.process_slow_contract_heartbeat(decoded.Payload)
+            case StartListeningToAtn():
+                self.start_sending_contracts()
+            case StopListeningToAtn():
+                # TODO: break current active contract as well
+                self.stop_sending_contracts()
             case EventBase():
                 path_dbg |= 0x00000040
                 self._process_event(decoded.Payload)
@@ -694,6 +702,7 @@ class Atn(PrimeActor):
             InitialBottomTempF=int(b),
             InitialThermocline1= int(th1*2),
             InitialThermocline2= int(th2*2),
+            StorageVolumeGallons = 120 if self.buffer_flo else 360,
             # TODO: price and weather forecasts should include the current hour if we are running a partial hour
             LmpForecast=self.price_forecast.lmp_usd_per_mwh,
             DistPriceForecast=self.price_forecast.dp_usd_per_mwh,
@@ -939,11 +948,13 @@ class Atn(PrimeActor):
         if not self.temperatures_available:
             self.log("Not enough tank temperatures available to compute top temperature and thermocline!")
             return None
-        all_store_layers = sorted([x for x in self.temperature_channel_names if "tank" in x])
+        all_layers = sorted(
+            [x for x in self.temperature_channel_names if ("buffer" if self.buffer_flo else "tank") in x]
+        )
         try:
             tank_temps = {
-                key: self.to_fahrenheit(self.latest_temperatures[key] / 1000)
-                for key in all_store_layers
+                key: self.to_fahrenheit(self.latest_temperatures[key] / 1000) 
+                for key in all_layers
             }
         except KeyError as e:
             self.log(f"Failed to get all the tank temps in get_three_layer_storage_model! Bailing on process {e}")
@@ -1034,6 +1045,8 @@ class Atn(PrimeActor):
                 return top_temp, top_temp, top_temp, thermocline1, thermocline1
     
     async def get_buffer_available_kwh(self):
+        if self.buffer_flo:
+            return 0
         if self.temperature_channel_names is None:
             self.send_layout()
             await asyncio.sleep(5)
@@ -1471,6 +1484,88 @@ class Atn(PrimeActor):
             except Exception as e:
                 self.logger.error(f"Failed to set LoadOverestimationPercent! {e}")
 
+    def set_keep_seconds(self, val: int = 0) -> None:
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.scada.name,
+                Payload=AnalogDispatch(
+                    FromGNodeAlias=self.layout.atn_g_node_alias,
+                    FromHandle=f"{H0N.atn}",
+                    ToHandle=f"{H0N.atn}.{H0N.atomic_ally}",
+                    AboutName=H0N.sieg_loop,
+                    Value=val,
+                    TriggerId=str(uuid.uuid4()),
+                    UnixTimeMs=int(time.time() * 1000),
+                ),
+            )
+        )
+
+    def reset_keep_seconds(self, new_seconds: float) -> None:
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.scada.name,
+                Payload=ResetHpKeepValue(
+                    FromHandle=f"{H0N.atn}",
+                    ToHandle=f"{H0N.atn}.{H0N.atomic_ally}",
+                    HpKeepSecondsTimes10=round(new_seconds * 10),
+                ),
+            )
+        )
+
+    def send_harder(self, seconds: int) -> None:
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.scada.name,
+                Payload=SiegLoopEndpointValveAdjustment(
+                    FromHandle=f"{H0N.atn}",
+                    ToHandle=f"{H0N.atn}.{H0N.atomic_ally}",
+                    HpKeepPercent=0,
+                    Seconds=seconds,
+                ),
+            )
+        )
+
+    def set_lwt_control_params(self,
+        proportional_gain: float = 5.0,
+        integral_gain: float = 2,
+        derivative_gain: float = 1,
+        control_interval_seconds: int = 5,
+        t1: int = 15,
+        t2: int = 65
+    ) -> None:
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.scada.name,
+                Payload=SetLwtControlParams(
+                    FromHandle=H0N.atn,
+                    ToHandle=f"{H0N.atn}.{H0N.atomic_ally}",
+                    ProportionalGain=proportional_gain,
+                    IntegralGain=integral_gain,
+                    DerivativeGain=derivative_gain,
+                    ControlIntervalSeconds=control_interval_seconds,
+                    T1=t1,
+                    T2=t2,
+                ),
+            )
+        )
+
+    def keep_harder(self, seconds: int) -> None:
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.scada.name,
+                Payload=SiegLoopEndpointValveAdjustment(
+                    FromHandle=f"{H0N.atn}",
+                    ToHandle=f"{H0N.atn}.{H0N.atomic_ally}",
+                    HpKeepPercent=100,
+                    Seconds=seconds,
+                ),
+            )
+        )
 
     def set_dist_010(self, val: int = 30) -> None:
         self.services.send_threadsafe(
