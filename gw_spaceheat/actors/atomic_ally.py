@@ -5,7 +5,6 @@ import uuid
 from enum import auto
 from typing import cast, List, Sequence, Optional
 
-import pytz
 from data_classes.house_0_names import H0CN, H0N
 from gw.enums import GwStrEnum
 from gwproactor import MonitoredName, ServicesInterface
@@ -15,7 +14,7 @@ from gwproto.data_classes.sh_node import ShNode
 from gwproto.data_classes.components.dfr_component import DfrComponent
 
 from gwproto.enums import ActorClass, FsmReportType, RelayClosedOrOpen
-from gwproto.named_types import (AnalogDispatch, FsmAtomicReport, FsmFullReport)
+from gwproto.named_types import AnalogDispatch, FsmAtomicReport, FsmFullReport, PicoTankModuleComponentGt
 from result import Ok, Result
 from transitions import Machine
 
@@ -98,11 +97,14 @@ class AtomicAlly(ScadaActor):
         self._stop_requested: bool = False
         # Temperatures
         self.cn: H0CN = self.layout.channel_names
-        self.temperature_channel_names = [
-            H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4,
+        buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3]
+        tank_depths = [depth for tank in self.cn.tank.values() for depth in [tank.depth1, tank.depth2, tank.depth3]]
+        if cast(PicoTankModuleComponentGt, self.layout.nodes['tank1'].component).PicoAHwUid:
+            buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4]
+            tank_depths = [depth for tank in self.cn.tank.values() for depth in [tank.depth1, tank.depth2, tank.depth3, tank.depth4]]
+        self.temperature_channel_names = buffer_depths + tank_depths + [
             H0CN.hp_ewt, H0CN.hp_lwt, H0CN.dist_swt, H0CN.dist_rwt, 
-            H0CN.buffer_cold_pipe, H0CN.buffer_hot_pipe, H0CN.store_cold_pipe, H0CN.store_hot_pipe,
-            *(depth for tank in self.cn.tank.values() for depth in [tank.depth1, tank.depth2, tank.depth3, tank.depth4])
+            H0CN.buffer_cold_pipe, H0CN.buffer_hot_pipe, H0CN.store_cold_pipe, H0CN.store_hot_pipe
         ]
         self.temperatures_available: bool = False
         self.no_temps_since: Optional[int] = None
@@ -563,6 +565,8 @@ class AtomicAlly(ScadaActor):
     def is_buffer_full(self, really_full=False) -> bool:
         if H0CN.buffer.depth4 in self.latest_temperatures:
             buffer_full_ch = H0CN.buffer.depth4
+        elif H0CN.buffer.depth3 in self.latest_temperatures:
+            buffer_full_ch = H0CN.buffer.depth3
         elif H0CN.buffer_cold_pipe in self.latest_temperatures:
             buffer_full_ch = H0CN.buffer_cold_pipe
         elif "StoreDischarge" in self.state and H0CN.store_cold_pipe in self.latest_temperatures:

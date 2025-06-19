@@ -75,15 +75,18 @@ class ApiTankModule(ScadaActor):
             )
         self.pico_a_uid = self._component.gt.PicoAHwUid
         self.pico_b_uid = self._component.gt.PicoBHwUid
+        self.pico_uid = self._component.gt.PicoHwUid
         # use the following for generate pico offline reports for triggering the pico cycler
         self.last_heard_a = time.time()
         self.last_heard_b = time.time()
+        self.last_heard = time.time()
         self.last_error_report = time.time()
         try:
             self.depth1_channel = self.layout.data_channels[f"{self.name}-depth1"]
             self.depth2_channel = self.layout.data_channels[f"{self.name}-depth2"]
             self.depth3_channel = self.layout.data_channels[f"{self.name}-depth3"]
-            self.depth4_channel = self.layout.data_channels[f"{self.name}-depth4"]
+            if self.pico_b_uid:
+                self.depth4_channel = self.layout.data_channels[f"{self.name}-depth4"]
         except KeyError as e:
             raise Exception(f"Problem setting up ApiTankModule channels! {e}")
 
@@ -135,6 +138,11 @@ class ApiTankModule(ScadaActor):
                 self._component.gt.PicoBHwUid is None
                 or self._component.gt.PicoBHwUid == params.HwUid
             )
+        elif params.PicoAB is None:
+            return (
+                self._component.gt.PicoHwUid is None 
+                or self._component.gt.PicoHwUid == params.HwUid
+            )
         return False
 
     def need_to_update_layout(self, params: TankModuleParams) -> bool:
@@ -145,6 +153,11 @@ class ApiTankModule(ScadaActor):
                 return True
         elif params.PicoAB == "b":
             if self._component.gt.PicoBHwUid:
+                return False
+            else:
+                return True
+        elif params.PicoAB is None:
+            if self._component.gt.PicoHwUid:
                 return False
             else:
                 return True
@@ -185,14 +198,16 @@ class ApiTankModule(ScadaActor):
             if self.need_to_update_layout(params):
                 if params.PicoAB == "a":
                     self.pico_a_uid = params.HwUid
-                else:
+                elif params.PicoAB == "b":
                     self.pico_b_uid = params.HwUid
+                else:
+                    self.pico_uid = params.HwUid
+                pico_ab_string = "" if not params.PicoAB else params.PicoAB.capitalize()
                 self.log(f"UPDATE LAYOUT!!: In layout_gen, go to add_tank2 {self.name} "
-                    f"and add Pico{params.PicoAB.capitalize()}HwUid = '{params.HwUid}'"
-                )
-                # TODO: send message to self so that writing to hardware layout isn't
-                # happening in IO loop
-            self.pico_state_log(f"{self.name}-{params.PicoAB}, {params.HwUid} ")
+                         f"and add Pico{pico_ab_string}HwUid = '{params.HwUid}'"
+                         )
+                    # TODO: send message to self so that writing to hardware layout isn't happening in IO loop
+            self.pico_state_log(f"{self.name}{'-'if params.PicoAB else ''}{pico_ab_string}, {params.HwUid} ")
             return Response(text=new_params.model_dump_json())
         else:
             # A strange pico is identifying itself as our "a" tank
@@ -221,6 +236,8 @@ class ApiTankModule(ScadaActor):
             self.last_heard_a = time.time()
         elif data.HwUid == self.pico_b_uid:
             self.last_heard_b = time.time()
+        elif data.HwUid == self.pico_uid:
+            self.last_heard = time.time()
         else:
             self.log(
                 f"{self.name}: Ignoring data from pico {data.HwUid} - not recognized!"
@@ -297,12 +314,15 @@ class ApiTankModule(ScadaActor):
 
     def b_missing(self) -> bool:
         return time.time() - self.last_heard_b > self.flatline_seconds()
+    
+    def missing(self) -> bool:
+        return time.time() - self.last_heard > self.flatline_seconds()
 
     async def main(self):
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
             if self.last_error_report > FLATLINE_REPORT_S:
-                if self.a_missing():
+                if self.pico_a_uid and self.a_missing():
                     self._send_to(
                         self.pico_cycler,
                         PicoMissing(ActorName=self.name, PicoHwUid=self.pico_a_uid),
@@ -316,7 +336,7 @@ class ApiTankModule(ScadaActor):
                         ChannelFlatlined(FromName=self.name, Channel=self.depth2_channel)
                     )
                     self.last_error_report = time.time()
-                if self.b_missing():
+                if self.pico_b_uid and self.b_missing():
                     self._send_to(
                         self.pico_cycler,
                         PicoMissing(ActorName=self.name, PicoHwUid=self.pico_b_uid),
@@ -328,6 +348,24 @@ class ApiTankModule(ScadaActor):
                     self._send_to(
                         self.primary_scada,
                         ChannelFlatlined(FromName=self.name, Channel=self.depth4_channel)
+                    )
+                    self.last_error_report = time.time()
+                if self.pico_uid and self.missing():
+                    self._send_to(
+                        self.pico_cycler,
+                        PicoMissing(ActorName=self.name, PicoHwUid=self.pico_uid),
+                    )
+                    self._send_to(
+                        self.primary_scada,
+                        ChannelFlatlined(FromName=self.name, Channel=self.depth1_channel)
+                    )
+                    self._send_to(
+                        self.primary_scada,
+                        ChannelFlatlined(FromName=self.name, Channel=self.depth2_channel)
+                    )
+                    self._send_to(
+                        self.primary_scada,
+                        ChannelFlatlined(FromName=self.name, Channel=self.depth3_channel)
                     )
                     self.last_error_report = time.time()
             await asyncio.sleep(10)
