@@ -257,8 +257,8 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
             self.turn_off_HP(from_node=self.normal_node)
 
     def is_buffer_empty(self, really_empty=False) -> bool:
-        if H0CN.buffer.depth2 in self.latest_temperatures:
-            if really_empty:
+        if H0CN.buffer.depth1 in self.latest_temperatures:
+            if really_empty or cast(PicoTankModuleComponentGt, self.layout.nodes['buffer']).PicoHwUid:
                 buffer_empty_ch = H0CN.buffer.depth1
             else:
                 buffer_empty_ch = H0CN.buffer.depth2
