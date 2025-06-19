@@ -152,7 +152,7 @@ class WinterTouHomeAlone(HomeAloneTouBase):
         '''Default is 3 layers per tank but can be 4 if PicoAHwUid is specified'''
         buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3]
         tank_depths = [depth for tank in self.cn.tank.values() for depth in [tank.depth1, tank.depth2, tank.depth3]]
-        if cast(PicoTankModuleComponentGt, self.layout.nodes['buffer'].component).PicoAHwUid:
+        if cast(PicoTankModuleComponentGt, self.layout.nodes['buffer'].component.gt).PicoAHwUid:
             buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4]
             tank_depths = [depth for tank in self.cn.tank.values() for depth in [tank.depth1, tank.depth2, tank.depth3, tank.depth4]]
         return buffer_depths + tank_depths + [
@@ -343,7 +343,7 @@ class WinterTouHomeAlone(HomeAloneTouBase):
 
     def is_buffer_empty(self, really_empty=False) -> bool:
         if H0CN.buffer.depth1 in self.latest_temperatures:
-            if really_empty or cast(PicoTankModuleComponentGt, self.layout.nodes['buffer']).PicoHwUid:
+            if really_empty or not cast(PicoTankModuleComponentGt, self.layout.nodes['buffer'].component.gt).PicoAHwUid:
                 buffer_empty_ch = H0CN.buffer.depth1
             else:
                 buffer_empty_ch = H0CN.buffer.depth2

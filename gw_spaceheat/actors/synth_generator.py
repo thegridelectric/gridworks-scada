@@ -35,7 +35,7 @@ class SynthGenerator(ScadaActor):
         self.layers_per_tank = 3
         buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3]
         tank_depths = [depth for tank in self.cn.tank.values() for depth in [tank.depth1, tank.depth2, tank.depth3]]
-        if cast(PicoTankModuleComponentGt, self.layout.nodes['buffer'].component).PicoAHwUid:
+        if cast(PicoTankModuleComponentGt, self.layout.nodes['buffer'].component.gt).PicoAHwUid:
             self.layers_per_tank = 4
             buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4]
             tank_depths = [depth for tank in self.cn.tank.values() for depth in [tank.depth1, tank.depth2, tank.depth3, tank.depth4]]
