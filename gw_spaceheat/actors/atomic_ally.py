@@ -99,7 +99,7 @@ class AtomicAlly(ScadaActor):
         self.cn: H0CN = self.layout.channel_names
         buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3]
         tank_depths = [depth for tank in self.cn.tank.values() for depth in [tank.depth1, tank.depth2, tank.depth3]]
-        if cast(PicoTankModuleComponentGt, self.layout.nodes['tank1'].component).PicoAHwUid:
+        if cast(PicoTankModuleComponentGt, self.layout.nodes['buffer']).PicoAHwUid:
             buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4]
             tank_depths = [depth for tank in self.cn.tank.values() for depth in [tank.depth1, tank.depth2, tank.depth3, tank.depth4]]
         self.temperature_channel_names = buffer_depths + tank_depths + [
