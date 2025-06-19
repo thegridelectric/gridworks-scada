@@ -27,4 +27,4 @@ class SnapshotSpaceheat(BaseModel):
     LatestReadingList: List[SingleReading]
     LatestStateList: List[SingleMachineState]
     TypeName: Literal["snapshot.spaceheat"] = "snapshot.spaceheat"
-    Version: Literal["002"] = "002"
+    Version: Literal["003"] = "003"
