@@ -7,7 +7,7 @@ from aiohttp import ClientResponse
 from aiohttp import ClientSession
 from gwproactor import Actor
 from gwproactor import Problems
-from gwproactor import ServicesInterface
+from gwproactor import AppInterface
 from gwproactor.actors.rest import RESTPoller
 from gwproto import Message
 from gwproto.data_classes.components.hubitat_component import HubitatComponent
@@ -40,7 +40,7 @@ class HubitatRESTPoller(RESTPoller):
             self,
             name: str,
             component: HubitatPollerComponent,
-            services: ServicesInterface,
+            services: AppInterface,
     ):
         self._report_dst = services.name
         self._component = component
@@ -156,7 +156,7 @@ class HubitatPoller(Actor, HubitatWebEventListenerInterface):
     def __init__(
         self,
         name: str,
-        services: ServicesInterface,
+        services: AppInterface,
     ):
         component = services.hardware_layout.component(name)
         if not isinstance(component, HubitatPollerComponent):

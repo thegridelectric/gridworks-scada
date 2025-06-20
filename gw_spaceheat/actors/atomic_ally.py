@@ -8,7 +8,7 @@ from typing import cast, List, Sequence, Optional
 import pytz
 from data_classes.house_0_names import H0CN, H0N
 from gw.enums import GwStrEnum
-from gwproactor import MonitoredName, ServicesInterface
+from gwproactor import MonitoredName, AppInterface
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwproto.data_classes.sh_node import ShNode
@@ -93,7 +93,7 @@ class AtomicAlly(ScadaActor):
     ] 
     )
 
-    def __init__(self, name: str, services: ServicesInterface):
+    def __init__(self, name: str, services: AppInterface):
         super().__init__(name, services)
         self._stop_requested: bool = False
         # Temperatures
@@ -124,10 +124,6 @@ class AtomicAlly(ScadaActor):
         self.storage_full_since = time.time()
         if H0N.atomic_ally not in self.layout.nodes:
             raise Exception(f"AtomicAlly requires {H0N.atomic_ally} node!!")
-    
-    @property
-    def data(self) -> ScadaData:
-        return self._services.data
 
     @property
     def remaining_watthours(self) -> Optional[int]:

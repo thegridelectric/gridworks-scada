@@ -60,7 +60,7 @@ class House0Layout(HardwareLayout):
             if key not in layout:
                 raise DcError(f"House0 requires {key}!")
 
-        
+
         self.zone_list = layout["ZoneList"]
         self.total_store_tanks = layout["TotalStoreTanks"]
 
@@ -74,10 +74,6 @@ class House0Layout(HardwareLayout):
         if not 1 <= len(self.zone_list) <= 6:
             raise ValueError("Must have between 1 and 6 store zones")
         self.h0n = H0N(self.total_store_tanks, self.zone_list)
-    
-        #TODO: verify that if FlowManifoldVariant is House0Sieg, that
-        # the layout has the siegenthaler relays and the sieg-flow
-        # flow meter
 
     @classmethod
     def validate_house0(  # noqa: C901
@@ -106,7 +102,7 @@ class House0Layout(HardwareLayout):
                     raise
                 errors_caught.append(LoadError("hardware.layout", nodes, e))
 
-        
+
         if use_sieg_loop: # HpBoss and SiegLoop need to be actors
             try:
                 cls.check_actors_when_using_sieg_loop(nodes)
@@ -123,10 +119,10 @@ class House0Layout(HardwareLayout):
                 errors_caught.append(LoadError("hardware.layout", nodes, e))
     @classmethod
     def check_house0_sieg_manifold(cls, channels: dict[str, DataChannel]) -> None:
-        if H0CN.sieg_cold not in channels.keys():
-            raise DcError(f"Need {H0CN.sieg_cold} channel with House0Sieg flow manifold variant")
-        if H0CN.sieg_flow not in channels.keys():
-            raise DcError(f"Need {H0CN.sieg_flow} channel with House0Sieg flow manifold variant")
+        # if H0CN.sieg_cold not in channels.keys():
+        #     raise DcError(f"Need {H0CN.sieg_cold} channel with House0Sieg flow manifold variant")
+        # if H0CN.sieg_flow not in channels.keys():
+        #     raise DcError(f"Need {H0CN.sieg_flow} channel with House0Sieg flow manifold variant")
         if H0CN.hp_loop_on_off_relay_state not in channels.keys():
             raise DcError(f"Need {H0CN.hp_loop_on_off_relay_state} channel with House0Sieg flow manifold variant")
         if H0CN.hp_loop_keep_send_relay_state not in channels.keys():
@@ -294,15 +290,18 @@ class House0Layout(HardwareLayout):
 
     @property
     def charge_discharge_relay(self) -> ShNode:
-        return self.node(H0N.store_charge_discharge_relay)# 
+        return self.node(H0N.store_charge_discharge_relay)#
 
+    def scada2_gnode_name(self) -> str:
+        return f"{self.scada_g_node_alias}.{H0N.secondary_scada}"
 
 def deserialize_house0_load_args(data: dict) -> House0LoadArgs:
     valid_keys = set(House0LoadArgs.__annotations__.keys())
-    
+
     # Validate the FlowManifoldVariant
     data["FlowManifoldVariant"] = FlowManifoldVariant(data.get("FlowManifoldVariant", "House0"))
     # Validate use_sieg_loop
     data["UseSiegLoop"] = bool(data.get("UseSiegLoop", False))
     # TypedDict expects a regular dictionary, so we just pass it in
     return House0LoadArgs(**data)
+

@@ -1,13 +1,17 @@
 import time
+import typing
 import uuid
-from typing import Any, Dict, List, Optional, cast
+from abc import ABC
+from typing import cast, Any, Dict, List, Optional
 import pytz
+from gwproactor import QOS
+
+from actors.config import ScadaSettings
 from actors.scada_data import ScadaData
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0N, H0CN, House0RelayIdx
 from gw.errors import DcError
-from actors.scada_interface import ScadaInterface
-from gwproactor import Actor,  QOS
+from gwproactor import Actor
 from gwproto import Message
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import (
@@ -26,17 +30,34 @@ from enums import FlowManifoldVariant, TurnHpOnOff, ChangeKeepSend
 from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import (
     I2cMultichannelDtRelayComponent,
 )
+from enums import ChangeKeepSend
 from named_types import FsmEvent, NewCommandTree
 from pydantic import ValidationError
 
+from scada_app_interface import ScadaAppInterface
 
-class ScadaActor(Actor):
 
-    def __init__(self, name: str, services: ScadaInterface):
+
+
+
+class ScadaActor(Actor, ABC):
+
+    def __init__(self, name: str, services: ScadaAppInterface):
+        if not isinstance(services, ScadaAppInterface):
+            raise ValueError(
+                "ERROR. ScadaActor requires services to be a ScadaAppInterface. "
+                f"Received type {type(services)}."
+            )
         super().__init__(name, services)
-        self.settings = services.settings
-        self.scada_services = services
         self.timezone = pytz.timezone(self.settings.timezone_str)
+
+    @property
+    def services(self) -> ScadaAppInterface:
+        return typing.cast(ScadaAppInterface, self._services)
+
+    @property
+    def settings(self) -> ScadaSettings:
+        return self.services.settings
 
     @property
     def node(self) -> ShNode:
@@ -45,15 +66,11 @@ class ScadaActor(Actor):
 
     @property
     def layout(self) -> House0Layout:
-        try:
-            layout = cast(House0Layout, self.services.hardware_layout)
-        except Exception as e:
-            raise Exception(f"Failed to cast layout as House0Layout!! {e}")
-        return layout
+        return self.services.hardware_layout
 
     @property
     def data(self) -> ScadaData:
-        return self._services.data
+        return self.services.prime_actor.data
 
     @property
     def atn(self) -> ShNode:
@@ -78,13 +95,13 @@ class ScadaActor(Actor):
     @property
     def hp_boss(self) -> ShNode:
         if not self.layout.use_sieg_loop:
-            raise Exception(f"Should not be calling for hp_boss if not using sieg loop") 
+            raise Exception(f"Should not be calling for hp_boss if not using sieg loop")
         return self.layout.node(H0N.hp_boss)
 
     @property
     def sieg_loop(self) -> ShNode:
         if not self.layout.use_sieg_loop:
-            raise Exception(f"Should not be calling for sieg_loop if not using sieg loop") 
+            raise Exception(f"Should not be calling for sieg_loop if not using sieg loop")
         return self.layout.node(H0N.sieg_loop)
 
     @property
@@ -426,7 +443,7 @@ class ScadaActor(Actor):
         """
         if from_node is None:
             from_node = self.node
-    
+
         if self.layout.use_sieg_loop:
             try:
                 event = FsmEvent(
@@ -456,7 +473,7 @@ class ScadaActor(Actor):
                 self.log(f"{from_node.handle} sending CloseRelay to HpScadaOpsRelay {self.hp_scada_ops_relay.handle}")
             except ValidationError as e:
                 self.log(f"Tried to tell HpScadaOpsRelay to turn on HP but didn't have rights: {e}")
-        
+
 
     def turn_off_HP(self, from_node: Optional[ShNode] = None) -> None:
         """  Turn off heat pump by sending trigger to HpRelayBoss
@@ -497,7 +514,7 @@ class ScadaActor(Actor):
                 )
             except ValidationError as e:
                 self.log(f"Tried to tell HpScadaOpsRelay to turn off HP but didn't have rights: {e}")
-            
+
     def close_thermistor_common_relay(self, from_node: Optional[ShNode] = None) -> None:
         """
         Close thermistor common relay (de-energizing relay 2).
@@ -951,11 +968,11 @@ class ScadaActor(Actor):
         return [n for n in self.layout.nodes.values() if self.the_boss_of(n) == boss]
 
     def set_hierarchical_fsm_handles(self, boss_node: ShNode) -> None:
-        """ 
+        """
         ```
         boss
         ├────────────────────── hp-boss
-        └─────sieg-loop         └── relay6 (hp_scada_ops_relay)                                          
+        └─────sieg-loop         └── relay6 (hp_scada_ops_relay)
                 ├─ relay14 (hp_loop_on_off)
                 └─ relay15 (hp_loop_keep_send)
         ```
@@ -979,18 +996,18 @@ class ScadaActor(Actor):
         sieg_on_off.Handle = f"{sieg_loop.Handle}.{sieg_on_off.Name}"
 
     def set_command_tree(self, boss_node: ShNode) -> None:
-        """ 
+        """
         If FlowManifoldVariant is House0Sieg:
            ```
             boss
             ├─────────────────────────────────────────── hp-boss
-            ├───────────────────────────sieg-loop           └── relay6 (hp_scada_ops_relay)                                          
+            ├───────────────────────────sieg-loop           └── relay6 (hp_scada_ops_relay)
             ├                             ├─ relay14 (hp_loop_on_off)
             ├── relay1 (vdc)              └─ relay15 (hp_loop_keep_send)
             ├── relay2 (tstat_common)
-            └── all other relays and 0-10s  
-        ```      
-        If FlowManifoldVariant is House0, all actuators report directly to boss  
+            └── all other relays and 0-10s
+        ```
+        If FlowManifoldVariant is House0, all actuators report directly to boss
         Throws exception if boss_node is not in my chain of command
         """
 
@@ -1028,12 +1045,12 @@ class ScadaActor(Actor):
         
         message = Message(Src=src.name, Dst=communicator_by_name[dst.Name], Payload=payload)
 
-        if communicator_by_name[dst.name] in set(self.services._communicators.keys()) | {
-            self.services.name
+        if communicator_by_name[dst.name] in set(self.services.get_communicator_names()) | {
+            self.name
         }:  # noqa: SLF001
             self.services.send(message)
         elif dst.Name == H0N.admin:
-            self.services._links.publish_message(
+            self.services.publish_message(
                 link_name=self.services.ADMIN_MQTT,
                 message=Message(
                     Src=self.services.publication_name, Dst=dst.Name, Payload=payload
@@ -1041,9 +1058,9 @@ class ScadaActor(Actor):
                 qos=QOS.AtMostOnce,
             ) # noqa: SLF001
         elif dst.Name == H0N.atn:
-            self.services._links.publish_upstream(payload)  # noqa: SLF001
+            self.services.publish_upstream(payload)  # noqa: SLF001
         else:
-            self.services._links.publish_message(
+            self.services.publish_message(
                 self.services.LOCAL_MQTT, message
             )  # noqa: SLF001
 
@@ -1068,7 +1085,7 @@ class ScadaActor(Actor):
         idu_pwr_channel = self.layout.channel(H0CN.hp_idu_pwr)
         assert idu_pwr_channel.TelemetryName == TelemetryName.PowerW
         return self.scada_services.data.latest_channel_values.get(H0CN.hp_idu_pwr)
-        
+
     def to_fahrenheit(self, temp_c: float) -> float:
         return 32 + (temp_c * 9 / 5)
 
@@ -1122,8 +1139,8 @@ class ScadaActor(Actor):
 
     def lift_f(self) -> Optional[float]:
         """ The lift of the heat pump: leaving water temp minus entering water temp.
-        Returns 0 if this is negative (e.g. during defrost). Returns None if missing 
-        a key temp. 
+        Returns 0 if this is negative (e.g. during defrost). Returns None if missing
+        a key temp.
         """
         lwt_f = self.lwt_f(); ewt_f = self.ewt_f()
         if lwt_f is None or ewt_f is None:
@@ -1134,7 +1151,7 @@ class ScadaActor(Actor):
         """Returns tank1 depth 1 in deg F if it exists, else None
         TODO: replace with something that doesn't have a string in it
         """
-        
+
         t = self.scada_services.data.latest_channel_values.get("tank1-depth1")
         if t is None:
             return None
@@ -1144,7 +1161,7 @@ class ScadaActor(Actor):
         """Returns tank3 depth 4 in deg F if it exists, else None
         TODO: replace with something that doesn't have a string in it
         """
-        
+
         t = self.scada_services.data.latest_channel_values.get("tank3-depth4")
         if t is None:
             return None
@@ -1154,17 +1171,17 @@ class ScadaActor(Actor):
         """Returns buffer depth 1 in deg F if it exists, else None
         TODO: replace with something that doesn't have a string in it
         """
-        
+
         t = self.scada_services.data.latest_channel_values.get("buffer-depth1")
         if t is None:
             return None
         return self.to_fahrenheit(t / 1000)
-    
+
     def coldest_buffer_temp_f(self) -> Optional[float]:
         """Returns buffer depth 4 in deg F if it exists, else None
         TODO: replace with something that doesn't have a string in it
         """
-        
+
         t = self.scada_services.data.latest_channel_values.get("buffer-depth4")
         if t is None:
             return None
@@ -1188,4 +1205,4 @@ class ScadaActor(Actor):
         if sms.StateEnum != RelayClosedOrOpen.enum_name():
             raise Exception(f"That's strange. Expected StateEnum 'relay.closed.or.open' but got {sms.StateEnum}")
         return RelayClosedOrOpen(sms.State)
- 
+

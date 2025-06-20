@@ -3,7 +3,5 @@
 pip-tools
 isort
 
-gridworks-proactor[tests] ~=1.1.11
-# gridworks-proactor[tests] @ git+https://github.com/thegridelectric/gridworks-proactor.git@dev
 gridworks-cert>=0.4.4
 requests # for atn dashboard
