@@ -119,10 +119,10 @@ class House0Layout(HardwareLayout):
                 errors_caught.append(LoadError("hardware.layout", nodes, e))
     @classmethod
     def check_house0_sieg_manifold(cls, channels: dict[str, DataChannel]) -> None:
-        if H0CN.sieg_cold not in channels.keys():
-            raise DcError(f"Need {H0CN.sieg_cold} channel with House0Sieg flow manifold variant")
-        if H0CN.sieg_flow not in channels.keys():
-            raise DcError(f"Need {H0CN.sieg_flow} channel with House0Sieg flow manifold variant")
+        # if H0CN.sieg_cold not in channels.keys():
+        #     raise DcError(f"Need {H0CN.sieg_cold} channel with House0Sieg flow manifold variant")
+        # if H0CN.sieg_flow not in channels.keys():
+        #     raise DcError(f"Need {H0CN.sieg_flow} channel with House0Sieg flow manifold variant")
         if H0CN.hp_loop_on_off_relay_state not in channels.keys():
             raise DcError(f"Need {H0CN.hp_loop_on_off_relay_state} channel with House0Sieg flow manifold variant")
         if H0CN.hp_loop_keep_send_relay_state not in channels.keys():
