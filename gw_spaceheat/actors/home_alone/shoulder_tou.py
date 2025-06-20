@@ -119,7 +119,7 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
     def temperature_channel_names(self) -> List[str]:
         '''Default is 3 layers per tank but can be 4 if PicoAHwUid is specified'''
         buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3]
-        if cast(PicoTankModuleComponentGt, self.layout.nodes['buffer'].component.gt).PicoAHwUid:
+        if isinstance(self.layout.nodes['buffer'].component.gt, PicoTankModuleComponentGt):
             buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4]
         return buffer_depths + [
             H0CN.hp_ewt, H0CN.hp_lwt,
@@ -258,7 +258,7 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
 
     def is_buffer_empty(self, really_empty=False) -> bool:
         if H0CN.buffer.depth1 in self.latest_temperatures:
-            if really_empty or not cast(PicoTankModuleComponentGt, self.layout.nodes['buffer'].component.gt).PicoAHwUid:
+            if really_empty or not isinstance(self.layout.nodes['buffer'].component.gt, PicoTankModuleComponentGt):
                 buffer_empty_ch = H0CN.buffer.depth1
             else:
                 buffer_empty_ch = H0CN.buffer.depth2

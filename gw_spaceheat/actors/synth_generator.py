@@ -32,11 +32,9 @@ class SynthGenerator(ScadaActor):
         self.hardware_layout = self._services.hardware_layout
 
         # Default is 3 layers per tank but can be 4 if PicoAHwUid is specified
-        self.layers_per_tank = 3
         buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3]
         tank_depths = [depth for tank in self.cn.tank.values() for depth in [tank.depth1, tank.depth2, tank.depth3]]
-        if cast(PicoTankModuleComponentGt, self.layout.nodes['buffer'].component.gt).PicoAHwUid:
-            self.layers_per_tank = 4
+        if isinstance(self.layout.nodes['buffer'].component.gt, PicoTankModuleComponentGt):
             buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4]
             tank_depths = [depth for tank in self.cn.tank.values() for depth in [tank.depth1, tank.depth2, tank.depth3, tank.depth4]]
         self.temperature_channel_names = buffer_depths + tank_depths + [
@@ -199,9 +197,33 @@ class SynthGenerator(ScadaActor):
 
         if self.layout.ha_strategy == HomeAloneStrategy.WinterTou:
             storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
+            try:
+                num_tanks = len(set([x[:5] for x in storage_temperatures.keys()]))
+                for tank in range(1, num_tanks+1):
+                    num_layers = len([k for k in storage_temperatures.keys() if f'tank{tank}' in k])
+                    if num_layers == 4:
+                        storage_temperatures[f'tank{tank}-depth2'] = (
+                            storage_temperatures[f'tank{tank}-depth2'] + storage_temperatures[f'tank{tank}-depth3']
+                            ) / 2
+                        storage_temperatures[f'tank{tank}-depth3'] = storage_temperatures[f'tank{tank}-depth4']
+                        storage_temperatures.pop(f'tank{tank}-depth4')
+            except Exception as e:
+                self.log(f"Error combining tank depths 2 and 3, and removing depth 4: {e}")
+                storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
             simulated_layers = [self.to_fahrenheit(v/1000) for k,v in storage_temperatures.items()]
         elif self.layout.ha_strategy == HomeAloneStrategy.ShoulderTou: 
             buffer_temperatures = {k:v for k,v in latest_temperatures.items() if 'buffer' in k and 'depth' in k}
+            try:
+                num_layers = len(buffer_temperatures)
+                if num_layers == 4:
+                    buffer_temperatures['buffer-depth2'] = (
+                        buffer_temperatures['buffer-depth2'] + buffer_temperatures['buffer-depth3']
+                        ) / 2
+                    buffer_temperatures['buffer-depth3'] = buffer_temperatures['buffer-depth4']
+                    buffer_temperatures.pop('buffer-depth4')
+            except Exception as e:
+                self.log(f"Error combining buffer depths 2 and 3, and removing depth 4: {e}")
+                buffer_temperatures = {k:v for k,v in latest_temperatures.items() if 'buffer' in k and 'depth' in k}
             simulated_layers = [self.to_fahrenheit(v/1000) for k,v in buffer_temperatures.items()]   
         else:
             raise Exception(f"not prepared for home alone strategy {self.layout.ha_strategy}")    
@@ -211,7 +233,7 @@ class SynthGenerator(ScadaActor):
                 simulated_layers = [sum(simulated_layers)/len(simulated_layers) for x in simulated_layers]
                 if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
                     break
-            self.usable_kwh += 120/self.layers_per_tank * 3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
+            self.usable_kwh += 120/3 * 3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
             simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]          
         self.required_kwh = self.get_required_storage(time_now)
         self.log(f"Usable energy: {round(self.usable_kwh,1)} kWh")
@@ -252,9 +274,9 @@ class SynthGenerator(ScadaActor):
             )
         # Find the maximum storage
         if self.layout.ha_strategy == HomeAloneStrategy.WinterTou:
-            simulated_layers = [self.params.MaxEwtF + 10] * self.layers_per_tank * 3
+            simulated_layers = [self.params.MaxEwtF + 10] * 3 * 3
         elif self.layout.ha_strategy == HomeAloneStrategy.ShoulderTou:
-            simulated_layers = [self.params.MaxEwtF + 10] * self.layers_per_tank * 1
+            simulated_layers = [self.params.MaxEwtF + 10] * 3 * 1
         else:
             raise Exception(f"not prepared for home alone strategy {self.layout.ha_strategy}")
     
@@ -264,7 +286,7 @@ class SynthGenerator(ScadaActor):
                 simulated_layers = [sum(simulated_layers)/len(simulated_layers) for x in simulated_layers]
                 if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
                     break
-            max_storage_kwh += 120/self.layers_per_tank * 3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
+            max_storage_kwh += 120/3 * 3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
             simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]
         # if (((time_now.weekday()<4 or time_now.weekday()==6) and time_now.hour>=20)
         #     or (time_now.weekday()<5 and time_now.hour<=6)):
