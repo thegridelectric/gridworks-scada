@@ -105,7 +105,7 @@ def run_s2(
     )
     if paho_logging:
         settings.paho_logging = True
-    ScadaApp.main(
+    Scada2App.main(
         app_settings=settings,
         env_file=env_file,
         dry_run=dry_run,
