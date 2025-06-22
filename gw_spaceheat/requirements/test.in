@@ -1,6 +1,7 @@
 pytest
 coverage
+mypy >=1.15.0
+ruff >=0.9.6
 httpx
-mypy
 black
 pytest-asyncio

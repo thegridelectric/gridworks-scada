@@ -1,7 +1,6 @@
 .DS_Store
 .python-version
 venv
-.vscode/
 **/__pycache__/
 *.pyc
 

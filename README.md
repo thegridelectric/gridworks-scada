@@ -89,6 +89,41 @@ Configuration variables (secret or otherwise) use dotenv module in a gitignored 
 See instructions [here](https://gridworks-proactor.readthedocs.io/en/latest/#mosquitto) to set up a local MQTT broker
 using [Mosquitto](https://mosquitto.org/).
 
+
+### Static analsyis with ruff
+
+[Ruff](https://docs.astral.sh/ruff/) is installed via the test and dev requirements. 
+You can run it with:
+
+```
+ruff check
+```
+
+Ruff is *not* run in CI or in pre-commit, since the code will not currently pass. 
+Ruff is provided primarily for visual feedback in the IDE. Ruff is configured
+in `pyproject.toml`.
+
+
+### Static analysis in Visual Studio Code
+
+Visual Studio Code will provide visual feedback on code that does not pass ruff.
+
+To use this functionality, the [ruff plugin](https://github.com/astral-sh/ruff-vscode)
+for Visual Studio code must be installed. We recommend: 
+
+1. Installing the ruff extension. 
+2. Disabling it. 
+3. Enabling for workspaces in which you want to use it, such as this one. 
+
+### More static analysis
+
+More rigid ruff rules can be applied by modifying pyproject.toml. Gwproto, for
+example, uses [many more rules](https://github.com/thegridelectric/gridworks-protocol/blob/fb7e1a3d17073aad647c223730c41495e6238fd8/pyproject.toml#L124).
+
+Typechecking feedback can be applied in the IDE by enabling Pylance type checking
+inside [vscode](vscode://settings/python.analysis.typeCheckingMode). Change that
+in *user* not workspace settings since much of the code will currently fail. 
+
 #### TLS
 
 TLS is used by default. Follow [these instructions](https://gridworks-proactor.readthedocs.io/en/latest/#tls) to set up
