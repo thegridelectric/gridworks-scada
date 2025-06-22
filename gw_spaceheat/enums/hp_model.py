@@ -3,7 +3,8 @@ from gw.enums import GwStrEnum
 
 class HpModel(GwStrEnum):
     LgHighTempHydroKitPlusMultiV = auto()  
-    SamsungHighTempHydroKitPlusMultiV= auto()   
+    SamsungFourTonneHydroKit = auto()   
+    SamsungFiveTonneHydroKit = auto()
 
     @classmethod
     def enum_name(cls) -> str:

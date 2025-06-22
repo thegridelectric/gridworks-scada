@@ -12,7 +12,7 @@ if __name__ == "__main__":
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         usage="""python getkeys.py <certbot-key-name> <mqtt_name> <dest-rclone-name> <dest-cert-dir>
         
-    Generate and copy TLS keys for gw-scada-spaceheat-python. 
+    Generate and copy TLS keys for gridworks-scada. 
     
     getkeys.py does the following: 
     1. Use ssh to generate keys on certbot.

@@ -78,6 +78,7 @@ class PowerDisplay:
             "Store", str(self.channels.flows.store_flow),
             str(self.channels.power.pumps.store),
         ]
+        
         if self.print_hack_hp:
             row_1.append("Started")
             row_2.append("Tries")
@@ -98,6 +99,9 @@ class PowerDisplay:
         self.table.add_row(*row_1)
         self.table.add_row(*row_2)
         self.table.add_row(*row_3)
+        if self.channels.flows.sieg_flow.exists:
+            row_4 = ["---", "---", "x","Sieg Loop", str(self.channels.flows.sieg_flow), "---"]
+            self.table.add_row(*row_4)
         return self
 
     def __rich_console__(self, _console: Console, _options: ConsoleOptions) -> RenderResult:

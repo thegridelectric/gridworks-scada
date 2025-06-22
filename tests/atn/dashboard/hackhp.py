@@ -8,7 +8,6 @@ from typing import Deque
 from typing import Optional
 
 import rich
-import requests
 
 from tests.atn.atn_config import HackHpSettings
 from tests.atn.dashboard.channels.containers import enqueue_fifo_q
@@ -60,59 +59,6 @@ def gw_to_ops_priority(gw: AlertPriority) -> OpsGeniePriority:
         return OpsGeniePriority.P4
     return OpsGeniePriority.P5
 
-
-def send_opsgenie_scada_alert(
-    name: str,
-    settings: HackHpSettings,
-    node_name_short: str,
-    *,
-    description: Optional[str] = None,
-    priority: AlertPriority = AlertPriority.P3Medium,
-    alert_team: AlertTeam = AlertTeam.GridWorksDev
-) -> None:
-    """
-    Creates an ops genie alert. The name is prepended by the short name of the SCADA
-    and used to create the ops genie message.
-
-    The OpsGenie alias is used to de-dupe alerts. OpsGenie does not issue a new alert
-    if there is already an open alert with the same alias.
-
-    The alias is the name appended with the date. For example:
-      oak.store-pump-dispatch-failure.20240425
-    """
-    url = 'https://api.opsgenie.com/v2/alerts'
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'GenieKey {settings.ops_genie_api_key}'
-    }
-
-    message = f"{node_name_short}.{name}"
-    alias = f"{message}.{datetime.now().strftime('%Y-%m-%d')}"
-
-    responders = [{
-        "type": "team",
-        "id": settings.gridworks_team_id
-    }]
-    if alert_team == AlertTeam.MosconeHeating:
-        responders = [{
-            "type": "team",
-            "id": settings.moscone_team_id
-        }]
-
-    payload = {
-        "message": message,
-        "alias": alias,
-        "priority": gw_to_ops_priority(priority).value,
-        "responders": responders
-    }
-    if description:
-        payload["description"] = description
-    response = requests.post(url, headers=headers, data=json.dumps(payload))
-    if response.status_code == 202:
-        rich.print(f"{message} alert sent")
-    else:
-        rich.print(f"Failed to send {message} alert.")
-        rich.print("Response:", response.text)
 
 
 class HackHpState(StrEnum):
@@ -239,14 +185,6 @@ class HackHp:
                 )
                 if self.state_q[0].start_attempts > 1:
                     path_dbg |= 0x00000020
-                    send_opsgenie_scada_alert(
-                        name="hp-finally-heating",
-                        settings=self.settings,
-                        node_name_short=self.short_name,
-                        description=f"Heat pump started heating after {self.state_q[0].start_attempts} attempts to start",
-                        alert_team=AlertTeam.MosconeHeating,
-                        priority=AlertPriority.P5Info
-                    )
                 self.state_q[0].state_end_s = now
                 enqueue_fifo_q(hp_state_capture, self.state_q)
             elif (self.state_q[0].state != HackHpState.NoOp and
@@ -321,13 +259,6 @@ class HackHp:
 
             if self.state_q[0].start_attempts > 1:
                 path_dbg |= 0x00001000
-                send_opsgenie_scada_alert(
-                    name="hp-retrying",
-                    settings=self.settings,
-                    node_name_short=self.short_name,
-                    description=f"Heat pump has taken {self.state_q[0].start_attempts} to start",
-                    alert_team=AlertTeam.MosconeHeating
-                )
         except Exception as e:
             path_dbg |= 0x00002000
             self.logger.error("ERROR in refresh_gui")

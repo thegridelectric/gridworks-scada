@@ -4,9 +4,10 @@ import time
 from typing import Dict, List, cast, Sequence, Optional
 
 from gw.enums import GwStrEnum
+from gwproto.message import Message
 from gwproto.data_classes.data_channel import DataChannel
-from gwproactor import  ServicesInterface, MonitoredName
-from gwproactor.message import Message, PatInternalWatchdogMessage
+from gwproactor import  AppInterface, MonitoredName
+from gwproactor.message import PatInternalWatchdogMessage
 from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import (
     I2cMultichannelDtRelayComponent,
 )
@@ -32,13 +33,14 @@ from gwproto.enums import (
 
 )
 
-from gwproto.named_types import FsmAtomicReport, FsmFullReport, MachineStates
+from gwproto.named_types import FsmAtomicReport, FsmFullReport
 from result import Err, Ok, Result
 from transitions import Machine
 from data_classes.house_0_names import House0RelayIdx
 from actors.scada_actor import ScadaActor
-from enums import LogLevel
-from named_types import FsmEvent, Glitch
+from actors.scada_interface import ScadaInterface
+from enums import LogLevel, ChangeKeepSend, HpLoopKeepSend
+from named_types import FsmEvent, Glitch, SingleMachineState
 
 class Relay(ScadaActor):
     STATE_REPORT_S = 300
@@ -55,7 +57,7 @@ class Relay(ScadaActor):
     def __init__(
         self,
         name: str,
-        services: ServicesInterface,
+        services: AppInterface,
     ):
         super().__init__(name, services)
         self.component = cast(I2cMultichannelDtRelayComponent, self.node.component)
@@ -257,11 +259,11 @@ class Relay(ScadaActor):
         # self.log(f"[{self.my_channel().Name}] {self.state}")
         self._send_to(
             self.primary_scada,
-            MachineStates(
+            SingleMachineState(
                 MachineHandle=self.node.handle,
                 StateEnum=self.my_state_enum.enum_name(),
-                StateList=[self.state],
-                UnixMsList=[now_ms],
+                State=self.state,
+                UnixMs=now_ms,
             ),
         )
 
@@ -283,14 +285,18 @@ class Relay(ScadaActor):
             H0N.vdc_relay,
             H0N.tstat_common_relay,
             H0N.hp_scada_ops_relay,
+            H0N.thermistor_common_relay,
             H0N.store_pump_failsafe,
             H0N.primary_pump_scada_ops,
+            H0N.hp_loop_on_off,
         } | set(stat_ops_names):
         
             if self.name in {
                 H0N.vdc_relay,
                 H0N.tstat_common_relay,
                 H0N.hp_scada_ops_relay,
+                H0N.thermistor_common_relay,
+                H0N.hp_loop_on_off
             }:
                 if self.de_energizing_event != ChangeRelayState.CloseRelay:
                     raise Exception(
@@ -332,6 +338,11 @@ class Relay(ScadaActor):
                 raise Exception(
                     f"Expect SwitchToHeatPump as de-energizing event for {self.name}; got {self.de_energizing_event}"
                 )
+        elif self.name == H0N.hp_loop_keep_send:
+            self.my_state_enum = HpLoopKeepSend
+            self.my_event_enum = ChangeKeepSend
+            if self.de_energizing_event != ChangeKeepSend.ChangeToKeepLess:
+                raise Exception(f"Expect ChangeToSendMore as de-energizing event for {self.name}!")
         elif self.name in stat_failsafe_names:
             self.my_state_enum = HeatcallSource
             self.my_event_enum = ChangeHeatcallSource
@@ -339,7 +350,7 @@ class Relay(ScadaActor):
                 raise Exception(
                     f"Expect SwitchToWallThermostat as de-energizing event for {self.name}; got {self.de_energizing_event}"
                 )
-
+        
         
         self.transitions = [
                 {

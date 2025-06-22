@@ -4,17 +4,20 @@ import time
 import smbus2
 from typing import Any, Dict, List, Optional, Sequence, cast
 
-from gwproactor import  MonitoredName, ServicesInterface
+from gwproactor import  MonitoredName, AppInterface
 from gwproactor.message import Message, PatInternalWatchdogMessage
 from gwproto.data_classes.components.dfr_component import DfrComponent
 from data_classes.house_0_layout import House0Layout
 from gwproto.data_classes.sh_node import ShNode
+from gwproto.message import Message
 from gwproto.enums import ActorClass, MakeModel
 from gwproto.named_types import AnalogDispatch, SingleReading
 from gw.errors import DcError
 
-from result import Err, Ok, Result
+from result import Err, Result
+from actors.scada_interface import ScadaInterface
 from actors.scada_actor import ScadaActor
+from named_types import ActuatorsReady
 
 DFR_OUTPUT_SET_RANGE = 0x01
 DFR_OUTPUT_RANGE_10V = 17
@@ -35,7 +38,7 @@ class I2cDfrMultiplexer(ScadaActor):
     def __init__(
         self,
         name: str,
-        services: ServicesInterface,
+        services: AppInterface,
     ):
         super().__init__(name, services)
         self.is_simulated = self.settings.is_simulated
@@ -180,7 +183,7 @@ class I2cDfrMultiplexer(ScadaActor):
             self.resend_dfr[dfr.Name] = True
             self.log(f"Trouble setting dfr level for {dfr.Name}!: {e}")
 
-    def analog_dispatch_received(self, dispatch: AnalogDispatch) -> None:
+    def process_analog_dispatch(self, dispatch: AnalogDispatch) -> None:
         if not self.layout.node_by_handle(dispatch.FromHandle):
             self.log(f"Ignoring dispatch from  handle {dispatch.FromHandle} - not in layout!!")
             return
@@ -203,9 +206,9 @@ class I2cDfrMultiplexer(ScadaActor):
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         if isinstance(message.Payload, AnalogDispatch):
             try:
-                self.analog_dispatch_received(message.Payload)
+                self.process_analog_dispatch(message.Payload)
             except Exception as e:
-                self.log(f"Trouble with analog_dispatch_received: {e}")
+                self.log(f"Trouble with process_analog_dispatch: {e}")
         return Err(
             ValueError(
                 f"Error. Dfr Multiplexer {self.name} receieved unexpected message: {message.Header}"
@@ -244,6 +247,7 @@ class I2cDfrMultiplexer(ScadaActor):
                 self.maintain_dfr_states(), name="maintain_dfr_states"
             )
         )
+        self._send_to(self.primary_scada, ActuatorsReady())
 
     def stop(self) -> None:
         """

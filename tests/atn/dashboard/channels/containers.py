@@ -222,11 +222,14 @@ class FlowChannels(ReadMixin):
     dist_flow: FlowChannel
     primary_flow: FlowChannel
     store_flow: FlowChannel
+    sieg_flow: FlowChannel
 
     def __init__(self, channels: dict[str, DataChannel]) -> None:
         self.dist_flow = FlowChannel("dist-flow", channels)
         self.primary_flow = FlowChannel("primary-flow", channels)
         self.store_flow = FlowChannel("store-flow", channels)
+        self.sieg_flow = FlowChannel("sieg-flow", channels)
+        
 
 class Channels(ReadMixin):
     power: PowerChannels

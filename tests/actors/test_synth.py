@@ -12,10 +12,11 @@ from actors.config import ScadaSettings
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0N
 from named_types import ScadaParams
+from scada_app import ScadaApp
 
 def test_ha1(monkeypatch, tmp_path):
     # change to test directory and create an empty .env
-    # so that 'find_dotenv()' in _scada_params_received() does not
+    # so that 'find_dotenv()' in process_scada_params() does not
     # modify any non-tests .envs in the file system.
     monkeypatch.chdir(tmp_path)
     dotenv_filepath = Path(".env")
@@ -23,13 +24,14 @@ def test_ha1(monkeypatch, tmp_path):
     print(dotenv_filepath.absolute())
     import os
     print(os.getcwd())
-    settings = ScadaSettings()
+    scada_app = ScadaApp(app_settings=ScadaSettings(is_simulated=True))
+    settings = scada_app.settings
     if uses_tls(settings):
         copy_keys("scada", settings)
     settings.paths.mkdirs()
-    layout = House0Layout.load(settings.paths.hardware_layout)
-    s = Scada(H0N.primary_scada, settings=settings, hardware_layout=layout)
-    synth = SynthGenerator(H0N.synth_generator, services=s)
+    scada_app.instantiate()
+    s = scada_app.scada
+    synth = SynthGenerator(H0N.synth_generator, services=scada_app)
 
     assert set(synth.temperature_channel_names) == {
         'buffer-depth1', 'buffer-depth2', 'buffer-depth3', 'buffer-depth4', 
@@ -72,7 +74,7 @@ def test_ha1(monkeypatch, tmp_path):
 
     )
 
-    s.scada_params_received(s.atn, params_from_atn, testing=True)
+    s.process_scada_params(s.atn, params_from_atn, testing=True)
     assert synth.params.DdPowerKw == 10
 
     # wrote the new parameter to .env

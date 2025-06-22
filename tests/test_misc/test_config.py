@@ -8,6 +8,7 @@ from gwproactor.config import Paths
 from gwproactor.config.mqtt import TLSInfo
 from gwproactor.config.proactor_settings import ACK_TIMEOUT_SECONDS
 from gwproactor.config.proactor_settings import NUM_INITIAL_EVENT_REUPLOADS
+from gwproactor import ProactorSettings
 
 from actors.config import AdminLinkSettings
 from actors.config import PersisterSettings
@@ -45,10 +46,11 @@ def test_scada_settings_defaults(clean_scada_env):
         dd_delta_t=20,
         max_ewt_f=170,
         load_overestimation_percent=0,
+        monitor_only=False,
         oil_boiler_for_onpeak_backup=True,
-        stratboss_dist_010v=100,
         pico_cycler_state_logging=False,
         power_meter_logging_level=logging.WARNING,
+        relay_multiplexer_logging_level=logging.INFO,
         local_mqtt=exp_local_mqtt.model_dump(),
         gridworks_mqtt=MQTTClient(
             tls=TLSInfo().update_tls_paths(
@@ -56,15 +58,14 @@ def test_scada_settings_defaults(clean_scada_env):
                 "gridworks_mqtt"
             )
         ).model_dump(),
+        proactor=ProactorSettings().model_dump(),
+        paho_logging=False,
         seconds_per_report=300,
         seconds_per_snapshot=30,
         async_power_reporting_threshold=0.02,
         paths=Paths().model_dump(),
         logging=LoggingSettings().model_dump(),
         persister=PersisterSettings().model_dump(),
-        mqtt_link_poll_seconds=MQTT_LINK_POLL_SECONDS,
-        ack_timeout_seconds=ACK_TIMEOUT_SECONDS,
-        num_initial_event_reuploads=NUM_INITIAL_EVENT_REUPLOADS,
         admin=AdminLinkSettings(
             tls=TLSInfo().update_tls_paths(
                 Paths().certs_dir,
@@ -73,8 +74,11 @@ def test_scada_settings_defaults(clean_scada_env):
         ).model_dump(),
         timezone_str="America/New_York",
         is_simulated=False,
-        hp_model=HpModel.SamsungHighTempHydroKitPlusMultiV
+        contract_rep_logging_level=20,
+        hp_model=HpModel.SamsungFiveTonneHydroKit
     )
+    assert settings.local_mqtt.tls.model_dump() == exp_local_mqtt.tls.model_dump()
+    assert settings.local_mqtt.model_dump() == exp_local_mqtt.model_dump()
     assert settings.model_dump() == exp
     assert settings.local_mqtt == exp_local_mqtt
     assert settings.local_mqtt.username is None

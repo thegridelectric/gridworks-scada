@@ -1,9 +1,9 @@
 import re
+import logging
 
+from gwproactor import AppSettings
 from pydantic import BaseModel
-from pydantic import model_validator
 from enums import HpModel
-from gwproactor import ProactorSettings
 from gwproactor.config import MQTTClient
 from pydantic_settings import SettingsConfigDict
 
@@ -35,7 +35,7 @@ class DashboardSettings(BaseModel):
                     thermostat_human_names.append(human_name)
         return thermostat_human_names
 
-class AtnSettings(ProactorSettings):
+class AtnSettings(AppSettings):
     scada_mqtt: MQTTClient = MQTTClient()
     c_to_f: bool = True
     save_events: bool = False
@@ -46,12 +46,9 @@ class AtnSettings(ProactorSettings):
     is_simulated: bool = False
     fuel_substitution: bool = True
     fuel_sub_usd_per_mwh: int = 250 # hack until we account for COP etc
-    hp_model: HpModel = HpModel.SamsungHighTempHydroKitPlusMultiV # TODO: move to layout
+    hp_model: HpModel = HpModel.SamsungFiveTonneHydroKit # TODO: move to layout
     model_config = SettingsConfigDict(env_prefix="ATN_", extra="ignore")
-
-
-    @model_validator(mode="before")
-    @classmethod
-    def pre_root_validator(cls, values: dict) -> dict:
-        return ProactorSettings.update_paths_name(values, DEFAULT_NAME)
+    contract_rep_logging_level: int = logging.INFO
+    flo_logging_level: int = logging.INFO
+    monitor_only: bool = False
 

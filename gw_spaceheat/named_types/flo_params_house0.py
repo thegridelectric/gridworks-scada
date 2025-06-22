@@ -28,8 +28,10 @@ class FloParamsHouse0(BaseModel):
     HpTurnOnMinutes: int = 10
     # Initial state
     InitialTopTempF: StrictInt
+    InitialMiddleTempF: StrictInt
     InitialBottomTempF: StrictInt
-    InitialThermocline: StrictInt
+    InitialThermocline1: StrictInt
+    InitialThermocline2: StrictInt
     HpIsOff: bool = False
     BufferAvailableKwh: float = 0
     HouseAvailableKwh: float = 0
@@ -53,7 +55,10 @@ class FloParamsHouse0(BaseModel):
     MaxEwtF: StrictInt
     PriceUnit: MarketPriceUnit = MarketPriceUnit.USDPerMWh
     ParamsGeneratedS: UTCSeconds = Field(default_factory=lambda: int(time.time()))
+    # Flo type
+    FloAlias: str = "Winter.Oak"
+    FloGitCommit: str = "76e267b"
     TypeName: Literal["flo.params.house0"] = "flo.params.house0"
-    Version: Literal["001"] = "001"
+    Version: Literal["003"] = "003"
 
     model_config = ConfigDict(extra="allow", use_enum_values=True)

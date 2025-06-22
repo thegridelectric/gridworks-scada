@@ -19,7 +19,6 @@ from gwproto.messages import (
 
 from named_types import Ha1Params, SingleMachineState, SnapshotSpaceheat
 class ScadaData:
-    latest_total_power_w: Optional[int]
     reports_to_store: Dict[str, Report]
     recent_machine_states: Dict[str, MachineStates] # key is machine handle
     latest_machine_state: Dict[str, SingleMachineState] # key is the node name
@@ -33,8 +32,6 @@ class ScadaData:
     ha1_params: Ha1Params
 
     def __init__(self, settings: ScadaSettings, hardware_layout: HardwareLayout):
-        self.latest_total_power_w: Optional[int] = None
-        self.latest_total_power_w: Optional[int] = None
         self.reports_to_store: Dict[str:Report] = {}
         self.seconds_by_channel: Dict[str:int] = {}
 
@@ -53,13 +50,13 @@ class ScadaData:
             HpMaxKwTh=self.settings.hp_max_kw_th,
             MaxEwtF=self.settings.max_ewt_f,
             LoadOverestimationPercent=self.settings.load_overestimation_percent,
-            StratBossDist010=self.settings.stratboss_dist_010v
+            StratBossDist010=0 # REMOVE AT SOME POINT
         )
         self.my_data_channels = self.get_my_data_channels()
         self.my_synth_channels = self.get_my_synth_channels()
         self.my_channels: Union[DataChannel, SynthChannel] = self.my_data_channels + self.my_synth_channels
         self.recent_machine_states = {}
-        self.latest_machine_state = {}
+        self.latest_machine_state = {} # latest state by node name
         self.latest_channel_values: Dict[str, int] = {  # noqa
             ch.Name: None for ch in self.my_channels
         }

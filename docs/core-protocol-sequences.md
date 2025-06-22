@@ -11,7 +11,7 @@ What we describe below are standard patterns of messages, where one message will
     Meter   ->  PowerWatts                       ->  Scada 
     Scada   ->  PowerWatts                       ->  Atn            
 
-See description [here](https://github.com/thegridelectric/gw-scada-spaceheat-python/blob/main/gw_spaceheat/actors/scada.py#L253).
+See description [here](https://github.com/thegridelectric/gridworks-scada/blob/main/gw_spaceheat/actors/scada.py#L253).
 
 Milliseconds matter for Scada responsiveness with PowerWatts. The Scada will not, for example, request an ack
 from the `Atn` for receipt of the `PowerWatts`. Note also that the `PowerWatts` does not have a timestamp.

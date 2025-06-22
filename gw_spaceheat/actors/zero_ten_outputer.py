@@ -2,7 +2,7 @@
 import time
 from typing import cast
 
-from gwproactor import ServicesInterface
+from gwproactor import AppInterface
 from gwproactor.message import Message
 from data_classes.house_0_names import H0N
 from gwproto.named_types import AnalogDispatch
@@ -13,13 +13,13 @@ class ZeroTenOutputer(ScadaActor):
     def __init__(
         self,
         name: str,
-        services: ServicesInterface,
+        services: AppInterface,
     ):
         super().__init__(name, services)
         self.node
         self.dfr_multiplexer = self.layout.node(H0N.zero_ten_out_multiplexer)
 
-    def analog_dispatch_received(self, dispatch: AnalogDispatch) -> None:
+    def process_analog_dispatch(self, dispatch: AnalogDispatch) -> None:
         from_node = self.layout.node_by_handle(dispatch.FromHandle)
         if not from_node:
             self.log(f"Ignoring dispatch from  handle {dispatch.FromHandle} - not in layout!!")
@@ -51,9 +51,9 @@ class ZeroTenOutputer(ScadaActor):
         payload = message.Payload
         if isinstance(payload, AnalogDispatch):
             try:
-                self.analog_dispatch_received(payload)
+                self.process_analog_dispatch(payload)
             except Exception as e:
-                self.log(f"Trouble with analog_dispatch_received: {e}")
+                self.log(f"Trouble with process_analog_dispatch: {e}")
         return Ok(True)
 
     def start(self) -> None:

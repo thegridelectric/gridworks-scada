@@ -12,6 +12,7 @@ class HomeAloneTopState(GwStrEnum):
       - UsingBackupOnpeak
       - Normal
       - ScadaBlind
+      - Monitor
 
     For more information:
       - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
@@ -22,6 +23,7 @@ class HomeAloneTopState(GwStrEnum):
     UsingBackupOnpeak = auto()
     Normal = auto()
     ScadaBlind = auto()
+    Monitor = auto()
 
     @classmethod
     def default(cls) -> "HomeAloneTopState":
@@ -37,4 +39,4 @@ class HomeAloneTopState(GwStrEnum):
 
     @classmethod
     def enum_version(cls) -> str:
-        return "000"
+        return "001"

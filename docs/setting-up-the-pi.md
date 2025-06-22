@@ -65,9 +65,9 @@ In /home/pi
 
 mkdir tmp
 
-git clone https://github.com/thegridelectric/gw-scada-spaceheat-python.git
+git clone https://github.com/thegridelectric/gridworks-scada.git
 
-cd gw-scada-spaceheat-python/gw_spaceheat/
+cd gridworks-scada/gw_spaceheat/
 
 python -m venv venv
 
@@ -90,7 +90,7 @@ pip install -r requirements/drivers.txt
 
 Activate the virtual environment and install the test requirements: 
 
-    cd gw-scada-spaceheat-python/gw_spaceheat/
+    cd gridworks-scada/gw_spaceheat/
     pip install -r requirements/test.txt
 
 Set variables for the tests: 
@@ -100,7 +100,7 @@ Set variables for the tests:
 
 Run the tests:
 
-    cd gw-scada-spaceheat-python
+    cd gridworks-scada
     pytest
 
 
@@ -148,7 +148,7 @@ that combines heat pumps with thermal storage and supports the electric grid
 by recognizing and utilizing renewable energy when it is available.
 
 The code is open source and available here:
-https://github.com/thegridelectric/gw-scada-spaceheat-python
+https://github.com/thegridelectric/gridworks-scada
 
 The Pi is also designed to expand on the original functionality of the
 emonPi. The SD card started with the image provided in the emonPi sold

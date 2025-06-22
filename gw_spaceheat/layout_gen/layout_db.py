@@ -25,7 +25,7 @@ from gwproto.named_types.electric_meter_component_gt import ElectricMeterCompone
 from gwproto.property_format import SpaceheatName
 from gwproto.data_classes.telemetry_tuple import ChannelStub
 from data_classes.house_0_names import H0N, H0CN
-
+from enums import FlowManifoldVariant, HomeAloneStrategy
 
 class ChannelStubDb(ChannelStub):
     CapturedByNodeName: SpaceheatName
@@ -116,9 +116,11 @@ ChanneStubDbByName: Dict[str, ChannelStubDb] = {
 }
 
 
-
 @dataclass
 class StubConfig:
+    home_alone_strategy: HomeAloneStrategy = HomeAloneStrategy.WinterTou
+    flow_manifold_variant: FlowManifoldVariant = FlowManifoldVariant.House0
+    use_sieg_loop: bool = False
     atn_gnode_alias: str = "d1.isone.ct.newhaven.orange1"
     terminal_asset_alias: Optional[str] = None
     zone_list: typing.Sequence[str] = field(default_factory=tuple)
@@ -129,6 +131,7 @@ class StubConfig:
     power_meter_component_alias: str = "Dummy Power Meter Component"
     power_meter_node_display_name: str = "Dummy Power Meter"
     boost_element_display_name: str = "Dummy Boost Element"
+    
 
 class LayoutIDMap:
     REMOTE_HARDWARE_LAYOUT_PATH: str = "/home/pi/.config/gridworks/scada/hardware-layout.json"
@@ -598,7 +601,8 @@ class LayoutDb:
         else:
             self.misc["TotalStoreTanks"] =  self.loaded.total_store_tanks
         self.misc["Strategy"] = "House0"
-
+        self.misc["FlowManifoldVariant"] = cfg.flow_manifold_variant
+        self.misc["UseSiegLoop"] = cfg.use_sieg_loop
         self.add_nodes(
             [
                 SpaceheatNodeGt(
@@ -655,6 +659,7 @@ class LayoutDb:
                     Handle="auto.h",
                     ActorClass=ActorClass.HomeAlone,
                     DisplayName="HomeAlone",
+                    Strategy=cfg.home_alone_strategy,
                 ),
                 SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.home_alone_normal),
@@ -678,24 +683,43 @@ class LayoutDb:
                     DisplayName="HomeAlone Scada Blind",
                 ),
                 SpaceheatNodeGt(
-                    ShNodeId=self.make_node_id(H0N.hp_relay_boss),
-                    Name=H0N.hp_relay_boss,
-                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.hp_relay_boss}",
-                    Handle="auto.h.n.hp-relay-boss",
-                    ActorClass=ActorClass.HpRelayBoss,
-                    DisplayName="Heatpump Relay Boss",
+                    ShNodeId=self.make_node_id(H0N.hp_boss),
+                    Name=H0N.hp_boss,
+                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.hp_boss}",
+                    Handle="auto.h.n.hp-boss",
+                    ActorClass=ActorClass.HpBoss,
+                    DisplayName="HeatpumpBoss",
                 ),
-                SpaceheatNodeGt(
-                    ShNodeId=self.make_node_id(H0N.strat_boss),
-                    Name=H0N.strat_boss,
-                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.strat_boss}",
-                    Handle="auto.h.n.strat-boss",
-                    ActorClass=ActorClass.StratBoss,
-                    DisplayName="Stratification Boss",
-                ),
+                
             ]
         )
-    
+        if cfg.use_sieg_loop:
+            self.add_nodes(
+                [
+                SpaceheatNodeGt(
+                    ShNodeId=self.make_node_id(H0N.sieg_loop),
+                    Name=H0N.sieg_loop,
+                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.sieg_loop}",
+                    Handle=f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{H0N.sieg_loop}",
+                    ActorClass=ActorClass.SiegLoop,
+                    DisplayName="Siegenthaler Loop",
+                ),
+                ]
+            )
+
+            self.add_synth_channels(
+                [SynthChannelGt(
+                Id = self.make_synth_channel_id(H0CN.hp_keep_seconds_x_10),
+                Name = H0CN.hp_keep_seconds_x_10,
+                CreatedByNodeName = H0N.sieg_loop,
+                TelemetryName = TelemetryName.Unknown,
+                TerminalAssetAlias = self.terminal_asset_alias,
+                Strategy = "Integrate relay motion",
+                DisplayName = "Percent keep in the Siegenthaler loop",
+                SyncReportMinutes = 1
+                )
+            ]
+            )
 
     def add_stubs(self, cfg: Optional[StubConfig] = None):
         if cfg is None:

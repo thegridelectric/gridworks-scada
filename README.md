@@ -1,10 +1,10 @@
-# GridWorks SpaceHeat SCADA
+# GridWorks SCADA
 
-[![Tests](https://github.com/thegridelectric/gw-scada-spaceheat-python/actions/workflows/ci.yaml/badge.svg)][tests]
-[![Codecov](https://codecov.io/gh/thegridelectric/gw-scada-spaceheat-python/branch/main/graph/badge.svg)][codecov]
+[![Tests](https://github.com/thegridelectric/gridworks-scada/actions/workflows/ci.yaml/badge.svg)][tests]
+[![Codecov](https://codecov.io/gh/thegridelectric/gridworks-scada/branch/main/graph/badge.svg)][codecov]
 
-[tests]: https://github.com/thegridelectric/gw-scada-spaceheat-python/actions/workflows/ci.yaml
-[codecov]: https://app.codecov.io/gh/thegridelectric/gw-scada-spaceheat-python
+[tests]: https://github.com/thegridelectric/gridworks-scada/actions/workflows/ci.yaml
+[codecov]: https://app.codecov.io/gh/thegridelectric/gridworks-scada
 ========
 
 
@@ -169,7 +169,7 @@ Verify you see `{"bar":1}` in the first window.
 
 #### Configuring a Scada with keys that can be used with the GridWorks MQTT broker. 
 
-Use [getkeys.py](https://github.com/thegridelectric/gw-scada-spaceheat-python/blob/main/gw_spaceheat/getkeys.py) to
+Use [getkeys.py](https://github.com/thegridelectric/gridworks-scada/blob/main/gw_spaceheat/getkeys.py) to
 create and copy TLS to keys to a scada such that it can communicate with the actual GridWorks MQTT broker. For details
 run: 
 ```shell

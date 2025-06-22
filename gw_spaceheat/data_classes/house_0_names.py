@@ -11,6 +11,7 @@ class ZoneNodes:
         zone_name = f"zone{idx + 1}-{zone}".lower()
         self.zone_name = zone_name
         self.stat = f"{zone_name}-stat"
+        self.whitewire=f"zone{idx + 1}-{zone}-whitewire"
 
     def __repr__(self) -> str:
         return f"Zone {self.zone_name} and stat {self.stat}"
@@ -35,9 +36,10 @@ class ZoneChannelNames:
         self.temp = f"{self.zone_name}-temp"
         self.set = f"{self.zone_name}-set"
         self.state = f"{self.zone_name}-state"
+        self.whitewire_pwr=f"zone{idx}-{zone}-whitewire-pwr"
 
     def __repr__(self) -> str:
-        return f"Channels: .temp: {self.temp}, .set: {self.set}, .state: {self.state}"
+        return f"Channels: {self.temp}, {self.set}, {self.state}, {self.whitewire_pwr}"
 
 
 class TankChannelNames:
@@ -54,11 +56,14 @@ class House0RelayIdx:
     store_charge_disharge: Literal[3] = 3
     hp_failsafe: Literal[5] = 5
     hp_scada_ops: Literal[6] = 6
+    thermistor_common: Literal[7] = 7
     aquastat_ctrl: Literal[8] = 8
     store_pump_failsafe: Literal[9] = 9
     boiler_scada_ops: Literal[10] = 10
     primary_pump_ops: Literal[11] = 11
     primary_pump_failsafe: Literal[12] = 12
+    hp_loop_on_off: Literal[14] = 14
+    hp_loop_keep_send: Literal[15] = 15
     # pattern: zone1 failsafe is 17, zone2 ops is 18 etc
     base_stat: Literal[17] = 17
 
@@ -79,8 +84,8 @@ class H0N:
     relay_multiplexer = "relay-multiplexer"
     synth_generator = "synth-generator"
     zero_ten_out_multiplexer = "dfr-multiplexer"
-    hp_relay_boss = "hp-relay-boss"
-    strat_boss = "strat-boss"
+    hp_boss = "hp-boss"
+    sieg_loop = "sieg-loop"
 
     # core power-metered nodes
     hp_odu = "hp-odu"
@@ -99,6 +104,7 @@ class H0N:
     store_hot_pipe = "store-hot-pipe"
     store_cold_pipe = "store-cold-pipe"
     oat = "oat"
+    sieg_cold = "sieg-cold"
     buffer = TankNodes("buffer")
     tank: ClassVar[Dict[int, TankNodes]] = {}
     zone: ClassVar[Dict[str, ZoneNodes]] = {}
@@ -107,30 +113,23 @@ class H0N:
     dist_flow = "dist-flow"
     primary_flow = "primary-flow"
     store_flow = "store-flow"
-
-    # synth channels
-    usable_energy = "usable-energy"
-    required_energy = "required-energy"
+    sieg_flow = "sieg-flow"
 
     # relay nodes
-    vdc_relay: Literal["relay1"] = f"relay{House0RelayIdx.vdc}"
-    tstat_common_relay: Literal["relay2"] = f"relay{House0RelayIdx.tstat_common}"
-    store_charge_discharge_relay: Literal["relay3"] = (
-        f"relay{House0RelayIdx.store_charge_disharge}"
-    )
-    hp_failsafe_relay: Literal["relay5"] = f"relay{House0RelayIdx.hp_failsafe}"
-    hp_scada_ops_relay: Literal["relay6"] = f"relay{House0RelayIdx.hp_scada_ops}"
-    aquastat_ctrl_relay: Literal["relay8"] = f"relay{House0RelayIdx.aquastat_ctrl}"
-    store_pump_failsafe: Literal["relay9"] = (
-        f"relay{House0RelayIdx.store_pump_failsafe}"
-    )
-    boiler_scada_ops: Literal["relay10"] = f"relay{House0RelayIdx.boiler_scada_ops}"
-    primary_pump_scada_ops: Literal["relay11"] = (
-        f"relay{House0RelayIdx.primary_pump_ops}"
-    )
-    primary_pump_failsafe: Literal["relay12"] = (
-        f"relay{House0RelayIdx.primary_pump_failsafe}"
-    )
+    vdc_relay: Literal["relay1"] = "relay1"
+    tstat_common_relay: Literal["relay2"] = "relay2"
+    store_charge_discharge_relay: Literal["relay3"] = "relay3"
+    hp_failsafe_relay: Literal["relay5"] = "relay5"
+    hp_scada_ops_relay: Literal["relay6"] = "relay6"
+    thermistor_common_relay: Literal["relay7"] = "relay7"
+    aquastat_ctrl_relay: Literal["relay8"] = "relay8"
+    store_pump_failsafe: Literal["relay9"] = "relay9"
+
+    boiler_scada_ops: Literal["relay10"] = "relay10"
+    primary_pump_scada_ops: Literal["relay11"] = "relay11"
+    primary_pump_failsafe: Literal["relay12"] = "relay12"
+    hp_loop_on_off: Literal["relay14"] = "relay14"
+    hp_loop_keep_send: Literal["relay15"] = "relay15"
 
     # zero ten output
     dist_010v = "dist-010v"
@@ -173,6 +172,7 @@ class H0CN:
     buffer_hot_pipe = H0N.buffer_hot_pipe
     buffer_cold_pipe = H0N.buffer_cold_pipe
     oat = H0N.oat
+    sieg_cold = H0N.sieg_cold
     buffer = TankChannelNames("buffer")
     tank: ClassVar[Dict[int, TankChannelNames]] = {}
     zone: ClassVar[Dict[int, ZoneChannelNames]] = {}
@@ -181,23 +181,22 @@ class H0CN:
     dist_flow = H0N.dist_flow
     primary_flow = H0N.primary_flow
     store_flow = H0N.store_flow
+    sieg_flow = H0N.sieg_flow
     dist_flow_hz = f"{H0N.dist_flow}-hz"
     primary_flow_hz = f"{H0N.primary_flow}-hz"
     store_flow_hz = f"{H0N.store_flow}-hz"
 
     # Synth Channels
-    required_energy = H0N.required_energy
-    usable_energy = H0N.usable_energy
+    required_energy = "required-energy"
+    usable_energy = "usable-energy"
+    hp_keep_seconds_x_10 = "hp-keep-seconds-x-10"
 
     # relay state channels
-    vdc_relay_state: Literal["vdc-relay1"] = f"vdc-{H0N.vdc_relay}"
-    tstat_common_relay_state: Literal["tstat-common-relay2"] = (
-        f"tstat-common-{H0N.tstat_common_relay}"
-    )
-    charge_discharge_relay_state: Literal["charge-discharge-relay3"] = (
-        f"charge-discharge-{H0N.store_charge_discharge_relay}"
-    )
+    vdc_relay_state: Literal["vdc-relay1"] = "vdc-relay1"
+    tstat_common_relay_state: Literal["tstat-common-relay2"] = "tstat-common-relay2"
+    charge_discharge_relay_state: Literal["charge-discharge-relay3"] = "charge-discharge-relay3"
     hp_failsafe_relay_state = f"hp-failsafe-{H0N.hp_failsafe_relay}"
+    thermistor_common_relay_state = f"thermistor-common-{H0N.thermistor_common_relay}"
     hp_scada_ops_relay_state = f"hp-scada-ops-{H0N.hp_scada_ops_relay}"
     aquastat_ctrl_relay_state = f"aquastat-ctrl-{H0N.aquastat_ctrl_relay}"
     store_pump_failsafe_relay_state = f"store-pump-failsafe-{H0N.store_pump_failsafe}"
@@ -208,6 +207,9 @@ class H0CN:
     primary_pump_failsafe_relay_state = (
         f"primary-pump-failsafe-{H0N.primary_pump_failsafe}"
     )
+
+    hp_loop_on_off_relay_state = f"hp-loop-on-off-{H0N.hp_loop_on_off}"
+    hp_loop_keep_send_relay_state = f"hp-loop-keep-send-{H0N.hp_loop_keep_send}"
 
     # 010V output state (as declared by entity sending, not reading)
     dist_010v = "dist-010v"
@@ -352,25 +354,26 @@ class H0CN:
                 TelemetryName=TelemetryName.WaterTempCTimes1000,
             )
         for i in self.zone:
-            d[self.zone[i].temp] = (
-                ChannelStub(
+            d[self.zone[i].temp] = ChannelStub(
                     Name=self.zone[i].temp,
                     AboutNodeName=self.zone[i].zone_name,
                     TelemetryName=TelemetryName.AirTempFTimes1000,
                 ),
-            )
-            d[self.zone[i].set] = (
-                ChannelStub(
+    
+            d[self.zone[i].set] = ChannelStub(
                     Name=self.zone[i].temp,
                     AboutNodeName=self.zone[i].stat_name,
                     TelemetryName=TelemetryName.AirTempFTimes1000,
                 ),
-            )
-            d[self.zone[i].set] = (
-                ChannelStub(
+            d[self.zone[i].set] = ChannelStub(
                     Name=self.zone[i].state,
                     AboutNodeName=self.zone[i].stat_name,
                     TelemetryName=TelemetryName.ThermostatState,
                 ),
-            )
+            d[self.zone[i].whitewire] = ChannelStub(
+                    Name=self.zone[i].state,
+                    AboutNodeName=self.zone[i].stat_name,
+                    TelemetryName=TelemetryName.ThermostatState,
+                ),
+            
         return d

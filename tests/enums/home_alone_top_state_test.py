@@ -11,8 +11,9 @@ def test_home_alone_top_state() -> None:
         "UsingBackupOnpeak",
         "Normal",
         "ScadaBlind",
+        "Monitor"
     }
 
     assert HomeAloneTopState.default() == HomeAloneTopState.Dormant
     assert HomeAloneTopState.enum_name() == "home.alone.top.state"
-    assert HomeAloneTopState.enum_version() == "000"
+    assert HomeAloneTopState.enum_version() == "001"

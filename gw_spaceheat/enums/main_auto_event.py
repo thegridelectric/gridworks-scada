@@ -8,28 +8,28 @@ class MainAutoEvent(GwStrEnum):
     """
     
     Values:
-      - AtnLinkDead
-      - AtnWantsControl
-      - AtnReleasesControl
-      - AutoGoesDormant
-      - AutoWakesUp
-      - AllyGivesUp
+      - DispatchContractLive # HomeAlone -> Atn
+      - ContractGracePeriodEnds # Atn -> HomeAlone
+      - AtnReleasesControl # Atn -> HomeAlone
+      - AllyGivesUp # Atn -> HomeAlone
+      - AutoGoesDormant # Atn or HomeAlone -> Dormant
+      - AutoWakesUp # Dormant -> HomeAlone
 
     For more information:
       - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
       - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#mainautoevent)
     """
 
-    AtnLinkDead = auto()
-    AtnWantsControl = auto()
+    DispatchContractLive = auto()
+    ContractGracePeriodEnds = auto()
     AtnReleasesControl = auto()
+    AllyGivesUp = auto()
     AutoGoesDormant = auto()
     AutoWakesUp = auto()
-    AllyGivesUp = auto()
 
     @classmethod
     def default(cls) -> "MainAutoEvent":
-        return cls.AutoGoesDormant
+        return cls.AutoWakesUp
 
     @classmethod
     def values(cls) -> List[str]:
@@ -41,4 +41,4 @@ class MainAutoEvent(GwStrEnum):
 
     @classmethod
     def enum_version(cls) -> str:
-        return "000"
+        return "001"

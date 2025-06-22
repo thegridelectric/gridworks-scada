@@ -8,23 +8,24 @@ import numpy as np
 from typing import Optional, Sequence
 from result import Ok, Result
 from datetime import datetime,  timezone
-from actors.scada_data import ScadaData
 from gwproto import Message
 
-from gwproto.named_types import SingleReading, PowerWatts
-from gwproactor import MonitoredName, ServicesInterface
+from gwproto.named_types import SingleReading
+from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 
 from actors.scada_actor import ScadaActor
+from enums import HomeAloneStrategy
 from data_classes.house_0_names import H0CN
-from named_types import (EnergyInstruction, Ha1Params, RemainingElec, 
-                         WeatherForecast, HeatingForecast, ScadaParams)
+from named_types import (Ha1Params, HeatingForecast,
+                         WeatherForecast, ScadaParams)
+from scada_app_interface import ScadaAppInterface
 
 
 class SynthGenerator(ScadaActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
 
-    def __init__(self, name: str, services: ServicesInterface):
+    def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
         self.cn: H0CN = self.layout.channel_names
         self._stop_requested: bool = False
@@ -59,10 +60,6 @@ class SynthGenerator(ScadaActor):
         self.forecasts: Optional[HeatingForecast]= None
         self.weather_forecast: Optional[WeatherForecast] = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
-    
-    @property
-    def data(self) -> ScadaData:
-        return self._services.data
     
     @property
     def params(self) -> Ha1Params:
@@ -121,9 +118,6 @@ class SynthGenerator(ScadaActor):
             self.get_latest_temperatures()
             if self.temperatures_available:
                 self.update_energy()
-
-            self.update_remaining_elec()
-
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     def stop(self) -> None:
@@ -134,11 +128,6 @@ class SynthGenerator(ScadaActor):
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         match message.Payload:
-            case EnergyInstruction():
-                self.process_energy_instruction(message.Payload)
-            case PowerWatts():
-                self.update_remaining_elec()
-                self.previous_watts = message.Payload.Watts
             case ScadaParams():
                 self.log("Received new parameters, time to recompute forecasts!")
                 self.received_new_params = True
@@ -186,41 +175,26 @@ class SynthGenerator(ScadaActor):
                 self.fill_missing_store_temps()
                 self.temperatures_available = True
 
-    def process_energy_instruction(self, payload: EnergyInstruction) -> None:
-        self.elec_assigned_amount = payload.AvgPowerWatts * payload.SlotDurationMinutes/60
-        self.elec_used_since_assigned_time = 0
-        self.log(f"Received an EnergyInstruction for {self.elec_assigned_amount} Watts average power")
-        if self.is_simulated:
-            self.previous_watts = 1000
-        else:
-            self.previous_watts = self.data.latest_channel_values[H0CN.hp_idu_pwr] + self.data.latest_channel_values[H0CN.hp_odu_pwr]
-        self.previous_time = payload.SendTimeMs
-
-    def update_remaining_elec(self) -> None:
-        if self.elec_assigned_amount is None or self.previous_time is None:
-            return
-        time_now = time.time() * 1000
-        # self.log(f"The HP power was {round(self.previous_watts,1)} Watts {round((time_now-self.previous_time)/1000,1)} seconds ago")
-        elec_watthours = self.previous_watts * (time_now - self.previous_time)/1000/3600
-        #self.log(f"This corresponds to an additional {round(elec_watthours,1)} Wh of electricity used")
-        self.elec_used_since_assigned_time += elec_watthours
-        #self.log(f"Electricity used since EnergyInstruction: {round(self.elec_used_since_assigned_time,1)} Wh")
-        remaining_wh = int(self.elec_assigned_amount - self.elec_used_since_assigned_time)
-        #self.log(f"Remaining electricity to be used from EnergyInstruction: {remaining_wh} Wh")
-        remaining = RemainingElec(
-            FromGNodeAlias=self.layout.atn_g_node_alias,
-            RemainingWattHours=remaining_wh
-        )
-        # primary scada will pass on to atomic ally
-        self._send_to(self.primary_scada, remaining)
-        self.previous_time = time_now
 
     # Compute usable and required energy
     def update_energy(self) -> None:
+        
         time_now = datetime.now(self.timezone)
         latest_temperatures = self.latest_temperatures.copy()
-        storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
-        simulated_layers = [self.to_fahrenheit(v/1000) for k,v in storage_temperatures.items()]        
+
+        if self.layout.ha_strategy in [HomeAloneStrategy.Summer]:
+            #self.log(f"Does not calculate usable/required energy in {self.layout.ha_strategy} ")
+            return
+
+        if self.layout.ha_strategy == HomeAloneStrategy.WinterTou:
+            storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
+            simulated_layers = [self.to_fahrenheit(v/1000) for k,v in storage_temperatures.items()]
+        elif self.layout.ha_strategy == HomeAloneStrategy.ShoulderTou: 
+            buffer_temp_channels = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4]
+            buffer_temperatures = {k:v for k,v in latest_temperatures.items() if k in buffer_temp_channels}
+            simulated_layers = [self.to_fahrenheit(v/1000) for k,v in buffer_temperatures.items()]    
+        else:
+            raise Exception(f"not prepared for home alone strategy {self.layout.ha_strategy}")    
         self.usable_kwh = 0
         while True:
             if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
@@ -267,7 +241,13 @@ class SynthGenerator(ScadaActor):
              if 16<=t.hour<=19]
             )
         # Find the maximum storage
-        simulated_layers = [self.params.MaxEwtF + 10] * 12
+        if self.layout.ha_strategy == HomeAloneStrategy.WinterTou:
+            simulated_layers = [self.params.MaxEwtF + 10] * 12
+        elif self.layout.ha_strategy == HomeAloneStrategy.ShoulderTou:
+            simulated_layers = [self.params.MaxEwtF + 10] * 4
+        else:
+            raise Exception(f"not prepared for home alone strategy {self.layout.ha_strategy}")
+    
         max_storage_kwh = 0
         while True:
             if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
