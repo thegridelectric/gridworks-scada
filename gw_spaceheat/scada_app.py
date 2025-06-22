@@ -1,9 +1,13 @@
+import json
+import logging
 import typing
 from typing import Optional
 from pathlib import Path
 from types import ModuleType
 
+import httpx
 from gwproactor import ProactorSettings
+from gwproactor import Problems
 from gwproactor.app import App
 from gwproactor.config import MQTTClient
 from gwproactor.config import Paths
@@ -12,6 +16,7 @@ from gwproactor.config.proactor_config import ProactorName
 from gwproactor.external_watchdog import SystemDWatchdogCommandBuilder
 from gwproactor.persister import TimedRollingFilePersister
 from gwproto import HardwareLayout
+from result import Result
 
 import actors
 from actors import Scada
@@ -21,6 +26,17 @@ from data_classes import house_0_names
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0N
 from scada_app_interface import ScadaAppInterface
+
+class HackUploadTimedRollingFilePersister(TimedRollingFilePersister):
+    def persist(self, uid: str, content: bytes) -> Result[bool, Problems]:
+        try:
+            httpx.post(
+                "http://127.0.0.1:8082/events",
+                json=json.loads(content.decode("utf-8")),
+            )
+        except Exception as e:
+            logging.getLogger("gridworks").error(e)
+        return super().persist(uid, content)
 
 
 class ScadaApp(App, ScadaAppInterface):
@@ -127,11 +143,10 @@ class ScadaApp(App, ScadaAppInterface):
         }
 
     def _make_persister(self, settings: ProactorSettings) -> TimedRollingFilePersister:
-        return TimedRollingFilePersister(
+        return HackUploadTimedRollingFilePersister(
             settings.paths.event_dir,
             max_bytes=settings.persister.max_bytes,
             pat_watchdog_args=SystemDWatchdogCommandBuilder.pat_args(
                 str(settings.paths.name)
             ),
         )
-
