@@ -4,7 +4,7 @@ from pathlib import Path
 from types import ModuleType
 
 from gwproactor import ProactorSettings
-from gwproactor.app import App
+from gwproactor.app import App, ActorConfig
 from gwproactor.config import MQTTClient
 from gwproactor.config.links import LinkSettings
 from gwproactor.config.proactor_config import ProactorName
@@ -89,14 +89,13 @@ class Scada2App(App, ScadaAppInterface):
             super().get_settings(*args, **kwargs)
         )
 
-
     @property
     def settings(self) -> ScadaSettings:
         return typing.cast(ScadaSettings, super().settings)
 
     @property
-    def prime_actor(self) -> ScadaInterface:
-        return typing.cast(ScadaInterface, super().prime_actor)
+    def prime_actor(self) -> Parentless:
+        return typing.cast(Parentless, super().prime_actor)
 
     @property
     def scada(self) -> ScadaInterface:
@@ -105,21 +104,3 @@ class Scada2App(App, ScadaAppInterface):
     @property
     def hardware_layout(self) -> House0Layout:
         return typing.cast(House0Layout, super().hardware_layout)
-
-    # def get_actor_nodes(self) -> List[ShNode]:
-    #     actors_package = importlib.import_module(self.actors_package_name)
-    #     actor_nodes = []
-    #     my_kids = [node for node in self._layout.nodes.values() if
-    #                self._layout.parent_node(node) == self._node and
-    #                node != self._node and
-    #                node.has_actor]
-    #     for node in my_kids:
-    #         if not getattr(actors_package, node.actor_class):
-    #             raise ValueError(
-    #                 f"ERROR. Actor class {node.actor_class} for node {node.Name} "
-    #                 f"not in actors package {self.actors_package_name}"
-    #             )
-    #         else:
-    #             actor_nodes.append(node)
-    #     return actor_nodes
-    #

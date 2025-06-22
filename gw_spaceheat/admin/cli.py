@@ -38,7 +38,7 @@ def watch_settings(
     # noinspection PyArgumentList
     settings = AdminClientSettings(
         _env_file=dotenv.find_dotenv(env_file),
-    )
+    ).update_paths_name("admin")
     if target:
         settings.target_gnode = target
     elif not settings.target_gnode:

@@ -2,7 +2,7 @@ import time
 import typing
 import uuid
 from abc import ABC
-from typing import Any, Dict, List, Optional
+from typing import cast, Any, Dict, List, Optional
 import pytz
 from gwproactor import QOS
 
