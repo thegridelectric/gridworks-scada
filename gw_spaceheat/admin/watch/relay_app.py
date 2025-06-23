@@ -6,7 +6,6 @@ from textual.binding import Binding
 from textual.logging import TextualHandler
 from textual.widgets import Header, Footer
 
-from admin.settings import AdminClientSettings
 from admin.watch.clients.admin_client import AdminClient
 from admin.watch.clients.relay_client import RelayEnergized
 from admin.watch.clients.relay_client import RelayWatchClient
@@ -127,7 +126,9 @@ class RelaysApp(App):
 if __name__ == "__main__":
     # https://github.com/koxudaxi/pydantic-pycharm-plugin/issues/1013
     # noinspection PyArgumentList
-    settings_ = AdminClientSettings(_env_file=dotenv.find_dotenv())
+    settings_ = AdminClientSettings(
+        _env_file=dotenv.find_dotenv()
+    ).update_paths_name("admin")
     settings_.verbosity = logging.DEBUG
     # settings_.paho_verbosity = logging.DEBUG
     app = RelaysApp(settings=settings_)
