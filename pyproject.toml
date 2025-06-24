@@ -3,3 +3,85 @@ log_format = "%(asctime)s %(message)s"
 addopts = """\
 --show-capture=no \
 """
+
+[tool.ruff]
+exclude = [
+    ".github",
+    "CodeGenerationTools",
+    "for_docker",
+    ".git",
+    ".mypy_cache",
+    ".nox",
+    "htmlcov",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".venv",
+    "pythonProject",
+    ".idea",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "docs",
+]
+output-format = "concise"
+fix = false
+show-fixes = true
+
+[tool.ruff.lint]
+# default select used by  ruff: ["E4", "E7", "E9", "F"]
+ignore = [
+    "ANN101", # Deprecated
+    "ANN102", # Deprecated
+    "ANN401", # When we use 'Any' we mean it.
+    "B027",
+    "COM812",
+    "CPY",
+    "D",
+    "DOC",
+    "E252", # Formatter
+    "E302",
+    "E501",
+    "EM",
+    "FA", # We only support Python >= 3.10, so we shouldn't need this
+    "ISC001",
+    "N801",
+    "N803", # Protocol sometimes calls for CamelCase arguments.
+    "N818", # We disagree with Pep8 about naming exceptions.
+    "PGH004", # ruff and IDE can disagree, in which case a simple # noqa might be need.
+    "PLW1514",
+    "TRY003", # Many of our ValueErrors contain messages that are not plausibly resuable.
+    "RUF100", # ruff and IDE often disagree about whether a 'noqa' is in use.
+    "W191",
+    "W291", # Formatter
+    "W293", # Formatter
+]
+
+[tool.ruff.lint.extend-per-file-ignores]
+"tests/**/*.py" = [
+    "ARG001", # Unused function args -> fixtures nevertheless are functionally relevant...
+    "C901", # Complexity
+    "FBT", # Don't care about booleans as positional arguments in tests, e.g. via @pytest.mark.parametrize()
+    "G004", # Ok to use f-strings in logging in test code
+    "N806", # We want to be able to have non pep8 variable names.
+    "PLR0912", # Complexity
+    "PLR0913", # Complexity
+    "PLR0915", # Complexity
+    "PT011", # It's not practical to match strings in exceptions caught by pytest.raises()
+    "S101", # asserts allowed in tests...
+]
+"src/gwproactor_test/**/*.py" = [
+    "ARG001",
+    "C901", # Complexity
+    "FBT",
+    "G004",
+    "N806", # We want to be able to have non pep8 variable names.
+    "PLR0912",
+    "PLR0913",
+    "PLR0915",
+    "PT011",
+    "S101",
+]

@@ -128,16 +128,19 @@ class HpBoss(ScadaActor):
                           ))
         elif self.state == HpBossState.HpOff:
             # HpOff -> PreparingToTurnOn
-            self.state = HpBossState.PreparingToTurnOn
-            # self._send_to(self.primary_scada, dispatch)
-            self._send_to(self.primary_scada,
-                          SingleMachineState(
-                              MachineHandle=self.node.handle,
-                              StateEnum=HpBossState.enum_name(),
-                              State=self.state,
-                              UnixMs=int(time.time() * 1000)
-                          ))
-            asyncio.create_task(self._waiting_to_turn_on())
+            if self.layout.use_sieg_loop:
+                self.state = HpBossState.PreparingToTurnOn
+                # self._send_to(self.primary_scada, dispatch)
+                self._send_to(self.primary_scada,
+                            SingleMachineState(
+                                MachineHandle=self.node.handle,
+                                StateEnum=HpBossState.enum_name(),
+                                State=self.state,
+                                UnixMs=int(time.time() * 1000)
+                            ))
+                asyncio.create_task(self._waiting_to_turn_on())
+            else:
+                self.close_hp_scada_ops_relay()
 
     def process_sieg_loop_ready(self, from_node: ShNode, payload: SiegLoopReady):
         if self.state == HpBossState.PreparingToTurnOn:

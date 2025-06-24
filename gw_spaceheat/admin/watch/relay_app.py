@@ -6,7 +6,6 @@ from textual.binding import Binding
 from textual.logging import TextualHandler
 from textual.widgets import Header, Footer
 
-from admin.settings import AdminClientSettings
 from admin.watch.clients.admin_client import AdminClient
 from admin.watch.clients.relay_client import RelayEnergized
 from admin.watch.clients.relay_client import RelayWatchClient
@@ -18,7 +17,7 @@ from admin.watch.widgets.timer import TimerDigits
 from admin.settings import AdminClientSettings
 from actors.config import AdminLinkSettings
 
-__version__: str = "0.2.3"
+__version__: str = "0.2.4"
 
 logger = logging.getLogger(__name__)
 logger.addHandler(TextualHandler())
@@ -34,7 +33,7 @@ class RelaysApp(App):
         Binding("d", "toggle_dark", "Toggle dark mode"),
         Binding("[", "previous_theme", " <- Theme ->"),
         Binding("]", "next_theme", " "),
-        Binding("m", "toggle_messages", "Toggle message display"),
+        # Binding("m", "toggle_messages", "Toggle message display"),
         Binding("q", "quit", "Quit", show=True, priority=True),
         Binding("ctrl+c", "quit", "Quit", show=False),
     ]

@@ -19,6 +19,7 @@ from paho.mqtt.client import Client as MQTTClient
 from paho.mqtt.client import MQTT_ERR_SUCCESS
 from paho.mqtt.client import MQTTMessage
 from paho.mqtt.client import MQTTMessageInfo
+from paho.mqtt.enums import CallbackAPIVersion
 from result import Err
 from result import Ok
 from result import Result
@@ -73,12 +74,12 @@ class ConstrainedMQTTClient:
         """
 
     class States(StrEnum):
-        stopped = auto()
-        started = auto()
-        connecting = auto()
-        subscribing = auto()
-        active = auto()
-        backing_off = auto()
+        stopped = auto()  # noqa
+        started = auto()  # noqa
+        connecting = auto()  # noqa
+        subscribing = auto()  # noqa
+        active = auto()  # noqa
+        backing_off = auto()  # noqa
 
     _state: States = States.stopped
     """Enum/string representation of connectivity providing feedback to user"""
@@ -221,12 +222,12 @@ class ConstrainedMQTTClient:
                 self._client._thread_terminate = True
         return result
 
-    def _on_connect(self, _: Any, _userdata: Any, _flags: dict, _rc: int) -> None:
+    def _on_connect(self, _: Any, _userdata: Any, _flags: dict, _rc: int, _properties: Any) -> None:
         self._change_state(self.States.subscribing)
         self._subscribe_all()
 
     def _on_subscribe(
-        self, _: Any, _userdata: Any, mid: int, _granted_qos: list[int]
+        self, _: Any, _userdata: Any, mid: int, _granted_qos: list[int], _properties: Any
     ) -> None:
         topics = self._pending_subacks.pop(mid, [])
         if topics:
@@ -240,20 +241,23 @@ class ConstrainedMQTTClient:
     def _on_connect_fail(self, _: Any, _userdata: Any) -> None:
         self._change_state(self.States.connecting)
 
-    def _on_disconnect(self, _: Any, _userdata: Any, _rc: int) -> None:
+    def _on_disconnect(self, _: Any, _userdata: Any, _rc: int, _properties: Any) -> None:
         self._pending_subscriptions = set(self._subscriptions)
 
     def _on_message(self, _: Any, _userdata: Any, message: MQTTMessage) -> None:
         if self._callbacks.message_received_callback is not None:
             self._callbacks.message_received_callback(
                 message.topic,
-                message.payload
+                message.payload  # noqa
             )
 
     def _make_client(self) -> Result[bool, Exception]:
         with self._lock:
             try:
-                self._client = MQTTClient("-".join(str(uuid.uuid4()).split("-")[:-1]))
+                self._client = MQTTClient(
+                    callback_api_version=CallbackAPIVersion.VERSION2,
+                    client_id="-".join(str(uuid.uuid4()).split("-")[:-1])
+                )
                 if self._paho_logger is not None:
                     self._client.enable_logger(self._paho_logger)
                 self._client.username_pw_set(

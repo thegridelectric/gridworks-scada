@@ -4,182 +4,61 @@
 #
 #    pip-compile --output-file=gw_spaceheat/requirements/test.txt gw_spaceheat/requirements/test.in
 #
-aiohappyeyeballs==2.4.4
-    # via aiohttp
-aiohttp==3.11.11
-    # via gridworks-proactor
-aiosignal==1.3.1
-    # via aiohttp
-annotated-types==0.7.0
-    # via pydantic
-anyio==4.8.0
+anyio==4.9.0
     # via httpx
-attrs==21.4.0
-    # via
-    #   aiohttp
-    #   pytest
-black==22.3.0
+black==25.1.0
     # via -r gw_spaceheat/requirements/test.in
-certifi==2025.1.31
+certifi==2025.6.15
     # via
     #   httpcore
     #   httpx
-cffi==1.15.1
-    # via cryptography
-click==8.1.3
-    # via
-    #   black
-    #   trogon
-    #   typer
-colorama==0.4.6
-    # via typer
-coverage==6.4.1
+click==8.2.1
+    # via black
+coverage==7.9.1
     # via -r gw_spaceheat/requirements/test.in
-cryptography==3.4.8
-    # via ownca
-freezegun==1.5.1
-    # via gridworks-proactor
-frozenlist==1.4.0
-    # via
-    #   aiohttp
-    #   aiosignal
-gridworks==1.2.0
-    # via gridworks-protocol
-gridworks-cert==0.4.3
-    # via gridworks-proactor
-gridworks-proactor[tests]==1.1.9
-    # via -r gw_spaceheat/requirements/test.in
-gridworks-protocol==1.2.4
-    # via gridworks-proactor
-h11==0.14.0
+h11==0.16.0
     # via httpcore
-httpcore==1.0.7
+httpcore==1.0.9
     # via httpx
 httpx==0.28.1
     # via -r gw_spaceheat/requirements/test.in
-idna==2.10
+idna==3.10
     # via
     #   anyio
     #   httpx
-    #   yarl
-importlib-metadata==6.8.0
-    # via textual
-iniconfig==1.1.1
+iniconfig==2.1.0
     # via pytest
-linkify-it-py==2.0.2
-    # via markdown-it-py
-markdown-it-py[linkify,plugins]==3.0.0
-    # via
-    #   mdit-py-plugins
-    #   rich
-    #   textual
-mdit-py-plugins==0.4.0
-    # via markdown-it-py
-mdurl==0.1.2
-    # via markdown-it-py
-multidict==6.0.4
-    # via
-    #   aiohttp
-    #   gridworks-proactor
-    #   yarl
-mypy==0.961
+mypy==1.16.1
     # via -r gw_spaceheat/requirements/test.in
-mypy-extensions==0.4.3
+mypy-extensions==1.1.0
     # via
     #   black
     #   mypy
-ownca==0.4.0
-    # via gridworks-cert
-packaging==21.3
-    # via pytest
-paho-mqtt==1.6.1
-    # via gridworks-proactor
-pathspec==0.9.0
-    # via black
-platformdirs==2.5.2
-    # via black
-pluggy==1.0.0
-    # via pytest
-propcache==0.2.1
+packaging==25.0
     # via
-    #   aiohttp
-    #   yarl
-pycparser==2.21
-    # via cffi
-pydantic==2.8.2
+    #   black
+    #   pytest
+pathspec==0.12.1
     # via
-    #   gridworks
-    #   gridworks-proactor
-    #   gridworks-protocol
-    #   pydantic-extra-types
-    #   pydantic-settings
-pydantic-core==2.20.1
-    # via pydantic
-pydantic-extra-types==2.9.0
-    # via gridworks-protocol
-pydantic-settings==2.4.0
-    # via gridworks-proactor
-pygments==2.15.1
-    # via rich
-pyparsing==3.0.9
-    # via packaging
-pytest==7.2.2
+    #   black
+    #   mypy
+platformdirs==4.3.8
+    # via black
+pluggy==1.6.0
+    # via pytest
+pygments==2.19.2
+    # via pytest
+pytest==8.4.1
     # via
     #   -r gw_spaceheat/requirements/test.in
-    #   gridworks-proactor
     #   pytest-asyncio
-pytest-asyncio==0.20.3
-    # via
-    #   -r gw_spaceheat/requirements/test.in
-    #   gridworks-proactor
-python-dateutil==2.8.2
-    # via freezegun
-python-dotenv==1.0.0
-    # via
-    #   gridworks
-    #   gridworks-proactor
-    #   pydantic-settings
-pytz==2024.1
-    # via gridworks-protocol
-result==0.9.0
-    # via gridworks-proactor
-rich==13.6.0
-    # via
-    #   gridworks-cert
-    #   textual
-    #   typer
-shellingham==1.5.4
-    # via typer
-six==1.16.0
-    # via python-dateutil
+pytest-asyncio==1.0.0
+    # via -r gw_spaceheat/requirements/test.in
+ruff==0.12.0
+    # via -r gw_spaceheat/requirements/test.in
 sniffio==1.3.1
     # via anyio
-textual==0.41.0
-    # via trogon
-trogon==0.5.0
-    # via gridworks-cert
-typer[all]==0.9.4
-    # via gridworks-cert
-typing-extensions==4.8.0
+typing-extensions==4.14.0
     # via
     #   anyio
     #   mypy
-    #   pydantic
-    #   pydantic-core
-    #   textual
-    #   typer
-uc-micro-py==1.0.2
-    # via linkify-it-py
-voluptuous==0.13.1
-    # via ownca
-xdg==6.0.0
-    # via
-    #   gridworks-cert
-    #   gridworks-proactor
-yarl==1.18.3
-    # via
-    #   aiohttp
-    #   gridworks-proactor
-    #   gridworks-protocol
-zipp==3.17.0
-    # via importlib-metadata

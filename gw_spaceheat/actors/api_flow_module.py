@@ -8,7 +8,7 @@ import numpy as np
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 from gw.errors import DcError
-from gwproactor import MonitoredName, Problems, ServicesInterface
+from gwproactor import MonitoredName, Problems, AppInterface
 from gwproactor.message import InternalShutdownMessage, PatInternalWatchdogMessage
 from gwproto import Message
 from gwproto.data_classes.components import PicoFlowModuleComponent
@@ -64,7 +64,11 @@ class ApiFlowModule(ScadaActor):
     # latest_gpm: float
     # latest_hz: float
 
-    def __init__(self, name: str, services: ServicesInterface):
+    def __init__(
+        self,
+        name: str,
+        services: AppInterface,
+    ):
         super().__init__(name, services)
         component = services.hardware_layout.component(name)
         if not isinstance(component, PicoFlowModuleComponent):
@@ -100,7 +104,7 @@ class ApiFlowModule(ScadaActor):
             self.slow_turner = True
 
         self.validate_config_params()
-        
+
         if self._component.gt.Enabled:
             if self._component.cac.MakeModel == MakeModel.GRIDWORKS__PICOFLOWHALL:
                 self._services.add_web_route(
@@ -148,7 +152,7 @@ class ApiFlowModule(ScadaActor):
                 raise DcError(f"SendHz but missing {self.hz_channel.Name}!")
         if self._component.gt.SendGallons:
             raise ValueError("Not set up to send gallons right now")
-        
+
     @property
     def last_sync_s(self) -> int:
         '''Rounds down self.latest_sync_send_s to the nearest multiple of self.capture_s'''
@@ -199,7 +203,7 @@ class ApiFlowModule(ScadaActor):
     async def main(self):
         if self.slow_turner:
             self.publish_zero_flow()
-            
+
         while not self._stop_requested:
             '''
             Checks if the pico flatlined
@@ -218,7 +222,7 @@ class ApiFlowModule(ScadaActor):
 
             # Check if flatlined, if so send an error report every FLATLINE_REPORT_S
             if (
-                time.time() - self.last_heard > self.flatline_seconds() and 
+                time.time() - self.last_heard > self.flatline_seconds() and
                 time.time() - self.last_error_report > FLATLINE_REPORT_S
                 ):
                 self.latest_gpm = None
@@ -304,7 +308,7 @@ class ApiFlowModule(ScadaActor):
         if self._component.gt.HwUid:
             return False
         return True
-    
+
     def pico_state_log(self, note: str) -> None:
         log_str = f"[PicoRelated] {note}"
         if self.settings.pico_cycler_state_logging:
@@ -386,7 +390,7 @@ class ApiFlowModule(ScadaActor):
             # A strange pico is identifying itself as our "a" tank
             self.log(f"Unknown pico {params.HwUid} identifying as {self.name} Pico A!")
             return Response()
-        
+
     async def _handle_ticklist_hall_post(self, request: Request) -> Response:
         '''Sends a TicklistHall message to self, which will trigger _process_ticklist_hall()'''
         if self._component.cac.MakeModel != MakeModel.GRIDWORKS__PICOFLOWHALL:
@@ -428,7 +432,7 @@ class ApiFlowModule(ScadaActor):
             except Exception as e: # noqa
                 self._report_post_error(e, text)
         return Response()
-    
+
     def update_timestamps_for_hall(self, data: TicklistHall) -> None:
         pi_time_received_post = time.time_ns()
         pico_time_before_post = data.PicoBeforePostTimestampNanoSecond
@@ -474,7 +478,7 @@ class ApiFlowModule(ScadaActor):
         if self.latest_tick_ns:
             zero_flow_ms = int((self.latest_tick_ns+1e8) / 1e6)
         self._send_to(
-            self.primary_scada, 
+            self.primary_scada,
             SyncedReadings(
                 ChannelNameList=channel_names,
                 ValueList=values,
@@ -508,7 +512,7 @@ class ApiFlowModule(ScadaActor):
         if self.gpm_channel.TelemetryName != TelemetryName.GpmTimes100.value:
             raise ValueError(f"Expectedfor GpmTimes100 for {self.gpm_channel.Name}, got {self.gpm_channel.TelemetryName}")
         gallons_per_tick = self._component.gt.ConstantGallonsPerTick
-        self.latest_gpm = first_frequency * 60 * gallons_per_tick        
+        self.latest_gpm = first_frequency * 60 * gallons_per_tick
         self.latest_hz = first_frequency
         channel_names = [self.gpm_channel.Name]
         values = [int(self.latest_gpm * 100)]
@@ -516,7 +520,7 @@ class ApiFlowModule(ScadaActor):
             channel_names.append(self.hz_channel.Name)
             values.append(int(self.latest_hz * 1e6))
         self._send_to(
-            self.primary_scada, 
+            self.primary_scada,
             SyncedReadings(
                 ChannelNameList=channel_names,
                 ValueList=values,
@@ -549,7 +553,7 @@ class ApiFlowModule(ScadaActor):
                     Ticklist=data,
                 )
             )
-        
+
         # Process empty ticklist
         if len(data.RelativeMillisecondList)==0:
             if self.latest_gpm is None:
@@ -564,7 +568,7 @@ class ApiFlowModule(ScadaActor):
             elif self.latest_gpm > self._component.gt.AsyncCaptureThresholdGpmTimes100/100:
                 self.publish_zero_flow()
             return
-        
+
         # Get absolute timestamps and corresponding frequency/GPM readings
         self.update_timestamps_for_reed(data)
         micro_hz_readings = self.get_micro_hz_readings()
@@ -595,7 +599,7 @@ class ApiFlowModule(ScadaActor):
             elif self.latest_gpm > self._component.gt.AsyncCaptureThresholdGpmTimes100/100:
                 self.publish_zero_flow()
             return
-        
+
         # Get absolute timestamps and corresponding frequency/GPM readings
         self.update_timestamps_for_hall(data)
         micro_hz_readings = self.get_micro_hz_readings()
@@ -648,7 +652,7 @@ class ApiFlowModule(ScadaActor):
             self.latest_tick_ns = self.nano_timestamps[-1]
             self.latest_hz = frequency_hz if self.slow_turner else 0
             return micro_hz_readings
-        
+
         # Post flow between the latest tick and the first tick
         # if self.latest_tick_ns:
         #     self.publish_first_frequency()
@@ -728,8 +732,8 @@ class ApiFlowModule(ScadaActor):
                 smoothed_frequencies = filtering(b, a, sampled_frequencies)
                 # Remove points resulting from adding the first recorded frequency
                 smoothed_frequencies = [
-                    smoothed_frequencies[i] 
-                    for i in range(len(smoothed_frequencies)) 
+                    smoothed_frequencies[i]
+                    for i in range(len(smoothed_frequencies))
                     if sampled_timestamps[i]>=timestamps[1]
                 ]
                 sampled_timestamps = [x for x in sampled_timestamps if x>=timestamps[1]]
@@ -745,7 +749,7 @@ class ApiFlowModule(ScadaActor):
             else:
                 glitch_summary = "Sampled Timestamps and Smoothed Frequencies not the same length!"
             self._send_to(
-                self.atn, 
+                self.atn,
                 Glitch(
                     FromGNodeAlias=self.layout.scada_g_node_alias,
                     Node=self.node.name,
@@ -761,7 +765,7 @@ class ApiFlowModule(ScadaActor):
                     ScadaReadTimeUnixMsList=[],
                 )
             else:
-                raise Exception("Sampled Timestamps and Smoothed Frequencies not the same length!")          
+                raise Exception("Sampled Timestamps and Smoothed Frequencies not the same length!")
         
         # Record Hz on change
         threshold_gpm = self._component.gt.AsyncCaptureThresholdGpmTimes100 / 100
