@@ -2,6 +2,7 @@ import asyncio
 import json
 import math
 import time
+import typing
 from functools import cached_property
 from typing import List, Literal, Optional, Sequence, Union
 
@@ -11,10 +12,10 @@ from gw.errors import DcError
 from gwproactor import MonitoredName, Problems, AppInterface
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
-from gwproto.data_classes.components import PicoTankModuleComponent, PicoTankModule3Component
-from data_classes.house_0_names import H0N
-from gwproto.data_classes.sh_node import ShNode
+from gwproto.data_classes.components import PicoTankModuleComponent
 from gwproto.enums import TempCalcMethod
+from gwproto.enums import MakeModel
+from gwproto.named_types import ComponentAttributeClassGt
 from gwproto.named_types import SyncedReadings, TankModuleParams
 from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from pydantic import BaseModel
@@ -39,7 +40,7 @@ class MicroVolts(BaseModel):
 
 class ApiTankModule(ScadaActor):
     _stop_requested: bool
-    _component: Union[PicoTankModuleComponent, PicoTankModule3Component]
+    _component: PicoTankModuleComponent
 
     def __init__(
         self,
@@ -47,19 +48,26 @@ class ApiTankModule(ScadaActor):
         services: AppInterface,
     ):
         super().__init__(name, services)
-        component = services.hardware_layout.component(name)
-        if not isinstance(component, PicoTankModuleComponent) and not isinstance(component, PicoTankModule3Component):
+        self._component = self.node.component
+        
+        if not isinstance(self._component, PicoTankModuleComponent):
             display_name = getattr(
-                component.gt, "display_name", "MISSING ATTRIBUTE display_name"
+                self._component.gt, "display_name", "MISSING ATTRIBUTE display_name"
             )
             raise ValueError(
-                f"ERROR. Component <{display_name}> has type {type(component)}. "
-                f"Expected PicoComponent.\n"
+                f"ERROR. Component <{display_name}> has type {type(self._component)}. "
+                f"Expected PicoTankModuleComponent.\n"
                 f"  Node: {self.name}\n"
-                f"  Component id: {component.gt.ComponentId}"
+                f"  Component id: {self.component.gt.ComponentId}"
             )
+        self.device_type = self._component.cac
+        if self.device_type.MakeModel not in [ MakeModel.GRIDWORKS__TANKMODULE2,
+                                               MakeModel.GRIDWORKS__TANKMODULE3]:
+            raise ValueError(f"Expect TankModule3 or TankModule2 .. not {self.device_type.MakeModel}")
         self._stop_requested: bool = False
-        self._component = component
+        
+        
+    
         if self._component.gt.Enabled:
             self._services.add_web_route(
                 server_name=DEFAULT_WEB_SERVER_NAME,
@@ -73,15 +81,15 @@ class ApiTankModule(ScadaActor):
                 path="/" + self.params_path,
                 handler=self._handle_params_post,
             )
-        if isinstance(self._component, PicoTankModule3Component):
+        if self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE3:
             self.pico_uid = self._component.gt.PicoHwUid
-        elif isinstance(self._component, PicoTankModuleComponent):
+        elif self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE2:
             self.pico_a_uid = self._component.gt.PicoAHwUid
             self.pico_b_uid = self._component.gt.PicoBHwUid
         # Use the following for generating pico offline reports for triggering the pico cycler
-        if isinstance(self._component, PicoTankModule3Component):
+        if self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE3:
             self.last_heard = time.time()
-        elif isinstance(self._component, PicoTankModuleComponent):
+        elif self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE2:
             self.last_heard_a = time.time()
             self.last_heard_b = time.time()
         self.last_error_report = time.time()
@@ -132,12 +140,12 @@ class ApiTankModule(ScadaActor):
         )
 
     def is_valid_pico_uid(self, params: TankModuleParams) -> bool:
-        if isinstance(self._component, PicoTankModule3Component):
+        if self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE3:
             return (
                 self._component.gt.PicoHwUid is None
                 or self._component.gt.PicoHwUid == params.HwUid
             )
-        elif isinstance(self._component, PicoTankModuleComponent):  
+        elif self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE2:  
             if params.PicoAB == "a":
                 return (
                     self._component.gt.PicoAHwUid is None
@@ -151,12 +159,12 @@ class ApiTankModule(ScadaActor):
         return False
 
     def need_to_update_layout(self, params: TankModuleParams) -> bool:
-        if isinstance(self._component, PicoTankModule3Component):
+        if self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE3:
             if self._component.gt.PicoHwUid:
                 return False
             else:
                 return True
-        elif isinstance(self._component, PicoTankModuleComponent):
+        elif self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE2:
             if params.PicoAB == "a":
                 if self._component.gt.PicoAHwUid:
                     return False
@@ -202,10 +210,10 @@ class ApiTankModule(ScadaActor):
                 CaptureOffsetS=offset,
             )
             if self.need_to_update_layout(params):
-                if isinstance(self._component, PicoTankModule3Component):
+                if self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE3:
                     self.pico_uid = params.HwUid
                     pico_ab_string = ""
-                elif isinstance(self._component, PicoTankModuleComponent):
+                elif self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE2:
                     if params.PicoAB == "a":
                         self.pico_a_uid = params.HwUid
                     elif params.PicoAB == "b":
@@ -239,13 +247,13 @@ class ApiTankModule(ScadaActor):
         return Response()
 
     def _process_microvolts(self, data: MicroVolts) -> None:
-        if isinstance(self._component, PicoTankModule3Component):
+        if self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE3:
             if data.HwUid == self.pico_uid:
                 self.last_heard = time.time()
             else:
                 self.log(f"{self.name}: Ignoring data from pico {data.HwUid} - not recognized!")
                 return
-        elif isinstance(self._component, PicoTankModuleComponent):
+        elif self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE2:
             if data.HwUid == self.pico_a_uid:
                 self.last_heard_a = time.time()
             elif data.HwUid == self.pico_b_uid:
@@ -264,6 +272,23 @@ class ApiTankModule(ScadaActor):
             if self._component.gt.TempCalcMethod == TempCalcMethod.SimpleBetaForPico:
                 try:
                     value_list.append(int(self.simple_beta_for_pico(volts) * 1000))
+                    channel_name_list.append(data.AboutNodeNameList[i])
+                except BaseException as e:
+                    self.services.send_threadsafe(
+                        Message(
+                            Payload=Problems(
+                                msg=(
+                                    f"Volts to temp problem for {data.AboutNodeNameList[i]}"
+                                ),
+                                errors=[e],
+                            ).problem_event(
+                                summary=(f"Volts to temp problem for {data.AboutNodeNameList[i]}"),
+                            )
+                        )
+                    )
+            elif self._component.gt.TempCalcMethod == TempCalcMethod.SimpleBeta:
+                try:
+                    value_list.append(int(self.simple_beta(volts) * 1000))
                     channel_name_list.append(data.AboutNodeNameList[i])
                 except BaseException as e:
                     self.services.send_threadsafe(
@@ -332,7 +357,7 @@ class ApiTankModule(ScadaActor):
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
             if self.last_error_report > FLATLINE_REPORT_S:
-                if isinstance(self._component, PicoTankModule3Component):
+                if self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE3:
                     if self.missing():
                         self._send_to(
                             self.pico_cycler,
@@ -351,7 +376,7 @@ class ApiTankModule(ScadaActor):
                             ChannelFlatlined(FromName=self.name, Channel=self.depth3_channel)
                         )
                         self.last_error_report = time.time()
-                elif isinstance(self._component, PicoTankModuleComponent):
+                elif self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE2:
                     if self.a_missing():
                         self._send_to(
                             self.pico_cycler,
@@ -382,13 +407,26 @@ class ApiTankModule(ScadaActor):
                         self.last_error_report = time.time()
             await asyncio.sleep(10)
 
+    def simple_beta(self, volts: float, fahrenheit=False) -> float:
+        """ Return temperature as a function of volts. Default Celcius. Use 
+        standard beta function (self._component.TempCalcMethod = TempCalcMethod.SimpleBeta)
+        """
+        if self._component.TempCalcMethod != TempCalcMethod.SimpleBeta:
+            raise Exception(f"Only call when TempCalcMethod is SimpleBeta, not {self._component.TempCalcMethod }")
+        raise Exception("NEED TO IMPLEMENT simple_beta")
+
     def simple_beta_for_pico(self, volts: float, fahrenheit=False) -> float:
         """
         Return temperature Celcius as a function of volts.
-        Uses a fixed estimated resistance for the pico
+        Uses a fixed estimated resistance for the pico (self._component.TempCalcMethod =TempCalcMethod.SimpleBetaForPico)
+        SHOULD DEPRECATE WHEN NOT IN THE FIELD AS CALC IS INCORRECT
         """
+        if self._component.TempCalcMethod != TempCalcMethod.SimpleBetaForPico:
+            raise Exception(f"Only call when TempCalcMethod is SimpleBetaForPico, not {self._component.TempCalcMethod }")
         r_therm_kohms = self.thermistor_resistance(volts)
         return self.temp_beta(r_therm_kohms, fahrenheit=fahrenheit)
+
+
 
     def temp_beta(self, r_therm_kohms: float, fahrenheit: bool = False) -> float:
         """
