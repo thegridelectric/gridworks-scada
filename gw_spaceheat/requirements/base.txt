@@ -32,9 +32,9 @@ frozenlist==1.4.0
     #   aiosignal
 gridworks==1.2.0
     # via gridworks-protocol
-gridworks-proactor==4.1.0
+gridworks-proactor==4.1.1
     # via -r gw_spaceheat/requirements/base.in
-gridworks-protocol==1.2.6
+gridworks-protocol==1.2.7
     # via
     #   -r gw_spaceheat/requirements/base.in
     #   gridworks-proactor
