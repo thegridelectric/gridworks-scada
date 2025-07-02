@@ -212,17 +212,16 @@ class ApiTankModule(ScadaActor):
             if self.need_to_update_layout(params):
                 if self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE3:
                     self.pico_uid = params.HwUid
-                    pico_ab_string = ""
+                    self.log(f"UPDATE LAYOUT!!: In layout_gen, go to add_tank3 {self.name} "
+                         f"and add PicoHwUid = '{params.HwUid}'")
                 elif self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE2:
                     if params.PicoAB == "a":
                         self.pico_a_uid = params.HwUid
                     elif params.PicoAB == "b":
                         self.pico_b_uid = params.HwUid
                     pico_ab_string = params.PicoAB.capitalize()
-                self.log(f"UPDATE LAYOUT!!: In layout_gen, go to add_tank2 {self.name} "
+                    self.log(f"UPDATE LAYOUT!!: In layout_gen, go to add_tank2 {self.name} "
                          f"and add Pico{pico_ab_string}HwUid = '{params.HwUid}'")
-                    # TODO: send message to self so that writing to hardware layout isn't happening in IO loop
-            self.pico_state_log(f"{self.name}{'-'if pico_ab_string else ''}{pico_ab_string}, {params.HwUid} ")
             return Response(text=new_params.model_dump_json())
         else:
             # A strange pico is identifying itself as our "a" tank
