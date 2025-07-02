@@ -2,7 +2,7 @@ import asyncio
 import time
 import uuid
 from enum import auto
-from typing import Dict, List, Optional, Sequence
+from typing import Dict, List, Optional, Sequence, cast
 from gw.enums import GwStrEnum
 from gwproactor import MonitoredName, Problems, AppInterface
 from gwproactor.message import PatInternalWatchdogMessage
@@ -16,6 +16,7 @@ from gwproto.enums import (
     MakeModel,
 )
 from gwproto.named_types import (
+
     ChannelReadings,
     FsmAtomicReport,
     FsmFullReport,
@@ -29,6 +30,7 @@ from actors.scada_actor import ScadaActor
 from enums import LogLevel, PicoCyclerEvent, PicoCyclerState
 from named_types import Glitch, GoDormant, PicoMissing, WakeUp
 from gwproto.named_types import PicoTankModuleComponentGt
+from gwproto.data_classes.components import PicoTankModuleComponent
 
 class PicoWarning(ValueError):
     pico_name: str
@@ -113,12 +115,18 @@ class PicoCycler(ScadaActor):
                 self.actor_by_pico[node.component.gt.HwUid] = node
                 self.picos.append(node.component.gt.HwUid)
             if node.ActorClass == ActorClass.ApiTankModule:
-                self.actor_by_pico[node.component.gt.PicoAHwUid] = node
-                self.ab_by_pico[node.component.gt.PicoAHwUid] = 'a'
-                self.picos.append(node.component.gt.PicoAHwUid)
-                self.actor_by_pico[node.component.gt.PicoBHwUid] = node
-                self.ab_by_pico[node.component.gt.PicoBHwUid] = 'b'
-                self.picos.append(node.component.gt.PicoBHwUid)
+                c = cast(PicoTankModuleComponent, node.component)
+                if c.cac.MakeModel == MakeModel.GRIDWORKS__TANKMODULE2:
+                    self.actor_by_pico[c.gt.PicoAHwUid] = node
+                    self.ab_by_pico[c.gt.PicoAHwUid] = 'a'
+                    self.picos.append(c.gt.PicoAHwUid)
+                    self.actor_by_pico[c.gt.PicoBHwUid] = node
+                    self.ab_by_pico[c.gt.PicoBHwUid] = 'b'
+                    self.picos.append(c.gt.PicoBHwUid)
+                elif c.cac.MakeModel == MakeModel.GRIDWORKS__TANKMODULE3:
+                    self.actor_by_pico[c.gt.PicoHwUid] = node
+                    self.picos.append(c.gt.PicoHwUid)
+                    
         self.pico_states = {pico: SinglePicoState.Alive for pico in self.picos}
         # This counts consecutive failed reboots per pico
         self.reboots = {pico: 0 for pico in self.picos}
