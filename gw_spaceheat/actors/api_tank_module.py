@@ -97,7 +97,7 @@ class ApiTankModule(ScadaActor):
             self.depth1_channel = self.layout.data_channels[f"{self.name}-depth1"]
             self.depth2_channel = self.layout.data_channels[f"{self.name}-depth2"]
             self.depth3_channel = self.layout.data_channels[f"{self.name}-depth3"]
-            if isinstance(self._component, PicoTankModuleComponent):
+            if self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE2:
                 self.depth4_channel = self.layout.data_channels[f"{self.name}-depth4"]
         except KeyError as e:
             raise Exception(f"Problem setting up ApiTankModule channels! {e}")

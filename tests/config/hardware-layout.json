@@ -620,7 +620,7 @@
       "PicoKOhms": 30,
       "AsyncCaptureDeltaMicroVolts": 2000,
       "TypeName": "pico.tank.module.component.gt",
-      "Version": "000"
+      "Version": "010"
     },
     {
       "ComponentAttributeClassId": "62528da5-b510-4ac2-82c1-3782842eae07",
