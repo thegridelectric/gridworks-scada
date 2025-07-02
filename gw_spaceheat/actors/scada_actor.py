@@ -1164,7 +1164,9 @@ class ScadaActor(Actor, ABC):
 
         t = self.scada_services.data.latest_channel_values.get("tank3-depth4")
         if t is None:
-            return None
+            t = self.scada_services.data.latest_channel_values.get("tank3-depth3")
+            if t is None:
+                return None
         return self.to_fahrenheit(t / 1000)
 
     def hottest_buffer_temp_f(self) -> Optional[float]:
@@ -1184,7 +1186,9 @@ class ScadaActor(Actor, ABC):
 
         t = self.scada_services.data.latest_channel_values.get("buffer-depth4")
         if t is None:
-            return None
+            t = self.scada_services.data.latest_channel_values.get("buffer-depth3")
+            if t is None:
+                return None
         return self.to_fahrenheit(t / 1000)
 
     def charge_discharge_relay_state(self) -> StoreFlowRelay:

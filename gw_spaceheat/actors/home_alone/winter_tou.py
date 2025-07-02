@@ -1,7 +1,7 @@
 import time
 from datetime import datetime
 from enum import auto
-from typing import List, Optional
+from typing import List, Optional, cast
 
 from actors.home_alone.home_alone_tou_base import HomeAloneTouBase
 from actors.scada_interface import ScadaInterface
@@ -10,6 +10,7 @@ from enums import HomeAloneStrategy, HomeAloneTopState
 from gw.enums import GwStrEnum
 from named_types import SingleMachineState
 from transitions import Machine
+from gwproto.named_types import PicoTankModuleComponentGt
 
 
 class HaWinterState(GwStrEnum):
@@ -148,11 +149,15 @@ class WinterTouHomeAlone(HomeAloneTouBase):
 
     @property
     def temperature_channel_names(self) -> List[str]:
-        return [
-            H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4,
+        '''Default is 3 layers per tank but can be 4 if PicoAHwUid is specified'''
+        buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3]
+        tank_depths = [depth for tank in self.cn.tank.values() for depth in [tank.depth1, tank.depth2, tank.depth3]]
+        if isinstance(self.layout.nodes['buffer'].component.gt, PicoTankModuleComponentGt):
+            buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4]
+            tank_depths = [depth for tank in self.cn.tank.values() for depth in [tank.depth1, tank.depth2, tank.depth3, tank.depth4]]
+        return buffer_depths + tank_depths + [
             H0CN.hp_ewt, H0CN.hp_lwt, H0CN.dist_swt, H0CN.dist_rwt, 
-            H0CN.buffer_cold_pipe, H0CN.buffer_hot_pipe, H0CN.store_cold_pipe, H0CN.store_hot_pipe,
-            *(depth for tank in self.cn.tank.values() for depth in [tank.depth1, tank.depth2, tank.depth3, tank.depth4])
+            H0CN.buffer_cold_pipe, H0CN.buffer_hot_pipe, H0CN.store_cold_pipe, H0CN.store_hot_pipe
         ]
         
     def time_to_trigger_house_cold_onpeak(self) -> bool:
@@ -337,8 +342,8 @@ class WinterTouHomeAlone(HomeAloneTouBase):
         self.latest_temperatures = {k:self.latest_temperatures[k] for k in sorted(self.latest_temperatures)}
 
     def is_buffer_empty(self, really_empty=False) -> bool:
-        if H0CN.buffer.depth2 in self.latest_temperatures:
-            if really_empty:
+        if H0CN.buffer.depth1 in self.latest_temperatures:
+            if really_empty or not isinstance(self.layout.nodes['buffer'].component.gt, PicoTankModuleComponentGt):
                 buffer_empty_ch = H0CN.buffer.depth1
             else:
                 buffer_empty_ch = H0CN.buffer.depth2
@@ -365,6 +370,8 @@ class WinterTouHomeAlone(HomeAloneTouBase):
     def is_buffer_full(self) -> bool:
         if H0CN.buffer.depth4 in self.latest_temperatures:
             buffer_full_ch = H0CN.buffer.depth4
+        elif H0CN.buffer.depth3 in self.latest_temperatures:
+            buffer_full_ch = H0CN.buffer.depth3
         elif H0CN.buffer_cold_pipe in self.latest_temperatures:
             buffer_full_ch = H0CN.buffer_cold_pipe
         elif "StoreDischarge" in self.state and H0CN.store_cold_pipe in self.latest_temperatures:

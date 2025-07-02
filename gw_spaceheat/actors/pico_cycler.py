@@ -13,6 +13,7 @@ from gwproto.enums import (
     ActorClass,
     ChangeRelayState,
     FsmReportType,
+    MakeModel,
 )
 from gwproto.named_types import (
     ChannelReadings,
@@ -27,6 +28,7 @@ import transitions
 from actors.scada_actor import ScadaActor
 from enums import LogLevel, PicoCyclerEvent, PicoCyclerState
 from named_types import Glitch, GoDormant, PicoMissing, WakeUp
+from gwproto.named_types import PicoTankModuleComponentGt
 
 class PicoWarning(ValueError):
     pico_name: str
@@ -247,10 +249,20 @@ class PicoCycler(ScadaActor):
             channel_names = payload.ChannelNameList
             if any(reading.startswith(f"{actor.name}-depth1") for reading in channel_names) or \
                any(reading.startswith(f"{actor.name}-depth2") for reading in channel_names):
-                pico = actor.component.gt.PicoAHwUid
+                if actor.component.cac.MakeModel == MakeModel.GRIDWORKS__TANKMODULE3:
+                    pico = actor.component.gt.PicoHwUid
+                elif actor.component.cac.MakeModel == MakeModel.GRIDWORKS__TANKMODULE2:
+                    pico = actor.component.gt.PicoAHwUid
+                else:
+                    raise Exception(f"Pico measuring {actor.name}-depth1 is not identifiable")
             elif any(reading.startswith(f"{actor.name}-depth3") for reading in channel_names) or \
                any(reading.startswith(f"{actor.name}-depth4") for reading in channel_names):
-                pico = actor.component.gt.PicoBHwUid
+                if actor.component.cac.MakeModel == MakeModel.GRIDWORKS__TANKMODULE3:
+                    pico = actor.component.gt.PicoHwUid
+                elif actor.component.cac.MakeModel == MakeModel.GRIDWORKS__TANKMODULE2:
+                    pico = actor.component.gt.PicoBHwUid
+                else:
+                    raise Exception(f"Pico measuring {actor.name}-depth3 is not identifiable")
             else:
                 raise Exception(
                     f"Do not get {actor.name}-depthi in ChannelNameList: {payload}"

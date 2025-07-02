@@ -5,12 +5,12 @@ import asyncio
 import aiohttp
 import math
 import numpy as np
-from typing import Optional, Sequence
+from typing import Optional, Sequence, cast
 from result import Ok, Result
 from datetime import datetime,  timezone
 from gwproto import Message
 
-from gwproto.named_types import SingleReading
+from gwproto.named_types import SingleReading, PicoTankModuleComponentGt
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 
@@ -30,11 +30,16 @@ class SynthGenerator(ScadaActor):
         self.cn: H0CN = self.layout.channel_names
         self._stop_requested: bool = False
         self.hardware_layout = self._services.hardware_layout
-        self.temperature_channel_names = [
-            H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4,
+
+        # Default is 3 layers per tank but can be 4 if PicoAHwUid is specified
+        buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3]
+        tank_depths = [depth for tank in self.cn.tank.values() for depth in [tank.depth1, tank.depth2, tank.depth3]]
+        if isinstance(self.layout.nodes['buffer'].component.gt, PicoTankModuleComponentGt):
+            buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4]
+            tank_depths = [depth for tank in self.cn.tank.values() for depth in [tank.depth1, tank.depth2, tank.depth3, tank.depth4]]
+        self.temperature_channel_names = buffer_depths + tank_depths + [
             H0CN.hp_ewt, H0CN.hp_lwt, H0CN.dist_swt, H0CN.dist_rwt, 
             H0CN.buffer_cold_pipe, H0CN.buffer_hot_pipe, H0CN.store_cold_pipe, H0CN.store_hot_pipe,
-            *(depth for tank in self.cn.tank.values() for depth in [tank.depth1, tank.depth2, tank.depth3, tank.depth4])
         ]
         self.elec_assigned_amount = None
         self.previous_time = None
@@ -188,11 +193,34 @@ class SynthGenerator(ScadaActor):
 
         if self.layout.ha_strategy == HomeAloneStrategy.WinterTou:
             storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
+            try:
+                num_tanks = len(set([x[:5] for x in storage_temperatures.keys()]))
+                for tank in range(1, num_tanks+1):
+                    num_layers = len([k for k in storage_temperatures.keys() if f'tank{tank}' in k])
+                    if num_layers == 4:
+                        storage_temperatures[f'tank{tank}-depth2'] = (
+                            storage_temperatures[f'tank{tank}-depth2'] + storage_temperatures[f'tank{tank}-depth3']
+                            ) / 2
+                        storage_temperatures[f'tank{tank}-depth3'] = storage_temperatures[f'tank{tank}-depth4']
+                        storage_temperatures.pop(f'tank{tank}-depth4')
+            except Exception as e:
+                self.log(f"Error combining tank depths 2 and 3, and removing depth 4: {e}")
+                storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
             simulated_layers = [self.to_fahrenheit(v/1000) for k,v in storage_temperatures.items()]
         elif self.layout.ha_strategy == HomeAloneStrategy.ShoulderTou: 
-            buffer_temp_channels = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4]
-            buffer_temperatures = {k:v for k,v in latest_temperatures.items() if k in buffer_temp_channels}
-            simulated_layers = [self.to_fahrenheit(v/1000) for k,v in buffer_temperatures.items()]    
+            buffer_temperatures = {k:v for k,v in latest_temperatures.items() if 'buffer' in k and 'depth' in k}
+            try:
+                num_layers = len(buffer_temperatures)
+                if num_layers == 4:
+                    buffer_temperatures['buffer-depth2'] = (
+                        buffer_temperatures['buffer-depth2'] + buffer_temperatures['buffer-depth3']
+                        ) / 2
+                    buffer_temperatures['buffer-depth3'] = buffer_temperatures['buffer-depth4']
+                    buffer_temperatures.pop('buffer-depth4')
+            except Exception as e:
+                self.log(f"Error combining buffer depths 2 and 3, and removing depth 4: {e}")
+                buffer_temperatures = {k:v for k,v in latest_temperatures.items() if 'buffer' in k and 'depth' in k}
+            simulated_layers = [self.to_fahrenheit(v/1000) for k,v in buffer_temperatures.items()]   
         else:
             raise Exception(f"not prepared for home alone strategy {self.layout.ha_strategy}")    
         self.usable_kwh = 0
@@ -201,7 +229,7 @@ class SynthGenerator(ScadaActor):
                 simulated_layers = [sum(simulated_layers)/len(simulated_layers) for x in simulated_layers]
                 if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
                     break
-            self.usable_kwh += 360/12*3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
+            self.usable_kwh += 120/3 * 3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
             simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]          
         self.required_kwh = self.get_required_storage(time_now)
         self.log(f"Usable energy: {round(self.usable_kwh,1)} kWh")
@@ -242,9 +270,9 @@ class SynthGenerator(ScadaActor):
             )
         # Find the maximum storage
         if self.layout.ha_strategy == HomeAloneStrategy.WinterTou:
-            simulated_layers = [self.params.MaxEwtF + 10] * 12
+            simulated_layers = [self.params.MaxEwtF + 10] * 3 * 3
         elif self.layout.ha_strategy == HomeAloneStrategy.ShoulderTou:
-            simulated_layers = [self.params.MaxEwtF + 10] * 4
+            simulated_layers = [self.params.MaxEwtF + 10] * 3 * 1
         else:
             raise Exception(f"not prepared for home alone strategy {self.layout.ha_strategy}")
     
@@ -254,7 +282,7 @@ class SynthGenerator(ScadaActor):
                 simulated_layers = [sum(simulated_layers)/len(simulated_layers) for x in simulated_layers]
                 if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
                     break
-            max_storage_kwh += 360/12*3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
+            max_storage_kwh += 120/3 * 3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
             simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]
         # if (((time_now.weekday()<4 or time_now.weekday()==6) and time_now.hour>=20)
         #     or (time_now.weekday()<5 and time_now.hour<=6)):

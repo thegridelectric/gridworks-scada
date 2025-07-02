@@ -12,12 +12,12 @@ from pydantic_extra_types.mac_address import MacAddress
 
 from layout_gen import add_hubitat
 from layout_gen import add_thermostat
-from layout_gen import add_tank
+from layout_gen import add_tank1
 from layout_gen import FibaroGenCfg
 from layout_gen import HubitatThermostatGenCfg
 from layout_gen import LayoutDb
 from layout_gen import StubConfig
-from layout_gen import TankGenCfg
+from layout_gen import Tank1Cfg
 
 _sn = 0
 
@@ -82,7 +82,7 @@ def test_tank_device_poll_period(tmp_path):
     ]
 
     for cfg in cfgs:
-        tank_gen_cfg = TankGenCfg(
+        tank_gen_cfg = Tank1Cfg(
             NodeName=cfg.Name,
             InHomeName=cfg.Name,
             SN=_dummy_sn(),
@@ -91,7 +91,7 @@ def test_tank_device_poll_period(tmp_path):
             DevicePollPeriodSeconds=cfg.DevicePollPeriodSeconds,
         )
         cfg.DisplayName = tank_gen_cfg.component_alias()
-        add_tank(
+        add_tank1(
             db,
             fibaro_a=_dummy_fib(),
             fibaro_b=_dummy_fib(),

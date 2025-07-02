@@ -1,3 +1,4 @@
+# For GRIDWORKS__TANK_MODULE_1, which used IoT Fibaro devices through Hubitat
 from typing import Optional
 from typing import Tuple
 
@@ -27,7 +28,7 @@ class FibaroGenCfg(BaseModel):
     def alias(self) -> str:
         return f"Fibaro Smart Implant {self.SN}"
 
-class TankGenCfg(BaseModel):
+class Tank1Cfg(BaseModel):
     NodeName: str
     InHomeName: str
     SN: str
@@ -53,12 +54,12 @@ class TankGenCfg(BaseModel):
             extra = ""
         return f"{self.node_display_name()} temp sensor at depth {depth}{extra}"
 
-def add_tank(
+def add_tank1(
     db: LayoutDb,
     fibaro_a: FibaroGenCfg,
     fibaro_b: FibaroGenCfg,
     hubitat: HubitatGt,
-    tank: TankGenCfg,
+    tank: Tank1Cfg,
 ) -> None:
     fibaro_make_model = MakeModel.FIBARO__ANALOG_TEMP_SENSOR
     if not db.cac_id_by_alias(fibaro_make_model):
