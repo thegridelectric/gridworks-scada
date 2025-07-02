@@ -26,7 +26,7 @@ from named_types import PicoMissing, ChannelFlatlined
 R_FIXED_KOHMS = 5.65  # The voltage divider resistors in the TankModule
 THERMISTOR_T0 = 298  # i.e. 25 degrees
 THERMISTOR_R0_KOHMS = 10  # The R0 of the NTC thermistor - an industry standard
-
+PICO_VOLTS = 3.3
 FLATLINE_REPORT_S = 60
 
 
@@ -225,7 +225,7 @@ class ApiTankModule(ScadaActor):
             return Response(text=new_params.model_dump_json())
         else:
             # A strange pico is identifying itself as our "a" tank
-            self.log(f"unknown pico {params.HwUid} identifying as {self.name} Pico A!")
+            self.log(f"unknown pico {params.HwUid} identifying as {self.name}")
             # TODO: send problem report?
             return Response()
 
@@ -273,6 +273,7 @@ class ApiTankModule(ScadaActor):
                     value_list.append(int(self.simple_beta_for_pico(volts) * 1000))
                     channel_name_list.append(data.AboutNodeNameList[i])
                 except BaseException as e:
+                    self.log(f"Problem with simple_beta({volts})! {e}")
                     self.services.send_threadsafe(
                         Message(
                             Payload=Problems(
@@ -290,6 +291,7 @@ class ApiTankModule(ScadaActor):
                     value_list.append(int(self.simple_beta(volts) * 1000))
                     channel_name_list.append(data.AboutNodeNameList[i])
                 except BaseException as e:
+                    self.log(f"Problem with simple_beta({volts})! {e}")
                     self.services.send_threadsafe(
                         Message(
                             Payload=Problems(
@@ -408,24 +410,25 @@ class ApiTankModule(ScadaActor):
 
     def simple_beta(self, volts: float, fahrenheit=False) -> float:
         """ Return temperature as a function of volts. Default Celcius. Use 
-        standard beta function (self._component.TempCalcMethod = TempCalcMethod.SimpleBeta)
+        standard beta function (self._component.gt.TempCalcMethod = TempCalcMethod.SimpleBeta)
         """
-        if self._component.TempCalcMethod != TempCalcMethod.SimpleBeta:
-            raise Exception(f"Only call when TempCalcMethod is SimpleBeta, not {self._component.TempCalcMethod }")
-        raise Exception("NEED TO IMPLEMENT simple_beta")
+        if self._component.gt.TempCalcMethod != TempCalcMethod.SimpleBeta:
+            raise Exception(f"Only call when TempCalcMethod is SimpleBeta, not {self._component.gt.TempCalcMethod }")
+        r_therm = R_FIXED_KOHMS * volts/(PICO_VOLTS-volts)
+        if r_therm <= 0:
+            raise ValueError("Disconnected thermistor!")
+        return r_therm
 
     def simple_beta_for_pico(self, volts: float, fahrenheit=False) -> float:
         """
         Return temperature Celcius as a function of volts.
-        Uses a fixed estimated resistance for the pico (self._component.TempCalcMethod =TempCalcMethod.SimpleBetaForPico)
+        Uses a fixed estimated resistance for the pico (self._component.gt.TempCalcMethod =TempCalcMethod.SimpleBetaForPico)
         SHOULD DEPRECATE WHEN NOT IN THE FIELD AS CALC IS INCORRECT
         """
-        if self._component.TempCalcMethod != TempCalcMethod.SimpleBetaForPico:
-            raise Exception(f"Only call when TempCalcMethod is SimpleBetaForPico, not {self._component.TempCalcMethod }")
+        if self._component.gt.TempCalcMethod != TempCalcMethod.SimpleBetaForPico:
+            raise Exception(f"Only call when TempCalcMethod is SimpleBetaForPico, not {self._component.gt.TempCalcMethod }")
         r_therm_kohms = self.thermistor_resistance(volts)
         return self.temp_beta(r_therm_kohms, fahrenheit=fahrenheit)
-
-
 
     def temp_beta(self, r_therm_kohms: float, fahrenheit: bool = False) -> float:
         """
