@@ -232,7 +232,7 @@ def test_power_meter_small():
 #                 increment = int(
 #                     meter_sync_thread.async_power_reporting_threshold * meter_sync_thread.nameplate_agg_power_w
 #                 ) + 1
-#                 expected = latest_total_power_w + (increment * len(self.runner.layout.all_telemetry_tuples_for_agg_power_metering))
+#                 expected = latest_total_power_w + (increment * 2)
 #                 driver.fake_power_w += increment
 
 #                 # Verify scada gets the message

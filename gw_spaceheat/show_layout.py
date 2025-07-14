@@ -198,18 +198,6 @@ def print_layout_members(
                 print(f"    <{entry.Name}>")
         except Exception as e:
             errors.append(LoadError(attr, {}, e))
-    for tt_prop_name in [
-        "all_multipurpose_telemetry_tuples",
-        "all_power_meter_telemetry_tuples",
-        "my_telemetry_tuples",
-        "all_telemetry_tuples_for_agg_power_metering",
-    ]:
-        print(f"  {tt_prop_name}:")
-        try:
-            for tt in getattr(layout, tt_prop_name):
-                print(f"    src: <{tt.SensorNode.Name}>  about: <{tt.AboutNode.Name}>")
-        except Exception as e:
-            errors.append(LoadError(tt_prop_name, {}, e))
 
 def print_layout_urls(layout: House0Layout) -> None:
     url_dicts = {
