@@ -26,6 +26,7 @@ from gwproto.enums import (
     StoreFlowRelay,
     TelemetryName
 )
+
 from enums import FlowManifoldVariant, TurnHpOnOff, ChangeKeepSend
 from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import (
     I2cMultichannelDtRelayComponent,

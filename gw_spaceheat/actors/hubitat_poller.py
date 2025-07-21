@@ -25,7 +25,8 @@ from actors.hubitat_interface import HubitatWebEventListenerInterface
 from actors.hubitat_interface import HubitatWebServerInterface
 from actors.hubitat_interface import MakerAPIRefreshResponse
 from actors.hubitat_interface import ValueConverter
-from actors.message import SyncedReadingsMessage
+from gwproto.named_types import SyncedReadings
+
 
 
 
@@ -119,11 +120,14 @@ class HubitatRESTPoller(RESTPoller):
                     else:
                         warnings.append(convert_result.err())
             if values:
-                return SyncedReadingsMessage(
-                    src=self._name,
-                    dst=self._report_dst,
-                    channel_name_list=about_channels,
-                    value_list=values,
+                return Message(
+                    Src=self._name,
+                    Dst=self._report_dst,
+                    Payload=SyncedReadings(
+                        ChannelNameList=about_channels,
+                        ValueList=values,
+                        ScadaReadTimeUnixMs=int(1000 * time.time())
+                    )
                 )
             if warnings:
                 self._forward(

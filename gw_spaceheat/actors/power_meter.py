@@ -11,10 +11,9 @@ from gwproactor.logger import LoggerOrAdapter
 from gwproto import Message
 from gwproto.enums import TelemetryName
 
-from actors.message import PowerWattsMessage
-from actors.message import SyncedReadingsMessage
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
+from data_classes.house_0_names import H0N
 from gwproactor import SyncThreadActor
 from gwproto.data_classes.components.electric_meter_component import ElectricMeterComponent
 from gwproto.data_classes.hardware_layout import HardwareLayout
@@ -31,7 +30,7 @@ from gwproactor.message import InternalShutdownMessage
 from gwproactor.sync_thread import SyncAsyncInteractionThread
 from gwproactor import Problems
 from gwproto.enums import MakeModel
-from gwproto.named_types import ElectricMeterChannelConfig
+from gwproto.named_types import ElectricMeterChannelConfig, PowerWatts, SyncedReadings
 
 
 
@@ -287,11 +286,14 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         self, channel_report_list: List[DataChannel]
     ):
         try:
-            msg = SyncedReadingsMessage(
-                    src=self.name,
-                    dst=self._telemetry_destination,
-                    channel_name_list= [ch.Name for ch in channel_report_list],
-                    value_list=[self.latest_telemetry_value[ch] for ch in channel_report_list],
+            msg = Message(
+                    Src=self.name,
+                    Dst= H0N.primary_scada,
+                    Payload=SyncedReadings(
+                        ChannelNameList=[ch.Name for ch in channel_report_list],
+                        ValueList=[self.latest_telemetry_value[ch] for ch in channel_report_list],
+                        ScadaReadTimeUnixMs=int(1000 * time.time())
+                    )
                 )
             self._put_to_async_queue(msg)
             for ch in channel_report_list:
@@ -359,14 +361,14 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         return int(sum(self.transactive_nameplate_watts.values()))
 
     def report_aggregated_power_w(self):
-        self._put_to_async_queue(
-            PowerWattsMessage(
-                src=self.name,
-                dst=self._telemetry_destination,
-                power=self.latest_agg_power_w,
-            )
+        message = Message(
+            Src=self.name,
+            Dst=H0N.primary_scada,
+            Payload=PowerWatts(Watts=self.latest_agg_power_w)
         )
+        self._put_to_async_queue(message)
         self.last_reported_agg_power_w = self.latest_agg_power_w
+
 
     def should_report_aggregated_power(self) -> bool:
         """Aggregated power is sent up asynchronously on change via a PowerWatts message, and the last aggregated

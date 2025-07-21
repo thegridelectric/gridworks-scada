@@ -7,10 +7,9 @@ from typing import Sequence
 from typing import TypeVar
 
 from gwproto import Message
-from gwproto.enums import TelemetryName
 from pydantic import ConfigDict, BaseModel
 
-from actors.message import SyncedReadingsMessage
+from gwproto.named_types import SyncedReadings
 from drivers.exceptions import DriverWarning
 
 
@@ -148,11 +147,14 @@ class HubitatWebEventHandler(BaseModel):
         try:
             value = self.value_converter(event.value)
             if value is not None:
-                message = SyncedReadingsMessage(
-                    src=self.report_src_node_name,
-                    dst=report_dst,
-                    channel_name_list=[self.channel_name],
-                    value_list=[value],
+                message = Message(
+                    Src=self.report_src_node_name,
+                    Dst=report_dst,
+                    Payload=SyncedReadings(
+                        ChannelNameList=[self.channel_name],
+                        ValueList=[value],
+                        ScadaReadTimeUnixMs=int(1000 * time.time())
+                    )
                 )
         except: # noqa
             pass

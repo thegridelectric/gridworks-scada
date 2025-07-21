@@ -21,38 +21,10 @@ from gwproto.data_classes.sh_node import ShNode
 from actors.config import ScadaSettings
 from gwproactor import QOS
 from gwproactor.message import MQTTReceiptPayload
-from actors.scada import (
-    LocalMQTTCodec,
-)
+from actors.codec_factories import Scada2CodecFactory
 from named_types import Glitch, SnapshotSpaceheat
 
-class Scada2CodecFactory(CodecFactory):
-    LOCAL_MQTT: str = "local_mqtt"
 
-    def get_codec(
-            self,
-            link_name: str,
-            link: LinkSettings,
-            proactor_name: ProactorName,
-            layout: HardwareLayout,
-    ) -> MQTTCodec:
-        if not isinstance(layout, House0Layout):
-            raise ValueError(
-                "ERROR. ScadaCodecFactory requires hardware layout "
-                "to be an instance of House0Layout but received layout type "
-                f"<{type(layout)}>"
-            )
-        if link_name == self.LOCAL_MQTT:
-            return LocalMQTTCodec(
-                primary_scada=False,
-                remote_node_names={layout.scada_g_node_alias.replace(".", "-")}
-            )
-        return super().get_codec(
-            link_name=link_name,
-            link=link,
-            proactor_name=proactor_name,
-            layout=layout,
-        )
 
 
 class Scada2Data:

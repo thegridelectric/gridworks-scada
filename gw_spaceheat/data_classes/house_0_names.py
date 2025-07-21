@@ -1,10 +1,18 @@
 from typing import ClassVar, Dict, List, Literal
-
-from gwproto.data_classes.telemetry_tuple import ChannelStub
+from pydantic import BaseModel
 from gwproto.enums import TelemetryName
-
+from gwproto.property_format import SpaceheatName
 DEFAULT_ANALOG_READER = "analog-temp"
 
+
+class ChannelStub(BaseModel):
+    Name: SpaceheatName
+    AboutNodeName: SpaceheatName
+    TelemetryName: TelemetryName
+    InPowerMetering: bool = False
+
+    def __hash__(self) -> int:
+        return hash(self.Name)
 
 class ZoneNodes:
     def __init__(self, zone: str, idx: int) -> None:
