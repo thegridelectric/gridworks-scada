@@ -66,7 +66,6 @@ ScadaMessageDecoder = create_message_model(
         "named_types",
         "gwproto.messages",
         "gwproactor.message",
-        "actors.message",
     ],
 )
 

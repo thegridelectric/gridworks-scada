@@ -21,11 +21,11 @@ from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import MakeModel
 from gwproto.message import Header
-from gwproto.named_types import AdsChannelConfig
+from gwproto.named_types import AdsChannelConfig, SyncedReadings
 from named_types import Glitch
 
 from actors.config import ScadaSettings
-from actors.message import SyncedReadingsMessage
+
 from actors.scada_interface import ScadaInterface
 
 UNKNOWNMAKE__UNKNOWNMODEL__MODULE_NAME = (
@@ -208,16 +208,17 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
     def report_sampled_telemetry_values(self, channel_list: List[DataChannel]):
 
         self._put_to_async_queue(
-            SyncedReadingsMessage(
-                src=self.name,
-                dst=self._telemetry_destination,
-                channel_name_list=[ch.Name for ch in channel_list],
-                value_list=list(
-                    map(
+            Message(
+                Src=self.name,
+                Dst=self._telemetry_destination,
+                Payload=SyncedReadings(
+                    ChannelNameList=[ch.Name for ch in channel_list],
+                    ValueList=list(map(
                         lambda x: self.latest_telemetry_value[x.Name],
                         channel_list,
-                    )
-                ),
+                    )),
+                    ScadaReadTimeUnixMs=int(1000 * time.time())
+                )
             )
         )
         for ch in channel_list:
