@@ -166,7 +166,6 @@ class AtnMQTTCodec(MQTTCodec):
                     "named_types",
                     "gwproto.messages",
                     "gwproactor.message",
-                    "actors.message",
                 ],
                 modules=[messages],
             )
