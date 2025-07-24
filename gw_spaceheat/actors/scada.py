@@ -249,7 +249,7 @@ class Scada(PrimeActor, ScadaInterface):
                     FromGNodeAlias=payload.FromGNodeAlias,
                     Node=payload.Node,
                     Type=payload.Type,
-                    Summary=payload.Summary + " ...Went to Scada! Should go to Atn!",
+                    Summary=payload.Summary,
                     Details=payload.Details,
                     CreatedMs=payload.CreatedMs
                 )
