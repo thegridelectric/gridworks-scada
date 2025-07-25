@@ -1,6 +1,6 @@
 {
     "python.defaultInterpreterPath": "${workspaceFolder}/gw_spaceheat/venv/bin/python",
-    // "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.typeCheckingMode": "basic",
 	"ruff.enable": true,
 	"ruff.fixAll": true,
 	"python.testing.pytestEnabled": true,

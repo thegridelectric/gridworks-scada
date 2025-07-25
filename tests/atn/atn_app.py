@@ -96,7 +96,7 @@ class AtnApp(App):
         }
 
     def _instantiate_proactor(self) -> Proactor:
-        proactor = self.sub_types.proactor_type(self.config)
+        proactor = self.sub_types.proactor_type(self, self.config)
         # Note: This is here because ATN loads the web server defined for scada
         #       in the hardware layout
         proactor._web_manager.disable()  # noqa
