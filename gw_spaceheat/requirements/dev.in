@@ -4,4 +4,5 @@ pip-tools
 isort
 
 gridworks-cert>=0.4.4
+gridworks-proactor[tests] ~= 4.1.5
 requests # for atn dashboard
