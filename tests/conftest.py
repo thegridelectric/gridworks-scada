@@ -6,6 +6,7 @@ import shutil
 from pathlib import Path
 
 from gwproactor_test import restore_loggers # noqa
+from gwproactor_test.pytest_options import add_live_test_options
 from gwproactor_test.certs import set_test_certificate_cache_dir
 
 
@@ -80,7 +81,7 @@ class TestScadaEnv:
             m.setenv("XDG_STATE_HOME", str(self.xdg_home / ".local" / "state"))
             m.setenv("XDG_CONFIG_HOME", str(self.xdg_home / ".config"))
             if self.copy_test_layout:
-                for name in ["scada", "atn"]:
+                for name in ["scada", "scada2", "atn"]:
                     paths = Paths(name=name)
                     paths.hardware_layout.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copyfile(self.src_test_layout, paths.hardware_layout)
@@ -165,3 +166,7 @@ def clean_scada_env(request, tmp_path) -> Generator[MonkeyPatch, None, None]:
 @pytest.fixture(autouse=True)
 def always_restore_loggers(restore_loggers):
     ...
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    add_live_test_options(parser, include_tree=True)
