@@ -7,6 +7,7 @@ from gwproactor_test.instrumented_proactor import MinRangeTuple
 from gwproactor_test.tree_live_test_helper import TreeLiveTest
 
 from actors.config import ScadaSettings
+from data_classes.house_0_layout import House0Layout
 from tests.conftest import TEST_HARDWARE_LAYOUT_PATH
 from tests.atn.atn_app import AtnApp
 from scada2_app import Scada2App
@@ -48,7 +49,15 @@ class ScadaLiveTest(TreeLiveTest):
     def test_layout_path(cls) -> Path:
         return TEST_HARDWARE_LAYOUT_PATH
 
-    def __init__(self, **kwargs: typing.Any) -> None:
+    def __init__(self,
+        *,
+        layout: Optional[House0Layout] = None,
+        child_layout: Optional[House0Layout] = None,
+        child1_layout: Optional[House0Layout] = None,
+        child2_layout: Optional[House0Layout] = None,
+        parent_layout: Optional[House0Layout] = None,
+        **kwargs: typing.Any
+    ) -> None:
         kwargs["child_app_settings"] = kwargs.get(
             "child_app_settings",
             ScadaSettings(is_simulated=True),
@@ -57,8 +66,16 @@ class ScadaLiveTest(TreeLiveTest):
             "child2_app_settings",
             ScadaSettings(is_simulated=True),
         )
-        super().__init__(**kwargs)
+        super().__init__(
+            layout=layout,
+            child_layout=child_layout,
+            child1_layout=child1_layout,
+            child2_layout=child2_layout,
+            parent_layout=parent_layout,
+            **kwargs
+        )
 
+    # noinspection PyMethodMayBeStatic
     def default_quiescent_total_children_events(self) -> int:
         return sum(
             [
@@ -69,6 +86,7 @@ class ScadaLiveTest(TreeLiveTest):
             ]
         )
 
+    # noinspection PyMethodMayBeStatic
     def default_quiesecent_parent_pending(
         self,
         exp_child_persists: Optional[int | MinRangeTuple] = None,
@@ -76,6 +94,7 @@ class ScadaLiveTest(TreeLiveTest):
     ) -> int:
         return 0  # ATN does not attempt to forward child events.
 
+    # noinspection PyMethodMayBeStatic
     def default_quiesecent_parent_persists(
         self,
         exp_parent_pending: Optional[int | MinRangeTuple] = None,
