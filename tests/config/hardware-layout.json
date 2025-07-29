@@ -813,7 +813,7 @@
     {
       "AsyncCaptureDeltaMicroVolts": 2000,
       "ComponentAttributeClassId": "f88fbf89-5b74-46d6-84a3-8e7494d08435",
-      "ComponentId": "727f527d-22f2-4c50-a5d4-dfea499f5375",
+      "ComponentId": "362c9d50-c952-43b4-be2c-95dfd7a25afd",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -1015,6 +1015,7 @@
     },
     {
       "ActorClass": "PowerMeter",
+      "ActorHierarchyName": "s.power-meter",
       "ComponentId": "2bfd0036-0b0e-4732-8790-bc7d0536a85e",
       "DisplayName": "Main Power Meter Little Orange House Test System",
       "Name": "power-meter",
@@ -1255,7 +1256,7 @@
     {
       "ActorClass": "ApiTankModule",
       "ActorHierarchyName": "s.buffer",
-      "ComponentId": "727f527d-22f2-4c50-a5d4-dfea499f5375",
+      "ComponentId": "362c9d50-c952-43b4-be2c-95dfd7a25afd",
       "DisplayName": "Buffer Tank",
       "Name": "buffer",
       "ShNodeId": "68596845-2e66-4f9d-a876-90da381ddc37",

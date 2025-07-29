@@ -174,6 +174,7 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
                 ShNodeId=db.make_node_id(H0N.primary_power_meter),
                 Name=H0N.primary_power_meter,
                 ActorClass=ActorClass.PowerMeter,
+                ActorHierarchyName=f"{H0N.primary_scada}.{H0N.primary_power_meter}",
                 DisplayName="Main Power Meter Little Orange House Test System",
                 ComponentId=db.component_id_by_alias(POWER_METER_COMPONENT_DISPLAY_NAME),
             ),
