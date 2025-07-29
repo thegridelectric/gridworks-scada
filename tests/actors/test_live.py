@@ -1,12 +1,10 @@
-from typing import Any
-
 import pytest
 
 from tests.utils.scada_live_test_helper import ScadaLiveTest
 
-
 @pytest.mark.asyncio
-async def test_tree_connect(request: Any) -> None:
+async def test_tree_connect(request: pytest.FixtureRequest) -> None:
+    """This is a simple wait for ATN and Scada to connect to each other."""
     async with ScadaLiveTest(
         start_child1=True,
         start_child2=True,
@@ -28,3 +26,18 @@ async def test_tree_connect(request: Any) -> None:
             and link1toAtn.active(),
             "ERROR waiting children to connect",
         )
+
+@pytest.mark.asyncio
+async def test_tree_quiescent(request: pytest.FixtureRequest) -> None:
+    """This is a wait for ATN and Scadas to connect and finishing uploading
+    the default number of events. """
+    async with ScadaLiveTest(
+        start_child1=True,
+        start_child2=True,
+        start_parent=True,
+        request=request,
+        child_verbose=True,
+    ) as h:
+        await h.await_quiescent_connections()
+
+

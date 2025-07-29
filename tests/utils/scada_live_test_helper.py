@@ -1,6 +1,9 @@
 import typing
+from typing import Optional
+
 from pathlib import Path
 
+from gwproactor_test.instrumented_proactor import MinRangeTuple
 from gwproactor_test.tree_live_test_helper import TreeLiveTest
 
 from actors.config import ScadaSettings
@@ -55,3 +58,59 @@ class ScadaLiveTest(TreeLiveTest):
             ScadaSettings(is_simulated=True),
         )
         super().__init__(**kwargs)
+
+    def default_quiescent_total_children_events(self) -> int:
+        return sum(
+            [
+                4,  # child2 startup, connect, subscribe, peer active
+                1,  # child1 startup
+                6,  # child1 (parent, child2, admin) x (connect, subscribe)
+                2,  # child1 (parent, child2) x peer active
+            ]
+        )
+
+    def default_quiesecent_parent_pending(
+        self,
+        exp_child_persists: Optional[int | MinRangeTuple] = None,
+        exp_total_children_events: Optional[int] = None,
+    ) -> int:
+        return 0  # ATN does not attempt to forward child events.
+
+    def default_quiesecent_parent_persists(
+        self,
+        exp_parent_pending: Optional[int | MinRangeTuple] = None,
+        exp_child_persists: Optional[int | MinRangeTuple] = None,
+    ) -> int:
+        return 4 # startup, connect, subscribed, child1 active; ATN does not
+                 #   persist child events
+
+    async def await_parent_at_rest(
+        self,
+        *,
+        exp_parent_pending: int | MinRangeTuple,
+        exp_parent_persists: Optional[int | MinRangeTuple] = None,
+        exp_total_children_events: Optional[int] = None,  # noqa: ARG002
+        exact: bool = False,
+        caller_depth: int = 4,
+    ) -> None:
+        await super().await_parent_at_rest(
+            exp_parent_pending=exp_parent_pending,
+            exp_parent_persists=exp_parent_persists,
+            exact=exact,
+            caller_depth=caller_depth + 1,
+        )
+        def _child_events_received() -> int:
+            rcv = 0
+            scada_link_stats = self.parent.stats.link(self.parent.downstream_client)
+            for event_src_dict in scada_link_stats.event_counts.values():
+                rcv += sum(event_src_dict.values())
+            return rcv
+
+        await self.await_for(
+            lambda: _child_events_received() >= exp_total_children_events,
+            (
+                f"ERROR waiting for ATN to receive {exp_total_children_events} "
+                "told child events"
+            ),
+            caller_depth=caller_depth,
+        )
