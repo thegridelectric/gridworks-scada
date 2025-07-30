@@ -6,7 +6,7 @@ from rich.console import ConsoleOptions
 from rich.console import RenderResult
 from rich.table import Table
 
-from tests.atn.dashboard.channels.containers import Channels
+from actors.atn.dashboard.channels.containers import Channels
 
 
 class OddsAndEnds:

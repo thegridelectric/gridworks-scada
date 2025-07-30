@@ -8,7 +8,7 @@ from gwproto.enums import TelemetryName
 from gwproto.named_types import SingleReading
 from named_types import SnapshotSpaceheat
 
-from tests.atn.dashboard.channels.channel import DisplayChannel
+from actors.atn.dashboard.channels.channel import DisplayChannel
 
 
 class UnusedReading(SingleReading):

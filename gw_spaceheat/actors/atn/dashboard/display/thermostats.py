@@ -7,10 +7,10 @@ from rich.console import ConsoleOptions
 from rich.console import RenderResult
 from rich.table import Table
 
-from tests.atn.dashboard.channels.containers import Channels
-from tests.atn.dashboard.channels.containers import PumpPowerState
-from tests.atn.dashboard.display.styles import cold_style
-from tests.atn.dashboard.display.styles import hot_style
+from actors.atn.dashboard.channels.containers import Channels
+from actors.atn.dashboard.channels.containers import PumpPowerState
+from actors.atn.dashboard.display.styles import cold_style
+from actors.atn.dashboard.display.styles import hot_style
 
 
 class ThermostatDisplay:

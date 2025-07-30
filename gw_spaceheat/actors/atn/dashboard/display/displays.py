@@ -10,14 +10,14 @@ from rich.style import Style
 from rich.text import Text
 from textual.messages import Layout
 
-from tests.atn.dashboard.misc import UpdateSources
-from tests.atn.atn_config import DashboardSettings
-from tests.atn.dashboard.display.odds_and_ends import OddsAndEnds
-from tests.atn.dashboard.display.power import PowerDisplay
-from tests.atn.dashboard.display.thermostats import ThermostatDisplay
-from tests.atn.dashboard.display.picture import AsciiPicture
-from tests.atn.dashboard.channels.containers import Channels
-from tests.atn.dashboard.hackhp import HackHpStateCapture
+from actors.atn.dashboard.misc import UpdateSources
+from actors.atn.atn_config import DashboardSettings
+from actors.atn.dashboard.display.odds_and_ends import OddsAndEnds
+from actors.atn.dashboard.display.power import PowerDisplay
+from actors.atn.dashboard.display.thermostats import ThermostatDisplay
+from actors.atn.dashboard.display.picture import AsciiPicture
+from actors.atn.dashboard.channels.containers import Channels
+from actors.atn.dashboard.hackhp import HackHpStateCapture
 
 class Displays:
     short_name: str

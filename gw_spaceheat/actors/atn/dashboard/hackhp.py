@@ -9,10 +9,10 @@ from typing import Optional
 
 import rich
 
-from tests.atn.atn_config import HackHpSettings
-from tests.atn.dashboard.channels.containers import enqueue_fifo_q
-from tests.atn.dashboard.channels.containers import Channels
-from tests.atn.dashboard.channels.channel import PUMP_OFF_THRESHOLD
+from actors.atn.atn_config import HackHpSettings
+from actors.atn.dashboard.channels.containers import enqueue_fifo_q
+from actors.atn.dashboard.channels.containers import Channels
+from actors.atn.dashboard.channels.channel import PUMP_OFF_THRESHOLD
 
 PUMP_ON_THRESHOLD = 4
 HP_DEFINITELY_HEATING_THRESHOLD = 6000

@@ -9,16 +9,8 @@ from gwproactor.logging_setup import enable_aiohttp_logging
 from trogon import Trogon
 from typer.main import get_group
 
-try:
-    from tests.atn.atn_config import AtnSettings  # noqa: F401
-    from tests.atn.atn_app import AtnApp
-except ImportError as e:
-    raise ImportError(
-        f"ERROR. ({e})\n\n"
-        "Running the test atn requires an *extra* entry on the pythonpath, the base directory of the repo.\n"
-        "Set this with:\n\n"
-        "  export PYTHONPATH=$PYTHONPATH:`pwd`\n"
-    )
+from actors.atn.atn_config import AtnSettings  # noqa: F401
+from atn_app import AtnApp
 
 
 app = typer.Typer(

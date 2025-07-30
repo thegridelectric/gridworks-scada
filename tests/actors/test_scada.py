@@ -7,11 +7,7 @@ from gwproto.messages import ReportEvent
 from gwproto.messages import ChannelReadings
 
 from data_classes.house_0_layout import House0Layout
-from tests.atn import AtnSettings
-from tests.utils.fragment_runner import Actors
-from tests.utils.fragment_runner import AsyncFragmentRunner
-from tests.utils.fragment_runner import ProtocolFragment
-from tests.utils import ScadaRecorder
+from actors.atn.atn_config import AtnSettings
 from gwproactor_test import await_for
 from gwproactor_test.certs import uses_tls
 from gwproactor_test.certs import copy_keys

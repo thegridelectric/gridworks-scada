@@ -8,14 +8,14 @@ from rich.console import RenderResult
 from rich.style import Style
 from rich.text import Text
 
-from tests.atn.dashboard.display.styles import temperature_markup
-from tests.atn.dashboard.channels.channel import TemperatureChannel
-from tests.atn.dashboard.display.styles import misc_style
-from tests.atn.dashboard.display.styles import cold_style
-from tests.atn.dashboard.display.styles import hot_style
-from tests.atn.dashboard.hackhp import HackHpState
-from tests.atn.dashboard.hackhp import HackHpStateCapture
-from tests.atn.dashboard.channels.containers import Channels
+from actors.atn.dashboard.display.styles import temperature_markup
+from actors.atn.dashboard.channels.channel import TemperatureChannel
+from actors.atn.dashboard.display.styles import misc_style
+from actors.atn.dashboard.display.styles import cold_style
+from actors.atn.dashboard.display.styles import hot_style
+from actors.atn.dashboard.hackhp import HackHpState
+from actors.atn.dashboard.hackhp import HackHpStateCapture
+from actors.atn.dashboard.channels.containers import Channels
 
 class PipePair:
     hot: str

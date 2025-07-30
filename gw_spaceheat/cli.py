@@ -11,6 +11,7 @@ from trogon import Trogon
 from typer.main import get_group
 
 from admin.cli import app as admin_cli
+from actors.atn.cli import app as atn_cli
 from actors.config import ScadaSettings
 from layout_gen.genlayout import app as layout_cli
 from scada2_app import Scada2App
@@ -28,6 +29,7 @@ app = typer.Typer(
 
 app.add_typer(admin_cli, name="admin", help="Admin commands.")
 app.add_typer(layout_cli, name="layout", help="Layout commands")
+app.add_typer(atn_cli, name="atn", help="ATN commands")
 
 @app.command()
 def config(env_file: str = ".env"):

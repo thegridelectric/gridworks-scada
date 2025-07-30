@@ -12,8 +12,8 @@ from gwproactor.config import Paths
 from gwproto import HardwareLayout
 
 import actors
-from actors.atn import Atn
-from tests.atn.atn_config import AtnSettings
+from actors.atn.atn import Atn
+from actors.atn.atn_config import AtnSettings
 from data_classes import house_0_names
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0N

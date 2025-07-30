@@ -52,9 +52,8 @@ from named_types import (
 from paho.mqtt.client import MQTTMessageInfo
 from pydantic import BaseModel
 
-from tests.atn import messages
-from tests.atn.atn_config import AtnSettings, DashboardSettings
-from tests.atn.dashboard.dashboard import Dashboard
+from actors.atn.atn_config import AtnSettings, DashboardSettings
+from actors.atn.dashboard.dashboard import Dashboard
 
 
 class PriceForecast(BaseModel):
@@ -167,7 +166,6 @@ class AtnMQTTCodec(MQTTCodec):
                     "gwproto.messages",
                     "gwproactor.message",
                 ],
-                modules=[messages],
             )
         )
 
