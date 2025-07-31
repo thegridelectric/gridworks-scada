@@ -1,16 +1,9 @@
 """Test Scada"""
-import logging
 import time
 
 from gwproto.messages import ReportEvent
 from gwproto.messages import ChannelReadings
 
-from data_classes.house_0_layout import House0Layout
-from tests.utils.fragment_runner import Actors
-from tests.utils.fragment_runner import AsyncFragmentRunner
-from tests.utils.fragment_runner import ProtocolFragment
-from tests.utils import ScadaRecorder
-from gwproactor_test import await_for
 from gwproactor_test.certs import uses_tls
 from gwproactor_test.certs import copy_keys
 
@@ -18,7 +11,6 @@ import pytest
 from scada_app import ScadaApp
 from actors.config import ScadaSettings
 from named_types import SnapshotSpaceheat
-from gwproto.messages import Report
 from data_classes.house_0_names import H0N, H0CN
 from tests.utils.scada_live_test_helper import ScadaLiveTest
 
@@ -281,156 +273,146 @@ async def test_scada_periodic_snapshot_delivery(request: pytest.FixtureRequest):
 
 
 
-@pytest.mark.skip("skipping due to has-a refactor")
 @pytest.mark.asyncio
-async def test_scada_snaphot_request_delivery(tmp_path, monkeypatch, request):
+async def test_scada_snaphot_request_delivery(request: pytest.FixtureRequest):
     """Verify scada sends snapshot upon request from Atn"""
 
-    monkeypatch.chdir(tmp_path)
-    settings = ScadaSettings(seconds_per_report=2)
+    async with ScadaLiveTest(
+            start_all=True,
+            child_app_settings=ScadaSettings(seconds_per_snapshot=100000000),
+            request=request,
+    ) as h:
+        await h.await_quiescent_connections()
+        atn_proactor = h.parent
+        atn_to_scada1_stats = atn_proactor.stats.link(h.parent.downstream_client)
+        atn_receive_counts = atn_to_scada1_stats.num_received_by_type
+        snap_type = SnapshotSpaceheat.model_fields["TypeName"].default
+        initital_snapshots = atn_receive_counts[snap_type]
+        h.parent_app.prime_actor.snap()
+        await h.await_for(
+            lambda: atn_receive_counts[snap_type] > initital_snapshots,
+            f"ERROR waiting for ATN to receice > {initital_snapshots} snapshots"
+        )
 
-    class Fragment(ProtocolFragment):
-
-        def get_requested_proactors(self):
-            self.runner.actors.scada.suppress_report = True
-            return [self.runner.actors.scada, self.runner.actors.atn]
-
-        async def async_run(self):
-            atn = self.runner.actors.atn
-            atn._logger.setLevel(logging.DEBUG)
-            assert atn.stats.num_received_by_type[SnapshotSpaceheat.model_fields['TypeName'].default] == 0
-            atn._logger.info(SnapshotSpaceheat.model_fields['TypeName'].default)
-            atn._logger.info(atn.summary_str())
-            atn.snap()
-            await await_for(
-                lambda: atn.stats.num_received_by_type[SnapshotSpaceheat.model_fields['TypeName'].default] == 1,
-                3,
-                "Atn wait for snapshot message [test_scada_snaphot_request_delivery]",
-                err_str_f=atn.summary_str,
-                logger=atn._logger,
-            )
-
-    await AsyncFragmentRunner.async_run_fragment(Fragment, settings=settings, tag=request.node.name)
-
-@pytest.mark.skip(reason="Skipping for now")
-@pytest.mark.asyncio
-async def test_scada_report_content_dynamics(tmp_path, monkeypatch, request):
-
-    monkeypatch.chdir(tmp_path)
-    settings = ScadaSettings(seconds_per_report=1)
-    if uses_tls(settings):
-        copy_keys("scada", settings)
-    settings.paths.mkdirs(parents=True)
-    layout = House0Layout.load(settings.paths.hardware_layout)
-    actors = Actors(
-        settings,
-        layout=layout,
-        scada=ScadaRecorder(H0N.primary_scada, settings, hardware_layout=layout),
-        atn_settings=AsyncFragmentRunner.make_atn_settings()
-    )
-    actors.scada._last_status_second = int(time.time())
-    actors.scada.suppress_report = True
-
-    class Fragment(ProtocolFragment):
-
-        def get_requested_proactors(self):
-            return [self.runner.actors.scada, self.runner.actors.atn]
-
-        async def async_run(self):
-            atn = self.runner.actors.atn
-            scada = self.runner.actors.scada
-            link_stats = scada.stats.links["gridworks"]
-            meter = self.runner.actors.meter
-            meter_telemetry_message_type = "synced.readings"
-
-            # Verify scada status and snapshot are emtpy
-            report = scada._data.make_report(int(time.time()))
-            snapshot = scada._data.make_snapshot()
-            assert len(report.ChannelReadingList) == 0
-            assert len(snapshot.LatestReadingList) == 0
-            assert link_stats.num_received_by_type[meter_telemetry_message_type] == 0
-
-            # Make sub-actors send their reports
-            for actor in [meter]:
-                scada.add_communicator(actor)
-                actor.start()
-            await await_for(
-                scada._links.link(scada.GRIDWORKS_MQTT).active,
-                10,
-                "ERROR waiting link active",
-                err_str_f=scada.summary_str
-            )
-            assert scada.scada_atn_fast_dispatch_contract_is_alive
-            
-            # Provoke a message by increasing the power of hp-odu
-            hp_odu = scada._data.hardware_layout.node(H0N.hp_odu)
-            assert hp_odu is not None
-            scada._layout.channel
-            ch = scada._layout.channel(H0CN.hp_odu_pwr)
-            meter._sync_thread.latest_telemetry_value[ch] += 300
-
-            await await_for(
-                lambda: (
-                    scada.stats.num_received_by_type[meter_telemetry_message_type] >= 1
-                ),
-                5,
-                "Scada wait for reports",
-                err_str_f=scada.summary_str
-            )
-
-            report = scada._data.make_report(int(time.time()))
-            NUM_POWER_CHANNELS = 3
-            assert len(report.ChannelReadingList) == NUM_POWER_CHANNELS
-
-
-            # Cause scada to send a report (and snapshot) now
-            scada.suppress_report = False
-
-            # Verify Atn got status and snapshot
-            await await_for(
-                lambda: atn.stats.num_received_by_type[ReportEvent.model_fields["TypeName"].default] == 1,
-                5,
-                "Atn wait for status message",
-                err_str_f=atn.summary_str
-            )
-            # await await_for(
-            #     lambda: atn.stats.num_received_by_type[SnapshotSpaceheat.model_fields["TypeName"].default] == 1,
-            #     5,
-            #     "Atn wait for snapshot message",
-            #     err_str_f=atn.summary_str
-            # )
-
-            # Verify contents of status and snapshot are as expected
-            report = atn.data.latest_report
-            assert isinstance(report, Report)
-            print(report.ChannelReadingList)
-            assert len(report.ChannelReadingList) == NUM_POWER_CHANNELS
-            # snapshot = atn.data.latest_snapshot
-            # assert isinstance(snapshot, SnapshotSpaceheat)
-            
-            # I don't understand why this is 0
-            # assert len(snapshot.LatestReadingList) ==  1
-
-
-            # Turn off telemtry reporting
-            for actor in [meter]:
-                actor.stop()
-            for actor in [meter]:
-                await actor.join()
-            # Wait for scada to send at least one more status.
-            reports_received = atn.stats.total_received(ReportEvent.model_fields["TypeName"].default)
-            await await_for(
-                lambda: atn.stats.total_received(ReportEvent.model_fields["TypeName"].default) > reports_received,
-                5,
-                "Atn wait for status message 2",
-                err_str_f=atn.summary_str
-            )
-
-            # Verify scada has cleared its state
-            report = scada._data.make_report(int(time.time()))
-            assert len(report.ChannelReadingList) == 0
-
-
-    runner = AsyncFragmentRunner(settings, actors=actors, tag=request.node.name)
-    runner.add_fragment(Fragment(runner))
-    await runner.async_run()
+# @pytest.mark.skip(reason="Skipping for now")
+# @pytest.mark.asyncio
+# async def test_scada_report_content_dynamics(tmp_path, monkeypatch, request):
+#
+#     monkeypatch.chdir(tmp_path)
+#     settings = ScadaSettings(seconds_per_report=1)
+#     if uses_tls(settings):
+#         copy_keys("scada", settings)
+#     settings.paths.mkdirs(parents=True)
+#     layout = House0Layout.load(settings.paths.hardware_layout)
+#     actors = Actors(
+#         settings,
+#         layout=layout,
+#         scada=ScadaRecorder(H0N.primary_scada, settings, hardware_layout=layout),
+#         atn_settings=AsyncFragmentRunner.make_atn_settings()
+#     )
+#     actors.scada._last_status_second = int(time.time())
+#     actors.scada.suppress_report = True
+#
+#     class Fragment(ProtocolFragment):
+#
+#         def get_requested_proactors(self):
+#             return [self.runner.actors.scada, self.runner.actors.atn]
+#
+#         async def async_run(self):
+#             atn = self.runner.actors.atn
+#             scada = self.runner.actors.scada
+#             link_stats = scada.stats.links["gridworks"]
+#             meter = self.runner.actors.meter
+#             meter_telemetry_message_type = "synced.readings"
+#
+#             # Verify scada status and snapshot are emtpy
+#             report = scada._data.make_report(int(time.time()))
+#             snapshot = scada._data.make_snapshot()
+#             assert len(report.ChannelReadingList) == 0
+#             assert len(snapshot.LatestReadingList) == 0
+#             assert link_stats.num_received_by_type[meter_telemetry_message_type] == 0
+#
+#             # Make sub-actors send their reports
+#             for actor in [meter]:
+#                 scada.add_communicator(actor)
+#                 actor.start()
+#             await await_for(
+#                 scada._links.link(scada.GRIDWORKS_MQTT).active,
+#                 10,
+#                 "ERROR waiting link active",
+#                 err_str_f=scada.summary_str
+#             )
+#             assert scada.scada_atn_fast_dispatch_contract_is_alive
+#
+#             # Provoke a message by increasing the power of hp-odu
+#             hp_odu = scada._data.hardware_layout.node(H0N.hp_odu)
+#             assert hp_odu is not None
+#             scada._layout.channel
+#             ch = scada._layout.channel(H0CN.hp_odu_pwr)
+#             meter._sync_thread.latest_telemetry_value[ch] += 300
+#
+#             await await_for(
+#                 lambda: (
+#                     scada.stats.num_received_by_type[meter_telemetry_message_type] >= 1
+#                 ),
+#                 5,
+#                 "Scada wait for reports",
+#                 err_str_f=scada.summary_str
+#             )
+#
+#             report = scada._data.make_report(int(time.time()))
+#             NUM_POWER_CHANNELS = 3
+#             assert len(report.ChannelReadingList) == NUM_POWER_CHANNELS
+#
+#
+#             # Cause scada to send a report (and snapshot) now
+#             scada.suppress_report = False
+#
+#             # Verify Atn got status and snapshot
+#             await await_for(
+#                 lambda: atn.stats.num_received_by_type[ReportEvent.model_fields["TypeName"].default] == 1,
+#                 5,
+#                 "Atn wait for status message",
+#                 err_str_f=atn.summary_str
+#             )
+#             # await await_for(
+#             #     lambda: atn.stats.num_received_by_type[SnapshotSpaceheat.model_fields["TypeName"].default] == 1,
+#             #     5,
+#             #     "Atn wait for snapshot message",
+#             #     err_str_f=atn.summary_str
+#             # )
+#
+#             # Verify contents of status and snapshot are as expected
+#             report = atn.data.latest_report
+#             assert isinstance(report, Report)
+#             print(report.ChannelReadingList)
+#             assert len(report.ChannelReadingList) == NUM_POWER_CHANNELS
+#             # snapshot = atn.data.latest_snapshot
+#             # assert isinstance(snapshot, SnapshotSpaceheat)
+#
+#             # I don't understand why this is 0
+#             # assert len(snapshot.LatestReadingList) ==  1
+#
+#
+#             # Turn off telemtry reporting
+#             for actor in [meter]:
+#                 actor.stop()
+#             for actor in [meter]:
+#                 await actor.join()
+#             # Wait for scada to send at least one more status.
+#             reports_received = atn.stats.total_received(ReportEvent.model_fields["TypeName"].default)
+#             await await_for(
+#                 lambda: atn.stats.total_received(ReportEvent.model_fields["TypeName"].default) > reports_received,
+#                 5,
+#                 "Atn wait for status message 2",
+#                 err_str_f=atn.summary_str
+#             )
+#
+#             # Verify scada has cleared its state
+#             report = scada._data.make_report(int(time.time()))
+#             assert len(report.ChannelReadingList) == 0
+#
+#
+#     runner = AsyncFragmentRunner(settings, actors=actors, tag=request.node.name)
+#     runner.add_fragment(Fragment(runner))
+#     await runner.async_run()
