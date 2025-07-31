@@ -56,16 +56,20 @@ class ScadaLiveTest(TreeLiveTest):
         child1_layout: Optional[House0Layout] = None,
         child2_layout: Optional[House0Layout] = None,
         parent_layout: Optional[House0Layout] = None,
+        child1_simulated: bool = True,
+        child2_simulated: bool = True,
         **kwargs: typing.Any
     ) -> None:
         kwargs["child_app_settings"] = kwargs.get(
             "child_app_settings",
-            ScadaSettings(is_simulated=True),
+            ScadaSettings(),
         )
+        kwargs["child_app_settings"].is_simulated = child1_simulated
         kwargs["child2_app_settings"] = kwargs.get(
             "child2_app_settings",
-            ScadaSettings(is_simulated=True),
+            ScadaSettings(),
         )
+        kwargs["child2_app_settings"].is_simulated = child2_simulated
         super().__init__(
             layout=layout,
             child_layout=child_layout,

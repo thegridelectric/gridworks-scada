@@ -1,13 +1,11 @@
 """Test Scada"""
 import logging
 import time
-from typing import cast
 
 from gwproto.messages import ReportEvent
 from gwproto.messages import ChannelReadings
 
 from data_classes.house_0_layout import House0Layout
-from tests.atn import AtnSettings
 from tests.utils.fragment_runner import Actors
 from tests.utils.fragment_runner import AsyncFragmentRunner
 from tests.utils.fragment_runner import ProtocolFragment
@@ -17,12 +15,13 @@ from gwproactor_test.certs import uses_tls
 from gwproactor_test.certs import copy_keys
 
 import pytest
-from actors import Scada
 from scada_app import ScadaApp
 from actors.config import ScadaSettings
 from named_types import SnapshotSpaceheat
 from gwproto.messages import Report
 from data_classes.house_0_names import H0N, H0CN
+from tests.utils.scada_live_test_helper import ScadaLiveTest
+
 
 def test_scada_small():
     scada_app = ScadaApp(app_settings=ScadaSettings(is_simulated=True))
@@ -246,55 +245,40 @@ def test_scada_small():
 #     await runner.async_run()
 
 
-@pytest.mark.skip("skipping due to has-a refactor")
 @pytest.mark.asyncio
-async def test_scada_periodic_status_delivery(tmp_path, monkeypatch, request):
+async def test_scada_periodic_status_delivery(request: pytest.FixtureRequest):
     """Verify scada periodic status and snapshot"""
 
-    monkeypatch.chdir(tmp_path)
-    settings = ScadaSettings(seconds_per_report=2)
-    if uses_tls(settings):
-        copy_keys("scada", settings)
-    settings.paths.mkdirs()
-    atn_settings = AtnSettings()
-    if uses_tls(atn_settings):
-        copy_keys("atn", atn_settings)
-    atn_settings.paths.mkdirs()
-    layout = House0Layout.load(settings.paths.hardware_layout)
-    actors = Actors(
-        settings,
-        layout=layout,
-        scada=ScadaRecorder(H0N.primary_scada, settings, hardware_layout=layout),
-        atn_settings=atn_settings,
-    )
-    actors.scada._last_report_second = int(time.time())
-    actors.scada.suppress_report = True
+    async with ScadaLiveTest(
+        start_all=True,
+        child_app_settings=ScadaSettings(seconds_per_report=1),
+        request=request,
+    ) as h:
+        msg_type = ReportEvent.model_fields["TypeName"].default
+        atn_received_counts = h.parent.stats.link(h.parent.downstream_client).num_received_by_type
+        initial_count = atn_received_counts[msg_type]
+        await h.await_for(
+            lambda: atn_received_counts[msg_type] > initial_count,
+            f"ERROR waiting for ATN to receive > {initial_count} reports"
+        )
 
-    class Fragment(ProtocolFragment):
+@pytest.mark.asyncio
+async def test_scada_periodic_snapshot_delivery(request: pytest.FixtureRequest):
+    """Verify scada periodic status and snapshot"""
 
-        def get_requested_proactors(self):
-            return [self.runner.actors.scada, self.runner.actors.atn]
+    async with ScadaLiveTest(
+        start_all=True,
+        child_app_settings=ScadaSettings(seconds_per_snapshot=1),
+        request=request,
+    ) as h:
+        msg_type = SnapshotSpaceheat.model_fields["TypeName"].default
+        atn_received_counts = h.parent.stats.link(h.parent.downstream_client).num_received_by_type
+        initial_count = atn_received_counts[msg_type]
+        await h.await_for(
+            lambda: atn_received_counts[msg_type] > initial_count,
+            f"ERROR waiting for ATN to receive > {initial_count} snapshots"
+        )
 
-        async def async_run(self):
-            scada = self.runner.actors.scada
-            atn = self.runner.actors.atn
-            assert atn.stats.num_received_by_type[ReportEvent.model_fields["TypeName"].default] == 0
-            assert atn.stats.num_received_by_type[SnapshotSpaceheat.model_fields["TypeName"].default] == 0
-            scada.suppress_report = False
-            await await_for(
-                lambda: atn.stats.num_received_by_type[ReportEvent.model_fields["TypeName"].default] == 1,
-                5,
-                "Atn wait for report message"
-            )
-            # await await_for(
-            #     lambda: atn.stats.num_received_by_type[SnapshotSpaceheat.model_fields["TypeName"].default] == 1,
-            #     5,
-            #     "Atn wait for snapshot message"
-            # )
-
-    runner = AsyncFragmentRunner(settings, actors=actors, atn_settings=atn_settings, tag=request.node.name)
-    runner.add_fragment(Fragment(runner))
-    await runner.async_run()
 
 
 @pytest.mark.skip("skipping due to has-a refactor")
