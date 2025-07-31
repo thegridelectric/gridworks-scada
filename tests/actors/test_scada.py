@@ -247,7 +247,7 @@ async def test_scada_periodic_status_delivery(request: pytest.FixtureRequest):
         request=request,
     ) as h:
         msg_type = ReportEvent.model_fields["TypeName"].default
-        atn_received_counts = h.parent.stats.link(h.parent.downstream_client).num_received_by_type
+        atn_received_counts = h.parent_to_child_stats.num_received_by_type
         initial_count = atn_received_counts[msg_type]
         await h.await_for(
             lambda: atn_received_counts[msg_type] > initial_count,
@@ -264,7 +264,7 @@ async def test_scada_periodic_snapshot_delivery(request: pytest.FixtureRequest):
         request=request,
     ) as h:
         msg_type = SnapshotSpaceheat.model_fields["TypeName"].default
-        atn_received_counts = h.parent.stats.link(h.parent.downstream_client).num_received_by_type
+        atn_received_counts = h.parent_to_child_stats.num_received_by_type
         initial_count = atn_received_counts[msg_type]
         await h.await_for(
             lambda: atn_received_counts[msg_type] > initial_count,
@@ -283,9 +283,7 @@ async def test_scada_snaphot_request_delivery(request: pytest.FixtureRequest):
             request=request,
     ) as h:
         await h.await_quiescent_connections()
-        atn_proactor = h.parent
-        atn_to_scada1_stats = atn_proactor.stats.link(h.parent.downstream_client)
-        atn_receive_counts = atn_to_scada1_stats.num_received_by_type
+        atn_receive_counts = h.parent_to_child_stats.num_received_by_type
         snap_type = SnapshotSpaceheat.model_fields["TypeName"].default
         initital_snapshots = atn_receive_counts[snap_type]
         h.parent_app.prime_actor.snap()
