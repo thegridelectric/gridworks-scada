@@ -1,4 +1,5 @@
 """Test Scada"""
+import logging
 import time
 
 from gwproto.messages import ReportEvent
@@ -77,168 +78,25 @@ def test_scada_small():
     assert scada.time_to_send_report() is True
 
 
-# @pytest.mark.asyncio
-# async def test_scada_relay_dispatch(tmp_path, monkeypatch, request):
-#     """Verify Scada forwards relay dispatch from Atn to relay and that resulting state changes in the relay are
-#     included in next status and shapshot"""
-
-#     monkeypatch.chdir(tmp_path)
-#     logging.basicConfig(level="DEBUG")
-#     settings = ScadaSettings(seconds_per_report=2)
-#     if uses_tls(settings):
-#         copy_keys("scada", settings)
-#     settings.paths.mkdirs(parents=True)
-#     atn_settings = AtnSettings()
-#     if uses_tls(atn_settings):
-#         copy_keys("atn", atn_settings)
-#     atn_settings.paths.mkdirs(parents=True)
-#     layout = House0Layout.load(settings.paths.hardware_layout)
-#     actors = Actors(
-#         settings,
-#         layout=layout,
-#         scada=ScadaRecorder(H0N.primary_scada, settings, hardware_layout=layout)
-#     )
-#     actors.scada._scada_atn_fast_dispatch_contract_is_alive_stub = True
-#     actors.scada._last_status_second = int(time.time())
-#     actors.scada.suppress_report = True
-#     runner = AsyncFragmentRunner(settings, actors=actors, atn_settings=atn_settings, tag=request.node.name)
-
-#     class Fragment(ProtocolFragment):
-#         def get_requested_proactors(self):
-#             return [self.runner.actors.scada, self.runner.actors.atn]
-
-#         def get_requested_actors(self):
-#             return []
-
-#         async def async_run(self):
-#             atn = self.runner.actors.atn
-#             relay = self.runner.actors.relay
-#             scada = self.runner.actors.scada
-#             link_stats = scada.stats.links["gridworks"]
-#             relay_alias = relay.name
-#             relay_node = relay.node
-
-#             # Verify scada status and snapshot are emtpy
-#             # TODO: Test public interface
-#             status = scada._data.make_status(int(time.time()))
-#             snapshot = scada._data.make_snapshot()
-#             assert len(status.SimpleTelemetryList) == 0
-#             assert len(status.BooleanactuatorCmdList) == 0
-#             assert len(status.MultipurposeTelemetryList) == 0
-#             assert len(snapshot.Snapshot.TelemetryNameList) == 0
-#             assert len(snapshot.Snapshot.AboutNodeAliasList) == 0
-#             assert len(snapshot.Snapshot.ValueList) == 0
-
-#             relay_state_message_type = "gt.telemetry"
-#             relay_state_topic = f"{relay.name}/{relay_state_message_type}"
-#             relay_command_received_topic = f"{relay.name}/gt.driver.booleanactuator.cmd"
-#             assert link_stats.num_received_by_topic[relay_state_topic] == 0
-#             assert link_stats.num_received_by_topic[relay_command_received_topic] == 0
-
-#             # Wait for relay to report its initial state
-#             await await_for(
-#                 lambda: scada.stats.num_received_by_type["gt.telemetry"] == 1,
-#                 5,
-#                 "Scada wait for relay state change",
-#                 err_str_f=scada.summary_str
-#             )
-#             status = scada._data.make_status(int(time.time()))
-#             assert len(status.SimpleTelemetryList) == 1
-#             assert status.SimpleTelemetryList[0].ValueList == [0]
-#             assert status.SimpleTelemetryList[0].ShNodeAlias == relay.node.Name
-#             assert status.SimpleTelemetryList[0].TelemetryName == TelemetryName.RelayState
-
-#             # Verify relay is off
-#             assert atn.data.latest_snapshot is None
-#             atn.snap()
-#             await await_for(
-#                 lambda: atn.data.latest_snapshot is not None,
-#                 3,
-#                 "atn did not receive first status",
-#             )
-#             snapshot1: SnapshotSpaceheat = cast(
-#                 SnapshotSpaceheat, atn.data.latest_snapshot
-#             )
-#             assert isinstance(snapshot1, SnapshotSpaceheat)
-#             if snapshot1.Snapshot.AboutNodeAliasList:
-#                 relay_idx = snapshot1.Snapshot.AboutNodeAliasList.index(relay_alias)
-#                 relay_value = snapshot1.Snapshot.ValueList[relay_idx]
-#                 assert relay_value is None or relay_value == 0
-#             assert (
-#                 relay_node not in scada._data.latest_simple_value
-#                 or scada._data.latest_simple_value[relay_node] != 1
-#             )
-
-#             # Turn on relay
-#             atn.turn_on(relay_node)
-#             await await_for(
-#                 lambda: scada._data.latest_simple_value[relay_node] == 1,
-#                 3,
-#                 "scada did not receive update from relay",
-#             )
-#             status = scada._data.make_status(int(time.time()))
-#             assert len(status.SimpleTelemetryList) == 1
-#             assert status.SimpleTelemetryList[0].ValueList[-1] == 1
-#             assert status.SimpleTelemetryList[0].ShNodeAlias == relay.name
-#             assert (
-#                 status.SimpleTelemetryList[0].TelemetryName == TelemetryName.RelayState
-#             )
-#             assert len(status.BooleanactuatorCmdList) == 1
-#             assert status.BooleanactuatorCmdList[0].RelayStateCommandList == [1]
-#             assert status.BooleanactuatorCmdList[0].ShNodeAlias == relay.name
-
-#             # Verify Atn gets updated info for relay
-#             atn.snap()
-#             await await_for(
-#                 lambda: atn.data.latest_snapshot is not None
-#                 and id(atn.data.latest_snapshot) != id(snapshot1),
-#                 3,
-#                 "atn did not receive status",
-#             )
-#             snapshot2 = atn.data.latest_snapshot
-#             assert isinstance(snapshot2, SnapshotSpaceheat)
-#             assert (
-#                 relay_alias in snapshot2.Snapshot.AboutNodeAliasList
-#             ), f"ERROR relay [{relay_alias}] not in {snapshot2.Snapshot.AboutNodeAliasList}"
-#             relay_idx = snapshot2.Snapshot.AboutNodeAliasList.index(relay_alias)
-#             relay_value = snapshot2.Snapshot.ValueList[relay_idx]
-#             assert relay_value == 1
-
-#             # Cause scada to send a status (and snapshot) now
-#             snapshots_received = atn.stats.num_received_by_type[SnapshotSpaceheat.model_fields["TypeName"].default]
-#             scada.suppress_report = False
-#             # Verify Atn got status and snapshot
-#             await await_for(
-#                 lambda: atn.stats.num_received_by_type[ReportEvent.model_fields["TypeName"].default] == 1,
-#                 5,
-#                 "Atn wait for status message",
-#                 err_str_f=atn.summary_str
-#             )
-#             await await_for(
-#                 lambda: atn.stats.num_received_by_type[SnapshotSpaceheat.model_fields[
-#                     "TypeName"].default] == snapshots_received + 1,
-#                 5,
-#                 "Atn wait for snapshot message",
-#                 err_str_f=atn.summary_str,
-#             )
-
-#             snapshot = atn.data.latest_snapshot
-#             assert isinstance(snapshot, SnapshotSpaceheat)
-#             assert snapshot.Snapshot.AboutNodeAliasList == [relay.name]
-#             assert snapshot.Snapshot.ValueList == [1]
-
-#             # Verify scada has cleared its state
-#             status = scada._data.make_status(int(time.time()))
-#             assert len(status.SimpleTelemetryList) == 0
-#             assert len(status.BooleanactuatorCmdList) == 0
-#             assert len(status.MultipurposeTelemetryList) == 0
-
-#     runner.add_fragment(Fragment(runner))
-#     await runner.async_run()
+@pytest.mark.asyncio
+async def test_show_types(request: pytest.FixtureRequest):
+    """Verify scada periodic status and snapshot"""
+    async with ScadaLiveTest(
+        start_all=True,
+        request=request,
+    ) as h:
+        await h.await_quiescent_connections()
+        print("LiveTest", type(h))
+        print("child", type(h.child))
+        print("child_app", type(h.child_app))
+        print("prime_actor", type(h.child_app.prime_actor))
+        print("link", type(h.child_to_parent_link))
+        print("link stats", type(h.child_to_parent_stats))
+        print("child stats", type(h.child.stats))
 
 
 @pytest.mark.asyncio
-async def test_scada_periodic_status_delivery(request: pytest.FixtureRequest):
+async def test_scada_periodic_report_delivery(request: pytest.FixtureRequest):
     """Verify scada periodic status and snapshot"""
 
     async with ScadaLiveTest(
@@ -247,12 +105,15 @@ async def test_scada_periodic_status_delivery(request: pytest.FixtureRequest):
         request=request,
     ) as h:
         msg_type = ReportEvent.model_fields["TypeName"].default
+        # Note: for sanity get the *link* stats, not the global stats.
+        # the globals stats *might* work in this case.
         atn_received_counts = h.parent_to_child_stats.num_received_by_type
         initial_count = atn_received_counts[msg_type]
         await h.await_for(
             lambda: atn_received_counts[msg_type] > initial_count,
-            f"ERROR waiting for ATN to receive > {initial_count} reports"
+            f"ERROR waiting for ATN to receive > {initial_count} reports",
         )
+        # print(h.summary_str())
 
 @pytest.mark.asyncio
 async def test_scada_periodic_snapshot_delivery(request: pytest.FixtureRequest):
@@ -276,13 +137,13 @@ async def test_scada_periodic_snapshot_delivery(request: pytest.FixtureRequest):
 @pytest.mark.asyncio
 async def test_scada_snaphot_request_delivery(request: pytest.FixtureRequest):
     """Verify scada sends snapshot upon request from Atn"""
-
     async with ScadaLiveTest(
             start_all=True,
             child_app_settings=ScadaSettings(seconds_per_snapshot=100000000),
             request=request,
     ) as h:
         await h.await_quiescent_connections()
+        h.child.delimit("Sending snapshot request", log_level=logging.WARNING)
         atn_receive_counts = h.parent_to_child_stats.num_received_by_type
         snap_type = SnapshotSpaceheat.model_fields["TypeName"].default
         initital_snapshots = atn_receive_counts[snap_type]

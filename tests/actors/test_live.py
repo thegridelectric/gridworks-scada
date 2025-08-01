@@ -6,18 +6,11 @@ from tests.utils.scada_live_test_helper import ScadaLiveTest
 async def test_tree_connect(request: pytest.FixtureRequest) -> None:
     """This is a simple wait for ATN and Scada to connect to each other."""
     async with ScadaLiveTest(start_all=True, request=request) as h:
-        child1 = h.child
-        link1to2 = child1.links.link(child1.downstream_client)
-        link1toAtn = child1.links.link(child1.upstream_client)
-
-        child2 = h.child2
-        link2to1 = child2.links.link(child2.upstream_client)
-
         # Wait for children to connect
         await h.await_for(
-            lambda: link1to2.active()
-            and link2to1.active()
-            and link1toAtn.active(),
+            lambda: h.child1_to_child2_link.active()
+            and h.child2_to_child1_link.active()
+            and h.child_to_parent_link.active(),
             "ERROR waiting children to connect",
         )
 
