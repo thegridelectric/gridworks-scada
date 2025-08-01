@@ -371,14 +371,14 @@
   ],
   "FlowManifoldVariant": "House0",
   "MyAtomicTNodeGNode": {
-    "Alias": "d1.isone.ct.newhaven.orange1",
+    "Alias": "orange",
     "DisplayName": "Little Orange House Garage Heating System AtomicTNode",
     "GNodeId": "c4c9a280-453f-4c36-a081-970a3774b3ed",
     "GNodeStatusValue": "Active",
     "PrimaryGNodeRoleAlias": "AtomicTNode"
   },
   "MyScadaGNode": {
-    "Alias": "d1.isone.ct.newhaven.orange1.scada",
+    "Alias": "orange.scada",
     "DisplayName": "Little Orange House Garage Heating System SCADA",
     "GNodeId": "c9794c6d-e013-4d74-9570-f9ba4b0f0b0d",
     "GNodeStatusValue": "Active",

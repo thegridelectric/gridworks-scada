@@ -59,7 +59,7 @@ gridworks-cert==0.4.6
     # via
     #   -r gw_spaceheat/requirements/dev.in
     #   gridworks-proactor
-gridworks-proactor[tests]==4.1.8
+gridworks-proactor[tests]==4.1.9
     # via
     #   -r gw_spaceheat/requirements/base.in
     #   -r gw_spaceheat/requirements/dev.in

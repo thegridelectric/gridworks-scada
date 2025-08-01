@@ -34,7 +34,7 @@ def make_tst_layout(src_path: Path) -> LayoutDb:
         existing_layout=LayoutIDMap.from_path(src_path),
         add_stubs=True,
         stub_config=StubConfig(
-            atn_gnode_alias="d1.isone.ct.newhaven.orange1",
+            atn_gnode_alias="atn.orange",
             scada_display_name="Little Orange House Main Scada",
             zone_list=["main"],
             total_store_tanks=3,
