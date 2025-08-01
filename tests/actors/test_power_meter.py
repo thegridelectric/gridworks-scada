@@ -1,34 +1,21 @@
-import argparse
 import asyncio
 import logging
-import typing
 
-from gwproto.enums import ActorClass
+from gwproto.data_classes.components import ElectricMeterComponent
+
+from actors.config import ScadaSettings
 from data_classes.house_0_layout import House0Layout
 from scada_app import ScadaApp
-from tests.utils.fragment_runner import AsyncFragmentRunner
-from tests.utils.fragment_runner import ProtocolFragment
-from gwproactor_test import await_for
 from gwproactor_test.certs import uses_tls
 from gwproactor_test.certs import copy_keys
 from data_classes.house_0_names import H0N, H0CN
 
-import actors
 import pytest
-from gwproto.named_types import DataChannelGt
-from actors import Scada
 from actors.power_meter import DriverThreadSetupHelper
 from actors.power_meter import PowerMeter
 from actors.power_meter import PowerMeterDriverThread
-from actors.config import ScadaSettings
-from gwproto.data_classes.components.electric_meter_component import ElectricMeterComponent
-from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
-    GridworksSimPm1_PowerMeterDriver,
-)
-from gwproactor.config import LoggerLevels
-from gwproactor.config import LoggingSettings
-from gwproto.messages import PowerWatts
-from command_line_utils import get_nodes_run_by_scada
+from tests.utils.scada_live_test_helper import ScadaLiveTest
+
 
 def test_power_meter_small():
     settings = ScadaApp.get_settings()
@@ -115,63 +102,49 @@ def test_power_meter_small():
     driver_thread.report_aggregated_power_w()
     assert driver_thread.latest_agg_power_w == 300
 
-# These tests no longer pass because the code requires many of its actors to be fired up
-# including synth-generator ,home-alone, atomic-ally, all the relays & dfrs & multiplexers
-# @pytest.mark.asyncio
-# async def test_power_meter_periodic_update(tmp_path, monkeypatch, request):
-#     """Verify the PowerMeter sends its periodic GtShTelemetryFromMultipurposeSensor message (PowerWatts sending is
-#     _not_ tested here."""
+def meter_test_layout() -> House0Layout:
+    layout = House0Layout.load(ScadaSettings().paths.hardware_layout)
+    meter_component = layout.component_from_node(layout.node(H0N.primary_power_meter))
+    if not isinstance(meter_component, ElectricMeterComponent):
+        raise TypeError(f"ERROR. Got meter component with wrong type ({type(meter_component)})")
+    for config in meter_component.gt.ConfigList:
+        config.CapturePeriodS = 1
+    return layout
 
-#     monkeypatch.chdir(tmp_path)
 
-#     class Fragment(ProtocolFragment):
+@pytest.mark.asyncio
+async def test_power_meter_periodic_update(request: pytest.FixtureRequest) -> None:
+    """Verify the PowerMeter sends its periodic GtShTelemetryFromMultipurposeSensor message (PowerWatts sending is
+    _not_ tested here."""
 
-#         def get_requested_proactors(self):
-#             return [self.runner.actors.scada]
+    async with ScadaLiveTest(
+            start_child1=True,
+            child1_layout=meter_test_layout(),
+            request=request,
+    ) as h:
+        expected_channels = [
+            h.child1.hardware_layout.data_channels[H0CN.hp_odu_pwr],
+            h.child1.hardware_layout.data_channels[H0CN.hp_idu_pwr],
+            h.child1.hardware_layout.data_channels[H0CN.store_pump_pwr],
+        ]
+        h.child.delimit("Waiting for first readings", log_level=logging.WARNING)
+        data = h.child1_app.scada.data
+        for ch in expected_channels:
+            await h.await_for(
+                lambda: len(data.recent_channel_values[ch.Name]) > 0,
+                f"wait for PowerMeter first readings, [{ch.Name}]",
+            )
 
-#         def get_requested_actors(self):
-#             meter_node = self.runner.layout.node(H0N.primary_power_meter)
-#             meter_component = typing.cast(ElectricMeterComponent, meter_node.component)
-#             for config in meter_component.gt.ConfigList:
-#                 config.CapturePeriodS = 1
-#             self.runner.actors.meter = actors.PowerMeter(
-#                 name=meter_node.Name,
-#                 services=self.runner.actors.scada,
-#                 settings=ScadaSettings(seconds_per_report=1)
-#             )
-#             return [self.runner.actors.meter]
-
-#         async def async_run(self):
-#             scada = self.runner.actors.scada
-
-#             expected_channels = [
-#                 scada._layout.data_channels[H0CN.hp_odu_pwr],
-#                 scada._layout.data_channels[H0CN.hp_idu_pwr],
-#                 scada._layout.data_channels[H0CN.store_pump_pwr],
-#             ]
-
-#             # Wait for at least one reading to be delivered since one is delivered on thread startup.
-#             for ch in expected_channels:
-#                 # TODO: Test-public access for this
-#                 await await_for(
-#                     lambda: len(scada._data.recent_channel_values[ch.Name]) > 0,
-#                     5,
-#                     f"wait for PowerMeter first periodic report, [{ch.Name}]"
-#                 )
-
-#             # Verify periodic delivery.
-#             received_ch_counts = [
-#                 len(scada._data.recent_channel_values[ch.Name]) for ch in expected_channels
-#             ]
-#             scada._logger.info(received_ch_counts)
-#             for received_count, tt in zip(received_ch_counts, expected_channels):
-#                 await await_for(
-#                     lambda: len(scada._data.recent_channel_values[ch.Name]) > received_count,
-#                     5,
-#                     f"wait for PowerMeter periodic update [{tt.Name}]"
-#                 )
-
-#     await AsyncFragmentRunner.async_run_fragment(Fragment, tag=request.node.name)
+        # Verify periodic delivery.
+        received_ch_counts = [
+            len(data.recent_channel_values[ch.Name]) for ch in expected_channels
+        ]
+        for received_count, tt in zip(received_ch_counts, expected_channels):
+            h.child.delimit(f"Waiting for periodic delivery from {tt.Name}", log_level=logging.WARNING)
+            await h.await_for(
+                lambda: len(data.recent_channel_values[ch.Name]) > received_count,
+                f"wait for PowerMeter periodic update [{tt.Name}]"
+            )
 
 
 # @pytest.mark.asyncio

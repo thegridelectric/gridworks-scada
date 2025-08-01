@@ -54,7 +54,7 @@ class ScadaData:
         )
         self.my_data_channels = self.get_my_data_channels()
         self.my_synth_channels = self.get_my_synth_channels()
-        self.my_channels: Union[DataChannel, SynthChannel] = self.my_data_channels + self.my_synth_channels
+        self.my_channels: list[Union[DataChannel, SynthChannel]] = self.my_data_channels + self.my_synth_channels
         self.recent_machine_states = {}
         self.latest_machine_state = {} # latest state by node name
         self.latest_channel_values: Dict[str, int] = {  # noqa

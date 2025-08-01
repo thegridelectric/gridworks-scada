@@ -14,10 +14,10 @@ from rich.text import Text
 
 from actors.honeywell_thermostat import HoneywellThermostatOperatingState
 from named_types import SnapshotSpaceheat
-from tests.atn.dashboard.display.styles import fahrenheit_style
-from tests.atn.dashboard.display.styles import tank_style
-from tests.atn.dashboard.channels.reading import MissingReading
-from tests.atn.dashboard.channels.reading import Reading
+from actors.atn.dashboard.display.styles import fahrenheit_style
+from actors.atn.dashboard.display.styles import tank_style
+from actors.atn.dashboard.channels.reading import MissingReading
+from actors.atn.dashboard.channels.reading import Reading
 
 PUMP_OFF_THRESHOLD = 2
 

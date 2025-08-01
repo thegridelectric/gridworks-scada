@@ -19,7 +19,8 @@ def test_show_layout_on_test_layout(tmp_path):
     errors = show_layout.main(
         [
             "-e", str(env_path),
-            "-l", str(layout_path)
+            "-l", str(layout_path),
+            "-r"
          ]
     )
     if errors:

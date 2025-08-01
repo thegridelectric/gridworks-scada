@@ -7,10 +7,10 @@ from rich.console import ConsoleOptions
 from rich.console import RenderResult
 from rich.table import Table
 
-from tests.atn.dashboard.channels.containers import Channels
-from tests.atn.dashboard.display.styles import none_text
-from tests.atn.dashboard.hackhp import HackHpState
-from tests.atn.dashboard.hackhp import HackHpStateCapture
+from actors.atn.dashboard.channels.containers import Channels
+from actors.atn.dashboard.display.styles import none_text
+from actors.atn.dashboard.hackhp import HackHpState
+from actors.atn.dashboard.hackhp import HackHpStateCapture
 
 
 class PowerDisplay:

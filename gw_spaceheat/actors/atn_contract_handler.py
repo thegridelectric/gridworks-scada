@@ -20,7 +20,7 @@ from named_types import (
     AtnBid, LatestPrice, SlowContractHeartbeat, SlowDispatchContract, 
 )
 
-from tests.atn.atn_config import AtnSettings
+from actors.atn.atn_config import AtnSettings
 
 class AtnContractHandler:
     """Handles ATN's side of representation contract with SCADA and dispatch contracts"""

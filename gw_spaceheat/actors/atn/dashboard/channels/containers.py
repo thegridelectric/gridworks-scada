@@ -12,17 +12,17 @@ from gwproto.enums import TelemetryName
 
 from named_types import SnapshotSpaceheat
 
-from tests.atn.dashboard.channels.channel import HoneywellThermostatStateChannel
-from tests.atn.dashboard.channels.channel import TankChannel
-from tests.atn.dashboard.channels.channel import DEFAULT_MISSING_STRING
-from tests.atn.dashboard.channels.channel import FlowChannel
-from tests.atn.dashboard.channels.channel import MissingReading
-from tests.atn.dashboard.channels.channel import PowerChannel
-from tests.atn.dashboard.channels.channel import PUMP_OFF_THRESHOLD
-from tests.atn.dashboard.channels.channel import PumpPowerChannel
-from tests.atn.dashboard.channels.channel import TemperatureChannel
-from tests.atn.dashboard.channels.channel import UnusedReading
-from tests.atn.dashboard.channels.read_mixin import ReadMixin
+from actors.atn.dashboard.channels.channel import HoneywellThermostatStateChannel
+from actors.atn.dashboard.channels.channel import TankChannel
+from actors.atn.dashboard.channels.channel import DEFAULT_MISSING_STRING
+from actors.atn.dashboard.channels.channel import FlowChannel
+from actors.atn.dashboard.channels.channel import MissingReading
+from actors.atn.dashboard.channels.channel import PowerChannel
+from actors.atn.dashboard.channels.channel import PUMP_OFF_THRESHOLD
+from actors.atn.dashboard.channels.channel import PumpPowerChannel
+from actors.atn.dashboard.channels.channel import TemperatureChannel
+from actors.atn.dashboard.channels.channel import UnusedReading
+from actors.atn.dashboard.channels.read_mixin import ReadMixin
 
 
 def enqueue_fifo_q(element: Any, fifo_q: Deque[Any], max_length: int = 10) -> None:

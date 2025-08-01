@@ -121,7 +121,7 @@ class StubConfig:
     home_alone_strategy: HomeAloneStrategy = HomeAloneStrategy.WinterTou
     flow_manifold_variant: FlowManifoldVariant = FlowManifoldVariant.House0
     use_sieg_loop: bool = False
-    atn_gnode_alias: str = "d1.isone.ct.newhaven.orange1"
+    atn_gnode_alias: str = "atn.orange"
     terminal_asset_alias: Optional[str] = None
     zone_list: typing.Sequence[str] = field(default_factory=tuple)
     total_store_tanks: int = 3
@@ -659,7 +659,6 @@ class LayoutDb:
                     Handle="auto.h",
                     ActorClass=ActorClass.HomeAlone,
                     DisplayName="HomeAlone",
-                    Strategy=cfg.home_alone_strategy,
                 ),
                 SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.home_alone_normal),

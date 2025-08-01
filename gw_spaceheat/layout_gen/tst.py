@@ -16,13 +16,17 @@ from gwproto.named_types.electric_meter_component_gt import ElectricMeterCompone
 from data_classes.house_0_names import H0N, H0CN
 from pydantic_extra_types.mac_address import MacAddress
 
+from layout_gen import add_tank2
 from layout_gen import LayoutDb
 from layout_gen import LayoutIDMap
 from layout_gen import StubConfig
 from layout_gen import HubitatThermostatGenCfg
 from layout_gen import add_thermostat
+from layout_gen import Tank2Cfg
 from layout_gen.relay import add_relays
 from layout_gen.relay import RelayCfg
+from layout_gen.synth_channels import add_synth
+from layout_gen.synth_channels import SynthConfig
 
 
 def make_tst_layout(src_path: Path) -> LayoutDb:
@@ -30,7 +34,7 @@ def make_tst_layout(src_path: Path) -> LayoutDb:
         existing_layout=LayoutIDMap.from_path(src_path),
         add_stubs=True,
         stub_config=StubConfig(
-            atn_gnode_alias="d1.isone.ct.newhaven.orange1",
+            atn_gnode_alias="atn.orange",
             scada_display_name="Little Orange House Main Scada",
             zone_list=["main"],
             total_store_tanks=3,
@@ -57,6 +61,32 @@ def make_tst_layout(src_path: Path) -> LayoutDb:
     )
 
     add_relays(db, RelayCfg(PollPeriodMs=200, CapturePeriodS=300))
+
+    add_tank2(
+        db,
+        Tank2Cfg(
+            ActorNodeName="buffer",
+            SerialNumber="9999",
+            PicoAHwUid="pico_aaaaaa",
+            PicoBHwUid="pico_bbbbbb",
+        ),
+    )
+
+    add_synth(
+        db,
+        SynthConfig(
+            Name="usable-energy",
+            Strategy="layer-by-layer",
+        ),
+    )
+
+    add_synth(
+        db,
+        SynthConfig(
+            Name="required-energy",
+            Strategy="house-parameters-and-weather",
+        ),
+    )
 
     return db
 
@@ -144,6 +174,7 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
                 ShNodeId=db.make_node_id(H0N.primary_power_meter),
                 Name=H0N.primary_power_meter,
                 ActorClass=ActorClass.PowerMeter,
+                ActorHierarchyName=f"{H0N.primary_scada}.{H0N.primary_power_meter}",
                 DisplayName="Main Power Meter Little Orange House Test System",
                 ComponentId=db.component_id_by_alias(POWER_METER_COMPONENT_DISPLAY_NAME),
             ),
