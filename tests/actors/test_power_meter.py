@@ -1,16 +1,19 @@
 import asyncio
 import logging
-
+import typing
 from gwproto.data_classes.components import ElectricMeterComponent
-
 from actors.config import ScadaSettings
+from actors.power_meter import PowerMeterDriverThread
 from data_classes.house_0_layout import House0Layout
+from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import GridworksSimPm1_PowerMeterDriver
+
 from scada_app import ScadaApp
 from gwproactor_test.certs import uses_tls
 from gwproactor_test.certs import copy_keys
 from data_classes.house_0_names import H0N, H0CN
 
 import pytest
+from actors.scada_data import ScadaData
 from actors.power_meter import DriverThreadSetupHelper
 from actors.power_meter import PowerMeter
 from actors.power_meter import PowerMeterDriverThread
@@ -146,82 +149,58 @@ async def test_power_meter_periodic_update(request: pytest.FixtureRequest) -> No
                 f"wait for PowerMeter periodic update [{tt.Name}]"
             )
 
-
-# @pytest.mark.asyncio
-# async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch, request):
+@pytest.mark.asyncio
+async def test_async_power_update(request: pytest.FixtureRequest):
 #     """Verify that when a simulated change in power is generated, Scadd and Atn both get a PowerWatts message"""
+    async with ScadaLiveTest(
+        request=request,
+    ) as h:
+        h.start_child1() # start primary scada
+        h.start_parent() # start atn
+        scada = h.child1_app.scada
+        
 
-#     monkeypatch.chdir(tmp_path)
-#     settings = ScadaSettings(
-#         logging=LoggingSettings(
-#             base_log_level=logging.DEBUG,
-#             levels=LoggerLevels(
-#                 message_summary=logging.DEBUG
-#             )
-#         )
-#     )
+        data = typing.cast(ScadaData, scada._data)
+        print(f"type of h.child1_app.scada is {type(scada)}")
+        atn_received_counts = h.parent_to_child_stats.num_received_by_type
+        initial = atn_received_counts['power.watts']
+        print(f"atn has received {initial} power.watts messages")
+        await h.await_for(
+                lambda: scada.data.latest_power_w is not None,
+                "Scada wait for initial PowerWatts"
+            )
+        print(f"scada.data.latest_power_w is {scada.data.latest_power_w}")
 
-#     class Fragment(ProtocolFragment):
+        p = typing.cast(PowerMeterDriverThread, h.child1_app.proactor._communicators[H0N.primary_power_meter]._sync_thread)
+        driver = typing.cast(
+            GridworksSimPm1_PowerMeterDriver,
+            p.driver
+        )
 
-#         def get_requested_proactors(self):
-#             return [self.runner.actors.scada, self.runner.actors.atn]
+        delta_w = int(p.async_power_reporting_threshold * p.nameplate_agg_power_w) + 1
 
-#         def get_requested_actors(self):
-#             meter_node = self.runner.layout.node(H0N.primary_power_meter)
-#             meter_component = typing.cast(ElectricMeterComponent, meter_node.component)
-#             for config in meter_component.gt.ConfigList:
-#                 config.CapturePeriodS = 1
-#             self.runner.actors.meter = actors.PowerMeter(
-#                 name=meter_node.name,
-#                 services=self.runner.actors.scada,
-#                 settings=ScadaSettings(seconds_per_report=1)
-#             )
-#             return [self.runner.actors.meter]
+        driver.fake_power_w += delta_w
+        await h.await_for(
+                lambda: scada._data.latest_power_w > 0,
+                "Scada wait for PowerWatts"
+                )
 
-#         async def async_run(self):
-#             scada = self.runner.actors.scada
-#             atn = self.runner.actors.atn
-#             await await_for(
-#                 lambda: scada._data.latest_total_power_w is not None,
-#                 1,
-#                 "Scada wait for initial PowerWatts"
-#             )
+        in_power_metering = set(filter(lambda x: x.InPowerMetering, data.layout.data_channels.values()))
 
-#             # TODO: Cleaner test access?
-#             meter_sync_thread = typing.cast(PowerMeterDriverThread, self.runner.actors.meter._sync_thread)
-#             driver = typing.cast(
-#                 GridworksSimPm1_PowerMeterDriver,
-#                 meter_sync_thread.driver
-#             )
+        assert in_power_metering == {
+            data.layout.data_channels[H0CN.hp_idu_pwr], 
+            data.layout.data_channels[H0CN.hp_odu_pwr]
+        }
 
-#             # Simulate power changes. Verify Scada and Atn get messages for each.
-#             num_changes = 2
-#             for i in range(num_changes):
-#                 scada._logger.info(f"Generating PowerWatts change {i + 1}/{num_changes}")
-#                 latest_total_power_w = scada._data.latest_total_power_w
-#                 num_atn_power_watts = atn.stats.num_received_by_type[PowerWatts.model_fields['TypeName'].default]
+        assert data.latest_channel_values[H0CN.hp_idu_pwr] == delta_w
+        assert data.latest_channel_values[H0CN.hp_odu_pwr] == delta_w
 
-#                 # Simulate a change in aggregate power that should trigger a PowerWatts message
-#                 increment = int(
-#                     meter_sync_thread.async_power_reporting_threshold * meter_sync_thread.nameplate_agg_power_w
-#                 ) + 1
-#                 expected = latest_total_power_w + (increment * 2)
-#                 driver.fake_power_w += increment
+        assert data.latest_power_w == 2 * delta_w
 
-#                 # Verify scada gets the message
-#                 await await_for(
-#                     lambda: scada._data.latest_total_power_w > latest_total_power_w,
-#                     1,
-#                     "Scada wait for PowerWatts"
-#                 )
-#                 assert scada._data.latest_total_power_w == expected
-
-#                 # Verify Atn gets the forwarded message
-#                 await await_for(
-#                     lambda: atn.stats.num_received_by_type[PowerWatts.model_fields['TypeName'].default] > num_atn_power_watts,
-#                     1,
-#                     "Atn wait for PowerWatts",
-#                     err_str_f=atn.summary_str,
-#                 )
-
-#     await AsyncFragmentRunner.async_run_fragment(Fragment, settings=settings, tag=request.node.name)
+        await h.await_for(
+                lambda: atn_received_counts['power.watts'] > initial,
+                "Atn wait for power.watts",
+                    #err_str_f=atn.summary_str,
+                )
+        atn = h.parent_app.atn
+        assert atn.data.latest_power_w == 2 * delta_w

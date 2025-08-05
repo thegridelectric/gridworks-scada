@@ -549,9 +549,12 @@ class Scada(PrimeActor, ScadaInterface):
     def process_power_watts(self, from_node: ShNode, payload: PowerWatts):
         """Highest priority of scada is to pass this on to Atn
 
-        also call contract_handler.update_energy_usage
+        also updates its data.latest_power_w
+        calls contract_handler.update_energy_usage
+        #TODO: add channel for aggregated transactive power?
         """
         self._send_to(self.atn, payload)
+        self._data.latest_power_w = payload.Watts
         # Update internal data store
         # Update contract energy tracking if contract is active
         if self.contract_handler.latest_scada_hb:
