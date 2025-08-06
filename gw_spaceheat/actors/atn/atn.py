@@ -205,12 +205,14 @@ class AtnData:
     my_channels: List[DataChannel]
     latest_snapshot: Optional[SnapshotSpaceheat] = None
     latest_report: Optional[Report] = None
+    latest_power_w: Optional[int] = None
 
     def __init__(self, layout: House0Layout):
         self.layout = layout
         self.my_channels = list(layout.data_channels.values())
         self.latest_snapshot = None
         self.latest_report = None
+        self.latest_power_w = None
 
     
 class Atn(PrimeActor):
@@ -444,6 +446,8 @@ class Atn(PrimeActor):
                 )
 
     def process_power_watts(self, pwr: PowerWatts) -> None:
+
+        self.data.latest_power_w = pwr.Watts
         if not self.dashboard:
             return
         if self.settings.dashboard.print_gui:

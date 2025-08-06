@@ -22,6 +22,7 @@ class ScadaData:
     reports_to_store: Dict[str, Report]
     recent_machine_states: Dict[str, MachineStates] # key is machine handle
     latest_machine_state: Dict[str, SingleMachineState] # key is the node name
+    latest_power_w: Optional[int]
     latest_channel_unix_ms: Dict[str, int]
     latest_channel_values: Dict[str, int]
     recent_channel_values: Dict[str, List]
@@ -69,6 +70,7 @@ class ScadaData:
         self.recent_channel_unix_ms: Dict[str, List] = {
             ch.Name: [] for ch in self.my_channels
         }
+        self.latest_power_w: Optional[int] = None
         self.recent_fsm_reports = {}
         self.flush_recent_readings()
 

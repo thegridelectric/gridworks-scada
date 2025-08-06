@@ -15,7 +15,7 @@ from gwproactor.config.paths import TLSPaths
 from pydantic import BaseModel
 
 from actors import Parentless
-from actors import Scada
+from actors.scada import Scada
 from actors.config import ScadaSettings
 from data_classes.house_0_layout import House0Layout
 from gwproto.data_classes.sh_node import ShNode
