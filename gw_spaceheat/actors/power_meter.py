@@ -11,7 +11,6 @@ from gwproactor.logger import LoggerOrAdapter
 from gwproto import Message
 from gwproto.enums import TelemetryName
 
-from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
 from data_classes.house_0_names import H0N
 from gwproactor import SyncThreadActor
@@ -32,6 +31,7 @@ from gwproactor import Problems
 from gwproto.enums import MakeModel
 from gwproto.named_types import ElectricMeterChannelConfig, PowerWatts, SyncedReadings
 
+from scada_app import ScadaApp
 
 
 class HWUidMismatch(DriverWarning):
@@ -392,7 +392,7 @@ class PowerMeter(SyncThreadActor):
     def __init__(
         self,
         name: str,
-        services: ScadaInterface,
+        services: ScadaApp,
         settings: Optional[ScadaSettings] = None,
     ):
         settings = settings or services.settings
@@ -410,3 +410,11 @@ class PowerMeter(SyncThreadActor):
                 )
             ),
         )
+
+    @property
+    def sync_thread(self) -> PowerMeterDriverThread:
+        if not isinstance(self._sync_thread, PowerMeterDriverThread):
+            raise RuntimeError(
+                f"ERROR. Unexpected type for sync_thread: {type(self._sync_thread)}"
+            )
+        return self._sync_thread

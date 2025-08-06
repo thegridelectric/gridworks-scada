@@ -14,8 +14,8 @@ from gwproactor.persister import TimedRollingFilePersister
 from gwproto import HardwareLayout
 
 import actors
-from actors import Scada
-from actors import ScadaInterface
+from actors.scada import Scada
+from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
 from data_classes import house_0_names
 from data_classes.house_0_layout import House0Layout

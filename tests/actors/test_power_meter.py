@@ -3,7 +3,6 @@ import logging
 import typing
 from gwproto.data_classes.components import ElectricMeterComponent
 from actors.config import ScadaSettings
-from actors.power_meter import PowerMeterDriverThread
 from data_classes.house_0_layout import House0Layout
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import GridworksSimPm1_PowerMeterDriver
 
@@ -13,7 +12,6 @@ from gwproactor_test.certs import copy_keys
 from data_classes.house_0_names import H0N, H0CN
 
 import pytest
-from actors.scada_data import ScadaData
 from actors.power_meter import DriverThreadSetupHelper
 from actors.power_meter import PowerMeter
 from actors.power_meter import PowerMeterDriverThread
@@ -32,9 +30,9 @@ def test_power_meter_small():
     layout = scada.layout
     # Raise exception if initiating node is anything except the unique power meter node
     with pytest.raises(Exception):
-        PowerMeter(H0N.primary_scada, services=scada)
+        PowerMeter(H0N.primary_scada, services=scada_app)
 
-    meter = PowerMeter(H0N.primary_power_meter, services=scada)
+    meter = PowerMeter(H0N.primary_power_meter, services=scada_app)
     assert isinstance(meter._sync_thread, PowerMeterDriverThread)
     driver_thread: PowerMeterDriverThread = meter._sync_thread
     driver_thread.set_async_loop(asyncio.new_event_loop(), asyncio.Queue())
@@ -158,20 +156,26 @@ async def test_async_power_update(request: pytest.FixtureRequest):
         h.start_child1() # start primary scada
         h.start_parent() # start atn
         scada = h.child1_app.scada
-        
 
-        data = typing.cast(ScadaData, scada._data)
+
+        data = scada.data
         print(f"type of h.child1_app.scada is {type(scada)}")
         atn_received_counts = h.parent_to_child_stats.num_received_by_type
         initial = atn_received_counts['power.watts']
         print(f"atn has received {initial} power.watts messages")
         await h.await_for(
-                lambda: scada.data.latest_power_w is not None,
+                lambda: data.latest_power_w is not None,
                 "Scada wait for initial PowerWatts"
             )
-        print(f"scada.data.latest_power_w is {scada.data.latest_power_w}")
+        print(f"scada.data.latest_power_w is {data.latest_power_w}")
 
-        p = typing.cast(PowerMeterDriverThread, h.child1_app.proactor._communicators[H0N.primary_power_meter]._sync_thread)
+        p = typing.cast(
+            PowerMeterDriverThread,
+            h.child1_app.get_communicator_as_type(
+                H0N.primary_power_meter,
+                PowerMeter
+            )._sync_thread
+        )
         driver = typing.cast(
             GridworksSimPm1_PowerMeterDriver,
             p.driver
@@ -181,14 +185,14 @@ async def test_async_power_update(request: pytest.FixtureRequest):
 
         driver.fake_power_w += delta_w
         await h.await_for(
-                lambda: scada._data.latest_power_w > 0,
+                lambda: data.latest_power_w > 0,
                 "Scada wait for PowerWatts"
                 )
 
         in_power_metering = set(filter(lambda x: x.InPowerMetering, data.layout.data_channels.values()))
 
         assert in_power_metering == {
-            data.layout.data_channels[H0CN.hp_idu_pwr], 
+            data.layout.data_channels[H0CN.hp_idu_pwr],
             data.layout.data_channels[H0CN.hp_odu_pwr]
         }
 
@@ -198,9 +202,8 @@ async def test_async_power_update(request: pytest.FixtureRequest):
         assert data.latest_power_w == 2 * delta_w
 
         await h.await_for(
-                lambda: atn_received_counts['power.watts'] > initial,
-                "Atn wait for power.watts",
-                    #err_str_f=atn.summary_str,
-                )
+            lambda: atn_received_counts['power.watts'] > initial,
+            "Atn wait for power.watts",
+        )
         atn = h.parent_app.atn
         assert atn.data.latest_power_w == 2 * delta_w
