@@ -66,7 +66,7 @@ class RelaysApp(App):
         self.set_reactive(RelaysApp.sub_title, self.settings.target_gnode)
 
     def compose(self) -> ComposeResult:
-        yield Header(show_clock=True)
+        yield Header(show_clock=self.settings.show_clock)
         relays = Relays(logger=logger, id="relays")
         self._relay_client.set_callbacks(relays.relay_client_callbacks())
         yield relays
