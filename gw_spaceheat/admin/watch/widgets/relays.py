@@ -1,11 +1,7 @@
-import datetime
-import json
 import logging
 import sys
 from logging import Logger
 from typing import Optional
-
-from gwproto import MQTTTopic
 
 from textual.app import ComposeResult
 from textual.containers import HorizontalGroup
@@ -14,27 +10,25 @@ from textual.logging import TextualHandler
 from textual.messages import Message
 from textual.reactive import Reactive
 from textual.reactive import reactive
-
 from textual.widget import Widget
 from textual.widgets import DataTable
-from textual.widgets._data_table import CellType # noqa
+from textual.widgets._data_table import CellType  # noqa
 
-from admin.watch.clients.admin_client import type_name
 from admin.watch.clients.constrained_mqtt_client import ConstrainedMQTTClient
 from admin.watch.clients.relay_client import ObservedRelayStateChange
 from admin.watch.clients.relay_client import RelayClientCallbacks
 from admin.watch.clients.relay_client import RelayConfigChange
 from admin.watch.widgets.keepalive import KeepAliveButton
 from admin.watch.widgets.keepalive import ReleaseControlButton
-from admin.watch.widgets.timer import TimerDigits
-from admin.watch.widgets.time_input import TimeInput
 from admin.watch.widgets.mqtt import Mqtt
 from admin.watch.widgets.mqtt import MqttState
 from admin.watch.widgets.relay_toggle_button import RelayToggleButton
 from admin.watch.widgets.relay_widget_info import RelayWidgetConfig
 from admin.watch.widgets.relay_widget_info import RelayWidgetInfo
-
-from named_types import LayoutLite, SnapshotSpaceheat
+from admin.watch.widgets.time_input import TimeInput
+from admin.watch.widgets.timer import TimerDigits
+from named_types import LayoutLite
+from named_types import SnapshotSpaceheat
 
 module_logger = logging.getLogger(__name__)
 module_logger.addHandler(TextualHandler())
@@ -202,7 +196,7 @@ class Relays(Widget):
         self._update_relay_row(message.row_key.value)
         self._update_buttons(message.row_key.value)
 
-    def on_relays_layout(self, message: Layout) -> None:
+    def on_relays_layout(self, message: Layout) -> None:  # noqa
         self.query_one(MqttState).message_count += 1
         self.query_one(MqttState).layout_count += 1
         # self.query_one("#message_table", DataTable).add_row(
@@ -212,7 +206,7 @@ class Relays(Widget):
         # )
         # self.query_one("#message_table", DataTable).scroll_end()
 
-    def on_relays_snapshot(self, message: Snapshot) -> None:
+    def on_relays_snapshot(self, message: Snapshot) -> None:  # noqa
         self.query_one(MqttState).message_count += 1
         self.query_one(MqttState).snapshot_count += 1
         # self.query_one("#message_table", DataTable).add_row(
@@ -225,9 +219,9 @@ class Relays(Widget):
     def on_mqtt_state_change(self, message: Mqtt.StateChange):
         self.query_one(MqttState).mqtt_state = message.new_state
 
-    def on_mqtt_receipt(self, message: Mqtt.Receipt):
+    def on_mqtt_receipt(self, message: Mqtt.Receipt):  # noqa
         self.query_one(MqttState).message_count += 1
-        payload = json.loads(message.payload.decode("utf-8"))
+        # payload = json.loads(message.payload.decode("utf-8"))
         # self.query_one("#message_table", DataTable).add_row(
         #     datetime.datetime.now(),
         #     MQTTTopic.decode(message.topic).message_type,

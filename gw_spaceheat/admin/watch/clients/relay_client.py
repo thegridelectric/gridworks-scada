@@ -204,7 +204,7 @@ class RelayWatchClient(AdminSubClient):
 
     def process_layout_lite(self, layout: LayoutLite) -> None:
         config_changes = self._update_layout(layout)
-        if config_changes and self._callbacks.relay_config_change_callback:
+        if config_changes and self._callbacks.relay_config_change_callback is not None:
             self._callbacks.relay_config_change_callback(config_changes)
         if self._callbacks.layout_callback is not None:
             self._callbacks.layout_callback(layout)
