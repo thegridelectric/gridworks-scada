@@ -70,7 +70,8 @@ class RelaysApp(App):
         relays = Relays(logger=logger, id="relays")
         self._relay_client.set_callbacks(relays.relay_client_callbacks())
         yield relays
-        yield Footer()
+        # Disable as defense against memory leaks
+        # yield Footer()
 
     def on_mount(self) -> None:
         self._admin_client.start()
