@@ -237,11 +237,12 @@ class Relays(Widget):
     def relay_client_callbacks(self) -> RelayClientCallbacks:
         return RelayClientCallbacks(
             mqtt_state_change_callback=self.mqtt_state_change_callback,
-            mqtt_message_received_callback=self.mqtt_receipt_callback,
             relay_state_change_callback=self.relay_state_change_callback,
             relay_config_change_callback=self.relay_config_change_callback,
-            layout_callback=self.layout_callback,
-            snapshot_callback=self.snapshot_callback,
+            # disable these as defense against memroy leaks
+            mqtt_message_received_callback=None,
+            layout_callback=None,
+            snapshot_callback=None,
         )
 
     def relay_state_change_callback(self, changes: dict[str, ObservedRelayStateChange]) -> None:
