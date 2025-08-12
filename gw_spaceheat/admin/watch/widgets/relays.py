@@ -190,7 +190,6 @@ class Relays(Widget):
             "#relay_toggle_button_container",
             HorizontalGroup,
         ).border_title = relay_info.config.table_name.border_title
-        self.refresh_bindings()
 
     def on_data_table_row_highlighted(self, message: DataTable.RowHighlighted) -> None:
         self._update_relay_row(message.row_key.value)
