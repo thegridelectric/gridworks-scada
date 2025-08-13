@@ -78,6 +78,7 @@ class Scada(PrimeActor, ScadaInterface):
     _channels_reported: bool
     _admin_timeout_task: Optional[asyncio.Task] = None
     _stop_requested: bool = False
+    _contract_handler: ContractHandler
 
     top_states = ["Auto", "Admin"]
     top_transitions = [
@@ -132,7 +133,7 @@ class Scada(PrimeActor, ScadaInterface):
             model_attribute="auto_state",
         )
         self.timezone =  pytz.timezone(self.settings.timezone_str)
-        self.contract_handler: ContractHandler = ContractHandler(
+        self._contract_handler: ContractHandler = ContractHandler(
             settings=self.settings,
             layout=self.layout,
             node=self.node,
@@ -151,7 +152,7 @@ class Scada(PrimeActor, ScadaInterface):
             ))
 
 
-        self.channel_subscriptions: Dict[str, ChannelSubscription] = {}
+        self.channel_subscriptions: typing.Dict[str, ChannelSubscription] = {}
 
         # Initialize actuator tracking
         self.ready_actuators = set()
@@ -174,6 +175,10 @@ class Scada(PrimeActor, ScadaInterface):
     @property
     def logger(self) -> ProactorLogger:
         return self.services.logger
+
+    @property
+    def contract_handler(self) -> ContractHandler:
+        return self._contract_handler
 
     @property
     def data(self) -> ScadaData:

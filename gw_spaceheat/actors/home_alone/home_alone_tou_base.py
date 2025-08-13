@@ -14,17 +14,17 @@ from gwproto.enums import ActorClass
 from gwproto.named_types import AnalogDispatch
 from result import Ok, Result
 from transitions import Machine
+
+from actors.scada_actor import ScadaActor
 from data_classes.house_0_names import H0N, H0CN
 from gwproto.data_classes.components.dfr_component import DfrComponent
-from enums import HomeAloneStrategy
-from actors.scada_actor import ScadaActor
-from actors.scada_interface import ScadaInterface
 from named_types import (ActuatorsReady,
             GoDormant, Glitch, Ha1Params, HeatingForecast,
             NewCommandTree, SingleMachineState, WakeUp)
 from enums import HomeAloneStrategy, HomeAloneTopState, LogLevel
+from scada_app_interface import ScadaAppInterface
 
- 
+
 class TopStateEvent(GwStrEnum):
     HouseColdOnpeak = auto()
     TopGoDormant = auto()
@@ -59,7 +59,7 @@ class HomeAloneTouBase(ScadaActor):
     ]
     
 
-    def __init__(self, name: str, services: ScadaInterface):
+    def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
         self.cn: H0CN = self.layout.channel_names
         self.strategy = HomeAloneStrategy(getattr(self.node, "Strategy", None))

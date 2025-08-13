@@ -14,9 +14,10 @@ from result import Ok, Result
 
 
 from actors.scada_actor import ScadaActor
-from actors.scada_interface import ScadaInterface
 from enums import LogLevel, TurnHpOnOff
 from named_types import ActuatorsReady, FsmEvent, Glitch, SingleMachineState
+from scada_app_interface import ScadaAppInterface
+
 
 class SiegLoopReady(BaseModel):
     TypeName: Literal["sieg.loop.ready"] = "sieg.loop.ready"
@@ -43,7 +44,7 @@ class HpBoss(ScadaActor):
         └── SiegLoop
     """
     TURN_ON_ANYWAY_S = 120 # turn on the heat pump after 2 minutes without strat-boss
-    def __init__(self, name: str, services: ScadaInterface):
+    def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
         self.hp_model = self.settings.hp_model # TODO: will move to hardware layout
         self.last_cmd_time = 0

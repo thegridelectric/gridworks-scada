@@ -4,13 +4,14 @@ from enum import auto
 from typing import List, Optional, cast
 
 from actors.home_alone.home_alone_tou_base import HomeAloneTouBase
-from actors.scada_interface import ScadaInterface
 from data_classes.house_0_names import H0CN, H0N
 from enums import HomeAloneStrategy, HomeAloneTopState
 from gw.enums import GwStrEnum
 from named_types import SingleMachineState
 from transitions import Machine
 from gwproto.named_types import PicoTankModuleComponentGt
+
+from scada_app_interface import ScadaAppInterface
 
 
 class HaShoulderState(GwStrEnum):
@@ -64,7 +65,7 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
         + [{"trigger": "WakeUp", "source": "Dormant", "dest": "Initializing"}]
     )
 
-    def __init__(self, name: str, services: ScadaInterface):
+    def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
         if self.strategy != HomeAloneStrategy.ShoulderTou:
             raise Exception(
