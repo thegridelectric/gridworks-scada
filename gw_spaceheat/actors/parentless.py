@@ -2,18 +2,15 @@
 import typing
 from typing import Any, Optional
 
-from gwproactor import CodecFactory
-from gwproactor import LinkSettings
 from gwproactor import PrimeActor
 from gwproactor import ProactorLogger
-from gwproactor import ProactorName
 from gwproactor import AppInterface
-from gwproto import HardwareLayout
-from gwproto import MQTTCodec
 from gwproto.message import Header
 from gwproto.message import Message
 from gwproto.named_types import PowerWatts, Report, SyncedReadings
 
+from actors import ContractHandler
+from actors.scada_interface import ScadaInterface
 from data_classes.house_0_names import H0N
 from data_classes.house_0_layout import House0Layout
 from gwproto.data_classes.sh_node import ShNode
@@ -34,7 +31,7 @@ class Scada2Data:
         self.latest_snap = None
         self.latest_report = None
 
-class Parentless(PrimeActor):
+class Parentless(PrimeActor, ScadaInterface):
     ASYNC_POWER_REPORT_THRESHOLD = 0.05
     DEFAULT_ACTORS_MODULE = "actors"
     LOCAL_MQTT: str = Scada2CodecFactory.LOCAL_MQTT
@@ -54,6 +51,10 @@ class Parentless(PrimeActor):
     @property
     def layout(self) -> House0Layout:
         return self.hardware_layout
+
+    @property
+    def contract_handler(self) -> ContractHandler:
+        raise ValueError("ERROR. Parentless does not have a contract handler")
 
     @classmethod
     def get_codec_factory(cls) -> Scada2CodecFactory:

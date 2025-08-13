@@ -6,7 +6,7 @@ from typing import Dict, List, cast, Sequence, Optional
 from gw.enums import GwStrEnum
 from gwproto.message import Message
 from gwproto.data_classes.data_channel import DataChannel
-from gwproactor import  AppInterface, MonitoredName
+from gwproactor import  MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import (
     I2cMultichannelDtRelayComponent,
@@ -38,9 +38,10 @@ from result import Err, Ok, Result
 from transitions import Machine
 from data_classes.house_0_names import House0RelayIdx
 from actors.scada_actor import ScadaActor
-from actors.scada_interface import ScadaInterface
 from enums import LogLevel, ChangeKeepSend, HpLoopKeepSend
 from named_types import FsmEvent, Glitch, SingleMachineState
+from scada_app_interface import ScadaAppInterface
+
 
 class Relay(ScadaActor):
     STATE_REPORT_S = 300
@@ -57,7 +58,7 @@ class Relay(ScadaActor):
     def __init__(
         self,
         name: str,
-        services: AppInterface,
+        services: ScadaAppInterface,
     ):
         super().__init__(name, services)
         self.component = cast(I2cMultichannelDtRelayComponent, self.node.component)

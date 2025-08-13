@@ -23,10 +23,12 @@ from gwproto.named_types import (SingleReading,
                                  SyncedReadings, FsmAtomicReport)
 from pydantic import BaseModel, Field
 from result import Err, Ok, Result
-from actors.scada_interface import ScadaInterface
 from actors.scada_actor import ScadaActor
 from named_types import ActuatorsReady, FsmEvent, Glitch
 from enums import LogLevel
+from scada_app_interface import ScadaAppInterface
+
+
 class ChangeKridaPin(Enum):
     Energize = 0
     DeEnergize = 1
@@ -61,7 +63,7 @@ class I2cRelayMultiplexer(ScadaActor):
     def __init__(
         self,
         name: str,
-        services: ScadaInterface,
+        services: ScadaAppInterface,
     ):
         super().__init__(name, services)
         self.is_simulated = self.settings.is_simulated
