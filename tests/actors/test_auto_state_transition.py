@@ -2,7 +2,9 @@ import logging
 import time
 import uuid
 import pytest
+import typing
 from gwproto import Message
+from actors import AtomicAlly
 from data_classes.house_0_names import H0N
 from enums import MainAutoState, ContractStatus
 from named_types import SlowDispatchContract, SlowContractHeartbeat
@@ -25,17 +27,30 @@ async def test_auto_state_home_alone_to_atn(request: pytest.FixtureRequest) -> N
         )
         scada = h.child1_app.scada
         atn = h.parent_app.atn
+        aa = h.child1_app.get_communicator_as_type(
+                H0N.atomic_ally,
+                AtomicAlly
+            )
+        if aa is None:
+            raise Exception("No aa")
         # Verify initial state is HomeAlone
         print("Verifying initial state is HomeAlone")
         assert scada.auto_state == MainAutoState.HomeAlone, f"Expected HomeAlone, got {scada.auto_state}"
         
+        # atomic ally will reject contract if it doesn't have forecasts. 
+        # It gets forecasts during startup.
+        await h.await_for(
+            lambda: aa.forecasts is not None,
+            "aa never got forecasts!"
+        )
+
         # Atn creates a slow dispatch contract and hb to send to SCADA
         # Round to the nearest 5 minutes for StartS
         current_time = int(time.time())
         start_s = (current_time // 300) * 300 + 300  # Next 5-minute boundary
         
         contract = SlowDispatchContract(
-            ScadaAlias=scada.layout.scada_g_node_alias,
+            ScadaAlias=atn.layout.scada_g_node_alias,
             StartS=start_s,
             DurationMinutes=60,
             AvgPowerWatts=1000,
@@ -47,12 +62,11 @@ async def test_auto_state_home_alone_to_atn(request: pytest.FixtureRequest) -> N
         atn_hb = SlowContractHeartbeat(
             FromNode=atn.node.name,
             Contract=contract,
-            PreviousStatus=ContractStatus.Created,
             Status=ContractStatus.Created,
             WattHoursUsed=0,
             MessageCreatedMs=int(time.time() * 1000),
             MyDigit=5,
-            YourLastDigit=0
+            YourLastDigit=None # First message in chain
         )
         
         atn.contract_handler.latest_hb = atn_hb
@@ -65,7 +79,7 @@ async def test_auto_state_home_alone_to_atn(request: pytest.FixtureRequest) -> N
             )
         
         
-        print("Atn sent hb ... waiting for state transition to Atn")
+        print("Atn sent creation hb ... waiting for Scada to transition to Atn")
         await h.await_for(
 
             lambda: scada.auto_state == MainAutoState.Atn,
@@ -90,17 +104,39 @@ async def test_auto_state_home_alone_to_atn(request: pytest.FixtureRequest) -> N
             "Atn receives slow.contract.heartbeat")
 
         print(f"Scada auto state is {scada.auto_state}")
-        # Wait for ATN to receive the response heartbeat from Scada
-        # await h.await_for(
-        #     lambda: (atn.contract_handler.latest_hb is not None 
-        #             and atn.contract_handler.latest_hb.Status != ContractStatus.Created
-        #             and atn.contract_handler.latest_hb.FromNode == H0N.primary_scada),
-        #     "Waiting for ATN to receive heartbeat response from Scada"
-        # )
-        
+
         # Verify ATN received the heartbeat
         print("ATN received heartbeat from Scada")
         assert atn.contract_handler.latest_hb.FromNode == H0N.primary_scada
         assert atn.contract_handler.latest_hb.Status == ContractStatus.Received
         assert atn.contract_handler.latest_hb.FromNode == H0N.primary_scada
         print(f"ATN contract status: {atn.contract_handler.latest_hb.Status}")
+
+        # hb = SlowContractHeartbeat(
+        #     FromNode=atn.node.name,
+        #     Contract=atn.contract_handler.latest_hb.Contract,
+        #     PreviousStatus=atn.contract_handler.latest_hb.Status,
+        #     Status=ContractStatus.TerminatedByAtn,
+        #     Cause="Atn testing termination",
+        #     MessageCreatedMs=int(time.time() * 1000),
+        #     MyDigit=2,
+        #     YourLastDigit=atn.contract_handler.latest_hb.MyDigit,
+        # )
+        # atn.contract_handler.latest_hb = None
+
+        # atn.services.send_threadsafe(
+        #         Message(
+        #             Src=atn.node.name,
+        #             Dst=H0N.primary_scada,
+        #             Payload=hb,
+        #         )
+        #     )
+        
+        # print("Atn sent termination hb ... waiting for scada to transition to HomeALone")
+        # await h.await_for(
+
+        #     lambda: scada.auto_state == MainAutoState.HomeAlone,
+        #     "Waiting for auto_state to transition from Atn to HomeAlone",
+        # )
+        # That's funny: Ack! Haven't thought through termination by atn
+        
