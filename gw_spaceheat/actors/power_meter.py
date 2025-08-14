@@ -3,9 +3,7 @@ isolates code used only in PowerMeterDriverThread constructor. """
 import logging
 import time
 import typing
-from typing import Dict
-from typing import List
-from typing import Optional
+from typing import Dict, List, Optional
 
 from gwproactor.logger import LoggerOrAdapter
 from gwproto import Message
@@ -31,7 +29,7 @@ from gwproactor import Problems
 from gwproto.enums import MakeModel
 from gwproto.named_types import ElectricMeterChannelConfig, PowerWatts, SyncedReadings
 
-from scada_app import ScadaApp
+from scada_app_interface import ScadaAppInterface
 
 
 class HWUidMismatch(DriverWarning):
@@ -133,7 +131,6 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
     latest_telemetry_value: Dict[DataChannel, Optional[int]]
     _last_sampled_s: Dict[DataChannel, Optional[int]]
     async_power_reporting_threshold: float
-    _telemetry_destination: str
     _hardware_layout: HardwareLayout
     _hw_uid: str = ""
 
@@ -142,7 +139,6 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         node: ShNode,
         settings: ScadaSettings,
         hardware_layout: HardwareLayout,
-        telemetry_destination: str,
         responsive_sleep_step_seconds=0.01,
         daemon: bool = True,
         logger: Optional[LoggerOrAdapter] = None,
@@ -154,7 +150,6 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
             logger=logger,
         )
         self._hardware_layout = hardware_layout
-        self._telemetry_destination = telemetry_destination
         setup_helper = DriverThreadSetupHelper(
             node,
             settings,
@@ -392,7 +387,7 @@ class PowerMeter(SyncThreadActor):
     def __init__(
         self,
         name: str,
-        services: ScadaApp,
+        services: ScadaAppInterface,
         settings: Optional[ScadaSettings] = None,
     ):
         settings = settings or services.settings
@@ -403,7 +398,6 @@ class PowerMeter(SyncThreadActor):
                 node=services.hardware_layout.node(name),
                 settings=settings,
                 hardware_layout=services.hardware_layout,
-                telemetry_destination=services.name,
                 logger=services.logger.add_category_logger(
                     self.POWER_METER_LOGGER_NAME,
                     level=settings.power_meter_logging_level,
