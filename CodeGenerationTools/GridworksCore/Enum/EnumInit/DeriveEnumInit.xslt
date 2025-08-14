@@ -25,20 +25,33 @@
                 <OverwriteMode>Always</OverwriteMode>
                 <xsl:element name="FileContents">
 <xsl:text>"""
-GridWorks Enums used in scada, the Application Shared Language (ASL) used by SCADA
-devices and AtomicTNodes to communicate with each other. These enums play a specific structural
-role as semantic "glue" within ASLs.
+GridWorks Enums used in Application Shared Languages (ASL)
 
-Application Shared Languages are an evolution of the concept of Application Programming Interfaces.
-In a nutshell, an API can be viewed as a rather restricted version of an SAL, where only one application
-has anything complex/interesting to say and, in general, the developers/owners of that application
-have sole responsibility for managing the versioning and changing of that API. Note also that SALs
-do not make any a priori assumption about the relationship (i.e. the default client/server for an API)
-or the message delivery mechanism (i.e. via default GET/POST to RESTful URLs). For more information
-on these ideas:
-  - [GridWorks Enums](https://gridwork-type-registry.readthedocs.io/en/latest/types.html)
-  - [GridWorks Types](https://gridwork-type-registry.readthedocs.io/en/latest/types.html)
-  - [ASLs](https://gridwork-type-registry.readthedocs.io/en/latest/asls.html)
+GridWorks ASL enables peer-to-peer shared vocabulary between energy system actors like 
+SCADA devices, trading nodes, and market makers. Enums serve as the "controlled vocabulary" 
+foundation that ensures everyone speaks the same language.
+
+Key characteristics:
+ - Immutable evolution: Enum values can be added but never changed or removed, ensuring 
+   backwards compatibility across distributed systems
+ - Transport-agnostic: Same enums work with RabbitMQ, HTTP APIs, Kafka, or any message delivery
+ - Organizational autonomy: Each organization can build exactly the sophistication they need
+   on top of shared foundations
+ - Constitutional governance: Follow naming conventions (left.right.dot format) and 
+   ownership rules defined in the ASL registry
+
+Enums are the semantic building blocks that enable organizations to collaborate without 
+compromising their independence. Unlike APIs where one party controls the vocabulary, 
+ASL enums evolve through community governance while maintaining stability.
+
+Application Shared Languages represent an evolution beyond traditional APIs - enabling 
+true peer-to-peer collaboration where organizations maintain autonomy while sharing 
+vocabulary, rather than client/server relationships where one party dictates the interface.
+
+For more information:
+ - [Why GridWorks ASL Exists](https://gridworks-asl.readthedocs.io/motivation/)
+ - [ASL Rules and Guidelines](https://gridworks-asl.readthedocs.io/rules-and-guidelines/) 
+ - [GridWorks ASL Overview](https://gridworks-asl.readthedocs.io/)
  """
 
 from gw.enums import MarketTypeName</xsl:text>

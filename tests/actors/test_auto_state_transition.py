@@ -83,17 +83,24 @@ async def test_auto_state_home_alone_to_atn(request: pytest.FixtureRequest) -> N
         
         # Test that ATN receives heartbeat back from Scada
         print("Waiting for ATN to receive heartbeat back from Scada")
-        
-        # Wait for ATN to receive the response heartbeat from Scada
+        atn_received_counts = h.parent_to_child_stats.num_received_by_type
+
         await h.await_for(
-            lambda: (atn.contract_handler.latest_hb is not None 
-                    and atn.contract_handler.latest_hb.Status != ContractStatus.Created
-                    and atn.contract_handler.latest_hb.FromNode == H0N.primary_scada),
-            "Waiting for ATN to receive heartbeat response from Scada"
-        )
+            lambda: atn_received_counts['slow.contract.heartbeat'] > 1,
+            "Atn receives slow.contract.heartbeat")
+
+        print(f"Scada auto state is {scada.auto_state}")
+        # Wait for ATN to receive the response heartbeat from Scada
+        # await h.await_for(
+        #     lambda: (atn.contract_handler.latest_hb is not None 
+        #             and atn.contract_handler.latest_hb.Status != ContractStatus.Created
+        #             and atn.contract_handler.latest_hb.FromNode == H0N.primary_scada),
+        #     "Waiting for ATN to receive heartbeat response from Scada"
+        # )
         
         # Verify ATN received the heartbeat
         print("ATN received heartbeat from Scada")
         assert atn.contract_handler.latest_hb.FromNode == H0N.primary_scada
         assert atn.contract_handler.latest_hb.Status == ContractStatus.Received
+        assert atn.contract_handler.latest_hb.FromNode == H0N.primary_scada
         print(f"ATN contract status: {atn.contract_handler.latest_hb.Status}")
