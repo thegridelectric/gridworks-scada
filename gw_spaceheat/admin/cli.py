@@ -32,12 +32,14 @@ def watch_settings(
     target: str = "",
     env_file: str = ".env",
     verbose: int = 0,
-    paho_verbose: int = 0
+    paho_verbose: int = 0,
+    show_clock: bool = False,
 ) -> AdminClientSettings:
     # https://github.com/koxudaxi/pydantic-pycharm-plugin/issues/1013
     # noinspection PyArgumentList
     settings = AdminClientSettings(
         _env_file=dotenv.find_dotenv(env_file),
+        show_clock=show_clock,
     ).update_paths_name("admin")
     if target:
         settings.target_gnode = target
@@ -72,10 +74,23 @@ def watch(
         typer.Option(
             "--paho-verbose", count=True
         )
-    ] = 0
+    ] = 0,
+    show_clock: Annotated[
+        bool,
+        typer.Option(
+            "--show-clock",
+        )
+    ] = False,
+
 ) -> None:
     """Watch and set relays."""
-    settings = watch_settings(target, env_file, verbose, paho_verbose)
+    settings = watch_settings(
+        target,
+        env_file,
+        verbose,
+        paho_verbose,
+        show_clock=show_clock,
+    )
     rich.print(settings)
     watch_app = RelaysApp(settings=settings)
     watch_app.run()

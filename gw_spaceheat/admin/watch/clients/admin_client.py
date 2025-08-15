@@ -142,8 +142,8 @@ class AdminClient:
             await asyncio.sleep(60)
             if self._layout is None:
                 self._request_layout_lite()
-            elif self._snap is None:
-                self._request_snapshot()
+            elif self._snap is None:  # noqa
+                self._request_snapshot()  # noqa
 
     def start(self):
         self._paho_wrapper.start()
