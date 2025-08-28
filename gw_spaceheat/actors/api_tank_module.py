@@ -287,6 +287,7 @@ class ApiTankModule(ScadaActor):
                         )
                     )
             elif self._component.gt.TempCalcMethod == TempCalcMethod.SimpleBeta:
+                print(f"volts: {volts}, temp {self.simple_beta(volts)}")
                 try:
                     value_list.append(int(self.simple_beta(volts) * 1000))
                     channel_name_list.append(data.AboutNodeNameList[i])
