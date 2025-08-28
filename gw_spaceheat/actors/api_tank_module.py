@@ -417,7 +417,8 @@ class ApiTankModule(ScadaActor):
         r_therm = R_FIXED_KOHMS * volts/(PICO_VOLTS-volts)
         if r_therm <= 0:
             raise ValueError("Disconnected thermistor!")
-        return r_therm
+
+        return self.temp_beta(r_therm, fahrenheit=fahrenheit)
 
     def simple_beta_for_pico(self, volts: float, fahrenheit=False) -> float:
         """
