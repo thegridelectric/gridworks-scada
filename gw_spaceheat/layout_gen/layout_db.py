@@ -659,6 +659,7 @@ class LayoutDb:
                     Handle="auto.h",
                     ActorClass=ActorClass.HomeAlone,
                     DisplayName="HomeAlone",
+                    Strategy=cfg.home_alone_strategy,
                 ),
                 SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.home_alone_normal),
