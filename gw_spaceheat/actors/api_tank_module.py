@@ -18,24 +18,15 @@ from gwproto.enums import MakeModel
 from gwproto.named_types import ComponentAttributeClassGt
 from gwproto.named_types import SyncedReadings, TankModuleParams
 from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
-from pydantic import BaseModel
 from result import Ok, Result
 from actors.scada_actor import ScadaActor
-from named_types import PicoMissing, ChannelFlatlined
+from named_types import PicoMissing, ChannelFlatlined, MicroVolts
 
 R_FIXED_KOHMS = 5.65  # The voltage divider resistors in the TankModule
 THERMISTOR_T0 = 298  # i.e. 25 degrees
 THERMISTOR_R0_KOHMS = 10  # The R0 of the NTC thermistor - an industry standard
 PICO_VOLTS = 3.3
 FLATLINE_REPORT_S = 60
-
-
-class MicroVolts(BaseModel):
-    HwUid: str
-    AboutNodeNameList: List[str]
-    MicroVoltsList: List[int]
-    TypeName: Literal["microvolts"] = "microvolts"
-    Version: Literal["100"] = "100"
 
 
 class ApiTankModule(ScadaActor):

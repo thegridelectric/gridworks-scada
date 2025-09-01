@@ -23,6 +23,7 @@ from named_types.heating_forecast import HeatingForecast
 from named_types.latest_price import LatestPrice
 from named_types.layout_lite import LayoutLite
 from named_types.market_maker_ack import MarketMakerAck
+from named_types.micro_volts import MicroVolts
 from named_types.new_command_tree import NewCommandTree
 from named_types.no_new_contract_warning import NoNewContractWarning
 from named_types.pico_missing import PicoMissing
@@ -69,6 +70,7 @@ __all__ = [
     "LatestPrice",
     "LayoutLite",
     "MarketMakerAck",
+    "MicroVolts",
     "NewCommandTree",
     "NoNewContractWarning",
     "PicoMissing",
