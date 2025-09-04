@@ -38,8 +38,10 @@ class MqttState(Widget):
 
     def render(self) -> str:
         return (
-            f"MQTT broker connection: {self.mqtt_state:12s}  "
-            f"Messages received: {self.message_count}  "
-            f"Snapshots: {self.snapshot_count}  "
-            f"Layouts: {self.layout_count}"
+            f"MQTT broker connection: {self.mqtt_state:12s}"
+
+            # Counters disabled as defense against memory leaks:
+            # f"  Messages received: {self.message_count}  "
+            # f"Snapshots: {self.snapshot_count}  "
+            # f"Layouts: {self.layout_count}"
         )
