@@ -17,6 +17,7 @@ class AdminClientSettings(AppSettings):
     verbosity: int = logging.WARN
     paho_verbosity: Optional[int] = None
     show_clock: bool = False
+    show_footer: bool = False
     model_config = SettingsConfigDict(
         env_prefix="GWADMIN_",
         env_nested_delimiter="__",
