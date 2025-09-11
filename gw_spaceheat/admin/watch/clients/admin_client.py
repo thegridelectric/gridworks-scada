@@ -11,6 +11,8 @@ from typing import Type
 from gwproto import Message
 from gwproto import Message as GWMessage
 from gwproto import MQTTTopic
+
+from admin.config import CurrentAdminConfig
 from data_classes.house_0_names import H0N
 from gwproto.named_types import SendSnap
 from paho.mqtt.client import MQTTMessageInfo
@@ -65,7 +67,7 @@ class AdminSubClient:
 
 class AdminClient:
     _lock: threading.RLock
-    _settings: AdminClientSettings
+    _settings: CurrentAdminConfig
     _paho_wrapper: ConstrainedMQTTClient
     _subclients: list[AdminSubClient]
     _callbacks: AdminClientCallbacks
@@ -76,7 +78,7 @@ class AdminClient:
 
     def __init__(
             self,
-            settings: AdminClientSettings,
+            settings: CurrentAdminConfig,
             callbacks: Optional[AdminClientCallbacks] = None,
             subclients: Optional[Sequence[AdminSubClient]] = None,
             *,
@@ -93,11 +95,11 @@ class AdminClient:
             for subclient in self._subclients:
                 subclient.set_admin_client(self)
         self._paho_wrapper = ConstrainedMQTTClient(
-            settings=self._settings.link,
+            settings=self._settings.config.scadas[self._settings.curr_scada].mqtt,
             subscriptions=[
                 MQTTTopic.encode(
                     envelope_type=GWMessage.type_name(),
-                    src=self._settings.target_gnode,
+                    src=self._settings.config.scadas[self._settings.curr_scada].long_name,
                     dst=H0N.admin,
                     message_type="#",
                 )
@@ -154,6 +156,28 @@ class AdminClient:
             self._init_task.cancel()
         self._init_task = None
         self._paho_wrapper.stop()
+
+    def switch_scada(self) -> None:
+        if self._paho_wrapper.started():
+            self._paho_wrapper.stop()
+        self._paho_wrapper = ConstrainedMQTTClient(
+            settings=self._settings.config.scadas[self._settings.curr_scada].mqtt,
+            subscriptions=[
+                MQTTTopic.encode(
+                    envelope_type=GWMessage.type_name(),
+                    src=self._settings.config.scadas[self._settings.curr_scada].long_name,
+                    dst=H0N.admin,
+                    message_type="#",
+                )
+            ],
+            callbacks=MQTTClientCallbacks(
+                state_change_callback=self._mqtt_state_changed,
+                message_received_callback=self._mqtt_message_received,
+            ),
+            logger=self._logger,
+            paho_logger=None,
+        )
+        self._paho_wrapper.start()
 
     def started(self) -> bool:
         return self._paho_wrapper.started()

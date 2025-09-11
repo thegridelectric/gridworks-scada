@@ -12,6 +12,7 @@ from textual.reactive import Reactive
 from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import DataTable
+from textual.widgets import Select
 from textual.widgets._data_table import CellType  # noqa
 
 from admin.watch.clients.constrained_mqtt_client import ConstrainedMQTTClient
@@ -73,6 +74,9 @@ class Relays(Widget):
     def compose(self) -> ComposeResult:
         with Vertical():
             yield MqttState(id="mqtt_state")
+            yield Select(
+                (scada, scada) for scada in self.app.settings.config.scadas.keys()
+            )
             with HorizontalGroup():
                 yield KeepAliveButton()
                 yield ReleaseControlButton()

@@ -241,7 +241,7 @@ class ConstrainedMQTTClient:
     def _on_connect_fail(self, _: Any, _userdata: Any) -> None:
         self._change_state(self.States.connecting)
 
-    def _on_disconnect(self, _: Any, _userdata: Any, _rc: int, _properties: Any) -> None:
+    def _on_disconnect(self, _: Any, _userdata: Any, _rc: int, _properties: Any, stuff: Any) -> None:
         self._pending_subscriptions = set(self._subscriptions)
 
     def _on_message(self, _: Any, _userdata: Any, message: MQTTMessage) -> None:
