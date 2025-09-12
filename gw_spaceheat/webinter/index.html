@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Relay Control</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <h1 style="text-align: center;">Admin Panel</h1>
+    <div id="status" style="text-align: center; margin: 10px 0; white-space: pre-line;">Connecting...</div>
+    <br>
+    
+    <!-- Control Panel -->
+    <div id="control-panel" style="text-align: center; margin: 20px 0 40px 0;">
+        <div id="timer-display" style="font-family: monospace; font-size: 32px; margin: 20px 0; color: #333; font-weight: bold;">00:00:00</div>
+        <div style="display: inline-block; margin: 0 10px;">
+            <label for="timeout-input">Timeout (minutes):</label>
+            <input type="number" id="timeout-input" value="5" min="1" max="1440" style="width: 60px; margin: 0 5px; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 0.25rem; background-color: white; font-family: inherit; font-size: inherit;">
+        </div>
+        <button id="keep-alive-btn" onclick="sendKeepAlive()" style="margin: 0 5px; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 0.25rem; background-color: #FAFAFA; cursor: pointer; font-family: inherit; font-size: inherit;">Keep alive</button>
+        <button id="release-control-btn" onclick="sendReleaseControl()" style="margin: 0 5px; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 0.25rem; background-color: #FAFAFA; cursor: pointer; font-family: inherit; font-size: inherit;">Release control</button>
+        <!-- <div id="control-status" style="font-size: 14px; margin: 5px 0; color: #666;">No control</div> -->
+    </div>
+    
+    <div id="relays" style="margin-bottom: 40px;"></div>
+
+    <style>
+        :root {
+            /* Dark mode colors (default) */
+            --background-color: #f8f9fa;
+            --card-background: #ffffff;
+            --datetime-background: #f1f3f5;
+            --datetime-text: #1b1b1c;
+            --text-color: #212529;
+            --text-muted: #6c757d;
+            --border-color: rgba(0, 0, 0, 0.1);
+            --hover-color: #f1f3f5;
+        }
+
+        body {
+            font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            font-size: 14px;
+        }
+
+        table tr:hover {
+            background-color: var(--hover-color);
+        }
+    </style>
+
+
+    <script>
+        let websocket = null;
+        let relays = {};
+        let currentUserId = 'user_' + Math.random().toString(36).substr(2, 9);
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            
+            websocket = new WebSocket(wsUrl);
+            
+            websocket.onopen = function(event) {
+                document.getElementById('status').textContent = 'Connected';
+                console.log('WebSocket connected');
+            };
+            
+            websocket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                handleMessage(data);
+            };
+            
+            websocket.onclose = function(event) {
+                document.getElementById('status').textContent = 'Disconnected, please refresh the page.';
+                console.log('WebSocket disconnected');
+                
+                // Clear the relay table and show disconnected message
+                const relaysDiv = document.getElementById('relays');
+                relaysDiv.innerHTML = '';
+                const controlPanel = document.getElementById('control-panel');
+                controlPanel.innerHTML = '';
+            };
+            
+            websocket.onerror = function(error) {
+                console.error('WebSocket error:', error);
+                document.getElementById('status').textContent = 'Error';
+            };
+        }
+
+        function handleMessage(data) {
+            console.log('Received message:', data);
+            
+            if (data.type === 'status') {
+                updateStatus(data);
+            } else if (data.type === 'timer_update') {
+                updateTimer(data);
+            } else if (data.type === 'mqtt_message') {
+                // Handle MQTT messages (could be relay state updates)
+                if (data.message_type === 'single.reading') {
+                    updateRelayState(data.payload);
+                }
+            } else if (data.type === 'error') {
+                console.error('Error: ' + data.message);
+            }
+        }
+
+        function updateStatus(data) {
+            // Build detailed status string with the requested format
+            let statusText = '';
+            
+            // First line: target_gnode (bold)
+            const gnodeParts = data.target_gnode ? data.target_gnode.split('.') : [];
+            const beforeLastPart = gnodeParts.length > 1 ? gnodeParts[gnodeParts.length - 2] : '';
+            const capitalizedPart = beforeLastPart.charAt(0).toUpperCase() + beforeLastPart.slice(1);
+            if (data.target_gnode) {
+                statusText = `<b style="font-size: 1.4em;">${capitalizedPart}</b>`;
+            }
+            
+            // Add line break between target and MQTT status
+            statusText += '\n';
+            if (data.target_gnode) {
+                statusText += `<span style="color: var(--text-muted);">${data.target_gnode}</span>`;
+            }
+
+            
+            // Second line: MQTT connection status and message count
+            // if (data.mqtt_connected) {
+            //     statusText += 'MQTT broker connection: active';
+            // } else {
+            //     statusText += 'MQTT broker connection: inactive';
+            // }
+            
+            // if (data.messages_received !== undefined) {
+            //     statusText += ` | Messages received: ${data.messages_received}`;
+            // }
+            
+            document.getElementById('status').innerHTML = statusText;
+            
+            // Update relays
+            if (data.relays) {
+                relays = data.relays;
+                updateRelayButtons();
+            }
+            
+            // Update timer from status
+            if (data.time_remaining !== undefined) {
+                updateTimer({ time_remaining: data.time_remaining, controller: data.controller });
+            }
+        }
+        
+        function updateTimer(data) {
+            const hours = Math.floor(data.time_remaining / 3600);
+            const minutes = Math.floor((data.time_remaining % 3600) / 60);
+            const seconds = Math.floor(data.time_remaining % 60);
+            
+            const timerElement = document.getElementById('timer-display');
+            timerElement.textContent = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Change color based on timer state
+            if (data.time_remaining > 0) {
+                timerElement.style.color = '#CC1616';
+            } else {
+                timerElement.style.color = '#333';
+            }
+            
+            // Show who has control
+            // if (data.controller) {
+            //     const isCurrentUser = data.controller === currentUserId;
+            //     document.getElementById('control-status').textContent = 
+            //         // `Control: ${data.controller}${isCurrentUser ? ' (You)' : ''}`;
+            //         `Last action done by ${isCurrentUser ? ' you' : 'another user'}`;
+            //     } else {
+            //     document.getElementById('control-status').textContent = 'No control';
+            // }
+        }
+
+        function updateRelayButtons() {
+            const relaysDiv = document.getElementById('relays');
+            relaysDiv.innerHTML = '';
+            
+            // Create table
+            const table = document.createElement('table');
+            table.style.border = '1px solid var(--border-color)';
+            table.style.borderCollapse = 'collapse';
+            table.style.borderRadius = '0.25rem';
+            table.style.maxWidth = '1000px';
+            table.style.margin = '0 auto'; // Center horizontally
+            table.style.backgroundColor = 'var(--card-background)';
+            
+            // Create header row
+            const headerRow = document.createElement('tr');
+            const headers = ['Relay', 'Name', 'Current State', 'Action', 'Energized'];
+            headers.forEach(headerText => {
+                const th = document.createElement('th');
+                th.textContent = headerText;
+                // th.style.border = '1px solid var(--border-color)';
+                th.style.padding = '8px 10px';
+                th.style.backgroundColor = '#f0f0f0';
+                headerRow.appendChild(th);
+            });
+            table.appendChild(headerRow);
+            
+            // Sort relays by relay number
+            const sortedRelays = Object.entries(relays).sort((a, b) => {
+                const relayNumberA = parseInt(a[0].replace('relay', ''));
+                const relayNumberB = parseInt(b[0].replace('relay', ''));
+                return relayNumberA - relayNumberB;
+            });
+            
+            // Create data rows
+            for (const [relayName, relayInfo] of sortedRelays) {
+                const row = document.createElement('tr');
+                
+                // Extract relay number from relay name (e.g., "relay1" -> "1")
+                const relayNumber = relayName.replace('relay', '');
+                
+                // Get current state
+                const currentState = relayInfo.state || 'unknown';
+                
+                // Get the actual state description for this relay
+                let currentStateDescription = 'unknown';
+                if (currentState === 'energized') {
+                    currentStateDescription = relayInfo.energized_state || 'energized';
+                } else if (currentState === 'deenergized') {
+                    currentStateDescription = relayInfo.deenergized_state || 'deenergized';
+                }
+                
+                // Determine action text based on current state using actual event names
+                let actionText = 'unknown';
+                if (currentState === 'energized') {
+                    actionText = relayInfo.de_energizing_event || 'De-energize';
+                } else if (currentState === 'deenergized') {
+                    actionText = relayInfo.energizing_event || 'Energize';
+                }
+                
+                // Determine energized icon
+                const energizedIcon = currentState === 'energized' ? '🔴' : '⚪';
+                
+                // Create cells
+                const cells = [
+                    relayNumber,
+                    relayInfo.display_name.replace(/Relay\s*/i, ''),
+                    currentStateDescription,
+                    actionText,
+                    energizedIcon
+                ];
+                
+                cells.forEach((cellText, index) => {
+                    const td = document.createElement('td');
+                    // Only show left and right borders for data cells (no top/bottom borders between rows)
+                    // td.style.borderLeft = '1px solid var(--border-color)';
+                    // td.style.borderRight = '1px solid var(--border-color)';
+                    td.style.padding = '2px 16px';
+                    
+                    if (index === 3) { // Action column - make it clickable
+                        const button = document.createElement('button');
+                        button.textContent = cellText;
+                        button.onclick = () => toggleRelay(relayName);
+                        button.style.width = '100%';
+                        button.style.padding = '3px 14px';
+                        button.style.border = '1px solid var(--border-color)';
+                        button.style.borderRadius = '0.25rem';
+                        button.style.backgroundColor = currentState === 'energized' ? '#FAFAFA' : '#FAFAFA';
+                        button.style.cursor = 'pointer';
+                        button.style.fontFamily = 'inherit';
+                        button.style.fontSize = 'inherit';
+                        td.appendChild(button);
+                    } else if (index === 4) { // Energized column - center the content
+                        td.textContent = cellText;
+                        td.style.textAlign = 'center';
+                    } else {
+                        td.textContent = cellText;
+                    }
+                    
+                    row.appendChild(td);
+                });
+                
+                table.appendChild(row);
+            }
+            
+            // Add bottom border to the last row
+            if (sortedRelays.length > 0) {
+                const lastRow = table.rows[table.rows.length - 1];
+                for (let i = 0; i < lastRow.cells.length; i++) {
+                    lastRow.cells[i].style.borderBottom = '1px solid var(--border-color)';
+                }
+            }
+            
+            relaysDiv.appendChild(table);
+        }
+
+        function toggleRelay(relayName) {
+            if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+                console.error('Not connected to server');
+                return;
+            }
+
+            const message = {
+                type: 'relay_control',
+                data: {
+                    relay_name: relayName,
+                    timeout_seconds: 300,
+                    user_id: currentUserId
+                }
+            };
+            
+            websocket.send(JSON.stringify(message));
+            console.log(`Toggling relay ${relayName}`);
+        }
+
+
+
+        function sendKeepAlive() {
+            if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+                console.error('Not connected to server');
+                return;
+            }
+
+            const timeoutMinutes = parseInt(document.getElementById('timeout-input').value) || 5;
+            const timeoutSeconds = timeoutMinutes * 60;
+
+            const message = {
+                type: 'keepalive',
+                data: {
+                    timeout_seconds: timeoutSeconds,
+                    user_id: currentUserId
+                }
+            };
+
+            websocket.send(JSON.stringify(message));
+            console.log(`Sending keep alive for ${timeoutMinutes} minutes`);
+        }
+
+        function sendReleaseControl() {
+            if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+                console.error('Not connected to server');
+                return;
+            }
+
+            const message = {
+                type: 'release_control',
+                data: {}
+            };
+
+            websocket.send(JSON.stringify(message));
+            console.log('Sending release control');
+        }
+
+        // Connect when page loads
+        window.onload = function() {
+            connectWebSocket();
+        };
+    </script>
+</body>
+</html>
