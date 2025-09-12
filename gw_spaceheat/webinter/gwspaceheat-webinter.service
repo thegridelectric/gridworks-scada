@@ -1,0 +1,26 @@
+[Unit]
+Description=GridWorks SCADA Web Interface
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/gridworks-scada/gw_spaceheat
+Environment=PYTHONPATH=/home/ubuntu/gridworks-scada
+Environment=GWWEBINTER_TARGET_GNODE=d1.isone.me.versant.keene.orange.scada
+Environment=GWWEBINTER_LINK__HOST=localhost
+Environment=GWWEBINTER_LINK__PORT=1885
+Environment=GWWEBINTER_LINK__USERNAME=smqPublic
+Environment=GWWEBINTER_LINK__PASSWORD=smqPublic
+Environment=GWWEBINTER_WEB_HOST=127.0.0.1
+Environment=GWWEBINTER_WEB_PORT=8080
+ExecStart=/home/ubuntu/gridworks-scada/gw_spaceheat/venv/bin/python -m webinter.cli serve --host 127.0.0.1 --port 8080
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
