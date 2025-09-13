@@ -56,6 +56,7 @@ class WebInterMQTTBridge:
         # Status tracking
         self._messages_received: int = 0
         self._last_activity_time: Optional[float] = None
+        self._pending_snapshot_message: Optional[str] = None
         
     def _setup_mqtt_client(self):
         """Setup MQTT client to connect to RabbitMQ"""
@@ -148,11 +149,16 @@ class WebInterMQTTBridge:
     
     def _process_snapshot(self, payload: bytes) -> None:
         """Process snapshot message"""
+        print("DEBUG: Processing snapshot message")
         message = GWMessage[SnapshotSpaceheat].model_validate_json(payload)
         self._snapshot = message.Payload
+        print(f"DEBUG: Snapshot loaded with {len(self._snapshot.LatestReadingList)} readings")
         
         # Extract relay states from snapshot
         self._extract_relay_states_from_snapshot()
+        
+        # Send snapshot data to all WebSocket clients
+        self._send_snapshot_to_clients()
     
     def _extract_relay_states_from_snapshot(self) -> None:
         """Extract relay states from snapshot data"""
@@ -187,6 +193,51 @@ class WebInterMQTTBridge:
                 self._relay_configs[relay_name]["last_update"] = state_info["time"]
         
         print(f"DEBUG: Updated {len(relay_states)} relay states from snapshot")
+    
+    def _send_snapshot_to_clients(self) -> None:
+        """Send snapshot data to all WebSocket clients"""
+        if not self._snapshot:
+            print("DEBUG: No snapshot data available to send")
+            return
+            
+        print(f"DEBUG: Sending snapshot to {len(self._websocket_clients)} clients")
+        print(f"DEBUG: Snapshot has {len(self._snapshot.LatestReadingList)} readings")
+        
+        # Convert snapshot to dict for JSON serialization
+        snapshot_data = {
+            "type": "mqtt_message",
+            "message_type": "snapshot.spaceheat",
+            "payload": {
+                "FromGNodeAlias": self._snapshot.FromGNodeAlias,
+                "FromGNodeInstanceId": self._snapshot.FromGNodeInstanceId,
+                "SnapshotTimeUnixMs": self._snapshot.SnapshotTimeUnixMs,
+                "LatestReadingList": [
+                    {
+                        "ChannelName": reading.ChannelName,
+                        "Value": reading.Value,
+                        "ScadaReadTimeUnixMs": reading.ScadaReadTimeUnixMs
+                    }
+                    for reading in self._snapshot.LatestReadingList
+                ],
+                "LatestStateList": [
+                    {
+                        "MachineHandle": state.MachineHandle,
+                        "StateEnum": state.StateEnum,
+                        "State": state.State,
+                        "UnixMs": state.UnixMs,
+                        "Cause": state.Cause
+                    }
+                    for state in self._snapshot.LatestStateList
+                ]
+            }
+        }
+        
+        message = json.dumps(snapshot_data)
+        print(f"DEBUG: Sending snapshot message: {message[:200]}...")  # Log first 200 chars
+        
+        # Store the message to be sent when clients connect or on next status update
+        self._pending_snapshot_message = message
+        print(f"DEBUG: Stored snapshot message for next client update")
     
     def _process_single_reading(self, payload: bytes) -> None:
         """Process single reading message to update relay states in real-time"""
@@ -231,7 +282,9 @@ class WebInterMQTTBridge:
     
     def _request_snapshot(self) -> None:
         """Request snapshot from SCADA"""
-        self._publish_message(SendSnap(FromGNodeAlias=H0N.admin))
+        print("DEBUG: Requesting snapshot from SCADA")
+        result = self._publish_message(SendSnap(FromGNodeAlias=H0N.admin))
+        print(f"DEBUG: Snapshot request result: {result}")
     
     def _publish_message(self, payload) -> Result[MQTTMessageInfo, Exception | None]:
         """Publish message to MQTT broker"""
@@ -474,6 +527,14 @@ class WebInterMQTTBridge:
         }
         # Status sent to web client
         await websocket.send_str(json.dumps(status))
+        
+        # Send snapshot data if available
+        if self._pending_snapshot_message:
+            try:
+                await websocket.send_str(self._pending_snapshot_message)
+                print(f"DEBUG: Sent pending snapshot to client")
+            except Exception as e:
+                self.logger.warning(f"Failed to send pending snapshot: {e}")
     
     async def _send_status_to_all_clients(self):
         """Send current status to all connected WebSocket clients"""
@@ -506,6 +567,15 @@ class WebInterMQTTBridge:
         for client in list(self._websocket_clients):
             try:
                 await client.send_str(json.dumps(status))
+                
+                # Send snapshot data if available
+                if self._pending_snapshot_message:
+                    try:
+                        await client.send_str(self._pending_snapshot_message)
+                        print(f"DEBUG: Sent pending snapshot to client")
+                    except Exception as e:
+                        self.logger.warning(f"Failed to send pending snapshot: {e}")
+                        
             except Exception as e:
                 self.logger.warning(f"Failed to send status to WebSocket client: {e}")
                 self._websocket_clients.discard(client)

@@ -24,6 +24,76 @@
     </div>
     
     <div id="relays" style="margin-bottom: 40px;"></div>
+    
+    <!-- System State Information -->
+    <div id="system-state" style="text-align: center; max-width: 1000px; margin: 20px auto 20px auto; background-color: var(--card-background); border: 1px solid var(--border-color); border-radius: 0.25rem; padding: 20px;">
+        <div id="hp-state" style="font-size: 18px; font-weight: 600; color: var(--text-color);">Determining state...</div>
+        <div id="storage-state" style="font-size: 18px; font-weight: 600; color: var(--text-color);">Determining state...</div>
+        <div id="combined-state" style="font-size: 20px; font-weight: 700; color: var(--text-color);">Determining state...</div>
+    </div>
+    
+    <!-- System Monitoring Tables -->
+    <div id="monitoring-tables" style="max-width: 1400px; margin: 20px auto 40px auto; display: flex; flex-wrap: wrap; gap: 30px; justify-content: center;">
+        <!-- Thermostats and Hot Water Table -->
+        <div>
+            <table id="thermostat-table" style="border: 1px solid var(--border-color); border-collapse: collapse; border-radius: 0.25rem; background-color: var(--card-background); margin: 0 auto;">
+                <thead>
+                    <tr style="background-color: #f0f0f0;">
+                        <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">Thermostats</th>
+                        <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">Setpoint</th>
+                        <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">Temperature</th>
+                        <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">State</th>
+                    </tr>
+                </thead>
+                <tbody id="thermostat-tbody">
+                    <tr>
+                        <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
+                        <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
+                        <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
+                        <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- HP Power Table -->
+        <div>
+            <table id="hp-power-table" style="border: 1px solid var(--border-color); border-collapse: collapse; border-radius: 0.25rem; background-color: var(--card-background); margin: 0 auto;">
+                <thead>
+                    <tr style="background-color: #f0f0f0;">
+                        <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">Heat pump</th>
+                        <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">kW</th>
+                    </tr>
+                </thead>
+                <tbody id="hp-power-tbody">
+                    <tr>
+                        <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
+                        <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pump Table -->
+        <div>
+            <table id="pump-table" style="border: 1px solid var(--border-color); border-collapse: collapse; border-radius: 0.25rem; background-color: var(--card-background); margin: 0 auto;">
+                <thead>
+                    <tr style="background-color: #f0f0f0;">
+                        <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">Pump</th>
+                        <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">GPM</th>
+                        <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">W</th>
+                    </tr>
+                </thead>
+                <tbody id="pump-tbody">
+                    <tr>
+                        <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
+                        <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
+                        <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
 
     <style>
         :root {
@@ -100,6 +170,8 @@
                 // Handle MQTT messages (could be relay state updates)
                 if (data.message_type === 'single.reading') {
                     updateRelayState(data.payload);
+                } else if (data.message_type === 'snapshot.spaceheat') {
+                    updateMonitoringTables(data.payload);
                 }
             } else if (data.type === 'error') {
                 console.error('Error: ' + data.message);
@@ -290,6 +362,130 @@
             }
             
             relaysDiv.appendChild(table);
+            
+            // Update system state after updating relay buttons
+            updateSystemState();
+        }
+
+        function updateSystemState() {
+            const hpStateElement = document.getElementById('hp-state');
+            const storageStateElement = document.getElementById('storage-state');
+            const combinedStateElement = document.getElementById('combined-state');
+            
+            // Check if we have relay 5 and relay 6 data for HP state
+            const relay5 = relays['relay5'];
+            const relay6 = relays['relay6'];
+            
+            let hpState = '';
+            let hpStateColor = 'var(--text-color)';
+            let hpOn = false;
+            
+            if (!relay5 || !relay6) {
+                hpStateElement.textContent = 'Waiting for relay data...';
+                hpStateElement.style.color = 'var(--text-muted)';
+            } else {
+                const relay5State = relay5.state;
+                const relay6State = relay6.state;
+                
+                if (relay5State === 'energized' && relay6State === 'deenergized') {
+                    hpState = 'HP on';
+                    hpStateColor = '#28a745'; // Green for "on"
+                    hpOn = true;
+                } else if (relay5State === 'energized' && relay6State === 'energized') {
+                    hpState = 'HP off';
+                    hpStateColor = '#dc3545'; // Red for "off"
+                    hpOn = false;
+                } else if (relay5State === 'deenergized') {
+                    hpState = 'HP in tank aquastat';
+                    hpStateColor = '#ffc107'; // Yellow for "aquastat"
+                    hpOn = false;
+                } else {
+                    hpState = 'Unknown state';
+                    hpStateColor = 'var(--text-muted)';
+                }
+                
+                hpStateElement.textContent = hpState;
+                hpStateElement.style.color = hpStateColor;
+            }
+            
+            // Check if we have relay 3 and relay 9 data for storage state
+            const relay3 = relays['relay3'];
+            const relay9 = relays['relay9'];
+            
+            let storageState = '';
+            let storageStateColor = 'var(--text-color)';
+            let storeCharge = false;
+            let storeDischarge = false;
+            
+            if (!relay3 || !relay9) {
+                storageStateElement.textContent = 'Waiting for relay data...';
+                storageStateElement.style.color = 'var(--text-muted)';
+            } else {
+                const relay3State = relay3.state;
+                const relay9State = relay9.state;
+                
+                if (relay3State === 'energized') {
+                    storageState = 'Store Charge';
+                    storageStateColor = '#17a2b8'; // Blue for "charging"
+                    storeCharge = true;
+                } else if (relay3State === 'deenergized' && relay9State === 'energized') {
+                    storageState = 'Store Discharging';
+                    storageStateColor = '#fd7e14'; // Orange for "discharging"
+                    storeDischarge = true;
+                } else if (relay3State === 'deenergized' && relay9State === 'deenergized') {
+                    storageState = 'Store idle';
+                    storageStateColor = '#6c757d'; // Gray for "idle"
+                } else {
+                    storageState = 'Unknown state';
+                    storageStateColor = 'var(--text-muted)';
+                }
+                
+                storageStateElement.textContent = storageState;
+                storageStateElement.style.color = storageStateColor;
+            }
+            
+            // Calculate combined state
+            let combinedState = '';
+            let combinedStateColor = 'var(--text-color)';
+            
+            if (hpOn && storeCharge) {
+                combinedState = 'HpOnStoreCharge';
+                combinedStateColor = '#28a745'; // Green
+            } else if (hpOn && !storeCharge && !storeDischarge) {
+                combinedState = 'HpOnStoreOff';
+                combinedStateColor = '#17a2b8'; // Blue
+            } else if (!hpOn && storeDischarge) {
+                combinedState = 'HpOffStoreDischarge';
+                combinedStateColor = '#fd7e14'; // Orange
+            } else if (!hpOn && !storeCharge && !storeDischarge) {
+                combinedState = 'HpOffStoreOff';
+                combinedStateColor = '#6c757d'; // Gray
+            } else {
+                combinedState = 'Unknown combined state';
+                combinedStateColor = 'var(--text-muted)';
+            }
+            
+            combinedStateElement.textContent = combinedState;
+            combinedStateElement.style.color = combinedStateColor;
+
+            hpStateElement.textContent = '';
+            storageStateElement.textContent = '';
+        }
+
+        function updateRelayState(payload) {
+            // Update individual relay state from MQTT message
+            if (payload && payload.relay_name && payload.state) {
+                relays[payload.relay_name] = {
+                    ...relays[payload.relay_name],
+                    state: payload.state
+                };
+                
+                // Update the relay buttons display
+                updateRelayButtons();
+                
+                // Update system state
+                updateSystemState();
+            }
         }
 
         function toggleRelay(relayName) {
@@ -347,6 +543,166 @@
 
             websocket.send(JSON.stringify(message));
             console.log('Sending release control');
+        }
+
+        function updateMonitoringTables(snapshotData) {
+            console.log('Updating monitoring tables with snapshot data:', snapshotData);
+            console.log('LatestReadingList:', snapshotData.LatestReadingList);
+            console.log('LatestStateList:', snapshotData.LatestStateList);
+            
+            // Update thermostat table
+            updateThermostatTable(snapshotData);
+            
+            // Update power and pump table
+            updatePowerPumpTable(snapshotData);
+        }
+
+        function updateThermostatTable(snapshotData) {
+            const tbody = document.getElementById('thermostat-tbody');
+            if (!tbody || !snapshotData.LatestReadingList) return;
+            
+            // Define zone mappings
+            const zones = [
+                { key: 'zone1-mainfloor', display: 'zone1-mainfloor' },
+                { key: 'zone2-masterbed', display: 'zone2-masterbed' },
+                { key: 'zone3-upstairsbed', display: 'zone3-upstairsbed' },
+                { key: 'zone4-sunroom', display: 'zone4-sunroom' }
+            ];
+            
+            // Create a lookup map for readings
+            const readingsMap = {};
+            snapshotData.LatestReadingList.forEach(reading => {
+                readingsMap[reading.ChannelName] = reading;
+            });
+            
+            // Debug: Log all available readings
+            console.log('Available readings for thermostat table:', Object.keys(readingsMap));
+            
+            tbody.innerHTML = '';
+            
+            zones.forEach(zone => {
+                // Look for temperature and set point readings for this zone using actual channel names
+                const tempReading = readingsMap[`${zone.key}-temp`];
+                const setPointReading = readingsMap[`${zone.key}-set`];
+                const stateReading = readingsMap[`${zone.key}-state`];
+                
+                // Temperature values are in degrees Fahrenheit * 10
+                const tempF = tempReading ? (tempReading.Value / 1000).toFixed(1) : 'N/A';
+                const setPointF = setPointReading ? (setPointReading.Value / 1000).toFixed(1) : 'N/A';
+                const state = stateReading ? (stateReading.Value > 0 ? 'heating' : 'idle') : 'idle';
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td style="border: 1px solid var(--border-color); padding: 8px;">${zone.display}</td>
+                    <td style="border: 1px solid var(--border-color); padding: 8px;">${setPointF}°F</td>
+                    <td style="border: 1px solid var(--border-color); padding: 8px;">${tempF}°F</td>
+                    <td style="border: 1px solid var(--border-color); padding: 8px;">${state}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function updatePowerPumpTable(snapshotData) {
+            if (!snapshotData.LatestReadingList) return;
+            
+            // Create a lookup map for readings
+            const readingsMap = {};
+            snapshotData.LatestReadingList.forEach(reading => {
+                readingsMap[reading.ChannelName] = reading;
+            });
+            
+            // Debug: Log all available readings
+            console.log('Available readings for power/pump table:', Object.keys(readingsMap));
+            
+            // Update HP Power table
+            updateHpPowerTable(readingsMap);
+            
+            // Update Pump table
+            updatePumpTable(readingsMap);
+        }
+
+        function updateHpPowerTable(readingsMap) {
+            const tbody = document.getElementById('hp-power-tbody');
+            if (!tbody) return;
+            
+            // Get power readings using actual channel names
+            const hpOduReading = readingsMap['hp-odu-pwr'];
+            const hpIduReading = readingsMap['hp-idu-pwr'];
+            const hpTotalReading = hpOduReading && hpIduReading ? 
+                { Value: hpOduReading.Value + hpIduReading.Value } : null;
+            
+            // Convert power from watts to kW
+            const hpTotalKw = hpTotalReading ? (hpTotalReading.Value / 1000).toFixed(2) : '0.00';
+            const hpOduKw = hpOduReading ? (hpOduReading.Value / 1000).toFixed(2) : '0.00';
+            const hpIduKw = hpIduReading ? (hpIduReading.Value / 1000).toFixed(2) : '0.00';
+            
+            tbody.innerHTML = '';
+            
+            // Outdoor row
+            const row2 = document.createElement('tr');
+            row2.innerHTML = `
+                <td style="border: 1px solid var(--border-color); padding: 8px;">Outdoor unit</td>
+                <td style="border: 1px solid var(--border-color); padding: 8px;">${hpOduKw}</td>
+            `;
+            tbody.appendChild(row2);
+            
+            // Indoor row
+            const row3 = document.createElement('tr');
+            row3.innerHTML = `
+                <td style="border: 1px solid var(--border-color); padding: 8px;">Indoor unit</td>
+                <td style="border: 1px solid var(--border-color); padding: 8px;">${hpIduKw}</td>
+            `;
+            tbody.appendChild(row3);
+
+            // HP Total row
+            const row1 = document.createElement('tr');
+            row1.innerHTML = `
+                <td style="border: 1px solid var(--border-color); padding: 8px;">Total</td>
+                <td style="border: 1px solid var(--border-color); padding: 8px;">${hpTotalKw}</td>
+            `;
+            tbody.appendChild(row1);
+        }
+
+        function updatePumpTable(readingsMap) {
+            const tbody = document.getElementById('pump-tbody');
+            if (!tbody) return;
+            
+            // Get pump readings using actual channel names
+            const primaryFlowReading = readingsMap['primary-flow'];
+            const primaryPowerReading = readingsMap['primary-pump-pwr'];
+            const distFlowReading = readingsMap['dist-flow'];
+            const distPowerReading = readingsMap['dist-pump-pwr'];
+            const storeFlowReading = readingsMap['store-flow'];
+            const storePowerReading = readingsMap['store-pump-pwr'];
+            
+            tbody.innerHTML = '';
+            
+            // Primary pump row
+            const row1 = document.createElement('tr');
+            row1.innerHTML = `
+                <td style="border: 1px solid var(--border-color); padding: 8px;">Primary</td>
+                <td style="border: 1px solid var(--border-color); padding: 8px;">${primaryFlowReading ? (primaryFlowReading.Value / 1000).toFixed(1) : '0.0'}</td>
+                <td style="border: 1px solid var(--border-color); padding: 8px;">${primaryPowerReading && primaryPowerReading.Value > 0 ? primaryPowerReading.Value.toFixed(1) : '0.0'}</td>
+            `;
+            tbody.appendChild(row1);
+            
+            // Distribution pump row
+            const row2 = document.createElement('tr');
+            row2.innerHTML = `
+                <td style="border: 1px solid var(--border-color); padding: 8px;">Distribution</td>
+                <td style="border: 1px solid var(--border-color); padding: 8px;">${distFlowReading ? (distFlowReading.Value / 1000).toFixed(1) : '0.0'}</td>
+                <td style="border: 1px solid var(--border-color); padding: 8px;">${distPowerReading && distPowerReading.Value > 0 ? distPowerReading.Value.toFixed(1) : '0.0'}</td>
+            `;
+            tbody.appendChild(row2);
+            
+            // Storage pump row
+            const row3 = document.createElement('tr');
+            row3.innerHTML = `
+                <td style="border: 1px solid var(--border-color); padding: 8px;">Store</td>
+                <td style="border: 1px solid var(--border-color); padding: 8px;">${storeFlowReading ? (storeFlowReading.Value / 1000).toFixed(1) : '0.0'}</td>
+                <td style="border: 1px solid var(--border-color); padding: 8px;">${storePowerReading && storePowerReading.Value > 0 ? storePowerReading.Value.toFixed(1) : '0.0'}</td>
+            `;
+            tbody.appendChild(row3);
         }
 
         // Connect when page loads
