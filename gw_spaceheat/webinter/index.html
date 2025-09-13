@@ -5,19 +5,21 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <h1 style="text-align: center;">Admin Panel</h1>
+    <h1 style="text-align: center; margin-top: 30px; margin-bottom: 40px;">Admin panel</h1>
     <div id="status" style="text-align: center; margin: 10px 0; white-space: pre-line;">Connecting...</div>
     <br>
     
     <!-- Control Panel -->
-    <div id="control-panel" style="text-align: center; margin: 20px 0 40px 0;">
-        <div id="timer-display" style="font-family: monospace; font-size: 32px; margin: 20px 0; color: #333; font-weight: bold;">00:00:00</div>
-        <div style="display: inline-block; margin: 0 10px;">
-            <label for="timeout-input">Timeout (minutes):</label>
-            <input type="number" id="timeout-input" value="5" min="1" max="1440" style="width: 60px; margin: 0 5px; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 0.25rem; background-color: white; font-family: inherit; font-size: inherit;">
+    <div id="control-panel" style="text-align: center; max-width: 770px; margin: 20px auto 20px auto; background-color: transparent; border: 1px solid #ddd; border-radius: 3px; padding: 20px;">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 20px; flex-wrap: wrap;">
+            <div id="timer-display" style="font-family: monospace; font-size: 32px; color: #333; font-weight: bold; margin-right: 20px;">00:00:00</div>
+            <div style="display: inline-block;">
+                <label for="timeout-input">Timeout (minutes):</label>
+                <input type="number" id="timeout-input" value="5" min="1" max="1440" style="width: 60px; margin: 0 5px; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 0.25rem; background-color: white; font-family: inherit; font-size: inherit;">
+            </div>
+            <button id="keep-alive-btn" onclick="sendKeepAlive()" style="margin: 0 5px; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 0.25rem; background-color: #FAFAFA; cursor: pointer; font-family: inherit; font-size: inherit;">Keep alive</button>
+            <button id="release-control-btn" onclick="sendReleaseControl()" style="margin: 0 5px; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 0.25rem; background-color: #FAFAFA; cursor: pointer; font-family: inherit; font-size: inherit;">Release control</button>
         </div>
-        <button id="keep-alive-btn" onclick="sendKeepAlive()" style="margin: 0 5px; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 0.25rem; background-color: #FAFAFA; cursor: pointer; font-family: inherit; font-size: inherit;">Keep alive</button>
-        <button id="release-control-btn" onclick="sendReleaseControl()" style="margin: 0 5px; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 0.25rem; background-color: #FAFAFA; cursor: pointer; font-family: inherit; font-size: inherit;">Release control</button>
         <!-- <div id="control-status" style="font-size: 14px; margin: 5px 0; color: #666;">No control</div> -->
     </div>
     
@@ -113,7 +115,7 @@
             const beforeLastPart = gnodeParts.length > 1 ? gnodeParts[gnodeParts.length - 2] : '';
             const capitalizedPart = beforeLastPart.charAt(0).toUpperCase() + beforeLastPart.slice(1);
             if (data.target_gnode) {
-                statusText = `<b style="font-size: 1.4em;">${capitalizedPart}</b>`;
+                statusText = `<b style="font-size: 2em;">${capitalizedPart}</b>`;
             }
             
             // Add line break between target and MQTT status
