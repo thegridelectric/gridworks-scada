@@ -1,6 +1,6 @@
 """Tests heating.forecast type, version 000"""
 
-from named_types import HeatingForecast
+from gwsproto.named_types import HeatingForecast
 
 
 def test_heating_forecast_generated() -> None:

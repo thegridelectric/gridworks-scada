@@ -1,8 +1,8 @@
 from typing import Optional, Literal
 from gwproto.property_format import  UTCMilliseconds, SpaceheatName
 from pydantic import BaseModel, field_validator, model_validator
-from enums import ContractStatus
-from named_types import SlowDispatchContract
+from gwsproto.enums import ContractStatus
+from gwsproto.named_types import SlowDispatchContract
 from typing_extensions import Self
 
 class SlowContractHeartbeat(BaseModel):

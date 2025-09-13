@@ -16,7 +16,7 @@ from rich.text import Text
 from actors.config import ScadaSettings
 from command_line_utils import get_requested_names
 from gw.errors import DcError
-from data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.house_0_layout import House0Layout
 from gwproto.enums import ActorClass
 
 from scada_app import ScadaApp

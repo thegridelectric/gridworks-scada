@@ -3,7 +3,7 @@ from layout_gen import LayoutDb
 from typing import Any
 from gwproto.named_types import SynthChannelGt
 from gwproto.enums import TelemetryName
-from data_classes.house_0_names import H0N, H0CN
+from gwsproto.data_classes.house_0_names import H0N, H0CN
 # TODO: add to H0N and H0CN
 
 class SynthConfig(BaseModel):

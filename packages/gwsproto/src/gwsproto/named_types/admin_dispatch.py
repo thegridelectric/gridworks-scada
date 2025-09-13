@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from named_types.fsm_event import FsmEvent
+from gwsproto.named_types.fsm_event import FsmEvent
 from pydantic import BaseModel, StrictInt
 
 

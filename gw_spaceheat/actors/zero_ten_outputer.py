@@ -4,7 +4,7 @@ from typing import cast
 
 from gwproactor import AppInterface
 from gwproactor.message import Message
-from data_classes.house_0_names import H0N
+from gwsproto.data_classes.house_0_names import H0N
 from gwproto.named_types import AnalogDispatch
 from result import Ok, Result
 from actors.scada_actor import ScadaActor

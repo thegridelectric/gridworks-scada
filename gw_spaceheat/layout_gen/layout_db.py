@@ -24,8 +24,8 @@ from gwproto.named_types import ElectricMeterChannelConfig
 from gwproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwproto.property_format import SpaceheatName
 from gwproto.data_classes.telemetry_tuple import ChannelStub
-from data_classes.house_0_names import H0N, H0CN
-from enums import FlowManifoldVariant, HomeAloneStrategy
+from gwsproto.data_classes.house_0_names import H0N, H0CN
+from gwsproto.enums import FlowManifoldVariant, HomeAloneStrategy
 
 class ChannelStubDb(ChannelStub):
     CapturedByNodeName: SpaceheatName

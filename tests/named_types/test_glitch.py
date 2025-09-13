@@ -1,7 +1,7 @@
 """Tests glitch type, version 000"""
 import json
-from enums import LogLevel
-from named_types import Glitch
+from gwsproto.enums import LogLevel
+from gwsproto.named_types import Glitch
 
 
 def test_glitch_generated() -> None:

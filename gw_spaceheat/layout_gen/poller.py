@@ -14,7 +14,7 @@ from gwproto.named_types import DataChannelGt
 from gwproto.named_types.hubitat_gt import HubitatGt
 from gwproto.named_types import ChannelConfig
 from pydantic import BaseModel
-from data_classes.house_0_names import H0N
+from gwsproto.data_classes.house_0_names import H0N
 from layout_gen import LayoutDb
 from layout_gen.hubitat import add_hubitat
 

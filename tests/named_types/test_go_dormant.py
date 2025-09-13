@@ -1,6 +1,6 @@
 """Tests go.dormant type, version 000"""
 
-from named_types import GoDormant
+from gwsproto.named_types import GoDormant
 
 
 def test_go_dormant_generated() -> None:

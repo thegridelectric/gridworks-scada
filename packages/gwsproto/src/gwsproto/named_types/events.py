@@ -1,7 +1,7 @@
 from typing import Any, Literal
 
 from gwproto.messages.event import EventBase
-from named_types.remaining_elec import RemainingElec
+from gwsproto.named_types.remaining_elec import RemainingElec
 
 
 class RemainingElecEvent(EventBase):

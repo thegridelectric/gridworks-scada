@@ -10,7 +10,7 @@ from gwproto.property_format import (
     UTCMilliseconds,
     UUID4Str,
 )
-from named_types import SingleMachineState
+from gwsproto.named_types import SingleMachineState
 
 
 class SnapshotSpaceheat(BaseModel):

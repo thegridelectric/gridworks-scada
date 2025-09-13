@@ -17,9 +17,9 @@ import actors
 from actors.scada import Scada
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
-from data_classes import house_0_names
-from data_classes.house_0_layout import House0Layout
-from data_classes.house_0_names import H0N
+from gwsproto.data_classes import house_0_names
+from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.house_0_names import H0N
 from scada_app_interface import ScadaAppInterface
 
 

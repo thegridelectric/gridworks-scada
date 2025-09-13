@@ -1,7 +1,7 @@
 from typing import Generic, List, Optional, TypeVar
 from pydantic import BaseModel
 
-from enums import LogLevel
+from gwsproto.enums import LogLevel
 
 R = TypeVar("R", covariant=True)  # Result type
 

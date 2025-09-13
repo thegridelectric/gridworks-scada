@@ -1,6 +1,6 @@
 import numpy as np
 from typing import Optional
-from named_types import FloParamsHouse0
+from gwsproto.named_types import FloParamsHouse0
 
 
 class DParams():

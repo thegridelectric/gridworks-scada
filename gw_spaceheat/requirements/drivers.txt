@@ -4,6 +4,8 @@
 #
 #    pip-compile --output-file=gw_spaceheat/requirements/drivers.txt gw_spaceheat/requirements/drivers.in
 #
+-e file:///Users/Andrew/git/gridworks/gridworks-scada/packages/gwsproto
+    # via -r gw_spaceheat/requirements/base.in
 adafruit-blinka==8.50.0
     # via
     #   adafruit-circuitpython-ads1x15
@@ -70,6 +72,7 @@ gridworks-protocol==1.2.9
     # via
     #   -r gw_spaceheat/requirements/base.in
     #   gridworks-proactor
+    #   gwsproto
 idna==2.10
     # via yarl
 jinja2==3.1.4

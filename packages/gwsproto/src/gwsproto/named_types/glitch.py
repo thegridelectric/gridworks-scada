@@ -2,7 +2,7 @@
 import time
 from typing import Literal
 
-from enums import LogLevel
+from gwsproto.enums import LogLevel
 from gwproto.property_format import LeftRightDotStr, SpaceheatName, UTCMilliseconds
 from pydantic import BaseModel, Field
 

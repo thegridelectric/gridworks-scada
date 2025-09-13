@@ -4,10 +4,10 @@ from gwproactor import AppSettings
 from gwproactor.config.mqtt import TLSInfo
 from pydantic import BaseModel
 
-from data_classes.house_0_names import H0N
+from gwsproto.data_classes.house_0_names import H0N
 from gwproactor.config import MQTTClient
 from pydantic_settings import SettingsConfigDict
-from enums import HpModel
+from gwsproto.enums import HpModel
 
 DEFAULT_MAX_EVENT_BYTES: int = 500 * 1024 * 1024
 

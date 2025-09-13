@@ -12,8 +12,8 @@ from gwproto.data_classes.hardware_layout import (
     LoadError,
 )
 
-from data_classes.house_0_names import H0CN, H0N
-from enums import FlowManifoldVariant, HomeAloneStrategy
+from gwsproto.data_classes.house_0_names import H0CN, H0N
+from gwsproto.enums import FlowManifoldVariant, HomeAloneStrategy
 
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.data_classes.synth_channel import SynthChannel

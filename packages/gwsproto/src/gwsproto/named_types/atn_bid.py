@@ -2,9 +2,9 @@
 
 from typing import List, Literal
 
-from enums import MarketPriceUnit, MarketQuantityUnit
+from gwsproto.enums import MarketPriceUnit, MarketQuantityUnit
 from gwproto.property_format import LeftRightDotStr, MarketSlotName
-from named_types.price_quantity_unitless import PriceQuantityUnitless
+from gwsproto.named_types.price_quantity_unitless import PriceQuantityUnitless
 from pydantic import BaseModel, field_validator, model_validator
 from typing_extensions import Self
 

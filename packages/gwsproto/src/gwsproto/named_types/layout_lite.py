@@ -12,7 +12,7 @@ from gwproto.named_types.pico_tank_module_component_gt import PicoTankModuleComp
 from gwproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwproto.named_types.synth_channel_gt import SynthChannelGt
 from gwproto.property_format import LeftRightDotStr, UTCMilliseconds, UUID4Str
-from named_types.ha1_params import Ha1Params
+from gwsproto.named_types.ha1_params import Ha1Params
 from pydantic import BaseModel, PositiveInt, model_validator
 from typing_extensions import Self
 

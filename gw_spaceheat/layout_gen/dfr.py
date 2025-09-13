@@ -1,4 +1,4 @@
-from data_classes.house_0_names import H0CN, H0N
+from gwsproto.data_classes.house_0_names import H0CN, H0N
 from gwproto.enums import ActorClass, MakeModel, TelemetryName, Unit
 from gwproto.named_types import (
     DataChannelGt,

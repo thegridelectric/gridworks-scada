@@ -1,6 +1,6 @@
 """Tests channel.flatlined type, version 000"""
 
-from named_types import ChannelFlatlined
+from gwsproto.named_types import ChannelFlatlined
 
 
 def test_channel_flatlined_generated() -> None:

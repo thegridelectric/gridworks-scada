@@ -4,6 +4,8 @@
 #
 #    pip-compile --output-file=gw_spaceheat/requirements/dev.txt gw_spaceheat/requirements/dev.in
 #
+-e file:///Users/Andrew/git/gridworks/gridworks-scada/packages/gwsproto
+    # via -r gw_spaceheat/requirements/base.in
 aiohappyeyeballs==2.6.1
     # via aiohttp
 aiohttp==3.12.13
@@ -67,6 +69,7 @@ gridworks-protocol==1.2.9
     # via
     #   -r gw_spaceheat/requirements/base.in
     #   gridworks-proactor
+    #   gwsproto
 h11==0.16.0
     # via httpcore
 httpcore==1.0.9

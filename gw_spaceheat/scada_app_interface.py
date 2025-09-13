@@ -5,7 +5,7 @@ from gwproactor import AppInterface
 
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
-from data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.house_0_layout import House0Layout
 
 
 class ScadaAppInterface(AppInterface, ABC):

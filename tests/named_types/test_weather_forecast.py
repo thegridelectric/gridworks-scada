@@ -1,6 +1,6 @@
 """Tests weather.forecast type, version 000"""
 
-from named_types import WeatherForecast
+from gwsproto.named_types import WeatherForecast
 
 
 def test_weather_forecast_generated() -> None:

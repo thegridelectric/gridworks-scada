@@ -3,7 +3,7 @@ import time
 import uuid
 from typing import List, Literal, Optional
 
-from enums import MarketPriceUnit
+from gwsproto.enums import MarketPriceUnit
 from gwproto.property_format import LeftRightDotStr, UTCSeconds, UUID4Str
 from pydantic import BaseModel, ConfigDict, Field, PositiveInt, StrictInt
 

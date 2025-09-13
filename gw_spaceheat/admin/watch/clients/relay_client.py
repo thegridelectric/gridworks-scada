@@ -14,7 +14,7 @@ from typing import Sequence
 
 from gwproto import Message as GWMessage
 from gwproto import MQTTTopic
-from data_classes.house_0_names import H0N
+from gwsproto.data_classes.house_0_names import H0N
 from gwproto.enums import ActorClass, ChangeRelayPin
 
 
@@ -27,9 +27,9 @@ from admin.watch.clients.admin_client import AdminClient
 from admin.watch.clients.admin_client import AdminSubClient
 from admin.watch.clients.constrained_mqtt_client import MessageReceivedCallback
 from admin.watch.clients.constrained_mqtt_client import StateChangeCallback
-from named_types import (AdminDispatch,  AdminKeepAlive, AdminReleaseControl,
+from gwsproto.named_types import (AdminDispatch,  AdminKeepAlive, AdminReleaseControl,
                          FsmEvent, LayoutLite, SnapshotSpaceheat)
-from enums import TurnHpOnOff
+from gwsproto.enums import TurnHpOnOff
 
 module_logger = logging.getLogger(__name__)
 

@@ -1,6 +1,6 @@
 """Tests pico.missing type, version 000"""
 
-from named_types import PicoMissing
+from gwsproto.named_types import PicoMissing
 
 
 def test_pico_missing_generated() -> None:

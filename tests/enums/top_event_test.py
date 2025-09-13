@@ -2,7 +2,7 @@
 Tests for enum top.event.000 from the GridWorks Type Registry.
 """
 
-from enums import TopEvent
+from gwsproto.enums import TopEvent
 
 
 def test_top_event() -> None:

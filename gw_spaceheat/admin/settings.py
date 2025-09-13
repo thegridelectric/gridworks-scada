@@ -7,7 +7,7 @@ from gwproactor.config import MQTTClient
 from pydantic import model_validator
 from pydantic_settings import SettingsConfigDict
 
-from data_classes.house_0_names import H0N
+from gwsproto.data_classes.house_0_names import H0N
 
 
 class AdminClientSettings(AppSettings):

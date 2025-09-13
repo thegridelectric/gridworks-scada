@@ -27,8 +27,8 @@ from admin.watch.widgets.relay_widget_info import RelayWidgetConfig
 from admin.watch.widgets.relay_widget_info import RelayWidgetInfo
 from admin.watch.widgets.time_input import TimeInput
 from admin.watch.widgets.timer import TimerDigits
-from named_types import LayoutLite
-from named_types import SnapshotSpaceheat
+from gwsproto.named_types import LayoutLite
+from gwsproto.named_types import SnapshotSpaceheat
 
 module_logger = logging.getLogger(__name__)
 module_logger.addHandler(TextualHandler())

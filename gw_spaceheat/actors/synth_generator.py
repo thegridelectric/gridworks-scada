@@ -15,9 +15,9 @@ from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 
 from actors.scada_actor import ScadaActor
-from enums import HomeAloneStrategy
-from data_classes.house_0_names import H0CN
-from named_types import (Ha1Params, HeatingForecast,
+from gwsproto.enums import HomeAloneStrategy
+from gwsproto.data_classes.house_0_names import H0CN
+from gwsproto.named_types import (Ha1Params, HeatingForecast,
                          WeatherForecast, ScadaParams)
 from scada_app_interface import ScadaAppInterface
 

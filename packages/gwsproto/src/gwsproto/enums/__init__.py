@@ -16,24 +16,24 @@ on these ideas:
  """
 
 from gw.enums import MarketTypeName
-from enums.atomic_ally_state import AtomicAllyState
-from enums.contract_status import ContractStatus
-from enums.change_keep_send import ChangeKeepSend
-from enums.flow_manifold_variant import FlowManifoldVariant
-from enums.home_alone_strategy import HomeAloneStrategy
-from enums.home_alone_top_state import HomeAloneTopState
-from enums.hp_model import HpModel
-from enums.hp_loop_keep_send import HpLoopKeepSend
-from enums.log_level import LogLevel
-from enums.main_auto_event import MainAutoEvent
-from enums.main_auto_state import MainAutoState
-from enums.market_price_unit import MarketPriceUnit
-from enums.market_quantity_unit import MarketQuantityUnit
-from enums.pico_cycler_event import PicoCyclerEvent
-from enums.pico_cycler_state import PicoCyclerState
-from enums.top_event import TopEvent
-from enums.top_state import TopState
-from enums.turn_hp_on_off import TurnHpOnOff
+from gwsproto.enums.atomic_ally_state import AtomicAllyState
+from gwsproto.enums.contract_status import ContractStatus
+from gwsproto.enums.change_keep_send import ChangeKeepSend
+from gwsproto.enums.flow_manifold_variant import FlowManifoldVariant
+from gwsproto.enums.home_alone_strategy import HomeAloneStrategy
+from gwsproto.enums.home_alone_top_state import HomeAloneTopState
+from gwsproto.enums.hp_model import HpModel
+from gwsproto.enums.hp_loop_keep_send import HpLoopKeepSend
+from gwsproto.enums.log_level import LogLevel
+from gwsproto.enums.main_auto_event import MainAutoEvent
+from gwsproto.enums.main_auto_state import MainAutoState
+from gwsproto.enums.market_price_unit import MarketPriceUnit
+from gwsproto.enums.market_quantity_unit import MarketQuantityUnit
+from gwsproto.enums.pico_cycler_event import PicoCyclerEvent
+from gwsproto.enums.pico_cycler_state import PicoCyclerState
+from gwsproto.enums.top_event import TopEvent
+from gwsproto.enums.top_state import TopState
+from gwsproto.enums.turn_hp_on_off import TurnHpOnOff
 
 
 __all__ = [

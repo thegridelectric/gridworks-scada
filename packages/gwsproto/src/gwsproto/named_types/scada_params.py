@@ -8,7 +8,7 @@ from gwproto.property_format import (
     UTCMilliseconds,
     UUID4Str,
 )
-from named_types.ha1_params import Ha1Params
+from gwsproto.named_types.ha1_params import Ha1Params
 from pydantic import BaseModel, ConfigDict
 
 
