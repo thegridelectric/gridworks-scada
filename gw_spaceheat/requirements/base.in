@@ -10,8 +10,6 @@ transitions
 gridworks-protocol >=1.2.9
 # gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@dev
 
--e packages/gwsproto
-
 gridworks-proactor ~= 4.1.9
 # gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@dev
 smbus2

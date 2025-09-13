@@ -4,8 +4,6 @@
 #
 #    pip-compile --output-file=gw_spaceheat/requirements/base.txt gw_spaceheat/requirements/base.in
 #
--e packages/gwsproto
-    # via -r gw_spaceheat/requirements/base.in
 aiohappyeyeballs==2.4.4
     # via aiohttp
 aiohttp==3.11.11

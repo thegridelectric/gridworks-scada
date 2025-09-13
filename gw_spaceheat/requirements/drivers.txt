@@ -4,8 +4,6 @@
 #
 #    pip-compile --output-file=gw_spaceheat/requirements/drivers.txt gw_spaceheat/requirements/drivers.in
 #
--e packages/gwsproto
-    # via -r gw_spaceheat/requirements/base.in
 adafruit-blinka==8.50.0
     # via
     #   adafruit-circuitpython-ads1x15
