@@ -82,6 +82,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r gw_spaceheat/requirements/dev.txt
           pip install -e packages/gwsproto
+          pip install -e packages/gwadmin
 
       - name: Copy Test .env
         uses: canastro/copy-file-action@master

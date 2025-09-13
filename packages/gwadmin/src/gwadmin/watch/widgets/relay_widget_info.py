@@ -7,9 +7,9 @@ from typing import Optional
 from pydantic import BaseModel
 from textual.logging import TextualHandler
 
-from admin.watch.clients.relay_client import RelayConfig
-from admin.watch.clients.relay_client import RelayEnergized
-from admin.watch.clients.relay_client import RelayState
+from gwadmin.watch.clients.relay_client import RelayConfig
+from gwadmin.watch.clients.relay_client import RelayEnergized
+from gwadmin.watch.clients.relay_client import RelayState
 
 module_logger = logging.getLogger(__name__)
 module_logger.addHandler(TextualHandler())

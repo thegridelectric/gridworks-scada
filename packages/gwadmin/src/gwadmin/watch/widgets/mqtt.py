@@ -4,7 +4,7 @@ from textual.reactive import reactive
 
 from textual.widget import Widget
 
-from admin.watch.clients.constrained_mqtt_client import ConstrainedMQTTClient
+from gwadmin.watch.clients.constrained_mqtt_client import ConstrainedMQTTClient
 
 
 class Mqtt(Widget):

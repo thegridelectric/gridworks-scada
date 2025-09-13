@@ -1,8 +1,8 @@
 import typer
 
-from admin.tdemo.actions import ActionsApp
-from admin.tdemo.stopwatch import StopwatchApp
-from admin.tdemo.switch import SwitchApp
+from gwadmin.tdemo.actions import ActionsApp
+from gwadmin.tdemo.stopwatch import StopwatchApp
+from gwadmin.tdemo.switch import SwitchApp
 
 app = typer.Typer(
     no_args_is_help=True,

@@ -17,11 +17,11 @@ from paho.mqtt.client import MQTTMessageInfo
 from pydantic import BaseModel
 from result import Result
 
-from admin.settings import AdminClientSettings
-from admin.watch.clients.constrained_mqtt_client import ConstrainedMQTTClient
-from admin.watch.clients.constrained_mqtt_client import MessageReceivedCallback
-from admin.watch.clients.constrained_mqtt_client import MQTTClientCallbacks
-from admin.watch.clients.constrained_mqtt_client import StateChangeCallback
+from gwadmin.settings import AdminClientSettings
+from gwadmin.watch.clients.constrained_mqtt_client import ConstrainedMQTTClient
+from gwadmin.watch.clients.constrained_mqtt_client import MessageReceivedCallback
+from gwadmin.watch.clients.constrained_mqtt_client import MQTTClientCallbacks
+from gwadmin.watch.clients.constrained_mqtt_client import StateChangeCallback
 from gwsproto.named_types import LayoutLite, SendLayout, SnapshotSpaceheat
 
 module_logger = logging.getLogger(__name__)

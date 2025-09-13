@@ -2,10 +2,11 @@ import logging
 from textual.logging import TextualHandler
 from textual.message import Message
 from textual.widgets import Button
-from admin.watch.widgets.timer import TimerDigits
-from admin.watch.widgets.time_input import TimeInput
-from actors.config import AdminLinkSettings
-from admin.settings import AdminClientSettings
+
+from gwadmin.settings import MAX_ADMIN_TIMEOUT
+from gwadmin.watch.widgets.timer import TimerDigits
+from gwadmin.watch.widgets.time_input import TimeInput
+from gwadmin.settings import AdminClientSettings
 
 module_logger = logging.getLogger(__name__)
 module_logger.addHandler(TextualHandler())
@@ -29,7 +30,7 @@ class KeepAliveButton(Button):
     class Pressed(Message):
         def __init__(self, timeout_seconds):
             self.timeout_seconds = timeout_seconds
-            if timeout_seconds > AdminLinkSettings().max_timeout_seconds:
+            if timeout_seconds > MAX_ADMIN_TIMEOUT:
                 self.timeout_seconds = None
             super().__init__()
 

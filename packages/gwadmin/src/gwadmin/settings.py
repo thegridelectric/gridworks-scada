@@ -9,6 +9,7 @@ from pydantic_settings import SettingsConfigDict
 
 from gwsproto.data_classes.house_0_names import H0N
 
+MAX_ADMIN_TIMEOUT = 60 * 60 * 24
 
 class AdminClientSettings(AppSettings):
     target_gnode: str = ""
