@@ -5,9 +5,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <h1 style="text-align: center; margin-top: 30px; margin-bottom: 40px;">Admin panel</h1>
-    <div id="status" style="text-align: center; margin: 10px 0; white-space: pre-line;">Connecting...</div>
-    <br>
+    <!-- Fixed Status Bar -->
+    <div id="status" style="position: fixed; top: 0; left: 0; right: 0; background-color: var(--card-background); border-bottom: 1px solid var(--border-color); padding: 8px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 1000;">
+        <div id="status-left">Connecting...</div>
+        <div id="status-right"></div>
+    </div>
+    
+    <!-- Main Content with top padding to account for fixed header -->
+    <div style="padding-top: 60px;">
+        <h1 style="text-align: center; margin-top: 30px; margin-bottom: 40px;">Admin panel</h1>
     
     <!-- Control Panel -->
     <div id="control-panel" style="text-align: center; max-width: 770px; margin: 20px auto 20px auto; background-color: transparent; border: 1px solid #ddd; border-radius: 3px; padding: 20px;">
@@ -25,12 +31,7 @@
     
     <div id="relays" style="margin-bottom: 40px;"></div>
     
-    <!-- System State Information -->
-    <div id="system-state" style="text-align: center; max-width: 1000px; margin: 20px auto 20px auto; background-color: var(--card-background); border: 1px solid var(--border-color); border-radius: 0.25rem; padding: 20px;">
-        <div id="hp-state" style="font-size: 18px; font-weight: 600; color: var(--text-color);">Determining state...</div>
-        <div id="storage-state" style="font-size: 18px; font-weight: 600; color: var(--text-color);">Determining state...</div>
-        <div id="combined-state" style="font-size: 20px; font-weight: 700; color: var(--text-color);">Determining state...</div>
-    </div>
+    <h1 style="text-align: center; margin-top: 30px; margin-bottom: 40px;">Dashboard</h1>
     
     <!-- System Monitoring Tables -->
     <div id="monitoring-tables" style="max-width: 1400px; margin: 20px auto 40px auto; display: flex; flex-wrap: wrap; gap: 30px; justify-content: center;">
@@ -94,6 +95,13 @@
             </table>
         </div>
     </div>
+    
+    <!-- System State Information -->
+    <div id="system-state" style="text-align: center; max-width: 1000px; margin: 20px auto 20px auto; background-color: var(--card-background); border: 1px solid var(--border-color); border-radius: 0.25rem; padding: 20px;">
+        <div id="hp-state" style="font-size: 18px; font-weight: 600; color: var(--text-color);">Determining state...</div>
+        <div id="storage-state" style="font-size: 18px; font-weight: 600; color: var(--text-color);">Determining state...</div>
+        <div id="combined-state" style="font-size: 20px; font-weight: 700; color: var(--text-color);">Determining state...</div>
+    </div>
 
     <style>
         :root {
@@ -113,6 +121,8 @@
             color: var(--text-color);
             background-color: var(--background-color);
             font-size: 14px;
+            margin: 0;
+            padding: 0;
         }
 
         table tr:hover {
@@ -134,7 +144,8 @@
             websocket = new WebSocket(wsUrl);
             
             websocket.onopen = function(event) {
-                document.getElementById('status').textContent = 'Connected';
+                document.getElementById('status-left').textContent = 'Connected';
+                document.getElementById('status-right').textContent = '';
                 console.log('WebSocket connected');
             };
             
@@ -144,7 +155,8 @@
             };
             
             websocket.onclose = function(event) {
-                document.getElementById('status').textContent = 'Disconnected, please refresh the page.';
+                document.getElementById('status-left').textContent = 'Disconnected';
+                document.getElementById('status-right').textContent = 'Please refresh the page';
                 console.log('WebSocket disconnected');
                 
                 // Clear the relay table and show disconnected message
@@ -156,7 +168,8 @@
             
             websocket.onerror = function(error) {
                 console.error('WebSocket error:', error);
-                document.getElementById('status').textContent = 'Error';
+                document.getElementById('status-left').textContent = 'Error';
+                document.getElementById('status-right').textContent = 'Connection failed';
             };
         }
 
@@ -180,21 +193,21 @@
         }
 
         function updateStatus(data) {
-            // Build detailed status string with the requested format
-            let statusText = '';
+            // Build status for left and right sides
+            let leftStatus = '';
+            let rightStatus = '';
             
-            // First line: target_gnode (bold)
+            // Left side: target_gnode (bold)
             const gnodeParts = data.target_gnode ? data.target_gnode.split('.') : [];
             const beforeLastPart = gnodeParts.length > 1 ? gnodeParts[gnodeParts.length - 2] : '';
             const capitalizedPart = beforeLastPart.charAt(0).toUpperCase() + beforeLastPart.slice(1);
             if (data.target_gnode) {
-                statusText = `<b style="font-size: 2em;">${capitalizedPart}</b>`;
+                leftStatus = `<b style="font-size: 1.5em;">${capitalizedPart}</b>`;
             }
             
-            // Add line break between target and MQTT status
-            statusText += '\n';
+            // Right side: full gnode
             if (data.target_gnode) {
-                statusText += `<span style="color: var(--text-muted);">${data.target_gnode}</span>`;
+                rightStatus = `<span style="color: var(--text-muted); font-size: 1em;">${data.target_gnode}</span>`;
             }
 
             
@@ -209,7 +222,8 @@
             //     statusText += ` | Messages received: ${data.messages_received}`;
             // }
             
-            document.getElementById('status').innerHTML = statusText;
+            document.getElementById('status-left').innerHTML = leftStatus;
+            document.getElementById('status-right').innerHTML = rightStatus;
             
             // Update relays
             if (data.relays) {
@@ -728,5 +742,6 @@
             connectWebSocket();
         };
     </script>
+    </div>
 </body>
 </html>
