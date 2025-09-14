@@ -79,7 +79,7 @@
             <table id="pump-table" style="border: 1px solid var(--border-color); border-collapse: collapse; border-radius: 0.25rem; background-color: var(--card-background); margin: 0 auto;">
                 <thead>
                     <tr style="background-color: #f0f0f0;">
-                        <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">Pump</th>
+                        <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">Pumps</th>
                         <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">GPM</th>
                         <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">W</th>
                     </tr>
@@ -124,6 +124,7 @@
     <script>
         let websocket = null;
         let relays = {};
+        let thermostatNames = [];
         let currentUserId = 'user_' + Math.random().toString(36).substr(2, 9);
 
         function connectWebSocket() {
@@ -214,6 +215,12 @@
             if (data.relays) {
                 relays = data.relays;
                 updateRelayButtons();
+            }
+            
+            // Update thermostat names
+            if (data.thermostat_names) {
+                thermostatNames = data.thermostat_names;
+                console.log('Updated thermostat names:', thermostatNames);
             }
             
             // Update timer from status
@@ -567,13 +574,17 @@
             const tbody = document.getElementById('thermostat-tbody');
             if (!tbody || !snapshotData.LatestReadingList) return;
             
-            // Define zone mappings
-            const zones = [
-                { key: 'zone1-mainfloor', display: 'zone1-mainfloor' },
-                { key: 'zone2-masterbed', display: 'zone2-masterbed' },
-                { key: 'zone3-upstairsbed', display: 'zone3-upstairsbed' },
-                { key: 'zone4-sunroom', display: 'zone4-sunroom' }
-            ];
+            // Use dynamic thermostat names from the server
+            if (!thermostatNames || thermostatNames.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="border: 1px solid var(--border-color); padding: 8px; text-align: center;">Loading thermostat names...</td></tr>';
+                return;
+            }
+            
+            // Create zone mappings dynamically from thermostat names
+            const zones = thermostatNames.map((name, index) => ({
+                key: `zone${index + 1}-${name}`,
+                display: `zone${index + 1}-${name}`
+            }));
             
             // Create a lookup map for readings
             const readingsMap = {};
@@ -583,6 +594,7 @@
             
             // Debug: Log all available readings
             console.log('Available readings for thermostat table:', Object.keys(readingsMap));
+            console.log('Using thermostat zones:', zones);
             
             tbody.innerHTML = '';
             
@@ -687,7 +699,7 @@
             const row1 = document.createElement('tr');
             row1.innerHTML = `
                 <td style="border: 1px solid var(--border-color); padding: 8px;">Primary</td>
-                <td style="border: 1px solid var(--border-color); padding: 8px;">${primaryFlowReading ? (primaryFlowReading.Value / 1000).toFixed(1) : '0.0'}</td>
+                <td style="border: 1px solid var(--border-color); padding: 8px;">${primaryFlowReading ? (primaryFlowReading.Value / 100).toFixed(1) : '0.0'}</td>
                 <td style="border: 1px solid var(--border-color); padding: 8px;">${primaryPowerReading && primaryPowerReading.Value > 0 ? primaryPowerReading.Value.toFixed(1) : '0.0'}</td>
             `;
             tbody.appendChild(row1);
@@ -696,7 +708,7 @@
             const row2 = document.createElement('tr');
             row2.innerHTML = `
                 <td style="border: 1px solid var(--border-color); padding: 8px;">Distribution</td>
-                <td style="border: 1px solid var(--border-color); padding: 8px;">${distFlowReading ? (distFlowReading.Value / 1000).toFixed(1) : '0.0'}</td>
+                <td style="border: 1px solid var(--border-color); padding: 8px;">${distFlowReading ? (distFlowReading.Value / 100).toFixed(1) : '0.0'}</td>
                 <td style="border: 1px solid var(--border-color); padding: 8px;">${distPowerReading && distPowerReading.Value > 0 ? distPowerReading.Value.toFixed(1) : '0.0'}</td>
             `;
             tbody.appendChild(row2);
@@ -705,7 +717,7 @@
             const row3 = document.createElement('tr');
             row3.innerHTML = `
                 <td style="border: 1px solid var(--border-color); padding: 8px;">Store</td>
-                <td style="border: 1px solid var(--border-color); padding: 8px;">${storeFlowReading ? (storeFlowReading.Value / 1000).toFixed(1) : '0.0'}</td>
+                <td style="border: 1px solid var(--border-color); padding: 8px;">${storeFlowReading ? (storeFlowReading.Value / 100).toFixed(1) : '0.0'}</td>
                 <td style="border: 1px solid var(--border-color); padding: 8px;">${storePowerReading && storePowerReading.Value > 0 ? storePowerReading.Value.toFixed(1) : '0.0'}</td>
             `;
             tbody.appendChild(row3);

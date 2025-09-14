@@ -2,6 +2,7 @@ import asyncio
 import datetime
 import json
 import logging
+import re
 import threading
 import time
 import uuid
@@ -46,6 +47,7 @@ class WebInterMQTTBridge:
         self._snapshot: SnapshotSpaceheat = None
         self._relay_configs: Dict[str, dict] = {}
         self._channel_to_relay: Dict[str, str] = {}
+        self._thermostat_names: list[str] = []
         
         # Synchronized timer state
         self._current_controller: Optional[str] = None
@@ -144,6 +146,10 @@ class WebInterMQTTBridge:
         }
         
         print(f"DEBUG: Loaded {len(self._relay_configs)} relays")
+        
+        # Extract thermostat names from layout data
+        self._extract_thermostat_names()
+        
         # Relays loaded successfully
         self._request_snapshot()
     
@@ -157,8 +163,11 @@ class WebInterMQTTBridge:
         # Extract relay states from snapshot
         self._extract_relay_states_from_snapshot()
         
-        # Send snapshot data to all WebSocket clients
+        # Send snapshot data to all WebSocket clients immediately
         self._send_snapshot_to_clients()
+        
+        # Also broadcast the snapshot update to all connected clients in real-time
+        self._broadcast_snapshot_update()
     
     def _extract_relay_states_from_snapshot(self) -> None:
         """Extract relay states from snapshot data"""
@@ -193,6 +202,25 @@ class WebInterMQTTBridge:
                 self._relay_configs[relay_name]["last_update"] = state_info["time"]
         
         print(f"DEBUG: Updated {len(relay_states)} relay states from snapshot")
+    
+    def _extract_thermostat_names(self) -> None:
+        """Extract thermostat names from layout data using the same logic as the dashboard"""
+        if not self._layout:
+            return
+            
+        # Use the same regex pattern as the dashboard
+        thermostat_channel_name_pattern = re.compile(
+            r"^zone(?P<zone_number>\d)-(?P<human_name>.*)-(temp|set|state)$"
+        )
+        
+        thermostat_human_names = []
+        for channel in self._layout.DataChannels:
+            if match := thermostat_channel_name_pattern.match(channel.Name):
+                if (human_name := match.group("human_name")) not in thermostat_human_names:
+                    thermostat_human_names.append(human_name)
+        
+        self._thermostat_names = thermostat_human_names
+        print(f"DEBUG: Extracted thermostat names: {self._thermostat_names}")
     
     def _send_snapshot_to_clients(self) -> None:
         """Send snapshot data to all WebSocket clients"""
@@ -238,6 +266,69 @@ class WebInterMQTTBridge:
         # Store the message to be sent when clients connect or on next status update
         self._pending_snapshot_message = message
         print(f"DEBUG: Stored snapshot message for next client update")
+    
+    def _broadcast_snapshot_update(self) -> None:
+        """Broadcast snapshot update to all connected WebSocket clients in real-time"""
+        if not self._snapshot or not self._websocket_clients:
+            return
+            
+        print(f"DEBUG: Broadcasting snapshot update to {len(self._websocket_clients)} clients")
+        
+        # Convert snapshot to dict for JSON serialization
+        snapshot_data = {
+            "type": "mqtt_message",
+            "message_type": "snapshot.spaceheat",
+            "payload": {
+                "FromGNodeAlias": self._snapshot.FromGNodeAlias,
+                "FromGNodeInstanceId": self._snapshot.FromGNodeInstanceId,
+                "SnapshotTimeUnixMs": self._snapshot.SnapshotTimeUnixMs,
+                "LatestReadingList": [
+                    {
+                        "ChannelName": reading.ChannelName,
+                        "Value": reading.Value,
+                        "ScadaReadTimeUnixMs": reading.ScadaReadTimeUnixMs
+                    }
+                    for reading in self._snapshot.LatestReadingList
+                ],
+                "LatestStateList": [
+                    {
+                        "MachineHandle": state.MachineHandle,
+                        "StateEnum": state.StateEnum,
+                        "State": state.State,
+                        "UnixMs": state.UnixMs,
+                        "Cause": state.Cause
+                    }
+                    for state in self._snapshot.LatestStateList
+                ]
+            }
+        }
+        
+        message = json.dumps(snapshot_data)
+        
+        # Use threading to broadcast to all clients (since we're in MQTT thread)
+        def broadcast_to_clients():
+            try:
+                # Create a new event loop for this thread
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+                async def send_to_all():
+                    for client in list(self._websocket_clients):
+                        try:
+                            await client.send_str(message)
+                        except Exception as e:
+                            self.logger.warning(f"Failed to send snapshot to WebSocket client: {e}")
+                            self._websocket_clients.discard(client)
+                
+                loop.run_until_complete(send_to_all())
+                loop.close()
+            except Exception as e:
+                self.logger.error(f"Error broadcasting snapshot update: {e}")
+        
+        # Start the broadcast in a separate thread
+        thread = threading.Thread(target=broadcast_to_clients)
+        thread.daemon = True
+        thread.start()
     
     def _process_single_reading(self, payload: bytes) -> None:
         """Process single reading message to update relay states in real-time"""
@@ -523,7 +614,8 @@ class WebInterMQTTBridge:
             "messages_received": self._messages_received,
             "connected_clients": len(self._websocket_clients),
             "last_activity": last_activity_str,
-            "relay_count": len(self._relay_configs)
+            "relay_count": len(self._relay_configs),
+            "thermostat_names": self._thermostat_names
         }
         # Status sent to web client
         await websocket.send_str(json.dumps(status))
@@ -561,7 +653,8 @@ class WebInterMQTTBridge:
             "messages_received": self._messages_received,
             "connected_clients": len(self._websocket_clients),
             "last_activity": last_activity_str,
-            "relay_count": len(self._relay_configs)
+            "relay_count": len(self._relay_configs),
+            "thermostat_names": self._thermostat_names
         }
         
         for client in list(self._websocket_clients):
