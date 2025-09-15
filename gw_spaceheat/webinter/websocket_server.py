@@ -92,6 +92,7 @@ class WebInterMQTTBridge:
     def _mqtt_message_received(self, topic: str, payload: bytes) -> None:
         """Handle incoming MQTT messages"""
         try:
+            print(f"DEBUG: MQTT message received on topic: {topic}")
             # Update status tracking
             self._messages_received += 1
             self._last_activity_time = time.time()
