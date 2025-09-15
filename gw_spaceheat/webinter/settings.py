@@ -48,6 +48,12 @@ class WebInterSettings(AppSettings):
         if env_file.exists():
             print(f"DEBUG: Loading .env file from: {env_file}")
             dotenv.load_dotenv(env_file, override=True)
+            
+            # Debug: Check if environment variables are actually loaded
+            print(f"DEBUG: After loading .env:")
+            print(f"  GWWEBINTER__LINK__HOST: {os.getenv('GWWEBINTER__LINK__HOST')}")
+            print(f"  GWWEBINTER__LINK__PORT: {os.getenv('GWWEBINTER__LINK__PORT')}")
+            print(f"  GWWEBINTER__LINK__USERNAME: {os.getenv('GWWEBINTER__LINK__USERNAME')}")
         else:
             print("DEBUG: No .env file found")
 
