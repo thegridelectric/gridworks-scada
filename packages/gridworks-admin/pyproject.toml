@@ -1,5 +1,5 @@
 [project]
-name = "gwadmin"
+name = "gridworks-admin"
 version = "0.1.0.dev1"
 description = "Add your description here"
 readme = "README.md"
@@ -9,7 +9,7 @@ authors = [
 requires-python = ">=3.11"
 dependencies = [
     "gridworks-proactor>=4.1.9",
-    "gwsproto",
+    "gridworks-scada-protocol",
     "numpy>=2.3.3",
     "paho-mqtt>=2.1.0",
     "pydantic>=2.11.9",
@@ -28,4 +28,7 @@ requires = ["uv_build>=0.8.8,<0.9.0"]
 build-backend = "uv_build"
 
 [tool.uv.sources]
-gwsproto = { path = "../gwsproto", editable = true }
+gridworks-scada-protocol = { path = "../gridworks-scada-protocol", editable = true }
+
+[tool.uv.build-backend]
+module-name = "gwadmin"
