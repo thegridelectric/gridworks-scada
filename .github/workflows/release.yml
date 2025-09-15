@@ -141,7 +141,7 @@ jobs:
         run: |
           echo "Doing nothing. We don't yet have a TEST_PYPI_TOKEN."
           echo would run: "uv publish --publish-url https://test.pypi.org/legacy/"
-         env:
+        env:
           UV_PUBLISH_TOKEN: ${{ secrets.TEST_PYPI_TOKEN }}
 
       - name: Publish the release notes
