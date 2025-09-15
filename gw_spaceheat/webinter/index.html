@@ -139,7 +139,7 @@
 
         function connectWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            const wsUrl = `${protocol}//visualizer.electricity.works:8080/ws`;
             
             websocket = new WebSocket(wsUrl);
             

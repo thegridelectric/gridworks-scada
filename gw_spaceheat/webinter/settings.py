@@ -62,7 +62,9 @@ class WebInterSettings(AppSettings):
         # Force TLS to be disabled for web interface
         self.link.tls.use_tls = False
         
-        # Manually set MQTT configuration from environment variables
+        # Manually set configuration from environment variables
+        if os.getenv('GWWEBINTER__TARGET_GNODE'):
+            self.target_gnode = os.getenv('GWWEBINTER__TARGET_GNODE')
         if os.getenv('GWWEBINTER__LINK__HOST'):
             self.link.host = os.getenv('GWWEBINTER__LINK__HOST')
         if os.getenv('GWWEBINTER__LINK__PORT'):
@@ -79,6 +81,7 @@ class WebInterSettings(AppSettings):
                     return self._value
             self.link.password = SimpleSecret(password_value)
         
+        print(f"DEBUG: Target gnode = {self.target_gnode}")
         print(f"DEBUG: Forced TLS use_tls = {self.link.tls.use_tls}")
         print(f"DEBUG: MQTT host = {self.link.host}")
         print(f"DEBUG: MQTT port = {self.link.port}")
