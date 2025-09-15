@@ -61,6 +61,17 @@ class WebInterSettings(AppSettings):
     def validate(self) -> Self:
         # Force TLS to be disabled for web interface
         self.link.tls.use_tls = False
+        
+        # Manually set MQTT configuration from environment variables
+        if os.getenv('GWWEBINTER__LINK__HOST'):
+            self.link.host = os.getenv('GWWEBINTER__LINK__HOST')
+        if os.getenv('GWWEBINTER__LINK__PORT'):
+            self.link.port = int(os.getenv('GWWEBINTER__LINK__PORT'))
+        if os.getenv('GWWEBINTER__LINK__USERNAME'):
+            self.link.username = os.getenv('GWWEBINTER__LINK__USERNAME')
+        if os.getenv('GWWEBINTER__LINK__PASSWORD'):
+            self.link.password = os.getenv('GWWEBINTER__LINK__PASSWORD')
+        
         print(f"DEBUG: Forced TLS use_tls = {self.link.tls.use_tls}")
         print(f"DEBUG: MQTT host = {self.link.host}")
         print(f"DEBUG: MQTT port = {self.link.port}")
