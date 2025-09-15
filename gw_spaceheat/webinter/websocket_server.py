@@ -72,6 +72,7 @@ class WebInterMQTTBridge:
             dst=H0N.admin,
             message_type="#",
         )
+        print(f"DEBUG: Subscribing to MQTT topic: {subscription_topic}")
         
         self._mqtt_client = ConstrainedMQTTClient(
             settings=self.settings.link,
