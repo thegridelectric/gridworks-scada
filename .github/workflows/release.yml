@@ -36,7 +36,9 @@ jobs:
 
       - name: Change to package directory
         run: |
+          pwd
           cd packages/gridworks-scada-protocol
+          pwd
 
       - name: Detect and tag new version for gridworks-scada-protocol
         id: check-version
@@ -44,12 +46,13 @@ jobs:
         uses: salsify/action-detect-and-tag-new-version@v2.0.3
         with:
           version-command: |
-            bash -o pipefail -c "uv version | awk '{ print \$2 }'"
+            bash -o pipefail -c "cd packages/gridworks-scada-protocol && uv version | awk '{ print \$2 }'"
           tag-template: gridworks-scada-protocol.v{VERSION}
 
       - name: Bump version for developmental release
         if: "! steps.check-version.outputs.tag"
         run: |
+          pwd
           uv version --bump patch &&
           version=$(uv version | awk '{ print $2 }') &&
           uv version $version.dev.$(date +%s)
