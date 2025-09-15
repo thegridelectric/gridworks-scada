@@ -70,7 +70,14 @@ class WebInterSettings(AppSettings):
         if os.getenv('GWWEBINTER__LINK__USERNAME'):
             self.link.username = os.getenv('GWWEBINTER__LINK__USERNAME')
         if os.getenv('GWWEBINTER__LINK__PASSWORD'):
-            self.link.password = os.getenv('GWWEBINTER__LINK__PASSWORD')
+            # Create a simple secret-like object
+            password_value = os.getenv('GWWEBINTER__LINK__PASSWORD')
+            class SimpleSecret:
+                def __init__(self, value):
+                    self._value = value
+                def get_secret_value(self):
+                    return self._value
+            self.link.password = SimpleSecret(password_value)
         
         print(f"DEBUG: Forced TLS use_tls = {self.link.tls.use_tls}")
         print(f"DEBUG: MQTT host = {self.link.host}")
