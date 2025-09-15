@@ -1,7 +1,10 @@
 import logging
+import os
+from pathlib import Path
 from typing import Optional
 from typing import Self
 
+import dotenv
 from gwproactor import AppSettings
 from gwproactor.config import MQTTClient
 from pydantic import model_validator
@@ -22,6 +25,31 @@ class WebInterSettings(AppSettings):
         env_nested_delimiter="__",
         extra="ignore",
     )
+
+    def __init__(self, **kwargs):
+        # Load .env file before initializing
+        self._load_env_file()
+        super().__init__(**kwargs)
+
+    def _load_env_file(self):
+        """Load .env file from current directory or project root"""
+        # Try to find .env file
+        current_dir = Path.cwd()
+        env_file = current_dir / ".env"
+        
+        if not env_file.exists():
+            # Try project root (go up directories looking for .env)
+            for parent in current_dir.parents:
+                potential_env = parent / ".env"
+                if potential_env.exists():
+                    env_file = potential_env
+                    break
+        
+        if env_file.exists():
+            print(f"DEBUG: Loading .env file from: {env_file}")
+            dotenv.load_dotenv(env_file, override=True)
+        else:
+            print("DEBUG: No .env file found")
 
     @model_validator(mode="after")
     def validate(self) -> Self:
