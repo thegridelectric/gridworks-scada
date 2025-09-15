@@ -34,12 +34,6 @@ jobs:
         run: |
           echo "::set-output name=sha::$(git rev-parse --verify --quiet HEAD^)"
 
-      - name: Change to package directory
-        run: |
-          pwd
-          cd packages/gridworks-scada-protocol
-          pwd
-
       - name: Detect and tag new version for gridworks-scada-protocol
         id: check-version
         if: steps.check-parent-commit.outputs.sha
@@ -86,76 +80,74 @@ jobs:
 #        env:
 #          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-#  release-gwadmin:
-#    name: Release gridworks-admin
-#    needs: release-gwsproto
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Check out the repository
-#        uses: actions/checkout@v4
+  release-gwadmin:
+    name: Release gridworks-admin
+    needs: release-gwsproto
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.6.0
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.8.8"
+          enable-cache: true
+
+      - name: Check if there is a parent commit
+        id: check-parent-commit
+        run: |
+          echo "::set-output name=sha::$(git rev-parse --verify --quiet HEAD^)"
+
+      - name: Detect and tag new version for gridworks-scada-protocol
+        id: check-version
+        if: steps.check-parent-commit.outputs.sha
+        uses: salsify/action-detect-and-tag-new-version@v2.0.3
+        with:
+          version-command: |
+            bash -o pipefail -c "cd packages/gridworks-admin && uv version | awk '{ print \$2 }'"
+          tag-template: gridworks-admin.v{VERSION}
+
+      - name: Bump version for developmental release
+        if: "! steps.check-version.outputs.tag"
+        run: |
+          cd packages/gridworks-admin &&
+          uv version --bump patch &&
+          version=$(uv version | awk '{ print $2 }') &&
+          uv version $version.dev.$(date +%s)
+
+      - name: Build package
+        run: |
+          cd packages/gridworks-admin &&
+          uv build
+
+      - name: Publish package Publish package on **PyPI**
+        if: "steps.check-version.outputs.tag"
+        run: |
+          echo Doing nothing yet.
+          echo would run: "uv publish"
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
+
+      - name: Publish package Publish package on **TestPyPI**
+        if: "! steps.check-version.outputs.tag"
+        run: |
+          echo "Doing nothing. We don't yet have a TEST_PYPI_TOKEN."
+          echo would run: "uv publish --publish-url https://test.pypi.org/legacy/"
+        # env:
+        #  UV_PUBLISH_TOKEN: ${{ secrets.TEST_PYPI_TOKEN }}
+
+#      - name: Publish the release notes
+#        uses: release-drafter/release-drafter@v6.0.0
 #        with:
-#          fetch-depth: 2
-#
-#      - name: Set up Python
-#        uses: actions/setup-python@v5.6.0
-#        with:
-#          python-version: "3.13"
-#
-#      - name: Install uv
-#        uses: astral-sh/setup-uv@v6
-#        with:
-#          version: "0.8.8"
-#          enable-cache: true
-#
-#      - name: Check if there is a parent commit
-#        id: check-parent-commit
-#        run: |
-#          echo "::set-output name=sha::$(git rev-parse --verify --quiet HEAD^)"
-#
-#      - name: Change to package directory
-#        run: |
-#          cd packages/gridworks-admin
-#
-#      - name: Detect and tag new version for gridworks-scada-protocol
-#        id: check-version
-#        if: steps.check-parent-commit.outputs.sha
-#        uses: salsify/action-detect-and-tag-new-version@v2.0.3
-#        with:
-#          version-command: |
-#            bash -o pipefail -c "uv version | awk '{ print \$2 }'"
-#          tag-template: gridworks-admin.v{VERSION}
-#
-#      - name: Bump version for developmental release
-#        if: "! steps.check-version.outputs.tag"
-#        run: |
-#          uv version --bump patch &&
-#          version=$(uv version | awk '{ print $2 }') &&
-#          uv version $version.dev.$(date +%s)
-#
-#      - name: Build package
-#        run: |
-#          uv build
-#
-#      - name: Publish package Publish package on **PyPI**
-#        if: "steps.check-version.outputs.tag"
-#        run: |
-#          echo Doing nothing yet.
-#          echo would run: "uv publish"
+#          publish: ${{ steps.check-version.outputs.tag != '' }}
+#          tag: ${{ steps.check-version.outputs.tag }}
 #        env:
-#          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
-#
-#      - name: Publish package Publish package on **TestPyPI**
-#        if: "! steps.check-version.outputs.tag"
-#        run: |
-#          echo "Doing nothing. We don't yet have a TEST_PYPI_TOKEN."
-#          echo would run: "uv publish --publish-url https://test.pypi.org/legacy/"
-#        # env:
-#        #  UV_PUBLISH_TOKEN: ${{ secrets.TEST_PYPI_TOKEN }}
-#
-##      - name: Publish the release notes
-##        uses: release-drafter/release-drafter@v6.0.0
-##        with:
-##          publish: ${{ steps.check-version.outputs.tag != '' }}
-##          tag: ${{ steps.check-version.outputs.tag }}
-##        env:
-##          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
