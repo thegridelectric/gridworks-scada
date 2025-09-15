@@ -6,16 +6,16 @@ from textual.binding import Binding
 from textual.logging import TextualHandler
 from textual.widgets import Header, Footer
 
-from admin.watch.clients.admin_client import AdminClient
-from admin.watch.clients.relay_client import RelayEnergized
-from admin.watch.clients.relay_client import RelayWatchClient
-from admin.watch.widgets.keepalive import KeepAliveButton
-from admin.watch.widgets.keepalive import ReleaseControlButton
-from admin.watch.widgets.relays import Relays
-from admin.watch.widgets.relay_toggle_button import RelayToggleButton
-from admin.watch.widgets.timer import TimerDigits
-from admin.settings import AdminClientSettings
-from actors.config import AdminLinkSettings
+from gwadmin.settings import MAX_ADMIN_TIMEOUT
+from gwadmin.watch.clients.admin_client import AdminClient
+from gwadmin.watch.clients.relay_client import RelayEnergized
+from gwadmin.watch.clients.relay_client import RelayWatchClient
+from gwadmin.watch.widgets.keepalive import KeepAliveButton
+from gwadmin.watch.widgets.keepalive import ReleaseControlButton
+from gwadmin.watch.widgets.relays import Relays
+from gwadmin.watch.widgets.relay_toggle_button import RelayToggleButton
+from gwadmin.watch.widgets.timer import TimerDigits
+from gwadmin.settings import AdminClientSettings
 
 __version__: str = "0.2.4"
 
@@ -117,10 +117,10 @@ class RelaysApp(App):
             self.notify(f"Keeping admin alive for {int(_.timeout_seconds/60)} minutes")
             self._relay_client.send_keepalive(_.timeout_seconds)
         else:
-            self.notify(f"Keeping admin alive for maximum timeout ({int(AdminLinkSettings().max_timeout_seconds/60)} min)")
+            self.notify(f"Keeping admin alive for maximum timeout ({int(MAX_ADMIN_TIMEOUT/60)} min)")
             self._relay_client.send_keepalive(_.timeout_seconds)
             timer_display = self.app.query_one(TimerDigits)
-            timer_display.restart(AdminLinkSettings().max_timeout_seconds)
+            timer_display.restart(MAX_ADMIN_TIMEOUT)
 
     def on_release_control_button_pressed(self, _: ReleaseControlButton.Pressed):
         self._relay_client.send_release_control()

@@ -7,7 +7,7 @@ from textual.reactive import Reactive
 from textual.reactive import reactive
 from textual.widgets import Static
 
-from admin.watch.widgets.relay_widget_info import RelayWidgetConfig
+from gwadmin.watch.widgets.relay_widget_info import RelayWidgetConfig
 
 module_logger = logging.getLogger(__name__)
 module_logger.addHandler(TextualHandler())

@@ -1,0 +1,34 @@
+[project]
+name = "gridworks-admin"
+version = "0.1.0.dev1"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Andrew Schweitzer", email = "schweitz72@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "gridworks-proactor>=4.1.9",
+    "gridworks-scada-protocol",
+    "numpy>=2.3.3",
+    "paho-mqtt>=2.1.0",
+    "pydantic>=2.11.9",
+    "python-dotenv>=1.1.1",
+    "result>=0.9.0",
+    "rich>=14.1.0",
+    "textual>=6.1.0",
+    "typer>=0.17.4",
+]
+
+[project.scripts]
+gwa = "gwadmin:cli.app"
+
+[build-system]
+requires = ["uv_build>=0.8.8,<0.9.0"]
+build-backend = "uv_build"
+
+[tool.uv.sources]
+gridworks-scada-protocol = { path = "../gridworks-scada-protocol", editable = true }
+
+[tool.uv.build-backend]
+module-name = "gwadmin"

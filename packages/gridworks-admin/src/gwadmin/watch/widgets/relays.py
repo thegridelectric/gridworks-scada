@@ -14,19 +14,19 @@ from textual.widget import Widget
 from textual.widgets import DataTable
 from textual.widgets._data_table import CellType  # noqa
 
-from admin.watch.clients.constrained_mqtt_client import ConstrainedMQTTClient
-from admin.watch.clients.relay_client import ObservedRelayStateChange
-from admin.watch.clients.relay_client import RelayClientCallbacks
-from admin.watch.clients.relay_client import RelayConfigChange
-from admin.watch.widgets.keepalive import KeepAliveButton
-from admin.watch.widgets.keepalive import ReleaseControlButton
-from admin.watch.widgets.mqtt import Mqtt
-from admin.watch.widgets.mqtt import MqttState
-from admin.watch.widgets.relay_toggle_button import RelayToggleButton
-from admin.watch.widgets.relay_widget_info import RelayWidgetConfig
-from admin.watch.widgets.relay_widget_info import RelayWidgetInfo
-from admin.watch.widgets.time_input import TimeInput
-from admin.watch.widgets.timer import TimerDigits
+from gwadmin.watch.clients.constrained_mqtt_client import ConstrainedMQTTClient
+from gwadmin.watch.clients.relay_client import ObservedRelayStateChange
+from gwadmin.watch.clients.relay_client import RelayClientCallbacks
+from gwadmin.watch.clients.relay_client import RelayConfigChange
+from gwadmin.watch.widgets.keepalive import KeepAliveButton
+from gwadmin.watch.widgets.keepalive import ReleaseControlButton
+from gwadmin.watch.widgets.mqtt import Mqtt
+from gwadmin.watch.widgets.mqtt import MqttState
+from gwadmin.watch.widgets.relay_toggle_button import RelayToggleButton
+from gwadmin.watch.widgets.relay_widget_info import RelayWidgetConfig
+from gwadmin.watch.widgets.relay_widget_info import RelayWidgetInfo
+from gwadmin.watch.widgets.time_input import TimeInput
+from gwadmin.watch.widgets.timer import TimerDigits
 from gwsproto.named_types import LayoutLite
 from gwsproto.named_types import SnapshotSpaceheat
 

@@ -22,11 +22,11 @@ from gwproto.named_types import SingleReading
 from pydantic import BaseModel
 from pydantic import model_validator
 
-from admin.watch.clients.admin_client import type_name
-from admin.watch.clients.admin_client import AdminClient
-from admin.watch.clients.admin_client import AdminSubClient
-from admin.watch.clients.constrained_mqtt_client import MessageReceivedCallback
-from admin.watch.clients.constrained_mqtt_client import StateChangeCallback
+from gwadmin.watch.clients.admin_client import type_name
+from gwadmin.watch.clients.admin_client import AdminClient
+from gwadmin.watch.clients.admin_client import AdminSubClient
+from gwadmin.watch.clients.constrained_mqtt_client import MessageReceivedCallback
+from gwadmin.watch.clients.constrained_mqtt_client import StateChangeCallback
 from gwsproto.named_types import (AdminDispatch,  AdminKeepAlive, AdminReleaseControl,
                          FsmEvent, LayoutLite, SnapshotSpaceheat)
 from gwsproto.enums import TurnHpOnOff

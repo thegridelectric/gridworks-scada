@@ -3,9 +3,10 @@ from time import monotonic
 from textual.logging import TextualHandler
 from textual.widgets import Digits
 from textual.reactive import reactive
-from admin.watch.widgets.time_input import TimeInput
-from admin.settings import AdminClientSettings
-from actors.config import AdminLinkSettings
+
+from gwadmin.settings import MAX_ADMIN_TIMEOUT
+from gwadmin.watch.widgets.time_input import TimeInput
+from gwadmin.settings import AdminClientSettings
 
 module_logger = logging.getLogger(__name__)
 module_logger.addHandler(TextualHandler())
@@ -18,7 +19,7 @@ class TimerDigits(Digits):
     ) -> None:
         super().__init__(**kwargs)
         self.logger = logger
-        self.default_timeout_seconds = AdminClientSettings().default_timeout_seconds
+        self.default_timeout_seconds = MAX_ADMIN_TIMEOUT
         self.countdown_seconds = self.default_timeout_seconds
 
     start_time = reactive(monotonic)
@@ -52,8 +53,8 @@ class TimerDigits(Digits):
         input_value = self.app.query_one(TimeInput).value
         try:
             time_in_minutes = float(input_value) if input_value else int(self.default_timeout_seconds/60)
-            if time_in_minutes > int(AdminLinkSettings().max_timeout_seconds/60):
-                time_in_minutes = int(AdminLinkSettings().max_timeout_seconds/60)
+            if time_in_minutes > int(MAX_ADMIN_TIMEOUT/60):
+                time_in_minutes = int(MAX_ADMIN_TIMEOUT/60)
         except ValueError:
             time_in_minutes = int(self.default_timeout_seconds/60)
         self.time_remaining = time_in_minutes * 60

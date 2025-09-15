@@ -8,11 +8,11 @@ from textual.reactive import Reactive
 from textual.reactive import reactive
 from textual.widgets import Button
 
-from admin.watch.widgets.relay_widget_info import RelayWidgetConfig
-from admin.watch.widgets.timer import TimerDigits
-from admin.watch.widgets.time_input import TimeInput
-from admin.watch.widgets.keepalive import KeepAliveButton
-from admin.settings import AdminClientSettings
+from gwadmin.watch.widgets.relay_widget_info import RelayWidgetConfig
+from gwadmin.watch.widgets.timer import TimerDigits
+from gwadmin.watch.widgets.time_input import TimeInput
+from gwadmin.watch.widgets.keepalive import KeepAliveButton
+from gwadmin.settings import AdminClientSettings
 
 module_logger = logging.getLogger(__name__)
 module_logger.addHandler(TextualHandler())

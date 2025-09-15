@@ -7,7 +7,7 @@ from textual.widgets import Footer
 from textual.widgets import Header
 from textual.widgets import Static
 
-from admin.settings import AdminClientSettings
+from gwadmin.settings import AdminClientSettings
 
 
 class WatchExApp(App):

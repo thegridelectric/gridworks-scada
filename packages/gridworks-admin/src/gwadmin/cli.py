@@ -8,10 +8,10 @@ import dotenv
 import rich
 import typer
 
-from admin.tdemo.cli import app as tdemo_cli
-from admin.settings import AdminClientSettings
-from admin.watch.relay_app import RelaysApp, __version__
-from admin.watch.watchex.watchex_app import WatchExApp
+from gwadmin.tdemo.cli import app as tdemo_cli
+from gwadmin.settings import AdminClientSettings
+from gwadmin.watch.relay_app import RelaysApp, __version__
+from gwadmin.watch.watchex.watchex_app import WatchExApp
 
 app = typer.Typer(
     no_args_is_help=True,

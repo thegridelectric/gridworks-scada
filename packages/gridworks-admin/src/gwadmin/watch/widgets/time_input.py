@@ -1,6 +1,6 @@
 from textual.widgets import Input
 from textual.validation import Number
-from admin.settings import AdminClientSettings
+from gwadmin.settings import AdminClientSettings
 
 class TimeInput(Input):
     def __init__(self, **kwargs):

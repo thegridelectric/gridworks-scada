@@ -10,7 +10,7 @@ from gwproactor.logging_setup import enable_aiohttp_logging
 from trogon import Trogon
 from typer.main import get_group
 
-from admin.cli import app as admin_cli
+from gwadmin.cli import app as admin_cli
 from actors.atn.cli import app as atn_cli
 from actors.config import ScadaSettings
 from layout_gen.genlayout import app as layout_cli

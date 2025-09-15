@@ -19,7 +19,8 @@ source gw_spaceheat/venv/bin/activate
 which pip
 pip install --upgrade pip
 pip install -r ${1:-$dev_requirements}
-pip install -e packages/gwsproto
+pip install -e packages/gridworks-scada-protocol
+pip install -e packages/gridworks-admin
 rm gw_spaceheat/venv/bin/gws > /dev/null 2>&1
 ln -s `pwd`/gw_spaceheat/gws gw_spaceheat/venv/bin
 
