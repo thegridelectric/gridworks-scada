@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Relay Control - EC2</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #64748b;
+            --success-color: #16a34a;
+            --warning-color: #ca8a04;
+            --error-color: #dc2626;
+            --background-color: #f8fafc;
+            --card-background: #ffffff;
+            --border-color: #e2e8f0;
+            --text-color: #1e293b;
+            --text-muted: #64748b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .config-section {
+            background-color: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .config-section h2 {
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .btn:hover {
+            background-color: #1d4ed8;
+        }
+
+        .btn:disabled {
+            background-color: var(--secondary-color);
+            cursor: not-allowed;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .status.connected {
+            background-color: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .status.disconnected {
+            background-color: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .status.connecting {
+            background-color: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fde68a;
+        }
+
+        #main-content {
+            display: none;
+        }
+
+        #main-content.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="text-align: center; margin-bottom: 30px;">GridWorks SCADA - Remote Connection</h1>
+        
+        <div class="config-section">
+            <h2>Connection Configuration</h2>
+            <div class="form-group">
+                <label for="ec2-host">EC2 Instance Host:</label>
+                <input type="text" id="ec2-host" placeholder="your-ec2-public-ip-or-domain.com" value="">
+            </div>
+            <div class="form-group">
+                <label for="ec2-port">Port (optional):</label>
+                <input type="text" id="ec2-port" placeholder="80" value="80">
+            </div>
+            <button class="btn" onclick="connectToEC2()">Connect to EC2</button>
+        </div>
+
+        <div id="connection-status" class="status disconnected">
+            Not connected
+        </div>
+
+        <div id="main-content">
+            <!-- The main content will be loaded here -->
+        </div>
+    </div>
+
+    <script>
+        let websocket = null;
+        let ec2Host = '';
+        let ec2Port = '';
+
+        function connectToEC2() {
+            ec2Host = document.getElementById('ec2-host').value.trim();
+            ec2Port = document.getElementById('ec2-port').value.trim() || '80';
+            
+            if (!ec2Host) {
+                alert('Please enter your EC2 host address');
+                return;
+            }
+
+            // Update status
+            const statusEl = document.getElementById('connection-status');
+            statusEl.className = 'status connecting';
+            statusEl.textContent = 'Connecting to ' + ec2Host + '...';
+
+            // Load the main content from EC2
+            loadMainContent();
+        }
+
+        function loadMainContent() {
+            const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+            const url = `${protocol}//${ec2Host}:${ec2Port}/`;
+            
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    // Replace the main content
+                    document.getElementById('main-content').innerHTML = html;
+                    document.getElementById('main-content').classList.add('show');
+                    
+                    // Update status
+                    const statusEl = document.getElementById('connection-status');
+                    statusEl.className = 'status connected';
+                    statusEl.textContent = `Connected to ${ec2Host}`;
+                    
+                    // Override the websocket connection to use EC2
+                    overrideWebSocketConnection();
+                })
+                .catch(error => {
+                    console.error('Error loading content:', error);
+                    const statusEl = document.getElementById('connection-status');
+                    statusEl.className = 'status disconnected';
+                    statusEl.textContent = `Connection failed: ${error.message}`;
+                });
+        }
+
+        function overrideWebSocketConnection() {
+            // Find the original connectWebSocket function and override it
+            if (typeof connectWebSocket === 'function') {
+                const originalConnectWebSocket = connectWebSocket;
+                
+                window.connectWebSocket = function() {
+                    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    const wsUrl = `${protocol}//${ec2Host}:${ec2Port}/ws`;
+                    
+                    console.log('Connecting to WebSocket:', wsUrl);
+                    websocket = new WebSocket(wsUrl);
+                    
+                    websocket.onopen = function(event) {
+                        document.getElementById('status-left').textContent = 'Connected';
+                        document.getElementById('status-right').textContent = '';
+                        console.log('WebSocket connected to EC2');
+                    };
+                    
+                    websocket.onmessage = function(event) {
+                        const data = JSON.parse(event.data);
+                        handleMessage(data);
+                    };
+                    
+                    websocket.onclose = function(event) {
+                        document.getElementById('status-left').textContent = 'Disconnected';
+                        document.getElementById('status-right').textContent = 'Reconnecting...';
+                        console.log('WebSocket disconnected from EC2');
+                        setTimeout(connectWebSocket, 3000);
+                    };
+                    
+                    websocket.onerror = function(error) {
+                        console.error('WebSocket error:', error);
+                    };
+                };
+                
+                // Start the connection
+                connectWebSocket();
+            }
+        }
+    </script>
+</body>
+</html>
