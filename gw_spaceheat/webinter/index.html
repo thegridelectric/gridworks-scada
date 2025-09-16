@@ -88,6 +88,18 @@
         <!-- System Diagram -->
         <div id="system-diagram" style="text-align: center; max-width: 1200px; margin: 20px auto 400px auto; background-color: var(--card-background); border: 1px solid var(--border-color); border-radius: 0.25rem; padding: 30px;">
             <h2 style="margin-top: 0; margin-bottom: 30px; color: var(--text-color);">System Overview</h2>
+            
+            <!-- TEMPORARY: Testing dropdown for system modes -->
+            <div style="margin-bottom: 20px;">
+                <label for="testModeSelect" style="color: var(--text-color); font-family: Montserrat, sans-serif; font-size: 14px; margin-right: 10px;">Test Mode:</label>
+                <select id="testModeSelect" style="padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; background: var(--bg-color); color: var(--text-color); font-family: Montserrat, sans-serif; font-size: 14px;">
+                    <option value="HpOnStoreOff">HpOnStoreOff</option>
+                    <option value="HpOnStoreCharge">HpOnStoreCharge</option>
+                    <option value="HpOffStoreDischarge">HpOffStoreDischarge</option>
+                    <option value="HpOffStoreOff">HpOffStoreOff</option>
+                    <option value="Auto">Auto (Real System State)</option>
+                </select>
+            </div>
             <svg id="diagram-svg" viewBox="0 0 1000 500" style="width: 100%; height: auto; max-width: 1000px;">
                 <defs>
                     <!-- Flow pattern for HpOffStoreDischarge top horizontal pipe -->
@@ -207,8 +219,14 @@
 
                 <!-- Bottom pipe (from bottom of heat pump to bottom of buffer) -->
                 <rect id="hp-buffer-bottom-pipe" x="140" y="215" width="720" height="15" fill="#888"/>
-                <text id="hp-ewt" x="170" y="200" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
-                <text id="buffer-cold-pipe" x="830" y="200" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
+                <text id="hp-ewt" x="170" y="210" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
+                <text id="buffer-cold-pipe" x="830" y="210" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
+
+                <!-- Horizontal pipe from Tank1 vertical pipe to heat pump top (HpOnStoreCharge) -->
+                <rect id="tank1-hp-horizontal-pipe-charge" x="140" y="75" width="465" height="15" fill="#888"/>
+                
+                <!-- Horizontal pipe from Tank3 vertical pipe to heat pump bottom (HpOnStoreCharge) -->
+                <rect id="tank3-hp-horizontal-pipe-charge" x="140" y="215" width="50" height="15" fill="#888"/>
 
                 <!-- Vertical pipe from Tank 1 to heat pump top pipe (HpOffStoreDischarge) -->
                 <rect id="tank1-hp-vertical-pipe" x="590" y="90" width="15" height="205" fill="#888"/>
@@ -240,11 +258,6 @@
                 <!-- Small horizontal pipe from Tank3 vertical pipe to bottom of Tank3 (HpOnStoreCharge) -->
                 <rect id="tank3-connection-pipe-charge" x="175" y="440" width="25" height="15" fill="#888"/>
                 
-                <!-- Horizontal pipe from Tank1 vertical pipe to heat pump top (HpOnStoreCharge) -->
-                <rect id="tank1-hp-horizontal-pipe-charge" x="140" y="75" width="465" height="15" fill="#888"/>
-                
-                <!-- Horizontal pipe from Tank3 vertical pipe to heat pump bottom (HpOnStoreCharge) -->
-                <rect id="tank3-hp-horizontal-pipe-charge" x="140" y="215" width="50" height="15" fill="#888"/>
             </svg>
         </div>
 
@@ -747,6 +760,9 @@
             // Update tank temperatures
             updateTankTemperatures(snapshotData);
             
+            // Store snapshot data for test mode dropdown
+            window.lastSnapshotData = snapshotData;
+            
             // Update pipe colors based on system state
             updatePipeColors(snapshotData);
         }
@@ -1139,51 +1155,62 @@
         }
 
         function updatePipeColors(snapshotData) {
-            // Get the current system state using the same logic as updateSystemState
+            console.log('=== updatePipeColors called ===');
+            // Check if test mode is selected
+            const testModeSelect = document.getElementById('testModeSelect');
             let currentState = null;
             
-            // Check relay states to determine system state (same logic as updateSystemState)
-            const relay5 = relays['relay5'];
-            const relay6 = relays['relay6'];
-            const relay3 = relays['relay3'];
-            const relay9 = relays['relay9'];
-            
-            if (relay5 && relay6 && relay3 && relay9) {
-                const relay5State = relay5.state;
-                const relay6State = relay6.state;
-                const relay3State = relay3.state;
-                const relay9State = relay9.state;
+            if (testModeSelect && testModeSelect.value !== 'Auto') {
+                // Use test mode selection - don't let WebSocket data override it
+                currentState = testModeSelect.value;
+                console.log('Using test mode (ignoring WebSocket data):', currentState);
+            } else {
+                // Get the current system state using the same logic as updateSystemState
+                console.log('Using real system state from WebSocket data');
                 
-                // Determine HP state
-                let hpOn = false;
-                if (relay5State === 'energized' && relay6State === 'deenergized') {
-                    hpOn = true;
+                // Check relay states to determine system state (same logic as updateSystemState)
+                const relay5 = relays['relay5'];
+                const relay6 = relays['relay6'];
+                const relay3 = relays['relay3'];
+                const relay9 = relays['relay9'];
+                
+                if (relay5 && relay6 && relay3 && relay9) {
+                    const relay5State = relay5.state;
+                    const relay6State = relay6.state;
+                    const relay3State = relay3.state;
+                    const relay9State = relay9.state;
+                    
+                    // Determine HP state
+                    let hpOn = false;
+                    if (relay5State === 'energized' && relay6State === 'deenergized') {
+                        hpOn = true;
+                    }
+                    
+                    // Determine storage state
+                    let storeCharge = false;
+                    let storeDischarge = false;
+                    if (relay3State === 'energized') {
+                        storeCharge = true;
+                    } else if (relay3State === 'deenergized' && relay9State === 'energized') {
+                        storeDischarge = true;
+                    }
+                    
+                    // Calculate combined state
+                    if (hpOn && storeCharge) {
+                        currentState = 'HpOnStoreCharge';
+                    } else if (hpOn && !storeCharge && !storeDischarge) {
+                        currentState = 'HpOnStoreOff';
+                    } else if (!hpOn && storeDischarge) {
+                        currentState = 'HpOffStoreDischarge';
+                    } else if (!hpOn && !storeCharge && !storeDischarge) {
+                        currentState = 'HpOffStoreOff';
+                    } else {
+                        currentState = 'Unknown combined state';
+                    }
                 }
                 
-                // Determine storage state
-                let storeCharge = false;
-                let storeDischarge = false;
-                if (relay3State === 'energized') {
-                    storeCharge = true;
-                } else if (relay3State === 'deenergized' && relay9State === 'energized') {
-                    storeDischarge = true;
-                }
-                
-                // Calculate combined state
-                if (hpOn && storeCharge) {
-                    currentState = 'HpOnStoreCharge';
-                } else if (hpOn && !storeCharge && !storeDischarge) {
-                    currentState = 'HpOnStoreOff';
-                } else if (!hpOn && storeDischarge) {
-                    currentState = 'HpOffStoreDischarge';
-                } else if (!hpOn && !storeCharge && !storeDischarge) {
-                    currentState = 'HpOffStoreOff';
-                } else {
-                    currentState = 'Unknown combined state';
-                }
+                console.log('Current system state (from relays):', currentState);
             }
-            
-            console.log('Current system state (from relays):', currentState);
             
             // Get pipe elements
             const hpBufferTopPipe = document.getElementById('hp-buffer-top-pipe');
@@ -1205,15 +1232,15 @@
             console.log(`Setting pipe colors for state: "${currentState}"`);
             
             if (currentState === 'HpOnStoreOff') {
-                // Green pipes for HpOnStoreOff state (HP to Buffer)
+                // Animated green pipes for HpOnStoreOff state (HP to Buffer)
                 if (hpBufferTopPipe) {
-                    hpBufferTopPipe.setAttribute('fill', '#4CAF50');
+                    hpBufferTopPipe.setAttribute('fill', 'url(#flowPattern)'); // Rightward flow
                     hpBufferTopPipe.removeAttribute('stroke');
                     // Move to end of SVG to appear on top
                     hpBufferTopPipe.parentNode.appendChild(hpBufferTopPipe);
                 }
                 if (hpBufferBottomPipe) {
-                    hpBufferBottomPipe.setAttribute('fill', '#4CAF50');
+                    hpBufferBottomPipe.setAttribute('fill', 'url(#leftFlowPattern)'); // Leftward flow
                     hpBufferBottomPipe.removeAttribute('stroke');
                     // Move to end of SVG to appear on top
                     hpBufferBottomPipe.parentNode.appendChild(hpBufferBottomPipe);
@@ -1358,50 +1385,50 @@
                 // Green pipes for HpOnStoreCharge state (Tanks to HP)
                 console.log('Setting HpOnStoreCharge pipes to green');
                 if (tank1HpVerticalPipeCharge) {
-                    tank1HpVerticalPipeCharge.setAttribute('fill', '#4CAF50');
+                    tank1HpVerticalPipeCharge.setAttribute('fill', 'url(#verticalDownFlowPattern)'); // Downward flow
                     tank1HpVerticalPipeCharge.removeAttribute('stroke');
                     tank1HpVerticalPipeCharge.parentNode.appendChild(tank1HpVerticalPipeCharge);
-                    console.log('Successfully set Tank1-HP vertical pipe (charge) to green');
+                    console.log('Successfully set Tank1-HP vertical pipe (charge) to animated green');
                 } else {
                     console.log('Tank1-HP vertical pipe (charge) element not found!');
                 }
                 if (tank3HpVerticalPipeCharge) {
-                    tank3HpVerticalPipeCharge.setAttribute('fill', '#4CAF50');
+                    tank3HpVerticalPipeCharge.setAttribute('fill', 'url(#verticalFlowPattern)'); // Upward flow
                     tank3HpVerticalPipeCharge.removeAttribute('stroke');
                     tank3HpVerticalPipeCharge.parentNode.appendChild(tank3HpVerticalPipeCharge);
-                    console.log('Successfully set Tank3-HP vertical pipe (charge) to green');
+                    console.log('Successfully set Tank3-HP vertical pipe (charge) to animated green');
                 } else {
                     console.log('Tank3-HP vertical pipe (charge) element not found!');
                 }
                 if (tank1ConnectionPipeCharge) {
-                    tank1ConnectionPipeCharge.setAttribute('fill', '#4CAF50');
+                    tank1ConnectionPipeCharge.setAttribute('fill', 'url(#leftFlowPattern)'); // Leftward flow
                     tank1ConnectionPipeCharge.removeAttribute('stroke');
                     tank1ConnectionPipeCharge.parentNode.appendChild(tank1ConnectionPipeCharge);
-                    console.log('Successfully set Tank1 connection pipe (charge) to green');
+                    console.log('Successfully set Tank1 connection pipe (charge) to animated green');
                 } else {
                     console.log('Tank1 connection pipe (charge) element not found!');
                 }
                 if (tank3ConnectionPipeCharge) {
-                    tank3ConnectionPipeCharge.setAttribute('fill', '#4CAF50');
+                    tank3ConnectionPipeCharge.setAttribute('fill', 'url(#leftFlowPattern)'); // Leftward flow
                     tank3ConnectionPipeCharge.removeAttribute('stroke');
                     tank3ConnectionPipeCharge.parentNode.appendChild(tank3ConnectionPipeCharge);
-                    console.log('Successfully set Tank3 connection pipe (charge) to green');
+                    console.log('Successfully set Tank3 connection pipe (charge) to animated green');
                 } else {
                     console.log('Tank3 connection pipe (charge) element not found!');
                 }
                 if (tank1HpHorizontalPipeCharge) {
-                    tank1HpHorizontalPipeCharge.setAttribute('fill', '#4CAF50');
+                    tank1HpHorizontalPipeCharge.setAttribute('fill', 'url(#flowPattern)'); // Rightward flow
                     tank1HpHorizontalPipeCharge.removeAttribute('stroke');
                     tank1HpHorizontalPipeCharge.parentNode.appendChild(tank1HpHorizontalPipeCharge);
-                    console.log('Successfully set Tank1-HP horizontal pipe (charge) to green');
+                    console.log('Successfully set Tank1-HP horizontal pipe (charge) to animated green');
                 } else {
                     console.log('Tank1-HP horizontal pipe (charge) element not found!');
                 }
                 if (tank3HpHorizontalPipeCharge) {
-                    tank3HpHorizontalPipeCharge.setAttribute('fill', '#4CAF50');
+                    tank3HpHorizontalPipeCharge.setAttribute('fill', 'url(#leftFlowPattern)'); // Leftward flow
                     tank3HpHorizontalPipeCharge.removeAttribute('stroke');
                     tank3HpHorizontalPipeCharge.parentNode.appendChild(tank3HpHorizontalPipeCharge);
-                    console.log('Successfully set Tank3-HP horizontal pipe (charge) to green');
+                    console.log('Successfully set Tank3-HP horizontal pipe (charge) to animated green');
                 } else {
                     console.log('Tank3-HP horizontal pipe (charge) element not found!');
                 }
@@ -1437,14 +1464,6 @@
                 if (tank3ConnectionPipe) {
                     tank3ConnectionPipe.setAttribute('fill', '#888');
                     tank3ConnectionPipe.removeAttribute('stroke');
-                }
-                if (tank1HpHorizontalPipeCharge) {
-                    tank1HpHorizontalPipeCharge.setAttribute('fill', '#888');
-                    tank1HpHorizontalPipeCharge.removeAttribute('stroke');
-                }
-                if (tank3HpHorizontalPipeCharge) {
-                    tank3HpHorizontalPipeCharge.setAttribute('fill', '#888');
-                    tank3HpHorizontalPipeCharge.removeAttribute('stroke');
                 }
                 console.log('Set HpOnStoreCharge pipes to green');
             } else {
@@ -1659,6 +1678,18 @@
         window.onload = function() {
             initializeDiagram();
             connectWebSocket();
+            
+            // Add event listener for test mode dropdown
+            const testModeSelect = document.getElementById('testModeSelect');
+            if (testModeSelect) {
+                testModeSelect.addEventListener('change', function() {
+                    console.log('Test mode changed to:', this.value);
+                    // Trigger pipe color update with current snapshot data
+                    if (window.lastSnapshotData) {
+                        updatePipeColors(window.lastSnapshotData);
+                    }
+                });
+            }
         };
     </script>
     </div>
