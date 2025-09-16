@@ -1,7 +1,7 @@
 [project]
 name = "gridworks-admin"
-version = "1.0.0.dev1"
-description = "Add your description here"
+version = "1.0.0.dev2"
+description = "CLI tool for monitoring gridworks-scada devices."
 readme = "README.md"
 authors = [
     { name = "Andrew Schweitzer", email = "schweitz72@gmail.com" }
