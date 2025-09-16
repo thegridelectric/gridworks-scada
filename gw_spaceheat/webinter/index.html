@@ -13,95 +13,93 @@
     
     <!-- Main Content with top padding to account for fixed header -->
     <div style="padding-top: 60px;">
+        <h1 style="text-align: center; margin-top: 30px; margin-bottom: 40px;">Dashboard</h1>
+        
+        <!-- System Monitoring Tables -->
+        <div id="monitoring-tables" style="max-width: 1400px; margin: 20px auto 40px auto; display: flex; flex-wrap: wrap; gap: 30px; justify-content: center;">
+            <!-- Thermostats and Hot Water Table -->
+            <div>
+                <table id="thermostat-table" style="border: 1px solid var(--border-color); border-collapse: collapse; border-radius: 0.25rem; background-color: var(--card-background); margin: 0 auto;">
+                    <thead>
+                        <tr style="background-color: #f0f0f0;">
+                            <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">Thermostats</th>
+                            <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">Setpoint</th>
+                            <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">Temperature</th>
+                            <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">State</th>
+                        </tr>
+                    </thead>
+                    <tbody id="thermostat-tbody">
+                        <tr>
+                            <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
+                            <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
+                            <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
+                            <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- HP Power Table -->
+            <div>
+                <table id="hp-power-table" style="border: 1px solid var(--border-color); border-collapse: collapse; border-radius: 0.25rem; background-color: var(--card-background); margin: 0 auto;">
+                    <thead>
+                        <tr style="background-color: #f0f0f0;">
+                            <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">Heat pump</th>
+                            <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">kW</th>
+                        </tr>
+                    </thead>
+                    <tbody id="hp-power-tbody">
+                        <tr>
+                            <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
+                            <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pump Table -->
+            <div>
+                <table id="pump-table" style="border: 1px solid var(--border-color); border-collapse: collapse; border-radius: 0.25rem; background-color: var(--card-background); margin: 0 auto;">
+                    <thead>
+                        <tr style="background-color: #f0f0f0;">
+                            <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">Pumps</th>
+                            <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">GPM</th>
+                            <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">W</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pump-tbody">
+                        <tr>
+                            <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
+                            <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
+                            <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- System State Information -->
+        <div id="system-state" style="text-align: center; max-width: 1000px; margin: 20px auto 100px auto; background-color: var(--card-background); border: 1px solid var(--border-color); border-radius: 0.25rem; padding: 20px;">
+            <div id="hp-state" style="font-size: 18px; font-weight: 600; color: var(--text-color);"></div>
+            <div id="storage-state" style="font-size: 18px; font-weight: 600; color: var(--text-color);"></div>
+            <div id="combined-state" style="font-size: 20px; font-weight: 700; color: var(--text-color);">Determining state...</div>
+        </div>
+
         <h1 style="text-align: center; margin-top: 30px; margin-bottom: 20px;">Admin panel</h1>
     
-    <!-- Control Panel -->
-    <div id="control-panel" style="text-align: center; max-width: 770px; margin: 0px auto 20px auto; background-color: transparent; border: 0px solid #ddd; border-radius: 3px; padding: 20px;">
-        <div style="display: flex; align-items: center; justify-content: center; gap: 20px; flex-wrap: wrap;">
-            <div id="timer-display" style="font-family: monospace; font-size: 25px; color: #333; font-weight: bold; margin-right: 20px;">00:00:00</div>
-            <div style="display: inline-block;">
-                <label for="timeout-input">Timeout (minutes):</label>
-                <input type="number" id="timeout-input" value="5" min="1" max="1440" style="width: 60px; margin: 0 5px; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 0.25rem; background-color: white; font-family: inherit; font-size: inherit;">
+        <div id="control-panel" style="text-align: center; max-width: 770px; margin: 0px auto 20px auto; background-color: transparent; border: 0px solid #ddd; border-radius: 3px; padding: 20px;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 20px; flex-wrap: wrap;">
+                <div id="timer-display" style="font-family: monospace; font-size: 25px; color: #333; font-weight: bold; margin-right: 20px;">00:00:00</div>
+                <div style="display: inline-block;">
+                    <label for="timeout-input">Timeout (minutes):</label>
+                    <input type="number" id="timeout-input" value="5" min="1" max="1440" style="width: 60px; margin: 0 5px; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 0.25rem; background-color: white; font-family: inherit; font-size: inherit;">
+                </div>
+                <button id="keep-alive-btn" onclick="sendKeepAlive()" style="margin: 0 5px; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 0.25rem; background-color: #FAFAFA; cursor: pointer; font-family: inherit; font-size: inherit;">Keep alive</button>
+                <button id="release-control-btn" onclick="sendReleaseControl()" style="margin: 0 5px; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 0.25rem; background-color: #FAFAFA; cursor: pointer; font-family: inherit; font-size: inherit;">Release control</button>
             </div>
-            <button id="keep-alive-btn" onclick="sendKeepAlive()" style="margin: 0 5px; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 0.25rem; background-color: #FAFAFA; cursor: pointer; font-family: inherit; font-size: inherit;">Keep alive</button>
-            <button id="release-control-btn" onclick="sendReleaseControl()" style="margin: 0 5px; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 0.25rem; background-color: #FAFAFA; cursor: pointer; font-family: inherit; font-size: inherit;">Release control</button>
-        </div>
-        <!-- <div id="control-status" style="font-size: 14px; margin: 5px 0; color: #666;">No control</div> -->
-    </div>
-    
-    <div id="relays" style="margin-bottom: 40px;"></div>
-    
-    <h1 style="text-align: center; margin-top: 30px; margin-bottom: 40px;">Dashboard</h1>
-    
-    <!-- System Monitoring Tables -->
-    <div id="monitoring-tables" style="max-width: 1400px; margin: 20px auto 40px auto; display: flex; flex-wrap: wrap; gap: 30px; justify-content: center;">
-        <!-- Thermostats and Hot Water Table -->
-        <div>
-            <table id="thermostat-table" style="border: 1px solid var(--border-color); border-collapse: collapse; border-radius: 0.25rem; background-color: var(--card-background); margin: 0 auto;">
-                <thead>
-                    <tr style="background-color: #f0f0f0;">
-                        <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">Thermostats</th>
-                        <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">Setpoint</th>
-                        <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">Temperature</th>
-                        <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">State</th>
-                    </tr>
-                </thead>
-                <tbody id="thermostat-tbody">
-                    <tr>
-                        <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
-                        <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
-                        <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
-                        <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
-                    </tr>
-                </tbody>
-            </table>
         </div>
         
-        <!-- HP Power Table -->
-        <div>
-            <table id="hp-power-table" style="border: 1px solid var(--border-color); border-collapse: collapse; border-radius: 0.25rem; background-color: var(--card-background); margin: 0 auto;">
-                <thead>
-                    <tr style="background-color: #f0f0f0;">
-                        <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">Heat pump</th>
-                        <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">kW</th>
-                    </tr>
-                </thead>
-                <tbody id="hp-power-tbody">
-                    <tr>
-                        <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
-                        <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        
-        <!-- Pump Table -->
-        <div>
-            <table id="pump-table" style="border: 1px solid var(--border-color); border-collapse: collapse; border-radius: 0.25rem; background-color: var(--card-background); margin: 0 auto;">
-                <thead>
-                    <tr style="background-color: #f0f0f0;">
-                        <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">Pumps</th>
-                        <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">GPM</th>
-                        <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">W</th>
-                    </tr>
-                </thead>
-                <tbody id="pump-tbody">
-                    <tr>
-                        <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
-                        <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
-                        <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-    
-    <!-- System State Information -->
-    <div id="system-state" style="text-align: center; max-width: 1000px; margin: 20px auto 20px auto; background-color: var(--card-background); border: 1px solid var(--border-color); border-radius: 0.25rem; padding: 20px;">
-        <div id="hp-state" style="font-size: 18px; font-weight: 600; color: var(--text-color);">Determining state...</div>
-        <div id="storage-state" style="font-size: 18px; font-weight: 600; color: var(--text-color);">Determining state...</div>
-        <div id="combined-state" style="font-size: 20px; font-weight: 700; color: var(--text-color);">Determining state...</div>
-    </div>
+        <div id="relays" style="margin-bottom: 40px;"></div>
 
     <style>
         :root {
