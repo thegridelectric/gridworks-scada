@@ -14,7 +14,7 @@ class EnergyInstruction(BaseModel):
     SendTimeMs: UTCMilliseconds
     AvgPowerWatts: StrictInt
     TypeName: Literal["energy.instruction"] = "energy.instruction"
-    Version: Literal["000"] = "000"
+    Version: str = "000"
 
     @field_validator("SlotStartS")
     @classmethod

@@ -23,7 +23,7 @@ class WeatherForecast(BaseModel):
     WeatherUid: UUID4Str = Field(default_factory=lambda: str(uuid.uuid4()))
     ForecastCreatedS: UTCSeconds = Field(default_factory=lambda: int(time.time()))
     TypeName: Literal["weather.forecast"] = "weather.forecast"
-    Version: Literal["000"] = "000"
+    Version: str = "000"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

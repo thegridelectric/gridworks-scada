@@ -17,7 +17,7 @@ class DispatchContractGoLive(BaseModel):
     FromGNodeAlias: LeftRightDotStr
     BlockchainSig: str
     TypeName: Literal["dispatch.contract.go.live"] = "dispatch.contract.go.live"
-    Version: Literal["000"] = "000"
+    Version: str = "000"
 
     @field_validator("BlockchainSig")
     @classmethod

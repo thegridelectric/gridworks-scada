@@ -7,4 +7,4 @@ from pydantic import BaseModel
 
 class HackOilOn(BaseModel):
     TypeName: Literal["hack.oil.on"] = "hack.oil.on"
-    Version: Literal["000"] = "000"
+    Version: str = "000"

@@ -43,7 +43,7 @@ class FlowHallParams(BaseModel):
     PublishTicklistPeriodS: int
     PublishEmptyTicklistAfterS: int
     TypeName: Literal["flow.hall.params"] = "flow.hall.params"
-    Version: Literal["101"] = "101"
+    Version: str = "101"
 
 
 class FlowReedParams(BaseModel):
@@ -54,7 +54,7 @@ class FlowReedParams(BaseModel):
     PublishAnyTicklistAfterS: int
     DeadbandMilliseconds: int
     TypeName: Literal["flow.reed.params"] = "flow.reed.params"
-    Version: Literal["101"] = "101"
+    Version: str = "101"
 
 
 class ApiFlowModule(ScadaActor):

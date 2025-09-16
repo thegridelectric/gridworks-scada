@@ -59,6 +59,6 @@ class FloParamsHouse0(BaseModel):
     FloAlias: str = "Winter.Oak"
     FloGitCommit: str = "76e267b"
     TypeName: Literal["flo.params.house0"] = "flo.params.house0"
-    Version: Literal["003"] = "003"
+    Version: str = "003"
 
     model_config = ConfigDict(extra="allow", use_enum_values=True)

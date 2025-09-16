@@ -35,7 +35,7 @@ class MicroVolts(BaseModel):
     AboutNodeNameList: List[str]
     MicroVoltsList: List[int]
     TypeName: Literal["microvolts"] = "microvolts"
-    Version: Literal["100"] = "100"
+    Version: str = "100"
 
 
 class ApiTankModule(ScadaActor):

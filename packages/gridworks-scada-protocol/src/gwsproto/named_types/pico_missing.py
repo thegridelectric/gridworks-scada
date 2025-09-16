@@ -10,4 +10,4 @@ class PicoMissing(BaseModel):
     ActorName: SpaceheatName
     PicoHwUid: str
     TypeName: Literal["pico.missing"] = "pico.missing"
-    Version: Literal["000"] = "000"
+    Version: str = "000"

@@ -10,4 +10,4 @@ class AdminDispatch(BaseModel):
     DispatchTrigger: FsmEvent
     TimeoutSeconds: StrictInt
     TypeName: Literal["admin.dispatch"] = "admin.dispatch"
-    Version: Literal["000"] = "000"
+    Version: str = "000"

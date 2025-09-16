@@ -12,7 +12,7 @@ class NewCommandTree(BaseModel):
     ShNodes: List[SpaceheatNodeGt]
     UnixMs: UTCMilliseconds
     TypeName: Literal["new.command.tree"] = "new.command.tree"
-    Version: Literal["000"] = "000"
+    Version: str = "000"
 
     @field_validator("ShNodes")
     @classmethod

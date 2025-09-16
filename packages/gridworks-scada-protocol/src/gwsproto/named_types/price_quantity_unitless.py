@@ -9,4 +9,4 @@ class PriceQuantityUnitless(BaseModel):
     PriceTimes1000: StrictInt
     QuantityTimes1000: StrictInt
     TypeName: Literal["price.quantity.unitless"] = "price.quantity.unitless"
-    Version: Literal["000"] = "000"
+    Version: str = "000"

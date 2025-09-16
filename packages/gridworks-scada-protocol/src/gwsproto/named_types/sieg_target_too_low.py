@@ -14,4 +14,4 @@ class SiegTargetTooLow(BaseModel):
     HeatPumpDeltaTx10: StrictInt
     TimeMs: UTCMilliseconds
     TypeName: Literal["sieg.target.too.low"] = "sieg.target.too.low"
-    Version: Literal["000"] = "000"
+    Version: str = "000"

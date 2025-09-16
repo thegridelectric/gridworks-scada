@@ -9,4 +9,4 @@ class NoNewContractWarning(BaseModel):
     ContractId: UUID4Str
     GraceEndTimeS: UTCSeconds
     TypeName: Literal["no.new.contract.warning"] = "no.new.contract.warning"
-    Version: Literal["000"] = "000"
+    Version: str = "000"

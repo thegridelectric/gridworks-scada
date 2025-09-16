@@ -8,4 +8,4 @@ from pydantic import BaseModel
 class GoDormant(BaseModel):
     ToName: SpaceheatName
     TypeName: Literal["go.dormant"] = "go.dormant"
-    Version: Literal["001"] = "001"
+    Version: str = "001"

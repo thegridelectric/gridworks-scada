@@ -14,4 +14,4 @@ class LatestPrice(BaseModel):
     MarketSlotName: MarketSlotName
     MessageId: UUID4Str
     TypeName: Literal["latest.price"] = "latest.price"
-    Version: Literal["000"] = "000"
+    Version: str = "000"

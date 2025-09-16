@@ -23,7 +23,7 @@ class MarketMakerAck(BaseModel):
     Signature: str
     AckTimeMs: UTCMilliseconds
     TypeName: Literal["market.maker.ack"] = "market.maker.ack"
-    Version: Literal["000"] = "000"
+    Version: str = "000"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

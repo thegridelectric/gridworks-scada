@@ -12,7 +12,7 @@ class ChannelFlatlined(BaseModel):
     FromName: SpaceheatName
     Channel: DataChannelGt
     TypeName: Literal["channel.flatlined"] = "channel.flatlined"
-    Version: Literal["000"] = "000"
+    Version: str = "000"
 
     @model_validator(mode="after")
     def check_axiom_2(self) -> Self:

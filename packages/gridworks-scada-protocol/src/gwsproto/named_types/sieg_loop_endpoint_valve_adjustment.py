@@ -19,7 +19,7 @@ class SiegLoopEndpointValveAdjustment(BaseModel):
     Seconds: PositiveInt
     CreatedMs: UTCMilliseconds = Field(default_factory=lambda: int(time.time() * 1000))
     TypeName: Literal["sieg.loop.endpoint.valve.adjustment"] = "sieg.loop.endpoint.valve.adjustment"
-    Version: Literal["000"] = "000"
+    Version: str = "000"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

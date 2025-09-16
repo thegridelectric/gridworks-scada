@@ -19,7 +19,7 @@ class SlowContractHeartbeat(BaseModel):
     YourLastDigit: Optional[int] = None
     SignedProof: str = "algo_sig_dummy" # For blockchain validation
     TypeName: Literal["slow.contract.heartbeat"] = "slow.contract.heartbeat"
-    Version: Literal["000"] = "000"
+    Version: str = "000"
 
 
     def contract_grace_period_minutes(self) -> Literal[5]:

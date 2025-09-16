@@ -15,4 +15,4 @@ class Glitch(BaseModel):
     Details: str
     CreatedMs: UTCMilliseconds = Field(default_factory=lambda: int(time.time() * 1000))
     TypeName: Literal["glitch"] = "glitch"
-    Version: Literal["000"] = "000"
+    Version: str = "000"

@@ -33,7 +33,7 @@ class LayoutLite(BaseModel):
     Ha1Params: Ha1Params
     I2cRelayComponent: I2cMultichannelDtRelayComponentGt
     TypeName: Literal["layout.lite"] = "layout.lite"
-    Version: Literal["004"] = "004"
+    Version: str = "004"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
