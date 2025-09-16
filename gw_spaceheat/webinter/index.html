@@ -89,69 +89,162 @@
         <div id="system-diagram" style="text-align: center; max-width: 1200px; margin: 20px auto 400px auto; background-color: var(--card-background); border: 1px solid var(--border-color); border-radius: 0.25rem; padding: 30px;">
             <h2 style="margin-top: 0; margin-bottom: 30px; color: var(--text-color);">System Overview</h2>
             <svg id="diagram-svg" viewBox="0 0 1000 500" style="width: 100%; height: auto; max-width: 1000px;">
+                <defs>
+                    <!-- Flow pattern for HpOffStoreDischarge top horizontal pipe -->
+                    <pattern id="flowPattern" x="0" y="0" width="90" height="15" patternUnits="userSpaceOnUse">
+                        <rect width="90" height="15" fill="#4CAF50"/>
+                        <rect x="0" y="0" width="15" height="15" fill="#66BB6A"/>
+                        <rect x="30" y="0" width="15" height="15" fill="#66BB6A"/>
+                        <rect x="60" y="0" width="15" height="15" fill="#66BB6A"/>
+                        <animateTransform
+                            attributeName="patternTransform"
+                            type="translate"
+                            values="0 0; 90 0"
+                            dur="1.2s"
+                            repeatCount="indefinite"/>
+                    </pattern>
+                    
+                    <!-- Flow pattern for HpOffStoreDischarge vertical pipe (upward flow) -->
+                    <pattern id="verticalFlowPattern" x="0" y="0" width="15" height="90" patternUnits="userSpaceOnUse">
+                        <rect width="15" height="90" fill="#4CAF50"/>
+                        <rect x="0" y="0" width="15" height="15" fill="#66BB6A"/>
+                        <rect x="0" y="30" width="15" height="15" fill="#66BB6A"/>
+                        <rect x="0" y="60" width="15" height="15" fill="#66BB6A"/>
+                        <animateTransform
+                            attributeName="patternTransform"
+                            type="translate"
+                            values="0 0; 0 -90"
+                            dur="1.2s"
+                            repeatCount="indefinite"/>
+                    </pattern>
+                    
+                    <!-- Flow pattern for HpOffStoreDischarge vertical pipe (downward flow) -->
+                    <pattern id="verticalDownFlowPattern" x="0" y="0" width="15" height="90" patternUnits="userSpaceOnUse">
+                        <rect width="15" height="90" fill="#4CAF50"/>
+                        <rect x="0" y="0" width="15" height="15" fill="#66BB6A"/>
+                        <rect x="0" y="30" width="15" height="15" fill="#66BB6A"/>
+                        <rect x="0" y="60" width="15" height="15" fill="#66BB6A"/>
+                        <animateTransform
+                            attributeName="patternTransform"
+                            type="translate"
+                            values="0 0; 0 90"
+                            dur="1.2s"
+                            repeatCount="indefinite"/>
+                    </pattern>
+                    
+                    <!-- Flow pattern for HpOffStoreDischarge horizontal pipe (leftward flow) -->
+                    <pattern id="leftFlowPattern" x="0" y="0" width="90" height="15" patternUnits="userSpaceOnUse">
+                        <rect width="90" height="15" fill="#4CAF50"/>
+                        <rect x="0" y="0" width="15" height="15" fill="#66BB6A"/>
+                        <rect x="30" y="0" width="15" height="15" fill="#66BB6A"/>
+                        <rect x="60" y="0" width="15" height="15" fill="#66BB6A"/>
+                        <animateTransform
+                            attributeName="patternTransform"
+                            type="translate"
+                            values="0 0; -90 0"
+                            dur="1.2s"
+                            repeatCount="indefinite"/>
+                    </pattern>
+                </defs>
                 <!-- Heat pump (left) -->
-                <rect x="20" y="50" width="120" height="200" rx="10" fill="#666" stroke="#444" stroke-width="2"/>
+                <rect x="20" y="50" width="120" height="200" rx="10" fill="#666"/>
                 <text x="80" y="150" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">Heat pump</text>
                 <text id="hp-lift" x="80" y="170" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">Lift: -°F</text>
                 
                 <!-- Buffer (right) -->
-                <rect x="860" y="50" width="120" height="200" rx="10" fill="transparent" stroke="transparent" stroke-width="2"/>
+                <rect x="860" y="50" width="120" height="200" rx="10" fill="transparent"/>
                 <!-- Buffer sections -->
-                <path id="buffer-section1" d="M 860,60 Q 860,50 870,50 L 970,50 Q 980,50 980,60 L 980,116 L 860,116 Z" fill="#444" stroke="#333" stroke-width="1"/>
-                <rect id="buffer-section2" x="860" y="116" width="120" height="66" fill="#444" stroke="#333" stroke-width="1"/>
-                <path id="buffer-section3" d="M 860,182 L 980,182 L 980,240 Q 980,250 970,250 L 870,250 Q 860,250 860,240 Z" fill="#444" stroke="#333" stroke-width="1"/>
+                <path id="buffer-section1" d="M 860,60 Q 860,50 870,50 L 970,50 Q 980,50 980,60 L 980,116 L 860,116 Z" fill="#444"/>
+                <rect id="buffer-section2" x="860" y="116" width="120" height="66" fill="#444"/>
+                <path id="buffer-section3" d="M 860,182 L 980,182 L 980,240 Q 980,250 970,250 L 870,250 Q 860,250 860,240 Z" fill="#444"/>
                 <text id="buffer-depth1" x="920" y="90" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
                 <text id="buffer-depth2" x="920" y="156" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
                 <text id="buffer-depth3" x="920" y="222" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
                 <text x="920" y="270" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">Buffer</text>
                 
                 <!-- House (bottom right, left of buffer) -->
-                <rect x="660" y="280" width="120" height="200" rx="10" fill="#666" stroke="#444" stroke-width="2"/>
+                <rect x="660" y="280" width="120" height="200" rx="10" fill="#666"/>
                 <text x="720" y="385" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">House</text>
                 <text id="house-drop" x="720" y="405" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">Drop: -°F</text>
                 
                 <!-- Tank 3 (bottom left) -->
-                <rect x="200" y="280" width="120" height="200" rx="10" fill="transparent" stroke="transparent" stroke-width="2"/>
+                <rect x="200" y="280" width="120" height="200" rx="10" fill="transparent"/>
                 <!-- Tank 3 sections -->
-                <path id="tank3-section1" d="M 200,290 Q 200,280 210,280 L 310,280 Q 320,280 320,290 L 320,346 L 200,346 Z" fill="#444" stroke="#333" stroke-width="1"/>
-                <rect id="tank3-section2" x="200" y="346" width="120" height="66" fill="#444" stroke="#333" stroke-width="1"/>
-                <path id="tank3-section3" d="M 200,412 L 320,412 L 320,470 Q 320,480 310,480 L 210,480 Q 200,480 200,470 Z" fill="#444" stroke="#333" stroke-width="1"/>
+                <path id="tank3-section1" d="M 200,290 Q 200,280 210,280 L 310,280 Q 320,280 320,290 L 320,346 L 200,346 Z" fill="#444"/>
+                <rect id="tank3-section2" x="200" y="346" width="120" height="66" fill="#444"/>
+                <path id="tank3-section3" d="M 200,412 L 320,412 L 320,470 Q 320,480 310,480 L 210,480 Q 200,480 200,470 Z" fill="#444"/>
                 <text id="tank3-depth1" x="260" y="320" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
                 <text id="tank3-depth2" x="260" y="386" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
                 <text id="tank3-depth3" x="260" y="452" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
                 <text x="260" y="500" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">Tank 3</text>
                 
                 <!-- Tank 2 (bottom center) -->
-                <rect x="330" y="280" width="120" height="200" rx="10" fill="transparent" stroke="transparent" stroke-width="2"/>
+                <rect x="330" y="280" width="120" height="200" rx="10" fill="transparent"/>
                 <!-- Tank 2 sections -->
-                <path id="tank2-section1" d="M 330,290 Q 330,280 340,280 L 440,280 Q 450,280 450,290 L 450,346 L 330,346 Z" fill="#444" stroke="#333" stroke-width="1"/>
-                <rect id="tank2-section2" x="330" y="346" width="120" height="66" fill="#444" stroke="#333" stroke-width="1"/>
-                <path id="tank2-section3" d="M 330,412 L 450,412 L 450,470 Q 450,480 440,480 L 340,480 Q 330,480 330,470 Z" fill="#444" stroke="#333" stroke-width="1"/>
+                <path id="tank2-section1" d="M 330,290 Q 330,280 340,280 L 440,280 Q 450,280 450,290 L 450,346 L 330,346 Z" fill="#444"/>
+                <rect id="tank2-section2" x="330" y="346" width="120" height="66" fill="#444"/>
+                <path id="tank2-section3" d="M 330,412 L 450,412 L 450,470 Q 450,480 440,480 L 340,480 Q 330,480 330,470 Z" fill="#444"/>
                 <text id="tank2-depth1" x="390" y="320" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
                 <text id="tank2-depth2" x="390" y="386" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
                 <text id="tank2-depth3" x="390" y="452" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
                 <text x="390" y="500" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">Tank 2</text>
                 
                 <!-- Tank 1 (bottom right) -->
-                <rect x="460" y="280" width="120" height="200" rx="10" fill="transparent" stroke="transparent" stroke-width="2"/>
+                <rect x="460" y="280" width="120" height="200" rx="10" fill="transparent"/>
                 <!-- Tank 1 sections -->
-                <path id="tank1-section1" d="M 460,290 Q 460,280 470,280 L 570,280 Q 580,280 580,290 L 580,346 L 460,346 Z" fill="#444" stroke="#333" stroke-width="1"/>
-                <rect id="tank1-section2" x="460" y="346" width="120" height="66" fill="#444" stroke="#333" stroke-width="1"/>
-                <path id="tank1-section3" d="M 460,412 L 580,412 L 580,470 Q 580,480 570,480 L 470,480 Q 460,480 460,470 Z" fill="#444" stroke="#333" stroke-width="1"/>
+                <path id="tank1-section1" d="M 460,290 Q 460,280 470,280 L 570,280 Q 580,280 580,290 L 580,346 L 460,346 Z" fill="#444"/>
+                <rect id="tank1-section2" x="460" y="346" width="120" height="66" fill="#444"/>
+                <path id="tank1-section3" d="M 460,412 L 580,412 L 580,470 Q 580,480 570,480 L 470,480 Q 460,480 460,470 Z" fill="#444"/>
                 <text id="tank1-depth1" x="520" y="320" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
                 <text id="tank1-depth2" x="520" y="386" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
                 <text id="tank1-depth3" x="520" y="452" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
                 <text x="520" y="500" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">Tank 1</text>
                 
                 <!-- Top pipe (from top of heat pump to top of buffer) -->
-                <rect x="140" y="75" width="720" height="15" fill="#888" stroke="#666" stroke-width="1"/>
+                <rect id="hp-buffer-top-pipe" x="140" y="75" width="720" height="15" fill="#888"/>
                 <text id="hp-lwt" x="170" y="70" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
                 <text id="buffer-hot-pipe" x="830" y="70" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
 
                 <!-- Bottom pipe (from bottom of heat pump to bottom of buffer) -->
-                <rect x="140" y="205" width="720" height="15" fill="#888" stroke="#666" stroke-width="1"/>
+                <rect id="hp-buffer-bottom-pipe" x="140" y="215" width="720" height="15" fill="#888"/>
                 <text id="hp-ewt" x="170" y="200" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
                 <text id="buffer-cold-pipe" x="830" y="200" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
+
+                <!-- Vertical pipe from Tank 1 to heat pump top pipe (HpOffStoreDischarge) -->
+                <rect id="tank1-hp-vertical-pipe" x="590" y="90" width="15" height="205" fill="#888"/>
+                
+                <!-- Horizontal pipe from Tank1-HP vertical pipe to buffer top (HpOffStoreDischarge) -->
+                <rect id="tank1-buffer-horizontal-pipe" x="590" y="75" width="270" height="15" fill="#888"/>
+                
+                <!-- Small horizontal pipe from bottom of vertical pipe to top of Tank1 (HpOffStoreDischarge) -->
+                <rect id="tank1-connection-pipe" x="580" y="295" width="25" height="15" fill="#888"/>
+                
+                <!-- Vertical pipe from bottom left of Tank3 to HP-Buffer bottom pipe (HpOffStoreDischarge) -->
+                <rect id="tank3-hp-vertical-pipe" x="175" y="220" width="15" height="220" fill="#888"/>
+                
+                <!-- Horizontal pipe from top of Tank3 vertical pipe to bottom of buffer (HpOffStoreDischarge) -->
+                <rect id="tank3-buffer-horizontal-pipe" x="175" y="215" width="685" height="15" fill="#888"/>
+                
+                <!-- Small horizontal pipe from Tank3 vertical pipe to bottom of Tank3 (HpOffStoreDischarge) -->
+                <rect id="tank3-connection-pipe" x="175" y="440" width="25" height="15" fill="#888"/>
+                
+                <!-- Vertical pipe from Tank1 to heat pump top pipe (HpOnStoreCharge) -->
+                <rect id="tank1-hp-vertical-pipe-charge" x="590" y="90" width="15" height="205" fill="#888"/>
+                
+                <!-- Vertical pipe from bottom left of Tank3 to HP-Buffer bottom pipe (HpOnStoreCharge) -->
+                <rect id="tank3-hp-vertical-pipe-charge" x="175" y="220" width="15" height="220" fill="#888"/>
+                
+                <!-- Small horizontal pipe from Tank1 vertical pipe to top of Tank1 (HpOnStoreCharge) -->
+                <rect id="tank1-connection-pipe-charge" x="580" y="295" width="25" height="15" fill="#888"/>
+                
+                <!-- Small horizontal pipe from Tank3 vertical pipe to bottom of Tank3 (HpOnStoreCharge) -->
+                <rect id="tank3-connection-pipe-charge" x="175" y="440" width="25" height="15" fill="#888"/>
+                
+                <!-- Horizontal pipe from Tank1 vertical pipe to heat pump top (HpOnStoreCharge) -->
+                <rect id="tank1-hp-horizontal-pipe-charge" x="140" y="75" width="465" height="15" fill="#888"/>
+                
+                <!-- Horizontal pipe from Tank3 vertical pipe to heat pump bottom (HpOnStoreCharge) -->
+                <rect id="tank3-hp-horizontal-pipe-charge" x="140" y="215" width="50" height="15" fill="#888"/>
             </svg>
         </div>
 
@@ -653,6 +746,9 @@
             
             // Update tank temperatures
             updateTankTemperatures(snapshotData);
+            
+            // Update pipe colors based on system state
+            updatePipeColors(snapshotData);
         }
 
         function updateThermostatTable(snapshotData) {
@@ -809,7 +905,7 @@
         }
 
         function updateLayerBackground(temp) {
-            const minTemp = 100;
+            const minTemp = 50;
             const maxTemp = 160;
             const normalizedTemp = (temp - minTemp) / (maxTemp - minTemp);
             const red = Math.min(255, Math.floor(255 * normalizedTemp));
@@ -1042,6 +1138,377 @@
             }
         }
 
+        function updatePipeColors(snapshotData) {
+            // Get the current system state using the same logic as updateSystemState
+            let currentState = null;
+            
+            // Check relay states to determine system state (same logic as updateSystemState)
+            const relay5 = relays['relay5'];
+            const relay6 = relays['relay6'];
+            const relay3 = relays['relay3'];
+            const relay9 = relays['relay9'];
+            
+            if (relay5 && relay6 && relay3 && relay9) {
+                const relay5State = relay5.state;
+                const relay6State = relay6.state;
+                const relay3State = relay3.state;
+                const relay9State = relay9.state;
+                
+                // Determine HP state
+                let hpOn = false;
+                if (relay5State === 'energized' && relay6State === 'deenergized') {
+                    hpOn = true;
+                }
+                
+                // Determine storage state
+                let storeCharge = false;
+                let storeDischarge = false;
+                if (relay3State === 'energized') {
+                    storeCharge = true;
+                } else if (relay3State === 'deenergized' && relay9State === 'energized') {
+                    storeDischarge = true;
+                }
+                
+                // Calculate combined state
+                if (hpOn && storeCharge) {
+                    currentState = 'HpOnStoreCharge';
+                } else if (hpOn && !storeCharge && !storeDischarge) {
+                    currentState = 'HpOnStoreOff';
+                } else if (!hpOn && storeDischarge) {
+                    currentState = 'HpOffStoreDischarge';
+                } else if (!hpOn && !storeCharge && !storeDischarge) {
+                    currentState = 'HpOffStoreOff';
+                } else {
+                    currentState = 'Unknown combined state';
+                }
+            }
+            
+            console.log('Current system state (from relays):', currentState);
+            
+            // Get pipe elements
+            const hpBufferTopPipe = document.getElementById('hp-buffer-top-pipe');
+            const hpBufferBottomPipe = document.getElementById('hp-buffer-bottom-pipe');
+            const tank1HpVerticalPipe = document.getElementById('tank1-hp-vertical-pipe');
+            const tank1BufferHorizontalPipe = document.getElementById('tank1-buffer-horizontal-pipe');
+            const tank1ConnectionPipe = document.getElementById('tank1-connection-pipe');
+            const tank3HpVerticalPipe = document.getElementById('tank3-hp-vertical-pipe');
+            const tank3BufferHorizontalPipe = document.getElementById('tank3-buffer-horizontal-pipe');
+            const tank3ConnectionPipe = document.getElementById('tank3-connection-pipe');
+            const tank1HpVerticalPipeCharge = document.getElementById('tank1-hp-vertical-pipe-charge');
+            const tank3HpVerticalPipeCharge = document.getElementById('tank3-hp-vertical-pipe-charge');
+            const tank1ConnectionPipeCharge = document.getElementById('tank1-connection-pipe-charge');
+            const tank3ConnectionPipeCharge = document.getElementById('tank3-connection-pipe-charge');
+            const tank1HpHorizontalPipeCharge = document.getElementById('tank1-hp-horizontal-pipe-charge');
+            const tank3HpHorizontalPipeCharge = document.getElementById('tank3-hp-horizontal-pipe-charge');
+            
+            // Set pipe colors based on state
+            console.log(`Setting pipe colors for state: "${currentState}"`);
+            
+            if (currentState === 'HpOnStoreOff') {
+                // Green pipes for HpOnStoreOff state (HP to Buffer)
+                if (hpBufferTopPipe) {
+                    hpBufferTopPipe.setAttribute('fill', '#4CAF50');
+                    hpBufferTopPipe.removeAttribute('stroke');
+                    // Move to end of SVG to appear on top
+                    hpBufferTopPipe.parentNode.appendChild(hpBufferTopPipe);
+                }
+                if (hpBufferBottomPipe) {
+                    hpBufferBottomPipe.setAttribute('fill', '#4CAF50');
+                    hpBufferBottomPipe.removeAttribute('stroke');
+                    // Move to end of SVG to appear on top
+                    hpBufferBottomPipe.parentNode.appendChild(hpBufferBottomPipe);
+                }
+                // Gray for Tank1 pipes
+                if (tank1HpVerticalPipe) {
+                    tank1HpVerticalPipe.setAttribute('fill', '#888');
+                    tank1HpVerticalPipe.removeAttribute('stroke');
+                }
+                if (tank1BufferHorizontalPipe) {
+                    tank1BufferHorizontalPipe.setAttribute('fill', '#888');
+                    tank1BufferHorizontalPipe.removeAttribute('stroke');
+                }
+                if (tank1ConnectionPipe) {
+                    tank1ConnectionPipe.setAttribute('fill', '#888');
+                    tank1ConnectionPipe.removeAttribute('stroke');
+                }
+                if (tank3HpVerticalPipe) {
+                    tank3HpVerticalPipe.setAttribute('fill', '#888');
+                    tank3HpVerticalPipe.removeAttribute('stroke');
+                }
+                if (tank3BufferHorizontalPipe) {
+                    tank3BufferHorizontalPipe.setAttribute('fill', '#888');
+                    tank3BufferHorizontalPipe.removeAttribute('stroke');
+                }
+                if (tank3ConnectionPipe) {
+                    tank3ConnectionPipe.setAttribute('fill', '#888');
+                    tank3ConnectionPipe.removeAttribute('stroke');
+                }
+                if (tank1HpVerticalPipeCharge) {
+                    tank1HpVerticalPipeCharge.setAttribute('fill', '#888');
+                    tank1HpVerticalPipeCharge.removeAttribute('stroke');
+                }
+                if (tank3HpVerticalPipeCharge) {
+                    tank3HpVerticalPipeCharge.setAttribute('fill', '#888');
+                    tank3HpVerticalPipeCharge.removeAttribute('stroke');
+                }
+                if (tank1ConnectionPipeCharge) {
+                    tank1ConnectionPipeCharge.setAttribute('fill', '#888');
+                    tank1ConnectionPipeCharge.removeAttribute('stroke');
+                }
+                if (tank3ConnectionPipeCharge) {
+                    tank3ConnectionPipeCharge.setAttribute('fill', '#888');
+                    tank3ConnectionPipeCharge.removeAttribute('stroke');
+                }
+                if (tank1HpHorizontalPipeCharge) {
+                    tank1HpHorizontalPipeCharge.setAttribute('fill', '#888');
+                    tank1HpHorizontalPipeCharge.removeAttribute('stroke');
+                }
+                if (tank3HpHorizontalPipeCharge) {
+                    tank3HpHorizontalPipeCharge.setAttribute('fill', '#888');
+                    tank3HpHorizontalPipeCharge.removeAttribute('stroke');
+                }
+                console.log('Set HP-Buffer pipes to green for HpOnStoreOff state');
+            } else if (currentState === 'HpOffStoreDischarge') {
+                // Green pipes for HpOffStoreDischarge state (Tank1 to Buffer)
+                console.log('Setting Tank1 pipes to green for HpOffStoreDischarge state');
+                if (tank1HpVerticalPipe) {
+                    tank1HpVerticalPipe.setAttribute('fill', 'url(#verticalFlowPattern)');
+                    tank1HpVerticalPipe.removeAttribute('stroke');
+                    tank1HpVerticalPipe.parentNode.appendChild(tank1HpVerticalPipe);
+                    console.log('Successfully set Tank1-HP vertical pipe to animated green pattern');
+                } else {
+                    console.log('Tank1-HP vertical pipe element not found!');
+                }
+                if (tank1BufferHorizontalPipe) {
+                    tank1BufferHorizontalPipe.setAttribute('fill', 'url(#flowPattern)');
+                    tank1BufferHorizontalPipe.removeAttribute('stroke');
+                    tank1BufferHorizontalPipe.parentNode.appendChild(tank1BufferHorizontalPipe);
+                    console.log('Successfully set Tank1-Buffer horizontal pipe to animated green pattern');
+                } else {
+                    console.log('Tank1-Buffer horizontal pipe element not found!');
+                }
+                if (tank1ConnectionPipe) {
+                    tank1ConnectionPipe.setAttribute('fill', 'url(#flowPattern)');
+                    tank1ConnectionPipe.removeAttribute('stroke');
+                    tank1ConnectionPipe.parentNode.appendChild(tank1ConnectionPipe);
+                    console.log('Successfully set Tank1 connection pipe to animated green pattern');
+                } else {
+                    console.log('Tank1 connection pipe element not found!');
+                }
+                if (tank3HpVerticalPipe) {
+                    tank3HpVerticalPipe.setAttribute('fill', 'url(#verticalDownFlowPattern)');
+                    tank3HpVerticalPipe.removeAttribute('stroke');
+                    tank3HpVerticalPipe.parentNode.appendChild(tank3HpVerticalPipe);
+                    console.log('Successfully set Tank3-HP vertical pipe to animated green pattern');
+                } else {
+                    console.log('Tank3-HP vertical pipe element not found!');
+                }
+                if (tank3BufferHorizontalPipe) {
+                    tank3BufferHorizontalPipe.setAttribute('fill', 'url(#leftFlowPattern)');
+                    tank3BufferHorizontalPipe.removeAttribute('stroke');
+                    tank3BufferHorizontalPipe.parentNode.appendChild(tank3BufferHorizontalPipe);
+                    console.log('Successfully set Tank3-Buffer horizontal pipe to animated green pattern');
+                } else {
+                    console.log('Tank3-Buffer horizontal pipe element not found!');
+                }
+                if (tank3ConnectionPipe) {
+                    tank3ConnectionPipe.setAttribute('fill', 'url(#flowPattern)');
+                    tank3ConnectionPipe.removeAttribute('stroke');
+                    tank3ConnectionPipe.parentNode.appendChild(tank3ConnectionPipe);
+                    console.log('Successfully set Tank3 connection pipe to animated green pattern');
+                } else {
+                    console.log('Tank3 connection pipe element not found!');
+                }
+                // Gray for HpOnStoreCharge pipes
+                if (tank1HpVerticalPipeCharge) {
+                    tank1HpVerticalPipeCharge.setAttribute('fill', '#888');
+                    tank1HpVerticalPipeCharge.removeAttribute('stroke');
+                }
+                if (tank3HpVerticalPipeCharge) {
+                    tank3HpVerticalPipeCharge.setAttribute('fill', '#888');
+                    tank3HpVerticalPipeCharge.removeAttribute('stroke');
+                }
+                if (tank1ConnectionPipeCharge) {
+                    tank1ConnectionPipeCharge.setAttribute('fill', '#888');
+                    tank1ConnectionPipeCharge.removeAttribute('stroke');
+                }
+                if (tank3ConnectionPipeCharge) {
+                    tank3ConnectionPipeCharge.setAttribute('fill', '#888');
+                    tank3ConnectionPipeCharge.removeAttribute('stroke');
+                }
+                // Gray for HP-Buffer pipes
+                if (hpBufferTopPipe) {
+                    hpBufferTopPipe.setAttribute('fill', '#888');
+                    hpBufferTopPipe.removeAttribute('stroke');
+                }
+                if (hpBufferBottomPipe) {
+                    hpBufferBottomPipe.setAttribute('fill', '#888');
+                    hpBufferBottomPipe.removeAttribute('stroke');
+                }
+                if (tank1HpHorizontalPipeCharge) {
+                    tank1HpHorizontalPipeCharge.setAttribute('fill', '#888');
+                    tank1HpHorizontalPipeCharge.removeAttribute('stroke');
+                }
+                if (tank3HpHorizontalPipeCharge) {
+                    tank3HpHorizontalPipeCharge.setAttribute('fill', '#888');
+                    tank3HpHorizontalPipeCharge.removeAttribute('stroke');
+                }
+                console.log('Set Tank1 pipes to green for HpOffStoreDischarge state');
+            } else if (currentState === 'HpOnStoreCharge') {
+                // Green pipes for HpOnStoreCharge state (Tanks to HP)
+                console.log('Setting HpOnStoreCharge pipes to green');
+                if (tank1HpVerticalPipeCharge) {
+                    tank1HpVerticalPipeCharge.setAttribute('fill', '#4CAF50');
+                    tank1HpVerticalPipeCharge.removeAttribute('stroke');
+                    tank1HpVerticalPipeCharge.parentNode.appendChild(tank1HpVerticalPipeCharge);
+                    console.log('Successfully set Tank1-HP vertical pipe (charge) to green');
+                } else {
+                    console.log('Tank1-HP vertical pipe (charge) element not found!');
+                }
+                if (tank3HpVerticalPipeCharge) {
+                    tank3HpVerticalPipeCharge.setAttribute('fill', '#4CAF50');
+                    tank3HpVerticalPipeCharge.removeAttribute('stroke');
+                    tank3HpVerticalPipeCharge.parentNode.appendChild(tank3HpVerticalPipeCharge);
+                    console.log('Successfully set Tank3-HP vertical pipe (charge) to green');
+                } else {
+                    console.log('Tank3-HP vertical pipe (charge) element not found!');
+                }
+                if (tank1ConnectionPipeCharge) {
+                    tank1ConnectionPipeCharge.setAttribute('fill', '#4CAF50');
+                    tank1ConnectionPipeCharge.removeAttribute('stroke');
+                    tank1ConnectionPipeCharge.parentNode.appendChild(tank1ConnectionPipeCharge);
+                    console.log('Successfully set Tank1 connection pipe (charge) to green');
+                } else {
+                    console.log('Tank1 connection pipe (charge) element not found!');
+                }
+                if (tank3ConnectionPipeCharge) {
+                    tank3ConnectionPipeCharge.setAttribute('fill', '#4CAF50');
+                    tank3ConnectionPipeCharge.removeAttribute('stroke');
+                    tank3ConnectionPipeCharge.parentNode.appendChild(tank3ConnectionPipeCharge);
+                    console.log('Successfully set Tank3 connection pipe (charge) to green');
+                } else {
+                    console.log('Tank3 connection pipe (charge) element not found!');
+                }
+                if (tank1HpHorizontalPipeCharge) {
+                    tank1HpHorizontalPipeCharge.setAttribute('fill', '#4CAF50');
+                    tank1HpHorizontalPipeCharge.removeAttribute('stroke');
+                    tank1HpHorizontalPipeCharge.parentNode.appendChild(tank1HpHorizontalPipeCharge);
+                    console.log('Successfully set Tank1-HP horizontal pipe (charge) to green');
+                } else {
+                    console.log('Tank1-HP horizontal pipe (charge) element not found!');
+                }
+                if (tank3HpHorizontalPipeCharge) {
+                    tank3HpHorizontalPipeCharge.setAttribute('fill', '#4CAF50');
+                    tank3HpHorizontalPipeCharge.removeAttribute('stroke');
+                    tank3HpHorizontalPipeCharge.parentNode.appendChild(tank3HpHorizontalPipeCharge);
+                    console.log('Successfully set Tank3-HP horizontal pipe (charge) to green');
+                } else {
+                    console.log('Tank3-HP horizontal pipe (charge) element not found!');
+                }
+                // Gray for all other pipes
+                if (hpBufferTopPipe) {
+                    hpBufferTopPipe.setAttribute('fill', '#888');
+                    hpBufferTopPipe.removeAttribute('stroke');
+                }
+                if (hpBufferBottomPipe) {
+                    hpBufferBottomPipe.setAttribute('fill', '#888');
+                    hpBufferBottomPipe.removeAttribute('stroke');
+                }
+                if (tank1HpVerticalPipe) {
+                    tank1HpVerticalPipe.setAttribute('fill', '#888');
+                    tank1HpVerticalPipe.removeAttribute('stroke');
+                }
+                if (tank1BufferHorizontalPipe) {
+                    tank1BufferHorizontalPipe.setAttribute('fill', '#888');
+                    tank1BufferHorizontalPipe.removeAttribute('stroke');
+                }
+                if (tank1ConnectionPipe) {
+                    tank1ConnectionPipe.setAttribute('fill', '#888');
+                    tank1ConnectionPipe.removeAttribute('stroke');
+                }
+                if (tank3HpVerticalPipe) {
+                    tank3HpVerticalPipe.setAttribute('fill', '#888');
+                    tank3HpVerticalPipe.removeAttribute('stroke');
+                }
+                if (tank3BufferHorizontalPipe) {
+                    tank3BufferHorizontalPipe.setAttribute('fill', '#888');
+                    tank3BufferHorizontalPipe.removeAttribute('stroke');
+                }
+                if (tank3ConnectionPipe) {
+                    tank3ConnectionPipe.setAttribute('fill', '#888');
+                    tank3ConnectionPipe.removeAttribute('stroke');
+                }
+                if (tank1HpHorizontalPipeCharge) {
+                    tank1HpHorizontalPipeCharge.setAttribute('fill', '#888');
+                    tank1HpHorizontalPipeCharge.removeAttribute('stroke');
+                }
+                if (tank3HpHorizontalPipeCharge) {
+                    tank3HpHorizontalPipeCharge.setAttribute('fill', '#888');
+                    tank3HpHorizontalPipeCharge.removeAttribute('stroke');
+                }
+                console.log('Set HpOnStoreCharge pipes to green');
+            } else {
+                // Gray pipes for other states
+                if (hpBufferTopPipe) {
+                    hpBufferTopPipe.setAttribute('fill', '#888');
+                    hpBufferTopPipe.removeAttribute('stroke');
+                }
+                if (hpBufferBottomPipe) {
+                    hpBufferBottomPipe.setAttribute('fill', '#888');
+                    hpBufferBottomPipe.removeAttribute('stroke');
+                }
+                if (tank1HpVerticalPipe) {
+                    tank1HpVerticalPipe.setAttribute('fill', '#888');
+                    tank1HpVerticalPipe.removeAttribute('stroke');
+                }
+                if (tank1BufferHorizontalPipe) {
+                    tank1BufferHorizontalPipe.setAttribute('fill', '#888');
+                    tank1BufferHorizontalPipe.removeAttribute('stroke');
+                }
+                if (tank1ConnectionPipe) {
+                    tank1ConnectionPipe.setAttribute('fill', '#888');
+                    tank1ConnectionPipe.removeAttribute('stroke');
+                }
+                if (tank3HpVerticalPipe) {
+                    tank3HpVerticalPipe.setAttribute('fill', '#888');
+                    tank3HpVerticalPipe.removeAttribute('stroke');
+                }
+                if (tank3BufferHorizontalPipe) {
+                    tank3BufferHorizontalPipe.setAttribute('fill', '#888');
+                    tank3BufferHorizontalPipe.removeAttribute('stroke');
+                }
+                if (tank3ConnectionPipe) {
+                    tank3ConnectionPipe.setAttribute('fill', '#888');
+                    tank3ConnectionPipe.removeAttribute('stroke');
+                }
+                if (tank1HpVerticalPipeCharge) {
+                    tank1HpVerticalPipeCharge.setAttribute('fill', '#888');
+                    tank1HpVerticalPipeCharge.removeAttribute('stroke');
+                }
+                if (tank3HpVerticalPipeCharge) {
+                    tank3HpVerticalPipeCharge.setAttribute('fill', '#888');
+                    tank3HpVerticalPipeCharge.removeAttribute('stroke');
+                }
+                if (tank1ConnectionPipeCharge) {
+                    tank1ConnectionPipeCharge.setAttribute('fill', '#888');
+                    tank1ConnectionPipeCharge.removeAttribute('stroke');
+                }
+                if (tank3ConnectionPipeCharge) {
+                    tank3ConnectionPipeCharge.setAttribute('fill', '#888');
+                    tank3ConnectionPipeCharge.removeAttribute('stroke');
+                }
+                if (tank1HpHorizontalPipeCharge) {
+                    tank1HpHorizontalPipeCharge.setAttribute('fill', '#888');
+                    tank1HpHorizontalPipeCharge.removeAttribute('stroke');
+                }
+                if (tank3HpHorizontalPipeCharge) {
+                    tank3HpHorizontalPipeCharge.setAttribute('fill', '#888');
+                    tank3HpHorizontalPipeCharge.removeAttribute('stroke');
+                }
+                console.log('Set all pipes to gray for state:', currentState);
+            }
+        }
+
         function createTankSections(tankNum, maxDepth) {
             // Tank positions
             const tankPositions = {
@@ -1091,8 +1558,6 @@
                 
                 sectionElement.setAttribute('id', `tank${tankNum}-section${depth}`);
                 sectionElement.setAttribute('fill', '#444');
-                sectionElement.setAttribute('stroke', '#333');
-                sectionElement.setAttribute('stroke-width', '1');
                 
                 // Insert after the tank background rectangle
                 const tankRect = document.querySelector(`rect[x="${pos.x}"][y="${pos.y}"]`);
@@ -1156,8 +1621,6 @@
                 
                 sectionElement.setAttribute('id', `buffer-section${depth}`);
                 sectionElement.setAttribute('fill', '#444');
-                sectionElement.setAttribute('stroke', '#333');
-                sectionElement.setAttribute('stroke-width', '1');
                 
                 // Insert after the buffer background rectangle
                 const bufferRect = document.querySelector(`rect[x="860"][y="50"]`);
