@@ -2,7 +2,7 @@
 Tests for enum main.auto.event.001 from the GridWorks Type Registry.
 """
 
-from enums import MainAutoEvent
+from gwsproto.enums import MainAutoEvent
 
 
 def test_main_auto_event() -> None:

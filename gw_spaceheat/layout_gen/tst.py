@@ -13,7 +13,7 @@ from gwproto.named_types import SpaceheatNodeGt
 from gwproto.named_types import ElectricMeterChannelConfig
 from gwproto.named_types import DataChannelGt
 from gwproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
-from data_classes.house_0_names import H0N, H0CN
+from gwsproto.data_classes.house_0_names import H0N, H0CN
 from pydantic_extra_types.mac_address import MacAddress
 
 from layout_gen import add_tank2

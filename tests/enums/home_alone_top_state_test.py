@@ -2,7 +2,7 @@
 Tests for enum home.alone.top.state.000 from the GridWorks Type Registry.
 """
 
-from enums import HomeAloneTopState
+from gwsproto.enums import HomeAloneTopState
 
 
 def test_home_alone_top_state() -> None:

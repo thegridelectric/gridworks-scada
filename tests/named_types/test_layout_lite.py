@@ -1,6 +1,6 @@
 """Tests layout.lite type, version 001"""
 
-from named_types import LayoutLite
+from gwsproto.named_types import LayoutLite
 
 
 def test_layout_lite_generated() -> None:

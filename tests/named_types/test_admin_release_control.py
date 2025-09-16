@@ -1,6 +1,6 @@
 """Tests admin.release.control type, version 000"""
 
-from named_types import AdminReleaseControl
+from gwsproto.named_types import AdminReleaseControl
 
 
 def test_admin_release_control_generated() -> None:

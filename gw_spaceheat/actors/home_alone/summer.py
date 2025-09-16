@@ -3,8 +3,8 @@ from enum import auto
 from typing import List, Optional, Sequence
 import time
 from actors.scada_interface import ScadaInterface
-from data_classes.house_0_names import H0N
-from enums import HomeAloneStrategy
+from gwsproto.data_classes.house_0_names import H0N
+from gwsproto.enums import HomeAloneStrategy
 from gw.enums import GwStrEnum
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
@@ -12,12 +12,12 @@ from gwproactor.message import PatInternalWatchdogMessage
 from gwproto.enums import ActorClass
 from gwproto import Message
 from result import Ok, Result
-from named_types import SingleMachineState
+from gwsproto.named_types import SingleMachineState
 from gwproto.data_classes.sh_node import ShNode
 from transitions import Machine
 from actors.scada_actor import ScadaActor
 from actors.scada_interface import ScadaInterface
-from named_types import ActuatorsReady, GoDormant, HeatingForecast, WakeUp
+from gwsproto.named_types import ActuatorsReady, GoDormant, HeatingForecast, WakeUp
 
 class SummerTopState(GwStrEnum):
     EverythingOff = auto()

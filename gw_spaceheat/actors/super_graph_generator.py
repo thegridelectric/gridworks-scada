@@ -1,7 +1,7 @@
 from typing import Dict, List, Tuple
 import json
 import time
-from named_types import FloParamsHouse0
+from gwsproto.named_types import FloParamsHouse0
 from dijkstra_types import DParams, DNode, to_kelvin
 
 

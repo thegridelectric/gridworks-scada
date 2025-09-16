@@ -1,6 +1,6 @@
 """Tests dispatch.contract.go.dormant type, version 000"""
 
-from named_types import DispatchContractGoDormant
+from gwsproto.named_types import DispatchContractGoDormant
 
 
 def test_dispatch_contract_go_dormant_generated() -> None:

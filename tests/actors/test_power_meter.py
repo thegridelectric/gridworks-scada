@@ -3,13 +3,13 @@ import logging
 import typing
 from gwproto.data_classes.components import ElectricMeterComponent
 from actors.config import ScadaSettings
-from data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.house_0_layout import House0Layout
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import GridworksSimPm1_PowerMeterDriver
 
 from scada_app import ScadaApp
 from gwproactor_test.certs import uses_tls
 from gwproactor_test.certs import copy_keys
-from data_classes.house_0_names import H0N, H0CN
+from gwsproto.data_classes.house_0_names import H0N, H0CN
 
 import pytest
 from actors.power_meter import DriverThreadSetupHelper

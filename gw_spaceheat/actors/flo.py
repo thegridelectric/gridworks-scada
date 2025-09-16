@@ -5,7 +5,7 @@ import numpy as np
 from typing import Dict, List, Tuple
 from gwproactor.logger import LoggerOrAdapter
 from .dijkstra_types import DParams, DNode, DEdge
-from named_types import FloParamsHouse0, PriceQuantityUnitless
+from gwsproto.named_types import FloParamsHouse0, PriceQuantityUnitless
 
 
 class DGraph():

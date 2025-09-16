@@ -3,7 +3,7 @@ import logging
 
 from gwproactor import AppSettings
 from pydantic import BaseModel
-from enums import HpModel
+from gwsproto.enums import HpModel
 from gwproactor.config import MQTTClient
 from pydantic_settings import SettingsConfigDict
 

@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Sequence, cast
 from gwproactor import  MonitoredName, AppInterface
 from gwproactor.message import Message, PatInternalWatchdogMessage
 from gwproto.data_classes.components.dfr_component import DfrComponent
-from data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.house_0_layout import House0Layout
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.message import Message
 from gwproto.enums import ActorClass, MakeModel
@@ -17,7 +17,7 @@ from gw.errors import DcError
 from result import Err, Result
 from actors.scada_interface import ScadaInterface
 from actors.scada_actor import ScadaActor
-from named_types import ActuatorsReady
+from gwsproto.named_types import ActuatorsReady
 
 DFR_OUTPUT_SET_RANGE = 0x01
 DFR_OUTPUT_RANGE_10V = 17

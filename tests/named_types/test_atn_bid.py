@@ -2,8 +2,8 @@
 
 import json
 
-from enums import MarketPriceUnit, MarketQuantityUnit
-from named_types import AtnBid
+from gwsproto.enums import MarketPriceUnit, MarketQuantityUnit
+from gwsproto.named_types import AtnBid
 
 
 def test_atn_bid_generated() -> None:

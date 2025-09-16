@@ -1,6 +1,6 @@
 """Tests scada.params type, version 001"""
 
-from named_types import ScadaParams
+from gwsproto.named_types import ScadaParams
 
 
 def test_scada_params_generated() -> None:

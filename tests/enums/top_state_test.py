@@ -2,7 +2,7 @@
 Tests for enum top.state.000 from the GridWorks Type Registry.
 """
 
-from enums import TopState
+from gwsproto.enums import TopState
 
 
 def test_top_state() -> None:

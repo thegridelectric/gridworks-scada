@@ -1,6 +1,6 @@
 """Tests ha1.params type, version 000"""
 
-from named_types import Ha1Params
+from gwsproto.named_types import Ha1Params
 
 
 def test_ha1_params_generated() -> None:

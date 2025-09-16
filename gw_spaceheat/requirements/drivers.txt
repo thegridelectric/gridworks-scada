@@ -70,6 +70,7 @@ gridworks-protocol==1.2.9
     # via
     #   -r gw_spaceheat/requirements/base.in
     #   gridworks-proactor
+    #   gwsproto
 idna==2.10
     # via yarl
 jinja2==3.1.4

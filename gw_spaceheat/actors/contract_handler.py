@@ -6,12 +6,12 @@ from pathlib import Path
 from typing import Optional
 
 import pytz
-from data_classes.house_0_layout import House0Layout
-from data_classes.house_0_names import H0N
-from enums import ContractStatus, LogLevel
+from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.house_0_names import H0N
+from gwsproto.enums import ContractStatus, LogLevel
 from gwproactor.logger import LoggerOrAdapter
 from gwproto.data_classes.sh_node import ShNode
-from named_types import Glitch, SlowContractHeartbeat
+from gwsproto.named_types import Glitch, SlowContractHeartbeat
 
 
 from actors.config import ScadaSettings

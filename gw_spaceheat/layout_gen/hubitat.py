@@ -7,7 +7,7 @@ from gwproto.named_types import SpaceheatNodeGt
 from gwproto.named_types.hubitat_gt import HubitatGt
 
 from layout_gen.layout_db import LayoutDb
-from data_classes.house_0_names import H0N
+from gwsproto.data_classes.house_0_names import H0N
 
 def add_hubitat(
     db: LayoutDb,

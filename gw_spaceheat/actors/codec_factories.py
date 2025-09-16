@@ -9,18 +9,18 @@ from gwproto import create_message_model
 
 
 from actors.scada_interface import ScadaInterface
-from data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.house_0_layout import House0Layout
 
 from gwproto import MQTTCodec
 
-from data_classes.house_0_names import H0N
+from gwsproto.data_classes.house_0_names import H0N
 
 
 
 ScadaMessageDecoder = create_message_model(
     "ScadaMessageDecoder",
     [
-        "named_types",
+        "gwsproto.named_types",
         "gwproto.messages",
         "gwproactor.message",
     ],

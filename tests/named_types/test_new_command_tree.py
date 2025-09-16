@@ -1,6 +1,6 @@
 """Tests new.command.tree type, version 000"""
 
-from named_types import NewCommandTree
+from gwsproto.named_types import NewCommandTree
 
 
 def test_new_command_tree_generated() -> None:
