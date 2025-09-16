@@ -64,21 +64,13 @@ jobs:
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
 
-      - name: Publish package Publish package on **TestPyPI**
-        if: "! steps.check-version.outputs.tag"
-        run: |
-          echo doing nothing yet
-          echo would run: "uv publish --publish-url https://test.pypi.org/legacy/"
+      - name: Publish the release notes
+        uses: release-drafter/release-drafter@v6.0.0
+        with:
+          publish: ${{ steps.check-version.outputs.tag != '' }}
+          tag: ${{ steps.check-version.outputs.tag }}
         env:
-          UV_PUBLISH_TOKEN: ${{ secrets.TEST_PYPI_TOKEN }}
-
-#      - name: Publish the release notes
-#        uses: release-drafter/release-drafter@v6.0.0
-#        with:
-#          publish: ${{ steps.check-version.outputs.tag != '' }}
-#          tag: ${{ steps.check-version.outputs.tag }}
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release-gwadmin:
     name: Release gridworks-admin
@@ -136,18 +128,10 @@ jobs:
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
 
-      - name: Publish package Publish package on **TestPyPI**
-        if: "! steps.check-version.outputs.tag"
-        run: |
-          echo "Doing nothing. We don't yet have a TEST_PYPI_TOKEN."
-          echo would run: "uv publish --publish-url https://test.pypi.org/legacy/"
+      - name: Publish the release notes
+        uses: release-drafter/release-drafter@v6.0.0
+        with:
+          publish: ${{ steps.check-version.outputs.tag != '' }}
+          tag: ${{ steps.check-version.outputs.tag }}
         env:
-          UV_PUBLISH_TOKEN: ${{ secrets.TEST_PYPI_TOKEN }}
-
-#      - name: Publish the release notes
-#        uses: release-drafter/release-drafter@v6.0.0
-#        with:
-#          publish: ${{ steps.check-version.outputs.tag != '' }}
-#          tag: ${{ steps.check-version.outputs.tag }}
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
