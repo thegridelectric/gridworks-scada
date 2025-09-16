@@ -1,8 +1,6 @@
 name: Run Python Tests
 on:
-  push:
-    branches:
-      - main
+  push
 
 env:
   PYTHONPATH: gw_spaceheat:$PYTHONPATH
