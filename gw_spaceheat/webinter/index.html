@@ -85,6 +85,70 @@
             <div id="combined-state" style="font-size: 20px; font-weight: 700; color: var(--text-color);">Determining state...</div>
         </div>
 
+        <!-- System Diagram -->
+        <div id="system-diagram" style="text-align: center; max-width: 1200px; margin: 20px auto 400px auto; background-color: var(--card-background); border: 1px solid var(--border-color); border-radius: 0.25rem; padding: 30px;">
+            <h2 style="margin-top: 0; margin-bottom: 30px; color: var(--text-color);">System Overview</h2>
+            <svg id="diagram-svg" viewBox="0 0 1000 500" style="width: 100%; height: auto; max-width: 1000px;">
+                <!-- Heat pump (left) -->
+                <rect x="20" y="50" width="120" height="200" rx="10" fill="#666" stroke="#444" stroke-width="2"/>
+                <text x="80" y="160" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">Heat pump</text>
+                
+                <!-- Buffer (right) -->
+                <rect x="860" y="50" width="120" height="200" rx="10" fill="transparent" stroke="transparent" stroke-width="2"/>
+                <!-- Buffer sections -->
+                <path id="buffer-section1" d="M 860,60 Q 860,50 870,50 L 970,50 Q 980,50 980,60 L 980,116 L 860,116 Z" fill="#444" stroke="#333" stroke-width="1"/>
+                <rect id="buffer-section2" x="860" y="116" width="120" height="66" fill="#444" stroke="#333" stroke-width="1"/>
+                <path id="buffer-section3" d="M 860,182 L 980,182 L 980,240 Q 980,250 970,250 L 870,250 Q 860,250 860,240 Z" fill="#444" stroke="#333" stroke-width="1"/>
+                <text id="buffer-depth1" x="920" y="90" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
+                <text id="buffer-depth2" x="920" y="156" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
+                <text id="buffer-depth3" x="920" y="222" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
+                <text x="920" y="270" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">Buffer</text>
+                
+                <!-- House (bottom right, left of buffer) -->
+                <rect x="660" y="280" width="120" height="200" rx="10" fill="#666" stroke="#444" stroke-width="2"/>
+                <text x="720" y="390" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">House</text>
+                
+                <!-- Tank 3 (bottom left) -->
+                <rect x="200" y="280" width="120" height="200" rx="10" fill="transparent" stroke="transparent" stroke-width="2"/>
+                <!-- Tank 3 sections -->
+                <path id="tank3-section1" d="M 200,290 Q 200,280 210,280 L 310,280 Q 320,280 320,290 L 320,346 L 200,346 Z" fill="#444" stroke="#333" stroke-width="1"/>
+                <rect id="tank3-section2" x="200" y="346" width="120" height="66" fill="#444" stroke="#333" stroke-width="1"/>
+                <path id="tank3-section3" d="M 200,412 L 320,412 L 320,470 Q 320,480 310,480 L 210,480 Q 200,480 200,470 Z" fill="#444" stroke="#333" stroke-width="1"/>
+                <text id="tank3-depth1" x="260" y="320" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
+                <text id="tank3-depth2" x="260" y="386" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
+                <text id="tank3-depth3" x="260" y="452" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
+                <text x="260" y="500" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">Tank 3</text>
+                
+                <!-- Tank 2 (bottom center) -->
+                <rect x="330" y="280" width="120" height="200" rx="10" fill="transparent" stroke="transparent" stroke-width="2"/>
+                <!-- Tank 2 sections -->
+                <path id="tank2-section1" d="M 330,290 Q 330,280 340,280 L 440,280 Q 450,280 450,290 L 450,346 L 330,346 Z" fill="#444" stroke="#333" stroke-width="1"/>
+                <rect id="tank2-section2" x="330" y="346" width="120" height="66" fill="#444" stroke="#333" stroke-width="1"/>
+                <path id="tank2-section3" d="M 330,412 L 450,412 L 450,470 Q 450,480 440,480 L 340,480 Q 330,480 330,470 Z" fill="#444" stroke="#333" stroke-width="1"/>
+                <text id="tank2-depth1" x="390" y="320" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
+                <text id="tank2-depth2" x="390" y="386" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
+                <text id="tank2-depth3" x="390" y="452" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
+                <text x="390" y="500" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">Tank 2</text>
+                
+                <!-- Tank 1 (bottom right) -->
+                <rect x="460" y="280" width="120" height="200" rx="10" fill="transparent" stroke="transparent" stroke-width="2"/>
+                <!-- Tank 1 sections -->
+                <path id="tank1-section1" d="M 460,290 Q 460,280 470,280 L 570,280 Q 580,280 580,290 L 580,346 L 460,346 Z" fill="#444" stroke="#333" stroke-width="1"/>
+                <rect id="tank1-section2" x="460" y="346" width="120" height="66" fill="#444" stroke="#333" stroke-width="1"/>
+                <path id="tank1-section3" d="M 460,412 L 580,412 L 580,470 Q 580,480 570,480 L 470,480 Q 460,480 460,470 Z" fill="#444" stroke="#333" stroke-width="1"/>
+                <text id="tank1-depth1" x="520" y="320" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
+                <text id="tank1-depth2" x="520" y="386" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
+                <text id="tank1-depth3" x="520" y="452" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="12" font-weight="600">-</text>
+                <text x="520" y="500" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">Tank 1</text>
+                
+                <!-- Top pipe (from top of heat pump to top of buffer) -->
+                <rect x="140" y="75" width="720" height="15" fill="#888" stroke="#666" stroke-width="1"/>
+                
+                <!-- Bottom pipe (from bottom of heat pump to bottom of buffer) -->
+                <rect x="140" y="205" width="720" height="15" fill="#888" stroke="#666" stroke-width="1"/>
+            </svg>
+        </div>
+
         <h1 style="text-align: center; margin-top: 30px; margin-bottom: 20px;">Admin panel</h1>
     
         <div id="control-panel" style="text-align: center; max-width: 770px; margin: 0px auto 20px auto; background-color: transparent; border: 0px solid #ddd; border-radius: 3px; padding: 20px;">
@@ -580,6 +644,9 @@
             
             // Update power and pump table
             updatePowerPumpTable(snapshotData);
+            
+            // Update tank temperatures
+            updateTankTemperatures(snapshotData);
         }
 
         function updateThermostatTable(snapshotData) {
@@ -617,8 +684,8 @@
                 const stateReading = readingsMap[`${zone.key}-state`];
                 
                 // Temperature values are in degrees Fahrenheit * 10
-                const tempF = tempReading ? (tempReading.Value / 1000).toFixed(1) : 'N/A';
-                const setPointF = setPointReading ? (setPointReading.Value / 1000).toFixed(1) : 'N/A';
+                const tempF = tempReading ? (tempReading.Value / 1000).toFixed(1) : '-';
+                const setPointF = setPointReading ? (setPointReading.Value / 1000).toFixed(1) : '-';
                 const state = stateReading ? (stateReading.Value > 0 ? 'heating' : 'idle') : 'idle';
                 
                 const row = document.createElement('tr');
@@ -733,6 +800,253 @@
                 <td style="border: 1px solid var(--border-color); padding: 8px;">${storePowerReading && storePowerReading.Value > 0 ? storePowerReading.Value.toFixed(1) : '0.0'}</td>
             `;
             tbody.appendChild(row3);
+        }
+
+        function updateLayerBackground(temp) {
+            const minTemp = 100;
+            const maxTemp = 160;
+            const normalizedTemp = (temp - minTemp) / (maxTemp - minTemp);
+            const red = Math.min(255, Math.floor(255 * normalizedTemp));
+            const blue = Math.min(255, Math.floor(255 * (1 - normalizedTemp)));
+            const backgroundColor = `rgba(${red}, 0, ${blue}, 0.86)`;
+            return backgroundColor;
+        }
+
+        function updateTankTemperatures(snapshotData) {
+            if (!snapshotData || !snapshotData.LatestReadingList) return;
+            
+            // Create a lookup map for readings
+            const readingsMap = {};
+            snapshotData.LatestReadingList.forEach(reading => {
+                readingsMap[reading.ChannelName] = reading;
+            });
+            
+            // Debug: Log all available readings
+            console.log('Available readings for tank temperatures:', Object.keys(readingsMap));
+            
+            // Detect number of depth layers for each component
+            const getMaxDepth = (componentName) => {
+                let maxDepth = 3; // Default to 3 layers
+                for (let depth = 4; depth <= 10; depth++) { // Check up to 10 layers
+                    if (readingsMap[`${componentName}-depth${depth}`]) {
+                        maxDepth = depth;
+                    }
+                }
+                return maxDepth;
+            };
+            
+            // Update each tank's temperature readings
+            for (let tankNum = 1; tankNum <= 3; tankNum++) {
+                const maxDepth = getMaxDepth(`tank${tankNum}`);
+                console.log(`Tank ${tankNum} has ${maxDepth} depth layers`);
+                
+                // Create or update sections dynamically
+                createTankSections(tankNum, maxDepth);
+                
+                for (let depth = 1; depth <= maxDepth; depth++) {
+                    const channelName = `tank${tankNum}-depth${depth}`;
+                    const reading = readingsMap[channelName];
+                    const elementId = `tank${tankNum}-depth${depth}`;
+                    const element = document.getElementById(elementId);
+                    
+                    if (element && reading) {
+                        // Convert temperature from Celsius * 1000 to Fahrenheit
+                        // Formula: °F = (°C * 9/5) + 32
+                        const tempC = reading.Value / 1000; // Convert from degCx1000 to degC
+                        const tempF = (tempC * 9/5 + 32).toFixed(1); // Convert to Fahrenheit
+                        element.textContent = `${tempF}°F`;
+                        
+                        // Update background color based on temperature
+                        const sectionElement = document.getElementById(`tank${tankNum}-section${depth}`);
+                        if (sectionElement) {
+                            const tempFNum = parseFloat(tempF);
+                            const backgroundColor = updateLayerBackground(tempFNum);
+                            sectionElement.setAttribute('fill', backgroundColor);
+                        }
+                        
+                        console.log(`Updated ${channelName}: ${tempC}°C → ${tempF}°F`);
+                    } else if (element) {
+                        // If no reading available, show placeholder
+                        element.textContent = '-';
+                        console.log(`No reading available for ${channelName}`);
+                    }
+                }
+            }
+            
+            // Update buffer temperature readings
+            const bufferMaxDepth = getMaxDepth('buffer');
+            console.log(`Buffer has ${bufferMaxDepth} depth layers`);
+            
+            // Create or update buffer sections dynamically
+            createBufferSections(bufferMaxDepth);
+            
+            for (let depth = 1; depth <= bufferMaxDepth; depth++) {
+                const channelName = `buffer-depth${depth}`;
+                const reading = readingsMap[channelName];
+                const elementId = `buffer-depth${depth}`;
+                const element = document.getElementById(elementId);
+                
+                if (element && reading) {
+                    // Convert temperature from Celsius * 1000 to Fahrenheit
+                    // Formula: °F = (°C * 9/5) + 32
+                    const tempC = reading.Value / 1000; // Convert from degCx1000 to degC
+                    const tempF = (tempC * 9/5 + 32).toFixed(1); // Convert to Fahrenheit
+                    element.textContent = `${tempF}°F`;
+                    
+                    // Update background color based on temperature
+                    const sectionElement = document.getElementById(`buffer-section${depth}`);
+                    if (sectionElement) {
+                        const tempFNum = parseFloat(tempF);
+                        const backgroundColor = updateLayerBackground(tempFNum);
+                        sectionElement.setAttribute('fill', backgroundColor);
+                    }
+                    
+                    console.log(`Updated ${channelName}: ${tempC}°C → ${tempF}°F`);
+                } else if (element) {
+                    // If no reading available, show placeholder
+                    element.textContent = '-';
+                    console.log(`No reading available for ${channelName}`);
+                }
+            }
+        }
+
+        function createTankSections(tankNum, maxDepth) {
+            // Tank positions
+            const tankPositions = {
+                1: { x: 460, y: 280 },
+                2: { x: 330, y: 280 },
+                3: { x: 200, y: 280 }
+            };
+            
+            const pos = tankPositions[tankNum];
+            if (!pos) return;
+            
+            const sectionHeight = 200 / maxDepth; // Divide total height by number of sections
+            
+            // Clear existing sections for this tank
+            for (let i = 1; i <= 10; i++) {
+                const existingSection = document.getElementById(`tank${tankNum}-section${i}`);
+                const existingText = document.getElementById(`tank${tankNum}-depth${i}`);
+                if (existingSection) existingSection.remove();
+                if (existingText) existingText.remove();
+            }
+            
+            // Create new sections
+            for (let depth = 1; depth <= maxDepth; depth++) {
+                const y = pos.y + (depth - 1) * sectionHeight;
+                const height = sectionHeight;
+                
+                // Create section element
+                let sectionElement;
+                if (depth === 1) {
+                    // Top section - rounded top corners only
+                    sectionElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    const d = `M ${pos.x},${y + 10} Q ${pos.x},${y} ${pos.x + 10},${y} L ${pos.x + 110},${y} Q ${pos.x + 120},${y} ${pos.x + 120},${y + 10} L ${pos.x + 120},${y + height} L ${pos.x},${y + height} Z`;
+                    sectionElement.setAttribute('d', d);
+                } else if (depth === maxDepth) {
+                    // Bottom section - rounded bottom corners only
+                    sectionElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    const d = `M ${pos.x},${y} L ${pos.x + 120},${y} L ${pos.x + 120},${y + height - 10} Q ${pos.x + 120},${y + height} ${pos.x + 110},${y + height} L ${pos.x + 10},${y + height} Q ${pos.x},${y + height} ${pos.x},${y + height - 10} Z`;
+                    sectionElement.setAttribute('d', d);
+                } else {
+                    // Middle section - no rounded corners
+                    sectionElement = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    sectionElement.setAttribute('x', pos.x);
+                    sectionElement.setAttribute('y', y);
+                    sectionElement.setAttribute('width', 120);
+                    sectionElement.setAttribute('height', height);
+                }
+                
+                sectionElement.setAttribute('id', `tank${tankNum}-section${depth}`);
+                sectionElement.setAttribute('fill', '#444');
+                sectionElement.setAttribute('stroke', '#333');
+                sectionElement.setAttribute('stroke-width', '1');
+                
+                // Insert after the tank background rectangle
+                const tankRect = document.querySelector(`rect[x="${pos.x}"][y="${pos.y}"]`);
+                if (tankRect) {
+                    tankRect.parentNode.insertBefore(sectionElement, tankRect.nextSibling);
+                }
+                
+                // Create text element
+                const textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                textElement.setAttribute('id', `tank${tankNum}-depth${depth}`);
+                textElement.setAttribute('x', pos.x + 60);
+                textElement.setAttribute('y', y + height / 2 + 4);
+                textElement.setAttribute('text-anchor', 'middle');
+                textElement.setAttribute('fill', 'white');
+                textElement.setAttribute('font-family', 'Montserrat, sans-serif');
+                textElement.setAttribute('font-size', '12');
+                textElement.setAttribute('font-weight', '600');
+                textElement.textContent = '-';
+                
+                sectionElement.parentNode.insertBefore(textElement, sectionElement.nextSibling);
+            }
+        }
+
+        function createBufferSections(maxDepth) {
+            const pos = { x: 860, y: 50 };
+            const sectionHeight = 200 / maxDepth; // Divide total height by number of sections
+            
+            // Clear existing sections for buffer
+            for (let i = 1; i <= 10; i++) {
+                const existingSection = document.getElementById(`buffer-section${i}`);
+                const existingText = document.getElementById(`buffer-depth${i}`);
+                if (existingSection) existingSection.remove();
+                if (existingText) existingText.remove();
+            }
+            
+            // Create new sections
+            for (let depth = 1; depth <= maxDepth; depth++) {
+                const y = pos.y + (depth - 1) * sectionHeight;
+                const height = sectionHeight;
+                
+                // Create section element
+                let sectionElement;
+                if (depth === 1) {
+                    // Top section - rounded top corners only
+                    sectionElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    const d = `M ${pos.x},${y + 10} Q ${pos.x},${y} ${pos.x + 10},${y} L ${pos.x + 110},${y} Q ${pos.x + 120},${y} ${pos.x + 120},${y + 10} L ${pos.x + 120},${y + height} L ${pos.x},${y + height} Z`;
+                    sectionElement.setAttribute('d', d);
+                } else if (depth === maxDepth) {
+                    // Bottom section - rounded bottom corners only
+                    sectionElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    const d = `M ${pos.x},${y} L ${pos.x + 120},${y} L ${pos.x + 120},${y + height - 10} Q ${pos.x + 120},${y + height} ${pos.x + 110},${y + height} L ${pos.x + 10},${y + height} Q ${pos.x},${y + height} ${pos.x},${y + height - 10} Z`;
+                    sectionElement.setAttribute('d', d);
+                } else {
+                    // Middle section - no rounded corners
+                    sectionElement = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    sectionElement.setAttribute('x', pos.x);
+                    sectionElement.setAttribute('y', y);
+                    sectionElement.setAttribute('width', 120);
+                    sectionElement.setAttribute('height', height);
+                }
+                
+                sectionElement.setAttribute('id', `buffer-section${depth}`);
+                sectionElement.setAttribute('fill', '#444');
+                sectionElement.setAttribute('stroke', '#333');
+                sectionElement.setAttribute('stroke-width', '1');
+                
+                // Insert after the buffer background rectangle
+                const bufferRect = document.querySelector(`rect[x="860"][y="50"]`);
+                if (bufferRect) {
+                    bufferRect.parentNode.insertBefore(sectionElement, bufferRect.nextSibling);
+                }
+                
+                // Create text element
+                const textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                textElement.setAttribute('id', `buffer-depth${depth}`);
+                textElement.setAttribute('x', pos.x + 60);
+                textElement.setAttribute('y', y + height / 2 + 4);
+                textElement.setAttribute('text-anchor', 'middle');
+                textElement.setAttribute('fill', 'white');
+                textElement.setAttribute('font-family', 'Montserrat, sans-serif');
+                textElement.setAttribute('font-size', '12');
+                textElement.setAttribute('font-weight', '600');
+                textElement.textContent = '-';
+                
+                sectionElement.parentNode.insertBefore(textElement, sectionElement.nextSibling);
+            }
         }
 
         // Connect when page loads
