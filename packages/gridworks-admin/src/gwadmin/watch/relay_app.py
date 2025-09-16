@@ -1,3 +1,4 @@
+import importlib.metadata
 import logging
 
 import dotenv
@@ -17,7 +18,7 @@ from gwadmin.watch.widgets.relay_toggle_button import RelayToggleButton
 from gwadmin.watch.widgets.timer import TimerDigits
 from gwadmin.settings import AdminClientSettings
 
-__version__: str = "0.2.4"
+__version__: str = importlib.metadata.version('gridworks-admin')
 
 logger = logging.getLogger(__name__)
 logger.addHandler(TextualHandler())
