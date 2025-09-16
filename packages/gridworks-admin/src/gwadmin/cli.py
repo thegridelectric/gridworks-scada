@@ -47,14 +47,13 @@ def watch_settings(
         settings.target_gnode = target
     elif not settings.target_gnode:
         settings.target_gnode = DEFAULT_TARGET
-    if verbose:
-        if verbose == 1:
-            verbosity = logging.INFO
-        else:
-            verbosity = logging.DEBUG
-        settings.verbosity = verbosity
+    if verbose == 0:
+        verbosity = logging.INFO
+    else:
+        verbosity = logging.DEBUG
+    settings.verbosity = verbosity
     if paho_verbose:
-        if paho_verbose == 1:
+        if paho_verbose == 0:
             paho_verbosity = logging.INFO
         else:
             paho_verbosity = logging.DEBUG

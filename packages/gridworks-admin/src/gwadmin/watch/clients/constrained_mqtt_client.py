@@ -180,7 +180,7 @@ class ConstrainedMQTTClient:
         ):
             self._callbacks.state_change_callback(old_state, new_state)
         if old_state != new_state:
-            self._logger.debug("MQTTClient: %s -> %s", old_state, new_state)
+            self._logger.info("MQTTClient: %s -> %s", old_state, new_state)
         return old_state != new_state
 
     def start(self):
@@ -241,7 +241,7 @@ class ConstrainedMQTTClient:
     def _on_connect_fail(self, _: Any, _userdata: Any) -> None:
         self._change_state(self.States.connecting)
 
-    def _on_disconnect(self, _: Any, _userdata: Any, _rc: int, _properties: Any) -> None:
+    def _on_disconnect(self, _: Any, _userdata: Any, _flags: Any, _rc: int, _properties: Any) -> None:
         self._pending_subscriptions = set(self._subscriptions)
 
     def _on_message(self, _: Any, _userdata: Any, message: MQTTMessage) -> None:
