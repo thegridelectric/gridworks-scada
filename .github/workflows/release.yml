@@ -63,14 +63,13 @@ jobs:
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
 
-# Requires .github/release-drafter.yml on default branch
-#      - name: Publish the release notes
-#        uses: release-drafter/release-drafter@v6.0.0
-#        with:
-#          publish: ${{ steps.check-version.outputs.tag != '' }}
-#          tag: ${{ steps.check-version.outputs.tag }}
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish the release notes
+        uses: release-drafter/release-drafter@v6.0.0
+        with:
+          publish: ${{ steps.check-version.outputs.tag != '' }}
+          tag: ${{ steps.check-version.outputs.tag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release-gwadmin:
     name: Release gridworks-admin
@@ -128,11 +127,10 @@ jobs:
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
 
-# Requires .github/release-drafter.yml on default branch
-#      - name: Publish the release notes
-#        uses: release-drafter/release-drafter@v6.0.0
-#        with:
-#          publish: ${{ steps.check-version.outputs.tag != '' }}
-#          tag: ${{ steps.check-version.outputs.tag }}
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish the release notes
+        uses: release-drafter/release-drafter@v6.0.0
+        with:
+          publish: ${{ steps.check-version.outputs.tag != '' }}
+          tag: ${{ steps.check-version.outputs.tag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
