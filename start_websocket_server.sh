@@ -16,6 +16,6 @@ fi
 
 # Start the websocket server (it will read .env automatically)
 echo "Starting server..."
-python -m gw_spaceheat.webinter.cli serve --host 0.0.0.0 --port 8080 --verbose
+python gw_spaceheat/webinter/cli.py serve --host 0.0.0.0 --port 8080 --verbose
 
 echo "Server stopped."
