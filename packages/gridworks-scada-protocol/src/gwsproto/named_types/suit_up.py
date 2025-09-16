@@ -12,4 +12,4 @@ class SuitUp(BaseModel):
     ToNode: SpaceheatName
     FromNode: SpaceheatName
     TypeName: Literal["suit.up"] = "suit.up"
-    Version: Literal["000"] = "000"
+    Version: str = "000"

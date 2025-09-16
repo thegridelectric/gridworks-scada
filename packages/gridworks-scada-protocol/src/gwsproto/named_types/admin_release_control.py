@@ -9,4 +9,4 @@ class AdminReleaseControl(BaseModel):
     """ """
 
     TypeName: Literal["admin.release.control"] = "admin.release.control"
-    Version: Literal["000"] = "000"
+    Version: str = "000"

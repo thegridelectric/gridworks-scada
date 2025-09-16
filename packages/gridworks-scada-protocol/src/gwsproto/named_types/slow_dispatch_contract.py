@@ -14,7 +14,7 @@ class SlowDispatchContract(BaseModel):
     OilBoilerOn: bool
     ContractId: UUID4Str
     TypeName: Literal["slow.dispatch.contract"] = "slow.dispatch.contract"
-    Version: Literal["000"] = "000"
+    Version: str = "000"
 
     @field_validator("StartS")
     @classmethod

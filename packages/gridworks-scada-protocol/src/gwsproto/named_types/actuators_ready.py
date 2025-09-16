@@ -9,4 +9,4 @@ class ActuatorsReady(BaseModel):
     Used to sequence inbound messages to actuators
     """
     TypeName: Literal["actuators.ready"] = "actuators.ready"
-    Version: Literal["000"] = "000"
+    Version: str = "000"

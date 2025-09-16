@@ -18,7 +18,7 @@ class AtnBid(BaseModel):
     QuantityUnit: MarketQuantityUnit
     SignedMarketFeeTxn: str
     TypeName: Literal["atn.bid"] = "atn.bid"
-    Version: Literal["001"] = "001"
+    Version: str = "001"
 
     @field_validator("SignedMarketFeeTxn")
     @classmethod

@@ -33,7 +33,7 @@ class AtnBid(BaseModel):
     Signature: str  # Algorand signature from bidder's TaTradingRights
     BidTimeMs: UTCMilliseconds
     TypeName: Literal["atn.bid"] = "atn.bid"
-    Version: Literal["001"] = "001"
+    Version: str = "001"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

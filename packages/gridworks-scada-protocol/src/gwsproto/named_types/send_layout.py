@@ -11,4 +11,4 @@ class SendLayout(BaseModel):
     FromName: SpaceheatName
     ToName: SpaceheatName
     TypeName: Literal["send.layout"] = "send.layout"
-    Version: Literal["000"] = "000"
+    Version: str = "000"

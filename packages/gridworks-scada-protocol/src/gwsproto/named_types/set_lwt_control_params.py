@@ -19,4 +19,4 @@ class SetLwtControlParams(BaseModel):
     T2: PositiveInt
     CreatedMs:  UTCMilliseconds = Field(default_factory=lambda: int(time.time() * 1000))
     TypeName: Literal["set.lwt.control.params"] = "set.lwt.control.params"
-    Version: Literal["000"] = "000"
+    Version: str = "000"

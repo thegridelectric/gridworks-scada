@@ -12,7 +12,7 @@ class DispatchContractGoDormant(BaseModel):
     FromGNodeAlias: LeftRightDotStr
     BlockchainSig: str
     TypeName: Literal["dispatch.contract.go.dormant"] = "dispatch.contract.go.dormant"
-    Version: Literal["000"] = "000"
+    Version: str = "000"
 
     @field_validator("BlockchainSig")
     @classmethod

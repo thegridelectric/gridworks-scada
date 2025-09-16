@@ -17,4 +17,4 @@ class ResetHpKeepValue(BaseModel):
     HpKeepSecondsTimes10: StrictInt
     CreatedMs: UTCMilliseconds = Field(default_factory=lambda: int(time.time() * 1000))
     TypeName: Literal["reset.hp.keep.value"] = "reset.hp.keep.value"
-    Version: Literal["001"] = "001"
+    Version: str = "001"

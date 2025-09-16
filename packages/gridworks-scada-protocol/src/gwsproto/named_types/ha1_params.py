@@ -19,4 +19,4 @@ class Ha1Params(BaseModel):
     LoadOverestimationPercent: StrictInt
     StratBossDist010: StrictInt
     TypeName: Literal["ha1.params"] = "ha1.params"
-    Version: Literal["003"] = "003"
+    Version: str = "003"

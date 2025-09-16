@@ -23,7 +23,7 @@ class FloParams(BaseModel):
     TimezoneString: str
     StartUnixS: UTCSeconds
     TypeName: Literal["flo.params"] = "flo.params"
-    Version: Literal["001"] = "001"
+    Version: str = "001"
 
     model_config = ConfigDict(extra="allow")
 

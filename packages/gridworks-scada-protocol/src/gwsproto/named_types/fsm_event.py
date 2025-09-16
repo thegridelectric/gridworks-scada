@@ -30,7 +30,7 @@ class FsmEvent(BaseModel):
     TriggerId: UUID4Str
     SendTimeUnixMs: UTCMilliseconds
     TypeName: Literal["fsm.event"] = "fsm.event"
-    Version: Literal["000"] = "000"
+    Version: str = "000"
 
     model_config = ConfigDict(extra="allow")
 

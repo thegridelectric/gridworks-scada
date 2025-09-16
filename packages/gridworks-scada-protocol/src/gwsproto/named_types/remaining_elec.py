@@ -10,4 +10,4 @@ class RemainingElec(BaseModel):
     RemainingWattHours: int
     MessageId: UUID4Str = Field(default_factory=lambda: str(uuid.uuid4()))
     TypeName: Literal["remaining.elec"] = "remaining.elec"
-    Version: Literal["000"] = "000"
+    Version: str = "000"

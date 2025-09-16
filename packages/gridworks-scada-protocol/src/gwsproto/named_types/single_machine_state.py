@@ -18,7 +18,7 @@ class SingleMachineState(BaseModel):
     UnixMs: UTCMilliseconds
     Cause: Optional[str] = None
     TypeName: Literal["single.machine.state"] = "single.machine.state"
-    Version: Literal["000"] = "000"
+    Version: str = "000"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
