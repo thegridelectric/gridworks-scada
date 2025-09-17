@@ -2,11 +2,11 @@ import logging
 import time
 from enum import auto
 from enum import StrEnum
+from functools import cached_property
 from typing import Any
 from typing import Deque
 from typing import Optional
 
-from cryptography.utils import cached_property
 from gwproto.data_classes.data_channel import DataChannel
 from gwproto.enums import TelemetryName
 
