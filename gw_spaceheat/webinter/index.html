@@ -102,6 +102,18 @@
             </div>
             <svg id="diagram-svg" viewBox="0 0 1000 500" style="width: 100%; height: auto; max-width: 1000px;">
                 <defs>
+                    <!-- Dynamic gradient for heat pump animation (EWT to LWT) -->
+                    <linearGradient id="heatGradient" x1="0%" y1="100%" x2="0%" y2="0%">
+                        <stop id="ewt-stop" offset="0%" style="stop-color:#2196F3;stop-opacity:1" />
+                        <stop id="lwt-stop" offset="100%" style="stop-color:#F44336;stop-opacity:1" />
+                    </linearGradient>
+                    
+                    <!-- Dynamic gradient for house animation (dist-rwt to dist-swt, left to right) -->
+                    <linearGradient id="houseHeatGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop id="dist-rwt-stop" offset="0%" style="stop-color:#2196F3;stop-opacity:1" />
+                        <stop id="dist-swt-stop" offset="100%" style="stop-color:#F44336;stop-opacity:1" />
+                    </linearGradient>
+                    
                     <!-- Flow pattern for HpOffStoreDischarge top horizontal pipe -->
                     <pattern id="flowPattern" x="0" y="0" width="90" height="15" patternUnits="userSpaceOnUse">
                         <rect width="90" height="15" fill="#4CAF50"/>
@@ -157,11 +169,49 @@
                             dur="1.2s"
                             repeatCount="indefinite"/>
                     </pattern>
+                    
+                    <!-- Moving heat lines pattern (gray, no background) -->
+                    <pattern id="heatLinesPattern" x="0" y="0" width="20" height="120" patternUnits="userSpaceOnUse">
+                        <!-- Wavy heat lines -->
+                        <path d="M 2,10 Q 8,5 14,10 Q 8,15 2,10" fill="#888" opacity="0.4"/>
+                        <path d="M 2,30 Q 6,25 10,30 Q 6,35 2,30" fill="#888" opacity="0.35"/>
+                        <path d="M 2,50 Q 10,45 18,50 Q 10,55 2,50" fill="#888" opacity="0.3"/>
+                        <path d="M 2,70 Q 7,65 12,70 Q 7,75 2,70" fill="#888" opacity="0.25"/>
+                        <path d="M 2,90 Q 9,85 16,90 Q 9,95 2,90" fill="#888" opacity="0.2"/>
+                        <path d="M 2,110 Q 5,105 8,110 Q 5,115 2,110" fill="#888" opacity="0.15"/>
+                        <animateTransform
+                            attributeName="patternTransform"
+                            type="translate"
+                            values="0 0; 0 -120"
+                            dur="2s"
+                            repeatCount="indefinite"/>
+                    </pattern>
+                    
+                    <!-- Moving heat lines pattern for house (right to left) -->
+                    <pattern id="houseHeatLinesPattern" x="0" y="0" width="120" height="20" patternUnits="userSpaceOnUse">
+                        <!-- Wavy heat lines moving right to left -->
+                        <path d="M 10,2 Q 5,8 10,14 Q 15,8 10,2" fill="#888" opacity="0.4"/>
+                        <path d="M 30,2 Q 25,6 30,10 Q 35,6 30,2" fill="#888" opacity="0.35"/>
+                        <path d="M 50,2 Q 45,10 50,18 Q 55,10 50,2" fill="#888" opacity="0.3"/>
+                        <path d="M 70,2 Q 65,7 70,12 Q 75,7 70,2" fill="#888" opacity="0.25"/>
+                        <path d="M 90,2 Q 85,9 90,16 Q 95,9 90,2" fill="#888" opacity="0.2"/>
+                        <path d="M 110,2 Q 105,5 110,8 Q 115,5 110,2" fill="#888" opacity="0.15"/>
+                        <animateTransform
+                            attributeName="patternTransform"
+                            type="translate"
+                            values="0 0; -120 0"
+                            dur="2s"
+                            repeatCount="indefinite"/>
+                    </pattern>
                 </defs>
                 <!-- Heat pump (left) -->
                 <rect x="20" y="50" width="120" height="200" rx="10" fill="#666"/>
-                <text x="80" y="150" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="18" font-weight="600">Heat pump</text>
-                <text id="hp-lift" x="80" y="170" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">Lift: -°F</text>
+                <g id="hp-animation" style="display: none;">
+                    <rect x="20" y="50" width="120" height="200" rx="10" fill="url(#heatGradient)"/>
+                    <rect x="20" y="50" width="120" height="200" rx="10" fill="url(#heatLinesPattern)"/>
+                </g>
+                <text x="80" y="270" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">Heat pump</text>
+                <text id="hp-lift" x="80" y="160" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">Lift: -°F</text>
                 
                 <!-- Buffer (right) -->
                 <rect x="860" y="50" width="120" height="200" rx="10" fill="transparent"/>
@@ -176,8 +226,12 @@
                 
                 <!-- House (bottom right, left of buffer) -->
                 <rect x="660" y="280" width="120" height="200" rx="10" fill="#666"/>
-                <text x="720" y="385" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="18" font-weight="600">House</text>
-                <text id="house-drop" x="720" y="405" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">Drop: -°F</text>
+                <g id="house-animation" style="display: none;">
+                    <rect x="660" y="280" width="120" height="200" rx="10" fill="url(#houseHeatGradient)"/>
+                    <rect x="660" y="280" width="120" height="200" rx="10" fill="url(#houseHeatLinesPattern)"/>
+                </g>
+                <text x="720" y="500" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">House</text>
+                <text id="house-drop" x="720" y="390" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">Drop: -°F</text>
                 
                 <!-- Tank 3 (bottom left) -->
                 <rect x="200" y="280" width="120" height="200" rx="10" fill="transparent"/>
@@ -215,12 +269,12 @@
                 <!-- Top pipe (from top of heat pump to top of buffer) -->
                 <rect id="hp-buffer-top-pipe" x="140" y="75" width="720" height="15" fill="#888"/>
                 <text id="hp-lwt" x="175" y="70" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text>
-                <text id="buffer-hot-pipe" x="820" y="70" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text>
+                <!-- <text id="buffer-hot-pipe" x="820" y="70" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text> -->
 
                 <!-- Bottom pipe (from bottom of heat pump to bottom of buffer) -->
                 <rect id="hp-buffer-bottom-pipe" x="140" y="215" width="720" height="15" fill="#888"/>
                 <text id="hp-ewt" x="175" y="210" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text>
-                <text id="buffer-cold-pipe" x="820" y="210" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text>
+                <!-- <text id="buffer-cold-pipe" x="820" y="210" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text> -->
 
                 <!-- Horizontal pipe from Tank1 vertical pipe to heat pump top (HpOnStoreCharge) -->
                 <rect id="tank1-hp-horizontal-pipe-charge" x="140" y="75" width="465" height="15" fill="#888"/>
@@ -264,6 +318,7 @@
                 
                 <!-- Small horizontal pipe from House vertical pipe to top of House -->
                 <rect id="house-connection-pipe" x="780" y="370" width="25" height="15" fill="#888"/>
+                <text id="dist-swt" x="812" y="405" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text>
                 
                 <!-- House bottom pipes (duplicated from Tank3, translated right) -->
                 <!-- Vertical pipe from House bottom to heat pump bottom pipe -->
@@ -271,6 +326,7 @@
                 
                 <!-- Small horizontal pipe from House vertical pipe to bottom of House -->
                 <rect id="house-connection-pipe-bottom" x="635" y="370" width="25" height="15" fill="#888"/>
+                <text id="dist-rwt" x="630" y="405" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text>
                 
                 <!-- House to Buffer horizontal pipes (for HpOffStoreOff with dist flow) -->
                 <!-- Horizontal pipe from top of right House vertical to buffer top -->
@@ -1098,6 +1154,41 @@
                 console.log(`Cannot calculate lift - missing temperature data`);
             }
             
+            // Update heat pump gradient colors based on EWT and LWT temperatures
+            const ewtStop = document.getElementById('ewt-stop');
+            const lwtStop = document.getElementById('lwt-stop');
+            if (ewtStop && lwtStop && hpEwtTempF !== null && hpLwtTempF !== null) {
+                const ewtColor = updateLayerBackground(hpEwtTempF);
+                const lwtColor = updateLayerBackground(hpLwtTempF);
+                
+                // Force update by removing and re-adding the style attribute
+                ewtStop.removeAttribute('style');
+                lwtStop.removeAttribute('style');
+                ewtStop.setAttribute('style', `stop-color:${ewtColor};stop-opacity:1`);
+                lwtStop.setAttribute('style', `stop-color:${lwtColor};stop-opacity:1`);
+                
+                // Also try setting the stop-color attribute directly
+                ewtStop.setAttribute('stop-color', ewtColor);
+                lwtStop.setAttribute('stop-color', lwtColor);
+                
+                console.log(`Updated heat pump gradient: EWT ${hpEwtTempF}°F (${ewtColor}) → LWT ${hpLwtTempF}°F (${lwtColor})`);
+                console.log(`EWT stop element:`, ewtStop);
+                console.log(`LWT stop element:`, lwtStop);
+                console.log(`EWT stop-color attribute:`, ewtStop.getAttribute('stop-color'));
+                console.log(`LWT stop-color attribute:`, lwtStop.getAttribute('stop-color'));
+            } else if (ewtStop && lwtStop) {
+                // Reset to default colors if temperatures are not available
+                ewtStop.removeAttribute('style');
+                lwtStop.removeAttribute('style');
+                ewtStop.setAttribute('style', 'stop-color:#2196F3;stop-opacity:1');
+                lwtStop.setAttribute('style', 'stop-color:#F44336;stop-opacity:1');
+                ewtStop.setAttribute('stop-color', '#2196F3');
+                lwtStop.setAttribute('stop-color', '#F44336');
+                console.log('Reset heat pump gradient to default colors - missing temperature data');
+            } else {
+                console.log('Gradient elements not found: ewtStop=', !!ewtStop, 'lwtStop=', !!lwtStop);
+            }
+            
             // Update buffer hot pipe temperature (buffer-hot-pipe)
             const bufferHotPipeReading = readingsMap['buffer-hot-pipe'];
             const bufferHotPipeElement = document.getElementById('buffer-hot-pipe');
@@ -1172,6 +1263,60 @@
                 // If either temperature is not available, show placeholder
                 houseDropElement.textContent = 'Drop: -°F';
                 console.log(`Cannot calculate drop - missing temperature data`);
+            }
+            
+            // Update individual distribution temperature labels
+            const distSwtElement = document.getElementById('dist-swt');
+            if (distSwtElement) {
+                if (distSwtTempF !== null) {
+                    distSwtElement.textContent = `${distSwtTempF}°F`;
+                    console.log(`Updated dist-swt label: ${distSwtTempF}°F`);
+                } else {
+                    distSwtElement.textContent = '-';
+                    console.log(`dist-swt label: no data available`);
+                }
+            }
+            
+            const distRwtElement = document.getElementById('dist-rwt');
+            if (distRwtElement) {
+                if (distRwtTempF !== null) {
+                    distRwtElement.textContent = `${distRwtTempF}°F`;
+                    console.log(`Updated dist-rwt label: ${distRwtTempF}°F`);
+                } else {
+                    distRwtElement.textContent = '-';
+                    console.log(`dist-rwt label: no data available`);
+                }
+            }
+            
+            // Update house gradient colors based on dist-rwt and dist-swt temperatures
+            const distRwtStop = document.getElementById('dist-rwt-stop');
+            const distSwtStop = document.getElementById('dist-swt-stop');
+            if (distRwtStop && distSwtStop && distRwtTempF !== null && distSwtTempF !== null) {
+                const distRwtColor = updateLayerBackground(distRwtTempF);
+                const distSwtColor = updateLayerBackground(distSwtTempF);
+                
+                // Force update by removing and re-adding the style attribute
+                distRwtStop.removeAttribute('style');
+                distSwtStop.removeAttribute('style');
+                distRwtStop.setAttribute('style', `stop-color:${distRwtColor};stop-opacity:1`);
+                distSwtStop.setAttribute('style', `stop-color:${distSwtColor};stop-opacity:1`);
+                
+                // Also try setting the stop-color attribute directly
+                distRwtStop.setAttribute('stop-color', distRwtColor);
+                distSwtStop.setAttribute('stop-color', distSwtColor);
+                
+                console.log(`Updated house gradient: dist-rwt ${distRwtTempF}°F (${distRwtColor}) → dist-swt ${distSwtTempF}°F (${distSwtColor})`);
+            } else if (distRwtStop && distSwtStop) {
+                // Reset to default colors if temperatures are not available
+                distRwtStop.removeAttribute('style');
+                distSwtStop.removeAttribute('style');
+                distRwtStop.setAttribute('style', 'stop-color:#2196F3;stop-opacity:1');
+                distSwtStop.setAttribute('style', 'stop-color:#F44336;stop-opacity:1');
+                distRwtStop.setAttribute('stop-color', '#2196F3');
+                distSwtStop.setAttribute('stop-color', '#F44336');
+                console.log('Reset house gradient to default colors - missing temperature data');
+            } else {
+                console.log('House gradient elements not found: distRwtStop=', !!distRwtStop, 'distSwtStop=', !!distSwtStop);
             }
         }
 
@@ -1272,6 +1417,19 @@
             
             if (currentState === 'HpOnStoreOff') {
                 // Animated green pipes for HpOnStoreOff state (HP to Buffer)
+                // Show heat pump animation
+                const hpAnimation = document.getElementById('hp-animation');
+                const hpLiftText = document.getElementById('hp-lift');
+                if (hpAnimation) {
+                    hpAnimation.style.display = 'block';
+                    hpAnimation.parentNode.appendChild(hpAnimation);
+                    // Ensure lift text stays on top
+                    if (hpLiftText) {
+                        hpLiftText.parentNode.appendChild(hpLiftText);
+                    }
+                    console.log('Heat pump animation activated for HpOnStoreOff');
+                }
+                
                 if (hpBufferTopPipe) {
                     hpBufferTopPipe.setAttribute('fill', 'url(#flowPattern)'); // Rightward flow
                     hpBufferTopPipe.removeAttribute('stroke');
@@ -1360,6 +1518,19 @@
                 
                 // Animate House pipes based on distribution flow
                 if (hasDistFlow) {
+                    // Show house animation
+                    const houseAnimation = document.getElementById('house-animation');
+                    const houseDropText = document.getElementById('house-drop');
+                    if (houseAnimation) {
+                        houseAnimation.style.display = 'block';
+                        houseAnimation.parentNode.appendChild(houseAnimation);
+                        // Ensure drop text stays on top
+                        if (houseDropText) {
+                            houseDropText.parentNode.appendChild(houseDropText);
+                        }
+                        console.log('House animation activated for distribution flow');
+                    }
+                    
                     // Right vertical pipe (house-hp-vertical-pipe) - downward flow
                     if (houseHpVerticalPipe) {
                         houseHpVerticalPipe.setAttribute('fill', 'url(#verticalDownFlowPattern)');
@@ -1384,6 +1555,13 @@
                         houseConnectionPipeBottom.removeAttribute('stroke');
                         houseConnectionPipeBottom.parentNode.appendChild(houseConnectionPipeBottom);
                     }
+                } else {
+                    // Hide house animation when no distribution flow
+                    const houseAnimation = document.getElementById('house-animation');
+                    if (houseAnimation) {
+                        houseAnimation.style.display = 'none';
+                        console.log('House animation hidden - no distribution flow');
+                    }
                 }
                 
                 // Special logic for HpOffStoreOff: House to Buffer pipes when dist flow is active
@@ -1406,6 +1584,13 @@
             } else if (currentState === 'HpOffStoreDischarge') {
                 // Green pipes for HpOffStoreDischarge state (Tank1 to Buffer)
                 console.log('Setting Tank1 pipes to green for HpOffStoreDischarge state');
+                
+                // Hide heat pump animation
+                const hpAnimation = document.getElementById('hp-animation');
+                if (hpAnimation) {
+                    hpAnimation.style.display = 'none';
+                    console.log('Heat pump animation hidden for HpOffStoreDischarge');
+                }
                 if (tank1HpVerticalPipe) {
                     tank1HpVerticalPipe.setAttribute('fill', 'url(#verticalFlowPattern)');
                     tank1HpVerticalPipe.removeAttribute('stroke');
@@ -1515,6 +1700,19 @@
                 
                 // Animate House pipes based on distribution flow
                 if (hasDistFlow) {
+                    // Show house animation
+                    const houseAnimation = document.getElementById('house-animation');
+                    const houseDropText = document.getElementById('house-drop');
+                    if (houseAnimation) {
+                        houseAnimation.style.display = 'block';
+                        houseAnimation.parentNode.appendChild(houseAnimation);
+                        // Ensure drop text stays on top
+                        if (houseDropText) {
+                            houseDropText.parentNode.appendChild(houseDropText);
+                        }
+                        console.log('House animation activated for distribution flow');
+                    }
+                    
                     // Right vertical pipe (house-hp-vertical-pipe) - downward flow
                     if (houseHpVerticalPipe) {
                         houseHpVerticalPipe.setAttribute('fill', 'url(#verticalDownFlowPattern)');
@@ -1539,12 +1737,32 @@
                         houseConnectionPipeBottom.removeAttribute('stroke');
                         houseConnectionPipeBottom.parentNode.appendChild(houseConnectionPipeBottom);
                     }
+                } else {
+                    // Hide house animation when no distribution flow
+                    const houseAnimation = document.getElementById('house-animation');
+                    if (houseAnimation) {
+                        houseAnimation.style.display = 'none';
+                        console.log('House animation hidden - no distribution flow');
+                    }
                 }
                 
                 console.log('Set Tank1 pipes to green for HpOffStoreDischarge state');
             } else if (currentState === 'HpOnStoreCharge') {
                 // Green pipes for HpOnStoreCharge state (Tanks to HP)
                 console.log('Setting HpOnStoreCharge pipes to green');
+                
+                // Show heat pump animation
+                const hpAnimation = document.getElementById('hp-animation');
+                const hpLiftText = document.getElementById('hp-lift');
+                if (hpAnimation) {
+                    hpAnimation.style.display = 'block';
+                    hpAnimation.parentNode.appendChild(hpAnimation);
+                    // Ensure lift text stays on top
+                    if (hpLiftText) {
+                        hpLiftText.parentNode.appendChild(hpLiftText);
+                    }
+                    console.log('Heat pump animation activated for HpOnStoreCharge');
+                }
                 if (tank1HpVerticalPipeCharge) {
                     tank1HpVerticalPipeCharge.setAttribute('fill', 'url(#verticalDownFlowPattern)'); // Downward flow
                     tank1HpVerticalPipeCharge.removeAttribute('stroke');
@@ -1629,6 +1847,13 @@
                 console.log('Set HpOnStoreCharge pipes to green');
             } else {
                 // Gray pipes for other states
+                // Hide heat pump animation
+                const hpAnimation = document.getElementById('hp-animation');
+                if (hpAnimation) {
+                    hpAnimation.style.display = 'none';
+                    console.log('Heat pump animation hidden for other states');
+                }
+                
                 if (hpBufferTopPipe) {
                     hpBufferTopPipe.setAttribute('fill', '#888');
                     hpBufferTopPipe.removeAttribute('stroke');
@@ -1712,6 +1937,19 @@
                 
                 // Animate House pipes based on distribution flow
                 if (hasDistFlow) {
+                    // Show house animation
+                    const houseAnimation = document.getElementById('house-animation');
+                    const houseDropText = document.getElementById('house-drop');
+                    if (houseAnimation) {
+                        houseAnimation.style.display = 'block';
+                        houseAnimation.parentNode.appendChild(houseAnimation);
+                        // Ensure drop text stays on top
+                        if (houseDropText) {
+                            houseDropText.parentNode.appendChild(houseDropText);
+                        }
+                        console.log('House animation activated for distribution flow');
+                    }
+                    
                     // Right vertical pipe (house-hp-vertical-pipe) - downward flow
                     if (houseHpVerticalPipe) {
                         houseHpVerticalPipe.setAttribute('fill', 'url(#verticalDownFlowPattern)');
@@ -1735,6 +1973,13 @@
                         houseConnectionPipeBottom.setAttribute('fill', 'url(#leftFlowPattern)');
                         houseConnectionPipeBottom.removeAttribute('stroke');
                         houseConnectionPipeBottom.parentNode.appendChild(houseConnectionPipeBottom);
+                    }
+                } else {
+                    // Hide house animation when no distribution flow
+                    const houseAnimation = document.getElementById('house-animation');
+                    if (houseAnimation) {
+                        houseAnimation.style.display = 'none';
+                        console.log('House animation hidden - no distribution flow');
                     }
                 }
                 
