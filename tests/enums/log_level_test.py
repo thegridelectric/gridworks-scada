@@ -2,7 +2,7 @@
 Tests for enum log.level.000 from the GridWorks Type Registry.
 """
 
-from enums import LogLevel
+from gwsproto.enums import LogLevel
 
 
 def test_log_level() -> None:

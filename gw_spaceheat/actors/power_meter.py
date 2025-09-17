@@ -10,7 +10,7 @@ from gwproto import Message
 from gwproto.enums import TelemetryName
 
 from actors.config import ScadaSettings
-from data_classes.house_0_names import H0N
+from gwsproto.data_classes.house_0_names import H0N
 from gwproactor import SyncThreadActor
 from gwproto.data_classes.components.electric_meter_component import ElectricMeterComponent
 from gwproto.data_classes.hardware_layout import HardwareLayout

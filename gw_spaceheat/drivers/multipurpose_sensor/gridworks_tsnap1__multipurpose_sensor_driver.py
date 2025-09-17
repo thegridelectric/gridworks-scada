@@ -14,7 +14,7 @@ from adafruit_ads1x15.analog_in import AnalogIn
 from drivers.driver_result import DriverOutcome
 from drivers.multipurpose_sensor.multipurpose_sensor_driver import \
     MultipurposeSensorDriver
-from enums import LogLevel
+from gwsproto.enums import LogLevel
 from gwproto.data_classes.components.ads111x_based_component import \
     Ads111xBasedComponent
 from gwproto.data_classes.data_channel import DataChannel

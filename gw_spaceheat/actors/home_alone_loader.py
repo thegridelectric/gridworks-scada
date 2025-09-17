@@ -1,7 +1,7 @@
 # Modify actors/home_alone.py to be a loader module
 import importlib
 from gwproto.enums import ActorClass
-from enums import HomeAloneStrategy
+from gwsproto.enums import HomeAloneStrategy
 from actors.scada_actor import ScadaActor
 from scada_app_interface import ScadaAppInterface
 

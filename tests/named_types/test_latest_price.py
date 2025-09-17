@@ -2,8 +2,8 @@
 
 import json
 
-from enums import MarketPriceUnit
-from named_types import LatestPrice
+from gwsproto.enums import MarketPriceUnit
+from gwsproto.named_types import LatestPrice
 
 
 def test_latest_price_generated() -> None:

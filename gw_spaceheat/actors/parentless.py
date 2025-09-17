@@ -10,17 +10,17 @@ from gwproto.message import Message
 from gwproto.named_types import PowerWatts, Report, SyncedReadings
 
 from actors import ContractHandler
-from actors.scada_interface import ScadaInterface
-from data_classes.house_0_names import H0N
-from data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.house_0_names import H0N
+from gwsproto.data_classes.house_0_layout import House0Layout
+
 from gwproto.data_classes.sh_node import ShNode
 
 from actors.config import ScadaSettings
 from gwproactor import QOS
 from gwproactor.message import MQTTReceiptPayload
 from actors.codec_factories import Scada2CodecFactory
-from named_types import Glitch, SnapshotSpaceheat
-
+from gwsproto.named_types import Glitch, SnapshotSpaceheat
+from actors.scada_interface import ScadaInterface
 
 
 

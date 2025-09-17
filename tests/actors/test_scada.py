@@ -11,8 +11,8 @@ from gwproactor_test.certs import copy_keys
 import pytest
 from scada_app import ScadaApp
 from actors.config import ScadaSettings
-from named_types import SnapshotSpaceheat
-from data_classes.house_0_names import H0N, H0CN
+from gwsproto.named_types import SnapshotSpaceheat
+from gwsproto.data_classes.house_0_names import H0N, H0CN
 from tests.utils.scada_live_test_helper import ScadaLiveTest
 
 

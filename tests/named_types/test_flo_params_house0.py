@@ -1,7 +1,7 @@
 """Tests flo.params.house0 type, version 000"""
 
-from enums import MarketPriceUnit
-from named_types import FloParamsHouse0
+from gwsproto.enums import MarketPriceUnit
+from gwsproto.named_types import FloParamsHouse0
 
 
 def test_flo_params_house0_generated() -> None:

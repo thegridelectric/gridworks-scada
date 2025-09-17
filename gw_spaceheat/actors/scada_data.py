@@ -17,7 +17,7 @@ from gwproto.messages import (
     SingleReading,
 )
 
-from named_types import Ha1Params, SingleMachineState, SnapshotSpaceheat
+from gwsproto.named_types import Ha1Params, SingleMachineState, SnapshotSpaceheat
 class ScadaData:
     reports_to_store: Dict[str, Report]
     recent_machine_states: Dict[str, MachineStates] # key is machine handle

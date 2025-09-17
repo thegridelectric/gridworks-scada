@@ -2,7 +2,7 @@
 Tests for enum turn.hp.on.off.000 from the GridWorks Type Registry.
 """
 
-from enums import TurnHpOnOff
+from gwsproto.enums import TurnHpOnOff
 
 
 def test_turn_hp_on_off() -> None:

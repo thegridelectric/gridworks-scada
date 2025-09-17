@@ -1,6 +1,6 @@
 """Tests admin.keep.alive type, version 000"""
 
-from named_types import AdminKeepAlive
+from gwsproto.named_types import AdminKeepAlive
 
 
 def test_admin_keep_alive_generated() -> None:

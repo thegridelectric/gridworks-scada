@@ -12,7 +12,7 @@ from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import 
     I2cMultichannelDtRelayComponent
 
 from gwproto.data_classes.data_channel import DataChannel
-from data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.house_0_layout import House0Layout
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import (ActorClass, ChangeRelayPin, FsmActionType,
                            FsmReportType, MakeModel,
@@ -24,10 +24,9 @@ from gwproto.named_types import (SingleReading,
 from pydantic import BaseModel, Field
 from result import Err, Ok, Result
 from actors.scada_actor import ScadaActor
-from named_types import ActuatorsReady, FsmEvent, Glitch
-from enums import LogLevel
+from gwsproto.named_types import ActuatorsReady, FsmEvent, Glitch
+from gwsproto.enums import LogLevel
 from scada_app_interface import ScadaAppInterface
-
 
 class ChangeKridaPin(Enum):
     Energize = 0

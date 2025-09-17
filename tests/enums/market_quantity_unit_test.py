@@ -2,7 +2,7 @@
 Tests for enum market.quantity.unit.000 from the GridWorks Type Registry.
 """
 
-from enums import MarketQuantityUnit
+from gwsproto.enums import MarketQuantityUnit
 
 
 def test_market_quantity_unit() -> None:

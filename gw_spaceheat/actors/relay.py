@@ -11,7 +11,7 @@ from gwproactor.message import PatInternalWatchdogMessage
 from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import (
     I2cMultichannelDtRelayComponent,
 )
-from data_classes.house_0_names import H0N
+from gwsproto.data_classes.house_0_names import H0N
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import (
     AquastatControl,
@@ -36,12 +36,11 @@ from gwproto.enums import (
 from gwproto.named_types import FsmAtomicReport, FsmFullReport
 from result import Err, Ok, Result
 from transitions import Machine
-from data_classes.house_0_names import House0RelayIdx
+from gwsproto.data_classes.house_0_names import House0RelayIdx
 from actors.scada_actor import ScadaActor
-from enums import LogLevel, ChangeKeepSend, HpLoopKeepSend
-from named_types import FsmEvent, Glitch, SingleMachineState
 from scada_app_interface import ScadaAppInterface
-
+from gwsproto.enums import LogLevel, ChangeKeepSend, HpLoopKeepSend
+from gwsproto.named_types import FsmEvent, Glitch, SingleMachineState
 
 class Relay(ScadaActor):
     STATE_REPORT_S = 300
