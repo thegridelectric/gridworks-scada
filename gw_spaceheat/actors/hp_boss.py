@@ -43,7 +43,7 @@ class HpBoss(ScadaActor):
         └── SiegLoop
     """
     TURN_ON_ANYWAY_S = 120 # turn on the heat pump after 2 minutes without strat-boss
-    def __init__(self, name: str, services: ScadaInterface):
+    def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
         self.hp_model = self.settings.hp_model # TODO: will move to hardware layout
         self.last_cmd_time = 0

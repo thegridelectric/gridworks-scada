@@ -3,10 +3,14 @@
     "python.analysis.typeCheckingMode": "basic",
 	"ruff.enable": true,
 	"ruff.fixAll": true,
-	"python.testing.pytestEnabled": true,
+	"python.testing.pytestEnabled": true,    
+    "python.analysis.extraPaths": [
+        "gw_spaceheat"
+    ],
     // Enable this if you want Ruff to fix on save:
     // "editor.codeActionsOnSave": {
     //   "source.fixAll": true
     // }
     // "editor.formatOnSave": true
+
 }

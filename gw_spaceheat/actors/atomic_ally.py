@@ -129,11 +129,11 @@ class AtomicAlly(ScadaActor):
 
     @property
     def remaining_watthours(self) -> Optional[int]:
-        return self.services.contract_handler.remaining_watthours
+        return self.services.scada.contract_handler.remaining_watthours
     
     @property
     def contract_hb(self) -> Optional[SlowContractHeartbeat]:
-        return self.services.contract_handler.latest_scada_hb
+        return self.services.scada.contract_handler.latest_scada_hb
 
     @property
     def params(self) -> Ha1Params:

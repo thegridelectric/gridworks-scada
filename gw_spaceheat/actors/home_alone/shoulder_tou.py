@@ -12,6 +12,8 @@ from gwsproto.named_types import SingleMachineState
 from transitions import Machine
 from gwproto.named_types import PicoTankModuleComponentGt
 
+from scada_app_interface import ScadaAppInterface
+
 
 class HaShoulderState(GwStrEnum):
     Initializing = auto()
@@ -64,7 +66,7 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
         + [{"trigger": "WakeUp", "source": "Dormant", "dest": "Initializing"}]
     )
 
-    def __init__(self, name: str, services: ScadaInterface):
+    def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
         if self.strategy != HomeAloneStrategy.ShoulderTou:
             raise Exception(

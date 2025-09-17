@@ -8,13 +8,12 @@ from enum import auto
 from gwsproto.data_classes.house_0_names import H0CN
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
-from gwproto.enums import TelemetryName, StoreFlowRelay
+from gwproto.enums import StoreFlowRelay
 from gwproto.message import Message
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.named_types import FsmFullReport, SingleReading, AnalogDispatch
 from result import Ok, Result
 from gw.enums import GwStrEnum
-from transitions import Machine
 from actors.hp_boss import SiegLoopReady, HpBossState
 from actors.scada_actor import ScadaActor
 from actors.scada_interface import ScadaInterface
@@ -23,6 +22,10 @@ from gwsproto.named_types import (ActuatorsReady, Glitch, ResetHpKeepValue, SetL
     SetTargetLwt, SiegTargetTooLow,  SingleMachineState)
 
 from transitions import Machine
+
+from scada_app_interface import ScadaAppInterface
+
+
 class SiegValveState(GwStrEnum):
     KeepingMore = auto()
     KeepingLess = auto()
@@ -127,7 +130,7 @@ class SiegLoop(ScadaActor):
     FULL_RANGE_S = 70
     MAIN_LOOP_SLEEP_S = 2
 
-    def __init__(self, name: str, services: ScadaInterface):
+    def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
         self.keep_seconds: float = self.FULL_RANGE_S
         self.target_seconds_for_leaving_defrost: Optional[float] = None # 

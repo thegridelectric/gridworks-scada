@@ -24,7 +24,6 @@ from gwsproto.named_types import (ActuatorsReady,
             NewCommandTree, SingleMachineState, WakeUp)
 from gwsproto.enums import HomeAloneStrategy, HomeAloneTopState, LogLevel
 
- 
 class TopStateEvent(GwStrEnum):
     HouseColdOnpeak = auto()
     TopGoDormant = auto()
@@ -59,7 +58,7 @@ class HomeAloneTouBase(ScadaActor):
     ]
     
 
-    def __init__(self, name: str, services: ScadaInterface):
+    def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
         self.cn: H0CN = self.layout.channel_names
         self.strategy = HomeAloneStrategy(getattr(self.node, "Strategy", None))

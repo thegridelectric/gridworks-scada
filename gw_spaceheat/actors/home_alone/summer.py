@@ -50,7 +50,7 @@ class SummerHomeAlone(ScadaActor):
             {"trigger": "TopWakeUp", "source": "Dormant", "dest": "EverythingOff"},
     ]   
 
-    def __init__(self, name: str, services: ScadaInterface):
+    def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
         self.strategy = HomeAloneStrategy(getattr(self.node, "Strategy", None))
         if self.strategy != HomeAloneStrategy.Summer:

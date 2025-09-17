@@ -25,8 +25,7 @@ from gwproto.named_types import AdsChannelConfig, SyncedReadings
 from gwsproto.named_types import Glitch
 
 from actors.config import ScadaSettings
-
-from actors.scada_interface import ScadaInterface
+from scada_app_interface import ScadaAppInterface
 
 UNKNOWNMAKE__UNKNOWNMODEL__MODULE_NAME = (
     "drivers.multipurpose_sensor.unknown_multipurpose_sensor_driver"
@@ -276,7 +275,7 @@ class MultipurposeSensor(SyncThreadActor):
     def __init__(
         self,
         name: str,
-        services: ScadaInterface,
+        services: ScadaAppInterface,
         settings: Optional[ScadaSettings] = None,
     ):
 
