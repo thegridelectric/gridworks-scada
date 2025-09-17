@@ -170,113 +170,105 @@
                             repeatCount="indefinite"/>
                     </pattern>
                     
-                    <!-- Moving heat lines pattern (gray, no background) -->
+                    <!-- Moving heat lines pattern (uniform, seamless) -->
                     <pattern id="heatLinesPattern" x="0" y="0" width="20" height="120" patternUnits="userSpaceOnUse">
-                        <!-- Wavy heat lines -->
-                        <path d="M 2,10 Q 8,5 14,10 Q 8,15 2,10" fill="#888" opacity="0.4"/>
-                        <path d="M 2,30 Q 6,25 10,30 Q 6,35 2,30" fill="#888" opacity="0.35"/>
-                        <path d="M 2,50 Q 10,45 18,50 Q 10,55 2,50" fill="#888" opacity="0.3"/>
-                        <path d="M 2,70 Q 7,65 12,70 Q 7,75 2,70" fill="#888" opacity="0.25"/>
-                        <path d="M 2,90 Q 9,85 16,90 Q 9,95 2,90" fill="#888" opacity="0.2"/>
-                        <path d="M 2,110 Q 5,105 8,110 Q 5,115 2,110" fill="#888" opacity="0.15"/>
+                        <!-- Uniform flowing heat lines with consistent spacing -->
+                        <path d="M 3,10 Q 10,7 17,10 Q 10,13 3,10" fill="#999" opacity="0.12"/>
+                        <path d="M 3,30 Q 10,27 17,30 Q 10,33 3,30" fill="#999" opacity="0.12"/>
+                        <path d="M 3,50 Q 10,47 17,50 Q 10,53 3,50" fill="#999" opacity="0.12"/>
+                        <path d="M 3,70 Q 10,67 17,70 Q 10,73 3,70" fill="#999" opacity="0.12"/>
+                        <path d="M 3,90 Q 10,87 17,90 Q 10,93 3,90" fill="#999" opacity="0.12"/>
+                        <path d="M 3,110 Q 10,107 17,110 Q 10,113 3,110" fill="#999" opacity="0.12"/>
                         <animateTransform
                             attributeName="patternTransform"
                             type="translate"
                             values="0 0; 0 -120"
-                            dur="2s"
+                            dur="3s"
                             repeatCount="indefinite"/>
                     </pattern>
                     
                     <!-- Buffer heat lines pattern - top to bottom flow -->
                     <pattern id="bufferHeatLinesTopToBottom" x="0" y="0" width="20" height="120" patternUnits="userSpaceOnUse">
-                        <!-- Wavy heat lines for buffer (matching heat pump exactly) -->
-                        <path d="M 2,10 Q 8,5 14,10 Q 8,15 2,10" fill="#888" opacity="0.4"/>
-                        <path d="M 2,30 Q 6,25 10,30 Q 6,35 2,30" fill="#888" opacity="0.35"/>
-                        <path d="M 2,50 Q 10,45 18,50 Q 10,55 2,50" fill="#888" opacity="0.3"/>
-                        <path d="M 2,70 Q 7,65 12,70 Q 7,75 2,70" fill="#888" opacity="0.25"/>
-                        <path d="M 2,90 Q 9,85 16,90 Q 9,95 2,90" fill="#888" opacity="0.2"/>
-                        <path d="M 2,110 Q 5,105 8,110 Q 5,115 2,110" fill="#888" opacity="0.15"/>
-                        <path d="M 2,130 Q 8,125 14,130 Q 8,135 2,130" fill="#888" opacity="0.1"/>
-                        <path d="M 2,150 Q 6,145 10,150 Q 6,155 2,150" fill="#888" opacity="0.05"/>
-                        <path d="M 2,170 Q 8,165 14,170 Q 8,175 2,170" fill="#888" opacity="0.03"/>
-                        <path d="M 2,190 Q 6,185 10,190 Q 6,195 2,190" fill="#888" opacity="0.01"/>
+                        <!-- Uniform flowing heat lines with consistent spacing -->
+                        <path d="M 3,10 Q 10,7 17,10 Q 10,13 3,10" fill="#999" opacity="0.12"/>
+                        <path d="M 3,30 Q 10,27 17,30 Q 10,33 3,30" fill="#999" opacity="0.12"/>
+                        <path d="M 3,50 Q 10,47 17,50 Q 10,53 3,50" fill="#999" opacity="0.12"/>
+                        <path d="M 3,70 Q 10,67 17,70 Q 10,73 3,70" fill="#999" opacity="0.12"/>
+                        <path d="M 3,90 Q 10,87 17,90 Q 10,93 3,90" fill="#999" opacity="0.12"/>
+                        <path d="M 3,110 Q 10,107 17,110 Q 10,113 3,110" fill="#999" opacity="0.12"/>
                         <animateTransform
                             attributeName="patternTransform"
                             type="translate"
                             values="0 0; 0 120"
-                            dur="2s"
+                            dur="3s"
                             repeatCount="indefinite"/>
                     </pattern>
                     
                     <!-- Buffer heat lines pattern - bottom to top flow -->
                     <pattern id="bufferHeatLinesBottomToTop" x="0" y="0" width="20" height="120" patternUnits="userSpaceOnUse">
-                        <!-- Wavy heat lines for buffer (matching heat pump exactly) -->
-                        <path d="M 2,10 Q 8,5 14,10 Q 8,15 2,10" fill="#888" opacity="0.4"/>
-                        <path d="M 2,30 Q 6,25 10,30 Q 6,35 2,30" fill="#888" opacity="0.35"/>
-                        <path d="M 2,50 Q 10,45 18,50 Q 10,55 2,50" fill="#888" opacity="0.3"/>
-                        <path d="M 2,70 Q 7,65 12,70 Q 7,75 2,70" fill="#888" opacity="0.25"/>
-                        <path d="M 2,90 Q 9,85 16,90 Q 9,95 2,90" fill="#888" opacity="0.2"/>
-                        <path d="M 2,110 Q 5,105 8,110 Q 5,115 2,110" fill="#888" opacity="0.15"/>
-                        <path d="M 2,130 Q 8,125 14,130 Q 8,135 2,130" fill="#888" opacity="0.1"/>
-                        <path d="M 2,150 Q 6,145 10,150 Q 6,155 2,150" fill="#888" opacity="0.05"/>
-                        <path d="M 2,170 Q 8,165 14,170 Q 8,175 2,170" fill="#888" opacity="0.03"/>
-                        <path d="M 2,190 Q 6,185 10,190 Q 6,195 2,190" fill="#888" opacity="0.01"/>
+                        <!-- Uniform flowing heat lines with consistent spacing -->
+                        <path d="M 3,10 Q 10,7 17,10 Q 10,13 3,10" fill="#999" opacity="0.12"/>
+                        <path d="M 3,30 Q 10,27 17,30 Q 10,33 3,30" fill="#999" opacity="0.12"/>
+                        <path d="M 3,50 Q 10,47 17,50 Q 10,53 3,50" fill="#999" opacity="0.12"/>
+                        <path d="M 3,70 Q 10,67 17,70 Q 10,73 3,70" fill="#999" opacity="0.12"/>
+                        <path d="M 3,90 Q 10,87 17,90 Q 10,93 3,90" fill="#999" opacity="0.12"/>
+                        <path d="M 3,110 Q 10,107 17,110 Q 10,113 3,110" fill="#999" opacity="0.12"/>
                         <animateTransform
                             attributeName="patternTransform"
                             type="translate"
                             values="0 120; 0 0"
-                            dur="2s"
+                            dur="3s"
                             repeatCount="indefinite"/>
                     </pattern>
                     
-                    <!-- Moving heat lines pattern for house (right to left) -->
+                    <!-- Moving heat lines pattern for house (uniform, seamless) -->
                     <pattern id="houseHeatLinesPattern" x="0" y="0" width="120" height="20" patternUnits="userSpaceOnUse">
-                        <!-- Wavy heat lines moving right to left -->
-                        <path d="M 10,2 Q 5,8 10,14 Q 15,8 10,2" fill="#888" opacity="0.4"/>
-                        <path d="M 30,2 Q 25,6 30,10 Q 35,6 30,2" fill="#888" opacity="0.35"/>
-                        <path d="M 50,2 Q 45,10 50,18 Q 55,10 50,2" fill="#888" opacity="0.3"/>
-                        <path d="M 70,2 Q 65,7 70,12 Q 75,7 70,2" fill="#888" opacity="0.25"/>
-                        <path d="M 90,2 Q 85,9 90,16 Q 95,9 90,2" fill="#888" opacity="0.2"/>
-                        <path d="M 110,2 Q 105,5 110,8 Q 115,5 110,2" fill="#888" opacity="0.15"/>
+                        <!-- Uniform flowing heat lines moving right to left -->
+                        <path d="M 10,3 Q 7,10 10,17 Q 13,10 10,3" fill="#999" opacity="0.12"/>
+                        <path d="M 30,3 Q 27,10 30,17 Q 33,10 30,3" fill="#999" opacity="0.12"/>
+                        <path d="M 50,3 Q 47,10 50,17 Q 53,10 50,3" fill="#999" opacity="0.12"/>
+                        <path d="M 70,3 Q 67,10 70,17 Q 73,10 70,3" fill="#999" opacity="0.12"/>
+                        <path d="M 90,3 Q 87,10 90,17 Q 93,10 90,3" fill="#999" opacity="0.12"/>
+                        <path d="M 110,3 Q 107,10 110,17 Q 113,10 110,3" fill="#999" opacity="0.12"/>
                         <animateTransform
                             attributeName="patternTransform"
                             type="translate"
                             values="0 0; -120 0"
-                            dur="2s"
+                            dur="3s"
                             repeatCount="indefinite"/>
                     </pattern>
                     
                     <!-- Tank heat lines pattern - top to bottom flow -->
                     <pattern id="tankHeatLinesTopToBottom" x="0" y="0" width="20" height="120" patternUnits="userSpaceOnUse">
-                        <!-- Wavy heat lines for tanks (matching heat pump exactly) -->
-                        <path d="M 2,10 Q 8,5 14,10 Q 8,15 2,10" fill="#888" opacity="0.4"/>
-                        <path d="M 2,30 Q 6,25 10,30 Q 6,35 2,30" fill="#888" opacity="0.35"/>
-                        <path d="M 2,50 Q 10,45 18,50 Q 10,55 2,50" fill="#888" opacity="0.3"/>
-                        <path d="M 2,70 Q 7,65 12,70 Q 7,75 2,70" fill="#888" opacity="0.25"/>
-                        <path d="M 2,90 Q 9,85 16,90 Q 9,95 2,90" fill="#888" opacity="0.2"/>
-                        <path d="M 2,110 Q 5,105 8,110 Q 5,115 2,110" fill="#888" opacity="0.15"/>
+                        <!-- Uniform flowing heat lines with consistent spacing -->
+                        <path d="M 3,10 Q 10,7 17,10 Q 10,13 3,10" fill="#999" opacity="0.12"/>
+                        <path d="M 3,30 Q 10,27 17,30 Q 10,33 3,30" fill="#999" opacity="0.12"/>
+                        <path d="M 3,50 Q 10,47 17,50 Q 10,53 3,50" fill="#999" opacity="0.12"/>
+                        <path d="M 3,70 Q 10,67 17,70 Q 10,73 3,70" fill="#999" opacity="0.12"/>
+                        <path d="M 3,90 Q 10,87 17,90 Q 10,93 3,90" fill="#999" opacity="0.12"/>
+                        <path d="M 3,110 Q 10,107 17,110 Q 10,113 3,110" fill="#999" opacity="0.12"/>
                         <animateTransform
                             attributeName="patternTransform"
                             type="translate"
                             values="0 0; 0 120"
-                            dur="2s"
+                            dur="3s"
                             repeatCount="indefinite"/>
                     </pattern>
                     
                     <!-- Tank heat lines pattern - bottom to top flow -->
                     <pattern id="tankHeatLinesBottomToTop" x="0" y="0" width="20" height="120" patternUnits="userSpaceOnUse">
-                        <!-- Wavy heat lines for tanks (matching heat pump exactly) -->
-                        <path d="M 2,10 Q 8,5 14,10 Q 8,15 2,10" fill="#888" opacity="0.4"/>
-                        <path d="M 2,30 Q 6,25 10,30 Q 6,35 2,30" fill="#888" opacity="0.35"/>
-                        <path d="M 2,50 Q 10,45 18,50 Q 10,55 2,50" fill="#888" opacity="0.3"/>
-                        <path d="M 2,70 Q 7,65 12,70 Q 7,75 2,70" fill="#888" opacity="0.25"/>
-                        <path d="M 2,90 Q 9,85 16,90 Q 9,95 2,90" fill="#888" opacity="0.2"/>
-                        <path d="M 2,110 Q 5,105 8,110 Q 5,115 2,110" fill="#888" opacity="0.15"/>
+                        <!-- Uniform flowing heat lines with consistent spacing -->
+                        <path d="M 3,10 Q 10,7 17,10 Q 10,13 3,10" fill="#999" opacity="0.12"/>
+                        <path d="M 3,30 Q 10,27 17,30 Q 10,33 3,30" fill="#999" opacity="0.12"/>
+                        <path d="M 3,50 Q 10,47 17,50 Q 10,53 3,50" fill="#999" opacity="0.12"/>
+                        <path d="M 3,70 Q 10,67 17,70 Q 10,73 3,70" fill="#999" opacity="0.12"/>
+                        <path d="M 3,90 Q 10,87 17,90 Q 10,93 3,90" fill="#999" opacity="0.12"/>
+                        <path d="M 3,110 Q 10,107 17,110 Q 10,113 3,110" fill="#999" opacity="0.12"/>
                         <animateTransform
                             attributeName="patternTransform"
                             type="translate"
                             values="0 120; 0 0"
-                            dur="2s"
+                            dur="3s"
                             repeatCount="indefinite"/>
                     </pattern>
                 </defs>
