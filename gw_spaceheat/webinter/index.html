@@ -211,7 +211,8 @@
                     <rect x="20" y="50" width="120" height="200" rx="10" fill="url(#heatLinesPattern)"/>
                 </g>
                 <text x="80" y="270" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">Heat pump</text>
-                <text id="hp-lift" x="80" y="160" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">Lift: -°F</text>
+                <text id="hp-lift" x="80" y="150" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">Lift<tspan x="80" dy="1.2em">-°F</tspan>
+                </text>
                 
                 <!-- Buffer (right) -->
                 <rect x="860" y="50" width="120" height="200" rx="10" fill="transparent"/>
@@ -231,7 +232,8 @@
                     <rect x="660" y="280" width="120" height="200" rx="10" fill="url(#houseHeatLinesPattern)"/>
                 </g>
                 <text x="720" y="500" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">House</text>
-                <text id="house-drop" x="720" y="390" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">Drop: -°F</text>
+                <text id="house-drop" x="720" y="380" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">Drop<tspan x="720" dy="1.2em">-°F</tspan>
+                </text>
                 
                 <!-- Tank 3 (bottom left) -->
                 <rect x="200" y="280" width="120" height="200" rx="10" fill="transparent"/>
@@ -1146,11 +1148,11 @@
             const hpLiftElement = document.getElementById('hp-lift');
             if (hpLiftElement && hpLwtTempF !== null && hpEwtTempF !== null) {
                 const lift = (hpLwtTempF - hpEwtTempF).toFixed(1);
-                hpLiftElement.textContent = `Lift: ${lift}°F`;
+                hpLiftElement.innerHTML = `Lift<tspan x="80" dy="1.2em">${lift}°F</tspan>`;
                 console.log(`Updated hp-lift: ${hpLwtTempF}°F - ${hpEwtTempF}°F = ${lift}°F`);
             } else if (hpLiftElement) {
                 // If either temperature is not available, show placeholder
-                hpLiftElement.textContent = 'Lift: -°F';
+                hpLiftElement.innerHTML = `Lift<tspan x="80" dy="1.2em">-°F</tspan>`;
                 console.log(`Cannot calculate lift - missing temperature data`);
             }
             
@@ -1257,11 +1259,11 @@
             const houseDropElement = document.getElementById('house-drop');
             if (houseDropElement && distSwtTempF !== null && distRwtTempF !== null) {
                 const drop = (distSwtTempF - distRwtTempF).toFixed(1);
-                houseDropElement.textContent = `Drop: ${drop}°F`;
+                houseDropElement.innerHTML = `Drop<tspan x="720" dy="1.2em">${drop}°F</tspan>`;
                 console.log(`Updated house-drop: ${distSwtTempF}°F - ${distRwtTempF}°F = ${drop}°F`);
             } else if (houseDropElement) {
                 // If either temperature is not available, show placeholder
-                houseDropElement.textContent = 'Drop: -°F';
+                houseDropElement.innerHTML = `Drop<tspan x="720" dy="1.2em">-°F</tspan>`;
                 console.log(`Cannot calculate drop - missing temperature data`);
             }
             
