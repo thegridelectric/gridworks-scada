@@ -18,6 +18,8 @@ from transitions import Machine
 from actors.scada_actor import ScadaActor
 from actors.scada_interface import ScadaInterface
 from gwsproto.named_types import ActuatorsReady, GoDormant, HeatingForecast, WakeUp
+from scada_app_interface import ScadaAppInterface
+
 
 class SummerTopState(GwStrEnum):
     EverythingOff = auto()

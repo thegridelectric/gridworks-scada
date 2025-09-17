@@ -38,7 +38,7 @@ from result import Err, Ok, Result
 from transitions import Machine
 from gwsproto.data_classes.house_0_names import House0RelayIdx
 from actors.scada_actor import ScadaActor
-from actors.scada_interface import ScadaInterface
+from scada_app_interface import ScadaAppInterface
 from gwsproto.enums import LogLevel, ChangeKeepSend, HpLoopKeepSend
 from gwsproto.named_types import FsmEvent, Glitch, SingleMachineState
 

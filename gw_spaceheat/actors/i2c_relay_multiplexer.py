@@ -26,6 +26,7 @@ from result import Err, Ok, Result
 from actors.scada_actor import ScadaActor
 from gwsproto.named_types import ActuatorsReady, FsmEvent, Glitch
 from gwsproto.enums import LogLevel
+from scada_app_interface import ScadaAppInterface
 
 class ChangeKridaPin(Enum):
     Energize = 0

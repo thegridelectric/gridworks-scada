@@ -17,6 +17,7 @@ from gw.errors import DcError
 from result import Err, Result
 from actors.scada_actor import ScadaActor
 from gwsproto.named_types import ActuatorsReady
+from scada_app_interface import ScadaAppInterface
 
 DFR_OUTPUT_SET_RANGE = 0x01
 DFR_OUTPUT_RANGE_10V = 17

@@ -9,6 +9,7 @@ from gwproto.message import Header
 from gwproto.message import Message
 from gwproto.named_types import PowerWatts, Report, SyncedReadings
 
+from actors import ContractHandler
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.data_classes.house_0_layout import House0Layout
 
@@ -19,7 +20,7 @@ from gwproactor import QOS
 from gwproactor.message import MQTTReceiptPayload
 from actors.codec_factories import Scada2CodecFactory
 from gwsproto.named_types import Glitch, SnapshotSpaceheat
-
+from actors.scada_interface import ScadaInterface
 
 
 

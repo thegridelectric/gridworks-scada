@@ -23,6 +23,8 @@ from gwsproto.named_types import (ActuatorsReady,
             GoDormant, Glitch, Ha1Params, HeatingForecast,
             NewCommandTree, SingleMachineState, WakeUp)
 from gwsproto.enums import HomeAloneStrategy, HomeAloneTopState, LogLevel
+from scada_app_interface import ScadaAppInterface
+
 
 class TopStateEvent(GwStrEnum):
     HouseColdOnpeak = auto()

@@ -3,7 +3,6 @@ import uuid
 import asyncio
 from typing import List, Literal
 from pydantic import BaseModel
-from gwsproto.data_classes.house_0_names import H0CN, H0N
 from enum import auto
 from gw.enums import GwStrEnum
 from gwproto.message import Message
@@ -14,7 +13,7 @@ from result import Ok, Result
 
 
 from actors.scada_actor import ScadaActor
-from actors.scada_interface import ScadaInterface
+from scada_app_interface import ScadaAppInterface
 from gwsproto.enums import LogLevel, TurnHpOnOff
 from gwsproto.named_types import ActuatorsReady, FsmEvent, Glitch, SingleMachineState
 
