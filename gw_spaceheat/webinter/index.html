@@ -416,18 +416,12 @@
         <!-- Test Mode Dropdown -->
         <div style="text-align: center; margin: 20px auto 60px auto;">
             <label for="testModeSelect" style="color: var(--text-color); font-family: Montserrat, sans-serif; font-size: 14px; margin-right: 10px;">Show system state:</label>
-            <select id="testModeSelect" style="padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; background: var(--bg-color); color: var(--text-color); font-family: Montserrat, sans-serif; font-size: 14px; margin-right: 20px;">
+            <select id="testModeSelect" style="padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; background: var(--bg-color); color: var(--text-color); font-family: Montserrat, sans-serif; font-size: 14px;">
                 <option value="Auto" selected>Real system state</option>
                 <option value="HpOnStoreOff">HpOnStoreOff</option>
                 <option value="HpOnStoreCharge">HpOnStoreCharge</option>
                 <option value="HpOffStoreDischarge">HpOffStoreDischarge</option>
                 <option value="HpOffStoreOff">HpOffStoreOff</option>
-            </select>
-            
-            <select id="flowVisualizationSelect" style="padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; background: var(--bg-color); color: var(--text-color); font-family: Montserrat, sans-serif; font-size: 14px;">
-                <option value="Real" selected>Real distribution flow</option>
-                <option value="Force">Flow</option>
-                <option value="None">No flow</option>
             </select>
         </div>
 
@@ -841,12 +835,6 @@
             // Update the last snapshot timestamp
             updateSnapshotTimestamp(snapshotData);
             
-            // Log current relay states before processing
-            console.log('🔌 Relay states before snapshot:');
-            Object.keys(relays).forEach(relayName => {
-                console.log(`  ${relayName}: ${relays[relayName].state}`);
-            });
-            
             // Update thermostat table
             updateThermostatTable(snapshotData);
             
@@ -855,15 +843,7 @@
             
             // Update tank temperatures
             updateTankTemperatures(snapshotData);
-            
-            // Relay states are now updated via status messages from the server
-            
-            // Log current relay states after processing
-            console.log('🔌 Relay states after snapshot:');
-            Object.keys(relays).forEach(relayName => {
-                console.log(`  ${relayName}: ${relays[relayName].state}`);
-            });
-            
+                                    
             // Store snapshot data for test mode dropdown
             window.lastSnapshotData = snapshotData;
             
@@ -1481,22 +1461,65 @@
             }
             
             const distFlowReading = readingsMap['dist-flow'];
-            const realDistFlow = distFlowReading && distFlowReading.Value && parseFloat(distFlowReading.Value) > 0;
+            const hasDistFlow = distFlowReading && distFlowReading.Value && parseFloat(distFlowReading.Value) > 0;
             
-            // Check flow visualization dropdown setting
-            const flowVisualizationSelect = document.getElementById('flowVisualizationSelect');
-            let hasDistFlow = realDistFlow; // Default to real flow
+            // Check for zone relay conditions: Failsf relay with state "Scada" and Scada ops relay with state "RelayClosed"
+            let hasZoneRelayCondition = false;
             
-            if (flowVisualizationSelect) {
-                const flowMode = flowVisualizationSelect.value;
-                if (flowMode === 'Force') {
-                    hasDistFlow = true; // Force flow visualization
-                } else if (flowMode === 'None') {
-                    hasDistFlow = false; // Force no flow visualization
-                } else if (flowMode === 'Real') {
-                    hasDistFlow = realDistFlow; // Use real distribution flow
+            console.log('🔍 DEBUG: Checking zone relay conditions...');
+            console.log('🔍 DEBUG: Available relays:', Object.keys(relays).map(name => ({
+                name,
+                display_name: relays[name].display_name,
+                state: relays[name].state
+            })));
+            
+            Object.keys(relays).forEach(relayName => {
+                const relay = relays[relayName];
+                if (relay && relay.display_name) {
+                    const displayName = relay.display_name.toLowerCase();
+                    console.log(`🔍 DEBUG: Checking relay ${relayName}: display_name="${relay.display_name}", state="${relay.state}"`);
+                    
+                    // Check if this is a Failsf relay with state "energized" (which corresponds to "Scada")
+                    if (displayName.includes('failsf') && relay.state === 'energized') {
+                        console.log(`✅ DEBUG: Found Failsf relay with energized state: ${relayName} (${relay.display_name})`);
+                        
+                        // Find the corresponding Scada ops relay for the same zone
+                        Object.keys(relays).forEach(otherRelayName => {
+                            const otherRelay = relays[otherRelayName];
+                            if (otherRelay && otherRelay.display_name) {
+                                const otherDisplayName = otherRelay.display_name.toLowerCase();
+                                console.log(`🔍 DEBUG: Checking potential Scada ops relay ${otherRelayName}: display_name="${otherRelay.display_name}", state="${otherRelay.state}"`);
+                                
+                                // Check if this is a Scada ops relay for the same zone with state "energized" (which corresponds to "RelayClosed")
+                                if (otherDisplayName.includes('scada ops') && otherRelay.state === 'energized') {
+                                    console.log(`✅ DEBUG: Found Scada ops relay with energized state: ${otherRelayName} (${otherRelay.display_name})`);
+                                    
+                                    // Extract zone identifier from the beginning of the display name
+                                    // Pattern: "Living-rm Zone 1 Failsf" -> "living-rm"
+                                    // Pattern: "Living-rm Zone Scada Ops" -> "living-rm"
+                                    const zoneFromFailsf = displayName.split(' zone ')[0].trim();
+                                    const zoneFromScadaOps = otherDisplayName.split(' zone ')[0].trim();
+                                    
+                                    console.log(`🔍 DEBUG: Zone matching - Failsf zone: "${zoneFromFailsf}", Scada ops zone: "${zoneFromScadaOps}"`);
+                                    console.log(`🔍 DEBUG: Zone matching - Original names: Failsf="${relay.display_name}", Scada ops="${otherRelay.display_name}"`);
+                                    
+                                    if (zoneFromFailsf === zoneFromScadaOps && zoneFromFailsf !== '') {
+                                        console.log(`🎯 DEBUG: ZONE MATCH FOUND! Setting hasZoneRelayCondition = true`);
+                                        hasZoneRelayCondition = true;
+                                    } else {
+                                        console.log(`❌ DEBUG: Zone match failed for ${relayName} and ${otherRelayName}`);
+                                    }
+                                }
+                            }
+                        });
+                    }
                 }
-            }
+            });
+            
+            // Combined condition: dist-flow > 0 OR zone relay condition
+            const shouldAnimate = hasDistFlow || hasZoneRelayCondition;
+            
+            console.log(`🔍 DEBUG: Final results - hasDistFlow: ${hasDistFlow}, hasZoneRelayCondition: ${hasZoneRelayCondition}, shouldAnimate: ${shouldAnimate}`);
             
             // Set pipe colors based on state
             
@@ -1615,7 +1638,8 @@
                 }
                 
                 // Animate House pipes based on distribution flow
-                if (hasDistFlow) {
+                if (shouldAnimate) {
+                    console.log('🎬 DEBUG: Triggering house animation - shouldAnimate is true');
                     // Show house animation
                     const houseAnimation = document.getElementById('house-animation');
                     const houseDropText = document.getElementById('house-drop');
@@ -1626,7 +1650,7 @@
                         if (houseDropText) {
                             houseDropText.parentNode.appendChild(houseDropText);
                         }
-                        console.log('House animation activated for distribution flow');
+                        console.log('House animation activated for distribution flow or zone relay conditions');
                     }
                     
                     // Right vertical pipe (house-hp-vertical-pipe) - downward flow
@@ -1654,15 +1678,16 @@
                         houseConnectionPipeBottom.parentNode.appendChild(houseConnectionPipeBottom);
                     }
                 } else {
-                    // Hide house animation when no distribution flow
+                    console.log('🚫 DEBUG: NOT triggering house animation - shouldAnimate is false');
+                    // Hide house animation when no distribution flow and no zone relay conditions
                     const houseAnimation = document.getElementById('house-animation');
                     if (houseAnimation) {
                         houseAnimation.style.display = 'none';
                     }
                 }
                 
-                // Special logic for HpOnStoreOff: House to Buffer pipes when dist flow is active
-                if (hasDistFlow) {
+                // Special logic for HpOnStoreOff: House to Buffer pipes when dist flow is active or zone relay conditions met
+                if (shouldAnimate) {
                     // House to Buffer top pipe - rightward flow
                     if (houseBufferTopPipe) {
                         houseBufferTopPipe.setAttribute('fill', 'url(#flowPattern)');
@@ -1839,7 +1864,8 @@
                 }
                 
                 // Animate House pipes based on distribution flow
-                if (hasDistFlow) {
+                if (shouldAnimate) {
+                    console.log('🎬 DEBUG: Triggering house animation - shouldAnimate is true');
                     // Show house animation
                     const houseAnimation = document.getElementById('house-animation');
                     const houseDropText = document.getElementById('house-drop');
@@ -1850,7 +1876,7 @@
                         if (houseDropText) {
                             houseDropText.parentNode.appendChild(houseDropText);
                         }
-                        console.log('House animation activated for distribution flow');
+                        console.log('House animation activated for distribution flow or zone relay conditions');
                     }
                     
                     // Right vertical pipe (house-hp-vertical-pipe) - downward flow
@@ -1878,7 +1904,8 @@
                         houseConnectionPipeBottom.parentNode.appendChild(houseConnectionPipeBottom);
                     }
                 } else {
-                    // Hide house animation when no distribution flow
+                    console.log('🚫 DEBUG: NOT triggering house animation - shouldAnimate is false');
+                    // Hide house animation when no distribution flow and no zone relay conditions
                     const houseAnimation = document.getElementById('house-animation');
                     if (houseAnimation) {
                         houseAnimation.style.display = 'none';
@@ -1938,8 +1965,9 @@
                     console.log('Tank 3 animation activated for HpOnStoreCharge - top to bottom flow');
                 }
                 
-                // Show buffer animation - bottom to top flow, only when dist-flow is active
-                if (hasDistFlow) {
+                // Show buffer animation - bottom to top flow, only when dist-flow is active or zone relay conditions met
+                if (shouldAnimate) {
+                    console.log('🎬 DEBUG: Triggering buffer animation - shouldAnimate is true');
                     const bufferAnimation = document.getElementById('buffer-animation');
                     if (bufferAnimation) {
                         bufferAnimation.style.display = 'block';
@@ -1949,10 +1977,11 @@
                         if (bufferRect) {
                             bufferRect.setAttribute('fill', 'url(#bufferHeatLinesBottomToTop)');
                         }
-                        console.log('Buffer animation activated for HpOnStoreCharge - bottom to top flow (dist-flow active)');
+                        console.log('Buffer animation activated for HpOnStoreCharge - bottom to top flow (dist-flow active or zone relay conditions met)');
                     }
                 } else {
-                    // Hide buffer animation when no dist-flow
+                    console.log('🚫 DEBUG: NOT triggering buffer animation - shouldAnimate is false');
+                    // Hide buffer animation when no dist-flow and no zone relay conditions
                     const bufferAnimation = document.getElementById('buffer-animation');
                     if (bufferAnimation) {
                         bufferAnimation.style.display = 'none';
@@ -2041,8 +2070,8 @@
                 }
                 console.log('Set HpOnStoreCharge pipes to green');
                 
-                // Special logic for HpOnStoreCharge: House to Buffer pipes when dist flow is active
-                if (hasDistFlow) {
+                // Special logic for HpOnStoreCharge: House to Buffer pipes when dist flow is active or zone relay conditions met
+                if (shouldAnimate) {
                     // House to Buffer top pipe - leftward flow (opposite direction from HpOnStoreOff)
                     if (houseBufferTopPipe) {
                         houseBufferTopPipe.setAttribute('fill', 'url(#leftFlowPattern)');
@@ -2169,7 +2198,8 @@
                 }
                 
                 // Animate House pipes based on distribution flow
-                if (hasDistFlow) {
+                if (shouldAnimate) {
+                    console.log('🎬 DEBUG: Triggering house animation - shouldAnimate is true');
                     // Show house animation
                     const houseAnimation = document.getElementById('house-animation');
                     const houseDropText = document.getElementById('house-drop');
@@ -2180,7 +2210,7 @@
                         if (houseDropText) {
                             houseDropText.parentNode.appendChild(houseDropText);
                         }
-                        console.log('House animation activated for distribution flow');
+                        console.log('House animation activated for distribution flow or zone relay conditions');
                     }
                     
                     // Right vertical pipe (house-hp-vertical-pipe) - downward flow
@@ -2238,7 +2268,7 @@
                         }
                     }
                 } else {
-                    // Hide house animation when no distribution flow
+                    // Hide house animation when no distribution flow and no zone relay conditions
                     const houseAnimation = document.getElementById('house-animation');
                     if (houseAnimation) {
                         houseAnimation.style.display = 'none';
@@ -2415,18 +2445,6 @@
             if (testModeSelect) {
                 testModeSelect.addEventListener('change', function() {
                     console.log('Test mode changed to:', this.value);
-                    // Trigger pipe color update with current snapshot data
-                    if (window.lastSnapshotData) {
-                        updatePipeColors(window.lastSnapshotData);
-                    }
-                });
-            }
-            
-            // Add event listener for flow visualization dropdown
-            const flowVisualizationSelect = document.getElementById('flowVisualizationSelect');
-            if (flowVisualizationSelect) {
-                flowVisualizationSelect.addEventListener('change', function() {
-                    console.log('Flow visualization changed to:', this.value);
                     // Trigger pipe color update with current snapshot data
                     if (window.lastSnapshotData) {
                         updatePipeColors(window.lastSnapshotData);
