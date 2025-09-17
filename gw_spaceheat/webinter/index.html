@@ -104,14 +104,14 @@
                 <defs>
                     <!-- Dynamic gradient for heat pump animation (EWT to LWT) -->
                     <linearGradient id="heatGradient" x1="0%" y1="100%" x2="0%" y2="0%">
-                        <stop id="ewt-stop" offset="25%" style="stop-color:#666;stop-opacity:1" />
-                        <stop id="lwt-stop" offset="75%" style="stop-color:#666;stop-opacity:1" />
+                        <stop id="ewt-stop" offset="25%" style="stop-color:#2196F3;stop-opacity:1" />
+                        <stop id="lwt-stop" offset="75%" style="stop-color:#F44336;stop-opacity:1" />
                     </linearGradient>
                     
                     <!-- Dynamic gradient for house animation (dist-rwt to dist-swt, left to right) -->
                     <linearGradient id="houseHeatGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop id="dist-rwt-stop" offset="25%" style="stop-color:#666;stop-opacity:1" />
-                        <stop id="dist-swt-stop" offset="75%" style="stop-color:#666;stop-opacity:1" />
+                        <stop id="dist-rwt-stop" offset="25%" style="stop-color:#2196F3;stop-opacity:1" />
+                        <stop id="dist-swt-stop" offset="75%" style="stop-color:#F44336;stop-opacity:1" />
                     </linearGradient>
                     
                     <!-- Flow pattern for HpOffStoreDischarge top horizontal pipe -->
@@ -1190,10 +1190,10 @@
                 // Reset to default colors if temperatures are not available
                 ewtStop.removeAttribute('style');
                 lwtStop.removeAttribute('style');
-                ewtStop.setAttribute('style', 'stop-color:#666;stop-opacity:1');
-                lwtStop.setAttribute('style', 'stop-color:#666;stop-opacity:1');
-                ewtStop.setAttribute('stop-color', '#666');
-                lwtStop.setAttribute('stop-color', '#666');
+                ewtStop.setAttribute('style', 'stop-color:#2196F3;stop-opacity:1');
+                lwtStop.setAttribute('style', 'stop-color:#F44336;stop-opacity:1');
+                ewtStop.setAttribute('stop-color', '#2196F3');
+                lwtStop.setAttribute('stop-color', '#F44336');
                 console.log('Reset heat pump gradient to default colors - missing temperature data');
             } else {
                 console.log('Gradient elements not found: ewtStop=', !!ewtStop, 'lwtStop=', !!lwtStop);
@@ -1239,6 +1239,12 @@
             const storeHotPipeReading = readingsMap['store-hot-pipe'];
             const storeHotPipeElement = document.getElementById('store-hot-pipe');
             
+            console.log('Store hot pipe debug:', {
+                element: !!storeHotPipeElement,
+                reading: storeHotPipeReading,
+                readingsMapKeys: Object.keys(readingsMap).filter(key => key.includes('store'))
+            });
+            
             if (storeHotPipeElement && storeHotPipeReading) {
                 // Convert temperature from Celsius * 1000 to Fahrenheit
                 // Formula: °F = (°C * 9/5) + 32
@@ -1256,6 +1262,12 @@
             // Update store cold pipe temperature (store-cold-pipe)
             const storeColdPipeReading = readingsMap['store-cold-pipe'];
             const storeColdPipeElement = document.getElementById('store-cold-pipe');
+            
+            console.log('Store cold pipe debug:', {
+                element: !!storeColdPipeElement,
+                reading: storeColdPipeReading,
+                readingsMapKeys: Object.keys(readingsMap).filter(key => key.includes('store'))
+            });
             
             if (storeColdPipeElement && storeColdPipeReading) {
                 // Convert temperature from Celsius * 1000 to Fahrenheit
@@ -1356,10 +1368,10 @@
                 // Reset to default colors if temperatures are not available
                 distRwtStop.removeAttribute('style');
                 distSwtStop.removeAttribute('style');
-                distRwtStop.setAttribute('style', 'stop-color:#666;stop-opacity:1');
-                distSwtStop.setAttribute('style', 'stop-color:#666;stop-opacity:1');
-                distRwtStop.setAttribute('stop-color', '#666');
-                distSwtStop.setAttribute('stop-color', '#666');
+                distRwtStop.setAttribute('style', 'stop-color:#2196F3;stop-opacity:1');
+                distSwtStop.setAttribute('style', 'stop-color:#F44336;stop-opacity:1');
+                distRwtStop.setAttribute('stop-color', '#2196F3');
+                distSwtStop.setAttribute('stop-color', '#F44336');
                 console.log('Reset house gradient to default colors - missing temperature data');
             } else {
                 console.log('House gradient elements not found: distRwtStop=', !!distRwtStop, 'distSwtStop=', !!distSwtStop);
@@ -1623,7 +1635,7 @@
                     }
                 }
                 
-                // Special logic for HpOffStoreOff: House to Buffer pipes when dist flow is active
+                // Special logic for HpOnStoreOff: House to Buffer pipes when dist flow is active
                 if (hasDistFlow) {
                     // House to Buffer top pipe - rightward flow
                     if (houseBufferTopPipe) {
@@ -1631,12 +1643,8 @@
                         houseBufferTopPipe.removeAttribute('stroke');
                         houseBufferTopPipe.parentNode.appendChild(houseBufferTopPipe);
                     }
-                    // House to Buffer bottom pipe - rightward flow
-                    if (houseBufferBottomPipe) {
-                        houseBufferBottomPipe.setAttribute('fill', 'url(#flowPattern)');
-                        houseBufferBottomPipe.removeAttribute('stroke');
-                        houseBufferBottomPipe.parentNode.appendChild(houseBufferBottomPipe);
-                    }
+                    // House to Buffer bottom pipe - NOT animated in HpOnStoreOff
+                    // (bottom pipe stays gray)
                 }
                 
                 console.log('Set HP-Buffer pipes to green for HpOnStoreOff state');
@@ -1904,6 +1912,22 @@
                     tank3ConnectionPipe.removeAttribute('stroke');
                 }
                 console.log('Set HpOnStoreCharge pipes to green');
+                
+                // Special logic for HpOnStoreCharge: House to Buffer pipes when dist flow is active
+                if (hasDistFlow) {
+                    // House to Buffer top pipe - leftward flow (opposite direction from HpOnStoreOff)
+                    if (houseBufferTopPipe) {
+                        houseBufferTopPipe.setAttribute('fill', 'url(#leftFlowPattern)');
+                        houseBufferTopPipe.removeAttribute('stroke');
+                        houseBufferTopPipe.parentNode.appendChild(houseBufferTopPipe);
+                    }
+                    // House to Buffer bottom pipe - rightward flow
+                    if (houseBufferBottomPipe) {
+                        houseBufferBottomPipe.setAttribute('fill', 'url(#flowPattern)');
+                        houseBufferBottomPipe.removeAttribute('stroke');
+                        houseBufferBottomPipe.parentNode.appendChild(houseBufferBottomPipe);
+                    }
+                }
             } else {
                 // Gray pipes for other states
                 // Hide heat pump animation
@@ -2032,6 +2056,23 @@
                         houseConnectionPipeBottom.setAttribute('fill', 'url(#leftFlowPattern)');
                         houseConnectionPipeBottom.removeAttribute('stroke');
                         houseConnectionPipeBottom.parentNode.appendChild(houseConnectionPipeBottom);
+                    }
+                    
+                    // Special logic for HpOffStoreOff: House to Buffer pipes when dist flow is active
+                    // (same as HpOnStoreCharge)
+                    if (currentState === 'HpOffStoreOff') {
+                        // House to Buffer top pipe - leftward flow (same as HpOnStoreCharge)
+                        if (houseBufferTopPipe) {
+                            houseBufferTopPipe.setAttribute('fill', 'url(#leftFlowPattern)');
+                            houseBufferTopPipe.removeAttribute('stroke');
+                            houseBufferTopPipe.parentNode.appendChild(houseBufferTopPipe);
+                        }
+                        // House to Buffer bottom pipe - rightward flow (same as HpOnStoreCharge)
+                        if (houseBufferBottomPipe) {
+                            houseBufferBottomPipe.setAttribute('fill', 'url(#flowPattern)');
+                            houseBufferBottomPipe.removeAttribute('stroke');
+                            houseBufferBottomPipe.parentNode.appendChild(houseBufferBottomPipe);
+                        }
                     }
                 } else {
                     // Hide house animation when no distribution flow
