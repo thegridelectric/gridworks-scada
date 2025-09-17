@@ -1,6 +1,6 @@
 [project]
 name = "gridworks-admin"
-version = "1.0.0.dev2"
+version = "1.0.0.dev3"
 description = "CLI tool for monitoring gridworks-scada devices."
 readme = "README.md"
 authors = [
