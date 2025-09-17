@@ -4,7 +4,6 @@ on:
   push:
     branches:
        - main
-       - as/admin-install
 
 jobs:
   release-gwsproto:
