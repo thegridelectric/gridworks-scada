@@ -17,6 +17,9 @@ pymodbus
 pyserial
 pyModbusTCP
 
+# atn
+httpx
+
 # cli tools
 rich
 typer
