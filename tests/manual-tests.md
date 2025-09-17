@@ -12,17 +12,15 @@ and using the repl makes this tricky and some manual testing is required.
 | gws admin watch |       |    |       |
 | gwa watch       |       |    |       |
 | uvx admin       |       |    |       |
+| service         |   -   |    |   -   |
 
 
 ## Scada repl code
 ```python
-import typing
 from scada_app import ScadaApp
 from actors.config import ScadaSettings
 import dotenv
-ef = dotenv.find_dotenv()
-settings = ScadaSettings(_env_file=ef)
-app = typing.cast(ScadaApp, ScadaApp.make_app_for_cli(app_settings=settings, env_file=ef))
+app = ScadaApp.make_app_for_cli(app_settings=ScadaSettings(_env_file=dotenv.find_dotenv())) # noqa
 app.run_in_thread()
 s = app.prime_actor
 ```
@@ -30,9 +28,12 @@ s = app.prime_actor
 
 ### Atn repl code
 ```python
-
+from actors.atn.atn_config import AtnSettings; from atn_app import AtnApp; import dotenv
+a = AtnApp.get_repl_app(app_settings=AtnSettings(_env_file=dotenv.find_dotenv())).atn # noqa
 ```
 
 ### uvx command line
 
-uvx --from gridworks-admin gwa watch --env-file ABSOLUTE/PATH/TO/ACTUAL/.env
+Note: correct the --env-file path
+
+    uvx --from gridworks-admin gwa watch --env-file ABSOLUTE/PATH/TO/ACTUAL/.env
