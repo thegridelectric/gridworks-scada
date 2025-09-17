@@ -104,14 +104,14 @@
                 <defs>
                     <!-- Dynamic gradient for heat pump animation (EWT to LWT) -->
                     <linearGradient id="heatGradient" x1="0%" y1="100%" x2="0%" y2="0%">
-                        <stop id="ewt-stop" offset="25%" style="stop-color:#2196F3;stop-opacity:1" />
-                        <stop id="lwt-stop" offset="75%" style="stop-color:#F44336;stop-opacity:1" />
+                        <stop id="ewt-stop" offset="25%" style="stop-color:#666;stop-opacity:1" />
+                        <stop id="lwt-stop" offset="75%" style="stop-color:#666;stop-opacity:1" />
                     </linearGradient>
                     
                     <!-- Dynamic gradient for house animation (dist-rwt to dist-swt, left to right) -->
                     <linearGradient id="houseHeatGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop id="dist-rwt-stop" offset="25%" style="stop-color:#2196F3;stop-opacity:1" />
-                        <stop id="dist-swt-stop" offset="75%" style="stop-color:#F44336;stop-opacity:1" />
+                        <stop id="dist-rwt-stop" offset="25%" style="stop-color:#666;stop-opacity:1" />
+                        <stop id="dist-swt-stop" offset="75%" style="stop-color:#666;stop-opacity:1" />
                     </linearGradient>
                     
                     <!-- Flow pattern for HpOffStoreDischarge top horizontal pipe -->
@@ -246,6 +246,9 @@
                 <text id="tank3-depth3" x="260" y="452" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text>
                 <text x="260" y="500" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">Tank 3</text>
                 
+                <!-- Store cold pipe temperature label (left of Tank 3) -->
+                <text id="store-cold-pipe" x="140" y="430" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text>
+                
                 <!-- Tank 2 (bottom center) -->
                 <rect x="330" y="280" width="120" height="200" rx="10" fill="transparent"/>
                 <!-- Tank 2 sections -->
@@ -267,6 +270,9 @@
                 <text id="tank1-depth2" x="520" y="386" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text>
                 <text id="tank1-depth3" x="520" y="452" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text>
                 <text x="520" y="500" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">Tank 1</text>
+                
+                <!-- Store hot pipe temperature label (above Tank 1) -->
+                <text id="store-hot-pipe" x="555" y="260" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text>
                 
                 <!-- Top pipe (from top of heat pump to top of buffer) -->
                 <rect id="hp-buffer-top-pipe" x="140" y="75" width="720" height="15" fill="#888"/>
@@ -1184,10 +1190,10 @@
                 // Reset to default colors if temperatures are not available
                 ewtStop.removeAttribute('style');
                 lwtStop.removeAttribute('style');
-                ewtStop.setAttribute('style', 'stop-color:#2196F3;stop-opacity:1');
-                lwtStop.setAttribute('style', 'stop-color:#F44336;stop-opacity:1');
-                ewtStop.setAttribute('stop-color', '#2196F3');
-                lwtStop.setAttribute('stop-color', '#F44336');
+                ewtStop.setAttribute('style', 'stop-color:#666;stop-opacity:1');
+                lwtStop.setAttribute('style', 'stop-color:#666;stop-opacity:1');
+                ewtStop.setAttribute('stop-color', '#666');
+                lwtStop.setAttribute('stop-color', '#666');
                 console.log('Reset heat pump gradient to default colors - missing temperature data');
             } else {
                 console.log('Gradient elements not found: ewtStop=', !!ewtStop, 'lwtStop=', !!lwtStop);
@@ -1227,6 +1233,42 @@
                 // If no reading available, show placeholder
                 bufferColdPipeElement.textContent = '-';
                 console.log(`No reading available for buffer-cold-pipe`);
+            }
+            
+            // Update store hot pipe temperature (store-hot-pipe)
+            const storeHotPipeReading = readingsMap['store-hot-pipe'];
+            const storeHotPipeElement = document.getElementById('store-hot-pipe');
+            
+            if (storeHotPipeElement && storeHotPipeReading) {
+                // Convert temperature from Celsius * 1000 to Fahrenheit
+                // Formula: °F = (°C * 9/5) + 32
+                const tempC = storeHotPipeReading.Value / 1000; // Convert from degCx1000 to degC
+                const tempF = (tempC * 9/5 + 32).toFixed(1); // Convert to Fahrenheit
+                storeHotPipeElement.textContent = `${tempF}°F`;
+                
+                console.log(`Updated store-hot-pipe: ${tempC}°C → ${tempF}°F`);
+            } else if (storeHotPipeElement) {
+                // If no reading available, show placeholder
+                storeHotPipeElement.textContent = '-';
+                console.log(`No reading available for store-hot-pipe`);
+            }
+            
+            // Update store cold pipe temperature (store-cold-pipe)
+            const storeColdPipeReading = readingsMap['store-cold-pipe'];
+            const storeColdPipeElement = document.getElementById('store-cold-pipe');
+            
+            if (storeColdPipeElement && storeColdPipeReading) {
+                // Convert temperature from Celsius * 1000 to Fahrenheit
+                // Formula: °F = (°C * 9/5) + 32
+                const tempC = storeColdPipeReading.Value / 1000; // Convert from degCx1000 to degC
+                const tempF = (tempC * 9/5 + 32).toFixed(1); // Convert to Fahrenheit
+                storeColdPipeElement.textContent = `${tempF}°F`;
+                
+                console.log(`Updated store-cold-pipe: ${tempC}°C → ${tempF}°F`);
+            } else if (storeColdPipeElement) {
+                // If no reading available, show placeholder
+                storeColdPipeElement.textContent = '-';
+                console.log(`No reading available for store-cold-pipe`);
             }
             
             // Update house distribution supply water temperature (dist-swt)
@@ -1314,10 +1356,10 @@
                 // Reset to default colors if temperatures are not available
                 distRwtStop.removeAttribute('style');
                 distSwtStop.removeAttribute('style');
-                distRwtStop.setAttribute('style', 'stop-color:#2196F3;stop-opacity:1');
-                distSwtStop.setAttribute('style', 'stop-color:#F44336;stop-opacity:1');
-                distRwtStop.setAttribute('stop-color', '#2196F3');
-                distSwtStop.setAttribute('stop-color', '#F44336');
+                distRwtStop.setAttribute('style', 'stop-color:#666;stop-opacity:1');
+                distSwtStop.setAttribute('style', 'stop-color:#666;stop-opacity:1');
+                distRwtStop.setAttribute('stop-color', '#666');
+                distSwtStop.setAttribute('stop-color', '#666');
                 console.log('Reset house gradient to default colors - missing temperature data');
             } else {
                 console.log('House gradient elements not found: distRwtStop=', !!distRwtStop, 'distSwtStop=', !!distSwtStop);
