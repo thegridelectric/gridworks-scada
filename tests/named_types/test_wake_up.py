@@ -1,6 +1,6 @@
 """Tests wake.up type, version 000"""
 
-from named_types import WakeUp
+from gwsproto.named_types import WakeUp
 
 
 def test_wake_up_generated() -> None:

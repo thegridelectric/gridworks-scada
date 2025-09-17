@@ -2,7 +2,7 @@
 Tests for enum main.auto.state.000 from the GridWorks Type Registry.
 """
 
-from enums import MainAutoState
+from gwsproto.enums import MainAutoState
 
 
 def test_main_auto_state() -> None:

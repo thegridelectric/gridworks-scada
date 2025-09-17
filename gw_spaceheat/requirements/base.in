@@ -17,9 +17,12 @@ pymodbus
 pyserial
 pyModbusTCP
 
+# atn
+httpx
+
 # cli tools
 rich
 typer
 trogon
-textual>=1.0.0
+textual>=5.3.0
 textual-dev

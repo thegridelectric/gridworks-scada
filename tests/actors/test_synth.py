@@ -9,9 +9,9 @@ from gwproactor_test.certs import copy_keys
 from actors import Scada
 from actors import SynthGenerator
 from actors.config import ScadaSettings
-from data_classes.house_0_layout import House0Layout
-from data_classes.house_0_names import H0N
-from named_types import ScadaParams
+from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.house_0_names import H0N
+from gwsproto.named_types import ScadaParams
 from scada_app import ScadaApp
 
 def test_ha1(monkeypatch, tmp_path):

@@ -1,6 +1,6 @@
 """Tests price.quantity.unitless type, version 000"""
 
-from named_types import PriceQuantityUnitless
+from gwsproto.named_types import PriceQuantityUnitless
 
 
 def test_price_quantity_unitless_generated() -> None:

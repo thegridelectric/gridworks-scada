@@ -12,7 +12,7 @@ from gwproactor import MonitoredName, Problems, AppInterface
 from gwproactor.message import InternalShutdownMessage, PatInternalWatchdogMessage
 from gwproto import Message
 from gwproto.data_classes.components import PicoFlowModuleComponent
-from data_classes.house_0_names import H0N
+from gwsproto.data_classes.house_0_names import H0N
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import GpmFromHzMethod, HzCalcMethod, MakeModel, TelemetryName
 from gwproto.messages import ProblemEvent
@@ -26,8 +26,8 @@ from gwproto.named_types import (
 )
 from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from actors.scada_actor import ScadaActor
-from enums import LogLevel
-from named_types import Glitch, PicoMissing
+from gwsproto.enums import LogLevel
+from gwsproto.named_types import Glitch, PicoMissing
 from pydantic import BaseModel
 from result import Ok, Result
 from drivers.pipe_flow_sensor.signal_processing import butter_lowpass, filtering
@@ -43,7 +43,7 @@ class FlowHallParams(BaseModel):
     PublishTicklistPeriodS: int
     PublishEmptyTicklistAfterS: int
     TypeName: Literal["flow.hall.params"] = "flow.hall.params"
-    Version: Literal["101"] = "101"
+    Version: str = "101"
 
 
 class FlowReedParams(BaseModel):
@@ -54,7 +54,7 @@ class FlowReedParams(BaseModel):
     PublishAnyTicklistAfterS: int
     DeadbandMilliseconds: int
     TypeName: Literal["flow.reed.params"] = "flow.reed.params"
-    Version: Literal["101"] = "101"
+    Version: str = "101"
 
 
 class ApiFlowModule(ScadaActor):

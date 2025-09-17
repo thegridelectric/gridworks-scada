@@ -1,13 +1,11 @@
-import logging
 import time
 import uuid
 import pytest
-import typing
 from gwproto import Message
 from actors import AtomicAlly
-from data_classes.house_0_names import H0N
-from enums import MainAutoState, ContractStatus
-from named_types import SlowDispatchContract, SlowContractHeartbeat
+from gwsproto.data_classes.house_0_names import H0N
+from gwsproto.enums import MainAutoState, ContractStatus
+from gwsproto.named_types import SlowDispatchContract, SlowContractHeartbeat
 from tests.utils.scada_live_test_helper import ScadaLiveTest
 
 

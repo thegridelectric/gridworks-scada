@@ -7,7 +7,7 @@ from gwproactor_test.instrumented_proactor import MinRangeTuple
 from gwproactor_test.tree_live_test_helper import TreeLiveTest
 
 from actors.config import ScadaSettings
-from data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.house_0_layout import House0Layout
 from tests.conftest import TEST_HARDWARE_LAYOUT_PATH
 from atn_app import AtnApp
 from scada2_app import Scada2App

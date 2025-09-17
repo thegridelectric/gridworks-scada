@@ -8,8 +8,8 @@ from gwproactor import QOS
 
 from actors.config import ScadaSettings
 from actors.scada_data import ScadaData
-from data_classes.house_0_layout import House0Layout
-from data_classes.house_0_names import H0N, H0CN, House0RelayIdx
+from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.house_0_names import H0N, H0CN, House0RelayIdx
 from gw.errors import DcError
 from gwproactor import Actor
 from gwproto import Message
@@ -27,12 +27,12 @@ from gwproto.enums import (
     TelemetryName
 )
 
-from enums import FlowManifoldVariant, TurnHpOnOff, ChangeKeepSend
+from gwsproto.enums import FlowManifoldVariant, TurnHpOnOff, ChangeKeepSend
 from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import (
     I2cMultichannelDtRelayComponent,
 )
-from enums import ChangeKeepSend
-from named_types import FsmEvent, NewCommandTree
+from gwsproto.enums import ChangeKeepSend
+from gwsproto.named_types import FsmEvent, NewCommandTree
 from pydantic import ValidationError
 
 from scada_app_interface import ScadaAppInterface

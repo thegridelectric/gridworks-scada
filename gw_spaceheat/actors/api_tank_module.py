@@ -21,7 +21,7 @@ from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from pydantic import BaseModel
 from result import Ok, Result
 from actors.scada_actor import ScadaActor
-from named_types import PicoMissing, ChannelFlatlined
+from gwsproto.named_types import PicoMissing, ChannelFlatlined
 
 R_FIXED_KOHMS = 5.65  # The voltage divider resistors in the TankModule
 THERMISTOR_T0 = 298  # i.e. 25 degrees
@@ -35,7 +35,7 @@ class MicroVolts(BaseModel):
     AboutNodeNameList: List[str]
     MicroVoltsList: List[int]
     TypeName: Literal["microvolts"] = "microvolts"
-    Version: Literal["100"] = "100"
+    Version: str = "100"
 
 
 class ApiTankModule(ScadaActor):

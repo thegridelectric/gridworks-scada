@@ -1,6 +1,6 @@
 """Tests energy.instruction type, version 000"""
 
-from named_types import EnergyInstruction
+from gwsproto.named_types import EnergyInstruction
 
 
 def test_energy_instruction_generated() -> None:

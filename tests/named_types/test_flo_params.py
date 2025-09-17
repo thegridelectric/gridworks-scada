@@ -1,6 +1,6 @@
 """Tests flo.params type, version 001"""
 
-from named_types import FloParams
+from gwsproto.named_types import FloParams
 
 
 def test_flo_params_generated() -> None:

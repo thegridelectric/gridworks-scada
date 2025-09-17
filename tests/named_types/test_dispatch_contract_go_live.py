@@ -1,6 +1,6 @@
 """Tests dispatch.contract.go.live type, version 000"""
 
-from named_types import DispatchContractGoLive
+from gwsproto.named_types import DispatchContractGoLive
 
 
 def test_dispatch_contract_go_live_generated() -> None:

@@ -15,14 +15,14 @@ from gwproactor.sync_thread import SyncAsyncInteractionThread
 from gwproto import Message
 from gwproto.data_classes.components.ads111x_based_component import \
     Ads111xBasedComponent
-from data_classes.house_0_names import H0N
+from gwsproto.data_classes.house_0_names import H0N
 from gwproto.data_classes.data_channel import DataChannel
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import MakeModel
 from gwproto.message import Header
 from gwproto.named_types import AdsChannelConfig, SyncedReadings
-from named_types import Glitch
+from gwsproto.named_types import Glitch
 
 from actors.config import ScadaSettings
 from scada_app_interface import ScadaAppInterface

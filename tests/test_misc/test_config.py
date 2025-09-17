@@ -15,7 +15,7 @@ from actors.config import PersisterSettings
 from gwproactor.config import LoggingSettings
 from gwproactor.config import MQTTClient
 from actors.config import ScadaSettings
-from enums import HpModel
+from gwsproto.enums import HpModel
 from gwproactor.config.proactor_settings import MQTT_LINK_POLL_SECONDS
 from gwproactor_test import clean_test_env
 

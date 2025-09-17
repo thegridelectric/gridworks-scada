@@ -5,7 +5,7 @@ import uuid
 from enum import auto
 from typing import cast, List, Sequence, Optional
 
-from data_classes.house_0_names import H0CN, H0N
+from gwsproto.data_classes.house_0_names import H0CN, H0N
 from gw.enums import GwStrEnum
 from gwproactor import MonitoredName, AppInterface
 from gwproactor.message import PatInternalWatchdogMessage
@@ -20,8 +20,8 @@ from transitions import Machine
 
 from actors.scada_actor import ScadaActor
 from actors.scada_data import ScadaData
-from enums import AtomicAllyState, HomeAloneStrategy, LogLevel
-from named_types import (
+from gwsproto.enums import AtomicAllyState, HomeAloneStrategy, LogLevel
+from gwsproto.named_types import (
     AllyGivesUp,  Glitch, GoDormant, Ha1Params, HeatingForecast,
     SingleMachineState, SlowContractHeartbeat, SlowDispatchContract, SuitUp
 )

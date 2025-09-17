@@ -1,6 +1,6 @@
 """Tests admin.dispatch type, version 000"""
 
-from named_types import AdminDispatch
+from gwsproto.named_types import AdminDispatch
 
 
 def test_admin_dispatch_generated() -> None:
