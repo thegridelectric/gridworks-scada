@@ -487,7 +487,7 @@
             websocket.onopen = function(event) {
                 document.getElementById('status-left').textContent = 'Connected';
                 document.getElementById('status-right').textContent = '';
-                console.log('WebSocket connected');
+                ////console.log('WebSocket connected');
             };
             
             websocket.onmessage = function(event) {
@@ -498,7 +498,7 @@
             websocket.onclose = function(event) {
                 document.getElementById('status-left').textContent = 'Disconnected';
                 document.getElementById('status-right').textContent = 'Please refresh the page';
-                console.log('WebSocket disconnected');
+                ////console.log('WebSocket disconnected');
                 
                 // Clear the relay table and show disconnected message
                 const relaysDiv = document.getElementById('relays');
@@ -515,7 +515,7 @@
         }
 
         function handleMessage(data) {
-            console.log('Received message:', data);
+            ////console.log('Received message:', data);
             
             if (data.type === 'status') {
                 updateStatus(data);
@@ -568,13 +568,13 @@
             
             // Update relays
             if (data.relays) {
-                console.log('📡 Status message relays:', data.relays);
+                ////console.log('Status message relays:', data.relays);
                 
                 // Check if any relay states changed
                 let relayStatesChanged = false;
                 Object.keys(data.relays).forEach(relayName => {
                     if (relays[relayName] && relays[relayName].state !== data.relays[relayName].state) {
-                        console.log(`📡 Status update: ${relayName}: ${relays[relayName].state} → ${data.relays[relayName].state}`);
+                        ////console.log(`Status update: ${relayName}: ${relays[relayName].state} → ${data.relays[relayName].state}`);
                         relayStatesChanged = true;
                     }
                 });
@@ -586,7 +586,7 @@
             // Update thermostat names
             if (data.thermostat_names) {
                 thermostatNames = data.thermostat_names;
-                console.log('Updated thermostat names:', thermostatNames);
+                //console.log('Updated thermostat names:', thermostatNames);
             }
             
             // Update timer from status
@@ -749,7 +749,7 @@
             // Update individual relay state from MQTT message
             if (payload && payload.relay_name && payload.state) {
                 const oldState = relays[payload.relay_name] ? relays[payload.relay_name].state : 'unknown';
-                console.log(`Relay ${payload.relay_name}: ${oldState} → ${payload.state} (MQTT)`);
+                //console.log(`Relay ${payload.relay_name}: ${oldState} → ${payload.state} (MQTT)`);
                 
                 relays[payload.relay_name] = {
                     ...relays[payload.relay_name],
@@ -764,7 +764,7 @@
         function updateRelayStatesFromSnapshot(snapshotData) {
             // Relay states are now updated via status messages from the server
             // This function is kept for potential future use but no longer processes relay states
-            console.log('📊 Snapshot received - relay states updated via status message');
+            //console.log('Snapshot received - relay states updated via status message');
         }
 
         function toggleRelay(relayName) {
@@ -775,7 +775,7 @@
 
             // Log current state before toggle
             if (relays[relayName]) {
-                console.log(`🔌 Toggling ${relayName} (current: ${relays[relayName].state})`);
+                //console.log(`Toggling ${relayName} (current: ${relays[relayName].state})`);
             }
 
             const message = {
@@ -810,7 +810,7 @@
             };
 
             websocket.send(JSON.stringify(message));
-            console.log(`Sending keep alive for ${timeoutMinutes} minutes`);
+            //console.log(`Sending keep alive for ${timeoutMinutes} minutes`);
         }
 
         function sendReleaseControl() {
@@ -819,7 +819,7 @@
                 return;
             }
 
-            console.log('🔓 Releasing control');
+            //console.log('Releasing control');
 
             const message = {
                 type: 'release_control',
@@ -830,7 +830,7 @@
         }
 
         function updateMonitoringTables(snapshotData) {
-            console.log('📊 New snapshot received');
+            //console.log('New snapshot received');
             
             // Update the last snapshot timestamp
             updateSnapshotTimestamp(snapshotData);
@@ -1087,7 +1087,7 @@
                     } else if (element) {
                         // If no reading available, show placeholder
                         element.textContent = '-';
-                        console.log(`No reading available for ${channelName}`);
+                        //console.log(`No reading available for ${channelName}`);
                     }
                 }
             }
@@ -1122,7 +1122,7 @@
                 } else if (element) {
                     // If no reading available, show placeholder
                     element.textContent = '-';
-                    console.log(`No reading available for ${channelName}`);
+                    //console.log(`No reading available for ${channelName}`);
                 }
             }
             
@@ -1141,7 +1141,7 @@
             } else if (hpLwtElement) {
                 // If no reading available, show placeholder
                 hpLwtElement.textContent = '-';
-                console.log(`No reading available for hp-lwt`);
+                //console.log(`No reading available for hp-lwt`);
             }
             
             // Update heat pump entering water temperature (hp-ewt)
@@ -1159,7 +1159,7 @@
             } else if (hpEwtElement) {
                 // If no reading available, show placeholder
                 hpEwtElement.textContent = '-';
-                console.log(`No reading available for hp-ewt`);
+                //console.log(`No reading available for hp-ewt`);
             }
             
             // Calculate and update heat pump lift (hp-lwt - hp-ewt)
@@ -1170,7 +1170,7 @@
             } else if (hpLiftElement) {
                 // If either temperature is not available, show placeholder
                 hpLiftElement.innerHTML = `Lift<tspan x="80" dy="1.2em">-°F</tspan>`;
-                console.log(`Cannot calculate lift - missing temperature data`);
+                //console.log(`Cannot calculate lift - missing temperature data`);
             }
             
             // Update heat pump gradient colors based on EWT and LWT temperatures
@@ -1198,9 +1198,9 @@
                 lwtStop.setAttribute('style', 'stop-color:#F44336;stop-opacity:1');
                 ewtStop.setAttribute('stop-color', '#2196F3');
                 lwtStop.setAttribute('stop-color', '#F44336');
-                console.log('Reset heat pump gradient to default colors - missing temperature data');
+                //console.log('Reset heat pump gradient to default colors - missing temperature data');
             } else {
-                console.log('Gradient elements not found: ewtStop=', !!ewtStop, 'lwtStop=', !!lwtStop);
+                //console.log('Gradient elements not found: ewtStop=', !!ewtStop, 'lwtStop=', !!lwtStop);
             }
             
             // Update buffer hot pipe temperature (buffer-hot-pipe)
@@ -1217,7 +1217,7 @@
             } else if (bufferHotPipeElement) {
                 // If no reading available, show placeholder
                 bufferHotPipeElement.textContent = '-';
-                console.log(`No reading available for buffer-hot-pipe`);
+                //console.log(`No reading available for buffer-hot-pipe`);
             }
             
             // Update buffer cold pipe temperature (buffer-cold-pipe)
@@ -1234,7 +1234,7 @@
             } else if (bufferColdPipeElement) {
                 // If no reading available, show placeholder
                 bufferColdPipeElement.textContent = '-';
-                console.log(`No reading available for buffer-cold-pipe`);
+                //console.log(`No reading available for buffer-cold-pipe`);
             }
             
             // Update store hot pipe temperature (store-hot-pipe)
@@ -1252,7 +1252,7 @@
             } else if (storeHotPipeElement) {
                 // If no reading available, show placeholder
                 storeHotPipeElement.textContent = '-';
-                console.log(`No reading available for store-hot-pipe`);
+                //console.log(`No reading available for store-hot-pipe`);
             }
             
             // Update store cold pipe temperature (store-cold-pipe)
@@ -1270,7 +1270,7 @@
             } else if (storeColdPipeElement) {
                 // If no reading available, show placeholder
                 storeColdPipeElement.textContent = '-';
-                console.log(`No reading available for store-cold-pipe`);
+                //console.log(`No reading available for store-cold-pipe`);
             }
             
             // Update house distribution supply water temperature (dist-swt)
@@ -1283,7 +1283,7 @@
                 const tempC = distSwtReading.Value / 1000; // Convert from degCx1000 to degC
                 distSwtTempF = parseFloat((tempC * 9/5 + 32).toFixed(1)); // Convert to Fahrenheit
             } else {
-                console.log(`No reading available for dist-swt`);
+                //console.log(`No reading available for dist-swt`);
             }
             
             // Update house distribution return water temperature (dist-rwt)
@@ -1296,7 +1296,7 @@
                 const tempC = distRwtReading.Value / 1000; // Convert from degCx1000 to degC
                 distRwtTempF = parseFloat((tempC * 9/5 + 32).toFixed(1)); // Convert to Fahrenheit
             } else {
-                console.log(`No reading available for dist-rwt`);
+                //console.log(`No reading available for dist-rwt`);
             }
             
             // Calculate and update house drop (dist-swt - dist-rwt)
@@ -1307,7 +1307,7 @@
             } else if (houseDropElement) {
                 // If either temperature is not available, show placeholder
                 houseDropElement.innerHTML = `Drop<tspan x="720" dy="1.2em">-°F</tspan>`;
-                console.log(`Cannot calculate drop - missing temperature data`);
+                //console.log(`Cannot calculate drop - missing temperature data`);
             }
             
             // Update individual distribution temperature labels
@@ -1317,7 +1317,7 @@
                     distSwtElement.textContent = `${distSwtTempF}°F`;
                 } else {
                     distSwtElement.textContent = '-';
-                    console.log(`dist-swt label: no data available`);
+                    //console.log(`dist-swt label: no data available`);
                 }
             }
             
@@ -1327,7 +1327,7 @@
                     distRwtElement.textContent = `${distRwtTempF}°F`;
                 } else {
                     distRwtElement.textContent = '-';
-                    console.log(`dist-rwt label: no data available`);
+                    //console.log(`dist-rwt label: no data available`);
                 }
             }
             
@@ -1356,9 +1356,9 @@
                 distSwtStop.setAttribute('style', 'stop-color:#F44336;stop-opacity:1');
                 distRwtStop.setAttribute('stop-color', '#2196F3');
                 distSwtStop.setAttribute('stop-color', '#F44336');
-                console.log('Reset house gradient to default colors - missing temperature data');
+                //console.log('Reset house gradient to default colors - missing temperature data');
             } else {
-                console.log('House gradient elements not found: distRwtStop=', !!distRwtStop, 'distSwtStop=', !!distSwtStop);
+                //console.log('House gradient elements not found: distRwtStop=', !!distRwtStop, 'distSwtStop=', !!distSwtStop);
             }
         }
 
@@ -1383,7 +1383,7 @@
             if (testModeSelect && testModeSelect.value !== 'Auto') {
                 // Use test mode selection - don't let WebSocket data override it
                 currentState = testModeSelect.value;
-                console.log('Using test mode (ignoring WebSocket data):', currentState);
+                //console.log('Using test mode (ignoring WebSocket data):', currentState);
             } else {
                 // Get the current system state using the same logic as updateSystemState
                 
@@ -1463,51 +1463,29 @@
             const distFlowReading = readingsMap['dist-flow'];
             const hasDistFlow = distFlowReading && distFlowReading.Value && parseFloat(distFlowReading.Value) > 0;
             
-            // Check for zone relay conditions: Failsf relay with state "Scada" and Scada ops relay with state "RelayClosed"
+            // Check for zone relay conditions: Failsf relay with state "energized" and Scada ops relay with state "energized"
             let hasZoneRelayCondition = false;
-            
-            console.log('🔍 DEBUG: Checking zone relay conditions...');
-            console.log('🔍 DEBUG: Available relays:', Object.keys(relays).map(name => ({
-                name,
-                display_name: relays[name].display_name,
-                state: relays[name].state
-            })));
-            
             Object.keys(relays).forEach(relayName => {
                 const relay = relays[relayName];
                 if (relay && relay.display_name) {
                     const displayName = relay.display_name.toLowerCase();
-                    console.log(`🔍 DEBUG: Checking relay ${relayName}: display_name="${relay.display_name}", state="${relay.state}"`);
                     
-                    // Check if this is a Failsf relay with state "energized" (which corresponds to "Scada")
+                    // Check if this is a Failsf relay with state "energized"
                     if (displayName.includes('failsf') && relay.state === 'energized') {
-                        console.log(`✅ DEBUG: Found Failsf relay with energized state: ${relayName} (${relay.display_name})`);
-                        
                         // Find the corresponding Scada ops relay for the same zone
                         Object.keys(relays).forEach(otherRelayName => {
                             const otherRelay = relays[otherRelayName];
                             if (otherRelay && otherRelay.display_name) {
                                 const otherDisplayName = otherRelay.display_name.toLowerCase();
-                                console.log(`🔍 DEBUG: Checking potential Scada ops relay ${otherRelayName}: display_name="${otherRelay.display_name}", state="${otherRelay.state}"`);
                                 
-                                // Check if this is a Scada ops relay for the same zone with state "energized" (which corresponds to "RelayClosed")
+                                // Check if this is a Scada ops relay for the same zone with state "energized"
                                 if (otherDisplayName.includes('scada ops') && otherRelay.state === 'energized') {
-                                    console.log(`✅ DEBUG: Found Scada ops relay with energized state: ${otherRelayName} (${otherRelay.display_name})`);
-                                    
                                     // Extract zone identifier from the beginning of the display name
-                                    // Pattern: "Living-rm Zone 1 Failsf" -> "living-rm"
-                                    // Pattern: "Living-rm Zone Scada Ops" -> "living-rm"
                                     const zoneFromFailsf = displayName.split(' zone ')[0].trim();
                                     const zoneFromScadaOps = otherDisplayName.split(' zone ')[0].trim();
                                     
-                                    console.log(`🔍 DEBUG: Zone matching - Failsf zone: "${zoneFromFailsf}", Scada ops zone: "${zoneFromScadaOps}"`);
-                                    console.log(`🔍 DEBUG: Zone matching - Original names: Failsf="${relay.display_name}", Scada ops="${otherRelay.display_name}"`);
-                                    
                                     if (zoneFromFailsf === zoneFromScadaOps && zoneFromFailsf !== '') {
-                                        console.log(`🎯 DEBUG: ZONE MATCH FOUND! Setting hasZoneRelayCondition = true`);
                                         hasZoneRelayCondition = true;
-                                    } else {
-                                        console.log(`❌ DEBUG: Zone match failed for ${relayName} and ${otherRelayName}`);
                                     }
                                 }
                             }
@@ -1518,8 +1496,6 @@
             
             // Combined condition: dist-flow > 0 OR zone relay condition
             const shouldAnimate = hasDistFlow || hasZoneRelayCondition;
-            
-            console.log(`🔍 DEBUG: Final results - hasDistFlow: ${hasDistFlow}, hasZoneRelayCondition: ${hasZoneRelayCondition}, shouldAnimate: ${shouldAnimate}`);
             
             // Set pipe colors based on state
             
@@ -1535,7 +1511,6 @@
                     if (hpLiftText) {
                         hpLiftText.parentNode.appendChild(hpLiftText);
                     }
-                    console.log('Heat pump animation activated for HpOnStoreOff');
                 }
                 
                 // Show buffer animation - top to bottom flow
@@ -1548,7 +1523,6 @@
                     if (bufferRect) {
                         bufferRect.setAttribute('fill', 'url(#bufferHeatLinesTopToBottom)');
                     }
-                    console.log('Buffer animation activated for HpOnStoreOff - top to bottom flow');
                 }
                 
                 if (hpBufferTopPipe) {
@@ -1639,7 +1613,6 @@
                 
                 // Animate House pipes based on distribution flow
                 if (shouldAnimate) {
-                    console.log('🎬 DEBUG: Triggering house animation - shouldAnimate is true');
                     // Show house animation
                     const houseAnimation = document.getElementById('house-animation');
                     const houseDropText = document.getElementById('house-drop');
@@ -1650,7 +1623,6 @@
                         if (houseDropText) {
                             houseDropText.parentNode.appendChild(houseDropText);
                         }
-                        console.log('House animation activated for distribution flow or zone relay conditions');
                     }
                     
                     // Right vertical pipe (house-hp-vertical-pipe) - downward flow
@@ -1678,7 +1650,6 @@
                         houseConnectionPipeBottom.parentNode.appendChild(houseConnectionPipeBottom);
                     }
                 } else {
-                    console.log('🚫 DEBUG: NOT triggering house animation - shouldAnimate is false');
                     // Hide house animation when no distribution flow and no zone relay conditions
                     const houseAnimation = document.getElementById('house-animation');
                     if (houseAnimation) {
@@ -1698,10 +1669,8 @@
                     // (bottom pipe stays gray)
                 }
                 
-                console.log('Set HP-Buffer pipes to green for HpOnStoreOff state');
             } else if (currentState === 'HpOffStoreDischarge') {
                 // Green pipes for HpOffStoreDischarge state (Tank1 to Buffer)
-                console.log('Setting Tank1 pipes to green for HpOffStoreDischarge state');
                 
                 // Hide heat pump animation
                 const hpAnimation = document.getElementById('hp-animation');
@@ -1721,7 +1690,6 @@
                     if (tank1Rect) {
                         tank1Rect.setAttribute('fill', 'url(#tankHeatLinesBottomToTop)');
                     }
-                    console.log('Tank 1 animation activated for HpOffStoreDischarge - bottom to top flow');
                 }
                 
                 if (tank2Animation) {
@@ -1731,7 +1699,6 @@
                     if (tank2Rect) {
                         tank2Rect.setAttribute('fill', 'url(#tankHeatLinesBottomToTop)');
                     }
-                    console.log('Tank 2 animation activated for HpOffStoreDischarge - bottom to top flow');
                 }
                 
                 if (tank3Animation) {
@@ -1741,7 +1708,6 @@
                     if (tank3Rect) {
                         tank3Rect.setAttribute('fill', 'url(#tankHeatLinesBottomToTop)');
                     }
-                    console.log('Tank 3 animation activated for HpOffStoreDischarge - bottom to top flow');
                 }
                 
                 // Show buffer animation - top to bottom flow
@@ -1754,55 +1720,48 @@
                     if (bufferRect) {
                         bufferRect.setAttribute('fill', 'url(#bufferHeatLinesTopToBottom)');
                     }
-                    console.log('Buffer animation activated for HpOffStoreDischarge - top to bottom flow');
                 }
                 if (tank1HpVerticalPipe) {
                     tank1HpVerticalPipe.setAttribute('fill', 'url(#verticalFlowPattern)');
                     tank1HpVerticalPipe.removeAttribute('stroke');
                     tank1HpVerticalPipe.parentNode.appendChild(tank1HpVerticalPipe);
-                    console.log('Successfully set Tank1-HP vertical pipe to animated green pattern');
                 } else {
-                    console.log('Tank1-HP vertical pipe element not found!');
+                    //console.log('Tank1-HP vertical pipe element not found!');
                 }
                 if (tank1BufferHorizontalPipe) {
                     tank1BufferHorizontalPipe.setAttribute('fill', 'url(#flowPattern)');
                     tank1BufferHorizontalPipe.removeAttribute('stroke');
                     tank1BufferHorizontalPipe.parentNode.appendChild(tank1BufferHorizontalPipe);
-                    console.log('Successfully set Tank1-Buffer horizontal pipe to animated green pattern');
                 } else {
-                    console.log('Tank1-Buffer horizontal pipe element not found!');
+                    //console.log('Tank1-Buffer horizontal pipe element not found!');
                 }
                 if (tank1ConnectionPipe) {
                     tank1ConnectionPipe.setAttribute('fill', 'url(#flowPattern)');
                     tank1ConnectionPipe.removeAttribute('stroke');
                     tank1ConnectionPipe.parentNode.appendChild(tank1ConnectionPipe);
-                    console.log('Successfully set Tank1 connection pipe to animated green pattern');
                 } else {
-                    console.log('Tank1 connection pipe element not found!');
+                    //console.log('Tank1 connection pipe element not found!');
                 }
                 if (tank3HpVerticalPipe) {
                     tank3HpVerticalPipe.setAttribute('fill', 'url(#verticalDownFlowPattern)');
                     tank3HpVerticalPipe.removeAttribute('stroke');
                     tank3HpVerticalPipe.parentNode.appendChild(tank3HpVerticalPipe);
-                    console.log('Successfully set Tank3-HP vertical pipe to animated green pattern');
                 } else {
-                    console.log('Tank3-HP vertical pipe element not found!');
+                    //console.log('Tank3-HP vertical pipe element not found!');
                 }
                 if (tank3BufferHorizontalPipe) {
                     tank3BufferHorizontalPipe.setAttribute('fill', 'url(#leftFlowPattern)');
                     tank3BufferHorizontalPipe.removeAttribute('stroke');
                     tank3BufferHorizontalPipe.parentNode.appendChild(tank3BufferHorizontalPipe);
-                    console.log('Successfully set Tank3-Buffer horizontal pipe to animated green pattern');
                 } else {
-                    console.log('Tank3-Buffer horizontal pipe element not found!');
+                    //console.log('Tank3-Buffer horizontal pipe element not found!');
                 }
                 if (tank3ConnectionPipe) {
                     tank3ConnectionPipe.setAttribute('fill', 'url(#flowPattern)');
                     tank3ConnectionPipe.removeAttribute('stroke');
                     tank3ConnectionPipe.parentNode.appendChild(tank3ConnectionPipe);
-                    console.log('Successfully set Tank3 connection pipe to animated green pattern');
                 } else {
-                    console.log('Tank3 connection pipe element not found!');
+                    //console.log('Tank3 connection pipe element not found!');
                 }
                 // Gray for HpOnStoreCharge pipes
                 if (tank1HpVerticalPipeCharge) {
@@ -1865,7 +1824,6 @@
                 
                 // Animate House pipes based on distribution flow
                 if (shouldAnimate) {
-                    console.log('🎬 DEBUG: Triggering house animation - shouldAnimate is true');
                     // Show house animation
                     const houseAnimation = document.getElementById('house-animation');
                     const houseDropText = document.getElementById('house-drop');
@@ -1876,7 +1834,6 @@
                         if (houseDropText) {
                             houseDropText.parentNode.appendChild(houseDropText);
                         }
-                        console.log('House animation activated for distribution flow or zone relay conditions');
                     }
                     
                     // Right vertical pipe (house-hp-vertical-pipe) - downward flow
@@ -1904,7 +1861,6 @@
                         houseConnectionPipeBottom.parentNode.appendChild(houseConnectionPipeBottom);
                     }
                 } else {
-                    console.log('🚫 DEBUG: NOT triggering house animation - shouldAnimate is false');
                     // Hide house animation when no distribution flow and no zone relay conditions
                     const houseAnimation = document.getElementById('house-animation');
                     if (houseAnimation) {
@@ -1912,10 +1868,8 @@
                     }
                 }
                 
-                console.log('Set Tank1 pipes to green for HpOffStoreDischarge state');
             } else if (currentState === 'HpOnStoreCharge') {
                 // Green pipes for HpOnStoreCharge state (Tanks to HP)
-                console.log('Setting HpOnStoreCharge pipes to green');
                 
                 // Show heat pump animation
                 const hpAnimation = document.getElementById('hp-animation');
@@ -1927,7 +1881,6 @@
                     if (hpLiftText) {
                         hpLiftText.parentNode.appendChild(hpLiftText);
                     }
-                    console.log('Heat pump animation activated for HpOnStoreCharge');
                 }
                 
                 // Show tank animations - top to bottom flow
@@ -1942,7 +1895,6 @@
                     if (tank1Rect) {
                         tank1Rect.setAttribute('fill', 'url(#tankHeatLinesTopToBottom)');
                     }
-                    console.log('Tank 1 animation activated for HpOnStoreCharge - top to bottom flow');
                 }
                 
                 if (tank2Animation) {
@@ -1952,7 +1904,6 @@
                     if (tank2Rect) {
                         tank2Rect.setAttribute('fill', 'url(#tankHeatLinesTopToBottom)');
                     }
-                    console.log('Tank 2 animation activated for HpOnStoreCharge - top to bottom flow');
                 }
                 
                 if (tank3Animation) {
@@ -1962,12 +1913,10 @@
                     if (tank3Rect) {
                         tank3Rect.setAttribute('fill', 'url(#tankHeatLinesTopToBottom)');
                     }
-                    console.log('Tank 3 animation activated for HpOnStoreCharge - top to bottom flow');
                 }
                 
                 // Show buffer animation - bottom to top flow, only when dist-flow is active or zone relay conditions met
                 if (shouldAnimate) {
-                    console.log('🎬 DEBUG: Triggering buffer animation - shouldAnimate is true');
                     const bufferAnimation = document.getElementById('buffer-animation');
                     if (bufferAnimation) {
                         bufferAnimation.style.display = 'block';
@@ -1977,10 +1926,8 @@
                         if (bufferRect) {
                             bufferRect.setAttribute('fill', 'url(#bufferHeatLinesBottomToTop)');
                         }
-                        console.log('Buffer animation activated for HpOnStoreCharge - bottom to top flow (dist-flow active or zone relay conditions met)');
                     }
                 } else {
-                    console.log('🚫 DEBUG: NOT triggering buffer animation - shouldAnimate is false');
                     // Hide buffer animation when no dist-flow and no zone relay conditions
                     const bufferAnimation = document.getElementById('buffer-animation');
                     if (bufferAnimation) {
@@ -1991,49 +1938,43 @@
                     tank1HpVerticalPipeCharge.setAttribute('fill', 'url(#verticalDownFlowPattern)'); // Downward flow
                     tank1HpVerticalPipeCharge.removeAttribute('stroke');
                     tank1HpVerticalPipeCharge.parentNode.appendChild(tank1HpVerticalPipeCharge);
-                    console.log('Successfully set Tank1-HP vertical pipe (charge) to animated green');
                 } else {
-                    console.log('Tank1-HP vertical pipe (charge) element not found!');
+                    //console.log('Tank1-HP vertical pipe (charge) element not found!');
                 }
                 if (tank3HpVerticalPipeCharge) {
                     tank3HpVerticalPipeCharge.setAttribute('fill', 'url(#verticalFlowPattern)'); // Upward flow
                     tank3HpVerticalPipeCharge.removeAttribute('stroke');
                     tank3HpVerticalPipeCharge.parentNode.appendChild(tank3HpVerticalPipeCharge);
-                    console.log('Successfully set Tank3-HP vertical pipe (charge) to animated green');
                 } else {
-                    console.log('Tank3-HP vertical pipe (charge) element not found!');
+                    //console.log('Tank3-HP vertical pipe (charge) element not found!');
                 }
                 if (tank1ConnectionPipeCharge) {
                     tank1ConnectionPipeCharge.setAttribute('fill', 'url(#leftFlowPattern)'); // Leftward flow
                     tank1ConnectionPipeCharge.removeAttribute('stroke');
                     tank1ConnectionPipeCharge.parentNode.appendChild(tank1ConnectionPipeCharge);
-                    console.log('Successfully set Tank1 connection pipe (charge) to animated green');
                 } else {
-                    console.log('Tank1 connection pipe (charge) element not found!');
+                    //console.log('Tank1 connection pipe (charge) element not found!');
                 }
                 if (tank3ConnectionPipeCharge) {
                     tank3ConnectionPipeCharge.setAttribute('fill', 'url(#leftFlowPattern)'); // Leftward flow
                     tank3ConnectionPipeCharge.removeAttribute('stroke');
                     tank3ConnectionPipeCharge.parentNode.appendChild(tank3ConnectionPipeCharge);
-                    console.log('Successfully set Tank3 connection pipe (charge) to animated green');
                 } else {
-                    console.log('Tank3 connection pipe (charge) element not found!');
+                    //console.log('Tank3 connection pipe (charge) element not found!');
                 }
                 if (tank1HpHorizontalPipeCharge) {
                     tank1HpHorizontalPipeCharge.setAttribute('fill', 'url(#flowPattern)'); // Rightward flow
                     tank1HpHorizontalPipeCharge.removeAttribute('stroke');
                     tank1HpHorizontalPipeCharge.parentNode.appendChild(tank1HpHorizontalPipeCharge);
-                    console.log('Successfully set Tank1-HP horizontal pipe (charge) to animated green');
                 } else {
-                    console.log('Tank1-HP horizontal pipe (charge) element not found!');
+                    //console.log('Tank1-HP horizontal pipe (charge) element not found!');
                 }
                 if (tank3HpHorizontalPipeCharge) {
                     tank3HpHorizontalPipeCharge.setAttribute('fill', 'url(#leftFlowPattern)'); // Leftward flow
                     tank3HpHorizontalPipeCharge.removeAttribute('stroke');
                     tank3HpHorizontalPipeCharge.parentNode.appendChild(tank3HpHorizontalPipeCharge);
-                    console.log('Successfully set Tank3-HP horizontal pipe (charge) to animated green');
                 } else {
-                    console.log('Tank3-HP horizontal pipe (charge) element not found!');
+                    //console.log('Tank3-HP horizontal pipe (charge) element not found!');
                 }
                 // Gray for all other pipes
                 if (hpBufferTopPipe) {
@@ -2068,7 +2009,6 @@
                     tank3ConnectionPipe.setAttribute('fill', '#888');
                     tank3ConnectionPipe.removeAttribute('stroke');
                 }
-                console.log('Set HpOnStoreCharge pipes to green');
                 
                 // Special logic for HpOnStoreCharge: House to Buffer pipes when dist flow is active or zone relay conditions met
                 if (shouldAnimate) {
@@ -2199,7 +2139,6 @@
                 
                 // Animate House pipes based on distribution flow
                 if (shouldAnimate) {
-                    console.log('🎬 DEBUG: Triggering house animation - shouldAnimate is true');
                     // Show house animation
                     const houseAnimation = document.getElementById('house-animation');
                     const houseDropText = document.getElementById('house-drop');
@@ -2210,7 +2149,6 @@
                         if (houseDropText) {
                             houseDropText.parentNode.appendChild(houseDropText);
                         }
-                        console.log('House animation activated for distribution flow or zone relay conditions');
                     }
                     
                     // Right vertical pipe (house-hp-vertical-pipe) - downward flow
@@ -2264,7 +2202,6 @@
                             if (bufferRect) {
                                 bufferRect.setAttribute('fill', 'url(#bufferHeatLinesBottomToTop)');
                             }
-                            console.log('Buffer animation activated for HpOffStoreOff - bottom to top flow (dist-flow active)');
                         }
                     }
                 } else {
@@ -2444,7 +2381,7 @@
             const testModeSelect = document.getElementById('testModeSelect');
             if (testModeSelect) {
                 testModeSelect.addEventListener('change', function() {
-                    console.log('Test mode changed to:', this.value);
+                    ////console.log('Test mode changed to:', this.value);
                     // Trigger pipe color update with current snapshot data
                     if (window.lastSnapshotData) {
                         updatePipeColors(window.lastSnapshotData);
