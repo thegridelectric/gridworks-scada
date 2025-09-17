@@ -104,14 +104,14 @@
                 <defs>
                     <!-- Dynamic gradient for heat pump animation (EWT to LWT) -->
                     <linearGradient id="heatGradient" x1="0%" y1="100%" x2="0%" y2="0%">
-                        <stop id="ewt-stop" offset="0%" style="stop-color:#2196F3;stop-opacity:1" />
-                        <stop id="lwt-stop" offset="100%" style="stop-color:#F44336;stop-opacity:1" />
+                        <stop id="ewt-stop" offset="25%" style="stop-color:#2196F3;stop-opacity:1" />
+                        <stop id="lwt-stop" offset="75%" style="stop-color:#F44336;stop-opacity:1" />
                     </linearGradient>
                     
                     <!-- Dynamic gradient for house animation (dist-rwt to dist-swt, left to right) -->
                     <linearGradient id="houseHeatGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop id="dist-rwt-stop" offset="0%" style="stop-color:#2196F3;stop-opacity:1" />
-                        <stop id="dist-swt-stop" offset="100%" style="stop-color:#F44336;stop-opacity:1" />
+                        <stop id="dist-rwt-stop" offset="25%" style="stop-color:#2196F3;stop-opacity:1" />
+                        <stop id="dist-swt-stop" offset="75%" style="stop-color:#F44336;stop-opacity:1" />
                     </linearGradient>
                     
                     <!-- Flow pattern for HpOffStoreDischarge top horizontal pipe -->
@@ -271,12 +271,10 @@
                 <!-- Top pipe (from top of heat pump to top of buffer) -->
                 <rect id="hp-buffer-top-pipe" x="140" y="75" width="720" height="15" fill="#888"/>
                 <text id="hp-lwt" x="175" y="70" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text>
-                <!-- <text id="buffer-hot-pipe" x="820" y="70" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text> -->
 
                 <!-- Bottom pipe (from bottom of heat pump to bottom of buffer) -->
                 <rect id="hp-buffer-bottom-pipe" x="140" y="215" width="720" height="15" fill="#888"/>
                 <text id="hp-ewt" x="175" y="210" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text>
-                <!-- <text id="buffer-cold-pipe" x="820" y="210" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text> -->
 
                 <!-- Horizontal pipe from Tank1 vertical pipe to heat pump top (HpOnStoreCharge) -->
                 <rect id="tank1-hp-horizontal-pipe-charge" x="140" y="75" width="465" height="15" fill="#888"/>
@@ -336,6 +334,10 @@
                 
                 <!-- Horizontal pipe from top of left House vertical to buffer bottom -->
                 <rect id="house-buffer-bottom-pipe" x="635" y="215" width="225" height="15" fill="#888"/>
+                
+                <!-- Buffer pipe temperature labels (on top of all pipes) -->
+                <text id="buffer-hot-pipe" x="820" y="70" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text>
+                <text id="buffer-cold-pipe" x="820" y="210" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text>
                 
             </svg>
         </div>
@@ -1322,6 +1324,19 @@
             }
         }
 
+        function ensureBufferLabelsOnTop() {
+            // Ensure buffer pipe temperature labels are always on top of all other elements
+            const bufferHotPipe = document.getElementById('buffer-hot-pipe');
+            const bufferColdPipe = document.getElementById('buffer-cold-pipe');
+            
+            if (bufferHotPipe) {
+                bufferHotPipe.parentNode.appendChild(bufferHotPipe);
+            }
+            if (bufferColdPipe) {
+                bufferColdPipe.parentNode.appendChild(bufferColdPipe);
+            }
+        }
+
         function updatePipeColors(snapshotData) {
             console.log('=== updatePipeColors called ===');
             // Check if test mode is selected
@@ -1987,6 +2002,9 @@
                 
                 console.log('Set all pipes to gray for state:', currentState);
             }
+            
+            // Ensure buffer pipe labels are always on top of all animated elements
+            ensureBufferLabelsOnTop();
         }
 
         function createTankSections(tankNum, maxDepth) {
