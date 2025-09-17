@@ -187,6 +187,48 @@
                             repeatCount="indefinite"/>
                     </pattern>
                     
+                    <!-- Buffer heat lines pattern - top to bottom flow -->
+                    <pattern id="bufferHeatLinesTopToBottom" x="0" y="0" width="20" height="120" patternUnits="userSpaceOnUse">
+                        <!-- Wavy heat lines for buffer (matching heat pump exactly) -->
+                        <path d="M 2,10 Q 8,5 14,10 Q 8,15 2,10" fill="#888" opacity="0.4"/>
+                        <path d="M 2,30 Q 6,25 10,30 Q 6,35 2,30" fill="#888" opacity="0.35"/>
+                        <path d="M 2,50 Q 10,45 18,50 Q 10,55 2,50" fill="#888" opacity="0.3"/>
+                        <path d="M 2,70 Q 7,65 12,70 Q 7,75 2,70" fill="#888" opacity="0.25"/>
+                        <path d="M 2,90 Q 9,85 16,90 Q 9,95 2,90" fill="#888" opacity="0.2"/>
+                        <path d="M 2,110 Q 5,105 8,110 Q 5,115 2,110" fill="#888" opacity="0.15"/>
+                        <path d="M 2,130 Q 8,125 14,130 Q 8,135 2,130" fill="#888" opacity="0.1"/>
+                        <path d="M 2,150 Q 6,145 10,150 Q 6,155 2,150" fill="#888" opacity="0.05"/>
+                        <path d="M 2,170 Q 8,165 14,170 Q 8,175 2,170" fill="#888" opacity="0.03"/>
+                        <path d="M 2,190 Q 6,185 10,190 Q 6,195 2,190" fill="#888" opacity="0.01"/>
+                        <animateTransform
+                            attributeName="patternTransform"
+                            type="translate"
+                            values="0 0; 0 120"
+                            dur="2s"
+                            repeatCount="indefinite"/>
+                    </pattern>
+                    
+                    <!-- Buffer heat lines pattern - bottom to top flow -->
+                    <pattern id="bufferHeatLinesBottomToTop" x="0" y="0" width="20" height="120" patternUnits="userSpaceOnUse">
+                        <!-- Wavy heat lines for buffer (matching heat pump exactly) -->
+                        <path d="M 2,10 Q 8,5 14,10 Q 8,15 2,10" fill="#888" opacity="0.4"/>
+                        <path d="M 2,30 Q 6,25 10,30 Q 6,35 2,30" fill="#888" opacity="0.35"/>
+                        <path d="M 2,50 Q 10,45 18,50 Q 10,55 2,50" fill="#888" opacity="0.3"/>
+                        <path d="M 2,70 Q 7,65 12,70 Q 7,75 2,70" fill="#888" opacity="0.25"/>
+                        <path d="M 2,90 Q 9,85 16,90 Q 9,95 2,90" fill="#888" opacity="0.2"/>
+                        <path d="M 2,110 Q 5,105 8,110 Q 5,115 2,110" fill="#888" opacity="0.15"/>
+                        <path d="M 2,130 Q 8,125 14,130 Q 8,135 2,130" fill="#888" opacity="0.1"/>
+                        <path d="M 2,150 Q 6,145 10,150 Q 6,155 2,150" fill="#888" opacity="0.05"/>
+                        <path d="M 2,170 Q 8,165 14,170 Q 8,175 2,170" fill="#888" opacity="0.03"/>
+                        <path d="M 2,190 Q 6,185 10,190 Q 6,195 2,190" fill="#888" opacity="0.01"/>
+                        <animateTransform
+                            attributeName="patternTransform"
+                            type="translate"
+                            values="0 120; 0 0"
+                            dur="2s"
+                            repeatCount="indefinite"/>
+                    </pattern>
+                    
                     <!-- Moving heat lines pattern for house (right to left) -->
                     <pattern id="houseHeatLinesPattern" x="0" y="0" width="120" height="20" patternUnits="userSpaceOnUse">
                         <!-- Wavy heat lines moving right to left -->
@@ -203,6 +245,40 @@
                             dur="2s"
                             repeatCount="indefinite"/>
                     </pattern>
+                    
+                    <!-- Tank heat lines pattern - top to bottom flow -->
+                    <pattern id="tankHeatLinesTopToBottom" x="0" y="0" width="20" height="120" patternUnits="userSpaceOnUse">
+                        <!-- Wavy heat lines for tanks (matching heat pump exactly) -->
+                        <path d="M 2,10 Q 8,5 14,10 Q 8,15 2,10" fill="#888" opacity="0.4"/>
+                        <path d="M 2,30 Q 6,25 10,30 Q 6,35 2,30" fill="#888" opacity="0.35"/>
+                        <path d="M 2,50 Q 10,45 18,50 Q 10,55 2,50" fill="#888" opacity="0.3"/>
+                        <path d="M 2,70 Q 7,65 12,70 Q 7,75 2,70" fill="#888" opacity="0.25"/>
+                        <path d="M 2,90 Q 9,85 16,90 Q 9,95 2,90" fill="#888" opacity="0.2"/>
+                        <path d="M 2,110 Q 5,105 8,110 Q 5,115 2,110" fill="#888" opacity="0.15"/>
+                        <animateTransform
+                            attributeName="patternTransform"
+                            type="translate"
+                            values="0 0; 0 120"
+                            dur="2s"
+                            repeatCount="indefinite"/>
+                    </pattern>
+                    
+                    <!-- Tank heat lines pattern - bottom to top flow -->
+                    <pattern id="tankHeatLinesBottomToTop" x="0" y="0" width="20" height="120" patternUnits="userSpaceOnUse">
+                        <!-- Wavy heat lines for tanks (matching heat pump exactly) -->
+                        <path d="M 2,10 Q 8,5 14,10 Q 8,15 2,10" fill="#888" opacity="0.4"/>
+                        <path d="M 2,30 Q 6,25 10,30 Q 6,35 2,30" fill="#888" opacity="0.35"/>
+                        <path d="M 2,50 Q 10,45 18,50 Q 10,55 2,50" fill="#888" opacity="0.3"/>
+                        <path d="M 2,70 Q 7,65 12,70 Q 7,75 2,70" fill="#888" opacity="0.25"/>
+                        <path d="M 2,90 Q 9,85 16,90 Q 9,95 2,90" fill="#888" opacity="0.2"/>
+                        <path d="M 2,110 Q 5,105 8,110 Q 5,115 2,110" fill="#888" opacity="0.15"/>
+                        <animateTransform
+                            attributeName="patternTransform"
+                            type="translate"
+                            values="0 120; 0 0"
+                            dur="2s"
+                            repeatCount="indefinite"/>
+                    </pattern>
                 </defs>
                 <!-- Heat pump (left) -->
                 <rect x="20" y="50" width="120" height="200" rx="10" fill="#666"/>
@@ -216,6 +292,9 @@
                 
                 <!-- Buffer (right) -->
                 <rect x="860" y="50" width="120" height="200" rx="10" fill="transparent"/>
+                <g id="buffer-animation" style="display: none;">
+                    <rect x="860" y="50" width="120" height="200" rx="10" fill="url(#bufferHeatLinesTopToBottom)"/>
+                </g>
                 <!-- Buffer sections -->
                 <path id="buffer-section1" d="M 860,60 Q 860,50 870,50 L 970,50 Q 980,50 980,60 L 980,116 L 860,116 Z" fill="#444"/>
                 <rect id="buffer-section2" x="860" y="116" width="120" height="66" fill="#444"/>
@@ -237,6 +316,9 @@
                 
                 <!-- Tank 3 (bottom left) -->
                 <rect x="200" y="280" width="120" height="200" rx="10" fill="transparent"/>
+                <g id="tank3-animation" style="display: none;">
+                    <rect x="200" y="280" width="120" height="200" rx="10" fill="url(#tankHeatLinesTopToBottom)"/>
+                </g>
                 <!-- Tank 3 sections -->
                 <path id="tank3-section1" d="M 200,290 Q 200,280 210,280 L 310,280 Q 320,280 320,290 L 320,346 L 200,346 Z" fill="#444"/>
                 <rect id="tank3-section2" x="200" y="346" width="120" height="66" fill="#444"/>
@@ -251,6 +333,9 @@
                 
                 <!-- Tank 2 (bottom center) -->
                 <rect x="330" y="280" width="120" height="200" rx="10" fill="transparent"/>
+                <g id="tank2-animation" style="display: none;">
+                    <rect x="330" y="280" width="120" height="200" rx="10" fill="url(#tankHeatLinesTopToBottom)"/>
+                </g>
                 <!-- Tank 2 sections -->
                 <path id="tank2-section1" d="M 330,290 Q 330,280 340,280 L 440,280 Q 450,280 450,290 L 450,346 L 330,346 Z" fill="#444"/>
                 <rect id="tank2-section2" x="330" y="346" width="120" height="66" fill="#444"/>
@@ -262,6 +347,9 @@
                 
                 <!-- Tank 1 (bottom right) -->
                 <rect x="460" y="280" width="120" height="200" rx="10" fill="transparent"/>
+                <g id="tank1-animation" style="display: none;">
+                    <rect x="460" y="280" width="120" height="200" rx="10" fill="url(#tankHeatLinesTopToBottom)"/>
+                </g>
                 <!-- Tank 1 sections -->
                 <path id="tank1-section1" d="M 460,290 Q 460,280 470,280 L 570,280 Q 580,280 580,290 L 580,346 L 460,346 Z" fill="#444"/>
                 <rect id="tank1-section2" x="460" y="346" width="120" height="66" fill="#444"/>
@@ -1501,6 +1589,19 @@
                     console.log('Heat pump animation activated for HpOnStoreOff');
                 }
                 
+                // Show buffer animation - top to bottom flow
+                const bufferAnimation = document.getElementById('buffer-animation');
+                if (bufferAnimation) {
+                    bufferAnimation.style.display = 'block';
+                    bufferAnimation.parentNode.appendChild(bufferAnimation);
+                    // Set top to bottom flow pattern
+                    const bufferRect = bufferAnimation.querySelector('rect');
+                    if (bufferRect) {
+                        bufferRect.setAttribute('fill', 'url(#bufferHeatLinesTopToBottom)');
+                    }
+                    console.log('Buffer animation activated for HpOnStoreOff - top to bottom flow');
+                }
+                
                 if (hpBufferTopPipe) {
                     hpBufferTopPipe.setAttribute('fill', 'url(#flowPattern)'); // Rightward flow
                     hpBufferTopPipe.removeAttribute('stroke');
@@ -1657,6 +1758,54 @@
                 if (hpAnimation) {
                     hpAnimation.style.display = 'none';
                     console.log('Heat pump animation hidden for HpOffStoreDischarge');
+                }
+                
+                // Show tank animations - bottom to top flow
+                const tank1Animation = document.getElementById('tank1-animation');
+                const tank2Animation = document.getElementById('tank2-animation');
+                const tank3Animation = document.getElementById('tank3-animation');
+                
+                if (tank1Animation) {
+                    tank1Animation.style.display = 'block';
+                    tank1Animation.parentNode.appendChild(tank1Animation);
+                    const tank1Rect = tank1Animation.querySelector('rect');
+                    if (tank1Rect) {
+                        tank1Rect.setAttribute('fill', 'url(#tankHeatLinesBottomToTop)');
+                    }
+                    console.log('Tank 1 animation activated for HpOffStoreDischarge - bottom to top flow');
+                }
+                
+                if (tank2Animation) {
+                    tank2Animation.style.display = 'block';
+                    tank2Animation.parentNode.appendChild(tank2Animation);
+                    const tank2Rect = tank2Animation.querySelector('rect');
+                    if (tank2Rect) {
+                        tank2Rect.setAttribute('fill', 'url(#tankHeatLinesBottomToTop)');
+                    }
+                    console.log('Tank 2 animation activated for HpOffStoreDischarge - bottom to top flow');
+                }
+                
+                if (tank3Animation) {
+                    tank3Animation.style.display = 'block';
+                    tank3Animation.parentNode.appendChild(tank3Animation);
+                    const tank3Rect = tank3Animation.querySelector('rect');
+                    if (tank3Rect) {
+                        tank3Rect.setAttribute('fill', 'url(#tankHeatLinesBottomToTop)');
+                    }
+                    console.log('Tank 3 animation activated for HpOffStoreDischarge - bottom to top flow');
+                }
+                
+                // Show buffer animation - top to bottom flow
+                const bufferAnimation = document.getElementById('buffer-animation');
+                if (bufferAnimation) {
+                    bufferAnimation.style.display = 'block';
+                    bufferAnimation.parentNode.appendChild(bufferAnimation);
+                    // Set top to bottom flow pattern
+                    const bufferRect = bufferAnimation.querySelector('rect');
+                    if (bufferRect) {
+                        bufferRect.setAttribute('fill', 'url(#bufferHeatLinesTopToBottom)');
+                    }
+                    console.log('Buffer animation activated for HpOffStoreDischarge - top to bottom flow');
                 }
                 if (tank1HpVerticalPipe) {
                     tank1HpVerticalPipe.setAttribute('fill', 'url(#verticalFlowPattern)');
@@ -1830,6 +1979,63 @@
                     }
                     console.log('Heat pump animation activated for HpOnStoreCharge');
                 }
+                
+                // Show tank animations - top to bottom flow
+                const tank1Animation = document.getElementById('tank1-animation');
+                const tank2Animation = document.getElementById('tank2-animation');
+                const tank3Animation = document.getElementById('tank3-animation');
+                
+                if (tank1Animation) {
+                    tank1Animation.style.display = 'block';
+                    tank1Animation.parentNode.appendChild(tank1Animation);
+                    const tank1Rect = tank1Animation.querySelector('rect');
+                    if (tank1Rect) {
+                        tank1Rect.setAttribute('fill', 'url(#tankHeatLinesTopToBottom)');
+                    }
+                    console.log('Tank 1 animation activated for HpOnStoreCharge - top to bottom flow');
+                }
+                
+                if (tank2Animation) {
+                    tank2Animation.style.display = 'block';
+                    tank2Animation.parentNode.appendChild(tank2Animation);
+                    const tank2Rect = tank2Animation.querySelector('rect');
+                    if (tank2Rect) {
+                        tank2Rect.setAttribute('fill', 'url(#tankHeatLinesTopToBottom)');
+                    }
+                    console.log('Tank 2 animation activated for HpOnStoreCharge - top to bottom flow');
+                }
+                
+                if (tank3Animation) {
+                    tank3Animation.style.display = 'block';
+                    tank3Animation.parentNode.appendChild(tank3Animation);
+                    const tank3Rect = tank3Animation.querySelector('rect');
+                    if (tank3Rect) {
+                        tank3Rect.setAttribute('fill', 'url(#tankHeatLinesTopToBottom)');
+                    }
+                    console.log('Tank 3 animation activated for HpOnStoreCharge - top to bottom flow');
+                }
+                
+                // Show buffer animation - bottom to top flow, only when dist-flow is active
+                if (hasDistFlow) {
+                    const bufferAnimation = document.getElementById('buffer-animation');
+                    if (bufferAnimation) {
+                        bufferAnimation.style.display = 'block';
+                        bufferAnimation.parentNode.appendChild(bufferAnimation);
+                        // Set bottom to top flow pattern
+                        const bufferRect = bufferAnimation.querySelector('rect');
+                        if (bufferRect) {
+                            bufferRect.setAttribute('fill', 'url(#bufferHeatLinesBottomToTop)');
+                        }
+                        console.log('Buffer animation activated for HpOnStoreCharge - bottom to top flow (dist-flow active)');
+                    }
+                } else {
+                    // Hide buffer animation when no dist-flow
+                    const bufferAnimation = document.getElementById('buffer-animation');
+                    if (bufferAnimation) {
+                        bufferAnimation.style.display = 'none';
+                        console.log('Buffer animation hidden for HpOnStoreCharge - no dist-flow');
+                    }
+                }
                 if (tank1HpVerticalPipeCharge) {
                     tank1HpVerticalPipeCharge.setAttribute('fill', 'url(#verticalDownFlowPattern)'); // Downward flow
                     tank1HpVerticalPipeCharge.removeAttribute('stroke');
@@ -1935,6 +2141,33 @@
                 if (hpAnimation) {
                     hpAnimation.style.display = 'none';
                     console.log('Heat pump animation hidden for other states');
+                }
+                
+                // Hide buffer animation for other states (not HpOffStoreOff)
+                if (currentState !== 'HpOffStoreOff') {
+                    const bufferAnimation = document.getElementById('buffer-animation');
+                    if (bufferAnimation) {
+                        bufferAnimation.style.display = 'none';
+                        console.log('Buffer animation hidden for other states');
+                    }
+                }
+                
+                // Hide tank animations for other states
+                const tank1Animation = document.getElementById('tank1-animation');
+                const tank2Animation = document.getElementById('tank2-animation');
+                const tank3Animation = document.getElementById('tank3-animation');
+                
+                if (tank1Animation) {
+                    tank1Animation.style.display = 'none';
+                    console.log('Tank 1 animation hidden for other states');
+                }
+                if (tank2Animation) {
+                    tank2Animation.style.display = 'none';
+                    console.log('Tank 2 animation hidden for other states');
+                }
+                if (tank3Animation) {
+                    tank3Animation.style.display = 'none';
+                    console.log('Tank 3 animation hidden for other states');
                 }
                 
                 if (hpBufferTopPipe) {
@@ -2073,6 +2306,19 @@
                             houseBufferBottomPipe.removeAttribute('stroke');
                             houseBufferBottomPipe.parentNode.appendChild(houseBufferBottomPipe);
                         }
+                        
+                        // Show buffer animation - bottom to top flow (same as HpOnStoreCharge)
+                        const bufferAnimation = document.getElementById('buffer-animation');
+                        if (bufferAnimation) {
+                            bufferAnimation.style.display = 'block';
+                            bufferAnimation.parentNode.appendChild(bufferAnimation);
+                            // Set bottom to top flow pattern
+                            const bufferRect = bufferAnimation.querySelector('rect');
+                            if (bufferRect) {
+                                bufferRect.setAttribute('fill', 'url(#bufferHeatLinesBottomToTop)');
+                            }
+                            console.log('Buffer animation activated for HpOffStoreOff - bottom to top flow (dist-flow active)');
+                        }
                     }
                 } else {
                     // Hide house animation when no distribution flow
@@ -2080,6 +2326,15 @@
                     if (houseAnimation) {
                         houseAnimation.style.display = 'none';
                         console.log('House animation hidden - no distribution flow');
+                    }
+                    
+                    // Hide buffer animation when no distribution flow (for HpOffStoreOff)
+                    if (currentState === 'HpOffStoreOff') {
+                        const bufferAnimation = document.getElementById('buffer-animation');
+                        if (bufferAnimation) {
+                            bufferAnimation.style.display = 'none';
+                            console.log('Buffer animation hidden for HpOffStoreOff - no dist-flow');
+                        }
                     }
                 }
                 
