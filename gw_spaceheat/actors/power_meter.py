@@ -31,7 +31,7 @@ from gwproactor import Problems
 from gwproto.enums import MakeModel
 from gwproto.named_types import ElectricMeterChannelConfig, PowerWatts, SyncedReadings
 
-from scada_app import ScadaApp
+from scada_app_interface import ScadaAppInterface
 
 
 class HWUidMismatch(DriverWarning):
@@ -392,7 +392,7 @@ class PowerMeter(SyncThreadActor):
     def __init__(
         self,
         name: str,
-        services: ScadaApp,
+        services: ScadaAppInterface,
         settings: Optional[ScadaSettings] = None,
     ):
         settings = settings or services.settings
