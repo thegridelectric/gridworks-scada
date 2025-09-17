@@ -133,6 +133,12 @@ class AdminClient:
         if self._snap is not None:
             subclient.process_snapshot(self._snap)
 
+    def layout_received(self) -> bool:
+        return self._layout is not None
+
+    def snapshot_received(self) -> bool:
+        return self._snap is not None
+
     async def _ensure_init(self) -> None:
         while (
             self._paho_wrapper.started()
@@ -220,7 +226,7 @@ class AdminClient:
 
     def _mqtt_message_received(self, topic: str, payload: bytes) -> None:
         path_dbg = 0
-        # self._logger.debug("++AdminClient._mqtt_message_received  <%s>", topic)
+        self._logger.debug("++AdminClient._mqtt_message_received  <%s>", topic)
         try:
             decoded_topic = MQTTTopic.decode(topic)
             if decoded_topic.message_type == type_name(LayoutLite):
@@ -245,5 +251,5 @@ class AdminClient:
                     f"<{type(e)}>: <{e}> for topic: <{topic}>"
                 ),
             )
-        # self._logger.debug("--AdminClient._mqtt_message_received  path:0x%08X", path_dbg)
+        self._logger.debug("--AdminClient._mqtt_message_received  path:0x%08X", path_dbg)
 

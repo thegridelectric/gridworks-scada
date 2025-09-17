@@ -126,6 +126,13 @@ class RelaysApp(App):
     def on_release_control_button_pressed(self, _: ReleaseControlButton.Pressed):
         self._relay_client.send_release_control()
 
+    def layout_received(self) -> bool:
+        return self._admin_client.layout_received()
+
+    def snapshot_received(self) -> bool:
+        return self._admin_client.snapshot_received()
+
+
 if __name__ == "__main__":
     # https://github.com/koxudaxi/pydantic-pycharm-plugin/issues/1013
     # noinspection PyArgumentList
