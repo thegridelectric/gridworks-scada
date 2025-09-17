@@ -305,7 +305,34 @@ class WebInterMQTTBridge:
             }
         }
         
-        message = json.dumps(snapshot_data)
+        # Also create a status message with updated relay states
+        time_remaining = 0
+        if self._control_timeout and self._control_start_time:
+            elapsed = time.time() - self._control_start_time
+            time_remaining = max(0, self._control_timeout - elapsed)
+        
+        last_activity_str = "Never"
+        if self._last_activity_time:
+            last_activity_str = f"{int(time.time() - self._last_activity_time)}s ago"
+        
+        status_data = {
+            "type": "status",
+            "mqtt_connected": self._mqtt_client.started() if self._mqtt_client else False,
+            "relays": self._relay_configs,
+            "layout_loaded": self._layout is not None,
+            "snapshot_loaded": self._snapshot is not None,
+            "time_remaining": time_remaining,
+            "controller": self._current_controller,
+            "target_gnode": self.settings.target_gnode,
+            "messages_received": self._messages_received,
+            "connected_clients": len(self._websocket_clients),
+            "last_activity": last_activity_str,
+            "relay_count": len(self._relay_configs),
+            "thermostat_names": self._thermostat_names
+        }
+        
+        snapshot_message = json.dumps(snapshot_data)
+        status_message = json.dumps(status_data)
         
         # Use threading to broadcast to all clients (since we're in MQTT thread)
         def broadcast_to_clients():
@@ -317,9 +344,12 @@ class WebInterMQTTBridge:
                 async def send_to_all():
                     for client in list(self._websocket_clients):
                         try:
-                            await client.send_str(message)
+                            # Send status message first (with updated relay states)
+                            await client.send_str(status_message)
+                            # Then send snapshot message
+                            await client.send_str(snapshot_message)
                         except Exception as e:
-                            self.logger.warning(f"Failed to send snapshot to WebSocket client: {e}")
+                            self.logger.warning(f"Failed to send messages to WebSocket client: {e}")
                             self._websocket_clients.discard(client)
                 
                 loop.run_until_complete(send_to_all())

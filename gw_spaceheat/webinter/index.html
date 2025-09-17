@@ -565,6 +565,17 @@
             
             // Update relays
             if (data.relays) {
+                console.log('📡 Status message relays:', data.relays);
+                
+                // Check if any relay states changed
+                let relayStatesChanged = false;
+                Object.keys(data.relays).forEach(relayName => {
+                    if (relays[relayName] && relays[relayName].state !== data.relays[relayName].state) {
+                        console.log(`📡 Status update: ${relayName}: ${relays[relayName].state} → ${data.relays[relayName].state}`);
+                        relayStatesChanged = true;
+                    }
+                });
+                
                 relays = data.relays;
                 updateRelayButtons();
             }
@@ -734,6 +745,9 @@
         function updateRelayState(payload) {
             // Update individual relay state from MQTT message
             if (payload && payload.relay_name && payload.state) {
+                const oldState = relays[payload.relay_name] ? relays[payload.relay_name].state : 'unknown';
+                console.log(`Relay ${payload.relay_name}: ${oldState} → ${payload.state} (MQTT)`);
+                
                 relays[payload.relay_name] = {
                     ...relays[payload.relay_name],
                     state: payload.state
@@ -741,14 +755,24 @@
                 
                 // Update the relay buttons display
                 updateRelayButtons();
-                
             }
+        }
+
+        function updateRelayStatesFromSnapshot(snapshotData) {
+            // Relay states are now updated via status messages from the server
+            // This function is kept for potential future use but no longer processes relay states
+            console.log('📊 Snapshot received - relay states updated via status message');
         }
 
         function toggleRelay(relayName) {
             if (!websocket || websocket.readyState !== WebSocket.OPEN) {
                 console.error('Not connected to server');
                 return;
+            }
+
+            // Log current state before toggle
+            if (relays[relayName]) {
+                console.log(`🔌 Toggling ${relayName} (current: ${relays[relayName].state})`);
             }
 
             const message = {
@@ -759,9 +783,8 @@
                     user_id: currentUserId
                 }
             };
-            
+
             websocket.send(JSON.stringify(message));
-            console.log(`Toggling relay ${relayName}`);
         }
 
 
@@ -793,19 +816,24 @@
                 return;
             }
 
+            console.log('🔓 Releasing control');
+
             const message = {
                 type: 'release_control',
                 data: {}
             };
 
             websocket.send(JSON.stringify(message));
-            console.log('Sending release control');
         }
 
         function updateMonitoringTables(snapshotData) {
-            console.log('Updating monitoring tables with snapshot data:', snapshotData);
-            console.log('LatestReadingList:', snapshotData.LatestReadingList);
-            console.log('LatestStateList:', snapshotData.LatestStateList);
+            console.log('📊 New snapshot received');
+            
+            // Log current relay states before processing
+            console.log('🔌 Relay states before snapshot:');
+            Object.keys(relays).forEach(relayName => {
+                console.log(`  ${relayName}: ${relays[relayName].state}`);
+            });
             
             // Update thermostat table
             updateThermostatTable(snapshotData);
@@ -815,6 +843,14 @@
             
             // Update tank temperatures
             updateTankTemperatures(snapshotData);
+            
+            // Relay states are now updated via status messages from the server
+            
+            // Log current relay states after processing
+            console.log('🔌 Relay states after snapshot:');
+            Object.keys(relays).forEach(relayName => {
+                console.log(`  ${relayName}: ${relays[relayName].state}`);
+            });
             
             // Store snapshot data for test mode dropdown
             window.lastSnapshotData = snapshotData;
@@ -845,9 +881,6 @@
                 readingsMap[reading.ChannelName] = reading;
             });
             
-            // Debug: Log all available readings
-            console.log('Available readings for thermostat table:', Object.keys(readingsMap));
-            console.log('Using thermostat zones:', zones);
             
             tbody.innerHTML = '';
             
@@ -882,8 +915,6 @@
                 readingsMap[reading.ChannelName] = reading;
             });
             
-            // Debug: Log all available readings
-            console.log('Available readings for power/pump table:', Object.keys(readingsMap));
             
             // Update HP Power table
             updateHpPowerTable(readingsMap);
@@ -995,8 +1026,6 @@
                 readingsMap[reading.ChannelName] = reading;
             });
             
-            // Debug: Log all available readings
-            console.log('Available readings for tank temperatures:', Object.keys(readingsMap));
             
             // Detect number of depth layers for each component
             const getMaxDepth = (componentName) => {
@@ -1012,7 +1041,6 @@
             // Update each tank's temperature readings
             for (let tankNum = 1; tankNum <= 3; tankNum++) {
                 const maxDepth = getMaxDepth(`tank${tankNum}`);
-                console.log(`Tank ${tankNum} has ${maxDepth} depth layers`);
                 
                 // Create or update sections dynamically
                 createTankSections(tankNum, maxDepth);
@@ -1038,7 +1066,6 @@
                             sectionElement.setAttribute('fill', backgroundColor);
                         }
                         
-                        console.log(`Updated ${channelName}: ${tempC}°C → ${tempF}°F`);
                     } else if (element) {
                         // If no reading available, show placeholder
                         element.textContent = '-';
@@ -1049,7 +1076,6 @@
             
             // Update buffer temperature readings
             const bufferMaxDepth = getMaxDepth('buffer');
-            console.log(`Buffer has ${bufferMaxDepth} depth layers`);
             
             // Create or update buffer sections dynamically
             createBufferSections(bufferMaxDepth);
@@ -1075,7 +1101,6 @@
                         sectionElement.setAttribute('fill', backgroundColor);
                     }
                     
-                    console.log(`Updated ${channelName}: ${tempC}°C → ${tempF}°F`);
                 } else if (element) {
                     // If no reading available, show placeholder
                     element.textContent = '-';
@@ -1095,7 +1120,6 @@
                 hpLwtTempF = parseFloat((tempC * 9/5 + 32).toFixed(1)); // Convert to Fahrenheit
                 hpLwtElement.textContent = `${hpLwtTempF}°F`;
                 
-                console.log(`Updated hp-lwt: ${tempC}°C → ${hpLwtTempF}°F`);
             } else if (hpLwtElement) {
                 // If no reading available, show placeholder
                 hpLwtElement.textContent = '-';
@@ -1114,7 +1138,6 @@
                 hpEwtTempF = parseFloat((tempC * 9/5 + 32).toFixed(1)); // Convert to Fahrenheit
                 hpEwtElement.textContent = `${hpEwtTempF}°F`;
                 
-                console.log(`Updated hp-ewt: ${tempC}°C → ${hpEwtTempF}°F`);
             } else if (hpEwtElement) {
                 // If no reading available, show placeholder
                 hpEwtElement.textContent = '-';
@@ -1126,7 +1149,6 @@
             if (hpLiftElement && hpLwtTempF !== null && hpEwtTempF !== null) {
                 const lift = (hpLwtTempF - hpEwtTempF).toFixed(1);
                 hpLiftElement.innerHTML = `Lift<tspan x="80" dy="1.2em">${lift}°F</tspan>`;
-                console.log(`Updated hp-lift: ${hpLwtTempF}°F - ${hpEwtTempF}°F = ${lift}°F`);
             } else if (hpLiftElement) {
                 // If either temperature is not available, show placeholder
                 hpLiftElement.innerHTML = `Lift<tspan x="80" dy="1.2em">-°F</tspan>`;
@@ -1150,11 +1172,6 @@
                 ewtStop.setAttribute('stop-color', ewtColor);
                 lwtStop.setAttribute('stop-color', lwtColor);
                 
-                console.log(`Updated heat pump gradient: EWT ${hpEwtTempF}°F (${ewtColor}) → LWT ${hpLwtTempF}°F (${lwtColor})`);
-                console.log(`EWT stop element:`, ewtStop);
-                console.log(`LWT stop element:`, lwtStop);
-                console.log(`EWT stop-color attribute:`, ewtStop.getAttribute('stop-color'));
-                console.log(`LWT stop-color attribute:`, lwtStop.getAttribute('stop-color'));
             } else if (ewtStop && lwtStop) {
                 // Reset to default colors if temperatures are not available
                 ewtStop.removeAttribute('style');
@@ -1179,7 +1196,6 @@
                 const tempF = (tempC * 9/5 + 32).toFixed(1); // Convert to Fahrenheit
                 bufferHotPipeElement.textContent = `${tempF}°F`;
                 
-                console.log(`Updated buffer-hot-pipe: ${tempC}°C → ${tempF}°F`);
             } else if (bufferHotPipeElement) {
                 // If no reading available, show placeholder
                 bufferHotPipeElement.textContent = '-';
@@ -1197,7 +1213,6 @@
                 const tempF = (tempC * 9/5 + 32).toFixed(1); // Convert to Fahrenheit
                 bufferColdPipeElement.textContent = `${tempF}°F`;
                 
-                console.log(`Updated buffer-cold-pipe: ${tempC}°C → ${tempF}°F`);
             } else if (bufferColdPipeElement) {
                 // If no reading available, show placeholder
                 bufferColdPipeElement.textContent = '-';
@@ -1208,11 +1223,6 @@
             const storeHotPipeReading = readingsMap['store-hot-pipe'];
             const storeHotPipeElement = document.getElementById('store-hot-pipe');
             
-            console.log('Store hot pipe debug:', {
-                element: !!storeHotPipeElement,
-                reading: storeHotPipeReading,
-                readingsMapKeys: Object.keys(readingsMap).filter(key => key.includes('store'))
-            });
             
             if (storeHotPipeElement && storeHotPipeReading) {
                 // Convert temperature from Celsius * 1000 to Fahrenheit
@@ -1221,7 +1231,6 @@
                 const tempF = (tempC * 9/5 + 32).toFixed(1); // Convert to Fahrenheit
                 storeHotPipeElement.textContent = `${tempF}°F`;
                 
-                console.log(`Updated store-hot-pipe: ${tempC}°C → ${tempF}°F`);
             } else if (storeHotPipeElement) {
                 // If no reading available, show placeholder
                 storeHotPipeElement.textContent = '-';
@@ -1232,11 +1241,6 @@
             const storeColdPipeReading = readingsMap['store-cold-pipe'];
             const storeColdPipeElement = document.getElementById('store-cold-pipe');
             
-            console.log('Store cold pipe debug:', {
-                element: !!storeColdPipeElement,
-                reading: storeColdPipeReading,
-                readingsMapKeys: Object.keys(readingsMap).filter(key => key.includes('store'))
-            });
             
             if (storeColdPipeElement && storeColdPipeReading) {
                 // Convert temperature from Celsius * 1000 to Fahrenheit
@@ -1245,7 +1249,6 @@
                 const tempF = (tempC * 9/5 + 32).toFixed(1); // Convert to Fahrenheit
                 storeColdPipeElement.textContent = `${tempF}°F`;
                 
-                console.log(`Updated store-cold-pipe: ${tempC}°C → ${tempF}°F`);
             } else if (storeColdPipeElement) {
                 // If no reading available, show placeholder
                 storeColdPipeElement.textContent = '-';
@@ -1261,7 +1264,6 @@
                 // Formula: °F = (°C * 9/5) + 32
                 const tempC = distSwtReading.Value / 1000; // Convert from degCx1000 to degC
                 distSwtTempF = parseFloat((tempC * 9/5 + 32).toFixed(1)); // Convert to Fahrenheit
-                console.log(`Updated dist-swt: ${tempC}°C → ${distSwtTempF}°F`);
             } else {
                 console.log(`No reading available for dist-swt`);
             }
@@ -1275,7 +1277,6 @@
                 // Formula: °F = (°C * 9/5) + 32
                 const tempC = distRwtReading.Value / 1000; // Convert from degCx1000 to degC
                 distRwtTempF = parseFloat((tempC * 9/5 + 32).toFixed(1)); // Convert to Fahrenheit
-                console.log(`Updated dist-rwt: ${tempC}°C → ${distRwtTempF}°F`);
             } else {
                 console.log(`No reading available for dist-rwt`);
             }
@@ -1285,7 +1286,6 @@
             if (houseDropElement && distSwtTempF !== null && distRwtTempF !== null) {
                 const drop = (distSwtTempF - distRwtTempF).toFixed(1);
                 houseDropElement.innerHTML = `Drop<tspan x="720" dy="1.2em">${drop}°F</tspan>`;
-                console.log(`Updated house-drop: ${distSwtTempF}°F - ${distRwtTempF}°F = ${drop}°F`);
             } else if (houseDropElement) {
                 // If either temperature is not available, show placeholder
                 houseDropElement.innerHTML = `Drop<tspan x="720" dy="1.2em">-°F</tspan>`;
@@ -1297,7 +1297,6 @@
             if (distSwtElement) {
                 if (distSwtTempF !== null) {
                     distSwtElement.textContent = `${distSwtTempF}°F`;
-                    console.log(`Updated dist-swt label: ${distSwtTempF}°F`);
                 } else {
                     distSwtElement.textContent = '-';
                     console.log(`dist-swt label: no data available`);
@@ -1308,7 +1307,6 @@
             if (distRwtElement) {
                 if (distRwtTempF !== null) {
                     distRwtElement.textContent = `${distRwtTempF}°F`;
-                    console.log(`Updated dist-rwt label: ${distRwtTempF}°F`);
                 } else {
                     distRwtElement.textContent = '-';
                     console.log(`dist-rwt label: no data available`);
@@ -1332,7 +1330,6 @@
                 distRwtStop.setAttribute('stop-color', distRwtColor);
                 distSwtStop.setAttribute('stop-color', distSwtColor);
                 
-                console.log(`Updated house gradient: dist-rwt ${distRwtTempF}°F (${distRwtColor}) → dist-swt ${distSwtTempF}°F (${distSwtColor})`);
             } else if (distRwtStop && distSwtStop) {
                 // Reset to default colors if temperatures are not available
                 distRwtStop.removeAttribute('style');
@@ -1361,7 +1358,6 @@
         }
 
         function updatePipeColors(snapshotData) {
-            console.log('=== updatePipeColors called ===');
             // Check if test mode is selected
             const testModeSelect = document.getElementById('testModeSelect');
             let currentState = null;
@@ -1372,7 +1368,6 @@
                 console.log('Using test mode (ignoring WebSocket data):', currentState);
             } else {
                 // Get the current system state using the same logic as updateSystemState
-                console.log('Using real system state from WebSocket data');
                 
                 // Check relay states to determine system state (same logic as updateSystemState)
                 const relay5 = relays['relay5'];
@@ -1415,7 +1410,6 @@
                     }
                 }
                 
-                console.log('Current system state (from relays):', currentState);
             }
             
             // Get pipe elements
@@ -1452,8 +1446,6 @@
             const hasDistFlow = distFlowReading && distFlowReading.Value && parseFloat(distFlowReading.Value) > 0;
             
             // Set pipe colors based on state
-            console.log(`Setting pipe colors for state: "${currentState}"`);
-            console.log(`Distribution flow: ${hasDistFlow ? 'ACTIVE' : 'INACTIVE'}`);
             
             if (currentState === 'HpOnStoreOff') {
                 // Animated green pipes for HpOnStoreOff state (HP to Buffer)
@@ -1613,7 +1605,6 @@
                     const houseAnimation = document.getElementById('house-animation');
                     if (houseAnimation) {
                         houseAnimation.style.display = 'none';
-                        console.log('House animation hidden - no distribution flow');
                     }
                 }
                 
@@ -1638,7 +1629,6 @@
                 const hpAnimation = document.getElementById('hp-animation');
                 if (hpAnimation) {
                     hpAnimation.style.display = 'none';
-                    console.log('Heat pump animation hidden for HpOffStoreDischarge');
                 }
                 
                 // Show tank animations - bottom to top flow
@@ -1839,7 +1829,6 @@
                     const houseAnimation = document.getElementById('house-animation');
                     if (houseAnimation) {
                         houseAnimation.style.display = 'none';
-                        console.log('House animation hidden - no distribution flow');
                     }
                 }
                 
@@ -1914,7 +1903,6 @@
                     const bufferAnimation = document.getElementById('buffer-animation');
                     if (bufferAnimation) {
                         bufferAnimation.style.display = 'none';
-                        console.log('Buffer animation hidden for HpOnStoreCharge - no dist-flow');
                     }
                 }
                 if (tank1HpVerticalPipeCharge) {
@@ -2021,7 +2009,6 @@
                 const hpAnimation = document.getElementById('hp-animation');
                 if (hpAnimation) {
                     hpAnimation.style.display = 'none';
-                    console.log('Heat pump animation hidden for other states');
                 }
                 
                 // Hide buffer animation for other states (not HpOffStoreOff)
@@ -2029,7 +2016,6 @@
                     const bufferAnimation = document.getElementById('buffer-animation');
                     if (bufferAnimation) {
                         bufferAnimation.style.display = 'none';
-                        console.log('Buffer animation hidden for other states');
                     }
                 }
                 
@@ -2040,15 +2026,12 @@
                 
                 if (tank1Animation) {
                     tank1Animation.style.display = 'none';
-                    console.log('Tank 1 animation hidden for other states');
                 }
                 if (tank2Animation) {
                     tank2Animation.style.display = 'none';
-                    console.log('Tank 2 animation hidden for other states');
                 }
                 if (tank3Animation) {
                     tank3Animation.style.display = 'none';
-                    console.log('Tank 3 animation hidden for other states');
                 }
                 
                 if (hpBufferTopPipe) {
@@ -2206,7 +2189,6 @@
                     const houseAnimation = document.getElementById('house-animation');
                     if (houseAnimation) {
                         houseAnimation.style.display = 'none';
-                        console.log('House animation hidden - no distribution flow');
                     }
                     
                     // Hide buffer animation when no distribution flow (for HpOffStoreOff)
@@ -2214,12 +2196,10 @@
                         const bufferAnimation = document.getElementById('buffer-animation');
                         if (bufferAnimation) {
                             bufferAnimation.style.display = 'none';
-                            console.log('Buffer animation hidden for HpOffStoreOff - no dist-flow');
                         }
                     }
                 }
                 
-                console.log('Set all pipes to gray for state:', currentState);
             }
             
             // Ensure buffer pipe labels are always on top of all animated elements
