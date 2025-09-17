@@ -13,7 +13,10 @@
     
     <!-- Main Content with top padding to account for fixed header -->
     <div style="padding-top: 60px;">
-        <h1 style="text-align: center; margin-top: 30px; margin-bottom: -5px;">Dashboard</h1>
+        <h1 style="text-align: center; margin-top: 30px; margin-bottom: 0px;">Dashboard</h1>
+        <div id="last-snapshot-timestamp" style="text-align: center; margin-top: 10px; margin-bottom: -5px; color: #666; font-size: 13px;">
+            Last snapshot: <span id="snapshot-time">-</span>
+        </div>
         
         
 
@@ -210,9 +213,9 @@
                 <path id="buffer-section1" d="M 860,60 Q 860,50 870,50 L 970,50 Q 980,50 980,60 L 980,116 L 860,116 Z" fill="#444"/>
                 <rect id="buffer-section2" x="860" y="116" width="120" height="66" fill="#444"/>
                 <path id="buffer-section3" d="M 860,182 L 980,182 L 980,240 Q 980,250 970,250 L 870,250 Q 860,250 860,240 Z" fill="#444"/>
-                <text id="buffer-depth1" x="920" y="90" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text>
-                <text id="buffer-depth2" x="920" y="156" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text>
-                <text id="buffer-depth3" x="920" y="222" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text>
+                <text id="buffer-depth1" x="920" y="90" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <text id="buffer-depth2" x="920" y="156" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <text id="buffer-depth3" x="920" y="222" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
                 <text x="920" y="270" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">Buffer</text>
                 
                 <!-- House (bottom right, left of buffer) -->
@@ -234,9 +237,9 @@
                 <path id="tank3-section1" d="M 200,290 Q 200,280 210,280 L 310,280 Q 320,280 320,290 L 320,346 L 200,346 Z" fill="#444"/>
                 <rect id="tank3-section2" x="200" y="346" width="120" height="66" fill="#444"/>
                 <path id="tank3-section3" d="M 200,412 L 320,412 L 320,470 Q 320,480 310,480 L 210,480 Q 200,480 200,470 Z" fill="#444"/>
-                <text id="tank3-depth1" x="260" y="320" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text>
-                <text id="tank3-depth2" x="260" y="386" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text>
-                <text id="tank3-depth3" x="260" y="452" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text>
+                <text id="tank3-depth1" x="260" y="320" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <text id="tank3-depth2" x="260" y="386" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <text id="tank3-depth3" x="260" y="452" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
                 <text x="260" y="500" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">Tank 3</text>
                 
                 <!-- Store cold pipe temperature label (left of Tank 3) -->
@@ -251,9 +254,9 @@
                 <path id="tank2-section1" d="M 330,290 Q 330,280 340,280 L 440,280 Q 450,280 450,290 L 450,346 L 330,346 Z" fill="#444"/>
                 <rect id="tank2-section2" x="330" y="346" width="120" height="66" fill="#444"/>
                 <path id="tank2-section3" d="M 330,412 L 450,412 L 450,470 Q 450,480 440,480 L 340,480 Q 330,480 330,470 Z" fill="#444"/>
-                <text id="tank2-depth1" x="390" y="320" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text>
-                <text id="tank2-depth2" x="390" y="386" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text>
-                <text id="tank2-depth3" x="390" y="452" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text>
+                <text id="tank2-depth1" x="390" y="320" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <text id="tank2-depth2" x="390" y="386" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <text id="tank2-depth3" x="390" y="452" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
                 <text x="390" y="500" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">Tank 2</text>
                 
                 <!-- Tank 1 (bottom right) -->
@@ -265,9 +268,9 @@
                 <path id="tank1-section1" d="M 460,290 Q 460,280 470,280 L 570,280 Q 580,280 580,290 L 580,346 L 460,346 Z" fill="#444"/>
                 <rect id="tank1-section2" x="460" y="346" width="120" height="66" fill="#444"/>
                 <path id="tank1-section3" d="M 460,412 L 580,412 L 580,470 Q 580,480 570,480 L 470,480 Q 460,480 460,470 Z" fill="#444"/>
-                <text id="tank1-depth1" x="520" y="320" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text>
-                <text id="tank1-depth2" x="520" y="386" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text>
-                <text id="tank1-depth3" x="520" y="452" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">-</text>
+                <text id="tank1-depth1" x="520" y="320" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <text id="tank1-depth2" x="520" y="386" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <text id="tank1-depth3" x="520" y="452" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
                 <text x="520" y="500" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">Tank 1</text>
                 
                 <!-- Store hot pipe temperature label (above Tank 1) -->
@@ -829,6 +832,9 @@
         function updateMonitoringTables(snapshotData) {
             console.log('📊 New snapshot received');
             
+            // Update the last snapshot timestamp
+            updateSnapshotTimestamp(snapshotData);
+            
             // Log current relay states before processing
             console.log('🔌 Relay states before snapshot:');
             Object.keys(relays).forEach(relayName => {
@@ -857,6 +863,32 @@
             
             // Update pipe colors based on system state
             updatePipeColors(snapshotData);
+        }
+
+        function updateSnapshotTimestamp(snapshotData) {
+            const timestampElement = document.getElementById('snapshot-time');
+            if (!timestampElement) return;
+            
+            if (snapshotData && snapshotData.SnapshotTimeUnixMs) {
+                // Convert Unix timestamp in milliseconds to Date object
+                const timestamp = new Date(snapshotData.SnapshotTimeUnixMs);
+                
+                // Format the date and time in New York timezone (24-hour format)
+                const formattedTime = timestamp.toLocaleString('sv-SE', {
+                    timeZone: 'America/New_York',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                });
+                
+                timestampElement.textContent = formattedTime;
+            } else {
+                timestampElement.textContent = 'Unknown';
+            }
         }
 
         function updateThermostatTable(snapshotData) {
@@ -2270,7 +2302,7 @@
                 textElement.setAttribute('text-anchor', 'middle');
                 textElement.setAttribute('fill', 'white');
                 textElement.setAttribute('font-family', 'Montserrat, sans-serif');
-                textElement.setAttribute('font-size', '16');
+                textElement.setAttribute('font-size', '14');
                 textElement.setAttribute('font-weight', '600');
                 textElement.textContent = '-';
                 
@@ -2333,7 +2365,7 @@
                 textElement.setAttribute('text-anchor', 'middle');
                 textElement.setAttribute('fill', 'white');
                 textElement.setAttribute('font-family', 'Montserrat, sans-serif');
-                textElement.setAttribute('font-size', '16');
+                textElement.setAttribute('font-size', '14');
                 textElement.setAttribute('font-weight', '600');
                 textElement.textContent = '-';
                 
