@@ -620,6 +620,15 @@ class WebInterMQTTBridge:
             raise Exception(f"Failed to send release control: {result.err()}")
         
         print("DEBUG: Release control sent")
+        
+        # Request a snapshot 2 seconds after release control to get updated relay states
+        async def request_snapshot_after_delay():
+            await asyncio.sleep(2.0)
+            print("DEBUG: Requesting snapshot 2 seconds after release control")
+            self._request_snapshot()
+        
+        # Start the delayed snapshot request
+        asyncio.create_task(request_snapshot_after_delay())
     
     async def _send_status(self, websocket: WebSocketResponse):
         """Send current status to WebSocket client"""
