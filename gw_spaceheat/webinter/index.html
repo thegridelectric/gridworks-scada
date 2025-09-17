@@ -415,13 +415,19 @@
 
         <!-- Test Mode Dropdown -->
         <div style="text-align: center; margin: 20px auto 60px auto;">
-            <label for="testModeSelect" style="color: var(--text-color); font-family: Montserrat, sans-serif; font-size: 14px; margin-right: 10px;">Test Mode:</label>
-            <select id="testModeSelect" style="padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; background: var(--bg-color); color: var(--text-color); font-family: Montserrat, sans-serif; font-size: 14px;">
-                <option value="Auto" selected>Real System State</option>
+            <label for="testModeSelect" style="color: var(--text-color); font-family: Montserrat, sans-serif; font-size: 14px; margin-right: 10px;">Show system state:</label>
+            <select id="testModeSelect" style="padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; background: var(--bg-color); color: var(--text-color); font-family: Montserrat, sans-serif; font-size: 14px; margin-right: 20px;">
+                <option value="Auto" selected>Real system state</option>
                 <option value="HpOnStoreOff">HpOnStoreOff</option>
                 <option value="HpOnStoreCharge">HpOnStoreCharge</option>
                 <option value="HpOffStoreDischarge">HpOffStoreDischarge</option>
                 <option value="HpOffStoreOff">HpOffStoreOff</option>
+            </select>
+            
+            <select id="flowVisualizationSelect" style="padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; background: var(--bg-color); color: var(--text-color); font-family: Montserrat, sans-serif; font-size: 14px;">
+                <option value="Real" selected>Real distribution flow</option>
+                <option value="Force">Flow</option>
+                <option value="None">No flow</option>
             </select>
         </div>
 
@@ -1475,7 +1481,22 @@
             }
             
             const distFlowReading = readingsMap['dist-flow'];
-            const hasDistFlow = distFlowReading && distFlowReading.Value && parseFloat(distFlowReading.Value) > 0;
+            const realDistFlow = distFlowReading && distFlowReading.Value && parseFloat(distFlowReading.Value) > 0;
+            
+            // Check flow visualization dropdown setting
+            const flowVisualizationSelect = document.getElementById('flowVisualizationSelect');
+            let hasDistFlow = realDistFlow; // Default to real flow
+            
+            if (flowVisualizationSelect) {
+                const flowMode = flowVisualizationSelect.value;
+                if (flowMode === 'Force') {
+                    hasDistFlow = true; // Force flow visualization
+                } else if (flowMode === 'None') {
+                    hasDistFlow = false; // Force no flow visualization
+                } else if (flowMode === 'Real') {
+                    hasDistFlow = realDistFlow; // Use real distribution flow
+                }
+            }
             
             // Set pipe colors based on state
             
@@ -2394,6 +2415,18 @@
             if (testModeSelect) {
                 testModeSelect.addEventListener('change', function() {
                     console.log('Test mode changed to:', this.value);
+                    // Trigger pipe color update with current snapshot data
+                    if (window.lastSnapshotData) {
+                        updatePipeColors(window.lastSnapshotData);
+                    }
+                });
+            }
+            
+            // Add event listener for flow visualization dropdown
+            const flowVisualizationSelect = document.getElementById('flowVisualizationSelect');
+            if (flowVisualizationSelect) {
+                flowVisualizationSelect.addEventListener('change', function() {
+                    console.log('Flow visualization changed to:', this.value);
                     // Trigger pipe color update with current snapshot data
                     if (window.lastSnapshotData) {
                         updatePipeColors(window.lastSnapshotData);
