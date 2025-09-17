@@ -192,6 +192,7 @@ class ConstrainedMQTTClient:
                     target=self._client_thread,
                     name="admin-MQTT-client-thread"
                 )
+                self._thread.daemon = True
                 self._thread.start()
 
     def stop(self):
