@@ -1,17 +1,12 @@
 import logging
 import os
 from pathlib import Path
-from typing import Optional
-from typing import Self
-
+from typing import Optional, Self
 import dotenv
 from gwproactor import AppSettings
 from gwproactor.config import MQTTClient
 from pydantic import model_validator
 from pydantic_settings import SettingsConfigDict
-
-from data_classes.house_0_names import H0N
-
 
 class WebInterSettings(AppSettings):
     target_gnode: str = ""
@@ -27,18 +22,16 @@ class WebInterSettings(AppSettings):
     )
 
     def __init__(self, **kwargs):
-        # Load .env file before initializing
         self._load_env_file()
         super().__init__(**kwargs)
 
     def _load_env_file(self):
         """Load .env file from current directory or project root"""
-        # Try to find .env file
+
+        # Find .env file
         current_dir = Path.cwd()
         env_file = current_dir / ".env"
-        
         if not env_file.exists():
-            # Try project root (go up directories looking for .env)
             for parent in current_dir.parents:
                 potential_env = parent / ".env"
                 if potential_env.exists():
@@ -53,16 +46,12 @@ class WebInterSettings(AppSettings):
             print(f"DEBUG: After loading .env:")
             print(f"  GWWEBINTER__LINK__HOST: {os.getenv('GWWEBINTER__LINK__HOST')}")
             print(f"  GWWEBINTER__LINK__PORT: {os.getenv('GWWEBINTER__LINK__PORT')}")
-            print(f"  GWWEBINTER__LINK__USERNAME: {os.getenv('GWWEBINTER__LINK__USERNAME')}")
         else:
             print("DEBUG: No .env file found")
 
     @model_validator(mode="after")
     def validate(self) -> Self:
-        # Force TLS to be disabled for web interface
-        self.link.tls.use_tls = False
-        
-        # Manually set configuration from environment variables
+        self.link.tls.use_tls = False        
         if os.getenv('GWWEBINTER__TARGET_GNODE'):
             self.target_gnode = os.getenv('GWWEBINTER__TARGET_GNODE')
         if os.getenv('GWWEBINTER__LINK__HOST'):
@@ -72,17 +61,15 @@ class WebInterSettings(AppSettings):
         if os.getenv('GWWEBINTER__LINK__USERNAME'):
             self.link.username = os.getenv('GWWEBINTER__LINK__USERNAME')
         if os.getenv('GWWEBINTER__LINK__PASSWORD'):
-            # Create a simple secret-like object
-            password_value = os.getenv('GWWEBINTER__LINK__PASSWORD')
             class SimpleSecret:
                 def __init__(self, value):
                     self._value = value
                 def get_secret_value(self):
                     return self._value
-            self.link.password = SimpleSecret(password_value)
+            self.link.password = SimpleSecret(os.getenv('GWWEBINTER__LINK__PASSWORD'))
         
         print(f"DEBUG: Target gnode = {self.target_gnode}")
-        print(f"DEBUG: Forced TLS use_tls = {self.link.tls.use_tls}")
+        print(f"DEBUG: Use TLS = {self.link.tls.use_tls}")
         print(f"DEBUG: MQTT host = {self.link.host}")
         print(f"DEBUG: MQTT port = {self.link.port}")
         print(f"DEBUG: MQTT username = {self.link.username}")
