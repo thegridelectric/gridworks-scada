@@ -414,7 +414,7 @@
         </div>
 
         <!-- Test Mode Dropdown -->
-        <div style="text-align: center; margin: 20px auto 60px auto;">
+        <div style="text-align: center; margin: 20px auto 60px auto; display: none;">
             <label for="testModeSelect" style="color: var(--text-color); font-family: Montserrat, sans-serif; font-size: 14px; margin-right: 10px;">Show system state:</label>
             <select id="testModeSelect" style="padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; background: var(--bg-color); color: var(--text-color); font-family: Montserrat, sans-serif; font-size: 14px;">
                 <option value="Auto" selected>Real system state</option>
@@ -1499,6 +1499,16 @@
             
             // Combined condition: dist-flow > 0 OR zone relay condition
             const shouldAnimate = hasDistFlow || hasZoneRelayCondition;
+            
+            // Debug logging for HpOnStoreOff state
+            if (currentState === 'HpOnStoreOff') {
+                console.log('HpOnStoreOff Debug:', {
+                    hasDistFlow: hasDistFlow,
+                    hasZoneRelayCondition: hasZoneRelayCondition,
+                    shouldAnimate: shouldAnimate,
+                    distFlowValue: distFlowReading ? distFlowReading.Value : 'no reading'
+                });
+            }
             
             // Set pipe colors based on state
             
