@@ -1,25 +1,23 @@
 import asyncio
 import logging
-from pathlib import Path
-from typing import Annotated
-from typing import Optional
-
+from typing import Annotated, Optional
 import dotenv
 import rich
 import typer
 from aiohttp import web
 from aiohttp.web import Request, WebSocketResponse
-
 from webinter.settings import WebInterSettings
 from webinter.websocket_server import WebInterMQTTBridge
 
-app = typer.Typer(
+# CLI app for handling command-line interface and arguments
+cli_app = typer.Typer(
     no_args_is_help=True,
     pretty_exceptions_enable=False,
     rich_markup_mode="rich",
     help="GridWorks Scada Web Interface",
 )
 
+# Global MQTT bridge instance for WebSocket communication
 bridge: Optional[WebInterMQTTBridge] = None
 
 def get_settings(
@@ -67,18 +65,18 @@ async def websocket_handler(request: Request) -> WebSocketResponse:
     
     return ws
 
-async def init_app(settings: WebInterSettings) -> web.Application:
-    """Initialize the web application"""
+async def init_web_app(settings: WebInterSettings) -> web.Application:
+    """Start the MQTT connection and initialize the web app"""
     global bridge
     bridge = WebInterMQTTBridge(settings)
-
-    app = web.Application()
-    app.router.add_get('/ws', websocket_handler)
-
     bridge.start_mqtt()
-    return app
 
-@app.command()
+    web_app = web.Application()
+    web_app.router.add_get('/ws', websocket_handler)
+    return web_app
+
+# Register the serve command with the CLI app
+@cli_app.command()
 def serve(
     target: str = "",
     env_file: str = ".env",
@@ -95,8 +93,8 @@ def serve(
     logging.basicConfig(level=settings.verbosity)
     
     async def run_server():
-        app = await init_app(settings)
-        runner = web.AppRunner(app)
+        web_app = await init_web_app(settings)
+        runner = web.AppRunner(web_app)
         await runner.setup()
         site = web.TCPSite(runner, settings.web_host, settings.web_port)
         await site.start()
@@ -117,4 +115,4 @@ def serve(
     asyncio.run(run_server())
 
 if __name__ == "__main__":
-    app()
+    cli_app()
