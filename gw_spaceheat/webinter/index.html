@@ -2015,6 +2015,18 @@
                 
                 // Special logic for HpOnStoreCharge: House to Buffer pipes when dist flow is active or zone relay conditions met
                 if (shouldAnimate) {
+                    // Show house animation
+                    const houseAnimation = document.getElementById('house-animation');
+                    const houseDropText = document.getElementById('house-drop');
+                    if (houseAnimation) {
+                        houseAnimation.style.display = 'block';
+                        houseAnimation.parentNode.appendChild(houseAnimation);
+                        // Ensure drop text stays on top
+                        if (houseDropText) {
+                            houseDropText.parentNode.appendChild(houseDropText);
+                        }
+                    }
+                    
                     // House to Buffer top pipe - leftward flow (opposite direction from HpOnStoreOff)
                     if (houseBufferTopPipe) {
                         houseBufferTopPipe.setAttribute('fill', 'url(#leftFlowPattern)');
@@ -2026,6 +2038,66 @@
                         houseBufferBottomPipe.setAttribute('fill', 'url(#flowPattern)');
                         houseBufferBottomPipe.removeAttribute('stroke');
                         houseBufferBottomPipe.parentNode.appendChild(houseBufferBottomPipe);
+                    }
+                    
+                    // Animate House vertical pipes
+                    // Right vertical pipe (house-hp-vertical-pipe) - downward flow
+                    if (houseHpVerticalPipe) {
+                        houseHpVerticalPipe.setAttribute('fill', 'url(#verticalDownFlowPattern)');
+                        houseHpVerticalPipe.removeAttribute('stroke');
+                        houseHpVerticalPipe.parentNode.appendChild(houseHpVerticalPipe);
+                    }
+                    // Left vertical pipe (house-hp-vertical-pipe-bottom) - upward flow  
+                    if (houseHpVerticalPipeBottom) {
+                        houseHpVerticalPipeBottom.setAttribute('fill', 'url(#verticalFlowPattern)');
+                        houseHpVerticalPipeBottom.removeAttribute('stroke');
+                        houseHpVerticalPipeBottom.parentNode.appendChild(houseHpVerticalPipeBottom);
+                    }
+                    // Top connection pipe - leftward flow
+                    if (houseConnectionPipe) {
+                        houseConnectionPipe.setAttribute('fill', 'url(#leftFlowPattern)');
+                        houseConnectionPipe.removeAttribute('stroke');
+                        houseConnectionPipe.parentNode.appendChild(houseConnectionPipe);
+                    }
+                    // Bottom connection pipe - leftward flow
+                    if (houseConnectionPipeBottom) {
+                        houseConnectionPipeBottom.setAttribute('fill', 'url(#leftFlowPattern)');
+                        houseConnectionPipeBottom.removeAttribute('stroke');
+                        houseConnectionPipeBottom.parentNode.appendChild(houseConnectionPipeBottom);
+                    }
+                } else {
+                    // Hide house animation when no distribution flow and no zone relay conditions
+                    const houseAnimation = document.getElementById('house-animation');
+                    if (houseAnimation) {
+                        houseAnimation.style.display = 'none';
+                    }
+                    
+                    // Reset house-buffer pipes to gray when no animation
+                    if (houseBufferTopPipe) {
+                        houseBufferTopPipe.setAttribute('fill', '#888');
+                        houseBufferTopPipe.removeAttribute('stroke');
+                    }
+                    if (houseBufferBottomPipe) {
+                        houseBufferBottomPipe.setAttribute('fill', '#888');
+                        houseBufferBottomPipe.removeAttribute('stroke');
+                    }
+                    
+                    // Reset house vertical pipes to gray when no animation
+                    if (houseHpVerticalPipe) {
+                        houseHpVerticalPipe.setAttribute('fill', '#888');
+                        houseHpVerticalPipe.removeAttribute('stroke');
+                    }
+                    if (houseHpVerticalPipeBottom) {
+                        houseHpVerticalPipeBottom.setAttribute('fill', '#888');
+                        houseHpVerticalPipeBottom.removeAttribute('stroke');
+                    }
+                    if (houseConnectionPipe) {
+                        houseConnectionPipe.setAttribute('fill', '#888');
+                        houseConnectionPipe.removeAttribute('stroke');
+                    }
+                    if (houseConnectionPipeBottom) {
+                        houseConnectionPipeBottom.setAttribute('fill', '#888');
+                        houseConnectionPipeBottom.removeAttribute('stroke');
                     }
                 }
             } else {
