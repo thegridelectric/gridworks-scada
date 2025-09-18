@@ -20,13 +20,11 @@ runner = CliRunner()
 
 admin_commands = [
     [],
+    ["add-scada", "--help"],
     ["config"],
-    ["demo"],
-    ["demo", "actions", "--help"],
-    ["demo", "stopwatch", "--help"],
-    ["demo", "switch", "--help"],
+    ["config-file"],
+    ["mkconfig", "--help"],
     ["watch", "--help"],
-    ["watchex", "--help"],
 ]
 
 def test_gws_cli_completes() -> None:

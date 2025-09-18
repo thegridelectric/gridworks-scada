@@ -143,6 +143,10 @@ class ConstrainedMQTTClient:
     def _subscribe_all(self) -> tuple[int, Optional[int]]:
         subscribe_result: tuple[int, Optional[int]]
         if self._subscriptions:
+            if self._logger.isEnabledFor(logging.DEBUG):
+                self._logger.debug("Subscribing to %d topics:", len(self._subscriptions))
+                for topic in self._subscriptions:
+                    self._logger.debug("  %s", topic)
             subscribe_result = self._client.subscribe(
                 [(topic, 0) for topic in self._subscriptions]
             )
@@ -291,6 +295,9 @@ class ConstrainedMQTTClient:
     def _client_thread(self) -> None:
         max_back_off = 1024
         backoff = 1
+        if self._logger.isEnabledFor(logging.DEBUG):
+            self._logger.debug("MQTT Settings:")
+            self._logger.debug(self._settings)
         try:
             while not self._stop_requested:
                 try:

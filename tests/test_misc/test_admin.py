@@ -1,7 +1,11 @@
 from typing import Any
 
 import pytest
-from gwadmin.cli import watch_settings
+from gwproactor.config.mqtt import TLSInfo
+
+from gwadmin.cli import get_admin_config
+from gwadmin.config import LessSecretMQTTClient
+from gwadmin.config import ScadaConfig
 from gwadmin.watch.clients.constrained_mqtt_client import ConstrainedMQTTClient
 from gwadmin.watch.relay_app import RelaysApp
 from gwadmin.watch.widgets.mqtt import MqttState
@@ -45,7 +49,6 @@ async def test_admin_basic(request: pytest.FixtureRequest) -> None:
     exception. It does not attempt to test content of execution."""
     settings = ScadaSettings(admin=AdminLinkSettings(enabled=True))
     layout = House0Layout.load(settings.paths.hardware_layout)
-    print(layout.scada_g_node_alias)
     async with ScadaLiveTest(
             request=request,
             start_child1=True,
@@ -55,13 +58,16 @@ async def test_admin_basic(request: pytest.FixtureRequest) -> None:
             h.child_to_parent_link.active_for_send,
             "ERROR waiting link active_for_send",
         )
-        settings = watch_settings(
-            target=layout.scada_g_node_alias,
+        curr_admin_config = get_admin_config(
             env_file="",
             verbose=0,
         )
-        settings.link.tls.use_tls = False
-        relays_app = RelaysApp(settings=settings)
+        curr_admin_config.curr_scada = "local"
+        curr_admin_config.config.scadas["local"] = ScadaConfig(
+            mqtt=LessSecretMQTTClient(tls=TLSInfo(use_tls=False)),
+            long_name=layout.scada_g_node_alias,
+        )
+        relays_app = RelaysApp(settings=curr_admin_config)
         async with relays_app.run_test() as pilot:
             # Wait for admin to connect to scada
             mqtt_state = relays_app.query_one("#mqtt_state", MqttState)

@@ -6,7 +6,9 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.logging import TextualHandler
 from textual.widgets import Header, Footer
+from textual.widgets import Select
 
+from gwadmin.config import CurrentAdminConfig
 from gwadmin.settings import MAX_ADMIN_TIMEOUT
 from gwadmin.watch.clients.admin_client import AdminClient
 from gwadmin.watch.clients.relay_client import RelayEnergized
@@ -16,7 +18,6 @@ from gwadmin.watch.widgets.keepalive import ReleaseControlButton
 from gwadmin.watch.widgets.relays import Relays
 from gwadmin.watch.widgets.relay_toggle_button import RelayToggleButton
 from gwadmin.watch.widgets.timer import TimerDigits
-from gwadmin.settings import AdminClientSettings
 
 __version__: str = importlib.metadata.version('gridworks-admin')
 
@@ -29,6 +30,7 @@ class RelaysApp(App):
     _admin_client: AdminClient
     _relay_client: RelayWatchClient
     _theme_names: list[str]
+    settings: CurrentAdminConfig
 
     BINDINGS = [
         Binding("d", "toggle_dark", "Toggle dark mode"),
@@ -43,14 +45,14 @@ class RelaysApp(App):
     def __init__(
         self,
         *,
-        settings: AdminClientSettings = AdminClientSettings(),
+        settings: CurrentAdminConfig = CurrentAdminConfig(),
     ) -> None:
         self.settings = settings
-        logger.setLevel(settings.verbosity)
-        if self.settings.paho_verbosity is not None:
+        logger.setLevel(settings.config.verbosity)
+        if self.settings.config.paho_verbosity is not None:
             paho_logger = logging.getLogger("paho." + __name__)
             paho_logger.addHandler(TextualHandler())
-            paho_logger.setLevel(settings.paho_verbosity)
+            paho_logger.setLevel(settings.config.paho_verbosity)
         else:
             paho_logger = None
         self._relay_client = RelayWatchClient(logger=logger)
@@ -64,15 +66,15 @@ class RelaysApp(App):
         self._theme_names = [
             theme for theme in self.available_themes if theme != "textual-ansi"
         ]
-        self.set_reactive(RelaysApp.sub_title, self.settings.target_gnode)
+        self.set_reactive(RelaysApp.sub_title, self.settings.config.scadas[self.settings.curr_scada].long_name)
 
     def compose(self) -> ComposeResult:
-        yield Header(show_clock=self.settings.show_clock)
+        yield Header(show_clock=self.settings.config.show_clock)
         relays = Relays(logger=logger, id="relays")
         self._relay_client.set_callbacks(relays.relay_client_callbacks())
         yield relays
         # Footer disabled by default as defense against memory leaks
-        if self.settings.show_footer:
+        if self.settings.config.show_footer:
             yield Footer()
 
     def on_mount(self) -> None:
@@ -133,11 +135,18 @@ class RelaysApp(App):
         return self._admin_client.snapshot_received()
 
 
+    def on_select_changed(self, message: Select.Changed) -> None:
+        self._logger.info(f"got select changed: new value: {message.value}")
+        self.settings.curr_scada = message.value
+        if self.settings.config.use_last_scada:
+            self.settings.save_curr_scada(self.settings.curr_scada)
+        self.set_reactive(RelaysApp.sub_title, self.settings.config.scadas[self.settings.curr_scada].long_name)
+        self._admin_client.switch_scada()
+
+
 if __name__ == "__main__":
-    # https://github.com/koxudaxi/pydantic-pycharm-plugin/issues/1013
-    # noinspection PyArgumentList
-    settings_ = AdminClientSettings(_env_file=dotenv.find_dotenv())
-    settings_.verbosity = logging.DEBUG
-    # settings_.paho_verbosity = logging.DEBUG
+    from gwadmin.cli import get_admin_config
+    settings_ = get_admin_config(env_file=dotenv.find_dotenv())
+    settings_.config.verbosity = logging.DEBUG
     app = RelaysApp(settings=settings_)
     app.run()
