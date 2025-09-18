@@ -2,6 +2,23 @@ Screen {
     layout: vertical;
 }
 
+.container {
+    height: auto;
+    # width: auto;
+    border: solid $border;
+}
+
+.label {
+    height: 3;
+    content-align: center middle;
+    width: auto;
+}
+
+# #select_scada {
+#     height: 1.25fr;
+#     border: solid $border;
+# }
+
 #mqtt_state {
     height: 1fr;
     border: solid $border;
@@ -36,6 +53,14 @@ RelayToggleButton {
     margin: 0 1;
     padding: 0 0;
     text-style: bold;
+}
+
+Select {
+     width: 40;
+     height: 3;
+     margin: 0 1;
+     padding: 0 0;
+     text-style: bold;
 }
 
 TimerDigits {

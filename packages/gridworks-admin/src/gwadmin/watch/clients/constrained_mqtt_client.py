@@ -144,9 +144,10 @@ class ConstrainedMQTTClient:
         subscribe_result: tuple[int, Optional[int]]
         if self._subscriptions:
             if self._logger.isEnabledFor(logging.DEBUG):
-                self._logger.debug("Subscribing to %d topics:", len(self._subscriptions))
+                s = f"Subscribing to {len(self._subscriptions)} topics\n"
                 for topic in self._subscriptions:
-                    self._logger.debug("  %s", topic)
+                    s += f"  {topic}\n"
+                self._logger.debug(s)
             subscribe_result = self._client.subscribe(
                 [(topic, 0) for topic in self._subscriptions]
             )

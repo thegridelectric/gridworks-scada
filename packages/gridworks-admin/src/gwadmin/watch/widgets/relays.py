@@ -4,6 +4,7 @@ from logging import Logger
 from typing import Optional
 
 from textual.app import ComposeResult
+from textual.containers import Horizontal
 from textual.containers import HorizontalGroup
 from textual.containers import Vertical
 from textual.logging import TextualHandler
@@ -13,6 +14,7 @@ from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import DataTable
 from textual.widgets import Select
+from textual.widgets import Static
 from textual.widgets._data_table import CellType  # noqa
 
 from gwadmin.watch.clients.constrained_mqtt_client import ConstrainedMQTTClient
@@ -66,7 +68,9 @@ class Relays(Widget):
             self.layout = layout
             super().__init__()
 
-    def __init__(self, logger: Optional[Logger] = None, **kwargs) -> None:
+    def __init__(self, scadas: list[str], initial_scada: str, logger: Optional[Logger] = None, **kwargs) -> None:
+        self.scadas = scadas
+        self.initial_scada = initial_scada
         self.logger = logger or module_logger
         self._relays = {}
         super().__init__(**kwargs)
@@ -74,9 +78,16 @@ class Relays(Widget):
     def compose(self) -> ComposeResult:
         with Vertical():
             yield MqttState(id="mqtt_state")
-            # yield Select(
-            #     (scada, scada) for scada in self.app.settings.config.scadas.keys()
-            # )
+            yield Horizontal(
+                Static("Select Scada: ", classes="label"),
+                Select(
+                    ((scada, scada) for scada in self.scadas),
+                    prompt="Scada",
+                    value=self.initial_scada,
+                    id="select_scada",
+                ),
+                classes="container",
+            )
             with HorizontalGroup():
                 yield KeepAliveButton()
                 yield ReleaseControlButton()

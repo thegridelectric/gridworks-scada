@@ -47,6 +47,8 @@ class AdminClientCallbacks:
     """Hook for user. Called when any mqtt message is received. Called from Paho
     thread. Must be threadsafe."""
 
+
+
 class AdminSubClient:
 
     def set_admin_client(self, client: "AdminClient") -> None:
@@ -65,6 +67,8 @@ class AdminSubClient:
     def process_mqtt_message(self, topic: str, payload: bytes) -> None:
         ...
 
+    def scada_selection_reset(self) -> None:
+        ...
 
 class AdminClient:
     _lock: threading.RLock
@@ -87,7 +91,7 @@ class AdminClient:
             paho_logger: Optional[Logger] = None,
     ) -> None:
         self._lock = threading.RLock()
-        self._settings = settings.model_copy()
+        self._settings = settings
         self._callbacks = callbacks or AdminClientCallbacks()
         if subclients is None:
             self._subclients = []
@@ -172,11 +176,13 @@ class AdminClient:
         if self._init_task is not None and not self._init_task.cancelled():
             self._init_task.cancel()
         self._init_task = None
+        self._layout = None
+        self._snap = None
         self._paho_wrapper.stop()
 
     def switch_scada(self) -> None:
-        if self._paho_wrapper.started():
-            self._paho_wrapper.stop()
+        self._logger.info(f"Switching to scada {self.curr_scada}")
+        self.stop()
         self._paho_wrapper = ConstrainedMQTTClient(
             settings=self.curr_scada_config.mqtt,
             subscriptions=[
@@ -194,7 +200,7 @@ class AdminClient:
             logger=self._logger,
             paho_logger=None,
         )
-        self._paho_wrapper.start()
+        self.start()
 
     def started(self) -> bool:
         return self._paho_wrapper.started()

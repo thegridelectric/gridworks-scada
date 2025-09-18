@@ -66,11 +66,19 @@ class RelaysApp(App):
         self._theme_names = [
             theme for theme in self.available_themes if theme != "textual-ansi"
         ]
-        self.set_reactive(RelaysApp.sub_title, self.settings.config.scadas[self.settings.curr_scada].long_name)
+        self.set_reactive(RelaysApp.sub_title, self.format_sub_title())
+
+    def format_sub_title(self) -> str:
+        return f"{self.settings.curr_scada} - {self.settings.config.scadas[self.settings.curr_scada].long_name}"
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=self.settings.config.show_clock)
-        relays = Relays(logger=logger, id="relays")
+        relays = Relays(
+            list(self.settings.config.scadas.keys()),
+            self.settings.curr_scada,
+            logger=logger,
+            id="relays"
+        )
         self._relay_client.set_callbacks(relays.relay_client_callbacks())
         yield relays
         # Footer disabled by default as defense against memory leaks
@@ -134,14 +142,13 @@ class RelaysApp(App):
     def snapshot_received(self) -> bool:
         return self._admin_client.snapshot_received()
 
-
     def on_select_changed(self, message: Select.Changed) -> None:
-        self._logger.info(f"got select changed: new value: {message.value}")
-        self.settings.curr_scada = message.value
-        if self.settings.config.use_last_scada:
-            self.settings.save_curr_scada(self.settings.curr_scada)
-        self.set_reactive(RelaysApp.sub_title, self.settings.config.scadas[self.settings.curr_scada].long_name)
-        self._admin_client.switch_scada()
+        if message.value != Select.BLANK and message.value != self.settings.curr_scada:
+            self.settings.curr_scada = message.value
+            if self.settings.config.use_last_scada:
+                self.settings.save_curr_scada(self.settings.curr_scada)
+            self.sub_title = self.format_sub_title()
+            self._admin_client.switch_scada()
 
 
 if __name__ == "__main__":
