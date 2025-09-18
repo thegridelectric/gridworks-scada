@@ -3,7 +3,6 @@ import datetime
 import json
 import logging
 import re
-import threading
 import time
 import uuid
 from typing import Dict, Set, Optional
@@ -24,7 +23,6 @@ from admin.watch.clients.constrained_mqtt_client import MQTTClientCallbacks
 from admin.watch.clients.admin_client import type_name
 from named_types import LayoutLite, SendLayout, SnapshotSpaceheat, AdminDispatch, AdminKeepAlive, AdminReleaseControl, FsmEvent
 from gwproto.named_types import SingleReading
-from gwproto.enums import ChangeRelayPin
 
 module_logger = logging.getLogger(__name__)
 
@@ -62,7 +60,6 @@ class WebInterMQTTBridge:
         
     def _setup_mqtt_client(self):
         """Setup MQTT client to connect to RabbitMQ"""
-        # Force TLS to be disabled
         self.settings.link.tls.use_tls = False
         
         # Create subscription topic
@@ -94,13 +91,12 @@ class WebInterMQTTBridge:
         """Handle incoming MQTT messages"""
         try:
             print(f"DEBUG: MQTT message received on topic: {topic}")
-            # Update status tracking
             self._messages_received += 1
             self._last_activity_time = time.time()
             
-            decoded_topic = MQTTTopic.decode(topic)
-            message = GWMessage.model_validate_json(payload)
-            
+            decoded_topic = MQTTTopic.decode(topic) 
+            message = GWMessage[LayoutLite].model_validate_json(payload)  
+
             if decoded_topic.message_type == type_name(LayoutLite):
                 print("DEBUG: Processing layout.lite message")
                 self._process_layout_lite(payload)
@@ -109,8 +105,6 @@ class WebInterMQTTBridge:
                 self._process_snapshot(payload)
             elif decoded_topic.message_type == type_name(SingleReading):
                 self._process_single_reading(payload)
-            # Note: Not broadcasting MQTT messages to web clients for now
-            # This avoids the event loop issue in the MQTT thread
             
         except Exception as e:
             print(f"DEBUG: Error processing MQTT message: {e}")
@@ -121,7 +115,7 @@ class WebInterMQTTBridge:
         message = GWMessage[LayoutLite].model_validate_json(payload)
         self._layout = message.Payload
         
-        # Extract relay configurations (like the admin app does)
+        # Extract relay configurations
         self._relay_configs = {}
         relay_node_names = {node.Name for node in self._layout.ShNodes if node.ActorClass == 'Relay'}
         relay_channels = {channel.AboutNodeName: channel for channel in self._layout.DataChannels if channel.AboutNodeName in relay_node_names}
@@ -141,7 +135,7 @@ class WebInterMQTTBridge:
                     "deenergized_state": config.DeEnergizedState,
                 }
         
-        # Create channel to relay mapping (like the admin app does)
+        # Create channel to relay mapping
         self._channel_to_relay = {
             relay_config["channel_name"]: relay_name
             for relay_name, relay_config in self._relay_configs.items()
@@ -149,10 +143,7 @@ class WebInterMQTTBridge:
         
         print(f"DEBUG: Loaded {len(self._relay_configs)} relays")
         
-        # Extract thermostat names from layout data
         self._extract_thermostat_names()
-        
-        # Relays loaded successfully
         self._request_snapshot()
     
     def _process_snapshot(self, payload: bytes) -> None:
@@ -162,36 +153,19 @@ class WebInterMQTTBridge:
         self._snapshot = message.Payload
         print(f"DEBUG: Snapshot loaded with {len(self._snapshot.LatestReadingList)} readings")
         
-        # Extract relay states from snapshot
         self._extract_relay_states_from_snapshot()
-        
-        # Send snapshot data to all WebSocket clients immediately
         self._send_snapshot_to_clients()
-        
-        # Also broadcast the snapshot update to all connected clients in real-time
-        self._broadcast_snapshot_update()
     
     def _extract_relay_states_from_snapshot(self) -> None:
         """Extract relay states from snapshot data"""
         if not self._snapshot or not self._layout:
             return
             
-        # Create a mapping from channel names to relay names
-        # This is a simplified approach - we'll need to match channels to relays
-        channel_to_relay = {}
-        for node in self._layout.ShNodes:
-            if hasattr(node, 'ActorClass') and node.ActorClass == 'Relay':
-                # Find the data channel for this relay
-                for channel in self._layout.DataChannels:
-                    if channel.AboutNodeName == node.Name:
-                        channel_to_relay[channel.Name] = node.Name
-                        break
-        
-        # Extract relay states from readings
+        # Extract relay states from readings using existing channel mapping
         relay_states = {}
         for reading in self._snapshot.LatestReadingList:
-            if reading.ChannelName in channel_to_relay:
-                relay_name = channel_to_relay[reading.ChannelName]
+            if reading.ChannelName in self._channel_to_relay:
+                relay_name = self._channel_to_relay[reading.ChannelName]
                 relay_states[relay_name] = {
                     "state": "energized" if reading.Value else "deenergized",
                     "time": reading.ScadaReadTimeUnixMs
@@ -206,11 +180,10 @@ class WebInterMQTTBridge:
         print(f"DEBUG: Updated {len(relay_states)} relay states from snapshot")
     
     def _extract_thermostat_names(self) -> None:
-        """Extract thermostat names from layout data using the same logic as the dashboard"""
+        """Extract thermostat names from layout data"""
         if not self._layout:
             return
             
-        # Use the same regex pattern as the dashboard
         thermostat_channel_name_pattern = re.compile(
             r"^zone(?P<zone_number>\d)-(?P<human_name>.*)-(temp|set|state)$"
         )
@@ -263,104 +236,11 @@ class WebInterMQTTBridge:
         }
         
         message = json.dumps(snapshot_data)
-        print(f"DEBUG: Sending snapshot message: {message[:200]}...")  # Log first 200 chars
+        # print(f"DEBUG: Sending snapshot message: {message[:200]}...")
         
         # Store the message to be sent when clients connect or on next status update
         self._pending_snapshot_message = message
         print(f"DEBUG: Stored snapshot message for next client update")
-    
-    def _broadcast_snapshot_update(self) -> None:
-        """Broadcast snapshot update to all connected WebSocket clients in real-time"""
-        if not self._snapshot or not self._websocket_clients:
-            return
-            
-        print(f"DEBUG: Broadcasting snapshot update to {len(self._websocket_clients)} clients")
-        
-        # Convert snapshot to dict for JSON serialization
-        snapshot_data = {
-            "type": "mqtt_message",
-            "message_type": "snapshot.spaceheat",
-            "payload": {
-                "FromGNodeAlias": self._snapshot.FromGNodeAlias,
-                "FromGNodeInstanceId": self._snapshot.FromGNodeInstanceId,
-                "SnapshotTimeUnixMs": self._snapshot.SnapshotTimeUnixMs,
-                "LatestReadingList": [
-                    {
-                        "ChannelName": reading.ChannelName,
-                        "Value": reading.Value,
-                        "ScadaReadTimeUnixMs": reading.ScadaReadTimeUnixMs
-                    }
-                    for reading in self._snapshot.LatestReadingList
-                ],
-                "LatestStateList": [
-                    {
-                        "MachineHandle": state.MachineHandle,
-                        "StateEnum": state.StateEnum,
-                        "State": state.State,
-                        "UnixMs": state.UnixMs,
-                        "Cause": state.Cause
-                    }
-                    for state in self._snapshot.LatestStateList
-                ]
-            }
-        }
-        
-        # Also create a status message with updated relay states
-        time_remaining = 0
-        if self._control_timeout and self._control_start_time:
-            elapsed = time.time() - self._control_start_time
-            time_remaining = max(0, self._control_timeout - elapsed)
-        
-        last_activity_str = "Never"
-        if self._last_activity_time:
-            last_activity_str = f"{int(time.time() - self._last_activity_time)}s ago"
-        
-        status_data = {
-            "type": "status",
-            "mqtt_connected": self._mqtt_client.started() if self._mqtt_client else False,
-            "relays": self._relay_configs,
-            "layout_loaded": self._layout is not None,
-            "snapshot_loaded": self._snapshot is not None,
-            "time_remaining": time_remaining,
-            "controller": self._current_controller,
-            "target_gnode": self.settings.target_gnode,
-            "messages_received": self._messages_received,
-            "connected_clients": len(self._websocket_clients),
-            "last_activity": last_activity_str,
-            "relay_count": len(self._relay_configs),
-            "thermostat_names": self._thermostat_names
-        }
-        
-        snapshot_message = json.dumps(snapshot_data)
-        status_message = json.dumps(status_data)
-        
-        # Use threading to broadcast to all clients (since we're in MQTT thread)
-        def broadcast_to_clients():
-            try:
-                # Create a new event loop for this thread
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                
-                async def send_to_all():
-                    for client in list(self._websocket_clients):
-                        try:
-                            # Send status message first (with updated relay states)
-                            await client.send_str(status_message)
-                            # Then send snapshot message
-                            await client.send_str(snapshot_message)
-                        except Exception as e:
-                            self.logger.warning(f"Failed to send messages to WebSocket client: {e}")
-                            self._websocket_clients.discard(client)
-                
-                loop.run_until_complete(send_to_all())
-                loop.close()
-            except Exception as e:
-                self.logger.error(f"Error broadcasting snapshot update: {e}")
-        
-        # Start the broadcast in a separate thread
-        thread = threading.Thread(target=broadcast_to_clients)
-        thread.daemon = True
-        thread.start()
     
     def _process_single_reading(self, payload: bytes) -> None:
         """Process single reading message to update relay states in real-time"""
@@ -371,23 +251,16 @@ class WebInterMQTTBridge:
             message = GWMessage[SingleReading].model_validate_json(payload)
             reading = message.Payload
             
-            # Check if this reading is for a relay channel
             if reading.ChannelName in self._channel_to_relay:
                 relay_name = self._channel_to_relay[reading.ChannelName]
                 new_state = "energized" if reading.Value else "deenergized"
                 
-                # Update relay state
                 if relay_name in self._relay_configs:
                     old_state = self._relay_configs[relay_name].get("state", "unknown")
                     self._relay_configs[relay_name]["state"] = new_state
                     self._relay_configs[relay_name]["last_update"] = reading.ScadaReadTimeUnixMs
-                    
                     if old_state != new_state:
                         print(f"DEBUG: Relay {relay_name} changed from {old_state} to {new_state}")
-                    
-                    # Send updated status to all WebSocket clients
-                    # Note: We can't use asyncio.create_task here because we're in the MQTT thread
-                    # The status will be updated when the next snapshot comes in
                     
         except Exception as e:
             print(f"DEBUG: Error processing single reading: {e}")
@@ -395,6 +268,7 @@ class WebInterMQTTBridge:
     
     def _request_layout_lite(self) -> None:
         """Request layout from SCADA"""
+        print("DEBUG: Requesting layout from SCADA")
         result = self._publish_message(
             SendLayout(
                 FromGNodeAlias=H0N.admin,
@@ -402,6 +276,7 @@ class WebInterMQTTBridge:
                 ToName=H0N.primary_scada,
             )
         )
+        print(f"DEBUG: Layout request result: {result}")
     
     def _request_snapshot(self) -> None:
         """Request snapshot from SCADA"""
@@ -421,18 +296,6 @@ class WebInterMQTTBridge:
             topic,
             message.model_dump_json(indent=2).encode()
         )
-    
-    def _broadcast_to_websockets(self, data: dict):
-        """Broadcast data to all connected WebSocket clients"""
-        if self._websocket_clients:
-            message = json.dumps(data)
-            # Use asyncio to send to all clients
-            for client in list(self._websocket_clients):
-                try:
-                    asyncio.create_task(client.send_str(message))
-                except Exception as e:
-                    self.logger.warning(f"Failed to send to WebSocket client: {e}")
-                    self._websocket_clients.discard(client)
     
     async def _start_control_timer(self, timeout_seconds: int, user_id: str):
         """Start a synchronized timer for all clients"""
@@ -466,7 +329,6 @@ class WebInterMQTTBridge:
             remaining = max(0, self._control_timeout - elapsed)
             
             if remaining <= 0:
-                # Timer expired
                 self._control_timeout = None
                 self._control_start_time = None
                 self._current_controller = None
@@ -475,7 +337,6 @@ class WebInterMQTTBridge:
                     self._timer_task.cancel()
                     self._timer_task = None
             
-            # Broadcast to all clients
             await self._broadcast_to_websockets_async({
                 "type": "timer_update",
                 "time_remaining": remaining,
@@ -483,7 +344,6 @@ class WebInterMQTTBridge:
             })
     
     async def _broadcast_to_websockets_async(self, data: dict):
-        """Async version of broadcast for use in async methods"""
         if self._websocket_clients:
             message = json.dumps(data)
             for client in list(self._websocket_clients):
@@ -528,26 +388,24 @@ class WebInterMQTTBridge:
         if relay_name not in self._relay_configs:
             raise ValueError(f"Relay {relay_name} not found")
         
-        # Get current relay state and toggle it (like the admin app does)
+        # Get current relay state and toggle it
         current_state = self._relay_configs[relay_name].get("state", "unknown")
         relay_config = self._relay_configs[relay_name]
         
         if current_state == "energized":
-            # Currently energized, so de-energize it
             event_name = relay_config["de_energizing_event"]
             new_state = "deenergized"
         elif current_state == "deenergized":
-            # Currently de-energized, so energize it
             event_name = relay_config["energizing_event"]
             new_state = "energized"
         else:
-            # Unknown state, default to energize
-            event_name = relay_config["energizing_event"]
-            new_state = "energized"
+            # Unknown state, default to de-energize
+            event_name = relay_config["de_energizing_event"]
+            new_state = "deenergized"
         
         print(f"DEBUG: Toggling relay {relay_name} from {current_state} to {new_state}")
         
-        # Start/restart timer when relay is toggled (like admin app)
+        # Start/restart timer when relay is toggled
         await self._start_control_timer(timeout_seconds, user_id)
         
         event = FsmEvent(
@@ -570,7 +428,7 @@ class WebInterMQTTBridge:
         if result.is_err():
             raise Exception(f"Failed to send relay command: {result.err()}")
         
-        # Update our local cache with the new state (optimistic update)
+        # Update our local variables with the new state
         self._relay_configs[relay_name]["state"] = new_state
         self._relay_configs[relay_name]["last_update"] = int(datetime.datetime.now().timestamp() * 1000)
         
@@ -581,8 +439,6 @@ class WebInterMQTTBridge:
         """Handle keepalive command"""
         timeout_seconds = data.get("timeout_seconds")
         user_id = data.get("user_id", "unknown")
-        
-        # Set current controller and start synchronized timer
         await self._start_control_timer(timeout_seconds, user_id)
         
         # Send to SCADA
