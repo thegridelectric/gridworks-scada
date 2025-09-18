@@ -8,7 +8,6 @@ from typing import Optional
 import rich
 import typer
 from dotenv import dotenv_values
-from gwproactor.config import MQTTClient
 from gwproactor.config.mqtt import TLSInfo
 from pydantic import SecretStr
 
@@ -37,7 +36,7 @@ app = typer.Typer(
     no_args_is_help=True,
     pretty_exceptions_enable=False,
     rich_markup_mode="rich",
-    help="GridWorks Scada Admin Client, version {__version__}",
+    help=f"GridWorks Scada Admin Client, version {__version__}",
 )
 
 DEFAULT_TARGET: str = "d1.isone.me.versant.keene.orange.scada"
@@ -128,13 +127,27 @@ def watch(
         ),
     ] = "",
     *,
-    verbose: Annotated[int, typer.Option("--verbose", "-v", count=True)] = 0,
-    paho_verbose: Annotated[int, typer.Option("--paho-verbose", count=True)] = 0,
+    verbose: Annotated[
+        int,
+        typer.Option(
+            "--verbose", "-v", count=True, help=(
+                "Increase logging verbosity. Maybe specified more than once"
+            )
+        )
+    ] = 0,
+    paho_verbose: Annotated[
+        int,
+        typer.Option(
+            "--paho-verbose", count=True,
+            help="Enable raw paho.mqtt logging",
+        )
+    ] = 0,
     show_clock: Annotated[
         Optional[bool],
         typer.Option(
             "--show-clock",
             show_default=False,
+            help="Show the clock in the title bar."
         ),
     ] = None,
     show_footer: Annotated[
@@ -142,6 +155,7 @@ def watch(
         typer.Option(
             "--show-footer",
             show_default=False,
+            help="Show the footer with shortcut keys."
         ),
     ] = None,
     default_scada: Annotated[
@@ -149,6 +163,7 @@ def watch(
         typer.Option(
             "--default-scada",
             show_default=False,
+            help="Specify the default scada."
         )
     ] = None,
     use_last_scada: Annotated[
@@ -156,6 +171,7 @@ def watch(
         typer.Option(
             "--use-last-scada",
             show_default=False,
+            help="Use the scada last selected when watch was run."
         )
     ] = None,
     default_timeout_seconds: Annotated[
@@ -169,6 +185,7 @@ def watch(
         bool,
         typer.Option(
             "--save",
+            help="Save any changes to the configuration produced by command line options."
         )
     ] = False,
     config_name: Annotated[
@@ -176,6 +193,7 @@ def watch(
     ] = None,
     env_file: Annotated[str, typer.Option(help=ENV_FILE_HELP_TEXT)] = "",
 ) -> None:
+    """Connect to a GridWorks Scada and watch state information live."""
     current_config = get_admin_config(
         verbose=verbose,
         paho_verbose=paho_verbose,
@@ -197,6 +215,14 @@ def watch(
             "via last-scada-used or in default. "
             "[yellow][bold]Doing nothing.[/yellow][/bold]"
         )
+        if not current_config.paths.admin_config_path.exists():
+            rich.print(
+                f"\nConfig file {current_config.paths.admin_config_path} "
+                "does not exist. To create a default configuration run:"
+            )
+            rich.print("\n  [green][bold]gwa mkconfig[/green]")
+            rich.print("\nThen, to add configuration for your scada, run:")
+            rich.print("\n  [green][bold]gwa add-scada[/green]\n")
         raise typer.Exit(2)
     if not scada in current_config.config.scadas:
         rich.print(
@@ -236,6 +262,7 @@ def config(
         typer.Option(
             "--show-clock",
             show_default=False,
+            help="Show the clock in the title bar."
         ),
     ] = None,
     show_footer: Annotated[
@@ -243,6 +270,7 @@ def config(
         typer.Option(
             "--show-footer",
             show_default=False,
+            help="Show the footer with shortcut keys."
         ),
     ] = None,
     default_scada: Annotated[
@@ -250,6 +278,7 @@ def config(
         typer.Option(
             "--default-scada",
             show_default=False,
+            help="Specify the default scada."
         )
     ] = None,
     use_last_scada: Annotated[
@@ -257,6 +286,7 @@ def config(
         typer.Option(
             "--use-last-scada",
             show_default=False,
+            help="Use the scada last selected when watch was run."
         )
     ] = None,
     default_timeout_seconds: Annotated[
@@ -270,6 +300,7 @@ def config(
         bool,
         typer.Option(
             "--save",
+            help="Save any changes to the configuration produced by command line options."
         )
     ] = False,
     config_name: Annotated[
@@ -277,6 +308,7 @@ def config(
     ] = None,
     env_file: Annotated[str, typer.Option(help=ENV_FILE_HELP_TEXT)] = "",
 ) -> None:
+    """Show and, optionally, change the admin configuration."""
     current_config = get_admin_config(
         verbose=verbose,
         paho_verbose=paho_verbose,
@@ -311,6 +343,7 @@ def mkconfig(
         ),
     ] = False,
 ) -> None:
+    """Create a default configuration file."""
     paths = AdminPaths(name=get_config_name(env_file=env_file, config_name=config_name))
     if paths.admin_config_path.exists():
         if not force:
@@ -358,6 +391,7 @@ def add_scada(
     ] = None,
     env_file: Annotated[str, typer.Option(help=ENV_FILE_HELP_TEXT)] = "",
 ) -> None:
+    """Add configuration to connect to a particular Scada."""
     current_config = get_admin_config(config_name=config_name, env_file=env_file)
     if current_config.add_scada(
             name,
