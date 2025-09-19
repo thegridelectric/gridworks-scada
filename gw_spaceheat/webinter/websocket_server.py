@@ -95,7 +95,7 @@ class WebInterMQTTBridge:
             self._last_activity_time = time.time()
             
             decoded_topic = MQTTTopic.decode(topic) 
-            message = GWMessage[LayoutLite].model_validate_json(payload)  
+            message = GWMessage.model_validate_json(payload)
 
             if decoded_topic.message_type == type_name(LayoutLite):
                 print("DEBUG: Processing layout.lite message")
