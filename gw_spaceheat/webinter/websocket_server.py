@@ -13,16 +13,16 @@ from aiohttp import web
 from aiohttp.web import WebSocketResponse
 from gwproto import Message as GWMessage
 from gwproto import MQTTTopic
-from data_classes.house_0_names import H0N
+from gwsproto.data_classes.house_0_names import H0N
 from gwproto.named_types import SendSnap
 from paho.mqtt.client import MQTTMessageInfo
 from result import Result
 
 from webinter.settings import WebInterSettings
-from admin.watch.clients.constrained_mqtt_client import ConstrainedMQTTClient
-from admin.watch.clients.constrained_mqtt_client import MQTTClientCallbacks
-from admin.watch.clients.admin_client import type_name
-from named_types import LayoutLite, SendLayout, SnapshotSpaceheat, AdminDispatch, AdminKeepAlive, AdminReleaseControl, FsmEvent
+from gwadmin.watch.clients.constrained_mqtt_client import ConstrainedMQTTClient
+from gwadmin.watch.clients.constrained_mqtt_client import MQTTClientCallbacks
+from gwadmin.watch.clients.admin_client import type_name
+from gwsproto.named_types import LayoutLite, SendLayout, SnapshotSpaceheat, AdminDispatch, AdminKeepAlive, AdminReleaseControl, FsmEvent
 from gwproto.named_types import SingleReading
 
 module_logger = logging.getLogger(__name__)
