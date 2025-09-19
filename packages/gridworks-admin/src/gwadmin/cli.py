@@ -14,7 +14,7 @@ from pydantic import SecretStr
 from gwadmin.config import AdminConfig
 from gwadmin.config import AdminPaths
 from gwadmin.config import CurrentAdminConfig
-from gwadmin.config import LessSecretMQTTClient
+from gwadmin.config import AdminMQTTClient
 from gwadmin.watch.relay_app import RelaysApp, __version__
 from gwsproto.data_classes.house_0_names import H0N
 
@@ -38,8 +38,6 @@ app = typer.Typer(
     rich_markup_mode="rich",
     help=f"GridWorks Scada Admin Client, version {__version__}",
 )
-
-DEFAULT_TARGET: str = "d1.isone.me.versant.keene.orange.scada"
 
 def get_config_name(env_file: str = "", config_name: Optional[str] = None) -> str:
     if config_name is None:
@@ -396,7 +394,7 @@ def add_scada(
     if current_config.add_scada(
             name,
             long_name=long_name,
-            mqtt_client_config=LessSecretMQTTClient(
+            mqtt_client_config=AdminMQTTClient(
                 host=host,
                 port=port,
                 username=username,

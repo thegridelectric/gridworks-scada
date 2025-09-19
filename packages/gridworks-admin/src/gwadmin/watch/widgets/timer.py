@@ -1,29 +1,33 @@
 import logging
 from time import monotonic
 from textual.logging import TextualHandler
+from textual.timer import Timer
 from textual.widgets import Digits
 from textual.reactive import reactive
 
-from gwadmin.settings import MAX_ADMIN_TIMEOUT
+from gwadmin.config import DEFAULT_ADMIN_TIMEOUT
+from gwadmin.config import MAX_ADMIN_TIMEOUT
 from gwadmin.watch.widgets.time_input import TimeInput
-from gwadmin.settings import AdminClientSettings
 
 module_logger = logging.getLogger(__name__)
 module_logger.addHandler(TextualHandler())
 
 class TimerDigits(Digits):
+    update_timer: Timer
+    start_time = reactive(monotonic)
+    time_remaining = reactive(DEFAULT_ADMIN_TIMEOUT)
+
     def __init__(
             self,
+            default_timeout_seconds: int = DEFAULT_ADMIN_TIMEOUT,
             logger: logging.Logger = module_logger,
             **kwargs
     ) -> None:
         super().__init__(**kwargs)
         self.logger = logger
-        self.default_timeout_seconds = MAX_ADMIN_TIMEOUT
+        self.default_timeout_seconds = default_timeout_seconds
         self.countdown_seconds = self.default_timeout_seconds
 
-    start_time = reactive(monotonic)
-    time_remaining = reactive(AdminClientSettings().default_timeout_seconds)
 
     def on_mount(self) -> None:
         self.update_timer = self.set_interval(1 / 60, self.update_time, pause=True)

@@ -4,6 +4,7 @@ import threading
 from dataclasses import dataclass
 from logging import Logger
 from typing import Any
+from typing import Callable
 from typing import Optional
 from typing import Sequence
 from typing import Type
@@ -34,6 +35,9 @@ def type_name(model_type: Type[BaseModel]) -> str:
         return str(field.default)
     return ""
 
+
+ScadaSelectionResetCallback = Callable[[], None]
+
 @dataclass
 class AdminClientCallbacks:
     """Hooks for user of AdminClient. Must be threadsafe."""
@@ -47,7 +51,8 @@ class AdminClientCallbacks:
     """Hook for user. Called when any mqtt message is received. Called from Paho
     thread. Must be threadsafe."""
 
-
+    scada_selection_reset: Optional[ScadaSelectionResetCallback] = None
+    """Hook for user. Called when scada selection reset."""
 
 class AdminSubClient:
 
@@ -183,6 +188,10 @@ class AdminClient:
     def switch_scada(self) -> None:
         self._logger.info(f"Switching to scada {self.curr_scada}")
         self.stop()
+        for subclient in self._subclients:
+            subclient.scada_selection_reset()
+        if self._callbacks.scada_selection_reset:
+            self._callbacks.scada_selection_reset()
         self._paho_wrapper = ConstrainedMQTTClient(
             settings=self.curr_scada_config.mqtt,
             subscriptions=[

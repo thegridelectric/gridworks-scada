@@ -1,6 +1,7 @@
 """ List of all the types """
 
 from gwsproto.named_types.actuators_ready import ActuatorsReady
+from gwsproto.named_types.admin_analog_dispatch import AdminAnalogDispatch
 from gwsproto.named_types.admin_dispatch import AdminDispatch
 from gwsproto.named_types.admin_keep_alive import AdminKeepAlive
 from gwsproto.named_types.admin_release_control import AdminReleaseControl
@@ -46,8 +47,8 @@ from gwsproto.named_types.start_listening_to_atn import StartListeningToAtn
 from gwsproto.named_types.stop_listening_to_atn import StopListeningToAtn
 
 __all__ = [
-    "RemainingElecEvent",
     "ActuatorsReady",
+    "AdminAnalogDispatch",
     "AdminDispatch",
     "AdminKeepAlive",
     "AdminReleaseControl",
@@ -74,6 +75,7 @@ __all__ = [
     "PicoMissing",
     "PriceQuantityUnitless",
     "RemainingElec",
+    "RemainingElecEvent",
     "ResetHpKeepValue",
     "SlowContractHeartbeat",
     "SlowDispatchContract",

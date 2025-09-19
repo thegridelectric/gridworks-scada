@@ -14,23 +14,53 @@ Screen {
     width: auto;
 }
 
-# #select_scada {
-#     height: 1.25fr;
-#     border: solid $border;
-# }
+#dacs_table {
+    width: 60;
+    border: solid $border;
+    margin: 0 1;
+}
+
+#dac_control_container {
+    width: 60;
+}
+
+#dac_input_vertical {
+    width: 20;
+    margin: 0 3;
+}
+
+#dacs_input_label {
+    margin: 0 2;
+    width: 20;
+}
+
+#dac_value_input {
+    width: 10;
+    align: center middle;
+    margin: 1 3;
+}
+
+#send_dac_button {
+    width: 30;
+    align: center middle;
+}
+
+#dacs {
+    height: 4fr;
+    border: solid $border;
+}
+
+Relays {
+    height: 20fr;
+}
 
 #mqtt_state {
     height: 1fr;
     border: solid $border;
 }
 
-#message_table {
-    height: 3fr;
-    border: solid $border;
-}
-
 #relays_table {
-    height: 6fr;
+    height: 3fr;
     border: solid $border;
 }
 
@@ -38,7 +68,7 @@ Screen {
     layout: horizontal;
     border: solid $border;
     align: center middle;
-    height: 2fr;
+    height: 1fr;
     padding: 1 1;
 }
 

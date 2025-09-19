@@ -4,7 +4,7 @@ import pytest
 from gwproactor.config.mqtt import TLSInfo
 
 from gwadmin.cli import get_admin_config
-from gwadmin.config import LessSecretMQTTClient
+from gwadmin.config import AdminMQTTClient
 from gwadmin.config import ScadaConfig
 from gwadmin.watch.clients.constrained_mqtt_client import ConstrainedMQTTClient
 from gwadmin.watch.relay_app import RelaysApp
@@ -64,7 +64,7 @@ async def test_admin_basic(request: pytest.FixtureRequest) -> None:
         )
         curr_admin_config.curr_scada = "local"
         curr_admin_config.config.scadas["local"] = ScadaConfig(
-            mqtt=LessSecretMQTTClient(tls=TLSInfo(use_tls=False)),
+            mqtt=AdminMQTTClient(tls=TLSInfo(use_tls=False)),
             long_name=layout.scada_g_node_alias,
         )
         relays_app = RelaysApp(settings=curr_admin_config)

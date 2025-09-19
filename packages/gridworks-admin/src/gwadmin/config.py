@@ -10,15 +10,20 @@ from pydantic import field_serializer
 from pydantic_settings import BaseSettings
 from pydantic_settings import SettingsConfigDict
 
-class LessSecretMQTTClient(MQTTClient):
+MAX_ADMIN_TIMEOUT = 60 * 60 * 24
+DEFAULT_ADMIN_TIMEOUT = 5 * 60
+
+class AdminMQTTClient(MQTTClient):
+
     @field_serializer("password", when_used="json")
     def dump_secret(self, v):
         return v.get_secret_value()
 
 
 class ScadaConfig(BaseSettings):
-    mqtt: LessSecretMQTTClient = LessSecretMQTTClient()
+    enabled: bool = True
     long_name: str = ""
+    mqtt: AdminMQTTClient = AdminMQTTClient()
 
 class AdminConfig(BaseModel):
     scadas: dict[str, ScadaConfig] = {}
@@ -28,7 +33,7 @@ class AdminConfig(BaseModel):
     paho_verbosity: Optional[int] = None
     show_clock: bool = False
     show_footer: bool = False
-    default_timeout_seconds: int = int(5*60)
+    default_timeout_seconds: int = DEFAULT_ADMIN_TIMEOUT
 
 class AdminPaths(Paths):
 
@@ -68,7 +73,7 @@ class CurrentAdminConfig(BaseModel):
         with self.paths.admin_config_path.open(mode="w") as file:
             file.write(self.config.model_dump_json(indent=2))
 
-    def add_scada(self, short_name: str, long_name: str, mqtt_client_config: LessSecretMQTTClient) -> Optional[ScadaConfig]:
+    def add_scada(self, short_name: str, long_name: str, mqtt_client_config: AdminMQTTClient) -> Optional[ScadaConfig]:
         if short_name not in self.config.scadas:
             self.config.scadas[short_name] = ScadaConfig(
                 long_name=long_name,
