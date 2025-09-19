@@ -1,39 +1,37 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Relay Control</title>
+    <title>GridWorks | Dashboard and Admin Panel</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- Fixed Status Bar -->
     <div id="status" style="position: fixed; top: 0; left: 0; right: 0; background-color: var(--card-background); border-bottom: 1px solid var(--border-color); padding: 8px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 1000;">
-        <div id="status-left">Connecting...</div>
+        <div id="status-left" style="font-size: 1.5em;">Connecting...</div>
         <div id="status-right"></div>
     </div>
     
-    <!-- Main Content with top padding to account for fixed header -->
-    <div style="padding-top: 60px;">
+    <!-- Main Content -->
+    <div id="main-content" style="padding-top: 60px;">
         <h1 style="text-align: center; margin-top: 30px; margin-bottom: 0px;">Dashboard</h1>
-        <div id="last-snapshot-timestamp" style="text-align: center; margin-top: 10px; margin-bottom: -5px; color: #666; font-size: 13px;">
+        <div id="last-snapshot-timestamp" style="text-align: center; margin-top: 10px; margin-bottom: -5px; color: #888; font-size: 13px;">
             Last snapshot: <span id="snapshot-time">-</span>
         </div>
         
-        
-
         <!-- System Diagram -->
         <div id="system-diagram" style="text-align: center; max-width: 1200px; margin: 0 auto 40px auto;">
             <svg id="diagram-svg" viewBox="0 0 1000 500" style="width: 100%; height: auto; max-width: 1000px;">
                 <defs>
                     <!-- Dynamic gradient for heat pump animation (EWT to LWT) -->
                     <linearGradient id="heatGradient" x1="0%" y1="100%" x2="0%" y2="0%">
-                        <stop id="ewt-stop" offset="25%" style="stop-color:#2196F3;stop-opacity:1" />
-                        <stop id="lwt-stop" offset="75%" style="stop-color:#F44336;stop-opacity:1" />
+                        <stop id="ewt-stop" offset="25%" style="stop-color:#888; stop-opacity:1" />
+                        <stop id="lwt-stop" offset="75%" style="stop-color:#888; stop-opacity:1" />
                     </linearGradient>
                     
                     <!-- Dynamic gradient for house animation (dist-rwt to dist-swt, left to right) -->
                     <linearGradient id="houseHeatGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop id="dist-rwt-stop" offset="25%" style="stop-color:#2196F3;stop-opacity:1" />
-                        <stop id="dist-swt-stop" offset="75%" style="stop-color:#F44336;stop-opacity:1" />
+                        <stop id="dist-rwt-stop" offset="25%" style="stop-color:#888; stop-opacity:1" />
+                        <stop id="dist-swt-stop" offset="75%" style="stop-color:#888; stop-opacity:1" />
                     </linearGradient>
                     
                     <!-- Flow pattern for HpOffStoreDischarge top horizontal pipe -->
@@ -92,9 +90,8 @@
                             repeatCount="indefinite"/>
                     </pattern>
                     
-                    <!-- Moving heat lines pattern (uniform, seamless) -->
+                    <!-- Moving heat lines pattern -->
                     <pattern id="heatLinesPattern" x="0" y="0" width="20" height="120" patternUnits="userSpaceOnUse">
-                        <!-- Uniform flowing heat lines with consistent spacing -->
                         <path d="M 3,10 Q 10,7 17,10 Q 10,13 3,10" fill="#999" opacity="0.12"/>
                         <path d="M 3,30 Q 10,27 17,30 Q 10,33 3,30" fill="#999" opacity="0.12"/>
                         <path d="M 3,50 Q 10,47 17,50 Q 10,53 3,50" fill="#999" opacity="0.12"/>
@@ -111,7 +108,6 @@
                     
                     <!-- Buffer heat lines pattern - top to bottom flow -->
                     <pattern id="bufferHeatLinesTopToBottom" x="0" y="0" width="20" height="120" patternUnits="userSpaceOnUse">
-                        <!-- Uniform flowing heat lines with consistent spacing -->
                         <path d="M 3,10 Q 10,7 17,10 Q 10,13 3,10" fill="#999" opacity="0.12"/>
                         <path d="M 3,30 Q 10,27 17,30 Q 10,33 3,30" fill="#999" opacity="0.12"/>
                         <path d="M 3,50 Q 10,47 17,50 Q 10,53 3,50" fill="#999" opacity="0.12"/>
@@ -128,7 +124,6 @@
                     
                     <!-- Buffer heat lines pattern - bottom to top flow -->
                     <pattern id="bufferHeatLinesBottomToTop" x="0" y="0" width="20" height="120" patternUnits="userSpaceOnUse">
-                        <!-- Uniform flowing heat lines with consistent spacing -->
                         <path d="M 3,10 Q 10,7 17,10 Q 10,13 3,10" fill="#999" opacity="0.12"/>
                         <path d="M 3,30 Q 10,27 17,30 Q 10,33 3,30" fill="#999" opacity="0.12"/>
                         <path d="M 3,50 Q 10,47 17,50 Q 10,53 3,50" fill="#999" opacity="0.12"/>
@@ -145,7 +140,6 @@
                     
                     <!-- Moving heat lines pattern for house (uniform, seamless) -->
                     <pattern id="houseHeatLinesPattern" x="0" y="0" width="120" height="20" patternUnits="userSpaceOnUse">
-                        <!-- Uniform flowing heat lines moving right to left -->
                         <path d="M 10,3 Q 7,10 10,17 Q 13,10 10,3" fill="#999" opacity="0.12"/>
                         <path d="M 30,3 Q 27,10 30,17 Q 33,10 30,3" fill="#999" opacity="0.12"/>
                         <path d="M 50,3 Q 47,10 50,17 Q 53,10 50,3" fill="#999" opacity="0.12"/>
@@ -162,7 +156,6 @@
                     
                     <!-- Tank heat lines pattern - top to bottom flow -->
                     <pattern id="tankHeatLinesTopToBottom" x="0" y="0" width="20" height="120" patternUnits="userSpaceOnUse">
-                        <!-- Uniform flowing heat lines with consistent spacing -->
                         <path d="M 3,10 Q 10,7 17,10 Q 10,13 3,10" fill="#999" opacity="0.12"/>
                         <path d="M 3,30 Q 10,27 17,30 Q 10,33 3,30" fill="#999" opacity="0.12"/>
                         <path d="M 3,50 Q 10,47 17,50 Q 10,53 3,50" fill="#999" opacity="0.12"/>
@@ -179,7 +172,6 @@
                     
                     <!-- Tank heat lines pattern - bottom to top flow -->
                     <pattern id="tankHeatLinesBottomToTop" x="0" y="0" width="20" height="120" patternUnits="userSpaceOnUse">
-                        <!-- Uniform flowing heat lines with consistent spacing -->
                         <path d="M 3,10 Q 10,7 17,10 Q 10,13 3,10" fill="#999" opacity="0.12"/>
                         <path d="M 3,30 Q 10,27 17,30 Q 10,33 3,30" fill="#999" opacity="0.12"/>
                         <path d="M 3,50 Q 10,47 17,50 Q 10,53 3,50" fill="#999" opacity="0.12"/>
@@ -194,8 +186,9 @@
                             repeatCount="indefinite"/>
                     </pattern>
                 </defs>
-                <!-- Heat pump (left) -->
-                <rect x="20" y="50" width="120" height="200" rx="10" fill="#666"/>
+
+                <!-- Heat pump -->
+                <rect x="20" y="50" width="120" height="200" rx="10" fill="#888"/>
                 <g id="hp-animation" style="display: none;">
                     <rect x="20" y="50" width="120" height="200" rx="10" fill="url(#heatGradient)"/>
                     <rect x="20" y="50" width="120" height="200" rx="10" fill="url(#heatLinesPattern)"/>
@@ -204,7 +197,7 @@
                 <text id="hp-lift" x="80" y="150" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">Lift<tspan x="80" dy="1.2em">-°F</tspan>
                 </text>
                 
-                <!-- Buffer (right) -->
+                <!-- Buffer -->
                 <rect x="860" y="50" width="120" height="200" rx="10" fill="transparent"/>
                 <g id="buffer-animation" style="display: none;">
                     <rect x="860" y="50" width="120" height="200" rx="10" fill="url(#bufferHeatLinesTopToBottom)"/>
@@ -219,7 +212,7 @@
                 <text x="920" y="270" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">Buffer</text>
                 
                 <!-- House (bottom right, left of buffer) -->
-                <rect x="660" y="280" width="120" height="200" rx="10" fill="#666"/>
+                <rect x="660" y="280" width="120" height="200" rx="10" fill="#888"/>
                 <g id="house-animation" style="display: none;">
                     <rect x="660" y="280" width="120" height="200" rx="10" fill="url(#houseHeatGradient)"/>
                     <rect x="660" y="280" width="120" height="200" rx="10" fill="url(#houseHeatLinesPattern)"/>
@@ -241,9 +234,6 @@
                 <text id="tank3-depth2" x="260" y="386" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
                 <text id="tank3-depth3" x="260" y="452" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
                 <text x="260" y="500" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">Tank 3</text>
-                
-                <!-- Store cold pipe temperature label (left of Tank 3) -->
-                <text id="store-cold-pipe" x="145" y="430" text-anchor="middle" fill="#666" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
                 
                 <!-- Tank 2 (bottom center) -->
                 <rect x="330" y="280" width="120" height="200" rx="10" fill="transparent"/>
@@ -274,15 +264,18 @@
                 <text x="520" y="500" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">Tank 1</text>
                 
                 <!-- Store hot pipe temperature label (above Tank 1) -->
-                <text id="store-hot-pipe" x="560" y="260" text-anchor="middle" fill="#666" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <text id="store-hot-pipe" x="560" y="260" text-anchor="middle" fill="#888" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                
+                <!-- Store cold pipe temperature label (left of Tank 3) -->
+                <text id="store-cold-pipe" x="145" y="430" text-anchor="middle" fill="#888" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
                 
                 <!-- Top pipe (from top of heat pump to top of buffer) -->
                 <rect id="hp-buffer-top-pipe" x="140" y="75" width="720" height="15" fill="#888"/>
-                <text id="hp-lwt" x="170" y="70" text-anchor="middle" fill="#666" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <text id="hp-lwt" x="170" y="70" text-anchor="middle" fill="#888" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
 
                 <!-- Bottom pipe (from bottom of heat pump to bottom of buffer) -->
                 <rect id="hp-buffer-bottom-pipe" x="140" y="215" width="720" height="15" fill="#888"/>
-                <text id="hp-ewt" x="170" y="210" text-anchor="middle" fill="#666" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <text id="hp-ewt" x="170" y="210" text-anchor="middle" fill="#888" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
 
                 <!-- Horizontal pipe from Tank1 vertical pipe to heat pump top (HpOnStoreCharge) -->
                 <rect id="tank1-hp-horizontal-pipe-charge" x="140" y="75" width="465" height="15" fill="#888"/>
@@ -316,36 +309,35 @@
                 
                 <!-- Small horizontal pipe from Tank1 vertical pipe to top of Tank1 (HpOnStoreCharge) -->
                 <rect id="tank1-connection-pipe-charge" x="580" y="295" width="25" height="15" fill="#888"/>
-                
+
                 <!-- Small horizontal pipe from Tank3 vertical pipe to bottom of Tank3 (HpOnStoreCharge) -->
                 <rect id="tank3-connection-pipe-charge" x="175" y="440" width="25" height="15" fill="#888"/>
                 
-                <!-- House pipes (duplicated from Tank1, translated right) -->
                 <!-- Vertical pipe from House to heat pump top pipe -->
                 <rect id="house-hp-vertical-pipe" x="790" y="90" width="15" height="280" fill="#888"/>
                 
                 <!-- Small horizontal pipe from House vertical pipe to top of House -->
                 <rect id="house-connection-pipe" x="780" y="370" width="25" height="15" fill="#888"/>
-                <text id="dist-swt" x="810" y="405" text-anchor="middle" fill="#666" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
                 
-                <!-- House bottom pipes (duplicated from Tank3, translated right) -->
                 <!-- Vertical pipe from House bottom to heat pump bottom pipe -->
                 <rect id="house-hp-vertical-pipe-bottom" x="635" y="230" width="15" height="140" fill="#888"/>
                 
                 <!-- Small horizontal pipe from House vertical pipe to bottom of House -->
                 <rect id="house-connection-pipe-bottom" x="635" y="370" width="25" height="15" fill="#888"/>
-                <text id="dist-rwt" x="630" y="405" text-anchor="middle" fill="#666" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
                 
-                <!-- House to Buffer horizontal pipes (for HpOffStoreOff with dist flow) -->
+                <!-- Dist system labels -->
+                <text id="dist-swt" x="810" y="405" text-anchor="middle" fill="#888" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <text id="dist-rwt" x="630" y="405" text-anchor="middle" fill="#888" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                
                 <!-- Horizontal pipe from top of right House vertical to buffer top -->
                 <rect id="house-buffer-top-pipe" x="790" y="75" width="70" height="15" fill="#888"/>
                 
                 <!-- Horizontal pipe from top of left House vertical to buffer bottom -->
                 <rect id="house-buffer-bottom-pipe" x="635" y="215" width="225" height="15" fill="#888"/>
                 
-                <!-- Buffer pipe temperature labels (on top of all pipes) -->
-                <text id="buffer-hot-pipe" x="830" y="70" text-anchor="middle" fill="#666" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
-                <text id="buffer-cold-pipe" x="830" y="210" text-anchor="middle" fill="#666" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <!-- Buffer pipe temperature labels -->
+                <text id="buffer-hot-pipe" x="830" y="70" text-anchor="middle" fill="#888" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <text id="buffer-cold-pipe" x="830" y="210" text-anchor="middle" fill="#888" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
                 
             </svg>
         </div>
@@ -428,8 +420,8 @@
         <!-- Horizontal separator line -->
         <hr style="border: none; border-top: 1px solid var(--border-color); margin: 60px auto 60px auto; max-width: 1200px;">
 
+        <!-- Admin panel -->
         <h1 style="text-align: center; margin-top: 20px; margin-bottom: 20px;">Admin panel</h1>
-    
         <div id="control-panel" style="text-align: center; max-width: 770px; margin: 0px auto 20px auto; background-color: transparent; border: 0px solid #ddd; border-radius: 3px; padding: 20px;">
             <div style="display: flex; align-items: center; justify-content: center; gap: 20px; flex-wrap: wrap;">
                 <div id="timer-display" style="font-family: monospace; font-size: 25px; color: #333; font-weight: bold; margin-right: 20px;">00:00:00</div>
@@ -441,12 +433,11 @@
                 <button id="release-control-btn" onclick="sendReleaseControl()" style="margin: 0 5px; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 0.25rem; background-color: #FAFAFA; cursor: pointer; font-family: inherit; font-size: inherit;">Release control</button>
             </div>
         </div>
-        
         <div id="relays" style="margin-bottom: 40px;"></div>
+    </div>
 
     <style>
         :root {
-            /* Dark mode colors (default) */
             --background-color: #f8f9fa;
             --card-background: #ffffff;
             --datetime-background: #f1f3f5;
@@ -496,21 +487,19 @@
             };
             
             websocket.onclose = function(event) {
-                document.getElementById('status-left').textContent = 'Disconnected';
-                document.getElementById('status-right').textContent = 'Please refresh the page';
+                document.getElementById('status-left').textContent = 'Disconnected, try to refresh the page';
+                document.getElementById('status-right').textContent = '-';
                 ////console.log('WebSocket disconnected');
-                
-                // Clear the relay table and show disconnected message
-                const relaysDiv = document.getElementById('relays');
-                relaysDiv.innerHTML = '';
-                const controlPanel = document.getElementById('control-panel');
-                controlPanel.innerHTML = '';
+                const mainContent = document.getElementById('main-content');
+                mainContent.innerHTML = '';
             };
             
             websocket.onerror = function(error) {
                 console.error('WebSocket error:', error);
-                document.getElementById('status-left').textContent = 'Error';
-                document.getElementById('status-right').textContent = 'Connection failed';
+                document.getElementById('status-left').textContent = 'Error, connection failed';
+                document.getElementById('status-right').textContent = '-';
+                const mainContent = document.getElementById('main-content');
+                mainContent.innerHTML = '';
             };
         }
 
@@ -543,7 +532,7 @@
             const beforeLastPart = gnodeParts.length > 1 ? gnodeParts[gnodeParts.length - 2] : '';
             const capitalizedPart = beforeLastPart.charAt(0).toUpperCase() + beforeLastPart.slice(1);
             if (data.target_gnode) {
-                leftStatus = `<b style="font-size: 1.5em;">${capitalizedPart}</b>`;
+                leftStatus = `<b>${capitalizedPart}</b>`;
             }
             
             // Right side: full gnode
@@ -551,7 +540,6 @@
                 rightStatus = `<span style="color: var(--text-muted); font-size: 1em;">${data.target_gnode}</span>`;
             }
 
-            
             // Second line: MQTT connection status and message count
             // if (data.mqtt_connected) {
             //     statusText += 'MQTT broker connection: active';
@@ -568,7 +556,7 @@
             
             // Update relays
             if (data.relays) {
-                ////console.log('Status message relays:', data.relays);
+                //console.log('Status message relays:', data.relays);
                 
                 // Check if any relay states changed
                 let relayStatesChanged = false;
@@ -611,7 +599,7 @@
                 timerElement.style.color = '#333';
             }
             
-            // Show who has control
+            // Show which user has last controlled the system
             // if (data.controller) {
             //     const isCurrentUser = data.controller === currentUserId;
             //     document.getElementById('control-status').textContent = 
@@ -632,7 +620,7 @@
             table.style.borderCollapse = 'collapse';
             table.style.borderRadius = '0.25rem';
             table.style.maxWidth = '1000px';
-            table.style.margin = '0 auto'; // Center horizontally
+            table.style.margin = '0 auto';
             table.style.backgroundColor = 'var(--card-background)';
             
             // Create header row
@@ -761,40 +749,6 @@
             }
         }
 
-        function updateRelayStatesFromSnapshot(snapshotData) {
-            // Relay states are now updated via status messages from the server
-            // This function is kept for potential future use but no longer processes relay states
-            //console.log('Snapshot received - relay states updated via status message');
-        }
-
-        function toggleRelay(relayName) {
-            if (!websocket || websocket.readyState !== WebSocket.OPEN) {
-                console.error('Not connected to server');
-                return;
-            }
-
-            // Log current state before toggle
-            if (relays[relayName]) {
-                //console.log(`Toggling ${relayName} (current: ${relays[relayName].state})`);
-            }
-
-            const timeoutMinutes = parseInt(document.getElementById('timeout-input').value) || 5;
-            const timeoutSeconds = timeoutMinutes * 60;
-
-            const message = {
-                type: 'relay_control',
-                data: {
-                    relay_name: relayName,
-                    timeout_seconds: timeoutSeconds,
-                    user_id: currentUserId
-                }
-            };
-
-            websocket.send(JSON.stringify(message));
-        }
-
-
-
         function sendKeepAlive() {
             if (!websocket || websocket.readyState !== WebSocket.OPEN) {
                 console.error('Not connected to server');
@@ -909,12 +863,12 @@
                 // Look for temperature and set point readings for this zone using actual channel names
                 const tempReading = readingsMap[`${zone.key}-temp`];
                 const setPointReading = readingsMap[`${zone.key}-set`];
-                const stateReading = readingsMap[`${zone.key}-state`];
+                const stateReading = readingsMap[`${zone.key}-state`]; // TODO: Change for whitewire state
                 
                 // Temperature values are in degrees Fahrenheit * 10
                 const tempF = tempReading ? (tempReading.Value / 1000).toFixed(1) : '-';
                 const setPointF = setPointReading ? (setPointReading.Value / 1000).toFixed(1) : '-';
-                const state = stateReading ? (stateReading.Value > 0 ? 'heating' : 'idle') : 'idle';
+                const state = stateReading ? (stateReading.Value > 0 ? 'heating' : 'idle') : 'idle'; // TODO: Change for whitewire state
                 
                 const row = document.createElement('tr');
                 row.innerHTML = `
@@ -1197,10 +1151,10 @@
                 // Reset to default colors if temperatures are not available
                 ewtStop.removeAttribute('style');
                 lwtStop.removeAttribute('style');
-                ewtStop.setAttribute('style', 'stop-color:#2196F3;stop-opacity:1');
-                lwtStop.setAttribute('style', 'stop-color:#F44336;stop-opacity:1');
-                ewtStop.setAttribute('stop-color', '#2196F3');
-                lwtStop.setAttribute('stop-color', '#F44336');
+                ewtStop.setAttribute('style', 'stop-color:#888;stop-opacity:1');
+                lwtStop.setAttribute('style', 'stop-color:#888;stop-opacity:1');
+                ewtStop.setAttribute('stop-color', '#888');
+                lwtStop.setAttribute('stop-color', '#888');
                 //console.log('Reset heat pump gradient to default colors - missing temperature data');
             } else {
                 //console.log('Gradient elements not found: ewtStop=', !!ewtStop, 'lwtStop=', !!lwtStop);
@@ -1355,10 +1309,10 @@
                 // Reset to default colors if temperatures are not available
                 distRwtStop.removeAttribute('style');
                 distSwtStop.removeAttribute('style');
-                distRwtStop.setAttribute('style', 'stop-color:#2196F3;stop-opacity:1');
-                distSwtStop.setAttribute('style', 'stop-color:#F44336;stop-opacity:1');
-                distRwtStop.setAttribute('stop-color', '#2196F3');
-                distSwtStop.setAttribute('stop-color', '#F44336');
+                distRwtStop.setAttribute('style', 'stop-color:#888;stop-opacity:1');
+                distSwtStop.setAttribute('style', 'stop-color:#888;stop-opacity:1');
+                distRwtStop.setAttribute('stop-color', '#888');
+                distSwtStop.setAttribute('stop-color', '#888');
                 //console.log('Reset house gradient to default colors - missing temperature data');
             } else {
                 //console.log('House gradient elements not found: distRwtStop=', !!distRwtStop, 'distSwtStop=', !!distSwtStop);
@@ -2475,6 +2429,5 @@
             }
         };
     </script>
-    </div>
 </body>
 </html>
