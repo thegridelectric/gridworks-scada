@@ -434,7 +434,6 @@
             </div>
         </div>
         <div id="relays" style="margin-bottom: 40px;"></div>
-    </div>
 
     <style>
         :root {
@@ -747,6 +746,32 @@
                 // Update the relay buttons display
                 updateRelayButtons();
             }
+        }
+
+        function toggleRelay(relayName) {
+            if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+                console.error('Not connected to server');
+                return;
+            }
+
+            // Log current state before toggle
+            if (relays[relayName]) {
+                //console.log(`Toggling ${relayName} (current: ${relays[relayName].state})`);
+            }
+
+            const timeoutMinutes = parseInt(document.getElementById('timeout-input').value) || 5;
+            const timeoutSeconds = timeoutMinutes * 60;
+
+            const message = {
+                type: 'relay_control',
+                data: {
+                    relay_name: relayName,
+                    timeout_seconds: timeoutSeconds,
+                    user_id: currentUserId
+                }
+            };
+
+            websocket.send(JSON.stringify(message));
         }
 
         function sendKeepAlive() {
@@ -2429,5 +2454,6 @@
             }
         };
     </script>
+    </div>
 </body>
 </html>
