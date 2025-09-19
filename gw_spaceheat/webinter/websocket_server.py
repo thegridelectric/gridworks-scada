@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import json
+import threading
 import logging
 import re
 import time
@@ -155,6 +156,7 @@ class WebInterMQTTBridge:
         
         self._extract_relay_states_from_snapshot()
         self._send_snapshot_to_clients()
+        self._broadcast_snapshot_update()
     
     def _extract_relay_states_from_snapshot(self) -> None:
         """Extract relay states from snapshot data"""
@@ -241,6 +243,99 @@ class WebInterMQTTBridge:
         # Store the message to be sent when clients connect or on next status update
         self._pending_snapshot_message = message
         print(f"DEBUG: Stored snapshot message for next client update")
+
+    def _broadcast_snapshot_update(self) -> None:
+        """Broadcast snapshot update to all connected WebSocket clients in real-time"""
+        if not self._snapshot or not self._websocket_clients:
+            return
+            
+        print(f"DEBUG: Broadcasting snapshot update to {len(self._websocket_clients)} clients")
+        
+        # Convert snapshot to dict for JSON serialization
+        snapshot_data = {
+            "type": "mqtt_message",
+            "message_type": "snapshot.spaceheat",
+            "payload": {
+                "FromGNodeAlias": self._snapshot.FromGNodeAlias,
+                "FromGNodeInstanceId": self._snapshot.FromGNodeInstanceId,
+                "SnapshotTimeUnixMs": self._snapshot.SnapshotTimeUnixMs,
+                "LatestReadingList": [
+                    {
+                        "ChannelName": reading.ChannelName,
+                        "Value": reading.Value,
+                        "ScadaReadTimeUnixMs": reading.ScadaReadTimeUnixMs
+                    }
+                    for reading in self._snapshot.LatestReadingList
+                ],
+                "LatestStateList": [
+                    {
+                        "MachineHandle": state.MachineHandle,
+                        "StateEnum": state.StateEnum,
+                        "State": state.State,
+                        "UnixMs": state.UnixMs,
+                        "Cause": state.Cause
+                    }
+                    for state in self._snapshot.LatestStateList
+                ]
+            }
+        }
+        
+        # Also create a status message with updated relay states
+        time_remaining = 0
+        if self._control_timeout and self._control_start_time:
+            elapsed = time.time() - self._control_start_time
+            time_remaining = max(0, self._control_timeout - elapsed)
+        
+        last_activity_str = "Never"
+        if self._last_activity_time:
+            last_activity_str = f"{int(time.time() - self._last_activity_time)}s ago"
+        
+        status_data = {
+            "type": "status",
+            "mqtt_connected": self._mqtt_client.started() if self._mqtt_client else False,
+            "relays": self._relay_configs,
+            "layout_loaded": self._layout is not None,
+            "snapshot_loaded": self._snapshot is not None,
+            "time_remaining": time_remaining,
+            "controller": self._current_controller,
+            "target_gnode": self.settings.target_gnode,
+            "messages_received": self._messages_received,
+            "connected_clients": len(self._websocket_clients),
+            "last_activity": last_activity_str,
+            "relay_count": len(self._relay_configs),
+            "thermostat_names": self._thermostat_names
+        }
+        
+        snapshot_message = json.dumps(snapshot_data)
+        status_message = json.dumps(status_data)
+        
+        # Use threading to broadcast to all clients (since we're in MQTT thread)
+        def broadcast_to_clients():
+            try:
+                # Create a new event loop for this thread
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+                async def send_to_all():
+                    for client in list(self._websocket_clients):
+                        try:
+                            # Send status message first (with updated relay states)
+                            await client.send_str(status_message)
+                            # Then send snapshot message
+                            await client.send_str(snapshot_message)
+                        except Exception as e:
+                            self.logger.warning(f"Failed to send messages to WebSocket client: {e}")
+                            self._websocket_clients.discard(client)
+                
+                loop.run_until_complete(send_to_all())
+                loop.close()
+            except Exception as e:
+                self.logger.error(f"Error broadcasting snapshot update: {e}")
+        
+        # Start the broadcast in a separate thread
+        thread = threading.Thread(target=broadcast_to_clients)
+        thread.daemon = True
+        thread.start()
     
     def _process_single_reading(self, payload: bytes) -> None:
         """Process single reading message to update relay states in real-time"""
