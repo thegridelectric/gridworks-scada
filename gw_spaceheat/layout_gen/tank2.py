@@ -22,9 +22,9 @@ class Tank2Cfg(BaseModel):
     NumSampleAverages:int = 30
     Enabled: bool = True
     SendMicroVolts: bool = True
-    TempCalc: TempCalcMethod = TempCalcMethod.SimpleBetaForPico
+    TempCalc: TempCalcMethod = TempCalcMethod.SimpleBeta
     ThermistorBeta: Optional[int] = 3977 # Beta for the Amphenols
-    PicoKOhms: int = 30
+    PicoKOhms: Optional[int] = None
     
 
     def component_display_name(self) -> str:
