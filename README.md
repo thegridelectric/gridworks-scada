@@ -199,10 +199,11 @@ These commands will start the local test ATN:
 python tests/atn/run.py
 ```
 
-## Dev cycle
+## Development flow
 
 Default branch is dev. Make PRs to this branch for review from your code branch. Make bug changes directly to this branch.
-
+The first 5 homes in Millinocket are designed for beta testing. The idea here is that they run on dev, and the larger
+group of houses run on main.
 
 The main branch is protected - requires a pull request. Default pattern is PRs from dev to main.
 This will also publish a new gwsproto package.
