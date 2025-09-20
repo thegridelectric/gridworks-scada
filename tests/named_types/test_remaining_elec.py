@@ -1,6 +1,6 @@
 """Tests remaining.elec type, version 000"""
 
-from named_types import RemainingElec
+from gwsproto.named_types import RemainingElec
 
 
 def test_remaining_elec_generated() -> None:

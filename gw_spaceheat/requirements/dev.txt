@@ -72,7 +72,7 @@ h11==0.16.0
 httpcore==1.0.9
     # via httpx
 httpx==0.28.1
-    # via -r gw_spaceheat/requirements/test.in
+    # via -r gw_spaceheat/requirements/base.in
 idna==3.10
     # via
     #   anyio
@@ -86,6 +86,7 @@ isort==6.0.1
 jinja2==3.1.6
     # via
     #   aiohttp-jinja2
+    #   memray
     #   textual-serve
 linkify-it-py==2.0.3
     # via markdown-it-py
@@ -100,6 +101,8 @@ mdit-py-plugins==0.4.2
     # via markdown-it-py
 mdurl==0.1.2
     # via markdown-it-py
+memray==1.18.0
+    # via -r gw_spaceheat/requirements/dev.in
 msgpack==1.1.1
     # via textual-dev
 multidict==6.5.0
@@ -162,6 +165,7 @@ pygments==2.19.2
     # via
     #   pytest
     #   rich
+    #   textual
 pymodbus==3.9.2
     # via -r gw_spaceheat/requirements/base.in
 pymodbustcp==0.3.0
@@ -204,6 +208,7 @@ rich==14.0.0
     #   -r gw_spaceheat/requirements/base.in
     #   gridworks-cert
     #   gridworks-proactor
+    #   memray
     #   textual
     #   textual-serve
     #   typer
@@ -219,9 +224,10 @@ smbus2==0.5.0
     # via -r gw_spaceheat/requirements/base.in
 sniffio==1.3.1
     # via anyio
-textual==3.5.0
+textual==5.3.0
     # via
     #   -r gw_spaceheat/requirements/base.in
+    #   memray
     #   textual-dev
     #   textual-serve
     #   trogon

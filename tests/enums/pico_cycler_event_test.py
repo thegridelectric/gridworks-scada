@@ -2,7 +2,7 @@
 Tests for enum pico.cycler.event.000 from the GridWorks Type Registry.
 """
 
-from enums import PicoCyclerEvent
+from gwsproto.enums import PicoCyclerEvent
 
 
 def test_pico_cycler_event() -> None:

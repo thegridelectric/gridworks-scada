@@ -27,10 +27,10 @@ from gwproactor import AppInterface
 from gwproto import HardwareLayout
 
 from actors.flo import DGraph
-from data_classes.house_0_layout import House0Layout
-from data_classes.house_0_names import H0CN, H0N
-from enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName
-from data_classes.house_0_names import House0RelayIdx
+from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.house_0_names import H0CN, H0N
+from gwsproto.enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName
+from gwsproto.data_classes.house_0_names import House0RelayIdx
 from gwproactor import QOS
 from gwproactor.config import LoggerLevels
 from gwproactor.logger import LoggerOrAdapter
@@ -42,8 +42,8 @@ from gwproto.enums import TelemetryName, RelayClosedOrOpen
 from gwproto.messages import (EventBase, PowerWatts, Report, ReportEvent)
 from gwproto.named_types import AnalogDispatch, SendSnap, MachineStates
 from actors.atn_contract_handler import AtnContractHandler
-from enums import ContractStatus, LogLevel
-from named_types import (
+from gwsproto.enums import ContractStatus, LogLevel
+from gwsproto.named_types import (
     AtnBid, FloParamsHouse0, Glitch, Ha1Params, LatestPrice, LayoutLite, NoNewContractWarning,
     ResetHpKeepValue, ScadaParams, SendLayout, SetLwtControlParams, SiegLoopEndpointValveAdjustment,
     SlowContractHeartbeat,  SnapshotSpaceheat, StartListeningToAtn, StopListeningToAtn
@@ -162,7 +162,7 @@ class AtnMQTTCodec(MQTTCodec):
             create_message_model(
                 model_name="AtnMessageDecoder",
                 module_names=[
-                    "named_types",
+                    "gwsproto.named_types",
                     "gwproto.messages",
                     "gwproactor.message",
                 ],

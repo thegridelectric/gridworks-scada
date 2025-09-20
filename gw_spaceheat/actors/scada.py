@@ -19,7 +19,7 @@ from gwproto.message import Header
 from gwproto.enums import ActorClass
 
 from actors.scada_interface import ScadaInterface
-from data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.house_0_layout import House0Layout
 from gwproto.messages import FsmFullReport
 from gwproto.messages import EventBase
 from gwproto.message import Message
@@ -45,10 +45,10 @@ from actors.home_alone_loader import HomeAlone
 from actors.atomic_ally import AtomicAlly
 from actors.codec_factories import ScadaCodecFactory
 from actors.contract_handler import ContractHandler
-from data_classes.house_0_names import H0N
-from enums import (AtomicAllyState,  ContractStatus, FlowManifoldVariant, HomeAloneTopState,
+from gwsproto.data_classes.house_0_names import H0N
+from gwsproto.enums import (AtomicAllyState,  ContractStatus, FlowManifoldVariant, HomeAloneTopState,
                    MainAutoEvent, MainAutoState, TopState)
-from named_types import ( ActuatorsReady, FsmEvent,
+from gwsproto.named_types import ( ActuatorsReady, FsmEvent,
     AdminDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
     Glitch, GoDormant, LayoutLite, NewCommandTree, NoNewContractWarning, ResetHpKeepValue,
     ScadaParams, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment,

@@ -14,9 +14,9 @@ from gwproto import HardwareLayout
 import actors
 from actors.atn.atn import Atn
 from actors.atn.atn_config import AtnSettings
-from data_classes import house_0_names
-from data_classes.house_0_layout import House0Layout
-from data_classes.house_0_names import H0N
+from gwsproto.data_classes import house_0_names
+from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.house_0_names import H0N
 
 
 class AtnApp(App):

@@ -1,6 +1,6 @@
 """Tests single.machine.state type, version 000"""
 
-from named_types import SingleMachineState
+from gwsproto.named_types import SingleMachineState
 
 
 def test_single_machine_state_generated() -> None:

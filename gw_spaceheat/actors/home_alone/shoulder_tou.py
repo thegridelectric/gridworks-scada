@@ -4,10 +4,11 @@ from enum import auto
 from typing import List, Optional, cast
 
 from actors.home_alone.home_alone_tou_base import HomeAloneTouBase
-from data_classes.house_0_names import H0CN, H0N
-from enums import HomeAloneStrategy, HomeAloneTopState
+from actors.scada_interface import ScadaInterface
+from gwsproto.data_classes.house_0_names import H0CN, H0N
+from gwsproto.enums import HomeAloneStrategy, HomeAloneTopState
 from gw.enums import GwStrEnum
-from named_types import SingleMachineState
+from gwsproto.named_types import SingleMachineState
 from transitions import Machine
 from gwproto.named_types import PicoTankModuleComponentGt
 
@@ -102,7 +103,7 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
         elif event == HaShoulderEvent.WakeUp:
             self.WakeUp()
         else:
-            raise Exception(f"do not know event {event}")
+            raise Exception(f"Do not know event {event}")
 
         self.log(f"{event}: {orig_state} -> {self.state}")
         self._send_to(

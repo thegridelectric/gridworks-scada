@@ -1,6 +1,6 @@
 """Tests send.layout type, version 000"""
 
-from named_types import SendLayout
+from gwsproto.named_types import SendLayout
 
 
 def test_send_layout_generated() -> None:

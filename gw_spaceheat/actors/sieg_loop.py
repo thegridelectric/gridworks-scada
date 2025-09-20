@@ -5,7 +5,7 @@ import asyncio
 import uuid
 from collections import deque
 from enum import auto
-from data_classes.house_0_names import H0CN
+from gwsproto.data_classes.house_0_names import H0CN
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto.enums import StoreFlowRelay
@@ -16,8 +16,9 @@ from result import Ok, Result
 from gw.enums import GwStrEnum
 from actors.hp_boss import SiegLoopReady, HpBossState
 from actors.scada_actor import ScadaActor
-from enums import HpModel, LogLevel
-from named_types import (ActuatorsReady, Glitch, ResetHpKeepValue, SetLwtControlParams,
+from actors.scada_interface import ScadaInterface
+from gwsproto.enums import HpModel, LogLevel
+from gwsproto.named_types import (ActuatorsReady, Glitch, ResetHpKeepValue, SetLwtControlParams,
     SetTargetLwt, SiegTargetTooLow,  SingleMachineState)
 
 from transitions import Machine

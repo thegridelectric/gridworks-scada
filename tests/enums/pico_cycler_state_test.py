@@ -2,7 +2,7 @@
 Tests for enum pico.cycler.state.000 from the GridWorks Type Registry.
 """
 
-from enums import PicoCyclerState
+from gwsproto.enums import PicoCyclerState
 
 
 def test_pico_cycler_state() -> None:

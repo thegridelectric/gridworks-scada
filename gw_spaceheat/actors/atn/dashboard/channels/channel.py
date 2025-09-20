@@ -13,7 +13,7 @@ from rich.style import Style
 from rich.text import Text
 
 from actors.honeywell_thermostat import HoneywellThermostatOperatingState
-from named_types import SnapshotSpaceheat
+from gwsproto.named_types import SnapshotSpaceheat
 from actors.atn.dashboard.display.styles import fahrenheit_style
 from actors.atn.dashboard.display.styles import tank_style
 from actors.atn.dashboard.channels.reading import MissingReading

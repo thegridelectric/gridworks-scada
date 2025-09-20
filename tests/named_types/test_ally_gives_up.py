@@ -1,6 +1,6 @@
 """Tests ally.gives.up type, version 000"""
 
-from named_types import AllyGivesUp
+from gwsproto.named_types import AllyGivesUp
 
 
 def test_ally_gives_up_generated() -> None:

@@ -1,6 +1,6 @@
 """Tests suit.up type, version 000"""
 
-from named_types import SuitUp
+from gwsproto.named_types import SuitUp
 
 
 def test_suit_up_generated() -> None:

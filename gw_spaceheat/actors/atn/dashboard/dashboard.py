@@ -14,7 +14,7 @@ from actors.atn.atn_config import DashboardSettings
 from actors.atn.dashboard.channels.containers import Channels
 from actors.atn.dashboard.display.displays import Displays
 from actors.atn.dashboard.hackhp import HackHp
-from named_types import SnapshotSpaceheat
+from gwsproto.named_types import SnapshotSpaceheat
 
 class Dashboard:
     short_name: str

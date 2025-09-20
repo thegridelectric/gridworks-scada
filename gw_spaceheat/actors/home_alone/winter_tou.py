@@ -5,10 +5,11 @@ from typing import List, Optional, cast
 
 from actors import ScadaInterface
 from actors.home_alone.home_alone_tou_base import HomeAloneTouBase
-from data_classes.house_0_names import H0CN, H0N
-from enums import HomeAloneStrategy, HomeAloneTopState
+from actors.scada_interface import ScadaInterface
+from gwsproto.data_classes.house_0_names import H0CN, H0N
+from gwsproto.enums import HomeAloneStrategy, HomeAloneTopState
 from gw.enums import GwStrEnum
-from named_types import SingleMachineState
+from gwsproto.named_types import SingleMachineState
 from transitions import Machine
 from gwproto.named_types import PicoTankModuleComponentGt
 

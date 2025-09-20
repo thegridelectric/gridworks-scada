@@ -1,6 +1,6 @@
 """Tests snapshot.spaceheat type, version 003"""
 
-from named_types import SnapshotSpaceheat
+from gwsproto.named_types import SnapshotSpaceheat
 
 
 def test_snapshot_spaceheat_generated() -> None:

@@ -3,8 +3,10 @@ from typing import Optional
 from pathlib import Path
 from types import ModuleType
 
+from gwproactor import CodecFactory
 from gwproactor import ProactorSettings
 from gwproactor.app import App
+from gwproactor.app import SubTypes
 from gwproactor.config import MQTTClient
 from gwproactor.config import Paths
 from gwproactor.config.links import LinkSettings
@@ -17,9 +19,9 @@ import actors
 from actors.scada import Scada
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
-from data_classes import house_0_names
-from data_classes.house_0_layout import House0Layout
-from data_classes.house_0_names import H0N
+from gwsproto.data_classes import house_0_names
+from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.house_0_names import H0N
 from scada_app_interface import ScadaAppInterface
 
 
@@ -82,6 +84,31 @@ class ScadaApp(App, ScadaAppInterface):
                 settings=settings,
                 settings_type=settings_type,
                 env_file=env_file,
+            )
+        )
+
+    @classmethod
+    def make_app_for_cli(  # noqa: PLR0913
+        cls,
+        *,
+        app_settings: ScadaSettings,
+        codec_factory: Optional[CodecFactory] = None,
+        sub_types: Optional[SubTypes] = None,
+        layout: Optional[HardwareLayout] = None,
+        env_file: Optional[str | Path] = None,
+        dry_run: bool = False,
+        add_screen_handler: bool = True,
+    ) -> "ScadaApp":
+        return typing.cast(
+            ScadaApp,
+            super().make_app_for_cli(
+                app_settings=app_settings,
+                codec_factory=codec_factory,
+                sub_types=sub_types,
+                layout=layout,
+                env_file=env_file,
+                dry_run=dry_run,
+                add_screen_handler=add_screen_handler,
             )
         )
 

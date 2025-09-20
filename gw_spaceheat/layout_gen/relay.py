@@ -1,6 +1,6 @@
 from typing import List
 
-from data_classes.house_0_names import H0CN, H0N, House0RelayIdx
+from gwsproto.data_classes.house_0_names import H0CN, H0N, House0RelayIdx
 from gwproto.enums import (
     ActorClass,
     AquastatControl,
@@ -26,7 +26,7 @@ from gwproto.named_types import (
     RelayActorConfig,
     SpaceheatNodeGt,
 )
-from enums import ChangeKeepSend, HpLoopKeepSend
+from gwsproto.enums import ChangeKeepSend, HpLoopKeepSend
 from gwproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
 from layout_gen import LayoutDb
 from pydantic import BaseModel

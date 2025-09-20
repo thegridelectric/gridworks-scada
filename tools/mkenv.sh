@@ -1,5 +1,6 @@
 
 dev_requirements=gw_spaceheat/requirements/dev.txt
+PYTHON="${PYTHON:-python}"
 
 if [[ ( $@ == "--help") ||  $@ == "-h" ]]
 then
@@ -13,11 +14,13 @@ then
 fi
 
 rm -rf gw_spaceheat/venv
-python -m venv gw_spaceheat/venv
+$PYTHON -m venv gw_spaceheat/venv
 source gw_spaceheat/venv/bin/activate
 which pip
 pip install --upgrade pip
 pip install -r ${1:-$dev_requirements}
+pip install -e packages/gridworks-scada-protocol
+pip install -e packages/gridworks-admin
 rm gw_spaceheat/venv/bin/gws > /dev/null 2>&1
 ln -s `pwd`/gw_spaceheat/gws gw_spaceheat/venv/bin
 

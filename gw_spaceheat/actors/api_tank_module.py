@@ -20,7 +20,7 @@ from gwproto.named_types import SyncedReadings, TankModuleParams
 from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from result import Ok, Result
 from actors.scada_actor import ScadaActor
-from named_types import PicoMissing, ChannelFlatlined, MicroVolts
+from gwsproto.named_types import PicoMissing, ChannelFlatlined, MicroVolts
 
 R_FIXED_KOHMS = 5.65  # The voltage divider resistors in the TankModule
 THERMISTOR_T0 = 298  # i.e. 25 degrees

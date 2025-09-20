@@ -7,7 +7,7 @@ from gw.enums import GwStrEnum
 from gwproactor import MonitoredName, Problems, AppInterface
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
-from data_classes.house_0_names import H0N
+from gwsproto.data_classes.house_0_names import H0N
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import (
     ActorClass,
@@ -27,8 +27,8 @@ from result import Ok, Result
 from transitions import Machine
 import transitions
 from actors.scada_actor import ScadaActor
-from enums import LogLevel, PicoCyclerEvent, PicoCyclerState
-from named_types import Glitch, GoDormant, PicoMissing, WakeUp
+from gwsproto.enums import LogLevel, PicoCyclerEvent, PicoCyclerState
+from gwsproto.named_types import Glitch, GoDormant, PicoMissing, WakeUp
 from gwproto.named_types import PicoTankModuleComponentGt
 from gwproto.data_classes.components import PicoTankModuleComponent
 

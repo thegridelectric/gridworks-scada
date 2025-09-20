@@ -8,7 +8,7 @@ from gwproto.named_types.data_channel_gt import DataChannelGt
 from gwproto.enums import MakeModel, Unit, ActorClass, TelemetryName
 from gwproto.named_types.channel_config import ChannelConfig
 from gwproto.named_types import SpaceheatNodeGt
-from data_classes.house_0_names import H0N
+from gwsproto.data_classes.house_0_names import H0N
 from gwproto.enums import TempCalcMethod
 
 class Tank3Cfg(BaseModel):
