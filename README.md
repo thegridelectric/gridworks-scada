@@ -199,6 +199,12 @@ These commands will start the local test ATN:
 python tests/atn/run.py
 ```
 
+## Dev cycle
+
+Default branch is dev. Make PRs to this branch for review. Make bug changes directly to this branch.
+
+The main branch is protected - requires a PR
+
 ## License
 
 Distributed under the terms of the [MIT license][license],
