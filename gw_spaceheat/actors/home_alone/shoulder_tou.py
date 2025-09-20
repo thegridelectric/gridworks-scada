@@ -103,7 +103,7 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
         elif event == HaShoulderEvent.WakeUp:
             self.WakeUp()
         else:
-            raise Exception(f"do not know event {event}")
+            raise Exception(f"Do not know event {event}")
 
         self.log(f"{event}: {orig_state} -> {self.state}")
         self._send_to(
