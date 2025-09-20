@@ -201,9 +201,11 @@ python tests/atn/run.py
 
 ## Dev cycle
 
-Default branch is dev. Make PRs to this branch for review. Make bug changes directly to this branch.
+Default branch is dev. Make PRs to this branch for review from your code branch. Make bug changes directly to this branch.
 
-The main branch is protected - requires a PR
+
+The main branch is protected - requires a pull request. Default pattern is PRs from dev to main.
+This will also publish a new gwsproto package.
 
 ## License
 
