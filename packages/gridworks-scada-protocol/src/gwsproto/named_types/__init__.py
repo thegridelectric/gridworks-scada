@@ -22,6 +22,7 @@ from gwsproto.named_types.hack_oil_on import HackOilOn
 from gwsproto.named_types.heating_forecast import HeatingForecast
 from gwsproto.named_types.latest_price import LatestPrice
 from gwsproto.named_types.layout_lite import LayoutLite
+from gwsproto.named_types.micro_volts import MicroVolts
 from gwsproto.named_types.market_maker_ack import MarketMakerAck
 from gwsproto.named_types.new_command_tree import NewCommandTree
 from gwsproto.named_types.no_new_contract_warning import NoNewContractWarning
@@ -69,6 +70,7 @@ __all__ = [
     "LatestPrice",
     "LayoutLite",
     "MarketMakerAck",
+    "MicroVolts",
     "NewCommandTree",
     "NoNewContractWarning",
     "PicoMissing",
