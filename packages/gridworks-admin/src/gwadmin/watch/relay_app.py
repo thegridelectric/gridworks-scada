@@ -2,21 +2,29 @@ import importlib.metadata
 import logging
 
 import dotenv
+from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.logging import TextualHandler
+from textual.widgets import Button
+from textual.widgets import DataTable
 from textual.widgets import Header, Footer
+from textual.widgets import Input
+from textual.widgets import Select
 
-from gwadmin.settings import MAX_ADMIN_TIMEOUT
+from gwadmin.config import CurrentAdminConfig
+from gwadmin.config import MAX_ADMIN_TIMEOUT
 from gwadmin.watch.clients.admin_client import AdminClient
+from gwadmin.watch.clients.dac_client import DACWatchClient
 from gwadmin.watch.clients.relay_client import RelayEnergized
 from gwadmin.watch.clients.relay_client import RelayWatchClient
+from gwadmin.watch.widgets.dacs import Dacs
 from gwadmin.watch.widgets.keepalive import KeepAliveButton
 from gwadmin.watch.widgets.keepalive import ReleaseControlButton
 from gwadmin.watch.widgets.relays import Relays
 from gwadmin.watch.widgets.relay_toggle_button import RelayToggleButton
+from gwadmin.watch.widgets.time_input import TimeInput
 from gwadmin.watch.widgets.timer import TimerDigits
-from gwadmin.settings import AdminClientSettings
 
 __version__: str = importlib.metadata.version('gridworks-admin')
 
@@ -28,7 +36,9 @@ class RelaysApp(App):
     TITLE: str = f"Scada Relay Monitor v{__version__}"
     _admin_client: AdminClient
     _relay_client: RelayWatchClient
+    _dac_client: DACWatchClient
     _theme_names: list[str]
+    settings: CurrentAdminConfig
 
     BINDINGS = [
         Binding("d", "toggle_dark", "Toggle dark mode"),
@@ -43,20 +53,21 @@ class RelaysApp(App):
     def __init__(
         self,
         *,
-        settings: AdminClientSettings = AdminClientSettings(),
+        settings: CurrentAdminConfig = CurrentAdminConfig(),
     ) -> None:
         self.settings = settings
-        logger.setLevel(settings.verbosity)
-        if self.settings.paho_verbosity is not None:
+        logger.setLevel(settings.config.verbosity)
+        if self.settings.config.paho_verbosity is not None:
             paho_logger = logging.getLogger("paho." + __name__)
             paho_logger.addHandler(TextualHandler())
-            paho_logger.setLevel(settings.paho_verbosity)
+            paho_logger.setLevel(settings.config.paho_verbosity)
         else:
             paho_logger = None
         self._relay_client = RelayWatchClient(logger=logger)
+        self._dac_client = DACWatchClient(logger=logger)
         self._admin_client = AdminClient(
             settings,
-            subclients=[self._relay_client],
+            subclients=[self._relay_client, self._dac_client],
             logger=logger,
             paho_logger=paho_logger,
         )
@@ -64,15 +75,31 @@ class RelaysApp(App):
         self._theme_names = [
             theme for theme in self.available_themes if theme != "textual-ansi"
         ]
-        self.set_reactive(RelaysApp.sub_title, self.settings.target_gnode)
+        self.set_reactive(RelaysApp.sub_title, self.format_sub_title())
+
+    def format_sub_title(self) -> str:
+        return f"{self.settings.curr_scada} - {self.settings.config.scadas[self.settings.curr_scada].long_name}"
 
     def compose(self) -> ComposeResult:
-        yield Header(show_clock=self.settings.show_clock)
-        relays = Relays(logger=logger, id="relays")
-        self._relay_client.set_callbacks(relays.relay_client_callbacks())
+        yield Header(show_clock=self.settings.config.show_clock)
+        relays = Relays(
+            scadas=[
+                scada_name
+                for scada_name, scada_config in self.settings.config.scadas.items()
+                if scada_config.enabled
+            ],
+            initial_scada=self.settings.curr_scada,
+            default_timeout_seconds=self.settings.config.default_timeout_seconds,
+            logger=logger,
+            id="relays"
+        )
         yield relays
+        self._relay_client.set_callbacks(relays.relay_client_callbacks())
+        dacs = Dacs(logger=logger, id="dacs")
+        self._dac_client.set_callbacks(dacs.dac_client_callbacks())
+        yield dacs
         # Footer disabled by default as defense against memory leaks
-        if self.settings.show_footer:
+        if self.settings.config.show_footer:
             yield Footer()
 
     def on_mount(self) -> None:
@@ -84,6 +111,26 @@ class RelaysApp(App):
             RelayEnergized.energized if message.energize else RelayEnergized.deenergized,
             message.timeout_seconds
         )
+
+    @on(Button.Pressed, "#send_dac_button")
+    def send_dac_button(self) -> None:
+        new_state = self.query_one("#dac_value_input", Input).value
+        if new_state is not None:
+            new_state = int(new_state)
+            dac_table = self.query_one("#dacs_table", DataTable)
+            row = dac_table.get_row_at(dac_table.cursor_row)
+            time_input_value = self.app.query_one(TimeInput).value
+            try:
+                time_in_minutes = float(time_input_value) if time_input_value else int(self.settings.config.default_timeout_seconds/60)
+                timeout_seconds = int(time_in_minutes * 60)
+            except:  # noqa
+                timeout_seconds = self.settings.config.default_timeout_seconds
+            self._dac_client.set_dac(
+                dac_row_name=row[0],
+                new_state=new_state,
+                timeout_seconds=timeout_seconds,
+            )
+
 
     def action_toggle_dark(self) -> None:
         self.theme = (
@@ -126,11 +173,24 @@ class RelaysApp(App):
     def on_release_control_button_pressed(self, _: ReleaseControlButton.Pressed):
         self._relay_client.send_release_control()
 
+    def layout_received(self) -> bool:
+        return self._admin_client.layout_received()
+
+    def snapshot_received(self) -> bool:
+        return self._admin_client.snapshot_received()
+
+    def on_select_changed(self, message: Select.Changed) -> None:
+        if message.value != Select.BLANK and message.value != self.settings.curr_scada:
+            self.settings.curr_scada = message.value
+            if self.settings.config.use_last_scada:
+                self.settings.save_curr_scada(self.settings.curr_scada)
+            self.sub_title = self.format_sub_title()
+            self._admin_client.switch_scada()
+
+
 if __name__ == "__main__":
-    # https://github.com/koxudaxi/pydantic-pycharm-plugin/issues/1013
-    # noinspection PyArgumentList
-    settings_ = AdminClientSettings(_env_file=dotenv.find_dotenv())
-    settings_.verbosity = logging.DEBUG
-    # settings_.paho_verbosity = logging.DEBUG
+    from gwadmin.cli import get_admin_config
+    settings_ = get_admin_config(env_file=dotenv.find_dotenv())
+    settings_.config.verbosity = logging.DEBUG
     app = RelaysApp(settings=settings_)
     app.run()

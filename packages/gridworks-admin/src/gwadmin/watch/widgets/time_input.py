@@ -1,10 +1,12 @@
 from textual.widgets import Input
 from textual.validation import Number
-from gwadmin.settings import AdminClientSettings
+
+from gwadmin.config import DEFAULT_ADMIN_TIMEOUT
+
 
 class TimeInput(Input):
-    def __init__(self, **kwargs):
-        default_value = int(AdminClientSettings().default_timeout_seconds/60)
+    def __init__(self, default_timeout_seconds: int = DEFAULT_ADMIN_TIMEOUT, **kwargs):
+        default_value = int(default_timeout_seconds/60)
         super().__init__(
             placeholder=f"Timeout minutes (default {default_value})",
             id="time_input",
