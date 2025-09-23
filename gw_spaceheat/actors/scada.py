@@ -49,7 +49,7 @@ from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import (AtomicAllyState,  ContractStatus, FlowManifoldVariant, HomeAloneTopState,
                    MainAutoEvent, MainAutoState, TopState)
 from gwsproto.named_types import ( ActuatorsReady, FsmEvent,
-    AdminDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
+    AdminDispatch, AdminAnalogDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
     Glitch, GoDormant, LayoutLite, NewCommandTree, NoNewContractWarning, ResetHpKeepValue,
     ScadaParams, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment,
     SiegTargetTooLow, SingleMachineState,SlowContractHeartbeat, SuitUp, WakeUp,
@@ -214,6 +214,11 @@ class Scada(PrimeActor, ScadaInterface):
                     self.process_admin_dispatch(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with process_admin_dispatch: \n {e}")
+            case AdminAnalogDispatch():
+                try:
+                    self.process_admin_analog_dispatch(from_node, payload)
+                except Exception as e:
+                    self.log(f"Trouble with process_admin_dispatch: \n {e}")
             case AdminKeepAlive():
                 try:
                     self.process_admin_keep_alive(from_node, payload)
@@ -230,8 +235,11 @@ class Scada(PrimeActor, ScadaInterface):
                 except Exception as e:
                     self.log(f"Trouble with process_ally_gives_up: \n {e}")
             case AnalogDispatch():
+                if payload.FromGNodeAlias != self._layout.atn_g_node_alias:
+                    self.logger.error("IGNORING DISPATCH - NOT FROM MY ATN")
+                    return
                 try:
-                    self.process_analog_dispatch(from_node, payload)
+                    self.process_analog_dispatch(payload)
                 except Exception as e:
                     self.log(f"Trouble with proces_analog_dispatch: \n {e}")
             case ChannelFlatlined():
@@ -407,6 +415,17 @@ class Scada(PrimeActor, ScadaInterface):
                 )
             )
 
+    def process_admin_analog_dispatch(
+        self, from_node: ShNode, payload: AdminAnalogDispatch
+    ) -> None:
+        if from_node != self.admin:
+            self.log(f"Ignoring AdminAnalogDispatch from {from_node.name}. Expected admin!")
+        if not self.top_state == TopState.Admin:
+            self.admin_wakes_up()
+            self.log("Admin Wakes Up")
+        self._renew_admin_timeout(timeout_seconds=payload.TimeoutSeconds)
+        self.process_analog_dispatch(payload.Dispatch)
+
     def process_admin_release_control(
         self, from_node: ShNode, payload: AdminReleaseControl
     ) -> None:
@@ -454,12 +473,9 @@ class Scada(PrimeActor, ScadaInterface):
             self.contract_task.cancel()
 
     def process_analog_dispatch(
-        self, from_node: ShNode, payload: AnalogDispatch
+        self, payload: AnalogDispatch
     ) -> None:
-        if payload.FromGNodeAlias != self._layout.atn_g_node_alias:
-            self.logger.error("IGNORING DISPATCH - NOT FROM MY ATN")
-            return
-        # HUGE HACK - 
+        # HUGE HACK -
         to_node = self.layout.node(payload.AboutName)
         boss_handle = '.'.join(to_node.handle.split('.')[:-1])
         self.log(f"About name is {payload.AboutName}")
@@ -1426,12 +1442,10 @@ class Scada(PrimeActor, ScadaInterface):
             self.settings.admin.enabled
             and reading.ChannelName in self._layout.data_channels
         ):
-            if (
-                self._layout.node(
-                    self._layout.data_channels[reading.ChannelName].AboutNodeName
-                ).ActorClass
-                == ActorClass.Relay
-            ):
+            src_actor_class = self._layout.node(
+                self._layout.data_channels[reading.ChannelName].AboutNodeName
+            ).ActorClass
+            if src_actor_class in (ActorClass.Relay, ActorClass.ZeroTenOutputer):
                 self._send_to(self.admin, reading)
 
     #################################################

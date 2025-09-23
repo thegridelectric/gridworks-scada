@@ -8,11 +8,11 @@ from textual.reactive import Reactive
 from textual.reactive import reactive
 from textual.widgets import Button
 
+from gwadmin.config import DEFAULT_ADMIN_TIMEOUT
 from gwadmin.watch.widgets.relay_widget_info import RelayWidgetConfig
 from gwadmin.watch.widgets.timer import TimerDigits
 from gwadmin.watch.widgets.time_input import TimeInput
 from gwadmin.watch.widgets.keepalive import KeepAliveButton
-from gwadmin.settings import AdminClientSettings
 
 module_logger = logging.getLogger(__name__)
 module_logger.addHandler(TextualHandler())
@@ -25,11 +25,13 @@ class RelayToggleButton(Button, can_focus=True):
 
     energized: Reactive[Optional[bool]] = reactive(None)
     config: Reactive[RelayWidgetConfig] = reactive(RelayWidgetConfig)
+    timeout_seconds: int
 
     def __init__(
         self,
         energized: Optional[bool] = None,
         config: Optional[RelayWidgetConfig] = None,
+        default_timeout_seconds: int = DEFAULT_ADMIN_TIMEOUT,
         logger: logging.Logger = module_logger,
         **kwargs
     ) -> None:
@@ -38,7 +40,7 @@ class RelayToggleButton(Button, can_focus=True):
             variant=self.variant_from_state(energized),
             **kwargs
         )
-        self.default_timeout_seconds = AdminClientSettings().default_timeout_seconds
+        self.default_timeout_seconds = default_timeout_seconds
         self.set_reactive(RelayToggleButton.energized, energized)
         self.set_reactive(RelayToggleButton.config, config or RelayWidgetConfig())
         self.update_title()
@@ -62,7 +64,7 @@ class RelayToggleButton(Button, can_focus=True):
         try:
             time_in_minutes = float(input_value) if input_value else int(self.default_timeout_seconds/60)
             self.timeout_seconds = int(time_in_minutes * 60)
-        except:
+        except: # noqa
             self.timeout_seconds = self.default_timeout_seconds
         if self.energized is not None:
             self.post_message(
@@ -95,7 +97,7 @@ class RelayToggleButton(Button, can_focus=True):
         try:
             time_in_minutes = float(input_value) if input_value else int(self.default_timeout_seconds/60)
             self.timeout_seconds = int(time_in_minutes * 60)
-        except:
+        except:  # noqa
             self.timeout_seconds = self.default_timeout_seconds
         if self.energized is not None:
             self.post_message(

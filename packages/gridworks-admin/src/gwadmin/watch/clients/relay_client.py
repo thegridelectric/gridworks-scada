@@ -281,6 +281,24 @@ class RelayWatchClient(AdminSubClient):
         if self._callbacks.mqtt_message_received_callback is not None:
             self._callbacks.mqtt_message_received_callback(topic, payload)
 
+    def scada_selection_reset(self) -> None:
+        self._layout = None
+        self._snap = None
+        with self._lock:
+            removed_relays = self._relays
+            self._relays = {}
+            self._channel2node = {}
+        if removed_relays and self._callbacks.relay_config_change_callback is not None:
+            self._callbacks.relay_config_change_callback(
+                {
+                    relay_name: RelayConfigChange(
+                        old_config=relay.config,
+                        new_config=None,
+                    )
+                    for relay_name, relay in removed_relays.items()
+                 }
+            )
+
     def set_relay(self, relay_node_name: str, new_state: RelayEnergized, timeout_seconds: Optional[int] = None):
         if new_state == RelayEnergized.energized:
             trigger = ChangeRelayPin.Energize
