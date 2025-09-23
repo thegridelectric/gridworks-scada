@@ -4,8 +4,6 @@ on:
   push:
     branches:
        - main
-       - as/admin-select
-       - as/admin-dfr
 
 jobs:
   release-gwsproto:

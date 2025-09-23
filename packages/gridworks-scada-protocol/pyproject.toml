@@ -1,6 +1,6 @@
 [project]
 name = "gridworks-scada-protocol"
-version = "1.0.0.dev6"
+version = "1.0.0"
 description = "Data structures used in messages between gridworks-scada devices, the gridworks ATN and the gridworks-admin monitoring CLI."
 readme = "README.md"
 authors = [
