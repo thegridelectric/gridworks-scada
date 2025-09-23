@@ -12,16 +12,18 @@ from gw.errors import DcError
 from gwproactor import MonitoredName, Problems, AppInterface
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
-from gwproto.data_classes.components import PicoTankModuleComponent
-from gwsproto.data_classes.components import 
+
+
 from gwproto.enums import TempCalcMethod
 from gwproto.enums import MakeModel
-from gwproto.named_types import ComponentAttributeClassGt
 from gwproto.named_types import SyncedReadings, TankModuleParams
 from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from result import Ok, Result
 from actors.scada_actor import ScadaActor
 from gwsproto.named_types import PicoMissing, ChannelFlatlined, MicroVolts
+from gwsproto.data_classes.components.pico_btu_meter_component import PicoBtuMeterComponent
+
+from scada_app_interface import ScadaAppInterface
 
 R_FIXED_KOHMS = 5.65  # The voltage divider resistors in the TankModule
 THERMISTOR_T0 = 298  # i.e. 25 degrees
@@ -30,48 +32,48 @@ PICO_VOLTS = 3.3
 FLATLINE_REPORT_S = 60
 
 
-class ApiTankModule(ScadaActor):
+class ApiBtuMeter(ScadaActor):
     _stop_requested: bool
-    _component: PicoTankModuleComponent
+    _component: PicoBtuMeterComponent
 
     def __init__(
         self,
         name: str,
-        services: AppInterface,
+        services: ScadaAppInterface,
     ):
         super().__init__(name, services)
-        self._component = self.node.component
-        
-        if not isinstance(self._component, PicoTankModuleComponent):
+
+        comp = self._node.component  # use the SAME expression consistently
+         # TODO: move/add to hardware layout validation
+        if comp is None:
+            raise Exception("Need a component!")
+        if not isinstance(comp, PicoBtuMeterComponent):
             display_name = getattr(
                 self._component.gt, "display_name", "MISSING ATTRIBUTE display_name"
             )
             raise ValueError(
-                f"ERROR. Component <{display_name}> has type {type(self._component)}. "
-                f"Expected PicoTankModuleComponent.\n"
-                f"  Node: {self.name}\n"
-                f"  Component id: {self.component.gt.ComponentId}"
+                 f"ERROR. Component <{display_name}> for node {self.name} has type {type(self._component)}. "
+                f"Expected PicoBtuMeterComponent.\n"
             )
+
         self.device_type = self._component.cac
-        if self.device_type.MakeModel not in [ MakeModel.GRIDWORKS__TANKMODULE2,
-                                               MakeModel.GRIDWORKS__TANKMODULE3]:
-            raise ValueError(f"Expect TankModule3 or TankModule2 .. not {self.device_type.MakeModel}")
+        # if self.device_type.MakeModel not in [ MakeModel.GRIDWORKS__GW101]:
+        #     raise ValueError(f"Expect Gw101 (BtuMeter).. not {self.device_type.MakeModel}")
         self._stop_requested: bool = False
-        
         
     
         if self._component.gt.Enabled:
             self._services.add_web_route(
                 server_name=DEFAULT_WEB_SERVER_NAME,
                 method="POST",
-                path="/" + self.microvolts_path,
-                handler=self._handle_microvolts_post,
+                path="/" + self.async_btu_params_path,
+                handler=self._handle_async_btu_params_post,
             )
             self._services.add_web_route(
                 server_name=DEFAULT_WEB_SERVER_NAME,
                 method="POST",
-                path="/" + self.params_path,
-                handler=self._handle_params_post,
+                path="/" + self.async_btu_data_path,
+                handler=self._handle_async_btu_data_post,
             )
         if self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE3:
             self.pico_uid = self._component.gt.PicoHwUid
@@ -95,12 +97,12 @@ class ApiTankModule(ScadaActor):
             raise Exception(f"Problem setting up ApiTankModule channels! {e}")
 
     @cached_property
-    def microvolts_path(self) -> str:
-        return f"{self.name}/microvolts"
+    def async_btu_params_path(self) -> str:
+        return f"{self.name}/async-btu-params"
 
     @cached_property
-    def params_path(self) -> str:
-        return f"{self.name}/tank-module-params"
+    def async_btu_data_path(self) -> str:
+        return f"{self.name}/async-btu-data"
 
     async def _get_text(self, request: Request) -> Optional[str]:
         try:
@@ -168,7 +170,7 @@ class ApiTankModule(ScadaActor):
                 else:
                     return True 
 
-    async def _handle_params_post(self, request: Request) -> Response:
+    async def _handle_async_btu_params_post(self, request: Request) -> Response:
         text = await self._get_text(request)
         self.params_text = text
         try:
@@ -221,7 +223,7 @@ class ApiTankModule(ScadaActor):
             # TODO: send problem report?
             return Response()
 
-    async def _handle_microvolts_post(self, request: Request) -> Response:
+    async def _handle_async_btu_data_post(self, request: Request) -> Response:
         text = await self._get_text(request)
         self.readings_text = text
         if isinstance(text, str):
