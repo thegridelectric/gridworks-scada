@@ -41,7 +41,7 @@ class ApiBtuMeter(ScadaActor):
                 comp.gt, "display_name", "MISSING ATTRIBUTE display_name"
             )
             raise ValueError(
-                f"ERROR. Component <{display_name}> for node {self.name} has type {type(self._component)}. "
+                f"ERROR. Component <{display_name}> for node {self.name} has type {type(comp)}. "
                 f"Expected PicoBtuMeterComponent.\n"
             )
 
