@@ -37,14 +37,32 @@ class ApiBtuMeter(ScadaActor):
         if comp is None:
             raise Exception("Need a component!")
 
-        # if not isinstance(comp, PicoBtuMeterComponent):
-        #     display_name = getattr(
-        #         comp.gt, "display_name", "MISSING ATTRIBUTE display_name"
-        #     )
-        #     raise ValueError(
-        #         f"ERROR. Component <{display_name}> for node {self.name} has type {type(comp)}. "
-        #         f"Expected PicoBtuMeterComponent.\n"
-        #     )
+         # HACK: Reload component from JSON with correct type
+        if hasattr(comp.gt, 'TypeName') and comp.gt.TypeName == "pico.btu.meter.component.gt":
+            import json
+            from gwproto.named_types import PicoBtuMeterComponentGt
+            from gwproto.data_classes.components import PicoBtuMeterComponent
+            
+            with open("/home/pi/.config/gridworks/scada/hardware-layout.json") as f:
+                data = json.load(f)
+            
+            # Find the component in JSON
+            for comp_dict in data.get("OtherComponents", []):
+                if comp_dict.get("ComponentId") == comp.gt.ComponentId:
+                    # Create the correct GT type from the full JSON data
+                    correct_gt = PicoBtuMeterComponentGt.model_validate(comp_dict)
+                    comp = PicoBtuMeterComponent(gt=correct_gt, cac=comp.cac)
+                    self._node.component = comp
+                break
+    
+        if not isinstance(comp, PicoBtuMeterComponent):
+            display_name = getattr(
+                comp.gt, "display_name", "MISSING ATTRIBUTE display_name"
+            )
+            raise ValueError(
+                f"ERROR. Component <{display_name}> for node {self.name} has type {type(comp)}. "
+                f"Expected PicoBtuMeterComponent.\n"
+            )
 
         # FIX THIS - the above isn't workin ... sigh
         self._component = comp
