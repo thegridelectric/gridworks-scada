@@ -162,6 +162,7 @@ class ApiBtuMeter(ScadaActor):
             return True
 
     async def _handle_async_btu_params_post(self, request: Request) -> Response:
+        print("GOT BTU PARAMS")
         text = await self._get_text(request)
         self.params_text = text
         try:
