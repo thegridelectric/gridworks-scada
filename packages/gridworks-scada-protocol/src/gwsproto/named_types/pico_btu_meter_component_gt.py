@@ -1,20 +1,34 @@
-import re
+"""Type pico.btu.meter.component.gt, version 000"""
+
 from typing import Literal, Optional
 
-from pydantic import field_validator
+from pydantic import BaseModel, StrictInt, field_validator
 
-from gwproto.enums import GpmFromHzMethod, HzCalcMethod, MakeModel
-from gwproto.named_types.component_gt import ComponentGt
-from gwproto.property_format import SpaceheatName
+from gwproto.enums import GpmFromHzMethod, HzCalcMethod, MakeModel, TempCalcMethod
+from gwproto.property_format import (
+    SpaceheatName,
+)
 
 
-class PicoBtuMeterComponentGt(ComponentGt):
+class PicoBtuMeterComponentGt(BaseModel):
     Enabled: bool
-    FlowMeterType: MakeModel = MakeModel.SAIER__SENHZG1WA
-    ConstantGallonsPerTick: float
-    SerialNumber: Optional[str] = None
+    SerialNumber: str
+    FlowNodeName: SpaceheatName
+    HotNodeName: SpaceheatName
+    ColdNodeName: SpaceheatName
+    ReadCt: bool
+    CtNodeName: Optional[SpaceheatName] = None
+    FlowMeterType: MakeModel
+    HzCalcMethod: HzCalcMethod
+    TempCalcMethod: TempCalcMethod
+    ThermistorBeta: StrictInt
+    GpmFromHzMethod: GpmFromHzMethod
+    GallonsPerPulse: float
+    AsyncCaptureDeltaGpmX100: StrictInt
+    AsyncCaptureDeltaCelsiusX100: StrictInt
+    AsyncCaptureDeltaCtVoltsX100: Optional[StrictInt] = None
     TypeName: Literal["pico.btu.meter.component.gt"] = "pico.btu.meter.component.gt"
-    Version: str = "000"
+    Version: Literal["000"] = "000"
 
     @field_validator("HwUid")
     @classmethod
