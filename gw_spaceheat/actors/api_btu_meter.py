@@ -204,6 +204,8 @@ class ApiBtuMeter(ScadaActor):
 
     async def _handle_async_btu_data_post(self, request: Request) -> Response:
         text = await self._get_text(request)
+        self.log("GOT BTU DATA")
+        print("GOT BTU DATA")
         self.readings_text = text
         if isinstance(text, str):
             try:
@@ -219,6 +221,7 @@ class ApiBtuMeter(ScadaActor):
         return Response()
 
     def _process_async_btu_data(self, data: AsyncBtuData) -> None:
+        self.log("IN _process_async_btu_data")
         if data.HwUid == self.pico_uid:
             self.last_heard = time.time()
         else:
@@ -245,7 +248,7 @@ class ApiBtuMeter(ScadaActor):
             ValueList=converted_values,
             ScadaReadTimeUnixMs=int(time.time() * 1000),
         )
-
+        print(f"About to send {msg}")
         self._send_to(self.pico_cycler, msg)
         self._send_to(self.primary_scada, msg)
 
