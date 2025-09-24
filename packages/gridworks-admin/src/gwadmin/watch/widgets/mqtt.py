@@ -37,8 +37,12 @@ class MqttState(Widget):
     layout_count: Reactive[int] = reactive(0, layout=True)
 
     def render(self) -> str:
+        if self.mqtt_state == ConstrainedMQTTClient.States.active:
+            color = "green"
+        else:
+            color = "red"
         return (
-            f"MQTT broker connection: {self.mqtt_state:12s}"
+            f"MQTT broker connection: [{color}]{self.mqtt_state:12s}[/{color}]"
 
             # Counters disabled as defense against memory leaks:
             # f"  Messages received: {self.message_count}  "

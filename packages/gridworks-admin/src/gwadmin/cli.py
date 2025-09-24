@@ -223,7 +223,6 @@ def watch(
         )
         raise typer.Exit(3)
     current_config.curr_scada = scada
-    rich.print(f"Using scada '{scada}'.")
     if current_config.config.use_last_scada:
         current_config.save_curr_scada(scada)
     if save:
@@ -481,7 +480,7 @@ def add_scada(
 
 def version_callback(value: bool):
     if value:
-        print(f"gws admin {__version__}")
+        rich.print(f"GridWorks Scada Admin Client, version {__version__}")
         raise typer.Exit()
 
 @app.callback()

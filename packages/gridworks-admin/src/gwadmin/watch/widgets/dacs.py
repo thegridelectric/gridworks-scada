@@ -2,16 +2,16 @@ import logging
 from logging import Logger
 from typing import Optional
 
+from textual import validation
 from textual.app import ComposeResult
 from textual.containers import Horizontal
-from textual.containers import Vertical
+from textual.containers import HorizontalGroup
 from textual.logging import TextualHandler
 from textual.messages import Message
 from textual.widget import Widget
 from textual.widgets import Button
 from textual.widgets import DataTable
 from textual.widgets import Input
-from textual.widgets import Static
 from textual.widgets._data_table import CellType  # noqa
 
 from gwadmin.watch.clients.dac_client import DACClientCallbacks
@@ -27,11 +27,12 @@ module_logger.addHandler(TextualHandler())
 
 class Dacs(Widget):
     BINDINGS = [
-        ("d", "set_dac", "Set selected DAC"),
+        ("e", "set_dac", "Set selected DAC"),
     ]
 
     logger: Logger
     _dacs: dict[str, DACWidgetInfo]
+    _curr_dac_name: str
 
     class DacStateChange(Message):
         def __init__(self, changes: dict[str, ObservedDACStateChange]) -> None:
@@ -56,26 +57,29 @@ class Dacs(Widget):
     def __init__(self, logger: Optional[Logger] = None, **kwargs) -> None:
         self.logger = logger or module_logger
         self._dacs = {}
+        self._curr_dac_name = ""
         super().__init__(**kwargs)
 
     def compose(self) -> ComposeResult:
+        self.border_title = "DACs"
         with Horizontal(id="dacs_horizontal"):
             yield DataTable(
                 id="dacs_table",
                 zebra_stripes=True,
                 cursor_type="row",
             )
-            with Horizontal(id="dac_control_container"):
-                with Vertical(id="dac_input_vertical"):
-                    yield Static("Value for DAC:  ", id="dacs_input_label")
-                    yield Input(
-                        type="integer",
-                        id="dac_value_input",
-                    )
+            with HorizontalGroup(id="dac_control_container"):
+                yield Input(
+                    type="integer", id="dac_value_input",
+                    validators=[validation.Integer(0, 100)],
+                    valid_empty=True,
+                    placeholder="Value to send (0 - 100)",
+                )
                 yield Button(
                     id="send_dac_button",
-                    label="Send Value to DAC",
+                    label="S[underline]e[/underline]nd Value to DAC",
                     variant="primary",
+                    disabled=True,
                 )
 
     def on_mount(self) -> None:
@@ -109,6 +113,8 @@ class Dacs(Widget):
         return list(self._get_dac_row_data(dac_name).values())
 
     def _update_dac_row(self, dac_name: str) -> None:
+        if dac_name in self._dacs:
+            self._curr_dac_name = self._dacs[dac_name].config.table_name.row_name
         table = self.query_one("#dacs_table", DataTable)
         data = self._get_dac_row_data(dac_name)
         for column_name, value in data.items():
@@ -143,9 +149,49 @@ class Dacs(Widget):
                         key=dac_name
                     )
         table.sort("Name")
+        if table.is_valid_coordinate(table.cursor_coordinate):
+            selected_row_key = table.coordinate_to_cell_key(table.cursor_coordinate)[0]
+        else:
+            selected_row_key = ""
+        self._update_buttons(selected_row_key)
+
+    def _update_buttons(self, dac_name: str) -> None:
+        dac_info = self._dacs.get(dac_name)
+        if dac_info is not None:
+            curr_name = dac_info.config.table_name.border_title
+            disabled = False
+        else:
+            curr_name = ""
+            disabled = True
+        curr_title = f"DAC: {curr_name}"
+        self.query_one(
+            "#dac_control_container",
+            HorizontalGroup,
+        ).border_title = curr_title
+        button = self.query_one("#send_dac_button", Button)
+        button.label = (
+            f"Set {curr_name} to "
+            f"{self.query_one('#dac_value_input', Input).value}"
+        )
+        button.disabled = disabled
 
     def on_data_table_row_highlighted(self, message: DataTable.RowHighlighted) -> None:
         self._update_dac_row(message.row_key.value)
+        self._update_buttons(message.row_key.value)
+
+    def on_input_changed(self, message: Input.Changed) -> None:
+        if message.validation_result is not None and message.validation_result.is_valid:
+            send_value = message.value
+            disabled = False
+        else:
+            send_value = ""
+            disabled = True
+        button = self.query_one("#send_dac_button", Button)
+        button.label = (
+            f"Set {self._curr_dac_name} to "
+            f"{send_value}"
+        )
+        button.disabled = disabled
 
     def dac_client_callbacks(self) -> DACClientCallbacks:
         return DACClientCallbacks(

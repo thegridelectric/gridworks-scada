@@ -5,12 +5,15 @@ import dotenv
 from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
+from textual.containers import Horizontal
+from textual.containers import HorizontalGroup
 from textual.logging import TextualHandler
 from textual.widgets import Button
 from textual.widgets import DataTable
 from textual.widgets import Header, Footer
 from textual.widgets import Input
 from textual.widgets import Select
+from textual.widgets import Static
 
 from gwadmin.config import CurrentAdminConfig
 from gwadmin.config import MAX_ADMIN_TIMEOUT
@@ -21,6 +24,7 @@ from gwadmin.watch.clients.relay_client import RelayWatchClient
 from gwadmin.watch.widgets.dacs import Dacs
 from gwadmin.watch.widgets.keepalive import KeepAliveButton
 from gwadmin.watch.widgets.keepalive import ReleaseControlButton
+from gwadmin.watch.widgets.mqtt import MqttState
 from gwadmin.watch.widgets.relays import Relays
 from gwadmin.watch.widgets.relay_toggle_button import RelayToggleButton
 from gwadmin.watch.widgets.time_input import TimeInput
@@ -41,10 +45,11 @@ class RelaysApp(App):
     settings: CurrentAdminConfig
 
     BINDINGS = [
-        Binding("d", "toggle_dark", "Toggle dark mode"),
+        Binding("r", "focus('relays_table')", "Select relays"),
+        Binding("d", "focus('dacs_table')", "Select DACs"),
+        Binding("k", "toggle_dark", "Toggle dark mode"),
         Binding("[", "previous_theme", " <- Theme ->"),
         Binding("]", "next_theme", " "),
-        # Binding("m", "toggle_messages", "Toggle message display"),
         Binding("q", "quit", "Quit", show=True, priority=True),
         Binding("ctrl+c", "quit", "Quit", show=False),
     ]
@@ -82,6 +87,34 @@ class RelaysApp(App):
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=self.settings.config.show_clock)
+        yield Horizontal(
+            Static(
+                "Select Scada:",
+                id="select_scada_label"),
+                Select(
+                    (
+                        (scada, scada) for scada in [
+                            scada_name
+                            for scada_name, scada_config in self.settings.config.scadas.items()
+                            if scada_config.enabled
+                        ]
+                    ),
+                    prompt="Scada",
+                    value=self.settings.curr_scada,
+                    id="select_scada",
+                ),
+                MqttState(id="mqtt_state"),
+            id="select_scada_container",
+            classes="section"
+        )
+        with HorizontalGroup(id="timer_container", classes="section"):
+            timeout = self.settings.config.default_timeout_seconds
+            yield KeepAliveButton(default_timeout_seconds=timeout)
+            yield ReleaseControlButton(
+                default_timeout_seconds=timeout
+            )
+            yield TimeInput(default_timeout_seconds=timeout)
+            yield TimerDigits(default_timeout_seconds=timeout)
         relays = Relays(
             scadas=[
                 scada_name
@@ -91,11 +124,13 @@ class RelaysApp(App):
             initial_scada=self.settings.curr_scada,
             default_timeout_seconds=self.settings.config.default_timeout_seconds,
             logger=logger,
-            id="relays"
+            id="relays",
+            classes="section",
         )
+        relays.border_title = "Relays"
         yield relays
         self._relay_client.set_callbacks(relays.relay_client_callbacks())
-        dacs = Dacs(logger=logger, id="dacs")
+        dacs = Dacs(logger=logger, id="dacs", classes="section")
         self._dac_client.set_callbacks(dacs.dac_client_callbacks())
         yield dacs
         # Footer disabled by default as defense against memory leaks
@@ -131,7 +166,6 @@ class RelaysApp(App):
                 timeout_seconds=timeout_seconds,
             )
 
-
     def action_toggle_dark(self) -> None:
         self.theme = (
             "textual-dark" if "light" in self.theme else "textual-light"
@@ -156,9 +190,6 @@ class RelaysApp(App):
 
     def action_previous_theme(self) -> None:
         self._change_theme(-1)
-
-    # def action_toggle_messages(self) -> None:
-    #     self.query("#message_table").toggle_class("undisplayed")
 
     def on_keep_alive_button_pressed(self, _: KeepAliveButton.Pressed):
         if _.timeout_seconds is not None:
