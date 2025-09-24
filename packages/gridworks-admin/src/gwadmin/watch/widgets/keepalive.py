@@ -3,10 +3,10 @@ from textual.logging import TextualHandler
 from textual.message import Message
 from textual.widgets import Button
 
-from gwadmin.settings import MAX_ADMIN_TIMEOUT
+from gwadmin.config import DEFAULT_ADMIN_TIMEOUT
+from gwadmin.config import MAX_ADMIN_TIMEOUT
 from gwadmin.watch.widgets.timer import TimerDigits
 from gwadmin.watch.widgets.time_input import TimeInput
-from gwadmin.settings import AdminClientSettings
 
 module_logger = logging.getLogger(__name__)
 module_logger.addHandler(TextualHandler())
@@ -14,6 +14,7 @@ module_logger.addHandler(TextualHandler())
 class KeepAliveButton(Button):
     def __init__(
             self,
+            default_timeout_seconds: int = DEFAULT_ADMIN_TIMEOUT,
             logger: logging.Logger = module_logger,
             **kwargs
     ) -> None:
@@ -24,7 +25,7 @@ class KeepAliveButton(Button):
             **kwargs
         )
         self.logger = logger
-        self.default_timeout_seconds = AdminClientSettings().default_timeout_seconds
+        self.default_timeout_seconds = default_timeout_seconds
         self.timeout_seconds = self.default_timeout_seconds
 
     class Pressed(Message):
@@ -51,6 +52,7 @@ class KeepAliveButton(Button):
 class ReleaseControlButton(Button):
     def __init__(
             self,
+            default_timeout_seconds: int = DEFAULT_ADMIN_TIMEOUT,
             logger: logging.Logger = module_logger,
             **kwargs
     ) -> None:
@@ -61,7 +63,7 @@ class ReleaseControlButton(Button):
             **kwargs
         )
         self.logger = logger
-        self.default_timeout_seconds = AdminClientSettings().default_timeout_seconds
+        self.default_timeout_seconds = default_timeout_seconds
         self.timeout_seconds = self.default_timeout_seconds
 
     class Pressed(Message):

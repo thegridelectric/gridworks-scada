@@ -1,6 +1,7 @@
 """ List of all the types """
 from gwsproto.named_types.pico_btu_meter_component_gt import PicoBtuMeterComponentGt
 from gwsproto.named_types.actuators_ready import ActuatorsReady
+from gwsproto.named_types.admin_analog_dispatch import AdminAnalogDispatch
 from gwsproto.named_types.admin_dispatch import AdminDispatch
 from gwsproto.named_types.admin_keep_alive import AdminKeepAlive
 from gwsproto.named_types.admin_release_control import AdminReleaseControl
@@ -50,6 +51,7 @@ __all__ = [
     "PicoBtuMeterComponentGt",
     "RemainingElecEvent",
     "ActuatorsReady",
+    "AdminAnalogDispatch",
     "AdminDispatch",
     "AdminKeepAlive",
     "AdminReleaseControl",
@@ -77,6 +79,7 @@ __all__ = [
     "PicoMissing",
     "PriceQuantityUnitless",
     "RemainingElec",
+    "RemainingElecEvent",
     "ResetHpKeepValue",
     "SlowContractHeartbeat",
     "SlowDispatchContract",

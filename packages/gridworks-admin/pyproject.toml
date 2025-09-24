@@ -1,6 +1,6 @@
 [project]
 name = "gridworks-admin"
-version = "1.0.0.dev4"
+version = "1.0.0"
 description = "CLI tool for monitoring gridworks-scada devices."
 readme = "README.md"
 authors = [
@@ -9,7 +9,7 @@ authors = [
 requires-python = ">=3.11"
 dependencies = [
     "gridworks-proactor>=4.1.9",
-    "gridworks-scada-protocol",
+    "gridworks-scada-protocol>=1.0.0.dev5",
     "numpy>=2.3.3",
     "paho-mqtt>=2.1.0",
     "pydantic>=2.11.9",

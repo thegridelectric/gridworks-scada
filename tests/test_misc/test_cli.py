@@ -7,6 +7,7 @@ from gwproactor_test.certs import uses_tls
 from typer.testing import CliRunner
 
 from gwproactor.config import Paths
+from gwadmin.cli import app as gwa_cli
 
 from actors.config import ScadaSettings
 from cli import app as scada_cli_app
@@ -17,6 +18,14 @@ from tests.conftest import TEST_HARDWARE_LAYOUT_PATH
 
 runner = CliRunner()
 
+admin_commands = [
+    [],
+    ["add-scada", "--help"],
+    ["config"],
+    ["config-file"],
+    ["mkconfig", "--help"],
+    ["watch", "--help"],
+]
 
 def test_gws_cli_completes() -> None:
     """This test just verifies that clis can execute dry-runs and help without
@@ -31,17 +40,11 @@ def test_gws_cli_completes() -> None:
     env_path = Path(settings.paths.config_dir).absolute() / ".env"
     with env_path.open("w") as env_file:
         env_file.write("SCADA_IS_SIMULATED=true")
-    command: list[str]
-    for command in [
+    commands: list[list[str]] = [
+        ["admin"] + admin_command for admin_command in admin_commands
+    ]
+    commands += [
         [],
-        ["admin"],
-        ["admin", "config"],
-        ["admin", "demo"],
-        ["admin", "demo", "actions", "--help"],
-        ["admin", "demo", "stopwatch", "--help"],
-        ["admin", "demo", "switch", "--help"],
-        ["admin", "watch", "--help"],
-        ["admin", "watchex", "--help"],
         ["atn"],
         ["atn", "config", "--env-file", str(env_path)],
         ["atn", "run", "--help"],
@@ -54,8 +57,27 @@ def test_gws_cli_completes() -> None:
         ["run", "--help", "--env-file", str(env_path)],
         ["run-s2", "--dry-run"],
         ["run-s2", "--help"],
-    ]:
+    ]
+    for command in commands:
         result = runner.invoke(scada_cli_app, command)
+        result_str = (
+            f"exit code: {result.exit_code}\n"
+            f"\t{result!s} from command\n"
+            f"\t<gws {' '.join(command)}> with output\n"
+            f"{textwrap.indent(result.output, '        ')}"
+        )
+        assert result.exit_code == 0, result_str
+
+def test_gwa_cli_completes() -> None:
+    """This test just verifies that clis can execute dry-runs and help without
+    exception. It does not attempt to test content of execution."""
+    settings = ScadaSettings()
+    env_path = Path(settings.paths.config_dir).absolute() / ".env"
+    with env_path.open("w") as env_file:
+        env_file.write("SCADA_IS_SIMULATED=true")
+    command: list[str]
+    for command in admin_commands:
+        result = runner.invoke(gwa_cli, command)
         result_str = (
             f"exit code: {result.exit_code}\n"
             f"\t{result!s} from command\n"

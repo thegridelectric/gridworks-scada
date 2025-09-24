@@ -4,6 +4,7 @@ import threading
 from dataclasses import dataclass
 from logging import Logger
 from typing import Any
+from typing import Callable
 from typing import Optional
 from typing import Sequence
 from typing import Type
@@ -11,13 +12,16 @@ from typing import Type
 from gwproto import Message
 from gwproto import Message as GWMessage
 from gwproto import MQTTTopic
+
+from gwadmin.config import ScadaConfig
 from gwsproto.data_classes.house_0_names import H0N
+
 from gwproto.named_types import SendSnap
 from paho.mqtt.client import MQTTMessageInfo
 from pydantic import BaseModel
 from result import Result
 
-from gwadmin.settings import AdminClientSettings
+from gwadmin.config import CurrentAdminConfig
 from gwadmin.watch.clients.constrained_mqtt_client import ConstrainedMQTTClient
 from gwadmin.watch.clients.constrained_mqtt_client import MessageReceivedCallback
 from gwadmin.watch.clients.constrained_mqtt_client import MQTTClientCallbacks
@@ -31,6 +35,9 @@ def type_name(model_type: Type[BaseModel]) -> str:
         return str(field.default)
     return ""
 
+
+ScadaSelectionResetCallback = Callable[[], None]
+
 @dataclass
 class AdminClientCallbacks:
     """Hooks for user of AdminClient. Must be threadsafe."""
@@ -43,6 +50,9 @@ class AdminClientCallbacks:
     mqtt_message_received_callback: Optional[MessageReceivedCallback] = None
     """Hook for user. Called when any mqtt message is received. Called from Paho
     thread. Must be threadsafe."""
+
+    scada_selection_reset: Optional[ScadaSelectionResetCallback] = None
+    """Hook for user. Called when scada selection reset."""
 
 class AdminSubClient:
 
@@ -62,10 +72,12 @@ class AdminSubClient:
     def process_mqtt_message(self, topic: str, payload: bytes) -> None:
         ...
 
+    def scada_selection_reset(self) -> None:
+        ...
 
 class AdminClient:
     _lock: threading.RLock
-    _settings: AdminClientSettings
+    _settings: CurrentAdminConfig
     _paho_wrapper: ConstrainedMQTTClient
     _subclients: list[AdminSubClient]
     _callbacks: AdminClientCallbacks
@@ -76,7 +88,7 @@ class AdminClient:
 
     def __init__(
             self,
-            settings: AdminClientSettings,
+            settings: CurrentAdminConfig,
             callbacks: Optional[AdminClientCallbacks] = None,
             subclients: Optional[Sequence[AdminSubClient]] = None,
             *,
@@ -84,7 +96,7 @@ class AdminClient:
             paho_logger: Optional[Logger] = None,
     ) -> None:
         self._lock = threading.RLock()
-        self._settings = settings.model_copy()
+        self._settings = settings
         self._callbacks = callbacks or AdminClientCallbacks()
         if subclients is None:
             self._subclients = []
@@ -93,11 +105,11 @@ class AdminClient:
             for subclient in self._subclients:
                 subclient.set_admin_client(self)
         self._paho_wrapper = ConstrainedMQTTClient(
-            settings=self._settings.link,
+            settings=self._settings.config.scadas[self._settings.curr_scada].mqtt,
             subscriptions=[
                 MQTTTopic.encode(
                     envelope_type=GWMessage.type_name(),
-                    src=self._settings.target_gnode,
+                    src=self._settings.config.scadas[self._settings.curr_scada].long_name,
                     dst=H0N.admin,
                     message_type="#",
                 )
@@ -110,6 +122,16 @@ class AdminClient:
             paho_logger=paho_logger,
         )
         self._logger = logger
+
+    @property
+    def curr_scada(self) -> str:
+        return self._settings.curr_scada
+
+    @property
+    def curr_scada_config(self) -> ScadaConfig:
+        if self.curr_scada not in self._settings.curr_scada:
+            raise ValueError(f"ERROR. curr_scada <{self.curr_scada}> is not configured scadas")
+        return self._settings.config.scadas[self._settings.curr_scada]
 
     def set_callbacks(self, callbacks: AdminClientCallbacks) -> None:
         if self.started():
@@ -133,6 +155,12 @@ class AdminClient:
         if self._snap is not None:
             subclient.process_snapshot(self._snap)
 
+    def layout_received(self) -> bool:
+        return self._layout is not None
+
+    def snapshot_received(self) -> bool:
+        return self._snap is not None
+
     async def _ensure_init(self) -> None:
         while (
             self._paho_wrapper.started()
@@ -153,17 +181,46 @@ class AdminClient:
         if self._init_task is not None and not self._init_task.cancelled():
             self._init_task.cancel()
         self._init_task = None
+        self._layout = None
+        self._snap = None
         self._paho_wrapper.stop()
+
+    def switch_scada(self) -> None:
+        self._logger.info(f"Switching to scada {self.curr_scada}")
+        self.stop()
+        for subclient in self._subclients:
+            subclient.scada_selection_reset()
+        if self._callbacks.scada_selection_reset:
+            self._callbacks.scada_selection_reset()
+        self._paho_wrapper = ConstrainedMQTTClient(
+            settings=self.curr_scada_config.mqtt,
+            subscriptions=[
+                MQTTTopic.encode(
+                    envelope_type=GWMessage.type_name(),
+                    src=self.curr_scada_config.long_name,
+                    dst=H0N.admin,
+                    message_type="#",
+                )
+            ],
+            callbacks=MQTTClientCallbacks(
+                state_change_callback=self._mqtt_state_changed,
+                message_received_callback=self._mqtt_message_received,
+            ),
+            logger=self._logger,
+            paho_logger=None,
+        )
+        self.start()
 
     def started(self) -> bool:
         return self._paho_wrapper.started()
 
     def publish(self, payload: Any) -> Result[MQTTMessageInfo, Exception | None]:
         message = Message[Any](
-            Dst=self._settings.target_gnode,
+            Dst=self.curr_scada_config.long_name,
             Src=H0N.admin,
             Payload=payload
         )
+        self._logger.debug(f"Publishing {message.mqtt_topic()}")
         return self._paho_wrapper.publish(
             message.mqtt_topic(),
             message.model_dump_json(indent=2).encode()
@@ -191,9 +248,8 @@ class AdminClient:
                 self._callbacks.mqtt_state_change_callback(old_state, new_state)
         except Exception as e:
             self._logger.exception(
-                "ERROR in AdminClient._mqtt_state_changed("
-                f"{old_state}, {new_state}): ",
-                f"<{type(e)}>: <{e}>",
+                "ERROR in AdminClient._mqtt_state_changed(%s, %s)  <%s>: %s",
+                old_state, new_state, type(e), e,
             )
 
     def _process_layout_lite(self, payload: bytes) -> None:
@@ -220,7 +276,7 @@ class AdminClient:
 
     def _mqtt_message_received(self, topic: str, payload: bytes) -> None:
         path_dbg = 0
-        # self._logger.debug("++AdminClient._mqtt_message_received  <%s>", topic)
+        self._logger.debug("++AdminClient._mqtt_message_received  <%s>", topic)
         try:
             decoded_topic = MQTTTopic.decode(topic)
             if decoded_topic.message_type == type_name(LayoutLite):
@@ -245,5 +301,5 @@ class AdminClient:
                     f"<{type(e)}>: <{e}> for topic: <{topic}>"
                 ),
             )
-        # self._logger.debug("--AdminClient._mqtt_message_received  path:0x%08X", path_dbg)
+        self._logger.debug("--AdminClient._mqtt_message_received  path:0x%08X", path_dbg)
 

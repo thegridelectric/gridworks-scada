@@ -4,6 +4,7 @@ from logging import Logger
 from typing import Optional
 
 from textual.app import ComposeResult
+from textual.containers import Horizontal
 from textual.containers import HorizontalGroup
 from textual.containers import Vertical
 from textual.logging import TextualHandler
@@ -12,8 +13,11 @@ from textual.reactive import Reactive
 from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import DataTable
+from textual.widgets import Select
+from textual.widgets import Static
 from textual.widgets._data_table import CellType  # noqa
 
+from gwadmin.config import DEFAULT_ADMIN_TIMEOUT
 from gwadmin.watch.clients.constrained_mqtt_client import ConstrainedMQTTClient
 from gwadmin.watch.clients.relay_client import ObservedRelayStateChange
 from gwadmin.watch.clients.relay_client import RelayClientCallbacks
@@ -44,6 +48,9 @@ class Relays(Widget):
     curr_config: Reactive[RelayWidgetConfig] = reactive(RelayWidgetConfig)
     logger: Logger
     _relays: dict[str, RelayWidgetInfo]
+    _scadas: list[str]
+    _initial_scada: str
+    _default_timeout_seconds: int = DEFAULT_ADMIN_TIMEOUT
 
     class RelayStateChange(Message):
         def __init__(self, changes: dict[str, ObservedRelayStateChange]) -> None:
@@ -65,7 +72,17 @@ class Relays(Widget):
             self.layout = layout
             super().__init__()
 
-    def __init__(self, logger: Optional[Logger] = None, **kwargs) -> None:
+    def __init__(
+        self,
+        scadas: list[str],
+        initial_scada: str,
+        default_timeout_seconds: int = DEFAULT_ADMIN_TIMEOUT,
+        logger: Optional[Logger] = None,
+        **kwargs
+    ) -> None:
+        self._scadas = scadas
+        self._initial_scada = initial_scada
+        self._default_timeout_seconds = default_timeout_seconds
         self.logger = logger or module_logger
         self._relays = {}
         super().__init__(**kwargs)
@@ -73,11 +90,21 @@ class Relays(Widget):
     def compose(self) -> ComposeResult:
         with Vertical():
             yield MqttState(id="mqtt_state")
+            yield Horizontal(
+                Static("Select Scada: ", classes="label"),
+                Select(
+                    ((scada, scada) for scada in self._scadas),
+                    prompt="Scada",
+                    value=self._initial_scada,
+                    id="select_scada",
+                ),
+                classes="container",
+            )
             with HorizontalGroup():
-                yield KeepAliveButton()
-                yield ReleaseControlButton()
-                yield TimeInput()
-                yield TimerDigits()
+                yield KeepAliveButton(default_timeout_seconds=self._default_timeout_seconds)
+                yield ReleaseControlButton(default_timeout_seconds=self._default_timeout_seconds)
+                yield TimeInput(default_timeout_seconds=self._default_timeout_seconds)
+                yield TimerDigits(default_timeout_seconds=self._default_timeout_seconds)
             yield DataTable(
                 id="relays_table",
                 zebra_stripes=True,
@@ -93,10 +120,10 @@ class Relays(Widget):
                     energized=Relays.curr_energized,
                     config=Relays.curr_config,
                 )
-            yield DataTable(
-                id="message_table",
-                classes="undisplayed",
-            )
+            # yield DataTable(
+            #     id="message_table",
+            #     classes="undisplayed",
+            # )
 
     def on_mount(self) -> None:
         data_table = self.query_one("#relays_table", DataTable)
@@ -181,6 +208,7 @@ class Relays(Widget):
             "Name",
             key=lambda row: (row[0], row[1]) if row[0] is not None else (sys.maxsize, row[1]),
         )
+        self.logger.info("--on_relays_config_change")
 
     def _update_buttons(self, relay_name: str) -> None:
         relay_info = self._relays[relay_name]
