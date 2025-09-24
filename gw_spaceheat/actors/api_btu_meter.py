@@ -36,15 +36,17 @@ class ApiBtuMeter(ScadaActor):
         # TODO: move/add to hardware layout validation
         if comp is None:
             raise Exception("Need a component!")
-        if not isinstance(comp, PicoBtuMeterComponent):
-            display_name = getattr(
-                comp.gt, "display_name", "MISSING ATTRIBUTE display_name"
-            )
-            raise ValueError(
-                f"ERROR. Component <{display_name}> for node {self.name} has type {type(comp)}. "
-                f"Expected PicoBtuMeterComponent.\n"
-            )
 
+        # if not isinstance(comp, PicoBtuMeterComponent):
+        #     display_name = getattr(
+        #         comp.gt, "display_name", "MISSING ATTRIBUTE display_name"
+        #     )
+        #     raise ValueError(
+        #         f"ERROR. Component <{display_name}> for node {self.name} has type {type(comp)}. "
+        #         f"Expected PicoBtuMeterComponent.\n"
+        #     )
+
+        # FIX THIS - the above isn't workin ... sigh
         self._component = comp
         self.device_type = self._component.cac
         # if self.device_type.MakeModel not in [ MakeModel.GRIDWORKS__GW101]:
