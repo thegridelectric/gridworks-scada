@@ -13,7 +13,6 @@ from gwproactor import MonitoredName, Problems, AppInterface
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwproto.data_classes.components import PicoTankModuleComponent
-from gwsproto.data_classes.components import 
 from gwproto.enums import TempCalcMethod
 from gwproto.enums import MakeModel
 from gwproto.named_types import ComponentAttributeClassGt
