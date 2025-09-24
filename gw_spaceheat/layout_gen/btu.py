@@ -102,6 +102,7 @@ def add_btu(
                 PicoBtuMeterComponentGt(
                     ComponentId=db.make_component_id(cfg.component_display_name()),
                     ComponentAttributeClassId=cac_id,
+                    HwUid=cfg.HwUid,
                     ConfigList=config_list,
                     Enabled=cfg.Enabled,
                     SerialNumber=cfg.SerialNumber,
