@@ -152,11 +152,21 @@ class ApiBtuMeter(ScadaActor):
         if params.ActorNodeName != self.name:
             return Response()
 
+        # Check if this is our pico (or if we don't have one yet)
         if self.is_valid_pico_uid(params):
+            # Update the pico's configuration to match our layout
+            params.FlowNodeName = self._component.gt.FlowNodeName
+            params.HotNodeName = self._component.gt.HotNodeName
+            params.ColdNodeName = self._component.gt.ColdNodeName
+            params.CtNodeName = self._component.gt.CtNodeName
+
+            # Set timing parameters
             params.CapturePeriodS = 60
             period = params.CapturePeriodS
             offset = round(period - time.time() % period, 3) - 2
             params.CaptureOffsetS = offset
+
+            # If this is a new pico, log the HwUid for layout update
             if self.need_to_update_layout(params):
                 if self.device_type.MakeModel == MakeModel.GRIDWORKS__GW101:
                     self.pico_uid = params.HwUid
