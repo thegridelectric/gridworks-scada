@@ -11,6 +11,7 @@ from gwproactor import MonitoredName, Problems
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwproto.data_classes.components import PicoBtuMeterComponent
+from gwproto.named_types import PicoBtuMeterComponentGt
 from gwproto.enums import MakeModel
 from gwproto.named_types import AsyncBtuData, AsyncBtuParams, SyncedReadings
 from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
@@ -39,11 +40,8 @@ class ApiBtuMeter(ScadaActor):
 
          # HACK: Reload component from JSON with correct type
         if hasattr(comp.gt, 'TypeName') and comp.gt.TypeName == "pico.btu.meter.component.gt":
-            import json
-            from gwproto.named_types import PicoBtuMeterComponentGt
-            from gwproto.data_classes.components import PicoBtuMeterComponent
-            
-            with open("/home/pi/.config/gridworks/scada/hardware-layout.json") as f:
+            print("FOUND pico.btu.meter.component.gt")
+            with open(self.settings.paths.hardware_layout) as f:
                 data = json.load(f)
             
             # Find the component in JSON
