@@ -165,13 +165,19 @@ class ApiBtuMeter(ScadaActor):
         print("GOT BTU PARAMS")
         text = await self._get_text(request)
         self.params_text = text
+
+        self.log(f"Params received: {text}")
         try:
             params = AsyncBtuParams(**json.loads(text))
         except BaseException as e:
-            self._report_post_error(e, "malformed tankmodule parameters!")
-            return Response()
+            self._report_post_error(e, "malformed BtuMeter parameters!")
+            r = Response()
+            self.log(f"malformed BtuMeter parameters! returning {r}")
+            return r
         if params.ActorNodeName != self.name:
-            return Response()
+            r = Response()
+            self.log(f"ActorNodeName {params.ActorNodeName} not {self.name}! returning {r}")
+            return r
 
         # Check if this is our pico (or if we don't have one yet)
         if self.is_valid_pico_uid(params):
@@ -195,6 +201,8 @@ class ApiBtuMeter(ScadaActor):
                         f"UPDATE LAYOUT!!: In layout_gen, go to ### {self.name} "
                         f"and add HwUid = '{params.HwUid}'"
                     )
+            r = Response(text=params.model_dump_json())
+            self.log(f"Valid pico id. returning {r}")
             return Response(text=params.model_dump_json())
         else:
             # A strange pico is identifying itself as our "a" tank
@@ -205,6 +213,13 @@ class ApiBtuMeter(ScadaActor):
     async def _handle_async_btu_data_post(self, request: Request) -> Response:
         text = await self._get_text(request)
         self.log("GOT BTU DATA")
+        try:
+            data = AsyncBtuData(**json.loads(text))
+        except Exception as e:
+            self.log(f"Did not interpret data as AsyncBtuData: {e}")
+            return Response(text="failed", status=100)
+        
+        self.log(f"\nCurrent parameters for {data.HwUid}:")
         print("GOT BTU DATA")
         self.readings_text = text
         if isinstance(text, str):
