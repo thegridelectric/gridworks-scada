@@ -104,6 +104,7 @@ class RelaysApp(App):
                     allow_blank=False,
                 ),
                 MqttState(id="mqtt_state"),
+                Static(self.settings.curr_scada, id="selected_scada_label"),
             id="select_scada_container",
             classes="section"
         )
@@ -216,6 +217,7 @@ class RelaysApp(App):
             if self.settings.config.use_last_scada:
                 self.settings.save_curr_scada(self.settings.curr_scada)
             self.sub_title = self.format_sub_title()
+            self.query_one("#selected_scada_label", Static).content = self.settings.curr_scada
             self._admin_client.switch_scada()
 
 
