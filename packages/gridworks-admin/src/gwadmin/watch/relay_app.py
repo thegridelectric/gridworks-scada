@@ -86,6 +86,10 @@ class RelaysApp(App):
         return f"{self.settings.curr_scada} - {self.settings.config.scadas[self.settings.curr_scada].long_name}"
 
     def compose(self) -> ComposeResult:
+        if self.settings.config.show_selected_scada_block:
+            selected_scada_block_classes = ""
+        else:
+            selected_scada_block_classes = "undisplayed"
         yield Header(show_clock=self.settings.config.show_clock)
         yield Horizontal(
             Static(
@@ -104,6 +108,11 @@ class RelaysApp(App):
                     allow_blank=False,
                 ),
                 MqttState(id="mqtt_state"),
+                Static(
+                    self.settings.curr_scada,
+                    id="selected_scada_label",
+                    classes=selected_scada_block_classes,
+                ),
             id="select_scada_container",
             classes="section"
         )
@@ -216,6 +225,7 @@ class RelaysApp(App):
             if self.settings.config.use_last_scada:
                 self.settings.save_curr_scada(self.settings.curr_scada)
             self.sub_title = self.format_sub_title()
+            self.query_one("#selected_scada_label", Static).content = self.settings.curr_scada
             self._admin_client.switch_scada()
 
 

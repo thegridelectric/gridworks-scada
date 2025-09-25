@@ -35,11 +35,20 @@ Button {
   color: $accent;
 }
 
-
 #mqtt_state {
     margin: 0 4;
     content-align: left middle;
+    width: auto;
 }
+
+#selected_scada_label {
+    margin: 0 5;
+    padding: 1 5;
+    color: $text;
+    background: $success-lighten-3;
+    width: auto;
+}
+
 
 #relays {
     height: 10fr;
