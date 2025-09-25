@@ -33,36 +33,18 @@ class ApiBtuMeter(ScadaActor):
     ):
         super().__init__(name, services)
 
-        comp = self._node.component  # use the SAME expression consistently
-        # TODO: move/add to hardware layout validation
+        comp = self._node.component
         if comp is None:
-            raise Exception("Need a component!")
+            raise Exception(f" {self.node.actor_class} {self.name} needs a component!")
 
-         # HACK: Reload component from JSON with correct type
-        if hasattr(comp.gt, 'TypeName') and comp.gt.TypeName == "pico.btu.meter.component.gt":
-            print("FOUND pico.btu.meter.component.gt")
-            with open(self.settings.paths.hardware_layout) as f:
-                data = json.load(f)
-            
-            # Find the component in JSON
-            for comp_dict in data.get("OtherComponents", []):
-                if comp_dict.get("ComponentId") == comp.gt.ComponentId:
-                    # Create the correct GT type from the full JSON data
-                    correct_gt = PicoBtuMeterComponentGt.model_validate(comp_dict)
-                    comp = PicoBtuMeterComponent(gt=correct_gt, cac=comp.cac)
-                    self._node.component = comp
-                break
-    
         if not isinstance(comp, PicoBtuMeterComponent):
             display_name = getattr(
-                comp.gt, "display_name", "MISSING ATTRIBUTE display_name"
+                comp.gt, "DisplayName", "MISSING ATTRIBUTE display_name"
             )
             raise ValueError(
                 f"ERROR. Component <{display_name}> for node {self.name} has type {type(comp)}. "
                 f"Expected PicoBtuMeterComponent.\n"
             )
-
-        # FIX THIS - the above isn't workin ... sigh
         self._component = comp
         self.device_type = self._component.cac
         if self.device_type.MakeModel not in [ MakeModel.GRIDWORKS__GW101]:
@@ -180,7 +162,6 @@ class ApiBtuMeter(ScadaActor):
     
         return Response(status=400)
             
-
         # self.log(f"Params received: {text}")
         # try:
         #     params = AsyncBtuParams(**json.loads(text))
