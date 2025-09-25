@@ -21,13 +21,13 @@ Button {
     height: 3;
     content-align: center middle;
     width: auto;
-    margin: 1 1;
+    margin: 0 1;
 }
 
 #select_scada {
      width: 20;
      height: 3;
-     margin: 1 0;
+     margin: 0 0;
      padding: 0 0;
 }
 
@@ -42,7 +42,7 @@ Button {
 }
 
 #selected_scada_label {
-    margin: 1 5;
+    margin: 0 5;
     padding: 1 5;
     color: $text;
     background: $success-lighten-3;
