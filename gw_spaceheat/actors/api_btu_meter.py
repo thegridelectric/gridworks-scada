@@ -65,8 +65,8 @@ class ApiBtuMeter(ScadaActor):
         # FIX THIS - the above isn't workin ... sigh
         self._component = comp
         self.device_type = self._component.cac
-        # if self.device_type.MakeModel not in [ MakeModel.GRIDWORKS__GW101]:
-        #     raise ValueError(f"Expect Gw101 (BtuMeter).. not {self.device_type.MakeModel}")
+        if self.device_type.MakeModel not in [ MakeModel.GRIDWORKS__GW101]:
+            raise ValueError(f"Expect Gw101 (BtuMeter).. not {self.device_type.MakeModel}")
         self._stop_requested: bool = False
 
         if self._component.gt.Enabled:
@@ -163,50 +163,67 @@ class ApiBtuMeter(ScadaActor):
         print("GOT BTU PARAMS")
         text = await self._get_text(request)
         self.params_text = text
+        if isinstance(text, str):
+            try:
+                params = AsyncBtuParams(**json.loads(text))
+                
+                # Match FastAPI's response exactly
+                response_data = params.model_dump_json()
+                return Response(
+                    text=response_data,
+                    content_type='application/json',  # FastAPI uses this
+                    status=200
+                )
+            except Exception as e:
+                self._report_post_error(e, text)
+                return Response(status=400)
+    
+        return Response(status=400)
+            
 
-        self.log(f"Params received: {text}")
-        try:
-            params = AsyncBtuParams(**json.loads(text))
-        except BaseException as e:
-            self._report_post_error(e, "malformed BtuMeter parameters!")
-            r = Response()
-            self.log(f"malformed BtuMeter parameters! returning {r}")
-            return r
-        if params.ActorNodeName != self.name:
-            r = Response()
-            self.log(f"ActorNodeName {params.ActorNodeName} not {self.name}! returning {r}")
-            return r
+        # self.log(f"Params received: {text}")
+        # try:
+        #     params = AsyncBtuParams(**json.loads(text))
+        # except BaseException as e:
+        #     self._report_post_error(e, "malformed BtuMeter parameters!")
+        #     r = Response()
+        #     self.log(f"malformed BtuMeter parameters! returning {r}")
+        #     return r
+        # if params.ActorNodeName != self.name:
+        #     r = Response()
+        #     self.log(f"ActorNodeName {params.ActorNodeName} not {self.name}! returning {r}")
+        #     return r
 
-        # Check if this is our pico (or if we don't have one yet)
-        if self.is_valid_pico_uid(params):
-            # Update the pico's configuration to match our layout
-            params.FlowNodeName = self._component.gt.FlowNodeName
-            params.HotNodeName = self._component.gt.HotNodeName
-            params.ColdNodeName = self._component.gt.ColdNodeName
-            params.CtNodeName = self._component.gt.CtNodeName
+        # # Check if this is our pico (or if we don't have one yet)
+        # if self.is_valid_pico_uid(params):
+        #     # Update the pico's configuration to match our layout
+        #     params.FlowNodeName = self._component.gt.FlowNodeName
+        #     params.HotNodeName = self._component.gt.HotNodeName
+        #     params.ColdNodeName = self._component.gt.ColdNodeName
+        #     params.CtNodeName = self._component.gt.CtNodeName
 
-            # Set timing parameters
-            params.CapturePeriodS = 60
-            period = params.CapturePeriodS
-            offset = round(period - time.time() % period, 3) - 2
-            params.CaptureOffsetS = offset
+        #     # Set timing parameters
+        #     params.CapturePeriodS = 60
+        #     period = params.CapturePeriodS
+        #     offset = round(period - time.time() % period, 3) - 2
+        #     params.CaptureOffsetS = offset
 
-            # If this is a new pico, log the HwUid for layout update
-            if self.need_to_update_layout(params):
-                if self.device_type.MakeModel == MakeModel.GRIDWORKS__GW101:
-                    self.pico_uid = params.HwUid
-                    self.log(
-                        f"UPDATE LAYOUT!!: In layout_gen, go to ### {self.name} "
-                        f"and add HwUid = '{params.HwUid}'"
-                    )
-            r = Response(text=params.model_dump_json())
-            self.log(f"Valid pico id. returning {r}")
-            return Response(text=params.model_dump_json())
-        else:
-            # A strange pico is identifying itself as our "a" tank
-            self.log(f"unknown pico {params.HwUid} identifying as {self.name}")
-            # TODO: send problem report?
-            return Response()
+        #     # If this is a new pico, log the HwUid for layout update
+        #     if self.need_to_update_layout(params):
+        #         if self.device_type.MakeModel == MakeModel.GRIDWORKS__GW101:
+        #             self.pico_uid = params.HwUid
+        #             self.log(
+        #                 f"UPDATE LAYOUT!!: In layout_gen, go to ### {self.name} "
+        #                 f"and add HwUid = '{params.HwUid}'"
+        #             )
+        #     r = Response(text=params.model_dump_json())
+        #     self.log(f"Valid pico id. returning {r}")
+        #     return Response(text=params.model_dump_json())
+        # else:
+        #     # A strange pico is identifying itself as our "a" tank
+        #     self.log(f"unknown pico {params.HwUid} identifying as {self.name}")
+        #     # TODO: send problem report?
+        #     return Response()
 
     async def _handle_async_btu_data_post(self, request: Request) -> Response:
         text = await self._get_text(request)
@@ -217,8 +234,6 @@ class ApiBtuMeter(ScadaActor):
             self.log(f"Did not interpret data as AsyncBtuData: {e}")
             return Response(text="failed", status=100)
         
-        self.log(f"\nCurrent parameters for {data.HwUid}:")
-        print("GOT BTU DATA")
         self.readings_text = text
         if isinstance(text, str):
             try:
