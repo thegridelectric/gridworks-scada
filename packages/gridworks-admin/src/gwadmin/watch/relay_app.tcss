@@ -111,13 +111,20 @@ Button {
     align: center middle;
 }
 
+KeepAliveButton {
+    margin: 0 2;
+}
+
+ReleaseControlButton {
+   margin: 0 2;
+}
 TimerDigits {
-    margin: 1 2;
+    margin: 0 2;
 }
 
 TimeInput {
     width: 35;
-    margin: 1 2;
+    margin: 0 2;
 }
 
 .undisplayed {
