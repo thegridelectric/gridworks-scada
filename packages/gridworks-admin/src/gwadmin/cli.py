@@ -67,6 +67,7 @@ def get_admin_config(
     paho_verbose: int = 0,
     show_clock: Optional[bool] = None,
     show_footer: Optional[bool] = None,
+    show_selected_scada_block: Optional[bool] = None,
     default_scada: Optional[str] = None,
     use_last_scada: Optional[bool] = None,
     default_timeout_seconds: Optional[int] = None,
@@ -94,6 +95,8 @@ def get_admin_config(
         admin_config.show_footer = show_footer
     if show_clock is not None:
         admin_config.show_clock = show_clock
+    if show_selected_scada_block is not None:
+        admin_config.show_selected_scada_block = show_selected_scada_block
     if default_scada is not None:
         admin_config.default_scada = default_scada
     if use_last_scada is not None:
@@ -148,6 +151,13 @@ def watch(
             help="Show the footer with shortcut keys."
         ),
     ] = None,
+    show_scada_block: Annotated[
+        Optional[bool],
+        typer.Option(
+            show_default=False,
+            help="Show a colored block for the selected scada in the select section."
+        ),
+    ] = None,
     default_scada: Annotated[
         Optional[str],
         typer.Option(
@@ -189,6 +199,7 @@ def watch(
         paho_verbose=paho_verbose,
         show_clock=show_clock,
         show_footer=show_footer,
+        show_selected_scada_block=show_scada_block,
         default_scada=default_scada,
         use_last_scada=use_last_scada,
         default_timeout_seconds=default_timeout_seconds,
@@ -260,6 +271,13 @@ def config(
             help="Show the footer with shortcut keys."
         ),
     ] = None,
+    show_scada_block: Annotated[
+        Optional[bool],
+        typer.Option(
+            show_default=False,
+            help="Show a colored block for the selected scada in the select section."
+        ),
+    ] = None,
     default_scada: Annotated[
         Optional[str],
         typer.Option(
@@ -301,6 +319,7 @@ def config(
         paho_verbose=paho_verbose,
         show_clock=show_clock,
         show_footer=show_footer,
+        show_selected_scada_block=show_scada_block,
         default_scada=default_scada,
         use_last_scada=use_last_scada,
         default_timeout_seconds=default_timeout_seconds,
