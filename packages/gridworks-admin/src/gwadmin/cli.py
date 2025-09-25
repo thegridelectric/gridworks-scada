@@ -212,9 +212,9 @@ def watch(
         scada = current_config.config.default_scada
     if not scada:
         rich.print(
-            "[yellow][bold]No scada specified[/yellow][/bold] on command line, "
+            "[red][bold]No scada specified[/red][/bold] on command line, "
             "via last-scada-used or in default. "
-            "[yellow][bold]Doing nothing.[/yellow][/bold]"
+            "[red][bold]Doing nothing.[/red][/bold]"
         )
         if not current_config.paths.admin_config_path.exists():
             rich.print(
@@ -227,7 +227,7 @@ def watch(
         raise typer.Exit(2)
     if not scada in current_config.config.scadas:
         rich.print(
-            f"[yellow][bold]Specified scada '{scada}' does not exist[/yellow][/bold] "
+            f"[red][bold]Specified scada '{scada}' does not exist[/red][/bold] "
             f"in config. Available scadas: {available_scadas(current_config.config)}""."
         )
         raise typer.Exit(3)
@@ -344,7 +344,7 @@ def mkconfig(
         typer.Option(
             "--force",
             help="""Overwrites existing configuration file.
-            [yellow][bold]WARNING: [/yellow][/bold]--force will [red][bold]PERMANENTLY DELETE[/red][/bold]
+            [red][bold]WARNING: [/red][/bold]--force will [red][bold]PERMANENTLY DELETE[/red][/bold]
             this Admin configuration.""",
         ),
     ] = False,
@@ -354,13 +354,13 @@ def mkconfig(
     if paths.admin_config_path.exists():
         if not force:
             rich.print(
-                f"Configuartion file {paths.admin_config_path} [yellow][bold]already exists. Doing nothing.[/yellow][/bold]"
+                f"Configuartion file {paths.admin_config_path} [red][bold]already exists. Doing nothing.[/red][/bold]"
             )
             rich.print(f"Use --force to overwrite existing configuration.")
             return
         else:
             rich.print(
-                f"[yellow][bold]DELETING existing configuration[/yellow][/bold]."
+                f"[red][bold]DELETING existing configuration[/red][/bold]."
             )
             paths.admin_config_path.unlink()
     rich.print(f"Creating {paths.admin_config_path}")
@@ -480,7 +480,7 @@ def add_scada(
             scada_config.mqtt.tls.use_tls = use_tls
     else:
         rich.print(
-            f"Scada with name {name} [yellow][bold]already exists. Doing nothing.[/yellow][/bold]\n"
+            f"Scada with name {name} [red][bold]already exists. Doing nothing.[/red][/bold]\n"
         )
         rich.print(
             "Use --update to update the existing configuration or --force to overwrite it.\n"
