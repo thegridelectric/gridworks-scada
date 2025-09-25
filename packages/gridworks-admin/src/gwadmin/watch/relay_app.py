@@ -89,7 +89,7 @@ class RelaysApp(App):
         yield Header(show_clock=self.settings.config.show_clock)
         yield Horizontal(
             Static(
-                "Select Scada:",
+                "Selected scada:",
                 id="select_scada_label"),
                 Select(
                     (
@@ -99,9 +99,9 @@ class RelaysApp(App):
                             if scada_config.enabled
                         ]
                     ),
-                    prompt="Scada",
                     value=self.settings.curr_scada,
                     id="select_scada",
+                    allow_blank=False,
                 ),
                 MqttState(id="mqtt_state"),
             id="select_scada_container",

@@ -137,7 +137,6 @@ def watch(
     show_clock: Annotated[
         Optional[bool],
         typer.Option(
-            "--show-clock",
             show_default=False,
             help="Show the clock in the title bar."
         ),
@@ -145,7 +144,6 @@ def watch(
     show_footer: Annotated[
         Optional[bool],
         typer.Option(
-            "--show-footer",
             show_default=False,
             help="Show the footer with shortcut keys."
         ),
@@ -251,7 +249,6 @@ def config(
     show_clock: Annotated[
         Optional[bool],
         typer.Option(
-            "--show-clock",
             show_default=False,
             help="Show the clock in the title bar."
         ),
@@ -259,7 +256,6 @@ def config(
     show_footer: Annotated[
         Optional[bool],
         typer.Option(
-            "--show-footer",
             show_default=False,
             help="Show the footer with shortcut keys."
         ),

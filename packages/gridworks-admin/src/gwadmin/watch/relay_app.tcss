@@ -29,8 +29,12 @@ Button {
      height: 3;
      margin: 0 0;
      padding: 0 0;
-     text-style: bold;
 }
+
+#select_scada SelectCurrent Static {
+  color: $accent;
+}
+
 
 #mqtt_state {
     margin: 0 4;

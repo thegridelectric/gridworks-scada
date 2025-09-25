@@ -38,12 +38,11 @@ class MqttState(Widget):
 
     def render(self) -> str:
         if self.mqtt_state == ConstrainedMQTTClient.States.active:
-            color = "green"
+            color = "$success"
         else:
-            color = "red"
+            color = "$error"
         return (
             f"MQTT broker connection: [{color}]{self.mqtt_state:12s}[/{color}]"
-
             # Counters disabled as defense against memory leaks:
             # f"  Messages received: {self.message_count}  "
             # f"Snapshots: {self.snapshot_count}  "
