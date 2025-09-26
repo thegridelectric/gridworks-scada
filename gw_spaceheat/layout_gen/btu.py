@@ -103,6 +103,7 @@ def add_btu(
                     ComponentId=db.make_component_id(cfg.component_display_name()),
                     ComponentAttributeClassId=cac_id,
                     HwUid=cfg.HwUid,
+                    DisplayName=cfg.component_display_name(),
                     ConfigList=config_list,
                     Enabled=cfg.Enabled,
                     SerialNumber=cfg.SerialNumber,
@@ -132,8 +133,9 @@ def add_btu(
                 ActorClass=ActorClass.ApiBtuMeter,
                 DisplayName=f"{cfg.ActorNodeName.replace('-', ' ').title()}",
                 ComponentId=db.component_id_by_alias(cfg.component_display_name())
-            ),
+            )
         ]
+        
 
         # Add AboutNodes for flow, hot, and cold (if they don't already exist)
         for node_name in [cfg.FlowNodeName, cfg.HotNodeName, cfg.ColdNodeName]:
