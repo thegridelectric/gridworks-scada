@@ -155,10 +155,10 @@ class ApiBtuMeter(PicoActorBase):
             return True
 
     async def _handle_async_btu_params_post(self, request: Request) -> Response:
-        print("GOT BTU PARAMS")
+        #print("GOT BTU PARAMS")
         text = await self._get_text(request)
         self.params_text = text
-        self.log(f"Params received: {text}")
+        #self.log(f"Params received: {text}")
         try:
             params = AsyncBtuParams(**json.loads(text))
         except BaseException as e:
@@ -239,7 +239,7 @@ class ApiBtuMeter(PicoActorBase):
 
     async def _handle_async_btu_data_post(self, request: Request) -> Response:
         text = await self._get_text(request)
-        self.log("GOT BTU DATA")
+        #self.log("GOT BTU DATA")
         try:
             data = AsyncBtuData(**json.loads(text))
         except Exception as e:
@@ -261,7 +261,7 @@ class ApiBtuMeter(PicoActorBase):
         return Response()
 
     def _process_async_btu_data(self, data: AsyncBtuData) -> None:
-        self.log("IN _process_async_btu_data")
+        #self.log("IN _process_async_btu_data")
         if data.HwUid == self.pico_uid:
             self.last_heard = time.time()
         else:
@@ -288,7 +288,6 @@ class ApiBtuMeter(PicoActorBase):
             ValueList=converted_values,
             ScadaReadTimeUnixMs=int(time.time() * 1000),
         )
-        print(f"About to send {msg}")
         self._send_to(self.pico_cycler, msg)
         self._send_to(self.primary_scada, msg)
 

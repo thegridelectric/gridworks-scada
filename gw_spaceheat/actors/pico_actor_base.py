@@ -94,8 +94,6 @@ class PicoActorBase(ScadaActor):
                 BackupUrl=correct_backup_url  # Enforce DNS name
             )
 
-            self.log(f"Sent corrected URLs to Pico {params.HwUid}")
-
             return Response(
                     text=response.model_dump_json(),
                     content_type='application/json',
