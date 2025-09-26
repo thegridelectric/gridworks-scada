@@ -2,6 +2,7 @@ import logging
 from logging import Logger
 from typing import Optional
 
+from textual import on
 from textual import validation
 from textual.app import ComposeResult
 from textual.containers import Horizontal
@@ -26,13 +27,9 @@ module_logger = logging.getLogger(__name__)
 module_logger.addHandler(TextualHandler())
 
 class Dacs(Widget):
-    BINDINGS = [
-        ("e", "set_dac", "Set selected DAC"),
-    ]
 
     logger: Logger
     _dacs: dict[str, DACWidgetInfo]
-    _curr_dac_name: str
 
     class DacStateChange(Message):
         def __init__(self, changes: dict[str, ObservedDACStateChange]) -> None:
@@ -57,7 +54,6 @@ class Dacs(Widget):
     def __init__(self, logger: Optional[Logger] = None, **kwargs) -> None:
         self.logger = logger or module_logger
         self._dacs = {}
-        self._curr_dac_name = ""
         super().__init__(**kwargs)
 
     def compose(self) -> ComposeResult:
@@ -77,7 +73,7 @@ class Dacs(Widget):
                 )
                 yield Button(
                     id="send_dac_button",
-                    label="S[underline]e[/underline]nd Value to DAC",
+                    label=self.dac_button_text("", ""),
                     variant="primary",
                     disabled=True,
                 )
@@ -89,6 +85,20 @@ class Dacs(Widget):
             ("Current value", 25),
         ]:
             data_table.add_column(column_name, key=column_name, width=width)
+
+    @classmethod
+    def dac_button_text(cls, dac_name: str | None, value: int | str | None) -> str:
+        if dac_name is None:
+            dac_name = ""
+        if value is None:
+            value = ""
+        return f"Set {dac_name} to {value}"
+
+    @classmethod
+    def dac_box_text(cls, dac_name: str | None) -> str:
+        if dac_name is None:
+            dac_name = ""
+        return f"DAC: {dac_name}"
 
     def _get_dac_row_data(self, dac_name: str) -> dict[str, CellType]:
         if dac_name in self._dacs:
@@ -108,13 +118,10 @@ class Dacs(Widget):
                     dac_info.observed = change.new_state
                     self._update_dac_row(dac_name)
 
-
     def _get_dac_row(self, dac_name: str) -> list[str | CellType]:
         return list(self._get_dac_row_data(dac_name).values())
 
     def _update_dac_row(self, dac_name: str) -> None:
-        if dac_name in self._dacs:
-            self._curr_dac_name = self._dacs[dac_name].config.table_name.row_name
         table = self.query_one("#dacs_table", DataTable)
         data = self._get_dac_row_data(dac_name)
         for column_name, value in data.items():
@@ -126,6 +133,12 @@ class Dacs(Widget):
             )
 
     def on_dacs_config_change(self, message: ConfigChange) -> None:
+        start_dacs_dbg = len(self._dacs)
+        self.logger.debug(
+            "++on_relays_config_change  dacs: %d  changes: %d ",
+            start_dacs_dbg,
+            len(message.changes),
+        )
         message.prevent_default()
         table = self.query_one("#dacs_table", DataTable)
         for dac_name, change in message.changes.items():
@@ -153,45 +166,44 @@ class Dacs(Widget):
             selected_row_key = table.coordinate_to_cell_key(table.cursor_coordinate)[0]
         else:
             selected_row_key = ""
-        self._update_buttons(selected_row_key)
+        self._update_button()
+        self.logger.debug(
+            "--on_dacs_config_change: dacs: %d -> %d selected row key: %s",
+            start_dacs_dbg,
+            len(self._dacs),
+            selected_row_key
+        )
 
-    def _update_buttons(self, dac_name: str) -> None:
-        dac_info = self._dacs.get(dac_name)
-        if dac_info is not None:
-            curr_name = dac_info.config.table_name.border_title
+    def _update_button(self) -> None:
+        self.logger.debug("++Dacs._update_button")
+        input_widget_value = self.query_one("#dac_value_input", Input).value
+        if input_widget_value is None:
+            input_widget_value = ""
+        elif input_widget_value != "":
+            input_widget_value = int(input_widget_value)
+        if  isinstance(input_widget_value, int) and 0 <= input_widget_value <= 100:
             disabled = False
         else:
-            curr_name = ""
             disabled = True
-        curr_title = f"DAC: {curr_name}"
-        self.query_one(
-            "#dac_control_container",
-            HorizontalGroup,
-        ).border_title = curr_title
         button = self.query_one("#send_dac_button", Button)
-        button.label = (
-            f"Set {curr_name} to "
-            f"{self.query_one('#dac_value_input', Input).value}"
-        )
+        table = self.query_one("#dacs_table", DataTable)
+        dac_name = table.get_row_at(table.cursor_row)[0]
+        button.label = self.dac_button_text(dac_name, input_widget_value)
         button.disabled = disabled
+        self.query_one("#dac_control_container", HorizontalGroup).border_title = self.dac_box_text(dac_name)
+        self.logger.debug("--Dacs._update_button: %s", button.label)
 
     def on_data_table_row_highlighted(self, message: DataTable.RowHighlighted) -> None:
+        self.logger.debug(f"++Dacs.on_data_table_row_highlighted: {message.row_key.value}")
         self._update_dac_row(message.row_key.value)
-        self._update_buttons(message.row_key.value)
-
-    def on_input_changed(self, message: Input.Changed) -> None:
-        if message.validation_result is not None and message.validation_result.is_valid:
-            send_value = message.value
-            disabled = False
-        else:
-            send_value = ""
-            disabled = True
-        button = self.query_one("#send_dac_button", Button)
-        button.label = (
-            f"Set {self._curr_dac_name} to "
-            f"{send_value}"
+        self._update_button()
+        self.logger.debug(
+            f"--Dacs.on_data_table_row_highlighted: {message.row_key.value}"
         )
-        button.disabled = disabled
+
+    @on(Input.Changed, "#dac_value_input")
+    def dac_value_to_set_changed(self, message: Input.Changed) -> None:
+        self._update_button()
 
     def dac_client_callbacks(self) -> DACClientCallbacks:
         return DACClientCallbacks(

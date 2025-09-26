@@ -156,6 +156,7 @@ class Relays(Widget):
             )
 
     def on_relays_config_change(self, message: ConfigChange) -> None:
+        self.logger.debug("++on_relays_config_change  changes: %d ", len(message.changes))
         message.prevent_default()
         table = self.query_one("#relays_table", DataTable)
         for relay_name, change in message.changes.items():
@@ -188,9 +189,10 @@ class Relays(Widget):
         else:
             selected_row_key = ""
         self._update_buttons(selected_row_key)
-        self.logger.info("--on_relays_config_change")
+        self.logger.debug("--on_relays_config_change: selected row key: %s", selected_row_key.value if selected_row_key is not "" else "")
 
     def _update_buttons(self, relay_name: str) -> None:
+        self.logger.debug("++Relays._update_buttons: %s", relay_name)
         relay_info = self._relays.get(relay_name)
         if relay_info is not None:
             curr_energized = relay_info.get_state()
@@ -206,6 +208,7 @@ class Relays(Widget):
             "#relay_toggle_button_container",
             HorizontalGroup,
         ).border_title = curr_title
+        self.logger.debug("--Relays._update_buttons: %s  %s", relay_name, curr_title)
 
     def on_data_table_row_highlighted(self, message: DataTable.RowHighlighted) -> None:
         self._update_relay_row(message.row_key.value if message.row_key is not None else "")

@@ -158,8 +158,11 @@ class RelaysApp(App):
 
     @on(Button.Pressed, "#send_dac_button")
     def send_dac_button(self) -> None:
+        self._logger.info("++send_dac_button")
+        path_dbg = 0
         new_state = self.query_one("#dac_value_input", Input).value
         if new_state is not None:
+            path_dbg |= 0x00000001
             new_state = int(new_state)
             dac_table = self.query_one("#dacs_table", DataTable)
             row = dac_table.get_row_at(dac_table.cursor_row)
@@ -168,12 +171,14 @@ class RelaysApp(App):
                 time_in_minutes = float(time_input_value) if time_input_value else int(self.settings.config.default_timeout_seconds/60)
                 timeout_seconds = int(time_in_minutes * 60)
             except:  # noqa
+                path_dbg |= 0x00000002
                 timeout_seconds = self.settings.config.default_timeout_seconds
             self._dac_client.set_dac(
                 dac_row_name=row[0],
                 new_state=new_state,
                 timeout_seconds=timeout_seconds,
             )
+        self._logger.info(f"--send_dac_button: {new_state}")
 
     def action_toggle_dark(self) -> None:
         self.theme = (

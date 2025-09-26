@@ -80,13 +80,13 @@ def get_admin_config(
             json_data = f.read()
         admin_config = AdminConfig.model_validate_json(json_data)
     if verbose:
-        if verbose == 0:
+        if verbose == 1:
             verbosity = logging.INFO
         else:
             verbosity = logging.DEBUG
         admin_config.verbosity = verbosity
     if paho_verbose:
-        if paho_verbose == 0:
+        if paho_verbose == 1:
             paho_verbosity = logging.INFO
         else:
             paho_verbosity = logging.DEBUG
