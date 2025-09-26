@@ -1,8 +1,9 @@
 from gwproto.named_types import PicoTankModuleComponentGt
-from typing import  Optional
+from typing import cast, Optional
 from pydantic import BaseModel
 from gwproto.property_format import SpaceheatName
 from layout_gen import LayoutDb
+from gwproto.named_types import ComponentGt
 from gwproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
 from gwproto.named_types.data_channel_gt import DataChannelGt
 from gwproto.enums import MakeModel, Unit, ActorClass, TelemetryName
@@ -22,7 +23,7 @@ class Tank3Cfg(BaseModel):
     Enabled: bool = True
     SendMicroVolts: bool = True
     TempCalc: TempCalcMethod = TempCalcMethod.SimpleBeta
-    ThermistorBeta: Optional[int] = 3977 # Beta for the Amphenols
+    ThermistorBeta: int = 3977 # Beta for the Amphenols
     
     def component_display_name(self) -> str:
         return f"{self.ActorNodeName} PicoTankModule"
@@ -43,7 +44,7 @@ def add_tank3(
             ]
         )
     
-    if not db.component_id_by_alias(tank_cfg.component_display_name):
+    if not db.component_id_by_alias(tank_cfg.component_display_name()):
         config_list = []
         for i in range(1,4):
             config_list.append(
@@ -66,11 +67,15 @@ def add_tank3(
                         Unit=Unit.VoltsRms
                     )
                 )
+
+        cac_id = db.cac_id_by_alias(MakeModel.GRIDWORKS__TANKMODULE3)
+        if not cac_id:
+                raise Exception("NOPE THAT DOES NOT MAKE SENSE")
         db.add_components(
             [
                 PicoTankModuleComponentGt(
-                    ComponentId=db.make_component_id(tank_cfg.component_display_name),
-                    ComponentAttributeClassId=db.cac_id_by_alias(MakeModel.GRIDWORKS__TANKMODULE3),
+                    ComponentId=db.make_component_id(tank_cfg.component_display_name()),
+                    ComponentAttributeClassId=cac_id,
                     DisplayName=tank_cfg.component_display_name(),
                     SerialNumber=tank_cfg.SerialNumber,
                     ConfigList=config_list,
@@ -103,7 +108,7 @@ def add_tank3(
                 ActorClass=ActorClass.NoActor,
                 DisplayName=f"{tank_cfg.ActorNodeName}-depth{i}",
                 )
-                for i in  range(1,5)
+                for i in  range(1,4)
             ]
         )
 

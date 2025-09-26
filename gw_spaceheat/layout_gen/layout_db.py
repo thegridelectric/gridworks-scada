@@ -4,7 +4,7 @@ import subprocess
 import typing
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Sequence
 import uuid
 
 from gw.errors import DcError
@@ -382,8 +382,10 @@ class LayoutDb:
                 self.lists[layout_list_name] = []
             self.lists[layout_list_name].append(cac)
 
-    def add_components(self, components:list[ComponentGt], layout_list_name: str = "OtherComponents"):
+    def add_components(self, components: Sequence[ComponentGt], layout_list_name: str = "OtherComponents"):
         for component in components:
+            if not component.DisplayName:
+                raise DcError(f"component {component.ComponentId} missing display name! need that for layout gen ...")
             if component.ComponentId in self.components_by_id:
                 raise ValueError(
                     f"ERROR. Component with id {component.ComponentId} "
@@ -644,6 +646,14 @@ class LayoutDb:
                     Handle=f"{H0N.atn}.{H0N.atomic_ally}",
                     ActorClass=ActorClass.AtomicAlly,
                     DisplayName="Atomic Ally",
+                ),
+                SpaceheatNodeGt(
+                    ShNodeId=self.make_node_id(H0N.pico_cycler),
+                    Name=H0N.pico_cycler,
+                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.pico_cycler}",
+                    Handle=f"auto.{H0N.pico_cycler}",
+                    ActorClass=ActorClass.PicoCycler,
+                    DisplayName="Pico Cycler - responsible for power cycling the 5VDC bus",
                 ),
                 SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.synth_generator),

@@ -1,5 +1,4 @@
 """ List of all the types """
-
 from gwsproto.named_types.actuators_ready import ActuatorsReady
 from gwsproto.named_types.admin_analog_dispatch import AdminAnalogDispatch
 from gwsproto.named_types.admin_dispatch import AdminDispatch
@@ -7,6 +6,7 @@ from gwsproto.named_types.admin_keep_alive import AdminKeepAlive
 from gwsproto.named_types.admin_release_control import AdminReleaseControl
 from gwsproto.named_types.ally_gives_up import AllyGivesUp
 from gwsproto.named_types.atn_bid import AtnBid
+from gwsproto.named_types.baseurl_failure_alert import BaseurlFailureAlert
 from gwsproto.named_types.channel_flatlined import ChannelFlatlined
 from gwsproto.named_types.dispatch_contract_go_dormant import DispatchContractGoDormant
 from gwsproto.named_types.dispatch_contract_go_live import DispatchContractGoLive
@@ -27,6 +27,7 @@ from gwsproto.named_types.micro_volts import MicroVolts
 from gwsproto.named_types.market_maker_ack import MarketMakerAck
 from gwsproto.named_types.new_command_tree import NewCommandTree
 from gwsproto.named_types.no_new_contract_warning import NoNewContractWarning
+from gwsproto.named_types.pico_comms_params import PicoCommsParams
 from gwsproto.named_types.pico_missing import PicoMissing
 from gwsproto.named_types.price_quantity_unitless import PriceQuantityUnitless
 from gwsproto.named_types.remaining_elec import RemainingElec
@@ -48,6 +49,7 @@ from gwsproto.named_types.start_listening_to_atn import StartListeningToAtn
 from gwsproto.named_types.stop_listening_to_atn import StopListeningToAtn
 
 __all__ = [
+    "RemainingElecEvent",
     "ActuatorsReady",
     "AdminAnalogDispatch",
     "AdminDispatch",
@@ -55,6 +57,7 @@ __all__ = [
     "AdminReleaseControl",
     "AllyGivesUp",
     "AtnBid",
+    "BaseurlFailureAlert",
     "ChannelFlatlined",
     "DispatchContractGoDormant",
     "DispatchContractGoLive",
@@ -74,6 +77,7 @@ __all__ = [
     "MicroVolts",
     "NewCommandTree",
     "NoNewContractWarning",
+    "PicoCommsParams",
     "PicoMissing",
     "PriceQuantityUnitless",
     "RemainingElec",
