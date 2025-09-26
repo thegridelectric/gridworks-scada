@@ -4,16 +4,19 @@ import time
 from functools import cached_property
 from typing import Optional, Sequence
 
-from actors.scada_actor import ScadaActor
+from actors.pico_actor_base import PicoActorBase
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 from gwproactor import MonitoredName, Problems
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwproto.data_classes.components import PicoBtuMeterComponent
-from gwproto.named_types import PicoBtuMeterComponentGt
 from gwproto.enums import MakeModel
-from gwproto.named_types import AsyncBtuData, AsyncBtuParams, SyncedReadings
+from gwproto.named_types import (
+    AsyncBtuData,
+    AsyncBtuParams,
+    SyncedReadings,
+)
 from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from gwsproto.named_types import ChannelFlatlined, PicoMissing
 from result import Ok, Result
@@ -22,7 +25,7 @@ from scada_app_interface import ScadaAppInterface
 FLATLINE_REPORT_S = 60
 
 
-class ApiBtuMeter(ScadaActor):
+class ApiBtuMeter(PicoActorBase):
     _stop_requested: bool
     _component: PicoBtuMeterComponent
 
@@ -47,8 +50,10 @@ class ApiBtuMeter(ScadaActor):
             )
         self._component = comp
         self.device_type = self._component.cac
-        if self.device_type.MakeModel not in [ MakeModel.GRIDWORKS__GW101]:
-            raise ValueError(f"Expect Gw101 (BtuMeter).. not {self.device_type.MakeModel}")
+        if self.device_type.MakeModel not in [MakeModel.GRIDWORKS__GW101]:
+            raise ValueError(
+                f"Expect Gw101 (BtuMeter).. not {self.device_type.MakeModel}"
+            )
         self._stop_requested: bool = False
 
         if self._component.gt.Enabled:
@@ -68,13 +73,21 @@ class ApiBtuMeter(ScadaActor):
         self.last_heard = time.time()  # used for monitoring flatlined pico
         self.last_error_report = time.time()
         # Find channels by matching AboutNodeName to component's node names
-        self.flow_channel = self._find_channel_by_about_node(self._component.gt.FlowNodeName)
-        self.hot_temp_channel = self._find_channel_by_about_node(self._component.gt.HotNodeName)
-        self.cold_temp_channel = self._find_channel_by_about_node(self._component.gt.ColdNodeName)
+        self.flow_channel = self._find_channel_by_about_node(
+            self._component.gt.FlowNodeName
+        )
+        self.hot_temp_channel = self._find_channel_by_about_node(
+            self._component.gt.HotNodeName
+        )
+        self.cold_temp_channel = self._find_channel_by_about_node(
+            self._component.gt.ColdNodeName
+        )
         # CT channel is optional
         self.ct_channel = None
         if self._component.gt.CtNodeName:
-            self.ct_channel = self._find_channel_by_about_node(self._component.gt.CtNodeName)
+            self.ct_channel = self._find_channel_by_about_node(
+                self._component.gt.CtNodeName
+            )
 
     def _find_channel_by_about_node(self, about_node_name: str):
         """Find a data channel by its AboutNodeName"""
@@ -145,66 +158,84 @@ class ApiBtuMeter(ScadaActor):
         print("GOT BTU PARAMS")
         text = await self._get_text(request)
         self.params_text = text
-        if isinstance(text, str):
-            try:
-                params = AsyncBtuParams(**json.loads(text))
-                
-                # Match FastAPI's response exactly
-                response_data = params.model_dump_json()
-                return Response(
-                    text=response_data,
-                    content_type='application/json',  # FastAPI uses this
-                    status=200
+        self.log(f"Params received: {text}")
+        try:
+            params = AsyncBtuParams(**json.loads(text))
+        except BaseException as e:
+            self._report_post_error(e, "malformed BtuMeter parameters!")
+            r = Response()
+            self.log(f"malformed BtuMeter parameters! returning {r}")
+            return r
+        if params.ActorNodeName != self.name:
+            r = Response()
+            self.log(
+                f"ActorNodeName {params.ActorNodeName} not {self.name}! returning {r}"
+            )
+            return r
+
+        # Check if this is our pico (or if we don't have one yet)
+        if self.is_valid_pico_uid(params):
+            # Update the pico's configuration to match our layout
+            params.FlowNodeName = self._component.gt.FlowNodeName
+            params.HotNodeName = self._component.gt.HotNodeName
+            params.ColdNodeName = self._component.gt.ColdNodeName
+            params.CtNodeName = self._component.gt.CtNodeName
+            params.ThermistorBeta = self._component.gt.ThermistorBeta
+            # Set timing parameters
+
+            # Get CapturePeriodS from flow channel config
+            period = 60  # Default
+
+            # Find the config for the flow channel
+            flow_config = next(
+                (
+                    cfg
+                    for cfg in self._component.gt.ConfigList
+                    if cfg.ChannelName == self.flow_channel.Name
+                ),
+                None,
+            )
+
+            if flow_config:
+                period = flow_config.CapturePeriodS
+            else:
+                # TODO: This should be validated in House0Layout - flow channel config must exist
+                self.log(
+                    f"WARNING: No config found for flow channel {self.flow_channel.Name}, using default period {period}s"
                 )
-            except Exception as e:
-                self._report_post_error(e, text)
-                return Response(status=400)
-    
-        return Response(status=400)
-            
-        # self.log(f"Params received: {text}")
-        # try:
-        #     params = AsyncBtuParams(**json.loads(text))
-        # except BaseException as e:
-        #     self._report_post_error(e, "malformed BtuMeter parameters!")
-        #     r = Response()
-        #     self.log(f"malformed BtuMeter parameters! returning {r}")
-        #     return r
-        # if params.ActorNodeName != self.name:
-        #     r = Response()
-        #     self.log(f"ActorNodeName {params.ActorNodeName} not {self.name}! returning {r}")
-        #     return r
 
-        # # Check if this is our pico (or if we don't have one yet)
-        # if self.is_valid_pico_uid(params):
-        #     # Update the pico's configuration to match our layout
-        #     params.FlowNodeName = self._component.gt.FlowNodeName
-        #     params.HotNodeName = self._component.gt.HotNodeName
-        #     params.ColdNodeName = self._component.gt.ColdNodeName
-        #     params.CtNodeName = self._component.gt.CtNodeName
+            # Calculate seconds until next minute boundary
+            seconds_to_next_top = period - (time.time() % period)
+            self.log(
+                f"btu report period of {period}s. seconds_to_next_top is {seconds_to_next_top}"
+            )
 
-        #     # Set timing parameters
-        #     params.CapturePeriodS = 60
-        #     period = params.CapturePeriodS
-        #     offset = round(period - time.time() % period, 3) - 2
-        #     params.CaptureOffsetS = offset
+            # Subtract 7.5 seconds to give the pico time to prepare
+            # If this would be negative, wrap around to the previous cycle
+            offset = seconds_to_next_top
+            # if offset < 0:
+            #     offset += period
 
-        #     # If this is a new pico, log the HwUid for layout update
-        #     if self.need_to_update_layout(params):
-        #         if self.device_type.MakeModel == MakeModel.GRIDWORKS__GW101:
-        #             self.pico_uid = params.HwUid
-        #             self.log(
-        #                 f"UPDATE LAYOUT!!: In layout_gen, go to ### {self.name} "
-        #                 f"and add HwUid = '{params.HwUid}'"
-        #             )
-        #     r = Response(text=params.model_dump_json())
-        #     self.log(f"Valid pico id. returning {r}")
-        #     return Response(text=params.model_dump_json())
-        # else:
-        #     # A strange pico is identifying itself as our "a" tank
-        #     self.log(f"unknown pico {params.HwUid} identifying as {self.name}")
-        #     # TODO: send problem report?
-        #     return Response()
+            offset = round(offset, 1)
+            params.CapturePeriodS = period
+            params.CaptureOffsetS = offset
+
+            # If this is a new pico, log the HwUid for layout update
+            if self.need_to_update_layout(params):
+                if self.device_type.MakeModel == MakeModel.GRIDWORKS__GW101:
+                    self.pico_uid = params.HwUid
+                    self.log(
+                        f"UPDATE LAYOUT!!: In layout_gen, go to ### {self.name} "
+                        f"and add HwUid = '{params.HwUid}'"
+                    )
+            r = Response(text=params.model_dump_json())
+            self.log(f"Valid pico id. returning {r}")
+            return Response(text=params.model_dump_json())
+        else:
+            # A strange pico is identifying itself as our "a" tank
+            self.log(f"unknown pico {params.HwUid} identifying as {self.name}")
+            # TODO: send problem report?
+            return Response()
 
     async def _handle_async_btu_data_post(self, request: Request) -> Response:
         text = await self._get_text(request)
@@ -214,7 +245,7 @@ class ApiBtuMeter(ScadaActor):
         except Exception as e:
             self.log(f"Did not interpret data as AsyncBtuData: {e}")
             return Response(text="failed", status=100)
-        
+
         self.readings_text = text
         if isinstance(text, str):
             try:
@@ -299,9 +330,9 @@ class ApiBtuMeter(ScadaActor):
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
             if (
-                time.time() - self.last_heard > self.flatline_seconds() and
-                time.time() - self.last_error_report > FLATLINE_REPORT_S
-                ):
+                time.time() - self.last_heard > self.flatline_seconds()
+                and time.time() - self.last_error_report > FLATLINE_REPORT_S
+            ):
                 if self.device_type.MakeModel == MakeModel.GRIDWORKS__GW101:
                     if self.missing() and self.pico_uid:
                         self._send_to(
