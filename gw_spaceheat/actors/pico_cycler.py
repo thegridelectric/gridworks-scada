@@ -103,7 +103,9 @@ class PicoCycler(ScadaActor):
         self.pico_actors = [
             node
             for node in self.layout.nodes.values()
-            if node.ActorClass in [ActorClass.ApiFlowModule, ActorClass.ApiTankModule]
+            if node.ActorClass in [ActorClass.ApiBtuMeter,
+                                   ActorClass.ApiFlowModule, 
+                                   ActorClass.ApiTankModule]
         ]
         self.last_open_time = time.time() # used to track how long since the VDC relay was cycled
         self._stop_requested = False
@@ -111,6 +113,11 @@ class PicoCycler(ScadaActor):
         self.ab_by_pico = {}
         self.picos = []
         for node in self.pico_actors:
+            if node.component is None:
+                raise ValueError("pico actors must have components!!")
+            if node.ActorClass == ActorClass.ApiBtuMeter:
+                self.actor_by_pico[node.component.gt.HwUid] = node
+                self.picos.append(node.component.gt.HwUid)
             if node.ActorClass == ActorClass.ApiFlowModule:
                 self.actor_by_pico[node.component.gt.HwUid] = node
                 self.picos.append(node.component.gt.HwUid)
@@ -245,11 +252,12 @@ class PicoCycler(ScadaActor):
     def process_synced_readings(self, actor: ShNode, payload: SyncedReadings) -> None:
         if actor not in self.pico_actors:
             self.log(
-                f"Received channel readings from {actor.name}, not one of its pico relays"
+                f"Received channel readings from {actor.name}, not one of its picos!"
             )
             return
         pico: str | None = None
-        if actor.ActorClass == ActorClass.ApiFlowModule:
+
+        if actor.ActorClass in [ActorClass.ApiFlowModule, ActorClass.ApiBtuMeter]:
             pico = actor.component.gt.HwUid
             if pico not in self.picos:
                 raise Exception(f"[{self.name}] {pico} should be in self.picos!")
