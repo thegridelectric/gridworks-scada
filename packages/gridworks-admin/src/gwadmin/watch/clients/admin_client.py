@@ -220,7 +220,7 @@ class AdminClient:
             Src=H0N.admin,
             Payload=payload
         )
-        self._logger.debug(f"Publishing {message.mqtt_topic()}")
+        self._logger.debug(f"AdminClient.publish: {message.mqtt_topic()}")
         return self._paho_wrapper.publish(
             message.mqtt_topic(),
             message.model_dump_json(indent=2).encode()

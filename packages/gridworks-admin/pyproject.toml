@@ -1,6 +1,6 @@
 [project]
 name = "gridworks-admin"
-version = "1.0.0"
+version = "1.0.5"
 description = "CLI tool for monitoring gridworks-scada devices."
 readme = "README.md"
 authors = [
@@ -22,6 +22,7 @@ dependencies = [
 
 [project.scripts]
 gwa = "gwadmin:cli.app"
+gridworks-admin = "gwadmin:cli.app"
 
 [build-system]
 requires = ["uv_build>=0.8.8,<0.9.0"]
