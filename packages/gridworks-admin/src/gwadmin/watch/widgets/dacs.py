@@ -187,7 +187,10 @@ class Dacs(Widget):
             disabled = True
         button = self.query_one("#send_dac_button", Button)
         table = self.query_one("#dacs_table", DataTable)
-        dac_name = table.get_row_at(table.cursor_row)[0]
+        if table.is_valid_row_index(table.cursor_row):
+            dac_name = table.get_row_at(table.cursor_row)[0]
+        else:
+            dac_name = ""
         button.label = self.dac_button_text(dac_name, input_widget_value)
         button.disabled = disabled
         self.query_one("#dac_control_container", HorizontalGroup).border_title = self.dac_box_text(dac_name)
