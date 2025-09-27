@@ -308,6 +308,13 @@ def config(
             help="Save any changes to the configuration produced by command line options."
         )
     ] = False,
+    json: Annotated[
+        bool,
+        typer.Option(
+            "--json",
+            help="Generate output in json format."
+        )
+    ] = False,
     config_name: Annotated[
         Optional[str], typer.Option(help=CONFIG_NAME_HELP_TEXT, show_default=False)
     ] = None,
@@ -326,9 +333,13 @@ def config(
         config_name=config_name,
         env_file=env_file,
     )
-    rich.print(current_config.config)
+    if json:
+        print(current_config.model_dump_json(indent=2))
+    else:
+        rich.print(current_config.config)
     if save:
-        rich.print(f"Saving configuration in {current_config.paths.admin_config_path}")
+        if not json:
+            rich.print(f"Saving configuration in {current_config.paths.admin_config_path}")
         current_config.save_config()
 
 
@@ -357,7 +368,7 @@ def mkconfig(
                 f"Configuartion file {paths.admin_config_path} [red][bold]already exists. Doing nothing.[/red][/bold]"
             )
             rich.print(f"Use --force to overwrite existing configuration.")
-            return
+            raise typer.Exit(4)
         else:
             rich.print(
                 f"[red][bold]DELETING existing configuration[/red][/bold]."
@@ -485,7 +496,7 @@ def add_scada(
         rich.print(
             "Use --update to update the existing configuration or --force to overwrite it.\n"
         )
-        return
+        raise typer.Exit(5)
     if len(current_config.config.scadas) == 1 or default:
         current_config.config.default_scada = name
     rich.print(f"Updating config file {current_config.paths.admin_config_path}")
