@@ -23,6 +23,8 @@ from layout_gen import StubConfig
 from layout_gen import HubitatThermostatGenCfg
 from layout_gen import add_thermostat
 from layout_gen import Tank2Cfg
+from layout_gen.dfr import add_dfrs
+from layout_gen.dfr import DfrConf
 from layout_gen.relay import add_relays
 from layout_gen.relay import RelayCfg
 from layout_gen.synth_channels import add_synth
@@ -87,6 +89,16 @@ def make_tst_layout(src_path: Path) -> LayoutDb:
             Strategy="house-parameters-and-weather",
         ),
     )
+
+    add_dfrs(
+        db,
+        DfrConf(
+            DistPumpDefault=20,
+            PrimaryPumpDefault=40,
+            StorePumpDefault=0,
+        ),
+    )
+
 
     return db
 
