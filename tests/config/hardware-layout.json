@@ -310,6 +310,39 @@
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
       "Version": "001"
+    },
+    {
+      "AboutNodeName": "dist-010v",
+      "CapturedByNodeName": "dfr-multiplexer",
+      "DisplayName": "Dist 010V",
+      "Id": "3eafa498-0a7a-4222-8e70-2645f01cc215",
+      "Name": "dist-010v",
+      "TelemetryName": "VoltsTimesTen",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "primary-010v",
+      "CapturedByNodeName": "dfr-multiplexer",
+      "DisplayName": "Primary 010V",
+      "Id": "ddca1429-ae7e-4b0d-9a03-99754e4a7d31",
+      "Name": "primary-010v",
+      "TelemetryName": "VoltsTimesTen",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "store-010v",
+      "CapturedByNodeName": "dfr-multiplexer",
+      "DisplayName": "Store 010V",
+      "Id": "566ad060-37d2-4bcb-a9d1-ce0111a03b56",
+      "Name": "store-010v",
+      "TelemetryName": "VoltsTimesTen",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
     }
   ],
   "ElectricMeterCacs": [
@@ -418,6 +451,13 @@
       "ComponentAttributeClassId": "f88fbf89-5b74-46d6-84a3-8e7494d08435",
       "DisplayName": "GridWorks TankModule2 (Uses 2 picos)",
       "MakeModel": "GRIDWORKS__TANKMODULE2",
+      "TypeName": "component.attribute.class.gt",
+      "Version": "001"
+    },
+    {
+      "ComponentAttributeClassId": "69a0e36e-9c15-4d50-8a7b-ae63649ecc36",
+      "DisplayName": "DFRobot DFR0971 X 2",
+      "MakeModel": "DFROBOT__DFR0971_TIMES2",
       "TypeName": "component.attribute.class.gt",
       "Version": "001"
     }
@@ -813,7 +853,7 @@
     {
       "AsyncCaptureDeltaMicroVolts": 2000,
       "ComponentAttributeClassId": "f88fbf89-5b74-46d6-84a3-8e7494d08435",
-      "ComponentId": "362c9d50-c952-43b4-be2c-95dfd7a25afd",
+      "ComponentId": "8904ace0-2348-4b04-8432-7591038cf9d1",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -893,14 +933,59 @@
       "NumSampleAverages": 30,
       "PicoAHwUid": "pico_aaaaaa",
       "PicoBHwUid": "pico_bbbbbb",
-      "PicoKOhms": 30,
       "Samples": 1000,
       "SendMicroVolts": true,
       "SerialNumber": "9999",
-      "TempCalcMethod": "SimpleBetaForPico",
+      "TempCalcMethod": "SimpleBeta",
       "ThermistorBeta": 3977,
       "TypeName": "pico.tank.module.component.gt",
       "Version": "010"
+    },
+    {
+      "ComponentAttributeClassId": "69a0e36e-9c15-4d50-8a7b-ae63649ecc36",
+      "ComponentId": "3b437278-d34a-4c20-be2e-756b06bffc9a",
+      "ConfigList": [
+        {
+          "AsyncCapture": true,
+          "CapturePeriodS": 300,
+          "ChannelName": "dist-010v",
+          "Exponent": 1,
+          "InitialVoltsTimes100": 20,
+          "OutputIdx": 1,
+          "TypeName": "dfr.config",
+          "Unit": "VoltsRms",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "CapturePeriodS": 300,
+          "ChannelName": "primary-010v",
+          "Exponent": 1,
+          "InitialVoltsTimes100": 40,
+          "OutputIdx": 2,
+          "TypeName": "dfr.config",
+          "Unit": "VoltsRms",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "CapturePeriodS": 300,
+          "ChannelName": "store-010v",
+          "Exponent": 1,
+          "InitialVoltsTimes100": 0,
+          "OutputIdx": 3,
+          "TypeName": "dfr.config",
+          "Unit": "VoltsRms",
+          "Version": "000"
+        }
+      ],
+      "DisplayName": "DFRobot 010V output X 2",
+      "I2cAddressList": [
+        94,
+        95
+      ],
+      "TypeName": "dfr.component.gt",
+      "Version": "000"
     }
   ],
   "ShNodes": [
@@ -1256,7 +1341,7 @@
     {
       "ActorClass": "ApiTankModule",
       "ActorHierarchyName": "s.buffer",
-      "ComponentId": "362c9d50-c952-43b4-be2c-95dfd7a25afd",
+      "ComponentId": "8904ace0-2348-4b04-8432-7591038cf9d1",
       "DisplayName": "Buffer Tank",
       "Name": "buffer",
       "ShNodeId": "68596845-2e66-4f9d-a876-90da381ddc37",
@@ -1292,6 +1377,46 @@
       "DisplayName": "buffer-depth4",
       "Name": "buffer-depth4",
       "ShNodeId": "cf5a5804-81a7-464d-b70d-590f41401cf2",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "I2cDfrMultiplexer",
+      "ActorHierarchyName": "s.dfr-multiplexer",
+      "ComponentId": "3b437278-d34a-4c20-be2e-756b06bffc9a",
+      "DisplayName": "I2c Zero Ten Out Multiplexer",
+      "Name": "dfr-multiplexer",
+      "ShNodeId": "af931edc-fca9-4aaf-82f0-6632e7e90633",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "ZeroTenOutputer",
+      "ActorHierarchyName": "s.dist-010v",
+      "DisplayName": "Dist DFR",
+      "Handle": "auto.dist-010v",
+      "Name": "dist-010v",
+      "ShNodeId": "f137f4a2-3fb9-423d-ab83-dc2f60525c09",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "ZeroTenOutputer",
+      "ActorHierarchyName": "s.primary-010v",
+      "DisplayName": "Primary DFR",
+      "Handle": "auto.primary-010v",
+      "Name": "primary-010v",
+      "ShNodeId": "30a2b01a-6b00-49bf-8fa1-9450f27289b8",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "ZeroTenOutputer",
+      "ActorHierarchyName": "s.store-010v",
+      "DisplayName": "Store DFR",
+      "Handle": "auto.store-010v",
+      "Name": "store-010v",
+      "ShNodeId": "8e631dc8-2049-4e15-b73c-1b281520595b",
       "TypeName": "spaceheat.node.gt",
       "Version": "200"
     }

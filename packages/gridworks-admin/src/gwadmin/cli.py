@@ -15,6 +15,7 @@ from gwadmin.config import AdminConfig
 from gwadmin.config import AdminPaths
 from gwadmin.config import CurrentAdminConfig
 from gwadmin.config import AdminMQTTClient
+from gwadmin.config import ScadaConfig
 from gwadmin.watch.relay_app import RelaysApp, __version__
 from gwsproto.data_classes.house_0_names import H0N
 
@@ -66,6 +67,7 @@ def get_admin_config(
     paho_verbose: int = 0,
     show_clock: Optional[bool] = None,
     show_footer: Optional[bool] = None,
+    show_selected_scada_block: Optional[bool] = None,
     default_scada: Optional[str] = None,
     use_last_scada: Optional[bool] = None,
     default_timeout_seconds: Optional[int] = None,
@@ -78,13 +80,13 @@ def get_admin_config(
             json_data = f.read()
         admin_config = AdminConfig.model_validate_json(json_data)
     if verbose:
-        if verbose == 0:
+        if verbose == 1:
             verbosity = logging.INFO
         else:
             verbosity = logging.DEBUG
         admin_config.verbosity = verbosity
     if paho_verbose:
-        if paho_verbose == 0:
+        if paho_verbose == 1:
             paho_verbosity = logging.INFO
         else:
             paho_verbosity = logging.DEBUG
@@ -93,15 +95,10 @@ def get_admin_config(
         admin_config.show_footer = show_footer
     if show_clock is not None:
         admin_config.show_clock = show_clock
+    if show_selected_scada_block is not None:
+        admin_config.show_selected_scada_block = show_selected_scada_block
     if default_scada is not None:
         admin_config.default_scada = default_scada
-    # if not admin_config.default_scada in admin_config.scadas:
-    #     rich.print(
-    #         f"[yellow][bold]Default scada '{admin_config.default_scada}' does not exist[/yellow][/bold] "
-    #         f"in config. Available scadas: {available_scadas(admin_config)}""."
-    #     )
-    #     raise typer.Exit(-1)
-    #
     if use_last_scada is not None:
         admin_config.use_last_scada = use_last_scada
     if default_timeout_seconds is not None:
@@ -143,7 +140,6 @@ def watch(
     show_clock: Annotated[
         Optional[bool],
         typer.Option(
-            "--show-clock",
             show_default=False,
             help="Show the clock in the title bar."
         ),
@@ -151,9 +147,15 @@ def watch(
     show_footer: Annotated[
         Optional[bool],
         typer.Option(
-            "--show-footer",
             show_default=False,
             help="Show the footer with shortcut keys."
+        ),
+    ] = None,
+    show_scada_block: Annotated[
+        Optional[bool],
+        typer.Option(
+            show_default=False,
+            help="Show a colored block for the selected scada in the select section."
         ),
     ] = None,
     default_scada: Annotated[
@@ -197,6 +199,7 @@ def watch(
         paho_verbose=paho_verbose,
         show_clock=show_clock,
         show_footer=show_footer,
+        show_selected_scada_block=show_scada_block,
         default_scada=default_scada,
         use_last_scada=use_last_scada,
         default_timeout_seconds=default_timeout_seconds,
@@ -209,9 +212,9 @@ def watch(
         scada = current_config.config.default_scada
     if not scada:
         rich.print(
-            "[yellow][bold]No scada specified[/yellow][/bold] on command line, "
+            "[red][bold]No scada specified[/red][/bold] on command line, "
             "via last-scada-used or in default. "
-            "[yellow][bold]Doing nothing.[/yellow][/bold]"
+            "[red][bold]Doing nothing.[/red][/bold]"
         )
         if not current_config.paths.admin_config_path.exists():
             rich.print(
@@ -224,12 +227,11 @@ def watch(
         raise typer.Exit(2)
     if not scada in current_config.config.scadas:
         rich.print(
-            f"[yellow][bold]Specified scada '{scada}' does not exist[/yellow][/bold] "
+            f"[red][bold]Specified scada '{scada}' does not exist[/red][/bold] "
             f"in config. Available scadas: {available_scadas(current_config.config)}""."
         )
         raise typer.Exit(3)
     current_config.curr_scada = scada
-    rich.print(f"Using scada '{scada}'.")
     if current_config.config.use_last_scada:
         current_config.save_curr_scada(scada)
     if save:
@@ -258,7 +260,6 @@ def config(
     show_clock: Annotated[
         Optional[bool],
         typer.Option(
-            "--show-clock",
             show_default=False,
             help="Show the clock in the title bar."
         ),
@@ -266,9 +267,15 @@ def config(
     show_footer: Annotated[
         Optional[bool],
         typer.Option(
-            "--show-footer",
             show_default=False,
             help="Show the footer with shortcut keys."
+        ),
+    ] = None,
+    show_scada_block: Annotated[
+        Optional[bool],
+        typer.Option(
+            show_default=False,
+            help="Show a colored block for the selected scada in the select section."
         ),
     ] = None,
     default_scada: Annotated[
@@ -301,6 +308,13 @@ def config(
             help="Save any changes to the configuration produced by command line options."
         )
     ] = False,
+    json: Annotated[
+        bool,
+        typer.Option(
+            "--json",
+            help="Generate output in json format."
+        )
+    ] = False,
     config_name: Annotated[
         Optional[str], typer.Option(help=CONFIG_NAME_HELP_TEXT, show_default=False)
     ] = None,
@@ -312,15 +326,20 @@ def config(
         paho_verbose=paho_verbose,
         show_clock=show_clock,
         show_footer=show_footer,
+        show_selected_scada_block=show_scada_block,
         default_scada=default_scada,
         use_last_scada=use_last_scada,
         default_timeout_seconds=default_timeout_seconds,
         config_name=config_name,
         env_file=env_file,
     )
-    rich.print(current_config.config)
+    if json:
+        print(current_config.model_dump_json(indent=2))
+    else:
+        rich.print(current_config.config)
     if save:
-        rich.print(f"Saving configuration in {current_config.paths.admin_config_path}")
+        if not json:
+            rich.print(f"Saving configuration in {current_config.paths.admin_config_path}")
         current_config.save_config()
 
 
@@ -336,7 +355,7 @@ def mkconfig(
         typer.Option(
             "--force",
             help="""Overwrites existing configuration file.
-            [yellow][bold]WARNING: [/yellow][/bold]--force will [red][bold]PERMANENTLY DELETE[/red][/bold]
+            [red][bold]WARNING: [/red][/bold]--force will [red][bold]PERMANENTLY DELETE[/red][/bold]
             this Admin configuration.""",
         ),
     ] = False,
@@ -346,13 +365,13 @@ def mkconfig(
     if paths.admin_config_path.exists():
         if not force:
             rich.print(
-                f"Configuartion file {paths.admin_config_path} [yellow][bold]already exists. Doing nothing.[/yellow][/bold]"
+                f"Configuartion file {paths.admin_config_path} [red][bold]already exists. Doing nothing.[/red][/bold]"
             )
             rich.print(f"Use --force to overwrite existing configuration.")
-            return
+            raise typer.Exit(4)
         else:
             rich.print(
-                f"[yellow][bold]DELETING existing configuration[/yellow][/bold]."
+                f"[red][bold]DELETING existing configuration[/red][/bold]."
             )
             paths.admin_config_path.unlink()
     rich.print(f"Creating {paths.admin_config_path}")
@@ -371,18 +390,64 @@ def add_scada(
         )
     ],
     *,
-    long_name: str = "",
-    host = "localhost",
-    port = 1883,
-    username: Optional[str] = None,
-    password: Optional[str] = None,
-    use_tls: bool = False,
-    default: Annotated[
-        bool, typer.Option(
+    long_name: Annotated[
+        Optional[str], typer.Option(
+            show_default=False,
             help=(
-                "Whether to set this scada as the default scada."
+                "The long name or 'gnode alias' of the scada. This name is used"
+                " to construct the MQTT topic for connecting to the scada."
             )
         )
+    ] = None,
+    host: Annotated[
+        Optional[str],
+        typer.Option(
+            show_default=False,
+            help=(
+                "The IP address or domain name of the scada. "
+                "Default is 'localhost'."
+            )
+        )
+    ] = None,
+    port: Annotated[
+        Optional[int],
+        typer.Option(
+            show_default=False,
+            help=(
+                "The TCP/IP port in use for MQTT on the scada. Default is 1883."
+            )
+        )
+    ] = None,
+    username:  Annotated[
+        Optional[str],
+        typer.Option(
+            show_default=False,
+            help="The MQTT username, if any.",
+        )
+    ] = None,
+    password:  Annotated[
+        Optional[str],
+        typer.Option(
+            show_default=False,
+            help="The MQTT password, if any.",
+        )
+    ] = None,
+    use_tls:  Annotated[
+        Optional[bool],
+        typer.Option(help="Whether to use TLS for this scada.")
+    ] = None,
+    default: Annotated[
+        bool,
+        typer.Option(help="Whether to set this scada as the default scada.")
+    ] = None,
+    enabled: Annotated[
+        bool, typer.Option(help="Whether current configuration is enabled.")
+    ] = None,
+    force: Annotated[
+        bool, typer.Option("--force", help="Overwrite any existing scada configuration.")
+    ] = False,
+    update: Annotated[
+        bool, typer.Option("--update", help="Update the selected scada.")
     ] = False,
     config_name: Annotated[
         Optional[str], typer.Option(help=CONFIG_NAME_HELP_TEXT, show_default=False)
@@ -391,36 +456,57 @@ def add_scada(
 ) -> None:
     """Add configuration to connect to a particular Scada."""
     current_config = get_admin_config(config_name=config_name, env_file=env_file)
-    if current_config.add_scada(
-            name,
-            long_name=long_name,
-            mqtt_client_config=AdminMQTTClient(
-                host=host,
-                port=port,
-                username=username,
-                password=SecretStr(password),
-                tls=TLSInfo(use_tls=use_tls),
+    if name not in current_config.config.scadas or force:
+        if name not in current_config.config.scadas:
+            rich.print(f"Adding configuration for scada '{name}'")
+        else:
+            rich.print("Overwriting configuration for scada '{name}'")
+        current_config.config.scadas[name] = ScadaConfig(
+            enabled=True if enabled is None else enabled,
+            long_name=long_name if long_name is not None else "",
+            mqtt=AdminMQTTClient(
+                host=host if host is not None else "localhost",
+                port=port if port is not None else 1883,
+                username=username if username is not None else "",
+                password=SecretStr(password if password is not None else ""),
+                tls=TLSInfo(use_tls=use_tls if use_tls is not None else False),
             )
-    ):
-        rich.print(f"Adding default configuration for scada '{name}'")
-        if len(current_config.config.scadas) == 1 or default:
-            current_config.config.default_scada = name
-        rich.print(f"Updating config file {current_config.paths.admin_config_path}")
-        with current_config.paths.admin_config_path.open(mode="w") as f:
-            f.write(current_config.config.model_dump_json(indent=2))
+        )
+    elif update:
+        rich.print(f"Updating configuration for scada '{name}'")
+        scada_config = current_config.config.scadas[name]
+        if enabled is not None:
+            scada_config.enabled = enabled
+        if long_name is not None:
+            scada_config.long_name = long_name
+        if host is not None:
+            scada_config.mqtt.host = host
+        if port is not None:
+            scada_config.mqtt.port = port
+        if username is not None:
+            scada_config.mqtt.username = username
+        if password is not None:
+            scada_config.mqtt.password = SecretStr(password)
+        if use_tls is not None:
+            scada_config.mqtt.tls.use_tls = use_tls
     else:
         rich.print(
-            f"Scada with name {name} [yellow][bold]already exists. Doing nothing.[/yellow][/bold]"
+            f"Scada with name {name} [red][bold]already exists. Doing nothing.[/red][/bold]\n"
         )
         rich.print(
-            "Use --force to overwrite existing configuration[/yellow][/bold] or modify config file."
+            "Use --update to update the existing configuration or --force to overwrite it.\n"
         )
-        return
+        raise typer.Exit(5)
+    if len(current_config.config.scadas) == 1 or default:
+        current_config.config.default_scada = name
+    rich.print(f"Updating config file {current_config.paths.admin_config_path}")
+    with current_config.paths.admin_config_path.open(mode="w") as f:
+        f.write(current_config.config.model_dump_json(indent=2))
 
 
 def version_callback(value: bool):
     if value:
-        print(f"gws admin {__version__}")
+        rich.print(f"GridWorks Scada Admin Client, version {__version__}")
         raise typer.Exit()
 
 @app.callback()
