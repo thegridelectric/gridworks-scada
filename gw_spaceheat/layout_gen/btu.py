@@ -1,6 +1,7 @@
 from gwproto.named_types import PicoBtuMeterComponentGt
 from typing import Optional, Any
-from pydantic import BaseModel
+from typing_extensions import Self
+from pydantic import BaseModel, model_validator
 from gwproto.property_format import SpaceheatName
 from layout_gen import LayoutDb
 from gwproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
@@ -21,9 +22,10 @@ class BtuCfg(BaseModel):
     HwUid: Optional[str] = None
     ActorNodeName: SpaceheatName
     FlowChannelName: SpaceheatName
+    SendHz: bool = False
     HotChannelName: SpaceheatName
     ColdChannelName: SpaceheatName
-    ReadCt: bool
+    ReadCtVoltage: bool
     CtChannelName: Optional[SpaceheatName] = None
     FlowMeterType: MakeModel = MakeModel.SAIER__SENHZG1WA
     HzMethod: HzCalcMethod = HzCalcMethod.UniformWindow
@@ -38,7 +40,18 @@ class BtuCfg(BaseModel):
 
     def component_display_name(self) -> str:
         return f"{self.ActorNodeName} BtuMeter"
-    
+
+    @model_validator(mode="after")
+    def check_axiom_1(self) -> Self:
+        """
+        Axiom 1: ReadCtVoltage is True iff AsyncCaptureDeltaCtVoltsX100 exists
+        """
+        if self.ReadCtVoltage and not self.AsyncCaptureDeltaCtVoltsX100:
+            raise ValueError(f"Axiom 1 violated! ReadCtVoltage {self.ReadCtVoltage} requires AsyncCaptureDeltaCtVoltsX100!")
+        if not self.ReadCtVoltage and self.AsyncCaptureDeltaCtVoltsX100:
+            raise ValueError(f"Axiom 1 violated: ReadCtVoltage {self.ReadCtVoltage} means NO AsyncCaptureDeltaCtVoltsX100. Got {self.AsyncCaptureDeltaCtVoltsX100}")
+        return self
+
 
 def add_btu(
         db: LayoutDb,
@@ -82,7 +95,7 @@ def add_btu(
                     Unit=Unit.Celcius
                 ),
         ]
-        if cfg.ReadCt:
+        if cfg.ReadCtVoltage:
             config_list.append(
                 ChannelConfig(
                     ChannelName=f"{cfg.CtChannelName}",
@@ -108,9 +121,10 @@ def add_btu(
                     Enabled=cfg.Enabled,
                     SerialNumber=cfg.SerialNumber,
                     FlowChannelName=cfg.FlowChannelName,
+                    SendHz=cfg.SendHz,
                     HotChannelName=cfg.HotChannelName,
                     ColdChannelName=cfg.ColdChannelName,
-                    ReadCt=cfg.ReadCt,
+                    ReadCtVoltage=cfg.ReadCtVoltage,
                     CtChannelName=cfg.CtChannelName,
                     FlowMeterType=cfg.FlowMeterType,
                     HzCalcMethod=cfg.HzMethod,
@@ -149,7 +163,7 @@ def add_btu(
                 )
 
         # Add CT AboutNode if configured
-        if cfg.ReadCt and cfg.CtChannelName:
+        if cfg.ReadCtVoltage and cfg.CtChannelName:
             nodes_to_add.append(
                 SpaceheatNodeGt(
                     ShNodeId=db.make_node_id(cfg.CtChannelName),

@@ -173,10 +173,16 @@ class ApiBtuMeter(PicoActorBase):
         if self.is_valid_pico_uid(params):
             # Update the pico's configuration to match our layout
             params.FlowChannelName = self._component.gt.FlowChannelName
+            params.SendHz = self._component.gt.SendHz
+            params.ReadCtVoltage = self._component.gt.ReadCtVoltage
             params.HotChannelName = self._component.gt.HotChannelName
             params.ColdChannelName = self._component.gt.ColdChannelName
             params.CtChannelName = self._component.gt.CtChannelName
             params.ThermistorBeta = self._component.gt.ThermistorBeta
+
+            params.AsyncCaptureDeltaCelsiusX100 = self._component.gt.AsyncCaptureDeltaCelsiusX100
+            params.AsyncCaptureDeltaGpmX100 = self._component.gt.AsyncCaptureDeltaGpmX100
+            params.AsyncCaptureDeltaCtVoltsX100 = self._component.gt.AsyncCaptureDeltaCtVoltsX100
             # Set timing parameters
 
             # Get CapturePeriodS from flow channel config
