@@ -6,6 +6,7 @@ import rich
 import typer
 from aiohttp import web
 from aiohttp.web import Request, WebSocketResponse
+from aiohttp_cors import setup as cors_setup, ResourceOptions
 from webinter.settings import WebInterSettings
 from webinter.websocket_server import WebInterMQTTBridge
 
@@ -72,7 +73,20 @@ async def init_web_app(settings: WebInterSettings) -> web.Application:
     bridge.start_mqtt()
 
     web_app = web.Application()
-    web_app.router.add_get('/ws', websocket_handler)
+    
+    # Configure CORS
+    cors = cors_setup(web_app, defaults={
+        "*": ResourceOptions(
+            allow_credentials=True,
+            expose_headers="*",
+            allow_headers="*",
+            allow_methods="*"
+        )
+    })
+    
+    # Add CORS to the WebSocket route
+    cors.add(web_app.router.add_get('/ws', websocket_handler))
+    
     return web_app
 
 # Register the serve command with the CLI app
