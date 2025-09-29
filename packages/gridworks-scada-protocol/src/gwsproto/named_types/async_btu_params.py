@@ -3,7 +3,6 @@
 from typing import Literal, Optional
 
 from pydantic import BaseModel, PositiveInt
-
 from gwproto.property_format import (
     SpaceheatName,
 )
@@ -16,10 +15,10 @@ class AsyncBtuParams(BaseModel):
 
     HwUid: str
     ActorNodeName: SpaceheatName
-    FlowNodeName: SpaceheatName
-    HotNodeName: SpaceheatName
-    ColdNodeName: SpaceheatName
-    CtNodeName: Optional[SpaceheatName] = None
+    FlowChannelName: SpaceheatName
+    HotChannelName: SpaceheatName
+    ColdChannelName: SpaceheatName
+    CtChannelName: Optional[SpaceheatName] = None
     ThermistorBeta: Optional[int] = None
     CapturePeriodS: PositiveInt
     GallonsPerPulse: float

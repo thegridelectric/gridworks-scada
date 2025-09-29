@@ -14,7 +14,7 @@ from gwproto.data_classes.components import PicoBtuMeterComponent
 from gwproto.enums import MakeModel
 from gwproto.named_types import SyncedReadings
 from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
-from gwsproto.named_types import AsyncBtuData,  AsyncBtuParams, ChannelFlatlined, PicoMissing
+from gwsproto.named_types import MultichannelSnapshot,  AsyncBtuParams, ChannelFlatlined, PicoMissing
 from result import Ok, Result
 from scada_app_interface import ScadaAppInterface
 
@@ -62,27 +62,27 @@ class ApiBtuMeter(PicoActorBase):
             self._services.add_web_route(
                 server_name=DEFAULT_WEB_SERVER_NAME,
                 method="POST",
-                path="/" + self.async_btu_data_path,
-                handler=self._handle_async_btu_data_post,
+                path="/" + self.multichannel_snapshot_path,
+                handler=self._handle_multichannel_snapshot_post,
             )
         self.pico_uid = self._component.gt.HwUid
         self.last_heard = time.time()  # used for monitoring flatlined pico
         self.last_error_report = time.time()
         # Find channels by matching AboutNodeName to component's node names
         self.flow_channel = self._find_channel_by_about_node(
-            self._component.gt.FlowNodeName
+            self._component.gt.FlowChannelName
         )
         self.hot_temp_channel = self._find_channel_by_about_node(
-            self._component.gt.HotNodeName
+            self._component.gt.HotChannelName
         )
         self.cold_temp_channel = self._find_channel_by_about_node(
-            self._component.gt.ColdNodeName
+            self._component.gt.ColdChannelName
         )
         # CT channel is optional
         self.ct_channel = None
-        if self._component.gt.CtNodeName:
+        if self._component.gt.CtChannelName:
             self.ct_channel = self._find_channel_by_about_node(
-                self._component.gt.CtNodeName
+                self._component.gt.CtChannelName
             )
 
     def _find_channel_by_about_node(self, about_node_name: str):
@@ -107,8 +107,8 @@ class ApiBtuMeter(PicoActorBase):
         return f"{self.name}/async-btu-params"
 
     @cached_property
-    def async_btu_data_path(self) -> str:
-        return f"{self.name}/async-btu-data"
+    def multichannel_snapshot_path(self) -> str:
+        return f"{self.name}/multichannel-snapshot"
 
     async def _get_text(self, request: Request) -> Optional[str]:
         try:
@@ -160,7 +160,7 @@ class ApiBtuMeter(PicoActorBase):
         except BaseException as e:
             self._report_post_error(e, "malformed BtuMeter parameters!")
             r = Response()
-            self.log(f"malformed BtuMeter parameters! returning {r}")
+            self.log(f"malformed BtuMeter parameters: {e}")
             return r
         if params.ActorNodeName != self.name:
             r = Response()
@@ -172,10 +172,10 @@ class ApiBtuMeter(PicoActorBase):
         # Check if this is our pico (or if we don't have one yet)
         if self.is_valid_pico_uid(params):
             # Update the pico's configuration to match our layout
-            params.FlowNodeName = self._component.gt.FlowNodeName
-            params.HotNodeName = self._component.gt.HotNodeName
-            params.ColdNodeName = self._component.gt.ColdNodeName
-            params.CtNodeName = self._component.gt.CtNodeName
+            params.FlowChannelName = self._component.gt.FlowChannelName
+            params.HotChannelName = self._component.gt.HotChannelName
+            params.ColdChannelName = self._component.gt.ColdChannelName
+            params.CtChannelName = self._component.gt.CtChannelName
             params.ThermistorBeta = self._component.gt.ThermistorBeta
             # Set timing parameters
 
@@ -224,22 +224,22 @@ class ApiBtuMeter(PicoActorBase):
                         f"UPDATE LAYOUT!!: In layout_gen, go to ### {self.name} "
                         f"and add HwUid = '{params.HwUid}'"
                     )
-            r = Response(text=params.model_dump_json())
-            self.log(f"Valid pico id. returning {r}")
-            return Response(text=params.model_dump_json())
+            txt=params.model_dump_json()
+            self.log(f"Valid pico id. returning {txt}")
+            return Response(text=txt)
         else:
             # A strange pico is identifying itself as our "a" tank
             self.log(f"unknown pico {params.HwUid} identifying as {self.name}")
             # TODO: send problem report?
             return Response()
 
-    async def _handle_async_btu_data_post(self, request: Request) -> Response:
+    async def _handle_multichannel_snapshot_post(self, request: Request) -> Response:
         text = await self._get_text(request)
         #self.log("GOT BTU DATA")
         try:
-            data = AsyncBtuData(**json.loads(text))
+            data = MultichannelSnapshot(**json.loads(text))
         except Exception as e:
-            self.log(f"Did not interpret data as AsyncBtuData: {e}")
+            self.log(f"Did not interpret data as MultichannelSnapshot: {e}")
             return Response(text="failed", status=100)
 
         self.readings_text = text
@@ -249,15 +249,16 @@ class ApiBtuMeter(PicoActorBase):
                     Message(
                         Src=self.name,
                         Dst=self.name,
-                        Payload=AsyncBtuData(**json.loads(text)),
+                        Payload=MultichannelSnapshot(**json.loads(text)),
                     )
                 )
             except Exception as e:  # noqa
                 self._report_post_error(e, text)
         return Response()
 
-    def _process_async_btu_data(self, data: AsyncBtuData) -> None:
-        #self.log("IN _process_async_btu_data")
+    def _process_multichannel_snapshot(self, data: MultichannelSnapshot) -> None:
+        self.log("IN _process_multichannel_snapshot")
+        self.log(f"got {data}")
         if data.HwUid == self.pico_uid:
             self.last_heard = time.time()
         else:
@@ -280,7 +281,7 @@ class ApiBtuMeter(PicoActorBase):
 
         # Create and send the synced readings message
         msg = SyncedReadings(
-            ChannelNameList=data.AboutNodeNameList,  # TODO OPS-35 disambiguate between AboutNodeNames and ChannelNames
+            ChannelNameList=data.ChannelNameList,  # TODO OPS-35 disambiguate between AboutNodeNames and ChannelNames
             ValueList=converted_values,
             ScadaReadTimeUnixMs=int(time.time() * 1000),
         )
@@ -289,8 +290,8 @@ class ApiBtuMeter(PicoActorBase):
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         match message.Payload:
-            case AsyncBtuData():
-                self._process_async_btu_data(message.Payload)
+            case MultichannelSnapshot():
+                self._process_multichannel_snapshot(message.Payload)
         return Ok(True)
 
     def start(self) -> None:

@@ -20,11 +20,11 @@ class BtuCfg(BaseModel):
     SerialNumber: str = "NA"
     HwUid: Optional[str] = None
     ActorNodeName: SpaceheatName
-    FlowNodeName: SpaceheatName
-    HotNodeName: SpaceheatName
-    ColdNodeName: SpaceheatName
+    FlowChannelName: SpaceheatName
+    HotChannelName: SpaceheatName
+    ColdChannelName: SpaceheatName
     ReadCt: bool
-    CtNodeName: Optional[SpaceheatName] = None
+    CtChannelName: Optional[SpaceheatName] = None
     FlowMeterType: MakeModel = MakeModel.SAIER__SENHZG1WA
     HzMethod: HzCalcMethod = HzCalcMethod.UniformWindow
     GpmMethod: GpmFromHzMethod = GpmFromHzMethod.Constant
@@ -61,21 +61,21 @@ def add_btu(
     if not db.component_id_by_alias(cfg.component_display_name()):
         config_list = [
                 ChannelConfig(
-                    ChannelName=f"{cfg.FlowNodeName}",
+                    ChannelName=f"{cfg.FlowChannelName}",
                     CapturePeriodS=cfg.CapturePeriodS,
                     AsyncCapture=True,
                     Exponent=2,
                     Unit=Unit.Gpm
                 ),
                 ChannelConfig(
-                    ChannelName=f"{cfg.HotNodeName}",
+                    ChannelName=f"{cfg.HotChannelName}",
                     CapturePeriodS=cfg.CapturePeriodS,
                     AsyncCapture=True,
                     Exponent=2,
                     Unit=Unit.Celcius
                 ),
                 ChannelConfig(
-                    ChannelName=f"{cfg.ColdNodeName}",
+                    ChannelName=f"{cfg.ColdChannelName}",
                     CapturePeriodS=cfg.CapturePeriodS,
                     AsyncCapture=True,
                     Exponent=2,
@@ -85,7 +85,7 @@ def add_btu(
         if cfg.ReadCt:
             config_list.append(
                 ChannelConfig(
-                    ChannelName=f"{cfg.CtNodeName}",
+                    ChannelName=f"{cfg.CtChannelName}",
                     CapturePeriodS=cfg.CapturePeriodS,
                     AsyncCapture=True,
                     Exponent=2,
@@ -107,11 +107,11 @@ def add_btu(
                     ConfigList=config_list,
                     Enabled=cfg.Enabled,
                     SerialNumber=cfg.SerialNumber,
-                    FlowNodeName=cfg.FlowNodeName,
-                    HotNodeName=cfg.HotNodeName,
-                    ColdNodeName=cfg.ColdNodeName,
+                    FlowChannelName=cfg.FlowChannelName,
+                    HotChannelName=cfg.HotChannelName,
+                    ColdChannelName=cfg.ColdChannelName,
                     ReadCt=cfg.ReadCt,
-                    CtNodeName=cfg.CtNodeName,
+                    CtChannelName=cfg.CtChannelName,
                     FlowMeterType=cfg.FlowMeterType,
                     HzCalcMethod=cfg.HzMethod,
                     TempCalcMethod=cfg.TempCalcMethod,
@@ -138,7 +138,7 @@ def add_btu(
         
 
         # Add AboutNodes for flow, hot, and cold (if they don't already exist)
-        for node_name in [cfg.FlowNodeName, cfg.HotNodeName, cfg.ColdNodeName]:
+        for node_name in [cfg.FlowChannelName, cfg.HotChannelName, cfg.ColdChannelName]:
                 nodes_to_add.append(
                     SpaceheatNodeGt(
                         ShNodeId=db.make_node_id(node_name),
@@ -149,13 +149,13 @@ def add_btu(
                 )
 
         # Add CT AboutNode if configured
-        if cfg.ReadCt and cfg.CtNodeName:
+        if cfg.ReadCt and cfg.CtChannelName:
             nodes_to_add.append(
                 SpaceheatNodeGt(
-                    ShNodeId=db.make_node_id(cfg.CtNodeName),
-                    Name=cfg.CtNodeName,
+                    ShNodeId=db.make_node_id(cfg.CtChannelName),
+                    Name=cfg.CtChannelName,
                     ActorClass=ActorClass.NoActor,
-                    DisplayName=cfg.CtNodeName.replace('-', ' ').title(),
+                    DisplayName=cfg.CtChannelName.replace('-', ' ').title(),
                 )
             )
 
@@ -166,45 +166,45 @@ def add_btu(
         db.add_data_channels(
             [ 
                 DataChannelGt(
-                    Name=cfg.FlowNodeName,
-                    DisplayName=f"{cfg.FlowNodeName.replace('-', ' ').title()} Gpm X 100",
-                    AboutNodeName=cfg.FlowNodeName,
+                    Name=cfg.FlowChannelName,
+                    DisplayName=f"{cfg.FlowChannelName.replace('-', ' ').title()} Gpm X 100",
+                    AboutNodeName=cfg.FlowChannelName,
                     CapturedByNodeName=cfg.ActorNodeName,
                     TelemetryName=TelemetryName.GpmTimes100,
                     TerminalAssetAlias=db.terminal_asset_alias,
-                    Id=db.make_channel_id(cfg.FlowNodeName)
+                    Id=db.make_channel_id(cfg.FlowChannelName)
                 ),
                 DataChannelGt(
-                    Name=cfg.HotNodeName,
-                    DisplayName=f"{cfg.HotNodeName.replace('-', ' ').title()} Celsius X 1000",
-                    AboutNodeName=cfg.HotNodeName,
+                    Name=cfg.HotChannelName,
+                    DisplayName=f"{cfg.HotChannelName.replace('-', ' ').title()} Celsius X 1000",
+                    AboutNodeName=cfg.HotChannelName,
                     CapturedByNodeName=cfg.ActorNodeName,
                     TelemetryName=TelemetryName.WaterTempCTimes1000,
                     TerminalAssetAlias=db.terminal_asset_alias,
-                    Id=db.make_channel_id(cfg.HotNodeName)
+                    Id=db.make_channel_id(cfg.HotChannelName)
                 ),
                 DataChannelGt(
-                    Name=cfg.ColdNodeName,
-                    DisplayName=f"{cfg.ColdNodeName.replace('-', ' ').title()} Celsius X 1000",
-                    AboutNodeName=cfg.ColdNodeName,
+                    Name=cfg.ColdChannelName,
+                    DisplayName=f"{cfg.ColdChannelName.replace('-', ' ').title()} Celsius X 1000",
+                    AboutNodeName=cfg.ColdChannelName,
                     CapturedByNodeName=cfg.ActorNodeName,
                     TelemetryName=TelemetryName.WaterTempCTimes1000,
                     TerminalAssetAlias=db.terminal_asset_alias,
-                    Id=db.make_channel_id(cfg.ColdNodeName)
+                    Id=db.make_channel_id(cfg.ColdChannelName)
                 ),
             ]
         )
-        if cfg.CtNodeName:
+        if cfg.CtChannelName:
             db.add_data_channels(
                 [
                     DataChannelGt(
-                    Name=cfg.CtNodeName,
-                    DisplayName=f"{cfg.CtNodeName.replace('-', ' ').title()} Volts x 100",
-                    AboutNodeName=cfg.CtNodeName,
+                    Name=cfg.CtChannelName,
+                    DisplayName=f"{cfg.CtChannelName.replace('-', ' ').title()} Volts x 100",
+                    AboutNodeName=cfg.CtChannelName,
                     CapturedByNodeName=cfg.ActorNodeName,
                     TelemetryName=TelemetryName.VoltsTimes100,
                     TerminalAssetAlias=db.terminal_asset_alias,
-                    Id=db.make_channel_id(cfg.CtNodeName)
+                    Id=db.make_channel_id(cfg.CtChannelName)
                 ),
                 ]
             )
