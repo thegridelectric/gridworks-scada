@@ -8,6 +8,6 @@ if [ -d "gw_spaceheat/venv" ]; then
 fi
 
 echo "Starting server..."
-python -m /home/ubuntu/gridworks-scada/gw_spaceheat.webinter.cli --verbose
+python -m gw_spaceheat.webinter.cli --verbose
 
 echo "Server stopped."
