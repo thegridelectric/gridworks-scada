@@ -33,6 +33,7 @@ class WebInterSettings(AppSettings):
         current_dir = Path.cwd()
         env_file = current_dir / ".env"
         if not env_file.exists():
+            print(f"Warning: No .env file found in {current_dir}")
             for parent in current_dir.parents:
                 potential_env = parent / ".env"
                 if potential_env.exists():
