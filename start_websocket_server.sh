@@ -2,9 +2,9 @@
 
 echo "Starting GridWorks SCADA WebSocket Server..."
 
-if [ -d "gw_spaceheat/venv" ]; then
+if [ -d "/home/ubuntu/gridworks-scada/gw_spaceheat/venv" ]; then
     echo "Activating virtual environment..."
-    source gw_spaceheat/venv/bin/activate
+    source /home/ubuntu/gridworks-scada/gw_spaceheat/venv/bin/activate
 fi
 
 echo "Starting server..."
