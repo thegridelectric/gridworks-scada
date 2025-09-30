@@ -12,6 +12,7 @@ class WebInterSettings(AppSettings):
     target_gnode: str = ""
     web_port: int = 8080
     web_host: str = "localhost"
+    websocket_path: str = "/ws"
     link: MQTTClient = MQTTClient()
     verbosity: int = logging.WARN
     paho_verbosity: Optional[int] = None

@@ -40,6 +40,7 @@ def get_settings(
         settings.target_gnode = target_gnode
     settings.web_port = web_port
     settings.web_host = web_host
+    settings.websocket_path = f'/ws{target_gnode.split('.')[-2]}'
     settings.verbosity = logging.INFO if verbose == 1 else logging.DEBUG
     settings.paho_verbosity = logging.INFO if paho_verbose == 1 else logging.DEBUG
 
@@ -85,7 +86,7 @@ async def init_web_app(settings: WebInterSettings) -> web.Application:
     })
     
     # Add CORS to the WebSocket route
-    cors.add(web_app.router.add_get('/ws', websocket_handler))
+    cors.add(web_app.router.add_get(settings.websocket_path, websocket_handler))
     
     return web_app
 
