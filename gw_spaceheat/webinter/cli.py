@@ -35,6 +35,9 @@ def get_settings(
     """
     settings = WebInterSettings(_env_file=dotenv.find_dotenv(env_file))
     settings = settings.update_paths_name("webinter")
+
+    print(f"DEBUG: Target gnode = {target_gnode}")
+    print(f"DEBUG: {target_gnode.split('.')}")
     
     if target_gnode:
         settings.target_gnode = target_gnode
