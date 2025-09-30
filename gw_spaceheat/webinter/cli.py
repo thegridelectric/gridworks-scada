@@ -35,15 +35,11 @@ def get_settings(
     """
     settings = WebInterSettings(_env_file=dotenv.find_dotenv(env_file))
     settings = settings.update_paths_name("webinter")
-
-    print(f"DEBUG: Target gnode = {target_gnode}")
-    print(f"DEBUG: {target_gnode.split('.')}")
     
     if target_gnode:
         settings.target_gnode = target_gnode
     settings.web_port = web_port
     settings.web_host = web_host
-    settings.websocket_path = f'/ws{target_gnode.split('.')[-2]}'
     settings.verbosity = logging.INFO if verbose == 1 else logging.DEBUG
     settings.paho_verbosity = logging.INFO if paho_verbose == 1 else logging.DEBUG
 

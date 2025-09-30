@@ -55,6 +55,11 @@ class WebInterSettings(AppSettings):
         self.link.tls.use_tls = False        
         if os.getenv('GWWEBINTER__TARGET_GNODE'):
             self.target_gnode = os.getenv('GWWEBINTER__TARGET_GNODE')
+            if len(self.target_gnode.split('.')) > 2:
+                self.websocket_path = f'/ws{self.target_gnode.split('.')[-2]}'
+            else:
+                print(f"WARNING: Target gnode = {self.target_gnode}")
+                self.websocket_path = f'/ws'
         if os.getenv('GWWEBINTER__LINK__HOST'):
             self.link.host = os.getenv('GWWEBINTER__LINK__HOST')
         if os.getenv('GWWEBINTER__LINK__PORT'):
