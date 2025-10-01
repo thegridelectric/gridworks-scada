@@ -1591,5 +1591,6 @@ class Scada(PrimeActor, ScadaInterface):
                 file.write(f"\n{variable}={new_value}\n")
 
     def log(self, note: str) -> None:
+        return
         log_str = f"[scada] {note}"
         self.services.logger.error(log_str)
