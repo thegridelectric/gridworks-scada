@@ -252,7 +252,7 @@ class SummerHomeAlone(ScadaActor):
 
                 # Increase DFR level
                 dfr_level += DFR_LEVEL_INCREMENT
-                if dfr_level >= MAX_DFR_LEVEL:
+                if dfr_level >= MAX_DFR_LEVEL + DFR_LEVEL_INCREMENT:
                     dfr_level = INITIAL_DFR_LEVEL
 
             except Exception as e:
