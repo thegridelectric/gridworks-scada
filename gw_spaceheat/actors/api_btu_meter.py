@@ -17,7 +17,6 @@ from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from gwsproto.named_types import MultichannelSnapshot,  AsyncBtuParams, ChannelFlatlined, PicoMissing
 from result import Ok, Result
 from scada_app_interface import ScadaAppInterface
-
 FLATLINE_REPORT_S = 60
 
 
@@ -69,38 +68,13 @@ class ApiBtuMeter(PicoActorBase):
         self.last_heard = time.time()  # used for monitoring flatlined pico
         self.last_error_report = time.time()
         # Find channels by matching AboutNodeName to component's node names
-        self.flow_channel = self._find_channel_by_about_node(
-            self._component.gt.FlowChannelName
-        )
-        self.hot_temp_channel = self._find_channel_by_about_node(
-            self._component.gt.HotChannelName
-        )
-        self.cold_temp_channel = self._find_channel_by_about_node(
-            self._component.gt.ColdChannelName
-        )
+        self.flow_channel = self.layout.channel(self._component.gt.FlowChannelName)
+        self.hot_temp_channel = self.layout.channel(self._component.gt.HotChannelName)
+        self.cold_temp_channel = self.layout.channel(self._component.gt.ColdChannelName)
         # CT channel is optional
         self.ct_channel = None
         if self._component.gt.CtChannelName:
-            self.ct_channel = self._find_channel_by_about_node(
-                self._component.gt.CtChannelName
-            )
-
-    def _find_channel_by_about_node(self, about_node_name: str):
-        """Find a data channel by its AboutNodeName"""
-        for channel in self.layout.data_channels.values():
-            if channel.AboutNodeName == about_node_name:
-                if channel.CapturedByNodeName != self.name:
-                    raise ValueError(
-                        f"Channel '{channel.Name}' has AboutNodeName='{about_node_name}' "
-                        f"but is captured by '{channel.CapturedByNodeName}', not '{self.name}'"
-                    )
-                return channel
-
-        # Channel not found
-        raise ValueError(
-            f"No channel found with AboutNodeName='{about_node_name}' "
-            f"and CapturedByNodeName='{self.name}'"
-        )
+            self.ct_channel = self.layout.channel(self._component.gt.CtChannelName)
 
     @cached_property
     def async_btu_params_path(self) -> str:
@@ -185,26 +159,17 @@ class ApiBtuMeter(PicoActorBase):
             params.AsyncCaptureDeltaCtVoltsX100 = self._component.gt.AsyncCaptureDeltaCtVoltsX100
             # Set timing parameters
 
-            # Get CapturePeriodS from flow channel config
-            period = 60  # Default
-
-            # Find the config for the flow channel
+            # Find the config for the flow channel. Must exist via layout axioms
             flow_config = next(
                 (
                     cfg
                     for cfg in self._component.gt.ConfigList
                     if cfg.ChannelName == self.flow_channel.Name
                 ),
-                None,
             )
 
-            if flow_config:
-                period = flow_config.CapturePeriodS
-            else:
-                # TODO: This should be validated in House0Layout - flow channel config must exist
-                self.log(
-                    f"WARNING: No config found for flow channel {self.flow_channel.Name}, using default period {period}s"
-                )
+            period = flow_config.CapturePeriodS
+
 
             # Calculate seconds until next minute boundary
             seconds_to_next_top = period - (time.time() % period)
@@ -221,6 +186,7 @@ class ApiBtuMeter(PicoActorBase):
             offset = round(offset, 1)
             params.CapturePeriodS = period
             params.CaptureOffsetS = offset
+            print(f"SENDING OFFSET OF {offset}")
 
             # If this is a new pico, log the HwUid for layout update
             if self.need_to_update_layout(params):
@@ -263,7 +229,6 @@ class ApiBtuMeter(PicoActorBase):
         return Response()
 
     def _process_multichannel_snapshot(self, data: MultichannelSnapshot) -> None:
-        self.log("IN _process_multichannel_snapshot")
         self.log(f"got {data}")
         if data.HwUid == self.pico_uid:
             self.last_heard = time.time()
