@@ -26,8 +26,6 @@ def get_settings(
     env_file: str = ".env",
     verbose: int = 0,
     paho_verbose: int = 0,
-    web_port: int = 8080,
-    web_host: str = "localhost"
 ) -> WebInterSettings:
     """
     Get the settings for the web interface from the environment file, 
@@ -38,8 +36,6 @@ def get_settings(
     
     if target_gnode:
         settings.target_gnode = target_gnode
-    settings.web_port = web_port
-    settings.web_host = web_host
     settings.verbosity = logging.INFO if verbose == 1 else logging.DEBUG
     settings.paho_verbosity = logging.INFO if paho_verbose == 1 else logging.DEBUG
 
@@ -96,11 +92,9 @@ def serve(
     env_file: str = ".env",
     verbose: Annotated[int, typer.Option("--verbose", "-v", count=True)] = 0,
     paho_verbose: Annotated[int, typer.Option("--paho-verbose", count=True)] = 0,
-    web_port: Annotated[int, typer.Option("--port", "-p")] = 8080,
-    web_host: Annotated[str, typer.Option("--host")] = "localhost"
 ) -> None:
     """Start the web interface server."""
-    settings = get_settings(target, env_file, verbose, paho_verbose, web_port, web_host)
+    settings = get_settings(target, env_file, verbose, paho_verbose)
     rich.print(settings)
     
     # Setup logging

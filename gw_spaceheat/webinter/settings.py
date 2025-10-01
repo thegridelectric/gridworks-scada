@@ -48,6 +48,7 @@ class WebInterSettings(AppSettings):
             print(f"DEBUG: After loading .env:")
             print(f"  GWWEBINTER__LINK__HOST: {os.getenv('GWWEBINTER__LINK__HOST')}")
             print(f"  GWWEBINTER__LINK__PORT: {os.getenv('GWWEBINTER__LINK__PORT')}")
+            print(f"  GWWEBINTER__WEB_PORT: {os.getenv('GWWEBINTER__WEB_PORT')}")
         else:
             print("DEBUG: No .env file found")
 
@@ -61,6 +62,11 @@ class WebInterSettings(AppSettings):
             else:
                 print(f"WARNING: Target gnode = {self.target_gnode}")
                 self.websocket_path = f'/ws'
+        if os.getenv('GWWEBINTER__WEB_PORT'):
+            print(f"DEBUG: Web port = {os.getenv('GWWEBINTER__WEB_PORT')}")
+            self.web_port = int(os.getenv('GWWEBINTER__WEB_PORT'))
+        else:
+            print(f"WEB PORT NOT FOUND IN ENV FILE: Web port = {self.web_port}")
         if os.getenv('GWWEBINTER__LINK__HOST'):
             self.link.host = os.getenv('GWWEBINTER__LINK__HOST')
         if os.getenv('GWWEBINTER__LINK__PORT'):
