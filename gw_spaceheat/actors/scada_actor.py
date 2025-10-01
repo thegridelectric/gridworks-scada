@@ -1066,7 +1066,6 @@ class ScadaActor(Actor, ABC):
             )  # noqa: SLF001
 
     def log(self, note: str) -> None:
-        return
         log_str = f"[{self.name}] {note}"
         self.services.logger.error(log_str)
 
