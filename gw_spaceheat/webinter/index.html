@@ -431,6 +431,7 @@
                 </div>
                 <button id="keep-alive-btn" onclick="sendKeepAlive()" style="margin: 0 5px; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 0.25rem; background-color: #FAFAFA; cursor: pointer; font-family: inherit; font-size: inherit;">Keep alive</button>
                 <button id="release-control-btn" onclick="sendReleaseControl()" style="margin: 0 5px; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 0.25rem; background-color: #FAFAFA; cursor: pointer; font-family: inherit; font-size: inherit;">Release control</button>
+                <button id="request-snapshot-btn" onclick="sendRequestSnapshot()" style="margin: 0 5px; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 0.25rem; background-color: #FAFAFA; cursor: pointer; font-family: inherit; font-size: inherit;">Request Snapshot</button>
             </div>
         </div>
         <div id="relays" style="margin-bottom: 40px;"></div>
@@ -805,6 +806,22 @@
 
             const message = {
                 type: 'release_control',
+                data: {}
+            };
+
+            websocket.send(JSON.stringify(message));
+        }
+
+        function sendRequestSnapshot() {
+            if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+                console.error('Not connected to server');
+                return;
+            }
+
+            console.log('Requesting snapshot from SCADA');
+
+            const message = {
+                type: 'request_snapshot',
                 data: {}
             };
 

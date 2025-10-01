@@ -462,6 +462,8 @@ class WebInterMQTTBridge:
                 await self._handle_keepalive(ws_msg.data)
             elif ws_msg.type == "release_control":
                 await self._handle_release_control()
+            elif ws_msg.type == "request_snapshot":
+                await self._handle_request_snapshot()
                 
         except Exception as e:
             self.logger.exception(f"Error handling WebSocket message: {e}")
@@ -580,6 +582,12 @@ class WebInterMQTTBridge:
         
         # Start the delayed snapshot request
         asyncio.create_task(request_snapshot_after_delay())
+    
+    async def _handle_request_snapshot(self):
+        """Handle manual snapshot request from web client"""
+        print("DEBUG: Manual snapshot request received from web client")
+        self._request_snapshot()
+        print("DEBUG: Snapshot request sent to SCADA")
     
     async def _send_status(self, websocket: WebSocketResponse):
         """Send current status to WebSocket client"""
