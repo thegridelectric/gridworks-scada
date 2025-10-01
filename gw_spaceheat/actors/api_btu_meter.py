@@ -186,7 +186,6 @@ class ApiBtuMeter(PicoActorBase):
             offset = round(offset, 1)
             params.CapturePeriodS = period
             params.CaptureOffsetS = offset
-            print(f"SENDING OFFSET OF {offset}")
 
             # If this is a new pico, log the HwUid for layout update
             if self.need_to_update_layout(params):
@@ -197,7 +196,7 @@ class ApiBtuMeter(PicoActorBase):
                         f"and add HwUid = '{params.HwUid}'"
                     )
             txt=params.model_dump_json()
-            self.log(f"Valid pico id. returning {txt}")
+            # self.log(f"Valid pico id. returning {txt}")
             return Response(text=txt)
         else:
             # A strange pico is identifying itself as our "a" tank
@@ -229,7 +228,6 @@ class ApiBtuMeter(PicoActorBase):
         return Response()
 
     def _process_multichannel_snapshot(self, data: MultichannelSnapshot) -> None:
-        self.log(f"got {data}")
         if data.HwUid == self.pico_uid:
             self.last_heard = time.time()
         else:
