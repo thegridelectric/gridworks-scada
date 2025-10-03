@@ -42,7 +42,7 @@ wheels = [
 
 [[package]]
 name = "gridworks-scada-protocol"
-version = "0.1.0.dev1"
+version = "1.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "gridworks-protocol" },

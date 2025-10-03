@@ -223,7 +223,7 @@ wheels = [
 
 [[package]]
 name = "gridworks-admin"
-version = "1.0.5"
+version = "1.0.6"
 source = { editable = "." }
 dependencies = [
     { name = "gridworks-proactor" },
@@ -234,6 +234,7 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "result" },
     { name = "rich" },
+    { name = "shellingham" },
     { name = "textual" },
     { name = "typer" },
 ]
@@ -248,6 +249,7 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.1.1" },
     { name = "result", specifier = ">=0.9.0" },
     { name = "rich", specifier = ">=14.1.0" },
+    { name = "shellingham", specifier = ">=1.5.4" },
     { name = "textual", specifier = ">=6.1.0" },
     { name = "typer", specifier = ">=0.17.4" },
 ]
@@ -292,7 +294,7 @@ wheels = [
 
 [[package]]
 name = "gridworks-scada-protocol"
-version = "1.0.0"
+version = "1.0.1"
 source = { editable = "../gridworks-scada-protocol" }
 dependencies = [
     { name = "gridworks-protocol" },
