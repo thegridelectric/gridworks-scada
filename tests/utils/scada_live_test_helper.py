@@ -6,7 +6,6 @@ from pathlib import Path
 from gwproactor_test.instrumented_proactor import MinRangeTuple
 from gwproactor_test.tree_live_test_helper import TreeLiveTest
 
-from actors.config import ScadaSettings
 from gwsproto.data_classes.house_0_layout import House0Layout
 from tests.conftest import TEST_HARDWARE_LAYOUT_PATH
 from atn_app import AtnApp
@@ -60,14 +59,23 @@ class ScadaLiveTest(TreeLiveTest):
         child2_simulated: bool = True,
         **kwargs: typing.Any
     ) -> None:
+
         kwargs["child_app_settings"] = kwargs.get(
             "child_app_settings",
-            ScadaSettings(),
+            self.child_app_type()
+            .app_settings_type()()
+            .with_paths_name(
+                self.child_app_type().paths_name()
+            )
         )
         kwargs["child_app_settings"].is_simulated = child1_simulated
         kwargs["child2_app_settings"] = kwargs.get(
             "child2_app_settings",
-            ScadaSettings(),
+            self.child2_app_type()
+            .app_settings_type()()
+            .with_paths_name(
+                self.child2_app_type().paths_name()
+            )
         )
         kwargs["child2_app_settings"].is_simulated = child2_simulated
         super().__init__(

@@ -1,3 +1,4 @@
+import json
 import os
 import textwrap
 from typing import Any
@@ -5,12 +6,14 @@ from typing import Optional
 
 import pytest
 import rich
+from gwproactor.config import Paths
 
 from gwproactor.config.mqtt import TLSInfo
 from click.testing import Result as ClickResult
 from pydantic import SecretStr
 from textual.widgets import Button
 from textual.widgets import Input
+from textual.widgets import Select
 from typer.testing import CliRunner
 
 from gwadmin.cli import app as gwa
@@ -99,6 +102,23 @@ def print_dacs(app: RelaysApp, tag = ""):
     for i in range(len(table.rows)):
         rich.print(f"  {i}: {'[red]*[/red]' if i == table.cursor_row else ' '}  {table.get_row_at(i)}")
 
+def _result_str(result: ClickResult, command: list[str], tag: str = "") -> str:
+    tag_str = "" if not tag else f"\t<{tag}>\n"
+    return (
+        f"{tag_str}"
+        f"exit code: {result.exit_code}\n"
+        f"\t{result!s} from command\n"
+        f"\t<gwa {' '.join([str(entry) for entry in command])}> with output\n"
+        f"{textwrap.indent(result.output, '        ')}"
+    )
+
+def _gwa(command: str | list[str], exp_exit: int = 0, tag: str = "") -> ClickResult:
+    if isinstance(command, str):
+        command = [command]
+    result = runner.invoke(gwa, command, env=os.environ)
+    assert result.exit_code == exp_exit, _result_str(result, command, tag=tag)
+    return result
+
 def _check_config(exp: AdminConfig, paths: Optional[AdminPaths] = None) -> AdminConfig:
     if paths is None:
         paths = AdminPaths(name="admin")
@@ -117,6 +137,51 @@ def _check_config(exp: AdminConfig, paths: Optional[AdminPaths] = None) -> Admin
     assert command_loaded.config.model_dump_json(indent=2) == file_loaded.model_dump_json(indent=2)
     assert exp.model_dump_json(indent=2) == command_loaded.config.model_dump_json(indent=2)
     return command_loaded.config
+
+def _make_scadas(short2long: dict[str, str]) -> dict[str, ScadaSettings]:
+    _gwa("mkconfig")
+    short2settings = {}
+    for short_name, long_name in short2long.items():
+        _gwa(["add-scada", short_name, "--long-name", long_name])
+        layout = House0Layout.load(Paths().hardware_layout)
+        layout.layout["MyScadaGNode"]["Alias"] = long_name
+        short2settings[short_name] = ScadaSettings(
+            admin=AdminLinkSettings(enabled=True)
+        ).with_paths_name(short_name)
+        short2settings[short_name].paths.mkdirs()
+        with short2settings[short_name].paths.hardware_layout.open("w") as f:
+            f.write(json.dumps(layout.layout, indent=2, sort_keys=True))
+        import rich
+        rich.print(str(short2settings[short_name].paths.hardware_layout))
+    return short2settings
+
+async def _await_scada_connected(
+    lt: ScadaLiveTest,
+    app: RelaysApp,
+    short_name: str,
+    long_name: str,
+    timeout: float = 10,
+):
+    mqtt_state = app.query_one("#mqtt_state", MqttState)
+    await lt.await_for(
+        lambda: mqtt_state.mqtt_state == ConstrainedMQTTClient.States.active,
+        "ERROR wait for admin mqtt state active",
+        timeout=timeout,
+    )
+    await lt.await_for(
+        lambda: app.layout_received(),
+        "ERROR wait for admin to receive a layout (from pear)",
+        timeout=timeout,
+    )
+    await lt.await_for(
+        lambda: app.snapshot_received(),
+        "ERROR wait for admin to receive a snapshot (from pear)",
+        timeout=timeout,
+    )
+    assert short_name in app.sub_title
+    assert long_name in app.sub_title
+    select_box = app.query_one("#select_scada", Select)
+    assert select_box.value == short_name
 
 
 @pytest.mark.asyncio
@@ -181,11 +246,9 @@ async def test_admin_relay_set(request: pytest.FixtureRequest) -> None:
                 [18, "Zone1 Main Ops", "RelayClosed", "OpenRelay", "🔴"]
             )
 
-
-
 @pytest.mark.asyncio
 async def test_admin_dac_set(request: pytest.FixtureRequest) -> None:
-    """Set a relay and verify we see the set take effect."""
+    """Set a dac and verify we see the set take effect."""
     settings = ScadaSettings(admin=AdminLinkSettings(enabled=True))
     layout = House0Layout.load(settings.paths.hardware_layout)
     async with ScadaLiveTest(
@@ -244,7 +307,6 @@ async def test_admin_dac_set(request: pytest.FixtureRequest) -> None:
             await pilot.press("\t")
             assert relays_app.focused.id == "send_dac_button"
             await pilot.press("enter")
-            #await pilot.press("enter")
 
             table = relays_app.query_one("#dacs_table", DataTable)
             success = await h.await_for(
@@ -264,50 +326,140 @@ async def test_admin_dac_set(request: pytest.FixtureRequest) -> None:
                 tag="dac value set"
             )
 
-def _result_str(result: ClickResult, command: list[str], tag: str = "") -> str:
-    tag_str = "" if not tag else f"\t<{tag}>\n"
-    return (
-        f"{tag_str}"
-        f"exit code: {result.exit_code}\n"
-        f"\t{result!s} from command\n"
-        f"\t<gwa {' '.join([str(entry) for entry in command])}> with output\n"
-        f"{textwrap.indent(result.output, '        ')}"
+@pytest.mark.asyncio
+async def test_admin_scada_select(request: pytest.FixtureRequest) -> None:
+    short2long = {
+        "pear": "metropolis.electric.pear",
+        "carrot": "springfield.electric.carrot",
+        "sea-pickle": "atlantis.thermal.sea-pickle",
+    }
+    short2settigns = _make_scadas(short2long)
+    curr_admin_config = CurrentAdminConfig.model_validate_json(
+        _gwa(["config", "--json"]).output
     )
+    curr_admin_config.curr_scada = curr_admin_config.config.default_scada
+    curr_admin_config.config.verbosity = 0
+    async with ScadaLiveTest(
+        request=request,
+        child_app_settings=short2settigns["pear"],
+        start_child=True,
+    ) as hpear:
+        await hpear.await_for(
+            hpear.child_to_parent_link.active_for_send,
+            "ERROR waiting pear scada to be active_for_send",
+        )
+        async with ScadaLiveTest(
+            request=request,
+            child_app_settings=short2settigns["carrot"],
+            start_child=True,
+        ) as hcarrot:
+            await hcarrot.await_for(
+                hcarrot.child_to_parent_link.active_for_send,
+                "ERROR waiting carrot scada to be active_for_send",
+            )
 
-def _gwa(command: str | list[str], exp_exit: int = 0, tag: str = "") -> ClickResult:
-    if isinstance(command, str):
-        command = [command]
-    result = runner.invoke(gwa, command, env=os.environ)
-    assert result.exit_code == exp_exit, _result_str(result, command, tag=tag)
-    return result
+            relays_app = RelaysApp(settings=curr_admin_config)
+            async with relays_app.run_test() as pilot:
+                # Verify we connect to the default scada
+                await _await_scada_connected(
+                    hpear, relays_app, short_name="pear", long_name=short2long["pear"],
+                    timeout=3,
+                )
+
+                # Set the dac control so we can verify it is cleared when
+                # switching scada
+                await pilot.press("d")
+                assert relays_app.focused.id == "dacs_table"
+                assert_dac_table_row(relays_app, ["Dist", 20], tag="dac default row")
+                await pilot.press("\t")
+                assert relays_app.focused.id == "dac_value_input"
+                await pilot.press("3", "1")
+                assert_dac_table_row(
+                    relays_app, ["Dist", 20], 31, tag="dac value entered"
+                )
+
+                # Select the next scada, carrot, and verify we connect
+                await pilot.click("#select_scada")
+                await pilot.press("enter")
+                await pilot.press("down")
+                await pilot.press("down")
+                await pilot.press("enter")
+                await _await_scada_connected(
+                    hpear, relays_app, short_name="carrot", long_name=short2long["carrot"],
+                    timeout=3,
+                )
+                assert relays_app.query_one("#dac_value_input", Input).value == ""
+                assert relays_app.query_one("#send_dac_button", Button).disabled is True
+
+                # Set the dac control so we can verify it is cleared when
+                # switching scada
+                await pilot.press("d")
+                assert relays_app.focused.id == "dacs_table"
+                assert_dac_table_row(relays_app, ["Dist", 20], tag="dac default row")
+                await pilot.press("\t")
+                assert relays_app.focused.id == "dac_value_input"
+                await pilot.press("3", "1")
+                assert_dac_table_row(
+                    relays_app, ["Dist", 20], 31, tag="dac value entered"
+                )
+
+                # Select the last scada, sea-pickle, which isn't running, and
+                # verify the the relays and dacs tables empty.
+                await pilot.click("#select_scada")
+                await pilot.press("enter")
+                await pilot.press("down")
+                await pilot.press("down")
+                await pilot.press("enter")
+                assert relays_app.query_one("#select_scada", Select).value == "sea-pickle"
+                await hpear.await_for(
+                    lambda: len(relays_app.query_one("#relays_table", DataTable).rows) == 0,
+                    "ERROR waiting for relay table to empty",
+                )
+                assert relays_app.query_one(
+                    "#relay_toggle_button",
+                    Button
+                ).disabled is True
+                assert relays_app.query_one(
+                    "#relay_toggle_button_container",
+                    HorizontalGroup
+                ).border_title == ""
+                await hpear.await_for(
+                    lambda: len(relays_app.query_one("#dacs_table", DataTable).rows) == 0,
+                    "ERROR waiting for dac table to empty",
+                )
+                assert relays_app.query_one("#dac_value_input", Input).value == ""
+                assert relays_app.query_one("#send_dac_button", Button).disabled is True
 
 
-def test_gwa_version() -> None:
+
+
+
+def test_admin_version() -> None:
     """Verify 'gwa version' produces expected results."""
     result = _gwa(["--version"])
     assert gwa_version in result.output
 
-def test_gwa_config_file() -> None:
+def test_admin_config_file() -> None:
     paths = AdminPaths(name="admin")
     result = _gwa(["config-file"])
     exp = str(paths.admin_config_path)
     got = result.output.strip().replace("\n", "")
     assert exp == got
 
-def test_gwa_empty_config() -> None:
+def test_admin_empty_config() -> None:
     result = _gwa(["config", "--json"])
     exp = AdminConfig()
     got = AdminConfig.model_validate_json(result.output)
     assert exp == got
 
-def test_gwa_mkconfig() -> None:
+def test_admin_mkconfig() -> None:
     _gwa(["mkconfig"])
     exp = AdminConfig()
     with AdminPaths(name="admin").admin_config_path.open("r") as f:
         got = AdminConfig.model_validate_json(f.read())
     assert exp == got
 
-def test_gwa_mkconfig_force() -> None:
+def test_admin_mkconfig_force() -> None:
     # Create a config
     _gwa(["mkconfig"])
     curr_config = CurrentAdminConfig(
@@ -330,7 +482,7 @@ def test_gwa_mkconfig_force() -> None:
     _check_config(AdminConfig())
 
 
-def test_gwa_config() -> None:
+def test_admin_config() -> None:
     # Create a default config
     _gwa("mkconfig")
     _check_config(AdminConfig())
@@ -341,7 +493,7 @@ def test_gwa_config() -> None:
     # Verify the change
     _check_config(AdminConfig(verbosity=20))
 
-def test_gwa_add_scada() -> None:
+def test_admin_add_scada() -> None:
     # Create a default config
     _gwa("mkconfig")
     _check_config(AdminConfig())
@@ -402,3 +554,4 @@ def test_gwa_add_scada() -> None:
     # Verify the change took
     exp.scadas[scada_name].long_name = new_long_name
     _check_config(exp)
+

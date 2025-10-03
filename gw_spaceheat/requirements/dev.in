@@ -4,6 +4,6 @@ pip-tools
 isort
 
 gridworks-cert>=0.4.4
-gridworks-proactor[tests] ~= 4.1.9
+gridworks-proactor[tests] ~= 4.1.10
 requests # for atn dashboard
 memray
