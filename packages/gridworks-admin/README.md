@@ -1,7 +1,7 @@
 # gridworks-admin
 
-This package contains gridworks-admin CLI tool for use in monitoring gridworks-scada
-devices. 
+This package contains gridworks-admin CLI tool for use in monitoring 
+[gridworks-scada] devices. 
 
 Install for the current user with:
 
@@ -11,40 +11,38 @@ uv tool install gridworks-admin
 
 and then run the admin with:
 
-```
+```shell
 gwa watch
 ```
 
 Create a new configuration file with
 
-```
+```shell
 gwa mkconfig
 ```
 
-To see how to add a scada do
+To see how to add a scada run:
 
-```
+```shell
 gwa add-scada --help
 ```
 
-Edit the config file manually with
-
-```
+The configuration file can viewed and edited manually with:
+```shell
 open `gwa config-file`
 ```
 
-
-The tool can be run ephemerally with:
-```
-uvx --from gridworks-admin gwa
-```
-
-
-Or from the repo by re-creating the environment:
-
-```
-tools/mkenv.sh
-source gw_spaceheat/venv/bin/activate
-gwa
+Configruation can be viewed from the command line with: 
+```shell
+gwa config
 ```
 
+Top-level configuration can be modified on the command line with: 
+```
+gwa config --save [OPTIONS]
+```
+
+Scada configuration can be modified on the command line with:
+```
+gwa add-scada --update [OPTIONS] SCADA_SHORT_NAME
+```

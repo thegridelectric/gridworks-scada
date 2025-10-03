@@ -1,4 +1,4 @@
-## Scada Packages
+# Scada Packages
 
 Motivated by the need to make [gridworks-admin] installable without setting up the
 scada development environment, this directory contains code published on PyPI as
@@ -76,6 +76,24 @@ source .venv/bin/activate
 ```
 
 ## Adding dependencies
+Use `uv` to add dependencies, as described [here] and 
+[here](https://docs.astral.sh/uv/concepts/projects/dependencies/). For example: 
+
+```shell
+uv add pycowsay
+```
+
+If you run this command from the scada environment you will see a warning that
+scada environment is not modified. To see new dependencies reflected in the 
+scada environment run: 
+```shell
+pip install -e .
+```
+from the subproject directory or, for example:
+```shell
+pip install -e packages/gridworks-admin
+```
+from the repository directory.
 
 ## Testing
 Test the subprojects by running `pytest` from the repository root. 
@@ -86,9 +104,9 @@ include interactions with the scada code.
 
 ## Publishing
 
-To publish a new version admin to PyPI:
-1. Update the version field in the [admin pyproject.toml], either using
-   the [uv version] command, for example:
+To publish a new version to PyPI:
+1. Update the version field in the subproject pyproject.toml, either by using
+   the [uv version] command:
    ```shell
    cd packages/gridworks-admin
    uv version --bump patch
@@ -96,7 +114,37 @@ To publish a new version admin to PyPI:
    or by manually modifying the pyproject.toml and then running `uv lock`.
 2. Merge to main. 
 
+## Installing and testing the published package
 
+To install admin as a tool for the current user, run: 
+
+```shell
+uv tool install gridworks-admin
+```
+
+To upgrade the current admin tool, run:
+```shell
+uv tool upgrade gridworks-admin
+```
+
+You can test an 'ephemeral' version of admin without installing it on the path
+or modifyng the version on the path with `uvx`:
+
+```shell
+uvx gridworks-admin
+```
+
+If `uvx` doesn't see the lasted published package shortly after publication you
+can run:
+
+```shell
+uvx gridworks-admin@latest
+```
+
+You can also clean the local uv cache for admin with: 
+```shell
+uv cache clean gridworks-admin 
+```
 
 [distribution packages]: https://packaging.python.org/en/latest/discussions/distribution-package-vs-import-package/#distribution-package-vs-import-package
 [uv]: https://docs.astral.sh/uv/
@@ -109,3 +157,6 @@ To publish a new version admin to PyPI:
 [mkenv.sh]: ../tools/mkenv.sh
 [tests]: https://github.com/thegridelectric/gridworks-scada/tree/dev/tests
 [command line script]: https://github.com/thegridelectric/gridworks-scada/blob/9c7f3ded7d8a08868a8be17a36f27fc32fcff704/packages/gridworks-admin/pyproject.toml#L23
+[admin pyproject.toml]: ./packages/gridworks-admin/pyproject.toml
+[uv version]: https://docs.astral.sh/uv/guides/package/#updating-your-version
+[here]: https://docs.astral.sh/uv/guides/projects/#managing-dependencies

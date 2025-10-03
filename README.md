@@ -35,7 +35,7 @@ On a Pi run:
     
     tools/mkenv-pi.sh
 
-To activate the environment, add gw_spaceheat to your python path and then 
+To activate the environment, add 'gw_spaceheat' to your PYTHONPATH and then 
 `source` the environment's activation file. This is most easily accomplished
 with a shell alias, for example on a Mac by fixing to following to contain the 
 actual the path to this repo on your machine and then adding the result to  
@@ -91,7 +91,7 @@ Add libraries by adding the library spec to the appropriate ".in" file in the
   development or CI. 
 * [drivers.in](./gw_spaceheat/requirements/drivers.in) for requirements only
   needed on a Pi. 
-* [base.in](./gw_spaceheat/requirements/drivers.in) for requirements used used
+* [base.in](./gw_spaceheat/requirements/base.in) for requirements used used
   in all contexts. 
 
 Once you have added your requirement run: 
