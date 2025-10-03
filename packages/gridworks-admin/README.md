@@ -5,7 +5,7 @@ devices.
 
 Install for the current user with:
 
-```
+```shell
 uv tool install gridworks-admin
 ```
 

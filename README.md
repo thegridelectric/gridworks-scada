@@ -21,62 +21,94 @@ this repo fits into the larger transactive energy framework please go [here](doc
 
 For information on setting up an SD card that will run this code on a Pi 4 with the correct
 configuration and attached devices, please [go here](docs/setting-up-the-pi.md)
-## Local Demo setup
-
-Follow the directions below for creating a dev environment (assumes mac or Pi).
-
-In one terminal window:
-
-```
-cd spaceheat
-python run_local.py
-```
-
-WE NEED A BETTER LOCAL DEV DEMO
 
 
 ## Creating a Dev environment for macos or Pi
 
+Use python 3.11
 
- - Use python 3.10.6
-- .gitignore includes gw_spaceheat/venv for virtualenv so from gw_spaceheat directory:
-  - `python -m venv venv`  
-  - `source venv/bin/activate`
-  - `pip install -r requirements/dev.txt`
+Create the development environment with: 
+    
+    tools/mkenv.sh
+
+On a Pi run:
+    
+    tools/mkenv-pi.sh
+
+To activate the environment, add gw_spaceheat to your python path and then 
+`source` the environment's activation file. This is most easily accomplished
+with a shell alias, for example on a Mac by fixing to following to contain the 
+actual the path to this repo on your machine and then adding the result to  
+`$HOME/.zprofile`:
+
+    export SCADA_REPO=actual/path/to/your/repo
+    export GW_SPACEHEAT=$SCADA_REPO/gw_spaceheat
+    alias gw="source $GW_SPACEHEAT/venv/bin/activate && export PYTHONPATH=$GW_SPACEHEAT && cd $SCADA_REPO"
+
+You will then be able to activate the development environment in a new terminal
+with: 
+
+```shell
+gw
+```
+
 
 Run the tests from the root directory of the repo with:
 
-    pytest
+```shell
+pytest
+```
 
 A hardware layout file is necessary to run the scada locally. Find the default path the layout file with: 
-    
-    python -c "import config; print(config.Paths().hardware_layout)"
+
+```shell
+python -c "from gwproactor.config.paths import Paths; print(Paths().hardware_layout)"
+```    
 
 For initial experiments the test layout file can be used. The test layout file is located at:
     
     tests/config/hardware-layout.json
 
 Display the hardware layout with:
-    
-    python gw_spaceheat/show_layout.py
+
+```shell
+gws layout show
+```    
 
 Display current settings with: 
     
-    python gw_spaceheat/show_settings.py
+```shell
+gws config
+```
 
 There are some scratch notes on Pi-related setup (like enabling interfaces) in docs/pi_setup.md
 
 ### Adding libraries 
-- If you are going to add libraries, install pip-tools to your venv:
-  - `python -m pip install pip-tools`
-  - If you want to add a new library used in all contexts, then go to gw_spaceheat/requirements, add it to base.in and run
-      - `pip-compile --output-file=base.txt base.in`
-      - `pip-compile --output-file=dev.txt dev.in`
-      - `pip-compile --output-file=drivers.txt drivers.in`
+Add libraries by adding the library spec to the appropriate ".in" file in the 
+[requirements directory](./gw_spaceheat/requirements). Use:
 
-The `.in` files clarify the key modules (including which ones are important to pin and which ones can be set to the latest release) and then the corresponding `.txt` files are generated via pip-tools. This means we always run on pinned requirements (from the .txt files) and can typically upgrade to the latest release, except for cases where the code requires a pinned older version.
+* [dev.in](./gw_spaceheat/requirements/dev.in) for requirements only needed for
+  development or CI. 
+* [drivers.in](./gw_spaceheat/requirements/drivers.in) for requirements only
+  needed on a Pi. 
+* [base.in](./gw_spaceheat/requirements/drivers.in) for requirements used used
+  in all contexts. 
 
-The pip-tools also allow for building layers of requirements on top of each other. This allows us to have development tools that are not needed in production to show up for the first time in `dev.txt`, for example (like the pip-tool itself).
+Once you have added your requirement run: 
+
+    tools/pipc.sh
+
+Then **manually** modify the modified .txt files to remove the absolute paths
+that pip-tools adds to comments inside the .txt files. This allow someone looking
+at the commit to see only the dependency you changed. Otherwise they will see a 
+change in the comment many dependencies. For example, in a text editor or IDE
+do a search/replace in *.txt files in the project, searching for the text
+    
+    path/to/scada/repo/on/your/machine/gw_spaceheat
+
+and replacing it with
+    
+    gw_spaceheat
 
 ### Handling secrets and config variables
     
@@ -95,7 +127,7 @@ using [Mosquitto](https://mosquitto.org/).
 [Ruff](https://docs.astral.sh/ruff/) is installed via the test and dev requirements. 
 You can run it with:
 
-```
+```shell
 ruff check
 ```
 
@@ -186,17 +218,17 @@ The overview of this process is that you need:
 
 This command will show information about what scada would do if started locally: 
 ```shell
-python gw_spaceheat/run_scada.py --dry-run  
+gws run --dry-run  
 ```
 
 This command will will start the scada locally: 
 ```shell
-python gw_spaceheat/run_scada.py 
+gws run
 ```
 
 These commands will start the local test ATN:
 ```shell
-python tests/atn/run.py
+gws atn run
 ```
 
 ## Development flow
@@ -206,11 +238,64 @@ The first 5 homes in Millinocket are designed for beta testing. The idea here is
 group of houses run on main.
 
 The main branch is protected - requires a pull request. Default pattern is PRs from dev to main.
-This will also publish a new gwsproto package.
+This will also publish a new gridworks-scada-protcol package and a new grdiworks-admin package.
+
+## Packages
+
+Motivated by the need to make [gridworks-admin] installable without setting up the
+scada development environment, this repository contains a [packages](./packages)
+directory for code published on PyPI as separate [distribution packages]. The
+separate distribution packages are managed as separate by python projects, with
+their own subdirectory, each containing its own [pyproject.toml]. Subproject
+development is done using [uv] and publication to PyPI happens [in CI] after 
+merging to the main branch. 
+
+There are two packages: 
+1. [gridworks-admin], the admin user interface.
+2. [gridworks-scada-protocol], which contains protocol messages shared by both
+   Scada and admin. 
+
+See the [packages directory README.md](./packages/README.md) for more information.
+
+## Admin
+
+To install admin as a tool separate from development environment: 
+
+```shell
+uv tool install gridworks-admin
+```
+
+or
+
+```shell
+pipx install gridworks-admin
+```
+
+To run admin from the development environment: 
+
+```shell
+gwa
+```
+or, equivalently:
+```shell
+gws admin
+```
+
+To publish a new version admin to PyPI [install uv], if necessary, and then:
+1. Update the version field in the [admin pyproject.toml], either using
+   the [uv version] command, for example:
+   ```shell
+   cd packages/gridworks-admin
+   uv version --bump patch
+   ```
+   or by manually modifying the pyproject.toml and then running `uv lock`.
+2. Merge to main. 
+
+See the [packages directory README.md](./packages/README.md) for more information.
 
 ## License
 
-Distributed under the terms of the [MIT license][license],
+Distributed under the terms of the [MIT license](./LICENSE),
 this repository is free and open source software.
 
 ## Contributing
@@ -218,3 +303,13 @@ this repository is free and open source software.
 Contributions are very welcome.
 To learn more, see the [Contributor Guide].
 
+
+[distribution packages]: https://packaging.python.org/en/latest/discussions/distribution-package-vs-import-package/#distribution-package-vs-import-package
+[uv]: https://docs.astral.sh/uv/
+[pyproject.toml]: https://packaging.python.org/en/latest/guides/writing-pyproject-toml/
+[in CI]: ./.github/workflows/release.yml
+[gridworks-admin]: https://pypi.org/project/gridworks-admin/
+[gridworks-scada-protocol]: https://pypi.org/project/gridworks-scada-protocol/
+[install uv]: https://docs.astral.sh/uv/getting-started/installation/#standalone-installer
+[admin pyproject.toml]: ./packages/gridworks-admin/pyproject.toml
+[uv version]: https://docs.astral.sh/uv/guides/package/#updating-your-version
