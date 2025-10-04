@@ -35,7 +35,6 @@ subprojects and work from the scada development environment:
 
 ```shell
 gwa
-gws admin
 python -c "import gwsproto"
 pytest
 ```

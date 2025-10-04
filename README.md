@@ -276,10 +276,6 @@ To run admin from the development environment:
 ```shell
 gwa
 ```
-or, equivalently:
-```shell
-gws admin
-```
 
 To publish a new version admin to PyPI [install uv], if necessary, and then:
 1. Update the version field in the [admin pyproject.toml], either using
