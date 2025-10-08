@@ -18,7 +18,7 @@ class AaAllTanksState(GwStrEnum):
 
     @classmethod
     def enum_name(cls) -> str:
-        return "aa.all_tanks.state"
+        return "aa.all.tanks.state"
 
     @classmethod
     def values(cls) -> List[str]:
@@ -39,7 +39,7 @@ class AaAllTanksEvent(GwStrEnum):
 
     @classmethod
     def enum_name(cls) -> str:
-        return "aa.all_tanks.event"
+        return "aa.all.tanks.event"
 
 
 class AllTanksAtomicAllyStrategy(AtomicAllyBase):

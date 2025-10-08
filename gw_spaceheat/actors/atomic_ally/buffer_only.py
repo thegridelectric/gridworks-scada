@@ -16,7 +16,7 @@ class AaBufferOnlyState(GwStrEnum):
 
     @classmethod
     def enum_name(cls) -> str:
-        return "aa.buffer_only.state"
+        return "aa.buffer.only.state"
 
     @classmethod
     def values(cls) -> List[str]:
@@ -35,7 +35,7 @@ class AaBufferOnlyEvent(GwStrEnum):
 
     @classmethod
     def enum_name(cls) -> str:
-        return "aa.buffer_only.event"
+        return "aa.buffer.only.event"
 
 
 class BufferOnlyAtomicAllyStrategy(AtomicAllyBase):
