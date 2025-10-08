@@ -1,5 +1,5 @@
 import time
-from actors.atomic_ally.atomic_ally_base import AtomicAllyBase, AaBufferOnlyEvent
+from actors.atomic_ally.atomic_ally_base import AtomicAllyBase
 from gwsproto.named_types import AllyGivesUp
 from transitions import Machine
 from gw.enums import GwStrEnum
