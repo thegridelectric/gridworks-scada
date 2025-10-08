@@ -39,6 +39,12 @@ from tests.utils.scada_live_test_helper import ScadaLiveTest
 
 runner = CliRunner()
 
+def get_admin_verbosity(request: pytest.FixtureRequest, default: int = 0) -> int:
+    option = request.config.getoption("--admin-verbosity")
+    if option is None:
+        return default
+    return int(option)
+
 
 def assert_relay_table_row(app: RelaysApp, exp_row: list[Any], tag: str = ""):
     table = app.query_one("#relays_table", DataTable)
@@ -151,8 +157,6 @@ def _make_scadas(short2long: dict[str, str]) -> dict[str, ScadaSettings]:
         short2settings[short_name].paths.mkdirs()
         with short2settings[short_name].paths.hardware_layout.open("w") as f:
             f.write(json.dumps(layout.layout, indent=2, sort_keys=True))
-        import rich
-        rich.print(str(short2settings[short_name].paths.hardware_layout))
     return short2settings
 
 async def _await_scada_connected(
@@ -200,7 +204,7 @@ async def test_admin_relay_set(request: pytest.FixtureRequest) -> None:
         )
         curr_admin_config = get_admin_config(
             env_file="",
-            verbose=0,
+            verbose=get_admin_verbosity(request),
         )
         curr_admin_config.curr_scada = "local"
         curr_admin_config.config.scadas["local"] = ScadaConfig(
@@ -262,7 +266,7 @@ async def test_admin_dac_set(request: pytest.FixtureRequest) -> None:
         )
         curr_admin_config = get_admin_config(
             env_file="",
-            verbose=0,
+            verbose=get_admin_verbosity(request),
         )
         curr_admin_config.curr_scada = "local"
         curr_admin_config.config.scadas["local"] = ScadaConfig(
@@ -338,7 +342,8 @@ async def test_admin_scada_select(request: pytest.FixtureRequest) -> None:
         _gwa(["config", "--json"]).output
     )
     curr_admin_config.curr_scada = curr_admin_config.config.default_scada
-    curr_admin_config.config.verbosity = 0
+
+    curr_admin_config.config.verbosity = get_admin_verbosity(request)
     async with ScadaLiveTest(
         request=request,
         child_app_settings=short2settigns["pear"],
