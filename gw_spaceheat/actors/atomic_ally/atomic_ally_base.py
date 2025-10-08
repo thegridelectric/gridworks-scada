@@ -1,14 +1,13 @@
 import asyncio
 import time
-import datetime
 import uuid
 from abc import abstractmethod
 from enum import auto
-from typing import cast, List, Sequence, Optional, Dict
+from typing import cast, List, Sequence, Optional
 
 from gwsproto.data_classes.house_0_names import H0CN, H0N
 from gw.enums import GwStrEnum
-from gwproactor import MonitoredName, AppInterface
+from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwproto.data_classes.sh_node import ShNode
@@ -17,15 +16,15 @@ from gwproto.data_classes.components.dfr_component import DfrComponent
 from gwproto.enums import ActorClass, FsmReportType, RelayClosedOrOpen
 from gwproto.named_types import AnalogDispatch, FsmAtomicReport, FsmFullReport, PicoTankModuleComponentGt
 from result import Ok, Result
-from transitions import Machine
 
 from actors.scada_actor import ScadaActor
-from actors.scada_data import ScadaData
 from gwsproto.enums import AtomicAllyState, HomeAloneStrategy, LogLevel
 from gwsproto.named_types import (
     AllyGivesUp,  Glitch, GoDormant, Ha1Params, HeatingForecast,
     SingleMachineState, SlowContractHeartbeat, SlowDispatchContract, SuitUp
 )
+
+from scada_app_interface import ScadaAppInterface
 
 
 class AtomicAllyEvent(GwStrEnum):
@@ -50,7 +49,7 @@ class AtomicAllyBase(ScadaActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
     NO_TEMPS_BAIL_MINUTES = 5
 
-    def __init__(self, name: str, services: AppInterface):
+    def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
         self._stop_requested: bool = False
         # Temperatures
@@ -123,7 +122,7 @@ class AtomicAllyBase(ScadaActor):
             raise Exception("contract should come from scada!")
         
         if self.layout.ha_strategy in [HomeAloneStrategy.Summer]:
-            self.log(f"Cannot wake up - in summer mode")
+            self.log("Cannot wake up - in summer mode")
             self._send_to(
                 self.primary_scada,
                 AllyGivesUp(Reason="In Summer Mode ... does not enter DispatchContracts"))
