@@ -2,7 +2,7 @@
 easier."""
 from actors.api_flow_module import ApiFlowModule
 from actors.api_tank_module import ApiTankModule
-from actors.atomic_ally import AtomicAlly
+from actors.atomic_ally_loader import AtomicAlly
 from actors.contract_handler import ContractHandler
 from actors.hp_boss import HpBoss
 from actors.home_alone_loader import HomeAlone
