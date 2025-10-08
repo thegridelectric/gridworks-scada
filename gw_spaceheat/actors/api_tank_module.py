@@ -2,25 +2,25 @@ import asyncio
 import json
 import math
 import time
-import typing
 from functools import cached_property
-from typing import List, Literal, Optional, Sequence, Union
+from typing import Optional, Sequence
 
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 from gw.errors import DcError
-from gwproactor import MonitoredName, Problems, AppInterface
+from gwproactor import MonitoredName, Problems
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwproto.data_classes.components import PicoTankModuleComponent
 from gwproto.enums import TempCalcMethod
 from gwproto.enums import MakeModel
-from gwproto.named_types import ComponentAttributeClassGt
 from gwproto.named_types import SyncedReadings, TankModuleParams
 from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from result import Ok, Result
 from actors.scada_actor import ScadaActor
 from gwsproto.named_types import PicoMissing, ChannelFlatlined, MicroVolts
+
+from scada_app_interface import ScadaAppInterface
 
 R_FIXED_KOHMS = 5.65  # The voltage divider resistors in the TankModule
 THERMISTOR_T0 = 298  # i.e. 25 degrees
@@ -36,7 +36,7 @@ class ApiTankModule(ScadaActor):
     def __init__(
         self,
         name: str,
-        services: AppInterface,
+        services:ScadaAppInterface,
     ):
         super().__init__(name, services)
         self._component = self.node.component
