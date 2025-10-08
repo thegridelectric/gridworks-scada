@@ -40,10 +40,7 @@ def test_gws_cli_completes() -> None:
     env_path = Path(settings.paths.config_dir).absolute() / ".env"
     with env_path.open("w") as env_file:
         env_file.write("SCADA_IS_SIMULATED=true")
-    commands: list[list[str]] = [
-        ["admin"] + admin_command for admin_command in admin_commands
-    ]
-    commands += [
+    for command in [
         [],
         ["atn"],
         ["atn", "config", "--env-file", str(env_path)],
@@ -57,8 +54,7 @@ def test_gws_cli_completes() -> None:
         ["run", "--help", "--env-file", str(env_path)],
         ["run-s2", "--dry-run"],
         ["run-s2", "--help"],
-    ]
-    for command in commands:
+    ]:
         result = runner.invoke(scada_cli_app, command)
         result_str = (
             f"exit code: {result.exit_code}\n"
@@ -67,6 +63,8 @@ def test_gws_cli_completes() -> None:
             f"{textwrap.indent(result.output, '        ')}"
         )
         assert result.exit_code == 0, result_str
+    result = runner.invoke(scada_cli_app, ["admin"])
+    assert result.exit_code == 1, result.output
 
 def test_gwa_cli_completes() -> None:
     """This test just verifies that clis can execute dry-runs and help without

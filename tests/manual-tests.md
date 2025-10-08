@@ -9,7 +9,6 @@ and using the repl makes this tricky and some manual testing is required.
 | scada/repl      |       |    |       |
 | gws atn run     |       |    |       |
 | atn in repl     |       |    |       |
-| gws admin watch |       |    |       |
 | gwa watch       |       |    |       |
 | uvx admin       |       |    |       |
 | service         |   -   |    |   -   |
