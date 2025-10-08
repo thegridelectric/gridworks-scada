@@ -57,7 +57,6 @@ __all__ = [
     "AdminDispatch",
     "AdminKeepAlive",
     "AdminReleaseControl",
-    "AsyncBtuData",
     "AsyncBtuParams",
     "AllyGivesUp",
     "AtnBid",
