@@ -176,7 +176,8 @@ class Dacs(Widget):
 
     def _update_button(self) -> None:
         self.logger.debug("++Dacs._update_button")
-        input_widget_value = self.query_one("#dac_value_input", Input).value
+        dac_input_widget = self.query_one("#dac_value_input", Input)
+        input_widget_value = dac_input_widget.value
         if input_widget_value is None:
             input_widget_value = ""
         elif input_widget_value != "":
@@ -187,7 +188,13 @@ class Dacs(Widget):
             disabled = True
         button = self.query_one("#send_dac_button", Button)
         table = self.query_one("#dacs_table", DataTable)
-        dac_name = table.get_row_at(table.cursor_row)[0]
+        if table.is_valid_row_index(table.cursor_row):
+            dac_name = table.get_row_at(table.cursor_row)[0]
+        else:
+            dac_name = ""
+            dac_input_widget.value = ""
+            input_widget_value = ""
+            disabled = True
         button.label = self.dac_button_text(dac_name, input_widget_value)
         button.disabled = disabled
         self.query_one("#dac_control_container", HorizontalGroup).border_title = self.dac_box_text(dac_name)

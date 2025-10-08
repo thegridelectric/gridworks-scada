@@ -1,5 +1,7 @@
 """Scada implementation"""
 import os
+from aiohttp.web_request import Request
+from aiohttp.web_response import Response
 import asyncio
 import enum
 import typing
@@ -7,7 +9,6 @@ import uuid
 import time
 import pytz
 from typing import Any, List, Optional
-
 import dotenv
 from gwproactor import CommunicatorInterface
 from gwproactor import ProactorLogger
@@ -25,6 +26,7 @@ from gwproto.messages import EventBase
 from gwproto.message import Message
 from gwproto.messages import PowerWatts
 from gwproto.messages import SendSnap
+from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 
 from gwproto.named_types import (
     AnalogDispatch, ChannelReadings, MachineStates, SingleReading, SyncedReadings,
@@ -168,6 +170,18 @@ class Scada(PrimeActor, ScadaInterface):
         self.actuator_dependents = {self.home_alone}
         if self.layout.use_sieg_loop:
             self.actuator_dependents |= {self.sieg_loop,self.hp_boss}
+
+        self.services.add_web_route(
+            server_name=DEFAULT_WEB_SERVER_NAME,
+            method="GET",
+            path="/ping",
+            handler=self._handle_ping,
+        )
+
+    # And add the handler method:
+    async def _handle_ping(self, request: Request) -> Response:
+        """Simple ping endpoint for connectivity checks"""
+        return Response(text="pong", status=200)
 
     def stop(self):
         self._stop_requested = True
