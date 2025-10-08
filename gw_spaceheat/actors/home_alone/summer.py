@@ -1,4 +1,3 @@
-import uuid
 import asyncio
 from enum import auto
 from typing import List, Optional, Sequence
@@ -20,9 +19,7 @@ from actors.scada_actor import ScadaActor
 from actors.scada_interface import ScadaInterface
 from gwsproto.named_types import ActuatorsReady, GoDormant, HeatingForecast, WakeUp
 from scada_app_interface import ScadaAppInterface
-from gwproto.named_types import AnalogDispatch
 
-TESTING_PUMPS = False
 
 class SummerTopState(GwStrEnum):
     EverythingOff = auto()
@@ -65,7 +62,6 @@ class SummerHomeAlone(ScadaActor):
         self._stop_requested: bool = False
         self.buffer_declared_ready = False
         self.full_buffer_energy: Optional[float] = None  # in kWh
-        self.pump_test_routine_running = False
 
         self.top_machine = Machine(
             model=self,
@@ -200,86 +196,4 @@ class SummerHomeAlone(ScadaActor):
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
-            if TESTING_PUMPS:
-                self.log(f"HaStrategy: Summer - testing pumps |  State: {self.top_state}")
-                if not self.pump_test_routine_running:
-                    asyncio.create_task(self.pump_test_routine())
-            else:
-                self.log(f"HaStrategy: Summer |  State: {self.top_state}")
-
-    async def pump_test_routine(self):
-
-        # Parameters
-        INITIAL_DFR_LEVEL = 30
-        DFR_LEVEL_INCREMENT = 10
-        MAX_DFR_LEVEL = 100
-        TIME_PUMP_ON_MINUTES = 5
-        TIME_PUMP_OFF_MINUTES = 1
-
-        self.pump_test_routine_running = True
-        self.log("[Pump test routine] Starting pump test routine")
-
-        # Switch relay17 to SCADA
-        if self.layout.zone_list:
-            zone1 = self.layout.zone_list[0]
-        else:
-            self.log("[Pump test routine] Could not find a zone!")
-            return
-        self.heatcall_ctrl_to_scada(zone=zone1, from_node=self.normal_node)
-        self.log(f"[Pump test routine] Switched relay17 to SCADA")
-
-        # Initial DFR level
-        dfr_level = INITIAL_DFR_LEVEL
-
-        while True:
-            try:
-                # Set DFR level
-                self.set_dist_010(dfr_level)
-                self.log(f"[Pump test routine] Set DFR level to {dfr_level}")
-
-                # Switch relay18 to close
-                self.stat_ops_close_relay(zone=zone1, from_node=self.normal_node)
-                self.log(f"[Pump test routine] Switched relay18 to closed")
-
-                # Wait 5 minutes
-                self.log(f"[Pump test routine] Waiting {TIME_PUMP_ON_MINUTES} minutes")
-                await asyncio.sleep(int(TIME_PUMP_ON_MINUTES*60))
-
-                # Switch relay18 to open
-                self.stat_ops_open_relay(zone=zone1, from_node=self.normal_node)
-                self.log(f"[Pump test routine] Switched relay18 to open")
-
-                # Wait 1 minute
-                self.log(f"[Pump test routine] Waiting {TIME_PUMP_OFF_MINUTES} minutes")
-                await asyncio.sleep(int(TIME_PUMP_OFF_MINUTES*60))
-
-                # Increase DFR level
-                dfr_level += DFR_LEVEL_INCREMENT
-                if dfr_level >= MAX_DFR_LEVEL + DFR_LEVEL_INCREMENT:
-                    dfr_level = INITIAL_DFR_LEVEL
-
-            except Exception as e:
-                self.log(f"[Pump test routine] Error: {e}")
-                break
-
-        # Pump test routine complete
-        self.log("[Pump test routine] Pump test routine complete")
-        self.pump_test_routine_running = False
-
-
-    def set_dist_010(self, val: int = 40) -> None:
-        self.services.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.primary_scada.name,
-                Payload=AnalogDispatch(
-                    FromGNodeAlias=self.layout.atn_g_node_alias,
-                    FromHandle="auto",
-                    ToHandle="auto.dist-010v",
-                    AboutName="dist-010v",
-                    Value=val,
-                    TriggerId=str(uuid.uuid4()),
-                    UnixTimeMs=int(time.time() * 1000),
-                ),
-            )
-        )
+            self.log(f"HaStrategy: Summer  |  State: {self.top_state}")
