@@ -33,7 +33,7 @@ class AdminConfig(BaseModel):
     paho_verbosity: Optional[int] = None
     show_clock: bool = False
     show_footer: bool = False
-    show_selected_scada_block: bool = False
+    show_selected_scada_block: bool = True
     default_timeout_seconds: int = DEFAULT_ADMIN_TIMEOUT
 
 class AdminPaths(Paths):
