@@ -84,8 +84,54 @@ class House0Layout(HardwareLayout):
         errors: Optional[list[LoadError]] = None,
     ) -> None:
         nodes = load_args["nodes"]
+        components = load_args["components"]
         data_channels = load_args["data_channels"]
         errors_caught = []
+
+        # Check for essential nodes that must always exist
+        essential_nodes = [
+            H0N.atn,
+            H0N.primary_scada,
+            H0N.atomic_ally,
+            H0N.home_alone,
+            H0N.synth_generator,
+            H0N.relay_multiplexer,
+            H0N.vdc_relay,
+            H0N.tstat_common_relay,
+            H0N.store_charge_discharge_relay,
+            H0N.thermistor_common_relay,
+            H0N.aquastat_ctrl_relay,
+            H0N.store_pump_failsafe,
+            H0N.primary_pump_scada_ops,
+            H0N.primary_pump_failsafe
+        ]
+
+        # Add pico_cycler if there are any pico-based actors
+        pico_actor_classes = [ActorClass.ApiFlowModule, ActorClass.ApiTankModule, ActorClass.ApiBtuMeter]
+        has_pico_actors = any(
+            node.actor_class in pico_actor_classes
+            for node in nodes.values()
+        )
+        if has_pico_actors:
+            essential_nodes.append(H0N.pico_cycler)
+            essential_nodes.append(H0N.vdc_relay)  # Also needed for pico cycling
+
+        # Check for missing essential nodes
+        missing_nodes = []
+        for node_name in essential_nodes:
+            if node_name not in nodes:
+                missing_nodes.append(node_name)
+
+        if missing_nodes:
+            error_msg = f"Missing essential nodes in layout: {', '.join(missing_nodes)}"
+            if has_pico_actors and H0N.pico_cycler in missing_nodes:
+                error_msg += f"\nNote: pico_cycler is required because layout contains pico-based actors"
+
+            if raise_errors:
+                raise DcError(error_msg)
+            if errors is not None:
+                errors_caught.append(LoadError("House0Layout", {"missing_nodes": missing_nodes}, DcError(error_msg)))
+
         flow_manifold_variant = load_args["flow_manifold_variant"]
         use_sieg_loop = load_args["use_sieg_loop"]
 
@@ -117,6 +163,7 @@ class House0Layout(HardwareLayout):
                 if raise_errors:
                     raise
                 errors_caught.append(LoadError("hardware.layout", nodes, e))
+
     @classmethod
     def check_house0_sieg_manifold(cls, channels: dict[str, DataChannel]) -> None:
         # if H0CN.sieg_cold not in channels.keys():

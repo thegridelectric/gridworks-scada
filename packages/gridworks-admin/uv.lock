@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.11"
 
 [[package]]
@@ -278,7 +278,7 @@ wheels = [
 
 [[package]]
 name = "gridworks-protocol"
-version = "1.2.9"
+version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "gridworks" },
@@ -287,9 +287,9 @@ dependencies = [
     { name = "pytz" },
     { name = "yarl" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/62/4f/95bbfca31375427038fc7a7f42b958a4acb1b81599029cd1aa49f74b4712/gridworks_protocol-1.2.9.tar.gz", hash = "sha256:d544830062c95b7b71b05ee62c9eb521a0aecd0da6381959d1a264251acb2ad3", size = 62176, upload-time = "2025-07-02T14:55:31.014Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/4e/c3/207b609d619c401425c99ce0928c9cb0061b6ec1dc6870c978b0220ef48b/gridworks_protocol-1.3.0.tar.gz", hash = "sha256:967f6719991e7894763c22b2158cebbe39dce3188bedbbaadbec959c4c78166a", size = 62711, upload-time = "2025-09-29T19:54:16.871Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ed/41/0a6cee37868843c97f87ca9dac4085bb977c3227fa116557f765dba781a5/gridworks_protocol-1.2.9-py3-none-any.whl", hash = "sha256:2ccb93b0fd9aafe15a3e76e1489ead2136ef2b81a02f69ba453b1f7d3452a956", size = 105072, upload-time = "2025-07-02T14:55:29.563Z" },
+    { url = "https://files.pythonhosted.org/packages/fd/d0/69f79571014b0bce1c56127d9de37ade49d4579697c93ff77e204a0a4971/gridworks_protocol-1.3.0-py3-none-any.whl", hash = "sha256:2c32aee1575d6e860a7f9766c30ba3e4032104014aead368379933a73f2884b3", size = 106453, upload-time = "2025-09-29T19:54:14.708Z" },
 ]
 
 [[package]]
@@ -303,7 +303,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "gridworks-protocol", specifier = ">=1.2.9" },
+    { name = "gridworks-protocol", specifier = ">=1.3.0" },
     { name = "transitions", specifier = ">=0.9.3" },
 ]
 

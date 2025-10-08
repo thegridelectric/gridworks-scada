@@ -1,5 +1,6 @@
 """Temporary package with asyncio actor implementation, currently exists with actors package to make work in progress
 easier."""
+from actors.api_btu_meter import ApiBtuMeter
 from actors.api_flow_module import ApiFlowModule
 from actors.api_tank_module import ApiTankModule
 from actors.atomic_ally import AtomicAlly
@@ -23,6 +24,7 @@ from actors.synth_generator import SynthGenerator
 from actors.zero_ten_outputer import ZeroTenOutputer
 
 __all__ = [
+    "ApiBtuMeter",
     "ApiFlowModule",
     "ApiTankModule",
     "AtomicAlly",

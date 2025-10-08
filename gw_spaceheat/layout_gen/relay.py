@@ -331,14 +331,6 @@ def add_relays(
             ComponentId=db.component_id_by_alias(component_display_name),
         ),
         SpaceheatNodeGt(
-            ShNodeId=db.make_node_id(H0N.pico_cycler),
-            Name=H0N.pico_cycler,
-            ActorHierarchyName=f"{H0N.primary_scada}.{H0N.pico_cycler}",
-            Handle=f"auto.{H0N.pico_cycler}",
-            ActorClass=ActorClass.PicoCycler,
-            DisplayName="Pico Cycler - responsible for power cycling the 5VDC bus",
-        ),
-        SpaceheatNodeGt(
             ShNodeId=db.make_node_id(H0N.vdc_relay),
             Name=H0N.vdc_relay,
             ActorHierarchyName=f"{H0N.primary_scada}.{H0N.vdc_relay}",
