@@ -16,7 +16,6 @@ from gwsproto.named_types import SingleMachineState
 from gwproto.data_classes.sh_node import ShNode
 from transitions import Machine
 from actors.scada_actor import ScadaActor
-from actors.scada_interface import ScadaInterface
 from gwsproto.named_types import ActuatorsReady, GoDormant, HeatingForecast, WakeUp
 from scada_app_interface import ScadaAppInterface
 
