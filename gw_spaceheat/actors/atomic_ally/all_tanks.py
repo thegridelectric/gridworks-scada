@@ -1,11 +1,11 @@
 import time
-from actors.atomic_ally.atomic_ally_base import AtomicAllyBase, AtomicAllyEvent
+from actors.atomic_ally.atomic_ally_base import AtomicAllyBase
 from gwsproto.named_types import AllyGivesUp
 from transitions import Machine
 from gw.enums import GwStrEnum
 from enum import auto
 from typing import List
-
+from gwsproto.enums import AtomicAllyState, AtomicAllyEvent
 
 class AaAllTanksState(GwStrEnum):
     Initializing = auto()

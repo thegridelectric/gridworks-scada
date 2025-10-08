@@ -2,11 +2,9 @@ import asyncio
 import time
 import uuid
 from abc import abstractmethod
-from enum import auto
 from typing import cast, List, Sequence, Optional
 
 from gwsproto.data_classes.house_0_names import H0CN, H0N
-from gw.enums import GwStrEnum
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
@@ -18,7 +16,10 @@ from gwproto.named_types import AnalogDispatch, FsmAtomicReport, FsmFullReport, 
 from result import Ok, Result
 
 from actors.scada_actor import ScadaActor
-from gwsproto.enums import AtomicAllyState, HomeAloneStrategy, LogLevel
+from gwsproto.enums import (
+    AtomicAllyEvent, AtomicAllyState,
+    HomeAloneStrategy, LogLevel
+)
 from gwsproto.named_types import (
     AllyGivesUp,  Glitch, GoDormant, Ha1Params, HeatingForecast,
     SingleMachineState, SlowContractHeartbeat, SlowDispatchContract, SuitUp
@@ -26,21 +27,6 @@ from gwsproto.named_types import (
 
 from scada_app_interface import ScadaAppInterface
 
-
-class AtomicAllyEvent(GwStrEnum):
-    NoMoreElec = auto()
-    ElecBufferFull = auto()
-    ElecBufferEmpty = auto()
-    NoElecBufferFull = auto()
-    NoElecBufferEmpty = auto()
-    WakeUp = auto()
-    GoDormant = auto()
-    StartHackOil = auto()
-    StopHackOil = auto()
-
-    @classmethod
-    def enum_name(cls) -> str:
-        return "atomic.ally.event"
 
 
 class AtomicAllyBase(ScadaActor):

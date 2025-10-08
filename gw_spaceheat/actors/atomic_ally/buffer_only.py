@@ -2,41 +2,7 @@ import time
 from actors.atomic_ally.atomic_ally_base import AtomicAllyBase
 from gwsproto.named_types import AllyGivesUp
 from transitions import Machine
-from gw.enums import GwStrEnum
-from enum import auto
-from typing import List
-
-
-class AaBufferOnlyState(GwStrEnum):
-    Initializing = auto()
-    HpOn = auto()
-    HpOff = auto()
-    HpOffOilBoilerTankAquastat = auto()
-    Dormant = auto()
-
-    @classmethod
-    def enum_name(cls) -> str:
-        return "aa.buffer.only.state"
-
-    @classmethod
-    def values(cls) -> List[str]:
-        return [elt.value for elt in cls]
-
-
-class AaBufferOnlyEvent(GwStrEnum):
-    NoMoreElec = auto()
-    BufferFull = auto()
-    ChargeBuffer = auto()
-    TemperaturesAvailable = auto()
-    StartHackOil = auto()
-    StopHackOil = auto()
-    GoDormant = auto()
-    WakeUp = auto()
-
-    @classmethod
-    def enum_name(cls) -> str:
-        return "aa.buffer.only.event"
-
+from gwsproto.enums import AaBufferOnlyState, AaBufferOnlyEvent
 
 class BufferOnlyAtomicAllyStrategy(AtomicAllyBase):
     states = AaBufferOnlyState.values()
