@@ -12,10 +12,7 @@ from gwproactor import MonitoredName, Problems, AppInterface
 from gwproactor.message import InternalShutdownMessage, PatInternalWatchdogMessage
 from gwproto import Message
 from gwproto.data_classes.components import PicoFlowModuleComponent
-from gwsproto.data_classes.house_0_names import H0N
-from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import GpmFromHzMethod, HzCalcMethod, MakeModel, TelemetryName
-from gwproto.messages import ProblemEvent
 from gwproto.named_types import (
     ChannelReadings,
     SyncedReadings,
@@ -31,7 +28,7 @@ from gwsproto.named_types import Glitch, PicoMissing
 from pydantic import BaseModel
 from result import Ok, Result
 from drivers.pipe_flow_sensor.signal_processing import butter_lowpass, filtering
-
+from scada_app_interface import ScadaAppInterface
 
 FLATLINE_REPORT_S = 60
 
@@ -67,7 +64,7 @@ class ApiFlowModule(ScadaActor):
     def __init__(
         self,
         name: str,
-        services: AppInterface,
+        services: ScadaAppInterface,
     ):
         super().__init__(name, services)
         component = services.hardware_layout.component(name)

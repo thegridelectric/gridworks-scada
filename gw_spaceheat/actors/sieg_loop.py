@@ -16,7 +16,6 @@ from result import Ok, Result
 from gw.enums import GwStrEnum
 from actors.hp_boss import SiegLoopReady, HpBossState
 from actors.scada_actor import ScadaActor
-from actors.scada_interface import ScadaInterface
 from gwsproto.enums import HpModel, LogLevel
 from gwsproto.named_types import (ActuatorsReady, Glitch, ResetHpKeepValue, SetLwtControlParams,
     SetTargetLwt, SiegTargetTooLow,  SingleMachineState)

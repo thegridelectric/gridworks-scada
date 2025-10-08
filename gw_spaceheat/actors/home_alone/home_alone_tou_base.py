@@ -18,7 +18,6 @@ from gwsproto.data_classes.house_0_names import H0N, H0CN
 from gwproto.data_classes.components.dfr_component import DfrComponent
 from gwsproto.enums import HomeAloneStrategy
 from actors.scada_actor import ScadaActor
-from actors.scada_interface import ScadaInterface
 from gwsproto.named_types import (ActuatorsReady,
             GoDormant, Glitch, Ha1Params, HeatingForecast,
             NewCommandTree, SingleMachineState, WakeUp)
