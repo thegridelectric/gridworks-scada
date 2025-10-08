@@ -30,3 +30,9 @@ def always_restore_loggers(restore_loggers):
 
 def pytest_addoption(parser: pytest.Parser) -> None:
     add_live_test_options(parser, include_tree=True)
+    group = parser.getgroup("gridworks-scada")
+    group.addoption(
+        "--admin-verbosity",
+        type=int,
+        help="Run Admin live tests with the --verbose argument passed to admin this many times.",
+    )
