@@ -8,14 +8,13 @@ class AaBufferOnlyEvent(GwStrEnum):
     NoMoreElec = auto()
     BufferFull = auto()
     ChargeBuffer = auto()
-    TemperaturesAvailable = auto()
     StartHackOil = auto()
     StopHackOil = auto()
     GoDormant = auto()
     WakeUp = auto()
 
     @classmethod
-    def defualt(cls) -> "AaBufferOnlyEvent":
+    def default(cls) -> "AaBufferOnlyEvent":
         return cls.GoDormant
 
     @classmethod

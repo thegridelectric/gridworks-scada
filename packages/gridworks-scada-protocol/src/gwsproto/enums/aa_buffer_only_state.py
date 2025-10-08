@@ -12,7 +12,7 @@ class AaBufferOnlyState(GwStrEnum):
     Dormant = auto()
 
     @classmethod
-    def defualt(cls) -> "AaBufferOnlyState":
+    def default(cls) -> "AaBufferOnlyState":
         return cls.Dormant
 
     @classmethod

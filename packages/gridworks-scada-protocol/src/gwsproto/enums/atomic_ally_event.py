@@ -16,7 +16,7 @@ class AtomicAllyEvent(GwStrEnum):
     StopHackOil = auto()
 
     @classmethod
-    def defualt(cls) -> "AtomicAllyEvent":
+    def default(cls) -> "AtomicAllyEvent":
         return cls.GoDormant
 
     @classmethod
