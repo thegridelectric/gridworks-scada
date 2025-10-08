@@ -22,6 +22,8 @@ from gwsproto.named_types import ActuatorsReady, GoDormant, HeatingForecast, Wak
 from scada_app_interface import ScadaAppInterface
 from gwproto.named_types import AnalogDispatch
 
+TESTING_PUMPS = False
+
 class SummerTopState(GwStrEnum):
     EverythingOff = auto()
     Dormant = auto()
@@ -198,11 +200,12 @@ class SummerHomeAlone(ScadaActor):
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
-            self.log(f"HaStrategy: Summer - testing pumps |  State: {self.top_state}")
-            if not self.pump_test_routine_running:
-                asyncio.create_task(self.pump_test_routine())
+            if TESTING_PUMPS:
+                self.log(f"HaStrategy: Summer - testing pumps |  State: {self.top_state}")
+                if not self.pump_test_routine_running:
+                    asyncio.create_task(self.pump_test_routine())
             else:
-                self.log("Pump test routine is running")
+                self.log(f"HaStrategy: Summer |  State: {self.top_state}")
 
     async def pump_test_routine(self):
 
