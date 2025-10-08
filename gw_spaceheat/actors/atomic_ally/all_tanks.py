@@ -2,49 +2,11 @@ import time
 from actors.atomic_ally.atomic_ally_base import AtomicAllyBase
 from gwsproto.named_types import AllyGivesUp
 from transitions import Machine
-from gw.enums import GwStrEnum
-from enum import auto
-from typing import List
 from gwsproto.enums import AtomicAllyState, AtomicAllyEvent
 
-class AaAllTanksState(GwStrEnum):
-    Initializing = auto()
-    HpOnStoreOff = auto()
-    HpOnStoreCharge = auto()
-    HpOffStoreOff = auto()
-    HpOffStoreDischarge = auto()
-    HpOffOilBoilerTankAquastat = auto()
-    Dormant = auto()
-
-    @classmethod
-    def enum_name(cls) -> str:
-        return "aa.all.tanks.state"
-
-    @classmethod
-    def values(cls) -> List[str]:
-        return [elt.value for elt in cls]
-
-
-class AaAllTanksEvent(GwStrEnum):
-    NoElecBufferEmpty = auto()
-    NoElecBufferFull = auto()
-    ElecBufferEmpty = auto()
-    ElecBufferFull = auto()
-    NoMoreElec = auto()
-    TemperaturesAvailable = auto()
-    StartHackOil = auto()
-    StopHackOil = auto()
-    GoDormant = auto()
-    WakeUp = auto()
-
-    @classmethod
-    def enum_name(cls) -> str:
-        return "aa.all.tanks.event"
-
-
 class AllTanksAtomicAllyStrategy(AtomicAllyBase):
-    states = AaAllTanksState.values()
-
+    states = AtomicAllyState.values()
+    # Uses AtomicAllyEvent as transitions
     transitions = (
         [
         # Initializing
@@ -87,19 +49,19 @@ class AllTanksAtomicAllyStrategy(AtomicAllyBase):
             model=self,
             states=AllTanksAtomicAllyStrategy.states,
             transitions=AllTanksAtomicAllyStrategy.transitions,
-            initial=AaAllTanksState.Dormant,
+            initial=AtomicAllyState.Dormant,
             send_event=True,
         )     
-        self.state: AaAllTanksState = AaAllTanksState.Dormant
-        self.prev_state: AaAllTanksState = AaAllTanksState.Dormant 
+        self.state: AtomicAllyState = AtomicAllyState.Dormant
+        self.prev_state: AtomicAllyState = AtomicAllyState.Dormant 
 
     def engage_brain(self) -> None:
         self.log(f"State: {self.state}")
-        if self.state not in [AaAllTanksState.Dormant, 
-                              AaAllTanksState.HpOffOilBoilerTankAquastat]:
+        if self.state not in [AtomicAllyState.Dormant, 
+                              AtomicAllyState.HpOffOilBoilerTankAquastat]:
             self.get_latest_temperatures()
 
-            if self.state == AaAllTanksState.Initializing:
+            if self.state == AtomicAllyState.Initializing:
                 if self.temperatures_available: 
                     self.no_temps_since = None
                     if self.hp_should_be_off():
@@ -128,7 +90,7 @@ class AllTanksAtomicAllyStrategy(AtomicAllyBase):
                         self.turn_off_HP()
 
             # 1
-            elif self.state == AaAllTanksState.HpOnStoreOff:
+            elif self.state == AtomicAllyState.HpOnStoreOff:
                 if self.hp_should_be_off():
                     self.trigger_event(AtomicAllyEvent.NoMoreElec)
                 elif self.is_buffer_full() and not self.is_storage_full():
@@ -142,14 +104,14 @@ class AllTanksAtomicAllyStrategy(AtomicAllyBase):
                         # TODO: send message to ATN saying the EnergyInstruction will be violated
 
             # 2
-            elif self.state == AaAllTanksState.HpOnStoreCharge:
+            elif self.state == AtomicAllyState.HpOnStoreCharge:
                 if self.hp_should_be_off():
                     self.trigger_event(AtomicAllyEvent.NoMoreElec)
                 elif self.is_buffer_empty() or self.is_storage_full():
                     self.trigger_event(AtomicAllyEvent.ElecBufferEmpty)
 
             # 3
-            elif self.state == AaAllTanksState.HpOffStoreOff:
+            elif self.state == AtomicAllyState.HpOffStoreOff:
                 if self.hp_should_be_off():
                     if (
                         self.is_buffer_empty()
@@ -163,7 +125,7 @@ class AllTanksAtomicAllyStrategy(AtomicAllyBase):
                         self.trigger_event(AtomicAllyEvent.ElecBufferFull)
 
             # 4
-            elif self.state == AaAllTanksState.HpOffStoreDischarge:
+            elif self.state == AtomicAllyState.HpOffStoreDischarge:
                 if self.hp_should_be_off():
                     if (
                         self.is_buffer_full()
@@ -178,14 +140,14 @@ class AllTanksAtomicAllyStrategy(AtomicAllyBase):
 
     def update_relays(self) -> None:
         self.log(f"update_relays with previous_state {self.prev_state} and state {self.state}")
-        if self.state == AaAllTanksState.Dormant:
+        if self.state == AtomicAllyState.Dormant:
             return
-        if self.state == AaAllTanksState.Initializing:
+        if self.state == AtomicAllyState.Initializing:
             if self.hp_should_be_off():
                 self.turn_off_HP()
             return
 
-        if self.prev_state == AaAllTanksState.HpOffOilBoilerTankAquastat:
+        if self.prev_state == AtomicAllyState.HpOffOilBoilerTankAquastat:
             self.hp_failsafe_switch_to_scada()
             self.aquastat_ctrl_switch_to_scada()
         if "HpOn" not in self.prev_state and "HpOn" in self.state:
@@ -200,7 +162,7 @@ class AllTanksAtomicAllyStrategy(AtomicAllyBase):
             self.valved_to_charge_store()
         else:
             self.valved_to_discharge_store()
-        if self.state == AaAllTanksState.HpOffOilBoilerTankAquastat.value:
+        if self.state == AtomicAllyState.HpOffOilBoilerTankAquastat.value:
             self.hp_failsafe_switch_to_aquastat()
             self.aquastat_ctrl_switch_to_boiler()
         else:

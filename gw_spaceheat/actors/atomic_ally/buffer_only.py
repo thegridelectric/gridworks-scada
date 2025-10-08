@@ -6,7 +6,7 @@ from gwsproto.enums import AaBufferOnlyState, AaBufferOnlyEvent
 
 class BufferOnlyAtomicAllyStrategy(AtomicAllyBase):
     states = AaBufferOnlyState.values()
-
+    # Uses AaBufferOnlyEvent as transitions
     transitions = (
         [
         # Initializing
