@@ -20,10 +20,10 @@ class AtomicAlly(ScadaActor):
         # Dynamically load the implementation class based on HomeAlone strategy
         if strategy == HomeAloneStrategy.WinterTou:
             module = importlib.import_module("actors.atomic_ally.all_tanks")
-            impl_class = getattr(module, "AllTanksAtomicAllyStrategy")
+            impl_class = getattr(module, "AllTanksAtomicAlly")
         else:
             module = importlib.import_module("actors.atomic_ally.buffer_only")
-            impl_class = getattr(module, "BufferOnlyAtomicAllyStrategy")
+            impl_class = getattr(module, "BufferOnlyAtomicAlly")
 
         # Create the implementation instance
         self._impl = impl_class(name, services)
