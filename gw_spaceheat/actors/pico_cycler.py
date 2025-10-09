@@ -4,7 +4,7 @@ import uuid
 from enum import auto
 from typing import Dict, List, Optional, Sequence, cast
 from gw.enums import GwStrEnum
-from gwproactor import MonitoredName, Problems, AppInterface
+from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwsproto.data_classes.house_0_names import H0N
@@ -29,9 +29,9 @@ import transitions
 from actors.scada_actor import ScadaActor
 from gwsproto.enums import LogLevel, PicoCyclerEvent, PicoCyclerState
 from gwsproto.named_types import Glitch, GoDormant, PicoMissing, WakeUp
-from gwproto.named_types import PicoTankModuleComponentGt
 from gwproto.data_classes.components import PicoTankModuleComponent
 
+from scada_app_interface import ScadaAppInterface
 class PicoWarning(ValueError):
     pico_name: str
 
@@ -97,7 +97,7 @@ class PicoCycler(ScadaActor):
     ] + [{"trigger":"WakeUp","source": "Dormant", "dest": "PicosLive"}]
     
 
-    def __init__(self, name: str, services: AppInterface):
+    def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
         self.pico_relay = self.layout.node(H0N.vdc_relay)
         self.pico_actors = [

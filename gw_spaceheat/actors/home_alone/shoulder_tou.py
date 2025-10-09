@@ -1,10 +1,9 @@
 import time
 from datetime import datetime
 from enum import auto
-from typing import List, Optional, cast
+from typing import List, Optional
 
 from actors.home_alone.home_alone_tou_base import HomeAloneTouBase
-from actors.scada_interface import ScadaInterface
 from gwsproto.data_classes.house_0_names import H0CN, H0N
 from gwsproto.enums import HomeAloneStrategy, HomeAloneTopState
 from gw.enums import GwStrEnum

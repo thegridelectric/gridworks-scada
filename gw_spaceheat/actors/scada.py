@@ -44,7 +44,7 @@ from gwproactor.message import MQTTReceiptPayload
 
 from actors.subscription_handler import ChannelSubscription, StateMachineSubscription
 from actors.home_alone_loader import HomeAlone
-from actors.atomic_ally import AtomicAlly
+from actors.atomic_ally_loader import AtomicAlly
 from actors.codec_factories import ScadaCodecFactory
 from actors.contract_handler import ContractHandler
 from gwsproto.data_classes.house_0_names import H0N
