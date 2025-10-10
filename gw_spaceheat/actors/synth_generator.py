@@ -11,11 +11,12 @@ from datetime import datetime,  timezone
 from gwproto import Message
 
 from gwproto.named_types import SingleReading, PicoTankModuleComponentGt
+from gwsproto.named_types import Glitch
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 
 from actors.scada_actor import ScadaActor
-from gwsproto.enums import HomeAloneStrategy
+from gwsproto.enums import HomeAloneStrategy, LogLevel
 from gwsproto.data_classes.house_0_names import H0CN
 from gwsproto.named_types import (Ha1Params, HeatingForecast,
                          WeatherForecast, ScadaParams)
@@ -234,6 +235,7 @@ class SynthGenerator(ScadaActor):
         self.required_kwh = self.get_required_storage(time_now)
         self.log(f"Usable energy: {round(self.usable_kwh,1)} kWh")
         self.log(f"Required energy: {round(self.required_kwh,1)} kWh")
+        self.evaluate_strategy()
 
         # Post usable and required energy
         t_ms = int(time.time() * 1000)
@@ -253,6 +255,25 @@ class SynthGenerator(ScadaActor):
                     ScadaReadTimeUnixMs=t_ms,
                 ),
             )
+        
+    def evaluate_strategy(self):
+        if self.layout.ha_strategy != HomeAloneStrategy.ShoulderTou:
+            return
+        simulated_layers = [self.params.MaxEwtF]*3   
+        max_buffer_usable_kwh = 0
+        while True:
+            if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
+                simulated_layers = [sum(simulated_layers)/len(simulated_layers) for x in simulated_layers]
+                if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
+                    break
+            max_buffer_usable_kwh += 120/3 * 3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
+            simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]          
+        self.log(f"Max buffer usable energy: {round(max_buffer_usable_kwh,1)} kWh")
+        if round(max_buffer_usable_kwh,1) < round(self.required_kwh,1):
+            summary = f"Consider changing strategy to use all tanks and not just the buffer"
+            details = f"A full buffer will not have enough energy to go through the next on-peak ({round(max_buffer_usable_kwh,1)}<{round(self.required_kwh,1)} kWh)"
+            self.log(details)
+            self.alert(summary, details)
         
     def get_required_storage(self, time_now: datetime) -> float:
         forecasts_times_tz = [datetime.fromtimestamp(x, tz=self.timezone) for x in self.forecasts.Time]
@@ -491,3 +512,14 @@ class SynthGenerator(ScadaActor):
         else:
             delta_t = self.delta_T(swt)
         return round(swt - delta_t,2)
+
+    def alert(self, summary: str, details: str) -> None:
+        msg = Glitch(
+            FromGNodeAlias=self.layout.scada_g_node_alias,
+            Node=self.node.Name,
+            Type=LogLevel.Critical,
+            Summary=summary,
+            Details=details
+        )
+        self._send_to(self.atn, msg)
+        self.log(f"Glitch: {summary}")

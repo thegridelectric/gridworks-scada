@@ -16,6 +16,9 @@ on these ideas:
  """
 
 from gw.enums import MarketTypeName
+from gwsproto.enums.aa_buffer_only_event import AaBufferOnlyEvent
+from gwsproto.enums.aa_buffer_only_state import AaBufferOnlyState
+from gwsproto.enums.atomic_ally_event import AtomicAllyEvent
 from gwsproto.enums.atomic_ally_state import AtomicAllyState
 from gwsproto.enums.contract_status import ContractStatus
 from gwsproto.enums.change_keep_send import ChangeKeepSend
@@ -37,6 +40,9 @@ from gwsproto.enums.turn_hp_on_off import TurnHpOnOff
 
 
 __all__ = [
+    "AaBufferOnlyEvent",
+    "AaBufferOnlyState",
+    "AtomicAllyEvent",
     "AtomicAllyState",
     "ContractStatus",
     "MarketTypeName",
