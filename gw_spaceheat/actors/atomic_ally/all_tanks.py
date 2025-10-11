@@ -81,8 +81,8 @@ class AllTanksAtomicAlly(ScadaActor):
         for i in range(1,len(self.cn.tank.values())+1):
             tank_depths = [H0CN.tank[i].depth1, H0CN.tank[i].depth2, H0CN.tank[i].depth3]
             if (
-                isinstance(self.layout.nodes[H0N.tank[i]].component.gt, PicoTankModuleComponentGt) 
-                and getattr(self.layout.nodes[H0N.tank[i]].component.gt, "PicoAHwUid", None)
+                isinstance(self.layout.nodes[H0N.tank[i].reader].component.gt, PicoTankModuleComponentGt) 
+                and getattr(self.layout.nodes[H0N.tank[i].reader].component.gt, "PicoAHwUid", None)
             ):
                 tank_depths = [H0CN.tank[i].depth1, H0CN.tank[i].depth2, H0CN.tank[i].depth3, H0CN.tank[i].depth4]
             all_tank_depths.extend(tank_depths)
