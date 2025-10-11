@@ -41,12 +41,12 @@ class SynthGenerator(ScadaActor):
             buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4]
         all_tank_depths = []
         for i in range(1,len(self.cn.tank.values())+1):
-            tank_depths = [f'tank{i}-depth1', f'tank{i}-depth2', f'tank{i}-depth3']
+            tank_depths = [H0CN.tank[i].depth1, H0CN.tank[i].depth2, H0CN.tank[i].depth3]
             if (
-                isinstance(self.layout.nodes[f'tank{i}'].component.gt, PicoTankModuleComponentGt) 
-                and getattr(self.layout.nodes[f'tank{i}'].component.gt, "PicoAHwUid", None)
+                isinstance(self.layout.nodes[H0CN.tank[i]].component.gt, PicoTankModuleComponentGt) 
+                and getattr(self.layout.nodes[H0CN.tank[i]].component.gt, "PicoAHwUid", None)
             ):
-                tank_depths = [f'tank{i}-depth1', f'tank{i}-depth2', f'tank{i}-depth3', f'tank{i}-depth4']
+                tank_depths = [H0CN.tank[i].depth1, H0CN.tank[i].depth2, H0CN.tank[i].depth3, H0CN.tank[i].depth4]
             all_tank_depths.extend(tank_depths)
         
         self.temperature_channel_names = buffer_depths + all_tank_depths + [
