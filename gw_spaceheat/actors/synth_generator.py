@@ -17,7 +17,7 @@ from gwproactor.message import PatInternalWatchdogMessage
 
 from actors.scada_actor import ScadaActor
 from gwsproto.enums import HomeAloneStrategy, LogLevel
-from gwsproto.data_classes.house_0_names import H0CN
+from gwsproto.data_classes.house_0_names import H0CN, H0N
 from gwsproto.named_types import (Ha1Params, HeatingForecast,
                          WeatherForecast, ScadaParams)
 from scada_app_interface import ScadaAppInterface
@@ -43,8 +43,8 @@ class SynthGenerator(ScadaActor):
         for i in range(1,len(self.cn.tank.values())+1):
             tank_depths = [H0CN.tank[i].depth1, H0CN.tank[i].depth2, H0CN.tank[i].depth3]
             if (
-                isinstance(self.layout.nodes[H0CN.tank[i]].component.gt, PicoTankModuleComponentGt) 
-                and getattr(self.layout.nodes[H0CN.tank[i]].component.gt, "PicoAHwUid", None)
+                isinstance(self.layout.nodes[H0N.tank[i]].component.gt, PicoTankModuleComponentGt) 
+                and getattr(self.layout.nodes[H0N.tank[i]].component.gt, "PicoAHwUid", None)
             ):
                 tank_depths = [H0CN.tank[i].depth1, H0CN.tank[i].depth2, H0CN.tank[i].depth3, H0CN.tank[i].depth4]
             all_tank_depths.extend(tank_depths)
