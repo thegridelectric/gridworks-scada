@@ -167,7 +167,7 @@ class WinterTouHomeAlone(HomeAloneTouBase):
                 tank_depths = [H0CN.tank[i].depth1, H0CN.tank[i].depth2, H0CN.tank[i].depth3, H0CN.tank[i].depth4]
             all_tank_depths.extend(tank_depths)
         
-        self.temperature_channel_names = buffer_depths + all_tank_depths + [
+        return buffer_depths + all_tank_depths + [
             H0CN.hp_ewt, H0CN.hp_lwt, H0CN.dist_swt, H0CN.dist_rwt, 
             H0CN.buffer_cold_pipe, H0CN.buffer_hot_pipe, H0CN.store_cold_pipe, H0CN.store_hot_pipe
         ]
