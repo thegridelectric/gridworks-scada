@@ -1269,11 +1269,7 @@ class Atn(PrimeActor):
                 raise Exception("Failed to receive prices.")
 
     async def update_price_forecast(self) -> None:
-        """ updates self.price_forecast for the start of next hour. All in USD/MWh
-
-        Reads the 72 hour electricity price from price_forecast.csv file in data 
-        directory. Uses the datetime day mod 3 to determine which day it is
-        """
+        """updates self.price_forecast for the start of next hour. All in USD/MWh"""
         try:
             await self.get_price_forecast_from_price_service()
             self.log("Successfully received price forecast from API")
@@ -1343,12 +1339,29 @@ class Atn(PrimeActor):
             await asyncio.sleep(sleep_time)
             await self.send_latest_price()
 
+    async def get_current_price(self) -> float:
+        try:
+            url = "https://price-forecasts.electricity.works/get_real_time_price"
+            async with httpx.AsyncClient() as client:
+                response = await client.post(url)
+                if response.status_code == 200:
+                    self.log("Successfully received prices from API")
+                    data = response.json()
+                    price = data['lmp'] + data['dist']
+                    return price
+                else:
+                    self.log(f"Failed to receive prices from API, status code: {response.status_code}")
+                    raise Exception("Failed to receive prices.")
+        except Exception as e:
+            self.log(f"Error getting current price: {e}")
+            return 0
+
     async def send_latest_price(self) -> None:
         now = time.time()
         slot_start_s = int(now) - int(now) % 3600
         mtn = MarketTypeName.rt60gate5.value
         market_slot_name = f"e.{mtn}.{Atn.P_NODE}.{slot_start_s}"
-        usd_per_mwh = await self.get_price()
+        usd_per_mwh = await self.get_current_price(market_slot_name)
         price = LatestPrice(
                 FromGNodeAlias=Atn.P_NODE,
                 PriceTimes1000=int(usd_per_mwh * 1000),
