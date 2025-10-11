@@ -74,6 +74,37 @@ def make_tst_layout(src_path: Path) -> LayoutDb:
         ),
     )
 
+    # Add store tanks
+    add_tank2(
+        db,
+        Tank2Cfg(
+            ActorNodeName="tank1",
+            SerialNumber="1001",
+            PicoAHwUid="pico_tank1_a",
+            PicoBHwUid="pico_tank1_b",
+        ),
+    )
+
+    add_tank2(
+        db,
+        Tank2Cfg(
+            ActorNodeName="tank2",
+            SerialNumber="1002",
+            PicoAHwUid="pico_tank2_a",
+            PicoBHwUid="pico_tank2_b",
+        ),
+    )
+
+    add_tank2(
+        db,
+        Tank2Cfg(
+            ActorNodeName="tank3",
+            SerialNumber="1003",
+            PicoAHwUid="pico_tank3_a",
+            PicoBHwUid="pico_tank3_b",
+        ),
+    )
+
     add_synth(
         db,
         SynthConfig(

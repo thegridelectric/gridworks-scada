@@ -17,7 +17,7 @@ from gwproactor.message import PatInternalWatchdogMessage
 
 from actors.scada_actor import ScadaActor
 from gwsproto.enums import HomeAloneStrategy, LogLevel
-from gwsproto.data_classes.house_0_names import H0CN
+from gwsproto.data_classes.house_0_names import H0CN, H0N
 from gwsproto.named_types import (Ha1Params, HeatingForecast,
                          WeatherForecast, ScadaParams)
 from scada_app_interface import ScadaAppInterface
@@ -34,11 +34,22 @@ class SynthGenerator(ScadaActor):
 
         # Default is 3 layers per tank but can be 4 if PicoAHwUid is specified
         buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3]
-        tank_depths = [depth for tank in self.cn.tank.values() for depth in [tank.depth1, tank.depth2, tank.depth3]]
-        if isinstance(self.layout.nodes['buffer'].component.gt, PicoTankModuleComponentGt):
+        if (
+            isinstance(self.layout.nodes['buffer'].component.gt, PicoTankModuleComponentGt) 
+            and getattr(self.layout.nodes['buffer'].component.gt, "PicoAHwUid", None)
+        ):
             buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4]
-            tank_depths = [depth for tank in self.cn.tank.values() for depth in [tank.depth1, tank.depth2, tank.depth3, tank.depth4]]
-        self.temperature_channel_names = buffer_depths + tank_depths + [
+        all_tank_depths = []
+        for i in range(1,len(self.cn.tank.values())+1):
+            tank_depths = [H0CN.tank[i].depth1, H0CN.tank[i].depth2, H0CN.tank[i].depth3]
+            if (
+                isinstance(self.layout.nodes[H0N.tank[i].reader].component.gt, PicoTankModuleComponentGt) 
+                and getattr(self.layout.nodes[H0N.tank[i].reader].component.gt, "PicoAHwUid", None)
+            ):
+                tank_depths = [H0CN.tank[i].depth1, H0CN.tank[i].depth2, H0CN.tank[i].depth3, H0CN.tank[i].depth4]
+            all_tank_depths.extend(tank_depths)
+        
+        self.temperature_channel_names = buffer_depths + all_tank_depths + [
             H0CN.hp_ewt, H0CN.hp_lwt, H0CN.dist_swt, H0CN.dist_rwt, 
             H0CN.buffer_cold_pipe, H0CN.buffer_hot_pipe, H0CN.store_cold_pipe, H0CN.store_hot_pipe,
         ]
@@ -178,7 +189,8 @@ class SynthGenerator(ScadaActor):
             all_buffer = [x for x in self.temperature_channel_names if 'buffer-depth' in x]
             available_buffer = [x for x in list(self.latest_temperatures.keys()) if 'buffer-depth' in x]
             if all_buffer == available_buffer:
-                self.fill_missing_store_temps()
+                if self.layout.ha_strategy != HomeAloneStrategy.ShoulderTou:
+                    self.fill_missing_store_temps()
                 self.temperatures_available = True
 
 
