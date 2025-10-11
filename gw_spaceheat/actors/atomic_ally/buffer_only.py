@@ -60,8 +60,12 @@ class BufferOnlyAtomicAlly(ScadaActor):
         self._stop_requested: bool = False
         # Temperatures
         self.cn: H0CN = self.layout.channel_names
+        # Default is 3 layers per tank but can be 4 if PicoAHwUid is specified
         buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3]
-        if isinstance(self.layout.nodes['buffer'].component.gt, PicoTankModuleComponentGt):
+        if (
+            isinstance(self.layout.nodes['buffer'].component.gt, PicoTankModuleComponentGt) 
+            and getattr(self.layout.nodes['buffer'].component.gt, "PicoAHwUid", None)
+        ):
             buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4]
         self.temperature_channel_names = buffer_depths + [
             H0CN.hp_ewt, H0CN.hp_lwt, H0CN.dist_swt, H0CN.dist_rwt, 

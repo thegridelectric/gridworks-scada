@@ -312,6 +312,270 @@
       "Version": "001"
     },
     {
+      "AboutNodeName": "tank1-depth1",
+      "CapturedByNodeName": "tank1",
+      "DisplayName": "Tank1 Depth 1",
+      "Id": "655da947-f918-48c6-bec3-a572a40fd48c",
+      "Name": "tank1-depth1",
+      "TelemetryName": "WaterTempCTimes1000",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "tank1-depth2",
+      "CapturedByNodeName": "tank1",
+      "DisplayName": "Tank1 Depth 2",
+      "Id": "7e613c82-33e1-4176-b8ee-e6ec2f8bf444",
+      "Name": "tank1-depth2",
+      "TelemetryName": "WaterTempCTimes1000",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "tank1-depth3",
+      "CapturedByNodeName": "tank1",
+      "DisplayName": "Tank1 Depth 3",
+      "Id": "14e86c3c-9594-4f43-a619-d1e816eef2c7",
+      "Name": "tank1-depth3",
+      "TelemetryName": "WaterTempCTimes1000",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "tank1-depth4",
+      "CapturedByNodeName": "tank1",
+      "DisplayName": "Tank1 Depth 4",
+      "Id": "a76803c4-c32a-475f-9b0f-b9c17fba3468",
+      "Name": "tank1-depth4",
+      "TelemetryName": "WaterTempCTimes1000",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "tank1-depth1",
+      "CapturedByNodeName": "tank1",
+      "DisplayName": "Tank1 Depth 1 MicroVolts",
+      "Id": "bb3d6e7d-6f18-4593-b141-c8d87e7fc8e0",
+      "Name": "tank1-depth1-micro-v",
+      "TelemetryName": "MicroVolts",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "tank1-depth2",
+      "CapturedByNodeName": "tank1",
+      "DisplayName": "Tank1 Depth 2 MicroVolts",
+      "Id": "52e26272-38e4-4d21-812d-d914b15f2694",
+      "Name": "tank1-depth2-micro-v",
+      "TelemetryName": "MicroVolts",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "tank1-depth3",
+      "CapturedByNodeName": "tank1",
+      "DisplayName": "Tank1 Depth 3 MicroVolts",
+      "Id": "e352bee0-1473-4d94-85c0-6a394919e258",
+      "Name": "tank1-depth3-micro-v",
+      "TelemetryName": "MicroVolts",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "tank1-depth4",
+      "CapturedByNodeName": "tank1",
+      "DisplayName": "Tank1 Depth 4 MicroVolts",
+      "Id": "b7fabacd-87a1-4922-8f8d-882af3672993",
+      "Name": "tank1-depth4-micro-v",
+      "TelemetryName": "MicroVolts",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "tank2-depth1",
+      "CapturedByNodeName": "tank2",
+      "DisplayName": "Tank2 Depth 1",
+      "Id": "ab7871b9-224d-4131-af63-cf042ee9de5a",
+      "Name": "tank2-depth1",
+      "TelemetryName": "WaterTempCTimes1000",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "tank2-depth2",
+      "CapturedByNodeName": "tank2",
+      "DisplayName": "Tank2 Depth 2",
+      "Id": "9d9fe707-643c-4eb7-9700-a38520f73169",
+      "Name": "tank2-depth2",
+      "TelemetryName": "WaterTempCTimes1000",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "tank2-depth3",
+      "CapturedByNodeName": "tank2",
+      "DisplayName": "Tank2 Depth 3",
+      "Id": "2fb131e4-4d85-493e-aae8-2e9715be3be8",
+      "Name": "tank2-depth3",
+      "TelemetryName": "WaterTempCTimes1000",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "tank2-depth4",
+      "CapturedByNodeName": "tank2",
+      "DisplayName": "Tank2 Depth 4",
+      "Id": "e61f4ceb-9766-4580-961b-65bb7f418b92",
+      "Name": "tank2-depth4",
+      "TelemetryName": "WaterTempCTimes1000",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "tank2-depth1",
+      "CapturedByNodeName": "tank2",
+      "DisplayName": "Tank2 Depth 1 MicroVolts",
+      "Id": "e01dbf79-47b0-404c-9e90-c0ad46db64cc",
+      "Name": "tank2-depth1-micro-v",
+      "TelemetryName": "MicroVolts",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "tank2-depth2",
+      "CapturedByNodeName": "tank2",
+      "DisplayName": "Tank2 Depth 2 MicroVolts",
+      "Id": "f8ec088e-a8b1-4f0f-96d2-919214beaf93",
+      "Name": "tank2-depth2-micro-v",
+      "TelemetryName": "MicroVolts",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "tank2-depth3",
+      "CapturedByNodeName": "tank2",
+      "DisplayName": "Tank2 Depth 3 MicroVolts",
+      "Id": "08849323-1e17-42c4-ba01-c1d5162f0518",
+      "Name": "tank2-depth3-micro-v",
+      "TelemetryName": "MicroVolts",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "tank2-depth4",
+      "CapturedByNodeName": "tank2",
+      "DisplayName": "Tank2 Depth 4 MicroVolts",
+      "Id": "1d1497d3-6ba8-401e-a9e5-e6172d3beb28",
+      "Name": "tank2-depth4-micro-v",
+      "TelemetryName": "MicroVolts",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "tank3-depth1",
+      "CapturedByNodeName": "tank3",
+      "DisplayName": "Tank3 Depth 1",
+      "Id": "02a39d34-a77b-4b6a-a467-70b86f2b7fa3",
+      "Name": "tank3-depth1",
+      "TelemetryName": "WaterTempCTimes1000",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "tank3-depth2",
+      "CapturedByNodeName": "tank3",
+      "DisplayName": "Tank3 Depth 2",
+      "Id": "e19558ca-0244-424c-817f-ec444b24c889",
+      "Name": "tank3-depth2",
+      "TelemetryName": "WaterTempCTimes1000",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "tank3-depth3",
+      "CapturedByNodeName": "tank3",
+      "DisplayName": "Tank3 Depth 3",
+      "Id": "b5e1e278-08a1-4d5c-a290-a30bf526b036",
+      "Name": "tank3-depth3",
+      "TelemetryName": "WaterTempCTimes1000",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "tank3-depth4",
+      "CapturedByNodeName": "tank3",
+      "DisplayName": "Tank3 Depth 4",
+      "Id": "48a8845e-df74-45e1-ad13-a6a86fe2b468",
+      "Name": "tank3-depth4",
+      "TelemetryName": "WaterTempCTimes1000",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "tank3-depth1",
+      "CapturedByNodeName": "tank3",
+      "DisplayName": "Tank3 Depth 1 MicroVolts",
+      "Id": "a0e34670-4025-4944-9fad-7d841ff42d32",
+      "Name": "tank3-depth1-micro-v",
+      "TelemetryName": "MicroVolts",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "tank3-depth2",
+      "CapturedByNodeName": "tank3",
+      "DisplayName": "Tank3 Depth 2 MicroVolts",
+      "Id": "26e07ecd-1804-4f13-a186-85bac6f0b03a",
+      "Name": "tank3-depth2-micro-v",
+      "TelemetryName": "MicroVolts",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "tank3-depth3",
+      "CapturedByNodeName": "tank3",
+      "DisplayName": "Tank3 Depth 3 MicroVolts",
+      "Id": "3d83c2d2-1286-4329-a316-433bdd9e35e6",
+      "Name": "tank3-depth3-micro-v",
+      "TelemetryName": "MicroVolts",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "tank3-depth4",
+      "CapturedByNodeName": "tank3",
+      "DisplayName": "Tank3 Depth 4 MicroVolts",
+      "Id": "2c04b337-328a-4bfe-9ea0-43c1b1ff4fdc",
+      "Name": "tank3-depth4-micro-v",
+      "TelemetryName": "MicroVolts",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
       "AboutNodeName": "dist-010v",
       "CapturedByNodeName": "dfr-multiplexer",
       "DisplayName": "Dist 010V",
@@ -853,7 +1117,7 @@
     {
       "AsyncCaptureDeltaMicroVolts": 2000,
       "ComponentAttributeClassId": "f88fbf89-5b74-46d6-84a3-8e7494d08435",
-      "ComponentId": "8904ace0-2348-4b04-8432-7591038cf9d1",
+      "ComponentId": "f4308bf6-2f52-4500-9961-c44d94e56879",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -936,6 +1200,279 @@
       "Samples": 1000,
       "SendMicroVolts": true,
       "SerialNumber": "9999",
+      "TempCalcMethod": "SimpleBeta",
+      "ThermistorBeta": 3977,
+      "TypeName": "pico.tank.module.component.gt",
+      "Version": "010"
+    },
+    {
+      "AsyncCaptureDeltaMicroVolts": 2000,
+      "ComponentAttributeClassId": "f88fbf89-5b74-46d6-84a3-8e7494d08435",
+      "ComponentId": "46a8ad49-96fc-4d22-8805-6eed37a1c6f0",
+      "ConfigList": [
+        {
+          "AsyncCapture": true,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank1-depth1",
+          "Exponent": 3,
+          "TypeName": "channel.config",
+          "Unit": "Celcius",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank1-depth2",
+          "Exponent": 3,
+          "TypeName": "channel.config",
+          "Unit": "Celcius",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank1-depth3",
+          "Exponent": 3,
+          "TypeName": "channel.config",
+          "Unit": "Celcius",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank1-depth4",
+          "Exponent": 3,
+          "TypeName": "channel.config",
+          "Unit": "Celcius",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank1-depth1-micro-v",
+          "Exponent": 6,
+          "TypeName": "channel.config",
+          "Unit": "VoltsRms",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank1-depth2-micro-v",
+          "Exponent": 6,
+          "TypeName": "channel.config",
+          "Unit": "VoltsRms",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank1-depth3-micro-v",
+          "Exponent": 6,
+          "TypeName": "channel.config",
+          "Unit": "VoltsRms",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank1-depth4-micro-v",
+          "Exponent": 6,
+          "TypeName": "channel.config",
+          "Unit": "VoltsRms",
+          "Version": "000"
+        }
+      ],
+      "DisplayName": "tank1 PicoTankModule",
+      "Enabled": true,
+      "NumSampleAverages": 30,
+      "PicoAHwUid": "pico_tank1_a",
+      "PicoBHwUid": "pico_tank1_b",
+      "Samples": 1000,
+      "SendMicroVolts": true,
+      "SerialNumber": "1001",
+      "TempCalcMethod": "SimpleBeta",
+      "ThermistorBeta": 3977,
+      "TypeName": "pico.tank.module.component.gt",
+      "Version": "010"
+    },
+    {
+      "AsyncCaptureDeltaMicroVolts": 2000,
+      "ComponentAttributeClassId": "f88fbf89-5b74-46d6-84a3-8e7494d08435",
+      "ComponentId": "0fdebd63-3b0c-40c6-bc3c-4a3c87106aca",
+      "ConfigList": [
+        {
+          "AsyncCapture": true,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank2-depth1",
+          "Exponent": 3,
+          "TypeName": "channel.config",
+          "Unit": "Celcius",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank2-depth2",
+          "Exponent": 3,
+          "TypeName": "channel.config",
+          "Unit": "Celcius",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank2-depth3",
+          "Exponent": 3,
+          "TypeName": "channel.config",
+          "Unit": "Celcius",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank2-depth4",
+          "Exponent": 3,
+          "TypeName": "channel.config",
+          "Unit": "Celcius",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank2-depth1-micro-v",
+          "Exponent": 6,
+          "TypeName": "channel.config",
+          "Unit": "VoltsRms",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank2-depth2-micro-v",
+          "Exponent": 6,
+          "TypeName": "channel.config",
+          "Unit": "VoltsRms",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank2-depth3-micro-v",
+          "Exponent": 6,
+          "TypeName": "channel.config",
+          "Unit": "VoltsRms",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank2-depth4-micro-v",
+          "Exponent": 6,
+          "TypeName": "channel.config",
+          "Unit": "VoltsRms",
+          "Version": "000"
+        }
+      ],
+      "DisplayName": "tank2 PicoTankModule",
+      "Enabled": true,
+      "NumSampleAverages": 30,
+      "PicoAHwUid": "pico_tank2_a",
+      "PicoBHwUid": "pico_tank2_b",
+      "Samples": 1000,
+      "SendMicroVolts": true,
+      "SerialNumber": "1002",
+      "TempCalcMethod": "SimpleBeta",
+      "ThermistorBeta": 3977,
+      "TypeName": "pico.tank.module.component.gt",
+      "Version": "010"
+    },
+    {
+      "AsyncCaptureDeltaMicroVolts": 2000,
+      "ComponentAttributeClassId": "f88fbf89-5b74-46d6-84a3-8e7494d08435",
+      "ComponentId": "7c1214a0-dfde-466e-9478-69057eff42f0",
+      "ConfigList": [
+        {
+          "AsyncCapture": true,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank3-depth1",
+          "Exponent": 3,
+          "TypeName": "channel.config",
+          "Unit": "Celcius",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank3-depth2",
+          "Exponent": 3,
+          "TypeName": "channel.config",
+          "Unit": "Celcius",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank3-depth3",
+          "Exponent": 3,
+          "TypeName": "channel.config",
+          "Unit": "Celcius",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank3-depth4",
+          "Exponent": 3,
+          "TypeName": "channel.config",
+          "Unit": "Celcius",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank3-depth1-micro-v",
+          "Exponent": 6,
+          "TypeName": "channel.config",
+          "Unit": "VoltsRms",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank3-depth2-micro-v",
+          "Exponent": 6,
+          "TypeName": "channel.config",
+          "Unit": "VoltsRms",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank3-depth3-micro-v",
+          "Exponent": 6,
+          "TypeName": "channel.config",
+          "Unit": "VoltsRms",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank3-depth4-micro-v",
+          "Exponent": 6,
+          "TypeName": "channel.config",
+          "Unit": "VoltsRms",
+          "Version": "000"
+        }
+      ],
+      "DisplayName": "tank3 PicoTankModule",
+      "Enabled": true,
+      "NumSampleAverages": 30,
+      "PicoAHwUid": "pico_tank3_a",
+      "PicoBHwUid": "pico_tank3_b",
+      "Samples": 1000,
+      "SendMicroVolts": true,
+      "SerialNumber": "1003",
       "TempCalcMethod": "SimpleBeta",
       "ThermistorBeta": 3977,
       "TypeName": "pico.tank.module.component.gt",
@@ -1038,6 +1575,16 @@
       "Handle": "a.aa",
       "Name": "aa",
       "ShNodeId": "4de19877-ec9c-412a-b6cb-f44d03a90709",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "PicoCycler",
+      "ActorHierarchyName": "s.pico-cycler",
+      "DisplayName": "Pico Cycler - responsible for power cycling the 5VDC bus",
+      "Handle": "auto.pico-cycler",
+      "Name": "pico-cycler",
+      "ShNodeId": "67eac5fe-72e3-49fd-a606-ec3363f73501",
       "TypeName": "spaceheat.node.gt",
       "Version": "200"
     },
@@ -1171,16 +1718,6 @@
       "DisplayName": "I2c Relay Multiplexer",
       "Name": "relay-multiplexer",
       "ShNodeId": "fc81c64e-b04a-4b87-9861-0c9348b56f5b",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "200"
-    },
-    {
-      "ActorClass": "PicoCycler",
-      "ActorHierarchyName": "s.pico-cycler",
-      "DisplayName": "Pico Cycler - responsible for power cycling the 5VDC bus",
-      "Handle": "auto.pico-cycler",
-      "Name": "pico-cycler",
-      "ShNodeId": "67eac5fe-72e3-49fd-a606-ec3363f73501",
       "TypeName": "spaceheat.node.gt",
       "Version": "200"
     },
@@ -1341,7 +1878,7 @@
     {
       "ActorClass": "ApiTankModule",
       "ActorHierarchyName": "s.buffer",
-      "ComponentId": "8904ace0-2348-4b04-8432-7591038cf9d1",
+      "ComponentId": "f4308bf6-2f52-4500-9961-c44d94e56879",
       "DisplayName": "Buffer Tank",
       "Name": "buffer",
       "ShNodeId": "68596845-2e66-4f9d-a876-90da381ddc37",
@@ -1377,6 +1914,132 @@
       "DisplayName": "buffer-depth4",
       "Name": "buffer-depth4",
       "ShNodeId": "cf5a5804-81a7-464d-b70d-590f41401cf2",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "ApiTankModule",
+      "ActorHierarchyName": "s.tank1",
+      "ComponentId": "46a8ad49-96fc-4d22-8805-6eed37a1c6f0",
+      "DisplayName": "Tank1 Tank",
+      "Name": "tank1",
+      "ShNodeId": "ca851545-398d-427e-ae96-221b166d90c1",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "tank1-depth1",
+      "Name": "tank1-depth1",
+      "ShNodeId": "e1c3a541-8a6e-4a9d-aeba-370dceb0a694",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "tank1-depth2",
+      "Name": "tank1-depth2",
+      "ShNodeId": "700a1182-7b75-4763-8c7d-4dc0eb2b6942",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "tank1-depth3",
+      "Name": "tank1-depth3",
+      "ShNodeId": "da8cf386-684a-4086-93f5-ca952e36f2de",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "tank1-depth4",
+      "Name": "tank1-depth4",
+      "ShNodeId": "4700734f-db8e-42c2-a015-b22ae30178e6",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "ApiTankModule",
+      "ActorHierarchyName": "s.tank2",
+      "ComponentId": "0fdebd63-3b0c-40c6-bc3c-4a3c87106aca",
+      "DisplayName": "Tank2 Tank",
+      "Name": "tank2",
+      "ShNodeId": "6be3090b-2867-48e3-bcc4-246b654fc5f7",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "tank2-depth1",
+      "Name": "tank2-depth1",
+      "ShNodeId": "c4331aa5-e304-4a30-aad9-e30ab41da372",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "tank2-depth2",
+      "Name": "tank2-depth2",
+      "ShNodeId": "2169cae9-61f3-450b-97fc-724355cca020",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "tank2-depth3",
+      "Name": "tank2-depth3",
+      "ShNodeId": "138d1f09-25bb-46b0-a96d-041673fbb784",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "tank2-depth4",
+      "Name": "tank2-depth4",
+      "ShNodeId": "7682d45a-2705-40cf-9e84-42201cd4b402",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "ApiTankModule",
+      "ActorHierarchyName": "s.tank3",
+      "ComponentId": "7c1214a0-dfde-466e-9478-69057eff42f0",
+      "DisplayName": "Tank3 Tank",
+      "Name": "tank3",
+      "ShNodeId": "50fb5f5e-7cc4-46b0-a803-05ee7f09646a",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "tank3-depth1",
+      "Name": "tank3-depth1",
+      "ShNodeId": "3aa72e69-968b-49b3-85c1-145da80fc25e",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "tank3-depth2",
+      "Name": "tank3-depth2",
+      "ShNodeId": "a9f3e359-b387-4a59-9814-7c38b8a6642d",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "tank3-depth3",
+      "Name": "tank3-depth3",
+      "ShNodeId": "b47dfc84-b701-465e-9fb6-9404d7fc708b",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "tank3-depth4",
+      "Name": "tank3-depth4",
+      "ShNodeId": "9ec144d1-6e97-4e53-884a-b12dd53657bd",
       "TypeName": "spaceheat.node.gt",
       "Version": "200"
     },
