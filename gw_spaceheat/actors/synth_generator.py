@@ -57,6 +57,7 @@ class SynthGenerator(ScadaActor):
         self.previous_time = None
         self.temperatures_available = False
         self.received_new_params: bool = False
+        self.last_evaluated_strategy = 0
 
         # House parameters in the .env file
         self.is_simulated = self.settings.is_simulated
@@ -270,6 +271,10 @@ class SynthGenerator(ScadaActor):
         
     def evaluate_strategy(self):
         if self.layout.ha_strategy != HomeAloneStrategy.ShoulderTou:
+            return
+        if time.time() - self.last_evaluated_strategy > 3600:
+            self.last_evaluated_strategy = time.time()
+        else:
             return
         simulated_layers = [self.params.MaxEwtF]*3   
         max_buffer_usable_kwh = 0
