@@ -1355,7 +1355,13 @@ class Atn(PrimeActor):
                     raise Exception("Failed to receive prices.")
         except Exception as e:
             self.log(f"Error getting current price: {e}")
-            return 0
+            try:
+                self.log("Attempt to use the forecast price instead of current price")
+                price = await self.get_price()
+                return price
+            except Exception as e:
+                self.log(f"Error getting forecast price: {e}")
+                return 0
 
     async def send_latest_price(self) -> None:
         now = time.time()
