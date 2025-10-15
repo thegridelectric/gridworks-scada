@@ -2,11 +2,10 @@ import importlib
 from gwproto.enums import ActorClass
 from gwsproto.enums import HomeAloneStrategy
 from actors.scada_actor import ScadaActor
-from gwproactor import AppInterface
-
+from scada_app_interface import ScadaAppInterface
 
 class AtomicAlly(ScadaActor):
-    def __init__(self, name: str, services: AppInterface):
+    def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
         node = services.hardware_layout.node(name)
         if node.ActorClass != ActorClass.AtomicAlly:
