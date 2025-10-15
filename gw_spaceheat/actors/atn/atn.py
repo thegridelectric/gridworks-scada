@@ -4,7 +4,6 @@ import asyncio
 import json
 import threading
 import time
-from tkinter import E
 import uuid
 from pathlib import Path
 from dataclasses import dataclass
