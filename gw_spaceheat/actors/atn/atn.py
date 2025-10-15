@@ -4,6 +4,7 @@ import asyncio
 import json
 import threading
 import time
+from tkinter import E
 import uuid
 from pathlib import Path
 from dataclasses import dataclass
@@ -674,7 +675,7 @@ class Atn(PrimeActor):
             self.log(f"NOT RUNNING Dijkstra! Not past minute {self.create_graph_minute}")
             return
         await self.get_weather(session)
-        await self.update_price_forecast()
+        await self.get_price_forecast_48h()
 
         self.log("Finding thermocline position and top temperature")
         result = await self.get_three_layer_storage_model()
@@ -1197,150 +1198,8 @@ class Atn(PrimeActor):
             "ws": wf["ws"],
         }
 
-    async def get_price(self) -> float:
-        """ returns price this hour (LMP plus Dist) in USD/MWh 
-        
-        Hack: perfect forecast - use price forecast 
-        """
-        if not self.price_forecast:
-            await self.update_price_forecast()
-        if not self.price_forecast:
-            try:
-                self.log("Could not get a price forecast.")
-                local_available, price = False, 0
-                # Read from local file
-                prices_file = Path(f"{self.settings.paths.data_dir}/weather.json")
-                if prices_file.exists():
-                    start_of_hour_timestamp = int(time.time() // 3600) * 3600
-                    with open(prices_file, 'r') as f:
-                        prices = json.load(f)
-                    if start_of_hour_timestamp in prices['unix_s']:
-                        self.log("A valid price forecast is available locally.")
-                        local_available = True
-                        index = prices['unix_s'].index(start_of_hour_timestamp)
-                        price = prices['energy'][index]
-                # Send glitch
-                glitch = Glitch(
-                    FromGNodeAlias=self.layout.atn_g_node_alias,
-                    Node=self.node.name,
-                    Type=LogLevel.Critical,
-                    Summary="Could not find price forecast",
-                    Details="Local file had a forecast" if local_available else "Local file did not have a forecast",
-                    CreatedMs=int(time.time() * 1000)
-                )
-                self.services.send_threadsafe(
-                    Message(Src=self.name, Dst=self.name, Payload=glitch))
-                self.log("Sent glitch")
-                # Return price read locally or 0
-                return price
-            except:
-                glitch = Glitch(
-                    FromGNodeAlias=self.layout.atn_g_node_alias,
-                    Node=self.node.name,
-                    Type=LogLevel.Critical,
-                    Summary="Could not find price forecast",
-                    Details="An error occured while attempting to read from local file",
-                    CreatedMs=int(time.time() * 1000)
-                )
-                self.services.send_threadsafe(
-                    Message(Src=self.name, Dst=self.name, Payload=glitch))
-                self.log("Sent glitch")
-                return 0
-        return self.price_forecast.dp_usd_per_mwh[0] + self.price_forecast.lmp_usd_per_mwh[0]
-
-    async def get_price_forecast_from_price_service(self):
-        url = "https://price-forecasts.electricity.works/get_prices"
-        async with httpx.AsyncClient() as client:
-            response = await client.post(url)
-            if response.status_code == 200:
-                self.log("Successfully received prices from API")
-                data = response.json()
-                self.price_forecast = PriceForecast(
-                    dp_usd_per_mwh=data['dist'],
-                    lmp_usd_per_mwh=data['lmp'],  
-                    reg_usd_per_mwh=[0] * len(data['lmp']),
-                )
-                # Save price forecast to a local file
-                prices_file = Path(f"{self.settings.paths.data_dir}/weather.json")
-                with open(prices_file, 'w') as f:
-                    json.dump(data, f, indent=4) 
-            else:
-                self.log(f"Status code: {response.status_code}")
-                raise Exception("Failed to receive prices.")
-
-    async def update_price_forecast(self) -> None:
-        """updates self.price_forecast for the start of next hour. All in USD/MWh"""
-        try:
-            await self.get_price_forecast_from_price_service()
-            self.log("Successfully received price forecast from API")
-            self.log(f"LMP USD/MWh {self.price_forecast.lmp_usd_per_mwh}")
-            self.log(f"total energy USD/MWh {[round(x,2) for x in self.price_forecast.total_energy]}")
-        except:
-            self.log("FAILED to get price forecast from price service, trying with local CSV")
-            dist_usd_mwh = []
-            lmp_usd_mwh = []
-            reg_usd_mwh = []
-            try:
-                file_path = Path(f"{self.settings.paths.data_dir}/price_forecast.csv")
-                with open(file_path, mode='r', newline='') as file:
-                    reader = csv.reader(file)
-                    next(reader)
-                    for row in reader:
-                        dist_usd_mwh.append(float(row[0]))
-                        lmp_usd_mwh.append(float(row[1]))
-                        reg_usd_mwh.append(0.0)
-                    if len(dist_usd_mwh)<72 or len(lmp_usd_mwh)<72:
-                        raise Exception("Price forecasts must be at least 72 hours long")
-            except Exception as e:
-                self.log("Error reading price forecast from csv")
-                raise Exception(e)
-            
-            if datetime.now(tz=self.timezone) < datetime(2025, 2, 20, 17, tzinfo=self.timezone):
-                # Get the current hour
-                now = datetime.now(tz=self.timezone)
-                current_hour = now.hour
-                day_offset = (now.day % 3) * 24
-
-                # Calculate the starting hour for the 48-hour forecast
-                start_hour = (day_offset + current_hour + 1) % 72
-
-                # Wrap the lists for the 48-hour forecast
-                dp_forecast_usd_per_mwh = [dist_usd_mwh[(start_hour + i) % 72] for i in range(48)]
-                lmp_forecast_usd_per_mwh = [lmp_usd_mwh[(start_hour + i) % 72] for i in range(48)]
-                reg_forecast_usd_per_mwh = [reg_usd_mwh[(start_hour + i) % 72] for i in range(48)]
-            else:
-                time_since_21_feb = (datetime.now(tz=self.timezone).replace(minute=0, second=0, microsecond=0)
-                                    - datetime(2025, 2, 20, 17, tzinfo=self.timezone))
-                start_hour = int(time_since_21_feb.total_seconds() / 3600)
-                dp_forecast_usd_per_mwh = [dist_usd_mwh[start_hour + i] for i in range(48)]
-                lmp_forecast_usd_per_mwh = [lmp_usd_mwh[start_hour + i] for i in range(48)]
-                reg_forecast_usd_per_mwh = [reg_usd_mwh[start_hour + i] for i in range(48)]
-
-            # Update the price forecasts
-            self.price_forecast = PriceForecast(
-                dp_usd_per_mwh=dp_forecast_usd_per_mwh,
-                lmp_usd_per_mwh=lmp_forecast_usd_per_mwh,
-                reg_usd_per_mwh=reg_forecast_usd_per_mwh,
-            )
-            self.log("Successfully read price forecast from local CSV")
-            self.log(f"LMP USD/MWh {self.price_forecast.lmp_usd_per_mwh}")
-            self.log(f"total energy USD/MWh {[round(x,2) for x in self.price_forecast.total_energy]}")
-
-    async def fake_market_maker(self):
-        while True:
-            # Calculate the time to the next top of the hour
-            now = time.time()
-            next_top_of_hour = (
-                int(now // 3600) + 1
-            ) * 3600  # next top of the hour in seconds
-            sleep_time = next_top_of_hour - now
-
-            # Sleep until the top of the hour
-            await asyncio.sleep(sleep_time)
-            await self.send_latest_price()
-
-    async def get_current_price(self) -> float:
-        '''Returns current 5min price (LMP+Dist) in USD/MWh'''
+    async def get_real_time_price(self) -> float:
+        '''Returns current 5min real-time price (LMP+Dist) in USD/MWh'''
         try:
             url = "https://price-forecasts.electricity.works/get_real_time_price"
             async with httpx.AsyncClient() as client:
@@ -1357,18 +1216,139 @@ class Atn(PrimeActor):
             self.log(f"Error getting current price: {e}")
             try:
                 self.log("Attempt to use the forecast price instead of current price")
-                price = await self.get_price()
+                price = await self.read_forecasted_price_for_now()
                 return price
             except Exception as e:
                 self.log(f"Error getting forecast price: {e}")
                 return 0
+
+    async def get_price_forecast_48h(self) -> None:
+        '''Updates self.price_forecast for the start of next hour. All in USD/MWh'''
+        try:
+            # Get price forecast from the price service API
+            url = "https://price-forecasts.electricity.works/get_prices"
+            async with httpx.AsyncClient() as client:
+                response = await client.post(url)
+                if response.status_code == 200:
+                    self.log("Successfully received price forecast from the price service API")
+                    data = response.json()
+                    self.price_forecast = PriceForecast(
+                        dp_usd_per_mwh=data['dist'],
+                        lmp_usd_per_mwh=data['lmp'],  
+                        reg_usd_per_mwh=[0] * len(data['lmp']),
+                    )
+                    self.log(f"- LMP USD/MWh {self.price_forecast.lmp_usd_per_mwh}")
+                    self.log(f"- Total energy USD/MWh {[round(x,2) for x in self.price_forecast.total_energy]}")
+                    
+                    # Save price forecast to a local CSV file
+                    prices_file = Path(f"{self.settings.paths.data_dir}/price_forecast.csv")
+                    with open(prices_file, 'a', newline='') as f:
+                        writer = csv.writer(f)
+                        if not prices_file.exists():
+                            writer.writerow(['unix_s', 'dist_usd_mwh', 'lmp_usd_mwh'])
+                        for i in range(len(data['dist'])):
+                            writer.writerow([data['unix_s'][i], data['dist'][i], data['lmp'][i]])
+                    
+                    # Crop out rows older than 2 hours
+                    two_hours_ago = time.time() - 2*3600
+                    with open(prices_file, 'r', newline='') as f:
+                        reader = csv.reader(f)
+                        rows = list(reader)
+                    filtered_rows = [rows[0]]
+                    for row in rows[1:]:
+                        if int(row[0]) >= two_hours_ago:
+                            filtered_rows.append(row)
+                    with open(prices_file, 'w', newline='') as f:
+                        writer = csv.writer(f)
+                        writer.writerows(filtered_rows)
+                    self.log(f"Appended price forecast to {prices_file} and cropped old data")
+                else:
+                    raise Exception(f"Failed to receive price forecast from API, status code: {response.status_code}")
+        
+        except Exception as e:
+            self.log(f"FAILED to receive price forecast from the price service API and/or to save it to a local CSV: {e}")
+            self.log("Trying to read price forecast from the local CSV file")
+            try:
+                # Read the local CSV file with the latest received price forecast
+                file_path = Path(f"{self.settings.paths.data_dir}/price_forecast.csv")
+                with open(file_path, mode='r', newline='') as file:
+                    reader = csv.reader(file)
+                    next(reader)
+                    rows = list(reader)
+                timestamps = [int(row[0]) for row in rows]
+                dist_usd_mwh = [float(row[1]) for row in rows]
+                lmp_usd_mwh = [float(row[2]) for row in rows]
+                reg_usd_mwh = [0.0] * len(rows)
+
+                # Crop the beginning of the CSV and extend the end to get a forecast for the next 48 hours
+                time_now = time.time()
+                hours_available = len([t for t in timestamps if t > time_now])
+                if not hours_available:
+                    raise Exception("No forecasts available for the next hours!")
+                dp_forecast_usd_per_mwh = [p for p,t in zip(dist_usd_mwh, timestamps) if t > time_now]
+                lmp_forecast_usd_per_mwh = [p for p,t in zip(lmp_usd_mwh, timestamps) if t > time_now]
+                reg_forecast_usd_per_mwh = [p for p,t in zip(reg_usd_mwh, timestamps) if t > time_now]
+                if hours_available < 48:
+                    dp_forecast_usd_per_mwh = dp_forecast_usd_per_mwh + [dp_forecast_usd_per_mwh[-1]] * (48-len(dp_forecast_usd_per_mwh))
+                    lmp_forecast_usd_per_mwh = lmp_forecast_usd_per_mwh + [lmp_forecast_usd_per_mwh[-1]] * (48-len(lmp_forecast_usd_per_mwh))
+                    reg_forecast_usd_per_mwh = reg_forecast_usd_per_mwh + [reg_forecast_usd_per_mwh[-1]] * (48-len(reg_forecast_usd_per_mwh))
+
+                # Update the price forecast
+                self.price_forecast = PriceForecast(
+                    dp_usd_per_mwh=dp_forecast_usd_per_mwh,
+                    lmp_usd_per_mwh=lmp_forecast_usd_per_mwh,
+                    reg_usd_per_mwh=reg_forecast_usd_per_mwh,
+                )
+                self.log("Successfully read price forecast from local CSV.")
+                self.log(f"- LMP USD/MWh {self.price_forecast.lmp_usd_per_mwh}")
+                self.log(f"- Total energy USD/MWh {[round(x,2) for x in self.price_forecast.total_energy]}")
+
+            except Exception as e:
+                self.log(f"Could not get a price forecast from the local CSV file: {e}.")
+                await self.send_glitch(f"Failed to read price forecast from local CSV file: {e}", log_level=LogLevel.Error)
+                return
+
+    async def read_forecasted_price_for_now(self) -> float:
+        """Returns the forecasted price for this hour (LMP + Dist) in USD/MWh"""
+        try:
+            prices_file = Path(f"{self.settings.paths.data_dir}/price_forecast.csv")
+            if prices_file.exists():
+                start_of_hour_timestamp = int(time.time()//3600) * 3600
+                with open(prices_file, 'r') as f:
+                    data = json.load(f)
+            if prices_file.exists() and start_of_hour_timestamp in data['unix_s']:
+                self.log("A valid price forecast was available locally.")
+                index = data['unix_s'].index(start_of_hour_timestamp)
+                price = float(data['dist_usd_mwh'][index]) + float(data['lmp_usd_mwh'][index])
+                return price
+            elif prices_file.exists():
+                raise Exception(f"{prices_file} does not have a price forecast for this hour.")
+            else:
+                raise Exception(f"{prices_file} does not exist.")
+        except Exception as e:
+            self.log(f"Failed: {e}")
+            await self.send_glitch(f"Error in read_forecasted_price_for_now: {e}", log_level=LogLevel.Error)
+            return 0
+
+    async def fake_market_maker(self):
+        while True:
+            # Calculate the time to the next top of the hour
+            now = time.time()
+            next_top_of_hour = (
+                int(now // 3600) + 1
+            ) * 3600  # next top of the hour in seconds
+            sleep_time = next_top_of_hour - now
+
+            # Sleep until the top of the hour
+            await asyncio.sleep(sleep_time)
+            await self.send_latest_price()
 
     async def send_latest_price(self) -> None:
         now = time.time()
         slot_start_s = int(now) - int(now) % 3600
         mtn = MarketTypeName.rt60gate5.value
         market_slot_name = f"e.{mtn}.{Atn.P_NODE}.{slot_start_s}"
-        usd_per_mwh = await self.get_current_price()
+        usd_per_mwh = await self.get_real_time_price()
         price = LatestPrice(
                 FromGNodeAlias=Atn.P_NODE,
                 PriceTimes1000=int(usd_per_mwh * 1000),
@@ -1383,6 +1363,18 @@ class Atn(PrimeActor):
             )
         except Exception as e:
             self.log(f"Problem generating or sending a LatestPrice: {e}")
+
+    async def send_glitch(self, summary, details="", log_level=LogLevel.Info):
+        glitch = Glitch(
+            FromGNodeAlias=self.layout.atn_g_node_alias,
+            Node=self.node.name,
+            Type=log_level,
+            Summary=summary,
+            Details=details,
+            CreatedMs=int(time.time() * 1000)
+        )
+        self.services.send_threadsafe(Message(Src=self.name, Dst=self.name, Payload=glitch))
+        self.log("Sent glitch")
 
     def log(self, note: str) -> None:
         log_str = f"[atn] {note}"
