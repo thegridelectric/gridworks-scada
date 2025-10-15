@@ -1340,6 +1340,7 @@ class Atn(PrimeActor):
             await self.send_latest_price()
 
     async def get_current_price(self) -> float:
+        '''Returns current 5min price (LMP+Dist) in USD/MWh'''
         try:
             url = "https://price-forecasts.electricity.works/get_real_time_price"
             async with httpx.AsyncClient() as client:
@@ -1347,7 +1348,7 @@ class Atn(PrimeActor):
                 if response.status_code == 200:
                     self.log("Successfully received prices from API")
                     data = response.json()
-                    price = data['lmp'] + data['dist']
+                    price = float(data['lmp']) + float(data['dist'])
                     return price
                 else:
                     self.log(f"Failed to receive prices from API, status code: {response.status_code}")
@@ -1361,7 +1362,7 @@ class Atn(PrimeActor):
         slot_start_s = int(now) - int(now) % 3600
         mtn = MarketTypeName.rt60gate5.value
         market_slot_name = f"e.{mtn}.{Atn.P_NODE}.{slot_start_s}"
-        usd_per_mwh = await self.get_current_price(market_slot_name)
+        usd_per_mwh = await self.get_current_price()
         price = LatestPrice(
                 FromGNodeAlias=Atn.P_NODE,
                 PriceTimes1000=int(usd_per_mwh * 1000),
