@@ -55,7 +55,7 @@ from pydantic import BaseModel
 from actors.atn.atn_config import AtnSettings, DashboardSettings
 from actors.atn.dashboard.dashboard import Dashboard
 
-
+TANK_GALLONS = 120
 class PriceForecast(BaseModel):
     dp_usd_per_mwh: List[float]
     lmp_usd_per_mwh: List[float]
@@ -277,13 +277,11 @@ class Atn(PrimeActor):
         self.send_bid_minute: int = 57
         min_minute = min(max(3, datetime.now().minute), self.send_bid_minute-2)
         self.create_graph_minute: int = random.randint(min_minute, self.send_bid_minute-1)
-        # TODO: read strategy from hardware layout: node = hardware_layout.node(...)
-        strategy = HomeAloneStrategy(getattr(self.layout, "ha_strategy", None))
-        if strategy == HomeAloneStrategy.WinterTou:
-            self.buffer_flo = False
-        else:
-            self.buffer_flo = True
-        self.logger.info(f"FLO strategy: {'[Buffer only]' if self.buffer_flo else '[All tanks]'}")
+        # Gets strategy from scada sending LayoutLite
+        self.layout_lite: Optional[LayoutLite] = None # Add this as a way of tracking if we've gotten the layout lite yet
+
+        self.strategy = HomeAloneStrategy.default() # will get updated when LayoutLite arrives from Scada
+        self.total_store_tanks = 3 # will also get updated when LayoutLite arrives
 
     @classmethod
     def get_codec_factory(cls) -> AtnCodecFactory:
@@ -503,7 +501,12 @@ class Atn(PrimeActor):
     def process_layout_lite(self, layout: LayoutLite) -> None:
         """ ContractState: Initializing -> Ready if needed
         """
+        self.layout_lite = layout
         self.ha1_params = layout.Ha1Params
+        self.strategy = HomeAloneStrategy(layout.Strategy)
+        self.total_store_tanks = layout.TotalStoreTanks
+        self.logger.info(f"FLO strategy: {self.strategy}")
+
         self.temperature_channel_names = [
             x.Name
             for x in layout.DataChannels
@@ -681,6 +684,24 @@ class Atn(PrimeActor):
         await self.get_weather(session)
         await self.get_price_forecast_48h()
 
+        if not self.layout_lite:
+            self.log("Do not have layout lite from scada so not running dijkstra... must not be connected!!")
+            return
+
+        if self.strategy == HomeAloneStrategy.Summer:
+            self.log("Should not be running FLOs when Scada is in Summer!! Sent glitch")
+            glitch = Glitch(
+                FromGNodeAlias=self.layout.atn_g_node_alias,
+                Node=self.node.name,
+                Type=LogLevel.Warning,
+                Summary="Should not be running FLOs when Scada is in Summer!!",
+                Details="",
+                CreatedMs=int(time.time() * 1000)
+            )
+            self.services.send_threadsafe(
+                Message(Src=self.name, Dst=self.name, Payload=glitch))
+            return
+
         self.log("Finding thermocline position and top temperature")
         result = await self.get_three_layer_storage_model()
         self.log(f"Storage model: {result}")
@@ -708,7 +729,7 @@ class Atn(PrimeActor):
             InitialBottomTempF=int(b),
             InitialThermocline1= int(th1*2),
             InitialThermocline2= int(th2*2),
-            StorageVolumeGallons = 120 if self.buffer_flo else 360,
+            StorageVolumeGallons = TANK_GALLONS if self.strategy == HomeAloneStrategy.ShoulderTou else self.total_store_tanks * TANK_GALLONS,
             # TODO: price and weather forecasts should include the current hour if we are running a partial hour
             LmpForecast=self.price_forecast.lmp_usd_per_mwh,
             DistPriceForecast=self.price_forecast.dp_usd_per_mwh,
@@ -955,7 +976,7 @@ class Atn(PrimeActor):
             self.log("Not enough tank temperatures available to compute top temperature and thermocline!")
             return None
         all_layers = sorted(
-            [x for x in self.temperature_channel_names if ("buffer" if self.buffer_flo else "tank") in x]
+            [x for x in self.temperature_channel_names if ("buffer" if self.strategy == HomeAloneStrategy.ShoulderTou else "tank") in x]
         )
         try:
             tank_temps = {
@@ -1051,7 +1072,7 @@ class Atn(PrimeActor):
                 return top_temp, top_temp, top_temp, thermocline1, thermocline1
     
     async def get_buffer_available_kwh(self):
-        if self.buffer_flo:
+        if self.strategy == HomeAloneStrategy.ShoulderTou:
             return 0
         if self.temperature_channel_names is None:
             self.send_layout()
