@@ -29,7 +29,7 @@ from gwproto import HardwareLayout
 from actors.flo import DGraph
 from gwsproto.data_classes.house_0_layout import House0Layout
 from gwsproto.data_classes.house_0_names import H0CN, H0N
-from gwsproto.enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName
+from gwsproto.enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName, HomeAloneStrategy
 from gwsproto.data_classes.house_0_names import House0RelayIdx
 from gwproactor import QOS
 from gwproactor.config import LoggerLevels
@@ -278,7 +278,12 @@ class Atn(PrimeActor):
         min_minute = min(max(3, datetime.now().minute), self.send_bid_minute-2)
         self.create_graph_minute: int = random.randint(min_minute, self.send_bid_minute-1)
         # TODO: read strategy from hardware layout: node = hardware_layout.node(...)
-        self.buffer_flo = False
+        strategy = HomeAloneStrategy(getattr(self.layout, "ha_strategy", None))
+        if strategy == HomeAloneStrategy.WinterTou:
+            self.buffer_flo = False
+        else:
+            self.buffer_flo = True
+        self.logger.info(f"FLO strategy: {'[Buffer only]' if self.buffer_flo else '[All tanks]'}")
 
     @classmethod
     def get_codec_factory(cls) -> AtnCodecFactory:
