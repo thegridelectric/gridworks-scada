@@ -1241,26 +1241,26 @@ class Atn(PrimeActor):
                     
                     # Save price forecast to a local CSV file
                     prices_file = Path(f"{self.settings.paths.data_dir}/price_forecast.csv")
-                    with open(prices_file, 'a', newline='') as f:
-                        writer = csv.writer(f)
-                        if not prices_file.exists():
-                            writer.writerow(['unix_s', 'dist_usd_mwh', 'lmp_usd_mwh'])
-                        for i in range(len(data['dist'])):
-                            writer.writerow([data['unix_s'][i], data['dist'][i], data['lmp'][i]])
-                    
-                    # Crop out rows older than 2 hours
-                    two_hours_ago = datetime.now(pytz.timezone('America/New_York')).timestamp() - 2*3600
-                    with open(prices_file, 'r', newline='') as f:
-                        reader = csv.reader(f)
-                        rows = list(reader)
-                    filtered_rows = [rows[0]]
-                    for row in rows[1:]:
-                        if float(row[0]) >= two_hours_ago:
-                            filtered_rows.append(row)
+                    # Check if current hour's data exists in the existing file
+                    current_hour_row = None
+                    if prices_file.exists():
+                        current_hour_timestamp = data['unix_s'][0] - 3600
+                        with open(prices_file, 'r', newline='') as f:
+                            reader = csv.reader(f)
+                            header = next(reader)
+                            for row in reader:
+                                if float(row[0]) == current_hour_timestamp:
+                                    current_hour_row = row
+                                    break
+                    # Write the new file
                     with open(prices_file, 'w', newline='') as f:
                         writer = csv.writer(f)
-                        writer.writerows(filtered_rows)
-                    self.log(f"Appended price forecast to {prices_file} and cropped old data")
+                        writer.writerow(['unix_s', 'dist_usd_mwh', 'lmp_usd_mwh'])
+                        if current_hour_row:
+                            writer.writerow(current_hour_row)
+                        for i in range(len(data['dist'])):
+                            writer.writerow([data['unix_s'][i], data['dist'][i], data['lmp'][i]])                   
+                    self.log(f"Saved price forecast to {prices_file}")
                 else:
                     raise Exception(f"Failed to receive price forecast from API, status code: {response.status_code}")
         
@@ -1281,7 +1281,8 @@ class Atn(PrimeActor):
 
                 # Crop the beginning of the CSV and extend the end to get a forecast for the next 48 hours
                 time_now = time.time()
-                hours_available = len([t for t in timestamps if t > time_now])
+                timestamps_forecast = [t for t in timestamps if t > time_now]
+                hours_available = len(timestamps_forecast)
                 if not hours_available:
                     raise Exception("No forecasts available for the next hours!")
                 dp_forecast_usd_per_mwh = [p for p,t in zip(dist_usd_mwh, timestamps) if t > time_now]
@@ -1312,14 +1313,16 @@ class Atn(PrimeActor):
             prices_file = Path(f"{self.settings.paths.data_dir}/price_forecast.csv")
             if prices_file.exists():
                 start_of_hour_timestamp = int(time.time()//3600) * 3600
-                with open(prices_file, 'r') as f:
-                    data = json.load(f)
-            if prices_file.exists() and start_of_hour_timestamp in data['unix_s']:
-                self.log("A valid price forecast was available locally.")
-                index = data['unix_s'].index(start_of_hour_timestamp)
-                price = float(data['dist_usd_mwh'][index]) + float(data['lmp_usd_mwh'][index])
-                return price
-            elif prices_file.exists():
+                with open(prices_file, 'r', newline='') as f:
+                    reader = csv.reader(f)
+                    next(reader)
+                    rows = list(reader)
+                # Find the row with matching timestamp
+                for row in rows:
+                    if float(row[0]) == start_of_hour_timestamp:
+                        self.log("A valid price forecast for this hour was available locally.")
+                        price = float(row[1]) + float(row[2])  # dist + lmp
+                        return price
                 raise Exception(f"{prices_file} does not have a price forecast for this hour.")
             else:
                 raise Exception(f"{prices_file} does not exist.")
