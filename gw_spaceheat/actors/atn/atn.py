@@ -1249,13 +1249,13 @@ class Atn(PrimeActor):
                             writer.writerow([data['unix_s'][i], data['dist'][i], data['lmp'][i]])
                     
                     # Crop out rows older than 2 hours
-                    two_hours_ago = time.time() - 2*3600
+                    two_hours_ago = datetime.now(pytz.timezone('America/New_York')).timestamp() - 2*3600
                     with open(prices_file, 'r', newline='') as f:
                         reader = csv.reader(f)
                         rows = list(reader)
                     filtered_rows = [rows[0]]
                     for row in rows[1:]:
-                        if int(row[0]) >= two_hours_ago:
+                        if float(row[0]) >= two_hours_ago:
                             filtered_rows.append(row)
                     with open(prices_file, 'w', newline='') as f:
                         writer = csv.writer(f)
@@ -1274,7 +1274,7 @@ class Atn(PrimeActor):
                     reader = csv.reader(file)
                     next(reader)
                     rows = list(reader)
-                timestamps = [int(row[0]) for row in rows]
+                timestamps = [float(row[0]) for row in rows]
                 dist_usd_mwh = [float(row[1]) for row in rows]
                 lmp_usd_mwh = [float(row[2]) for row in rows]
                 reg_usd_mwh = [0.0] * len(rows)
@@ -1305,7 +1305,6 @@ class Atn(PrimeActor):
             except Exception as e:
                 self.log(f"Could not get a price forecast from the local CSV file: {e}.")
                 await self.send_glitch(f"Failed to read price forecast from local CSV file: {e}", log_level=LogLevel.Error)
-                return
 
     async def read_forecasted_price_for_now(self) -> float:
         """Returns the forecasted price for this hour (LMP + Dist) in USD/MWh"""
