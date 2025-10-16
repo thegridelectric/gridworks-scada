@@ -1225,7 +1225,7 @@ class Atn(PrimeActor):
         '''Updates self.price_forecast for the start of next hour. All in USD/MWh'''
         try:
             # Get price forecast from the price service API
-            url = "https://price-forecasts.electricity.works/get_prices"
+            url = "https://price-forecasts.electricity.works/get_forecast_prices"
             async with httpx.AsyncClient() as client:
                 response = await client.post(url)
                 if response.status_code == 200:
