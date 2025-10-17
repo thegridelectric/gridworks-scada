@@ -1226,13 +1226,13 @@ class Atn(PrimeActor):
     async def get_real_time_price(self) -> float:
         '''Returns current 5min real-time price (LMP+Dist) in USD/MWh'''
         try:
-            url = "https://price-forecasts.electricity.works/get_real_time_price"
+            url = "https://price-service.electricity.works/hw1-isone-me-versant-keene-ps/gw0-realtime-price"
             async with httpx.AsyncClient() as client:
                 response = await client.post(url)
                 if response.status_code == 200:
                     self.log("Successfully received prices from API")
                     data = response.json()
-                    price = float(data['lmp']) + float(data['dist'])
+                    price = float(data['Energy'])
                     return price
                 else:
                     self.log(f"Failed to receive prices from API, status code: {response.status_code}")
@@ -1251,16 +1251,16 @@ class Atn(PrimeActor):
         '''Updates self.price_forecast for the start of next hour. All in USD/MWh'''
         try:
             # Get price forecast from the price service API
-            url = "https://price-forecasts.electricity.works/get_forecast_prices"
+            url = "https://price-service.electricity.works/hw1-isone-me-versant-keene-ps/gw0-price-forecast"
             async with httpx.AsyncClient() as client:
                 response = await client.post(url)
                 if response.status_code == 200:
                     self.log("Successfully received price forecast from the price service API")
                     data = response.json()
                     self.price_forecast = PriceForecast(
-                        dp_usd_per_mwh=data['dist'],
-                        lmp_usd_per_mwh=data['lmp'],  
-                        reg_usd_per_mwh=[0] * len(data['lmp']),
+                        dp_usd_per_mwh=data['DistList'],
+                        lmp_usd_per_mwh=data['LmpList'],  
+                        reg_usd_per_mwh=[0] * len(data['LmpList']),
                     )
                     self.log(f"- LMP USD/MWh {self.price_forecast.lmp_usd_per_mwh}")
                     self.log(f"- Total energy USD/MWh {[round(x,2) for x in self.price_forecast.total_energy]}")
@@ -1270,7 +1270,7 @@ class Atn(PrimeActor):
                     # Check if current hour's data exists in the existing file
                     current_hour_row = None
                     if prices_file.exists():
-                        current_hour_timestamp = data['unix_s'][0] - 3600
+                        current_hour_timestamp = data['HourStartS'][0] - 3600
                         with open(prices_file, 'r', newline='') as f:
                             reader = csv.reader(f)
                             header = next(reader)
@@ -1281,11 +1281,11 @@ class Atn(PrimeActor):
                     # Write the new file
                     with open(prices_file, 'w', newline='') as f:
                         writer = csv.writer(f)
-                        writer.writerow(['unix_s', 'dist_usd_mwh', 'lmp_usd_mwh'])
+                        writer.writerow(['HourStartS', 'DistList', 'LmpList'])
                         if current_hour_row:
                             writer.writerow(current_hour_row)
-                        for i in range(len(data['dist'])):
-                            writer.writerow([data['unix_s'][i], data['dist'][i], data['lmp'][i]])                   
+                        for i in range(len(data['DistList'])):
+                            writer.writerow([data['HourStartS'][i], data['DistList'][i], data['LmpList'][i]])                   
                     self.log(f"Saved price forecast to {prices_file}")
                 else:
                     raise Exception(f"Failed to receive price forecast from API, status code: {response.status_code}")
