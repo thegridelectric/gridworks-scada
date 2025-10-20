@@ -8,7 +8,7 @@ from rich.console import ConsoleOptions
 from rich.console import RenderResult
 from rich.style import Style
 from rich.text import Text
-from textual.messages import Layout
+from rich.layout import Layout
 
 from actors.atn.dashboard.misc import UpdateSources
 from actors.atn.atn_config import DashboardSettings
