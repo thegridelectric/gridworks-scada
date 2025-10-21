@@ -1226,9 +1226,9 @@ class Atn(PrimeActor):
     async def get_real_time_price(self) -> float:
         '''Returns current 5min real-time price (LMP+Dist) in USD/MWh'''
         try:
-            url = "https://price-service.electricity.works/get_prices/hw1-isone-me-versant-keene-ps/gw0-realtime-price"
+            url = "https://price-service.electricity.works/hw1-isone-me-versant-keene-ps/gw0-realtime-price"
             async with httpx.AsyncClient() as client:
-                response = await client.post(url)
+                response = await client.get(url)
                 if response.status_code == 200:
                     self.log("Successfully received prices from API")
                     data = response.json()
@@ -1251,9 +1251,9 @@ class Atn(PrimeActor):
         '''Updates self.price_forecast for the start of next hour. All in USD/MWh'''
         try:
             # Get price forecast from the price service API
-            url = "https://price-service.electricity.works/get_prices/hw1-isone-me-versant-keene-ps/gw0-price-forecast"
+            url = "https://price-service.electricity.works/hw1-isone-me-versant-keene-ps/gw0-price-forecast"
             async with httpx.AsyncClient() as client:
-                response = await client.post(url)
+                response = await client.get(url)
                 if response.status_code == 200:
                     self.log("Successfully received price forecast from the price service API")
                     data = response.json()
