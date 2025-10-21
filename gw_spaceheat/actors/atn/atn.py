@@ -249,7 +249,7 @@ class Atn(PrimeActor):
         self.latest_report: Optional[Report] = None
         self.report_output_dir = Path(f"{self.settings.paths.data_dir}/report")
         self.report_output_dir.mkdir(parents=True, exist_ok=True)
-        if False: #self.settings.dashboard.print_gui:
+        if self.settings.dashboard.print_gui:
             self.dashboard = Dashboard(
                 settings=self.settings.dashboard,
                 atn_g_node_alias=self.layout.atn_g_node_alias,
@@ -1056,7 +1056,7 @@ class Atn(PrimeActor):
             top_temp = round(sum(cluster_top)/len(cluster_top))
             middle_temp = round(sum(cluster_middle)/len(cluster_middle))
             bottom_temp = round(sum(cluster_bottom)/len(cluster_bottom))
-            print(f"Storage model: {top_temp}({thermocline1}){middle_temp}({thermocline2}){bottom_temp}")
+            self.log(f"Storage model: {top_temp}({thermocline1}){middle_temp}({thermocline2}){bottom_temp}")
             return top_temp, middle_temp, bottom_temp, thermocline1, thermocline2
 
         # Dealing with less than 3 clusters
@@ -1072,14 +1072,14 @@ class Atn(PrimeActor):
                 thermocline1 = len(cluster_top)
                 top_temp = round(sum(cluster_top)/len(cluster_top))
                 bottom_temp = round(sum(cluster_bottom)/len(cluster_bottom))
-                print(f"Storage model: {top_temp}({thermocline1}){bottom_temp}")
+                self.log(f"Storage model: {top_temp}({thermocline1}){bottom_temp}")
                 return top_temp, top_temp, bottom_temp, thermocline1, thermocline1
             # Single cluster
             else:
                 cluster_top = max(cluster_0, cluster_1, cluster_2, key=lambda x: len(x))
                 top_temp = round(sum(cluster_top)/len(cluster_top))
                 thermocline1 = 12
-                print(f"Storage model: {top_temp}({thermocline1})")
+                self.log(f"Storage model: {top_temp}({thermocline1})")
                 return top_temp, top_temp, top_temp, thermocline1, thermocline1
     
     async def get_buffer_available_kwh(self):
