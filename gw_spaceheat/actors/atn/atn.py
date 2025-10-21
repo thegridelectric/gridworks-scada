@@ -249,7 +249,7 @@ class Atn(PrimeActor):
         self.latest_report: Optional[Report] = None
         self.report_output_dir = Path(f"{self.settings.paths.data_dir}/report")
         self.report_output_dir.mkdir(parents=True, exist_ok=True)
-        if self.settings.dashboard.print_gui:
+        if False: #self.settings.dashboard.print_gui:
             self.dashboard = Dashboard(
                 settings=self.settings.dashboard,
                 atn_g_node_alias=self.layout.atn_g_node_alias,
@@ -279,7 +279,6 @@ class Atn(PrimeActor):
         self.create_graph_minute: int = random.randint(min_minute, self.send_bid_minute-1)
         # Gets strategy from scada sending LayoutLite
         self.layout_lite: Optional[LayoutLite] = None # Add this as a way of tracking if we've gotten the layout lite yet
-
         self.strategy = HomeAloneStrategy.default() # will get updated when LayoutLite arrives from Scada
         self.total_store_tanks = 3 # will also get updated when LayoutLite arrives
 
@@ -501,11 +500,20 @@ class Atn(PrimeActor):
     def process_layout_lite(self, layout: LayoutLite) -> None:
         """ ContractState: Initializing -> Ready if needed
         """
+        self.log(f"Processing layout lite")
+        self.logger.info(f"Processing layout lite: {layout}")
         self.layout_lite = layout
         self.ha1_params = layout.Ha1Params
-        self.strategy = HomeAloneStrategy(layout.Strategy)
+        try:
+            home_alone_strategy = getattr(self.layout.node(H0N.home_alone), "Strategy", None)
+            self.strategy = HomeAloneStrategy(home_alone_strategy)
+            if home_alone_strategy is None:
+                raise ValueError(f"Could not read HomeAlone strategy from layout.")
+        except ValueError as e:
+            self.log(f"Error getting HomeAlone strategy: {e}")
+            self.strategy = HomeAloneStrategy.default()
         self.total_store_tanks = layout.TotalStoreTanks
-        self.logger.info(f"FLO strategy: {self.strategy}")
+        self.log(f"FLO strategy: {self.strategy}")
 
         self.temperature_channel_names = [
             x.Name
@@ -514,7 +522,7 @@ class Atn(PrimeActor):
         ]
         if self.contract_handler.layout_received is False:
             self.contract_handler.layout_received = True # Necessary for bids & contracts
-            self.logger.info("Received layout data - ATN now ready for contract operations")
+            self.log("Received layout data - ATN now ready for contract operations")
 
     def process_report(self, report: Report) -> None:
         self.data.latest_report = report
@@ -704,7 +712,10 @@ class Atn(PrimeActor):
 
         self.log("Finding thermocline position and top temperature")
         result = await self.get_three_layer_storage_model()
-        self.log(f"Storage model: {result}")
+        if self.strategy == HomeAloneStrategy.ShoulderTou:
+            self.log(f"Buffer model: {result}")
+        else:
+            self.log(f"Storage model: {result}")
         if result is None:
             self.log("Get thermocline and centroid failed! Not running FLO!")
             return
