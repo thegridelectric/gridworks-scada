@@ -1236,27 +1236,41 @@ class Atn(PrimeActor):
 
     async def get_real_time_price(self) -> float:
         '''Returns current 5min real-time price (LMP+Dist) in USD/MWh'''
+        '''IMPORTANT: WE ARE NOT USING THE REAL-TIME PRICE YET, WE ARE USING PERFECT FORECASTED PRICE FOR NOW'''
         try:
-            url = "https://price-service.electricity.works/hw1-isone-me-versant-keene-ps/gw0-realtime-price"
-            async with httpx.AsyncClient() as client:
-                response = await client.get(url)
-                if response.status_code == 200:
-                    self.log("Successfully received prices from API")
-                    data = response.json()
-                    price = float(data['Energy'])
-                    return price
-                else:
-                    self.log(f"Failed to receive prices from API, status code: {response.status_code}")
-                    raise Exception("Failed to receive prices.")
-        except Exception as e:
-            self.log(f"Error getting current price: {e}")
-            try:
-                self.log("Attempt to use the forecast price instead of current price")
+            if datetime.now().minute < 55:
                 price = await self.read_forecasted_price_for_now()
                 return price
-            except Exception as e:
-                self.log(f"Error getting forecast price: {e}")
-                return 0
+            else:
+                top_of_hour_timestamp = int(time.time()//3600) * 3600 + 3600
+                time_until_top_of_hour = int(top_of_hour_timestamp - time.time())
+                await asyncio.sleep(min(time_until_top_of_hour, 5))
+                price = await self.read_forecasted_price_for_now()
+                return price
+        except Exception as e:
+            self.log(f"Error getting real-time price: {e}")
+            return 0
+        # try:
+        #     url = "https://price-service.electricity.works/hw1-isone-me-versant-keene-ps/gw0-realtime-price"
+        #     async with httpx.AsyncClient() as client:
+        #         response = await client.get(url)
+        #         if response.status_code == 200:
+        #             self.log("Successfully received prices from API")
+        #             data = response.json()
+        #             price = float(data['Energy'])
+        #             return price
+        #         else:
+        #             self.log(f"Failed to receive prices from API, status code: {response.status_code}")
+        #             raise Exception("Failed to receive prices.")
+        # except Exception as e:
+        #     self.log(f"Error getting current price: {e}")
+        #     try:
+        #         self.log("Attempt to use the forecast price instead of current price")
+        #         price = await self.read_forecasted_price_for_now()
+        #         return price
+        #     except Exception as e:
+        #         self.log(f"Error getting forecast price: {e}")
+        #         return 0
 
     async def get_price_forecast_48h(self) -> None:
         '''Updates self.price_forecast for the start of next hour. All in USD/MWh'''
