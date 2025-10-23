@@ -39,7 +39,7 @@ class DGraph():
         self.logger.info("Cleared super graph from memory")
         
     def load_super_graph(self):
-        with open("super_graph.json", 'r') as f:
+        with open(f"super_graph_{self.params.storage_volume}.json", 'r') as f:
             self.super_graph: Dict = json.load(f)
         self.discretized_store_heat_in = [float(x) for x in list(self.super_graph.keys())]
         self.discretized_store_heat_in_array = np.array(self.discretized_store_heat_in)
