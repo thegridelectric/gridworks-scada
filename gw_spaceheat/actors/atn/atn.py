@@ -998,6 +998,14 @@ class Atn(PrimeActor):
             self.log(f"Failed to get all the tank temps in get_three_layer_storage_model! Bailing on process {e}")
             return None
 
+        if self.strategy == HomeAloneStrategy.ShoulderTou:
+            top_temp = tank_temps[H0CN.buffer.depth1]
+            middle_temp = tank_temps[H0CN.buffer.depth2]
+            bottom_temp = tank_temps[H0CN.buffer.depth3]
+            thermocline1 = 4 #out of 12 layers
+            thermocline2 = 8 #out of 12 layers
+            return top_temp, middle_temp, bottom_temp, thermocline1, thermocline2
+
         # Process layer temperatures
         layer_temps = [tank_temps[key] for key in tank_temps]
         iter_count = 0
