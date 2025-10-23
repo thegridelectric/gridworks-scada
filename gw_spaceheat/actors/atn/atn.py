@@ -999,9 +999,9 @@ class Atn(PrimeActor):
             return None
 
         if self.strategy == HomeAloneStrategy.ShoulderTou:
-            top_temp = tank_temps[H0CN.buffer.depth1]
-            middle_temp = tank_temps[H0CN.buffer.depth2]
-            bottom_temp = tank_temps[H0CN.buffer.depth3]
+            top_temp = round(tank_temps[H0CN.buffer.depth1],1)
+            middle_temp = round(tank_temps[H0CN.buffer.depth2],1)
+            bottom_temp = round(tank_temps[H0CN.buffer.depth3],1)
             thermocline1 = 4 #out of 12 layers
             thermocline2 = 8 #out of 12 layers
             return top_temp, middle_temp, bottom_temp, thermocline1, thermocline2
