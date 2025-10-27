@@ -210,6 +210,20 @@ class DGraph():
             if n.thermocline1 == closest_thermocline1
         ]
 
+        if abs(self.initial_state.top_temp - self.initial_state.middle_temp) <= 5 and abs(self.initial_state.top_temp - self.initial_state.bottom_temp) > 5:
+            similar_nodes = [
+                n for n in self.bid_nodes[0]
+                if n.top_temp == closest_top_temp
+                and n.thermocline1 == 16
+                and n.thermocline2 == 24
+            ]
+            if not similar_nodes:
+                similar_nodes = [
+                    n for n in self.bid_nodes[0]
+                    if n.top_temp == closest_top_temp
+                    and n.thermocline1 == 16
+                ]
+
         self.initial_node = min(
             similar_nodes, 
             key=lambda x: abs(x.energy-self.initial_state.energy)
