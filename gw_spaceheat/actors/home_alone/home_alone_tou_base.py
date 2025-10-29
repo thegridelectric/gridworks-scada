@@ -218,6 +218,8 @@ class HomeAloneTouBase(ScadaActor):
                 if self.top_state == HomeAloneTopState.Normal:
                     if self.time_to_trigger_house_cold_onpeak():
                         self.trigger_house_cold_onpeak_event()
+                        if self.strategy == HomeAloneStrategy.ShoulderTou:
+                            self.alert("Onpeak oil boiler", "House cold on peak, backup oil boiler")
                 elif self.top_state == HomeAloneTopState.UsingBackupOnpeak and not self.is_onpeak():
                     self.trigger_just_offpeak()
                 elif self.top_state == HomeAloneTopState.ScadaBlind:
