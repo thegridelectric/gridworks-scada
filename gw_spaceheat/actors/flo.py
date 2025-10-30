@@ -228,7 +228,7 @@ class DGraph():
                 print(f"Removed edge {e} because the storage is already close to full.")
 
     def generate_recommendation(self, flo_params_bytes: bytes | None=None) -> bytes:
-        """ Returns serialized BidRecommendation"""
+        """ Returns serialized"""
         self.logger.info("Generating bid...")
         if flo_params_bytes:
             flo_params_dict = json.loads(flo_params_bytes.decode('utf-8'))
