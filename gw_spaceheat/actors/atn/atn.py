@@ -1,4 +1,3 @@
-"""Scada implementation"""
 import csv
 import asyncio
 import json
@@ -26,7 +25,13 @@ from gwproactor import ProactorName
 from gwproactor import AppInterface
 from gwproto import HardwareLayout
 
-from actors.flo import DGraph
+try:
+    from gridflo import DGraph
+    USING_ADVANCED_FLO = True
+except ImportError:
+    # Fall back to local version
+    USING_ADVANCED_FLO = False
+    from actors.flo import DGraph
 from gwsproto.data_classes.house_0_layout import House0Layout
 from gwsproto.data_classes.house_0_names import H0CN, H0N
 from gwsproto.enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName

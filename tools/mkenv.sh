@@ -27,3 +27,4 @@ fi
 rm gw_spaceheat/venv/bin/gws > /dev/null 2>&1
 ln -s `pwd`/gw_spaceheat/gws gw_spaceheat/venv/bin
 
+pip install git+ssh://git@github.com/thegridelectric/gridworks-innovations.git#subdirectory=flo
