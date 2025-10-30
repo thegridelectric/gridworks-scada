@@ -98,7 +98,7 @@ class BidRunner(threading.Thread):
                 # Run FLO
                 self.logger.info("Creating graph and solving Dijkstra...")
                 st = time.time()
-                g = DGraph(self.params, self.logger)
+                g = DGraph(self.params, self.logger) # this will get refactored
                 g.solve_dijkstra()
                 self.logger.info(f"Built and solved in {round(time.time()-st,2)} seconds!")
                 # After solving, trim the graph to reduce memory usage while waiting
