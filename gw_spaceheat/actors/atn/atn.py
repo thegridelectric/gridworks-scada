@@ -49,7 +49,7 @@ from gwproto.named_types import AnalogDispatch, SendSnap, MachineStates
 from actors.atn_contract_handler import AtnContractHandler
 from gwsproto.enums import ContractStatus, LogLevel
 from gwsproto.named_types import (
-    AtnBid, FloParamsHouse0, Glitch, Ha1Params, LatestPrice, LayoutLite, NoNewContractWarning,
+    AtnBid, BidRecommendation, FloParamsHouse0, Glitch, Ha1Params, LatestPrice, LayoutLite, NoNewContractWarning,
     ResetHpKeepValue, ScadaParams, SendLayout, SetLwtControlParams, SiegLoopEndpointValveAdjustment,
     SlowContractHeartbeat,  SnapshotSpaceheat, StartListeningToAtn, StopListeningToAtn
 )
@@ -98,7 +98,8 @@ class BidRunner(threading.Thread):
                 # Run FLO
                 self.logger.info("Creating graph and solving Dijkstra...")
                 st = time.time()
-                g = DGraph(self.params, self.logger) # this will get refactored
+                flo_params_bytes = self.params.model_dump_json().encode('utf-8')
+                g = DGraph(flo_params_bytes, self.logger) # this will get refactored
                 g.solve_dijkstra()
                 self.logger.info(f"Built and solved in {round(time.time()-st,2)} seconds!")
                 # After solving, trim the graph to reduce memory usage while waiting
@@ -107,23 +108,22 @@ class BidRunner(threading.Thread):
                 self.get_bid_event.clear()
                 self.logger.info("BidRunner waiting for get_bid to be called before computing bid.")
                 self.get_bid_event.wait()
-
-                self.logger.info("Generating bid...")
-                g.generate_bid(self.updated_flo_params)
-                self.logger.info(f"Done! Found {len(g.pq_pairs)} PQ pairs.")
+                self.logger.info("Generating bid recommendation")
+                # generate_recommendation returns serialialized BidRecommendation
+                recommendation_bytes = g.generate_recommendation(self.updated_flo_params.model_dump_json().encode('utf-8'))
+                # deserialize
+                recommendation_dict = json.loads(recommendation_bytes)
+                recommendation = BidRecommendation.model_validate(recommendation_dict)
+                self.logger.info(f"Done! Found {len(recommendation.PqPairs)} PQ pairs.")
 
                 # Generate bid
-                t = time.time()
-                slot_start_s = int(t - (t % 3600)) + 3600
-                mtn = MarketTypeName.rt60gate5.value
-                market_slot_name = f"e.{mtn}.{Atn.P_NODE}.{slot_start_s}"
                 self.bid = AtnBid(
-                    BidderAlias=self.atn_alias,
-                    MarketSlotName=market_slot_name,
-                    PqPairs=g.pq_pairs,
-                    InjectionIsPositive=False,  # withdrawing energy since load not generation
-                    PriceUnit=MarketPriceUnit.USDPerMWh,
-                    QuantityUnit=MarketQuantityUnit.AvgkW,
+                    BidderAlias=recommendation.BidderAlias,
+                    MarketSlotName=recommendation.MarketSlotName,
+                    PqPairs=recommendation.PqPairs,
+                    InjectionIsPositive=recommendation.InjectionIsPositive,
+                    PriceUnit=recommendation.PriceUnit,
+                    QuantityUnit=recommendation.QuantityUnit,
                     SignedMarketFeeTxn="BogusAlgoSignature",
                 )
                 
