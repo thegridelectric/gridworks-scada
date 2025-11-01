@@ -281,7 +281,7 @@ class Atn(PrimeActor):
         self.sending_contracts: bool = True
         self.send_bid_minute: int = 57
         min_minute = min(max(3, datetime.now().minute), self.send_bid_minute-2)
-        self.create_graph_minute: int = random.randint(min_minute, self.send_bid_minute-1)
+        self.create_graph_minute: int = datetime.now().minute + 2 #random.randint(min_minute, self.send_bid_minute-1)
         # TODO: read strategy from hardware layout: node = hardware_layout.node(...)
         self.buffer_flo = False
 
