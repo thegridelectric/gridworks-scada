@@ -26,3 +26,6 @@ typer
 trogon
 textual>=5.3.0
 textual-dev
+
+# web interface
+aiohttp-cors

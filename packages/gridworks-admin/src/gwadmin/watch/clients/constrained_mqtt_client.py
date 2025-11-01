@@ -235,10 +235,12 @@ class ConstrainedMQTTClient:
     def _on_subscribe(
         self, _: Any, _userdata: Any, mid: int, _granted_qos: list[int], _properties: Any
     ) -> None:
-        topics = self._pending_subacks.pop(mid, [])
+        topics = self._pending_subacks.pop(mid, set())
         if topics:
             for topic in topics:
-                self._pending_subscriptions.remove(topic)
+                # Use discard() instead of remove() to avoid KeyError if topic was already removed
+                # This can happen with duplicate SUBACKs or race conditions
+                self._pending_subscriptions.discard(topic)
         if not self._pending_subscriptions:
             with self._lock:
                 if self._state == self.States.subscribing:
@@ -249,6 +251,8 @@ class ConstrainedMQTTClient:
 
     def _on_disconnect(self, _: Any, _userdata: Any, _flags: Any, _rc: int, _properties: Any) -> None:
         self._pending_subscriptions = set(self._subscriptions)
+        # Reset pending subacks to avoid stale entries causing issues on reconnect
+        self._pending_subacks = {}
 
     def _on_message(self, _: Any, _userdata: Any, message: MQTTMessage) -> None:
         if self._callbacks.message_received_callback is not None:
@@ -260,6 +264,8 @@ class ConstrainedMQTTClient:
     def _make_client(self) -> Result[bool, Exception]:
         with self._lock:
             try:
+                # Reset pending subacks when creating a new client to avoid stale entries
+                self._pending_subacks = {}
                 self._client = MQTTClient(
                     callback_api_version=CallbackAPIVersion.VERSION2,
                     client_id="-".join(str(uuid.uuid4()).split("-")[:-1])
