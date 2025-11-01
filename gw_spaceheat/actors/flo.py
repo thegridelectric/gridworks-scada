@@ -44,7 +44,7 @@ class DGraph():
         self.logger.info("Cleared super graph from memory")
         
     def load_super_graph(self):
-        with open("super_graph.json", 'r') as f:
+        with open(f"super_graph_{self.params.storage_volume}.json", 'r') as f:
             self.super_graph: Dict = json.load(f)
         self.discretized_store_heat_in = [float(x) for x in list(self.super_graph.keys())]
         self.discretized_store_heat_in_array = np.array(self.discretized_store_heat_in)
@@ -214,6 +214,20 @@ class DGraph():
             n for n in nodes_with_similar_temperatures
             if n.thermocline1 == closest_thermocline1
         ]
+
+        if abs(self.initial_state.top_temp - self.initial_state.middle_temp) <= 5 and abs(self.initial_state.top_temp - self.initial_state.bottom_temp) > 5:
+            similar_nodes = [
+                n for n in self.bid_nodes[0]
+                if n.top_temp == closest_top_temp
+                and n.thermocline1 == 16
+                and n.thermocline2 == 24
+            ]
+            if not similar_nodes:
+                similar_nodes = [
+                    n for n in self.bid_nodes[0]
+                    if n.top_temp == closest_top_temp
+                    and n.thermocline1 == 16
+                ]
 
         self.initial_node = min(
             similar_nodes, 
