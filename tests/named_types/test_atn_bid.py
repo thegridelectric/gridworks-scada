@@ -12,10 +12,10 @@ def test_atn_bid_generated() -> None:
         "MarketSlotName": "e.rt60gate5.d1.isone.ver.keene.1667880000",
         "PqPairs": [
             {
-                "PriceTimes1000": 40000,
-                "QuantityTimes1000": 10000,
+                "PriceX1000": 40000,
+                "QuantityX1000": 10000,
                 "TypeName": "price.quantity.unitless",
-                "Version": "000",
+                "Version": "001",
             }
         ],
         "InjectionIsPositive": False,

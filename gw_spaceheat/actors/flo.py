@@ -5,13 +5,18 @@ import numpy as np
 from typing import Dict, List, Tuple
 from gwproactor.logger import LoggerOrAdapter
 from .dijkstra_types import DParams, DNode, DEdge
-from gwsproto.named_types import FloParamsHouse0, PriceQuantityUnitless
+from gwsproto.enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName
+from gwsproto.named_types import FloParamsHouse0, PriceQuantityUnitless, BidRecommendation
 
+P_NODE = "hw1.isone.ver.keene" # TODO: add to House0Params for audit trail
 
 class DGraph():
     LOGGER_NAME="flo"
-    def __init__(self, flo_params: FloParamsHouse0, logger: LoggerOrAdapter):
+    def __init__(self, flo_params_bytes: bytes, logger: LoggerOrAdapter):
+        flo_params_dict = json.loads(flo_params_bytes.decode('utf-8'))
+        flo_params = FloParamsHouse0.model_validate(flo_params_dict)
         self.logger = logger
+        self.flo_params = flo_params
         self.params = DParams(flo_params)
         start_time = time.time()
         try:
@@ -39,7 +44,7 @@ class DGraph():
         self.logger.info("Cleared super graph from memory")
         
     def load_super_graph(self):
-        with open("super_graph.json", 'r') as f:
+        with open(f"super_graph_{self.params.storage_volume}.json", 'r') as f:
             self.super_graph: Dict = json.load(f)
         self.discretized_store_heat_in = [float(x) for x in list(self.super_graph.keys())]
         self.discretized_store_heat_in_array = np.array(self.discretized_store_heat_in)
@@ -173,7 +178,7 @@ class DGraph():
         top, thermocline1, middle, thermocline2, bottom = int(parts[0]), int(parts[1]), int(parts[2]), int(parts[3]), int(parts[4])
         return top, thermocline1, middle, thermocline2, bottom
 
-    def find_initial_node(self, updated_flo_params: FloParamsHouse0=None):
+    def find_initial_node(self, updated_flo_params: FloParamsHouse0 | None =None):
         if updated_flo_params:
             self.params = DParams(updated_flo_params)
         
@@ -210,6 +215,20 @@ class DGraph():
             if n.thermocline1 == closest_thermocline1
         ]
 
+        if abs(self.initial_state.top_temp - self.initial_state.middle_temp) <= 5 and abs(self.initial_state.top_temp - self.initial_state.bottom_temp) > 5:
+            similar_nodes = [
+                n for n in self.bid_nodes[0]
+                if n.top_temp == closest_top_temp
+                and n.thermocline1 == 16
+                and n.thermocline2 == 24
+            ]
+            if not similar_nodes:
+                similar_nodes = [
+                    n for n in self.bid_nodes[0]
+                    if n.top_temp == closest_top_temp
+                    and n.thermocline1 == 16
+                ]
+
         self.initial_node = min(
             similar_nodes, 
             key=lambda x: abs(x.energy-self.initial_state.energy)
@@ -222,10 +241,14 @@ class DGraph():
                 self.bid_edges[self.initial_node].remove(e)
                 print(f"Removed edge {e} because the storage is already close to full.")
 
-    def generate_bid(self, updated_flo_params: FloParamsHouse0=None):
+    def generate_recommendation(self, flo_params_bytes: bytes | None=None) -> bytes:
+        """ Returns serialized"""
         self.logger.info("Generating bid...")
+        if flo_params_bytes:
+            flo_params_dict = json.loads(flo_params_bytes.decode('utf-8'))
+            flo_params = FloParamsHouse0.model_validate(flo_params_dict)
         self.pq_pairs: List[PriceQuantityUnitless] = []
-        self.find_initial_node(updated_flo_params)
+        self.find_initial_node(flo_params)
         
         forecasted_cop = self.params.COP(oat=self.params.oat_forecast[0])
         forecasted_price_usd_mwh = self.params.elec_price_forecast[0]*10
@@ -237,13 +260,25 @@ class DGraph():
                 edge_cost[edge] = edge.cost if edge.cost >= 1e4 else edge.hp_heat_out/forecasted_cop * price_usd_mwh/1000
             best_edge: DEdge = min(self.bid_edges[self.initial_node], key=lambda e: e.head.pathcost + edge_cost[e])
             best_quantity_kwh = max(0, best_edge.hp_heat_out/forecasted_cop)
-            if not self.pq_pairs or (self.pq_pairs[-1].QuantityTimes1000-int(best_quantity_kwh*1000)>10):
+            if not self.pq_pairs or (self.pq_pairs[-1].QuantityX1000-int(best_quantity_kwh*1000)>10):
                 self.pq_pairs.append(
                     PriceQuantityUnitless(
-                        PriceTimes1000 = int(price_usd_mwh * 1000),
-                        QuantityTimes1000 = int(best_quantity_kwh * 1000))
+                        PriceX1000 = int(price_usd_mwh * 1000),
+                        QuantityX1000 = int(best_quantity_kwh * 1000))
                 )
         self.logger.info(f"Done ({len(self.pq_pairs)} PQ pairs found).")
+        slot_start_s = flo_params.StartUnixS
+        mtn = MarketTypeName.rt60gate5.value # TODO: send in House0FloParams
+        market_slot_name = f"e.{mtn}.{P_NODE}.{slot_start_s}"
+
+        return BidRecommendation(
+            BidderAlias=self.flo_params.GNodeAlias,
+            MarketSlotName=market_slot_name,
+            PqPairs=self.pq_pairs,
+            InjectionIsPositive=True,
+            PriceUnit=MarketPriceUnit.USDPerMWh,
+            QuantityUnit=MarketQuantityUnit.AvgkW
+        ).model_dump_json().encode('utf-8')
 
     def trim_graph_for_waiting(self):
         """Remove all but the first two time slices to save memory while waiting to generate bid."""

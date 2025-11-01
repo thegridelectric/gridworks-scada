@@ -93,7 +93,7 @@ class SuperGraphGenerator():
         
     def save_to_json(self):
         print("\nSaving SuperGraph to JSON...")
-        json_file_path = "super_graph.json"
+        json_file_path = f"super_graph_{self.params.storage_volume}.json"
         with open(json_file_path, 'w') as f:
             json.dump(self.super_graph, f)
         print("Done.")
