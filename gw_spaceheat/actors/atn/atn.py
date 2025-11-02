@@ -857,10 +857,10 @@ class Atn(PrimeActor):
             return
 
         pq_pairs = [
-            (x.PriceTimes1000, x.QuantityTimes1000) for x in self.contract_handler.latest_bid.PqPairs
+            (x.PriceX1000, x.QuantityX1000) for x in self.contract_handler.latest_bid.PqPairs
         ]
         sorted_pq_pairs = sorted(pq_pairs, key=lambda pair_: pair_[0])
-        # Quantity is AvgkW, so QuantityTimes1000 is avg_w
+        # Quantity is AvgkW, so QuantityX1000 is avg_w
         assert self.contract_handler.latest_bid.QuantityUnit == MarketQuantityUnit.AvgkW
         for pair in sorted_pq_pairs:
             if pair[0] < payload.PriceTimes1000:

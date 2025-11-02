@@ -126,11 +126,11 @@ class AtnBid(BaseModel):
             raise ValueError("Must have at least one PQ pair")
             
         for i in range(len(self.PqPairs) - 1):
-            if self.PqPairs[i].PriceTimes1000 >= self.PqPairs[i+1].PriceTimes1000:
+            if self.PqPairs[i].PriceX1000 >= self.PqPairs[i+1].PriceX1000:
                 raise ValueError(
                     f"PQ pairs must have strictly increasing prices. Pair {i} "
-                    f"({self.PqPairs[i].PriceTimes1000}) >= Pair {i+1} "
-                    f"({self.PqPairs[i+1].PriceTimes1000})"
+                    f"({self.PqPairs[i].PriceX1000}) >= Pair {i+1} "
+                    f"({self.PqPairs[i+1].PriceX1000})"
                 )
         return self
 
