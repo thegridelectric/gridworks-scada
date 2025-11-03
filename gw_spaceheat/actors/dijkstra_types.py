@@ -4,7 +4,7 @@ from gwsproto.named_types import FloParamsHouse0
 
 
 class DParams():
-    def __init__(self, flo_params: FloParamsHouse0) -> None:
+    def __init__(self, flo_params: FloParamsHouse0 ) -> None:
         self.flo_params = flo_params
         self.start_time = flo_params.StartUnixS
         self.horizon = flo_params.HorizonHours

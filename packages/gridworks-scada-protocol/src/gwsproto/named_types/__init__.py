@@ -8,6 +8,7 @@ from gwsproto.named_types.async_btu_params import AsyncBtuParams
 from gwsproto.named_types.ally_gives_up import AllyGivesUp
 from gwsproto.named_types.atn_bid import AtnBid
 from gwsproto.named_types.baseurl_failure_alert import BaseurlFailureAlert
+from gwsproto.named_types.bid_recommendation import BidRecommendation
 from gwsproto.named_types.channel_flatlined import ChannelFlatlined
 from gwsproto.named_types.dispatch_contract_go_dormant import DispatchContractGoDormant
 from gwsproto.named_types.dispatch_contract_go_live import DispatchContractGoLive
@@ -61,6 +62,7 @@ __all__ = [
     "AllyGivesUp",
     "AtnBid",
     "BaseurlFailureAlert",
+    "BidRecommendation",
     "ChannelFlatlined",
     "DispatchContractGoDormant",
     "DispatchContractGoLive",
