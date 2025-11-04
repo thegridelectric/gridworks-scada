@@ -6,8 +6,6 @@ venv
 
 # local files only
 price_forecast.csv
-super_graph_360.json
-super_graph_120.json
 
 # Code generation
 CodeGenerationTools/GridworksCore/.ssotme/**/*.zfs
