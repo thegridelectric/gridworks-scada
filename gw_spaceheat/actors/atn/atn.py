@@ -287,7 +287,6 @@ class Atn(PrimeActor):
         self.layout_lite: Optional[LayoutLite] = None # Add this as a way of tracking if we've gotten the layout lite yet
         self.strategy = HomeAloneStrategy.default() # will get updated when LayoutLite arrives from Scada
         self.total_store_tanks = 3 # will also get updated when LayoutLite arrives
-        self.create_graph_minute: int = datetime.now().minute + 2 #random.randint(min_minute, self.send_bid_minute-1)
         # TODO: read strategy from hardware layout: node = hardware_layout.node(...)
         self.buffer_flo = False
 
