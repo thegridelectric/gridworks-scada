@@ -100,7 +100,21 @@ class BidRunner(threading.Thread):
                 self.logger.info(f"Using advanced flo: {USING_ADVANCED_FLO}")
                 st = time.time()
                 flo_params_bytes = self.params.model_dump_json().encode('utf-8')
-                g = DGraph(flo_params_bytes, self.logger) # this will get refactored
+                try:
+                    g = DGraph(flo_params_bytes, self.logger) # this will get refactored
+                except Exception as e:
+                    self.logger.error(f"Error creating DGraph: {e}")
+                    glitch = Glitch(
+                        FromGNodeAlias=self.atn_alias,
+                        Node=self.atn_name,
+                        Type=LogLevel.Critical,
+                        Summary=f"{self.atn_alias.split('.')[-2]}.{self.atn_alias.split('.')[-1]} - Error creating DGraph",
+                        Details=f"{e}",
+                        CreatedMs=int(time.time() * 1000)
+                    )
+                    self.send_threadsafe(Message(Src=self.atn_name, Dst=self.atn_name, Payload=glitch))
+                    self.logger.info("Sent glitch")
+                    return
                 g.solve_dijkstra()
                 self.logger.info(f"Built and solved in {round(time.time()-st,2)} seconds!")
                 # After solving, trim the graph to reduce memory usage while waiting
