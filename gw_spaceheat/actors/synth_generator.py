@@ -290,7 +290,7 @@ class SynthGenerator(ScadaActor):
             summary = f"Consider changing strategy to use all tanks and not just the buffer"
             details = f"A full buffer will not have enough energy to go through the next on-peak ({round(max_buffer_usable_kwh,1)}<{round(self.required_kwh,1)} kWh)"
             self.log(details)
-            self.alert(summary, details)
+            self.send_glitch(summary, details)
         
     def get_required_storage(self, time_now: datetime) -> float:
         forecasts_times_tz = [datetime.fromtimestamp(x, tz=self.timezone) for x in self.forecasts.Time]
@@ -530,11 +530,11 @@ class SynthGenerator(ScadaActor):
             delta_t = self.delta_T(swt)
         return round(swt - delta_t,2)
 
-    def alert(self, summary: str, details: str) -> None:
+    def send_glitch(self, summary: str, details: str, log_level: LogLevel = LogLevel.Info) -> None:
         msg = Glitch(
             FromGNodeAlias=self.layout.scada_g_node_alias,
             Node=self.node.Name,
-            Type=LogLevel.Critical,
+            Type=log_level,
             Summary=summary,
             Details=details
         )
