@@ -107,7 +107,7 @@ class BidRunner(threading.Thread):
                     glitch = Glitch(
                         FromGNodeAlias=self.atn_alias,
                         Node=self.atn_name,
-                        Type=LogLevel.Critical,
+                        Type=LogLevel.Error,
                         Summary=f"{self.atn_alias.split('.')[-2]}.{self.atn_alias.split('.')[-1]} - Error creating DGraph",
                         Details=f"{e}",
                         CreatedMs=int(time.time() * 1000)
