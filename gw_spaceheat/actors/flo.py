@@ -12,9 +12,6 @@ P_NODE = "hw1.isone.ver.keene" # TODO: add to House0Params for audit trail
 def to_kelvin(t):
     return (t-32)*5/9 + 273.15
 
-def to_celcius(t):
-    return (t-32)*5/9
-
 
 class DParams:
     def __init__(self, config: FloParamsHouse0) -> None:
