@@ -2,7 +2,7 @@ import pprint
 import json
 from gwsproto.named_types import FloParamsHouse0, BidRecommendation
 
-from gridflo.flo import Flo
+
 
 
 def get_sample_house_0_flo_params() -> FloParamsHouse0:
@@ -315,6 +315,7 @@ def get_sample_house_0_flo_params() -> FloParamsHouse0:
 #     assert br.PqPairs[1].QuantityX1000 == 0
 
 if __name__ == "__main__":
+    from gridflo.flo import Flo
     params = get_sample_house_0_flo_params()
     flo_params_bytes = params.model_dump_json().encode('utf-8')
     flo = Flo(flo_params_bytes)
