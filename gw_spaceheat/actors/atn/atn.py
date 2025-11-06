@@ -26,7 +26,11 @@ from gwproactor import AppInterface
 from gwproto import HardwareLayout
 
 
-from gridflo import Flo
+try:
+    from gridflo import Flo
+# this is so CI/CD passes - will remove once Flo is decoupled
+except ImportError:
+    from actors.atn.flo import Flo # Will raise NotImplementedError
 
 from gwsproto.data_classes.house_0_layout import House0Layout
 from gwsproto.data_classes.house_0_names import H0CN, H0N
