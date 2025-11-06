@@ -297,6 +297,11 @@ class AllTanksAtomicAlly(ScadaActor):
                     if self.storage_declared_full and time.time()-self.storage_full_since<15*60:
                         self.log("Both storage and buffer are as full as can be")
                         self.trigger_event(AtomicAllyEvent.NoMoreElec)
+                        self.alert(
+                            summary="Buffer and storage are full, could not heat as much as contract requires", 
+                            details=f"Remaining energy: {self.remaining_watthours} Wh", 
+                            log_level=LogLevel.Warning
+                        )
                         # TODO: send message to ATN saying the EnergyInstruction will be violated
 
             # 2
@@ -627,11 +632,11 @@ class AllTanksAtomicAlly(ScadaActor):
     def to_fahrenheit(self, t:float) -> float:
         return t*9/5+32
 
-    def alert(self, summary: str, details: str) -> None:
+    def alert(self, summary: str, details: str, log_level=LogLevel.Critical) -> None:
         msg =Glitch(
             FromGNodeAlias=self.layout.scada_g_node_alias,
             Node=self.node.Name,
-            Type=LogLevel.Critical,
+            Type=log_level,
             Summary=summary,
             Details=details
         )

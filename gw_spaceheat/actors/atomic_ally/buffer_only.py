@@ -455,6 +455,11 @@ class BufferOnlyAtomicAlly(ScadaActor):
             max_buffer = self.params.MaxEwtF
             if buffer_full_ch_temp > max_buffer:
                 self.log(f"Buffer cannot be charged more ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)")
+                self.alert(
+                    summary="Buffer tank is full, could not heat as much as contract requires", 
+                    details=f"Remaining energy: {self.remaining_watthours} Wh", 
+                    log_level=LogLevel.Warning
+                )
                 return True
             else:
                 self.log(f"Buffer can be charged more ({buffer_full_ch}: {buffer_full_ch_temp} <= {max_buffer} F)")
@@ -470,11 +475,11 @@ class BufferOnlyAtomicAlly(ScadaActor):
     def to_fahrenheit(self, t:float) -> float:
         return t*9/5+32
 
-    def alert(self, summary: str, details: str) -> None:
+    def alert(self, summary: str, details: str, log_level=LogLevel.Critical) -> None:
         msg =Glitch(
             FromGNodeAlias=self.layout.scada_g_node_alias,
             Node=self.node.Name,
-            Type=LogLevel.Critical,
+            Type=log_level,
             Summary=summary,
             Details=details
         )
