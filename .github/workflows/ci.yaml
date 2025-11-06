@@ -83,6 +83,7 @@ jobs:
           pip install -r gw_spaceheat/requirements/dev.txt
           pip install -e packages/gridworks-scada-protocol
           pip install -e packages/gridworks-admin
+          pip install git+https://github.com/thegridelectric/gridworks-innovations.git#subdirectory=gridworks-flo
 
       - name: Copy Test .env
         uses: canastro/copy-file-action@master
