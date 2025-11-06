@@ -1,58 +1,36 @@
-"""Tests flo.params.house0 type, version 000"""
+import pprint
+import json
+from pathlib import Path
 
-from gwsproto.enums import MarketPriceUnit
-from gwsproto.named_types import FloParamsHouse0
+from gwsproto.named_types import FloParamsHouse0, BidRecommendation
+from gridflo import Flo
+
+#if __name__ == "__main__":
+import pprint
+#params_path = Path(__file__).parent / "flo_params.json"
+params_path = Path("tests/flo_params.json")
+data = json.loads(params_path.read_text())
+flo_params = FloParamsHouse0.model_validate(data)
+flo_param_bytes = flo_params.model_dump_json().encode('utf-8')
+flo = Flo(flo_param_bytes)
+flo.solve_dijkstra()
+br_bytes = flo.generate_recommendation(flo_param_bytes)
+br_dict = json.loads(br_bytes)
+br = BidRecommendation.model_validate(br_dict)
+pprint.pp(br.model_dump())
 
 
-def test_flo_params_house0_generated() -> None:
-    ...
-    # d = {
-    #     "GNodeAlias": "d1.isone.ver.keene.holly",
-    #     "FloParamsUid": "97eba574-bd20-45b5-bf82-9ba2f492d8f6",
-    #     "TimezoneStr": ,
-    #     "StartUnixS": 1734476700,
-    #     "HorizonHours": ,
-    #     "StorageVolumeGallons": ,
-    #     "StorageLossesPercent": ,
-    #     "HpMinElecKw": ,
-    #     "HpMaxElecKw": ,
-    #     "CopIntercept": ,
-    #     "CopOatCoeff": ,
-    #     "CopLwtCoeff": ,
-    #     "InitialTopTempF": ,
-    #     "InitialBottomTempF",
-    #     "InitialThermocline": ,
-    #     "LmpForecast": ,
-    #     "DistPriceForecast": ,
-    #     "RegPriceForecast": ,
-    #     "PriceForecastUid": ,
-    #     "OatForecastF": ,
-    #     "WindSpeedForecastMph": ,
-    #     "WeatherUid": ,
-    #     "AlphaTimes10": ,
-    #     "BetaTimes100": ,
-    #     "GammaEx6": ,
-    #     "IntermediatePowerKw": ,
-    #     "IntermediateRswtF": ,
-    #     "DdPowerKw": ,
-    #     "DdRswtF": ,
-    #     "DdDeltaTF": ,
-    #     "MaxEwtF": ,
-    #     "MarketPriceUnit": "",
-    #     "ParamsGeneratedS": ,
-    #     "TypeName": "flo.params.house0",
-    #     "Version": "002",
-    # }
+import json
+from pathlib import Path
 
-    # d2 = FloParamsHouse0.model_validate(d).model_dump(exclude_none=True)
+from gridflo import Flo
+from gridflo.asl.types import BidRecommendation, FloParamsHouse0
 
-    # assert d2 == d
-
-    # ######################################
-    # # Enum related
-    # ######################################
-
-    # assert type(d2["MarketPriceUnit"]) is str
-
-    # d2 = dict(d, MarketPriceUnit="unknown_enum_thing")
-    # assert FloParamsHouse0(**d2).MarketPriceUnit == MarketPriceUnit.default()
+params_path = Path("tests/flo_params.json")
+flo_params = FloParamsHouse0.from_dict(json.loads(params_path.read_text()))
+flo_param_bytes = flo_params.to_bytes()
+flo = Flo(flo_params.to_bytes())
+flo.solve_dijkstra()
+br_bytes = flo.generate_recommendation(flo_params.to_bytes())
+br = BidRecommendation.from_bytes(br_bytes)
+pprint.pp(br.to_dict())
