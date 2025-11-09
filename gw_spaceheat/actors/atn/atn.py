@@ -804,7 +804,7 @@ class Atn(PrimeActor):
             send_threadsafe=self.services.send_threadsafe,
             on_complete=self._cleanup_bid_runner,
             logger=self.logger.add_category_logger(
-                Flo.LOGGER_NAME,
+                "BID_RUNNER",
                 level=self.settings.flo_logging_level
             ),
         )
