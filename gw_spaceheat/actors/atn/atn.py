@@ -1146,22 +1146,32 @@ class Atn(PrimeActor):
     async def get_house_available_kwh(self):
         setpoints = {}
         temps = {}
+        thermal_mass = {}
         zone_names = []
         for zone_setpoint in [x for x in self.latest_channel_values if 'zone' in x and 'set' in x]:
             zone_name = zone_setpoint.replace('-set','')
             zone_names.append(zone_name)
+            # Get setpoints for each zone
             if self.latest_channel_values[zone_setpoint] is not None:
                 setpoints[zone_name] = round(self.latest_channel_values[zone_setpoint]/1000,1)
-            if (zone_setpoint.replace('-set','-temp') in self.latest_channel_values
-                and self.latest_channel_values[zone_setpoint.replace('-set','-temp')] is not None):
-                temps[zone_name] = round(self.latest_channel_values[zone_setpoint.replace('-set','-temp')]/1000,1)
+            # Get temperatures for each zone
+            zone_temp = zone_setpoint.replace('-set','-temp')
+            if (zone_temp in self.latest_channel_values and self.latest_channel_values[zone_temp] is not None):
+                temps[zone_name] = round(self.latest_channel_values[zone_temp]/1000,1)
+            # Get thermal mass for each zone
+            zone_list_name = zone_name[6:] if zone_name[:4]=='zone' else zone_name
+            if zone_list_name in self.layout.zone_list:
+                zone_index = self.layout.zone_list.index(zone_name)
+                kwh_per_deg_f = self.layout.zone_kwh_per_deg_f_list[zone_index]
+                thermal_mass[zone_name] = kwh_per_deg_f
+
         self.log(f"Found all zone setpoints: {setpoints}")
         self.log(f"Found all zone temperatures: {temps}")
-        thermal_mass_kwh_per_degf = 1
+        self.log(f"Found all zone thermal masses: {thermal_mass}")
         house_availale_kwh = 0
         for zone in zone_names:
-            if zone in temps and zone in setpoints:
-                house_availale_kwh += thermal_mass_kwh_per_degf * (temps[zone] - setpoints[zone])
+            if zone in temps and zone in setpoints and zone in thermal_mass:
+                house_availale_kwh += thermal_mass[zone] * (temps[zone] - setpoints[zone])
         house_availale_kwh = round(house_availale_kwh,2)
         self.log(f"House available kWh: {house_availale_kwh}")
         return house_availale_kwh
