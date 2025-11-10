@@ -56,8 +56,7 @@ class FloParamsHouse0(BaseModel):
     PriceUnit: MarketPriceUnit = MarketPriceUnit.USDPerMWh
     ParamsGeneratedS: UTCSeconds = Field(default_factory=lambda: int(time.time()))
     # Flo type
-    FloAlias: str = "Winter.Oak"
-    FloGitCommit: str = "76e267b"
+    ConstantDeltaT: StrictInt = 20
     TypeName: Literal["flo.params.house0"] = "flo.params.house0"
     Version: str = "003"
 
