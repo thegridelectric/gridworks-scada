@@ -1159,8 +1159,8 @@ class Atn(PrimeActor):
             if (zone_temp in self.latest_channel_values and self.latest_channel_values[zone_temp] is not None):
                 temps[zone_name] = round(self.latest_channel_values[zone_temp]/1000,1)
             # Get thermal mass for each zone
-            zone_list_name = zone_name[6:] if zone_name[:4]=='zone' else zone_name
-            if zone_list_name in self.layout.zone_list:
+            zone_name_no_prefix = zone_name[6:] if zone_name[:4]=='zone' else zone_name
+            if zone_name_no_prefix in self.layout.zone_list:
                 zone_index = self.layout.zone_list.index(zone_name)
                 kwh_per_deg_f = self.layout.zone_kwh_per_deg_f_list[zone_index]
                 thermal_mass[zone_name] = kwh_per_deg_f

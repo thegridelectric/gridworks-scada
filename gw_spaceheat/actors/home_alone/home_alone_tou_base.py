@@ -90,6 +90,7 @@ class HomeAloneTouBase(ScadaActor):
         self.log(f"self.is_simulated: {self.is_simulated}")
         self.heating_forecast: Optional[HeatingForecast] = None
         self.zone_setpoints = {}
+        self.critical_zones = self.layout.critical_zone_list
         if H0N.home_alone_normal not in self.layout.nodes:
             raise Exception(f"HomeAlone requires {H0N.home_alone_normal} node!!")
         if H0N.home_alone_scada_blind not in self.layout.nodes:
@@ -583,7 +584,8 @@ class HomeAloneTouBase(ScadaActor):
         temps = {}
         for zone_setpoint in [x for x in self.data.latest_channel_values if 'zone' in x and 'set' in x]:
             zone_name = zone_setpoint.replace('-set','')
-            self.log(f"Found zone: {zone_name}")
+            zone_name_no_prefix = zone_name[6:] if zone_name[:4]=='zone' else zone_name
+            self.log(f"Found zone: {zone_name}, critical: {zone_name_no_prefix in self.critical_zones}")
             if self.data.latest_channel_values[zone_setpoint] is not None:
                 self.zone_setpoints[zone_name] = self.data.latest_channel_values[zone_setpoint]
             if self.data.latest_channel_values[zone_setpoint.replace('-set','-temp')] is not None:
@@ -592,9 +594,12 @@ class HomeAloneTouBase(ScadaActor):
         self.log(f"Found all zone temperatures: {temps}")
     
     def is_house_cold(self) -> bool:
-        """Returns True if at least one zone is more than 1F below setpoint, where the 
+        """Returns True if at least one critical zones is more than 1F below setpoint, where the 
         setpoint is set at the beginning of the latest onpeak period"""
         for zone in self.zone_setpoints:
+            zone_name_no_prefix = zone[6:] if zone[:4]=='zone' else zone
+            if zone_name_no_prefix not in self.critical_zones:
+                continue
             setpoint = self.zone_setpoints[zone]
             if not self.is_simulated:
                 if zone+'-temp' not in self.data.latest_channel_values:
