@@ -39,6 +39,8 @@ def make_tst_layout(src_path: Path) -> LayoutDb:
             atn_gnode_alias="atn.orange",
             scada_display_name="Little Orange House Main Scada",
             zone_list=["main"],
+            critical_zone_list=[],
+            zone_kwh_per_deg_f_list=[1],
             total_store_tanks=3,
             add_stub_power_meter=False,
         )

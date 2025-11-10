@@ -26,10 +26,12 @@ from gwproto.named_types import ComponentAttributeClassGt
 class House0LoadArgs(LoadArgs):
     flow_manifold_variant: FlowManifoldVariant
     use_sieg_loop: bool
+
 class House0Layout(HardwareLayout):
     zone_list: List[str]
+    critical_zone_list: List[str]
+    zone_kwh_per_deg_f_list: List[float]
     total_store_tanks: int
-
 
     def __init__(  # noqa: PLR0913
         self,
@@ -62,6 +64,8 @@ class House0Layout(HardwareLayout):
 
 
         self.zone_list = layout["ZoneList"]
+        self.critical_zone_list = layout["CriticalZoneList"]
+        self.zone_kwh_per_deg_f_list = layout["ZoneKwhPerDegFList"]
         self.total_store_tanks = layout["TotalStoreTanks"]
 
         self.channel_names = H0CN(self.total_store_tanks, self.zone_list)
@@ -73,6 +77,14 @@ class House0Layout(HardwareLayout):
             raise TypeError("ZoneList must be a list")
         if not 1 <= len(self.zone_list) <= 6:
             raise ValueError("Must have between 1 and 6 store zones")
+        if not isinstance(self.critical_zone_list, List):
+            raise TypeError("CriticalZoneList must be a list")
+        if not len(self.critical_zone_list) <= len(self.zone_list):
+            raise ValueError("CriticalZoneList must be a subset of ZoneList")
+        if not isinstance(self.zone_kwh_per_deg_f_list, List):
+            raise TypeError("ZoneKwhPerDegFList must be a list")
+        if not len(self.zone_kwh_per_deg_f_list) == len(self.zone_list):
+            raise ValueError("ZoneKwhPerDegFList must have the same number of elements as ZoneList")
         self.h0n = H0N(self.total_store_tanks, self.zone_list)
 
     @classmethod
