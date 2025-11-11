@@ -124,6 +124,8 @@ class StubConfig:
     atn_gnode_alias: str = "atn.orange"
     terminal_asset_alias: Optional[str] = None
     zone_list: typing.Sequence[str] = field(default_factory=tuple)
+    critical_zone_list: typing.Sequence[str] = field(default_factory=tuple)
+    zone_kwh_per_deg_f_list: typing.Sequence[float] = field(default_factory=tuple)
     total_store_tanks: int = 3
     scada_display_name: str = "Dummy Orange Scada"
     add_stub_power_meter: bool = True
@@ -143,6 +145,8 @@ class LayoutIDMap:
     synth_channels_by_name: dict[str, str]
     gnodes: dict[str, dict]
     zone_list: List[str]
+    critical_zone_list: List[str]
+    zone_kwh_per_deg_f_list: List[float]
     total_store_tanks: int
 
     def __init__(self, d: Optional[dict] = None):
@@ -153,6 +157,8 @@ class LayoutIDMap:
         self.synth_channels_by_name = {}
         self.gnodes = {}
         self.zone_list = []
+        self.critical_zone_list = []
+        self.zone_kwh_per_deg_f_list = []
         self.total_store_tanks = 3
         self.strategy = "House0"
         if not d:
@@ -162,6 +168,10 @@ class LayoutIDMap:
                     self.gnodes[k] = v
                 if k == "ZoneList":
                     self.zone_list = v
+                elif k == "CriticalZoneList":
+                    self.critical_zone_list = v
+                elif k == "ZoneKwhPerDegFList":
+                    self.zone_kwh_per_deg_f_list = v
                 elif k == "TotalStoreTanks":
                     self.total_store_tanks = v
                 elif k == "ShNodes":
@@ -597,6 +607,15 @@ class LayoutDb:
             self.misc["ZoneList"] = self.loaded.zone_list
         else:
             self.misc["ZoneList"] = cfg.zone_list
+
+        if self.loaded.critical_zone_list:
+            self.misc["CriticalZoneList"] = self.loaded.critical_zone_list
+        else:
+            self.misc["CriticalZoneList"] = cfg.critical_zone_list
+        if self.loaded.zone_kwh_per_deg_f_list:
+            self.misc["ZoneKwhPerDegFList"] = self.loaded.zone_kwh_per_deg_f_list
+        else:
+            self.misc["ZoneKwhPerDegFList"] = cfg.zone_kwh_per_deg_f_list
 
         if self.loaded.total_store_tanks:
             self.misc["TotalStoreTanks"] = self.loaded.total_store_tanks
