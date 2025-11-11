@@ -1171,7 +1171,7 @@ class Atn(PrimeActor):
             # Get thermal mass for each zone
             zone_name_no_prefix = zone_name[6:] if zone_name[:4]=='zone' else zone_name
             if zone_name_no_prefix in self.layout.zone_list:
-                zone_index = self.layout.zone_list.index(zone_name)
+                zone_index = self.layout.zone_list.index(zone_name_no_prefix)
                 thermal_mass[zone_name] = self.layout.zone_kwh_per_deg_f_list[zone_index]
 
         self.log(f"Found all zone setpoints: {setpoints}")
