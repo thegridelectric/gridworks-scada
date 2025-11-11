@@ -81,6 +81,9 @@ class House0Layout(HardwareLayout):
             raise TypeError("CriticalZoneList must be a list")
         if not len(self.critical_zone_list) <= len(self.zone_list):
             raise ValueError("CriticalZoneList must be a subset of ZoneList")
+        for zone in self.critical_zone_list:
+            if zone not in self.zone_list:
+                raise ValueError(f"{zone} is in CriticalZoneList but not in ZoneList")
         if not isinstance(self.zone_kwh_per_deg_f_list, List):
             raise TypeError("ZoneKwhPerDegFList must be a list")
         if not len(self.zone_kwh_per_deg_f_list) == len(self.zone_list):

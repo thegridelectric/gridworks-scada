@@ -1162,8 +1162,7 @@ class Atn(PrimeActor):
             zone_name_no_prefix = zone_name[6:] if zone_name[:4]=='zone' else zone_name
             if zone_name_no_prefix in self.layout.zone_list:
                 zone_index = self.layout.zone_list.index(zone_name)
-                kwh_per_deg_f = self.layout.zone_kwh_per_deg_f_list[zone_index]
-                thermal_mass[zone_name] = kwh_per_deg_f
+                thermal_mass[zone_name] = self.layout.zone_kwh_per_deg_f_list[zone_index]
 
         self.log(f"Found all zone setpoints: {setpoints}")
         self.log(f"Found all zone temperatures: {temps}")

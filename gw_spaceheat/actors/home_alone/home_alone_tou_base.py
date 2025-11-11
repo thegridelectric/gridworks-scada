@@ -90,7 +90,6 @@ class HomeAloneTouBase(ScadaActor):
         self.log(f"self.is_simulated: {self.is_simulated}")
         self.heating_forecast: Optional[HeatingForecast] = None
         self.zone_setpoints = {}
-        self.critical_zones = self.layout.critical_zone_list
         if H0N.home_alone_normal not in self.layout.nodes:
             raise Exception(f"HomeAlone requires {H0N.home_alone_normal} node!!")
         if H0N.home_alone_scada_blind not in self.layout.nodes:
@@ -586,7 +585,7 @@ class HomeAloneTouBase(ScadaActor):
             zone_name = zone_setpoint.replace('-set','')
             zone_name_no_prefix = zone_name[6:] if zone_name[:4]=='zone' else zone_name
             thermal_mass = self.layout.zone_kwh_per_deg_f_list[self.layout.zone_list.index(zone_name_no_prefix)]
-            self.log(f"Found zone: {zone_name}, critical: {zone_name_no_prefix in self.critical_zones}, thermal mass: {thermal_mass} kWh/degF")
+            self.log(f"Found zone: {zone_name}, critical: {zone_name_no_prefix in self.layout.critical_zone_list}, thermal mass: {thermal_mass} kWh/degF")
             if self.data.latest_channel_values[zone_setpoint] is not None:
                 self.zone_setpoints[zone_name] = self.data.latest_channel_values[zone_setpoint]
             if self.data.latest_channel_values[zone_setpoint.replace('-set','-temp')] is not None:
@@ -599,7 +598,7 @@ class HomeAloneTouBase(ScadaActor):
         setpoint is set at the beginning of the latest onpeak period"""
         for zone in self.zone_setpoints:
             zone_name_no_prefix = zone[6:] if zone[:4]=='zone' else zone
-            if zone_name_no_prefix not in self.critical_zones:
+            if zone_name_no_prefix not in self.layout.critical_zone_list:
                 continue
             setpoint = self.zone_setpoints[zone]
             if not self.is_simulated:
