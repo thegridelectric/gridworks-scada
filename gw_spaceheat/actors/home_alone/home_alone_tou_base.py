@@ -584,10 +584,8 @@ class HomeAloneTouBase(ScadaActor):
         temps = {}
         for zone_setpoint in [x for x in self.data.latest_channel_values if 'zone' in x and 'set' in x]:
             zone_name = zone_setpoint.replace('-set','')
-            self.log(f"Zone name: {zone_name}")
             zone_name_no_prefix = zone_name[6:] if zone_name[:4]=='zone' else zone_name
-            self.log(f"Zone name no prefix: {zone_name_no_prefix}")
-            thermal_mass = self.layout.zone_kwh_per_deg_f_list[self.layout.zone_list.index(zone_name)]
+            thermal_mass = self.layout.zone_kwh_per_deg_f_list[self.layout.zone_list.index(zone_name_no_prefix)]
             self.log(f"Found zone: {zone_name}, critical: {zone_name_no_prefix in self.critical_zones}, thermal mass: {thermal_mass} kWh/degF")
             if self.data.latest_channel_values[zone_setpoint] is not None:
                 self.zone_setpoints[zone_name] = self.data.latest_channel_values[zone_setpoint]
