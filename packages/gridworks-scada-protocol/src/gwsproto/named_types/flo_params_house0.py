@@ -55,9 +55,31 @@ class FloParamsHouse0(BaseModel):
     MaxEwtF: StrictInt
     PriceUnit: MarketPriceUnit = MarketPriceUnit.USDPerMWh
     ParamsGeneratedS: UTCSeconds = Field(default_factory=lambda: int(time.time()))
-    # Flo type
     ConstantDeltaT: StrictInt = 20
     TypeName: Literal["flo.params.house0"] = "flo.params.house0"
-    Version: str = "003"
+    Version: str = "004"
 
-    model_config = ConfigDict(extra="allow", use_enum_values=True)
+    model_config = ConfigDict(extra="allow", frozen=True, use_enum_values=True)
+
+    @property
+    def total_price_forecast(self) -> list[float]:
+        """
+        returns reg + dist + lmp in USDPerMwh
+        """
+        if not self.PriceUnit == MarketPriceUnit.USDPerMWh:
+            raise Exception("Expecting prices of USD per MWh")
+        reg_usd_per_mwh = self.RegPriceForecast[:self.HorizonHours]
+        dist_usd_per_mwh = self.DistPriceForecast[:self.HorizonHours]
+        lmp_usd_per_mwh = self.LmpForecast[:self.HorizonHours]
+        return [rp + dp + lmp for rp, dp, lmp in zip(
+            reg_usd_per_mwh, dist_usd_per_mwh, lmp_usd_per_mwh, strict=True
+        )]
+
+    def COP(self, oat: float) -> float:
+        """
+        Coefficient of Performance as function of Outside Air Temp in F
+        """
+        if oat < self.CopMinOatF:
+            return self.CopMin
+        else:
+            return self.CopIntercept + self.CopOatCoeff * oat
