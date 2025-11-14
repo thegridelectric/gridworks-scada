@@ -3,7 +3,7 @@ import time
 import json
 from typing import List
 from gwproactor.logger import LoggerOrAdapter
-from actors.atn.dijkstra_types import DNode, DEdge
+from actors.atn.dtypes import DNode, DEdge
 from gwsproto.enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName
 from gwsproto.named_types import FloParamsHouse0, PriceQuantityUnitless, BidRecommendation
 
@@ -18,7 +18,6 @@ class Flo():
         self.flo_params = flo_params
         raise NotImplementedError("Need to populate graph before this works!")
 
-        
     def create_nodes(self):
         self.nodes: dict[int, list[DNode]] = {h: [] for h in range(self.flo_params.HorizonHours+1)}
         # TODO make Dijkstra Nodes
@@ -39,7 +38,6 @@ class Flo():
         except Exception as e:
             self.logger.error(f"Error solving Dijkstra algorithm: {e}")
             raise
-
 
     def find_initial_node(self, updated_flo_params: FloParamsHouse0 | None = None):
         self.initial_node: DNode = self.nodes[0][50]
