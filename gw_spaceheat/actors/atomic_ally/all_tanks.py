@@ -591,18 +591,26 @@ class AllTanksAtomicAlly(ScadaActor):
             return True
         else:
             if H0N.store_cold_pipe in self.latest_temperatures:
-                if self.latest_temperatures[H0N.store_cold_pipe] > self.params.MaxEwtF: 
-                    self.log(f"Storage is full (store-cold-pipe > {self.params.MaxEwtF} F).")
-                    self.storage_declared_full = True
-                    self.storage_full_since = time.time()
-                    return True
-                else:
-                    self.log(f"Storage is not full (store-cold-pipe <= {self.params.MaxEwtF} F).")
-                    self.storage_declared_full = False
-                    return False
+                store_channel = H0N.store_cold_pipe
+            elif H0N.tank[3].depth3 in self.latest_temperatures:
+                store_channel = H0N.tank[3].depth3
+            elif H0N.tank[2].depth3 in self.latest_temperatures:
+                store_channel = H0N.tank[2].depth3
+            elif H0N.tank[1].depth3 in self.latest_temperatures:
+                store_channel = H0N.tank[1].depth3
             else:
                 self.alert(summary="storage_full_fail", details="Impossible to know if the storage is full, store-cold-pipe not found!", log_level=LogLevel.Warning)
                 return True
+            store_channel_temp = self.latest_temperatures[store_channel]
+            if store_channel_temp > self.params.MaxEwtF: 
+                self.log(f"Storage is full ({store_channel_temp} > {self.params.MaxEwtF} F).")
+                self.storage_declared_full = True
+                self.storage_full_since = time.time()
+                return True
+            else:
+                self.log(f"Storage is not full (store-cold-pipe <= {self.params.MaxEwtF} F).")
+                self.storage_declared_full = False
+                return False
         
     def is_storage_colder_than_buffer(self) -> bool:
         if H0CN.buffer.depth1 in self.latest_temperatures:
