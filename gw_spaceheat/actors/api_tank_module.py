@@ -258,10 +258,10 @@ class ApiTankModule(ScadaActor):
             # Swapped thermistors: beech tank2, beech tank3
             swapped_thermistors = ['pico_319230', 'pico_742221']
             if data.HwUid in swapped_thermistors:
-                if data.AboutNodeNameList[i] == 'tank2-depth1':
-                    data.AboutNodeNameList[i] = 'tank2-depth3'
-                elif data.AboutNodeNameList[i] == 'tank2-depth3':
-                    data.AboutNodeNameList[i] = 'tank2-depth1'
+                if 'depth1' in data.AboutNodeNameList[i]:
+                    data.AboutNodeNameList[i].replace('depth1', 'depth3')
+                elif 'depth3' in data.AboutNodeNameList[i]:
+                    data.AboutNodeNameList[i].replace('depth3', 'depth1')
 
             volts = data.MicroVoltsList[i] / 1e6
             if self._component.gt.SendMicroVolts:
