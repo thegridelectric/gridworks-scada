@@ -1212,23 +1212,23 @@ class Atn(PrimeActor):
                     and datetime.fromisoformat(period["startTime"])
                     > datetime.now(tz=self.timezone)
                 ):
-                    forecasts[datetime.fromisoformat(period["startTime"])] = period[
-                        "temperature"
+                    forecasts[datetime.fromisoformat(period["startTime"])] = [
+                        float(period["temperature"]), float(period["windSpeed"].replace(' mph',''))
                     ]
             forecasts = dict(list(forecasts.items())[:96])
             cropped_forecast = dict(list(forecasts.items())[:48])
             wf = {
                 "time": list(cropped_forecast.keys()),
-                "oat": list(cropped_forecast.values()),
-                "ws": [0] * len(cropped_forecast),
+                "oat": [x[0] for x in list(cropped_forecast.values())],
+                "ws": [x[1] for x in list(cropped_forecast.values())],
             }
             self.log(
                 f"Obtained a {len(forecasts)}-hour weather forecast starting at {wf['time'][0]}"
             )
             weather_long = {
                 "time": [x.timestamp() for x in list(forecasts.keys())],
-                "oat": list(forecasts.values()),
-                "ws": [0] * len(forecasts),
+                "oat": [x[0] for x in list(forecasts.values())],
+                "ws": [x[1] for x in list(forecasts.values())],
             }
             with open(weather_file, "w") as f:
                 json.dump(weather_long, f, indent=4)
