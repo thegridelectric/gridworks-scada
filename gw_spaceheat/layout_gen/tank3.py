@@ -24,6 +24,7 @@ class Tank3Cfg(BaseModel):
     SendMicroVolts: bool = True
     TempCalc: TempCalcMethod = TempCalcMethod.SimpleBeta
     ThermistorBeta: int = 3977 # Beta for the Amphenols
+    SensorOrder: list[int] = [1,2,3]
     
     def component_display_name(self) -> str:
         return f"{self.ActorNodeName} PicoTankModule"
@@ -87,6 +88,7 @@ def add_tank3(
                     TempCalcMethod=tank_cfg.TempCalc,
                     ThermistorBeta=tank_cfg.ThermistorBeta,
                     AsyncCaptureDeltaMicroVolts=tank_cfg.AsyncCaptureDeltaMicroVolts,
+                    SensorOrder=tank_cfg.SensorOrder,
                 ),
             ]
         )
