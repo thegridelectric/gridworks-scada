@@ -61,7 +61,7 @@ frozenlist==1.7.0
     # via
     #   aiohttp
     #   aiosignal
-gridworks==1.4.2
+gridworks==1.5.6
     # via gridworks-protocol
 gridworks-cert==0.4.6
     # via
