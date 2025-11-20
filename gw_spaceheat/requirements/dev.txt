@@ -71,7 +71,7 @@ gridworks-proactor[tests]==4.1.10
     # via
     #   -r /Users/jessica/Coding/gridworks-scada/gw_spaceheat/requirements/base.in
     #   -r gw_spaceheat/requirements/dev.in
-gridworks-protocol==1.3.0
+gridworks-protocol==1.3.2
     # via
     #   -r /Users/jessica/Coding/gridworks-scada/gw_spaceheat/requirements/base.in
     #   gridworks-proactor
