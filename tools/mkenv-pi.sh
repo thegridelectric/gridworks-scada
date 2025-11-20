@@ -11,4 +11,4 @@ then
 	exit 0
 fi
 
-./tools/mkenv.sh "gw_spaceheat/requirements/drivers.txt" "no_admin"
+./tools/mkenv.sh "gw_spaceheat/requirements/drivers.txt" "no_admin" "no_flo"

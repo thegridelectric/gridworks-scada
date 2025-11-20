@@ -27,4 +27,9 @@ fi
 rm gw_spaceheat/venv/bin/gws > /dev/null 2>&1
 ln -s `pwd`/gw_spaceheat/gws gw_spaceheat/venv/bin
 
-pip install -e ../gridworks-innovations/gridworks-flo/
+INSTALL_FLO="${3:-install_flo}"
+
+if [ "$INSTALL_FLO" == "install_flo" ]
+then
+  pip install -e ../gridworks-innovations/gridworks-flo/
+fi
