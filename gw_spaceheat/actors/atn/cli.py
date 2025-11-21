@@ -1,6 +1,4 @@
-import logging
 from pathlib import Path
-from typing import Optional
 
 import dotenv
 import rich
@@ -9,7 +7,6 @@ from gwproactor.logging_setup import enable_aiohttp_logging
 from trogon import Trogon
 from typer.main import get_group
 
-from actors.atn.atn_config import AtnSettings  # noqa: F401
 from atn_app import AtnApp
 
 
@@ -47,10 +44,6 @@ def run(
     verbose: bool = False,
     message_summary: bool = False,
     aiohttp_logging: bool = False,
-    paho_logging: bool = False,
-    power_meter_logging: bool = False,
-    power_meter_logging_verbose: bool = False,
-    seconds_per_report: Optional[int] = None,
 ) -> None:
     """Run the Atn."""
     if aiohttp_logging:
@@ -58,16 +51,7 @@ def run(
     settings = AtnApp.get_settings(
         env_file=env_file,
     )
-    if paho_logging:
-        settings.paho_logging = True
-    if power_meter_logging:
-        if settings.power_meter_logging_level > logging.INFO:
-            settings.power_meter_logging_level = logging.INFO
-    if power_meter_logging_verbose:
-        if settings.power_meter_logging_level > logging.DEBUG:
-            settings.power_meter_logging_level = logging.DEBUG
-    if seconds_per_report is not None:
-        settings.seconds_per_report = seconds_per_report
+
     AtnApp.main(
         app_settings=settings,
         env_file=env_file,
