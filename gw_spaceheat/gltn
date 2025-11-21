@@ -1,0 +1,6 @@
+#!gw_spaceheat/venv/bin/python
+import sys
+from actors.atn.cli import app
+
+if __name__ == '__main__':
+    sys.exit(app())
