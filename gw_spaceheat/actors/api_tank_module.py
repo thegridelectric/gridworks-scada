@@ -254,6 +254,14 @@ class ApiTankModule(ScadaActor):
         channel_name_list = []
         value_list = []
         for i in range(len(data.AboutNodeNameList)):
+            # Swapped thermistors
+            if 'depth1' in data.AboutNodeNameList[i]:
+                data.AboutNodeNameList[i] = data.AboutNodeNameList[i].replace('depth1', f'depth{self._component.gt.SensorOrder[0]}')
+            elif 'depth2' in data.AboutNodeNameList[i]:
+                data.AboutNodeNameList[i] = data.AboutNodeNameList[i].replace('depth2', f'depth{self._component.gt.SensorOrder[1]}')
+            elif 'depth3' in data.AboutNodeNameList[i]:
+                data.AboutNodeNameList[i] = data.AboutNodeNameList[i].replace('depth3', f'depth{self._component.gt.SensorOrder[2]}')
+
             volts = data.MicroVoltsList[i] / 1e6
             if self._component.gt.SendMicroVolts:
                 value_list.append(data.MicroVoltsList[i])
