@@ -137,9 +137,6 @@ class SynthGenerator(ScadaActor):
             if self.temperatures_available:
                 self.update_energy()
                 self.get_adjusted_tank_temperatures()
-                self.log(f"Adjusted tank temperatures! {H0CN.buffer_adj}")
-                self.log(f"Buffer depth 1 before: {self.data.latest_channel_values[H0CN.buffer_adj.depth1]}")
-                self.log(f"Buffer depth 1 adjusted: {self.data.latest_channel_values[H0CN.buffer.depth1]}")
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     def stop(self) -> None:
