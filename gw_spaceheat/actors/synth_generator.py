@@ -136,6 +136,10 @@ class SynthGenerator(ScadaActor):
             self.get_latest_temperatures()
             if self.temperatures_available:
                 self.update_energy()
+                self.get_adjusted_tank_temperatures()
+                self.log(f"Adjusted tank temperatures! {H0CN.buffer_adj}")
+                self.log(f"Buffer depth 1 before: {self.data.latest_channel_values[H0CN.buffer_adj.depth1]}")
+                self.log(f"Buffer depth 1 adjusted: {self.data.latest_channel_values[H0CN.buffer.depth1]}")
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     def stop(self) -> None:
@@ -268,6 +272,31 @@ class SynthGenerator(ScadaActor):
                     ScadaReadTimeUnixMs=t_ms,
                 ),
             )
+    
+    def get_adjusted_tank_temperatures(self):
+        latest_temperatures = self.latest_temperatures.copy()
+        storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
+        buffer_temperatures = {k:v for k,v in latest_temperatures.items() if 'buffer' in k and 'depth' in k}
+        t_ms = int(time.time() * 1000)
+        for buffer_depth_i in buffer_temperatures:
+            self._send_to(
+                    self.primary_scada,
+                    SingleReading(
+                        ChannelName=buffer_depth_i+'-adj',
+                        Value=buffer_temperatures[buffer_depth_i],
+                        ScadaReadTimeUnixMs=t_ms,
+                    ),
+                )
+        for store_depth_i in storage_temperatures:
+            self._send_to(
+                    self.primary_scada,
+                    SingleReading(
+                        ChannelName=store_depth_i+'-adj',
+                        Value=storage_temperatures[store_depth_i],
+                        ScadaReadTimeUnixMs=t_ms,
+                    ),
+                )
+        self.log(f"Done sending out adjusted buffer and tank temperatures")
         
     def evaluate_strategy(self):
         if self.layout.ha_strategy != HomeAloneStrategy.ShoulderTou:

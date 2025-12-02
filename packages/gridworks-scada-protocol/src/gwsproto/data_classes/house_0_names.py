@@ -58,6 +58,14 @@ class TankChannelNames:
         self.depth4 = f"{tank_name}-depth4"
 
 
+class TankChannelNamesAdjusted:
+    def __init__(self, tank_name: str) -> None:
+        self.depth1 = f"{tank_name}-depth1-adj"
+        self.depth2 = f"{tank_name}-depth2-adj"
+        self.depth3 = f"{tank_name}-depth3-adj"
+        self.depth4 = f"{tank_name}-depth4-adj"
+
+
 class House0RelayIdx:
     vdc: Literal[1] = 1
     tstat_common: Literal[2] = 2
@@ -198,6 +206,8 @@ class H0CN:
     required_energy = "required-energy"
     usable_energy = "usable-energy"
     hp_keep_seconds_x_10 = "hp-keep-seconds-x-10"
+    buffer_adj = TankChannelNamesAdjusted("buffer")
+    tank_adj: ClassVar[Dict[int, TankChannelNamesAdjusted]] = {}
 
     # relay state channels
     vdc_relay_state: Literal["vdc-relay1"] = "vdc-relay1"
@@ -227,6 +237,7 @@ class H0CN:
     def __init__(self, total_store_tanks: int, zone_list: List[str]) -> None:
         for i in range(total_store_tanks):
             self.tank[i + 1] = TankChannelNames(f"tank{i + 1}")
+            self.tank_adj[i + 1] = TankChannelNamesAdjusted(f"tank{i + 1}")
         for i in range(len(zone_list)):
             self.zone[i + 1] = ZoneChannelNames(zone=zone_list[i], idx=i + 1)
 
