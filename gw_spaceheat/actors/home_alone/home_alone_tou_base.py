@@ -189,6 +189,10 @@ class HomeAloneTouBase(ScadaActor):
             self.MonitorOnly()
         elif cause == TopStateEvent.MonitorAndControl:
             self.MonitorAndControl()
+        elif cause == TopStateEvent.ZonesAtSetpoint:
+            self.ZonesAtSetpoint()
+        elif cause == TopStateEvent.HouseColdOffpeak:
+            self.HouseColdOffpeak()
         else:
             raise Exception(f"Unknown top event {cause}")
         
