@@ -356,6 +356,15 @@ class HomeAloneTouBase(ScadaActor):
         self.hp_failsafe_switch_to_scada(from_node=self.normal_node)
         self.aquastat_ctrl_switch_to_scada(from_node=self.normal_node)
         self.sieg_valve_dormant(from_node=self.normal_node)
+        
+        if self.layout.zone_list[0]:
+            zone1 = self.layout.zone_list[0]
+            self.heatcall_ctrl_to_scada(zone=zone1, from_node=self.normal_node)
+            self.log(f"Switched heatcall control to Thermostat for {zone1}")
+        if self.layout.zone_list[1]:
+            zone2 = self.layout.zone_list[1]
+            self.heatcall_ctrl_to_scada(zone=zone2, from_node=self.normal_node)
+            self.log(f"Switched heatcall control to Scada for {zone2}")
 
         if self.is_onpeak():
             self.log("Is on peak: turning off HP")
@@ -491,6 +500,14 @@ class HomeAloneTouBase(ScadaActor):
         self.valved_to_discharge_store(from_node=self.offpeak_backup_node)
         self.hp_failsafe_switch_to_aquastat(from_node=self.onpeak_backup_node)
         self.aquastat_ctrl_switch_to_boiler(from_node=self.onpeak_backup_node)
+        if self.layout.zone_list[0]:
+            zone1 = self.layout.zone_list[0]
+            self.heatcall_ctrl_to_stat(zone=zone1, from_node=self.onpeak_backup_node)
+            self.log(f"Switched heatcall control to Thermostat for {zone1}")
+        if self.layout.zone_list[1]:
+            zone2 = self.layout.zone_list[1]
+            self.heatcall_ctrl_to_stat(zone=zone2, from_node=self.onpeak_backup_node)
+            self.log(f"Switched heatcall control to Thermostat for {zone2}")
 
     def set_010_defaults(self) -> None:
         """
