@@ -364,7 +364,7 @@ class HomeAloneTouBase(ScadaActor):
         if self.layout.zone_list[0]:
             zone1 = self.layout.zone_list[0]
             self.heatcall_ctrl_to_scada(zone=zone1, from_node=self.normal_node)
-            self.log(f"Switched heatcall control to Thermostat for {zone1}")
+            self.log(f"Switched heatcall control to Scada for {zone1}")
         if self.layout.zone_list[1]:
             zone2 = self.layout.zone_list[1]
             self.heatcall_ctrl_to_scada(zone=zone2, from_node=self.normal_node)
