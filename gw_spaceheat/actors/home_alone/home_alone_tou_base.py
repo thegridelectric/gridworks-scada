@@ -406,6 +406,7 @@ class HomeAloneTouBase(ScadaActor):
           - reports top state change
 
         """
+        self.log(f"trigger_house_cold_offpeak_event")
         self.set_limited_command_tree(boss=self.offpeak_backup_node)
         if not self.top_state == HomeAloneTopState.Dormant:
             self.normal_node_goes_dormant()

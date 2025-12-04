@@ -190,8 +190,10 @@ class WinterTouHomeAlone(HomeAloneTouBase):
         Logic for triggering HouseColdOffpeak (and moving to top state UsingBackupOffpeak).
         This means: 1) its offpeak 2) house is cold 3) heat pump has been on for at least 1 hour
         """
-        hp_on_for_at_least_1_hour = False
+        self.log(f"Time to trigger HouseColdOffpeak: {self.time_hp_turned_on}")
+        hp_on_for_at_least_1_hour = True
         if self.time_hp_turned_on:
+            self.log(f"Heat pump has been on for {time.time() - self.time_hp_turned_on} seconds")
             if time.time() - self.time_hp_turned_on > 3600:
                 hp_on_for_at_least_1_hour = True
                 
