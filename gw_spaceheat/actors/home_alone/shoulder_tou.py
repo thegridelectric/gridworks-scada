@@ -277,6 +277,7 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
             and self.state == HaShoulderState.HpOff
         ):
             self.turn_off_HP(from_node=self.normal_node)
+            self.time_hp_turned_on = None
 
     def is_buffer_empty(self, really_empty=False) -> bool:
         if H0CN.buffer.depth1 in self.latest_temperatures:

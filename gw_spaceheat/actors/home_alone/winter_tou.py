@@ -343,6 +343,7 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             self.time_hp_turned_on = time.time()
         if "HpOff" not in previous_state and "HpOff" in self.state:
             self.turn_off_HP(from_node=self.normal_node)
+            self.time_hp_turned_on = None
         if "StoreDischarge" in self.state:
             self.turn_on_store_pump(from_node=self.normal_node)
         else:
