@@ -503,15 +503,15 @@ class HomeAloneTouBase(ScadaActor):
         """
         self.turn_off_store_pump(from_node=self.offpeak_backup_node)
         self.valved_to_discharge_store(from_node=self.offpeak_backup_node)
-        self.hp_failsafe_switch_to_aquastat(from_node=self.onpeak_backup_node)
-        self.aquastat_ctrl_switch_to_boiler(from_node=self.onpeak_backup_node)
+        self.hp_failsafe_switch_to_aquastat(from_node=self.offpeak_backup_node)
+        self.aquastat_ctrl_switch_to_boiler(from_node=self.offpeak_backup_node)
         if self.layout.zone_list[0]:
             zone1 = self.layout.zone_list[0]
-            self.heatcall_ctrl_to_stat(zone=zone1, from_node=self.onpeak_backup_node)
+            self.heatcall_ctrl_to_stat(zone=zone1, from_node=self.offpeak_backup_node)
             self.log(f"Switched heatcall control to Thermostat for {zone1}")
         if self.layout.zone_list[1]:
             zone2 = self.layout.zone_list[1]
-            self.heatcall_ctrl_to_stat(zone=zone2, from_node=self.onpeak_backup_node)
+            self.heatcall_ctrl_to_stat(zone=zone2, from_node=self.offpeak_backup_node)
             self.log(f"Switched heatcall control to Thermostat for {zone2}")
 
     def set_010_defaults(self) -> None:
