@@ -73,6 +73,7 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
             )
 
         self.buffer_declared_ready = False
+        self.time_hp_turned_on = None
         self.full_buffer_energy: Optional[float] = None  # in kWh
 
         self.machine = Machine(
@@ -142,6 +143,22 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
             self.is_onpeak()
             and self.is_house_cold()
             and self.is_buffer_empty(really_empty=True)
+        )
+
+    def time_to_trigger_house_cold_offpeak(self) -> bool:
+        """
+        Logic for triggering HouseColdOffpeak (and moving to top state UsingBackupOffpeak).
+        This means: 1) its offpeak 2) house is cold 3) heat pump has been on for at least 1 hour
+        """
+        hp_on_for_at_least_1_hour = False
+        if self.time_hp_turned_on:
+            if time.time() - self.time_hp_turned_on > 3600:
+                hp_on_for_at_least_1_hour = True
+
+        return (
+            not self.is_onpeak()
+            and self.is_house_cold()
+            and hp_on_for_at_least_1_hour
         )
 
     def normal_node_state(self) -> str:
@@ -254,6 +271,7 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
             and self.state == HaShoulderState.HpOn
         ):
             self.turn_on_HP(from_node=self.normal_node)
+            self.time_hp_turned_on = time.time()
         if (
             previous_state != HaShoulderState.HpOff
             and self.state == HaShoulderState.HpOff
