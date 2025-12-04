@@ -99,6 +99,8 @@ class HomeAloneTouBase(ScadaActor):
             raise Exception(f"HomeAlone requires {H0N.home_alone_scada_blind} node!!")
         if H0N.home_alone_onpeak_backup not in self.layout.nodes:
             raise Exception(f"HomeAlone requires {H0N.home_alone_onpeak_backup} node!!")
+        if H0N.home_alone_offpeak_backup not in self.layout.nodes:
+            raise Exception(f"HomeAlone requires {H0N.home_alone_offpeak_backup} node!!")
         self.set_command_tree(boss_node=self.normal_node)
         self.latest_temperatures: Dict[str, int] = {} # 
         self.actuators_initialized = False
@@ -149,6 +151,8 @@ class HomeAloneTouBase(ScadaActor):
             └── all other relays and 0-10s
         ```
         """
+        if boss is None:
+            raise ValueError(f"Cannot set limited command tree: boss node is None")
         
         for node in self.my_actuators():
             node.Handle = f"{boss.Handle}.{node.Name}"
