@@ -9,6 +9,7 @@ def test_home_alone_top_state() -> None:
     assert set(HomeAloneTopState.values()) == {
         "Dormant",
         "UsingBackupOnpeak",
+        "UsingBackupOffpeak",
         "Normal",
         "ScadaBlind",
         "Monitor"
