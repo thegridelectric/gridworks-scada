@@ -7,7 +7,7 @@ pydantic
 xdg
 result
 transitions
-gridworks-protocol >=1.3.2
+gridworks-protocol >=1.3.3
 # gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@dev
 
 gridworks-proactor ~= 4.1.10
