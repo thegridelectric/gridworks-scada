@@ -17,6 +17,5 @@ class Ha1Params(BaseModel):
     HpMaxKwTh: float
     MaxEwtF: StrictInt
     LoadOverestimationPercent: StrictInt
-    StratBossDist010: StrictInt
     TypeName: Literal["ha1.params"] = "ha1.params"
-    Version: str = "003"
+    Version: str = "004"

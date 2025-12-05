@@ -34,12 +34,12 @@ def test_ha1(monkeypatch, tmp_path):
     synth = SynthGenerator(H0N.synth_generator, services=scada_app)
 
     assert set(synth.temperature_channel_names) == {
-        'buffer-depth1', 'buffer-depth2', 'buffer-depth3', 'buffer-depth4', 
+        'buffer-depth1', 'buffer-depth2', 'buffer-depth3',
         'hp-ewt', 'hp-lwt', 'dist-swt', 'dist-rwt',
         'buffer-cold-pipe', 'buffer-hot-pipe', 'store-cold-pipe', 'store-hot-pipe',
-        'tank1-depth1', 'tank1-depth2', 'tank1-depth3', 'tank1-depth4', 
-        'tank2-depth1', 'tank2-depth2', 'tank2-depth3', 'tank2-depth4', 
-        'tank3-depth1', 'tank3-depth2', 'tank3-depth3', 'tank3-depth4'
+        'tank1-depth1', 'tank1-depth2', 'tank1-depth3',
+        'tank2-depth1', 'tank2-depth2', 'tank2-depth3', 
+        'tank3-depth1', 'tank3-depth2', 'tank3-depth3',
     }
 
 
