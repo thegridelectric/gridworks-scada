@@ -589,11 +589,12 @@ class AllTanksAtomicAlly(ScadaActor):
         if self.storage_declared_full and time.time() - self.storage_full_since < 15*60:
             self.log(f"Storage was declared full {round((time.time() - self.storage_full_since)/60)} minutes ago")
             return True
-        elif self.latest_temperatures[H0N.store_cold_pipe] > self.params.MaxEwtF: 
-            self.log(f"Storage is full (store-cold-pipe > {self.params.MaxEwtF} F).")
-            self.storage_declared_full = True
-            self.storage_full_since = time.time()
-            return True
+        elif H0N.store_cold_pipe in self.latest_temperatures:
+            if self.latest_temperatures[H0N.store_cold_pipe] > self.params.MaxEwtF: 
+                self.log(f"Storage is full (store-cold-pipe > {self.params.MaxEwtF} F).")
+                self.storage_declared_full = True
+                self.storage_full_since = time.time()
+                return True
         else:
             self.log(f"Storage is not full (store-cold-pipe <= {self.params.MaxEwtF} F).")
             self.storage_declared_full = False
