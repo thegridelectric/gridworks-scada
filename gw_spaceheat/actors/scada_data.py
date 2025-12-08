@@ -51,7 +51,6 @@ class ScadaData:
             HpMaxKwTh=self.settings.hp_max_kw_th,
             MaxEwtF=self.settings.max_ewt_f,
             LoadOverestimationPercent=self.settings.load_overestimation_percent,
-            StratBossDist010=0 # REMOVE AT SOME POINT
         )
         self.my_data_channels = self.get_my_data_channels()
         self.my_synth_channels = self.get_my_synth_channels()
