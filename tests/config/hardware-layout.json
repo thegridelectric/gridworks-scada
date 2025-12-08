@@ -1117,7 +1117,7 @@
     {
       "AsyncCaptureDeltaMicroVolts": 2000,
       "ComponentAttributeClassId": "f88fbf89-5b74-46d6-84a3-8e7494d08435",
-      "ComponentId": "92aca2d9-553f-4386-b76f-47998175b07d",
+      "ComponentId": "f4308bf6-2f52-4500-9961-c44d94e56879",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -1208,7 +1208,7 @@
     {
       "AsyncCaptureDeltaMicroVolts": 2000,
       "ComponentAttributeClassId": "f88fbf89-5b74-46d6-84a3-8e7494d08435",
-      "ComponentId": "3d6784e7-9935-4da7-b908-11940d59369f",
+      "ComponentId": "46a8ad49-96fc-4d22-8805-6eed37a1c6f0",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -1299,7 +1299,7 @@
     {
       "AsyncCaptureDeltaMicroVolts": 2000,
       "ComponentAttributeClassId": "f88fbf89-5b74-46d6-84a3-8e7494d08435",
-      "ComponentId": "661d8e11-dc6a-4ee6-bf40-ad817cd9f4f4",
+      "ComponentId": "0fdebd63-3b0c-40c6-bc3c-4a3c87106aca",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -1390,7 +1390,7 @@
     {
       "AsyncCaptureDeltaMicroVolts": 2000,
       "ComponentAttributeClassId": "f88fbf89-5b74-46d6-84a3-8e7494d08435",
-      "ComponentId": "1b12271e-b1c9-4d9a-a5cf-8fd03622a811",
+      "ComponentId": "7c1214a0-dfde-466e-9478-69057eff42f0",
       "ConfigList": [
         {
           "AsyncCapture": true,
