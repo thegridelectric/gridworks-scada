@@ -1117,7 +1117,7 @@
     {
       "AsyncCaptureDeltaMicroVolts": 2000,
       "ComponentAttributeClassId": "f88fbf89-5b74-46d6-84a3-8e7494d08435",
-      "ComponentId": "f4308bf6-2f52-4500-9961-c44d94e56879",
+      "ComponentId": "92aca2d9-553f-4386-b76f-47998175b07d",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -1208,7 +1208,7 @@
     {
       "AsyncCaptureDeltaMicroVolts": 2000,
       "ComponentAttributeClassId": "f88fbf89-5b74-46d6-84a3-8e7494d08435",
-      "ComponentId": "46a8ad49-96fc-4d22-8805-6eed37a1c6f0",
+      "ComponentId": "3d6784e7-9935-4da7-b908-11940d59369f",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -1299,7 +1299,7 @@
     {
       "AsyncCaptureDeltaMicroVolts": 2000,
       "ComponentAttributeClassId": "f88fbf89-5b74-46d6-84a3-8e7494d08435",
-      "ComponentId": "0fdebd63-3b0c-40c6-bc3c-4a3c87106aca",
+      "ComponentId": "661d8e11-dc6a-4ee6-bf40-ad817cd9f4f4",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -1390,7 +1390,7 @@
     {
       "AsyncCaptureDeltaMicroVolts": 2000,
       "ComponentAttributeClassId": "f88fbf89-5b74-46d6-84a3-8e7494d08435",
-      "ComponentId": "7c1214a0-dfde-466e-9478-69057eff42f0",
+      "ComponentId": "1b12271e-b1c9-4d9a-a5cf-8fd03622a811",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -1623,6 +1623,15 @@
       "Handle": "auto.h.onpeak-backup",
       "Name": "onpeak-backup",
       "ShNodeId": "7a47d30b-3a85-484e-a2b5-2da5c7ea4077",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "HomeAlone Offpeak Backup",
+      "Handle": "auto.h.offpeak-backup",
+      "Name": "offpeak-backup",
+      "ShNodeId": "ccafa71e-301d-4d77-827b-4e7823b1759c",
       "TypeName": "spaceheat.node.gt",
       "Version": "200"
     },
@@ -1878,7 +1887,7 @@
     {
       "ActorClass": "ApiTankModule",
       "ActorHierarchyName": "s.buffer",
-      "ComponentId": "f4308bf6-2f52-4500-9961-c44d94e56879",
+      "ComponentId": "92aca2d9-553f-4386-b76f-47998175b07d",
       "DisplayName": "Buffer Tank",
       "Name": "buffer",
       "ShNodeId": "68596845-2e66-4f9d-a876-90da381ddc37",
@@ -1920,7 +1929,7 @@
     {
       "ActorClass": "ApiTankModule",
       "ActorHierarchyName": "s.tank1",
-      "ComponentId": "46a8ad49-96fc-4d22-8805-6eed37a1c6f0",
+      "ComponentId": "3d6784e7-9935-4da7-b908-11940d59369f",
       "DisplayName": "Tank1 Tank",
       "Name": "tank1",
       "ShNodeId": "ca851545-398d-427e-ae96-221b166d90c1",
@@ -1962,7 +1971,7 @@
     {
       "ActorClass": "ApiTankModule",
       "ActorHierarchyName": "s.tank2",
-      "ComponentId": "0fdebd63-3b0c-40c6-bc3c-4a3c87106aca",
+      "ComponentId": "661d8e11-dc6a-4ee6-bf40-ad817cd9f4f4",
       "DisplayName": "Tank2 Tank",
       "Name": "tank2",
       "ShNodeId": "6be3090b-2867-48e3-bcc4-246b654fc5f7",
@@ -2004,7 +2013,7 @@
     {
       "ActorClass": "ApiTankModule",
       "ActorHierarchyName": "s.tank3",
-      "ComponentId": "7c1214a0-dfde-466e-9478-69057eff42f0",
+      "ComponentId": "1b12271e-b1c9-4d9a-a5cf-8fd03622a811",
       "DisplayName": "Tank3 Tank",
       "Name": "tank3",
       "ShNodeId": "50fb5f5e-7cc4-46b0-a803-05ee7f09646a",
