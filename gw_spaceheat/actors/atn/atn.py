@@ -883,11 +883,14 @@ class Atn(PrimeActor):
             (x.PriceX1000, x.QuantityX1000) for x in self.contract_handler.latest_bid.PqPairs
         ]
         sorted_pq_pairs = sorted(pq_pairs, key=lambda pair_: pair_[0])
+        self.log(f"Sorted pq pairs: {sorted_pq_pairs} (x1000)")
+        self.log(f"Payload price: {payload.PriceTimes1000} (x1000)")
         # Quantity is AvgkW, so QuantityX1000 is avg_w
         assert self.contract_handler.latest_bid.QuantityUnit == MarketQuantityUnit.AvgkW
         for pair in sorted_pq_pairs:
             if pair[0] < payload.PriceTimes1000:
                 avg_w = pair[1] # WattHours
+        self.log(f"Decided on quantity: {avg_w} WattHours")
 
         # 1 hour
         self.contract_handler.next_contract_energy_wh = avg_w * 1

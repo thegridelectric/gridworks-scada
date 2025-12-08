@@ -174,7 +174,7 @@ class ApiBtuMeter(PicoActorBase):
             # Calculate seconds until next minute boundary
             seconds_to_next_top = period - (time.time() % period)
             self.log(
-                f"btu report period of {period}s. seconds_to_next_top is {seconds_to_next_top}"
+                f"btu report period of {period}s. seconds_to_next_top is {round(seconds_to_next_top, 1)}"
             )
 
             # Subtract 7.5 seconds to give the pico time to prepare

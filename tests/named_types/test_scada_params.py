@@ -1,5 +1,3 @@
-"""Tests scada.params type, version 001"""
-
 from gwsproto.named_types import ScadaParams
 
 
@@ -16,18 +14,17 @@ def test_scada_params_generated() -> None:
             "GammaEx6": 0,
             "IntermediatePowerKw": 1.5,
             "IntermediateRswtF": 100,
-            "DdPowerKw": 12,
+            "DdPowerKw": 12.0,
             "DdRswtF": 160,
             "DdDeltaTF": 20,
-            "HpMaxKwTh": 6,
+            "HpMaxKwTh": 6.0,
             "MaxEwtF": 170,
             "LoadOverestimationPercent": 10,
-            "StratBossDist010": 100,
             "TypeName": "ha1.params",
-            "Version": "003",
+            "Version": "004",
         },
         "TypeName": "scada.params",
-        "Version": "002",
+        "Version": "004",
     }
 
     d2 = ScadaParams.model_validate(d).model_dump(exclude_none=True)
