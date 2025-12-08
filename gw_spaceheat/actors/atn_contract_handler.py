@@ -216,9 +216,9 @@ class AtnContractHandler:
 
         oil_boiler_on = False
         if watthours > 0 and self.use_oil_as_fuel_substitute():
-            watthours = 0
             if watthours > 2500:
                 oil_boiler_on = True
+            watthours = 0
 
         duration_minutes=60
         avg_power_watts = int(watthours * (60/duration_minutes))
