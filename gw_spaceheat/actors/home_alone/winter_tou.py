@@ -188,10 +188,8 @@ class WinterTouHomeAlone(HomeAloneTouBase):
     def time_to_trigger_house_cold_offpeak(self) -> bool:
         """
         Logic for triggering HouseColdOffpeak (and moving to top state UsingBackupOffpeak).
-        This means: 1) its offpeak 2) house is cold 3) heat pump has been on for at least 1 hour
         """
-        self.log(f"Time to trigger HouseColdOffpeak: {self.time_hp_turned_on}")
-        hp_on_for_at_least_1_hour = True
+        hp_on_for_at_least_1_hour = False
         if self.time_hp_turned_on:
             self.log(f"Heat pump has been on for {time.time() - self.time_hp_turned_on} seconds")
             if time.time() - self.time_hp_turned_on > 3600:
@@ -200,7 +198,7 @@ class WinterTouHomeAlone(HomeAloneTouBase):
         return (
             not self.is_onpeak()
             and self.is_house_cold()
-            and hp_on_for_at_least_1_hour
+            # and hp_on_for_at_least_1_hour
         )
 
     def normal_node_state(self) -> str:
