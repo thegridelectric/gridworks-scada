@@ -25,13 +25,13 @@ from gwproactor import ProactorName
 from gwproactor import AppInterface
 from gwproto import HardwareLayout
 
+
 try:
-    from gridflo import DGraph
-    USING_ADVANCED_FLO = True
+    from gridflo import Flo
+# this is so CI/CD passes - will remove once Flo is decoupled
 except ImportError:
-    # Fall back to local version
-    USING_ADVANCED_FLO = False
-    from actors.flo import DGraph
+    from actors.atn.flo import Flo # Will raise NotImplementedError
+
 from gwsproto.data_classes.house_0_layout import House0Layout
 from gwsproto.data_classes.house_0_names import H0CN, H0N
 from gwsproto.enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName, HomeAloneStrategy
@@ -83,7 +83,7 @@ class BidRunner(threading.Thread):
         super().__init__()
         self.stop_event = threading.Event()
         self.logger = logger or print  # Fallback to print if no logger provided
-        self.params = params
+        self.orig_flo_params = params
         self.atn_settings = atn_settings
         self.atn_name = atn_name
         self.atn_alias = atn_g_node_alias
@@ -97,24 +97,24 @@ class BidRunner(threading.Thread):
             while not self.stop_event.is_set():
                 # Run FLO
                 self.logger.info("Creating graph and solving Dijkstra...")
-                self.logger.info(f"Using advanced flo: {USING_ADVANCED_FLO}")
                 st = time.time()
-                flo_params_bytes = self.params.model_dump_json().encode('utf-8')
+                flo_params_bytes = self.orig_flo_params.model_dump_json().encode('utf-8')
                 try:
-                    g = DGraph(flo_params_bytes, self.logger) # this will get refactored
+                    g = Flo(flo_params_bytes)
                 except Exception as e:
-                    self.logger.error(f"Error creating DGraph: {e}")
+                    self.logger.error(f"Error creating DGraph with advanced FLO: {e}")
                     glitch = Glitch(
                         FromGNodeAlias=self.atn_alias,
                         Node=self.atn_name,
                         Type=LogLevel.Error,
-                        Summary=f"{self.atn_alias.split('.')[-2]}.{self.atn_alias.split('.')[-1]} - Error creating DGraph",
+                        Summary=f"{self.atn_alias.split('.')[-2]}.{self.atn_alias.split('.')[-1]} - Error creating DGraph w Advanced FLO",
                         Details=f"{e}",
                         CreatedMs=int(time.time() * 1000)
                     )
                     self.send_threadsafe(Message(Src=self.atn_name, Dst=self.atn_name, Payload=glitch))
                     self.logger.info("Sent glitch")
                     return
+                
                 g.solve_dijkstra()
                 self.logger.info(f"Built and solved in {round(time.time()-st,2)} seconds!")
                 # After solving, trim the graph to reduce memory usage while waiting
@@ -125,7 +125,13 @@ class BidRunner(threading.Thread):
                 self.get_bid_event.wait()
                 self.logger.info("Generating bid recommendation")
                 # generate_recommendation returns serialialized BidRecommendation
-                recommendation_bytes = g.generate_recommendation(self.updated_flo_params.model_dump_json().encode('utf-8'))
+                try:
+                    recommendation_bytes = g.generate_recommendation(
+                        self.updated_flo_params.model_dump_json().encode('utf-8')
+                    )
+                except Exception as e:
+                    self.logger.info(f"Error generating recommendation: {e}")
+                    return
                 # deserialize
                 recommendation_dict = json.loads(recommendation_bytes)
                 recommendation = BidRecommendation.model_validate(recommendation_dict)
@@ -242,7 +248,6 @@ class Atn(PrimeActor):
     SCADA_MQTT = "scada_mqtt"
     data: AtnData
     event_loop_thread: Optional[threading.Thread] = None
-    bid_runner: Optional[threading.Thread]
     dashboard: Optional[Dashboard]
     ha1_params: Optional[Ha1Params]
     _stop_requested: bool = False
@@ -662,11 +667,16 @@ class Atn(PrimeActor):
                                 self.log("get_three_layer_storage_model() failed! Not getting bid.")
                             else:
                                 t, m, b, th1, th2 = result
-                                self.flo_params.InitialTopTempF = int(t)
-                                self.flo_params.InitialMiddleTempF = int(m)
-                                self.flo_params.InitialBottomTempF = int(b)
-                                self.flo_params.InitialThermocline1 = int(th1*2)
-                                self.flo_params.InitialThermocline2 = int(th2*2)
+                                updated_flo_params = self.flo_params.model_copy(
+                                    update={
+                                        "InitialTopTempF": int(t),
+                                        "InitialMiddleTempF": int(m),
+                                        "InitialBottomTempF": int(b),
+                                        "InitialThermocline1": int(th1 * 2),
+                                        "InitialThermocline2": int(th2 * 2),
+                                    }
+                                )
+                                self.flo_params = updated_flo_params
                                 self.services.publish_message(
                                     self.SCADA_MQTT,
                                     Message(Src=self.publication_name, Dst="broadcast", Payload=self.flo_params)
@@ -800,7 +810,7 @@ class Atn(PrimeActor):
             send_threadsafe=self.services.send_threadsafe,
             on_complete=self._cleanup_bid_runner,
             logger=self.logger.add_category_logger(
-                DGraph.LOGGER_NAME,
+                "BID_RUNNER",
                 level=self.settings.flo_logging_level
             ),
         )
@@ -879,11 +889,14 @@ class Atn(PrimeActor):
             (x.PriceX1000, x.QuantityX1000) for x in self.contract_handler.latest_bid.PqPairs
         ]
         sorted_pq_pairs = sorted(pq_pairs, key=lambda pair_: pair_[0])
+        self.log(f"Sorted pq pairs: {sorted_pq_pairs} (x1000)")
+        self.log(f"Payload price: {payload.PriceTimes1000} (x1000)")
         # Quantity is AvgkW, so QuantityX1000 is avg_w
         assert self.contract_handler.latest_bid.QuantityUnit == MarketQuantityUnit.AvgkW
         for pair in sorted_pq_pairs:
             if pair[0] < payload.PriceTimes1000:
                 avg_w = pair[1] # WattHours
+        self.log(f"Decided on quantity: {avg_w} WattHours")
 
         # 1 hour
         self.contract_handler.next_contract_energy_wh = avg_w * 1
@@ -1203,7 +1216,7 @@ class Atn(PrimeActor):
             # Get thermal mass for each zone
             zone_name_no_prefix = zone_name[6:] if zone_name[:4]=='zone' else zone_name
             if zone_name_no_prefix in self.layout.zone_list:
-                zone_index = self.layout.zone_list.index(zone_name)
+                zone_index = self.layout.zone_list.index(zone_name_no_prefix)
                 thermal_mass[zone_name] = self.layout.zone_kwh_per_deg_f_list[zone_index]
 
         self.log(f"Found all zone setpoints: {setpoints}")
@@ -1244,23 +1257,23 @@ class Atn(PrimeActor):
                     and datetime.fromisoformat(period["startTime"])
                     > datetime.now(tz=self.timezone)
                 ):
-                    forecasts[datetime.fromisoformat(period["startTime"])] = period[
-                        "temperature"
+                    forecasts[datetime.fromisoformat(period["startTime"])] = [
+                        float(period["temperature"]), float(period["windSpeed"].replace(' mph',''))
                     ]
             forecasts = dict(list(forecasts.items())[:96])
             cropped_forecast = dict(list(forecasts.items())[:48])
             wf = {
                 "time": list(cropped_forecast.keys()),
-                "oat": list(cropped_forecast.values()),
-                "ws": [0] * len(cropped_forecast),
+                "oat": [x[0] for x in list(cropped_forecast.values())],
+                "ws": [x[1] for x in list(cropped_forecast.values())],
             }
             self.log(
                 f"Obtained a {len(forecasts)}-hour weather forecast starting at {wf['time'][0]}"
             )
             weather_long = {
                 "time": [x.timestamp() for x in list(forecasts.keys())],
-                "oat": list(forecasts.values()),
-                "ws": [0] * len(forecasts),
+                "oat": [x[0] for x in list(forecasts.values())],
+                "ws": [x[1] for x in list(forecasts.values())],
             }
             with open(weather_file, "w") as f:
                 json.dump(weather_long, f, indent=4)

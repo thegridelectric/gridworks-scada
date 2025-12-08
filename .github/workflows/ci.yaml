@@ -54,7 +54,8 @@ jobs:
       - name: Try Mosquitto Clients on 'GridWorks' Mosquitto Broker
         run: |
           gwcert key add --ca-dir ${{ github.workspace }}/tests/.ci-ca --certs-dir ${{ github.workspace }}/tests/.ci-ca/certs ci
-          sudo apt-get install mosquitto-clients
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends mosquitto-clients
           echo pub clear
           mosquitto_pub -h localhost -p 1883 -t foo -m '{"bla":1}'
           echo sub clear
