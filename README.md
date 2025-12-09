@@ -68,17 +68,38 @@ Verify the broker is running by visiting:
 (default credentials: `smqPublic` / `smqPublic`)
 
 
-**B. Local Mosquitto Broker (local_mqtt)**
+Three steps for getting the docker rabbit instance to enable mqtt:
+```
+docker exec -it gw-dev-rabbit rabbitmq-plugins enable rabbitmq_mqtt
+docker exec -it gw-dev-rabbit rabbitmqctl restart_app
+docker exec -it gw-dev-rabbit rabbitmq-plugins list
+```
 
-Follow the instructions here 
+And confirm:
+ [E*] rabbitmq_mqtt                     3.9.13
+
+(Troubleshooting how to get this into the docker yaml file over in gridworks-base)
+
+Test mqtt access via mqtt_sub:
+
+```
+mosquitto_sub -h localhost -p 1885 -u smqPublic -P smqPublic -t "#" -v
+```
+
+Should see an `mqtt-subscription-XXX` show up on the rabbit admin pannel http://localhost:15672/#/queues.
+
+
+**B. Optional Local Mosquitto Broker (local_mqtt)**
+
+Use this if you want to also have a `SCADA2` in the dev environment. Follow the instructions here
 
  🔗 [https://gridworks-proactor.readthedocs.io/en/latest/#mosquitto](https://gridworks-proactor.readthedocs.io/en/latest/#mosquitto) 
 
-This will be the "LAN_side" MQTT broker, used by SCADA with a downstream actor. 
+This will be the "LAN_side" MQTT broker, used by SCADA with a downstream actor.  The Scada actor will still run if it cannot connect to this broker. 
 
 ### 2. Setting up the SCADA Dev Environment
 
-**A. Create the Pyton Virtual Environment**
+**A. Create the Python Virtual Environment**
 
 ``` 
 ./tools/mkenv.sh
@@ -107,25 +128,6 @@ alias gw="source $HOME/Coding/gridworks-scada/gw_spaceheat/venv/bin/activate \
 cp .env-template .env
 ```
 
-Three steps for getting the docker rabbit instance to enable mqtt:
-```
-docker exec -it gw-dev-rabbit rabbitmq-plugins enable rabbitmq_mqtt
-docker exec -it gw-dev-rabbit rabbitmqctl restart_app
-docker exec -it gw-dev-rabbit rabbitmq-plugins list
-```
-
-And confirm: 
- [E*] rabbitmq_mqtt                     3.9.13
-
-(Troubleshooting how to get this into the docker yaml file over in gridworks-base)
-
-Test mqtt access via mqtt_sub:
-
-```
-mosquitto_sub -h localhost -p 1885 -u smqPublic -P smqPublic -t "#" -v
-```
-
-Should see an `mqtt-subscription-XXX` show up on the rabbit admin pannel http://localhost:15672/#/queues.
 
 ### E. Run the SCADA
 
@@ -144,10 +146,37 @@ from actors.atn.atn_config import AtnSettings; from atn_app import AtnApp; impor
 a = AtnApp.get_repl_app(app_settings=AtnSettings(_env_file=dotenv.find_dotenv())).atn
 ```
 
-** Next steps**:
-  - Running SCADA in repl
-  - creating a fresh dev hardware layout
+### G. Run `SCADA` in repl
+
+```
+import typing
+from scada_app import ScadaApp
+from actors.config import ScadaSettings
+import dotenv
+ef = dotenv.find_dotenv()
+settings = ScadaSettings(_env_file=ef)
+app = typing.cast(ScadaApp, ScadaApp.make_app_for_cli(app_settings=settings, env_file=ef))
+
+app.run_in_thread()
+
+# the scada actor (in gw_spaceheat/actors/scada.py) is the scada proactor app's prime_actor
+s = app.prime_actor
+```
+
+
+### H. Creating your own dev hardware layout
   
+In a sibling directory clone the [tlayouts](https://github.com/thegridelectric/tlayouts) directory. Then: 
+
+ - While in the virtual env for this repository, navigate to `tlayouts.
+ - Run `gen_orange.py`
+
+This will generate a simulated hardware layout in `outputs/orange.generated.json` 
+ - Change your `.env` to include:
+
+```
+SCADA_PATHS__HARDWARE_LAYOUT="../tlayouts/output/orange.generated.json"
+```
 
 ## Testing
 Run the tests from the root directory of the repo with:
