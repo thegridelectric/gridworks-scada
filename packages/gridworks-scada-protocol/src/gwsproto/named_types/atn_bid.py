@@ -1,11 +1,9 @@
-"""Type atn.bid, version 001"""
-
 from typing import List, Literal
 
 from gwsproto.enums import MarketPriceUnit, MarketQuantityUnit
 from gwproto.property_format import LeftRightDotStr, MarketSlotName
 from gwsproto.named_types.price_quantity_unitless import PriceQuantityUnitless
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, model_validator
 from typing_extensions import Self
 
 
@@ -18,13 +16,7 @@ class AtnBid(BaseModel):
     QuantityUnit: MarketQuantityUnit
     SignedMarketFeeTxn: str
     TypeName: Literal["atn.bid"] = "atn.bid"
-    Version: str = "001"
-
-    @field_validator("SignedMarketFeeTxn")
-    @classmethod
-    def _check_signed_market_fee_txn(cls, v: str) -> str:
-        # supposed to be check_is_algo_msg_pack_encoded, hacked out in sacda
-        return v
+    Version: Literal["002"] = "002"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
