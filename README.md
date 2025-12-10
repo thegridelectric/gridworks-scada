@@ -15,7 +15,7 @@ actor-based way, with a  collection of actors each responsible for an important 
 of functionality communicating to each other via messages. For a more specific description of both how these internal actors work with each other and how 
 this repo fits into the larger transactive energy framework please go [here](docs/core-protocol-sequences.md); this page describes typical sequences of messages between relevant actors in the system.
 
- We are indebted to Efficiency Maine, who spearheaded and funded the [initial pilot](docs/maine-heat-pilot.md) using this code. As per the requirements of the initial pilot, the code is intended to:
+ This project is funded by Efficiency Maine who spearheaded and funded the [initial pilot](docs/maine-heat-pilot.md) using this code. As per the requirements of the initial pilot, the code is intended to:
   1) run on a raspberry Pi 4; and 
   2) to be able to use a variety of off-the-shelf actuating and sensing devices.
 
@@ -23,36 +23,162 @@ For information on setting up an SD card that will run this code on a Pi 4 with 
 configuration and attached devices, please [go here](docs/setting-up-the-pi.md)
 
 
-## Creating a Dev environment for macos or Pi
+## SCADA Dev Environment Setup Guide
 
-Use python 3.11
+This is a setup guide for running SCADA, SCADA2, test `ltn/atn` and `admin` locally.
 
-Create the development environment with: 
-    
-    tools/mkenv.sh
+The SCADA uses the [gwproactor](github.com/SmoothStoneComputing/gridworks-proactor) framework, which models communication as links (upstream and downstream) over **MQTT**.
+A SCADA instance expects two different MQTT brokers:
+  1. **local_mqtt** — for communicating with the downstream actor (e.g. SCADA2)
+  2. **gridworks_mqtt** — the upstream broker, normally the cloud RabbitMQ (with MQTT plugin)
 
-On a Pi run:
-    
-    tools/mkenv-pi.sh
+For **development**, we recommend:
 
-To activate the environment, add 'gw_spaceheat' to your PYTHONPATH and then 
-`source` the environment's activation file. This is most easily accomplished
-with a shell alias, for example on a Mac by fixing to following to contain the 
-actual the path to this repo on your machine and then adding the result to  
-`$HOME/.zprofile`:
+  - **Use 1 local RabbitMQ (with mqtt plugin)** to serve as the _gridworks_mqtt_ broker.
+  - **Use 1 local Mosquitto broker**  to serve as the _local_mqtt_ broker.
 
-    export SCADA_REPO=actual/path/to/your/repo
-    export GW_SPACEHEAT=$SCADA_REPO/gw_spaceheat
-    alias gw="source $GW_SPACEHEAT/venv/bin/activate && export PYTHONPATH=$GW_SPACEHEAT && cd $SCADA_REPO"
+This mirrors production behavior while staying easy to run locally.
 
-You will then be able to activate the development environment in a new terminal
-with: 
+### 1. Set Up the Brokers
 
-```shell
-gw
+**A. Upstream rabbit broker** 
+
+Use our prepared RabbitMQ dev image: found at  [https://github.com/thegridelectric/gridworks-base?tab=readme-ov-file#dev-rabbit-broker](https://github.com/thegridelectric/gridworks-base?tab=readme-ov-file#dev-rabbit-broker). In `arm.yml` or `x86.yml` you will see something like this:
+
+```
+services:
+  rabbit:
+    container_name: gw-dev-rabbit
+    image: "jessmillar/dev-rabbit-arm:chaos__fee74a3__20250120"
+    ports:
+      - 1885:1885
+      - 5672:5672
+      - 15672:15672
+      - 15674:15674
+    env_file: ./for_docker/dev_vhost.env
+    environment:
+      - RABBITMQ_USERNAME=smqPublic
+      - RABBITMQ_PASSWORD=smqPublic
+      - RABBITMQ_PLUGINS=rabbitmq_management,rabbitmq_stomp,rabbitmq_web_stomp,rabbitmq_mqtt
+
+```
+Verify the broker is running by visiting:
+
+👉 http://localhost:15672
+(default credentials: `smqPublic` / `smqPublic`)
+
+
+Three steps for getting the docker rabbit instance to enable mqtt:
+```
+docker exec -it gw-dev-rabbit rabbitmq-plugins enable rabbitmq_mqtt
+docker exec -it gw-dev-rabbit rabbitmqctl restart_app
+docker exec -it gw-dev-rabbit rabbitmq-plugins list
+```
+
+And confirm:
+ [E*] rabbitmq_mqtt                     3.9.13
+
+(Troubleshooting how to get this into the docker yaml file over in gridworks-base)
+
+Test mqtt access via mqtt_sub:
+
+```
+mosquitto_sub -h localhost -p 1885 -u smqPublic -P smqPublic -t "#" -v
+```
+
+Should see an `mqtt-subscription-XXX` show up on the rabbit admin pannel http://localhost:15672/#/queues.
+
+
+**B. Optional Local Mosquitto Broker (local_mqtt)**
+
+Use this if you want to also have a `SCADA2` in the dev environment. Follow the instructions here
+
+ 🔗 [https://gridworks-proactor.readthedocs.io/en/latest/#mosquitto](https://gridworks-proactor.readthedocs.io/en/latest/#mosquitto) 
+
+This will be the "LAN_side" MQTT broker, used by SCADA with a downstream actor.  The Scada actor will still run if it cannot connect to this broker. 
+
+### 2. Setting up the SCADA Dev Environment
+
+**A. Create the Python Virtual Environment**
+
+``` 
+./tools/mkenv.sh
+```
+This creates `gw_spaceheat/venv/` *(On a Pi this is `./tools/mkenv-pi.sh`)*.
+
+**B. Install the `gws` CLI*&
+```
+./tools/install-gws.sh
+```
+
+**C. Set Your Python Path & Alias**
+
+
+Example alias (adjust paths as needed):
+
+```
+alias gw="source $HOME/Coding/gridworks-scada/gw_spaceheat/venv/bin/activate \
+  && cd $HOME/Coding/gridworks-scada \
+  && export PYTHONPATH=$HOME/Coding/gridworks-scada/gw_spaceheat:$PYTHONPATH"
+```
+
+**D. Create your `.env`**
+
+```
+cp .env-template .env
 ```
 
 
+### E. Run the SCADA
+
+```
+gws run
+```
+
+If all is set correctly, you should a second `mqtt-subscription-XXX` queue on the admin panel, and also some messages go by on the mosquitto_sub window..
+
+
+### F. Run `ltn/atn` in repl
+In a new terminal window:
+
+```
+from actors.atn.atn_config import AtnSettings; from atn_app import AtnApp; import dotenv
+a = AtnApp.get_repl_app(app_settings=AtnSettings(_env_file=dotenv.find_dotenv())).atn
+```
+
+### G. Run `SCADA` in repl
+
+```
+import typing
+from scada_app import ScadaApp
+from actors.config import ScadaSettings
+import dotenv
+ef = dotenv.find_dotenv()
+settings = ScadaSettings(_env_file=ef)
+app = typing.cast(ScadaApp, ScadaApp.make_app_for_cli(app_settings=settings, env_file=ef))
+
+app.run_in_thread()
+
+# the scada actor (in gw_spaceheat/actors/scada.py) is the scada proactor app's prime_actor
+s = app.prime_actor
+```
+
+
+### H. Creating your own dev hardware layout
+  
+In a sibling directory clone the [tlayouts](https://github.com/thegridelectric/tlayouts) directory. Then: 
+
+ - While in the virtual env for this repository, navigate to `tlayouts.
+ - Run `gen_orange.py`
+
+This will generate a simulated hardware layout in `outputs/orange.generated.json` 
+ - Change your `.env` to include:
+
+```
+SCADA_PATHS__HARDWARE_LAYOUT="../tlayouts/output/orange.generated.json"
+```
+
+## Testing
 Run the tests from the root directory of the repo with:
 
 ```shell
@@ -116,10 +242,6 @@ SETTING UP SECRETS.
 Configuration variables (secret or otherwise) use dotenv module in a gitignored `.env` file, copied over from `.env-template`. These are accessed via `config.ScadaSettings`.
 
 
-### Setting up MQTT
-
-See instructions [here](https://gridworks-proactor.readthedocs.io/en/latest/#mosquitto) to set up a local MQTT broker
-using [Mosquitto](https://mosquitto.org/).
 
 
 ### Static analsyis with ruff
