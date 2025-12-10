@@ -661,6 +661,8 @@ class Atn(PrimeActor):
                                 self.log("get_three_layer_storage_model() failed! Not getting bid.")
                             else:
                                 t, m, b, th1, th2 = result
+                                buffer_available_kwh = await self.get_buffer_available_kwh()
+                                house_available_kwh = await self.get_house_available_kwh()
                                 updated_flo_params = self.flo_params.model_copy(
                                     update={
                                         "InitialTopTempF": int(t),
@@ -668,6 +670,8 @@ class Atn(PrimeActor):
                                         "InitialBottomTempF": int(b),
                                         "InitialThermocline1": int(th1 * 2),
                                         "InitialThermocline2": int(th2 * 2),
+                                        "BufferAvailableKwh": buffer_available_kwh,
+                                        "HouseAvailableKwh": house_available_kwh,
                                     }
                                 )
                                 self.flo_params = updated_flo_params
