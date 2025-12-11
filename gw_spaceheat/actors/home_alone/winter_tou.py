@@ -178,10 +178,7 @@ class WinterTouHomeAlone(HomeAloneTouBase):
         Logic for triggering HouseCold (and moving to top state UsingBackup).
         In winter, this means: 1) house is cold 2) buffer is really empty and 3) store is empty
         """
-        return self.is_onpeak() and \
-            self.is_house_cold() and \
-            self.is_buffer_empty(really_empty=True) and \
-            self.is_storage_empty()
+        return self.is_house_cold() and self.is_buffer_empty(really_empty=True) and self.is_storage_empty()
 
     def normal_node_state(self) -> str:
         return self.state

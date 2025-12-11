@@ -137,11 +137,7 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
         Logic for triggering HouseCold (and moving to top state UsingBackup).
         In shoulder, this means: 1) house is cold 2) buffer is really empty
         """
-        return (
-            self.is_onpeak()
-            and self.is_house_cold()
-            and self.is_buffer_empty(really_empty=True)
-        )
+        return self.is_house_cold() and self.is_buffer_empty(really_empty=True)
 
     def normal_node_state(self) -> str:
         return self.state
