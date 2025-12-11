@@ -300,8 +300,9 @@ class Atn(PrimeActor):
         self.bid_runner: Optional[BidRunner] = None
         self.sending_contracts: bool = True
         self.send_bid_minute: int = 57
-        min_minute = min(max(3, datetime.now().minute), self.send_bid_minute-2)
-        self.create_graph_minute: int = random.randint(min_minute, self.send_bid_minute-1)
+        # min_minute = min(max(3, datetime.now().minute), self.send_bid_minute-2)
+        # self.create_graph_minute: int = random.randint(min_minute, self.send_bid_minute-1)
+        self.create_graph_minute: int = self.settings.create_graph_minute
         # Gets strategy from scada sending LayoutLite
         self.layout_lite: Optional[LayoutLite] = None # Add this as a way of tracking if we've gotten the layout lite yet
         self.strategy = HomeAloneStrategy.default() # will get updated when LayoutLite arrives from Scada
