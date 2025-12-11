@@ -241,7 +241,7 @@ class HomeAloneTouBase(ScadaActor):
         await asyncio.sleep(int(1*60))
 
         # Check if dist flow is detected, if yes switch all zones back Open and Thermostat
-        if H0CN.dist_flow not in self.data.latest_channel_values:
+        if H0CN.dist_flow not in self.data.latest_channel_values or self.data.latest_channel_values[H0CN.dist_flow] is None:
             self.log("[Pump doctor] Dist flow not found in latest channel values")
             return
         if self.data.latest_channel_values[H0CN.dist_flow]/100 > 0.5:
@@ -258,7 +258,7 @@ class HomeAloneTouBase(ScadaActor):
     async def check_dist_pump(self):
         dist_pump_should_be_off = True
         for i in H0CN.zone:
-            if H0CN.zone[i].whitewire_pwr not in self.data.latest_channel_values:
+            if H0CN.zone[i].whitewire_pwr not in self.data.latest_channel_values or self.data.latest_channel_values[H0CN.zone[i].whitewire_pwr] is None:
                 self.log(f"{H0CN.zone[i].whitewire_pwr} was not found in latest channel values")
                 continue
             if abs(self.data.latest_channel_values[H0CN.zone[i].whitewire_pwr]) > self.settings.whitewire_threshold_watts:
@@ -268,7 +268,7 @@ class HomeAloneTouBase(ScadaActor):
         if dist_pump_should_be_off:
             return
 
-        if H0CN.dist_flow not in self.data.latest_channel_values:
+        if H0CN.dist_flow not in self.data.latest_channel_values or self.data.latest_channel_values[H0CN.dist_flow] is None:
             self.log("Dist flow not found in latest channel values")
             return
         if self.data.latest_channel_values[H0CN.dist_flow]/100 > 0.5:
