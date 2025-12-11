@@ -132,32 +132,15 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
             H0CN.buffer_cold_pipe, H0CN.buffer_hot_pipe,
         ]
 
-    def time_to_trigger_house_cold_onpeak(self) -> bool:
+    def time_to_trigger_house_cold(self) -> bool:
         """
-        Logic for triggering HouseColdOnpeak (and moving to top state UsingBakupOnpeak).
-
-        In shoulder, this means:1) its onpeak  2) house is cold 3) buffer is really empty
-
+        Logic for triggering HouseCold (and moving to top state UsingBackup).
+        In shoulder, this means: 1) house is cold 2) buffer is really empty
         """
         return (
             self.is_onpeak()
             and self.is_house_cold()
             and self.is_buffer_empty(really_empty=True)
-        )
-
-    def time_to_trigger_house_cold_offpeak(self) -> bool:
-        """
-        Logic for triggering HouseColdOffpeak (and moving to top state UsingBackupOffpeak).
-        """
-        hp_on_for_at_least_1_hour = False
-        if self.time_hp_turned_on:
-            if time.time() - self.time_hp_turned_on > 3600:
-                hp_on_for_at_least_1_hour = True
-
-        return (
-            not self.is_onpeak()
-            and self.is_house_cold()
-            # and hp_on_for_at_least_1_hour
         )
 
     def normal_node_state(self) -> str:

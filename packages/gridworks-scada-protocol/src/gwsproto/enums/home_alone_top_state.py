@@ -9,8 +9,7 @@ class HomeAloneTopState(GwStrEnum):
     
     Values:
       - Dormant
-      - UsingBackupOnpeak
-      - UsingBackupOffpeak
+      - UsingBackup
       - Normal
       - ScadaBlind
       - Monitor
@@ -21,8 +20,7 @@ class HomeAloneTopState(GwStrEnum):
     """
 
     Dormant = auto()
-    UsingBackupOnpeak = auto()
-    UsingBackupOffpeak = auto()
+    UsingBackup = auto()
     Normal = auto()
     ScadaBlind = auto()
     Monitor = auto()

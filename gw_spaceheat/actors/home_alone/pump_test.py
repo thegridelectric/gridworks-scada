@@ -162,7 +162,7 @@ class SummerHomeAlone(ScadaActor):
                 if len(self.my_actuators()) > 0:
                     raise Exception("HomeAlone sent GoDormant with live actuators under it!")
                 if self.top_state != SummerTopState.Dormant:
-                    # TopGoDormant: Normal/UsingBackupOnpeak -> Dormant
+                    # TopGoDormant: Normal/UsingBackup -> Dormant
                     self.trigger_top_event(cause=SummerTopEvent.TopGoDormant)
             case WakeUp():
                 try:

@@ -26,8 +26,7 @@ from scada_app_interface import ScadaAppInterface
 
 
 class TopStateEvent(GwStrEnum):
-    HouseColdOnpeak = auto()
-    HouseColdOffpeak = auto()
+    HouseCold = auto()
     TopGoDormant = auto()
     TopWakeUp = auto()
     JustOffpeak = auto()
@@ -46,15 +45,12 @@ class HomeAloneTouBase(ScadaActor):
 
     top_states = HomeAloneTopState.values()
     top_transitions = [
-        {"trigger": "HouseColdOnpeak", "source": "Normal", "dest": "UsingBackupOnpeak"},
-        {"trigger": "HouseColdOffpeak", "source": "Normal", "dest": "UsingBackupOffpeak"},
+        {"trigger": "HouseCold", "source": "Normal", "dest": "UsingBackup"},
         {"trigger": "TopGoDormant", "source": "Normal", "dest": "Dormant"},
-        {"trigger": "TopGoDormant", "source": "UsingBackupOnpeak", "dest": "Dormant"},
-        {"trigger": "TopGoDormant", "source": "UsingBackupOffpeak", "dest": "Dormant"},
+        {"trigger": "TopGoDormant", "source": "UsingBackup", "dest": "Dormant"},
         {"trigger": "TopGoDormant", "source": "ScadaBlind", "dest": "Dormant"},
         {"trigger": "TopWakeUp", "source": "Dormant", "dest": "Normal"},
-        {"trigger": "JustOffpeak", "source": "UsingBackupOnpeak", "dest": "Normal"},
-        {"trigger": "ZonesAtSetpoint", "source": "UsingBackupOffpeak", "dest": "Normal"},
+        {"trigger": "JustOffpeak", "source": "UsingBackup", "dest": "Normal"},
         {"trigger": "MissingData", "source": "Normal", "dest": "ScadaBlind"},
         {"trigger": "DataAvailable", "source": "ScadaBlind", "dest": "Normal"},
         {"trigger": "MonitorOnly", "source": "Normal", "dest": "Monitor"},
@@ -97,14 +93,13 @@ class HomeAloneTouBase(ScadaActor):
             raise Exception(f"HomeAlone requires {H0N.home_alone_normal} node!!")
         if H0N.home_alone_scada_blind not in self.layout.nodes:
             raise Exception(f"HomeAlone requires {H0N.home_alone_scada_blind} node!!")
-        if H0N.home_alone_onpeak_backup not in self.layout.nodes:
-            raise Exception(f"HomeAlone requires {H0N.home_alone_onpeak_backup} node!!")
-        if H0N.home_alone_offpeak_backup not in self.layout.nodes:
-            raise Exception(f"HomeAlone requires {H0N.home_alone_offpeak_backup} node!!")
+        if H0N.home_alone_backup not in self.layout.nodes:
+            raise Exception(f"HomeAlone requires {H0N.home_alone_backup} node!!")
         self.set_command_tree(boss_node=self.normal_node)
         self.latest_temperatures: Dict[str, int] = {} # 
         self.actuators_initialized = False
         self.actuators_ready = False
+        self.backup_started_onpeak = False
 
     @property
     def normal_node(self) -> ShNode:
@@ -114,20 +109,12 @@ class HomeAloneTouBase(ScadaActor):
         return self.layout.node(H0N.home_alone_normal)
 
     @property
-    def onpeak_backup_node(self) -> ShNode:
+    def backup_node(self) -> ShNode:
         """ 
         The node / state machine responsible
-        for onpeak backup operations
+        for backup operations
         """
-        return self.layout.node(H0N.home_alone_onpeak_backup)
-
-    @property
-    def offpeak_backup_node(self) -> ShNode:
-        """ 
-        The node / state machine responsible
-        for offpeak backup operations
-        """
-        return self.layout.node(H0N.home_alone_offpeak_backup)
+        return self.layout.node(H0N.home_alone_backup)
 
     @property
     def scada_blind_node(self) -> ShNode:
@@ -173,8 +160,8 @@ class HomeAloneTouBase(ScadaActor):
         """
         orig_state = self.top_state
         now_ms = int(time.time() * 1000)
-        if cause == TopStateEvent.HouseColdOnpeak:
-            self.HouseColdOnpeak()
+        if cause == TopStateEvent.HouseCold:
+            self.HouseCold()
         elif cause == TopStateEvent.TopGoDormant:
             self.TopGoDormant()
         elif cause == TopStateEvent.TopWakeUp:
@@ -191,8 +178,6 @@ class HomeAloneTouBase(ScadaActor):
             self.MonitorAndControl()
         elif cause == TopStateEvent.ZonesAtSetpoint:
             self.ZonesAtSetpoint()
-        elif cause == TopStateEvent.HouseColdOffpeak:
-            self.HouseColdOffpeak()
         else:
             raise Exception(f"Unknown top event {cause}")
         
@@ -235,15 +220,13 @@ class HomeAloneTouBase(ScadaActor):
 
                 # Update top state
                 if self.top_state == HomeAloneTopState.Normal:
-                    if self.time_to_trigger_house_cold_onpeak():
-                        self.trigger_house_cold_onpeak_event()
-                        if self.strategy == HomeAloneStrategy.ShoulderTou:
-                            self.alert("Onpeak oil boiler", "House cold on peak, backup oil boiler")
-                    if self.time_to_trigger_house_cold_offpeak():
-                        self.trigger_house_cold_offpeak_event()
-                elif self.top_state == HomeAloneTopState.UsingBackupOnpeak and not self.is_onpeak():
+                    if self.time_to_trigger_house_cold():
+                        self.trigger_house_cold_event()
+                        if self.strategy == HomeAloneStrategy.ShoulderTou and self.is_onpeak():
+                            self.alert("Oil boiler", "House cold on peak, backup oil boiler")
+                elif self.top_state == HomeAloneTopState.UsingBackup and self.backup_started_onpeak and not self.is_onpeak():
                     self.trigger_just_offpeak()
-                elif self.top_state == HomeAloneTopState.UsingBackupOffpeak and not self.is_house_cold():
+                elif self.top_state == HomeAloneTopState.UsingBackup and not self.backup_started_onpeak and not self.is_house_cold():
                     self.trigger_zones_at_setpoint()
                 elif self.top_state == HomeAloneTopState.ScadaBlind:
                     if self.heating_forecast_available() and self.temperatures_available():
@@ -287,16 +270,9 @@ class HomeAloneTouBase(ScadaActor):
         return False
 
     @abstractmethod
-    def time_to_trigger_house_cold_onpeak(self) -> bool:
+    def time_to_trigger_house_cold(self) -> bool:
         """
-        Logic for triggering HouseColdOnpeak (and moving to top state UsingBakupOnpeak)
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def time_to_trigger_house_cold_offpeak(self) -> bool:
-        """
-        Logic for triggering HouseColdOffpeak (and moving to top state UsingBackupOffpeak)
+        Logic for triggering HouseCold (and moving to top state UsingBackup)
         """
         raise NotImplementedError
 
@@ -376,67 +352,52 @@ class HomeAloneTouBase(ScadaActor):
             self.log(f"Trouble with set_010_defaults: {e}")
         self.actuators_initialized = True
 
-    def trigger_house_cold_onpeak_event(self) -> None:
+    def trigger_house_cold_event(self) -> None:
         """
-        Called to change top state from Normal to HouseColdOnpeak. Only acts if
-          (a) house is actually cold onpeak and (b) top state is Normal
+        Called to change top state from Normal to UsingBackup. Only acts if
+          (a) house is actually cold and (b) top state is Normal
         What it does: 
-          - changes command tree (all relays will be direct reports of auto.h.onpeak-backup)
-          - triggers HouseColdOnpeak
-          - takes necessary actuator actions to go onpeak
+          - changes command tree (all relays will be direct reports of auto.h.backup)
+          - triggers HouseCold
+          - takes necessary actuator actions to go backup
           - updates the normal state to Dormant if needed
           - reports top state change
 
         """
-        self.set_limited_command_tree(boss=self.onpeak_backup_node)
+        self.set_limited_command_tree(boss=self.backup_node)
         if not self.top_state == HomeAloneTopState.Dormant:
             self.normal_node_goes_dormant()
-        self.onpeak_backup_actuator_actions()
-        self.trigger_top_event(cause=TopStateEvent.HouseColdOnpeak)    
-
-    def trigger_house_cold_offpeak_event(self) -> None:
-        """
-        Called to change top state from Normal to HouseColdOffpeak. Only acts if
-          (a) house is actually cold offpeak and (b) top state is Normal
-        What it does: 
-          - changes command tree (all relays will be direct reports of auto.h.offpeak-backup)
-          - triggers HouseColdOffpeak
-          - updates the normal state to Dormant if needed
-          - reports top state change
-
-        """
-        self.log(f"trigger_house_cold_offpeak_event")
-        self.set_limited_command_tree(boss=self.offpeak_backup_node)
-        if not self.top_state == HomeAloneTopState.Dormant:
-            self.normal_node_goes_dormant()
-        self.offpeak_backup_actuator_actions()
-        self.trigger_top_event(cause=TopStateEvent.HouseColdOffpeak) 
+        self.backup_actuator_actions()
+        self.backup_started_onpeak = False
+        if self.is_onpeak():
+            self.backup_started_onpeak = True
+        self.trigger_top_event(cause=TopStateEvent.HouseCold)    
 
     def trigger_zones_at_setpoint(self):
         """
-        Called to change top state from UsingBackupOffpeak to Normal
+        Called to change top state from UsingBackup to Normal
         """
-        if self.top_state != HomeAloneTopState.UsingBackupOffpeak:
-            raise Exception("Should only call trigger_zones_at_setpoint in transition from UsingBackupOffpeak to Normal!")
+        if self.top_state != HomeAloneTopState.UsingBackup:
+            raise Exception("Should only call trigger_zones_at_setpoint in transition from UsingBackup to Normal!")
         self.trigger_top_event(cause=TopStateEvent.ZonesAtSetpoint)
         self.set_command_tree(boss_node=self.normal_node)
         self.normal_node_wakes_up()
 
     def trigger_just_offpeak(self):
         """
-        Called to change top state from HouseColdOnpeak to Normal
+        Called to change top state from UsingBackup to Normal
         What it does:
             - flip relays as needed
             - trigger the top state change
             - change 
         """
-        # HouseColdOnpeak: Normal -> UsingBackupOnpeak
-        if self.top_state != HomeAloneTopState.UsingBackupOnpeak:
-            raise Exception("Should only call leave_onpeak_backup in transition from UsingBackupOnpeak to Normal!")
+        # HouseCold: Normal -> UsingBackup
+        if self.top_state != HomeAloneTopState.UsingBackup:
+            raise Exception("Should only call leave_onpeak_backup in transition from UsingBackup to Normal!")
 
         # Report state change to scada
         self.trigger_top_event(cause=TopStateEvent.JustOffpeak)
-        # implement the change in command tree. Boss: h.onpeak-backup -> h.n
+        # implement the change in command tree. Boss: h.backup -> h.n
         self.set_command_tree(boss_node=self.normal_node)
         # let the normal homealone know its time to wake up
         self.normal_node_wakes_up()
@@ -473,21 +434,21 @@ class HomeAloneTouBase(ScadaActor):
         self.valved_to_discharge_store(from_node=self.scada_blind_node)
         self.hp_failsafe_switch_to_aquastat(from_node=self.scada_blind_node)
         
-    def onpeak_backup_actuator_actions(self) -> None:
+    def backup_actuator_actions(self) -> None:
         """
-        Expects command tree set already with self.onpeak_backup_node as boss
+        Expects command tree set already with self.backup_node as boss
           - turns off store pump
           - iso valve open (valved to discharge)
           - if using oil boiler, turns hp failsafe to aquastat and aquastat ctrl to boiler
           - if not using oil boiler, turns on heat pump
         """
-        self.turn_off_store_pump(from_node=self.onpeak_backup_node)
-        self.valved_to_discharge_store(from_node=self.onpeak_backup_node)
+        self.turn_off_store_pump(from_node=self.backup_node)
+        self.valved_to_discharge_store(from_node=self.backup_node)
         if self.settings.oil_boiler_for_onpeak_backup:
-            self.hp_failsafe_switch_to_aquastat(from_node=self.onpeak_backup_node)
-            self.aquastat_ctrl_switch_to_boiler(from_node=self.onpeak_backup_node)
+            self.hp_failsafe_switch_to_aquastat(from_node=self.backup_node)
+            self.aquastat_ctrl_switch_to_boiler(from_node=self.backup_node)
         else:
-            self.turn_on_HP(from_node=self.onpeak_backup_node)
+            self.turn_on_HP(from_node=self.backup_node)
 
     def offpeak_backup_actuator_actions(self) -> None:
         """
@@ -555,7 +516,7 @@ class HomeAloneTouBase(ScadaActor):
                 if len(self.my_actuators()) > 0:
                     raise Exception("HomeAlone sent GoDormant with live actuators under it!")
                 if self.top_state != HomeAloneTopState.Dormant:
-                    # TopGoDormant: Normal/UsingBackupOnpeak -> Dormant
+                    # TopGoDormant: Normal/UsingBackup -> Dormant
                     self.trigger_top_event(cause=TopStateEvent.TopGoDormant)
                     self.normal_node_goes_dormant()
             case WakeUp():

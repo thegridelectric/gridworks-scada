@@ -698,18 +698,11 @@ class LayoutDb:
                     DisplayName="HomeAlone Normal",
                 ),
                 SpaceheatNodeGt(
-                    ShNodeId=self.make_node_id(H0N.home_alone_onpeak_backup),
-                    Name=H0N.home_alone_onpeak_backup,
-                    Handle="auto.h.onpeak-backup",
+                    ShNodeId=self.make_node_id(H0N.home_alone_backup),
+                    Name=H0N.home_alone_backup,
+                    Handle="auto.h.backup",
                     ActorClass=ActorClass.NoActor,
-                    DisplayName="HomeAlone Onpeak Backup",
-                ),
-                SpaceheatNodeGt(
-                    ShNodeId=self.make_node_id(H0N.home_alone_offpeak_backup),
-                    Name=H0N.home_alone_offpeak_backup,
-                    Handle="auto.h.offpeak-backup",
-                    ActorClass=ActorClass.NoActor,
-                    DisplayName="HomeAlone Offpeak Backup",
+                    DisplayName="HomeAlone Backup",
                 ),
                 SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.home_alone_scada_blind),

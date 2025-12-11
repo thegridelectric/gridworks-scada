@@ -8,8 +8,7 @@ from gwsproto.enums import HomeAloneTopState
 def test_home_alone_top_state() -> None:
     assert set(HomeAloneTopState.values()) == {
         "Dormant",
-        "UsingBackupOnpeak",
-        "UsingBackupOffpeak",
+        "UsingBackup",
         "Normal",
         "ScadaBlind",
         "Monitor"
