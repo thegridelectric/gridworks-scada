@@ -205,7 +205,7 @@ class HomeAloneTouBase(ScadaActor):
         self.pump_doctor_running = True
         try:
             self.log("[Pump doctor] Starting...")
-            self.alert('Pump doctor starting at Elm, please monitor')
+            self.alert('Pump doctor starting at Elm, please monitor', 'Pump doctor starting at Elm, please monitor')
 
             if self.pump_doctor_attempts >= 3:
                 self.log("[Pump doctor] Max attempts reached, giving up")
