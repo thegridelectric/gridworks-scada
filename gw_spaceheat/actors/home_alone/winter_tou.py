@@ -413,13 +413,19 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             return True
         else:
             if H0N.store_cold_pipe in self.latest_temperatures:
-                self.log(f"Store cold pipe: {round(self.to_fahrenheit(self.latest_temperatures[H0N.store_cold_pipe]/1000),1)} F")
-                if self.to_fahrenheit(self.latest_temperatures[H0N.store_cold_pipe]/1000) > self.params.MaxEwtF:
-                    self.log(f"The storage is not ready, but the bottom is above the maximum EWT ({self.params.MaxEwtF} F).")
-                    self.log("The storage will therefore be considered ready, as we cannot charge it further.")
-                    self.full_storage_energy = total_usable_kwh
-                    self.storage_declared_ready = True
-                    return True
+                check_temp_channel = H0N.store_cold_pipe
+            elif H0N.hp_ewt in self.latest_temperatures:
+                check_temp_channel = H0N.hp_ewt
+            else:
+                self.log("No EWT temperature channel found, not checking if storage is ready")
+                return False
+            self.log(f"{check_temp_channel}: {round(self.to_fahrenheit(self.latest_temperatures[check_temp_channel]/1000),1)} F")
+            if self.to_fahrenheit(self.latest_temperatures[check_temp_channel]/1000) > self.params.MaxEwtF:
+                self.log(f"The storage is not ready, but the bottom is above the maximum EWT ({self.params.MaxEwtF} F).")
+                self.log("The storage will therefore be considered ready, as we cannot charge it further.")
+                self.full_storage_energy = total_usable_kwh
+                self.storage_declared_ready = True
+                return True
             self.log(f"Storage not ready (usable {round(total_usable_kwh,1)} kWh < required {round(required_storage,1)} kWh)")
             return False
         

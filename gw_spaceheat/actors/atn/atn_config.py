@@ -51,4 +51,5 @@ class AtnSettings(AppSettings):
     contract_rep_logging_level: int = logging.INFO
     flo_logging_level: int = logging.INFO
     monitor_only: bool = False
+    create_graph_minute: int = 40
 
