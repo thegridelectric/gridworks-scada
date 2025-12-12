@@ -202,6 +202,7 @@ class HomeAloneTouBase(ScadaActor):
         return [MonitoredName(self.name, self.MAIN_LOOP_SLEEP_SECONDS * 2.1)]
 
     async def pump_doctor(self):
+        self.pump_doctor_running = True
         try:
             self.log("[Pump doctor] Starting...")
             self.alert('Pump doctor starting at Elm, please monitor')
@@ -219,6 +220,8 @@ class HomeAloneTouBase(ScadaActor):
                 self.heatcall_ctrl_to_scada(zone=zone, from_node=self.normal_node)            
             
             # Set DFR to 0
+            self.log("[Pump doctor] Waiting 10 seconds before setting dist DFR to 0")
+            await asyncio.sleep(10)
             self.log("[Pump doctor] Setting dist DFR to 0")
             self.services.send_threadsafe(
                 Message(
@@ -237,15 +240,15 @@ class HomeAloneTouBase(ScadaActor):
             )
 
             # Switch all zones to Closed
+            self.log("[Pump doctor] Waiting 5 seconds before switching zone relays to Closed")
+            await asyncio.sleep(5)
             self.log("[Pump doctor] Switching zone relays to Closed...")
             for zone in self.layout.zone_list:
                 self.stat_ops_close_relay(zone=zone, from_node=self.normal_node)
 
             # Wait to see flow come in
             self.log(f"[Pump doctor] Waiting 1 minute")
-            self.pump_doctor_running = True
             await asyncio.sleep(int(1*60))
-            self.pump_doctor_running = False
 
             # Check if dist flow is detected, if yes switch all zones back Open and Thermostat
             if H0CN.dist_flow not in self.data.latest_channel_values or self.data.latest_channel_values[H0CN.dist_flow] is None:
@@ -261,9 +264,10 @@ class HomeAloneTouBase(ScadaActor):
             else:
                 self.log('[Pump doctor] No dist flow detected - did not work')
                 self.pump_doctor_attempts += 1
-
         except Exception as e:
             self.log(f"[Pump doctor] Error: {e}")
+        finally:
+            self.pump_doctor_running = False
         
     async def check_dist_pump(self):
         if self.pump_doctor_running:
