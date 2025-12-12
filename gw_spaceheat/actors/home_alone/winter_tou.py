@@ -5,7 +5,7 @@ from typing import List, Optional
 
 from actors.home_alone.home_alone_tou_base import HomeAloneTouBase
 from gwsproto.data_classes.house_0_names import H0CN, H0N
-from gwsproto.enums import HomeAloneStrategy, HomeAloneTopState
+from gwsproto.enums import HomeAloneStrategy, LocalControlTopState
 from gw.enums import GwStrEnum
 from gwsproto.named_types import SingleMachineState
 from transitions import Machine
@@ -202,7 +202,7 @@ class WinterTouHomeAlone(HomeAloneTouBase):
         """
         Manages the logic for the Normal top state, (ie. self.state)
         """
-        if self.top_state != HomeAloneTopState.Normal:
+        if self.top_state != LocalControlTopState.Normal:
             self.log(f"brain is only for Normal top state, not {self.top_state}")
             return
 
@@ -309,11 +309,11 @@ class WinterTouHomeAlone(HomeAloneTouBase):
                 elif self.is_storage_colder_than_buffer():
                     self.trigger_normal_event(HaWinterEvent.OnPeakStorageColderThanBuffer)
 
-        if (self.state != previous_state) and self.top_state == HomeAloneTopState.Normal:
+        if (self.state != previous_state) and self.top_state == LocalControlTopState.Normal:
             self.update_relays(previous_state)
 
     def update_relays(self, previous_state) -> None:
-        if self.top_state != HomeAloneTopState.Normal:
+        if self.top_state != LocalControlTopState.Normal:
             raise Exception("Can not go into update_relays if top state is not Normal")
         if self.state == HaWinterState.Dormant or self.state == HaWinterState.Initializing:
             return

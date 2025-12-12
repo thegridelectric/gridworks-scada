@@ -48,7 +48,7 @@ from actors.atomic_ally_loader import AtomicAlly
 from actors.codec_factories import ScadaCodecFactory
 from actors.contract_handler import ContractHandler
 from gwsproto.data_classes.house_0_names import H0N
-from gwsproto.enums import (AtomicAllyState,  ContractStatus, FlowManifoldVariant, HomeAloneTopState,
+from gwsproto.enums import (AtomicAllyState,  ContractStatus, FlowManifoldVariant, LocalControlTopState,
                    MainAutoEvent, MainAutoState, TopState)
 from gwsproto.named_types import ( ActuatorsReady, FsmEvent,
     AdminDispatch, AdminAnalogDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
@@ -829,11 +829,11 @@ class Scada(PrimeActor, ScadaInterface):
                 UnixMs=now_ms,
             )
         
-        # HomeAloneTopState is Normal
+        # LocalControlTopState is Normal
         self.data.latest_machine_state[self.home_alone.name] = SingleMachineState(
                 MachineHandle=self.node.handle,
-                StateEnum=HomeAloneTopState.enum_name(),
-                State=HomeAloneTopState.Normal,
+                StateEnum=LocalControlTopState.enum_name(),
+                State=LocalControlTopState.Normal,
                 UnixMs=now_ms,
             )
 
@@ -1194,7 +1194,7 @@ class Scada(PrimeActor, ScadaInterface):
             if aa_state != AtomicAllyState.Dormant:
                 self.log(f"Noticed auto_state Dormant but AtomicAlly in {aa_state}! Sending GoDormant")
                 self._send_to(self.atomic_ally, GoDormant(ToName=self.atomic_ally.name))
-            if h_state != HomeAloneTopState.Dormant:
+            if h_state != LocalControlTopState.Dormant:
                 self.log(f"Noticed auto_state Dormant but HomeAlone in {h_state}! Sending GoDormant")
                 self._send_to(self.home_alone, GoDormant(ToName=self.home_alone.name))
         elif self.auto_state == MainAutoState.Atn:
@@ -1209,14 +1209,14 @@ class Scada(PrimeActor, ScadaInterface):
                     self._send_to(self.atomic_ally, contract)  # This is how the Atn wakes up
                 else: # we might be in the grace period of an expired contract ... this check will 
                     self.log("No contract but in grace period. This will correct in 5 minutes")
-            if h_state != HomeAloneTopState.Dormant:
+            if h_state != LocalControlTopState.Dormant:
                self.log(f"Noticed auto_state Atn but HomeAlone in {h_state}! Sending GoDormant")
                self._send_to(self.home_alone, GoDormant(ToName=self.home_alone.name))
         elif self.auto_state == MainAutoState.HomeAlone:
             if aa_state != AtomicAllyState.Dormant:
                 self.log(f"Noticed auto_state HomeAlone but AtomicAlly in {aa_state}! Sending GoDormant")
                 self._send_to(self.atomic_ally, GoDormant(ToName=self.atn.name))
-            if h_state == HomeAloneTopState.Dormant:
+            if h_state == LocalControlTopState.Dormant:
                self.log("Noticed auto_state HomeAlone but home_alone Dormant! Sending WakeUp")
                self._send_to(self.home_alone, WakeUp(ToName=self.home_alone.name))
 
