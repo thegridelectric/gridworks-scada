@@ -1096,15 +1096,15 @@
       "Samples": 1000,
       "SendMicroVolts": true,
       "SensorOrder": [
-        1,
+        3,
         2,
-        3
+        1
       ],
       "SerialNumber": "9999",
       "TempCalcMethod": "SimpleBeta",
       "ThermistorBeta": 3977,
       "TypeName": "pico.tank.module.component.gt",
-      "Version": "010"
+      "Version": "011"
     },
     {
       "AsyncCaptureDeltaMicroVolts": 2000,
@@ -1172,16 +1172,11 @@
       "PicoHwUid": "pico_tank1",
       "Samples": 1000,
       "SendMicroVolts": true,
-      "SensorOrder": [
-        1,
-        2,
-        3
-      ],
       "SerialNumber": "1001",
       "TempCalcMethod": "SimpleBeta",
       "ThermistorBeta": 3977,
       "TypeName": "pico.tank.module.component.gt",
-      "Version": "010"
+      "Version": "011"
     },
     {
       "AsyncCaptureDeltaMicroVolts": 2000,
@@ -1249,16 +1244,11 @@
       "PicoHwUid": "pico_tank2",
       "Samples": 1000,
       "SendMicroVolts": true,
-      "SensorOrder": [
-        1,
-        2,
-        3
-      ],
       "SerialNumber": "1002",
       "TempCalcMethod": "SimpleBeta",
       "ThermistorBeta": 3977,
       "TypeName": "pico.tank.module.component.gt",
-      "Version": "010"
+      "Version": "011"
     },
     {
       "AsyncCaptureDeltaMicroVolts": 2000,
@@ -1326,16 +1316,11 @@
       "PicoHwUid": "pico_tank3",
       "Samples": 1000,
       "SendMicroVolts": true,
-      "SensorOrder": [
-        1,
-        2,
-        3
-      ],
       "SerialNumber": "1003",
       "TempCalcMethod": "SimpleBeta",
       "ThermistorBeta": 3977,
       "TypeName": "pico.tank.module.component.gt",
-      "Version": "010"
+      "Version": "011"
     },
     {
       "ComponentAttributeClassId": "69a0e36e-9c15-4d50-8a7b-ae63649ecc36",

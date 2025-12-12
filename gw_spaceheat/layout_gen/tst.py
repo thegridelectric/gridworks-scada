@@ -72,6 +72,7 @@ def make_tst_layout(src_path: Path) -> LayoutDb:
             ActorNodeName="buffer",
             SerialNumber="9999",
             PicoHwUid="pico_buffer",
+            SensorOrder=[3,2,1],
         ),
     )
 
