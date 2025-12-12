@@ -284,15 +284,13 @@ class HomeAloneTouBase(ScadaActor):
             self.time_dist_pump_should_be_on = None
             return
         
-        if self.time_dist_pump_should_be_on:
-            if time.time() - self.time_dist_pump_should_be_on < 3*60:
-                self.log(f"Dist pump should be on since less than 3min ({round((time.time()-self.time_dist_pump_should_be_on)/60,1)}min)")
-                return
-        else:
+        if not self.time_dist_pump_should_be_on:
             self.time_dist_pump_should_be_on = time.time()
+        if time.time() - self.time_dist_pump_should_be_on < 3*60:
+            self.log(f"Dist pump should be on since less than 3min ({round((time.time()-self.time_dist_pump_should_be_on)/60)}min)")
             return
         
-        self.log(f"Dist pump should be on since {round((time.time()-self.time_dist_pump_should_be_on)/60,1)}min")
+        self.log(f"Dist pump should be on since {round((time.time()-self.time_dist_pump_should_be_on)/60)}min")
         if H0CN.dist_flow not in self.data.latest_channel_values or self.data.latest_channel_values[H0CN.dist_flow] is None:
             self.log("Dist flow not found in latest channel values")
             return
