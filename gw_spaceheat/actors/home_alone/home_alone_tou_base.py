@@ -259,18 +259,25 @@ class HomeAloneTouBase(ScadaActor):
         self.log("Checking dist pump activity...")
         dist_pump_should_be_off = True
         for i in H0CN.zone:
-            if H0CN.zone[i].whitewire_pwr not in self.data.latest_channel_values or self.data.latest_channel_values[H0CN.zone[i].whitewire_pwr] is None:
-                self.log(f"{H0CN.zone[i].whitewire_pwr} was not found in latest channel values")
-                # for x in self.data.latest_channel_values:
-                #     if 'whitewire' in x:
-                #         self.log(f"{x}: {self.data.latest_channel_values[x]}")
+            zone_whitewire_name = H0CN.zone[i].whitewire_pwr
+            if zone_whitewire_name not in self.data.latest_channel_values or self.data.latest_channel_values[zone_whitewire_name] is None:
+                self.log(f"{zone_whitewire_name} was not found in latest channel values")
+                if 'zone4-master-whitewire' in zone_whitewire_name:
+                    for existing_zone_whitewire_name in self.data.latest_channel_values:
+                        if (
+                            'whitewire' in existing_zone_whitewire_name and 
+                            f"{zone_whitewire_name.split('-')[0]}-{zone_whitewire_name.split('-')[1]}" in existing_zone_whitewire_name
+                        ):
+                            self.log(f"Found {existing_zone_whitewire_name} in latest channel values")
+                            zone_whitewire_name = existing_zone_whitewire_name
+                            break
                 continue
-            if abs(self.data.latest_channel_values[H0CN.zone[i].whitewire_pwr]) > self.settings.whitewire_threshold_watts:
-                self.log(f"{H0CN.zone[i].whitewire_pwr} is above threshold ({self.settings.whitewire_threshold_watts} W)")
+            if abs(self.data.latest_channel_values[zone_whitewire_name]) > self.settings.whitewire_threshold_watts:
+                self.log(f"{zone_whitewire_name} is above threshold ({self.data.latest_channel_values[zone_whitewire_name]} > {self.settings.whitewire_threshold_watts} W)")
                 dist_pump_should_be_off = False
                 break
             else:
-                self.log(f"{H0CN.zone[i].whitewire_pwr} is below threshold ({self.settings.whitewire_threshold_watts} W)")
+                self.log(f"{zone_whitewire_name} is below threshold ({self.data.latest_channel_values[zone_whitewire_name]} <= {self.settings.whitewire_threshold_watts} W)")
         if dist_pump_should_be_off:
             self.log("Dist pump should be off")
             return
