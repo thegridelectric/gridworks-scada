@@ -1,16 +1,14 @@
-"""Tests layout.lite type, version 001"""
-
 from gwsproto.named_types import LayoutLite
 
 
 def test_layout_lite_generated() -> None:
     d = {
         "FromGNodeAlias": "hw1.isone.me.versant.keene.beech.scada",
-        "FromGNodeInstanceId": "98542a17-3180-4f2a-a929-6023f0e7a106",
         "MessageCreatedMs": 1728651445746,
         "MessageId": "1302c0f8-1983-43b2-90d2-61678d731db3",
         "Strategy": "House0",
         "ZoneList": ["Down", "Up"],
+        "CriticalZoneList": ["Down"],
         "TotalStoreTanks": 3,
         "Ha1Params": {
             "AlphaTimes10": 120,
@@ -276,7 +274,7 @@ def test_layout_lite_generated() -> None:
             "Version": "002",
         },
         "TypeName": "layout.lite",
-        "Version": "004",
+        "Version": "006",
     }
 
     d2 = LayoutLite.model_validate(d).model_dump(exclude_none=True)
