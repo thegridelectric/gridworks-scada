@@ -38,13 +38,14 @@ class HomeAloneTouBase(ScadaActor):
         {"trigger": "TopGoDormant", "source": "Normal", "dest": "Dormant"},
         {"trigger": "TopGoDormant", "source": "UsingBackup", "dest": "Dormant"},
         {"trigger": "TopGoDormant", "source": "ScadaBlind", "dest": "Dormant"},
+        {"trigger": "TopGoDormant", "source": "Monitor", "dest": "Dormant"},
         {"trigger": "TopWakeUp", "source": "Dormant", "dest": "Normal"},
         {"trigger": "SystemCold", "source": "Normal", "dest": "UsingBackup"},
-        {"trigger": "JustOffpeak", "source": "UsingBackup", "dest": "Normal"},
         {"trigger": "CriticalZonesAtSetpointOffpeak", "source": "UsingBackup", "dest": "Normal"},
         {"trigger": "MissingData", "source": "Normal", "dest": "ScadaBlind"},
         {"trigger": "DataAvailable", "source": "ScadaBlind", "dest": "Normal"},
         {"trigger": "MonitorOnly", "source": "Normal", "dest": "Monitor"},
+        {"trigger": "MonitorOnly", "source": "Dormant", "dest": "Monitor"},
         {"trigger": "MonitorAndControl", "source": "Monitor", "dest": "Normal"}
     ]
 
@@ -156,8 +157,6 @@ class HomeAloneTouBase(ScadaActor):
             self.TopGoDormant()
         elif cause == LocalControlTopStateEvent.TopWakeUp:
             self.TopWakeUp()
-        elif cause == LocalControlTopStateEvent.JustOffpeak:
-            self.JustOffpeak()
         elif cause == LocalControlTopStateEvent.MissingData:
             self.MissingData()
         elif cause == LocalControlTopStateEvent.DataAvailable:
@@ -204,6 +203,7 @@ class HomeAloneTouBase(ScadaActor):
             if  self.just_before_onpeak() or self.zone_setpoints=={}:
                 self.get_zone_setpoints()
 
+            # No control of actuators when in Monitor
             if not self.top_state == LocalControlTopState.Monitor:
                 # update temperatures_available
                 self.get_latest_temperatures()
@@ -212,12 +212,8 @@ class HomeAloneTouBase(ScadaActor):
                 if self.top_state == LocalControlTopState.Normal:
                     if self.time_to_trigger_system_cold():
                         self.trigger_system_cold_event()
-                        if self.strategy == HomeAloneStrategy.ShoulderTou and self.is_onpeak():
-                            self.alert("Oil boiler", "House cold on peak, backup oil boiler")
-                elif self.top_state == LocalControlTopState.UsingBackup and self.backup_started_onpeak and not self.is_onpeak():
-                    self.trigger_just_offpeak()
-                elif self.top_state == LocalControlTopState.UsingBackup and not self.backup_started_onpeak and not self.is_system_cold():
-                    self.trigger_zones_at_setpoint()
+                elif self.top_state == LocalControlTopState.UsingBackup and not self.is_system_cold() and not self.is_onpeak():
+                    self.trigger_zones_at_setpoint_offpeak()
                 elif self.top_state == LocalControlTopState.ScadaBlind:
                     if self.heating_forecast_available() and self.temperatures_available():
                         self.log("Forecasts and temperatures are both available again!")
@@ -350,7 +346,6 @@ class HomeAloneTouBase(ScadaActor):
           - changes command tree (all relays will be direct reports of auto.h.backup)
           - triggers SystemCold
           - takes necessary actuator actions to go backup
-          - sets backup_started_onpeak to False if onpeak, True if offpeak
           - updates the normal state to Dormant if needed
           - reports top state change
         """
@@ -358,30 +353,16 @@ class HomeAloneTouBase(ScadaActor):
         if not self.top_state == LocalControlTopState.Dormant:
             self.normal_node_goes_dormant()
         self.backup_actuator_actions()
-        self.backup_started_onpeak = False
-        if self.is_onpeak():
-            self.backup_started_onpeak = True
         self.trigger_top_event(cause=LocalControlTopStateEvent.SystemCold)    
 
-    def trigger_zones_at_setpoint(self):
+    def trigger_zones_at_setpoint_offpeak(self):
         """
         Called to change top state from UsingBackup to Normal, 
         when backup was started offpeak
         """
-        if self.top_state != LocalControlTopState.UsingBackup and not self.backup_started_onpeak:
-            raise Exception("Should only call trigger_zones_at_setpoint in transition from UsingBackup (started offpeak) to Normal!")
+        if self.top_state != LocalControlTopState.UsingBackup:
+            raise Exception("Should only call trigger_zones_at_setpoint_offpeak in transition from UsingBackup to Normal!")
         self.trigger_top_event(cause=LocalControlTopStateEvent.CriticalZonesAtSetpointOffpeak)
-        self.set_command_tree(boss_node=self.normal_node)
-        self.normal_node_wakes_up()
-
-    def trigger_just_offpeak(self):
-        """
-        Called to change top state from UsingBackup to Normal, 
-        when backup was started onpeak
-        """
-        if self.top_state != LocalControlTopState.UsingBackup and self.backup_started_onpeak:
-            raise Exception("Should only call trigger_just_offpeak in transition from UsingBackup (started onpeak) to Normal!")
-        self.trigger_top_event(cause=LocalControlTopStateEvent.JustOffpeak)
         self.set_command_tree(boss_node=self.normal_node)
         self.normal_node_wakes_up()
 
@@ -523,7 +504,14 @@ class HomeAloneTouBase(ScadaActor):
     def process_wake_up(self, from_node: ShNode, payload: WakeUp) -> None:
         if self.top_state != LocalControlTopState.Dormant:
             return
-        # TopWakeUp: Dormant -> Normal
+
+        # Monitor-only mode: Dormant -> Monitor
+        if self.settings.monitor_only:
+            self.trigger_top_event(LocalControlTopStateEvent.MonitorOnly)
+            self.log("Monitor-only: WakeUp transitioned Dormant -> Monitor")
+            return
+
+        # Normal behavior: Dormant -> Normal
         self.trigger_top_event(LocalControlTopStateEvent.TopWakeUp)
         self.set_command_tree(boss_node=self.normal_node)
         # let normal node know its waking up
@@ -607,6 +595,8 @@ class HomeAloneTouBase(ScadaActor):
     def is_system_cold(self) -> bool:
         """Returns True if at least one critical zones is more than 1F below setpoint, where the 
         setpoint is set at the beginning of the latest onpeak period"""
+        if not self.is_onpeak(): #TODO: bleed into the first half hour of offpeak
+            self.get_zone_setpoints()
         for zone in self.zone_setpoints:
             zone_name_no_prefix = zone[6:] if zone[:4]=='zone' else zone
             if zone_name_no_prefix not in self.layout.critical_zone_list:

@@ -5,7 +5,6 @@ class LocalControlTopStateEvent(GwStrEnum):
     SystemCold = auto()
     TopGoDormant = auto()
     TopWakeUp = auto()
-    JustOffpeak = auto()
     MissingData = auto()
     DataAvailable = auto()
     MonitorOnly = auto()
