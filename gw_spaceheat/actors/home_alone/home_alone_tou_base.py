@@ -101,6 +101,7 @@ class HomeAloneTouBase(ScadaActor):
         self.actuators_initialized = False
         self.actuators_ready = False
         self.pump_doctor_attempts = 0
+        self.time_dist_pump_should_be_on = None
 
     @property
     def normal_node(self) -> ShNode:
@@ -280,9 +281,19 @@ class HomeAloneTouBase(ScadaActor):
                 self.log(f"{zone_whitewire_name} is below threshold ({self.data.latest_channel_values[zone_whitewire_name]} <= {self.settings.whitewire_threshold_watts} W)")
         if dist_pump_should_be_off:
             self.log("Dist pump should be off")
+            self.time_dist_pump_should_be_on = None
             return
-        self.log("Dist pump should be on")
-
+        
+        if self.time_dist_pump_should_be_on:
+            if time.time() - self.time_dist_pump_should_be_on < 3*60:
+                self.log(f"Dist pump should be on since less than 3min ({round((time.time()-self.time_dist_pump_should_be_on)/60,1)}min)")
+                return
+        else:
+            self.time_dist_pump_should_be_on = time.time()
+            return
+        
+        self.log(f"Dist pump should be on since {round((time.time()-self.time_dist_pump_should_be_on)/60,1)}min")
+        self.time_dist_pump_should_be_on = time.time()
         if H0CN.dist_flow not in self.data.latest_channel_values or self.data.latest_channel_values[H0CN.dist_flow] is None:
             self.log("Dist flow not found in latest channel values")
             return
