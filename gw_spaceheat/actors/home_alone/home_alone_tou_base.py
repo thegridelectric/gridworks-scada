@@ -100,6 +100,7 @@ class HomeAloneTouBase(ScadaActor):
         self.latest_temperatures: Dict[str, int] = {} # 
         self.actuators_initialized = False
         self.actuators_ready = False
+        self.pump_doctor_running = False
         self.pump_doctor_attempts = 0
         self.time_dist_pump_should_be_on = None
 
@@ -201,62 +202,73 @@ class HomeAloneTouBase(ScadaActor):
         return [MonitoredName(self.name, self.MAIN_LOOP_SLEEP_SECONDS * 2.1)]
 
     async def pump_doctor(self):
-        self.log("[Pump doctor] Starting...")
-        if self.pump_doctor_attempts >= 3:
-            self.log("[Pump doctor] Max attempts reached, giving up")
-            return
-        if not self.layout.zone_list:
-            self.log("[Pump doctor] Could not find a zone list")
-            return
+        try:
+            self.log("[Pump doctor] Starting...")
+            self.alert('Pump doctor starting at Elm, please monitor')
 
-        # Switch all zones to Scada
-        self.log("[Pump doctor] Switching zone relays to Scada")
-        for zone in self.layout.zone_list:
-            self.heatcall_ctrl_to_scada(zone=zone, from_node=self.normal_node)            
-        
-        # Set DFR to 0
-        self.log("[Pump doctor] Setting dist DFR to 0")
-        self.services.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.primary_scada.name,
-                Payload=AnalogDispatch(
-                    FromGNodeAlias=self.layout.atn_g_node_alias,
-                    FromHandle="auto",
-                    ToHandle="auto.dist-010v",
-                    AboutName="dist-010v",
-                    Value=0,
-                    TriggerId=str(uuid.uuid4()),
-                    UnixTimeMs=int(time.time() * 1000),
-                ),
-            )
-        )
+            if self.pump_doctor_attempts >= 3:
+                self.log("[Pump doctor] Max attempts reached, giving up")
+                return
+            if not self.layout.zone_list:
+                self.log("[Pump doctor] Could not find a zone list")
+                return
 
-        # Switch all zones to Closed
-        self.log("[Pump doctor] Switching zone relays to Closed...")
-        for zone in self.layout.zone_list:
-            self.stat_ops_close_relay(zone=zone, from_node=self.normal_node)
-
-        # Wait to see flow come in
-        self.log(f"[Pump doctor] Waiting 1 minute")
-        await asyncio.sleep(int(1*60))
-
-        # Check if dist flow is detected, if yes switch all zones back Open and Thermostat
-        if H0CN.dist_flow not in self.data.latest_channel_values or self.data.latest_channel_values[H0CN.dist_flow] is None:
-            self.log("[Pump doctor] Dist flow not found in latest channel values")
-            return
-        if self.data.latest_channel_values[H0CN.dist_flow]/100 > 0.5:
-            self.log('[Pump doctor] Dist flow detected - success!')
-            self.log(f"[Pump doctor] Switching zones back to Open and Thermostat")
-            self.pump_doctor_attempts = 0
+            # Switch all zones to Scada
+            self.log("[Pump doctor] Switching zone relays to Scada")
             for zone in self.layout.zone_list:
-                self.stat_ops_open_relay(zone=zone, from_node=self.normal_node)
-                self.heatcall_ctrl_to_stat(zone=zone, from_node=self.normal_node)  
-        else:
-            self.log('[Pump doctor] No dist flow detected - did not work')
-            self.pump_doctor_attempts += 1
+                self.heatcall_ctrl_to_scada(zone=zone, from_node=self.normal_node)            
+            
+            # Set DFR to 0
+            self.log("[Pump doctor] Setting dist DFR to 0")
+            self.services.send_threadsafe(
+                Message(
+                    Src=self.name,
+                    Dst=self.primary_scada.name,
+                    Payload=AnalogDispatch(
+                        FromGNodeAlias=self.layout.atn_g_node_alias,
+                        FromHandle="auto",
+                        ToHandle="auto.dist-010v",
+                        AboutName="dist-010v",
+                        Value=0,
+                        TriggerId=str(uuid.uuid4()),
+                        UnixTimeMs=int(time.time() * 1000),
+                    ),
+                )
+            )
+
+            # Switch all zones to Closed
+            self.log("[Pump doctor] Switching zone relays to Closed...")
+            for zone in self.layout.zone_list:
+                self.stat_ops_close_relay(zone=zone, from_node=self.normal_node)
+
+            # Wait to see flow come in
+            self.log(f"[Pump doctor] Waiting 1 minute")
+            self.pump_doctor_running = True
+            await asyncio.sleep(int(1*60))
+            self.pump_doctor_running = False
+
+            # Check if dist flow is detected, if yes switch all zones back Open and Thermostat
+            if H0CN.dist_flow not in self.data.latest_channel_values or self.data.latest_channel_values[H0CN.dist_flow] is None:
+                self.log("[Pump doctor] Dist flow not found in latest channel values")
+                return
+            if self.data.latest_channel_values[H0CN.dist_flow]/100 > 0.5:
+                self.log('[Pump doctor] Dist flow detected - success!')
+                self.log(f"[Pump doctor] Switching zones back to Open and Thermostat")
+                self.pump_doctor_attempts = 0
+                for zone in self.layout.zone_list:
+                    self.stat_ops_open_relay(zone=zone, from_node=self.normal_node)
+                    self.heatcall_ctrl_to_stat(zone=zone, from_node=self.normal_node)  
+            else:
+                self.log('[Pump doctor] No dist flow detected - did not work')
+                self.pump_doctor_attempts += 1
+
+        except Exception as e:
+            self.log(f"[Pump doctor] Error: {e}")
         
     async def check_dist_pump(self):
+        if self.pump_doctor_running:
+            self.log("Pump doctor already running, skipping dist pump check")
+            return
         self.log("Checking dist pump activity...")
         dist_pump_should_be_off = True
         for i in H0CN.zone:
