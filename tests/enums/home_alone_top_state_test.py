@@ -1,19 +1,19 @@
 """
-Tests for enum home.alone.top.state.000 from the GridWorks Type Registry.
+Tests for enum local.control.top.state.neb.000 from the GridWorks Type Registry.
 """
 
-from gwsproto.enums import HomeAloneTopState
+from gwsproto.enums import LocalControlTopState
 
 
-def test_home_alone_top_state() -> None:
-    assert set(HomeAloneTopState.values()) == {
+def test_local_control_top_state() -> None:
+    assert set(LocalControlTopState.values()) == {
         "Dormant",
-        "UsingBackupOnpeak",
+        "UsingNonElectricBackup",
         "Normal",
         "ScadaBlind",
         "Monitor"
     }
 
-    assert HomeAloneTopState.default() == HomeAloneTopState.Dormant
-    assert HomeAloneTopState.enum_name() == "home.alone.top.state"
-    assert HomeAloneTopState.enum_version() == "001"
+    assert LocalControlTopState.default() == LocalControlTopState.Dormant
+    assert LocalControlTopState.enum_name() == "local.control.top.state.neb"
+    assert LocalControlTopState.enum_version() == "000"

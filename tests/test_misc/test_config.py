@@ -47,7 +47,7 @@ def test_scada_settings_defaults(clean_test_env):
         max_ewt_f=170,
         load_overestimation_percent=0,
         monitor_only=False,
-        oil_boiler_for_onpeak_backup=True,
+        oil_boiler_backup=True,
         pico_cycler_state_logging=False,
         power_meter_logging_level=logging.WARNING,
         relay_multiplexer_logging_level=logging.INFO,
