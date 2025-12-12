@@ -260,6 +260,9 @@ class HomeAloneTouBase(ScadaActor):
         for i in H0CN.zone:
             if H0CN.zone[i].whitewire_pwr not in self.data.latest_channel_values or self.data.latest_channel_values[H0CN.zone[i].whitewire_pwr] is None:
                 self.log(f"{H0CN.zone[i].whitewire_pwr} was not found in latest channel values")
+                for x in self.data.latest_channel_values:
+                    if 'whitewire' in x:
+                        self.log(f"{x}: {self.data.latest_channel_values[x]}")
                 continue
             if abs(self.data.latest_channel_values[H0CN.zone[i].whitewire_pwr]) > self.settings.whitewire_threshold_watts:
                 self.log(f"{H0CN.zone[i].whitewire_pwr} is above threshold ({self.settings.whitewire_threshold_watts} W)")
