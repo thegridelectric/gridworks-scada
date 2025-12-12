@@ -256,20 +256,25 @@ class HomeAloneTouBase(ScadaActor):
             self.pump_doctor_attempts += 1
         
     async def check_dist_pump(self):
+        self.log("Checking dist pump activity...")
         dist_pump_should_be_off = True
         for i in H0CN.zone:
             if H0CN.zone[i].whitewire_pwr not in self.data.latest_channel_values or self.data.latest_channel_values[H0CN.zone[i].whitewire_pwr] is None:
                 self.log(f"{H0CN.zone[i].whitewire_pwr} was not found in latest channel values")
-                for x in self.data.latest_channel_values:
-                    if 'whitewire' in x:
-                        self.log(f"{x}: {self.data.latest_channel_values[x]}")
+                # for x in self.data.latest_channel_values:
+                #     if 'whitewire' in x:
+                #         self.log(f"{x}: {self.data.latest_channel_values[x]}")
                 continue
             if abs(self.data.latest_channel_values[H0CN.zone[i].whitewire_pwr]) > self.settings.whitewire_threshold_watts:
                 self.log(f"{H0CN.zone[i].whitewire_pwr} is above threshold ({self.settings.whitewire_threshold_watts} W)")
                 dist_pump_should_be_off = False
                 break
+            else:
+                self.log(f"{H0CN.zone[i].whitewire_pwr} is below threshold ({self.settings.whitewire_threshold_watts} W)")
         if dist_pump_should_be_off:
+            self.log("Dist pump should be off")
             return
+        self.log("Dist pump should be on")
 
         if H0CN.dist_flow not in self.data.latest_channel_values or self.data.latest_channel_values[H0CN.dist_flow] is None:
             self.log("Dist flow not found in latest channel values")

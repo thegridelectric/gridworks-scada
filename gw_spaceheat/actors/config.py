@@ -52,7 +52,7 @@ class ScadaSettings(AppSettings):
     load_overestimation_percent: int = 0
     oil_boiler_for_onpeak_backup: bool = True
     monitor_only: bool = False
-    whitewire_threshold_watts: int = 20
+    whitewire_threshold_watts: float = 20
     hp_model: HpModel = HpModel.SamsungFiveTonneHydroKit # TODO: move to layout
     model_config = SettingsConfigDict(env_prefix="SCADA_", extra="ignore")
 
