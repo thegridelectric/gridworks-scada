@@ -189,7 +189,7 @@ class Relays(Widget):
         else:
             selected_row_key = ""
         self._update_buttons(selected_row_key)
-        self.logger.debug("--on_relays_config_change: selected row key: %s", selected_row_key.value if selected_row_key is not "" else "")
+        self.logger.debug("--on_relays_config_change: selected row key: %s", selected_row_key.value if selected_row_key!="" else "")
 
     def _update_buttons(self, relay_name: str) -> None:
         self.logger.debug("++Relays._update_buttons: %s", relay_name)

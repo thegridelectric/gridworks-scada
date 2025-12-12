@@ -24,7 +24,7 @@ from gwsproto.enums.contract_status import ContractStatus
 from gwsproto.enums.change_keep_send import ChangeKeepSend
 from gwsproto.enums.flow_manifold_variant import FlowManifoldVariant
 from gwsproto.enums.home_alone_strategy import HomeAloneStrategy
-from gwsproto.enums.home_alone_top_state import HomeAloneTopState
+from gwsproto.enums.local_control_top_state import LocalControlTopState
 from gwsproto.enums.hp_model import HpModel
 from gwsproto.enums.hp_loop_keep_send import HpLoopKeepSend
 from gwsproto.enums.log_level import LogLevel
@@ -37,7 +37,7 @@ from gwsproto.enums.pico_cycler_state import PicoCyclerState
 from gwsproto.enums.top_event import TopEvent
 from gwsproto.enums.top_state import TopState
 from gwsproto.enums.turn_hp_on_off import TurnHpOnOff
-
+from gwsproto.enums.local_control_top_state_event import LocalControlTopStateEvent
 
 __all__ = [
     "AaBufferOnlyEvent",
@@ -50,9 +50,10 @@ __all__ = [
     "ChangeKeepSend",
     "FlowManifoldVariant",
     "HomeAloneStrategy",
-    "HomeAloneTopState",  # [home.alone.top.state.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#homealonetopstate)
+    "LocalControlTopState",  # [local.control.top.state.neb.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#LocalControlTopState)
     "HpLoopKeepSend",
     "LogLevel",  # [log.level.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#loglevel)
+    "LocalControlTopStateEvent",  
     "MainAutoEvent",  # [main.auto.event.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#mainautoevent)
     "MainAutoState",  # [main.auto.state.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#mainautostate)
     "MarketPriceUnit",  # [market.price.unit.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#marketpriceunit)
