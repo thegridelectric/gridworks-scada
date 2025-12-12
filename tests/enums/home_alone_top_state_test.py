@@ -8,7 +8,7 @@ from gwsproto.enums import LocalControlTopState
 def test_local_control_top_state() -> None:
     assert set(LocalControlTopState.values()) == {
         "Dormant",
-        "UsingBackup",
+        "UsingNonElectricBackup",
         "Normal",
         "ScadaBlind",
         "Monitor"

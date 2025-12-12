@@ -134,7 +134,7 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
 
     def time_to_trigger_system_cold(self) -> bool:
         """
-        Logic for triggering SystemCold (and moving to top state UsingBackup).
+        Logic for triggering SystemCold (and moving to top state UsingNonElectricBackup).
         In shoulder, this means: 1) house is cold 2) buffer is really empty
         """
         return self.is_system_cold() and self.is_buffer_empty(really_empty=True)

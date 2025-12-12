@@ -6,7 +6,7 @@ from gw.enums import GwStrEnum
 
 class LocalControlTopState(GwStrEnum):
     Dormant = auto()
-    UsingBackup = auto()
+    UsingNonElectricBackup = auto()
     Normal = auto()
     ScadaBlind = auto()
     Monitor = auto()

@@ -36,12 +36,12 @@ class HomeAloneTouBase(ScadaActor):
     top_states = LocalControlTopState.values()
     top_transitions = [
         {"trigger": "TopGoDormant", "source": "Normal", "dest": "Dormant"},
-        {"trigger": "TopGoDormant", "source": "UsingBackup", "dest": "Dormant"},
+        {"trigger": "TopGoDormant", "source": "UsingNonElectricBackup", "dest": "Dormant"},
         {"trigger": "TopGoDormant", "source": "ScadaBlind", "dest": "Dormant"},
         {"trigger": "TopGoDormant", "source": "Monitor", "dest": "Dormant"},
         {"trigger": "TopWakeUp", "source": "Dormant", "dest": "Normal"},
-        {"trigger": "SystemCold", "source": "Normal", "dest": "UsingBackup"},
-        {"trigger": "CriticalZonesAtSetpointOffpeak", "source": "UsingBackup", "dest": "Normal"},
+        {"trigger": "SystemCold", "source": "Normal", "dest": "UsingNonElectricBackup"},
+        {"trigger": "CriticalZonesAtSetpointOffpeak", "source": "UsingNonElectricBackup", "dest": "Normal"},
         {"trigger": "MissingData", "source": "Normal", "dest": "ScadaBlind"},
         {"trigger": "DataAvailable", "source": "ScadaBlind", "dest": "Normal"},
         {"trigger": "MonitorOnly", "source": "Normal", "dest": "Monitor"},
@@ -212,7 +212,7 @@ class HomeAloneTouBase(ScadaActor):
                 if self.top_state == LocalControlTopState.Normal:
                     if self.time_to_trigger_system_cold():
                         self.trigger_system_cold_event()
-                elif self.top_state == LocalControlTopState.UsingBackup and not self.is_system_cold() and not self.is_onpeak():
+                elif self.top_state == LocalControlTopState.UsingNonElectricBackup and not self.is_system_cold() and not self.is_onpeak():
                     self.trigger_zones_at_setpoint_offpeak()
                 elif self.top_state == LocalControlTopState.ScadaBlind:
                     if self.heating_forecast_available() and self.temperatures_available():
@@ -258,7 +258,7 @@ class HomeAloneTouBase(ScadaActor):
     @abstractmethod
     def time_to_trigger_system_cold(self) -> bool:
         """
-        Logic for triggering SystemCold (and moving to top state UsingBackup)
+        Logic for triggering SystemCold (and moving to top state UsingNonElectricBackup)
         """
         raise NotImplementedError
 
@@ -340,7 +340,7 @@ class HomeAloneTouBase(ScadaActor):
 
     def trigger_system_cold_event(self) -> None:
         """
-        Called to change top state from Normal to UsingBackup. Only acts if
+        Called to change top state from Normal to UsingNonElectricBackup. Only acts if
           (a) house is actually cold and (b) top state is Normal
         What it does: 
           - changes command tree (all relays will be direct reports of auto.h.backup)
@@ -357,11 +357,11 @@ class HomeAloneTouBase(ScadaActor):
 
     def trigger_zones_at_setpoint_offpeak(self):
         """
-        Called to change top state from UsingBackup to Normal, 
+        Called to change top state from UsingNonElectricBackup to Normal, 
         when backup was started offpeak
         """
-        if self.top_state != LocalControlTopState.UsingBackup:
-            raise Exception("Should only call trigger_zones_at_setpoint_offpeak in transition from UsingBackup to Normal!")
+        if self.top_state != LocalControlTopState.UsingNonElectricBackup:
+            raise Exception("Should only call trigger_zones_at_setpoint_offpeak in transition from UsingNonElectricBackup to Normal!")
         self.trigger_top_event(cause=LocalControlTopStateEvent.CriticalZonesAtSetpointOffpeak)
         self.set_command_tree(boss_node=self.normal_node)
         self.normal_node_wakes_up()
@@ -478,7 +478,7 @@ class HomeAloneTouBase(ScadaActor):
                 if len(self.my_actuators()) > 0:
                     raise Exception("HomeAlone sent GoDormant with live actuators under it!")
                 if self.top_state != LocalControlTopState.Dormant:
-                    # TopGoDormant: Normal/UsingBackup -> Dormant
+                    # TopGoDormant: Normal/UsingNonElectricBackup -> Dormant
                     self.trigger_top_event(cause=LocalControlTopStateEvent.TopGoDormant)
                     self.normal_node_goes_dormant()
             case WakeUp():

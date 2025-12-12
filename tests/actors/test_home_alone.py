@@ -20,7 +20,7 @@ def test_top_state_switches():
     # new.command.tree is published with all actuators as direct
     # reports of relay  (result of set_admin_command_tree)
     # 
-    # TopGoDormant: UsingBackup -> Dormant works
+    # TopGoDormant: UsingNonElectricBackup -> Dormant works
     # h.state stays in Dormant
     # h.top_state goes to Dormant
     #
