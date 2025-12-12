@@ -3,7 +3,7 @@
 
 def test_home_alone():
     ...
-    #  after trigger_house_cold_event
+    #  after trigger_system_cold_event
     # all relays are direct reports of auto.h.backup
 
     # If scada goes into Admin mode, 

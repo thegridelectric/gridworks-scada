@@ -173,12 +173,12 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             H0CN.buffer_cold_pipe, H0CN.buffer_hot_pipe, H0CN.store_cold_pipe, H0CN.store_hot_pipe
         ]
         
-    def time_to_trigger_house_cold(self) -> bool:
+    def time_to_trigger_system_cold(self) -> bool:
         """
-        Logic for triggering HouseCold (and moving to top state UsingBackup).
+        Logic for triggering SystemCold (and moving to top state UsingBackup).
         In winter, this means: 1) house is cold 2) buffer is really empty and 3) store is empty
         """
-        return self.is_house_cold() and self.is_buffer_empty(really_empty=True) and self.is_storage_empty()
+        return self.is_system_cold() and self.is_buffer_empty(really_empty=True) and self.is_storage_empty()
 
     def normal_node_state(self) -> str:
         return self.state

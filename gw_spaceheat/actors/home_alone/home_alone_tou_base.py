@@ -26,7 +26,7 @@ from scada_app_interface import ScadaAppInterface
 
 
 class TopStateEvent(GwStrEnum):
-    HouseCold = auto()
+    SystemCold = auto()
     TopGoDormant = auto()
     TopWakeUp = auto()
     JustOffpeak = auto()
@@ -34,7 +34,7 @@ class TopStateEvent(GwStrEnum):
     DataAvailable = auto()
     MonitorOnly = auto()
     MonitorAndControl = auto()
-    ZonesAtSetpoint = auto()
+    CriticalZonesAtSetpoint = auto()
 
 class HomeAloneTouBase(ScadaActor):
     """Manages the top level state machine for home alone in a time of use framework. Every home 
@@ -45,12 +45,13 @@ class HomeAloneTouBase(ScadaActor):
 
     top_states = HomeAloneTopState.values()
     top_transitions = [
-        {"trigger": "HouseCold", "source": "Normal", "dest": "UsingBackup"},
         {"trigger": "TopGoDormant", "source": "Normal", "dest": "Dormant"},
         {"trigger": "TopGoDormant", "source": "UsingBackup", "dest": "Dormant"},
         {"trigger": "TopGoDormant", "source": "ScadaBlind", "dest": "Dormant"},
         {"trigger": "TopWakeUp", "source": "Dormant", "dest": "Normal"},
+        {"trigger": "SystemCold", "source": "Normal", "dest": "UsingBackup"},
         {"trigger": "JustOffpeak", "source": "UsingBackup", "dest": "Normal"},
+        {"trigger": "CriticalZonesAtSetpoint", "source": "UsingBackup", "dest": "Normal"},
         {"trigger": "MissingData", "source": "Normal", "dest": "ScadaBlind"},
         {"trigger": "DataAvailable", "source": "ScadaBlind", "dest": "Normal"},
         {"trigger": "MonitorOnly", "source": "Normal", "dest": "Monitor"},
@@ -160,8 +161,8 @@ class HomeAloneTouBase(ScadaActor):
         """
         orig_state = self.top_state
         now_ms = int(time.time() * 1000)
-        if cause == TopStateEvent.HouseCold:
-            self.HouseCold()
+        if cause == TopStateEvent.SystemCold:
+            self.SystemCold()
         elif cause == TopStateEvent.TopGoDormant:
             self.TopGoDormant()
         elif cause == TopStateEvent.TopWakeUp:
@@ -176,8 +177,8 @@ class HomeAloneTouBase(ScadaActor):
             self.MonitorOnly()
         elif cause == TopStateEvent.MonitorAndControl:
             self.MonitorAndControl()
-        elif cause == TopStateEvent.ZonesAtSetpoint:
-            self.ZonesAtSetpoint()
+        elif cause == TopStateEvent.CriticalZonesAtSetpoint:
+            self.CriticalZonesAtSetpoint()
         else:
             raise Exception(f"Unknown top event {cause}")
         
@@ -220,13 +221,13 @@ class HomeAloneTouBase(ScadaActor):
 
                 # Update top state
                 if self.top_state == HomeAloneTopState.Normal:
-                    if self.time_to_trigger_house_cold():
-                        self.trigger_house_cold_event()
+                    if self.time_to_trigger_system_cold():
+                        self.trigger_system_cold_event()
                         if self.strategy == HomeAloneStrategy.ShoulderTou and self.is_onpeak():
                             self.alert("Oil boiler", "House cold on peak, backup oil boiler")
                 elif self.top_state == HomeAloneTopState.UsingBackup and self.backup_started_onpeak and not self.is_onpeak():
                     self.trigger_just_offpeak()
-                elif self.top_state == HomeAloneTopState.UsingBackup and not self.backup_started_onpeak and not self.is_house_cold():
+                elif self.top_state == HomeAloneTopState.UsingBackup and not self.backup_started_onpeak and not self.is_system_cold():
                     self.trigger_zones_at_setpoint()
                 elif self.top_state == HomeAloneTopState.ScadaBlind:
                     if self.heating_forecast_available() and self.temperatures_available():
@@ -270,9 +271,9 @@ class HomeAloneTouBase(ScadaActor):
         return False
 
     @abstractmethod
-    def time_to_trigger_house_cold(self) -> bool:
+    def time_to_trigger_system_cold(self) -> bool:
         """
-        Logic for triggering HouseCold (and moving to top state UsingBackup)
+        Logic for triggering SystemCold (and moving to top state UsingBackup)
         """
         raise NotImplementedError
 
@@ -352,13 +353,13 @@ class HomeAloneTouBase(ScadaActor):
             self.log(f"Trouble with set_010_defaults: {e}")
         self.actuators_initialized = True
 
-    def trigger_house_cold_event(self) -> None:
+    def trigger_system_cold_event(self) -> None:
         """
         Called to change top state from Normal to UsingBackup. Only acts if
           (a) house is actually cold and (b) top state is Normal
         What it does: 
           - changes command tree (all relays will be direct reports of auto.h.backup)
-          - triggers HouseCold
+          - triggers SystemCold
           - takes necessary actuator actions to go backup
           - sets backup_started_onpeak to False if onpeak, True if offpeak
           - updates the normal state to Dormant if needed
@@ -371,7 +372,7 @@ class HomeAloneTouBase(ScadaActor):
         self.backup_started_onpeak = False
         if self.is_onpeak():
             self.backup_started_onpeak = True
-        self.trigger_top_event(cause=TopStateEvent.HouseCold)    
+        self.trigger_top_event(cause=TopStateEvent.SystemCold)    
 
     def trigger_zones_at_setpoint(self):
         """
@@ -380,7 +381,7 @@ class HomeAloneTouBase(ScadaActor):
         """
         if self.top_state != HomeAloneTopState.UsingBackup and not self.backup_started_onpeak:
             raise Exception("Should only call trigger_zones_at_setpoint in transition from UsingBackup (started offpeak) to Normal!")
-        self.trigger_top_event(cause=TopStateEvent.ZonesAtSetpoint)
+        self.trigger_top_event(cause=TopStateEvent.CriticalZonesAtSetpoint)
         self.set_command_tree(boss_node=self.normal_node)
         self.normal_node_wakes_up()
 
@@ -614,7 +615,7 @@ class HomeAloneTouBase(ScadaActor):
         self.log(f"Found all zone setpoints: {self.zone_setpoints}")
         self.log(f"Found all zone temperatures: {temps}")
     
-    def is_house_cold(self) -> bool:
+    def is_system_cold(self) -> bool:
         """Returns True if at least one critical zones is more than 1F below setpoint, where the 
         setpoint is set at the beginning of the latest onpeak period"""
         for zone in self.zone_setpoints:
