@@ -248,11 +248,13 @@ class HomeAloneTouBase(ScadaActor):
                 return
             if self.data.latest_channel_values[H0CN.dist_flow]/100 > 0.5:
                 self.log('[Pump doctor] Dist flow detected - success!')
-                self.log(f"[Pump doctor] Switching zones back to Open and Thermostat")
                 self.pump_doctor_attempts = 0
+                self.log(f"[Pump doctor] Switching zones back to Open and Thermostat")
                 for zone in self.layout.zone_list:
                     self.stat_ops_open_relay(zone=zone, from_node=self.normal_node)
                     self.heatcall_ctrl_to_stat(zone=zone, from_node=self.normal_node)  
+                self.log(f"[Pump doctor] Setting DFR back to default level")
+                self.set_010_defaults()
             else:
                 self.log('[Pump doctor] No dist flow detected - did not work')
                 self.pump_doctor_attempts += 1
