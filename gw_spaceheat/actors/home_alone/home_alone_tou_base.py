@@ -50,11 +50,13 @@ class HomeAloneTouBase(ScadaActor):
         {"trigger": "TopGoDormant", "source": "Normal", "dest": "Dormant"},
         {"trigger": "TopGoDormant", "source": "UsingBackupOnpeak", "dest": "Dormant"},
         {"trigger": "TopGoDormant", "source": "ScadaBlind", "dest": "Dormant"},
+        {"trigger": "TopGoDormant", "source": "Monitor", "dest": "Dormant"},
         {"trigger": "TopWakeUp", "source": "Dormant", "dest": "Normal"},
         {"trigger": "JustOffpeak", "source": "UsingBackupOnpeak", "dest": "Normal"},
         {"trigger": "MissingData", "source": "Normal", "dest": "ScadaBlind"},
         {"trigger": "DataAvailable", "source": "ScadaBlind", "dest": "Normal"},
         {"trigger": "MonitorOnly", "source": "Normal", "dest": "Monitor"},
+        {"trigger": "MonitorOnly", "source": "Dormant", "dest": "Monitor"},
         {"trigger": "MonitorAndControl", "source": "Monitor", "dest": "Normal"}
     ]
     
@@ -329,6 +331,7 @@ class HomeAloneTouBase(ScadaActor):
             
             await self.check_dist_pump()
 
+            # No control of actuators when in Monitor
             if not self.top_state == HomeAloneTopState.Monitor:
                 # update temperatures_available
                 self.get_latest_temperatures()
@@ -631,7 +634,14 @@ class HomeAloneTouBase(ScadaActor):
     def process_wake_up(self, from_node: ShNode, payload: WakeUp) -> None:
         if self.top_state != HomeAloneTopState.Dormant:
             return
-        # TopWakeUp: Dormant -> Normal
+
+        # Monitor-only mode: Dormant -> Monitor
+        if self.settings.monitor_only:
+            self.trigger_top_event(TopStateEvent.MonitorOnly)
+            self.log("Monitor-only: WakeUp transitioned Dormant -> Monitor")
+            return
+
+        # Normal behavior: Dormant -> Normal
         self.trigger_top_event(TopStateEvent.TopWakeUp)
         self.set_command_tree(boss_node=self.normal_node)
         # let normal node know its waking up
