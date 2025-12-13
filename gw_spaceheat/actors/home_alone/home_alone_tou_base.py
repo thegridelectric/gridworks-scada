@@ -307,8 +307,9 @@ class HomeAloneTouBase(ScadaActor):
                 if time.time() - self.time_dist_pump_should_be_on < 3*60:
                     self.log(f"Dist pump should be on for less than 3min ({round((time.time()-self.time_dist_pump_should_be_on)/60)}min)")
                 else:
-                    await self.pump_doctor()
+                    self.log(f"Dist pump should be on for more than 3min ({round((time.time()-self.time_dist_pump_should_be_on)/60)}min), starting pump doctor")
                     self.time_dist_pump_should_be_on = None
+                    await self.pump_doctor()
             else:
                 self.time_dist_pump_should_be_on = time.time()
 
