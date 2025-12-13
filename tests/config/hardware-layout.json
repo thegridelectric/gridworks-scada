@@ -1,4 +1,7 @@
 {
+  "CriticalZoneList": [
+    "main"
+  ],
   "DataChannels": [
     {
       "AboutNodeName": "hp-odu",
@@ -625,7 +628,7 @@
     },
     {
       "ComponentAttributeClassId": "cbe49338-5d14-47ff-b05e-22031876962e",
-      "DisplayName": "GridWorks TankModule3 (Gw100)",
+      "DisplayName": "GridWorks TankModule3 (Uses 1 pico)",
       "MakeModel": "GRIDWORKS__TANKMODULE3",
       "TypeName": "component.attribute.class.gt",
       "Version": "001"
@@ -1029,7 +1032,7 @@
     {
       "AsyncCaptureDeltaMicroVolts": 2000,
       "ComponentAttributeClassId": "cbe49338-5d14-47ff-b05e-22031876962e",
-      "ComponentId": "f4308bf6-2f52-4500-9961-c44d94e56879",
+      "ComponentId": "57270c96-1a91-453f-939e-750fd3367d6c",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -1089,9 +1092,14 @@
       "DisplayName": "buffer PicoTankModule",
       "Enabled": true,
       "NumSampleAverages": 30,
-      "PicoHwUid": "pico_aaaaaa",
+      "PicoHwUid": "pico_buffer",
       "Samples": 1000,
       "SendMicroVolts": true,
+      "SensorOrder": [
+        3,
+        2,
+        1
+      ],
       "SerialNumber": "9999",
       "TempCalcMethod": "SimpleBeta",
       "ThermistorBeta": 3977,
@@ -1101,7 +1109,7 @@
     {
       "AsyncCaptureDeltaMicroVolts": 2000,
       "ComponentAttributeClassId": "cbe49338-5d14-47ff-b05e-22031876962e",
-      "ComponentId": "46a8ad49-96fc-4d22-8805-6eed37a1c6f0",
+      "ComponentId": "7ea48ca9-b247-498c-9eb4-b0fed1b57f4c",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -1161,7 +1169,7 @@
       "DisplayName": "tank1 PicoTankModule",
       "Enabled": true,
       "NumSampleAverages": 30,
-      "PicoHwUid": "pico_aaaaab",
+      "PicoHwUid": "pico_tank1",
       "Samples": 1000,
       "SendMicroVolts": true,
       "SerialNumber": "1001",
@@ -1173,7 +1181,7 @@
     {
       "AsyncCaptureDeltaMicroVolts": 2000,
       "ComponentAttributeClassId": "cbe49338-5d14-47ff-b05e-22031876962e",
-      "ComponentId": "0fdebd63-3b0c-40c6-bc3c-4a3c87106aca",
+      "ComponentId": "a03842fb-5c4f-4384-bc48-a798bc95c59a",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -1233,7 +1241,7 @@
       "DisplayName": "tank2 PicoTankModule",
       "Enabled": true,
       "NumSampleAverages": 30,
-      "PicoHwUid": "pico_aaaaac",
+      "PicoHwUid": "pico_tank2",
       "Samples": 1000,
       "SendMicroVolts": true,
       "SerialNumber": "1002",
@@ -1245,7 +1253,7 @@
     {
       "AsyncCaptureDeltaMicroVolts": 2000,
       "ComponentAttributeClassId": "cbe49338-5d14-47ff-b05e-22031876962e",
-      "ComponentId": "7c1214a0-dfde-466e-9478-69057eff42f0",
+      "ComponentId": "c298e210-575c-4a39-bffd-2cee9855cf41",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -1305,7 +1313,7 @@
       "DisplayName": "tank3 PicoTankModule",
       "Enabled": true,
       "NumSampleAverages": 30,
-      "PicoHwUid": "pico_aaaaad",
+      "PicoHwUid": "pico_tank3",
       "Samples": 1000,
       "SendMicroVolts": true,
       "SerialNumber": "1003",
@@ -1455,10 +1463,10 @@
     },
     {
       "ActorClass": "NoActor",
-      "DisplayName": "HomeAlone Onpeak Backup",
-      "Handle": "auto.h.onpeak-backup",
-      "Name": "onpeak-backup",
-      "ShNodeId": "7a47d30b-3a85-484e-a2b5-2da5c7ea4077",
+      "DisplayName": "HomeAlone Backup",
+      "Handle": "auto.h.backup",
+      "Name": "backup",
+      "ShNodeId": "95dc63f0-bd76-4e6e-b95f-c2f5d395ba5c",
       "TypeName": "spaceheat.node.gt",
       "Version": "200"
     },
@@ -1714,7 +1722,7 @@
     {
       "ActorClass": "ApiTankModule",
       "ActorHierarchyName": "s.buffer",
-      "ComponentId": "f4308bf6-2f52-4500-9961-c44d94e56879",
+      "ComponentId": "57270c96-1a91-453f-939e-750fd3367d6c",
       "DisplayName": "Buffer Tank",
       "Name": "buffer",
       "ShNodeId": "68596845-2e66-4f9d-a876-90da381ddc37",
@@ -1746,17 +1754,9 @@
       "Version": "200"
     },
     {
-      "ActorClass": "NoActor",
-      "DisplayName": "buffer-depth4",
-      "Name": "buffer-depth4",
-      "ShNodeId": "cf5a5804-81a7-464d-b70d-590f41401cf2",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "200"
-    },
-    {
       "ActorClass": "ApiTankModule",
       "ActorHierarchyName": "s.tank1",
-      "ComponentId": "46a8ad49-96fc-4d22-8805-6eed37a1c6f0",
+      "ComponentId": "7ea48ca9-b247-498c-9eb4-b0fed1b57f4c",
       "DisplayName": "Tank1 Tank",
       "Name": "tank1",
       "ShNodeId": "ca851545-398d-427e-ae96-221b166d90c1",
@@ -1790,7 +1790,7 @@
     {
       "ActorClass": "ApiTankModule",
       "ActorHierarchyName": "s.tank2",
-      "ComponentId": "0fdebd63-3b0c-40c6-bc3c-4a3c87106aca",
+      "ComponentId": "a03842fb-5c4f-4384-bc48-a798bc95c59a",
       "DisplayName": "Tank2 Tank",
       "Name": "tank2",
       "ShNodeId": "6be3090b-2867-48e3-bcc4-246b654fc5f7",
@@ -1824,7 +1824,7 @@
     {
       "ActorClass": "ApiTankModule",
       "ActorHierarchyName": "s.tank3",
-      "ComponentId": "7c1214a0-dfde-466e-9478-69057eff42f0",
+      "ComponentId": "c298e210-575c-4a39-bffd-2cee9855cf41",
       "DisplayName": "Tank3 Tank",
       "Name": "tank3",
       "ShNodeId": "50fb5f5e-7cc4-46b0-a803-05ee7f09646a",
@@ -1925,9 +1925,10 @@
   ],
   "TotalStoreTanks": 3,
   "UseSiegLoop": false,
+  "ZoneKwhPerDegFList": [
+    1
+  ],
   "ZoneList": [
     "main"
-  ],
-  "CriticalZoneList": ["main"],
-  "ZoneKwhPerDegFList": [1]
+  ]
 }

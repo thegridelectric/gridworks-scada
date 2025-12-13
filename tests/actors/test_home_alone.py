@@ -3,8 +3,8 @@
 
 def test_home_alone():
     ...
-    #  after trigger_house_cold_onpeak_event
-    # all relays are direct reports of auto.h.onpeak-backup
+    #  after trigger_system_cold_event
+    # all relays are direct reports of auto.h.backup
 
     # If scada goes into Admin mode, 
     # HomeAlone top state is Dormant, normal state is Dormant
@@ -20,7 +20,7 @@ def test_top_state_switches():
     # new.command.tree is published with all actuators as direct
     # reports of relay  (result of set_admin_command_tree)
     # 
-    # TopGoDormant: UsingBackupOnpeak -> Dormant works
+    # TopGoDormant: UsingNonElectricBackup -> Dormant works
     # h.state stays in Dormant
     # h.top_state goes to Dormant
     #
@@ -30,5 +30,5 @@ def test_top_state_switches():
     # h.set_scadablind_command_tree()
     # h.scada_blind_actuator_actions()
     # h.leaving_scada_blind_actuator_actions()
-    # todo: similar for onpeak_backup_actuator_actions
+    # todo: similar for backup_actuator_actions
 
