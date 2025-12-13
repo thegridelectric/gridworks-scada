@@ -297,16 +297,8 @@ class HomeAloneTouBase(ScadaActor):
                 self.log(f"{zone_whitewire_name} is below threshold ({self.data.latest_channel_values[zone_whitewire_name]} <= {self.settings.whitewire_threshold_watts} W)")
         if dist_pump_should_be_off:
             self.log("Dist pump should be off")
-            self.time_dist_pump_should_be_on = None
             return
         
-        if not self.time_dist_pump_should_be_on:
-            self.time_dist_pump_should_be_on = time.time()
-        if time.time() - self.time_dist_pump_should_be_on < 3*60:
-            self.log(f"Dist pump should be on since less than 3min ({round((time.time()-self.time_dist_pump_should_be_on)/60)}min)")
-            return
-        
-        self.log(f"Dist pump should be on since {round((time.time()-self.time_dist_pump_should_be_on)/60)}min")
         if H0CN.dist_flow not in self.data.latest_channel_values or self.data.latest_channel_values[H0CN.dist_flow] is None:
             self.log("Dist flow not found in latest channel values")
             return
@@ -314,7 +306,14 @@ class HomeAloneTouBase(ScadaActor):
             self.log(f"The dist pumps in on (GPM = {self.data.latest_channel_values[H0CN.dist_flow]/100})")
         else:
             self.log(f"The dist pumps in off!! (GPM = {self.data.latest_channel_values[H0CN.dist_flow]/100})")
-            await self.pump_doctor()
+            if self.time_dist_pump_should_be_on:
+                if time.time() - self.time_dist_pump_should_be_on < 3*60:
+                    self.log(f"Dist pump should be on for less than 3min ({round((time.time()-self.time_dist_pump_should_be_on)/60)}min)")
+                else:
+                    await self.pump_doctor()
+                    self.time_dist_pump_should_be_on = None
+            else:
+                self.time_dist_pump_should_be_on = time.time()
 
     async def main(self):
         await asyncio.sleep(5)
