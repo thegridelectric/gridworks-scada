@@ -395,12 +395,13 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             max_buffer = 170
         else:
             max_buffer = round(max(self.heating_forecast.RswtF[:3]),1)
+        MAPLE_HACK_DELTA_F = 20
         buffer_full_ch_temp = round(self.to_fahrenheit(self.latest_temperatures[buffer_full_ch]/1000),1)
-        if buffer_full_ch_temp > max_buffer:
-            self.log(f"Buffer full ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)")
+        if buffer_full_ch_temp + MAPLE_HACK_DELTA_F > max_buffer: # 
+            self.log(f"Buffer full ({buffer_full_ch}: {buffer_full_ch_temp} + HACK {MAPLE_HACK_DELTA_F } > {max_buffer} F)")
             return True
         else:
-            self.log(f"Buffer not full ({buffer_full_ch}: {buffer_full_ch_temp} <= {max_buffer} F)")
+            self.log(f"Buffer not full ({buffer_full_ch}: {buffer_full_ch_temp} + HACK {MAPLE_HACK_DELTA_F } <= {max_buffer} F)")
             return False
 
     def is_storage_ready(self) -> bool:
