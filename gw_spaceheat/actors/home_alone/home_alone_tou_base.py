@@ -511,6 +511,12 @@ class HomeAloneTouBase(ScadaActor):
             self.log("Monitor-only: WakeUp transitioned Dormant -> Monitor")
             return
 
+        # Monitor-only mode: Dormant -> Monitor
+        if self.settings.monitor_only:
+            self.trigger_top_event(LocalControlTopStateEvent.MonitorOnly)
+            self.log("Monitor-only: WakeUp transitioned Dormant -> Monitor")
+            return
+
         # Normal behavior: Dormant -> Normal
         self.trigger_top_event(LocalControlTopStateEvent.TopWakeUp)
         self.set_command_tree(boss_node=self.normal_node)
