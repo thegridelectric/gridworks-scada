@@ -212,7 +212,7 @@ class HomeAloneTouBase(ScadaActor):
                 self.heatcall_ctrl_to_scada(zone=zone, from_node=self.normal_node)            
             
             # Set DFR to 0
-            self.log("[Pump doctor] Waiting 10 seconds before setting dist DFR to 0")
+            self.log("[Pump doctor] Waiting 10 seconds")
             await asyncio.sleep(10)
             self.log("[Pump doctor] Setting dist DFR to 0")
             self.services.send_threadsafe(
@@ -232,9 +232,9 @@ class HomeAloneTouBase(ScadaActor):
             )
 
             # Switch all zones to Closed
-            self.log("[Pump doctor] Waiting 5 seconds before switching zone relays to Closed")
+            self.log("[Pump doctor] Waiting 5 seconds")
             await asyncio.sleep(5)
-            self.log("[Pump doctor] Switching zone relays to Closed...")
+            self.log("[Pump doctor] Switching zone relays to Closed")
             for zone in self.layout.zone_list:
                 self.stat_ops_close_relay(zone=zone, from_node=self.normal_node)
 
@@ -297,9 +297,9 @@ class HomeAloneTouBase(ScadaActor):
             self.log("Dist flow not found in latest channel values")
             return
         if self.data.latest_channel_values[H0CN.dist_flow]/100 > 0.5:
-            self.log(f"The dist pumps in on (GPM = {self.data.latest_channel_values[H0CN.dist_flow]/100})")
+            self.log(f"The dist pump is on (GPM = {self.data.latest_channel_values[H0CN.dist_flow]/100})")
         else:
-            self.log(f"The dist pumps in off!! (GPM = {self.data.latest_channel_values[H0CN.dist_flow]/100})")
+            self.log(f"The dist pump is off!! (GPM = {self.data.latest_channel_values[H0CN.dist_flow]/100})")
             if self.time_dist_pump_should_be_on:
                 if time.time() - self.time_dist_pump_should_be_on < 3*60:
                     self.log(f"Dist pump should be on for less than 3min ({round((time.time()-self.time_dist_pump_should_be_on)/60)}min)")
