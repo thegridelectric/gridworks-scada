@@ -577,7 +577,7 @@ class AllTanksAtomicAlly(ScadaActor):
             else:
                 self.log(f"Buffer can be charged more ({buffer_full_ch}: {buffer_full_ch_temp} <= {max_buffer} F)")
                 return False
-        MAPLE_HACK_DELTA_F = 23
+        MAPLE_HACK_DELTA_F = 28
         if buffer_full_ch_temp + MAPLE_HACK_DELTA_F > max_buffer:
             self.log(f"Buffer full ({buffer_full_ch}: {buffer_full_ch_temp} + HACK { + MAPLE_HACK_DELTA_F} > {max_buffer} F)")
             return True
