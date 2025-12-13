@@ -194,6 +194,9 @@ class HomeAloneTouBase(ScadaActor):
         return [MonitoredName(self.name, self.MAIN_LOOP_SLEEP_SECONDS * 2.1)]
 
     async def pump_doctor(self):
+        # NOTE:
+        # pump_doctor runs inline inside the HomeAlone main loop.
+        # Any waits here MUST pat the internal watchdog or SCADA will reboot.
         self.pump_doctor_running = True
         try:
             self.log("[Pump doctor] Starting...")
@@ -213,7 +216,7 @@ class HomeAloneTouBase(ScadaActor):
             
             # Set DFR to 0
             self.log("[Pump doctor] Waiting 10 seconds")
-            await asyncio.sleep(10)
+            await self.await_with_watchdog(10)
             self.log("[Pump doctor] Setting dist DFR to 0")
             self.services.send_threadsafe(
                 Message(
@@ -233,14 +236,14 @@ class HomeAloneTouBase(ScadaActor):
 
             # Switch all zones to Closed
             self.log("[Pump doctor] Waiting 5 seconds")
-            await asyncio.sleep(5)
+            await self.await_with_watchdog(5)
             self.log("[Pump doctor] Switching zone relays to Closed")
             for zone in self.layout.zone_list:
                 self.stat_ops_close_relay(zone=zone, from_node=self.normal_node)
 
             # Wait to see flow come in
-            self.log(f"[Pump doctor] Waiting 1 minute")
-            await asyncio.sleep(int(1*60))
+            self.log("[Pump doctor] Waiting 1 minute")
+            await self.await_with_watchdog(int(1*60))
 
             # Check if dist flow is detected, if yes switch all zones back Open and Thermostat
             if H0CN.dist_flow not in self.data.latest_channel_values or self.data.latest_channel_values[H0CN.dist_flow] is None:
@@ -249,11 +252,11 @@ class HomeAloneTouBase(ScadaActor):
             if self.data.latest_channel_values[H0CN.dist_flow]/100 > 0.5:
                 self.log('[Pump doctor] Dist flow detected - success!')
                 self.pump_doctor_attempts = 0
-                self.log(f"[Pump doctor] Switching zones back to Open and Thermostat")
+                self.log("[Pump doctor] Switching zones back to Open and Thermostat")
                 for zone in self.layout.zone_list:
                     self.stat_ops_open_relay(zone=zone, from_node=self.normal_node)
                     self.heatcall_ctrl_to_stat(zone=zone, from_node=self.normal_node)  
-                self.log(f"[Pump doctor] Setting DFR back to default level")
+                self.log("[Pump doctor] Setting DFR back to default level")
                 self.set_010_defaults()
             else:
                 self.log('[Pump doctor] No dist flow detected - did not work')
@@ -308,6 +311,29 @@ class HomeAloneTouBase(ScadaActor):
                     self.time_dist_pump_should_be_on = None
             else:
                 self.time_dist_pump_should_be_on = time.time()
+
+    async def await_with_watchdog(
+        self,
+        total_seconds: float,
+        pat_every: float = 20.0,
+    ):
+        """
+        Await for total_seconds, patting the internal watchdog periodically.
+
+        IMPORTANT:
+        asyncio.sleep() does NOT pat the watchdog.
+        Any awaited duration in HomeAlone must go through this helper.
+        """
+        deadline = time.monotonic() + total_seconds
+
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            
+            await asyncio.sleep(min(pat_every, remaining))
+            self.log("Extra h watchdog pat")
+            self._send(PatInternalWatchdogMessage(src=self.name))
 
     async def main(self):
         await asyncio.sleep(5)
