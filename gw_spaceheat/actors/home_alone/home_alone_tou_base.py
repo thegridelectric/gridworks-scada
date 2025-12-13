@@ -357,8 +357,7 @@ class HomeAloneTouBase(ScadaActor):
 
     def trigger_zones_at_setpoint_offpeak(self):
         """
-        Called to change top state from UsingNonElectricBackup to Normal, 
-        when backup was started offpeak
+        Called to change top state from UsingNonElectricBackup to Normal
         """
         if self.top_state != LocalControlTopState.UsingNonElectricBackup:
             raise Exception("Should only call trigger_zones_at_setpoint_offpeak in transition from UsingNonElectricBackup to Normal!")
