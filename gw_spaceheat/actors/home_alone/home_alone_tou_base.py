@@ -90,6 +90,7 @@ class HomeAloneTouBase(ScadaActor):
         self.latest_temperatures: Dict[str, int] = {} # 
         self.actuators_initialized = False
         self.actuators_ready = False
+        self.backup_started_onpeak = False
 
     @property
     def normal_node(self) -> ShNode:
