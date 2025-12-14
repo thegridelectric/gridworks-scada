@@ -252,12 +252,7 @@ class HomeAloneTouBase(ScadaActor):
             if self.data.latest_channel_values[H0CN.dist_flow]/100 > 0.5:
                 self.log('[Pump doctor] Dist flow detected - success!')
                 self.pump_doctor_attempts = 0
-                self.log("[Pump doctor] Switching zones back to Open and Thermostat")
-                for zone in self.layout.zone_list:
-                    self.stat_ops_open_relay(zone=zone, from_node=self.normal_node)
-                    self.heatcall_ctrl_to_stat(zone=zone, from_node=self.normal_node)  
-                self.log("[Pump doctor] Setting DFR back to default level")
-                self.set_010_defaults()
+                self.log("[Pump doctor] Switching zones back to Open and Thermostat")                
             else:
                 self.log('[Pump doctor] No dist flow detected - did not work')
                 self.pump_doctor_attempts += 1
@@ -265,6 +260,15 @@ class HomeAloneTouBase(ScadaActor):
             self.log(f"[Pump doctor] Error: {e}")
         finally:
             self.pump_doctor_running = False
+            self.log("[Pump doctor] Setting 0-10V back to default level")
+            self.set_010_defaults()
+            self.log("[Pump doctor] Switching zones back to thermostat")
+            for zone in self.layout.zone_list:
+                self.heatcall_ctrl_to_stat(zone=zone, from_node=self.normal_node)
+            await self.await_with_watchdog(5)
+            self.log("[Pump doctor] Switching scada thermostat relays back to open")
+            for zone in self.layout.zone_list:
+                self.stat_ops_open_relay(zone=zone, from_node=self.normal_node)
         
     async def check_dist_pump(self):
         if self.pump_doctor_running:
@@ -301,6 +305,9 @@ class HomeAloneTouBase(ScadaActor):
             return
         if self.data.latest_channel_values[H0CN.dist_flow]/100 > 0.5:
             self.log(f"The dist pump is on (GPM = {self.data.latest_channel_values[H0CN.dist_flow]/100})")
+            if self.pump_doctor_attempts > 0:
+                self.log(f"Resetting pump doctor attempts from {self.pump_doctor_attempts} to 0")
+                self.pump_doctor_attempts = 0
         else:
             self.log(f"The dist pump is off!! (GPM = {self.data.latest_channel_values[H0CN.dist_flow]/100})")
             if self.time_dist_pump_should_be_on:
