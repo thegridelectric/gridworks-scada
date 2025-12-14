@@ -197,10 +197,23 @@ class HomeAloneTouBase(ScadaActor):
         # NOTE:
         # pump_doctor runs inline inside the HomeAlone main loop.
         # Any waits here MUST pat the internal watchdog or SCADA will reboot.
+        if self.pump_doctor_running:
+            self.log("[Dist pump doctor] Already running, skipping")
+            return
+
         self.pump_doctor_running = True
         try:
             self.log("[Pump doctor] Starting...")
-            # self.alert('Pump doctor starting for the dist pump at Elm, please monitor', 'Pump doctor starting')
+            # Send a warning - will not trigger an alert and gives us a record
+            self._send_to(self.atn,
+                    Glitch(
+                        FromGNodeAlias=self.layout.scada_g_node_alias,
+                        Node=self.node.Name,
+                        Type=LogLevel.Warning,
+                        Summary="Dist Pump Doctor starting",
+                        Details=f"Attempt {self.pump_doctor_attempts + 1}/{3}"
+                    )
+                )
 
             if self.pump_doctor_attempts >= 3:
                 self.log("[Pump doctor] Max attempts reached, giving up")
@@ -252,18 +265,22 @@ class HomeAloneTouBase(ScadaActor):
             if self.data.latest_channel_values[H0CN.dist_flow]/100 > 0.5:
                 self.log('[Pump doctor] Dist flow detected - success!')
                 self.pump_doctor_attempts = 0
-                self.log("[Pump doctor] Switching zones back to Open and Thermostat")
-                for zone in self.layout.zone_list:
-                    self.stat_ops_open_relay(zone=zone, from_node=self.normal_node)
-                    self.heatcall_ctrl_to_stat(zone=zone, from_node=self.normal_node)  
-                self.log("[Pump doctor] Setting DFR back to default level")
-                self.set_010_defaults()
+                self.log("[Pump doctor] Switching zones back to Open and Thermostat")                
             else:
                 self.log('[Pump doctor] No dist flow detected - did not work')
                 self.pump_doctor_attempts += 1
         except Exception as e:
             self.log(f"[Pump doctor] Error: {e}")
         finally:
+            self.log("[Pump doctor] Setting 0-10V back to default level")
+            self.set_010_defaults()
+            self.log("[Pump doctor] Switching zones back to thermostat")
+            for zone in self.layout.zone_list:
+                self.heatcall_ctrl_to_stat(zone=zone, from_node=self.normal_node)
+            await self.await_with_watchdog(5)
+            self.log("[Pump doctor] Switching scada thermostat relays back to open")
+            for zone in self.layout.zone_list:
+                self.stat_ops_open_relay(zone=zone, from_node=self.normal_node)
             self.pump_doctor_running = False
         
     async def check_dist_pump(self):
@@ -505,8 +522,7 @@ class HomeAloneTouBase(ScadaActor):
 
     def trigger_zones_at_setpoint_offpeak(self):
         """
-        Called to change top state from UsingNonElectricBackup to Normal, 
-        when backup was started offpeak
+        Called to change top state from UsingNonElectricBackup to Normal
         """
         if self.top_state != LocalControlTopState.UsingNonElectricBackup:
             raise Exception("Should only call trigger_zones_at_setpoint_offpeak in transition from UsingNonElectricBackup to Normal!")
@@ -559,18 +575,6 @@ class HomeAloneTouBase(ScadaActor):
             self.aquastat_ctrl_switch_to_boiler(from_node=self.backup_node)
         else:
             self.turn_on_HP(from_node=self.backup_node)
-
-    def offpeak_backup_actuator_actions(self) -> None:
-        """
-        Expects command tree set already with self.offpeak_backup_node as boss
-          - turns off store pump
-          - iso valve open (valved to discharge)
-          - turns hp failsafe to aquastat
-        """
-        self.turn_off_store_pump(from_node=self.offpeak_backup_node)
-        self.valved_to_discharge_store(from_node=self.offpeak_backup_node)
-        self.hp_failsafe_switch_to_aquastat(from_node=self.offpeak_backup_node)
-        self.aquastat_ctrl_switch_to_boiler(from_node=self.offpeak_backup_node)
 
     def set_010_defaults(self) -> None:
         """
@@ -772,13 +776,3 @@ class HomeAloneTouBase(ScadaActor):
     def to_fahrenheit(self, t:float) -> float:
         return t*9/5+32
 
-    def alert(self, summary: str, details: str) -> None:
-        msg =Glitch(
-            FromGNodeAlias=self.layout.scada_g_node_alias,
-            Node=self.node.Name,
-            Type=LogLevel.Critical,
-            Summary=summary,
-            Details=details
-        )
-        self._send_to(self.atn, msg)
-        self.log(f"CRITICAL GLITCH: {summary}")
