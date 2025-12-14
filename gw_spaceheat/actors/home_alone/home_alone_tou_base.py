@@ -32,6 +32,8 @@ class HomeAloneTouBase(ScadaActor):
     should inherit from this base class."""
     MAIN_LOOP_SLEEP_SECONDS = 60
     BLIND_MINUTES = 5
+    MAX_PUMP_DOCTOR_ATTEMPTS = 3
+    ZONE_CONTROL_DELAY_SECONDS = 180
 
     top_states = LocalControlTopState.values()
     top_transitions = [
@@ -90,9 +92,9 @@ class HomeAloneTouBase(ScadaActor):
         self.latest_temperatures: Dict[str, int] = {} # 
         self.actuators_initialized = False
         self.actuators_ready = False
-        self.pump_doctor_running = False
+        self.dist_pump_doctor_running = False
         self.pump_doctor_attempts = 0
-        self.time_dist_pump_should_be_on = None
+        self.zone_controller_triggered_at = None
 
     @property
     def normal_node(self) -> ShNode:
@@ -523,52 +525,46 @@ class HomeAloneTouBase(ScadaActor):
     # ------------------------------------------------------------------
 
     async def check_dist_pump(self):
-        if self.pump_doctor_running:
-            self.log("Pump doctor already running, skipping dist pump check")
+        if self.dist_pump_doctor_running:
+            self.log("[DistPumpCheck] Recovery in progress; skipping health check")
             return
-        self.log("Checking dist pump activity...")
-        dist_pump_should_be_off = True
+        # self.log("[DistPumpCheck] Checking dist pump activity...")
+        no_zones_calling = True
         for i in H0CN.zone:
             zone_whitewire_name = H0CN.zone[i].whitewire_pwr
             if zone_whitewire_name not in self.data.latest_channel_values or self.data.latest_channel_values[zone_whitewire_name] is None:
-                self.log(f"{zone_whitewire_name} was not found in latest channel values")
-                if 'zone4-master-whitewire' in zone_whitewire_name:
-                    for existing_zone_whitewire_name in self.data.latest_channel_values:
-                        if (
-                            'whitewire' in existing_zone_whitewire_name and
-                            f"{zone_whitewire_name.split('-')[0]}-{zone_whitewire_name.split('-')[1]}" in existing_zone_whitewire_name
-                        ):
-                            self.log(f"Found {existing_zone_whitewire_name} in latest channel values")
-                            zone_whitewire_name = existing_zone_whitewire_name
-                            break
+                self.log(f"[DistPumpCheck] {zone_whitewire_name} was not found in latest channel values.")
                 continue
             if abs(self.data.latest_channel_values[zone_whitewire_name]) > self.settings.whitewire_threshold_watts:
-                self.log(f"{zone_whitewire_name} is above threshold ({self.data.latest_channel_values[zone_whitewire_name]} > {self.settings.whitewire_threshold_watts} W)")
-                dist_pump_should_be_off = False
+                # self.log(f"[DistPumpCheck] {zone_whitewire_name} is above threshold ({self.data.latest_channel_values[zone_whitewire_name]} > {self.settings.whitewire_threshold_watts} W)")
+                no_zones_calling = False
                 break
             else:
                 self.log(f"{zone_whitewire_name} is below threshold ({self.data.latest_channel_values[zone_whitewire_name]} <= {self.settings.whitewire_threshold_watts} W)")
-        if dist_pump_should_be_off:
-            self.log("Dist pump should be off")
+        if no_zones_calling:
+            # self.log("[Dist pump check] No zones calling; dist pump should be off")
             return
 
         if H0CN.dist_flow not in self.data.latest_channel_values or self.data.latest_channel_values[H0CN.dist_flow] is None:
-            self.log("Dist flow not found in latest channel values")
+            self.log("[DistPumpCheck] Dist flow not found in latest channel values")
             return
         if self.data.latest_channel_values[H0CN.dist_flow]/100 > 0.5:
-            self.log(f"The dist pump is on (GPM = {self.data.latest_channel_values[H0CN.dist_flow]/100})")
-            self.time_dist_pump_should_be_on = None
+            # self.log(f"[DistPumpCheck] The dist pump is on (GPM = {self.data.latest_channel_values[H0CN.dist_flow]/100})")
+            self.zone_controller_triggered_at = None
         else:
-            self.log(f"The dist pump is off!! (GPM = {self.data.latest_channel_values[H0CN.dist_flow]/100})")
-            if self.time_dist_pump_should_be_on:
-                if time.time() - self.time_dist_pump_should_be_on < 3*60:
-                    self.log(f"Dist pump should be on for less than 3min ({round((time.time()-self.time_dist_pump_should_be_on)/60)}min)")
+            # self.log(f"[DistPumpCheck] The dist pump is off!! (GPM = {self.data.latest_channel_values[H0CN.dist_flow]/100})")
+            if self.zone_controller_triggered_at:
+                if time.time() - self.zone_controller_triggered_at < self.ZONE_CONTROL_DELAY_SECONDS:
+                    self.log(f"[DistPumpCheck] Zone controller triggered  ({round(time.time()-self.zone_controller_triggered_at)}s ago; still waiting for zone controller startup)")
                 else:
-                    self.log(f"Dist pump should be on for more than 3min ({round((time.time()-self.time_dist_pump_should_be_on)/60)}min), starting pump doctor")
-                    self.time_dist_pump_should_be_on = None
-                    await self.pump_doctor()
+                    self.log(
+                        f"[Dist pump check] Zone controller delay {self.ZONE_CONTROL_DELAY_SECONDS} exceeded; "
+                        "triggering pump doctor"
+                    )
+                    self.zone_controller_triggered_at = None
+                    await self.dist_pump_doctor()
             else:
-                self.time_dist_pump_should_be_on = time.time()
+                self.zone_controller_triggered_at = time.time()
 
 
     # ------------------------------------------------------------------
@@ -606,44 +602,45 @@ class HomeAloneTouBase(ScadaActor):
     # Procederal: Distribution pump recovery
     # ------------------------------------------------------------------
 
-    async def pump_doctor(self):
+    async def dist_pump_doctor(self):
         # NOTE:
         # pump_doctor runs inline inside the HomeAlone main loop.
         # Any waits here MUST pat the internal watchdog or SCADA will reboot.
-        if self.pump_doctor_running:
-            self.log("[Dist pump doctor] Already running, skipping")
+        if self.dist_pump_doctor_running:
+            self.log("[DistPumpDoctor] Already running, skipping")
             return
 
-        self.pump_doctor_running = True
+        self.dist_pump_doctor_running = True
         try:
-            self.log("[Pump doctor] Starting...")
+            if self.pump_doctor_attempts >= self.MAX_PUMP_DOCTOR_ATTEMPTS:
+                self.log(f"[DistPumpDoctor] Max attempts reached ({self.MAX_PUMP_DOCTOR_ATTEMPTS}), giving up")
+                # TODO: send critical glitch
+                return
+            self.log("[DistPumpDoctor] Starting...")
             # Send a warning - will not trigger an alert and gives us a record
             self._send_to(self.atn,
                     Glitch(
                         FromGNodeAlias=self.layout.scada_g_node_alias,
                         Node=self.node.Name,
                         Type=LogLevel.Warning,
-                        Summary="Dist Pump Doctor starting",
+                        Summary="DistPumpDoctor starting",
                         Details=f"Attempt {self.pump_doctor_attempts + 1}/{3}"
                     )
                 )
 
-            if self.pump_doctor_attempts >= 3:
-                self.log("[Pump doctor] Max attempts reached, giving up")
-                return
             if not self.layout.zone_list:
-                self.log("[Pump doctor] Could not find a zone list")
+                self.log("[DistPumpDoctor] Could not find a zone list")
                 return
 
             # Switch all zones to Scada
-            self.log("[Pump doctor] Switching zone relays to Scada")
+            self.log("[DistPumpDoctor] Switching zone relays to Scada")
             for zone in self.layout.zone_list:
                 self.heatcall_ctrl_to_scada(zone=zone, from_node=self.normal_node)
 
             # Set DFR to 0
-            self.log("[Pump doctor] Waiting 10 seconds")
+            self.log("[DistPumpDoctor] Waiting 10 seconds")
             await self.await_with_watchdog(10)
-            self.log("[Pump doctor] Setting dist DFR to 0")
+            self.log("[DistPumpDoctor] Setting dist DFR to 0")
             self.services.send_threadsafe(
                 Message(
                     Src=self.name,
@@ -661,40 +658,40 @@ class HomeAloneTouBase(ScadaActor):
             )
 
             # Switch all zones to Closed
-            self.log("[Pump doctor] Waiting 5 seconds")
+            self.log("[DistPumpDoctor] Waiting 5 seconds")
             await self.await_with_watchdog(5)
-            self.log("[Pump doctor] Switching zone relays to Closed")
+            self.log("[DistPumpDoctor] Switching zone relays to Closed")
             for zone in self.layout.zone_list:
                 self.stat_ops_close_relay(zone=zone, from_node=self.normal_node)
 
             # Wait to see flow come in
-            self.log("[Pump doctor] Waiting 1 minute")
+            self.log("[DistPumpDoctor] Waiting 1 minute")
             await self.await_with_watchdog(int(1*60))
 
             # Check if dist flow is detected, if yes switch all zones back Open and Thermostat
             if H0CN.dist_flow not in self.data.latest_channel_values or self.data.latest_channel_values[H0CN.dist_flow] is None:
-                self.log("[Pump doctor] Dist flow not found in latest channel values")
+                self.log("[DistPumpDoctor] Dist flow not found in latest channel values")
                 return
             if self.data.latest_channel_values[H0CN.dist_flow]/100 > 0.5:
-                self.log('[Pump doctor] Dist flow detected - success!')
+                self.log('[DistPumpDoctor] Dist flow detected - success!')
                 self.pump_doctor_attempts = 0
-                self.log("[Pump doctor] Switching zones back to Open and Thermostat")
+                self.log("[DistPumpDoctor] Switching zones back to Open and Thermostat")
             else:
-                self.log('[Pump doctor] No dist flow detected - did not work')
+                self.log('[DistPumpDoctor] No dist flow detected - did not work')
                 self.pump_doctor_attempts += 1
         except Exception as e:
-            self.log(f"[Pump doctor] Error: {e}")
+            self.log(f"[DistPumpDoctor] Error: {e}")
         finally:
-            self.log("[Pump doctor] Setting 0-10V back to default level")
+            self.log("[DistPumpDoctor] Setting 0-10V back to default level")
             self.set_010_defaults()
-            self.log("[Pump doctor] Switching zones back to thermostat")
+            self.log("[DistPumpDoctor] Switching zones back to thermostat")
             for zone in self.layout.zone_list:
                 self.heatcall_ctrl_to_stat(zone=zone, from_node=self.normal_node)
             await self.await_with_watchdog(5)
-            self.log("[Pump doctor] Switching scada thermostat relays back to open")
+            self.log("[DistPumpDoctor] Switching scada thermostat relays back to open")
             for zone in self.layout.zone_list:
                 self.stat_ops_open_relay(zone=zone, from_node=self.normal_node)
-            self.pump_doctor_running = False
+            self.dist_pump_doctor_running = False
 
     # ------------------------------------------------------------------
     # utilities
