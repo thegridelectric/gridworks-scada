@@ -195,227 +195,6 @@ class HomeAloneTouBase(ScadaActor):
     def monitored_names(self) -> Sequence[MonitoredName]:
         return [MonitoredName(self.name, self.MAIN_LOOP_SLEEP_SECONDS * 2.1)]
 
-    async def dist_pump_doctor(self):
-        # NOTE:
-        # pump_doctor runs inline inside the HomeAlone main loop.
-        # Any waits here MUST pat the internal watchdog or SCADA will reboot.
-        if self.dist_pump_doctor_running:
-            self.log("[Dist pump doctor] Already running, skipping")
-            return
-
-        self.dist_pump_doctor_running = True
-        took_control = False
-        try:
-            if self.dist_pump_doctor_attempts >= self.MAX_PUMP_DOCTOR_ATTEMPTS:
-                if not self.dist_pump_doctor_exhausted:
-                    self.dist_pump_doctor_exhausted = True
-                    self.log("[Dist pump doctor] Max attempts reached, sending a critical glitch and giving up")
-                    self._send_to(
-                        self.atn,
-                        Glitch(
-                            FromGNodeAlias=self.layout.scada_g_node_alias,
-                            Node=self.node.Name,
-                            Type=LogLevel.Critical,
-                            Summary="Dist Pump Failed!!",
-                            Details=f"Dist Pump doctor tried {self.dist_pump_doctor_attempts} many times; manual intervention required"
-                        )
-                    )
-                return
-
-            self._send_to(self.atn,
-                    Glitch(
-                        FromGNodeAlias=self.layout.scada_g_node_alias,
-                        Node=self.node.Name,
-                        Type=LogLevel.Warning,
-                        Summary="Dist Pump Doctor starting",
-                        Details=f"Attempt {self.dist_pump_doctor_attempts + 1}/{self.MAX_PUMP_DOCTOR_ATTEMPTS}"
-                    )
-                )
-            self.log("[Dist pump doctor] Starting...")
-
-            if not self.layout.zone_list:
-                self.log("[Dist pump doctor] Could not find a zone list")
-                return
-
-            # --- Take control of zone relays ---
-            self.log("[Dist pump doctor] Switching zone relays to Scada")
-            for zone in self.layout.zone_list:
-                self.heatcall_ctrl_to_scada(zone=zone, from_node=self.normal_node)            
-            took_control = True
-
-            self.log("[Dist pump doctor] Waiting 10 seconds")
-            await self.await_with_watchdog(10)
-
-            self.log("[Dist pump doctor] Setting dist DFR to 0")
-            self.services.send_threadsafe(
-                Message(
-                    Src=self.name,
-                    Dst=self.primary_scada.name,
-                    Payload=AnalogDispatch(
-                        FromGNodeAlias=self.layout.atn_g_node_alias,
-                        FromHandle="auto",
-                        ToHandle="auto.dist-010v",
-                        AboutName="dist-010v",
-                        Value=0,
-                        TriggerId=str(uuid.uuid4()),
-                        UnixTimeMs=int(time.time() * 1000),
-                    ),
-                )
-            )
-
-            self.log("[Dist pump doctor] Waiting 5 seconds")
-            await self.await_with_watchdog(5)
-
-            self.log("[Dist pump doctor] Switching zone relays to Closed")
-            for zone in self.layout.zone_list:
-                self.stat_ops_close_relay(zone=zone, from_node=self.normal_node)
-
-            # Wait to see flow come in
-            self.log("[Dist pump doctor] Waiting 1 minute")
-            await self.await_with_watchdog(int(1*60))
-
-            # Check if dist flow is detected, if yes switch all zones back Open and Thermostat
-            flow_gpm_x100 = self.data.latest_channel_values.get(H0CN.dist_flow)
-            if flow_gpm_x100 is None:
-                self.log("[Dist pump doctor] Dist flow missing")
-                success = False
-            else:
-                success = flow_gpm_x100 > self.DIST_FLOW_ON_THRESHOLD_GPM_X100
-
-            if success:
-                self.log("[Dist pump doctor] Dist flow detected - success!")
-                self.dist_pump_doctor_attempts = 0
-            else:
-                self.log("[Dist pump doctor] no dist flow detected")
-                self.dist_pump_doctor_attempts += 1
-
-        except Exception as e:
-            self.log(f"[Dist pump doctor] Error: {e}")
-            self.dist_pump_doctor_attempts +=1
-
-        finally:
-            # --- ALWAYS restore control ---
-            if took_control:
-                self.log("[Dist pump doctor] Restoring zone control to thermostat and restoring dfr defaults")
-                for zone in self.layout.zone_list:
-                    self.stat_ops_open_relay(zone=zone, from_node=self.normal_node)
-                    self.heatcall_ctrl_to_stat(zone=zone, from_node=self.normal_node)  
-                self.set_010_defaults()
-
-            self.dist_pump_doctor_running = False
-
-    # ------------------------------------------------------------------
-    # Distribution pump monitoring (policy-level)
-    # ------------------------------------------------------------------
-        
-    def needs_dist_pump_recovery(self) -> bool:
-        """
-        Determine whether the dist pump doctor is needed.
-
-        Observes zone calls, flow, and zone-controller startup delay.
-        Updates internal timing and attempt counters, but does not
-        actuate relays or initiate recovery.
-        """
-        if self.dist_pump_doctor_running:
-            self.log("[Dist pump check] Recovery in progress; skipping health check")
-            return False
-
-        self.log("[Dist pump check] Checking dist pump activity...")
-        no_zones_calling = True
-        for i in H0CN.zone:
-            zone_whitewire_name = H0CN.zone[i].whitewire_pwr
-            if zone_whitewire_name not in self.data.latest_channel_values or self.data.latest_channel_values[zone_whitewire_name] is None:
-                self.log(f"{zone_whitewire_name} was not found in latest channel values")
-                continue
-            if abs(self.data.latest_channel_values[zone_whitewire_name]) > self.settings.whitewire_threshold_watts:
-                self.log(f"{zone_whitewire_name} is above threshold ({self.data.latest_channel_values[zone_whitewire_name]} > {self.settings.whitewire_threshold_watts} W)")
-                no_zones_calling = False
-                break
-            else:
-                self.log(f"{zone_whitewire_name} is below threshold ({self.data.latest_channel_values[zone_whitewire_name]} <= {self.settings.whitewire_threshold_watts} W)")
-        if no_zones_calling:
-            self.log("[Dist pump check] No zones calling; dist pump should be off")
-            return False
-        
-        flow_gpm_x100 = self.data.latest_channel_values.get(H0CN.dist_flow)
-        if flow_gpm_x100 is None:
-            self.log("[Dist pump check] Dist flow missing from latest channel values")
-            return False
-
-        # NOTE:
-        # Recovery state (attempt counters and exhaustion) is reset when the
-        # distribution pump is observed healthy again. This marks the end of a
-        # failure episode and allows future independent recovery attempts.
-        if flow_gpm_x100 > self.DIST_FLOW_ON_THRESHOLD_GPM_X100:
-            # self.log(f"[Dist pump check] Dist pump ON (GPM={flow_gpm:.2f})")
-            self.zone_controller_triggered_at = None
-
-            if self.dist_pump_doctor_attempts > 0:
-                self.log(
-                    f"[Dist pump check] Pump running normally (GPM = {flow_gpm_x100 / 100}); resetting pump doctor attempts"
-                )
-
-            self.dist_pump_doctor_attempts = 0
-            self.dist_pump_doctor_exhausted = False
-            return False
-
-        # Pump is OFF but zones are calling
-
-        # The distribution pump is downstream of a zone controller that:
-        #   1) Opens zone valves first
-        #   2) Waits for end-switch confirmation
-        #   3) Only then enables the pump
-        #
-        # This introduces a normal startup delay (~30–40 seconds) during which
-        # SCADA may observe "pump expected ON but no flow".
-        #
-        # We require the pump to remain OFF beyond this delay before triggering
-        # pump_doctor, to avoid false recovery attempts during normal operation.
-
-        if self.zone_controller_triggered_at is None:
-            self.zone_controller_triggered_at = time.time()
-            self.log("[Dist pump check] Zone controller triggered; awaiting normal valve-open startup delay")
-            return False
-
-        elapsed = time.time() - self.zone_controller_triggered_at
-
-        if elapsed <= self.ZONE_CONTROL_DELAY_SECONDS:
-            self.log(
-                f"[Dist pump check] Still waiting for zone controller startup "
-                f"({int(elapsed)}s / {self.ZONE_CONTROL_DELAY_SECONDS}s)"
-            )
-            return False
-
-        self.log(
-            "[Dist pump check] Zone controller delay exceeded; "
-            "triggering pump doctor"
-        )
-        self.zone_controller_triggered_at = None
-        return True
-
-    async def await_with_watchdog(
-        self,
-        total_seconds: float,
-        pat_every: float = 20.0,
-    ):
-        """
-        Await for total_seconds, patting the internal watchdog periodically.
-
-        IMPORTANT:
-        asyncio.sleep() does NOT pat the watchdog.
-        Any awaited duration in HomeAlone must go through this helper.
-        """
-        deadline = time.monotonic() + total_seconds
-
-        while True:
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
-                break
-            
-            await asyncio.sleep(min(pat_every, remaining))
-            self.log("Extra h watchdog pat")
-            self._send(PatInternalWatchdogMessage(src=self.name))
-
     async def main(self):
         await asyncio.sleep(5)
         while not self._stop_requested:
@@ -751,6 +530,245 @@ class HomeAloneTouBase(ScadaActor):
         self.set_command_tree(boss_node=self.normal_node)
         # let normal node know its waking up
         self.normal_node_wakes_up()
+
+    # ------------------------------------------------------------------
+    # Distribution pump monitoring (policy-level)
+    # ------------------------------------------------------------------
+
+    def needs_dist_pump_recovery(self) -> bool:
+        """
+        Determine whether the dist pump doctor is needed.
+
+        Observes zone calls, flow, and zone-controller startup delay.
+        Updates internal timing and attempt counters, but does not
+        actuate relays or initiate recovery.
+        """
+        if self.dist_pump_doctor_running:
+            self.log("[Dist pump check] Recovery in progress; skipping health check")
+            return False
+
+        self.log("[Dist pump check] Checking dist pump activity...")
+        no_zones_calling = True
+        for i in H0CN.zone:
+            zone_whitewire_name = H0CN.zone[i].whitewire_pwr
+            if zone_whitewire_name not in self.data.latest_channel_values or self.data.latest_channel_values[zone_whitewire_name] is None:
+                self.log(f"{zone_whitewire_name} was not found in latest channel values")
+                continue
+            if abs(self.data.latest_channel_values[zone_whitewire_name]) > self.settings.whitewire_threshold_watts:
+                self.log(f"{zone_whitewire_name} is above threshold ({self.data.latest_channel_values[zone_whitewire_name]} > {self.settings.whitewire_threshold_watts} W)")
+                no_zones_calling = False
+                break
+            else:
+                self.log(f"{zone_whitewire_name} is below threshold ({self.data.latest_channel_values[zone_whitewire_name]} <= {self.settings.whitewire_threshold_watts} W)")
+        if no_zones_calling:
+            self.log("[Dist pump check] No zones calling; dist pump should be off")
+            return False
+
+        flow_gpm_x100 = self.data.latest_channel_values.get(H0CN.dist_flow)
+        if flow_gpm_x100 is None:
+            self.log("[Dist pump check] Dist flow missing from latest channel values")
+            return False
+
+        # NOTE:
+        # Recovery state (attempt counters and exhaustion) is reset when the
+        # distribution pump is observed healthy again. This marks the end of a
+        # failure episode and allows future independent recovery attempts.
+        if flow_gpm_x100 > self.DIST_FLOW_ON_THRESHOLD_GPM_X100:
+            # self.log(f"[Dist pump check] Dist pump ON (GPM={flow_gpm:.2f})")
+            self.zone_controller_triggered_at = None
+
+            if self.dist_pump_doctor_attempts > 0:
+                self.log(
+                    f"[Dist pump check] Pump running normally (GPM = {flow_gpm_x100 / 100}); resetting pump doctor attempts"
+                )
+
+            self.dist_pump_doctor_attempts = 0
+            self.dist_pump_doctor_exhausted = False
+            return False
+
+        # Pump is OFF but zones are calling
+
+        # The distribution pump is downstream of a zone controller that:
+        #   1) Opens zone valves first
+        #   2) Waits for end-switch confirmation
+        #   3) Only then enables the pump
+        #
+        # This introduces a normal startup delay (~30–40 seconds) during which
+        # SCADA may observe "pump expected ON but no flow".
+        #
+        # We require the pump to remain OFF beyond this delay before triggering
+        # pump_doctor, to avoid false recovery attempts during normal operation.
+
+        if self.zone_controller_triggered_at is None:
+            self.zone_controller_triggered_at = time.time()
+            self.log("[Dist pump check] Zone controller triggered; awaiting normal valve-open startup delay")
+            return False
+
+        elapsed = time.time() - self.zone_controller_triggered_at
+
+        if elapsed <= self.ZONE_CONTROL_DELAY_SECONDS:
+            self.log(
+                f"[Dist pump check] Still waiting for zone controller startup "
+                f"({int(elapsed)}s / {self.ZONE_CONTROL_DELAY_SECONDS}s)"
+            )
+            return False
+
+        self.log(
+            "[Dist pump check] Zone controller delay exceeded; "
+            "triggering pump doctor"
+        )
+        self.zone_controller_triggered_at = None
+        return True
+
+
+    # ------------------------------------------------------------------
+    # Procedural, non-transactive interrupts
+    #   - Emit warning glitches when they begin (for auditability)
+    #   - Do NOT transition or override the hierarchical state machines
+    #   - Designed for short-duration (< ~1 minute) corrective actions
+    #   - MUST NOT actuate transactive load control relays
+    # ------------------------------------------------------------------
+
+    async def await_with_watchdog(
+        self,
+        total_seconds: float,
+        pat_every: float = 20.0,
+    ):
+        """
+        Await for total_seconds, patting the internal watchdog periodically.
+
+        IMPORTANT:
+        asyncio.sleep() does NOT pat the watchdog.
+        Any awaited duration in procedural code must go through this helper.
+        """
+
+        deadline = time.monotonic() + total_seconds
+
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+
+            await asyncio.sleep(min(pat_every, remaining))
+            self.log("[watchdog] Pat during procedural wait")
+            self._send(PatInternalWatchdogMessage(src=self.name))
+
+    # ------------------------------------------------------------------
+    # Procederal: Distribution pump recovery
+    # ------------------------------------------------------------------
+
+    async def dist_pump_doctor(self):
+        # NOTE:
+        # pump_doctor runs inline inside the HomeAlone main loop.
+        # Any waits here MUST pat the internal watchdog or SCADA will reboot.
+        if self.dist_pump_doctor_running:
+            self.log("[Dist pump doctor] Already running, skipping")
+            return
+
+        self.dist_pump_doctor_running = True
+        took_control = False
+        try:
+            if self.dist_pump_doctor_attempts >= self.MAX_PUMP_DOCTOR_ATTEMPTS:
+                if not self.dist_pump_doctor_exhausted:
+                    self.dist_pump_doctor_exhausted = True
+                    self.log("[Dist pump doctor] Max attempts reached, sending a critical glitch and giving up")
+                    self._send_to(
+                        self.atn,
+                        Glitch(
+                            FromGNodeAlias=self.layout.scada_g_node_alias,
+                            Node=self.node.Name,
+                            Type=LogLevel.Critical,
+                            Summary="Dist Pump Failed!!",
+                            Details=f"Dist Pump doctor tried {self.dist_pump_doctor_attempts} many times; manual intervention required"
+                        )
+                    )
+                return
+
+            self._send_to(self.atn,
+                    Glitch(
+                        FromGNodeAlias=self.layout.scada_g_node_alias,
+                        Node=self.node.Name,
+                        Type=LogLevel.Warning,
+                        Summary="Dist Pump Doctor starting",
+                        Details=f"Attempt {self.dist_pump_doctor_attempts + 1}/{self.MAX_PUMP_DOCTOR_ATTEMPTS}"
+                    )
+                )
+            self.log("[Dist pump doctor] Starting...")
+
+            if not self.layout.zone_list:
+                self.log("[Dist pump doctor] Could not find a zone list")
+                return
+
+            # --- Take control of zone relays ---
+            self.log("[Dist pump doctor] Switching zone relays to Scada")
+            for zone in self.layout.zone_list:
+                self.heatcall_ctrl_to_scada(zone=zone, from_node=self.normal_node)
+            took_control = True
+
+            self.log("[Dist pump doctor] Waiting 10 seconds")
+            await self.await_with_watchdog(10)
+
+            self.log("[Dist pump doctor] Setting dist DFR to 0")
+            self.services.send_threadsafe(
+                Message(
+                    Src=self.name,
+                    Dst=self.primary_scada.name,
+                    Payload=AnalogDispatch(
+                        FromGNodeAlias=self.layout.atn_g_node_alias,
+                        FromHandle="auto",
+                        ToHandle="auto.dist-010v",
+                        AboutName="dist-010v",
+                        Value=0,
+                        TriggerId=str(uuid.uuid4()),
+                        UnixTimeMs=int(time.time() * 1000),
+                    ),
+                )
+            )
+
+            self.log("[Dist pump doctor] Waiting 5 seconds")
+            await self.await_with_watchdog(5)
+
+            self.log("[Dist pump doctor] Switching zone relays to Closed")
+            for zone in self.layout.zone_list:
+                self.stat_ops_close_relay(zone=zone, from_node=self.normal_node)
+
+            # Wait to see flow come in
+            self.log("[Dist pump doctor] Waiting 1 minute")
+            await self.await_with_watchdog(int(1*60))
+
+            # Check if dist flow is detected, if yes switch all zones back Open and Thermostat
+            flow_gpm_x100 = self.data.latest_channel_values.get(H0CN.dist_flow)
+            if flow_gpm_x100 is None:
+                self.log("[Dist pump doctor] Dist flow missing")
+                success = False
+            else:
+                success = flow_gpm_x100 > self.DIST_FLOW_ON_THRESHOLD_GPM_X100
+
+            if success:
+                self.log("[Dist pump doctor] Dist flow detected - success!")
+                self.dist_pump_doctor_attempts = 0
+            else:
+                self.log("[Dist pump doctor] no dist flow detected")
+                self.dist_pump_doctor_attempts += 1
+
+        except Exception as e:
+            self.log(f"[Dist pump doctor] Error: {e}")
+            self.dist_pump_doctor_attempts +=1
+
+        finally:
+            # --- ALWAYS restore control ---
+            if took_control:
+                self.log("[Dist pump doctor] Restoring zone control to thermostat and restoring dfr defaults")
+                for zone in self.layout.zone_list:
+                    self.stat_ops_open_relay(zone=zone, from_node=self.normal_node)
+                    self.heatcall_ctrl_to_stat(zone=zone, from_node=self.normal_node)
+                self.set_010_defaults()
+
+            self.dist_pump_doctor_running = False
+
+    # ------------------------------------------------------------------
+    # utilities
+    # ------------------------------------------------------------------
 
     def change_all_temps(self, temp_c) -> None:
         if self.is_simulated:
