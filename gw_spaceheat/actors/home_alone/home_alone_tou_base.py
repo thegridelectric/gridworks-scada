@@ -543,6 +543,9 @@ class HomeAloneTouBase(ScadaActor):
                 self.log(f"{zone_whitewire_name} is below threshold ({self.data.latest_channel_values[zone_whitewire_name]} <= {self.settings.whitewire_threshold_watts} W)")
         if no_zones_calling:
             # self.log("[Dist pump check] No zones calling; dist pump should be off")
+            if self.zone_controller_triggered_at:
+                self.log(f"No zones calling, so clearing zones_controller_triggered_at")
+            self.zone_controller_triggered_at = None
             return
 
         if H0CN.dist_flow not in self.data.latest_channel_values or self.data.latest_channel_values[H0CN.dist_flow] is None:
@@ -675,6 +678,7 @@ class HomeAloneTouBase(ScadaActor):
             if self.data.latest_channel_values[H0CN.dist_flow]/100 > 0.5:
                 self.log('[DistPumpDoctor] Dist flow detected - success!')
                 self.pump_doctor_attempts = 0
+                self.zone_controller_triggered_at = None
                 self.log("[DistPumpDoctor] Switching zones back to Open and Thermostat")
             else:
                 self.log('[DistPumpDoctor] No dist flow detected - did not work')
