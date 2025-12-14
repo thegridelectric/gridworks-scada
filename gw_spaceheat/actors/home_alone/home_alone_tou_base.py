@@ -412,18 +412,6 @@ class HomeAloneTouBase(ScadaActor):
         else:
             self.turn_on_HP(from_node=self.backup_node)
 
-    def offpeak_backup_actuator_actions(self) -> None:
-        """
-        Expects command tree set already with self.offpeak_backup_node as boss
-          - turns off store pump
-          - iso valve open (valved to discharge)
-          - turns hp failsafe to aquastat
-        """
-        self.turn_off_store_pump(from_node=self.offpeak_backup_node)
-        self.valved_to_discharge_store(from_node=self.offpeak_backup_node)
-        self.hp_failsafe_switch_to_aquastat(from_node=self.offpeak_backup_node)
-        self.aquastat_ctrl_switch_to_boiler(from_node=self.offpeak_backup_node)
-
     def set_010_defaults(self) -> None:
         """
         Sets default 0-10V values for those actuators that are direct reports
