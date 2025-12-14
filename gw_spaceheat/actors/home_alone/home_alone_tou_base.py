@@ -303,11 +303,22 @@ class HomeAloneTouBase(ScadaActor):
                 self.set_010_defaults()
 
             self.dist_pump_doctor_running = False
+
+    # ------------------------------------------------------------------
+    # Distribution pump monitoring (policy-level)
+    # ------------------------------------------------------------------
         
-    async def check_dist_pump(self):
+    def needs_dist_pump_recovery(self) -> bool:
+        """
+        Determine whether the dist pump doctor is needed.
+
+        Observes zone calls, flow, and zone-controller startup delay.
+        Updates internal timing and attempt counters, but does not
+        actuate relays or initiate recovery.
+        """
         if self.dist_pump_doctor_running:
             self.log("[Dist pump check] Recovery in progress; skipping health check")
-            return
+            return False
 
         self.log("[Dist pump check] Checking dist pump activity...")
         no_zones_calling = True
@@ -315,15 +326,6 @@ class HomeAloneTouBase(ScadaActor):
             zone_whitewire_name = H0CN.zone[i].whitewire_pwr
             if zone_whitewire_name not in self.data.latest_channel_values or self.data.latest_channel_values[zone_whitewire_name] is None:
                 self.log(f"{zone_whitewire_name} was not found in latest channel values")
-                if 'zone4-master-whitewire' in zone_whitewire_name:
-                    for existing_zone_whitewire_name in self.data.latest_channel_values:
-                        if (
-                            'whitewire' in existing_zone_whitewire_name and 
-                            f"{zone_whitewire_name.split('-')[0]}-{zone_whitewire_name.split('-')[1]}" in existing_zone_whitewire_name
-                        ):
-                            self.log(f"Found {existing_zone_whitewire_name} in latest channel values")
-                            zone_whitewire_name = existing_zone_whitewire_name
-                            break
                 continue
             if abs(self.data.latest_channel_values[zone_whitewire_name]) > self.settings.whitewire_threshold_watts:
                 self.log(f"{zone_whitewire_name} is above threshold ({self.data.latest_channel_values[zone_whitewire_name]} > {self.settings.whitewire_threshold_watts} W)")
@@ -333,13 +335,17 @@ class HomeAloneTouBase(ScadaActor):
                 self.log(f"{zone_whitewire_name} is below threshold ({self.data.latest_channel_values[zone_whitewire_name]} <= {self.settings.whitewire_threshold_watts} W)")
         if no_zones_calling:
             self.log("[Dist pump check] No zones calling; dist pump should be off")
-            return
+            return False
         
         flow_gpm_x100 = self.data.latest_channel_values.get(H0CN.dist_flow)
         if flow_gpm_x100 is None:
             self.log("[Dist pump check] Dist flow missing from latest channel values")
-            return
+            return False
 
+        # NOTE:
+        # Recovery state (attempt counters and exhaustion) is reset when the
+        # distribution pump is observed healthy again. This marks the end of a
+        # failure episode and allows future independent recovery attempts.
         if flow_gpm_x100 > self.DIST_FLOW_ON_THRESHOLD_GPM_X100:
             # self.log(f"[Dist pump check] Dist pump ON (GPM={flow_gpm:.2f})")
             self.zone_controller_triggered_at = None
@@ -351,7 +357,7 @@ class HomeAloneTouBase(ScadaActor):
 
             self.dist_pump_doctor_attempts = 0
             self.dist_pump_doctor_exhausted = False
-            return
+            return False
 
         # Pump is OFF but zones are calling
 
@@ -369,7 +375,7 @@ class HomeAloneTouBase(ScadaActor):
         if self.zone_controller_triggered_at is None:
             self.zone_controller_triggered_at = time.time()
             self.log("[Dist pump check] Zone controller triggered; awaiting normal valve-open startup delay")
-            return
+            return False
 
         elapsed = time.time() - self.zone_controller_triggered_at
 
@@ -378,14 +384,14 @@ class HomeAloneTouBase(ScadaActor):
                 f"[Dist pump check] Still waiting for zone controller startup "
                 f"({int(elapsed)}s / {self.ZONE_CONTROL_DELAY_SECONDS}s)"
             )
-            return
+            return False
 
         self.log(
             "[Dist pump check] Zone controller delay exceeded; "
             "triggering pump doctor"
         )
         self.zone_controller_triggered_at = None
-        await self.dist_pump_doctor()
+        return True
 
     async def await_with_watchdog(
         self,
@@ -422,8 +428,9 @@ class HomeAloneTouBase(ScadaActor):
             if  self.just_before_onpeak() or self.zone_setpoints=={}:
                 self.get_zone_setpoints()
 
-            # Verify distribution pump health and initiate bounded recovery if needed
-            await self.check_dist_pump()
+            # Verify distribution pump health; initiate recovery if needed
+            if self.needs_dist_pump_recovery():
+                await self.dist_pump_doctor()
 
             # No control of actuators when in Monitor
             if not self.top_state == LocalControlTopState.Monitor:
