@@ -301,6 +301,7 @@ class HomeAloneTouBase(ScadaActor):
             return
         if self.data.latest_channel_values[H0CN.dist_flow]/100 > 0.5:
             self.log(f"The dist pump is on (GPM = {self.data.latest_channel_values[H0CN.dist_flow]/100})")
+            self.time_dist_pump_should_be_on = None
         else:
             self.log(f"The dist pump is off!! (GPM = {self.data.latest_channel_values[H0CN.dist_flow]/100})")
             if self.time_dist_pump_should_be_on:
