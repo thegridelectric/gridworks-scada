@@ -33,7 +33,9 @@ class HomeAloneTouBase(ScadaActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
     BLIND_MINUTES = 5
     MAX_PUMP_DOCTOR_ATTEMPTS = 3
+    MAX_PUMP_WAIT_SECONDS = 60
     ZONE_CONTROL_DELAY_SECONDS = 180
+    THRESHOLD_FLOW_GPM_X100 = 50
 
     top_states = LocalControlTopState.values()
     top_transitions = [
@@ -578,6 +580,10 @@ class HomeAloneTouBase(ScadaActor):
     #   - MUST NOT actuate transactive load control relays
     # ------------------------------------------------------------------
 
+    # ------------------------------------------------------------------
+    # Procedural utilities (watchdog-safe helpers)
+    # ------------------------------------------------------------------
+
     async def await_with_watchdog(
         self,
         total_seconds: float,
@@ -600,6 +606,27 @@ class HomeAloneTouBase(ScadaActor):
             await asyncio.sleep(min(pat_every, remaining))
             self.log("[h] Watchdog pat during procedural wait")
             self._send(PatInternalWatchdogMessage(src=self.name))
+
+    async def wait_for_flow(
+        self,
+        channel: str = H0CN.dist_flow,
+        poll_s: float = 2.0,
+    ) -> bool:
+        """
+        Wait for MAX_PUMP_WAIT_SECONDS for flow to exceed THRESHOLD_FLOW_GPM_X100
+        channel must be dist_flow, primary_flow or store_flow
+        Returns True when flow id detected, False on timeout
+        """
+        deadline = time.monotonic() + self.MAX_PUMP_WAIT_SECONDS
+        if channel not in {H0CN.dist_flow, H0CN.primary_flow, H0CN.store_flow}:
+            raise ValueError(f"Unsupported flow channel: {channel}")
+
+        while time.monotonic() < deadline:
+            flow = self.data.latest_channel_values.get(channel)
+            if flow is not None and flow > self.THRESHOLD_FLOW_GPM_X100:
+                return True
+            await self.await_with_watchdog(poll_s)
+        return False
 
     # ------------------------------------------------------------------
     # Procederal: Distribution pump recovery
@@ -641,8 +668,6 @@ class HomeAloneTouBase(ScadaActor):
                 self.heatcall_ctrl_to_scada(zone=zone, from_node=self.normal_node)
 
             # Set DFR to 0
-            self.log("[DistPumpDoctor] Waiting 10 seconds")
-            await self.await_with_watchdog(10)
             self.log("[DistPumpDoctor] Setting dist DFR to 0")
             self.services.send_threadsafe(
                 Message(
@@ -659,32 +684,36 @@ class HomeAloneTouBase(ScadaActor):
                     ),
                 )
             )
-
-            # Switch all zones to Closed
-            self.log("[DistPumpDoctor] Waiting 5 seconds")
             await self.await_with_watchdog(5)
             self.log("[DistPumpDoctor] Switching zone relays to Closed")
             for zone in self.layout.zone_list:
                 self.stat_ops_close_relay(zone=zone, from_node=self.normal_node)
 
             # Wait to see flow come in
-            self.log("[DistPumpDoctor] Waiting 1 minute")
-            await self.await_with_watchdog(int(1*60))
+            self.log("[DistPumpDoctor] Waiting for dist flow")
 
-            # Check if dist flow is detected, if yes switch all zones back Open and Thermostat
-            if H0CN.dist_flow not in self.data.latest_channel_values or self.data.latest_channel_values[H0CN.dist_flow] is None:
-                self.log("[DistPumpDoctor] Dist flow not found in latest channel values")
-                return
-            if self.data.latest_channel_values[H0CN.dist_flow]/100 > 0.5:
-                self.log('[DistPumpDoctor] Dist flow detected - success!')
+            flow_detected = await self.wait_for_flow(channel=H0CN.dist_flow)
+
+            if flow_detected:
+                self.log("[DistPumpDoctor] Dist flow detected - success!")
                 self.pump_doctor_attempts = 0
                 self.zone_controller_triggered_at = None
-                self.log("[DistPumpDoctor] Switching zones back to Open and Thermostat")
             else:
-                self.log('[DistPumpDoctor] No dist flow detected - did not work')
+                self.log(f"[DistPumpDoctor] No dist flow detected within {self.MAX_PUMP_WAIT_SECONDS}s timeout")
                 self.pump_doctor_attempts += 1
+
         except Exception as e:
-            self.log(f"[DistPumpDoctor] Error: {e}")
+            self.log(f"[DistPumpDoctor]Internal Error: {e}")
+            self._send_to(self.atn,
+                    Glitch(
+                        FromGNodeAlias=self.layout.scada_g_node_alias,
+                        Node=self.node.Name,
+                        Type=LogLevel.Warning,
+                        Summary="DistPumpDoctor internal error",
+                        Details=str(e),
+                    )
+                )
+
         finally:
             self.log("[DistPumpDoctor] Setting 0-10V back to default level")
             self.set_010_defaults()
