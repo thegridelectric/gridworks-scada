@@ -94,9 +94,12 @@ class HomeAloneTouBase(ScadaActor):
         self.latest_temperatures: Dict[str, int] = {} # 
         self.actuators_initialized = False
         self.actuators_ready = False
+        
+        # State for procedural recovery (non-transactive)
         self.dist_pump_doctor_running = False
         self.dist_pump_doctor_attempts = 0
         self.zone_controller_triggered_at = None
+        self.dist_pump_doctor_exhausted = False
 
     @property
     def normal_node(self) -> ShNode:
@@ -530,13 +533,12 @@ class HomeAloneTouBase(ScadaActor):
 
     def needs_dist_pump_recovery(self) -> bool:
         """
-        Determine whether the DistPumpDoctoris needed.
+        Determine whether the DistPumpDoctor is needed.
 
         Observes zone calls, flow, and zone-controller startup delay.
         Updates internal timing and attempt counters, but does not
         actuate relays or initiate recovery.
         """
-        self.log("[DistPumpCheck] ENTER needs_dist_pump_recovery")
         if self.dist_pump_doctor_running:
             self.log("[DistPumpCheck] Recovery in progress; skipping health check")
             return False
@@ -566,7 +568,7 @@ class HomeAloneTouBase(ScadaActor):
             return False
 
         # NOTE:
-        # Recovery state (attempt counter) is reset when the distribution pump
+        # Recovery state (attempt counter and exhaustion) is reset when the distribution pump
         # is observed healthy again.
         if flow_gpm_x100 > self.THRESHOLD_FLOW_GPM_X100:
             # self.log(f"[DistPumpCheck] The dist pump is on (GPM = {self.data.latest_channel_values[H0CN.dist_flow]/100})")
@@ -578,6 +580,7 @@ class HomeAloneTouBase(ScadaActor):
                 )
 
             self.dist_pump_doctor_attempts = 0
+            self.dist_pump_doctor_exhausted = False
             return False
 
         # Pump is OFF but zones are calling
@@ -686,9 +689,24 @@ class HomeAloneTouBase(ScadaActor):
         self.dist_pump_doctor_running = True
         try:
             if self.dist_pump_doctor_attempts >= self.MAX_PUMP_DOCTOR_ATTEMPTS:
-                self.log(f"[DistPumpDoctor] Max attempts reached ({self.MAX_PUMP_DOCTOR_ATTEMPTS}), giving up")
-                # TODO: send critical glitch
+                if self.dist_pump_doctor_exhausted: 
+                    return
+
+                self.dist_pump_doctor_exhausted = True
+                # Added this bool to only send one critical glitch
+                self.log(f"[DistPumpDoctor] Max attempts reached ({self.MAX_PUMP_DOCTOR_ATTEMPTS}), sending critical glitch and giving up")
+                self._send_to(
+                        self.atn,
+                        Glitch(
+                            FromGNodeAlias=self.layout.scada_g_node_alias,
+                            Node=self.node.Name,
+                            Type=LogLevel.Critical,
+                            Summary="Dist Pump Failed!!",
+                            Details=f"Dist Pump doctor tried {self.dist_pump_doctor_attempts} many times; manual intervention required"
+                        )
+                    )
                 return
+
             self.log("[DistPumpDoctor] Starting...")
             # Send a warning - will not trigger an alert and gives us a record
             self._send_to(self.atn,
@@ -840,7 +858,7 @@ class HomeAloneTouBase(ScadaActor):
             zone_name = zone_setpoint.replace('-set','')
             zone_name_no_prefix = zone_name[6:] if zone_name[:4]=='zone' else zone_name
             thermal_mass = self.layout.zone_kwh_per_deg_f_list[self.layout.zone_list.index(zone_name_no_prefix)]
-            self.log(f"Found zone: {zone_name}, critical: {zone_name_no_prefix in self.layout.critical_zone_list}, thermal mass: {thermal_mass} kWh/degF")
+            # self.log(f"Found zone: {zone_name}, critical: {zone_name_no_prefix in self.layout.critical_zone_list}, thermal mass: {thermal_mass} kWh/degF")
             if self.data.latest_channel_values[zone_setpoint] is not None:
                 self.zone_setpoints[zone_name] = self.data.latest_channel_values[zone_setpoint]
             if self.data.latest_channel_values[zone_setpoint.replace('-set','-temp')] is not None:
