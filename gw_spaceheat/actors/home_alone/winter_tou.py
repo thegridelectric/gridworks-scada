@@ -5,7 +5,7 @@ from typing import List, Optional
 
 from actors.home_alone.home_alone_tou_base import HomeAloneTouBase
 from gwsproto.data_classes.house_0_names import H0CN, H0N
-from gwsproto.enums import HomeAloneStrategy, HomeAloneTopState
+from gwsproto.enums import HomeAloneStrategy, LocalControlTopState
 from gw.enums import GwStrEnum
 from gwsproto.named_types import SingleMachineState
 from transitions import Machine
@@ -89,6 +89,7 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             raise Exception(f"Expect WinterTou HomeAloneStrategy, got {self.strategy}")
 
         self.storage_declared_ready = False
+        self.time_hp_turned_on = None
         self.full_storage_energy: Optional[float] = None
         
         self.machine = Machine(
@@ -172,17 +173,12 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             H0CN.buffer_cold_pipe, H0CN.buffer_hot_pipe, H0CN.store_cold_pipe, H0CN.store_hot_pipe
         ]
         
-    def time_to_trigger_house_cold_onpeak(self) -> bool:
+    def time_to_trigger_system_cold(self) -> bool:
         """
-        Logic for triggering HouseColdOnpeak (and moving to top state UsingBakupOnpeak).
-
-        In winter, this means:1) its onpeak  2) house is cold 3) buffer is really empty and 4) store is empty
-
+        Logic for triggering SystemCold (and moving to top state UsingNonElectricBackup).
+        In winter, this means: 1) house is cold 2) buffer is really empty and 3) store is empty
         """
-        return self.is_onpeak() and \
-            self.is_house_cold() and \
-            self.is_buffer_empty(really_empty=True) and \
-            self.is_storage_empty()
+        return self.is_system_cold() and self.is_buffer_empty(really_empty=True) and self.is_storage_empty()
 
     def normal_node_state(self) -> str:
         return self.state
@@ -206,7 +202,7 @@ class WinterTouHomeAlone(HomeAloneTouBase):
         """
         Manages the logic for the Normal top state, (ie. self.state)
         """
-        if self.top_state != HomeAloneTopState.Normal:
+        if self.top_state != LocalControlTopState.Normal:
             self.log(f"brain is only for Normal top state, not {self.top_state}")
             return
 
@@ -313,18 +309,20 @@ class WinterTouHomeAlone(HomeAloneTouBase):
                 elif self.is_storage_colder_than_buffer():
                     self.trigger_normal_event(HaWinterEvent.OnPeakStorageColderThanBuffer)
 
-        if (self.state != previous_state) and self.top_state == HomeAloneTopState.Normal:
+        if (self.state != previous_state) and self.top_state == LocalControlTopState.Normal:
             self.update_relays(previous_state)
 
     def update_relays(self, previous_state) -> None:
-        if self.top_state != HomeAloneTopState.Normal:
+        if self.top_state != LocalControlTopState.Normal:
             raise Exception("Can not go into update_relays if top state is not Normal")
         if self.state == HaWinterState.Dormant or self.state == HaWinterState.Initializing:
             return
         if "HpOn" not in previous_state and "HpOn" in self.state:
             self.turn_on_HP(from_node=self.normal_node)
+            self.time_hp_turned_on = time.time()
         if "HpOff" not in previous_state and "HpOff" in self.state:
             self.turn_off_HP(from_node=self.normal_node)
+            self.time_hp_turned_on = None
         if "StoreDischarge" in self.state:
             self.turn_on_store_pump(from_node=self.normal_node)
         else:
@@ -415,13 +413,19 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             return True
         else:
             if H0N.store_cold_pipe in self.latest_temperatures:
-                self.log(f"Store cold pipe: {round(self.to_fahrenheit(self.latest_temperatures[H0N.store_cold_pipe]/1000),1)} F")
-                if self.to_fahrenheit(self.latest_temperatures[H0N.store_cold_pipe]/1000) > self.params.MaxEwtF:
-                    self.log(f"The storage is not ready, but the bottom is above the maximum EWT ({self.params.MaxEwtF} F).")
-                    self.log("The storage will therefore be considered ready, as we cannot charge it further.")
-                    self.full_storage_energy = total_usable_kwh
-                    self.storage_declared_ready = True
-                    return True
+                check_temp_channel = H0N.store_cold_pipe
+            elif H0N.hp_ewt in self.latest_temperatures:
+                check_temp_channel = H0N.hp_ewt
+            else:
+                self.log("No EWT temperature channel found, not checking if storage is ready")
+                return False
+            self.log(f"{check_temp_channel}: {round(self.to_fahrenheit(self.latest_temperatures[check_temp_channel]/1000),1)} F")
+            if self.to_fahrenheit(self.latest_temperatures[check_temp_channel]/1000) > self.params.MaxEwtF:
+                self.log(f"The storage is not ready, but the bottom is above the maximum EWT ({self.params.MaxEwtF} F).")
+                self.log("The storage will therefore be considered ready, as we cannot charge it further.")
+                self.full_storage_energy = total_usable_kwh
+                self.storage_declared_ready = True
+                return True
             self.log(f"Storage not ready (usable {round(total_usable_kwh,1)} kWh < required {round(required_storage,1)} kWh)")
             return False
         

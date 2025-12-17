@@ -5,7 +5,7 @@ from typing import List, Optional
 
 from actors.home_alone.home_alone_tou_base import HomeAloneTouBase
 from gwsproto.data_classes.house_0_names import H0CN, H0N
-from gwsproto.enums import HomeAloneStrategy, HomeAloneTopState
+from gwsproto.enums import HomeAloneStrategy, LocalControlTopState
 from gw.enums import GwStrEnum
 from gwsproto.named_types import SingleMachineState
 from transitions import Machine
@@ -73,6 +73,7 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
             )
 
         self.buffer_declared_ready = False
+        self.time_hp_turned_on = None
         self.full_buffer_energy: Optional[float] = None  # in kWh
 
         self.machine = Machine(
@@ -131,18 +132,12 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
             H0CN.buffer_cold_pipe, H0CN.buffer_hot_pipe,
         ]
 
-    def time_to_trigger_house_cold_onpeak(self) -> bool:
+    def time_to_trigger_system_cold(self) -> bool:
         """
-        Logic for triggering HouseColdOnpeak (and moving to top state UsingBakupOnpeak).
-
-        In shoulder, this means:1) its onpeak  2) house is cold 3) buffer is really empty
-
+        Logic for triggering SystemCold (and moving to top state UsingNonElectricBackup).
+        In shoulder, this means: 1) house is cold 2) buffer is really empty
         """
-        return (
-            self.is_onpeak()
-            and self.is_house_cold()
-            and self.is_buffer_empty(really_empty=True)
-        )
+        return self.is_system_cold() and self.is_buffer_empty(really_empty=True)
 
     def normal_node_state(self) -> str:
         return self.state
@@ -167,7 +162,7 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
         """
         Manages the logic for the Normal top state, (ie. self.state)
         """
-        if self.top_state != HomeAloneTopState.Normal:
+        if self.top_state != LocalControlTopState.Normal:
             self.log(f"brain is only for Normal top state, not {self.top_state}")
             return
 
@@ -238,11 +233,11 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
 
         if (
             self.state != previous_state
-        ) and self.top_state == HomeAloneTopState.Normal:
+        ) and self.top_state == LocalControlTopState.Normal:
             self.update_relays(previous_state)
 
     def update_relays(self, previous_state) -> None:
-        if self.top_state != HomeAloneTopState.Normal:
+        if self.top_state != LocalControlTopState.Normal:
             raise Exception("Can not go into update_relays if top state is not Normal")
         if (
             self.state == HaShoulderState.Dormant
@@ -254,11 +249,13 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
             and self.state == HaShoulderState.HpOn
         ):
             self.turn_on_HP(from_node=self.normal_node)
+            self.time_hp_turned_on = time.time()
         if (
             previous_state != HaShoulderState.HpOff
             and self.state == HaShoulderState.HpOff
         ):
             self.turn_off_HP(from_node=self.normal_node)
+            self.time_hp_turned_on = None
 
     def is_buffer_empty(self, really_empty=False) -> bool:
         if H0CN.buffer.depth1 in self.latest_temperatures:

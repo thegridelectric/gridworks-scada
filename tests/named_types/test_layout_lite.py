@@ -1,16 +1,14 @@
-"""Tests layout.lite type, version 001"""
-
 from gwsproto.named_types import LayoutLite
 
 
 def test_layout_lite_generated() -> None:
     d = {
         "FromGNodeAlias": "hw1.isone.me.versant.keene.beech.scada",
-        "FromGNodeInstanceId": "98542a17-3180-4f2a-a929-6023f0e7a106",
         "MessageCreatedMs": 1728651445746,
         "MessageId": "1302c0f8-1983-43b2-90d2-61678d731db3",
         "Strategy": "House0",
         "ZoneList": ["Down", "Up"],
+        "CriticalZoneList": ["Down"],
         "TotalStoreTanks": 3,
         "Ha1Params": {
             "AlphaTimes10": 120,
@@ -24,9 +22,8 @@ def test_layout_lite_generated() -> None:
             "HpMaxKwTh": 6,
             "MaxEwtF": 170,
             "LoadOverestimationPercent": 10,
-            "StratBossDist010": 100,
             "TypeName": "ha1.params",
-            "Version": "003",
+            "Version": "004",
         },
         "ShNodes": [
             {
@@ -121,15 +118,6 @@ def test_layout_lite_generated() -> None:
                     },
                     {
                         "AsyncCapture": True,
-                        "CapturePeriodS": 60,
-                        "ChannelName": "buffer-depth4",
-                        "Exponent": 3,
-                        "TypeName": "channel.config",
-                        "Unit": "Celcius",
-                        "Version": "000",
-                    },
-                    {
-                        "AsyncCapture": True,
                         "AsyncCaptureDelta": 2000,
                         "CapturePeriodS": 60,
                         "ChannelName": "buffer-depth1-micro-v",
@@ -158,31 +146,19 @@ def test_layout_lite_generated() -> None:
                         "Unit": "VoltsRms",
                         "Version": "000",
                     },
-                    {
-                        "AsyncCapture": True,
-                        "AsyncCaptureDelta": 2000,
-                        "CapturePeriodS": 60,
-                        "ChannelName": "buffer-depth4-micro-v",
-                        "Exponent": 6,
-                        "TypeName": "channel.config",
-                        "Unit": "VoltsRms",
-                        "Version": "000",
-                    },
                 ],
                 "DisplayName": "buffer PicoTankModule",
                 "Enabled": True,
                 "SerialNumber": "1030",
                 "NumSampleAverages": 10,
-                "PicoAHwUid": "pico_4c1a21",
-                "PicoBHwUid": "pico_487a22",
-                "PicoKOhms": 30,
+                "PicoHwUid": "pico_aaaaaa",
                 "Samples": 1000,
                 "SendMicroVolts": True,
-                "TempCalcMethod": "SimpleBetaForPico",
+                "TempCalcMethod": "SimpleBeta",
                 "ThermistorBeta": 3977,
                 "AsyncCaptureDeltaMicroVolts": 2000,
                 "TypeName": "pico.tank.module.component.gt",
-                "Version": "000",
+                "Version": "011",
             }
         ],
         "FlowModuleComponents": [
@@ -298,7 +274,7 @@ def test_layout_lite_generated() -> None:
             "Version": "002",
         },
         "TypeName": "layout.lite",
-        "Version": "004",
+        "Version": "006",
     }
 
     d2 = LayoutLite.model_validate(d).model_dump(exclude_none=True)

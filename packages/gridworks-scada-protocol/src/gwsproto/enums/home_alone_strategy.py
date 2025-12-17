@@ -13,7 +13,7 @@ class HomeAloneStrategy(GwStrEnum):
 
     For more information:
       - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#homealonetopstate)
+      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#LocalControlTopState)
     """
     WinterTou = auto()
     ShoulderTou = auto()
