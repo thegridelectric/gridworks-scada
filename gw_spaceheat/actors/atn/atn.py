@@ -546,7 +546,7 @@ class Atn(PrimeActor):
         self.temperature_channel_names = [
             x.Name
             for x in layout.DataChannels
-            if "depth" in x.Name and "adj" not in x.Name and "micro-v" not in x.Name
+            if "depth" in x.Name and "micro-v" not in x.Name
         ]
         if self.contract_handler.layout_received is False:
             self.contract_handler.layout_received = True # Necessary for bids & contracts
@@ -1036,23 +1036,17 @@ class Atn(PrimeActor):
             return None
 
         if self.strategy == HomeAloneStrategy.ShoulderTou:
-            if H0CN.buffer_adj.depth1 in tank_temps:
-                top_temp = round(tank_temps[H0CN.buffer_adj.depth1],1)
-            elif H0CN.buffer.depth1 in tank_temps:
+            if H0CN.buffer.depth1 in tank_temps:
                 top_temp = round(tank_temps[H0CN.buffer.depth1],1)
             else:
                 self.log("Could not find buffer top temperature")
                 return None
-            if H0CN.buffer_adj.depth2 in tank_temps:
-                middle_temp = round(tank_temps[H0CN.buffer_adj.depth2],1)
-            elif H0CN.buffer.depth2 in tank_temps:
+            if H0CN.buffer.depth2 in tank_temps:
                 middle_temp = round(tank_temps[H0CN.buffer.depth2],1)
             else:
                 self.log("Could not find buffer middle temperature")
                 return None
-            if H0CN.buffer_adj.depth3 in tank_temps:
-                bottom_temp = round(tank_temps[H0CN.buffer_adj.depth3],1)
-            elif H0CN.buffer.depth3 in tank_temps:
+            if H0CN.buffer.depth3 in tank_temps:
                 bottom_temp = round(tank_temps[H0CN.buffer.depth3],1)
             else:
                 self.log("Could not find buffer bottom temperature")
