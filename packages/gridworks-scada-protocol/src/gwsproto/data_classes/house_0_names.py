@@ -44,7 +44,7 @@ class ZoneChannelNames:
         self.temp = f"{self.zone_name}-temp"
         self.set = f"{self.zone_name}-set"
         self.state = f"{self.zone_name}-state"
-        self.whitewire_pwr=f"zone{idx}-{zone}-whitewire-pwr"
+        self.whitewire_pwr=f"{self.zone_name}-whitewire-pwr"
 
     def __repr__(self) -> str:
         return f"Channels: {self.temp}, {self.set}, {self.state}, {self.whitewire_pwr}"
@@ -378,10 +378,10 @@ class H0CN:
                     AboutNodeName=self.zone[i].stat_name,
                     TelemetryName=TelemetryName.ThermostatState,
                 ),
-            d[self.zone[i].whitewire] = ChannelStub(
-                    Name=self.zone[i].state,
-                    AboutNodeName=self.zone[i].stat_name,
-                    TelemetryName=TelemetryName.ThermostatState,
+            d[self.zone[i].whitewire_pwr] = ChannelStub(
+                    Name=self.zone[i].whitewire_pwr,
+                    AboutNodeName=f"{self.zone[i].zone_name}-whitewire",
+                    TelemetryName=TelemetryName.PowerW,
                 ),
             
         return d

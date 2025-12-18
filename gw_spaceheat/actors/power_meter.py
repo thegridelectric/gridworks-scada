@@ -297,7 +297,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         except Exception as e:
             self._report_problems(Problems(warnings=[e, [self.latest_telemetry_value[ch] for ch in channel_report_list]]), "synced reading generation failure")
 
-    def value_exceeds_async_threshold(self, ch: DataChannel) -> bool:
+    def value_hits_async_threshold(self, ch: DataChannel) -> bool:
         """This telemetry tuple is supposed to report asynchronously on change, with
         the amount of change required (as a function of the absolute max value) determined
         in the EqConfig.
@@ -308,7 +308,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         last_reported_value = self.last_reported_telemetry_value[ch]
         latest_telemetry_value = self.latest_telemetry_value[ch]
         telemetry_delta = abs(latest_telemetry_value - last_reported_value)
-        if telemetry_delta > config.AsyncCaptureDelta:
+        if telemetry_delta >= config.AsyncCaptureDelta:
             return True
         return False
 
@@ -335,7 +335,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
             > self.eq_reporting_config[ch].CapturePeriodS
         ):
             return True
-        if self.value_exceeds_async_threshold(ch):
+        if self.value_hits_async_threshold(ch):
             return True
         return False
 

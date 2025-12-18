@@ -64,14 +64,14 @@ def test_power_meter_small():
 
     driver_thread.last_reported_telemetry_value[ch_1] = driver_thread.latest_telemetry_value[ch_1]
 
-    assert driver_thread.value_exceeds_async_threshold(ch_1) is False
+    assert driver_thread.value_hits_async_threshold(ch_1) is False
     store_pump_capture_delta = driver_thread.eq_reporting_config[ch_1].AsyncCaptureDelta
     assert store_pump_capture_delta == 5
     driver_thread.latest_telemetry_value[ch_1] += 4
-    assert driver_thread.value_exceeds_async_threshold(ch_1) is False
+    assert driver_thread.value_hits_async_threshold(ch_1) is False
 
     driver_thread.latest_telemetry_value[ch_1] += 2
-    assert driver_thread.value_exceeds_async_threshold(ch_1) is True
+    assert driver_thread.value_hits_async_threshold(ch_1) is True
     assert driver_thread.should_report_telemetry_reading(ch_1) is True
     driver_thread.report_sampled_telemetry_values([ch_1])
     assert driver_thread.last_reported_telemetry_value[ch_1] == 6
