@@ -547,7 +547,7 @@ class Atn(PrimeActor):
         self.temperature_channel_names = [
             x.Name
             for x in layout.DataChannels
-            if "depth" in x.Name and "adj" in x.Name and "micro-v" not in x.Name
+            if "depth" in x.Name and "adj" not in x.Name and "micro-v" not in x.Name
         ]
         self.adjusted_temperature_channel_names = [
             x.Name
