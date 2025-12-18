@@ -32,13 +32,13 @@ class SynthGenerator(ScadaActor):
         self._stop_requested: bool = False
         self.hardware_layout = self._services.hardware_layout
 
-        buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3]
-        all_tank_depths = []
+        unadjusted_buffer_depths = [H0CN.buffer_unadjusted.depth1, H0CN.buffer_unadjusted.depth2, H0CN.buffer_unadjusted.depth3]
+        all_unadjusted_tank_depths = []
         for i in range(1,len(self.cn.tank.values())+1):
-            tank_depths = [H0CN.tank[i].depth1, H0CN.tank[i].depth2, H0CN.tank[i].depth3]
-            all_tank_depths.extend(tank_depths)
+            unadjusted_tank_depths = [H0CN.tank_unadjusted[i].depth1, H0CN.tank_unadjusted[i].depth2, H0CN.tank_unadjusted[i].depth3]
+            all_unadjusted_tank_depths.extend(unadjusted_tank_depths)
         
-        self.temperature_channel_names = buffer_depths + all_tank_depths + [
+        self.unadjusted_temperature_channel_names = unadjusted_buffer_depths + all_unadjusted_tank_depths + [
             H0CN.hp_ewt, H0CN.hp_lwt, H0CN.dist_swt, H0CN.dist_rwt, 
             H0CN.buffer_cold_pipe, H0CN.buffer_hot_pipe, H0CN.store_cold_pipe, H0CN.store_hot_pipe,
         ]
@@ -142,7 +142,7 @@ class SynthGenerator(ScadaActor):
         return Ok(True)
     
     def fill_missing_store_temps(self):
-        all_store_layers = sorted([x for x in self.temperature_channel_names if 'tank' in x])
+        all_store_layers = sorted([x for x in self.unadjusted_temperature_channel_names if 'tank' in x])
         for layer in all_store_layers:
             if (layer not in self.latest_unadjusted_temperatures 
             or self.to_fahrenheit(self.latest_unadjusted_temperatures[layer]/1000) < 70
@@ -163,7 +163,7 @@ class SynthGenerator(ScadaActor):
         if not self.is_simulated:
             temp = {
                 x: self.data.latest_channel_values[x] 
-                for x in self.temperature_channel_names
+                for x in self.unadjusted_temperature_channel_names
                 if x in self.data.latest_channel_values
                 and self.data.latest_channel_values[x] is not None
                 }
@@ -171,13 +171,13 @@ class SynthGenerator(ScadaActor):
         else:
             self.log("IN SIMULATION - set all temperatures to 60 degC")
             self.latest_unadjusted_temperatures = {}
-            for channel_name in self.temperature_channel_names:
+            for channel_name in self.unadjusted_temperature_channel_names:
                 self.latest_unadjusted_temperatures[channel_name] = 60 * 1000
-        if list(self.latest_unadjusted_temperatures.keys()) == self.temperature_channel_names:
+        if list(self.latest_unadjusted_temperatures.keys()) == self.unadjusted_temperature_channel_names:
             self.temperatures_available = True
         else:
             self.temperatures_available = False
-            all_buffer = [x for x in self.temperature_channel_names if 'buffer-depth' in x]
+            all_buffer = [x for x in self.unadjusted_temperature_channel_names if 'buffer-depth' in x]
             available_buffer = [x for x in list(self.latest_unadjusted_temperatures.keys()) if 'buffer-depth' in x]
             if all_buffer == available_buffer:
                 if self.layout.ha_strategy != HomeAloneStrategy.ShoulderTou:
