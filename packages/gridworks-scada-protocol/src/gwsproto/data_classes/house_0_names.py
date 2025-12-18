@@ -31,10 +31,9 @@ class TankNodes:
         self.depth1 = f"{tank_name}-depth1"
         self.depth2 = f"{tank_name}-depth2"
         self.depth3 = f"{tank_name}-depth3"
-        self.depth4 = f"{tank_name}-depth4"
 
     def __repr__(self) -> str:
-        return f"{self.reader} reads {self.depth1}, {self.depth2}, {self.depth3}, {self.depth4}"
+        return f"{self.reader} reads {self.depth1}, {self.depth2}, {self.depth3}"
 
 
 class ZoneChannelNames:
@@ -55,15 +54,13 @@ class TankChannelNames:
         self.depth1 = f"{tank_name}-depth1"
         self.depth2 = f"{tank_name}-depth2"
         self.depth3 = f"{tank_name}-depth3"
-        self.depth4 = f"{tank_name}-depth4"
 
 
-class TankChannelNamesAdjusted:
+class TankChannelNamesUnadjusted:
     def __init__(self, tank_name: str) -> None:
-        self.depth1 = f"{tank_name}-depth1-adj"
-        self.depth2 = f"{tank_name}-depth2-adj"
-        self.depth3 = f"{tank_name}-depth3-adj"
-        self.depth4 = f"{tank_name}-depth4-adj"
+        self.depth1 = f"{tank_name}-depth1-unadjusted"
+        self.depth2 = f"{tank_name}-depth2-unadjusted"
+        self.depth3 = f"{tank_name}-depth3-unadjusted"
 
 
 class House0RelayIdx:
@@ -206,8 +203,8 @@ class H0CN:
     required_energy = "required-energy"
     usable_energy = "usable-energy"
     hp_keep_seconds_x_10 = "hp-keep-seconds-x-10"
-    buffer_adj = TankChannelNamesAdjusted("buffer")
-    tank_adj: ClassVar[Dict[int, TankChannelNamesAdjusted]] = {}
+    buffer_unadjusted = TankChannelNamesUnadjusted("buffer")
+    tank_unadjusted: ClassVar[Dict[int, TankChannelNamesUnadjusted]] = {}
 
     # relay state channels
     vdc_relay_state: Literal["vdc-relay1"] = "vdc-relay1"
@@ -237,7 +234,7 @@ class H0CN:
     def __init__(self, total_store_tanks: int, zone_list: List[str]) -> None:
         for i in range(total_store_tanks):
             self.tank[i + 1] = TankChannelNames(f"tank{i + 1}")
-            self.tank_adj[i + 1] = TankChannelNamesAdjusted(f"tank{i + 1}")
+            self.tank_unadjusted[i + 1] = TankChannelNamesUnadjusted(f"tank{i + 1}")
         for i in range(len(zone_list)):
             self.zone[i + 1] = ZoneChannelNames(zone=zone_list[i], idx=i + 1)
 
@@ -345,11 +342,6 @@ class H0CN:
                 AboutNodeName=H0N.buffer.depth3,
                 TelemetryName=TelemetryName.WaterTempCTimes1000,
             ),
-            self.buffer.depth4: ChannelStub(
-                Name=self.buffer.depth4,
-                AboutNodeName=H0N.buffer.depth4,
-                TelemetryName=TelemetryName.WaterTempCTimes1000,
-            ),
         }
         for i in self.tank:
             d[self.tank[i].depth1] = ChannelStub(
@@ -365,11 +357,6 @@ class H0CN:
             d[self.tank[i].depth3] = ChannelStub(
                 Name=self.tank[i].depth3,
                 AboutNodeName=self.tank[i].depth3,
-                TelemetryName=TelemetryName.WaterTempCTimes1000,
-            )
-            d[self.tank[i].depth4] = ChannelStub(
-                Name=self.tank[i].depth4,
-                AboutNodeName=self.tank[i].depth4,
                 TelemetryName=TelemetryName.WaterTempCTimes1000,
             )
         for i in self.zone:

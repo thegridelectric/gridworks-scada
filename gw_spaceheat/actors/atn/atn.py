@@ -270,7 +270,6 @@ class Atn(PrimeActor):
         self.price_forecast: Optional[PriceForecast] = None
         self.data_channels: List
         self.temperature_channel_names = None
-        self.adjusted_temperature_channel_names = None
         self.ha1_params: Optional[Ha1Params] = None
         self.latest_report: Optional[Report] = None
         self.report_output_dir = Path(f"{self.settings.paths.data_dir}/report")
@@ -548,11 +547,6 @@ class Atn(PrimeActor):
             x.Name
             for x in layout.DataChannels
             if "depth" in x.Name and "adj" not in x.Name and "micro-v" not in x.Name
-        ]
-        self.adjusted_temperature_channel_names = [
-            x.Name
-            for x in layout.DataChannels
-            if "depth" in x.Name and "adj" in x.Name and "micro-v" not in x.Name
         ]
         if self.contract_handler.layout_received is False:
             self.contract_handler.layout_received = True # Necessary for bids & contracts
@@ -938,10 +932,6 @@ class Atn(PrimeActor):
         }
 
     def get_latest_temperatures(self):
-        if self.adjusted_temperature_channel_names is None:
-            self.adjusted_temperatures_available = False
-            self.log("Can't get latest adjusted temperatures, don't have adjusted temperature channel names!")
-            return
         if self.temperature_channel_names is None:
             self.temperatures_available = False
             self.log("Can't get latest temperatures, don't have temperature channel names!")
@@ -956,25 +946,16 @@ class Atn(PrimeActor):
                     and self.latest_channel_values[x] is not None
                 }
                 self.latest_temperatures = temp.copy()
-                adjusted_temp = {
-                    x: self.latest_channel_values[x]
-                    for x in self.adjusted_temperature_channel_names
-                    if x in self.latest_channel_values
-                    and self.latest_channel_values[x] is not None
-                }
-                if len(adjusted_temp) == len(temp):
-                    self.latest_temperatures = adjusted_temp.copy()
             else:
                 self.log("IN SIMULATION - set all temperatures to 60 degC")
                 self.latest_temperatures = {}
-                for channel_name in self.adjusted_temperature_channel_names:
+                for channel_name in self.temperature_channel_names:
                     self.latest_temperatures[channel_name] = 60 * 1000
 
-            if list(self.latest_temperatures.keys()) == self.adjusted_temperature_channel_names:
-                self.adjusted_temperatures_available = True
-            elif list(self.latest_temperatures.keys()) == self.temperature_channel_names:
+            if list(self.latest_temperatures.keys()) == self.temperature_channel_names:
                 self.temperatures_available = True
             else:
+                self.temperatures_available = False
                 available_buffer = [x for x in list(self.latest_temperatures.keys()) if "buffer" in x]
                 buffer_depths = [x for x in self.temperature_channel_names if "buffer" in x]
                 if all(buffer_depth in available_buffer for buffer_depth in buffer_depths):
@@ -983,7 +964,6 @@ class Atn(PrimeActor):
         except Exception as e:
             self.log(f"Failed to get all the tank temps in get_latest_temperatures! Bailing on process {e}")
             self.temperatures_available = False
-            self.adjusted_temperatures_available = False
             return
 
     async def get_RSWT(self, minus_deltaT=False):
@@ -1042,11 +1022,9 @@ class Atn(PrimeActor):
             self.send_layout()
             await asyncio.sleep(5)
 
+        self.get_latest_temperatures()  
         storage_method = "buffer" if self.strategy == HomeAloneStrategy.ShoulderTou else "tank" 
-        self.get_latest_temperatures() 
-        if self.adjusted_temperatures_available:
-            all_layers = sorted([x for x in self.adjusted_temperature_channel_names if storage_method in x])
-        elif self.temperatures_available:
+        if self.temperatures_available:
             all_layers = sorted([x for x in self.temperature_channel_names if storage_method in x])
         else:
             self.log("Not enough tank temperatures available to compute top temperature and thermocline!")

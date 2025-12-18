@@ -151,21 +151,10 @@ class WinterTouHomeAlone(HomeAloneTouBase):
 
     @property
     def temperature_channel_names(self) -> List[str]:
-        '''Default is 3 layers per tank but can be 4 if PicoAHwUid is specified'''
         buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3]
-        if (
-            isinstance(self.layout.nodes['buffer'].component.gt, PicoTankModuleComponentGt) 
-            and getattr(self.layout.nodes['buffer'].component.gt, "PicoAHwUid", None)
-        ):
-            buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4]
         all_tank_depths = []
         for i in range(1,len(self.cn.tank.values())+1):
             tank_depths = [H0CN.tank[i].depth1, H0CN.tank[i].depth2, H0CN.tank[i].depth3]
-            if (
-                isinstance(self.layout.nodes[H0N.tank[i].reader].component.gt, PicoTankModuleComponentGt) 
-                and getattr(self.layout.nodes[H0N.tank[i].reader].component.gt, "PicoAHwUid", None)
-            ):
-                tank_depths = [H0CN.tank[i].depth1, H0CN.tank[i].depth2, H0CN.tank[i].depth3, H0CN.tank[i].depth4]
             all_tank_depths.extend(tank_depths)
         
         return buffer_depths + all_tank_depths + [
@@ -378,9 +367,7 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             return False            
     
     def is_buffer_full(self) -> bool:
-        if H0CN.buffer.depth4 in self.latest_temperatures:
-            buffer_full_ch = H0CN.buffer.depth4
-        elif H0CN.buffer.depth3 in self.latest_temperatures:
+        if H0CN.buffer.depth3 in self.latest_temperatures:
             buffer_full_ch = H0CN.buffer.depth3
         elif H0CN.buffer_cold_pipe in self.latest_temperatures:
             buffer_full_ch = H0CN.buffer_cold_pipe
@@ -448,8 +435,6 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             buffer_top = H0CN.buffer.depth2
         elif H0CN.buffer.depth3 in self.latest_temperatures:
             buffer_top = H0CN.buffer.depth3
-        elif H0CN.buffer.depth4 in self.latest_temperatures:
-            buffer_top = H0CN.buffer.depth4
         elif H0CN.buffer_cold_pipe in self.latest_temperatures:
             buffer_top = H0CN.buffer_cold_pipe
         else:
