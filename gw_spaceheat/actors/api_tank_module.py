@@ -315,6 +315,7 @@ class ApiTankModule(ScadaActor):
         )
         self._send_to(self.pico_cycler, msg)
         self._send_to(self.primary_scada, msg)
+        self._send_to(self.synth_generator, msg)
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         match message.Payload:
