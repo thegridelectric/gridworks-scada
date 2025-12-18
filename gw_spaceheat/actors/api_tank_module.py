@@ -308,7 +308,8 @@ class ApiTankModule(ScadaActor):
                     )
             else:
                 raise Exception(f"No code for {self._component.gt.TempCalcMethod}!")
-        channel_name_list = [x+"-unadjusted" for x in channel_name_list]
+        channel_name_list = [x+"-unadjusted" for x in channel_name_list if 'micro-v' not in x]
+        self.log(f"channel_name_list: {channel_name_list}")
         msg = SyncedReadings(
             ChannelNameList=channel_name_list,
             ValueList=value_list,
