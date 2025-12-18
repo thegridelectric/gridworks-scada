@@ -275,24 +275,32 @@ class SynthGenerator(ScadaActor):
         storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
         buffer_temperatures = {k:v for k,v in latest_temperatures.items() if 'buffer' in k and 'depth' in k}
         t_ms = int(time.time() * 1000)
+
+        buffer_temperatures_adjusted = H0CN.buffer_adj
         for buffer_depth_i in buffer_temperatures:
-            self._send_to(
-                    self.primary_scada,
-                    SingleReading(
-                        ChannelName=buffer_depth_i+'-adj',
-                        Value=buffer_temperatures[buffer_depth_i],
-                        ScadaReadTimeUnixMs=t_ms,
-                    ),
-                )
+            for buffer_depth_i_adj in buffer_temperatures_adjusted:
+                if buffer_depth_i in buffer_depth_i_adj:                    
+                    self._send_to(
+                            self.primary_scada,
+                            SingleReading(
+                                ChannelName=buffer_depth_i_adj,
+                                Value=buffer_temperatures[buffer_depth_i],
+                                ScadaReadTimeUnixMs=t_ms,
+                            ),
+                        )
+                        
+        storage_temperatures_adjusted = [adj for tank_adj in H0CN.tank_adj.values() for adj in tank_adj]
         for store_depth_i in storage_temperatures:
-            self._send_to(
-                    self.primary_scada,
-                    SingleReading(
-                        ChannelName=store_depth_i+'-adj',
-                        Value=storage_temperatures[store_depth_i],
-                        ScadaReadTimeUnixMs=t_ms,
-                    ),
-                )
+            for store_depth_i_adj in storage_temperatures_adjusted:
+                if store_depth_i in store_depth_i_adj:
+                    self._send_to(
+                            self.primary_scada,
+                            SingleReading(
+                                ChannelName=store_depth_i_adj,
+                                Value=storage_temperatures[store_depth_i],
+                                ScadaReadTimeUnixMs=t_ms,
+                            ),
+                        )
         self.log(f"Done sending out adjusted buffer and tank temperatures")
         
     def evaluate_strategy(self):
