@@ -144,19 +144,19 @@ class SynthGenerator(ScadaActor):
     def fill_missing_store_temps(self):
         all_store_layers = sorted([x for x in self.temperature_channel_names if 'tank' in x])
         for layer in all_store_layers:
-            if (layer not in self.latest_temperatures 
-            or self.to_fahrenheit(self.latest_temperatures[layer]/1000) < 70
-            or self.to_fahrenheit(self.latest_temperatures[layer]/1000) > 200):
-                self.latest_temperatures[layer] = None
-        if H0CN.store_cold_pipe in self.latest_temperatures:
-            value_below = self.latest_temperatures[H0CN.store_cold_pipe]
+            if (layer not in self.latest_unadjusted_temperatures 
+            or self.to_fahrenheit(self.latest_unadjusted_temperatures[layer]/1000) < 70
+            or self.to_fahrenheit(self.latest_unadjusted_temperatures[layer]/1000) > 200):
+                self.latest_unadjusted_temperatures[layer] = None
+        if H0CN.store_cold_pipe in self.latest_unadjusted_temperatures:
+            value_below = self.latest_unadjusted_temperatures[H0CN.store_cold_pipe]
         else:
             value_below = 0
         for layer in sorted(all_store_layers, reverse=True):
-            if self.latest_temperatures[layer] is None:
-                self.latest_temperatures[layer] = value_below
-            value_below = self.latest_temperatures[layer]  
-        self.latest_temperatures = {k:self.latest_temperatures[k] for k in sorted(self.latest_temperatures)}
+            if self.latest_unadjusted_temperatures[layer] is None:
+                self.latest_unadjusted_temperatures[layer] = value_below
+            value_below = self.latest_unadjusted_temperatures[layer]  
+        self.latest_unadjusted_temperatures = {k:self.latest_unadjusted_temperatures[k] for k in sorted(self.latest_unadjusted_temperatures)}
     
     # Receive latest temperatures
     def get_latest_temperatures(self):
@@ -167,18 +167,18 @@ class SynthGenerator(ScadaActor):
                 if x in self.data.latest_channel_values
                 and self.data.latest_channel_values[x] is not None
                 }
-            self.latest_temperatures = temp.copy()
+            self.latest_unadjusted_temperatures = temp.copy()
         else:
             self.log("IN SIMULATION - set all temperatures to 60 degC")
-            self.latest_temperatures = {}
+            self.latest_unadjusted_temperatures = {}
             for channel_name in self.temperature_channel_names:
-                self.latest_temperatures[channel_name] = 60 * 1000
-        if list(self.latest_temperatures.keys()) == self.temperature_channel_names:
+                self.latest_unadjusted_temperatures[channel_name] = 60 * 1000
+        if list(self.latest_unadjusted_temperatures.keys()) == self.temperature_channel_names:
             self.temperatures_available = True
         else:
             self.temperatures_available = False
             all_buffer = [x for x in self.temperature_channel_names if 'buffer-depth' in x]
-            available_buffer = [x for x in list(self.latest_temperatures.keys()) if 'buffer-depth' in x]
+            available_buffer = [x for x in list(self.latest_unadjusted_temperatures.keys()) if 'buffer-depth' in x]
             if all_buffer == available_buffer:
                 if self.layout.ha_strategy != HomeAloneStrategy.ShoulderTou:
                     self.fill_missing_store_temps()
@@ -187,8 +187,8 @@ class SynthGenerator(ScadaActor):
 
     # Compute usable and required energy
     def update_energy(self) -> None:
-        if self.latest_adjusted_temperatures:
-            latest_temperatures = self.latest_adjusted_temperatures.copy()
+        if self.latest_temperatures:
+            latest_temperatures = self.latest_temperatures.copy()
         else:
             latest_temperatures = self.latest_unadjusted_temperatures.copy()
 
@@ -240,36 +240,34 @@ class SynthGenerator(ScadaActor):
             )
     
     def adjust_tank_temperatures(self):
-        self.latest_adjusted_temperatures = {}
-        latest_temperatures = self.latest_unadjusted_temperatures.copy()
-        storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
-        available_buffer_temperatures = {k:v for k,v in latest_temperatures.items() if 'buffer' in k and 'depth' in k}
+        self.latest_temperatures = {}
+        storage_temperatures_unadjusted = {k:v for k,v in self.latest_unadjusted_temperatures.items() if 'tank' in k}
+        buffer_temperatures_unadjusted = {k:v for k,v in self.latest_unadjusted_temperatures.items() if 'buffer' in k}
+        
         t_ms = int(time.time() * 1000)
 
-        buffer_temperatures_adjusted = H0CN.buffer
-        for available_buffer_depth_i in available_buffer_temperatures:
-            for buffer_depth_i_adj in buffer_temperatures_adjusted:
-                if available_buffer_depth_i in buffer_depth_i_adj:    
-                    self.latest_adjusted_temperatures[buffer_depth_i_adj] = available_buffer_temperatures[available_buffer_depth_i]                
+        for unadjusted_buffer_depth_i in buffer_temperatures_unadjusted:
+            for buffer_depth_i in H0CN.buffer:
+                if unadjusted_buffer_depth_i in buffer_depth_i:    
+                    self.latest_temperatures[buffer_depth_i] = buffer_temperatures_unadjusted[unadjusted_buffer_depth_i]                
                     self._send_to(
                             self.primary_scada,
                             SingleReading(
-                                ChannelName=buffer_depth_i_adj,
-                                Value=available_buffer_temperatures[available_buffer_depth_i],
+                                ChannelName=buffer_depth_i,
+                                Value=self.latest_temperatures[buffer_depth_i],
                                 ScadaReadTimeUnixMs=t_ms,
                             ),
                         )
 
-        storage_temperatures_adjusted = [adj for tank_adj in H0CN.tank.values() for adj in tank_adj]
-        for store_depth_i in storage_temperatures:
-            for store_depth_i_adj in storage_temperatures_adjusted:
-                if store_depth_i in store_depth_i_adj:
-                    self.latest_adjusted_temperatures[store_depth_i_adj] = storage_temperatures[store_depth_i]
+        for unadjusted_store_depth_i in storage_temperatures_unadjusted:
+            for store_depth_i in [depth for tank in H0CN.tank.values() for depth in tank]:
+                if unadjusted_store_depth_i in store_depth_i:
+                    self.latest_temperatures[store_depth_i] = storage_temperatures_unadjusted[unadjusted_store_depth_i]
                     self._send_to(
                             self.primary_scada,
                             SingleReading(
-                                ChannelName=store_depth_i_adj,
-                                Value=storage_temperatures[store_depth_i],
+                                ChannelName=store_depth_i,
+                                Value=self.latest_temperatures[store_depth_i],
                                 ScadaReadTimeUnixMs=t_ms,
                             ),
                         )
