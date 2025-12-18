@@ -9,7 +9,8 @@ from typing import Optional, Sequence, cast
 from result import Ok, Result
 from datetime import datetime,  timezone
 from gwproto import Message
-
+from gwproto.data_classes.sh_node import ShNode
+from gwproto.named_types import SyncedReadings
 from gwproto.named_types import SingleReading, PicoTankModuleComponentGt
 from gwsproto.named_types import Glitch
 from gwproactor import MonitoredName
@@ -139,7 +140,34 @@ class SynthGenerator(ScadaActor):
             case ScadaParams():
                 self.log("Received new parameters, time to recompute forecasts!")
                 self.received_new_params = True
+            case SyncedReadings():
+                try:
+                    self.process_synced_readings(message.Header.Src, message.Payload)
+                    self._temp_adjustment_failed = False  # recovery clears fault
+                except Exception as e:
+                    self.log(f"Temp adjustment failed: {e}")
+
+                    if not self._temp_adjustment_failed:
+                        self._temp_adjustment_failed = True
+                        self._send_to(
+                            self.atn,
+                            Glitch(
+                                FromGNodeAlias=self.layout.scada_g_node_alias,
+                                Node=self.node.Name,
+                                Type=LogLevel.Warning,
+                                Summary="Tank temperature adjustment failed",
+                                Details=str(e),
+                            )
+                        )
         return Ok(True)
+
+    def process_synced_readings(self, actor: ShNode, payload: SyncedReadings) -> None:
+        """ 
+        Uses the unadjusted tank temperature data to create the temp 
+        data we will use.
+        If math breaks, raise exception
+        """
+        pass
     
     def fill_missing_store_temps(self):
         all_store_layers = sorted([x for x in self.unadjusted_temperature_channel_names if 'tank' in x])
