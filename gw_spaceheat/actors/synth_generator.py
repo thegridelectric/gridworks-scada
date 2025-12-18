@@ -32,21 +32,10 @@ class SynthGenerator(ScadaActor):
         self._stop_requested: bool = False
         self.hardware_layout = self._services.hardware_layout
 
-        # Default is 3 layers per tank but can be 4 if PicoAHwUid is specified
         buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3]
-        if (
-            isinstance(self.layout.nodes['buffer'].component.gt, PicoTankModuleComponentGt) 
-            and getattr(self.layout.nodes['buffer'].component.gt, "PicoAHwUid", None)
-        ):
-            buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4]
         all_tank_depths = []
         for i in range(1,len(self.cn.tank.values())+1):
             tank_depths = [H0CN.tank[i].depth1, H0CN.tank[i].depth2, H0CN.tank[i].depth3]
-            if (
-                isinstance(self.layout.nodes[H0N.tank[i].reader].component.gt, PicoTankModuleComponentGt) 
-                and getattr(self.layout.nodes[H0N.tank[i].reader].component.gt, "PicoAHwUid", None)
-            ):
-                tank_depths = [H0CN.tank[i].depth1, H0CN.tank[i].depth2, H0CN.tank[i].depth3, H0CN.tank[i].depth4]
             all_tank_depths.extend(tank_depths)
         
         self.temperature_channel_names = buffer_depths + all_tank_depths + [
@@ -135,8 +124,8 @@ class SynthGenerator(ScadaActor):
 
             self.get_latest_temperatures()
             if self.temperatures_available:
+                self.adjust_tank_temperatures()
                 self.update_energy()
-                self.get_adjusted_tank_temperatures()
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     def stop(self) -> None:
@@ -198,46 +187,26 @@ class SynthGenerator(ScadaActor):
 
     # Compute usable and required energy
     def update_energy(self) -> None:
-        
-        time_now = datetime.now(self.timezone)
-        latest_temperatures = self.latest_temperatures.copy()
-
-        if self.layout.ha_strategy in [HomeAloneStrategy.Summer]:
-            #self.log(f"Does not calculate usable/required energy in {self.layout.ha_strategy} ")
-            return
+        if self.latest_adjusted_temperatures:
+            latest_temperatures = self.latest_adjusted_temperatures.copy()
+        else:
+            latest_temperatures = self.latest_unadjusted_temperatures.copy()
 
         if self.layout.ha_strategy == HomeAloneStrategy.WinterTou:
             storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
-            try:
-                num_tanks = len(set([x[:5] for x in storage_temperatures.keys()]))
-                for tank in range(1, num_tanks+1):
-                    num_layers = len([k for k in storage_temperatures.keys() if f'tank{tank}' in k])
-                    if num_layers == 4:
-                        storage_temperatures[f'tank{tank}-depth2'] = (
-                            storage_temperatures[f'tank{tank}-depth2'] + storage_temperatures[f'tank{tank}-depth3']
-                            ) / 2
-                        storage_temperatures[f'tank{tank}-depth3'] = storage_temperatures[f'tank{tank}-depth4']
-                        storage_temperatures.pop(f'tank{tank}-depth4')
-            except Exception as e:
-                self.log(f"Error combining tank depths 2 and 3, and removing depth 4: {e}")
-                storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
+            storage_temperatures = dict(sorted(storage_temperatures.items(), key=lambda item: item[0]))
             simulated_layers = [self.to_fahrenheit(v/1000) for k,v in storage_temperatures.items()]
+        
         elif self.layout.ha_strategy == HomeAloneStrategy.ShoulderTou: 
-            buffer_temperatures = {k:v for k,v in latest_temperatures.items() if 'buffer' in k and 'depth' in k}
-            try:
-                num_layers = len(buffer_temperatures)
-                if num_layers == 4:
-                    buffer_temperatures['buffer-depth2'] = (
-                        buffer_temperatures['buffer-depth2'] + buffer_temperatures['buffer-depth3']
-                        ) / 2
-                    buffer_temperatures['buffer-depth3'] = buffer_temperatures['buffer-depth4']
-                    buffer_temperatures.pop('buffer-depth4')
-            except Exception as e:
-                self.log(f"Error combining buffer depths 2 and 3, and removing depth 4: {e}")
-                buffer_temperatures = {k:v for k,v in latest_temperatures.items() if 'buffer' in k and 'depth' in k}
-            simulated_layers = [self.to_fahrenheit(v/1000) for k,v in buffer_temperatures.items()]   
+            available_buffer_temperatures = {k:v for k,v in latest_temperatures.items() if 'buffer-depth' in k}
+            available_buffer_temperatures = dict(sorted(available_buffer_temperatures.items(), key=lambda item: item[0]))
+            simulated_layers = [self.to_fahrenheit(v/1000) for k,v in available_buffer_temperatures.items()]   
+        
+        elif self.layout.ha_strategy in [HomeAloneStrategy.Summer]:
+            return
         else:
             raise Exception(f"not prepared for home alone strategy {self.layout.ha_strategy}")    
+
         self.usable_kwh = 0
         while True:
             if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
@@ -245,8 +214,8 @@ class SynthGenerator(ScadaActor):
                 if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
                     break
             self.usable_kwh += 120/3 * 3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
-            simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]          
-        self.required_kwh = self.get_required_storage(time_now)
+            simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]  
+        self.required_kwh = self.get_required_storage()
         self.log(f"Usable energy: {round(self.usable_kwh,1)} kWh")
         self.log(f"Required energy: {round(self.required_kwh,1)} kWh")
         self.evaluate_strategy()
@@ -270,29 +239,32 @@ class SynthGenerator(ScadaActor):
                 ),
             )
     
-    def get_adjusted_tank_temperatures(self):
-        latest_temperatures = self.latest_temperatures.copy()
+    def adjust_tank_temperatures(self):
+        self.latest_adjusted_temperatures = {}
+        latest_temperatures = self.latest_unadjusted_temperatures.copy()
         storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
-        buffer_temperatures = {k:v for k,v in latest_temperatures.items() if 'buffer' in k and 'depth' in k}
+        available_buffer_temperatures = {k:v for k,v in latest_temperatures.items() if 'buffer' in k and 'depth' in k}
         t_ms = int(time.time() * 1000)
 
-        buffer_temperatures_adjusted = H0CN.buffer_adj
-        for buffer_depth_i in buffer_temperatures:
+        buffer_temperatures_adjusted = H0CN.buffer
+        for available_buffer_depth_i in available_buffer_temperatures:
             for buffer_depth_i_adj in buffer_temperatures_adjusted:
-                if buffer_depth_i in buffer_depth_i_adj:                    
+                if available_buffer_depth_i in buffer_depth_i_adj:    
+                    self.latest_adjusted_temperatures[buffer_depth_i_adj] = available_buffer_temperatures[available_buffer_depth_i]                
                     self._send_to(
                             self.primary_scada,
                             SingleReading(
                                 ChannelName=buffer_depth_i_adj,
-                                Value=buffer_temperatures[buffer_depth_i],
+                                Value=available_buffer_temperatures[available_buffer_depth_i],
                                 ScadaReadTimeUnixMs=t_ms,
                             ),
                         )
-                        
-        storage_temperatures_adjusted = [adj for tank_adj in H0CN.tank_adj.values() for adj in tank_adj]
+
+        storage_temperatures_adjusted = [adj for tank_adj in H0CN.tank.values() for adj in tank_adj]
         for store_depth_i in storage_temperatures:
             for store_depth_i_adj in storage_temperatures_adjusted:
                 if store_depth_i in store_depth_i_adj:
+                    self.latest_adjusted_temperatures[store_depth_i_adj] = storage_temperatures[store_depth_i]
                     self._send_to(
                             self.primary_scada,
                             SingleReading(
@@ -301,7 +273,7 @@ class SynthGenerator(ScadaActor):
                                 ScadaReadTimeUnixMs=t_ms,
                             ),
                         )
-        self.log(f"Done sending out adjusted buffer and tank temperatures")
+        self.log(f"Done adjusting buffer and tank temperatures")
         
     def evaluate_strategy(self):
         if self.layout.ha_strategy != HomeAloneStrategy.ShoulderTou:
@@ -326,7 +298,8 @@ class SynthGenerator(ScadaActor):
             self.log(details)
             self.send_glitch(summary, details)
         
-    def get_required_storage(self, time_now: datetime) -> float:
+    def get_required_storage(self) -> float:
+        time_now = datetime.now(self.timezone)
         forecasts_times_tz = [datetime.fromtimestamp(x, tz=self.timezone) for x in self.forecasts.Time]
         morning_kWh = sum(
             [kwh for t, kwh in zip(forecasts_times_tz, self.forecasts.AvgPowerKw) 
