@@ -368,7 +368,10 @@ class WinterTouHomeAlone(HomeAloneTouBase):
         else:
             max_rswt_next_3hours = max(self.heating_forecast.RswtF[:3])
             max_deltaT_rswt_next_3_hours = max(self.heating_forecast.RswtDeltaTF[:3])
-        min_buffer = round(max_rswt_next_3hours - max_deltaT_rswt_next_3_hours,1)
+        if max_rswt_next_3hours < self.params.MaxEwtF:
+            min_buffer = round(max_rswt_next_3hours - max_deltaT_rswt_next_3_hours,1)
+        else:
+            min_buffer = self.params.MaxEwtF - 10   
         buffer_empty_ch_temp = round(self.to_fahrenheit(self.latest_temperatures[buffer_empty_ch]/1000),1)
         if buffer_empty_ch_temp < min_buffer:
             self.log(f"Buffer empty ({buffer_empty_ch}: {buffer_empty_ch_temp} < {min_buffer} F)")
@@ -394,7 +397,13 @@ class WinterTouHomeAlone(HomeAloneTouBase):
         if self.heating_forecast is None:
             max_buffer = 170
         else:
-            max_buffer = round(max(self.heating_forecast.RswtF[:3]),1)
+            max_rswt = round(max(self.heating_forecast.RswtF[:3]),1)
+            if max_buffer < self.params.MaxEwtF:
+                max_buffer = max_rswt
+            else:
+                max_buffer = self.params.MaxEwtF
+                if H0CN.hp_ewt in self.latest_temperatures:
+                    buffer_full_ch =  H0CN.hp_ewt                
         buffer_full_ch_temp = round(self.to_fahrenheit(self.latest_temperatures[buffer_full_ch]/1000),1)
         if buffer_full_ch_temp > max_buffer:
             self.log(f"Buffer full ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)")
