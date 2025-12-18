@@ -275,7 +275,7 @@ class SynthGenerator(ScadaActor):
         t_ms = int(time.time() * 1000)
 
         for unadjusted_buffer_depth_i in buffer_temperatures_unadjusted:
-            for buffer_depth_i in H0CN.buffer:
+            for buffer_depth_i in [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3]:
                 if unadjusted_buffer_depth_i in buffer_depth_i:    
                     self.latest_temperatures[buffer_depth_i] = buffer_temperatures_unadjusted[unadjusted_buffer_depth_i]                
                     self._send_to(
@@ -288,7 +288,11 @@ class SynthGenerator(ScadaActor):
                         )
 
         for unadjusted_store_depth_i in storage_temperatures_unadjusted:
-            for store_depth_i in [depth for tank in H0CN.tank.values() for depth in tank]:
+            for store_depth_i in [
+                H0CN.tank[1].depth1, H0CN.tank[1].depth2, H0CN.tank[1].depth3,
+                H0CN.tank[2].depth1, H0CN.tank[2].depth2, H0CN.tank[2].depth3,
+                H0CN.tank[3].depth1, H0CN.tank[3].depth2, H0CN.tank[3].depth3,
+            ]:
                 if unadjusted_store_depth_i in store_depth_i:
                     self.latest_temperatures[store_depth_i] = storage_temperatures_unadjusted[unadjusted_store_depth_i]
                     self._send_to(
