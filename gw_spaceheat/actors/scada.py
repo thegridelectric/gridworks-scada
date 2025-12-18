@@ -508,14 +508,21 @@ class Scada(PrimeActor, ScadaInterface):
     def process_channel_readings(
         self, from_node: ShNode, payload: ChannelReadings
     ) -> None:
-        if payload.ChannelName not in self._layout.data_channels:
+        if payload.ChannelName in self._layout.data_channels:
+            ch = self._layout.data_channels[payload.ChannelName]
+            if from_node != ch.captured_by_node:
+                raise ValueError(
+                    f"{payload.ChannelName} should be read by {ch.captured_by_node}, not {from_node}!"
+                )
+        elif payload.ChannelName in self._layout.synth_channels:
+            ch = self._layout.synth_channels[payload.ChannelName]
+            if from_node != ch.created_by_node:
+                raise ValueError(
+                    f"{payload.ChannelName} should be created by {ch.created_by_node}, not {from_node}!"
+                )
+        else:
             raise ValueError(
-                f"Name {payload.ChannelName} in ChannelReadings not a recognized Data Channel!"
-            )
-        ch = self._layout.data_channels[payload.ChannelName]
-        if from_node != ch.captured_by_node:
-            raise ValueError(
-                f"{payload.ChannelName} shoudl be read by {ch.captured_by_node}, not {from_node}!"
+                f"Name {payload.ChannelName} in ChannelReadings not a recognized Data Channel or Synth Channel!"
             )
         self._data.recent_channel_values[ch.Name] += payload.ValueList
 
@@ -789,11 +796,14 @@ class Scada(PrimeActor, ScadaInterface):
         path_dbg = 0
         for idx, channel_name in enumerate(payload.ChannelNameList):
             path_dbg |= 0x00000001
-            if channel_name not in self._layout.data_channels:
+            if channel_name in self._layout.data_channels:
+                ch = self._layout.data_channels[channel_name]
+            elif channel_name in self._layout.synth_channels:
+                ch = self._layout.synth_channels[channel_name]
+            else:
                 raise ValueError(
-                    f"Name {channel_name} in payload.SyncedReadings not a recognized Data Channel!"
+                    f"Name {channel_name} in payload.SyncedReadings not a recognized Data Channel or Synth Channel!"
                 )
-            ch = self._layout.data_channels[channel_name]
             self._data.recent_channel_values[ch.Name].append(payload.ValueList[idx])
             self._data.recent_channel_unix_ms[ch.Name].append(
                 payload.ScadaReadTimeUnixMs
