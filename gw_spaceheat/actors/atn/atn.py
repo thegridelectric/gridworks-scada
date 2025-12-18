@@ -918,11 +918,6 @@ class Atn(PrimeActor):
         all_store_layers = sorted(
             [x for x in self.temperature_channel_names if "tank" in x]
         )
-        all_adjusted_store_layers = sorted(
-            [x for x in self.adjusted_temperature_channel_names if "tank" in x]
-        )
-        if all_adjusted_store_layers:
-            all_store_layers = all_adjusted_store_layers
         for layer in all_store_layers:
             if (
                 layer not in self.latest_temperatures
@@ -943,12 +938,15 @@ class Atn(PrimeActor):
         }
 
     def get_latest_temperatures(self):
+        if self.adjusted_temperature_channel_names is None:
+            self.adjusted_temperatures_available = False
+            self.log("Can't get latest adjusted temperatures, don't have adjusted temperature channel names!")
+            return
         if self.temperature_channel_names is None:
             self.temperatures_available = False
             self.log("Can't get latest temperatures, don't have temperature channel names!")
             return
-        if self.adjusted_temperature_channel_names is None:
-            self.log("Can't get latest adjusted temperatures, don't have adjusted temperature channel names!")
+
         try:
             if not self.settings.is_simulated:
                 temp = {
@@ -957,43 +955,35 @@ class Atn(PrimeActor):
                     if x in self.latest_channel_values
                     and self.latest_channel_values[x] is not None
                 }
+                self.latest_temperatures = temp.copy()
                 adjusted_temp = {
                     x: self.latest_channel_values[x]
                     for x in self.adjusted_temperature_channel_names
                     if x in self.latest_channel_values
                     and self.latest_channel_values[x] is not None
                 }
-                self.latest_temperatures = temp.copy()
                 if len(adjusted_temp) == len(temp):
                     self.latest_temperatures = adjusted_temp.copy()
             else:
                 self.log("IN SIMULATION - set all temperatures to 60 degC")
                 self.latest_temperatures = {}
-                for channel_name in self.temperature_channel_names:
+                for channel_name in self.adjusted_temperature_channel_names:
                     self.latest_temperatures[channel_name] = 60 * 1000
-            if (
-                list(self.latest_temperatures.keys()) == self.temperature_channel_names 
-                or list(self.latest_temperatures.keys()) == self.adjusted_temperature_channel_names
-            ):
+
+            if list(self.latest_temperatures.keys()) == self.adjusted_temperature_channel_names:
+                self.adjusted_temperatures_available = True
+            elif list(self.latest_temperatures.keys()) == self.temperature_channel_names:
                 self.temperatures_available = True
             else:
-                self.temperatures_available = False
-                buffer_depths = [x for x in self.temperature_channel_names if "buffer-depth" in x]
-                buffer_depths_adjusted = [x for x in self.adjusted_temperature_channel_names if "buffer-depth" in x]
-                if len(buffer_depths_adjusted) == len(buffer_depths):
-                    buffer_depths = buffer_depths_adjusted
-                all_buffer = [
-                    x for x in buffer_depths if "buffer-depth" in x
-                ]
-                available_buffer = [
-                    x for x in list(self.latest_temperatures.keys()) if "buffer-depth" in x
-                ]
-                if all_buffer == available_buffer:
+                available_buffer = [x for x in list(self.latest_temperatures.keys()) if "buffer" in x]
+                buffer_depths = [x for x in self.temperature_channel_names if "buffer" in x]
+                if all(buffer_depth in available_buffer for buffer_depth in buffer_depths):
                     self.fill_missing_store_temps()
                     self.temperatures_available = True
         except Exception as e:
             self.log(f"Failed to get all the tank temps in get_latest_temperatures! Bailing on process {e}")
             self.temperatures_available = False
+            self.adjusted_temperatures_available = False
             return
 
     async def get_RSWT(self, minus_deltaT=False):
@@ -1051,18 +1041,18 @@ class Atn(PrimeActor):
         if self.temperature_channel_names is None:
             self.send_layout()
             await asyncio.sleep(5)
-        self.get_latest_temperatures()
-        if not self.temperatures_available:
+
+        storage_method = "buffer" if self.strategy == HomeAloneStrategy.ShoulderTou else "tank" 
+        self.get_latest_temperatures() 
+        if self.adjusted_temperatures_available:
+            all_layers = sorted([x for x in self.adjusted_temperature_channel_names if storage_method in x])
+        elif self.temperatures_available:
+            all_layers = sorted([x for x in self.temperature_channel_names if storage_method in x])
+        else:
             self.log("Not enough tank temperatures available to compute top temperature and thermocline!")
-            return None
-        all_layers = sorted(
-            [x for x in self.temperature_channel_names if ("buffer" if self.strategy == HomeAloneStrategy.ShoulderTou else "tank") in x]
-        )
+            return None  
         try:
-            tank_temps = {
-                key: self.to_fahrenheit(self.latest_temperatures[key] / 1000) 
-                for key in all_layers
-            }
+            tank_temps = {key: self.to_fahrenheit(self.latest_temperatures[key] / 1000) for key in all_layers}          
         except KeyError as e:
             self.log(f"Failed to get all the tank temps in get_three_layer_storage_model! Bailing on process {e}")
             return None
@@ -1072,14 +1062,23 @@ class Atn(PrimeActor):
                 top_temp = round(tank_temps[H0CN.buffer_adj.depth1],1)
             elif H0CN.buffer.depth1 in tank_temps:
                 top_temp = round(tank_temps[H0CN.buffer.depth1],1)
+            else:
+                self.log("Could not find buffer top temperature")
+                return None
             if H0CN.buffer_adj.depth2 in tank_temps:
-                middle_temp = round(tank_temps[H0CN.buffer.depth2],1)
-            elif H0CN.buffer_adj.depth2 in tank_temps:
                 middle_temp = round(tank_temps[H0CN.buffer_adj.depth2],1)
             elif H0CN.buffer.depth2 in tank_temps:
                 middle_temp = round(tank_temps[H0CN.buffer.depth2],1)
+            else:
+                self.log("Could not find buffer middle temperature")
+                return None
             if H0CN.buffer_adj.depth3 in tank_temps:
+                bottom_temp = round(tank_temps[H0CN.buffer_adj.depth3],1)
+            elif H0CN.buffer.depth3 in tank_temps:
                 bottom_temp = round(tank_temps[H0CN.buffer.depth3],1)
+            else:
+                self.log("Could not find buffer bottom temperature")
+                return None
             thermocline1 = 4 #out of 12 layers
             thermocline2 = 8 #out of 12 layers
             return top_temp, middle_temp, bottom_temp, thermocline1, thermocline2
