@@ -5,58 +5,83 @@ from gwproto.property_format import SpaceheatName
 DEFAULT_ANALOG_READER = "analog-temp"
 
 
-class ChannelStub(BaseModel):
-    Name: SpaceheatName
-    AboutNodeName: SpaceheatName
-    TelemetryName: TelemetryName
-    InPowerMetering: bool = False
-
-    def __hash__(self) -> int:
-        return hash(self.Name)
-
 class ZoneNodes:
+    """
+    Spaceheat Node names associated to a zone:
+    self.zone_name, self.stat, self.whitewire
+    """
     def __init__(self, zone: str, idx: int) -> None:
-        zone_name = f"zone{idx + 1}-{zone}".lower()
-        self.zone_name = zone_name
-        self.stat = f"{zone_name}-stat"
-        self.whitewire=f"zone{idx + 1}-{zone}-whitewire"
+        self.zone_name =  f"zone{idx + 1}-{zone}".lower()
+        self.stat = f"{self.zone_name}-stat"
+        self.whitewire=f"{self.zone_name}-whitewire"
+
+    @property
+    def all(self) -> set[str]:
+        """All required nodes this zone"""
+        return {
+            self.zone_name,
+            self.stat,
+            self.whitewire,
+        }
 
     def __repr__(self) -> str:
-        return f"Zone {self.zone_name} and stat {self.stat}"
+        return f"Zone {self.zone_name} Spaceheat nodes: {sorted(self.all)}"
 
+class BufferNodeNames:
+    """
+    Spaceheat Node names associated to the buffer"
 
-class TankNodes:
-    def __init__(self, tank_name: str) -> None:
-        self.reader = tank_name
-        self.depth1 = f"{tank_name}-depth1"
-        self.depth2 = f"{tank_name}-depth2"
-        self.depth3 = f"{tank_name}-depth3"
-        self.depth4 = f"{tank_name}-depth4"
+    self.reader, self.depth1, self.depth2, self.depth3
+    """
+    def __init__(self) -> None:
+        self.reader = "buffer"
+        self.depth1 = "buffer-depth1"
+        self.depth2 = "buffer-depth2"
+        self.depth3 = "buffer-depth3"
+
+    @property
+    def all(self) -> set[str]:
+        """All required buffer Spaceheat nodes"""
+        return {
+            self.reader,
+            self.depth1,
+            self.depth2,
+            self.depth3
+        }
 
     def __repr__(self) -> str:
-        return f"{self.reader} reads {self.depth1}, {self.depth2}, {self.depth3}, {self.depth4}"
+        return f"{self.reader} Spaceheat nodes: {sorted(self.all)}"
 
 
-class ZoneChannelNames:
-    def __init__(self, zone: str, idx: int) -> None:
-        self.zone_name = f"zone{idx}-{zone}".lower()
-        self.stat_name = f"{self.zone_name}-stat"
-        self.temp = f"{self.zone_name}-temp"
-        self.set = f"{self.zone_name}-set"
-        self.state = f"{self.zone_name}-state"
-        self.whitewire_pwr=f"{self.zone_name}-whitewire-pwr"
+class TankNodeNames: 
+    """
+    Spaceheat Node names associated to the tank
+
+    self.reader, self.depth1, self.depth2, self.depth3
+    Also self.all returns all nodes as a set
+    """
+
+    def __init__(self, idx: int) -> None:
+        """ use idx between 1 and 6"""
+        if idx > 6 or idx < 1:
+            raise ValueError("Tank idx must be in between 1 and 6")
+        self.reader = f"tank{idx}"
+        self.depth1 = f"{self.reader}-depth1"
+        self.depth2 = f"{self.reader}-depth2"
+        self.depth3 = f"{self.reader}-depth3"
+
+    @property
+    def all(self) -> set[str]:
+        """All required buffer Spaceheat nodes"""
+        return {
+            self.reader,
+            self.depth1,
+            self.depth2,
+            self.depth3
+        }
 
     def __repr__(self) -> str:
-        return f"Channels: {self.temp}, {self.set}, {self.state}, {self.whitewire_pwr}"
-
-
-class TankChannelNames:
-    def __init__(self, tank_name: str) -> None:
-        self.depth1 = f"{tank_name}-depth1"
-        self.depth2 = f"{tank_name}-depth2"
-        self.depth3 = f"{tank_name}-depth3"
-        self.depth4 = f"{tank_name}-depth4"
-
+        return f"{self.reader} reads {sorted(self.all)}"
 
 class House0RelayIdx:
     vdc: Literal[1] = 1
@@ -113,9 +138,7 @@ class H0N:
     store_cold_pipe = "store-cold-pipe"
     oat = "oat"
     sieg_cold = "sieg-cold"
-    buffer = TankNodes("buffer")
-    tank: ClassVar[Dict[int, TankNodes]] = {}
-    zone: ClassVar[Dict[str, ZoneNodes]] = {}
+    buffer = BufferNodeNames()
 
     # core flow-metered nodes
     dist_flow = "dist-flow"
@@ -149,18 +172,98 @@ class H0N:
     pico_cycler = "pico-cycler"
 
     def __init__(self, total_store_tanks: int, zone_list: List[str]) -> None:
+        self.tank: Dict[int, TankNodeNames] = {}
+        self.zone: Dict[str, ZoneNodes] = {}
         for i in range(total_store_tanks):
-            self.tank[i + 1] = TankNodes(f"tank{i + 1}")
+            self.tank[i + 1] = TankNodeNames(i + 1)
         for i in range(len(zone_list)):
             self.zone[zone_list[i]] = ZoneNodes(zone=zone_list[i], idx=i)
 
 
-class House0StartHandles:
-    scada = "h.s"
-    admin = "admin"
-    home_alone = "h"
-    relay_multiplexer = "admin.relay-multiplexer"
 
+#-------------------------------------------------------------
+# House 0 Channels
+#--------------------------------------------------------------
+
+
+class ChannelStub(BaseModel):
+    Name: SpaceheatName
+    AboutNodeName: SpaceheatName
+    TelemetryName: TelemetryName
+    InPowerMetering: bool = False
+
+
+class ZoneChannelNames:
+    def __init__(self, zone: str, idx: int) -> None:
+        self.zone_name = f"zone{idx}-{zone}".lower()
+        self.stat_name = f"{self.zone_name}-stat"
+        self.temp = f"{self.zone_name}-temp"
+        self.set = f"{self.zone_name}-set"
+        self.state = f"{self.zone_name}-state"
+        self.whitewire_pwr=f"{self.zone_name}-whitewire-pwr"
+
+    @property
+    def all(self) -> set[str]:
+        """All required channels for this zone"""
+        return {
+            self.temp,
+            self.set,
+            self.state,
+            self.whitewire_pwr,
+        }
+
+    def __repr__(self) -> str:
+        return f"{self.zone_name} Channels: {sorted(self.all)}"
+
+class BufferChannelNames:
+    """
+    Constructs expected SpaceheatName names for buffer tank's channels
+
+    can call self.depth1, self.depth2 and self.depth3 or self.all for all 3 as set
+    """
+    def __init__(self) -> None:
+        self.depth1 = "buffer-depth1"
+        self.depth2 = "buffer-depth2"
+        self.depth3 = "buffer-depth3"
+
+    @property
+    def all(self) -> set[str]:
+        """All required channels: buffer-depth1, buffer-depth2, buffer-depth3"""
+        return {
+            self.depth1,
+            self.depth2,
+            self.depth3,
+        }
+
+    def __repr__(self) -> str:
+        return f"buffer channels: {sorted(self.all)}"
+
+class TankChannelNames:
+    """
+    Constructs expected SpaceheatName names for a store tank's channels
+
+    can call self.depth1, self.depth2 and self.depth3 or self.all for all 3 as set
+    """
+    def __init__(self, idx: int) -> None:
+        """ idx should be between 1 and 6"""
+        if idx > 6 or idx < 1:
+            raise ValueError("Tank idx must be in between 1 and 6")
+        self.reader = f"tank{idx}"
+        self.depth1 = f"{self.reader}-depth1"
+        self.depth2 = f"{self.reader}-depth2"
+        self.depth3 = f"{self.reader}-depth3"
+    
+    @property
+    def all(self) -> set[str]:
+        """All required channels for this tank: tank{i}-depth1, tank{i}-depth2, tank{i}-depth3"""
+        return {
+            self.depth1, 
+            self.depth2,
+            self.depth3,
+        }
+
+    def __repr__(self) -> str:
+        return f"Tank {self.reader} channels: {sorted(self.all)}"
 
 class H0CN:
     # Power Channels
@@ -181,9 +284,7 @@ class H0CN:
     buffer_cold_pipe = H0N.buffer_cold_pipe
     oat = H0N.oat
     sieg_cold = H0N.sieg_cold
-    buffer = TankChannelNames("buffer")
-    tank: ClassVar[Dict[int, TankChannelNames]] = {}
-    zone: ClassVar[Dict[int, ZoneChannelNames]] = {}
+    buffer = BufferChannelNames()
 
     # Flow Channels
     dist_flow = H0N.dist_flow
@@ -225,12 +326,20 @@ class H0CN:
     store_010v = "store-010v"
 
     def __init__(self, total_store_tanks: int, zone_list: List[str]) -> None:
+        self.tank: Dict[int, TankChannelNames] = {}
+        self.zone: Dict[int, ZoneChannelNames] = {}
         for i in range(total_store_tanks):
-            self.tank[i + 1] = TankChannelNames(f"tank{i + 1}")
+            self.tank[i + 1] = TankChannelNames(i + 1)
         for i in range(len(zone_list)):
             self.zone[i + 1] = ZoneChannelNames(zone=zone_list[i], idx=i + 1)
 
     def channel_stubs(self) -> Dict[str, ChannelStub]:
+        """
+        Intended to verify relationship between channels and nodes.
+
+        Not enforced yet and may be out of date
+        """
+
         d = {
             self.hp_odu_pwr: ChannelStub(
                 Name=self.hp_odu_pwr,
@@ -334,11 +443,6 @@ class H0CN:
                 AboutNodeName=H0N.buffer.depth3,
                 TelemetryName=TelemetryName.WaterTempCTimes1000,
             ),
-            self.buffer.depth4: ChannelStub(
-                Name=self.buffer.depth4,
-                AboutNodeName=H0N.buffer.depth4,
-                TelemetryName=TelemetryName.WaterTempCTimes1000,
-            ),
         }
         for i in self.tank:
             d[self.tank[i].depth1] = ChannelStub(
@@ -356,32 +460,26 @@ class H0CN:
                 AboutNodeName=self.tank[i].depth3,
                 TelemetryName=TelemetryName.WaterTempCTimes1000,
             )
-            d[self.tank[i].depth4] = ChannelStub(
-                Name=self.tank[i].depth4,
-                AboutNodeName=self.tank[i].depth4,
-                TelemetryName=TelemetryName.WaterTempCTimes1000,
-            )
         for i in self.zone:
             d[self.zone[i].temp] = ChannelStub(
                     Name=self.zone[i].temp,
                     AboutNodeName=self.zone[i].zone_name,
                     TelemetryName=TelemetryName.AirTempFTimes1000,
-                ),
-    
+                )
             d[self.zone[i].set] = ChannelStub(
-                    Name=self.zone[i].temp,
+                    Name=self.zone[i].set,
                     AboutNodeName=self.zone[i].stat_name,
                     TelemetryName=TelemetryName.AirTempFTimes1000,
-                ),
-            d[self.zone[i].set] = ChannelStub(
+                )
+            d[self.zone[i].state] = ChannelStub(
                     Name=self.zone[i].state,
                     AboutNodeName=self.zone[i].stat_name,
                     TelemetryName=TelemetryName.ThermostatState,
-                ),
+                )
             d[self.zone[i].whitewire_pwr] = ChannelStub(
                     Name=self.zone[i].whitewire_pwr,
-                    AboutNodeName=f"{self.zone[i].zone_name}-whitewire",
+                    AboutNodeName=f"{self.zone[i]}-whitewire",
                     TelemetryName=TelemetryName.PowerW,
-                ),
+                )
             
         return d

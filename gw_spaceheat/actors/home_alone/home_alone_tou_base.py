@@ -246,11 +246,6 @@ class HomeAloneTouBase(ScadaActor):
                     self.engage_brain()
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
-    @property
-    @abstractmethod
-    def temperature_channel_names(self) -> List[str]:
-        raise NotImplementedError
-
     def heating_forecast_available(self) -> bool:
         if self.heating_forecast is None:
             return False
@@ -544,8 +539,8 @@ class HomeAloneTouBase(ScadaActor):
             return False
 
         no_zones_calling = True
-        for i in H0CN.zone:
-            zone_whitewire_name = H0CN.zone[i].whitewire_pwr
+        for i in self.h0cn.zone:
+            zone_whitewire_name = self.h0cn.zone[i].whitewire_pwr
             if zone_whitewire_name not in self.data.latest_channel_values or self.data.latest_channel_values[zone_whitewire_name] is None:
                 self.log(f"[DistPumpCheck] {zone_whitewire_name} was not found in latest channel values.")
                 continue

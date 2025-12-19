@@ -58,19 +58,18 @@ class BufferOnlyAtomicAlly(ScadaActor):
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
         self._stop_requested: bool = False
-        # Temperatures
-        self.cn: H0CN = self.layout.channel_names
-        # Default is 3 layers per tank but can be 4 if PicoAHwUid is specified
-        buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3]
-        if (
-            isinstance(self.layout.nodes['buffer'].component.gt, PicoTankModuleComponentGt) 
-            and getattr(self.layout.nodes['buffer'].component.gt, "PicoAHwUid", None)
-        ):
-            buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4]
+
+        # ShoulderTou intentionally ignores store tanks
+        # This overwrites the baseclass self.temperature_channel_names
+        buffer_depths = list(self.h0cn.buffer.all)
+
         self.temperature_channel_names = buffer_depths + [
-            H0CN.hp_ewt, H0CN.hp_lwt, H0CN.dist_swt, H0CN.dist_rwt, 
-            H0CN.buffer_cold_pipe, H0CN.buffer_hot_pipe, H0CN.store_cold_pipe, H0CN.store_hot_pipe
+            self.h0cn.hp_ewt, self.h0cn.hp_lwt,
+             self.h0cn.dist_swt, self.h0cn.dist_rwt,
+            self.h0cn.buffer_cold_pipe, self.h0cn.buffer_hot_pipe,
+            self.h0cn.store_cold_pipe, self.h0cn.store_hot_pipe,
         ]
+
         self.temperatures_available: bool = False
         self.no_temps_since: Optional[int] = None
         # State machine

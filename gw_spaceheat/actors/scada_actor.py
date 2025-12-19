@@ -27,11 +27,10 @@ from gwproto.enums import (
     TelemetryName
 )
 
-from gwsproto.enums import FlowManifoldVariant, TurnHpOnOff, ChangeKeepSend
+from gwsproto.enums import  TurnHpOnOff, ChangeKeepSend
 from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import (
     I2cMultichannelDtRelayComponent,
 )
-from gwsproto.enums import ChangeKeepSend
 from gwsproto.named_types import FsmEvent, NewCommandTree
 from pydantic import ValidationError
 
@@ -51,6 +50,20 @@ class ScadaActor(Actor, ABC):
             )
         super().__init__(name, services)
         self.timezone = pytz.timezone(self.settings.timezone_str)
+        self.h0n = self.layout.h0n
+        self.h0cn = self.layout.channel_names
+
+        # set temperature_channel_names
+        all_tank_depths = list(self.h0cn.buffer.all)
+        for tank in self.h0cn.tank.values():
+            all_tank_depths.extend(tank.all)
+
+        self.temperature_channel_names =  all_tank_depths + [
+            self.h0cn.hp_ewt, self.h0cn.hp_lwt,
+             self.h0cn.dist_swt, self.h0cn.dist_rwt, 
+            self.h0cn.buffer_cold_pipe, self.h0cn.buffer_hot_pipe, 
+            self.h0cn.store_cold_pipe, self.h0cn.store_hot_pipe,
+        ]
 
     @property
     def services(self) -> ScadaAppInterface:

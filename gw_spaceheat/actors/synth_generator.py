@@ -32,27 +32,6 @@ class SynthGenerator(ScadaActor):
         self._stop_requested: bool = False
         self.hardware_layout = self._services.hardware_layout
 
-        # Default is 3 layers per tank but can be 4 if PicoAHwUid is specified
-        buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3]
-        if (
-            isinstance(self.layout.nodes['buffer'].component.gt, PicoTankModuleComponentGt) 
-            and getattr(self.layout.nodes['buffer'].component.gt, "PicoAHwUid", None)
-        ):
-            buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4]
-        all_tank_depths = []
-        for i in range(1,len(self.cn.tank.values())+1):
-            tank_depths = [H0CN.tank[i].depth1, H0CN.tank[i].depth2, H0CN.tank[i].depth3]
-            if (
-                isinstance(self.layout.nodes[H0N.tank[i].reader].component.gt, PicoTankModuleComponentGt) 
-                and getattr(self.layout.nodes[H0N.tank[i].reader].component.gt, "PicoAHwUid", None)
-            ):
-                tank_depths = [H0CN.tank[i].depth1, H0CN.tank[i].depth2, H0CN.tank[i].depth3, H0CN.tank[i].depth4]
-            all_tank_depths.extend(tank_depths)
-        
-        self.temperature_channel_names = buffer_depths + all_tank_depths + [
-            H0CN.hp_ewt, H0CN.hp_lwt, H0CN.dist_swt, H0CN.dist_rwt, 
-            H0CN.buffer_cold_pipe, H0CN.buffer_hot_pipe, H0CN.store_cold_pipe, H0CN.store_hot_pipe,
-        ]
         self.elec_assigned_amount = None
         self.previous_time = None
         self.temperatures_available = False
