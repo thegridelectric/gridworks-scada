@@ -55,7 +55,6 @@ class HomeAloneTouBase(ScadaActor):
 
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
-        self.cn: H0CN = self.layout.channel_names
         self.strategy = HomeAloneStrategy(getattr(self.node, "Strategy", None))
         self._stop_requested: bool = False
         self.hardware_layout = self._services.hardware_layout
@@ -245,11 +244,6 @@ class HomeAloneTouBase(ScadaActor):
                 if self.top_state == LocalControlTopState.Normal:
                     self.engage_brain()
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
-
-    @property
-    @abstractmethod
-    def temperature_channel_names(self) -> List[str]:
-        raise NotImplementedError
 
     def heating_forecast_available(self) -> bool:
         if self.heating_forecast is None:
@@ -544,8 +538,8 @@ class HomeAloneTouBase(ScadaActor):
             return False
 
         no_zones_calling = True
-        for i in H0CN.zone:
-            zone_whitewire_name = H0CN.zone[i].whitewire_pwr
+        for i in self.h0cn.zone:
+            zone_whitewire_name = self.h0cn.zone[i].whitewire_pwr
             if zone_whitewire_name not in self.data.latest_channel_values or self.data.latest_channel_values[zone_whitewire_name] is None:
                 self.log(f"[DistPumpCheck] {zone_whitewire_name} was not found in latest channel values.")
                 continue
@@ -888,7 +882,4 @@ class HomeAloneTouBase(ScadaActor):
                 return True    
         self.log("All zones are at or above their setpoint at the beginning of on-peak")
         return False
-
-    def to_fahrenheit(self, t:float) -> float:
-        return t*9/5+32
 
