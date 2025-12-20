@@ -2,7 +2,7 @@ import time
 import typing
 import uuid
 from abc import ABC
-from typing import cast, Any, Dict, List, Optional
+from typing import cast, Any, List, Optional
 import pytz
 from gwproactor import QOS
 
@@ -27,12 +27,11 @@ from gwproto.enums import (
     TelemetryName
 )
 
-from gwsproto.enums import FlowManifoldVariant, TurnHpOnOff, ChangeKeepSend
+from gwsproto.enums import ChangeKeepSend, LogLevel, TurnHpOnOff
 from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import (
     I2cMultichannelDtRelayComponent,
 )
-from gwsproto.enums import ChangeKeepSend
-from gwsproto.named_types import FsmEvent, NewCommandTree
+from gwsproto.named_types import FsmEvent, Glitch, NewCommandTree
 from pydantic import ValidationError
 
 from scada_app_interface import ScadaAppInterface
@@ -51,6 +50,20 @@ class ScadaActor(Actor, ABC):
             )
         super().__init__(name, services)
         self.timezone = pytz.timezone(self.settings.timezone_str)
+        self.h0n = self.layout.h0n
+        self.h0cn = self.layout.channel_names
+
+        # set temperature_channel_names
+        all_tank_depths = list(self.h0cn.buffer.all)
+        for tank in self.h0cn.tank.values():
+            all_tank_depths.extend(tank.all)
+
+        self.temperature_channel_names =  all_tank_depths + [
+            self.h0cn.hp_ewt, self.h0cn.hp_lwt,
+             self.h0cn.dist_swt, self.h0cn.dist_rwt, 
+            self.h0cn.buffer_cold_pipe, self.h0cn.buffer_hot_pipe, 
+            self.h0cn.store_cold_pipe, self.h0cn.store_hot_pipe,
+        ]
 
     @property
     def services(self) -> ScadaAppInterface:
@@ -960,6 +973,8 @@ class ScadaActor(Actor, ABC):
     def the_boss_of(self, node: ShNode) -> Optional[ShNode]:
         if node.Handle == node.Name:
             return None
+        if node.Handle is None:
+            return None
         boss_name= node.Handle.split(".")[-2]
         return self.layout.node(boss_name, None)
 
@@ -979,7 +994,7 @@ class ScadaActor(Actor, ABC):
         ```
         """
         if not self.layout.use_sieg_loop:
-            raise Exception(f"don't call this unless layout uses sieg loop")
+            raise Exception("don't call this unless layout uses sieg loop")
         self.log(f"Setting fsm handles under {boss_node.name}")
         hp_boss = self.layout.node(H0N.hp_boss)
         hp_boss.Handle = f"{boss_node.handle}.{hp_boss.Name}"
@@ -1052,7 +1067,7 @@ class ScadaActor(Actor, ABC):
             self.services.send(message)
         elif dst.Name == H0N.admin:
             self.services.publish_message(
-                link_name=self.services.ADMIN_MQTT,
+                link_name=self.services.prime_actor.ADMIN_MQTT,
                 message=Message(
                     Src=self.services.publication_name, Dst=dst.Name, Payload=payload
                 ),
@@ -1062,7 +1077,7 @@ class ScadaActor(Actor, ABC):
             self.services.publish_upstream(payload)  # noqa: SLF001
         else:
             self.services.publish_message(
-                self.services.LOCAL_MQTT, message
+                self.services.prime_actor.LOCAL_MQTT, message
             )  # noqa: SLF001
 
     def log(self, note: str) -> None:
@@ -1078,14 +1093,14 @@ class ScadaActor(Actor, ABC):
         if it does not exist"""
         odu_pwr_channel = self.layout.channel(H0CN.hp_odu_pwr)
         assert odu_pwr_channel.TelemetryName == TelemetryName.PowerW
-        return self.scada_services.data.latest_channel_values.get(H0CN.hp_odu_pwr)
+        return self.data.latest_channel_values.get(H0CN.hp_odu_pwr)
 
     def idu_pwr(self) -> Optional[float]:
         """Returns the latest Heat Pump indoor unit power in Watts, or None
         if it does not exist"""
         idu_pwr_channel = self.layout.channel(H0CN.hp_idu_pwr)
         assert idu_pwr_channel.TelemetryName == TelemetryName.PowerW
-        return self.scada_services.data.latest_channel_values.get(H0CN.hp_idu_pwr)
+        return self.data.latest_channel_values.get(H0CN.hp_idu_pwr)
 
     def to_fahrenheit(self, temp_c: float) -> float:
         return 32 + (temp_c * 9 / 5)
@@ -1093,7 +1108,7 @@ class ScadaActor(Actor, ABC):
     def lwt_f(self) -> Optional[float]:
         """Returns the latest Heat pump leaving water temp in deg F, or None
         if it does not exist"""
-        t = self.scada_services.data.latest_channel_values.get(H0CN.hp_lwt)
+        t = self.data.latest_channel_values.get(H0CN.hp_lwt)
         if t is None:
             return None
         return self.to_fahrenheit(t / 1000)
@@ -1101,7 +1116,7 @@ class ScadaActor(Actor, ABC):
     def ewt_f(self) -> Optional[float]:
         """Returns the latest Heat pump entering water temp in deg F, or None
         if it does not exist"""
-        t = self.scada_services.data.latest_channel_values.get(H0CN.hp_ewt)
+        t = self.data.latest_channel_values.get(H0CN.hp_ewt)
         if t is None:
             return None
         return self.to_fahrenheit(t / 1000)
@@ -1109,7 +1124,7 @@ class ScadaActor(Actor, ABC):
     def sieg_cold_f(self) -> Optional[float]:
         """Returns the latest Siegenthaler Cold temp in deg F, or None
         if it does not exist"""
-        t = self.scada_services.data.latest_channel_values.get(H0CN.sieg_cold)
+        t = self.data.latest_channel_values.get(H0CN.sieg_cold)
         if t is None:
             return None
         return self.to_fahrenheit(t / 1000)
@@ -1117,7 +1132,7 @@ class ScadaActor(Actor, ABC):
     def sieg_flow_gpm(self) -> Optional[float]:
         """Returns the latest siegenthaler flow in gallons per minute, or None
         if it does not exist"""
-        sieg_x_100 = self.scada_services.data.latest_channel_values.get(H0CN.sieg_flow)
+        sieg_x_100 = self.data.latest_channel_values.get(H0CN.sieg_flow)
         if sieg_x_100 is None:
             return None
         return sieg_x_100 / 100
@@ -1125,7 +1140,7 @@ class ScadaActor(Actor, ABC):
     def primary_flow_gpm(self) -> Optional[float]:
         """Returns the latest primary flow in gallons per minute, or None
         if it does not exist"""
-        primary_x_100 = self.scada_services.data.latest_channel_values.get(H0CN.primary_flow)
+        primary_x_100 = self.data.latest_channel_values.get(H0CN.primary_flow)
         if primary_x_100 is None:
             return None
         return primary_x_100 / 100
@@ -1133,7 +1148,7 @@ class ScadaActor(Actor, ABC):
     def store_cold_pipe_f(self) -> Optional[float]:
         """Returns the latest cold store pipe water temp in deg F, or None
         if it does not exist"""
-        t = self.scada_services.data.latest_channel_values.get(H0CN.store_cold_pipe)
+        t = self.data.latest_channel_values.get(H0CN.store_cold_pipe)
         if t is None:
             return None
         return self.to_fahrenheit(t / 1000)
@@ -1148,57 +1163,40 @@ class ScadaActor(Actor, ABC):
             return None
         return max(0, lwt_f - ewt_f)
 
-    def hottest_store_temp_f(self) -> Optional[float]:
-        """Returns tank1 depth 1 in deg F if it exists, else None
-        TODO: replace with something that doesn't have a string in it
-        """
-
-        t = self.scada_services.data.latest_channel_values.get("tank1-depth1")
+    def hottest_store_temp_f(self) -> float | None:
+        ch = self.h0cn.tank[1].depth1
+        t = self.data.latest_channel_values.get(ch)
         if t is None:
             return None
-        return self.to_fahrenheit(t / 1000)
+        return round(self.to_fahrenheit(t / 1000), 1)
 
-    def coldest_store_temp_f(self) -> Optional[float]:
-        """Returns tank3 depth 4 in deg F if it exists, else None
-        TODO: replace with something that doesn't have a string in it
-        """
-
-        t = self.scada_services.data.latest_channel_values.get("tank3-depth4")
-        if t is None:
-            t = self.scada_services.data.latest_channel_values.get("tank3-depth3")
-            if t is None:
-                return None
-        return self.to_fahrenheit(t / 1000)
-
-    def hottest_buffer_temp_f(self) -> Optional[float]:
-        """Returns buffer depth 1 in deg F if it exists, else None
-        TODO: replace with something that doesn't have a string in it
-        """
-
-        t = self.scada_services.data.latest_channel_values.get("buffer-depth1")
+    def coldest_store_temp_f(self) -> float | None:
+        last_tank_idx = max(self.h0cn.tank)
+        ch = self.h0cn.tank[last_tank_idx].depth3
+        t = self.data.latest_channel_values.get(ch)
         if t is None:
             return None
-        return self.to_fahrenheit(t / 1000)
+        return round(self.to_fahrenheit(t / 1000), 1)
 
-    def coldest_buffer_temp_f(self) -> Optional[float]:
-        """Returns buffer depth 4 in deg F if it exists, else None
-        TODO: replace with something that doesn't have a string in it
-        """
-
-        t = self.scada_services.data.latest_channel_values.get("buffer-depth4")
+    def hottest_buffer_temp_f(self) -> float | None:
+        t = self.data.latest_channel_values.get(H0CN.buffer.depth1)
         if t is None:
-            t = self.scada_services.data.latest_channel_values.get("buffer-depth3")
-            if t is None:
-                return None
+            return None
+        return round(self.to_fahrenheit(t / 1000), 1)
+
+    def coldest_buffer_temp_f(self) -> float | None:
+        t = self.data.latest_channel_values.get(H0CN.buffer.depth3)
+        if t is None:
+            return None
         return self.to_fahrenheit(t / 1000)
 
     def charge_discharge_relay_state(self) -> StoreFlowRelay:
         """ Returns DischargingStore if relay 3 is de-energized (ISO Valve opened, charge/discharge
         valve in discharge position.) Returns Charging store if energized (ISO Valve closed, charge/discharge
         valve in charge position) """
-        sms = self.scada_services.data.latest_machine_state.get(H0N.store_charge_discharge_relay)
+        sms = self.data.latest_machine_state.get(H0N.store_charge_discharge_relay)
         if sms is None:
-            raise Exception(f"That's strange! Should have a rela state for the charge discharge relay!")
+            raise Exception("That's strange! Should have a rela state for the charge discharge relay!")
         if sms.StateEnum != StoreFlowRelay.enum_name():
             raise Exception(f"That's strange. Expected StateEnum 'store.flow.relay' but got {sms.StateEnum}")
         return StoreFlowRelay(sms.State)
@@ -1206,8 +1204,59 @@ class ScadaActor(Actor, ABC):
     def hp_relay_state(self) -> RelayClosedOrOpen:
         sms = self.data.latest_machine_state[H0N.hp_scada_ops_relay]
         if sms is None:
-            raise Exception(f"That's strange! Should have a rela state for the Hp Scada Ops relay!")
+            raise Exception("That's strange! Should have a rela state for the Hp Scada Ops relay!")
         if sms.StateEnum != RelayClosedOrOpen.enum_name():
             raise Exception(f"That's strange. Expected StateEnum 'relay.closed.or.open' but got {sms.StateEnum}")
         return RelayClosedOrOpen(sms.State)
 
+    def alert(self, summary: str, details: str, log_level=LogLevel.Critical) -> None:
+        """Send Critical Glitch """
+        self._send_to(self.atn,
+            Glitch(
+                FromGNodeAlias=self.layout.scada_g_node_alias,
+                Node=self.node.Name,
+                Type=log_level,
+                Summary=summary,
+                Details=details
+            )
+        )
+        self.log(f"Critical Glitch: {summary}")
+
+    def send_warning(self, summary: str, details: str = "") -> None:
+        """Send Warning Glitch"""
+        self._send_to(self.atn,
+            Glitch(
+                FromGNodeAlias=self.layout.scada_g_node_alias,
+                Node=self.node.Name,
+                Type=LogLevel.Warning,
+                Summary=summary,
+                Details=details
+            )
+        )
+        self.log(f"Warning Glitch: {summary}")
+
+    def send_error(self, summary: str, details: str = "") -> None:
+        """Send Error Glitch"""
+        self._send_to(self.atn,
+            Glitch(
+                FromGNodeAlias=self.layout.scada_g_node_alias,
+                Node=self.node.Name,
+                Type=LogLevel.Error,
+                Summary=summary,
+                Details=details
+            )
+        )
+        self.log(f"Error Glitch: {summary}")
+
+    def send_info(self, summary: str, details: str = "") -> None:
+        """Send Info Glitch"""
+        self._send_to(self.atn,
+            Glitch(
+                FromGNodeAlias=self.layout.scada_g_node_alias,
+                Node=self.node.Name,
+                Type=LogLevel.Info,
+                Summary=summary,
+                Details=details
+            )
+        )
+        self.log(f"Info Glitch: {summary}")
