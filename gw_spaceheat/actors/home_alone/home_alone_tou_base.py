@@ -883,6 +883,3 @@ class HomeAloneTouBase(ScadaActor):
         self.log("All zones are at or above their setpoint at the beginning of on-peak")
         return False
 
-    def to_fahrenheit(self, t:float) -> float:
-        return t*9/5+32
-

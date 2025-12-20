@@ -575,7 +575,7 @@ class AllTanksAtomicAlly(ScadaActor):
             elif self.h0cn.tank[1].depth3 in self.latest_temperatures:
                 store_channel = self.h0cn.tank[1].depth3
             else:
-                self.alert(summary="storage_full_fail", details="Impossible to know if the storage is full, store-cold-pipe not found!", log_level=LogLevel.Warning)
+                self.send_warning(summary="storage_full_fail", details="Impossible to know if the storage is full, store-cold-pipe not found!")
                 return True
             store_channel_temp = self.latest_temperatures[store_channel]
             if store_channel_temp > self.params.MaxEwtF: 
@@ -615,17 +615,3 @@ class AllTanksAtomicAlly(ScadaActor):
         else:
             print("Storage top warmer than buffer top")
             return False
-        
-    def to_fahrenheit(self, t:float) -> float:
-        return t*9/5+32
-
-    def alert(self, summary: str, details: str, log_level=LogLevel.Critical) -> None:
-        msg =Glitch(
-            FromGNodeAlias=self.layout.scada_g_node_alias,
-            Node=self.node.Name,
-            Type=log_level,
-            Summary=summary,
-            Details=details
-        )
-        self._send_to(self.atn, msg)
-        self.log(f"Glitch: {summary}")

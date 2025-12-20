@@ -468,6 +468,3 @@ class BufferOnlyAtomicAlly(ScadaActor):
         else:
             self.log(f"Buffer not full ({buffer_full_ch}: {buffer_full_ch_temp} <= {max_buffer} F)")
             return False
-        
-    def to_fahrenheit(self, t:float) -> float:
-        return t*9/5+32

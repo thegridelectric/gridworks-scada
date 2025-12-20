@@ -1210,12 +1210,53 @@ class ScadaActor(Actor, ABC):
         return RelayClosedOrOpen(sms.State)
 
     def alert(self, summary: str, details: str, log_level=LogLevel.Critical) -> None:
-        msg =Glitch(
-            FromGNodeAlias=self.layout.scada_g_node_alias,
-            Node=self.node.Name,
-            Type=log_level,
-            Summary=summary,
-            Details=details
+        """Send Critical Glitch """
+        self._send_to(self.atn,
+            Glitch(
+                FromGNodeAlias=self.layout.scada_g_node_alias,
+                Node=self.node.Name,
+                Type=log_level,
+                Summary=summary,
+                Details=details
+            )
         )
-        self._send_to(self.atn, msg)
-        self.log(f"Glitch: {summary}")
+        self.log(f"Critical Glitch: {summary}")
+
+    def send_warning(self, summary: str, details: str = "") -> None:
+        """Send Warning Glitch"""
+        self._send_to(self.atn,
+            Glitch(
+                FromGNodeAlias=self.layout.scada_g_node_alias,
+                Node=self.node.Name,
+                Type=LogLevel.Warning,
+                Summary=summary,
+                Details=details
+            )
+        )
+        self.log(f"Warning Glitch: {summary}")
+
+    def send_error(self, summary: str, details: str = "") -> None:
+        """Send Error Glitch"""
+        self._send_to(self.atn,
+            Glitch(
+                FromGNodeAlias=self.layout.scada_g_node_alias,
+                Node=self.node.Name,
+                Type=LogLevel.Error,
+                Summary=summary,
+                Details=details
+            )
+        )
+        self.log(f"Error Glitch: {summary}")
+
+    def send_info(self, summary: str, details: str = "") -> None:
+        """Send Info Glitch"""
+        self._send_to(self.atn,
+            Glitch(
+                FromGNodeAlias=self.layout.scada_g_node_alias,
+                Node=self.node.Name,
+                Type=LogLevel.Info,
+                Summary=summary,
+                Details=details
+            )
+        )
+        self.log(f"Info Glitch: {summary}")
