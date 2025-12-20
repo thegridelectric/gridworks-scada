@@ -354,9 +354,7 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             return False            
     
     def is_buffer_full(self) -> bool:
-        if H0CN.buffer.depth4 in self.latest_temperatures:
-            buffer_full_ch = H0CN.buffer.depth4
-        elif H0CN.buffer.depth3 in self.latest_temperatures:
+        if H0CN.buffer.depth3 in self.latest_temperatures:
             buffer_full_ch = H0CN.buffer.depth3
         elif H0CN.buffer_cold_pipe in self.latest_temperatures:
             buffer_full_ch = H0CN.buffer_cold_pipe
@@ -424,15 +422,13 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             buffer_top = H0CN.buffer.depth2
         elif H0CN.buffer.depth3 in self.latest_temperatures:
             buffer_top = H0CN.buffer.depth3
-        elif H0CN.buffer.depth4 in self.latest_temperatures:
-            buffer_top = H0CN.buffer.depth4
         elif H0CN.buffer_cold_pipe in self.latest_temperatures:
             buffer_top = H0CN.buffer_cold_pipe
         else:
             self.alert("store_v_buffer_fail", "It is impossible to know if the top of the buffer is warmer than the top of the storage!")
             return False
-        if self.cn.tank[1].depth1 in self.latest_temperatures:
-            tank_top = self.cn.tank[1].depth1
+        if self.h0cn.tank[1].depth1 in self.latest_temperatures:
+            tank_top = self.h0cn.tank[1].depth1
         elif H0CN.store_hot_pipe in self.latest_temperatures:
             tank_top = H0CN.store_hot_pipe
         elif H0CN.buffer_hot_pipe in self.latest_temperatures:

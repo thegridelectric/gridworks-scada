@@ -222,6 +222,7 @@ class BufferChannelNames:
     can call self.depth1, self.depth2 and self.depth3 or self.all for all 3 as set
     """
     def __init__(self) -> None:
+        self.reader = "buffer"
         self.depth1 = "buffer-depth1"
         self.depth2 = "buffer-depth2"
         self.depth3 = "buffer-depth3"

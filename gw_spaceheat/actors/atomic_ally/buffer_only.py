@@ -431,14 +431,12 @@ class BufferOnlyAtomicAlly(ScadaActor):
         return True      
     
     def is_buffer_full(self, really_full=False) -> bool:
-        if H0CN.buffer.depth4 in self.latest_temperatures:
-            buffer_full_ch = H0CN.buffer.depth4
-        elif H0CN.buffer.depth3 in self.latest_temperatures:
+        if H0CN.buffer.depth3 in self.latest_temperatures:
             buffer_full_ch = H0CN.buffer.depth3
         elif H0CN.buffer_cold_pipe in self.latest_temperatures:
             buffer_full_ch = H0CN.buffer_cold_pipe
-        elif 'hp-ewt' in self.latest_temperatures:
-            buffer_full_ch = 'hp-ewt'
+        elif H0CN.hp_ewt in self.latest_temperatures:
+            buffer_full_ch = H0CN.hp_ewt
         else:
             self.alert(summary="buffer_full_fail", details="Impossible to know if the buffer is full!")
             return False
@@ -473,14 +471,3 @@ class BufferOnlyAtomicAlly(ScadaActor):
         
     def to_fahrenheit(self, t:float) -> float:
         return t*9/5+32
-
-    def alert(self, summary: str, details: str, log_level=LogLevel.Critical) -> None:
-        msg =Glitch(
-            FromGNodeAlias=self.layout.scada_g_node_alias,
-            Node=self.node.Name,
-            Type=log_level,
-            Summary=summary,
-            Details=details
-        )
-        self._send_to(self.atn, msg)
-        self.log(f"Glitch: {summary}")

@@ -285,9 +285,7 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
             return False
 
     def is_buffer_full(self) -> bool:
-        if H0CN.buffer.depth4 in self.latest_temperatures:
-            buffer_full_ch = H0CN.buffer.depth4
-        elif H0CN.buffer.depth3 in self.latest_temperatures:
+        if H0CN.buffer.depth3 in self.latest_temperatures:
             buffer_full_ch = H0CN.buffer.depth3
         elif H0CN.buffer_cold_pipe in self.latest_temperatures:
             buffer_full_ch = H0CN.buffer_cold_pipe

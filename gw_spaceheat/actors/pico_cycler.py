@@ -123,16 +123,17 @@ class PicoCycler(ScadaActor):
                 self.picos.append(node.component.gt.HwUid)
             if node.ActorClass == ActorClass.ApiTankModule:
                 c = cast(PicoTankModuleComponent, node.component)
-                if c.cac.MakeModel == MakeModel.GRIDWORKS__TANKMODULE2:
-                    self.actor_by_pico[c.gt.PicoAHwUid] = node
-                    self.ab_by_pico[c.gt.PicoAHwUid] = 'a'
-                    self.picos.append(c.gt.PicoAHwUid)
-                    self.actor_by_pico[c.gt.PicoBHwUid] = node
-                    self.ab_by_pico[c.gt.PicoBHwUid] = 'b'
-                    self.picos.append(c.gt.PicoBHwUid)
-                elif c.cac.MakeModel == MakeModel.GRIDWORKS__TANKMODULE3:
-                    self.actor_by_pico[c.gt.PicoHwUid] = node
-                    self.picos.append(c.gt.PicoHwUid)
+                if c.cac.MakeModel != MakeModel.GRIDWORKS__TANKMODULE3:
+                    raise ValueError(
+                        f"PicoCycler only supports TankModule3; "
+                        f"got {c.cac.MakeModel} for node {node.name}"
+                    )
+                if not c.gt.PicoHwUid:
+                    raise ValueError(
+                        f"ApiTankModule {node.name} missing PicoHwUid"
+                    )
+                self.actor_by_pico[c.gt.PicoHwUid] = node
+                self.picos.append(c.gt.PicoHwUid)
                     
         self.pico_states = {pico: SinglePicoState.Alive for pico in self.picos}
         # This counts consecutive failed reboots per pico
@@ -262,27 +263,7 @@ class PicoCycler(ScadaActor):
             if pico not in self.picos:
                 raise Exception(f"[{self.name}] {pico} should be in self.picos!")
         elif actor.ActorClass == ActorClass.ApiTankModule:
-            channel_names = payload.ChannelNameList
-            if any(reading.startswith(f"{actor.name}-depth1") for reading in channel_names) or \
-               any(reading.startswith(f"{actor.name}-depth2") for reading in channel_names):
-                if actor.component.cac.MakeModel == MakeModel.GRIDWORKS__TANKMODULE3:
-                    pico = actor.component.gt.PicoHwUid
-                elif actor.component.cac.MakeModel == MakeModel.GRIDWORKS__TANKMODULE2:
-                    pico = actor.component.gt.PicoAHwUid
-                else:
-                    raise Exception(f"Pico measuring {actor.name}-depth1 is not identifiable")
-            elif any(reading.startswith(f"{actor.name}-depth3") for reading in channel_names) or \
-               any(reading.startswith(f"{actor.name}-depth4") for reading in channel_names):
-                if actor.component.cac.MakeModel == MakeModel.GRIDWORKS__TANKMODULE3:
-                    pico = actor.component.gt.PicoHwUid
-                elif actor.component.cac.MakeModel == MakeModel.GRIDWORKS__TANKMODULE2:
-                    pico = actor.component.gt.PicoBHwUid
-                else:
-                    raise Exception(f"Pico measuring {actor.name}-depth3 is not identifiable")
-            else:
-                raise Exception(
-                    f"Do not get {actor.name}-depthi in ChannelNameList: {payload}"
-                )
+            pico = actor.component.gt.PicoHwUid
             if pico not in self.picos:
                 raise Exception(f"[{self.name}] {pico} should be in self.picos!")
         else:

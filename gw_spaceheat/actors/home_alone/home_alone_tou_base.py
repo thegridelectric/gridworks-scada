@@ -55,7 +55,6 @@ class HomeAloneTouBase(ScadaActor):
 
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
-        self.cn: H0CN = self.layout.channel_names
         self.strategy = HomeAloneStrategy(getattr(self.node, "Strategy", None))
         self._stop_requested: bool = False
         self.hardware_layout = self._services.hardware_layout

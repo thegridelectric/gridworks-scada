@@ -28,7 +28,6 @@ class SynthGenerator(ScadaActor):
 
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
-        self.cn: H0CN = self.layout.channel_names
         self._stop_requested: bool = False
         self.hardware_layout = self._services.hardware_layout
 
@@ -186,33 +185,9 @@ class SynthGenerator(ScadaActor):
 
         if self.layout.ha_strategy == HomeAloneStrategy.WinterTou:
             storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
-            try:
-                num_tanks = len(set([x[:5] for x in storage_temperatures.keys()]))
-                for tank in range(1, num_tanks+1):
-                    num_layers = len([k for k in storage_temperatures.keys() if f'tank{tank}' in k])
-                    if num_layers == 4:
-                        storage_temperatures[f'tank{tank}-depth2'] = (
-                            storage_temperatures[f'tank{tank}-depth2'] + storage_temperatures[f'tank{tank}-depth3']
-                            ) / 2
-                        storage_temperatures[f'tank{tank}-depth3'] = storage_temperatures[f'tank{tank}-depth4']
-                        storage_temperatures.pop(f'tank{tank}-depth4')
-            except Exception as e:
-                self.log(f"Error combining tank depths 2 and 3, and removing depth 4: {e}")
-                storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
             simulated_layers = [self.to_fahrenheit(v/1000) for k,v in storage_temperatures.items()]
         elif self.layout.ha_strategy == HomeAloneStrategy.ShoulderTou: 
             buffer_temperatures = {k:v for k,v in latest_temperatures.items() if 'buffer' in k and 'depth' in k}
-            try:
-                num_layers = len(buffer_temperatures)
-                if num_layers == 4:
-                    buffer_temperatures['buffer-depth2'] = (
-                        buffer_temperatures['buffer-depth2'] + buffer_temperatures['buffer-depth3']
-                        ) / 2
-                    buffer_temperatures['buffer-depth3'] = buffer_temperatures['buffer-depth4']
-                    buffer_temperatures.pop('buffer-depth4')
-            except Exception as e:
-                self.log(f"Error combining buffer depths 2 and 3, and removing depth 4: {e}")
-                buffer_temperatures = {k:v for k,v in latest_temperatures.items() if 'buffer' in k and 'depth' in k}
             simulated_layers = [self.to_fahrenheit(v/1000) for k,v in buffer_temperatures.items()]   
         else:
             raise Exception(f"not prepared for home alone strategy {self.layout.ha_strategy}")    
