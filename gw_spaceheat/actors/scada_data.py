@@ -9,6 +9,7 @@ from actors.config import ScadaSettings
 from gwproto.data_classes.data_channel import DataChannel
 from gwproto.data_classes.synth_channel import SynthChannel
 from gwproto.data_classes.hardware_layout import HardwareLayout
+from gwsproto.data_classes.house_0_names import H0CN
 from gwproto.messages import (
     ChannelReadings,
     FsmFullReport,
@@ -63,6 +64,8 @@ class ScadaData:
         self.latest_channel_unix_ms: Dict[str, int] = {  # noqa
             ch.Name: None for ch in self.my_channels
         }
+        self.latest_channel_values[H0CN.usable_energy] = 0
+        self.latest_channel_unix_ms[H0CN.usable_energy] = int(time.time() * 1000)
         self.recent_channel_values: Dict[str, List] = {
             ch.Name: [] for ch in self.my_channels
         }
@@ -78,6 +81,12 @@ class ScadaData:
     
     def get_my_synth_channels(self) -> List[SynthChannel]:
         return list(self.layout.synth_channels.values())
+
+    def channel_has_value(self, channel: str) -> bool:
+        return (
+            channel in self.latest_channel_values
+            and self.latest_channel_values[channel] is not None
+        )
 
     def flush_channel_from_latest(self, channel_name: str) -> None:
         """

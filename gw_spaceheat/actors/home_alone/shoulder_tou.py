@@ -191,7 +191,7 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
                 self.time_since_blind = None
 
             if self.state == HaShoulderState.Initializing:
-                if self.temperatures_available():
+                if self.temperatures_available() and self.data.channel_has_value(H0CN.required_energy):
                     if self.is_onpeak():
                         self.trigger_normal_event(HaShoulderEvent.OnPeakStart)
                     else:

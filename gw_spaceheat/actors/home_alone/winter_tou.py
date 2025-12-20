@@ -213,7 +213,7 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             if self.time_since_blind is not None:
                 self.time_since_blind = None
             if self.state==HaWinterState.Initializing:
-                if self.temperatures_available():
+                if self.temperatures_available() and self.data.channel_has_value(H0CN.required_energy):
                     if self.is_onpeak():
                         if self.is_buffer_empty():
                             if self.is_storage_colder_than_buffer():

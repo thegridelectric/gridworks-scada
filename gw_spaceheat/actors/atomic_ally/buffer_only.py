@@ -236,7 +236,7 @@ class BufferOnlyAtomicAlly(ScadaActor):
             self.get_latest_temperatures()
 
             if self.state == AaBufferOnlyState.Initializing:
-                if self.temperatures_available:
+                if self.temperatures_available  and self.data.channel_has_value(H0CN.required_energy):
                     self.no_temps_since = None
                     if self.hp_should_be_off():
                         self.trigger_event(AaBufferOnlyEvent.NoMoreElec)

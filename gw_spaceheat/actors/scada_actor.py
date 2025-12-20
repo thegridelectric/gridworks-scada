@@ -1102,6 +1102,10 @@ class ScadaActor(Actor, ABC):
         assert idu_pwr_channel.TelemetryName == TelemetryName.PowerW
         return self.data.latest_channel_values.get(H0CN.hp_idu_pwr)
 
+    #-----------------------------------------------------------------------
+    # Temperature related
+    #-----------------------------------------------------------------------
+
     def to_fahrenheit(self, temp_c: float) -> float:
         return 32 + (temp_c * 9 / 5)
 
