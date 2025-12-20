@@ -34,7 +34,7 @@ class HomeAloneTouBase(ScadaActor):
     BLIND_MINUTES = 5
     MAX_PUMP_DOCTOR_ATTEMPTS = 3
     MAX_PUMP_WAIT_SECONDS = 60
-    ZONE_CONTROL_DELAY_SECONDS = 180
+    ZONE_CONTROL_DELAY_SECONDS = 50
     THRESHOLD_FLOW_GPM_X100 = 50
 
     top_states = LocalControlTopState.values()
