@@ -104,7 +104,9 @@ class Scada(PrimeActor, ScadaInterface):
         super().__init__(name, services)
         if not isinstance(services.hardware_layout, House0Layout):
             raise Exception("Make sure to pass House0Layout object as hardware_layout!")
-        self.is_simulated = False
+        self.is_simulated = self.settings.is_simulated
+        if self.settings.is_simulated:
+            self.log("SIMULATED")
         self._layout: House0Layout = typing.cast(House0Layout, services.hardware_layout)
         self._data = ScadaData(self.settings, self._layout)
         # super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)

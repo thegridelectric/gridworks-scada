@@ -82,9 +82,7 @@ class BufferOnlyAtomicAlly(ScadaActor):
         )     
         self.state: AaBufferOnlyState = AaBufferOnlyState.Dormant
         self.prev_state: AaBufferOnlyState = AaBufferOnlyState.Dormant 
-        self.is_simulated = self.settings.is_simulated
         self.log(f"Params: {self.params}")
-        self.log(f"self.is_simulated: {self.is_simulated}")
         self.forecasts: Optional[HeatingForecast] = None
         self.time_buffer_full = 0
         if H0N.atomic_ally not in self.layout.nodes:
@@ -305,39 +303,6 @@ class BufferOnlyAtomicAlly(ScadaActor):
         else:
             self.hp_failsafe_switch_to_scada()
             self.aquastat_ctrl_switch_to_scada()
-
-    def get_latest_temperatures(self):
-        if not self.is_simulated:
-            temp = {
-                x: self.data.latest_channel_values[x] 
-                for x in self.temperature_channel_names
-                if x in self.data.latest_channel_values
-                and self.data.latest_channel_values[x] is not None
-                }
-            self.latest_temperatures = temp.copy()
-        else:
-            self.log("IN SIMULATION - set all temperatures to 60 degC")
-            self.latest_temperatures = {}
-            for channel_name in self.temperature_channel_names:
-                self.latest_temperatures[channel_name] = 60 * 1000
-        for channel in self.latest_temperatures:
-            if self.latest_temperatures[channel] is not None:
-                self.latest_temperatures[channel] = self.to_fahrenheit(self.latest_temperatures[channel]/1000)
-        if list(self.latest_temperatures.keys()) == self.temperature_channel_names:
-            self.temperatures_available = True
-            print('Temperatures available')
-        else:
-            self.temperatures_available = False
-            print('Some temperatures are missing')
-            all_buffer = [x for x in self.temperature_channel_names if 'buffer-depth' in x]
-            available_buffer = [x for x in list(self.latest_temperatures.keys()) if 'buffer-depth' in x]
-            if all_buffer == available_buffer:
-                print("All the buffer temperatures are available")
-                self.temperatures_available = True
-        total_usable_kwh = self.data.latest_channel_values[H0CN.usable_energy]
-        required_storage = self.data.latest_channel_values[H0CN.required_energy]
-        if total_usable_kwh is None or required_storage is None:
-            self.temperatures_available = False
 
     def initialize_actuators(self):
         """

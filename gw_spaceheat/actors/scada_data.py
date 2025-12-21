@@ -64,6 +64,9 @@ class ScadaData:
         self.latest_channel_unix_ms: Dict[str, int] = {  # noqa
             ch.Name: None for ch in self.my_channels
         }
+        self.latest_temperatures: Dict[str, float] = {}
+        self.temperatures_available: bool = False
+
         self.latest_channel_values[H0CN.usable_energy] = 0
         self.latest_channel_unix_ms[H0CN.usable_energy] = int(time.time() * 1000)
         self.recent_channel_values: Dict[str, List] = {

@@ -798,21 +798,6 @@ class HomeAloneTouBase(ScadaActor):
         else:
             print("This function is only available in simulation")
 
-    def get_latest_temperatures(self):
-        if not self.is_simulated:
-            temp = {
-                x: self.data.latest_channel_values[x] 
-                for x in self.temperature_channel_names
-                if x in self.data.latest_channel_values
-                and self.data.latest_channel_values[x] is not None
-                }
-            self.latest_temperatures = temp.copy()
-        else:
-            self.log("IN SIMULATION - set all temperatures to 20 degC")
-            self.latest_temperatures = {}
-            for channel_name in self.temperature_channel_names:
-                self.latest_temperatures[channel_name] = 20 * 1000
-
     def just_before_onpeak(self) -> bool:
         time_now = datetime.now(self.timezone)
         return ((time_now.hour==6 or time_now.hour==16) and time_now.minute>57)
