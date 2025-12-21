@@ -152,9 +152,9 @@ class WinterTouHomeAlone(HomeAloneTouBase):
     def time_to_trigger_system_cold(self) -> bool:
         """
         Logic for triggering SystemCold (and moving to top state UsingNonElectricBackup).
-        In winter, this means: 1) house is cold 2) buffer is really empty and 3) store is empty
+        In winter, this means: 1) house is cold 2) buffer is empty and 3) store is empty
         """
-        return self.is_system_cold() and self.is_buffer_empty(really_empty=True) and self.is_storage_empty()
+        return self.is_system_cold() and self.is_buffer_empty() and self.is_storage_empty()
 
     def normal_node_state(self) -> str:
         return self.state
@@ -327,14 +327,11 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             value_below = self.latest_temperatures[layer]  
         self.latest_temperatures = {k:self.latest_temperatures[k] for k in sorted(self.latest_temperatures)}
 
-    def is_buffer_empty(self, really_empty=False) -> bool:
+    def is_buffer_empty(self) -> bool:
         if H0CN.buffer.depth1 in self.latest_temperatures:
-            if really_empty or not isinstance(self.layout.nodes['buffer'].component.gt, PicoTankModuleComponentGt):
-                buffer_empty_ch = H0CN.buffer.depth1
-            else:
-                buffer_empty_ch = H0CN.buffer.depth2
-        elif H0CN.dist_swt in self.latest_temperatures:
-            buffer_empty_ch = H0CN.dist_swt
+            buffer_empty_ch = H0CN.buffer.depth1
+        elif H0CN.buffer.depth2 in self.latest_temperatures:
+            buffer_empty_ch = H0CN.buffer.depth2
         else:
             self.alert(summary="buffer_empty_fail", details="Impossible to know if the buffer is empty!")
             return False
