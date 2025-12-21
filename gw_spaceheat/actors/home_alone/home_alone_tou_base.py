@@ -1,11 +1,9 @@
 import asyncio
 from abc import abstractmethod
-from typing import Dict, List, Optional, Sequence, cast
-from enum import auto
+from typing import List, Optional, Sequence, cast
 import time
 import uuid
 from datetime import datetime, timedelta
-from gw.enums import GwStrEnum
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
@@ -16,7 +14,6 @@ from result import Ok, Result
 from transitions import Machine
 from gwsproto.data_classes.house_0_names import H0N, H0CN
 from gwproto.data_classes.components.dfr_component import DfrComponent
-from gwsproto.enums import HomeAloneStrategy
 from actors.scada_actor import ScadaActor
 from gwsproto.named_types import (ActuatorsReady,
             GoDormant, Glitch, Ha1Params, HeatingForecast,
@@ -78,7 +75,6 @@ class HomeAloneTouBase(ScadaActor):
         else: 
             self.top_state = LocalControlTopState.Normal
         self.is_simulated = self.settings.is_simulated
-        self.oil_boiler_during_onpeak = self.settings.oil_boiler_backup
         self.log(f"Params: {self.params}")
         self.log(f"self.is_simulated: {self.is_simulated}")
         self.heating_forecast: Optional[HeatingForecast] = None
@@ -90,7 +86,6 @@ class HomeAloneTouBase(ScadaActor):
         if H0N.home_alone_backup not in self.layout.nodes:
             raise Exception(f"HomeAlone requires {H0N.home_alone_backup} node!!")
         self.set_command_tree(boss_node=self.normal_node)
-        self.latest_temperatures: Dict[str, int] = {} # 
         self.actuators_initialized = False
         self.actuators_ready = False
 
@@ -217,8 +212,7 @@ class HomeAloneTouBase(ScadaActor):
 
             # No control of actuators when in Monitor
             if not self.top_state == LocalControlTopState.Monitor:
-                # update temperatures_available
-                self.get_latest_temperatures()
+                self.reconcile_tank_temperatures()
 
                 # Update top state
                 if self.top_state == LocalControlTopState.Normal:
@@ -227,7 +221,7 @@ class HomeAloneTouBase(ScadaActor):
                 elif self.top_state == LocalControlTopState.UsingNonElectricBackup and not self.is_system_cold() and not self.is_onpeak():
                     self.trigger_zones_at_setpoint_offpeak()
                 elif self.top_state == LocalControlTopState.ScadaBlind:
-                    if self.heating_forecast_available() and self.temperatures_available():
+                    if self.heating_forecast_available() and self.buffer_available:
                         self.log("Forecasts and temperatures are both available again!")
                         self.trigger_data_available()
                     elif self.is_onpeak() and self.settings.oil_boiler_backup:
@@ -235,11 +229,13 @@ class HomeAloneTouBase(ScadaActor):
                             self.aquastat_ctrl_switch_to_boiler(from_node=self.scada_blind_node)
                             self.scadablind_boiler = True
                             self.scadablind_scada = False
+                            self.log("ScadaBlind: switching to boiler onpeak")
                     else:
                         if not self.scadablind_scada:
                             self.aquastat_ctrl_switch_to_scada(from_node=self.scada_blind_node)
                             self.scadablind_boiler = False
                             self.scadablind_scada = True
+                            self.log("ScadaBlind: switching to Aqaustatically controlled SCADA offpeak")
                 
                 if self.top_state == LocalControlTopState.Normal:
                     self.engage_brain()
@@ -249,18 +245,6 @@ class HomeAloneTouBase(ScadaActor):
         if self.heating_forecast is None:
             return False
         return True
-
-    def temperatures_available(self) -> bool:
-        total_usable_kwh = self.data.latest_channel_values[H0CN.usable_energy]
-        required_storage = self.data.latest_channel_values[H0CN.required_energy]
-        if total_usable_kwh is None or required_storage is None:
-            return False
-
-        all_buffer = [x for x in self.temperature_channel_names if 'buffer-depth' in x]
-        available_buffer = [x for x in list(self.latest_temperatures.keys()) if 'buffer-depth' in x]
-        if all_buffer == available_buffer:
-            return True
-        return False
 
     @abstractmethod
     def time_to_trigger_system_cold(self) -> bool:
@@ -785,23 +769,10 @@ class HomeAloneTouBase(ScadaActor):
     # utilities
     # ------------------------------------------------------------------
 
-    def change_all_temps(self, temp_c) -> None:
-        if self.is_simulated:
-            for channel_name in self.temperature_channel_names:
-                self.change_temp(channel_name, temp_c)
-        else:
-            print("This function is only available in simulation")
-
-    def change_temp(self, channel_name, temp_c) -> None:
-        if self.is_simulated:
-            self.latest_temperatures[channel_name] = temp_c * 1000
-        else:
-            print("This function is only available in simulation")
-
     def just_before_onpeak(self) -> bool:
         time_now = datetime.now(self.timezone)
         return ((time_now.hour==6 or time_now.hour==16) and time_now.minute>57)
-    
+
     def is_onpeak(self) -> bool:
         time_now = datetime.now(self.timezone)
         time_in_2min = time_now + timedelta(minutes=2)
@@ -810,7 +781,7 @@ class HomeAloneTouBase(ScadaActor):
             return True
         else:
             return False
-        
+
     def is_storage_empty(self):
         if not self.is_simulated:
             if H0CN.usable_energy in self.data.latest_channel_values.keys():

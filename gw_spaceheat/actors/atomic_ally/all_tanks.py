@@ -11,7 +11,7 @@ from gwproto.data_classes.sh_node import ShNode
 from gwproto.data_classes.components.dfr_component import DfrComponent
 
 from gwproto.enums import ActorClass, FsmReportType, RelayClosedOrOpen
-from gwproto.named_types import AnalogDispatch, FsmAtomicReport, FsmFullReport, PicoTankModuleComponentGt
+from gwproto.named_types import AnalogDispatch, FsmAtomicReport, FsmFullReport
 from result import Ok, Result
 from transitions import Machine
 
@@ -20,7 +20,7 @@ from scada_app_interface import ScadaAppInterface
 from gwsproto.enums import HomeAloneStrategy, LogLevel
 from gwsproto.enums import AtomicAllyState, AtomicAllyEvent
 from gwsproto.named_types import (
-    AllyGivesUp,  Glitch, GoDormant, Ha1Params, HeatingForecast,
+    AllyGivesUp, GoDormant, Ha1Params, HeatingForecast,
     SingleMachineState, SlowContractHeartbeat, SlowDispatchContract, SuitUp
 )
 
@@ -69,7 +69,6 @@ class AllTanksAtomicAlly(ScadaActor):
         super().__init__(name, services)
         self._stop_requested: bool = False
         # Temperatures
-        self.temperatures_available: bool = False
         self.no_temps_since: Optional[int] = None
         # State machine
         self.machine = Machine(
@@ -216,8 +215,8 @@ class AllTanksAtomicAlly(ScadaActor):
         """
         self.log("Waking up")
 
-        self.get_latest_temperatures()
-        if not self.temperatures_available:
+        self.reconcile_tank_temperatures()
+        if not self.buffer_available:
             self.no_temps_since = int(time.time())
             self.log("Temperatures not available. Won't turn on hp until they are. Will bail in 5 if still not available")
         
@@ -231,10 +230,10 @@ class AllTanksAtomicAlly(ScadaActor):
         self.log(f"State: {self.state}")
         if self.state not in [AtomicAllyState.Dormant, 
                               AtomicAllyState.HpOffOilBoilerTankAquastat]:
-            self.get_latest_temperatures()
+            self.reconcile_tank_temperatures()
 
             if self.state == AtomicAllyState.Initializing:
-                if self.temperatures_available and self.data.channel_has_value(H0CN.required_energy):
+                if self.buffer_available and self.data.channel_has_value(H0CN.required_energy):
                     self.no_temps_since = None
                     if self.hp_should_be_off():
                         if (
@@ -446,13 +445,10 @@ class AllTanksAtomicAlly(ScadaActor):
                         return False
         return True
     
-    def is_buffer_empty(self, really_empty=False) -> bool:
-        if H0CN.buffer.depth1 in self.latest_temperatures:
-            if really_empty or not cast(PicoTankModuleComponentGt, self.layout.nodes['buffer'].component.gt).PicoAHwUid:
-                buffer_empty_ch = H0CN.buffer.depth1
-            else:
-                buffer_empty_ch = H0CN.buffer.depth2
-        elif H0CN.dist_swt in self.latest_temperatures:
+    def is_buffer_empty(self) -> bool:
+        if H0CN.buffer.depth1 in self.latest_temps_f:
+            buffer_empty_ch = H0CN.buffer.depth1
+        elif H0CN.dist_swt in self.latest_temps_f:
             buffer_empty_ch = H0CN.dist_swt
         else:
             self.alert(summary="buffer_empty_fail", details="Impossible to know if the buffer is empty!")
@@ -463,7 +459,7 @@ class AllTanksAtomicAlly(ScadaActor):
         max_rswt_next_3hours = max(self.forecasts.RswtF[:3])
         max_deltaT_rswt_next_3_hours = max(self.forecasts.RswtDeltaTF[:3])
         min_buffer = round(max_rswt_next_3hours - max_deltaT_rswt_next_3_hours,1)
-        buffer_empty_ch_temp = round(self.latest_temperatures[buffer_empty_ch],1)
+        buffer_empty_ch_temp = self.latest_temps_f[buffer_empty_ch]
         if buffer_empty_ch_temp < min_buffer:
             self.log(f"Buffer empty ({buffer_empty_ch}: {buffer_empty_ch_temp} < {min_buffer} F)")
             return True
@@ -472,13 +468,13 @@ class AllTanksAtomicAlly(ScadaActor):
             return False            
     
     def is_buffer_full(self, really_full=False) -> bool:
-        if H0CN.buffer.depth3 in self.latest_temperatures:
+        if H0CN.buffer.depth3 in self.latest_temps_f:
             buffer_full_ch = H0CN.buffer.depth3
-        elif H0CN.buffer_cold_pipe in self.latest_temperatures:
+        elif H0CN.buffer_cold_pipe in self.latest_temps_f:
             buffer_full_ch = H0CN.buffer_cold_pipe
-        elif "StoreDischarge" in self.state and H0CN.store_cold_pipe in self.latest_temperatures:
+        elif "StoreDischarge" in self.state and H0CN.store_cold_pipe in self.latest_temps_f:
             buffer_full_ch = H0CN.store_cold_pipe
-        elif  H0CN.hp_ewt in self.latest_temperatures:
+        elif  H0CN.hp_ewt in self.latest_temps_f:
             buffer_full_ch = H0CN.hp_ewt
         else:
             self.alert(summary="buffer_full_fail", details="Impossible to know if the buffer is full!")
@@ -487,11 +483,11 @@ class AllTanksAtomicAlly(ScadaActor):
             self.alert(summary="buffer_full_fail", details="Impossible without forecasts")
             return False
         max_buffer = round(max(self.forecasts.RswtF[:3]),1)
-        buffer_full_ch_temp = round(self.latest_temperatures[buffer_full_ch],1)
+        buffer_full_ch_temp = self.latest_temps_f[buffer_full_ch]
 
         if really_full:
-            if H0CN.buffer_cold_pipe in self.latest_temperatures:
-                buffer_full_ch_temp = round(max(self.latest_temperatures[H0CN.buffer_cold_pipe], self.latest_temperatures[buffer_full_ch]),1)
+            if H0CN.buffer_cold_pipe in self.latest_temps_f:
+                buffer_full_ch_temp = max(self.latest_temps_f[H0CN.buffer_cold_pipe], self.latest_temps_f[buffer_full_ch])
             max_buffer = self.params.MaxEwtF
             if buffer_full_ch_temp > max_buffer:
                 self.log(f"Buffer cannot be charged more ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)")
@@ -512,18 +508,19 @@ class AllTanksAtomicAlly(ScadaActor):
             self.log(f"Storage was declared full {round((time.time() - self.storage_full_since)/60)} minutes ago")
             return True
         else:
-            if H0CN.store_cold_pipe in self.latest_temperatures:
-                store_channel = H0N.store_cold_pipe
-            elif self.h0cn.tank[3].depth3 in self.latest_temperatures:
-                store_channel = self.h0cn.tank[3].depth3
-            elif self.h0cn.tank[2].depth3 in self.latest_temperatures:
-                store_channel = self.h0cn.tank[2].depth3
-            elif self.h0cn.tank[1].depth3 in self.latest_temperatures:
-                store_channel = self.h0cn.tank[1].depth3
+            n = len(self.h0cn.tank)
+            if H0CN.store_cold_pipe in self.latest_temps_f:
+                store_channel = H0CN.store_cold_pipe
+            elif self.h0cn.tank[n].depth3 in self.latest_temps_f:
+                store_channel = self.h0cn.tank[n].depth3
+            elif self.h0cn.tank[n].depth2 in self.latest_temps_f:
+                store_channel = self.h0cn.tank[n].depth2
+            elif self.h0cn.tank[n].depth1 in self.latest_temps_f:
+                store_channel = self.h0cn.tank[n].depth1
             else:
                 self.send_warning(summary="storage_full_fail", details="Impossible to know if the storage is full, store-cold-pipe not found!")
                 return True
-            store_channel_temp = self.latest_temperatures[store_channel]
+            store_channel_temp = self.latest_temps_f[store_channel]
             if store_channel_temp > self.params.MaxEwtF: 
                 self.log(f"Storage is full ({store_channel_temp} > {self.params.MaxEwtF} F).")
                 self.storage_declared_full = True
@@ -535,29 +532,29 @@ class AllTanksAtomicAlly(ScadaActor):
                 return False
         
     def is_storage_colder_than_buffer(self) -> bool:
-        if H0CN.buffer.depth1 in self.latest_temperatures:
+        if H0CN.buffer.depth1 in self.latest_temps_f:
             buffer_top = H0CN.buffer.depth1
-        elif H0CN.buffer.depth2 in self.latest_temperatures:
+        elif H0CN.buffer.depth2 in self.latest_temps_f:
             buffer_top = H0CN.buffer.depth2
-        elif H0CN.buffer.depth3 in self.latest_temperatures:
+        elif H0CN.buffer.depth3 in self.latest_temps_f:
             buffer_top = H0CN.buffer.depth3
-        elif H0CN.buffer_cold_pipe in self.latest_temperatures:
+        elif H0CN.buffer_cold_pipe in self.latest_temps_f:
             buffer_top = H0CN.buffer_cold_pipe
         else:
             self.alert(summary="store_v_buffer_fail", details="It is impossible to know if the top of the buffer is warmer than the top of the storage!")
             return False
-        if self.h0cn.tank[1].depth1 in self.latest_temperatures:
+        if self.h0cn.tank[1].depth1 in self.latest_temps_f:
             tank_top = self.h0cn.tank[1].depth1
-        elif H0CN.store_hot_pipe in self.latest_temperatures:
+        elif H0CN.store_hot_pipe in self.latest_temps_f:
             tank_top = H0CN.store_hot_pipe
-        elif H0CN.buffer_hot_pipe in self.latest_temperatures:
+        elif H0CN.buffer_hot_pipe in self.latest_temps_f:
             tank_top = H0CN.buffer_hot_pipe
         else:
             self.alert(summary="store_v_buffer_fail", details="It is impossible to know if the top of the storage is warmer than the top of the buffer!")
             return False
-        if self.latest_temperatures[buffer_top] > self.latest_temperatures[tank_top] + 3:
-            self.log("Storage top colder than buffer top")
+        if self.latest_temps_f[buffer_top] > self.latest_temps_f[tank_top] + 3:
+            # self.log("Storage top colder than buffer top")
             return True
         else:
-            print("Storage top warmer than buffer top")
+            # self.log("Storage top warmer than buffer top")
             return False

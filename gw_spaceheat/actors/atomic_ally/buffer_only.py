@@ -59,18 +59,6 @@ class BufferOnlyAtomicAlly(ScadaActor):
         super().__init__(name, services)
         self._stop_requested: bool = False
 
-        # ShoulderTou intentionally ignores store tanks
-        # This overwrites the baseclass self.temperature_channel_names
-        buffer_depths = list(self.h0cn.buffer.all)
-
-        self.temperature_channel_names = buffer_depths + [
-            self.h0cn.hp_ewt, self.h0cn.hp_lwt,
-             self.h0cn.dist_swt, self.h0cn.dist_rwt,
-            self.h0cn.buffer_cold_pipe, self.h0cn.buffer_hot_pipe,
-            self.h0cn.store_cold_pipe, self.h0cn.store_hot_pipe,
-        ]
-
-        self.temperatures_available: bool = False
         self.no_temps_since: Optional[int] = None
         # State machine
         self.machine = Machine(
@@ -216,8 +204,8 @@ class BufferOnlyAtomicAlly(ScadaActor):
         """
         self.log("Waking up")
 
-        self.get_latest_temperatures()
-        if not self.temperatures_available:
+        self.reconcile_tank_temperatures()
+        if not self.buffer_available:
             self.no_temps_since = int(time.time())
             self.log("Temperatures not available. Won't turn on hp until they are. Will bail in 5 if still not available")
         
@@ -231,10 +219,10 @@ class BufferOnlyAtomicAlly(ScadaActor):
         self.log(f"State: {self.state}")
         if self.state not in [AaBufferOnlyState.Dormant, 
                               AaBufferOnlyState.HpOffOilBoilerTankAquastat]:
-            self.get_latest_temperatures()
+            self.reconcile_tank_temperatures()
 
             if self.state == AaBufferOnlyState.Initializing:
-                if self.temperatures_available  and self.data.channel_has_value(H0CN.required_energy):
+                if self.buffer_available  and self.data.channel_has_value(H0CN.required_energy):
                     self.no_temps_since = None
                     if self.hp_should_be_off():
                         self.trigger_event(AaBufferOnlyEvent.NoMoreElec)
@@ -396,11 +384,11 @@ class BufferOnlyAtomicAlly(ScadaActor):
         return True      
     
     def is_buffer_full(self, really_full=False) -> bool:
-        if H0CN.buffer.depth3 in self.latest_temperatures:
+        if H0CN.buffer.depth3 in self.latest_temps_f:
             buffer_full_ch = H0CN.buffer.depth3
-        elif H0CN.buffer_cold_pipe in self.latest_temperatures:
+        elif H0CN.buffer_cold_pipe in self.latest_temps_f:
             buffer_full_ch = H0CN.buffer_cold_pipe
-        elif H0CN.hp_ewt in self.latest_temperatures:
+        elif H0CN.hp_ewt in self.latest_temps_f:
             buffer_full_ch = H0CN.hp_ewt
         else:
             self.alert(summary="buffer_full_fail", details="Impossible to know if the buffer is full!")
@@ -409,18 +397,17 @@ class BufferOnlyAtomicAlly(ScadaActor):
             self.alert(summary="buffer_full_fail", details="Impossible without forecasts")
             return False
         max_buffer = round(max(self.forecasts.RswtF[:3]),1)
-        buffer_full_ch_temp = round(self.latest_temperatures[buffer_full_ch],1)
+        buffer_full_ch_temp = self.latest_temps_f[buffer_full_ch]
 
         if really_full:
-            if H0CN.buffer_cold_pipe in self.latest_temperatures:
-                buffer_full_ch_temp = round(max(self.latest_temperatures[H0CN.buffer_cold_pipe], self.latest_temperatures[buffer_full_ch]),1)
+            if H0CN.buffer_cold_pipe in self.latest_temps_f:
+                buffer_full_ch_temp = max(self.latest_temps_f[H0CN.buffer_cold_pipe], self.latest_temps_f[buffer_full_ch])
             max_buffer = self.params.MaxEwtF
             if buffer_full_ch_temp > max_buffer:
                 self.log(f"Buffer cannot be charged more ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)")
-                self.alert(
+                self.send_warning(
                     summary="Buffer tank is full, could not heat as much as contract requires", 
                     details=f"Remaining energy: {self.remaining_watthours} Wh", 
-                    log_level=LogLevel.Warning
                 )
                 return True
             else:

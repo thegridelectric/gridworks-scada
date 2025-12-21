@@ -9,7 +9,6 @@ from gwsproto.enums import HomeAloneStrategy, LocalControlTopState
 from gw.enums import GwStrEnum
 from gwsproto.named_types import SingleMachineState
 from transitions import Machine
-from gwproto.named_types import PicoTankModuleComponentGt
 
 from scada_app_interface import ScadaAppInterface
 
@@ -72,17 +71,6 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
                 f"Expect ShoulderTou HomeAloneStrategy, got {self.strategy}"
             )
 
-        # ShoulderTou intentionally ignores store tanks
-        # This overwrites the baseclass self.temperature_channel_names
-        buffer_depths = list(self.h0cn.buffer.all)
-
-        self.temperature_channel_names = buffer_depths + [
-            self.h0cn.hp_ewt, self.h0cn.hp_lwt,
-             self.h0cn.dist_swt, self.h0cn.dist_rwt,
-            self.h0cn.buffer_cold_pipe, self.h0cn.buffer_hot_pipe,
-            self.h0cn.store_cold_pipe, self.h0cn.store_hot_pipe,
-        ]
-
         self.buffer_declared_ready = False
         self.time_hp_turned_on = None
         self.full_buffer_energy: Optional[float] = None  # in kWh
@@ -133,7 +121,7 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
         Logic for triggering SystemCold (and moving to top state UsingNonElectricBackup).
         In shoulder, this means: 1) house is cold 2) buffer is really empty
         """
-        return self.is_system_cold() and self.is_buffer_empty(really_empty=True)
+        return self.is_system_cold() and self.is_buffer_empty()
 
     def normal_node_state(self) -> str:
         return self.state
@@ -175,7 +163,7 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
             self.buffer_declared_ready = False
             self.full_buffer_energy = None
 
-        if not (self.heating_forecast and self.temperatures_available()):
+        if not (self.heating_forecast and self.buffer_available):
             if self.time_since_blind is None:
                 self.time_since_blind = time.time()
             elif time.time() - self.time_since_blind > self.BLIND_MINUTES * 60:
@@ -191,7 +179,7 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
                 self.time_since_blind = None
 
             if self.state == HaShoulderState.Initializing:
-                if self.temperatures_available() and self.data.channel_has_value(H0CN.required_energy):
+                if self.buffer_available and self.data.channel_has_value(H0CN.required_energy):
                     if self.is_onpeak():
                         self.trigger_normal_event(HaShoulderEvent.OnPeakStart)
                     else:
@@ -253,13 +241,10 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
             self.turn_off_HP(from_node=self.normal_node)
             self.time_hp_turned_on = None
 
-    def is_buffer_empty(self, really_empty=False) -> bool:
-        if H0CN.buffer.depth1 in self.latest_temperatures:
-            if really_empty or not isinstance(self.layout.nodes['buffer'].component.gt, PicoTankModuleComponentGt):
-                buffer_empty_ch = H0CN.buffer.depth1
-            else:
-                buffer_empty_ch = H0CN.buffer.depth2
-        elif H0CN.dist_swt in self.latest_temperatures:
+    def is_buffer_empty(self) -> bool:
+        if H0CN.buffer.depth1 in self.latest_temps_f:
+            buffer_empty_ch = H0CN.buffer.depth1
+        elif H0CN.dist_swt in self.latest_temps_f:
             buffer_empty_ch = H0CN.dist_swt
         else:
             self.alert(
@@ -274,9 +259,7 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
             max_rswt_next_3hours = max(self.heating_forecast.RswtF[:3])
             max_deltaT_rswt_next_3_hours = max(self.heating_forecast.RswtDeltaTF[:3])
         min_buffer = round(max_rswt_next_3hours - max_deltaT_rswt_next_3_hours, 1)
-        buffer_empty_ch_temp = round(
-            self.to_fahrenheit(self.latest_temperatures[buffer_empty_ch] / 1000), 1
-        )
+        buffer_empty_ch_temp = self.latest_temps_f[buffer_empty_ch]
         if buffer_empty_ch_temp < min_buffer:
             self.log(f"Buffer empty ({buffer_empty_ch}: {buffer_empty_ch_temp} < {min_buffer} F)")
             return True
@@ -285,11 +268,11 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
             return False
 
     def is_buffer_full(self) -> bool:
-        if H0CN.buffer.depth3 in self.latest_temperatures:
+        if H0CN.buffer.depth3 in self.latest_temps_f:
             buffer_full_ch = H0CN.buffer.depth3
-        elif H0CN.buffer_cold_pipe in self.latest_temperatures:
+        elif H0CN.buffer_cold_pipe in self.latest_temps_f:
             buffer_full_ch = H0CN.buffer_cold_pipe
-        elif H0CN.hp_ewt in self.latest_temperatures:
+        elif H0CN.hp_ewt in self.latest_temps_f:
             buffer_full_ch = H0CN.hp_ewt
         else:
             self.alert(
@@ -301,9 +284,7 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
             max_buffer = 170
         else:
             max_buffer = round(max(self.heating_forecast.RswtF[:3]), 1)
-        buffer_full_ch_temp = round(
-            self.to_fahrenheit(self.latest_temperatures[buffer_full_ch] / 1000), 1
-        )
+        buffer_full_ch_temp = self.latest_temps_f[buffer_full_ch]
         if buffer_full_ch_temp > max_buffer:
             self.log(f"Buffer full ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)")
             return True
@@ -340,9 +321,9 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
             self.buffer_declared_ready = True
             return True
         else:
-            if H0N.buffer_cold_pipe in self.latest_temperatures:
-                self.log(f"Buffer cold pipe: {round(self.to_fahrenheit(self.latest_temperatures[H0N.buffer_cold_pipe]/1000),1)} F")
-                if (self.to_fahrenheit(self.latest_temperatures[H0N.buffer_cold_pipe] / 1000) > self.params.MaxEwtF):
+            if H0N.buffer_cold_pipe in self.latest_temps_f:
+                self.log(f"Buffer cold pipe: {self.latest_temps_f[H0N.buffer_cold_pipe]} F")
+                if (self.latest_temps_f[H0N.buffer_cold_pipe] > self.params.MaxEwtF):
                     self.log(f"The buffer is not ready, but the bottom is above the maximum EWT ({self.params.MaxEwtF} F).")
                     self.log("The buffer will therefore be considered ready, as we cannot charge it further.")
                     self.full_buffer_energy = total_usable_kwh

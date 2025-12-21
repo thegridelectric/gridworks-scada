@@ -341,7 +341,7 @@ class ApiTankModule(ScadaActor):
             await asyncio.sleep(10)
 
     def simple_beta(self, volts: float, fahrenheit=False) -> float:
-        """ Return temperature as a function of volts. Default Celcius. Use 
+        """ Return temperature as a function of volts. Default Celsius. Use 
         standard beta function (self._component.gt.TempCalcMethod = TempCalcMethod.SimpleBeta)
         """
         if self._component.gt.TempCalcMethod != TempCalcMethod.SimpleBeta:
@@ -354,7 +354,7 @@ class ApiTankModule(ScadaActor):
 
     def simple_beta_for_pico(self, volts: float, fahrenheit=False) -> float:
         """
-        Return temperature Celcius as a function of volts.
+        Return temperature Celsius as a function of volts.
         Uses a fixed estimated resistance for the pico (self._component.gt.TempCalcMethod =TempCalcMethod.SimpleBetaForPico)
         SHOULD DEPRECATE WHEN NOT IN THE FIELD AS CALC IS INCORRECT
         """

@@ -154,7 +154,7 @@ class WinterTouHomeAlone(HomeAloneTouBase):
         Logic for triggering SystemCold (and moving to top state UsingNonElectricBackup).
         In winter, this means: 1) house is cold 2) buffer is really empty and 3) store is empty
         """
-        return self.is_system_cold() and self.is_buffer_empty(really_empty=True) and self.is_storage_empty()
+        return self.is_system_cold() and self.is_buffer_empty() and self.is_storage_empty()
 
     def normal_node_state(self) -> str:
         return self.state
@@ -199,7 +199,7 @@ class WinterTouHomeAlone(HomeAloneTouBase):
         if ((time_now.hour==6 or time_now.hour==16) and time_now.minute>57) or self.zone_setpoints=={}:
             self.get_zone_setpoints()
         
-        if not (self.heating_forecast_available() and self.temperatures_available()):
+        if not (self.heating_forecast_available() and self.buffer_available):
             self.fill_missing_store_temps()
             if self.time_since_blind is None:
                 self.time_since_blind = time.time()
@@ -213,7 +213,7 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             if self.time_since_blind is not None:
                 self.time_since_blind = None
             if self.state==HaWinterState.Initializing:
-                if self.temperatures_available() and self.data.channel_has_value(H0CN.required_energy):
+                if self.buffer_available and self.data.channel_has_value(H0CN.required_energy):
                     if self.is_onpeak():
                         if self.is_buffer_empty():
                             if self.is_storage_colder_than_buffer():
@@ -308,32 +308,10 @@ class WinterTouHomeAlone(HomeAloneTouBase):
         else:
             self.valved_to_discharge_store(from_node=self.normal_node)
 
-    def fill_missing_store_temps(self):
-        if list(self.latest_temperatures.keys()) == self.temperature_channel_names:
-            return
-        all_store_layers = sorted([x for x in self.temperature_channel_names if 'tank' in x])
-        for layer in all_store_layers:
-            if (layer not in self.latest_temperatures 
-            or self.to_fahrenheit(self.latest_temperatures[layer]/1000) < 70
-            or self.to_fahrenheit(self.latest_temperatures[layer]/1000) > 200):
-                self.latest_temperatures[layer] = None
-        if H0CN.store_cold_pipe in self.latest_temperatures:
-            value_below = self.latest_temperatures[H0CN.store_cold_pipe]
-        else:
-            value_below = 0
-        for layer in sorted(all_store_layers, reverse=True):
-            if self.latest_temperatures[layer] is None:
-                self.latest_temperatures[layer] = value_below
-            value_below = self.latest_temperatures[layer]  
-        self.latest_temperatures = {k:self.latest_temperatures[k] for k in sorted(self.latest_temperatures)}
-
-    def is_buffer_empty(self, really_empty=False) -> bool:
-        if H0CN.buffer.depth1 in self.latest_temperatures:
-            if really_empty or not isinstance(self.layout.nodes['buffer'].component.gt, PicoTankModuleComponentGt):
-                buffer_empty_ch = H0CN.buffer.depth1
-            else:
-                buffer_empty_ch = H0CN.buffer.depth2
-        elif H0CN.dist_swt in self.latest_temperatures:
+    def is_buffer_empty(self) -> bool:
+        if H0CN.buffer.depth1 in self.latest_temps_f:
+            buffer_empty_ch = H0CN.buffer.depth1
+        elif H0CN.dist_swt in self.latest_temps_f:
             buffer_empty_ch = H0CN.dist_swt
         else:
             self.alert(summary="buffer_empty_fail", details="Impossible to know if the buffer is empty!")
@@ -345,7 +323,7 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             max_rswt_next_3hours = max(self.heating_forecast.RswtF[:3])
             max_deltaT_rswt_next_3_hours = max(self.heating_forecast.RswtDeltaTF[:3])
         min_buffer = round(max_rswt_next_3hours - max_deltaT_rswt_next_3_hours,1)
-        buffer_empty_ch_temp = round(self.to_fahrenheit(self.latest_temperatures[buffer_empty_ch]/1000),1)
+        buffer_empty_ch_temp = self.latest_temps_f[buffer_empty_ch]
         if buffer_empty_ch_temp < min_buffer:
             self.log(f"Buffer empty ({buffer_empty_ch}: {buffer_empty_ch_temp} < {min_buffer} F)")
             return True
@@ -354,13 +332,13 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             return False            
     
     def is_buffer_full(self) -> bool:
-        if H0CN.buffer.depth3 in self.latest_temperatures:
+        if H0CN.buffer.depth3 in self.latest_temps_f:
             buffer_full_ch = H0CN.buffer.depth3
-        elif H0CN.buffer_cold_pipe in self.latest_temperatures:
+        elif H0CN.buffer_cold_pipe in self.latest_temps_f:
             buffer_full_ch = H0CN.buffer_cold_pipe
-        elif "StoreDischarge" in self.state and H0CN.store_cold_pipe in self.latest_temperatures:
+        elif "StoreDischarge" in self.state and H0CN.store_cold_pipe in self.latest_temps_f:
             buffer_full_ch = H0CN.store_cold_pipe
-        elif H0CN.hp_ewt in self.latest_temperatures:
+        elif H0CN.hp_ewt in self.latest_temps_f:
             buffer_full_ch =  H0CN.hp_ewt
         else:
             self.alert(summary="buffer_full_fail", details="Impossible to know if the buffer is full!")
@@ -369,7 +347,7 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             max_buffer = 170
         else:
             max_buffer = round(max(self.heating_forecast.RswtF[:3]),1)
-        buffer_full_ch_temp = round(self.to_fahrenheit(self.latest_temperatures[buffer_full_ch]/1000),1)
+        buffer_full_ch_temp = round(self.to_fahrenheit(self.latest_temps_f[buffer_full_ch]/1000),1)
         if buffer_full_ch_temp > max_buffer:
             self.log(f"Buffer full ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)")
             return True
@@ -386,15 +364,15 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             self.storage_declared_ready = True
             return True
         else:
-            if H0N.store_cold_pipe in self.latest_temperatures:
+            if H0N.store_cold_pipe in self.latest_temps_f:
                 check_temp_channel = H0N.store_cold_pipe
-            elif H0N.hp_ewt in self.latest_temperatures:
+            elif H0N.hp_ewt in self.latest_temps_f:
                 check_temp_channel = H0N.hp_ewt
             else:
                 self.log("No EWT temperature channel found, not checking if storage is ready")
                 return False
-            self.log(f"{check_temp_channel}: {round(self.to_fahrenheit(self.latest_temperatures[check_temp_channel]/1000),1)} F")
-            if self.to_fahrenheit(self.latest_temperatures[check_temp_channel]/1000) > self.params.MaxEwtF:
+            self.log(f"{check_temp_channel}: {self.latest_temps_f[check_temp_channel]}")
+            if self.to_fahrenheit(self.latest_temps_f[check_temp_channel]/1000) > self.params.MaxEwtF:
                 self.log(f"The storage is not ready, but the bottom is above the maximum EWT ({self.params.MaxEwtF} F).")
                 self.log("The storage will therefore be considered ready, as we cannot charge it further.")
                 self.full_storage_energy = total_usable_kwh
@@ -402,43 +380,34 @@ class WinterTouHomeAlone(HomeAloneTouBase):
                 return True
             self.log(f"Storage not ready (usable {round(total_usable_kwh,1)} kWh < required {round(required_storage,1)} kWh)")
             return False
-        
-    def is_storage_empty(self):
-        if not self.is_simulated:
-            total_usable_kwh = self.data.latest_channel_values[H0CN.usable_energy] / 1000
-        else:
-            total_usable_kwh = 0
-        if total_usable_kwh < 0.2:
-            self.log("Storage is empty")
-            return True
-        else:
-            self.log("Storage is not empty")
-            return False
 
     def is_storage_colder_than_buffer(self) -> bool:
-        if H0CN.buffer.depth1 in self.latest_temperatures:
+        """
+        Returns true if the top of the store is at least 5 degrees colder than the top of the buffer
+        """
+        if H0CN.buffer.depth1 in self.latest_temps_f:
             buffer_top = H0CN.buffer.depth1
-        elif H0CN.buffer.depth2 in self.latest_temperatures:
+        elif H0CN.buffer.depth2 in self.latest_temps_f:
             buffer_top = H0CN.buffer.depth2
-        elif H0CN.buffer.depth3 in self.latest_temperatures:
+        elif H0CN.buffer.depth3 in self.latest_temps_f:
             buffer_top = H0CN.buffer.depth3
-        elif H0CN.buffer_cold_pipe in self.latest_temperatures:
+        elif H0CN.buffer_cold_pipe in self.latest_temps_f:
             buffer_top = H0CN.buffer_cold_pipe
         else:
             self.alert("store_v_buffer_fail", "It is impossible to know if the top of the buffer is warmer than the top of the storage!")
             return False
-        if self.h0cn.tank[1].depth1 in self.latest_temperatures:
+        if self.h0cn.tank[1].depth1 in self.latest_temps_f:
             tank_top = self.h0cn.tank[1].depth1
-        elif H0CN.store_hot_pipe in self.latest_temperatures:
+        elif H0CN.store_hot_pipe in self.latest_temps_f:
             tank_top = H0CN.store_hot_pipe
-        elif H0CN.buffer_hot_pipe in self.latest_temperatures:
+        elif H0CN.buffer_hot_pipe in self.latest_temps_f:
             tank_top = H0CN.buffer_hot_pipe
         else:
             self.alert("store_v_buffer_fail", "It is impossible to know if the top of the storage is warmer than the top of the buffer!")
             return False
-        if self.latest_temperatures[buffer_top] > self.latest_temperatures[tank_top] + 3:
-            self.log("Storage top colder than buffer top")
+        if self.latest_temps_f[buffer_top] > self.latest_temps_f[tank_top] + 5.4:
+            self.log(f"Storage top {self.latest_temps_f[tank_top]}F at least 5 deg colder than than buffer top {self.latest_temps_f[buffer_top]} F")
             return True
         else:
-            print("Storage top warmer than buffer top")
+            self.log(f"Storage top + 5.4  {self.latest_temps_f[tank_top] + 5.4} F warmer than than buffer top {self.latest_temps_f[buffer_top]} F")
             return False

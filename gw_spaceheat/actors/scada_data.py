@@ -34,8 +34,8 @@ class ScadaData:
     ha1_params: Ha1Params
 
     def __init__(self, settings: ScadaSettings, hardware_layout: HardwareLayout):
-        self.reports_to_store: Dict[str:Report] = {}
-        self.seconds_by_channel: Dict[str:int] = {}
+        self.reports_to_store: Dict[str, Report] = {}
+        self.seconds_by_channel: Dict[str, int] = {}
 
         self.settings = settings
         self.layout = hardware_layout
@@ -64,8 +64,8 @@ class ScadaData:
         self.latest_channel_unix_ms: Dict[str, int] = {  # noqa
             ch.Name: None for ch in self.my_channels
         }
-        self.latest_temperatures: Dict[str, float] = {}
-        self.temperatures_available: bool = False
+        self.latest_temperatures_f: Dict[str, float] = {}
+        self.buffer_available: bool = False # change to buffer_available
 
         self.latest_channel_values[H0CN.usable_energy] = 0
         self.latest_channel_unix_ms[H0CN.usable_energy] = int(time.time() * 1000)

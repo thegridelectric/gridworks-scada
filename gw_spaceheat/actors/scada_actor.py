@@ -41,6 +41,11 @@ from scada_app_interface import ScadaAppInterface
 
 
 class ScadaActor(Actor, ABC):
+    MIN_USED_TANK_TEMP_F = 70
+    MAX_VALID_TANK_TEMP_F = 200
+    NUM_LAYERS_PER_TANK = 3
+    SIMULATED_TANK_TEMP_F = 70
+
 
     def __init__(self, name: str, services: ScadaAppInterface):
         if not isinstance(services, ScadaAppInterface):
@@ -55,8 +60,9 @@ class ScadaActor(Actor, ABC):
 
         # set temperature_channel_names
         all_tank_depths = list(self.h0cn.buffer.all)
-        for tank in self.h0cn.tank.values():
-            all_tank_depths.extend(tank.all)
+        for tank_idx in sorted(self.h0cn.tank):
+            tank = self.h0cn.tank[tank_idx]
+            all_tank_depths.extend([tank.depth1, tank.depth2, tank.depth3])
 
         self.temperature_channel_names =  all_tank_depths + [
             self.h0cn.hp_ewt, self.h0cn.hp_lwt,
@@ -1106,64 +1112,84 @@ class ScadaActor(Actor, ABC):
     # Temperature related
     #-----------------------------------------------------------------------
 
-    def fill_missing_store_temps(self):
-        all_store_layers = sorted([x for x in self.temperature_channel_names if 'tank' in x])
-        for layer in all_store_layers:
-            if (layer not in self.latest_temperatures 
-            or self.latest_temperatures[layer] < 60
-            or self.latest_temperatures[layer] > 200):
-                self.data.latest_temperatures_f.pop(layer, None)
-        if H0CN.store_cold_pipe in self.latest_temperatures:
-            value_below = self.latest_temperatures[H0CN.store_cold_pipe]
-        else:
-            value_below = 0
-        for layer in sorted(all_store_layers, reverse=True):
-            if self.latest_temperatures[layer] is None:
-                self.latest_temperatures[layer] = value_below
-            value_below = self.latest_temperatures[layer]  
-        self.data.latest_temperatures_f= {k:self.latest_temperatures[k] for k in sorted(self.latest_temperatures)}
-
     @property
-    def latest_temperatures(self) -> dict[str, float]:
+    def latest_temps_f(self) -> dict[str, float]:
         return self.data.latest_temperatures_f
 
-    def get_latest_temperatures(self):
+    @property
+    def buffer_available(self):
+        return self.data.buffer_available
+
+    def fill_missing_store_temps(self):
+        """
+        Assumes stratified tank; missing layers are filled from colder layers below,
+        using store_cold_pipe or a minimum plausible temperature as baseline.
+        """
+        all_store_layers = []
+        for tank_idx in sorted(self.h0cn.tank):
+            tank = self.h0cn.tank[tank_idx]
+            all_store_layers.extend([tank.depth1, tank.depth2, tank.depth3])
+
+        # TODO: raise WarningGlitch for temp > MAX_VALID_TANK_TEMP_F
+        for layer in all_store_layers:
+            value = self.data.latest_temperatures_f.get(layer)
+            if (
+                value is None
+                or value < self.MIN_USED_TANK_TEMP_F
+                or value > self.MAX_VALID_TANK_TEMP_F
+            ):
+                self.data.latest_temperatures_f.pop(layer, None)
+
+        value_below = self.data.latest_temperatures_f.get(
+            self.h0cn.store_cold_pipe,
+            self.MIN_USED_TANK_TEMP_F,
+        )
+
+        for layer in reversed(all_store_layers):
+            if layer not in self.data.latest_temperatures_f:
+                self.data.latest_temperatures_f[layer] = value_below
+            value_below = self.data.latest_temperatures_f[layer]
+
+    def reconcile_tank_temperatures(self) -> None:
+        """
+        1. Updates data.latest_temperatures_f with data from latest_channel_values
+        2. Updates buffer_available state
+        3. May fill tank temperatures (not buffer) if some are missing and can be
+           interpolated
+        """
+
         if not self.settings.is_simulated:
-            temp = {
-                x: self.data.latest_channel_values[x] 
-                for x in self.temperature_channel_names
-                if x in self.data.latest_channel_values
-                and self.data.latest_channel_values[x] is not None
+            self.data.latest_temperatures_f = {
+                ch: round(self.to_fahrenheit(self.data.latest_channel_values[ch] / 1000),1)
+                for ch in self.temperature_channel_names
+                if ch in self.data.latest_channel_values
+                and self.data.latest_channel_values[ch] is not None
                 }
-            self.latest_temperatures = temp.copy()
         else:
-            self.log("IN SIMULATION - set all temperatures to 60 degC")
-            self.latest_temperatures = {}
-            for channel_name in self.temperature_channel_names:
-                self.latest_temperatures[channel_name] = 60 * 1000
-        for channel in self.latest_temperatures:
-            if self.latest_temperatures[channel] is not None:
-                self.latest_temperatures[channel] = self.to_fahrenheit(self.latest_temperatures[channel]/1000)
-        if list(self.latest_temperatures.keys()) == self.temperature_channel_names:
-            self.temperatures_available = True
-            print('Temperatures available')
-        else:
-            self.temperatures_available = False
-            print('Some temperatures are missing')
-            all_buffer = [x for x in self.temperature_channel_names if 'buffer-depth' in x]
-            available_buffer = [x for x in list(self.latest_temperatures.keys()) if 'buffer-depth' in x]
-            if all_buffer == available_buffer:
-                print("All the buffer temperatures are available")
-                self.fill_missing_store_temps()
-                print("Successfully filled in the missing storage temperatures.")
-                self.temperatures_available = True
-        total_usable_kwh = self.data.latest_channel_values[H0CN.usable_energy]
-        required_storage = self.data.latest_channel_values[H0CN.required_energy]
-        if total_usable_kwh is None or required_storage is None:
-            self.temperatures_available = False
+            self.log("IN SIMULATION - set all temperatures to 70 degF")
+            self.data.latest_temperatures_f = {
+                ch: self.SIMULATED_TANK_TEMP_F for ch in self.temperature_channel_names
+            }
+
+        # Update buffer_available
+        self.data.buffer_available = (
+            self.h0cn.buffer.all <= self.data.latest_temperatures_f.keys()
+        )
+
+        tank_temps = set().union(
+            *(tank.all for tank in self.h0cn.tank.values())
+        )
+
+        if not (tank_temps <= self.data.latest_temperatures_f.keys()):
+            self.fill_missing_store_temps()
+
+        self.data.latest_temperatures_f = dict(sorted(self.data.latest_temperatures_f.items()))
 
     def to_fahrenheit(self, temp_c: float) -> float:
         return 32 + (temp_c * 9 / 5)
+
+    def to_celsius(self, t: float) -> float:
+        return (t-32)*5/9
 
     def lwt_f(self) -> Optional[float]:
         """Returns the latest Heat pump leaving water temp in deg F, or None
@@ -1248,7 +1274,7 @@ class ScadaActor(Actor, ABC):
         t = self.data.latest_channel_values.get(H0CN.buffer.depth3)
         if t is None:
             return None
-        return self.to_fahrenheit(t / 1000)
+        return round(self.to_fahrenheit(t / 1000), 1)
 
     def charge_discharge_relay_state(self) -> StoreFlowRelay:
         """ Returns DischargingStore if relay 3 is de-energized (ISO Valve opened, charge/discharge
@@ -1256,7 +1282,7 @@ class ScadaActor(Actor, ABC):
         valve in charge position) """
         sms = self.data.latest_machine_state.get(H0N.store_charge_discharge_relay)
         if sms is None:
-            raise Exception("That's strange! Should have a rela state for the charge discharge relay!")
+            raise Exception("That's strange! Should have a relay state for the charge discharge relay!")
         if sms.StateEnum != StoreFlowRelay.enum_name():
             raise Exception(f"That's strange. Expected StateEnum 'store.flow.relay' but got {sms.StateEnum}")
         return StoreFlowRelay(sms.State)
