@@ -346,6 +346,9 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             max_deltaT_rswt_next_3_hours = max(self.heating_forecast.RswtDeltaTF[:3])
         min_buffer = round(max_rswt_next_3hours - max_deltaT_rswt_next_3_hours,1)
         buffer_empty_ch_temp = round(self.to_fahrenheit(self.latest_temperatures[buffer_empty_ch]/1000),1)
+        # HACK: Add 6 degrees to depth1
+        if buffer_empty_ch == H0CN.buffer.depth1:
+            buffer_empty_ch_temp += 6
         if buffer_empty_ch_temp < min_buffer:
             self.log(f"Buffer empty ({buffer_empty_ch}: {buffer_empty_ch_temp} < {min_buffer} F)")
             return True
@@ -370,6 +373,9 @@ class WinterTouHomeAlone(HomeAloneTouBase):
         else:
             max_buffer = round(max(self.heating_forecast.RswtF[:3]),1)
         buffer_full_ch_temp = round(self.to_fahrenheit(self.latest_temperatures[buffer_full_ch]/1000),1)
+        # HACK: Add 15 degrees to depth3
+        if buffer_full_ch == H0CN.buffer.depth3:
+            buffer_full_ch_temp += 15
         if buffer_full_ch_temp > max_buffer:
             self.log(f"Buffer full ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)")
             return True
