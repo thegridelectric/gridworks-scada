@@ -57,6 +57,16 @@ def add_tank3(
                     Unit=Unit.Celcius
                 )
             )
+        for i in range(1,4):
+            config_list.append(
+                ChannelConfig(
+                    ChannelName=f"{tank_cfg.ActorNodeName}-depth{i}-unadjusted",
+                    CapturePeriodS=tank_cfg.CapturePeriodS,
+                    AsyncCapture=True,
+                    Exponent=3,
+                    Unit=Unit.Celcius
+                )
+            )
         if tank_cfg.SendMicroVolts:
             for i in range(1,4):
                 config_list.append(
