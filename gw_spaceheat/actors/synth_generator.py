@@ -165,9 +165,14 @@ class SynthGenerator(ScadaActor):
         channel_name_list = []
         value_list = []
         for i, channel_name in enumerate(payload.ChannelNameList):
-            if channel_name in self.buffer_depths_unadjusted + self.tank_depths_unadjusted:
-                channel_name_list.append(channel_name.replace('-unadjusted', ''))
-                value_list.append(payload.ValueList[i])
+            channel_name_adjusted = channel_name.replace('-unadjusted', '')
+            if (
+                channel_name in self.buffer_depths_unadjusted + self.tank_depths_unadjusted
+                and channel_name_adjusted in self.temperature_channel_names
+            ):  
+                adjusted_value_list = self.adjust_temperatures(channel_name, payload.ValueList[i])
+                channel_name_list.append(channel_name_adjusted)
+                value_list.append(adjusted_value_list)
                 print(f"Done adjusting channel {channel_name}")
         
         self._send_to(
@@ -178,6 +183,14 @@ class SynthGenerator(ScadaActor):
                 ScadaReadTimeUnixMs=int(time.time() * 1000),
             )
         )
+
+    def adjust_temperatures(self, channel_name: str, value_list: list[float]) -> list[float]:
+        if channel_name == self.h0cn.buffer_unadjusted.depth1:
+            return [x+6 for x in value_list]
+        elif channel_name == self.h0cn.buffer_unadjusted.depth3:
+            return [x+15 for x in value_list]
+        else:
+            return value_list
     
     def fill_missing_store_temps(self):
         all_store_layers = sorted([x for x in self.temperature_channel_names if 'tank' in x])
