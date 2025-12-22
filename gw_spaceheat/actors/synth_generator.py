@@ -29,7 +29,6 @@ class SynthGenerator(ScadaActor):
 
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
-        self.cn: H0CN = self.layout.channel_names
         self._stop_requested: bool = False
         self.hardware_layout = self._services.hardware_layout
 
@@ -323,10 +322,10 @@ class SynthGenerator(ScadaActor):
             simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]          
         self.log(f"Max buffer usable energy: {round(max_buffer_usable_kwh,1)} kWh")
         if round(max_buffer_usable_kwh,1) < round(self.required_kwh,1):
-            summary = f"Consider changing strategy to use all tanks and not just the buffer"
+            summary = "Consider changing strategy to use all tanks and not just the buffer"
             details = f"A full buffer will not have enough energy to go through the next on-peak ({round(max_buffer_usable_kwh,1)}<{round(self.required_kwh,1)} kWh)"
             self.log(details)
-            self.send_glitch(summary, details)
+            self.send_info(summary, details)
         
     def get_required_storage(self) -> float:
         time_now = datetime.now(self.timezone)
@@ -377,9 +376,6 @@ class SynthGenerator(ScadaActor):
 
     def to_celcius(self, t: float) -> float:
         return (t-32)*5/9
-
-    def to_fahrenheit(self, t:float) -> float:
-        return t*9/5+32
 
     def delta_T(self, swt: float) -> float:
         a, b, c = self.rswt_quadratic_params

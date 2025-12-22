@@ -58,13 +58,18 @@ class BufferOnlyAtomicAlly(ScadaActor):
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
         self._stop_requested: bool = False
-        # Temperatures
-        self.cn: H0CN = self.layout.channel_names
-        buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3]
+
+        # ShoulderTou intentionally ignores store tanks
+        # This overwrites the baseclass self.temperature_channel_names
+        buffer_depths = list(self.h0cn.buffer.all)
+
         self.temperature_channel_names = buffer_depths + [
-            H0CN.hp_ewt, H0CN.hp_lwt, H0CN.dist_swt, H0CN.dist_rwt, 
-            H0CN.buffer_cold_pipe, H0CN.buffer_hot_pipe, H0CN.store_cold_pipe, H0CN.store_hot_pipe
+            self.h0cn.hp_ewt, self.h0cn.hp_lwt,
+             self.h0cn.dist_swt, self.h0cn.dist_rwt,
+            self.h0cn.buffer_cold_pipe, self.h0cn.buffer_hot_pipe,
+            self.h0cn.store_cold_pipe, self.h0cn.store_hot_pipe,
         ]
+
         self.temperatures_available: bool = False
         self.no_temps_since: Optional[int] = None
         # State machine
@@ -430,8 +435,8 @@ class BufferOnlyAtomicAlly(ScadaActor):
             buffer_full_ch = H0CN.buffer.depth3
         elif H0CN.buffer_cold_pipe in self.latest_temperatures:
             buffer_full_ch = H0CN.buffer_cold_pipe
-        elif 'hp-ewt' in self.latest_temperatures:
-            buffer_full_ch = 'hp-ewt'
+        elif H0CN.hp_ewt in self.latest_temperatures:
+            buffer_full_ch = H0CN.hp_ewt
         else:
             self.alert(summary="buffer_full_fail", details="Impossible to know if the buffer is full!")
             return False
@@ -463,17 +468,3 @@ class BufferOnlyAtomicAlly(ScadaActor):
         else:
             self.log(f"Buffer not full ({buffer_full_ch}: {buffer_full_ch_temp} <= {max_buffer} F)")
             return False
-        
-    def to_fahrenheit(self, t:float) -> float:
-        return t*9/5+32
-
-    def alert(self, summary: str, details: str, log_level=LogLevel.Critical) -> None:
-        msg =Glitch(
-            FromGNodeAlias=self.layout.scada_g_node_alias,
-            Node=self.node.Name,
-            Type=log_level,
-            Summary=summary,
-            Details=details
-        )
-        self._send_to(self.atn, msg)
-        self.log(f"Glitch: {summary}")

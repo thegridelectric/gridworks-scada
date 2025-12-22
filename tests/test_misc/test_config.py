@@ -46,6 +46,7 @@ def test_scada_settings_defaults(clean_test_env):
         dd_delta_t=20,
         max_ewt_f=170,
         load_overestimation_percent=0,
+        whitewire_threshold_watts=20,
         monitor_only=False,
         oil_boiler_backup=True,
         pico_cycler_state_logging=False,

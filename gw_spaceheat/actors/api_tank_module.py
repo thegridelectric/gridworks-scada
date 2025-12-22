@@ -52,13 +52,10 @@ class ApiTankModule(ScadaActor):
                 f"  Component id: {self.component.gt.ComponentId}"
             )
         self.device_type = self._component.cac
-        if self.device_type.MakeModel not in [ MakeModel.GRIDWORKS__TANKMODULE2,
-                                               MakeModel.GRIDWORKS__TANKMODULE3]:
-            raise ValueError(f"Expect TankModule3 or TankModule2 .. not {self.device_type.MakeModel}")
+        if self.device_type.MakeModel != MakeModel.GRIDWORKS__TANKMODULE3:
+            raise ValueError(f"Expect TankModule3  not {self.device_type.MakeModel}")
         self._stop_requested: bool = False
-        
-        
-    
+
         if self._component.gt.Enabled:
             self._services.add_web_route(
                 server_name=DEFAULT_WEB_SERVER_NAME,
@@ -72,24 +69,24 @@ class ApiTankModule(ScadaActor):
                 path="/" + self.params_path,
                 handler=self._handle_params_post,
             )
-        if self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE3:
-            self.pico_uid = self._component.gt.PicoHwUid
-        elif self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE2:
-            self.pico_a_uid = self._component.gt.PicoAHwUid
-            self.pico_b_uid = self._component.gt.PicoBHwUid
+
+        self.pico_uid = self._component.gt.PicoHwUid
+
         # Use the following for generating pico offline reports for triggering the pico cycler
-        if self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE3:
-            self.last_heard = time.time()
-        elif self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE2:
-            self.last_heard_a = time.time()
-            self.last_heard_b = time.time()
+        self.last_heard = time.time()
         self.last_error_report = time.time()
+        self.tank_channel_names = (
+            self.h0cn.buffer
+            if self.name == self.h0n.buffer.reader
+            else next(
+                t for t in self.h0cn.tank.values()
+                if t.reader == self.name
+            )
+        )
         try:
-            self.depth1_channel = self.layout.data_channels[f"{self.name}-depth1"]
-            self.depth2_channel = self.layout.data_channels[f"{self.name}-depth2"]
-            self.depth3_channel = self.layout.data_channels[f"{self.name}-depth3"]
-            if self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE2:
-                self.depth4_channel = self.layout.data_channels[f"{self.name}-depth4"]
+            self.depth1_channel = self.layout.data_channels[self.tank_channel_names.depth1]
+            self.depth2_channel = self.layout.data_channels[self.tank_channel_names.depth2]
+            self.depth3_channel = self.layout.data_channels[self.tank_channel_names.depth3]
         except KeyError as e:
             raise Exception(f"Problem setting up ApiTankModule channels! {e}")
 
@@ -131,41 +128,16 @@ class ApiTankModule(ScadaActor):
         )
 
     def is_valid_pico_uid(self, params: TankModuleParams) -> bool:
-        if self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE3:
-            return (
+        return (
                 self._component.gt.PicoHwUid is None
                 or self._component.gt.PicoHwUid == params.HwUid
             )
-        elif self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE2:  
-            if params.PicoAB == "a":
-                return (
-                    self._component.gt.PicoAHwUid is None
-                    or self._component.gt.PicoAHwUid == params.HwUid
-                )
-            elif params.PicoAB == "b":
-                return (
-                    self._component.gt.PicoBHwUid is None
-                    or self._component.gt.PicoBHwUid == params.HwUid
-                )
-        return False
 
     def need_to_update_layout(self, params: TankModuleParams) -> bool:
-        if self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE3:
-            if self._component.gt.PicoHwUid:
-                return False
-            else:
-                return True
-        elif self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE2:
-            if params.PicoAB == "a":
-                if self._component.gt.PicoAHwUid:
-                    return False
-                else:
-                    return True
-            elif params.PicoAB == "b":
-                if self._component.gt.PicoBHwUid:
-                    return False
-                else:
-                    return True 
+        if self._component.gt.PicoHwUid:
+            return False
+        else:
+            return True
 
     async def _handle_params_post(self, request: Request) -> Response:
         text = await self._get_text(request)
@@ -183,7 +155,7 @@ class ApiTankModule(ScadaActor):
                 (
                     cfg
                     for cfg in self._component.gt.ConfigList
-                    if cfg.ChannelName == f"{self.name}-depth1"
+                    if cfg.ChannelName ==  self.tank_channel_names.depth1
                 ),
                 None,
             )
@@ -201,18 +173,9 @@ class ApiTankModule(ScadaActor):
                 CaptureOffsetS=offset,
             )
             if self.need_to_update_layout(params):
-                if self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE3:
-                    self.pico_uid = params.HwUid
-                    self.log(f"UPDATE LAYOUT!!: In layout_gen, go to add_tank3 {self.name} "
+                self.pico_uid = params.HwUid
+                self.log(f"UPDATE LAYOUT!!: In layout_gen, go to add_tank3 {self.name} "
                          f"and add PicoHwUid = '{params.HwUid}'")
-                elif self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE2:
-                    if params.PicoAB == "a":
-                        self.pico_a_uid = params.HwUid
-                    elif params.PicoAB == "b":
-                        self.pico_b_uid = params.HwUid
-                    pico_ab_string = params.PicoAB.capitalize()
-                    self.log(f"UPDATE LAYOUT!!: In layout_gen, go to add_tank2 {self.name} "
-                         f"and add Pico{pico_ab_string}HwUid = '{params.HwUid}'")
             return Response(text=new_params.model_dump_json())
         else:
             # A strange pico is identifying itself as our "a" tank
@@ -237,40 +200,42 @@ class ApiTankModule(ScadaActor):
         return Response()
 
     def _process_microvolts(self, data: MicroVolts) -> None:
-        if self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE3:
-            if data.HwUid == self.pico_uid:
-                self.last_heard = time.time()
-            else:
-                self.log(f"{self.name}: Ignoring data from pico {data.HwUid} - not recognized!")
-                return
-        elif self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE2:
-            if data.HwUid == self.pico_a_uid:
-                self.last_heard_a = time.time()
-            elif data.HwUid == self.pico_b_uid:
-                self.last_heard_b = time.time()
-            else:
-                self.log(f"{self.name}: Ignoring data from pico {data.HwUid} - not recognized!")
-                return
+        if data.HwUid == self.pico_uid:
+            self.last_heard = time.time()
+        else:
+            self.log(f"{self.name}: Ignoring data from pico {data.HwUid} - not recognized!")
+            return
+
         channel_name_list = []
         value_list = []
         sensor_order = [1,2,3]
         if self._component.gt.SensorOrder is not None:
             sensor_order = self._component.gt.SensorOrder
-        for i in range(len(data.AboutNodeNameList)):
-            # Swapped thermistors
-            if 'depth1' in data.AboutNodeNameList[i]:
-                data.AboutNodeNameList[i] = data.AboutNodeNameList[i].replace('depth1', f'depth{sensor_order[0]}')
-            elif 'depth2' in data.AboutNodeNameList[i]:
-                data.AboutNodeNameList[i] = data.AboutNodeNameList[i].replace('depth2', f'depth{sensor_order[1]}')
-            elif 'depth3' in data.AboutNodeNameList[i]:
-                data.AboutNodeNameList[i] = data.AboutNodeNameList[i].replace('depth3', f'depth{sensor_order[2]}')
 
+        depths = [
+            self.tank_channel_names.depth1,
+            self.tank_channel_names.depth2,
+            self.tank_channel_names.depth3,
+        ]
+
+        depth_map = {
+            depths[i]: depths[sensor_order[i] - 1]
+            for i in range(3)
+        }
+
+        for i, name in enumerate(data.AboutNodeNameList):
+            # Normalize depth names (sensor remap)
+            channel_name = depth_map.get(name, name)
+            data.AboutNodeNameList[i] = channel_name # channel names match node names
+                    
             volts = data.MicroVoltsList[i] / 1e6
             if self._component.gt.SendMicroVolts:
                 value_list.append(data.MicroVoltsList[i])
                 channel_name_list.append(f"{data.AboutNodeNameList[i]}-micro-v")
                 #print(f"Updated {channel_name_list[-1]}: {round(volts,3)} V")
-            if self._component.gt.TempCalcMethod == TempCalcMethod.SimpleBetaForPico:
+            if volts <= 0:
+                continue
+            elif self._component.gt.TempCalcMethod == TempCalcMethod.SimpleBetaForPico:
                 try:
                     value_list.append(int(self.simple_beta_for_pico(volts) * 1000))
                     channel_name_list.append(data.AboutNodeNameList[i])
@@ -341,7 +306,7 @@ class ApiTankModule(ScadaActor):
         cfg = next(
             cfg
             for cfg in self._component.gt.ConfigList
-            if cfg.ChannelName == f"{self.name}-depth1"
+            if cfg.ChannelName == self.tank_channel_names.depth1
         )
         return cfg.CapturePeriodS
 
@@ -349,12 +314,6 @@ class ApiTankModule(ScadaActor):
     def monitored_names(self) -> Sequence[MonitoredName]:
         return [MonitoredName(self.name, self.flatline_seconds() * 2.1)]
 
-    def a_missing(self) -> bool:
-        return time.time() - self.last_heard_a > self.flatline_seconds()
-
-    def b_missing(self) -> bool:
-        return time.time() - self.last_heard_b > self.flatline_seconds()
-    
     def missing(self) -> bool:
         return time.time() - self.last_heard > self.flatline_seconds()
 
@@ -362,54 +321,25 @@ class ApiTankModule(ScadaActor):
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
             if self.last_error_report > FLATLINE_REPORT_S:
-                if self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE3:
-                    if self.missing():
-                        self._send_to(
-                            self.pico_cycler,
-                            PicoMissing(ActorName=self.name, PicoHwUid=self.pico_uid),
-                        )
-                        self._send_to(
-                            self.primary_scada,
-                            ChannelFlatlined(FromName=self.name, Channel=self.depth1_channel)
-                        )
-                        self._send_to(
-                            self.primary_scada,
-                            ChannelFlatlined(FromName=self.name, Channel=self.depth2_channel)
-                        )
-                        self._send_to(
-                            self.primary_scada,
-                            ChannelFlatlined(FromName=self.name, Channel=self.depth3_channel)
-                        )
-                        self.last_error_report = time.time()
-                elif self.device_type.MakeModel == MakeModel.GRIDWORKS__TANKMODULE2:
-                    if self.a_missing():
-                        self._send_to(
-                            self.pico_cycler,
-                            PicoMissing(ActorName=self.name, PicoHwUid=self.pico_a_uid),
-                        )
-                        self._send_to(
-                            self.primary_scada,
-                            ChannelFlatlined(FromName=self.name, Channel=self.depth1_channel)
-                        )
-                        self._send_to(
-                            self.primary_scada,
-                            ChannelFlatlined(FromName=self.name, Channel=self.depth2_channel)
-                        )
-                        self.last_error_report = time.time()
-                    if self.b_missing():
-                        self._send_to(
-                            self.pico_cycler,
-                            PicoMissing(ActorName=self.name, PicoHwUid=self.pico_b_uid),
-                        )
-                        self._send_to(
-                            self.primary_scada,
-                            ChannelFlatlined(FromName=self.name, Channel=self.depth3_channel)
-                        )
-                        self._send_to(
-                            self.primary_scada,
-                            ChannelFlatlined(FromName=self.name, Channel=self.depth4_channel)
-                        )
-                        self.last_error_report = time.time()
+                if self.missing():
+                    assert self.pico_uid
+                    self._send_to(
+                        self.pico_cycler,
+                        PicoMissing(ActorName=self.name, PicoHwUid=self.pico_uid),
+                    )
+                    self._send_to(
+                        self.primary_scada,
+                        ChannelFlatlined(FromName=self.name, Channel=self.depth1_channel)
+                    )
+                    self._send_to(
+                        self.primary_scada,
+                        ChannelFlatlined(FromName=self.name, Channel=self.depth2_channel)
+                    )
+                    self._send_to(
+                        self.primary_scada,
+                        ChannelFlatlined(FromName=self.name, Channel=self.depth3_channel)
+                    )
+                    self.last_error_report = time.time()
             await asyncio.sleep(10)
 
     def simple_beta(self, volts: float, fahrenheit=False) -> float:

@@ -148,19 +148,6 @@ class WinterTouHomeAlone(HomeAloneTouBase):
                 Cause=event
             )
         )
-
-    @property
-    def temperature_channel_names(self) -> List[str]:
-        buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3]
-        all_tank_depths = []
-        for i in range(1,len(self.cn.tank.values())+1):
-            tank_depths = [H0CN.tank[i].depth1, H0CN.tank[i].depth2, H0CN.tank[i].depth3]
-            all_tank_depths.extend(tank_depths)
-        
-        return buffer_depths + all_tank_depths + [
-            H0CN.hp_ewt, H0CN.hp_lwt, H0CN.dist_swt, H0CN.dist_rwt, 
-            H0CN.buffer_cold_pipe, H0CN.buffer_hot_pipe, H0CN.store_cold_pipe, H0CN.store_hot_pipe
-        ]
         
     def time_to_trigger_system_cold(self) -> bool:
         """
@@ -440,8 +427,8 @@ class WinterTouHomeAlone(HomeAloneTouBase):
         else:
             self.alert("store_v_buffer_fail", "It is impossible to know if the top of the buffer is warmer than the top of the storage!")
             return False
-        if self.cn.tank[1].depth1 in self.latest_temperatures:
-            tank_top = self.cn.tank[1].depth1
+        if self.h0cn.tank[1].depth1 in self.latest_temperatures:
+            tank_top = self.h0cn.tank[1].depth1
         elif H0CN.store_hot_pipe in self.latest_temperatures:
             tank_top = H0CN.store_hot_pipe
         elif H0CN.buffer_hot_pipe in self.latest_temperatures:

@@ -149,7 +149,7 @@ class AllTanksAtomicAlly(ScadaActor):
             raise Exception("contract should come from scada!")
         
         if self.layout.ha_strategy in [HomeAloneStrategy.Summer]:
-            self.log(f"Cannot wake up - in summer mode")
+            self.log("Cannot wake up - in summer mode")
             self._send_to(
                 self.primary_scada,
                 AllyGivesUp(Reason="In Summer Mode ... does not enter DispatchContracts"))
@@ -544,8 +544,8 @@ class AllTanksAtomicAlly(ScadaActor):
             buffer_full_ch = H0CN.buffer_cold_pipe
         elif "StoreDischarge" in self.state and H0CN.store_cold_pipe in self.latest_temperatures:
             buffer_full_ch = H0CN.store_cold_pipe
-        elif 'hp-ewt' in self.latest_temperatures:
-            buffer_full_ch = 'hp-ewt'
+        elif  H0CN.hp_ewt in self.latest_temperatures:
+            buffer_full_ch = H0CN.hp_ewt
         else:
             self.alert(summary="buffer_full_fail", details="Impossible to know if the buffer is full!")
             return False
@@ -578,16 +578,16 @@ class AllTanksAtomicAlly(ScadaActor):
             self.log(f"Storage was declared full {round((time.time() - self.storage_full_since)/60)} minutes ago")
             return True
         else:
-            if H0N.store_cold_pipe in self.latest_temperatures:
+            if H0CN.store_cold_pipe in self.latest_temperatures:
                 store_channel = H0N.store_cold_pipe
-            elif H0N.tank[3].depth3 in self.latest_temperatures:
-                store_channel = H0N.tank[3].depth3
-            elif H0N.tank[2].depth3 in self.latest_temperatures:
-                store_channel = H0N.tank[2].depth3
-            elif H0N.tank[1].depth3 in self.latest_temperatures:
-                store_channel = H0N.tank[1].depth3
+            elif self.h0cn.tank[3].depth3 in self.latest_temperatures:
+                store_channel = self.h0cn.tank[3].depth3
+            elif self.h0cn.tank[2].depth3 in self.latest_temperatures:
+                store_channel = self.h0cn.tank[2].depth3
+            elif self.h0cn.tank[1].depth3 in self.latest_temperatures:
+                store_channel = self.h0cn.tank[1].depth3
             else:
-                self.alert(summary="storage_full_fail", details="Impossible to know if the storage is full, store-cold-pipe not found!", log_level=LogLevel.Warning)
+                self.send_warning(summary="storage_full_fail", details="Impossible to know if the storage is full, store-cold-pipe not found!")
                 return True
             store_channel_temp = self.latest_temperatures[store_channel]
             if store_channel_temp > self.params.MaxEwtF: 
@@ -612,8 +612,8 @@ class AllTanksAtomicAlly(ScadaActor):
         else:
             self.alert(summary="store_v_buffer_fail", details="It is impossible to know if the top of the buffer is warmer than the top of the storage!")
             return False
-        if self.cn.tank[1].depth1 in self.latest_temperatures:
-            tank_top = self.cn.tank[1].depth1
+        if self.h0cn.tank[1].depth1 in self.latest_temperatures:
+            tank_top = self.h0cn.tank[1].depth1
         elif H0CN.store_hot_pipe in self.latest_temperatures:
             tank_top = H0CN.store_hot_pipe
         elif H0CN.buffer_hot_pipe in self.latest_temperatures:
@@ -627,17 +627,3 @@ class AllTanksAtomicAlly(ScadaActor):
         else:
             print("Storage top warmer than buffer top")
             return False
-        
-    def to_fahrenheit(self, t:float) -> float:
-        return t*9/5+32
-
-    def alert(self, summary: str, details: str, log_level=LogLevel.Critical) -> None:
-        msg =Glitch(
-            FromGNodeAlias=self.layout.scada_g_node_alias,
-            Node=self.node.Name,
-            Type=log_level,
-            Summary=summary,
-            Details=details
-        )
-        self._send_to(self.atn, msg)
-        self.log(f"Glitch: {summary}")
