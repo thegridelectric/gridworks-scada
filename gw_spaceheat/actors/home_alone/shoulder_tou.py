@@ -84,7 +84,6 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
         ]
 
         self.buffer_declared_ready = False
-        self.time_hp_turned_on = None
         self.full_buffer_energy: Optional[float] = None  # in kWh
 
         self.machine = Machine(
@@ -245,13 +244,11 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
             and self.state == HaShoulderState.HpOn
         ):
             self.turn_on_HP(from_node=self.normal_node)
-            self.time_hp_turned_on = time.time()
         if (
             previous_state != HaShoulderState.HpOff
             and self.state == HaShoulderState.HpOff
         ):
             self.turn_off_HP(from_node=self.normal_node)
-            self.time_hp_turned_on = None
 
     def is_buffer_empty(self, really_empty=False) -> bool:
         if H0CN.buffer.depth1 in self.latest_temperatures:

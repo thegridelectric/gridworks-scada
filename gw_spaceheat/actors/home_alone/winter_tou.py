@@ -89,7 +89,7 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             raise Exception(f"Expect WinterTou HomeAloneStrategy, got {self.strategy}")
 
         self.storage_declared_ready = False
-        self.time_hp_turned_on = None
+        self.time_buffer_declared_full = None
         self.full_storage_energy: Optional[float] = None
         
         self.machine = Machine(
@@ -295,10 +295,8 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             return
         if "HpOn" not in previous_state and "HpOn" in self.state:
             self.turn_on_HP(from_node=self.normal_node)
-            self.time_hp_turned_on = time.time()
         if "HpOff" not in previous_state and "HpOff" in self.state:
             self.turn_off_HP(from_node=self.normal_node)
-            self.time_hp_turned_on = None
         if "StoreDischarge" in self.state:
             self.turn_on_store_pump(from_node=self.normal_node)
         else:
@@ -328,6 +326,13 @@ class WinterTouHomeAlone(HomeAloneTouBase):
         self.latest_temperatures = {k:self.latest_temperatures[k] for k in sorted(self.latest_temperatures)}
 
     def is_buffer_empty(self) -> bool:
+        if self.time_buffer_declared_full:
+            if time.time() - self.time_buffer_declared_full < 10*60:
+                self.log("Buffer was found as full as can be in the last 10 minutes, not checking if it is empty")
+                return False
+            else:
+                self.time_buffer_declared_full = None
+
         if H0CN.buffer.depth1 in self.latest_temperatures:
             buffer_empty_ch = H0CN.buffer.depth1
         elif H0CN.buffer.depth2 in self.latest_temperatures:
@@ -373,6 +378,18 @@ class WinterTouHomeAlone(HomeAloneTouBase):
         # HACK: Add 15 degrees to depth3
         if buffer_full_ch == H0CN.buffer.depth3:
             buffer_full_ch_temp += 15
+        
+        # Check max EWT constaint (when the buffer is the storage this is checked in is_storage_ready)
+        if self.strategy == HomeAloneStrategy.WinterTou:
+            if H0CN.hp_ewt in self.latest_temperatures:
+                check_channel = H0CN.hp_ewt
+            elif H0CN.buffer_cold_pipe in self.latest_temperatures:
+                check_channel = H0CN.buffer_cold_pipe
+            if self.latest_temperatures[check_channel] > self.params.MaxEwtF:
+                self.log(f"Buffer can not be filled more, {check_channel} is too high ({self.latest_temperatures[check_channel]} > {self.params.MaxEwtF} F)")
+                self.time_buffer_declared_full = time.time()
+                return True
+        
         if buffer_full_ch_temp > max_buffer:
             self.log(f"Buffer full ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)")
             return True
@@ -389,10 +406,10 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             self.storage_declared_ready = True
             return True
         else:
-            if H0N.store_cold_pipe in self.latest_temperatures:
-                check_temp_channel = H0N.store_cold_pipe
-            elif H0N.hp_ewt in self.latest_temperatures:
+            if H0N.hp_ewt in self.latest_temperatures:
                 check_temp_channel = H0N.hp_ewt
+            elif H0N.store_cold_pipe in self.latest_temperatures:
+                check_temp_channel = H0N.store_cold_pipe
             else:
                 self.log("No EWT temperature channel found, not checking if storage is ready")
                 return False
