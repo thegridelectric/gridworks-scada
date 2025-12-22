@@ -143,7 +143,6 @@ class SynthGenerator(ScadaActor):
                     self._temp_adjustment_failed = False
                 except Exception as e:
                     self.log(f"Temp adjustment failed: {e}")
-
                     if not self._temp_adjustment_failed:
                         self._temp_adjustment_failed = True
                         self._send_to(
@@ -158,11 +157,11 @@ class SynthGenerator(ScadaActor):
                         )
         return Ok(True)
 
-    def process_synced_readings(self, actor: ShNode, payload: SyncedReadings) -> None:
+    def process_synced_readings(self, actor: str, payload: SyncedReadings) -> None:
         """
         Uses the unadjusted tank temperature data to create the temp data we will use.
         """
-        self.log(f"Received a SyncReadings message from {actor.Name} with {len(payload.ChannelNameList)} channels")
+        self.log(f"Received a SyncReadings message from {actor} with {len(payload.ChannelNameList)} channels")
         channel_name_list = []
         value_list = []
         for i, channel_name in enumerate(payload.ChannelNameList):
@@ -174,7 +173,7 @@ class SynthGenerator(ScadaActor):
                 adjusted_value_list = self.adjust_temperatures(channel_name, payload.ValueList[i])
                 channel_name_list.append(channel_name_adjusted)
                 value_list.append(adjusted_value_list)
-                print(f"Done adjusting channel {channel_name}")
+                self.log(f"Done adjusting channel {channel_name}")
         
         self._send_to(
             self.primary_scada, 
