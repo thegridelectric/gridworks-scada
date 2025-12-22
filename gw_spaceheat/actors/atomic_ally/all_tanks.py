@@ -68,18 +68,7 @@ class AllTanksAtomicAlly(ScadaActor):
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
         self._stop_requested: bool = False
-
-        self.cn: H0CN = self.layout.channel_names
-        buffer_depths = [H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3]
-        all_tank_depths = []
-        for i in range(1,len(self.cn.tank.values())+1):
-            tank_depths = [H0CN.tank[i].depth1, H0CN.tank[i].depth2, H0CN.tank[i].depth3]
-            all_tank_depths.extend(tank_depths)
-        
-        self.temperature_channel_names = buffer_depths + all_tank_depths + [
-            H0CN.hp_ewt, H0CN.hp_lwt, H0CN.dist_swt, H0CN.dist_rwt, 
-            H0CN.buffer_cold_pipe, H0CN.buffer_hot_pipe, H0CN.store_cold_pipe, H0CN.store_hot_pipe
-        ]
+        # Temperatures
         self.temperatures_available: bool = False
         self.no_temps_since: Optional[int] = None
         # State machine
@@ -385,36 +374,35 @@ class AllTanksAtomicAlly(ScadaActor):
         self.latest_temperatures = {k:self.latest_temperatures[k] for k in sorted(self.latest_temperatures)}
 
     def get_latest_temperatures(self):
-        try:
-            if not self.settings.is_simulated:
-                temp = {
-                    x: self.data.latest_channel_values[x]
-                    for x in self.temperature_channel_names
-                    if x in self.data.latest_channel_values
-                    and self.data.latest_channel_values[x] is not None
+        if not self.is_simulated:
+            temp = {
+                x: self.data.latest_channel_values[x] 
+                for x in self.temperature_channel_names
+                if x in self.data.latest_channel_values
+                and self.data.latest_channel_values[x] is not None
                 }
-                self.latest_temperatures = temp.copy()
-            else:
-                self.log("IN SIMULATION - set all temperatures to 60 degC")
-                self.latest_temperatures = {}
-                for channel_name in self.temperature_channel_names:
-                    self.latest_temperatures[channel_name] = 60 * 1000
-
-            if list(self.latest_temperatures.keys()) == self.temperature_channel_names:
-                self.temperatures_available = True
-            else:
-                self.temperatures_available = False
-                available_buffer = [x for x in list(self.latest_temperatures.keys()) if "buffer" in x]
-                buffer_depths = [x for x in self.temperature_channel_names if "buffer" in x]
-                if all(buffer_depth in available_buffer for buffer_depth in buffer_depths):
-                    self.log("All the buffer temperatures are available")
-                    self.fill_missing_store_temps()
-                    self.temperatures_available = True
-        except Exception as e:
-            self.log(f"Failed to get all the tank temps in get_latest_temperatures! Bailing on process {e}")
+            self.latest_temperatures = temp.copy()
+        else:
+            self.log("IN SIMULATION - set all temperatures to 60 degC")
+            self.latest_temperatures = {}
+            for channel_name in self.temperature_channel_names:
+                self.latest_temperatures[channel_name] = 60 * 1000
+        for channel in self.latest_temperatures:
+            if self.latest_temperatures[channel] is not None:
+                self.latest_temperatures[channel] = self.to_fahrenheit(self.latest_temperatures[channel]/1000)
+        if list(self.latest_temperatures.keys()) == self.temperature_channel_names:
+            self.temperatures_available = True
+            print('Temperatures available')
+        else:
             self.temperatures_available = False
-            return
-
+            print('Some temperatures are missing')
+            all_buffer = [x for x in self.temperature_channel_names if 'buffer-depth' in x]
+            available_buffer = [x for x in list(self.latest_temperatures.keys()) if 'buffer-depth' in x]
+            if all_buffer == available_buffer:
+                print("All the buffer temperatures are available")
+                self.fill_missing_store_temps()
+                print("Successfully filled in the missing storage temperatures.")
+                self.temperatures_available = True
         total_usable_kwh = self.data.latest_channel_values[H0CN.usable_energy]
         required_storage = self.data.latest_channel_values[H0CN.required_energy]
         if total_usable_kwh is None or required_storage is None:
@@ -513,8 +501,8 @@ class AllTanksAtomicAlly(ScadaActor):
         return True
     
     def is_buffer_empty(self, really_empty=False) -> bool:
-        if H0CN.buffer.depth1 in self.latest_temperatures and H0CN.buffer.depth2 in self.latest_temperatures:
-            if really_empty:
+        if H0CN.buffer.depth1 in self.latest_temperatures:
+            if really_empty or not cast(PicoTankModuleComponentGt, self.layout.nodes['buffer'].component.gt).PicoAHwUid:
                 buffer_empty_ch = H0CN.buffer.depth1
             else:
                 buffer_empty_ch = H0CN.buffer.depth2
