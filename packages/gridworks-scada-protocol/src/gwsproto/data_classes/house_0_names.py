@@ -221,11 +221,11 @@ class BufferChannelNames:
 
     can call self.depth1, self.depth2 and self.depth3 or self.all for all 3 as set
     """
-    def __init__(self) -> None:
-        self.reader = "buffer"
-        self.depth1 = "buffer-depth1"
-        self.depth2 = "buffer-depth2"
-        self.depth3 = "buffer-depth3"
+    def __init__(self, unadjusted: bool = False) -> None:
+        self.reader = "buffer" + ("-unadjusted" if unadjusted else "")
+        self.depth1 = "buffer-depth1" + ("-unadjusted" if unadjusted else "")
+        self.depth2 = "buffer-depth2" + ("-unadjusted" if unadjusted else "")
+        self.depth3 = "buffer-depth3" + ("-unadjusted" if unadjusted else "")
 
     @property
     def all(self) -> set[str]:
@@ -237,7 +237,7 @@ class BufferChannelNames:
         }
 
     def __repr__(self) -> str:
-        return f"buffer channels: {sorted(self.all)}"
+        return f"{self.reader} channels: {sorted(self.all)}"
 
 class TankChannelNames:
     """
@@ -245,14 +245,14 @@ class TankChannelNames:
 
     can call self.depth1, self.depth2 and self.depth3 or self.all for all 3 as set
     """
-    def __init__(self, idx: int) -> None:
+    def __init__(self, idx: int, unadjusted: bool = False) -> None:
         """ idx should be between 1 and 6"""
         if idx > 6 or idx < 1:
             raise ValueError("Tank idx must be in between 1 and 6")
-        self.reader = f"tank{idx}"
-        self.depth1 = f"{self.reader}-depth1"
-        self.depth2 = f"{self.reader}-depth2"
-        self.depth3 = f"{self.reader}-depth3"
+        self.reader = f"tank{idx}" + ("-unadjusted" if unadjusted else "")
+        self.depth1 = f"{self.reader}-depth1" + ("-unadjusted" if unadjusted else "")
+        self.depth2 = f"{self.reader}-depth2" + ("-unadjusted" if unadjusted else "")
+        self.depth3 = f"{self.reader}-depth3" + ("-unadjusted" if unadjusted else "")
     
     @property
     def all(self) -> set[str]:
@@ -286,6 +286,7 @@ class H0CN:
     oat = H0N.oat
     sieg_cold = H0N.sieg_cold
     buffer = BufferChannelNames()
+    buffer_unadjusted = BufferChannelNames(unadjusted=True)
 
     # Flow Channels
     dist_flow = H0N.dist_flow
@@ -300,8 +301,6 @@ class H0CN:
     required_energy = "required-energy"
     usable_energy = "usable-energy"
     hp_keep_seconds_x_10 = "hp-keep-seconds-x-10"
-    buffer_unadjusted = TankChannelNamesUnadjusted("buffer")
-    tank_unadjusted: ClassVar[Dict[int, TankChannelNamesUnadjusted]] = {}
 
     # relay state channels
     vdc_relay_state: Literal["vdc-relay1"] = "vdc-relay1"
@@ -330,9 +329,11 @@ class H0CN:
 
     def __init__(self, total_store_tanks: int, zone_list: List[str]) -> None:
         self.tank: Dict[int, TankChannelNames] = {}
+        self.tank_unadjusted: Dict[int, TankChannelNames] = {}
         self.zone: Dict[int, ZoneChannelNames] = {}
         for i in range(total_store_tanks):
             self.tank[i + 1] = TankChannelNames(i + 1)
+            self.tank_unadjusted[i + 1] = TankChannelNames(i + 1, unadjusted=True)
         for i in range(len(zone_list)):
             self.zone[i + 1] = ZoneChannelNames(zone=zone_list[i], idx=i + 1)
 
