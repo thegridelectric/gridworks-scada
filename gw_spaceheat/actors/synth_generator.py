@@ -32,6 +32,8 @@ class SynthGenerator(ScadaActor):
         self._stop_requested: bool = False
         self.hardware_layout = self._services.hardware_layout
 
+        self.buffer_depths_unadjusted = self.h0cn.buffer_unadjusted.all
+        self.tank_depths_unadjusted = [depth for i in self.h0cn.tank_unadjusted for depth in self.h0cn.tank_unadjusted[i].all]
         buffer_depths = self.h0cn.buffer.all
         tank_depths = [depth for i in self.h0cn.tank for depth in self.h0cn.tank[i].all]
         self.temperature_channel_names = buffer_depths + tank_depths + [
@@ -156,11 +158,26 @@ class SynthGenerator(ScadaActor):
         return Ok(True)
 
     def process_synced_readings(self, actor: ShNode, payload: SyncedReadings) -> None:
-        """ 
-        Uses the unadjusted tank temperature data to create the temp data we will use.
-        If math breaks, raise exception
         """
-        pass
+        Uses the unadjusted tank temperature data to create the temp data we will use.
+        """
+        self.log(f"Received a SyncReadings message from {actor.Name} with {len(payload.ChannelNameList)} channels")
+        channel_name_list = []
+        value_list = []
+        for i, channel_name in enumerate(payload.ChannelNameList):
+            if channel_name in self.buffer_depths_unadjusted + self.tank_depths_unadjusted:
+                channel_name_list.append(channel_name.replace('-unadjusted', ''))
+                value_list.append(payload.ValueList[i])
+                print(f"Done adjusting channel {channel_name}")
+        
+        self._send_to(
+            self.primary_scada, 
+            SyncedReadings(
+                ChannelNameList=channel_name_list,
+                ValueList=value_list,
+                ScadaReadTimeUnixMs=int(time.time() * 1000),
+            )
+        )
     
     def fill_missing_store_temps(self):
         all_store_layers = sorted([x for x in self.temperature_channel_names if 'tank' in x])
