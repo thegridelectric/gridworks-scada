@@ -513,11 +513,8 @@ class AllTanksAtomicAlly(ScadaActor):
         return True
     
     def is_buffer_empty(self, really_empty=False) -> bool:
-        if H0CN.buffer.depth1 in self.latest_temperatures and H0CN.buffer.depth2 in self.latest_temperatures:
-            if really_empty:
-                buffer_empty_ch = H0CN.buffer.depth1
-            else:
-                buffer_empty_ch = H0CN.buffer.depth2
+        if H0CN.buffer.depth1 in self.latest_temperatures:
+            buffer_empty_ch = H0CN.buffer.depth1
         elif H0CN.dist_swt in self.latest_temperatures:
             buffer_empty_ch = H0CN.dist_swt
         else:
@@ -530,11 +527,13 @@ class AllTanksAtomicAlly(ScadaActor):
         max_deltaT_rswt_next_3_hours = max(self.forecasts.RswtDeltaTF[:3])
         min_buffer = round(max_rswt_next_3hours - max_deltaT_rswt_next_3_hours,1)
         buffer_empty_ch_temp = round(self.latest_temperatures[buffer_empty_ch],1)
+        if really_empty:
+            min_buffer -= 5
         if buffer_empty_ch_temp < min_buffer:
-            self.log(f"Buffer empty ({buffer_empty_ch}: {buffer_empty_ch_temp} < {min_buffer} F)")
+            self.log(f"Buffer {'really' if really_empty else ''} empty ({buffer_empty_ch}: {buffer_empty_ch_temp} < {min_buffer} F)")
             return True
         else:
-            self.log(f"Buffer not empty ({buffer_empty_ch}: {buffer_empty_ch_temp} >= {min_buffer} F)")
+            self.log(f"Buffer not {'really' if really_empty else ''} empty ({buffer_empty_ch}: {buffer_empty_ch_temp} >= {min_buffer} F)")
             return False            
     
     def is_buffer_full(self, really_full=False) -> bool:
