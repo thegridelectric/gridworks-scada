@@ -225,26 +225,22 @@ class SynthGenerator(ScadaActor):
 
     # Compute usable and required energy
     def update_energy(self) -> None:
-        if self.latest_temperatures:
-            latest_temperatures = self.latest_temperatures.copy()
-        else:
-            latest_temperatures = self.latest_temperatures.copy()
+        
+        time_now = datetime.now(self.timezone)
+        latest_temperatures = self.latest_temperatures.copy()
+
+        if self.layout.ha_strategy in [HomeAloneStrategy.Summer]:
+            #self.log(f"Does not calculate usable/required energy in {self.layout.ha_strategy} ")
+            return
 
         if self.layout.ha_strategy == HomeAloneStrategy.WinterTou:
             storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
-            storage_temperatures = dict(sorted(storage_temperatures.items(), key=lambda item: item[0]))
             simulated_layers = [self.to_fahrenheit(v/1000) for k,v in storage_temperatures.items()]
-        
         elif self.layout.ha_strategy == HomeAloneStrategy.ShoulderTou: 
-            available_buffer_temperatures = {k:v for k,v in latest_temperatures.items() if 'buffer-depth' in k}
-            available_buffer_temperatures = dict(sorted(available_buffer_temperatures.items(), key=lambda item: item[0]))
-            simulated_layers = [self.to_fahrenheit(v/1000) for k,v in available_buffer_temperatures.items()]   
-        
-        elif self.layout.ha_strategy in [HomeAloneStrategy.Summer]:
-            return
+            buffer_temperatures = {k:v for k,v in latest_temperatures.items() if 'buffer' in k and 'depth' in k}
+            simulated_layers = [self.to_fahrenheit(v/1000) for k,v in buffer_temperatures.items()]   
         else:
             raise Exception(f"not prepared for home alone strategy {self.layout.ha_strategy}")    
-
         self.usable_kwh = 0
         while True:
             if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
@@ -252,8 +248,9 @@ class SynthGenerator(ScadaActor):
                 if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
                     break
             self.usable_kwh += 120/3 * 3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
-            simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]  
-        self.required_kwh = self.get_required_storage()
+            self.usable_kwh = max(0, self.usable_kwh)
+            simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]          
+        self.required_kwh = self.get_required_storage(time_now)
         self.log(f"Usable energy: {round(self.usable_kwh,1)} kWh")
         self.log(f"Required energy: {round(self.required_kwh,1)} kWh")
         self.evaluate_strategy()
@@ -300,8 +297,7 @@ class SynthGenerator(ScadaActor):
             self.log(details)
             self.send_info(summary, details)
         
-    def get_required_storage(self) -> float:
-        time_now = datetime.now(self.timezone)
+    def get_required_storage(self, time_now: datetime) -> float:
         forecasts_times_tz = [datetime.fromtimestamp(x, tz=self.timezone) for x in self.forecasts.Time]
         morning_kWh = sum(
             [kwh for t, kwh in zip(forecasts_times_tz, self.forecasts.AvgPowerKw) 
