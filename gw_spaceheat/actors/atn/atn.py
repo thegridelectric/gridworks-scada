@@ -936,34 +936,32 @@ class Atn(PrimeActor):
             self.temperatures_available = False
             self.log("Can't get latest temperatures, don't have temperature channel names!")
             return
-        try:
-            if not self.settings.is_simulated:
-                temp = {
-                    x: self.latest_channel_values[x]
-                    for x in self.temperature_channel_names
-                    if x in self.latest_channel_values
-                    and self.latest_channel_values[x] is not None
-                }
-                self.latest_temperatures = temp.copy()
-            else:
-                self.log("IN SIMULATION - set all temperatures to 60 degC")
-                self.latest_temperatures = {}
-                for channel_name in self.temperature_channel_names:
-                    self.latest_temperatures[channel_name] = 60 * 1000
-
-            if list(self.latest_temperatures.keys()) == self.temperature_channel_names:
-                self.temperatures_available = True
-            else:
-                self.temperatures_available = False
-                available_buffer = [x for x in list(self.latest_temperatures.keys()) if "buffer" in x]
-                buffer_depths = [x for x in self.temperature_channel_names if "buffer" in x]
-                if all(buffer_depth in available_buffer for buffer_depth in buffer_depths):
-                    self.fill_missing_store_temps()
-                    self.temperatures_available = True
-        except Exception as e:
-            self.log(f"Failed to get all the tank temps in get_latest_temperatures! Bailing on process {e}")
+        if not self.settings.is_simulated:
+            temp = {
+                x: self.latest_channel_values[x]
+                for x in self.temperature_channel_names
+                if x in self.latest_channel_values
+                and self.latest_channel_values[x] is not None
+            }
+            self.latest_temperatures = temp.copy()
+        else:
+            self.log("IN SIMULATION - set all temperatures to 60 degC")
+            self.latest_temperatures = {}
+            for channel_name in self.temperature_channel_names:
+                self.latest_temperatures[channel_name] = 60 * 1000
+        if list(self.latest_temperatures.keys()) == self.temperature_channel_names:
+            self.temperatures_available = True
+        else:
             self.temperatures_available = False
-            return
+            all_buffer = [
+                x for x in self.temperature_channel_names if "buffer-depth" in x
+            ]
+            available_buffer = [
+                x for x in list(self.latest_temperatures.keys()) if "buffer-depth" in x
+            ]
+            if all_buffer == available_buffer:
+                self.fill_missing_store_temps()
+                self.temperatures_available = True
 
     async def get_RSWT(self, minus_deltaT=False):
         if self.ha1_params is None:
