@@ -34,8 +34,8 @@ class SynthGenerator(ScadaActor):
 
         self.buffer_depths_unadjusted = self.h0cn.buffer_unadjusted.all
         self.tank_depths_unadjusted = [depth for i in self.h0cn.tank_unadjusted for depth in self.h0cn.tank_unadjusted[i].all]
-        buffer_depths = self.h0cn.buffer.all
-        tank_depths = [depth for i in self.h0cn.tank for depth in self.h0cn.tank[i].all]
+        buffer_depths = list(self.h0cn.buffer.all)
+        tank_depths = [depth for i in self.h0cn.tank for depth in list(self.h0cn.tank[i].all)]
         self.temperature_channel_names = buffer_depths + tank_depths + [
             self.h0cn.hp_ewt, self.h0cn.hp_lwt, self.h0cn.dist_swt, self.h0cn.dist_rwt, 
             self.h0cn.buffer_cold_pipe, self.h0cn.buffer_hot_pipe, self.h0cn.store_cold_pipe, self.h0cn.store_hot_pipe,
