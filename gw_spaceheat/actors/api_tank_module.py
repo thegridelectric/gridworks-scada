@@ -238,7 +238,7 @@ class ApiTankModule(ScadaActor):
             elif self._component.gt.TempCalcMethod == TempCalcMethod.SimpleBetaForPico:
                 try:
                     value_list.append(int(self.simple_beta_for_pico(volts) * 1000))
-                    channel_name_list.append(data.AboutNodeNameList[i])
+                    channel_name_list.append(f"{data.AboutNodeNameList[i]}-unadjusted")
                 except BaseException as e:
                     self.log(f"Problem with simple_beta({volts})! {e}")
                     self.services.send_threadsafe(
@@ -256,7 +256,7 @@ class ApiTankModule(ScadaActor):
             elif self._component.gt.TempCalcMethod == TempCalcMethod.SimpleBeta:
                 try:
                     value_list.append(int(self.simple_beta(volts) * 1000))
-                    channel_name_list.append(data.AboutNodeNameList[i])
+                    channel_name_list.append(f"{data.AboutNodeNameList[i]}-unadjusted")
                 except BaseException as e:
                     self.log(f"Problem with simple_beta({volts})! {e}")
                     self.services.send_threadsafe(
@@ -273,7 +273,6 @@ class ApiTankModule(ScadaActor):
                     )
             else:
                 raise Exception(f"No code for {self._component.gt.TempCalcMethod}!")
-        channel_name_list = [x+"-unadjusted" if 'micro-v' not in x else x for x in channel_name_list]
         msg = SyncedReadings(
             ChannelNameList=channel_name_list,
             ValueList=value_list,
