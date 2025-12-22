@@ -57,6 +57,16 @@ def add_tank3(
                     Unit=Unit.Celcius
                 )
             )
+        for i in range(1,4):
+            config_list.append(
+                ChannelConfig(
+                    ChannelName=f"{tank_cfg.ActorNodeName}-depth{i}-unadjusted",
+                    CapturePeriodS=tank_cfg.CapturePeriodS,
+                    AsyncCapture=True,
+                    Exponent=3,
+                    Unit=Unit.Celcius
+                )
+            )
         if tank_cfg.SendMicroVolts:
             for i in range(1,4):
                 config_list.append(
@@ -123,6 +133,19 @@ def add_tank3(
                TelemetryName=TelemetryName.WaterTempCTimes1000,
                TerminalAssetAlias=db.terminal_asset_alias,
                Id=db.make_channel_id(f"{tank_cfg.ActorNodeName}-depth{i}")
+               ) for i in range(1,4)
+            ]
+        )
+
+        db.add_data_channels(
+            [ DataChannelGt(
+               Name=f"{tank_cfg.ActorNodeName}-depth{i}-unadjusted",
+               DisplayName=f"{tank_cfg.ActorNodeName.capitalize()} Depth {i} Unadjusted",
+               AboutNodeName=f"{tank_cfg.ActorNodeName}-depth{i}",
+               CapturedByNodeName=tank_cfg.ActorNodeName,
+               TelemetryName=TelemetryName.WaterTempCTimes1000,
+               TerminalAssetAlias=db.terminal_asset_alias,
+               Id=db.make_channel_id(f"{tank_cfg.ActorNodeName}-depth{i}-unadjusted")
                ) for i in range(1,4)
             ]
         )

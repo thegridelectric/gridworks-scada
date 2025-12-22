@@ -9,7 +9,8 @@ from typing import Optional, Sequence, cast
 from result import Ok, Result
 from datetime import datetime,  timezone
 from gwproto import Message
-
+from gwproto.data_classes.sh_node import ShNode
+from gwproto.named_types import SyncedReadings
 from gwproto.named_types import SingleReading, PicoTankModuleComponentGt
 from gwsproto.named_types import Glitch
 from gwproactor import MonitoredName
@@ -31,6 +32,14 @@ class SynthGenerator(ScadaActor):
         self._stop_requested: bool = False
         self.hardware_layout = self._services.hardware_layout
 
+        self.buffer_depths_unadjusted = self.h0cn.buffer_unadjusted.all
+        self.tank_depths_unadjusted = [depth for i in self.h0cn.tank_unadjusted for depth in self.h0cn.tank_unadjusted[i].all]
+        buffer_depths = list(self.h0cn.buffer.all)
+        tank_depths = [depth for i in self.h0cn.tank for depth in list(self.h0cn.tank[i].all)]
+        self.temperature_channel_names = buffer_depths + tank_depths + [
+            self.h0cn.hp_ewt, self.h0cn.hp_lwt, self.h0cn.dist_swt, self.h0cn.dist_rwt, 
+            self.h0cn.buffer_cold_pipe, self.h0cn.buffer_hot_pipe, self.h0cn.store_cold_pipe, self.h0cn.store_hot_pipe,
+        ]
         self.elec_assigned_amount = None
         self.previous_time = None
         self.temperatures_available = False
@@ -42,6 +51,7 @@ class SynthGenerator(ScadaActor):
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.latitude = self.settings.latitude
         self.longitude = self.settings.longitude
+        self._temp_adjustment_failed = False
 
         # used by the rswt quad params calculator
         self._cached_params: Optional[Ha1Params] = None 
@@ -127,7 +137,60 @@ class SynthGenerator(ScadaActor):
             case ScadaParams():
                 self.log("Received new parameters, time to recompute forecasts!")
                 self.received_new_params = True
+            case SyncedReadings():
+                try:
+                    self.process_synced_readings(message.Header.Src, message.Payload)
+                    self._temp_adjustment_failed = False
+                except Exception as e:
+                    self.log(f"Temp adjustment failed: {e}")
+                    if not self._temp_adjustment_failed:
+                        self._temp_adjustment_failed = True
+                        self._send_to(
+                            self.atn,
+                            Glitch(
+                                FromGNodeAlias=self.layout.scada_g_node_alias,
+                                Node=self.node.Name,
+                                Type=LogLevel.Warning,
+                                Summary="Tank temperature adjustment failed",
+                                Details=str(e),
+                            )
+                        )
         return Ok(True)
+
+    def process_synced_readings(self, actor: str, payload: SyncedReadings) -> None:
+        """
+        Uses the unadjusted tank temperature data to create the temp data we will use.
+        """
+        self.log(f"Received a SyncReadings message from {actor} with {len(payload.ChannelNameList)} channels")
+        channel_name_list = []
+        value_list = []
+        for i, channel_name in enumerate(payload.ChannelNameList):
+            channel_name_adjusted = channel_name.replace('-unadjusted', '')
+            if (
+                channel_name in self.buffer_depths_unadjusted + self.tank_depths_unadjusted
+                and channel_name_adjusted in self.temperature_channel_names
+            ):  
+                adjusted_value_list = self.adjust_temperatures(channel_name, payload.ValueList[i])
+                channel_name_list.append(channel_name_adjusted)
+                value_list.append(adjusted_value_list)
+                self.log(f"Done adjusting channel {channel_name}")
+        
+        self._send_to(
+            self.primary_scada, 
+            SyncedReadings(
+                ChannelNameList=channel_name_list,
+                ValueList=value_list,
+                ScadaReadTimeUnixMs=int(time.time() * 1000),
+            )
+        )
+
+    def adjust_temperatures(self, channel_name: str, value_list: list[float]) -> list[float]:
+        if channel_name == self.h0cn.buffer_unadjusted.depth1:
+            return [x+6 for x in value_list]
+        elif channel_name == self.h0cn.buffer_unadjusted.depth3:
+            return [x+15 for x in value_list]
+        else:
+            return value_list
     
     def fill_missing_store_temps(self):
         all_store_layers = sorted([x for x in self.temperature_channel_names if 'tank' in x])
@@ -198,7 +261,8 @@ class SynthGenerator(ScadaActor):
                 if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
                     break
             self.usable_kwh += 120/3 * 3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
-            simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]          
+            simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]  
+        self.usable_kwh = max(0, self.usable_kwh)        
         self.required_kwh = self.get_required_storage(time_now)
         self.log(f"Usable energy: {round(self.usable_kwh,1)} kWh")
         self.log(f"Required energy: {round(self.required_kwh,1)} kWh")

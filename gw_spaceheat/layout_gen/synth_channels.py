@@ -9,7 +9,7 @@ from gwsproto.data_classes.house_0_names import H0N, H0CN
 class SynthConfig(BaseModel):
     Name: str = 'required-energy'
     CreatedByNodeName: str = 'synth-generator'
-    Strategy: str = 'layer-by-layer-above-RSWT'
+    Strategy: str = 'layer-by-layer'
     SyncReportMinutes: PositiveInt = 60
     TelemetryName: str = TelemetryName.WattHours.name
 

@@ -238,7 +238,7 @@ class ApiTankModule(ScadaActor):
             elif self._component.gt.TempCalcMethod == TempCalcMethod.SimpleBetaForPico:
                 try:
                     value_list.append(int(self.simple_beta_for_pico(volts) * 1000))
-                    channel_name_list.append(data.AboutNodeNameList[i])
+                    channel_name_list.append(f"{data.AboutNodeNameList[i]}-unadjusted")
                 except BaseException as e:
                     self.log(f"Problem with simple_beta({volts})! {e}")
                     self.services.send_threadsafe(
@@ -256,7 +256,7 @@ class ApiTankModule(ScadaActor):
             elif self._component.gt.TempCalcMethod == TempCalcMethod.SimpleBeta:
                 try:
                     value_list.append(int(self.simple_beta(volts) * 1000))
-                    channel_name_list.append(data.AboutNodeNameList[i])
+                    channel_name_list.append(f"{data.AboutNodeNameList[i]}-unadjusted")
                 except BaseException as e:
                     self.log(f"Problem with simple_beta({volts})! {e}")
                     self.services.send_threadsafe(
@@ -280,6 +280,7 @@ class ApiTankModule(ScadaActor):
         )
         self._send_to(self.pico_cycler, msg)
         self._send_to(self.primary_scada, msg)
+        self._send_to(self.synth_generator, msg)
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         match message.Payload:
