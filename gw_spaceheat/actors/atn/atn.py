@@ -1018,26 +1018,36 @@ class Atn(PrimeActor):
         if self.temperature_channel_names is None:
             self.send_layout()
             await asyncio.sleep(5)
-        self.get_latest_temperatures()
-        if not self.temperatures_available:
+
+        self.get_latest_temperatures()  
+        storage_method = "buffer" if self.strategy == HomeAloneStrategy.ShoulderTou else "tank" 
+        if self.temperatures_available:
+            all_layers = sorted([x for x in self.temperature_channel_names if storage_method in x])
+        else:
             self.log("Not enough tank temperatures available to compute top temperature and thermocline!")
-            return None
-        all_layers = sorted(
-            [x for x in self.temperature_channel_names if ("buffer" if self.strategy == HomeAloneStrategy.ShoulderTou else "tank") in x]
-        )
+            return None  
         try:
-            tank_temps = {
-                key: self.to_fahrenheit(self.latest_temperatures[key] / 1000) 
-                for key in all_layers
-            }
+            tank_temps = {key: self.to_fahrenheit(self.latest_temperatures[key] / 1000) for key in all_layers}          
         except KeyError as e:
             self.log(f"Failed to get all the tank temps in get_three_layer_storage_model! Bailing on process {e}")
             return None
 
         if self.strategy == HomeAloneStrategy.ShoulderTou:
-            top_temp = round(tank_temps[H0CN.buffer.depth1],1)
-            middle_temp = round(tank_temps[H0CN.buffer.depth2],1)
-            bottom_temp = round(tank_temps[H0CN.buffer.depth3],1)
+            if H0CN.buffer.depth1 in tank_temps:
+                top_temp = round(tank_temps[H0CN.buffer.depth1],1)
+            else:
+                self.log("Could not find buffer top temperature")
+                return None
+            if H0CN.buffer.depth2 in tank_temps:
+                middle_temp = round(tank_temps[H0CN.buffer.depth2],1)
+            else:
+                self.log("Could not find buffer middle temperature")
+                return None
+            if H0CN.buffer.depth3 in tank_temps:
+                bottom_temp = round(tank_temps[H0CN.buffer.depth3],1)
+            else:
+                self.log("Could not find buffer bottom temperature")
+                return None
             thermocline1 = 4 #out of 12 layers
             thermocline2 = 8 #out of 12 layers
             return top_temp, middle_temp, bottom_temp, thermocline1, thermocline2
