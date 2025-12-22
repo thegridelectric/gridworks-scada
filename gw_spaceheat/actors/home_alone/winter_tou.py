@@ -352,7 +352,7 @@ class WinterTouHomeAlone(HomeAloneTouBase):
         if buffer_empty_ch == H0CN.buffer.depth1:
             buffer_empty_ch_temp += 6
         if really_empty:
-            min_buffer -= 5
+            min_buffer += 0
         if buffer_empty_ch_temp < min_buffer:
             self.log(f"Buffer {'really' if really_empty else ''} empty ({buffer_empty_ch}: {buffer_empty_ch_temp} < {min_buffer} F)")
             return True
