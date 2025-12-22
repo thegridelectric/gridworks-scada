@@ -154,7 +154,7 @@ class WinterTouHomeAlone(HomeAloneTouBase):
         Logic for triggering SystemCold (and moving to top state UsingNonElectricBackup).
         In winter, this means: 1) house is cold 2) buffer is empty and 3) store is empty
         """
-        return self.is_system_cold() and self.is_buffer_empty() and self.is_storage_empty()
+        return self.is_system_cold() and self.is_buffer_empty(really_empty=True) and self.is_storage_empty()
 
     def normal_node_state(self) -> str:
         return self.state
@@ -325,7 +325,7 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             value_below = self.latest_temperatures[layer]  
         self.latest_temperatures = {k:self.latest_temperatures[k] for k in sorted(self.latest_temperatures)}
 
-    def is_buffer_empty(self) -> bool:
+    def is_buffer_empty(self, really_empty=False) -> bool:
         if self.time_buffer_declared_full:
             if time.time() - self.time_buffer_declared_full < 10*60:
                 self.log("Buffer was found as full as can be in the last 10 minutes, not checking if it is empty")
@@ -351,11 +351,13 @@ class WinterTouHomeAlone(HomeAloneTouBase):
         # HACK: Add 6 degrees to depth1
         if buffer_empty_ch == H0CN.buffer.depth1:
             buffer_empty_ch_temp += 6
+        if really_empty:
+            min_buffer -= 5
         if buffer_empty_ch_temp < min_buffer:
-            self.log(f"Buffer empty ({buffer_empty_ch}: {buffer_empty_ch_temp} < {min_buffer} F)")
+            self.log(f"Buffer {'really' if really_empty else ''} empty ({buffer_empty_ch}: {buffer_empty_ch_temp} < {min_buffer} F)")
             return True
         else:
-            self.log(f"Buffer not empty ({buffer_empty_ch}: {buffer_empty_ch_temp} >= {min_buffer} F)")
+            self.log(f"Buffer not {'really' if really_empty else ''} empty ({buffer_empty_ch}: {buffer_empty_ch_temp} >= {min_buffer} F)")
             return False            
     
     def is_buffer_full(self) -> bool:
