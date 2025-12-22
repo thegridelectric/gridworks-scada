@@ -203,6 +203,7 @@ class SynthGenerator(ScadaActor):
                     break
             self.usable_kwh += 120/3 * 3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
             simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]  
+        self.usable_kwh = max(0, self.usable_kwh) 
         self.required_kwh = self.get_required_storage()
         self.log(f"Usable energy: {round(self.usable_kwh,1)} kWh")
         self.log(f"Required energy: {round(self.required_kwh,1)} kWh")
