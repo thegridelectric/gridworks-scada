@@ -385,7 +385,8 @@ class WinterTouHomeAlone(HomeAloneTouBase):
                 check_channel = H0CN.hp_ewt
             elif H0CN.buffer_cold_pipe in self.latest_temperatures:
                 check_channel = H0CN.buffer_cold_pipe
-            if self.latest_temperatures[check_channel] > self.params.MaxEwtF:
+            check_temp = round(self.to_fahrenheit(self.latest_temperatures[check_channel]/1000),1)
+            if check_temp > self.params.MaxEwtF:
                 self.log(f"Buffer can not be filled more, {check_channel} is too high ({self.latest_temperatures[check_channel]} > {self.params.MaxEwtF} F)")
                 self.time_buffer_declared_full = time.time()
                 return True
