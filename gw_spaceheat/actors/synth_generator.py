@@ -51,6 +51,7 @@ class SynthGenerator(ScadaActor):
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.latitude = self.settings.latitude
         self.longitude = self.settings.longitude
+        self._temp_adjustment_failed = False
 
         # used by the rswt quad params calculator
         self._cached_params: Optional[Ha1Params] = None 
