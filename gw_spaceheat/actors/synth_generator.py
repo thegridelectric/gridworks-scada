@@ -297,12 +297,7 @@ class SynthGenerator(ScadaActor):
         return (t-32)*5/9
 
     def delta_T(self, swt: float) -> float:
-        a, b, c = self.rswt_quadratic_params
-        delivered_heat_power = a*swt**2 + b*swt + c
-        dd_delta_t = self.params.DdDeltaTF
-        dd_power = self.params.DdPowerKw
-        d = dd_delta_t/dd_power * delivered_heat_power
-        return d if d>0 else 0
+        return max(0,0.2*swt-19)
         
     def required_heating_power(self, oat: float, wind_speed_mph: float) -> float:
         ws = wind_speed_mph
