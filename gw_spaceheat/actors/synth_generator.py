@@ -37,6 +37,7 @@ class SynthGenerator(ScadaActor):
         self.previous_time = None
         self.received_new_params: bool = False
         self.last_evaluated_strategy = 0
+        self.first_required_energy_update_done: bool = False
 
         # House parameters in the .env file
         self.is_simulated = self.settings.is_simulated
@@ -101,6 +102,7 @@ class SynthGenerator(ScadaActor):
             await self.main_loop(session)
 
     async def main_loop(self, session: aiohttp.ClientSession) -> None:
+        self.log("SynthGen about to get forecasts")
         await self.get_forecasts(session)
         await asyncio.sleep(2)
         while not self._stop_requested:
@@ -111,9 +113,10 @@ class SynthGenerator(ScadaActor):
                 self.received_new_params = False
 
             self.reconcile_tank_temperatures()
-            if self.buffer_available:
+            if self.buffer_temps_available:
                 self.update_usable_energy()
-                self.update_required_energy()
+                if self.heating_forecast:
+                    self.update_required_energy(self.heating_forecast)
                 # self.evaluate_strategy()
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
@@ -143,6 +146,11 @@ class SynthGenerator(ScadaActor):
         """
         if self.layout.ha_strategy == HomeAloneStrategy.Summer:
             return
+
+        if self.heating_forecast is None:
+            self.log("Skipping energy update: heating_forecast not yet available")
+            return
+
         latest_temps_f = self.latest_temps_f.copy()
 
         ordered_tank_layers = []
@@ -170,11 +178,8 @@ class SynthGenerator(ScadaActor):
         ]
 
         if not simulated_layers_f:
+            self.log("Usable energy not updated: no buffer/tank temperatures yet")
             return
-
-        rwt_f = self.rwt_f(simulated_layers_f[0])
-        if rwt_f is None:
-            self.log("Not updating usable energy, no forecast yet")
 
         gallons_per_layer = (
             self.GALLONS_PER_TANK * len(self.h0cn.tank)
@@ -182,10 +187,13 @@ class SynthGenerator(ScadaActor):
 
         mass_kg_per_layer = gallons_per_layer * self.GALLON_PER_LITER
 
-        self.usable_kwh = 0
+        usable_kwh = 0
         while True:
             hottest_f = simulated_layers_f[0]
+            rwt_f =self.rwt_f(hottest_f)
 
+            if rwt_f is None:
+                return
             if round(hottest_f) == round(rwt_f):
                 simulated_layers_f = [
                     sum(simulated_layers_f) / len(simulated_layers_f)
@@ -194,10 +202,10 @@ class SynthGenerator(ScadaActor):
                 if round(simulated_layers_f[0]) == round(rwt_f):
                     break
 
-            delta_c = self.to_celsius(hottest_f - rwt_f)
+            delta_c = (hottest_f - rwt_f) * 5 / 9
 
             # add this layer's delta energy
-            self.usable_kwh += (
+            usable_kwh += (
                 mass_kg_per_layer
                 * self.WATER_SPECIFIC_HEAT_KJ_PER_KG_C # kJoules needed to raise 1 liter 1 deg C
                 * delta_c
@@ -208,13 +216,13 @@ class SynthGenerator(ScadaActor):
                 simulated_layers_f[1:] + [rwt_f]
             )
 
-        self.log(f"Usable energy: {round(self.usable_kwh,1)} kWh")
+        # self.log(f"Usable energy: {round(usable_kwh,1)} kWh")
 
         self._send_to(
                 self.primary_scada,
                 SingleReading(
                     ChannelName = H0CN.usable_energy,
-                    Value=int(self.usable_kwh*1000),
+                    Value=int(usable_kwh*1000),
                     ScadaReadTimeUnixMs=int(time.time() * 1000),
                 ),
             )
@@ -246,7 +254,7 @@ class SynthGenerator(ScadaActor):
             self.log(details)
             self.send_info(summary, details)
         
-    def update_required_energy(self) -> None:
+    def update_required_energy(self, heating_forecast: HeatingForecast) -> None:
         """
         Computes and publishes the required thermal energy (kWh) needed to
         cover upcoming on-peak periods, based on forecasted load and
@@ -261,20 +269,21 @@ class SynthGenerator(ScadaActor):
         """
         required_kwh = 0
         time_now = datetime.now(self.timezone)
-        if self.heating_forecast is None:
+        if heating_forecast is None:
             self.log("Not updating required energy until forecasts exist")
             return
-        forecasts_times_tz = [datetime.fromtimestamp(x, tz=self.timezone) for x in self.heating_forecast.Time]
+
+        forecasts_times_tz = [datetime.fromtimestamp(x, tz=self.timezone) for x in heating_forecast.Time]
         morning_kWh = sum(
-            [kwh for t, kwh in zip(forecasts_times_tz, self.heating_forecast.AvgPowerKw)
+            [kwh for t, kwh in zip(forecasts_times_tz, heating_forecast.AvgPowerKw)
              if 7<=t.hour<=11]
             )
         midday_kWh = sum(
-            [kwh for t, kwh in zip(forecasts_times_tz, self.heating_forecast.AvgPowerKw)
+            [kwh for t, kwh in zip(forecasts_times_tz, heating_forecast.AvgPowerKw)
              if 12<=t.hour<=15]
             )
         afternoon_kWh = sum(
-            [kwh for t, kwh in zip(forecasts_times_tz, self.heating_forecast.AvgPowerKw)
+            [kwh for t, kwh in zip(forecasts_times_tz, heating_forecast.AvgPowerKw)
              if 16<=t.hour<=19]
             )
         # Find the maximum storage
@@ -309,7 +318,7 @@ class SynthGenerator(ScadaActor):
         else:
             self.log("Currently in on-peak or no on-peak period coming up soon")
             
-        self.log(f"Required energy: {round(required_kwh,1)} kWh")
+        # self.log(f"Required energy: {round(required_kwh,1)} kWh")
         self._send_to(
                 self.primary_scada,
                 SingleReading(
@@ -456,7 +465,7 @@ class SynthGenerator(ScadaActor):
         forecasts['required_swt'] = [self.required_swt(x) for x in forecasts['avg_power']]
         forecasts['required_swt_delta_T'] = [round(self.delta_T(x),2) for x in forecasts['required_swt']]
 
-        # Send cropped 24-hour heating  forecast to aa & ha for their own use
+        # Send cropped 24-hour heating forecast to aa & ha for their own use
         # and send both the 48-hour weather forecast and 24-hr heating forecast to atn for record-keeping
         hf = HeatingForecast(
             FromGNodeAlias=self.layout.scada_g_node_alias,
@@ -466,19 +475,21 @@ class SynthGenerator(ScadaActor):
             RswtDeltaTF = forecasts['required_swt_delta_T'][:24],
             WeatherUid=self.weather_forecast.WeatherUid
         )
-  
-        if self.buffer_available:
-            self.update_usable_energy()
-            self.update_required_energy()
 
         # Ensure energy state is up-to-date before publishing forecast;
         # downstream actors treat the forecast as a trigger, not as state.
-        self._send_to(self.primary_scada, hf)
+        self.data.heating_forecast = hf
+        self._send_to(self.atn, hf)
         self._send_to(self.atn, self.weather_forecast)
+
+        if not self.first_required_energy_update_done:
+            self.log("Updating usable and required energy")
+            self.update_usable_energy()
+            self.update_required_energy(hf)
+            self.first_required_energy_update_done = True
 
         forecast_start = datetime.fromtimestamp(self.weather_forecast.Time[0], tz=self.timezone)
         self.log(f"Got forecast starting {forecast_start.strftime('%Y-%m-%d %H:%M:%S')}")
-
 
     def rwt_f(self, swt_f: float) -> float:
         """
@@ -500,8 +511,9 @@ class SynthGenerator(ScadaActor):
         Requires self.heating_forecast
         """
         if self.heating_forecast is None:
-            self.log("Forecasts are not available, can not find RWT")
-            return
+            raise RuntimeError(
+                "rwt_f called before heating_forecast is available"
+            )
         forecasts_times_tz = [datetime.fromtimestamp(x, tz=self.timezone) for x in self.heating_forecast.Time]
         timenow = datetime.now(self.timezone)
         if timenow.hour > 19 or timenow.hour < 12:

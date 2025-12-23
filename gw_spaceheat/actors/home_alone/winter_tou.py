@@ -196,7 +196,7 @@ class WinterTouHomeAlone(HomeAloneTouBase):
         if ((time_now.hour==6 or time_now.hour==16) and time_now.minute>57) or self.zone_setpoints=={}:
             self.get_zone_setpoints()
         
-        if not (self.heating_forecast and self.buffer_available):
+        if not (self.heating_forecast and self.buffer_temps_available):
             self.fill_missing_store_temps()
             if self.time_since_blind is None:
                 self.time_since_blind = time.time()
@@ -210,7 +210,7 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             if self.time_since_blind is not None:
                 self.time_since_blind = None
             if self.state==HaWinterState.Initializing:
-                if self.buffer_available and self.data.channel_has_value(H0CN.required_energy):
+                if self.buffer_temps_available and self.data.channel_has_value(H0CN.required_energy):
                     if self.is_onpeak():
                         if self.is_buffer_empty():
                             if self.is_storage_colder_than_buffer():
@@ -303,53 +303,6 @@ class WinterTouHomeAlone(HomeAloneTouBase):
         else:
             self.valved_to_discharge_store(from_node=self.normal_node)
 
-    def is_buffer_empty(self) -> bool:
-        if H0CN.buffer.depth1 in self.latest_temps_f:
-            buffer_empty_ch = H0CN.buffer.depth1
-        elif H0CN.dist_swt in self.latest_temps_f:
-            buffer_empty_ch = H0CN.dist_swt
-        else:
-            self.alert(summary="buffer_empty_fail", details="Impossible to know if the buffer is empty!")
-            return False
-        if self.heating_forecast is None:
-            max_rswt_next_3hours = 160
-            max_deltaT_rswt_next_3_hours = 20
-        else:
-            max_rswt_next_3hours = max(self.heating_forecast.RswtF[:3])
-            max_deltaT_rswt_next_3_hours = max(self.heating_forecast.RswtDeltaTF[:3])
-        min_buffer = round(max_rswt_next_3hours - max_deltaT_rswt_next_3_hours,1)
-        buffer_empty_ch_temp = self.latest_temps_f[buffer_empty_ch]
-        if buffer_empty_ch_temp < min_buffer:
-            self.log(f"Buffer empty ({buffer_empty_ch}: {buffer_empty_ch_temp} < {min_buffer} F)")
-            return True
-        else:
-            self.log(f"Buffer not empty ({buffer_empty_ch}: {buffer_empty_ch_temp} >= {min_buffer} F)")
-            return False            
-    
-    def is_buffer_full(self) -> bool:
-        if H0CN.buffer.depth3 in self.latest_temps_f:
-            buffer_full_ch = H0CN.buffer.depth3
-        elif H0CN.buffer_cold_pipe in self.latest_temps_f:
-            buffer_full_ch = H0CN.buffer_cold_pipe
-        elif "StoreDischarge" in self.state and H0CN.store_cold_pipe in self.latest_temps_f:
-            buffer_full_ch = H0CN.store_cold_pipe
-        elif H0CN.hp_ewt in self.latest_temps_f:
-            buffer_full_ch =  H0CN.hp_ewt
-        else:
-            self.alert(summary="buffer_full_fail", details="Impossible to know if the buffer is full!")
-            return False
-        if self.heating_forecast is None:
-            max_buffer = 170
-        else:
-            max_buffer = round(max(self.heating_forecast.RswtF[:3]),1)
-        buffer_full_ch_temp = self.latest_temps_f[buffer_full_ch]
-        if buffer_full_ch_temp > max_buffer:
-            self.log(f"Buffer full ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)")
-            return True
-        else:
-            self.log(f"Buffer not full ({buffer_full_ch}: {buffer_full_ch_temp} <= {max_buffer} F)")
-            return False
-
     def is_storage_ready(self) -> bool:
 
         if self.usable_kwh >=self.required_kwh:
@@ -364,8 +317,8 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             else:
                 self.log("No EWT temperature channel found, not checking if storage is ready")
                 return False
-            self.log(f"{check_temp_channel}: {self.latest_temps_f[check_temp_channel]}")
             if self.latest_temps_f[check_temp_channel] > self.params.MaxEwtF:
+                self.log(f"{check_temp_channel}: {self.latest_temps_f[check_temp_channel]}. MaxEWT: {self.params.MaxEwtF} F")
                 self.log(f"The storage is not ready, but the bottom is above the maximum EWT ({self.params.MaxEwtF} F).")
                 self.log("The storage will therefore be considered ready, as we cannot charge it further.")
                 self.full_storage_energy = self.usable_kwh
@@ -374,33 +327,3 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             self.log(f"Storage not ready (usable {round(self.usable_kwh,1)} kWh < required {round(self.required_kwh,1)} kWh)")
             return False
 
-    def is_storage_colder_than_buffer(self) -> bool:
-        """
-        Returns true if the top of the store is at least 5 degrees colder than the top of the buffer
-        """
-        if H0CN.buffer.depth1 in self.latest_temps_f:
-            buffer_top = H0CN.buffer.depth1
-        elif H0CN.buffer.depth2 in self.latest_temps_f:
-            buffer_top = H0CN.buffer.depth2
-        elif H0CN.buffer.depth3 in self.latest_temps_f:
-            buffer_top = H0CN.buffer.depth3
-        elif H0CN.buffer_cold_pipe in self.latest_temps_f:
-            buffer_top = H0CN.buffer_cold_pipe
-        else:
-            self.alert("store_v_buffer_fail", "It is impossible to know if the top of the buffer is warmer than the top of the storage!")
-            return False
-        if self.h0cn.tank[1].depth1 in self.latest_temps_f:
-            tank_top = self.h0cn.tank[1].depth1
-        elif H0CN.store_hot_pipe in self.latest_temps_f:
-            tank_top = H0CN.store_hot_pipe
-        elif H0CN.buffer_hot_pipe in self.latest_temps_f:
-            tank_top = H0CN.buffer_hot_pipe
-        else:
-            self.alert("store_v_buffer_fail", "It is impossible to know if the top of the storage is warmer than the top of the buffer!")
-            return False
-        if self.latest_temps_f[buffer_top] > self.latest_temps_f[tank_top] + 5.4:
-            self.log(f"Storage top {self.latest_temps_f[tank_top]}F at least 5 deg colder than than buffer top {self.latest_temps_f[buffer_top]} F")
-            return True
-        else:
-            self.log(f"Storage top + 5.4  {self.latest_temps_f[tank_top] + 5.4} F warmer than than buffer top {self.latest_temps_f[buffer_top]} F")
-            return False

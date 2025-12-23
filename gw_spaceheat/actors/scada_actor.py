@@ -1121,8 +1121,140 @@ class ScadaActor(Actor, ABC):
         return self.data.latest_temperatures_f
 
     @property
-    def buffer_available(self):
-        return self.data.buffer_available
+    def buffer_temps_available(self):
+        return self.data.buffer_temps_available
+
+    def is_buffer_empty(self) -> bool:
+        """
+        Returns True if the buffer does not contain enough usable heat
+        to meet the near-term required return-water temperature.
+
+        Uses the coldest available top-of-buffer measurement and the
+        maximum required RWT minus delta-T over the next few hours.
+
+        If forecasts are unavailable, returns False (cannot assert empty).
+        """
+
+        # Select the best available "top of buffer" temperature channel
+        if H0CN.buffer.depth1 in self.latest_temps_f:
+            buffer_top_ch = H0CN.buffer.depth1
+        elif H0CN.dist_swt in self.latest_temps_f:
+            buffer_top_ch = H0CN.dist_swt
+        else:
+            # No meaningful buffer temperature available
+            self.log("is_buffer_empty: no buffer temperature channel available")
+            return False
+
+        if self.heating_forecast is None:
+            # Cannot reason about emptiness without forecast context
+            self.log("is_buffer_empty: no heating forecast available")
+            return False
+
+        # Conservative near-term requirement (next ~3 hours)
+        max_rswt = max(self.heating_forecast.RswtF[:3])
+        max_delta_t = max(self.heating_forecast.RswtDeltaTF[:3])
+
+        min_buffer_temp_f = round(max_rswt - max_delta_t, 1)
+        buffer_temp_f = self.latest_temps_f[buffer_top_ch]
+
+        if buffer_temp_f < min_buffer_temp_f:
+            self.log(
+                f"Buffer empty ({buffer_top_ch}: {buffer_temp_f} < {min_buffer_temp_f} F)"
+            )
+            return True
+        else:
+            self.log(
+                f"Buffer not empty ({buffer_top_ch}: {buffer_temp_f} >= {min_buffer_temp_f} F)"
+            )
+            return False
+
+    def is_buffer_full(self) -> bool:
+        """
+        Returns True if the buffer is considered 'full' relative to near-term
+        heating forecast requirements.
+
+        This is a heuristic predicate used by HomeAlone / AtomicAlly strategies.
+
+        """
+        if H0CN.buffer.depth3 in self.latest_temps_f:
+            buffer_full_ch = H0CN.buffer.depth3
+
+        elif H0CN.buffer_cold_pipe in self.latest_temps_f:
+            buffer_full_ch = H0CN.buffer_cold_pipe
+    
+        elif (
+            H0CN.charge_discharge_relay_state in self.data.latest_machine_state
+            and self.data.latest_machine_state[H0CN.charge_discharge_relay_state]
+                == StoreFlowRelay.DischargingStore
+            and H0CN.store_cold_pipe in self.latest_temps_f
+        ):
+            buffer_full_ch = H0CN.store_cold_pipe
+
+        elif H0CN.hp_ewt in self.latest_temps_f:
+            buffer_full_ch = H0CN.hp_ewt
+        else:
+            return False
+
+        if self.heating_forecast is None:
+            max_buffer = 170
+        else:
+            max_buffer = round(max(self.heating_forecast.RswtF[:3]), 1)
+
+        buffer_full_ch_temp = self.latest_temps_f[buffer_full_ch]
+        if buffer_full_ch_temp > max_buffer:
+            self.log(
+                f"Buffer full ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)"
+            )
+            return True
+        else:
+            self.log(
+                f"Buffer not full ({buffer_full_ch}: {buffer_full_ch_temp} <= {max_buffer} F)"
+            )
+            return False
+
+    def is_buffer_charge_limited(self) -> bool:
+        """
+        Returns True if the buffer cannot accept more heat without exceeding MaxEwtF.
+        This is a physical limit.
+        """
+        if H0CN.buffer_cold_pipe not in self.latest_temps_f:
+            return False
+
+        return self.latest_temps_f[H0CN.buffer_cold_pipe] >= self.data.ha1_params.MaxEwtF
+
+    def is_storage_colder_than_buffer(self, min_delta_f: float = 5.4) -> bool:
+        """
+        Returns True if the top of the storage is at least `min_delta_f` colder
+        than the top of the buffer.
+
+        Pure physical predicate:
+        - Returns False if required temperatures are unavailable
+        """
+        # --- Determine buffer top ---
+        if H0CN.buffer.depth1 in self.latest_temps_f:
+            buffer_top = H0CN.buffer.depth1
+        elif H0CN.buffer.depth2 in self.latest_temps_f:
+            buffer_top = H0CN.buffer.depth2
+        elif H0CN.buffer.depth3 in self.latest_temps_f:
+            buffer_top = H0CN.buffer.depth3
+        elif H0CN.buffer_cold_pipe in self.latest_temps_f:
+            buffer_top = H0CN.buffer_cold_pipe
+        else:
+            return False
+
+        # --- Determine storage top ---
+        if self.h0cn.tank and self.h0cn.tank[1].depth1 in self.latest_temps_f:
+            tank_top = self.h0cn.tank[1].depth1
+        elif H0CN.store_hot_pipe in self.latest_temps_f:
+            tank_top = H0CN.store_hot_pipe
+        elif H0CN.buffer_hot_pipe in self.latest_temps_f:
+            tank_top = H0CN.buffer_hot_pipe
+        else:
+            return False
+
+        return self.latest_temps_f[buffer_top] > (
+            self.latest_temps_f[tank_top] + min_delta_f
+        )
 
     @property
     def usable_kwh(self) -> float:
@@ -1192,7 +1324,7 @@ class ScadaActor(Actor, ABC):
             }
 
         # Update buffer_available
-        self.data.buffer_available = (
+        self.data.buffer_temps_available = (
             self.h0cn.buffer.all <= self.data.latest_temperatures_f.keys()
         )
 

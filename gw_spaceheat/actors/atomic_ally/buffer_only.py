@@ -12,7 +12,10 @@ from gwproto.data_classes.components.dfr_component import DfrComponent
 
 from gwproto.enums import ActorClass, FsmReportType, RelayClosedOrOpen
 from gwsproto.enums import AaBufferOnlyState, AaBufferOnlyEvent
-from gwproto.named_types import AnalogDispatch, FsmAtomicReport, FsmFullReport
+from gwproto.named_types import (
+    AnalogDispatch, FsmAtomicReport, FsmFullReport,
+    SyncedReadings,
+)
 from result import Ok, Result
 from transitions import Machine
 
@@ -20,7 +23,7 @@ from actors.scada_actor import ScadaActor
 from scada_app_interface import ScadaAppInterface
 from gwsproto.enums import HomeAloneStrategy
 from gwsproto.named_types import (
-    AllyGivesUp, GoDormant, Ha1Params, HeatingForecast,
+    AllyGivesUp, GoDormant, Ha1Params,
     SingleMachineState, SlowContractHeartbeat, SlowDispatchContract, SuitUp
 )
 
@@ -71,7 +74,6 @@ class BufferOnlyAtomicAlly(ScadaActor):
         self.state: AaBufferOnlyState = AaBufferOnlyState.Dormant
         self.prev_state: AaBufferOnlyState = AaBufferOnlyState.Dormant 
         self.log(f"Params: {self.params}")
-        self.heating_forecast: Optional[HeatingForecast] = None
         self.time_buffer_full = 0
         if H0N.atomic_ally not in self.layout.nodes:
             raise Exception(f"AtomicAlly requires {H0N.atomic_ally} node!!")
@@ -107,16 +109,18 @@ class BufferOnlyAtomicAlly(ScadaActor):
                     # GoDormant: AnyOther -> Dormant ...
                     self.trigger_event(AaBufferOnlyEvent.GoDormant)
                     self.log("Going dormant")
-            case HeatingForecast():
-                # forecasts stored in self.data.heating_forecast
-                # but we can use this trigger leaving Initializing
-                if self.state == AaBufferOnlyState.Initializing and self.buffer_available:
-                    self.engage_brain
             case SlowDispatchContract(): # WakeUp
                 try:
                     self.process_slow_dispatch_contract(from_node, message.Payload)
                 except Exception as e:
                     self.log(f"Trouble with process_slow_dispatch_contract: {e}")
+            case SyncedReadings():
+                self.log("Received buffer readings")
+                # buffer temps are in data.latest_channel_values but not
+                # yet in self.latest_temperatures_f
+                if self.state == AaBufferOnlyState.Initializing and self.heating_forecast:
+                    self.reconcile_tank_temperatures()
+                    self.engage_brain()
         return Ok(True)
     
     def process_slow_dispatch_contract(self, from_node, contract: SlowDispatchContract) -> None:
@@ -207,7 +211,7 @@ class BufferOnlyAtomicAlly(ScadaActor):
         self.log("Waking up")
 
         self.reconcile_tank_temperatures()
-        if not self.buffer_available:
+        if not self.buffer_temps_available:
             self.no_temps_since = int(time.time())
             self.log("Temperatures not available. Won't turn on hp until they are. Will bail in 5 if still not available")
         
@@ -224,11 +228,11 @@ class BufferOnlyAtomicAlly(ScadaActor):
             self.reconcile_tank_temperatures()
 
             if self.state == AaBufferOnlyState.Initializing:
-                if self.buffer_available  and self.data.channel_has_value(H0CN.required_energy):
+                if self.buffer_temps_available  and self.data.channel_has_value(H0CN.required_energy):
                     self.no_temps_since = None
                     if self.hp_should_be_off():
                         self.trigger_event(AaBufferOnlyEvent.NoMoreElec)
-                    elif self.is_buffer_full(really_full=True):
+                    elif self.is_buffer_charge_limited():
                         self.log("Buffer is as full as can be")
                         self.time_buffer_full = int(time.time())
                         self.trigger_event(AaBufferOnlyEvent.BufferFull)
@@ -252,7 +256,7 @@ class BufferOnlyAtomicAlly(ScadaActor):
             elif self.state == AaBufferOnlyState.HpOn:
                 if self.hp_should_be_off():
                     self.trigger_event(AaBufferOnlyEvent.NoMoreElec)
-                elif self.is_buffer_full(really_full=True):
+                elif self.is_buffer_charge_limited():
                     self.log("Buffer is as full as can be")
                     self.time_buffer_full = int(time.time())
                     self.trigger_event(AaBufferOnlyEvent.BufferFull)
@@ -384,41 +388,4 @@ class BufferOnlyAtomicAlly(ScadaActor):
                     if time.time() > last_5:
                         return False
         return True      
-    
-    def is_buffer_full(self, really_full=False) -> bool:
-        if H0CN.buffer.depth3 in self.latest_temps_f:
-            buffer_full_ch = H0CN.buffer.depth3
-        elif H0CN.buffer_cold_pipe in self.latest_temps_f:
-            buffer_full_ch = H0CN.buffer_cold_pipe
-        elif H0CN.hp_ewt in self.latest_temps_f:
-            buffer_full_ch = H0CN.hp_ewt
-        else:
-            self.alert(summary="buffer_full_fail", details="Impossible to know if the buffer is full!")
-            return False
-        if self.heating_forecast is None:
-            self.alert(summary="buffer_full_fail", details="Impossible without forecasts")
-            return False
-        max_buffer = round(max(self.heating_forecast.RswtF[:3]),1)
-        buffer_full_ch_temp = self.latest_temps_f[buffer_full_ch]
 
-        if really_full:
-            if H0CN.buffer_cold_pipe in self.latest_temps_f:
-                buffer_full_ch_temp = max(self.latest_temps_f[H0CN.buffer_cold_pipe], self.latest_temps_f[buffer_full_ch])
-            max_buffer = self.params.MaxEwtF
-            if buffer_full_ch_temp > max_buffer:
-                self.log(f"Buffer cannot be charged more ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)")
-                self.send_warning(
-                    summary="Buffer tank is full, could not heat as much as contract requires", 
-                    details=f"Remaining energy: {self.remaining_watthours} Wh", 
-                )
-                return True
-            else:
-                self.log(f"Buffer can be charged more ({buffer_full_ch}: {buffer_full_ch_temp} <= {max_buffer} F)")
-                return False
-            
-        if buffer_full_ch_temp > max_buffer:
-            self.log(f"Buffer full ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)")
-            return True
-        else:
-            self.log(f"Buffer not full ({buffer_full_ch}: {buffer_full_ch_temp} <= {max_buffer} F)")
-            return False

@@ -52,7 +52,7 @@ from gwsproto.enums import (AtomicAllyState,  ContractStatus, FlowManifoldVarian
                    MainAutoEvent, MainAutoState, TopState)
 from gwsproto.named_types import ( ActuatorsReady, FsmEvent,
     AdminDispatch, AdminAnalogDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
-    Glitch, GoDormant, HeatingForecast, LayoutLite, NewCommandTree, NoNewContractWarning, ResetHpKeepValue,
+    Glitch, GoDormant, LayoutLite, NewCommandTree, NoNewContractWarning, ResetHpKeepValue,
     ScadaParams, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment,
     SiegTargetTooLow, SingleMachineState,SlowContractHeartbeat, SuitUp, WakeUp
 )
@@ -104,6 +104,7 @@ class Scada(PrimeActor, ScadaInterface):
         super().__init__(name, services)
         if not isinstance(services.hardware_layout, House0Layout):
             raise Exception("Make sure to pass House0Layout object as hardware_layout!")
+        self.got_first_buffer_reading = False
         self.is_simulated = self.settings.is_simulated
         if self.settings.is_simulated:
             self.log("SIMULATED")
@@ -283,13 +284,6 @@ class Scada(PrimeActor, ScadaInterface):
                     CreatedMs=payload.CreatedMs
                 )
                 self._send_to(self.atn, new_glitch)
-            case HeatingForecast() as hf:
-                self.data.heating_forecast = hf
-                self._send_to(self.atn, hf)
-                if self.auto_state == MainAutoState.Atn:
-                    self._send_to(self.atomic_ally, hf)
-                else:
-                    self._send_to(self.home_alone, hf)
             case MachineStates():
                 try:
                     self.process_machine_states(from_node, payload)
@@ -809,6 +803,15 @@ class Scada(PrimeActor, ScadaInterface):
             )
             self._data.latest_channel_values[ch.Name] = payload.ValueList[idx]
             self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMs
+
+        if from_node.Name ==H0N.buffer.reader and not self.got_first_buffer_reading:
+            self.got_first_buffer_reading = True
+            if self.auto_state == MainAutoState.Atn:
+                self.log("First Buffer temps arrived! Sending to AtomicAlly")
+                self._send_to(self.atomic_ally, payload)
+            else:
+                self.log("First Buffer temps arrived! Sending to HomeAlone")
+                self._send_to(self.home_alone, payload)
     
     
     #####################################################################

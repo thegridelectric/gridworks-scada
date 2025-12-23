@@ -9,14 +9,14 @@ from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import ActorClass
-from gwproto.named_types import AnalogDispatch
+from gwproto.named_types import AnalogDispatch, SyncedReadings
 from result import Ok, Result
 from transitions import Machine
 from gwsproto.data_classes.house_0_names import H0N, H0CN
 from gwproto.data_classes.components.dfr_component import DfrComponent
 from actors.scada_actor import ScadaActor
 from gwsproto.named_types import (ActuatorsReady,
-            GoDormant, Glitch, Ha1Params, HeatingForecast,
+            GoDormant, Glitch, Ha1Params,
             NewCommandTree, SingleMachineState, WakeUp)
 from gwsproto.enums import HomeAloneStrategy, LocalControlTopState, LogLevel
 from gwsproto.enums import LocalControlTopStateEvent
@@ -220,7 +220,7 @@ class HomeAloneTouBase(ScadaActor):
                 elif self.top_state == LocalControlTopState.UsingNonElectricBackup and not self.is_system_cold() and not self.is_onpeak():
                     self.trigger_zones_at_setpoint_offpeak()
                 elif self.top_state == LocalControlTopState.ScadaBlind:
-                    if self.heating_forecast and self.buffer_available:
+                    if self.heating_forecast and self.buffer_temps_available:
                         self.log("Forecasts and temperatures are both available again!")
                         self.trigger_data_available()
                     elif self.is_onpeak() and self.settings.oil_boiler_backup:
@@ -458,11 +458,12 @@ class HomeAloneTouBase(ScadaActor):
                     self.process_wake_up(from_node, message.Payload)
                 except Exception as e:
                     self.log(f"Trouble with process_wake_up: {e}")
-            case HeatingForecast():
-                self.log("Received heating forecast")
+            case SyncedReadings():
                 if self.is_initializing():
-                    self.log(f"Top state: {self.top_state}")
-                    self.log(f"State: {self.normal_node_state()}")
+                    # buffer temps are in data.latest_channel_values but not
+                    # yet in self.latest_temperatures_f
+                    self.reconcile_tank_temperatures()
+                    self.log(f"Buffer Temps Available: {self.buffer_temps_available}")
                     self.engage_brain()
         return Ok(True)
 
@@ -519,7 +520,8 @@ class HomeAloneTouBase(ScadaActor):
                 no_zones_calling = False
                 break
             else:
-                self.log(f"{zone_whitewire_name} is below threshold ({self.data.latest_channel_values[zone_whitewire_name]} <= {self.settings.whitewire_threshold_watts} W)")
+                ...
+                # self.log(f"{zone_whitewire_name} is below threshold ({self.data.latest_channel_values[zone_whitewire_name]} <= {self.settings.whitewire_threshold_watts} W)")
         if no_zones_calling:
             # self.log("[Dist pump check] No zones calling; dist pump should be off")
             if self.zone_controller_triggered_at:
@@ -791,8 +793,8 @@ class HomeAloneTouBase(ScadaActor):
                 self.zone_setpoints[zone_name] = self.data.latest_channel_values[zone_setpoint]
             if self.data.latest_channel_values[zone_setpoint.replace('-set','-temp')] is not None:
                 temps[zone_name] = self.data.latest_channel_values[zone_setpoint.replace('-set','-temp')]
-        self.log(f"Found all zone setpoints: {self.zone_setpoints}")
-        self.log(f"Found all zone temperatures: {temps}")
+        # self.log(f"Found all zone setpoints: {self.zone_setpoints}")
+        # self.log(f"Found all zone temperatures: {temps}")
     
     def is_system_cold(self) -> bool:
         """Returns True if at least one critical zones is more than 1F below setpoint, where the 

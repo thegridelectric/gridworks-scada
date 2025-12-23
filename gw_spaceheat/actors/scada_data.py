@@ -70,7 +70,7 @@ class ScadaData:
             ch.Name: None for ch in self.my_channels
         }
         self.latest_temperatures_f: Dict[str, float] = {}
-        self.buffer_available: bool = False # change to buffer_available
+        self.buffer_temps_available: bool = False # change to buffer_available
 
         self.latest_channel_values[H0CN.usable_energy] = 0
         self.latest_channel_unix_ms[H0CN.usable_energy] = int(time.time() * 1000)
