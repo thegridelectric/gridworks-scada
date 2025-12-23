@@ -9,7 +9,6 @@ from gwsproto.enums import HomeAloneStrategy, LocalControlTopState
 from gw.enums import GwStrEnum
 from gwsproto.named_types import SingleMachineState
 from transitions import Machine
-from gwproto.named_types import PicoTankModuleComponentGt
 
 from scada_app_interface import ScadaAppInterface
 
@@ -125,8 +124,6 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             self.OffPeakStorageNotReady()
         elif event  == HaWinterEvent.OnPeakStorageColderThanBuffer:
             self.OnPeakStorageColderThanBuffer()
-        elif event  == HaWinterEvent.OnPeakStorageColderThanBuffer:
-            self.OnPeakStorageColderThanBuffer()
         elif event  == HaWinterEvent.TemperaturesAvailable:
             self.TemperaturesAvailable()
         elif event  == HaWinterEvent.GoDormant:
@@ -199,7 +196,7 @@ class WinterTouHomeAlone(HomeAloneTouBase):
         if ((time_now.hour==6 or time_now.hour==16) and time_now.minute>57) or self.zone_setpoints=={}:
             self.get_zone_setpoints()
         
-        if not (self.heating_forecast_available() and self.buffer_available):
+        if not (self.heating_forecast and self.buffer_available):
             self.fill_missing_store_temps()
             if self.time_since_blind is None:
                 self.time_since_blind = time.time()
@@ -238,9 +235,8 @@ class WinterTouHomeAlone(HomeAloneTouBase):
                     if self.is_storage_ready():
                         self.trigger_normal_event(HaWinterEvent.OffPeakBufferFullStorageReady)
                     else:
-                        usable = self.data.latest_channel_values[H0CN.usable_energy] / 1000
-                        required = self.data.latest_channel_values[H0CN.required_energy] / 1000
-                        if usable < required:
+
+                        if self.usable_kwh < self.required_kwh:
                             self.trigger_normal_event(HaWinterEvent.OffPeakBufferFullStorageNotReady)
                         else:
                             self.trigger_normal_event(HaWinterEvent.OffPeakBufferFullStorageReady)
@@ -261,16 +257,15 @@ class WinterTouHomeAlone(HomeAloneTouBase):
                     if self.is_buffer_empty():
                         self.trigger_normal_event(HaWinterEvent.OffPeakBufferEmpty)
                     elif not self.is_storage_ready():
-                        usable = self.data.latest_channel_values[H0CN.usable_energy] / 1000
-                        required = self.data.latest_channel_values[H0CN.required_energy] / 1000
+
                         if self.storage_declared_ready:
                             if self.full_storage_energy is None:
-                                if usable > 0.9*required:
+                                if self.usable_kwh > 0.9 * self.required_kwh:
                                     self.log("The storage was already declared ready during this off-peak period")
                                 else:
                                     self.trigger_normal_event(HaWinterEvent.OffPeakStorageNotReady)
                             else:
-                                if usable > 0.9*self.full_storage_energy:
+                                if self.usable_kwh > 0.9 * self.full_storage_energy:
                                     self.log("The storage was already declared full during this off-peak period")
                                 else:
                                     self.trigger_normal_event(HaWinterEvent.OffPeakStorageNotReady)
@@ -347,7 +342,7 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             max_buffer = 170
         else:
             max_buffer = round(max(self.heating_forecast.RswtF[:3]),1)
-        buffer_full_ch_temp = round(self.to_fahrenheit(self.latest_temps_f[buffer_full_ch]/1000),1)
+        buffer_full_ch_temp = self.latest_temps_f[buffer_full_ch]
         if buffer_full_ch_temp > max_buffer:
             self.log(f"Buffer full ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)")
             return True
@@ -356,11 +351,9 @@ class WinterTouHomeAlone(HomeAloneTouBase):
             return False
 
     def is_storage_ready(self) -> bool:
-        total_usable_kwh = self.data.latest_channel_values[H0CN.usable_energy] / 1000
-        required_storage = self.data.latest_channel_values[H0CN.required_energy] / 1000
 
-        if total_usable_kwh >= required_storage:
-            self.log(f"Storage ready (usable {round(total_usable_kwh,1)} kWh >= required {round(required_storage,1)} kWh)")
+        if self.usable_kwh >=self.required_kwh:
+            self.log(f"Storage ready (usable {round(self.usable_kwh,1)} kWh >= required {round(self.required_kwh,1)} kWh)")
             self.storage_declared_ready = True
             return True
         else:
@@ -372,13 +365,13 @@ class WinterTouHomeAlone(HomeAloneTouBase):
                 self.log("No EWT temperature channel found, not checking if storage is ready")
                 return False
             self.log(f"{check_temp_channel}: {self.latest_temps_f[check_temp_channel]}")
-            if self.to_fahrenheit(self.latest_temps_f[check_temp_channel]/1000) > self.params.MaxEwtF:
+            if self.latest_temps_f[check_temp_channel] > self.params.MaxEwtF:
                 self.log(f"The storage is not ready, but the bottom is above the maximum EWT ({self.params.MaxEwtF} F).")
                 self.log("The storage will therefore be considered ready, as we cannot charge it further.")
-                self.full_storage_energy = total_usable_kwh
+                self.full_storage_energy = self.usable_kwh
                 self.storage_declared_ready = True
                 return True
-            self.log(f"Storage not ready (usable {round(total_usable_kwh,1)} kWh < required {round(required_storage,1)} kWh)")
+            self.log(f"Storage not ready (usable {round(self.usable_kwh,1)} kWh < required {round(self.required_kwh,1)} kWh)")
             return False
 
     def is_storage_colder_than_buffer(self) -> bool:

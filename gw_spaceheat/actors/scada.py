@@ -52,9 +52,9 @@ from gwsproto.enums import (AtomicAllyState,  ContractStatus, FlowManifoldVarian
                    MainAutoEvent, MainAutoState, TopState)
 from gwsproto.named_types import ( ActuatorsReady, FsmEvent,
     AdminDispatch, AdminAnalogDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
-    Glitch, GoDormant, LayoutLite, NewCommandTree, NoNewContractWarning, ResetHpKeepValue,
+    Glitch, GoDormant, HeatingForecast, LayoutLite, NewCommandTree, NoNewContractWarning, ResetHpKeepValue,
     ScadaParams, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment,
-    SiegTargetTooLow, SingleMachineState,SlowContractHeartbeat, SuitUp, WakeUp,
+    SiegTargetTooLow, SingleMachineState,SlowContractHeartbeat, SuitUp, WakeUp
 )
 
 class ScadaCmdDiagnostic(enum.Enum):
@@ -283,6 +283,13 @@ class Scada(PrimeActor, ScadaInterface):
                     CreatedMs=payload.CreatedMs
                 )
                 self._send_to(self.atn, new_glitch)
+            case HeatingForecast() as hf:
+                self.data.heating_forecast = hf
+                self._send_to(self.atn, hf)
+                if self.auto_state == MainAutoState.Atn:
+                    self._send_to(self.atomic_ally, hf)
+                else:
+                    self._send_to(self.home_alone, hf)
             case MachineStates():
                 try:
                     self.process_machine_states(from_node, payload)
@@ -548,8 +555,7 @@ class Scada(PrimeActor, ScadaInterface):
             return
         if boss.Handle is None:
             return
-        new_payload = ResetHpKeepValue(FromHandle=boss.Handle, ToHandle=to_node.Handle,
-                                       FromValue=payload.FromValue, ToValue=payload.ToValue)
+        new_payload = ResetHpKeepValue(FromHandle=boss.Handle, ToHandle=to_node.Handle,HpKeepSecondsTimes10=payload.HpKeepSecondsTimes10)
         self.log(f"Got ResetHpKeepValue. Sending {new_payload} to {to_node.Name} from {boss.name}")
         self._send_to(to_node, new_payload, boss)
 
@@ -582,6 +588,7 @@ class Scada(PrimeActor, ScadaInterface):
             State=payload.StateList[-1],
             UnixMs=payload.UnixMsList[-1]
         )
+
 
     def process_power_watts(self, from_node: ShNode, payload: PowerWatts):
         """Highest priority of scada is to pass this on to Atn
@@ -802,7 +809,8 @@ class Scada(PrimeActor, ScadaInterface):
             )
             self._data.latest_channel_values[ch.Name] = payload.ValueList[idx]
             self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMs
-
+    
+    
     #####################################################################
     # State Machine related
     #####################################################################

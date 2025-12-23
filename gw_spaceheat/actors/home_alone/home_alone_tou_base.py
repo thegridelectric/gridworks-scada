@@ -77,7 +77,6 @@ class HomeAloneTouBase(ScadaActor):
         self.is_simulated = self.settings.is_simulated
         self.log(f"Params: {self.params}")
         self.log(f"self.is_simulated: {self.is_simulated}")
-        self.heating_forecast: Optional[HeatingForecast] = None
         self.zone_setpoints = {}
         if H0N.home_alone_normal not in self.layout.nodes:
             raise Exception(f"HomeAlone requires {H0N.home_alone_normal} node!!")
@@ -221,7 +220,7 @@ class HomeAloneTouBase(ScadaActor):
                 elif self.top_state == LocalControlTopState.UsingNonElectricBackup and not self.is_system_cold() and not self.is_onpeak():
                     self.trigger_zones_at_setpoint_offpeak()
                 elif self.top_state == LocalControlTopState.ScadaBlind:
-                    if self.heating_forecast_available() and self.buffer_available:
+                    if self.heating_forecast and self.buffer_available:
                         self.log("Forecasts and temperatures are both available again!")
                         self.trigger_data_available()
                     elif self.is_onpeak() and self.settings.oil_boiler_backup:
@@ -240,11 +239,6 @@ class HomeAloneTouBase(ScadaActor):
                 if self.top_state == LocalControlTopState.Normal:
                     self.engage_brain()
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
-
-    def heating_forecast_available(self) -> bool:
-        if self.heating_forecast is None:
-            return False
-        return True
 
     @abstractmethod
     def time_to_trigger_system_cold(self) -> bool:
@@ -466,7 +460,6 @@ class HomeAloneTouBase(ScadaActor):
                     self.log(f"Trouble with process_wake_up: {e}")
             case HeatingForecast():
                 self.log("Received heating forecast")
-                self.heating_forecast = message.Payload
                 if self.is_initializing():
                     self.log(f"Top state: {self.top_state}")
                     self.log(f"State: {self.normal_node_state()}")
@@ -481,12 +474,6 @@ class HomeAloneTouBase(ScadaActor):
 
     def process_wake_up(self, from_node: ShNode, payload: WakeUp) -> None:
         if self.top_state != LocalControlTopState.Dormant:
-            return
-
-        # Monitor-only mode: Dormant -> Monitor
-        if self.settings.monitor_only:
-            self.trigger_top_event(LocalControlTopStateEvent.MonitorOnly)
-            self.log("Monitor-only: WakeUp transitioned Dormant -> Monitor")
             return
 
         # Monitor-only mode: Dormant -> Monitor
@@ -783,18 +770,9 @@ class HomeAloneTouBase(ScadaActor):
             return False
 
     def is_storage_empty(self):
-        if not self.is_simulated:
-            if H0CN.usable_energy in self.data.latest_channel_values.keys():
-                total_usable_kwh = self.data.latest_channel_values[H0CN.usable_energy] / 1000
-            else:
-                total_usable_kwh = 0
-        else:
-            total_usable_kwh = 0
-        if total_usable_kwh < 0.2:
-            self.log("Storage is empty")
+        if self.usable_kwh < 0.2:
             return True
         else:
-            self.log("Storage is not empty")
             return False
         
     def get_zone_setpoints(self):

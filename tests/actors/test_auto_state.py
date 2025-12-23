@@ -38,7 +38,7 @@ async def test_auto_state_home_alone_to_atn(request: pytest.FixtureRequest) -> N
         # atomic ally will reject contract if it doesn't have forecasts. 
         # It gets forecasts during startup.
         await h.await_for(
-            lambda: aa.forecasts is not None,
+            lambda: aa.heating_forecast is not None,
             "aa never got forecasts!"
         )
 

@@ -53,7 +53,6 @@ class SynthGenerator(ScadaActor):
         self.log(f"self.longitude: {self.longitude}")
         self.log(f"Params: {self.params}")
         self.log(f"self.is_simulated: {self.is_simulated}")
-        self.forecasts: Optional[HeatingForecast]= None
         self.weather_forecast: Optional[WeatherForecast] = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
     
@@ -107,7 +106,7 @@ class SynthGenerator(ScadaActor):
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
 
-            if self.forecasts is None or time.time()>self.forecasts.Time[0] or self.received_new_params:
+            if self.heating_forecast is None or time.time()>self.heating_forecast.Time[0] or self.received_new_params:
                 await self.get_forecasts(session)
                 self.received_new_params = False
 
@@ -262,20 +261,20 @@ class SynthGenerator(ScadaActor):
         """
         required_kwh = 0
         time_now = datetime.now(self.timezone)
-        if self.forecasts is None:
+        if self.heating_forecast is None:
             self.log("Not updating required energy until forecasts exist")
             return
-        forecasts_times_tz = [datetime.fromtimestamp(x, tz=self.timezone) for x in self.forecasts.Time]
+        forecasts_times_tz = [datetime.fromtimestamp(x, tz=self.timezone) for x in self.heating_forecast.Time]
         morning_kWh = sum(
-            [kwh for t, kwh in zip(forecasts_times_tz, self.forecasts.AvgPowerKw) 
+            [kwh for t, kwh in zip(forecasts_times_tz, self.heating_forecast.AvgPowerKw)
              if 7<=t.hour<=11]
             )
         midday_kWh = sum(
-            [kwh for t, kwh in zip(forecasts_times_tz, self.forecasts.AvgPowerKw)
+            [kwh for t, kwh in zip(forecasts_times_tz, self.heating_forecast.AvgPowerKw)
              if 12<=t.hour<=15]
             )
         afternoon_kWh = sum(
-            [kwh for t, kwh in zip(forecasts_times_tz, self.forecasts.AvgPowerKw)
+            [kwh for t, kwh in zip(forecasts_times_tz, self.heating_forecast.AvgPowerKw)
              if 16<=t.hour<=19]
             )
         # Find the maximum storage
@@ -468,11 +467,15 @@ class SynthGenerator(ScadaActor):
             WeatherUid=self.weather_forecast.WeatherUid
         )
   
-        self._send_to(self.home_alone, hf)
-        self._send_to(self.atomic_ally, hf)
+        if self.buffer_available:
+            self.update_usable_energy()
+            self.update_required_energy()
+
+        # Ensure energy state is up-to-date before publishing forecast;
+        # downstream actors treat the forecast as a trigger, not as state.
+        self._send_to(self.primary_scada, hf)
         self._send_to(self.atn, self.weather_forecast)
-        self._send_to(self.atn, hf)
-        self.forecasts = hf
+
         forecast_start = datetime.fromtimestamp(self.weather_forecast.Time[0], tz=self.timezone)
         self.log(f"Got forecast starting {forecast_start.strftime('%Y-%m-%d %H:%M:%S')}")
 
@@ -494,21 +497,21 @@ class SynthGenerator(ScadaActor):
         NOTE:
         This is not "the return water temperature at required SWT".
         It is a load- and forecast-limited effective return temperature.
-        Requires self.forecasts
+        Requires self.heating_forecast
         """
-        if self.forecasts is None:
+        if self.heating_forecast is None:
             self.log("Forecasts are not available, can not find RWT")
             return
-        forecasts_times_tz = [datetime.fromtimestamp(x, tz=self.timezone) for x in self.forecasts.Time]
+        forecasts_times_tz = [datetime.fromtimestamp(x, tz=self.timezone) for x in self.heating_forecast.Time]
         timenow = datetime.now(self.timezone)
         if timenow.hour > 19 or timenow.hour < 12:
             required_swt = max(
-                [rswt for t, rswt in zip(forecasts_times_tz, self.forecasts.RswtF)
+                [rswt for t, rswt in zip(forecasts_times_tz, self.heating_forecast.RswtF)
                 if t.hour in [7,8,9,10,11,16,17,18,19]]
                 )
         else:
             required_swt = max(
-                [rswt for t, rswt in zip(forecasts_times_tz, self.forecasts.RswtF)
+                [rswt for t, rswt in zip(forecasts_times_tz, self.heating_forecast.RswtF)
                 if t.hour in [16,17,18,19]]
                 )
         if swt_f < required_swt - 10:

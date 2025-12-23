@@ -12,15 +12,15 @@ from gwproto.data_classes.components.dfr_component import DfrComponent
 
 from gwproto.enums import ActorClass, FsmReportType, RelayClosedOrOpen
 from gwsproto.enums import AaBufferOnlyState, AaBufferOnlyEvent
-from gwproto.named_types import AnalogDispatch, FsmAtomicReport, FsmFullReport, PicoTankModuleComponentGt
+from gwproto.named_types import AnalogDispatch, FsmAtomicReport, FsmFullReport
 from result import Ok, Result
 from transitions import Machine
 
 from actors.scada_actor import ScadaActor
 from scada_app_interface import ScadaAppInterface
-from gwsproto.enums import HomeAloneStrategy, LogLevel
+from gwsproto.enums import HomeAloneStrategy
 from gwsproto.named_types import (
-    AllyGivesUp,  Glitch, GoDormant, Ha1Params, HeatingForecast,
+    AllyGivesUp, GoDormant, Ha1Params, HeatingForecast,
     SingleMachineState, SlowContractHeartbeat, SlowDispatchContract, SuitUp
 )
 
@@ -71,7 +71,7 @@ class BufferOnlyAtomicAlly(ScadaActor):
         self.state: AaBufferOnlyState = AaBufferOnlyState.Dormant
         self.prev_state: AaBufferOnlyState = AaBufferOnlyState.Dormant 
         self.log(f"Params: {self.params}")
-        self.forecasts: Optional[HeatingForecast] = None
+        self.heating_forecast: Optional[HeatingForecast] = None
         self.time_buffer_full = 0
         if H0N.atomic_ally not in self.layout.nodes:
             raise Exception(f"AtomicAlly requires {H0N.atomic_ally} node!!")
@@ -108,8 +108,10 @@ class BufferOnlyAtomicAlly(ScadaActor):
                     self.trigger_event(AaBufferOnlyEvent.GoDormant)
                     self.log("Going dormant")
             case HeatingForecast():
-                self.log("Received forecast")
-                self.forecasts = message.Payload
+                # forecasts stored in self.data.heating_forecast
+                # but we can use this trigger leaving Initializing
+                if self.state == AaBufferOnlyState.Initializing and self.buffer_available:
+                    self.engage_brain
             case SlowDispatchContract(): # WakeUp
                 try:
                     self.process_slow_dispatch_contract(from_node, message.Payload)
@@ -124,13 +126,13 @@ class BufferOnlyAtomicAlly(ScadaActor):
             raise Exception("contract should come from scada!")
         
         if self.layout.ha_strategy in [HomeAloneStrategy.Summer]:
-            self.log(f"Cannot wake up - in summer mode")
+            self.log("Cannot wake up - in summer mode")
             self._send_to(
                 self.primary_scada,
                 AllyGivesUp(Reason="In Summer Mode ... does not enter DispatchContracts"))
             return
 
-        if not self.forecasts:
+        if not self.heating_forecast:
             self.log("Cannot Wake up - missing forecasts!")
             self._send_to(
                 self.primary_scada,
@@ -393,10 +395,10 @@ class BufferOnlyAtomicAlly(ScadaActor):
         else:
             self.alert(summary="buffer_full_fail", details="Impossible to know if the buffer is full!")
             return False
-        if self.forecasts is None:
+        if self.heating_forecast is None:
             self.alert(summary="buffer_full_fail", details="Impossible without forecasts")
             return False
-        max_buffer = round(max(self.forecasts.RswtF[:3]),1)
+        max_buffer = round(max(self.heating_forecast.RswtF[:3]),1)
         buffer_full_ch_temp = self.latest_temps_f[buffer_full_ch]
 
         if really_full:

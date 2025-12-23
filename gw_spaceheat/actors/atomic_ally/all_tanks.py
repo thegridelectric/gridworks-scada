@@ -81,7 +81,6 @@ class AllTanksAtomicAlly(ScadaActor):
         self.state: AtomicAllyState = AtomicAllyState.Dormant
         self.prev_state: AtomicAllyState = AtomicAllyState.Dormant 
         self.log(f"Params: {self.params}")
-        self.forecasts: Optional[HeatingForecast] = None
         self.storage_declared_full = False
         self.storage_full_since = 0
         if H0N.atomic_ally not in self.layout.nodes:
@@ -120,7 +119,10 @@ class AllTanksAtomicAlly(ScadaActor):
                     self.log("Going dormant")
             case HeatingForecast():
                 self.log("Received forecast")
-                self.forecasts = message.Payload
+                # forecasts stored in self.data.heating_forecast
+                # but we can use this trigger leaving Initializing
+                if self.state == AtomicAllyState.Initializing and self.buffer_available:
+                    self.engage_brain
             case SlowDispatchContract(): # WakeUp
                 try:
                     self.process_slow_dispatch_contract(from_node, message.Payload)
@@ -141,7 +143,7 @@ class AllTanksAtomicAlly(ScadaActor):
                 AllyGivesUp(Reason="In Summer Mode ... does not enter DispatchContracts"))
             return
 
-        if not self.forecasts:
+        if not self.heating_forecast:
             self.log("Cannot Wake up - missing forecasts!")
             self._send_to(
                 self.primary_scada,
@@ -453,11 +455,11 @@ class AllTanksAtomicAlly(ScadaActor):
         else:
             self.alert(summary="buffer_empty_fail", details="Impossible to know if the buffer is empty!")
             return False
-        if self.forecasts is None:
+        if self.heating_forecast is None:
             self.alert(summary="buffer_empty_fail", details="Impossible without forecasts")
             return False
-        max_rswt_next_3hours = max(self.forecasts.RswtF[:3])
-        max_deltaT_rswt_next_3_hours = max(self.forecasts.RswtDeltaTF[:3])
+        max_rswt_next_3hours = max(self.heating_forecast.RswtF[:3])
+        max_deltaT_rswt_next_3_hours = max(self.heating_forecast.RswtDeltaTF[:3])
         min_buffer = round(max_rswt_next_3hours - max_deltaT_rswt_next_3_hours,1)
         buffer_empty_ch_temp = self.latest_temps_f[buffer_empty_ch]
         if buffer_empty_ch_temp < min_buffer:
@@ -479,10 +481,10 @@ class AllTanksAtomicAlly(ScadaActor):
         else:
             self.alert(summary="buffer_full_fail", details="Impossible to know if the buffer is full!")
             return False
-        if self.forecasts is None:
+        if self.heating_forecast is None:
             self.alert(summary="buffer_full_fail", details="Impossible without forecasts")
             return False
-        max_buffer = round(max(self.forecasts.RswtF[:3]),1)
+        max_buffer = round(max(self.heating_forecast.RswtF[:3]),1)
         buffer_full_ch_temp = self.latest_temps_f[buffer_full_ch]
 
         if really_full:

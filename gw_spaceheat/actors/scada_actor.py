@@ -31,7 +31,7 @@ from gwsproto.enums import ChangeKeepSend, LogLevel, TurnHpOnOff
 from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import (
     I2cMultichannelDtRelayComponent,
 )
-from gwsproto.named_types import FsmEvent, Glitch, NewCommandTree
+from gwsproto.named_types import FsmEvent, Glitch, HeatingForecast, NewCommandTree
 from pydantic import ValidationError
 
 from scada_app_interface import ScadaAppInterface
@@ -1094,6 +1094,10 @@ class ScadaActor(Actor, ABC):
     # Data related
     ##########################################
 
+    @property
+    def heating_forecast(self) -> HeatingForecast | None:
+        return self.data.heating_forecast
+
     def odu_pwr(self) -> Optional[float]:
         """Returns the latest Heat Pump outdoor unit power in Watts, or None
         if it does not exist"""
@@ -1119,6 +1123,22 @@ class ScadaActor(Actor, ABC):
     @property
     def buffer_available(self):
         return self.data.buffer_available
+
+    @property
+    def usable_kwh(self) -> float:
+        """
+        Latest usable thermal energy in kWh, derived from SCADA channel.
+        Returns 0 if not yet available.
+        """
+        return self.data.latest_channel_values.get(H0CN.usable_energy, 0) / 1000
+
+    @property
+    def required_kwh(self) -> float:
+        """
+        Latest required thermal energy in kWh, derived from SCADA channel.
+        Returns 0 if not yet available.
+        """
+        return self.data.latest_channel_values.get(H0CN.required_energy, 0) / 1000
 
     def fill_missing_store_temps(self):
         """

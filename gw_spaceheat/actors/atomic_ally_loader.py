@@ -52,7 +52,3 @@ class AtomicAlly(ScadaActor):
     @property
     def monitored_names(self):
         return self._impl.monitored_names
-
-    @property
-    def forecasts(self):
-        return self._impl.forecasts

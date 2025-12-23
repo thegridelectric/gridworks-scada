@@ -18,7 +18,12 @@ from gwproto.messages import (
     SingleReading,
 )
 
-from gwsproto.named_types import Ha1Params, SingleMachineState, SnapshotSpaceheat
+from gwsproto.named_types import (
+    Ha1Params,
+    HeatingForecast,
+    SingleMachineState,
+    SnapshotSpaceheat,
+)
 class ScadaData:
     reports_to_store: Dict[str, Report]
     recent_machine_states: Dict[str, MachineStates] # key is machine handle
@@ -76,6 +81,7 @@ class ScadaData:
             ch.Name: [] for ch in self.my_channels
         }
         self.latest_power_w: Optional[int] = None
+        self.heating_forecast: HeatingForecast | None = None
         self.recent_fsm_reports = {}
         self.flush_recent_readings()
 

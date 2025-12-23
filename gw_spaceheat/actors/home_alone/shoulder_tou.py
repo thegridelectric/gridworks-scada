@@ -199,18 +199,13 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
                     if self.is_buffer_empty():
                         self.trigger_normal_event(HaShoulderEvent.BufferNeedsCharge)
                     elif not self.is_buffer_ready():
-                        usable = (self.data.latest_channel_values[H0CN.usable_energy] / 1000)
-                        required = (self.data.latest_channel_values[H0CN.required_energy] / 1000)
+
                         if self.buffer_declared_ready:
                             if self.full_buffer_energy is None:
-                                if usable > 0.9 * required:
-                                    self.log("The buffer was already declared ready during this off-peak period")
-                                else:
+                                if self.usable_kwh < 0.9 * self.required_kwh:
                                     self.trigger_normal_event(HaShoulderEvent.BufferNeedsCharge)
                             else:
-                                if usable > 0.7 * self.full_buffer_energy:
-                                    self.log("The buffer was already declared full during this off-peak period")
-                                else:
+                                if self.usable_kwh < 0.7 * self.full_buffer_energy:
                                     self.trigger_normal_event(HaShoulderEvent.BufferNeedsCharge)
                         else:
                             self.trigger_normal_event(HaShoulderEvent.BufferNeedsCharge)
@@ -293,12 +288,10 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
             return False
 
     def is_buffer_ready(self) -> bool:
-        if datetime.now(self.timezone).hour not in [5, 6] + [14, 15]:
+        if datetime.now(self.timezone).hour not in [5, 6] + [14, 15]: # TODO: centralize TOU hour definition
             self.log("No onpeak period coming up soon.")
             self.buffer_declared_ready = False
             return True
-        total_usable_kwh = self.data.latest_channel_values[H0CN.usable_energy] / 1000
-        required_onpeak = self.data.latest_channel_values[H0CN.required_energy] / 1000
 
         # Add the requirement of getting to the start of onpeak
         now = datetime.now(self.timezone)
@@ -310,13 +303,13 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
         time_to_onpeak = onpeak_start_time - now
         hours_to_onpeak = round(time_to_onpeak.total_seconds() / 3600, 2)
         self.log(f"There are {hours_to_onpeak} hours left to the start of onpeak")
-        required_buffer_energy = required_onpeak * (
+        required_buffer_energy = self.required_kwh * (
             1 + hours_to_onpeak / onpeak_duration_hours
         )
 
-        if total_usable_kwh >= required_buffer_energy:
+        if self.usable_kwh >= required_buffer_energy:
             self.log(
-                f"Buffer ready for onpeak (usable {round(total_usable_kwh,1)} kWh >= required {round(required_buffer_energy,1)} kWh)"
+                f"Buffer ready for onpeak (usable {round(self.usable_kwh)} kWh >= required {round(required_buffer_energy,1)} kWh)"
             )
             self.buffer_declared_ready = True
             return True
@@ -326,8 +319,8 @@ class ShoulderTouHomeAlone(HomeAloneTouBase):
                 if (self.latest_temps_f[H0N.buffer_cold_pipe] > self.params.MaxEwtF):
                     self.log(f"The buffer is not ready, but the bottom is above the maximum EWT ({self.params.MaxEwtF} F).")
                     self.log("The buffer will therefore be considered ready, as we cannot charge it further.")
-                    self.full_buffer_energy = total_usable_kwh
+                    self.full_buffer_energy = self.usable_kwh
                     self.buffer_declared_ready = True
                     return True
-            self.log(f"Buffer not ready for onpeak (usable {round(total_usable_kwh,1)} kWh < required {round(required_buffer_energy,1)} kWh)")
+            self.log(f"Buffer not ready for onpeak (usable {round(self.usable_kwh,1)} kWh < required {round(required_buffer_energy,1)} kWh)")
             return False
