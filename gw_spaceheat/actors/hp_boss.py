@@ -12,7 +12,7 @@ from gwproto.enums import ChangeRelayState
 from result import Ok, Result
 
 
-from actors.scada_actor import ScadaActor
+from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 from gwsproto.enums import LogLevel, TurnHpOnOff
 from gwsproto.named_types import ActuatorsReady, FsmEvent, Glitch, SingleMachineState
@@ -34,7 +34,7 @@ class HpBossState(GwStrEnum):
     def enum_name(cls) -> str:
         return "hp.boss.state"
 
-class HpBoss(ScadaActor):
+class HpBoss(ShNodeActor):
     """
     Direct Reports:
     HpBoss

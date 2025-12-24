@@ -7,7 +7,7 @@ from adafruit_ads1x15.analog_in import AnalogIn
 
 
 PI_VOLTAGE = 5.1
-# 298 Kelvin is 25 Celcius
+# 298 Kelvin is 25 Celsius
 THERMISTOR_T0_DEGREES_KELVIN = 298
 # NTC THermistors are 10 kOhms at 25 deg C
 THERMISTOR_R0_OHMS = 10000
@@ -28,7 +28,7 @@ def thermistor_temp_c_beta_formula(
     # Calculate the resistance of the thermistor
     rt = rd * voltage / (PI_VOLTAGE - voltage)
     # Calculate the temperature in degrees Celsius. Note that 273 is
-    # 0 degrees Celcius as measured in Kelvin.
+    # 0 degrees Celsius as measured in Kelvin.
     temp_c = 1 / ((1 / t0) + (math.log(rt / r0) / beta)) - 273
     # Convert the temperature to degrees Fahrenheit
     temp_f = (temp_c * 9 / 5) + 32

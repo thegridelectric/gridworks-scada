@@ -15,7 +15,7 @@ from gwproto.named_types import FsmFullReport, SingleReading, AnalogDispatch
 from result import Ok, Result
 from gw.enums import GwStrEnum
 from actors.hp_boss import SiegLoopReady, HpBossState
-from actors.scada_actor import ScadaActor
+from actors.sh_node_actor import ShNodeActor
 from gwsproto.enums import HpModel, LogLevel
 from gwsproto.named_types import (ActuatorsReady, Glitch, ResetHpKeepValue, SetLwtControlParams,
     SetTargetLwt, SiegTargetTooLow,  SingleMachineState)
@@ -77,7 +77,7 @@ class ControlEvent(GwStrEnum):
     ReachFullSend = auto()
 
 
-class SiegLoop(ScadaActor):
+class SiegLoop(ShNodeActor):
     """
     ```
               ├── HpLoopOnOff relay

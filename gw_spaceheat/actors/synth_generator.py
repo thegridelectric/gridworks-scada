@@ -5,26 +5,28 @@ import asyncio
 import aiohttp
 import math
 import numpy as np
-from typing import Optional, Sequence, cast
+from typing import Optional, Sequence
 from result import Ok, Result
 from datetime import datetime,  timezone
 from gwproto import Message
 
-from gwproto.named_types import SingleReading, PicoTankModuleComponentGt
-from gwsproto.named_types import Glitch
+from gwproto.named_types import SingleReading
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 
-from actors.scada_actor import ScadaActor
-from gwsproto.enums import HomeAloneStrategy, LogLevel
-from gwsproto.data_classes.house_0_names import H0CN, H0N
+from actors.sh_node_actor import ShNodeActor
+from gwsproto.enums import HomeAloneStrategy
+from gwsproto.data_classes.house_0_names import H0CN
 from gwsproto.named_types import (Ha1Params, HeatingForecast,
                          WeatherForecast, ScadaParams)
 from scada_app_interface import ScadaAppInterface
 
 
-class SynthGenerator(ScadaActor):
+class SynthGenerator(ShNodeActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
+    GALLONS_PER_TANK = 119
+    WATER_SPECIFIC_HEAT_KJ_PER_KG_C = 4.187
+    GALLON_PER_LITER = 3.78541
 
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
@@ -33,9 +35,9 @@ class SynthGenerator(ScadaActor):
 
         self.elec_assigned_amount = None
         self.previous_time = None
-        self.temperatures_available = False
         self.received_new_params: bool = False
         self.last_evaluated_strategy = 0
+        self.first_required_energy_update_done: bool = False
 
         # House parameters in the .env file
         self.is_simulated = self.settings.is_simulated
@@ -52,8 +54,6 @@ class SynthGenerator(ScadaActor):
         self.log(f"self.longitude: {self.longitude}")
         self.log(f"Params: {self.params}")
         self.log(f"self.is_simulated: {self.is_simulated}")
-
-        self.forecasts: Optional[HeatingForecast]= None
         self.weather_forecast: Optional[WeatherForecast] = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
     
@@ -102,18 +102,22 @@ class SynthGenerator(ScadaActor):
             await self.main_loop(session)
 
     async def main_loop(self, session: aiohttp.ClientSession) -> None:
+        self.log("SynthGen about to get forecasts")
         await self.get_forecasts(session)
         await asyncio.sleep(2)
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
 
-            if self.forecasts is None or time.time()>self.forecasts.Time[0] or self.received_new_params:
+            if self.heating_forecast is None or time.time()>self.heating_forecast.Time[0] or self.received_new_params:
                 await self.get_forecasts(session)
                 self.received_new_params = False
 
-            self.get_latest_temperatures()
-            if self.temperatures_available:
-                self.update_energy()
+            self.get_temperatures()
+            if self.buffer_temps_available:
+                self.update_usable_energy()
+                if self.heating_forecast:
+                    self.update_required_energy(self.heating_forecast)
+                # self.evaluate_strategy()
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     def stop(self) -> None:
@@ -128,102 +132,105 @@ class SynthGenerator(ScadaActor):
                 self.log("Received new parameters, time to recompute forecasts!")
                 self.received_new_params = True
         return Ok(True)
-    
-    def fill_missing_store_temps(self):
-        all_store_layers = sorted([x for x in self.temperature_channel_names if 'tank' in x])
-        for layer in all_store_layers:
-            if (layer not in self.latest_temperatures 
-            or self.to_fahrenheit(self.latest_temperatures[layer]/1000) < 70
-            or self.to_fahrenheit(self.latest_temperatures[layer]/1000) > 200):
-                self.latest_temperatures[layer] = None
-        if H0CN.store_cold_pipe in self.latest_temperatures:
-            value_below = self.latest_temperatures[H0CN.store_cold_pipe]
-        else:
-            value_below = 0
-        for layer in sorted(all_store_layers, reverse=True):
-            if self.latest_temperatures[layer] is None:
-                self.latest_temperatures[layer] = value_below
-            value_below = self.latest_temperatures[layer]  
-        self.latest_temperatures = {k:self.latest_temperatures[k] for k in sorted(self.latest_temperatures)}
-    
-    # Receive latest temperatures
-    def get_latest_temperatures(self):
-        if not self.is_simulated:
-            temp = {
-                x: self.data.latest_channel_values[x] 
-                for x in self.temperature_channel_names
-                if x in self.data.latest_channel_values
-                and self.data.latest_channel_values[x] is not None
-                }
-            self.latest_temperatures = temp.copy()
-        else:
-            self.log("IN SIMULATION - set all temperatures to 60 degC")
-            self.latest_temperatures = {}
-            for channel_name in self.temperature_channel_names:
-                self.latest_temperatures[channel_name] = 60 * 1000
-        if list(self.latest_temperatures.keys()) == self.temperature_channel_names:
-            self.temperatures_available = True
-        else:
-            self.temperatures_available = False
-            all_buffer = [x for x in self.temperature_channel_names if 'buffer-depth' in x]
-            available_buffer = [x for x in list(self.latest_temperatures.keys()) if 'buffer-depth' in x]
-            if all_buffer == available_buffer:
-                if self.layout.ha_strategy != HomeAloneStrategy.ShoulderTou:
-                    self.fill_missing_store_temps()
-                self.temperatures_available = True
-
 
     # Compute usable and required energy
-    def update_energy(self) -> None:
-        
-        time_now = datetime.now(self.timezone)
-        latest_temperatures = self.latest_temperatures.copy()
+    def update_usable_energy(self) -> None:
+        """
+        Computes and publishes usable thermal energy (kWh) currently stored
+        above the forecast-constrained return-water temperature.
 
-        if self.layout.ha_strategy in [HomeAloneStrategy.Summer]:
-            #self.log(f"Does not calculate usable/required energy in {self.layout.ha_strategy} ")
+        This method:
+        - Simulates layer-by-layer discharge of tanks or buffer
+        - Assumes stratified storage
+        - Publishes usable energy as a SCADA reading
+        """
+        if self.layout.ha_strategy == HomeAloneStrategy.Summer:
             return
 
-        if self.layout.ha_strategy == HomeAloneStrategy.WinterTou:
-            storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
-            simulated_layers = [self.to_fahrenheit(v/1000) for k,v in storage_temperatures.items()]
-        elif self.layout.ha_strategy == HomeAloneStrategy.ShoulderTou: 
-            buffer_temperatures = {k:v for k,v in latest_temperatures.items() if 'buffer' in k and 'depth' in k}
-            simulated_layers = [self.to_fahrenheit(v/1000) for k,v in buffer_temperatures.items()]   
-        else:
-            raise Exception(f"not prepared for home alone strategy {self.layout.ha_strategy}")    
-        self.usable_kwh = 0
-        while True:
-            if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
-                simulated_layers = [sum(simulated_layers)/len(simulated_layers) for x in simulated_layers]
-                if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
-                    break
-            self.usable_kwh += 120/3 * 3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
-            simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]          
-        self.required_kwh = self.get_required_storage(time_now)
-        self.log(f"Usable energy: {round(self.usable_kwh,1)} kWh")
-        self.log(f"Required energy: {round(self.required_kwh,1)} kWh")
-        self.evaluate_strategy()
+        if self.heating_forecast is None:
+            self.log("Skipping energy update: heating_forecast not yet available")
+            return
 
-        # Post usable and required energy
-        t_ms = int(time.time() * 1000)
+        latest_temps_f = self.latest_temps_f.copy()
+
+        ordered_tank_layers = []
+        if self.layout.ha_strategy == HomeAloneStrategy.WinterTou:
+            for tank_idx in sorted(self.h0cn.tank):
+                tank = self.h0cn.tank[tank_idx]
+                ordered_tank_layers.extend([
+                    tank.depth1,
+                    tank.depth2,
+                    tank.depth3,
+                ])
+        elif self.layout.ha_strategy == HomeAloneStrategy.ShoulderTou: 
+            ordered_tank_layers = [
+                    H0CN.buffer.depth1,
+                    H0CN.buffer.depth2,
+                    H0CN.buffer.depth3,
+                ]
+        else:
+            raise ValueError(f"Unsupported HA strategy {self.layout.ha_strategy}")
+
+        simulated_layers_f = [
+            latest_temps_f[ch]
+            for ch in ordered_tank_layers
+            if ch in latest_temps_f
+        ]
+
+        if not simulated_layers_f:
+            self.log("Usable energy not updated: no buffer/tank temperatures yet")
+            return
+
+        gallons_per_layer = (
+            self.GALLONS_PER_TANK * len(self.h0cn.tank)
+        ) / len(simulated_layers_f)
+
+        mass_kg_per_layer = gallons_per_layer * self.GALLON_PER_LITER
+
+        usable_kwh = 0
+        while True:
+            hottest_f = simulated_layers_f[0]
+            rwt_f =self.rwt_f(hottest_f)
+
+            if rwt_f is None:
+                return
+            if round(hottest_f) == round(rwt_f):
+                simulated_layers_f = [
+                    sum(simulated_layers_f) / len(simulated_layers_f)
+                ] * len(simulated_layers_f)
+
+                if round(simulated_layers_f[0]) == round(rwt_f):
+                    break
+
+            delta_c = (hottest_f - rwt_f) * 5 / 9
+
+            # add this layer's delta energy
+            usable_kwh += (
+                mass_kg_per_layer
+                * self.WATER_SPECIFIC_HEAT_KJ_PER_KG_C # kJoules needed to raise 1 liter 1 deg C
+                * delta_c
+                / 3600
+            )
+            # pop the layer
+            simulated_layers_f = (
+                simulated_layers_f[1:] + [rwt_f]
+            )
+
+        # self.log(f"Usable energy: {round(usable_kwh,1)} kWh")
+
         self._send_to(
                 self.primary_scada,
                 SingleReading(
-                    ChannelName="usable-energy",
-                    Value=int(self.usable_kwh*1000),
-                    ScadaReadTimeUnixMs=t_ms,
+                    ChannelName = H0CN.usable_energy,
+                    Value=int(usable_kwh*1000),
+                    ScadaReadTimeUnixMs=int(time.time() * 1000),
                 ),
             )
-        self._send_to(
-                self.primary_scada,
-                SingleReading(
-                    ChannelName="required-energy",
-                    Value=int(self.required_kwh*1000),
-                    ScadaReadTimeUnixMs=t_ms,
-                ),
-            )
-        
+
     def evaluate_strategy(self):
+        """
+        Send an info Glitch if we think its time to change strategy
+        """
         if self.layout.ha_strategy != HomeAloneStrategy.ShoulderTou:
             return
         if time.time() - self.last_evaluated_strategy > 3600:
@@ -233,49 +240,70 @@ class SynthGenerator(ScadaActor):
         simulated_layers = [self.params.MaxEwtF]*3   
         max_buffer_usable_kwh = 0
         while True:
-            if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
+            if round(self.rwt_f(simulated_layers[0])) == round(simulated_layers[0]):
                 simulated_layers = [sum(simulated_layers)/len(simulated_layers) for x in simulated_layers]
-                if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
+                if round(self.rwt_f(simulated_layers[0])) == round(simulated_layers[0]):
                     break
-            max_buffer_usable_kwh += 120/3 * 3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
-            simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]          
+            max_buffer_usable_kwh += 120/3 * 3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt_f(simulated_layers[0]))*5/9
+            simulated_layers = simulated_layers[1:] + [self.rwt_f(simulated_layers[0])]          
         self.log(f"Max buffer usable energy: {round(max_buffer_usable_kwh,1)} kWh")
-        if round(max_buffer_usable_kwh,1) < round(self.required_kwh,1):
+        required_energy = self.data.latest_channel_values.get(H0CN.required_energy, 0)
+        if round(max_buffer_usable_kwh,1) < round(required_energy,1):
             summary = "Consider changing strategy to use all tanks and not just the buffer"
             details = f"A full buffer will not have enough energy to go through the next on-peak ({round(max_buffer_usable_kwh,1)}<{round(self.required_kwh,1)} kWh)"
             self.log(details)
             self.send_info(summary, details)
         
-    def get_required_storage(self, time_now: datetime) -> float:
-        forecasts_times_tz = [datetime.fromtimestamp(x, tz=self.timezone) for x in self.forecasts.Time]
+    def update_required_energy(self, heating_forecast: HeatingForecast) -> None:
+        """
+        Computes and publishes the required thermal energy (kWh) needed to
+        cover upcoming on-peak periods, based on forecasted load and
+        maximum usable storage.
+
+        This method:
+        - Requires forecasts to be present
+        - Does not store state locally
+        - Publishes required energy as a SCADA reading
+
+        If forecasts are unavailable, no update is sent.
+        """
+        required_kwh = 0
+        time_now = datetime.now(self.timezone)
+        if heating_forecast is None:
+            self.log("Not updating required energy until forecasts exist")
+            return
+
+        forecasts_times_tz = [datetime.fromtimestamp(x, tz=self.timezone) for x in heating_forecast.Time]
         morning_kWh = sum(
-            [kwh for t, kwh in zip(forecasts_times_tz, self.forecasts.AvgPowerKw) 
+            [kwh for t, kwh in zip(forecasts_times_tz, heating_forecast.AvgPowerKw)
              if 7<=t.hour<=11]
             )
         midday_kWh = sum(
-            [kwh for t, kwh in zip(forecasts_times_tz, self.forecasts.AvgPowerKw)
+            [kwh for t, kwh in zip(forecasts_times_tz, heating_forecast.AvgPowerKw)
              if 12<=t.hour<=15]
             )
         afternoon_kWh = sum(
-            [kwh for t, kwh in zip(forecasts_times_tz, self.forecasts.AvgPowerKw)
+            [kwh for t, kwh in zip(forecasts_times_tz, heating_forecast.AvgPowerKw)
              if 16<=t.hour<=19]
             )
         # Find the maximum storage
         if self.layout.ha_strategy == HomeAloneStrategy.WinterTou:
-            simulated_layers = [self.params.MaxEwtF + 10] * 3 * 3
+            num_layers = len(self.h0cn.tank) * self.NUM_LAYERS_PER_TANK
         elif self.layout.ha_strategy == HomeAloneStrategy.ShoulderTou:
-            simulated_layers = [self.params.MaxEwtF + 10] * 3 * 1
+            num_layers = self.NUM_LAYERS_PER_TANK # just the buffer
         else:
             raise Exception(f"not prepared for home alone strategy {self.layout.ha_strategy}")
-    
+
+        simulated_layers = [self.params.MaxEwtF + 10] * num_layers
         max_storage_kwh = 0
         while True:
-            if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
+            if round(self.rwt_f(simulated_layers[0])) == round(simulated_layers[0]):
                 simulated_layers = [sum(simulated_layers)/len(simulated_layers) for x in simulated_layers]
-                if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
+                if round(self.rwt_f(simulated_layers[0])) == round(simulated_layers[0]):
                     break
-            max_storage_kwh += 120/3 * 3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
-            simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]
+
+            max_storage_kwh += 120/3 * 3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt_f(simulated_layers[0]))*5/9
+            simulated_layers = simulated_layers[1:] + [self.rwt_f(simulated_layers[0])]
         if (((time_now.weekday()<4 or time_now.weekday()==6) and time_now.hour>=20) or (time_now.weekday()<5 and time_now.hour<=6)):
             self.log('Preparing for a morning onpeak + afternoon onpeak')
             afternoon_missing_kWh = afternoon_kWh - (4*self.params.HpMaxKwTh - midday_kWh) # TODO make the kW_th a function of COP and kW_el
@@ -284,16 +312,21 @@ class SynthGenerator(ScadaActor):
             else:
                 required = morning_kWh + afternoon_missing_kWh
             required_kwh = min(required, max_storage_kwh)
-            return required_kwh
         elif (time_now.weekday()<5 and time_now.hour>=12 and time_now.hour<16):
             self.log('Preparing for an afternoon onpeak')
-            return afternoon_kWh
+            required_kwh = afternoon_kWh
         else:
-            self.log('Currently in on-peak or no on-peak period coming up soon')
-            return 0
-
-    def to_celcius(self, t: float) -> float:
-        return (t-32)*5/9
+            self.log("Currently in on-peak or no on-peak period coming up soon")
+            
+        # self.log(f"Required energy: {round(required_kwh,1)} kWh")
+        self._send_to(
+                self.primary_scada,
+                SingleReading(
+                    ChannelName=H0CN.required_energy,
+                    Value=int(required_kwh*1000),
+                    ScadaReadTimeUnixMs=int(time.time() * 1000),
+                ),
+            )
 
     def delta_T(self, swt: float) -> float:
         a, b, c = self.rswt_quadratic_params
@@ -432,7 +465,7 @@ class SynthGenerator(ScadaActor):
         forecasts['required_swt'] = [self.required_swt(x) for x in forecasts['avg_power']]
         forecasts['required_swt_delta_T'] = [round(self.delta_T(x),2) for x in forecasts['required_swt']]
 
-        # Send cropped 24-hour heating  forecast to aa & ha for their own use
+        # Send cropped 24-hour heating forecast to aa & ha for their own use
         # and send both the 48-hour weather forecast and 24-hr heating forecast to atn for record-keeping
         hf = HeatingForecast(
             FromGNodeAlias=self.layout.scada_g_node_alias,
@@ -442,49 +475,61 @@ class SynthGenerator(ScadaActor):
             RswtDeltaTF = forecasts['required_swt_delta_T'][:24],
             WeatherUid=self.weather_forecast.WeatherUid
         )
-  
-        self._send_to(self.home_alone, hf)
-        self._send_to(self.atomic_ally, hf)
-        self._send_to(self.atn, self.weather_forecast)
+
+        # Ensure energy state is up-to-date before publishing forecast;
+        # downstream actors treat the forecast as a trigger, not as state.
+        self.data.heating_forecast = hf
         self._send_to(self.atn, hf)
-        self.forecasts = hf
+        self._send_to(self.atn, self.weather_forecast)
+
+        if not self.first_required_energy_update_done:
+            self.log("Updating usable and required energy")
+            self.update_usable_energy()
+            self.update_required_energy(hf)
+            self.first_required_energy_update_done = True
+
         forecast_start = datetime.fromtimestamp(self.weather_forecast.Time[0], tz=self.timezone)
         self.log(f"Got forecast starting {forecast_start.strftime('%Y-%m-%d %H:%M:%S')}")
 
+    def rwt_f(self, swt_f: float) -> float:
+        """
+        Returns the forecast-constrained return water temperature for a given
+        source (leaving) water temperature.
 
-    def rwt(self, swt: float, return_rswt_onpeak=False) -> float:
-        if self.forecasts is None:
-            self.log("Forecasts are not available, can not find RWT")
-            return
-        forecasts_times_tz = [datetime.fromtimestamp(x, tz=self.timezone) for x in self.forecasts.Time]
+        This function models how much heat can be extracted from water at temperature
+        `swt_f` while attempting to meet the forecasted load:
+
+        - If `swt_f` is well below the required SWT, no heat can be extracted
+        and return temperature equals supply temperature.
+        - If `swt_f` is near the required SWT, partial extraction is possible
+        with a reduced delta-T.
+        - If `swt_f` is above the required SWT, full extraction is assumed.
+
+        NOTE:
+        This is not "the return water temperature at required SWT".
+        It is a load- and forecast-limited effective return temperature.
+        Requires self.heating_forecast
+        """
+        if self.heating_forecast is None:
+            raise RuntimeError(
+                "rwt_f called before heating_forecast is available"
+            )
+        forecasts_times_tz = [datetime.fromtimestamp(x, tz=self.timezone) for x in self.heating_forecast.Time]
         timenow = datetime.now(self.timezone)
         if timenow.hour > 19 or timenow.hour < 12:
             required_swt = max(
-                [rswt for t, rswt in zip(forecasts_times_tz, self.forecasts.RswtF)
+                [rswt for t, rswt in zip(forecasts_times_tz, self.heating_forecast.RswtF)
                 if t.hour in [7,8,9,10,11,16,17,18,19]]
                 )
         else:
             required_swt = max(
-                [rswt for t, rswt in zip(forecasts_times_tz, self.forecasts.RswtF)
+                [rswt for t, rswt in zip(forecasts_times_tz, self.heating_forecast.RswtF)
                 if t.hour in [16,17,18,19]]
                 )
-        if return_rswt_onpeak:
-            return required_swt
-        if swt < required_swt - 10:
+        if swt_f < required_swt - 10:
             delta_t = 0
-        elif swt < required_swt:
-            delta_t = self.delta_T(required_swt) * (swt-(required_swt-10))/10
+        elif swt_f < required_swt:
+            delta_t = self.delta_T(required_swt) * (swt_f-(required_swt-10))/10
         else:
-            delta_t = self.delta_T(swt)
-        return round(swt - delta_t,2)
-
-    def send_glitch(self, summary: str, details: str, log_level: LogLevel = LogLevel.Info) -> None:
-        msg = Glitch(
-            FromGNodeAlias=self.layout.scada_g_node_alias,
-            Node=self.node.Name,
-            Type=log_level,
-            Summary=summary,
-            Details=details
-        )
-        self._send_to(self.atn, msg)
-        self.log(f"Glitch: {summary}")
+            delta_t = self.delta_T(swt_f)
+        return round(swt_f - delta_t,2)

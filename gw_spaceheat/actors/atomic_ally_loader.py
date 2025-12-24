@@ -1,10 +1,10 @@
 import importlib
 from gwproto.enums import ActorClass
 from gwsproto.enums import HomeAloneStrategy
-from actors.scada_actor import ScadaActor
+from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 
-class AtomicAlly(ScadaActor):
+class AtomicAlly(ShNodeActor):
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
         node = services.hardware_layout.node(name)
@@ -52,7 +52,3 @@ class AtomicAlly(ScadaActor):
     @property
     def monitored_names(self):
         return self._impl.monitored_names
-
-    @property
-    def forecasts(self):
-        return self._impl.forecasts

@@ -2,11 +2,11 @@
 import importlib
 from gwproto.enums import ActorClass
 from gwsproto.enums import HomeAloneStrategy
-from actors.scada_actor import ScadaActor
+from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 
 
-class HomeAlone(ScadaActor):
+class HomeAlone(ShNodeActor):
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
         node = services.hardware_layout.node(name)

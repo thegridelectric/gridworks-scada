@@ -17,7 +17,7 @@ from gwproto.enums import MakeModel
 from gwproto.named_types import SyncedReadings, TankModuleParams
 from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from result import Ok, Result
-from actors.scada_actor import ScadaActor
+from actors.sh_node_actor import ShNodeActor
 from gwsproto.named_types import PicoMissing, ChannelFlatlined, MicroVolts
 
 from scada_app_interface import ScadaAppInterface
@@ -29,7 +29,7 @@ PICO_VOLTS = 3.3
 FLATLINE_REPORT_S = 60
 
 
-class ApiTankModule(ScadaActor):
+class ApiTankModule(ShNodeActor):
     _stop_requested: bool
     _component: PicoTankModuleComponent
 
@@ -341,7 +341,7 @@ class ApiTankModule(ScadaActor):
             await asyncio.sleep(10)
 
     def simple_beta(self, volts: float, fahrenheit=False) -> float:
-        """ Return temperature as a function of volts. Default Celcius. Use 
+        """ Return temperature as a function of volts. Default Celsius. Use 
         standard beta function (self._component.gt.TempCalcMethod = TempCalcMethod.SimpleBeta)
         """
         if self._component.gt.TempCalcMethod != TempCalcMethod.SimpleBeta:
@@ -354,7 +354,7 @@ class ApiTankModule(ScadaActor):
 
     def simple_beta_for_pico(self, volts: float, fahrenheit=False) -> float:
         """
-        Return temperature Celcius as a function of volts.
+        Return temperature Celsius as a function of volts.
         Uses a fixed estimated resistance for the pico (self._component.gt.TempCalcMethod =TempCalcMethod.SimpleBetaForPico)
         SHOULD DEPRECATE WHEN NOT IN THE FIELD AS CALC IS INCORRECT
         """

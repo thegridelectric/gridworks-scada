@@ -5,10 +5,10 @@ from gwproto import Message
 from gwsproto.data_classes.house_0_names import H0N
 from gwproto.named_types import AnalogDispatch
 from result import Ok, Result
-from actors.scada_actor import ScadaActor
+from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 
-class ZeroTenOutputer(ScadaActor):
+class ZeroTenOutputer(ShNodeActor):
     def __init__(
         self,
         name: str,

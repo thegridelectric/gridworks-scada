@@ -31,7 +31,7 @@ from gwsproto.enums import ChangeKeepSend, LogLevel, TurnHpOnOff
 from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import (
     I2cMultichannelDtRelayComponent,
 )
-from gwsproto.named_types import FsmEvent, Glitch, NewCommandTree
+from gwsproto.named_types import FsmEvent, Glitch, HeatingForecast, NewCommandTree
 from pydantic import ValidationError
 
 from scada_app_interface import ScadaAppInterface
@@ -40,12 +40,17 @@ from scada_app_interface import ScadaAppInterface
 
 
 
-class ScadaActor(Actor, ABC):
+class ShNodeActor(Actor, ABC):
+    MIN_USED_TANK_TEMP_F = 70
+    MAX_VALID_TANK_TEMP_F = 200
+    NUM_LAYERS_PER_TANK = 3
+    SIMULATED_TANK_TEMP_F = 70
+
 
     def __init__(self, name: str, services: ScadaAppInterface):
         if not isinstance(services, ScadaAppInterface):
             raise ValueError(
-                "ERROR. ScadaActor requires services to be a ScadaAppInterface. "
+                "ERROR. ShNodeActor requires services to be a ScadaAppInterface. "
                 f"Received type {type(services)}."
             )
         super().__init__(name, services)
@@ -55,8 +60,9 @@ class ScadaActor(Actor, ABC):
 
         # set temperature_channel_names
         all_tank_depths = list(self.h0cn.buffer.all)
-        for tank in self.h0cn.tank.values():
-            all_tank_depths.extend(tank.all)
+        for tank_idx in sorted(self.h0cn.tank):
+            tank = self.h0cn.tank[tank_idx]
+            all_tank_depths.extend([tank.depth1, tank.depth2, tank.depth3])
 
         self.temperature_channel_names =  all_tank_depths + [
             self.h0cn.hp_ewt, self.h0cn.hp_lwt,
@@ -1088,6 +1094,10 @@ class ScadaActor(Actor, ABC):
     # Data related
     ##########################################
 
+    @property
+    def heating_forecast(self) -> HeatingForecast | None:
+        return self.data.heating_forecast
+
     def odu_pwr(self) -> Optional[float]:
         """Returns the latest Heat Pump outdoor unit power in Watts, or None
         if it does not exist"""
@@ -1102,8 +1112,236 @@ class ScadaActor(Actor, ABC):
         assert idu_pwr_channel.TelemetryName == TelemetryName.PowerW
         return self.data.latest_channel_values.get(H0CN.hp_idu_pwr)
 
+    #-----------------------------------------------------------------------
+    # Temperature related
+    #-----------------------------------------------------------------------
+
+    @property
+    def latest_temps_f(self) -> dict[str, float]:
+        return self.data.latest_temperatures_f
+
+    @property
+    def buffer_temps_available(self):
+        return self.data.buffer_temps_available
+
+    def is_buffer_empty(self) -> bool:
+        """
+        Returns True if the buffer does not contain enough usable heat
+        to meet the near-term required return-water temperature.
+
+        Uses the coldest available top-of-buffer measurement and the
+        maximum required RWT minus delta-T over the next few hours.
+
+        If forecasts are unavailable, returns False (cannot assert empty).
+        """
+
+        # Select the best available "top of buffer" temperature channel
+        if H0CN.buffer.depth1 in self.latest_temps_f:
+            buffer_top_ch = H0CN.buffer.depth1
+        elif H0CN.dist_swt in self.latest_temps_f:
+            buffer_top_ch = H0CN.dist_swt
+        else:
+            # No meaningful buffer temperature available
+            self.log("is_buffer_empty: no buffer temperature channel available")
+            return False
+
+        if self.heating_forecast is None:
+            # Cannot reason about emptiness without forecast context
+            self.log("is_buffer_empty: no heating forecast available")
+            return False
+
+        # Conservative near-term requirement (next ~3 hours)
+        max_rswt = max(self.heating_forecast.RswtF[:3])
+        max_delta_t = max(self.heating_forecast.RswtDeltaTF[:3])
+
+        min_buffer_temp_f = round(max_rswt - max_delta_t, 1)
+        buffer_temp_f = self.latest_temps_f[buffer_top_ch]
+
+        if buffer_temp_f < min_buffer_temp_f:
+            self.log(
+                f"Buffer empty ({buffer_top_ch}: {buffer_temp_f} < {min_buffer_temp_f} F)"
+            )
+            return True
+        else:
+            self.log(
+                f"Buffer not empty ({buffer_top_ch}: {buffer_temp_f} >= {min_buffer_temp_f} F)"
+            )
+            return False
+
+    def is_buffer_full(self) -> bool:
+        """
+        Returns True if the buffer is considered 'full' relative to near-term
+        heating forecast requirements.
+
+        This is a heuristic predicate used by HomeAlone / AtomicAlly strategies.
+
+        """
+        if H0CN.buffer.depth3 in self.latest_temps_f:
+            buffer_full_ch = H0CN.buffer.depth3
+
+        elif H0CN.buffer_cold_pipe in self.latest_temps_f:
+            buffer_full_ch = H0CN.buffer_cold_pipe
+    
+        elif (
+            H0CN.charge_discharge_relay_state in self.data.latest_machine_state
+            and self.data.latest_machine_state[H0CN.charge_discharge_relay_state]
+                == StoreFlowRelay.DischargingStore
+            and H0CN.store_cold_pipe in self.latest_temps_f
+        ):
+            buffer_full_ch = H0CN.store_cold_pipe
+
+        elif H0CN.hp_ewt in self.latest_temps_f:
+            buffer_full_ch = H0CN.hp_ewt
+        else:
+            return False
+
+        if self.heating_forecast is None:
+            max_buffer = 170
+        else:
+            max_buffer = round(max(self.heating_forecast.RswtF[:3]), 1)
+
+        buffer_full_ch_temp = self.latest_temps_f[buffer_full_ch]
+        if buffer_full_ch_temp > max_buffer:
+            self.log(
+                f"Buffer full ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)"
+            )
+            return True
+        else:
+            self.log(
+                f"Buffer not full ({buffer_full_ch}: {buffer_full_ch_temp} <= {max_buffer} F)"
+            )
+            return False
+
+    def is_buffer_charge_limited(self) -> bool:
+        """
+        Returns True if the buffer cannot accept more heat without exceeding MaxEwtF.
+        This is a physical limit.
+        """
+        if H0CN.buffer_cold_pipe not in self.latest_temps_f:
+            return False
+
+        return self.latest_temps_f[H0CN.buffer_cold_pipe] >= self.data.ha1_params.MaxEwtF
+
+    def is_storage_colder_than_buffer(self, min_delta_f: float = 5.4) -> bool:
+        """
+        Returns True if the top of the storage is at least `min_delta_f` colder
+        than the top of the buffer.
+
+        Pure physical predicate:
+        - Returns False if required temperatures are unavailable
+        """
+        # --- Determine buffer top ---
+        if H0CN.buffer.depth1 in self.latest_temps_f:
+            buffer_top = H0CN.buffer.depth1
+        elif H0CN.buffer.depth2 in self.latest_temps_f:
+            buffer_top = H0CN.buffer.depth2
+        elif H0CN.buffer.depth3 in self.latest_temps_f:
+            buffer_top = H0CN.buffer.depth3
+        elif H0CN.buffer_cold_pipe in self.latest_temps_f:
+            buffer_top = H0CN.buffer_cold_pipe
+        else:
+            return False
+
+        # --- Determine storage top ---
+        if self.h0cn.tank and self.h0cn.tank[1].depth1 in self.latest_temps_f:
+            tank_top = self.h0cn.tank[1].depth1
+        elif H0CN.store_hot_pipe in self.latest_temps_f:
+            tank_top = H0CN.store_hot_pipe
+        elif H0CN.buffer_hot_pipe in self.latest_temps_f:
+            tank_top = H0CN.buffer_hot_pipe
+        else:
+            return False
+
+        return self.latest_temps_f[buffer_top] > (
+            self.latest_temps_f[tank_top] + min_delta_f
+        )
+
+    @property
+    def usable_kwh(self) -> float:
+        """
+        Latest usable thermal energy in kWh, derived from SCADA channel.
+        Returns 0 if not yet available.
+        """
+        return self.data.latest_channel_values.get(H0CN.usable_energy, 0) / 1000
+
+    @property
+    def required_kwh(self) -> float:
+        """
+        Latest required thermal energy in kWh, derived from SCADA channel.
+        Returns 0 if not yet available.
+        """
+        return self.data.latest_channel_values.get(H0CN.required_energy, 0) / 1000
+
+    def fill_missing_store_temps(self):
+        """
+        Assumes stratified tank; missing layers are filled from colder layers below,
+        using store_cold_pipe or a minimum plausible temperature as baseline.
+        """
+        all_store_layers = []
+        for tank_idx in sorted(self.h0cn.tank):
+            tank = self.h0cn.tank[tank_idx]
+            all_store_layers.extend([tank.depth1, tank.depth2, tank.depth3])
+
+        # TODO: raise WarningGlitch for temp > MAX_VALID_TANK_TEMP_F
+        for layer in all_store_layers:
+            value = self.data.latest_temperatures_f.get(layer)
+            if (
+                value is None
+                or value < self.MIN_USED_TANK_TEMP_F
+                or value > self.MAX_VALID_TANK_TEMP_F
+            ):
+                self.data.latest_temperatures_f.pop(layer, None)
+
+        value_below = self.data.latest_temperatures_f.get(
+            self.h0cn.store_cold_pipe,
+            self.MIN_USED_TANK_TEMP_F,
+        )
+
+        for layer in reversed(all_store_layers):
+            if layer not in self.data.latest_temperatures_f:
+                self.data.latest_temperatures_f[layer] = value_below
+            value_below = self.data.latest_temperatures_f[layer]
+
+    def get_temperatures(self) -> None:
+        """
+        1. Updates data.latest_temperatures_f with data from latest_channel_values
+        2. Updates buffer_available state
+        3. May fill tank temperatures (not buffer) if some are missing and can be
+           interpolated
+        """
+
+        if not self.settings.is_simulated:
+            self.data.latest_temperatures_f = {
+                ch: round(self.to_fahrenheit(self.data.latest_channel_values[ch] / 1000),1)
+                for ch in self.temperature_channel_names
+                if ch in self.data.latest_channel_values
+                and self.data.latest_channel_values[ch] is not None
+                }
+        else:
+            self.log("IN SIMULATION - set all temperatures to 70 degF")
+            self.data.latest_temperatures_f = {
+                ch: self.SIMULATED_TANK_TEMP_F for ch in self.temperature_channel_names
+            }
+
+        # Update buffer_available
+        self.data.buffer_temps_available = (
+            self.h0cn.buffer.all <= self.data.latest_temperatures_f.keys()
+        )
+
+        tank_temps = set().union(
+            *(tank.all for tank in self.h0cn.tank.values())
+        )
+
+        if not (tank_temps <= self.data.latest_temperatures_f.keys()):
+            self.fill_missing_store_temps()
+
+        self.data.latest_temperatures_f = dict(sorted(self.data.latest_temperatures_f.items()))
+
     def to_fahrenheit(self, temp_c: float) -> float:
         return 32 + (temp_c * 9 / 5)
+
+    def to_celsius(self, t: float) -> float:
+        return (t-32)*5/9
 
     def lwt_f(self) -> Optional[float]:
         """Returns the latest Heat pump leaving water temp in deg F, or None
@@ -1188,7 +1426,7 @@ class ScadaActor(Actor, ABC):
         t = self.data.latest_channel_values.get(H0CN.buffer.depth3)
         if t is None:
             return None
-        return self.to_fahrenheit(t / 1000)
+        return round(self.to_fahrenheit(t / 1000), 1)
 
     def charge_discharge_relay_state(self) -> StoreFlowRelay:
         """ Returns DischargingStore if relay 3 is de-energized (ISO Valve opened, charge/discharge
@@ -1196,7 +1434,7 @@ class ScadaActor(Actor, ABC):
         valve in charge position) """
         sms = self.data.latest_machine_state.get(H0N.store_charge_discharge_relay)
         if sms is None:
-            raise Exception("That's strange! Should have a rela state for the charge discharge relay!")
+            raise Exception("That's strange! Should have a relay state for the charge discharge relay!")
         if sms.StateEnum != StoreFlowRelay.enum_name():
             raise Exception(f"That's strange. Expected StateEnum 'store.flow.relay' but got {sms.StateEnum}")
         return StoreFlowRelay(sms.State)
