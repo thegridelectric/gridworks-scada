@@ -1143,11 +1143,12 @@ class Atn(PrimeActor):
         try:
             rswt = await self.get_RSWT(minus_deltaT=False)
             rswt_minus_deltaT = await self.get_RSWT(minus_deltaT=True)
-            m_layer_kg = 120/4 * 3.785
+            m_layer_kg = 120/3 * 3.785
             buffer_available_energy = 0
-            for bl in buffer_temperatures:
-                if buffer_temperatures[bl] >= rswt:
-                    buffer_available_energy += m_layer_kg * 4.187/3600 * (buffer_temperatures[bl]-rswt_minus_deltaT) * 5/9
+            all_buffer_temps = [buffer_temperatures[x] for x in buffer_temperatures]
+            if max(all_buffer_temps) > rswt:
+                mean_buffer_temp = sum(all_buffer_temps)/len(all_buffer_temps)
+                buffer_available_energy = 120*3.785 * 4.187/3600 * (mean_buffer_temp-100) * 5/9
             if round(buffer_available_energy,2) == 0:
                 for bl in buffer_temperatures:
                     buffer_available_energy += - m_layer_kg * 4.187/3600 * (rswt - buffer_temperatures[bl]) * 5/9
