@@ -130,7 +130,7 @@ class AllTanksAtomicAlly(ScadaActor):
                 # buffer temps are in data.latest_channel_values but not
                 # yet in self.latest_temperatures_f
                 if self.state == AtomicAllyState.Initializing and self.heating_forecast:
-                    self.reconcile_tank_temperatures()
+                    self.get_temperatures()
                     self.engage_brain()
         return Ok(True)
     
@@ -221,7 +221,7 @@ class AllTanksAtomicAlly(ScadaActor):
         """
         self.log("Waking up")
 
-        self.reconcile_tank_temperatures()
+        self.get_temperatures()
         if not self.buffer_temps_available:
             self.no_temps_since = int(time.time())
             self.log("Temperatures not available. Won't turn on hp until they are. Will bail in 5 if still not available")
@@ -236,7 +236,7 @@ class AllTanksAtomicAlly(ScadaActor):
         self.log(f"State: {self.state}")
         if self.state not in [AtomicAllyState.Dormant, 
                               AtomicAllyState.HpOffOilBoilerTankAquastat]:
-            self.reconcile_tank_temperatures()
+            self.get_temperatures()
 
             if self.state == AtomicAllyState.Initializing:
                 if self.buffer_temps_available and self.data.channel_has_value(H0CN.required_energy):

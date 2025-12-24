@@ -112,7 +112,7 @@ class SynthGenerator(ScadaActor):
                 await self.get_forecasts(session)
                 self.received_new_params = False
 
-            self.reconcile_tank_temperatures()
+            self.get_temperatures()
             if self.buffer_temps_available:
                 self.update_usable_energy()
                 if self.heating_forecast:

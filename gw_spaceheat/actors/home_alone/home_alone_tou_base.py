@@ -211,7 +211,7 @@ class HomeAloneTouBase(ScadaActor):
 
             # No control of actuators when in Monitor
             if not self.top_state == LocalControlTopState.Monitor:
-                self.reconcile_tank_temperatures()
+                self.get_temperatures()
 
                 # Update top state
                 if self.top_state == LocalControlTopState.Normal:
@@ -462,7 +462,7 @@ class HomeAloneTouBase(ScadaActor):
                 if self.is_initializing():
                     # buffer temps are in data.latest_channel_values but not
                     # yet in self.latest_temperatures_f
-                    self.reconcile_tank_temperatures()
+                    self.get_temperatures()
                     self.log(f"Buffer Temps Available: {self.buffer_temps_available}")
                     self.engage_brain()
         return Ok(True)

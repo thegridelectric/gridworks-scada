@@ -1302,7 +1302,7 @@ class ScadaActor(Actor, ABC):
                 self.data.latest_temperatures_f[layer] = value_below
             value_below = self.data.latest_temperatures_f[layer]
 
-    def reconcile_tank_temperatures(self) -> None:
+    def get_temperatures(self) -> None:
         """
         1. Updates data.latest_temperatures_f with data from latest_channel_values
         2. Updates buffer_available state
