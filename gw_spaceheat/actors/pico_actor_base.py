@@ -5,11 +5,11 @@ from aiohttp.web_response import Response
 
 from gwproto.data_classes.components.web_server_component import WebServerComponent
 from gwproto.named_types.web_server_gt import WebServerGt, DEFAULT_WEB_SERVER_NAME
-from actors.scada_actor import ScadaActor
+from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 from gwsproto.named_types import BaseurlFailureAlert, PicoCommsParams
 
-class PicoActorBase(ScadaActor):
+class PicoActorBase(ShNodeActor):
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
         self._setup_pico_endpoints()

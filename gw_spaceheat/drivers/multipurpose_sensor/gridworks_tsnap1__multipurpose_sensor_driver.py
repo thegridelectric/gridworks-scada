@@ -373,7 +373,7 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
             return Err(Exception(f"Didn't get to therm resistance! {str(e)}"))
 
         # Calculate the temperature in degrees Celsius. Note that 273 is
-        # 0 degrees Celcius as measured in Kelvin.
+        # 0 degrees Celsius as measured in Kelvin.
 
         try:
             temp_c = 1 / ((1 / t0) + (math.log(rt / r0) / beta)) - 273

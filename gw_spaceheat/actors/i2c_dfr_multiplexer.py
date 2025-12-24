@@ -15,7 +15,7 @@ from gwproto.named_types import AnalogDispatch, SingleReading
 from gw.errors import DcError
 
 from result import Err, Result
-from actors.scada_actor import ScadaActor
+from actors.sh_node_actor import ShNodeActor
 from gwsproto.named_types import ActuatorsReady
 from scada_app_interface import ScadaAppInterface
 
@@ -24,7 +24,7 @@ DFR_OUTPUT_RANGE_10V = 17
 
 
 SLEEP_STEP_SECONDS = 0.1
-class I2cDfrMultiplexer(ScadaActor):
+class I2cDfrMultiplexer(ShNodeActor):
     LOOP_S = 300
     node: ShNode
     component: DfrComponent

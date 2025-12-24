@@ -26,7 +26,7 @@ from gwproto.named_types import (
 from result import Ok, Result
 from transitions import Machine
 import transitions
-from actors.scada_actor import ScadaActor
+from actors.sh_node_actor import ShNodeActor
 from gwsproto.enums import LogLevel, PicoCyclerEvent, PicoCyclerState
 from gwsproto.named_types import Glitch, GoDormant, PicoMissing, WakeUp
 from gwproto.data_classes.components import PicoTankModuleComponent
@@ -52,7 +52,7 @@ class SinglePicoState(GwStrEnum):
     Flatlined = auto()
 
 
-class PicoCycler(ScadaActor):
+class PicoCycler(ShNodeActor):
     REBOOT_ATTEMPTS = 3
     RELAY_OPEN_S: float = 5
     PICO_REBOOT_S = 60

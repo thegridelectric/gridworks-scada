@@ -22,7 +22,7 @@ from gwproto.named_types import (
     TicklistReedReport,
 )
 from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
-from actors.scada_actor import ScadaActor
+from actors.sh_node_actor import ShNodeActor
 from gwsproto.enums import LogLevel
 from gwsproto.named_types import Glitch, PicoMissing
 from pydantic import BaseModel
@@ -54,7 +54,7 @@ class FlowReedParams(BaseModel):
     Version: str = "101"
 
 
-class ApiFlowModule(ScadaActor):
+class ApiFlowModule(ShNodeActor):
     _stop_requested: bool
     _component: PicoFlowModuleComponent
     # last_heard: float
