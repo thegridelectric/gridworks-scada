@@ -40,7 +40,7 @@ from scada_app_interface import ScadaAppInterface
 
 
 
-class ScadaActor(Actor, ABC):
+class ShNodeActor(Actor, ABC):
     MIN_USED_TANK_TEMP_F = 70
     MAX_VALID_TANK_TEMP_F = 200
     NUM_LAYERS_PER_TANK = 3
@@ -50,7 +50,7 @@ class ScadaActor(Actor, ABC):
     def __init__(self, name: str, services: ScadaAppInterface):
         if not isinstance(services, ScadaAppInterface):
             raise ValueError(
-                "ERROR. ScadaActor requires services to be a ScadaAppInterface. "
+                "ERROR. ShNodeActor requires services to be a ScadaAppInterface. "
                 f"Received type {type(services)}."
             )
         super().__init__(name, services)

@@ -17,7 +17,7 @@ from gwproto.enums import MakeModel
 from gwproto.named_types import SyncedReadings, TankModuleParams
 from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from result import Ok, Result
-from actors.scada_actor import ScadaActor
+from actors.sh_node_actor import ShNodeActor
 from gwsproto.named_types import PicoMissing, ChannelFlatlined, MicroVolts
 
 from scada_app_interface import ScadaAppInterface
@@ -29,7 +29,7 @@ PICO_VOLTS = 3.3
 FLATLINE_REPORT_S = 60
 
 
-class ApiTankModule(ScadaActor):
+class ApiTankModule(ShNodeActor):
     _stop_requested: bool
     _component: PicoTankModuleComponent
 

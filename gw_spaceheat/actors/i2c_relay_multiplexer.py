@@ -23,7 +23,7 @@ from gwproto.named_types import (SingleReading,
                                  SyncedReadings, FsmAtomicReport)
 from pydantic import BaseModel, Field
 from result import Err, Ok, Result
-from actors.scada_actor import ScadaActor
+from actors.sh_node_actor import ShNodeActor
 from gwsproto.named_types import ActuatorsReady, FsmEvent, Glitch
 from gwsproto.enums import LogLevel
 from scada_app_interface import ScadaAppInterface
@@ -45,7 +45,7 @@ class SimulatedPin(BaseModel):
 SLEEP_STEP_SECONDS = 0.1
 
 
-class I2cRelayMultiplexer(ScadaActor):
+class I2cRelayMultiplexer(ShNodeActor):
     RELAY_MULTIPLEXER_LOGGER_NAME: str = "RelayMultiplexer"
     RELAY_LOOP_S = 60
     node: ShNode

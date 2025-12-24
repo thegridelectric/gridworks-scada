@@ -14,7 +14,7 @@ from result import Ok, Result
 from transitions import Machine
 from gwsproto.data_classes.house_0_names import H0N, H0CN
 from gwproto.data_classes.components.dfr_component import DfrComponent
-from actors.scada_actor import ScadaActor
+from actors.sh_node_actor import ShNodeActor
 from gwsproto.named_types import (ActuatorsReady,
             GoDormant, Glitch, Ha1Params,
             NewCommandTree, SingleMachineState, WakeUp)
@@ -23,7 +23,7 @@ from gwsproto.enums import LocalControlTopStateEvent
 from scada_app_interface import ScadaAppInterface
 
 
-class HomeAloneTouBase(ScadaActor):
+class HomeAloneTouBase(ShNodeActor):
     """Manages the top level state machine for home alone in a time of use framework. Every home 
     alone node has a strategy. That strategy is in charge of how the "normal" home alone code works. Strategy-specific code
     should inherit from this base class."""

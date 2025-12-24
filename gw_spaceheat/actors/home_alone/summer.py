@@ -15,7 +15,7 @@ from result import Ok, Result
 from gwsproto.named_types import SingleMachineState
 from gwproto.data_classes.sh_node import ShNode
 from transitions import Machine
-from actors.scada_actor import ScadaActor
+from actors.sh_node_actor import ShNodeActor
 from gwsproto.named_types import ActuatorsReady, GoDormant, HeatingForecast, WakeUp
 from scada_app_interface import ScadaAppInterface
 
@@ -42,7 +42,7 @@ class SummerTopEvent(GwStrEnum):
         return "summer.top.event"
 
 
-class SummerHomeAlone(ScadaActor):
+class SummerHomeAlone(ShNodeActor):
     MAIN_LOOP_SLEEP_SECONDS = 300
     top_states = SummerTopState.values()
 

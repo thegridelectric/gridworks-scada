@@ -19,7 +19,7 @@ from gwproto.named_types import (
 from result import Ok, Result
 from transitions import Machine
 
-from actors.scada_actor import ScadaActor
+from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 from gwsproto.enums import HomeAloneStrategy
 from gwsproto.named_types import (
@@ -28,7 +28,7 @@ from gwsproto.named_types import (
 )
 
 
-class BufferOnlyAtomicAlly(ScadaActor):
+class BufferOnlyAtomicAlly(ShNodeActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
     NO_TEMPS_BAIL_MINUTES = 5
     states = AaBufferOnlyState.values()

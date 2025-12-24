@@ -14,7 +14,7 @@ from gwproto.named_types import SingleReading
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 
-from actors.scada_actor import ScadaActor
+from actors.sh_node_actor import ShNodeActor
 from gwsproto.enums import HomeAloneStrategy
 from gwsproto.data_classes.house_0_names import H0CN
 from gwsproto.named_types import (Ha1Params, HeatingForecast,
@@ -22,7 +22,7 @@ from gwsproto.named_types import (Ha1Params, HeatingForecast,
 from scada_app_interface import ScadaAppInterface
 
 
-class SynthGenerator(ScadaActor):
+class SynthGenerator(ShNodeActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
     GALLONS_PER_TANK = 119
     WATER_SPECIFIC_HEAT_KJ_PER_KG_C = 4.187
