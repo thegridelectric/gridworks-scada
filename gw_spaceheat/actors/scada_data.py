@@ -8,7 +8,6 @@ from typing import Dict, List, Optional, Union
 from actors.config import ScadaSettings
 from gwproto.data_classes.data_channel import DataChannel
 from gwproto.data_classes.synth_channel import SynthChannel
-from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwsproto.data_classes.house_0_names import H0CN
 from gwproto.messages import (
     ChannelReadings,
@@ -24,26 +23,16 @@ from gwsproto.named_types import (
     SingleMachineState,
     SnapshotSpaceheat,
 )
-class ScadaData:
-    reports_to_store: Dict[str, Report]
-    recent_machine_states: Dict[str, MachineStates] # key is machine handle
-    latest_machine_state: Dict[str, SingleMachineState] # key is the node name
-    latest_power_w: Optional[int]
-    latest_channel_unix_ms: Dict[str, int]
-    latest_channel_values: Dict[str, int]
-    recent_channel_values: Dict[str, List]
-    recent_channel_unix_ms: Dict[str, List]
-    recent_fsm_reports: Dict[str, FsmFullReport]
-    settings: ScadaSettings
-    layout: HardwareLayout
-    ha1_params: Ha1Params
 
-    def __init__(self, settings: ScadaSettings, hardware_layout: HardwareLayout):
+from gwsproto.data_classes.house_0_layout import House0Layout
+class ScadaData:
+
+    def __init__(self, settings: ScadaSettings, hardware_layout: House0Layout):
         self.reports_to_store: Dict[str, Report] = {}
         self.seconds_by_channel: Dict[str, int] = {}
 
-        self.settings = settings
-        self.layout = hardware_layout
+        self.settings: ScadaSettings = settings
+        self.layout: House0Layout = hardware_layout
         # TODO: move into layout when better UI for it
         self.ha1_params = Ha1Params(
             AlphaTimes10=int(self.settings.alpha * 10),
@@ -59,14 +48,14 @@ class ScadaData:
             LoadOverestimationPercent=self.settings.load_overestimation_percent,
         )
         self.my_data_channels = self.get_my_data_channels()
-        self.my_synth_channels = self.get_my_synth_channels()
-        self.my_channels: list[Union[DataChannel, SynthChannel]] = self.my_data_channels + self.my_synth_channels
+        self.my_derived_channels = self.get_my_derived_channels()
+        self.my_channels: list[Union[DataChannel, SynthChannel]] = self.my_data_channels + self.my_derived_channels
         self.recent_machine_states = {}
         self.latest_machine_state = {} # latest state by node name
-        self.latest_channel_values: Dict[str, int] = {  # noqa
+        self.latest_channel_values: Dict[str, int | None] = {
             ch.Name: None for ch in self.my_channels
         }
-        self.latest_channel_unix_ms: Dict[str, int] = {  # noqa
+        self.latest_channel_unix_ms: Dict[str, int | None] = {
             ch.Name: None for ch in self.my_channels
         }
         self.latest_temperatures_f: Dict[str, float] = {}
@@ -88,7 +77,7 @@ class ScadaData:
     def get_my_data_channels(self) -> List[DataChannel]:
         return list(self.layout.data_channels.values())
     
-    def get_my_synth_channels(self) -> List[SynthChannel]:
+    def get_my_derived_channels(self) -> List[SynthChannel]:
         return list(self.layout.synth_channels.values())
 
     def channel_has_value(self, channel: str) -> bool:
@@ -125,9 +114,19 @@ class ScadaData:
         else:
             return None
 
+    @property
+    def my_reported_channels(self) -> list[Union[DataChannel, SynthChannel]]:
+        """
+        Channels that should be included in reports.
+        """
+        return [
+            ch for ch in self.my_channels
+            if ch.Name not in self.layout.unreported_channels
+        ]
+
     def make_report(self, slot_start_seconds: int) -> Report:
         channel_reading_list = []
-        for ch in self.my_channels:
+        for ch in self.my_reported_channels:
             channel_readings = self.make_channel_readings(ch)
             if channel_readings:
                 channel_reading_list.append(channel_readings)
@@ -152,7 +151,7 @@ class ScadaData:
             for c in components:
                 for config in c.ConfigList:
                     self.seconds_by_channel[config.ChannelName] = config.CapturePeriodS
-            for s in self.my_synth_channels:
+            for s in self.my_derived_channels:
                 self.seconds_by_channel[s.Name] = s.SyncReportMinutes * 60
         return self.seconds_by_channel[ch.Name]
 

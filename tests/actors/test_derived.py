@@ -31,7 +31,7 @@ def test_ha1(monkeypatch, tmp_path):
     settings.paths.mkdirs()
     scada_app.instantiate()
     s = scada_app.scada
-    synth = SynthGenerator(H0N.synth_generator, services=scada_app)
+    synth = SynthGenerator(H0N.derived_generator, services=scada_app)
 
     assert set(synth.temperature_channel_names) == {
         'buffer-depth1', 'buffer-depth2', 'buffer-depth3',

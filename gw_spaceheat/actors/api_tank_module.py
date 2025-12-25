@@ -75,7 +75,7 @@ class ApiTankModule(ShNodeActor):
         # Use the following for generating pico offline reports for triggering the pico cycler
         self.last_heard = time.time()
         self.last_error_report = time.time()
-        self.tank_channel_names = (
+        tank_channel_names = (
             self.h0cn.buffer
             if self.name == self.h0n.buffer.reader
             else next(
@@ -83,12 +83,38 @@ class ApiTankModule(ShNodeActor):
                 if t.reader == self.name
             )
         )
+
+        if self.name == self.h0n.buffer.reader:
+            self.depth_about_nodes: dict[int, str] = {
+                1: self.h0n.buffer.depth1,
+                2: self.h0n.buffer.depth2,
+                3: self.h0n.buffer.depth3,
+            }
+        else:
+            tank = next(
+                t for t in self.h0n.tank.values()
+                if t.reader == self.name
+            )
+            self.depth_about_nodes = {
+                1: tank.depth1,
+                2: tank.depth2,
+                3: tank.depth3,
+            }
         try:
-            self.depth1_channel = self.layout.data_channels[self.tank_channel_names.depth1]
-            self.depth2_channel = self.layout.data_channels[self.tank_channel_names.depth2]
-            self.depth3_channel = self.layout.data_channels[self.tank_channel_names.depth3]
+            self.device_channels = {
+                1: tank_channel_names.depth1_device,
+                2: tank_channel_names.depth2_device,
+                3: tank_channel_names.depth3_device,
+            }
+            if self._component.gt.SendMicroVolts:
+                self.electrical_channels =  {
+                    1: tank_channel_names.depth1_micro_v,
+                    2: tank_channel_names.depth2_micro_v,
+                    3: tank_channel_names.depth3_micro_v,
+                }
         except KeyError as e:
             raise Exception(f"Problem setting up ApiTankModule channels! {e}")
+
 
     @cached_property
     def microvolts_path(self) -> str:
@@ -155,7 +181,7 @@ class ApiTankModule(ShNodeActor):
                 (
                     cfg
                     for cfg in self._component.gt.ConfigList
-                    if cfg.ChannelName ==  self.tank_channel_names.depth1
+                    if cfg.ChannelName ==  self.device_channels[1]
                 ),
                 None,
             )
@@ -200,77 +226,34 @@ class ApiTankModule(ShNodeActor):
         return Response()
 
     def _process_microvolts(self, data: MicroVolts) -> None:
-        if data.HwUid == self.pico_uid:
-            self.last_heard = time.time()
-        else:
+        if data.HwUid != self.pico_uid:
             self.log(f"{self.name}: Ignoring data from pico {data.HwUid} - not recognized!")
             return
 
-        channel_name_list = []
-        value_list = []
-        sensor_order = [1,2,3]
-        if self._component.gt.SensorOrder is not None:
-            sensor_order = self._component.gt.SensorOrder
+        self.last_heard = time.time()
 
-        depths = [
-            self.tank_channel_names.depth1,
-            self.tank_channel_names.depth2,
-            self.tank_channel_names.depth3,
-        ]
+        sensor_order = self._component.gt.SensorOrder or [1, 2, 3]
+        channel_name_list: list[str] = []
+        value_list: list[int] = []
 
-        depth_map = {
-            depths[i]: depths[sensor_order[i] - 1]
-            for i in range(3)
-        }
-
-        for i, name in enumerate(data.AboutNodeNameList):
-            # Normalize depth names (sensor remap)
-            channel_name = depth_map.get(name, name)
-            data.AboutNodeNameList[i] = channel_name # channel names match node names
-                    
-            volts = data.MicroVoltsList[i] / 1e6
-            if self._component.gt.SendMicroVolts:
-                value_list.append(data.MicroVoltsList[i])
-                channel_name_list.append(f"{data.AboutNodeNameList[i]}-micro-v")
-                #print(f"Updated {channel_name_list[-1]}: {round(volts,3)} V")
+        for logical_idx, physical_idx in enumerate(sensor_order):
+            micro_volts = data.MicroVoltsList[logical_idx]
+            device_channel = self.device_channels[physical_idx]
+            volts = micro_volts / 1e6
             if volts <= 0:
                 continue
-            elif self._component.gt.TempCalcMethod == TempCalcMethod.SimpleBetaForPico:
-                try:
-                    value_list.append(int(self.simple_beta_for_pico(volts) * 1000))
-                    channel_name_list.append(data.AboutNodeNameList[i])
-                except BaseException as e:
-                    self.log(f"Problem with simple_beta({volts})! {e}")
-                    self.services.send_threadsafe(
-                        Message(
-                            Payload=Problems(
-                                msg=(
-                                    f"Volts to temp problem for {data.AboutNodeNameList[i]}"
-                                ),
-                                errors=[e],
-                            ).problem_event(
-                                summary=(f"Volts to temp problem for {data.AboutNodeNameList[i]}"),
-                            )
-                        )
-                    )
-            elif self._component.gt.TempCalcMethod == TempCalcMethod.SimpleBeta:
+
+            if self._component.gt.SendMicroVolts:
+                channel_name_list.append(self.electrical_channels[physical_idx])
+                value_list.append(micro_volts)
+            if self._component.gt.TempCalcMethod == TempCalcMethod.SimpleBeta:
                 try:
                     value_list.append(int(self.simple_beta(volts) * 1000))
-                    channel_name_list.append(data.AboutNodeNameList[i])
+                    channel_name_list.append(device_channel)
                 except BaseException as e:
                     self.log(f"Problem with simple_beta({volts})! {e}")
-                    self.services.send_threadsafe(
-                        Message(
-                            Payload=Problems(
-                                msg=(
-                                    f"Volts to temp problem for {data.AboutNodeNameList[i]}"
-                                ),
-                                errors=[e],
-                            ).problem_event(
-                                summary=(f"Volts to temp problem for {data.AboutNodeNameList[i]}"),
-                            )
-                        )
-                    )
+                    self.send_error(f"Volts to temp problem for {device_channel}",
+                                    details=str(e))
             else:
                 raise Exception(f"No code for {self._component.gt.TempCalcMethod}!")
         msg = SyncedReadings(
@@ -280,6 +263,7 @@ class ApiTankModule(ShNodeActor):
         )
         self._send_to(self.pico_cycler, msg)
         self._send_to(self.primary_scada, msg)
+        self._send_to(self.derived_generator, msg)
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         match message.Payload:
@@ -304,7 +288,7 @@ class ApiTankModule(ShNodeActor):
         cfg = next(
             cfg
             for cfg in self._component.gt.ConfigList
-            if cfg.ChannelName == self.tank_channel_names.depth1
+            if cfg.ChannelName == self.device_channels[1]
         )
         return cfg.CapturePeriodS
 
@@ -325,18 +309,17 @@ class ApiTankModule(ShNodeActor):
                         self.pico_cycler,
                         PicoMissing(ActorName=self.name, PicoHwUid=self.pico_uid),
                     )
-                    self._send_to(
-                        self.primary_scada,
-                        ChannelFlatlined(FromName=self.name, Channel=self.depth1_channel)
-                    )
-                    self._send_to(
-                        self.primary_scada,
-                        ChannelFlatlined(FromName=self.name, Channel=self.depth2_channel)
-                    )
-                    self._send_to(
-                        self.primary_scada,
-                        ChannelFlatlined(FromName=self.name, Channel=self.depth3_channel)
-                    )
+                    for ch in self.device_channels.values():
+                        self._send_to(
+                            self.primary_scada,
+                            ChannelFlatlined(FromName=self.name, Channel=self.layout.data_channels[ch]),
+                        )
+                    for ch in self.electrical_channels.values():
+                        self._send_to(
+                            self.primary_scada,
+                            ChannelFlatlined(FromName=self.name, Channel=self.layout.data_channels[ch]),
+                        )
+
                     self.last_error_report = time.time()
             await asyncio.sleep(10)
 
@@ -351,17 +334,6 @@ class ApiTankModule(ShNodeActor):
             raise ValueError("Disconnected thermistor!")
 
         return self.temp_beta(r_therm, fahrenheit=fahrenheit)
-
-    def simple_beta_for_pico(self, volts: float, fahrenheit=False) -> float:
-        """
-        Return temperature Celsius as a function of volts.
-        Uses a fixed estimated resistance for the pico (self._component.gt.TempCalcMethod =TempCalcMethod.SimpleBetaForPico)
-        SHOULD DEPRECATE WHEN NOT IN THE FIELD AS CALC IS INCORRECT
-        """
-        if self._component.gt.TempCalcMethod != TempCalcMethod.SimpleBetaForPico:
-            raise Exception(f"Only call when TempCalcMethod is SimpleBetaForPico, not {self._component.gt.TempCalcMethod }")
-        r_therm_kohms = self.thermistor_resistance(volts)
-        return self.temp_beta(r_therm_kohms, fahrenheit=fahrenheit)
 
     def temp_beta(self, r_therm_kohms: float, fahrenheit: bool = False) -> float:
         """

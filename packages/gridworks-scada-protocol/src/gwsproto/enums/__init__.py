@@ -25,6 +25,7 @@ from gwsproto.enums.change_keep_send import ChangeKeepSend
 from gwsproto.enums.flow_manifold_variant import FlowManifoldVariant
 from gwsproto.enums.home_alone_strategy import HomeAloneStrategy
 from gwsproto.enums.local_control_top_state import LocalControlTopState
+from gwsproto.enums.gw_unit import GwUnit
 from gwsproto.enums.hp_model import HpModel
 from gwsproto.enums.hp_loop_keep_send import HpLoopKeepSend
 from gwsproto.enums.log_level import LogLevel
@@ -49,18 +50,19 @@ __all__ = [
     "HpModel",
     "ChangeKeepSend",
     "FlowManifoldVariant",
+    "GwUnit",
     "HomeAloneStrategy",
-    "LocalControlTopState",  # [local.control.top.state.neb.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#LocalControlTopState)
+    "LocalControlTopState",
     "HpLoopKeepSend",
-    "LogLevel",  # [log.level.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#loglevel)
+    "LogLevel",
     "LocalControlTopStateEvent",  
-    "MainAutoEvent",  # [main.auto.event.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#mainautoevent)
-    "MainAutoState",  # [main.auto.state.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#mainautostate)
-    "MarketPriceUnit",  # [market.price.unit.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#marketpriceunit)
-    "MarketQuantityUnit",  # [market.quantity.unit.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#marketquantityunit)
-    "PicoCyclerEvent",  # [pico.cycler.event.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#picocyclerevent)
-    "PicoCyclerState",  # [pico.cycler.state.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#picocyclerstate)
-    "TopEvent",  # [top.event.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#topevent)
-    "TopState",  # [top.state.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#topstate)
+    "MainAutoEvent",
+    "MainAutoState",
+    "MarketPriceUnit",
+    "MarketQuantityUnit",
+    "PicoCyclerEvent",
+    "PicoCyclerState",
+    "TopEvent",
+    "TopState",
     "TurnHpOnOff",
 ]

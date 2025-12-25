@@ -10,6 +10,7 @@ from gwsproto.named_types.atn_bid import AtnBid
 from gwsproto.named_types.baseurl_failure_alert import BaseurlFailureAlert
 from gwsproto.named_types.bid_recommendation import BidRecommendation
 from gwsproto.named_types.channel_flatlined import ChannelFlatlined
+from gwsproto.named_types.derived_channel_gt import DerivedChannelGt
 from gwsproto.named_types.dispatch_contract_go_dormant import DispatchContractGoDormant
 from gwsproto.named_types.dispatch_contract_go_live import DispatchContractGoLive
 from gwsproto.named_types.energy_instruction import EnergyInstruction
@@ -46,6 +47,8 @@ from gwsproto.named_types.single_machine_state import SingleMachineState
 from gwsproto.named_types.slow_contract_heartbeat import SlowContractHeartbeat
 from gwsproto.named_types.snapshot_spaceheat import SnapshotSpaceheat
 from gwsproto.named_types.suit_up import SuitUp
+from gwsproto.named_types.tank_temp_calibration import TankTempCalibration
+from gwsproto.named_types.tank_temp_calibration_map import TankTempCalibrationMap
 from gwsproto.named_types.wake_up import WakeUp
 from gwsproto.named_types.weather_forecast import WeatherForecast
 from gwsproto.named_types.start_listening_to_atn import StartListeningToAtn
@@ -64,6 +67,7 @@ __all__ = [
     "BaseurlFailureAlert",
     "BidRecommendation",
     "ChannelFlatlined",
+    "DerivedChannelGt",
     "DispatchContractGoDormant",
     "DispatchContractGoLive",
     "EnergyInstruction",
@@ -102,6 +106,8 @@ __all__ = [
     "StartListeningToAtn",
     "StopListeningToAtn",
     "SuitUp",
+    "TankTempCalibration",
+    "TankTempCalibrationMap",
     "WakeUp",
     "WeatherForecast",
 ]

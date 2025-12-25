@@ -24,7 +24,7 @@ class Tank3Cfg(BaseModel):
     SendMicroVolts: bool = True
     TempCalc: TempCalcMethod = TempCalcMethod.SimpleBeta
     ThermistorBeta: int = 3977 # Beta for the Amphenols
-    SensorOrder: list[int] = None
+    SensorOrder: list[int] | None = None
     
     def component_display_name(self) -> str:
         return f"{self.ActorNodeName} PicoTankModule"
@@ -50,7 +50,7 @@ def add_tank3(
         for i in range(1,4):
             config_list.append(
                 ChannelConfig(
-                    ChannelName=f"{tank_cfg.ActorNodeName}-depth{i}",
+                    ChannelName=f"{tank_cfg.ActorNodeName}-depth{i}-device",
                     CapturePeriodS=tank_cfg.CapturePeriodS,
                     AsyncCapture=True,
                     Exponent=3,
@@ -116,13 +116,13 @@ def add_tank3(
 
         db.add_data_channels(
             [ DataChannelGt(
-               Name=f"{tank_cfg.ActorNodeName}-depth{i}",
-               DisplayName=f"{tank_cfg.ActorNodeName.capitalize()} Depth {i}",
+               Name=f"{tank_cfg.ActorNodeName}-depth{i}-device",
+               DisplayName=f"{tank_cfg.ActorNodeName.capitalize()} Depth {i} Device Temp",
                AboutNodeName=f"{tank_cfg.ActorNodeName}-depth{i}",
                CapturedByNodeName=tank_cfg.ActorNodeName,
                TelemetryName=TelemetryName.WaterTempCTimes1000,
                TerminalAssetAlias=db.terminal_asset_alias,
-               Id=db.make_channel_id(f"{tank_cfg.ActorNodeName}-depth{i}")
+               Id=db.make_channel_id(f"{tank_cfg.ActorNodeName}-depth{i}-device")
                ) for i in range(1,4)
             ]
         )

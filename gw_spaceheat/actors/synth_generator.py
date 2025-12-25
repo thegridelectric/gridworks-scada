@@ -10,7 +10,8 @@ from result import Ok, Result
 from datetime import datetime,  timezone
 from gwproto import Message
 
-from gwproto.named_types import SingleReading
+from gwproto.data_classes.sh_node import ShNode
+from gwproto.named_types import SingleReading, SyncedReadings
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 
@@ -23,6 +24,7 @@ from scada_app_interface import ScadaAppInterface
 
 
 class SynthGenerator(ShNodeActor):
+    """Will rename to DerivedGenerator when ActorClass updates"""
     MAIN_LOOP_SLEEP_SECONDS = 60
     GALLONS_PER_TANK = 119
     WATER_SPECIFIC_HEAT_KJ_PER_KG_C = 4.187
@@ -56,6 +58,7 @@ class SynthGenerator(ShNodeActor):
         self.log(f"self.is_simulated: {self.is_simulated}")
         self.weather_forecast: Optional[WeatherForecast] = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
+        self.debug_got_it = False
     
     @property
     def params(self) -> Ha1Params:
@@ -127,11 +130,21 @@ class SynthGenerator(ShNodeActor):
         ...
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
+        from_node = self.layout.node(message.Header.Src)
         match message.Payload:
             case ScadaParams():
                 self.log("Received new parameters, time to recompute forecasts!")
                 self.received_new_params = True
+            case SyncedReadings():
+                self.process_synced_readings(from_node, message.Payload)
         return Ok(True)
+
+    def process_synced_readings(self, from_node: ShNode, payload: SyncedReadings) -> None:
+        if not self.debug_got_it:
+            self.payload = payload
+            self.from_node = from_node
+            self.debug_got_it = True
+            self.log("Got my stuff!!")
 
     # Compute usable and required energy
     def update_usable_energy(self) -> None:

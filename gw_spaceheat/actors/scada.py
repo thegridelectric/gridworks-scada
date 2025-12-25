@@ -302,7 +302,7 @@ class Scada(PrimeActor, ScadaInterface):
             case ScadaParams():
                 try:
                     self.process_scada_params(from_node, payload)
-                    self._send_to(self.synth_generator, payload)
+                    self._send_to(self.derived_generator, payload)
                 except Exception as e:
                     self.log(f"Trouble with process_scada_params: \n {e}")
             case SendLayout():
@@ -762,8 +762,8 @@ class Scada(PrimeActor, ScadaInterface):
     ) -> None:
         if payload.ChannelName in self._layout.data_channels:
             ch = self._layout.data_channels[payload.ChannelName]
-        elif payload.ChannelName in self._layout.synth_channels:
-            ch = self._layout.synth_channels[payload.ChannelName]
+        elif payload.ChannelName in self._layout.derived_channels:
+            ch = self._layout.derived_channels[payload.ChannelName]
         else:
             raise Exception(f"Missing channel name {payload.ChannelName}!")
         self._data.recent_channel_values[ch.Name].append(payload.Value)
@@ -812,7 +812,7 @@ class Scada(PrimeActor, ScadaInterface):
             else:
                 self.log("First Buffer temps arrived! Sending to HomeAlone")
                 self._send_to(self.home_alone, payload)
-    
+
     
     #####################################################################
     # State Machine related
@@ -1533,8 +1533,8 @@ class Scada(PrimeActor, ScadaInterface):
         return self.layout.node(H0N.zero_ten_out_multiplexer)
 
     @property
-    def synth_generator(self) -> ShNode:
-        return self.layout.node(H0N.synth_generator)
+    def derived_generator(self) -> ShNode:
+        return self.layout.node(H0N.derived_generator)
 
     @property
     def hp_boss(self) -> ShNode:

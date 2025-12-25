@@ -56,10 +56,10 @@ class ShNodeActor(Actor, ABC):
         super().__init__(name, services)
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.h0n = self.layout.h0n
-        self.h0cn = self.layout.channel_names
+        self.h0cn = self.layout.h0cn
 
         # set temperature_channel_names
-        all_tank_depths = list(self.h0cn.buffer.all)
+        all_tank_depths = list(self.h0cn.buffer.effective)
         for tank_idx in sorted(self.h0cn.tank):
             tank = self.h0cn.tank[tank_idx]
             all_tank_depths.extend([tank.depth1, tank.depth2, tank.depth3])
@@ -109,19 +109,19 @@ class ShNodeActor(Actor, ABC):
         return self.layout.node(H0N.home_alone)
     
     @property
-    def synth_generator(self) -> ShNode:
-        return self.layout.node(H0N.synth_generator)
+    def derived_generator(self) -> ShNode:
+        return self.layout.node(H0N.derived_generator)
 
     @property
     def hp_boss(self) -> ShNode:
         if not self.layout.use_sieg_loop:
-            raise Exception(f"Should not be calling for hp_boss if not using sieg loop")
+            raise Exception("Should not be calling for hp_boss if not using sieg loop")
         return self.layout.node(H0N.hp_boss)
 
     @property
     def sieg_loop(self) -> ShNode:
         if not self.layout.use_sieg_loop:
-            raise Exception(f"Should not be calling for sieg_loop if not using sieg loop")
+            raise Exception("Should not be calling for sieg_loop if not using sieg loop")
         return self.layout.node(H0N.sieg_loop)
 
     @property
@@ -1262,7 +1262,10 @@ class ShNodeActor(Actor, ABC):
         Latest usable thermal energy in kWh, derived from SCADA channel.
         Returns 0 if not yet available.
         """
-        return self.data.latest_channel_values.get(H0CN.usable_energy, 0) / 1000
+        val =  self.data.latest_channel_values.get(H0CN.usable_energy, 0)
+        if val is None:
+            val = 0
+        return val / 1000
 
     @property
     def required_kwh(self) -> float:
@@ -1270,7 +1273,10 @@ class ShNodeActor(Actor, ABC):
         Latest required thermal energy in kWh, derived from SCADA channel.
         Returns 0 if not yet available.
         """
-        return self.data.latest_channel_values.get(H0CN.required_energy, 0) / 1000
+        val = self.data.latest_channel_values.get(H0CN.required_energy, 0)
+        if val is None:
+            val = 0
+        return  val / 1000
 
     def fill_missing_store_temps(self):
         """
@@ -1312,7 +1318,7 @@ class ShNodeActor(Actor, ABC):
 
         if not self.settings.is_simulated:
             self.data.latest_temperatures_f = {
-                ch: round(self.to_fahrenheit(self.data.latest_channel_values[ch] / 1000),1)
+                ch: round(self.to_fahrenheit(self.data.latest_channel_values[ch] / 1000), 1)
                 for ch in self.temperature_channel_names
                 if ch in self.data.latest_channel_values
                 and self.data.latest_channel_values[ch] is not None
@@ -1325,11 +1331,11 @@ class ShNodeActor(Actor, ABC):
 
         # Update buffer_available
         self.data.buffer_temps_available = (
-            self.h0cn.buffer.all <= self.data.latest_temperatures_f.keys()
+            self.h0cn.buffer.effective <= self.data.latest_temperatures_f.keys()
         )
 
         tank_temps = set().union(
-            *(tank.all for tank in self.h0cn.tank.values())
+            *(tank.effective for tank in self.h0cn.tank.values())
         )
 
         if not (tank_temps <= self.data.latest_temperatures_f.keys()):
