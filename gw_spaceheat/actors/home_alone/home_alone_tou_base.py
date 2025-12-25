@@ -763,6 +763,7 @@ class HomeAloneTouBase(ShNodeActor):
         return ((time_now.hour==6 or time_now.hour==16) and time_now.minute>57)
 
     def is_onpeak(self) -> bool:
+        return False
         time_now = datetime.now(self.timezone)
         time_in_2min = time_now + timedelta(minutes=2)
         peak_hours = [7,8,9,10,11] + [16,17,18,19]

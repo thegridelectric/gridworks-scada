@@ -312,11 +312,14 @@ class SynthGenerator(ShNodeActor):
             else:
                 required = morning_kWh + afternoon_missing_kWh
             required_kwh = min(required, max_storage_kwh)
+            required_kwh = 0
         elif (time_now.weekday()<5 and time_now.hour>=12 and time_now.hour<16):
             self.log('Preparing for an afternoon onpeak')
             required_kwh = afternoon_kWh
+            required_kwh = 0
         else:
             self.log("Currently in on-peak or no on-peak period coming up soon")
+        required_kwh = 0
             
         # self.log(f"Required energy: {round(required_kwh,1)} kWh")
         self._send_to(
