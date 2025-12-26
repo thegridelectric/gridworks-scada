@@ -1133,10 +1133,11 @@ class Atn(PrimeActor):
             self.send_layout()
             await asyncio.sleep(5)
         self.get_latest_temperatures()
-        buffer_temperatures = {k: self.to_fahrenheit(v/1000)
-                               for k,v in self.latest_temperatures.items() 
-                               if 'buffer' in k
-                               and v is not None}
+        buffer_temperatures: Dict[str, float] = {
+            k: self.to_fahrenheit(v/1000)
+            for k,v in self.latest_temperatures.items() 
+            if 'buffer' in k and v is not None
+        }
         if not buffer_temperatures:
             self.log("Missing temperatures in get_buffer_available_kwh, returning 0 kWh")
             return 0
@@ -1147,8 +1148,8 @@ class Atn(PrimeActor):
             rswt_minus_deltaT = round(rswt_minus_deltaT,2)
             m_layer_kg = 120/3 * 3.785
             buffer_available_energy = 0
-            all_buffer_temps = [buffer_temperatures[x] for x in buffer_temperatures]
-            if max(all_buffer_temps) > rswt:
+            if buffer_temperatures[H0CN.buffer.depth1] > rswt:
+                self.log(f"Buffer depth 1 is above RSWT ({buffer_temperatures[H0CN.buffer.depth1]} > {rswt})")
                 return_temp = min(
                     self.latest_temperatures[H0CN.buffer.depth2],
                     self.latest_temperatures[H0CN.buffer.depth3],
@@ -1157,9 +1158,12 @@ class Atn(PrimeActor):
                 buffer_available_energy += m_layer_kg * 4.187/3600 * (buffer_temperatures[H0CN.buffer.depth1]-rswt_minus_deltaT) * 5/9
                 buffer_available_energy += m_layer_kg * 4.187/3600 * (buffer_temperatures[H0CN.buffer.depth2]-return_temp) * 5/9
                 buffer_available_energy += m_layer_kg * 4.187/3600 * (buffer_temperatures[H0CN.buffer.depth3]-return_temp) * 5/9
-            if round(buffer_available_energy,2) == 0:
+                self.log(f"Buffer available kWh: {round(buffer_available_energy,2)}")
+            if round(buffer_available_energy,2) <= 0:
+                buffer_available_energy = 0
                 for bl in buffer_temperatures:
-                    buffer_available_energy += - m_layer_kg * 4.187/3600 * (rswt - buffer_temperatures[bl]) * 5/9
+                    if buffer_temperatures[bl] < rswt:
+                        buffer_available_energy += - m_layer_kg * 4.187/3600 * (rswt - buffer_temperatures[bl]) * 5/9
             self.log(f"Buffer available kWh: {round(buffer_available_energy,2)}")
             return round(buffer_available_energy,2)
         except Exception as e:
