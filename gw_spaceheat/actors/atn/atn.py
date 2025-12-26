@@ -1154,9 +1154,9 @@ class Atn(PrimeActor):
                     self.latest_temperatures[H0CN.buffer.depth3],
                     120
                 )
-                buffer_available_energy += m_layer_kg * 4.187/3600 * (self.latest_temperatures[H0CN.buffer.depth1]-rswt_minus_deltaT) * 5/9
-                buffer_available_energy += m_layer_kg * 4.187/3600 * (self.latest_temperatures[H0CN.buffer.depth2]-return_temp) * 5/9
-                buffer_available_energy += m_layer_kg * 4.187/3600 * (self.latest_temperatures[H0CN.buffer.depth3]-return_temp) * 5/9
+                buffer_available_energy += m_layer_kg * 4.187/3600 * (buffer_temperatures[H0CN.buffer.depth1]-rswt_minus_deltaT) * 5/9
+                buffer_available_energy += m_layer_kg * 4.187/3600 * (buffer_temperatures[H0CN.buffer.depth2]-return_temp) * 5/9
+                buffer_available_energy += m_layer_kg * 4.187/3600 * (buffer_temperatures[H0CN.buffer.depth3]-return_temp) * 5/9
             if round(buffer_available_energy,2) == 0:
                 for bl in buffer_temperatures:
                     buffer_available_energy += - m_layer_kg * 4.187/3600 * (rswt - buffer_temperatures[bl]) * 5/9
