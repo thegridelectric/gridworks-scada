@@ -3,7 +3,7 @@ import time
 
 from gwproto import Message
 from gwsproto.data_classes.house_0_names import H0N
-from gwproto.named_types import AnalogDispatch
+from gwsproto.named_types import AnalogDispatch
 from result import Ok, Result
 from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface

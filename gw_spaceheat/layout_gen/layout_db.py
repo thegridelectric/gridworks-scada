@@ -4,116 +4,26 @@ import subprocess
 import typing
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Optional, List, Sequence
+from typing import Any, Optional, List, Sequence
 import uuid
 
 from gw.errors import DcError
 
-from gwproto.type_helpers import CACS_BY_MAKE_MODEL
-from gwproto.enums import ActorClass
-from gwproto.enums import MakeModel
-from gwproto.enums import Unit
-from gwproto.enums import TelemetryName
-from gwproto.named_types import ComponentAttributeClassGt
-from gwproto.named_types import ComponentGt
-from gwproto.named_types import ElectricMeterCacGt
-from gwproto.named_types import SpaceheatNodeGt
-from gwproto.named_types import DataChannelGt
-from gwproto.named_types import ElectricMeterChannelConfig
-from gwproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
-from gwproto.property_format import SpaceheatName
-from gwproto.data_classes.telemetry_tuple import ChannelStub
+from gwsproto.type_helpers import CACS_BY_MAKE_MODEL
+from gwsproto.enums import ActorClass
+from gwsproto.enums import MakeModel
+from gwsproto.enums import Unit
+from gwsproto.enums import TelemetryName
+from gwsproto.named_types import ComponentAttributeClassGt
+from gwsproto.named_types import ComponentGt
+from gwsproto.named_types import ElectricMeterCacGt
+from gwsproto.named_types import SpaceheatNodeGt
+from gwsproto.named_types import DataChannelGt
+from gwsproto.named_types import ElectricMeterChannelConfig
+from gwsproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwsproto.data_classes.house_0_names import H0N, H0CN
 from gwsproto.enums import FlowManifoldVariant, GwUnit, HomeAloneStrategy
 from gwsproto.named_types import DerivedChannelGt, TankTempCalibration, TankTempCalibrationMap
-
-class ChannelStubDb(ChannelStub):
-    CapturedByNodeName: SpaceheatName
-
-ChanneStubDbByName: Dict[str, ChannelStubDb] = {
-    H0CN.hp_odu_pwr: ChannelStubDb(
-        Name=H0CN.hp_odu_pwr,
-        AboutNodeName=H0N.hp_odu,
-        TelemetryName=TelemetryName.PowerW,
-        InPowerMetering=True,
-        CapturedByNodeName=H0N.primary_power_meter,
-    ),
-    H0CN.hp_idu_pwr: ChannelStubDb(
-        Name=H0CN.hp_idu_pwr,
-        AboutNodeName=H0N.hp_idu,
-        TelemetryName=TelemetryName.PowerW,
-        InPowerMetering=True,
-        CapturedByNodeName=H0N.primary_power_meter,
-    ),
-    H0CN.dist_pump_pwr: ChannelStubDb(
-        Name=H0CN.dist_pump_pwr,
-        AboutNodeName=H0N.dist_pump,
-        TelemetryName=TelemetryName.PowerW,
-        CapturedByNodeName=H0N.primary_power_meter,
-    ),
-     H0CN.primary_pump_pwr: ChannelStubDb(
-        Name=H0CN.primary_pump_pwr,
-        AboutNodeName=H0N.primary_pump,
-        TelemetryName=TelemetryName.PowerW,
-        CapturedByNodeName=H0N.primary_power_meter,
-    ),
-    H0CN.store_pump_pwr: ChannelStubDb(
-        Name=H0CN.store_pump_pwr,
-        AboutNodeName=H0N.store_pump,
-        TelemetryName=TelemetryName.PowerW,
-        CapturedByNodeName=H0N.primary_power_meter,
-    ),
-
-    H0CN.dist_swt: ChannelStubDb(
-        Name=H0CN.dist_swt,
-        AboutNodeName=H0N.dist_swt,
-        TelemetryName=TelemetryName.WaterTempCTimes1000,
-        CapturedByNodeName=H0N.analog_temp,
-    ),
-    H0CN.dist_rwt: ChannelStubDb(
-        Name=H0CN.dist_rwt,
-        AboutNodeName=H0N.dist_rwt,
-        TelemetryName=TelemetryName.WaterTempCTimes1000,
-        CapturedByNodeName=H0N.analog_temp,
-    ),
-    H0CN.hp_lwt: ChannelStubDb(
-        Name=H0CN.hp_lwt,
-        AboutNodeName=H0N.hp_lwt,
-        TelemetryName=TelemetryName.WaterTempCTimes1000,
-        CapturedByNodeName=H0N.analog_temp,
-    ),
-    H0CN.hp_ewt: ChannelStubDb(
-        Name=H0CN.hp_ewt,
-        AboutNodeName=H0N.hp_ewt,
-        TelemetryName=TelemetryName.WaterTempCTimes1000,
-        CapturedByNodeName=H0N.analog_temp,
-    ),
-    H0CN.store_hot_pipe: ChannelStubDb(
-        Name=H0CN.store_hot_pipe,
-        AboutNodeName=H0N.store_hot_pipe,
-        TelemetryName=TelemetryName.WaterTempCTimes1000,
-        CapturedByNodeName=H0N.analog_temp,
-    ),
-    H0CN.store_cold_pipe: ChannelStubDb(
-        Name=H0CN.store_cold_pipe,
-        AboutNodeName=H0N.store_cold_pipe,
-        TelemetryName=TelemetryName.WaterTempCTimes1000,
-        CapturedByNodeName=H0N.analog_temp,
-    ),
-    H0CN.buffer_hot_pipe: ChannelStubDb(
-        Name=H0CN.buffer_hot_pipe,
-        AboutNodeName=H0N.buffer_hot_pipe,
-        TelemetryName=TelemetryName.WaterTempCTimes1000,
-        CapturedByNodeName=H0N.analog_temp,
-    ),
-    H0CN.buffer_cold_pipe: ChannelStubDb(
-        Name=H0CN.buffer_cold_pipe,
-        AboutNodeName=H0N.buffer_cold_pipe,
-        TelemetryName=TelemetryName.WaterTempCTimes1000,
-        CapturedByNodeName=H0N.analog_temp,
-    ),
-
-}
 
 
 @dataclass

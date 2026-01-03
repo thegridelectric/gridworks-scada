@@ -11,11 +11,11 @@ from gw.errors import DcError
 from gwproactor import MonitoredName, Problems
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
-from gwproto.data_classes.components import PicoTankModuleComponent
-from gwproto.enums import TempCalcMethod
-from gwproto.enums import MakeModel
-from gwproto.named_types import SyncedReadings, TankModuleParams
-from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
+from gwsproto.data_classes.components import PicoTankModuleComponent
+from gwsproto.enums import TempCalcMethod
+from gwsproto.enums import MakeModel
+from gwsproto.named_types import SyncedReadings, TankModuleParams
+from gwsproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from result import Ok, Result
 from actors.sh_node_actor import ShNodeActor
 from gwsproto.named_types import PicoMissing, ChannelFlatlined, MicroVolts

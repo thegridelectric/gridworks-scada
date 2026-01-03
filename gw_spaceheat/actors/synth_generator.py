@@ -10,8 +10,8 @@ from result import Ok, Result
 from datetime import datetime,  timezone
 from gwproto import Message
 
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.named_types import SingleReading, SyncedReadings
+from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.named_types import SingleReading, SyncedReadings
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 

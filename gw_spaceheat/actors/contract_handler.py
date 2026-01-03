@@ -8,10 +8,10 @@ from typing import Optional
 import pytz
 from gwsproto.data_classes.house_0_layout import House0Layout
 from gwsproto.data_classes.house_0_names import H0N
-from gwsproto.enums import ContractStatus, LogLevel
+from gwsproto.enums import ContractStatus
 from gwproactor.logger import LoggerOrAdapter
-from gwproto.data_classes.sh_node import ShNode
-from gwsproto.named_types import Glitch, SlowContractHeartbeat
+from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.named_types import  SlowContractHeartbeat
 
 
 from actors.config import ScadaSettings

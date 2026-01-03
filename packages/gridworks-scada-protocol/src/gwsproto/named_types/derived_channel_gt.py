@@ -2,7 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from gwproto.property_format import (
+from gwsproto.property_format import (
     LeftRightDotStr,
     SpaceheatName,
     UUID4Str,
@@ -20,4 +20,4 @@ class DerivedChannelGt(BaseModel):
     DisplayName: str
     TerminalAssetAlias: LeftRightDotStr
     TypeName: Literal["derived.channel.gt"] = "derived.channel.gt"
-    Version: str = "000"
+    Version: Literal["000"] = "000"

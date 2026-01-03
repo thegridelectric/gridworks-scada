@@ -4,9 +4,9 @@ import time
 from typing import Optional
 
 import rich
-from gwproto.data_classes.data_channel import DataChannel
-from gwproto.enums import TelemetryName
-from gwproto.named_types import PowerWatts
+from gwsproto.data_classes.data_channel import DataChannel
+from gwsproto.enums import TelemetryName
+from gwsproto.named_types import PowerWatts
 
 
 from actors.atn.dashboard.misc import UpdateSources

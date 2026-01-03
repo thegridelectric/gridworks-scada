@@ -1,8 +1,5 @@
 from pydantic import BaseModel
 from layout_gen import LayoutDb
-from gwproto.named_types import SynthChannelGt
-from gwproto.enums import TelemetryName 
-from gwsproto.data_classes.house_0_names import H0N, H0CN
 from gwsproto.named_types import DerivedChannelGt
 from gwsproto.enums import GwUnit
 # TODO: add to H0N and H0CN

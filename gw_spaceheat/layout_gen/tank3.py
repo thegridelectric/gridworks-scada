@@ -1,16 +1,14 @@
-from gwproto.named_types import PicoTankModuleComponentGt
-from typing import cast, Optional
+from gwsproto.named_types import PicoTankModuleComponentGt
 from pydantic import BaseModel
-from gwproto.property_format import SpaceheatName
+from gwsproto.property_format import SpaceheatName
 from layout_gen import LayoutDb
-from gwproto.named_types import ComponentGt
-from gwproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
-from gwproto.named_types.data_channel_gt import DataChannelGt
-from gwproto.enums import MakeModel, Unit, ActorClass, TelemetryName
-from gwproto.named_types.channel_config import ChannelConfig
-from gwproto.named_types import SpaceheatNodeGt
+from gwsproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
+from gwsproto.named_types.data_channel_gt import DataChannelGt
+from gwsproto.enums import MakeModel, Unit, ActorClass, TelemetryName
+from gwsproto.named_types.channel_config import ChannelConfig
+from gwsproto.named_types import SpaceheatNodeGt
 from gwsproto.data_classes.house_0_names import H0N
-from gwproto.enums import TempCalcMethod
+from gwsproto.enums import TempCalcMethod
 
 class Tank3Cfg(BaseModel):
     SerialNumber: str

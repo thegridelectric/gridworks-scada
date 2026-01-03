@@ -1,25 +1,25 @@
-"""Implements I2cRelayMultiplexer Actors"""
 import asyncio
 import time
 from enum import Enum
 from typing import Any, Dict, List, Optional, Sequence, cast
 
 from gw.enums import GwStrEnum
-# from actors.simple_sensor import SimpleSensor, SimpleSensorDriverThread
+from gwproto.message import Message
+
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
-from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import \
+from gwsproto.data_classes.components.i2c_multichannel_dt_relay_component import \
     I2cMultichannelDtRelayComponent
 
-from gwproto.data_classes.data_channel import DataChannel
+from gwsproto.data_classes.data_channel import DataChannel
 from gwsproto.data_classes.house_0_layout import House0Layout
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.enums import (ActorClass, ChangeRelayPin, FsmActionType,
+from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.enums import (ActorClass, ChangeRelayPin, FsmActionType,
                            FsmReportType, MakeModel,
                            RelayEnergizationState, RelayWiringConfig,
                            TelemetryName)
-from gwproto.message import Message
-from gwproto.named_types import (SingleReading,
+
+from gwsproto.named_types import (SingleReading,
                                  SyncedReadings, FsmAtomicReport)
 from pydantic import BaseModel, Field
 from result import Err, Ok, Result

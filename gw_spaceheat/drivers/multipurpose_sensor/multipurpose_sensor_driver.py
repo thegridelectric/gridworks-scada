@@ -3,9 +3,9 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 
 from actors.config import ScadaSettings
-from gwproto.data_classes.components.ads111x_based_component import \
+from gwsproto.data_classes.components.ads111x_based_component import \
     Ads111xBasedComponent
-from gwproto.data_classes.data_channel import DataChannel
+from gwsproto.data_classes.data_channel import DataChannel
 from drivers.driver_result import DriverOutcome
 from result import Ok, Result
 

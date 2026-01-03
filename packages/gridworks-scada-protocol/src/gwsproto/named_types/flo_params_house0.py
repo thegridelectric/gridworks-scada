@@ -1,11 +1,11 @@
-"""Type flo.params.house0, version 000"""
 import time
 import uuid
 from typing import List, Literal, Optional
 
-from gwsproto.enums import MarketPriceUnit
-from gwproto.property_format import LeftRightDotStr, UTCSeconds, UUID4Str
 from pydantic import BaseModel, ConfigDict, Field, PositiveInt, StrictInt
+
+from gwsproto.enums import MarketPriceUnit
+from gwsproto.property_format import LeftRightDotStr, UTCSeconds, UUID4Str
 
 
 class FloParamsHouse0(BaseModel):
@@ -57,7 +57,7 @@ class FloParamsHouse0(BaseModel):
     ParamsGeneratedS: UTCSeconds = Field(default_factory=lambda: int(time.time()))
     ConstantDeltaT: StrictInt = 20
     TypeName: Literal["flo.params.house0"] = "flo.params.house0"
-    Version: str = "004"
+    Version: Literal["004"] = "004"
 
     model_config = ConfigDict(extra="allow", frozen=True, use_enum_values=True)
 

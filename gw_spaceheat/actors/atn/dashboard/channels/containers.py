@@ -7,8 +7,8 @@ from typing import Any
 from typing import Deque
 from typing import Optional
 
-from gwproto.data_classes.data_channel import DataChannel
-from gwproto.enums import TelemetryName
+from gwsproto.data_classes.data_channel import DataChannel
+from gwsproto.enums import TelemetryName
 
 from gwsproto.named_types import SnapshotSpaceheat
 

@@ -10,7 +10,7 @@ from typing import Optional, Callable
 
 import pytz
 from gwproto import Message
-from gwproto.data_classes.sh_node import ShNode
+from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.data_classes.house_0_layout import House0Layout
 from gwsproto.data_classes.house_0_names import H0N
 from gwproactor.logger import LoggerOrAdapter

@@ -41,11 +41,11 @@ from gwproactor.config import LoggerLevels
 from gwproactor.logger import LoggerOrAdapter
 from gwproactor.message import DBGCommands, DBGPayload, MQTTReceiptPayload
 from gwproto import Message, MQTTCodec, create_message_model
-from gwproto.data_classes.data_channel import DataChannel
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.enums import TelemetryName, RelayClosedOrOpen
-from gwproto.messages import (EventBase, PowerWatts, Report, ReportEvent)
-from gwproto.named_types import AnalogDispatch, SendSnap, MachineStates
+from gwsproto.data_classes.data_channel import DataChannel
+from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.enums import TelemetryName, RelayClosedOrOpen
+from gwsproto.messages import (EventBase, PowerWatts, Report, ReportEvent)
+from gwsproto.named_types import AnalogDispatch, SendSnap, MachineStates
 from actors.atn_contract_handler import AtnContractHandler
 from gwsproto.enums import ContractStatus, LogLevel
 from gwsproto.named_types import (
@@ -328,7 +328,7 @@ class Atn(PrimeActor):
 
     @property
     def node(self) -> ShNode:
-        return self._node
+        return self.layout.node(self.name)
 
     @property
     def scada(self) -> ShNode:

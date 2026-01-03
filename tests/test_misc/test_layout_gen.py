@@ -2,11 +2,11 @@ from typing import Optional
 from typing import Tuple
 
 import rich
-from gwproto.data_classes.components.hubitat_tank_component import HubitatTankComponent
-from gwproto.data_classes.hardware_layout import HardwareLayout
-from gwproto.enums import TelemetryName
-from gwproto.enums import ActorClass
-from gwproto.named_types.hubitat_gt import HubitatGt
+from gwsproto.data_classes.components.hubitat_tank_component import HubitatTankComponent
+
+from gwsproto.enums import TelemetryName
+from gwsproto.enums import ActorClass
+from gwsproto.named_types.hubitat_gt import HubitatGt
 from pydantic import BaseModel
 from pydantic_extra_types.mac_address import MacAddress
 
@@ -18,6 +18,8 @@ from layout_gen import HubitatThermostatGenCfg
 from layout_gen import LayoutDb
 from layout_gen import StubConfig
 from layout_gen import Tank1Cfg
+
+from gwsproto.data_classes.hardware_layout import HardwareLayout
 
 _sn = 0
 

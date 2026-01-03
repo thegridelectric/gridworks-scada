@@ -1,7 +1,7 @@
 from typing import Dict, List, Literal
 from pydantic import BaseModel
-from gwproto.enums import TelemetryName
-from gwproto.property_format import SpaceheatName
+from gwsproto.enums import TelemetryName
+from gwsproto.property_format import SpaceheatName
 DEFAULT_ANALOG_READER = "analog-temp"
 
 

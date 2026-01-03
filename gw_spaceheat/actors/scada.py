@@ -12,31 +12,27 @@ from typing import Any, List, Optional
 import dotenv
 from gwproactor import CommunicatorInterface
 from gwproactor import ProactorLogger
-from gwproactor import AppInterface
+
 from gwproactor.actors.actor import PrimeActor
 from transitions import Machine
-from gwproto.message import Header
+from gwproto.message import Header, Message
+from gwproto.messages import EventBase, 
 
-from gwproto.enums import ActorClass
+from gwsproto.enums import ActorClass
 
 from actors.scada_interface import ScadaInterface
 from gwsproto.data_classes.house_0_layout import House0Layout
-from gwproto.messages import FsmFullReport
-from gwproto.messages import EventBase
-from gwproto.message import Message
-from gwproto.messages import PowerWatts
-from gwproto.messages import SendSnap
-from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
+from gwsproto.named_types import FsmFullReport, PowerWatts, SendSnap, ReportEvent
+from gwsproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 
-from gwproto.named_types import (
+from gwsproto.named_types import (
     AnalogDispatch, ChannelReadings, MachineStates, SingleReading, SyncedReadings,
 )
 
-from gwproto.messages import ReportEvent
 from actors.scada_data import ScadaData
 from actors.config import ScadaSettings
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.enums import ChangeRelayState
+from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.enums import ChangeRelayState
 from gwproactor import QOS
 
 from gwproactor.links import Transition
@@ -48,7 +44,7 @@ from actors.atomic_ally_loader import AtomicAlly
 from actors.codec_factories import ScadaCodecFactory
 from actors.contract_handler import ContractHandler
 from gwsproto.data_classes.house_0_names import H0N
-from gwsproto.enums import (AtomicAllyState,  ContractStatus, FlowManifoldVariant, LocalControlTopState,
+from gwsproto.enums import (AtomicAllyState,  ContractStatus, LocalControlTopState,
                    MainAutoEvent, MainAutoState, TopState)
 from gwsproto.named_types import ( ActuatorsReady, FsmEvent,
     AdminDispatch, AdminAnalogDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
@@ -56,6 +52,9 @@ from gwsproto.named_types import ( ActuatorsReady, FsmEvent,
     ScadaParams, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment,
     SiegTargetTooLow, SingleMachineState,SlowContractHeartbeat, SuitUp, WakeUp
 )
+
+from scada_app_interface import ScadaAppInterface
+
 
 class ScadaCmdDiagnostic(enum.Enum):
     SUCCESS = "Success"
@@ -100,7 +99,7 @@ class Scada(PrimeActor, ScadaInterface):
         {"trigger": "AutoWakesUp", "source": "Dormant", "dest": "HomeAlone"},
     ]
 
-    def __init__(self, name: str, services: AppInterface) -> None:
+    def __init__(self, name: str, services: ScadaAppInterface) -> None:
         super().__init__(name, services)
         if not isinstance(services.hardware_layout, House0Layout):
             raise Exception("Make sure to pass House0Layout object as hardware_layout!")
@@ -342,6 +341,8 @@ class Scada(PrimeActor, ScadaInterface):
                 try:
                     self.process_single_reading(from_node, payload)
                 except Exception as e:
+                    self.payload = payload
+                    self.from_node = from_node
                     self.log(f"Trouble with process_single_reading: \n {e}")
             case SlowContractHeartbeat():
                 try:
@@ -1485,7 +1486,7 @@ class Scada(PrimeActor, ScadaInterface):
 
     @property
     def node(self) -> ShNode:
-        return self._node
+        return self.layout.node(self.name)
 
     @property
     def publication_name(self) -> str:

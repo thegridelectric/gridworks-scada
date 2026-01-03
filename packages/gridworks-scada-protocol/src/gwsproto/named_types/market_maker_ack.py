@@ -2,7 +2,7 @@ from typing import Literal
 from pydantic import BaseModel, field_validator, model_validator
 from typing_extensions import Self
 from gw.enums import MarketTypeName
-from gwproto.property_format import UUID4Str, MarketName,MarketSlotName, LeftRightDotStr, UTCMilliseconds
+from gwsproto.property_format import UUID4Str, MarketName,MarketSlotName, LeftRightDotStr, UTCMilliseconds
 
 class MarketMakerAck(BaseModel):
     """Acknowledgement of bid
@@ -23,7 +23,7 @@ class MarketMakerAck(BaseModel):
     Signature: str
     AckTimeMs: UTCMilliseconds
     TypeName: Literal["market.maker.ack"] = "market.maker.ack"
-    Version: str = "000"
+    Version: Literal["000"] = "000"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

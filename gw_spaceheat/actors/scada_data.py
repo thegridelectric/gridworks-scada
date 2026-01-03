@@ -6,13 +6,10 @@ import uuid
 from typing import Dict, List, Optional, Union
 
 from actors.config import ScadaSettings
-from gwproto.data_classes.data_channel import DataChannel
-from gwproto.data_classes.synth_channel import SynthChannel
+from gwsproto.data_classes.data_channel import DataChannel
 from gwsproto.data_classes.house_0_names import H0CN
-from gwproto.messages import (
+from gwsproto.named_types import (
     ChannelReadings,
-    FsmFullReport,
-    MachineStates,
     Report,
     SingleReading,
 )
@@ -20,10 +17,10 @@ from gwproto.messages import (
 from gwsproto.named_types import (
     Ha1Params,
     HeatingForecast,
-    SingleMachineState,
     SnapshotSpaceheat,
 )
 
+from gwsproto.data_classes.derived_channel import DerivedChannel
 from gwsproto.data_classes.house_0_layout import House0Layout
 class ScadaData:
 
@@ -49,7 +46,7 @@ class ScadaData:
         )
         self.my_data_channels = self.get_my_data_channels()
         self.my_derived_channels = self.get_my_derived_channels()
-        self.my_channels: list[Union[DataChannel, SynthChannel]] = self.my_data_channels + self.my_derived_channels
+        self.my_channels: list[Union[DataChannel, DerivedChannel]] = self.my_data_channels + self.my_derived_channels
         self.recent_machine_states = {}
         self.latest_machine_state = {} # latest state by node name
         self.latest_channel_values: Dict[str, int | None] = {
@@ -77,8 +74,8 @@ class ScadaData:
     def get_my_data_channels(self) -> List[DataChannel]:
         return list(self.layout.data_channels.values())
     
-    def get_my_derived_channels(self) -> List[SynthChannel]:
-        return list(self.layout.synth_channels.values())
+    def get_my_derived_channels(self) -> List[DerivedChannel]:
+        return list(self.layout.derived_channels.values())
 
     def channel_has_value(self, channel: str) -> bool:
         return (
@@ -107,7 +104,6 @@ class ScadaData:
                 return None
             return ChannelReadings(
                 ChannelName=ch.Name,
-                ChannelId=ch.Id,
                 ValueList=self.recent_channel_values[ch.Name],
                 ScadaReadTimeUnixMsList=self.recent_channel_unix_ms[ch.Name],
             )
@@ -115,7 +111,7 @@ class ScadaData:
             return None
 
     @property
-    def my_reported_channels(self) -> list[Union[DataChannel, SynthChannel]]:
+    def my_reported_channels(self) -> list[Union[DataChannel, DerivedChannel]]:
         """
         Channels that should be included in reports.
         """
@@ -144,7 +140,7 @@ class ScadaData:
             Id=str(uuid.uuid4()),
         )
 
-    def capture_seconds(self, ch: Union[DataChannel, SynthChannel]) -> int:
+    def capture_seconds(self, ch: Union[DataChannel, DerivedChannel]) -> int:
         if ch.Name not in self.seconds_by_channel:
             self.seconds_by_channel = {}
             components = [c.gt for c in self.layout.components.values()]
@@ -152,10 +148,10 @@ class ScadaData:
                 for config in c.ConfigList:
                     self.seconds_by_channel[config.ChannelName] = config.CapturePeriodS
             for s in self.my_derived_channels:
-                self.seconds_by_channel[s.Name] = s.SyncReportMinutes * 60
+                self.seconds_by_channel[s.Name] = 60  # TODO: fix
         return self.seconds_by_channel[ch.Name]
 
-    def flatlined(self, ch: Union[DataChannel, SynthChannel]) -> bool:
+    def flatlined(self, ch: Union[DataChannel, DerivedChannel]) -> bool:
         if self.latest_channel_unix_ms[ch.Name] is None:
             return True
         # nyquist

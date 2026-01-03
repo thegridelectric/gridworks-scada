@@ -1,6 +1,6 @@
 from typing import Self
 
-from gwproto.enums import TelemetryName
+from gwsproto.enums import TelemetryName
 from rich.console import Console
 from rich.console import ConsoleOptions
 from rich.console import RenderResult

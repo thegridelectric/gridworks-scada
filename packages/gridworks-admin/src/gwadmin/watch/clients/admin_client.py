@@ -16,7 +16,7 @@ from gwproto import MQTTTopic
 from gwadmin.config import ScadaConfig
 from gwsproto.data_classes.house_0_names import H0N
 
-from gwproto.named_types import SendSnap
+from gwsproto.named_types import SendSnap
 from paho.mqtt.client import MQTTMessageInfo
 from pydantic import BaseModel
 from result import Result

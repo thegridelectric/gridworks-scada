@@ -3,8 +3,8 @@ import socket
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 
-from gwproto.data_classes.components.web_server_component import WebServerComponent
-from gwproto.named_types.web_server_gt import WebServerGt, DEFAULT_WEB_SERVER_NAME
+from gwsproto.data_classes.components.web_server_component import WebServerComponent
+from gwsproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 from gwsproto.named_types import BaseurlFailureAlert, PicoCommsParams

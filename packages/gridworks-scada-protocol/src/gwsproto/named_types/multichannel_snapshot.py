@@ -1,10 +1,8 @@
-"""Type  multichannel.snapshot, version 000"""
-
 from typing import Literal, Self
 
 from pydantic import BaseModel, StrictInt, ConfigDict, model_validator
 
-from gwproto.property_format import (
+from gwsproto.property_format import (
     SpaceheatName,
 )
 

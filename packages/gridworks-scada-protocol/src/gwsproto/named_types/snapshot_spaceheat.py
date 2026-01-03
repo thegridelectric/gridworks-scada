@@ -1,11 +1,9 @@
-"""Type snapshot.spaceheat, version 002"""
-
 from typing import List, Literal
 
 from pydantic import BaseModel
 
-from gwproto.named_types.single_reading import SingleReading
-from gwproto.property_format import (
+from gwsproto.named_types.single_reading import SingleReading
+from gwsproto.property_format import (
     LeftRightDotStr,
     UTCMilliseconds,
     UUID4Str,
@@ -27,4 +25,4 @@ class SnapshotSpaceheat(BaseModel):
     LatestReadingList: List[SingleReading]
     LatestStateList: List[SingleMachineState]
     TypeName: Literal["snapshot.spaceheat"] = "snapshot.spaceheat"
-    Version: str = "003"
+    Version: Literal["003"] = "003"

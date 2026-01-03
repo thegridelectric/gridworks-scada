@@ -11,9 +11,9 @@ from gw.errors import DcError
 from gwproactor import MonitoredName, Problems, AppInterface
 from gwproactor.message import InternalShutdownMessage, PatInternalWatchdogMessage
 from gwproto import Message
-from gwproto.data_classes.components import PicoFlowModuleComponent
-from gwproto.enums import GpmFromHzMethod, HzCalcMethod, MakeModel, TelemetryName
-from gwproto.named_types import (
+from gwsproto.data_classes.components import PicoFlowModuleComponent
+from gwsproto.enums import GpmFromHzMethod, HzCalcMethod, MakeModel, TelemetryName
+from gwsproto.named_types import (
     ChannelReadings,
     SyncedReadings,
     TicklistHall,
@@ -21,7 +21,7 @@ from gwproto.named_types import (
     TicklistReed,
     TicklistReedReport,
 )
-from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
+from gwsproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from actors.sh_node_actor import ShNodeActor
 from gwsproto.enums import LogLevel
 from gwsproto.named_types import Glitch, PicoMissing

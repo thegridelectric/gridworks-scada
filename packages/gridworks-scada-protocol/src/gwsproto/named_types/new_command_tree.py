@@ -1,10 +1,9 @@
-"""Type new.command.tree, version 000"""
-
 from typing import List, Literal
 
-from gwproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
-from gwproto.property_format import LeftRightDotStr, UTCMilliseconds
 from pydantic import BaseModel, field_validator
+
+from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
+from gwsproto.property_format import LeftRightDotStr, UTCMilliseconds
 
 
 class NewCommandTree(BaseModel):
@@ -12,7 +11,7 @@ class NewCommandTree(BaseModel):
     ShNodes: List[SpaceheatNodeGt]
     UnixMs: UTCMilliseconds
     TypeName: Literal["new.command.tree"] = "new.command.tree"
-    Version: str = "000"
+    Version: Literal["000"] = "000"
 
     @field_validator("ShNodes")
     @classmethod

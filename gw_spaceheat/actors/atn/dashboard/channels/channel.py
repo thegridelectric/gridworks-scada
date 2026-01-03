@@ -3,9 +3,9 @@ from typing import Callable
 
 from typing import Optional
 
-from gwproto.data_classes.data_channel import DataChannel
-from gwproto.enums import TelemetryName
-from gwproto.named_types import SingleReading
+from gwsproto.data_classes.data_channel import DataChannel
+from gwsproto.enums import TelemetryName
+from gwsproto.named_types import SingleReading
 from rich.console import Console
 from rich.console import ConsoleOptions
 from rich.console import RenderResult

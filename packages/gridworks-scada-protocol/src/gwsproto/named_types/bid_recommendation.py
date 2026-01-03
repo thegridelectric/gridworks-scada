@@ -2,7 +2,7 @@ from typing import Literal, Self
 
 from pydantic import BaseModel, model_validator
 
-from gwproto.property_format import LeftRightDotStr, MarketSlotName
+from gwsproto.property_format import LeftRightDotStr, MarketSlotName
 
 from gwsproto.enums import MarketPriceUnit, MarketQuantityUnit
 from gwsproto.named_types.price_quantity_unitless import PriceQuantityUnitless
@@ -16,7 +16,7 @@ class BidRecommendation(BaseModel):
     PriceUnit: MarketPriceUnit
     QuantityUnit: MarketQuantityUnit
     TypeName: Literal["bid.recommendation"] = "bid.recommendation"
-    Version: str = "000"
+    Version: Literal["000"] = "000"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

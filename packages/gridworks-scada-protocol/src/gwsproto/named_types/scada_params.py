@@ -1,8 +1,6 @@
-"""Type scada.params, version 002"""
-
 from typing import Literal, Optional
 
-from gwproto.property_format import (
+from gwsproto.property_format import (
     LeftRightDotStr,
     SpaceheatName,
     UTCMilliseconds,
@@ -21,6 +19,6 @@ class ScadaParams(BaseModel):
     NewParams: Optional[Ha1Params] = None
     OldParams: Optional[Ha1Params] = None
     TypeName: Literal["scada.params"] = "scada.params"
-    Version: str = "004"
+    Version: Literal["004"] = "004"
 
     model_config = ConfigDict(extra="allow")

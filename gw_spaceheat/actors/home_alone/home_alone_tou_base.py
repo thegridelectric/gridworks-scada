@@ -7,13 +7,13 @@ from datetime import datetime, timedelta
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.enums import ActorClass
-from gwproto.named_types import AnalogDispatch, SyncedReadings
+from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.enums import ActorClass
+from gwsproto.named_types import AnalogDispatch, SyncedReadings
 from result import Ok, Result
 from transitions import Machine
 from gwsproto.data_classes.house_0_names import H0N, H0CN
-from gwproto.data_classes.components.dfr_component import DfrComponent
+from gwsproto.data_classes.components.dfr_component import DfrComponent
 from actors.sh_node_actor import ShNodeActor
 from gwsproto.named_types import (ActuatorsReady,
             GoDormant, Glitch, Ha1Params,

@@ -4,35 +4,41 @@ import uuid
 from abc import ABC
 from typing import cast, Any, List, Optional
 import pytz
+
+from pydantic import ValidationError
+
 from gwproactor import QOS
+from gw.errors import DcError
+from gwproactor import Actor
+from gwproto import Message
 
 from actors.config import ScadaSettings
 from actors.scada_data import ScadaData
 from gwsproto.data_classes.house_0_layout import House0Layout
 from gwsproto.data_classes.house_0_names import H0N, H0CN, House0RelayIdx
-from gw.errors import DcError
-from gwproactor import Actor
-from gwproto import Message
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.enums import (
+
+from gwsproto.data_classes.sh_node import ShNode
+
+from gwsproto.enums import (
     ActorClass,
     ChangeAquastatControl,
     ChangeHeatcallSource,
     ChangeHeatPumpControl,
+    ChangeKeepSend,
     ChangePrimaryPumpControl,
     ChangeRelayState,
     ChangeStoreFlowRelay,
+    LogLevel,
     RelayClosedOrOpen,
     StoreFlowRelay,
-    TelemetryName
+    TelemetryName,
+    TurnHpOnOff
 )
 
-from gwsproto.enums import ChangeKeepSend, LogLevel, TurnHpOnOff
-from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import (
+from gwsproto.data_classes.components.i2c_multichannel_dt_relay_component import (
     I2cMultichannelDtRelayComponent,
 )
 from gwsproto.named_types import FsmEvent, Glitch, HeatingForecast, NewCommandTree
-from pydantic import ValidationError
 
 from scada_app_interface import ScadaAppInterface
 
@@ -81,7 +87,6 @@ class ShNodeActor(Actor, ABC):
 
     @property
     def node(self) -> ShNode:
-        # note: self._node exists in proactor but may be stale
         return self.layout.node(self.name)
 
     @property

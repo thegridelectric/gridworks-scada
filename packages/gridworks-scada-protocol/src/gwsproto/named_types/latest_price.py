@@ -1,9 +1,7 @@
-"""Type latest.price, version 000"""
-
 from typing import Literal
 
 from gwsproto.enums import MarketPriceUnit
-from gwproto.property_format import LeftRightDotStr, MarketSlotName, UUID4Str
+from gwsproto.property_format import LeftRightDotStr, MarketSlotName, UUID4Str
 from pydantic import BaseModel, StrictInt
 
 
@@ -14,4 +12,4 @@ class LatestPrice(BaseModel):
     MarketSlotName: MarketSlotName
     MessageId: UUID4Str
     TypeName: Literal["latest.price"] = "latest.price"
-    Version: str = "000"
+    Version: Literal["000"] = "000"

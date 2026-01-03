@@ -10,11 +10,13 @@ from aiohttp.web_response import Response
 from gwproactor import MonitoredName, Problems
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
-from gwproto.data_classes.components import PicoBtuMeterComponent
-from gwproto.enums import MakeModel
-from gwproto.named_types import SyncedReadings
-from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
-from gwsproto.named_types import MultichannelSnapshot,  AsyncBtuParams, ChannelFlatlined, PicoMissing
+from gwsproto.data_classes.components import PicoBtuMeterComponent
+from gwsproto.enums import MakeModel
+from gwsproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
+from gwsproto.named_types import (
+    AsyncBtuParams, ChannelFlatlined, 
+    MultichannelSnapshot, PicoMissing, SyncedReadings
+)
 from result import Ok, Result
 from scada_app_interface import ScadaAppInterface
 FLATLINE_REPORT_S = 60
@@ -31,7 +33,7 @@ class ApiBtuMeter(PicoActorBase):
     ):
         super().__init__(name, services)
 
-        comp = self._node.component
+        comp = self.node.component
         if comp is None:
             raise Exception(f" {self.node.actor_class} {self.name} needs a component!")
 

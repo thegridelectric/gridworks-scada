@@ -4,8 +4,8 @@ from typing import Mapping
 from typing import Optional
 from typing import Sequence
 
-from gwproto.enums import TelemetryName
-from gwproto.named_types import SingleReading
+from gwsproto.enums import TelemetryName
+from gwsproto.named_types import SingleReading
 from gwsproto.named_types import SnapshotSpaceheat
 
 from actors.atn.dashboard.channels.channel import DisplayChannel

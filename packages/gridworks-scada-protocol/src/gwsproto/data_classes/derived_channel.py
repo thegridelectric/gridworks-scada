@@ -1,5 +1,5 @@
 from pydantic import ConfigDict
-from gwproto.data_classes.sh_node import ShNode
+from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.named_types import DerivedChannelGt
 
 class DerivedChannel(DerivedChannelGt):

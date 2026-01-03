@@ -5,19 +5,22 @@ import asyncio
 import uuid
 from collections import deque
 from enum import auto
+
+from gwproto.message import Message
+
 from gwsproto.data_classes.house_0_names import H0CN
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
-from gwproto.enums import StoreFlowRelay
-from gwproto.message import Message
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.named_types import FsmFullReport, SingleReading, AnalogDispatch
+from gwsproto.enums import StoreFlowRelay
+
+from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.named_types import FsmFullReport, SingleReading, AnalogDispatch
 from result import Ok, Result
 from gw.enums import GwStrEnum
 from actors.hp_boss import SiegLoopReady, HpBossState
 from actors.sh_node_actor import ShNodeActor
-from gwsproto.enums import HpModel, LogLevel
-from gwsproto.named_types import (ActuatorsReady, Glitch, ResetHpKeepValue, SetLwtControlParams,
+from gwsproto.enums import HpModel
+from gwsproto.named_types import (ActuatorsReady, ResetHpKeepValue, SetLwtControlParams,
     SetTargetLwt, SiegTargetTooLow,  SingleMachineState)
 
 from transitions import Machine

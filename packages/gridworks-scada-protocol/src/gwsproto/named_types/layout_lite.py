@@ -1,15 +1,15 @@
 from typing import List, Literal
 
-from gwproto.enums import ActorClass
-from gwproto.named_types.data_channel_gt import DataChannelGt
-from gwproto.named_types.i2c_multichannel_dt_relay_component_gt import (
+from gwsproto.enums import ActorClass
+from gwsproto.named_types.data_channel_gt import DataChannelGt
+from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
     I2cMultichannelDtRelayComponentGt,
 )
-from gwproto.named_types.pico_flow_module_component_gt import PicoFlowModuleComponentGt
-from gwproto.named_types.pico_tank_module_component_gt import PicoTankModuleComponentGt
-from gwproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
-from gwproto.named_types.synth_channel_gt import SynthChannelGt
-from gwproto.property_format import LeftRightDotStr, UTCMilliseconds, UUID4Str
+from gwsproto.named_types.pico_flow_module_component_gt import PicoFlowModuleComponentGt
+from gwsproto.named_types.pico_tank_module_component_gt import PicoTankModuleComponentGt
+from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
+from gwsproto.named_types.synth_channel_gt import SynthChannelGt
+from gwsproto.property_format import LeftRightDotStr, UTCMilliseconds, UUID4Str
 from gwsproto.named_types.ha1_params import Ha1Params
 from pydantic import BaseModel, PositiveInt, model_validator
 from typing_extensions import Self

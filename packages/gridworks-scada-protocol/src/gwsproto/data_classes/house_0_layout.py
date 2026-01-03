@@ -4,28 +4,28 @@ from pathlib import Path
 from typing import Any, List, Optional
 
 from gw.errors import DcError
-from gwproto.enums import ActorClass
-from gwproto.data_classes.components import Component
-from gwproto.data_classes.data_channel import DataChannel
-from gwproto.data_classes.hardware_layout import (
-    HardwareLayout,
-    LoadArgs,
-    LoadError,
-)
+from gwsproto.enums import ActorClass
+from gwsproto.data_classes.components import Component
+from gwsproto.data_classes.data_channel import DataChannel
+
 
 from gwsproto.data_classes.house_0_names import H0CN, H0N
 from gwsproto.enums import FlowManifoldVariant, HomeAloneStrategy
 
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.data_classes.synth_channel import SynthChannel
-from gwproto.default_decoders import (
+from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.data_classes.synth_channel import SynthChannel
+from gwsproto.decoders import (
     CacDecoder,
     ComponentDecoder,
 )
-from gwproto.named_types import ComponentAttributeClassGt
+from gwsproto.named_types import ComponentAttributeClassGt
 from gwsproto.data_classes.derived_channel import DerivedChannel
-from gwsproto.named_types import TankTempCalibrationMap, TankTempCalibration
-
+from gwsproto.named_types import TankTempCalibrationMap
+from gwsproto.data_classes.hardware_layout import (
+    HardwareLayout,
+    LoadArgs,
+    LoadError,
+)
 class LayoutBucket(str, Enum): 
     ADS111X = "Ads111xBased"
     ELECTRIC_METER = "ElectricMeter"

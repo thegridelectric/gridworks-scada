@@ -1,6 +1,5 @@
 import importlib
-from gwproto.enums import ActorClass
-from gwsproto.enums import HomeAloneStrategy
+from gwsproto.enums import ActorClass, HomeAloneStrategy
 from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 
