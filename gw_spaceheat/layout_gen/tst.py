@@ -27,8 +27,6 @@ from layout_gen.dfr import add_dfrs
 from layout_gen.dfr import DfrConf
 from layout_gen.relay import add_relays
 from layout_gen.relay import RelayCfg
-from layout_gen.synth_channels import add_synth
-from layout_gen.synth_channels import SynthConfig
 
 
 def make_tst_layout(src_path: Path) -> LayoutDb:
@@ -104,21 +102,6 @@ def make_tst_layout(src_path: Path) -> LayoutDb:
         ),
     )
 
-    add_synth(
-        db,
-        SynthConfig(
-            Name="usable-energy",
-            Strategy="layer-by-layer",
-        ),
-    )
-
-    add_synth(
-        db,
-        SynthConfig(
-            Name="required-energy",
-            Strategy="house-parameters-and-weather",
-        ),
-    )
 
     add_dfrs(
         db,

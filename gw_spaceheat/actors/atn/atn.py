@@ -17,6 +17,20 @@ import aiohttp
 import random
 import rich
 import httpx
+
+from gwproto.messages import (
+    Ack,
+    Ping,
+    ProblemEvent,
+    ShutdownEvent,
+    MQTTConnectEvent,
+    MQTTConnectFailedEvent,
+    MQTTDisconnectEvent,
+    MQTTFullySubscribedEvent,
+    ResponseTimeoutEvent,
+    PeerActiveEvent,
+)
+
 from gwproactor import CodecFactory
 from gwproactor import LinkSettings
 from gwproactor import PrimeActor
@@ -32,19 +46,22 @@ try:
 except ImportError:
     from actors.atn.flo import Flo # Will raise NotImplementedError
 
-from gwsproto.data_classes.house_0_layout import House0Layout
-from gwsproto.data_classes.house_0_names import H0CN, H0N
-from gwsproto.enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName, HomeAloneStrategy
-from gwsproto.data_classes.house_0_names import House0RelayIdx
+from gwproto import Message, MQTTCodec, create_message_model
+from gwproto.messages import EventBase
+
 from gwproactor import QOS
 from gwproactor.config import LoggerLevels
 from gwproactor.logger import LoggerOrAdapter
 from gwproactor.message import DBGCommands, DBGPayload, MQTTReceiptPayload
-from gwproto import Message, MQTTCodec, create_message_model
+
+from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.house_0_names import H0CN, H0N
+from gwsproto.enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName, HomeAloneStrategy
+from gwsproto.data_classes.house_0_names import House0RelayIdx
 from gwsproto.data_classes.data_channel import DataChannel
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import TelemetryName, RelayClosedOrOpen
-from gwsproto.messages import (EventBase, PowerWatts, Report, ReportEvent)
+from gwsproto.named_types import PowerWatts, Report, ReportEvent
 from gwsproto.named_types import AnalogDispatch, SendSnap, MachineStates
 from actors.atn_contract_handler import AtnContractHandler
 from gwsproto.enums import ContractStatus, LogLevel
@@ -189,8 +206,19 @@ class AtnMQTTCodec(MQTTCodec):
                 model_name="AtnMessageDecoder",
                 module_names=[
                     "gwsproto.named_types",
-                    "gwproto.messages",
                     "gwproactor.message",
+                ],
+                explicit_types=[
+                    Ack,
+                    Ping,
+                    ProblemEvent,
+                    ShutdownEvent,
+                    MQTTConnectEvent,
+                    MQTTConnectFailedEvent,
+                    MQTTDisconnectEvent,
+                    MQTTFullySubscribedEvent,
+                    ResponseTimeoutEvent,
+                    PeerActiveEvent,
                 ],
             )
         )
@@ -317,10 +345,6 @@ class Atn(PrimeActor):
     @property
     def logger(self) -> ProactorLogger:
         return self.services.logger
-
-    @property
-    def name(self) -> str:
-        return self._name
 
     @cached_property
     def short_name(self) -> str:

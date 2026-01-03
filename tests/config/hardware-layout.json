@@ -229,9 +229,9 @@
     {
       "AboutNodeName": "buffer-depth1",
       "CapturedByNodeName": "buffer",
-      "DisplayName": "Buffer Depth 1",
-      "Id": "fce72680-0592-47a6-be22-aad0e7a7527d",
-      "Name": "buffer-depth1",
+      "DisplayName": "Buffer Depth 1 Device Temp",
+      "Id": "688294c8-0045-487e-909e-feaa1116731f",
+      "Name": "buffer-depth1-device",
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
@@ -240,9 +240,9 @@
     {
       "AboutNodeName": "buffer-depth2",
       "CapturedByNodeName": "buffer",
-      "DisplayName": "Buffer Depth 2",
-      "Id": "bd8010bd-3307-4d74-9c9b-9544fcff29b2",
-      "Name": "buffer-depth2",
+      "DisplayName": "Buffer Depth 2 Device Temp",
+      "Id": "a44d54b2-a745-40da-b4dc-0deb822bcac9",
+      "Name": "buffer-depth2-device",
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
@@ -251,9 +251,9 @@
     {
       "AboutNodeName": "buffer-depth3",
       "CapturedByNodeName": "buffer",
-      "DisplayName": "Buffer Depth 3",
-      "Id": "bf9e1389-0c63-4b99-a1de-0e20cdd5019d",
-      "Name": "buffer-depth3",
+      "DisplayName": "Buffer Depth 3 Device Temp",
+      "Id": "f221308c-1ccf-4e31-8761-31d6f735eed0",
+      "Name": "buffer-depth3-device",
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
@@ -295,9 +295,9 @@
     {
       "AboutNodeName": "tank1-depth1",
       "CapturedByNodeName": "tank1",
-      "DisplayName": "Tank1 Depth 1",
-      "Id": "655da947-f918-48c6-bec3-a572a40fd48c",
-      "Name": "tank1-depth1",
+      "DisplayName": "Tank1 Depth 1 Device Temp",
+      "Id": "8364020e-04a1-4967-b313-88f6c976949d",
+      "Name": "tank1-depth1-device",
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
@@ -306,9 +306,9 @@
     {
       "AboutNodeName": "tank1-depth2",
       "CapturedByNodeName": "tank1",
-      "DisplayName": "Tank1 Depth 2",
-      "Id": "7e613c82-33e1-4176-b8ee-e6ec2f8bf444",
-      "Name": "tank1-depth2",
+      "DisplayName": "Tank1 Depth 2 Device Temp",
+      "Id": "39453f99-5c96-492b-8270-2a64b8a5137c",
+      "Name": "tank1-depth2-device",
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
@@ -317,9 +317,9 @@
     {
       "AboutNodeName": "tank1-depth3",
       "CapturedByNodeName": "tank1",
-      "DisplayName": "Tank1 Depth 3",
-      "Id": "14e86c3c-9594-4f43-a619-d1e816eef2c7",
-      "Name": "tank1-depth3",
+      "DisplayName": "Tank1 Depth 3 Device Temp",
+      "Id": "ad18b0d1-5833-411f-a721-341dd86ac808",
+      "Name": "tank1-depth3-device",
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
@@ -361,9 +361,9 @@
     {
       "AboutNodeName": "tank2-depth1",
       "CapturedByNodeName": "tank2",
-      "DisplayName": "Tank2 Depth 1",
-      "Id": "ab7871b9-224d-4131-af63-cf042ee9de5a",
-      "Name": "tank2-depth1",
+      "DisplayName": "Tank2 Depth 1 Device Temp",
+      "Id": "e2a4fce9-0f82-44b2-b5d4-b3d64aef8f0a",
+      "Name": "tank2-depth1-device",
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
@@ -372,9 +372,9 @@
     {
       "AboutNodeName": "tank2-depth2",
       "CapturedByNodeName": "tank2",
-      "DisplayName": "Tank2 Depth 2",
-      "Id": "9d9fe707-643c-4eb7-9700-a38520f73169",
-      "Name": "tank2-depth2",
+      "DisplayName": "Tank2 Depth 2 Device Temp",
+      "Id": "5722200c-6a5e-41e4-adbf-ae7c85e87ea2",
+      "Name": "tank2-depth2-device",
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
@@ -383,9 +383,9 @@
     {
       "AboutNodeName": "tank2-depth3",
       "CapturedByNodeName": "tank2",
-      "DisplayName": "Tank2 Depth 3",
-      "Id": "2fb131e4-4d85-493e-aae8-2e9715be3be8",
-      "Name": "tank2-depth3",
+      "DisplayName": "Tank2 Depth 3 Device Temp",
+      "Id": "16d7e2d2-b005-41b8-98bf-d4ee5001865b",
+      "Name": "tank2-depth3-device",
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
@@ -427,9 +427,9 @@
     {
       "AboutNodeName": "tank3-depth1",
       "CapturedByNodeName": "tank3",
-      "DisplayName": "Tank3 Depth 1",
-      "Id": "02a39d34-a77b-4b6a-a467-70b86f2b7fa3",
-      "Name": "tank3-depth1",
+      "DisplayName": "Tank3 Depth 1 Device Temp",
+      "Id": "f8b7e71a-40e3-4c70-ad64-103f8e3b5b6c",
+      "Name": "tank3-depth1-device",
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
@@ -438,9 +438,9 @@
     {
       "AboutNodeName": "tank3-depth2",
       "CapturedByNodeName": "tank3",
-      "DisplayName": "Tank3 Depth 2",
-      "Id": "e19558ca-0244-424c-817f-ec444b24c889",
-      "Name": "tank3-depth2",
+      "DisplayName": "Tank3 Depth 2 Device Temp",
+      "Id": "4cf05f66-8db8-4e19-a363-e7a3a3ef18d9",
+      "Name": "tank3-depth2-device",
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
@@ -449,9 +449,9 @@
     {
       "AboutNodeName": "tank3-depth3",
       "CapturedByNodeName": "tank3",
-      "DisplayName": "Tank3 Depth 3",
-      "Id": "b5e1e278-08a1-4d5c-a290-a30bf526b036",
-      "Name": "tank3-depth3",
+      "DisplayName": "Tank3 Depth 3 Device Temp",
+      "Id": "e3651918-5c36-4934-ab39-3690ace760f6",
+      "Name": "tank3-depth3-device",
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
@@ -492,7 +492,7 @@
     },
     {
       "AboutNodeName": "dist-010v",
-      "CapturedByNodeName": "dfr-multiplexer",
+      "CapturedByNodeName": "zero-ten-multiplexer",
       "DisplayName": "Dist 010V",
       "Id": "3eafa498-0a7a-4222-8e70-2645f01cc215",
       "Name": "dist-010v",
@@ -503,7 +503,7 @@
     },
     {
       "AboutNodeName": "primary-010v",
-      "CapturedByNodeName": "dfr-multiplexer",
+      "CapturedByNodeName": "zero-ten-multiplexer",
       "DisplayName": "Primary 010V",
       "Id": "ddca1429-ae7e-4b0d-9a03-99754e4a7d31",
       "Name": "primary-010v",
@@ -514,7 +514,7 @@
     },
     {
       "AboutNodeName": "store-010v",
-      "CapturedByNodeName": "dfr-multiplexer",
+      "CapturedByNodeName": "zero-ten-multiplexer",
       "DisplayName": "Store 010V",
       "Id": "566ad060-37d2-4bcb-a9d1-ce0111a03b56",
       "Name": "store-010v",
@@ -522,6 +522,162 @@
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
       "Version": "001"
+    }
+  ],
+  "DerivedChannels": [
+    {
+      "CreatedByNodeName": "derived-generator",
+      "DisplayName": "Usable Energy Wh",
+      "Id": "23bf86b8-266a-4244-9b72-914179ab85aa",
+      "Name": "usable-energy",
+      "OutputUnit": "WattHours",
+      "Strategy": "layer-by-layer",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "derived.channel.gt",
+      "Version": "000"
+    },
+    {
+      "CreatedByNodeName": "derived-generator",
+      "DisplayName": "Required Energy Wh",
+      "Id": "26c5f643-96cc-4ede-b958-75d626790c01",
+      "Name": "required-energy",
+      "OutputUnit": "WattHours",
+      "Strategy": "layer-by-layer",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "derived.channel.gt",
+      "Version": "000"
+    },
+    {
+      "CreatedByNodeName": "derived-generator",
+      "DisplayName": "Buffer Depth1 Effective Temperature",
+      "Id": "e9e383c7-b9b4-4583-8992-1bd800190bc9",
+      "Name": "buffer-depth1",
+      "OutputUnit": "FahrenheitX100",
+      "Strategy": "linear-fit",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "derived.channel.gt",
+      "Version": "000"
+    },
+    {
+      "CreatedByNodeName": "derived-generator",
+      "DisplayName": "Buffer Depth2 Effective Temperature",
+      "Id": "bd8f88b0-bf92-4133-a98d-bc51b75effbe",
+      "Name": "buffer-depth2",
+      "OutputUnit": "FahrenheitX100",
+      "Strategy": "linear-fit",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "derived.channel.gt",
+      "Version": "000"
+    },
+    {
+      "CreatedByNodeName": "derived-generator",
+      "DisplayName": "Buffer Depth3 Effective Temperature",
+      "Id": "9361490f-8286-4263-88d0-501ee6a7278b",
+      "Name": "buffer-depth3",
+      "OutputUnit": "FahrenheitX100",
+      "Strategy": "linear-fit",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "derived.channel.gt",
+      "Version": "000"
+    },
+    {
+      "CreatedByNodeName": "derived-generator",
+      "DisplayName": "Tank1 Depth1 Effective Temperature",
+      "Id": "91061a8a-7f9e-42a6-b8dd-53612d146777",
+      "Name": "tank1-depth1",
+      "OutputUnit": "FahrenheitX100",
+      "Strategy": "linear-fit",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "derived.channel.gt",
+      "Version": "000"
+    },
+    {
+      "CreatedByNodeName": "derived-generator",
+      "DisplayName": "Tank1 Depth2 Effective Temperature",
+      "Id": "17db3a70-71c8-4565-8fa0-7cc6ae38da06",
+      "Name": "tank1-depth2",
+      "OutputUnit": "FahrenheitX100",
+      "Strategy": "linear-fit",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "derived.channel.gt",
+      "Version": "000"
+    },
+    {
+      "CreatedByNodeName": "derived-generator",
+      "DisplayName": "Tank1 Depth3 Effective Temperature",
+      "Id": "976b0878-f9eb-47e1-9cb4-6cdd7eed7f2a",
+      "Name": "tank1-depth3",
+      "OutputUnit": "FahrenheitX100",
+      "Strategy": "linear-fit",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "derived.channel.gt",
+      "Version": "000"
+    },
+    {
+      "CreatedByNodeName": "derived-generator",
+      "DisplayName": "Tank2 Depth1 Effective Temperature",
+      "Id": "2b7fda8f-0ae8-4fee-b2f5-964ad19d80c3",
+      "Name": "tank2-depth1",
+      "OutputUnit": "FahrenheitX100",
+      "Strategy": "linear-fit",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "derived.channel.gt",
+      "Version": "000"
+    },
+    {
+      "CreatedByNodeName": "derived-generator",
+      "DisplayName": "Tank2 Depth2 Effective Temperature",
+      "Id": "909d1262-6b8d-41b1-b29e-79e5933583f0",
+      "Name": "tank2-depth2",
+      "OutputUnit": "FahrenheitX100",
+      "Strategy": "linear-fit",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "derived.channel.gt",
+      "Version": "000"
+    },
+    {
+      "CreatedByNodeName": "derived-generator",
+      "DisplayName": "Tank2 Depth3 Effective Temperature",
+      "Id": "3b90a0d6-1c83-43b2-9ba1-083604dc5c3f",
+      "Name": "tank2-depth3",
+      "OutputUnit": "FahrenheitX100",
+      "Strategy": "linear-fit",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "derived.channel.gt",
+      "Version": "000"
+    },
+    {
+      "CreatedByNodeName": "derived-generator",
+      "DisplayName": "Tank3 Depth1 Effective Temperature",
+      "Id": "24952cde-fa58-4425-9a75-a1fe2bbc99e4",
+      "Name": "tank3-depth1",
+      "OutputUnit": "FahrenheitX100",
+      "Strategy": "linear-fit",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "derived.channel.gt",
+      "Version": "000"
+    },
+    {
+      "CreatedByNodeName": "derived-generator",
+      "DisplayName": "Tank3 Depth2 Effective Temperature",
+      "Id": "54c6e2f5-e17f-4d47-9869-521f3f5bdb25",
+      "Name": "tank3-depth2",
+      "OutputUnit": "FahrenheitX100",
+      "Strategy": "linear-fit",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "derived.channel.gt",
+      "Version": "000"
+    },
+    {
+      "CreatedByNodeName": "derived-generator",
+      "DisplayName": "Tank3 Depth3 Effective Temperature",
+      "Id": "7bfb7d3f-883c-494f-a343-60eaf59f3c3d",
+      "Name": "tank3-depth3",
+      "OutputUnit": "FahrenheitX100",
+      "Strategy": "linear-fit",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "derived.channel.gt",
+      "Version": "000"
     }
   ],
   "ElectricMeterCacs": [
@@ -1037,7 +1193,7 @@
         {
           "AsyncCapture": true,
           "CapturePeriodS": 60,
-          "ChannelName": "buffer-depth1",
+          "ChannelName": "buffer-depth1-device",
           "Exponent": 3,
           "TypeName": "channel.config",
           "Unit": "Celcius",
@@ -1046,7 +1202,7 @@
         {
           "AsyncCapture": true,
           "CapturePeriodS": 60,
-          "ChannelName": "buffer-depth2",
+          "ChannelName": "buffer-depth2-device",
           "Exponent": 3,
           "TypeName": "channel.config",
           "Unit": "Celcius",
@@ -1055,7 +1211,7 @@
         {
           "AsyncCapture": true,
           "CapturePeriodS": 60,
-          "ChannelName": "buffer-depth3",
+          "ChannelName": "buffer-depth3-device",
           "Exponent": 3,
           "TypeName": "channel.config",
           "Unit": "Celcius",
@@ -1114,7 +1270,7 @@
         {
           "AsyncCapture": true,
           "CapturePeriodS": 60,
-          "ChannelName": "tank1-depth1",
+          "ChannelName": "tank1-depth1-device",
           "Exponent": 3,
           "TypeName": "channel.config",
           "Unit": "Celcius",
@@ -1123,7 +1279,7 @@
         {
           "AsyncCapture": true,
           "CapturePeriodS": 60,
-          "ChannelName": "tank1-depth2",
+          "ChannelName": "tank1-depth2-device",
           "Exponent": 3,
           "TypeName": "channel.config",
           "Unit": "Celcius",
@@ -1132,7 +1288,7 @@
         {
           "AsyncCapture": true,
           "CapturePeriodS": 60,
-          "ChannelName": "tank1-depth3",
+          "ChannelName": "tank1-depth3-device",
           "Exponent": 3,
           "TypeName": "channel.config",
           "Unit": "Celcius",
@@ -1186,7 +1342,7 @@
         {
           "AsyncCapture": true,
           "CapturePeriodS": 60,
-          "ChannelName": "tank2-depth1",
+          "ChannelName": "tank2-depth1-device",
           "Exponent": 3,
           "TypeName": "channel.config",
           "Unit": "Celcius",
@@ -1195,7 +1351,7 @@
         {
           "AsyncCapture": true,
           "CapturePeriodS": 60,
-          "ChannelName": "tank2-depth2",
+          "ChannelName": "tank2-depth2-device",
           "Exponent": 3,
           "TypeName": "channel.config",
           "Unit": "Celcius",
@@ -1204,7 +1360,7 @@
         {
           "AsyncCapture": true,
           "CapturePeriodS": 60,
-          "ChannelName": "tank2-depth3",
+          "ChannelName": "tank2-depth3-device",
           "Exponent": 3,
           "TypeName": "channel.config",
           "Unit": "Celcius",
@@ -1258,7 +1414,7 @@
         {
           "AsyncCapture": true,
           "CapturePeriodS": 60,
-          "ChannelName": "tank3-depth1",
+          "ChannelName": "tank3-depth1-device",
           "Exponent": 3,
           "TypeName": "channel.config",
           "Unit": "Celcius",
@@ -1267,7 +1423,7 @@
         {
           "AsyncCapture": true,
           "CapturePeriodS": 60,
-          "ChannelName": "tank3-depth2",
+          "ChannelName": "tank3-depth2-device",
           "Exponent": 3,
           "TypeName": "channel.config",
           "Unit": "Celcius",
@@ -1276,7 +1432,7 @@
         {
           "AsyncCapture": true,
           "CapturePeriodS": 60,
-          "ChannelName": "tank3-depth3",
+          "ChannelName": "tank3-depth3-device",
           "Exponent": 3,
           "TypeName": "channel.config",
           "Unit": "Celcius",
@@ -1434,10 +1590,56 @@
     },
     {
       "ActorClass": "SynthGenerator",
-      "ActorHierarchyName": "s.synth-generator",
+      "ActorHierarchyName": "s.derived-generator",
       "DisplayName": "Synth Generator",
-      "Name": "synth-generator",
-      "ShNodeId": "0699ec09-ac4e-472f-9686-b085fd8b66a9",
+      "Name": "derived-generator",
+      "ShNodeId": "5ca6a864-169e-4bf8-a1a9-c4ea1066b0ea",
+      "TankTempCalibrationMap": {
+        "Buffer": {
+          "Depth1B": 0.0,
+          "Depth1M": 1.0,
+          "Depth2B": 0.0,
+          "Depth2M": 1.0,
+          "Depth3B": 0.0,
+          "Depth3M": 1.0,
+          "TypeName": "gw1.tank.temp.calibration",
+          "Version": "000"
+        },
+        "Tank": {
+          "1": {
+            "Depth1B": 0.0,
+            "Depth1M": 1.0,
+            "Depth2B": 0.0,
+            "Depth2M": 1.0,
+            "Depth3B": 0.0,
+            "Depth3M": 1.0,
+            "TypeName": "gw1.tank.temp.calibration",
+            "Version": "000"
+          },
+          "2": {
+            "Depth1B": 0.0,
+            "Depth1M": 1.0,
+            "Depth2B": 0.0,
+            "Depth2M": 1.0,
+            "Depth3B": 0.0,
+            "Depth3M": 1.0,
+            "TypeName": "gw1.tank.temp.calibration",
+            "Version": "000"
+          },
+          "3": {
+            "Depth1B": 0.0,
+            "Depth1M": 1.0,
+            "Depth2B": 0.0,
+            "Depth2M": 1.0,
+            "Depth3B": 0.0,
+            "Depth3M": 1.0,
+            "TypeName": "gw1.tank.temp.calibration",
+            "Version": "000"
+          }
+        },
+        "TypeName": "gw1.tank.temp.calibration.map",
+        "Version": "000"
+      },
       "TypeName": "spaceheat.node.gt",
       "Version": "200"
     },
@@ -1857,11 +2059,11 @@
     },
     {
       "ActorClass": "I2cDfrMultiplexer",
-      "ActorHierarchyName": "s.dfr-multiplexer",
+      "ActorHierarchyName": "s.zero-ten-multiplexer",
       "ComponentId": "3b437278-d34a-4c20-be2e-756b06bffc9a",
       "DisplayName": "I2c Zero Ten Out Multiplexer",
-      "Name": "dfr-multiplexer",
-      "ShNodeId": "af931edc-fca9-4aaf-82f0-6632e7e90633",
+      "Name": "zero-ten-multiplexer",
+      "ShNodeId": "2e7f4c75-47fb-4a0b-bd56-9fc694c69134",
       "TypeName": "spaceheat.node.gt",
       "Version": "200"
     },
@@ -1897,32 +2099,7 @@
     }
   ],
   "Strategy": "House0",
-  "SynthChannels": [
-    {
-      "CreatedByNodeName": "synth-generator",
-      "DisplayName": "UsableEnergy WattHours",
-      "Id": "58a53294-c3f6-43af-9f55-42dd345c103a",
-      "Name": "usable-energy",
-      "Strategy": "layer-by-layer",
-      "SyncReportMinutes": 60,
-      "TelemetryName": "WattHours",
-      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
-      "TypeName": "synth.channel.gt",
-      "Version": "000"
-    },
-    {
-      "CreatedByNodeName": "synth-generator",
-      "DisplayName": "RequiredEnergy WattHours",
-      "Id": "80007412-8eed-4b9d-b106-4773e43099ac",
-      "Name": "required-energy",
-      "Strategy": "house-parameters-and-weather",
-      "SyncReportMinutes": 60,
-      "TelemetryName": "WattHours",
-      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
-      "TypeName": "synth.channel.gt",
-      "Version": "000"
-    }
-  ],
+  "SynthChannels": [],
   "TotalStoreTanks": 3,
   "UseSiegLoop": false,
   "ZoneKwhPerDegFList": [

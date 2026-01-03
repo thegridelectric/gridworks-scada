@@ -1,7 +1,7 @@
 from typing import Literal
 from pydantic import BaseModel, StrictInt
 
-from gwsproto.named_types import AnalogDispatch
+from gwsproto.named_types.analog_dispatch import AnalogDispatch
 
 
 class AdminAnalogDispatch(BaseModel):

@@ -7,11 +7,11 @@ __all__ = [
 
 
 def _get_default_cac_decoder() -> CacDecoder:
-    import gwproto.named_types.cacs
+    import gwsproto.named_types.cacs
 
     return CacDecoder(
         model_name="DefaultCacDecoder",
-        modules=[gwproto.named_types.cacs],
+        modules=[gwsproto.named_types.cacs],
     )
 
 

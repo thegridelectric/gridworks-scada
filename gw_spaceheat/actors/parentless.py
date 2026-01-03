@@ -64,10 +64,6 @@ class Parentless(PrimeActor, ScadaInterface):
         """Called after constructor so derived functions can be used in setup."""
 
     @property
-    def name(self):
-        return self.node.name
-
-    @property
     def node(self) -> ShNode:
         return self.layout.node(self.name)
 

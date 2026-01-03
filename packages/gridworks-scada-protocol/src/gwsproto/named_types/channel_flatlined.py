@@ -3,7 +3,7 @@ from typing_extensions import Self
 
 from pydantic import BaseModel, model_validator
 
-from gwsproto.named_types import DataChannelGt
+from gwsproto.named_types.data_channel_gt import DataChannelGt
 from gwsproto.property_format import SpaceheatName
 
 
