@@ -14,7 +14,6 @@ from gwsproto.data_classes.house_0_names import H0CN, H0N, ScadaWeb
 from gwsproto.enums import FlowManifoldVariant, HomeAloneStrategy
 
 from gwsproto.data_classes.sh_node import ShNode
-from gwsproto.data_classes.synth_channel import SynthChannel
 from gwsproto.decoders import (
     CacDecoder,
     ComponentDecoder,
@@ -60,7 +59,7 @@ class House0Layout(HardwareLayout):
         components: dict[str, Component],  # by id
         nodes: dict[str, ShNode],  # by name
         data_channels: dict[str, DataChannel],  # by name
-        synth_channels: dict[str, SynthChannel],
+        derived_channels: dict[str, DerivedChannel],
         flow_manifold_variant: FlowManifoldVariant = FlowManifoldVariant.House0,
         use_sieg_loop: bool = False,
     ) -> None:
@@ -70,7 +69,7 @@ class House0Layout(HardwareLayout):
             components=components,
             nodes=nodes,
             data_channels=data_channels,
-            synth_channels=synth_channels,
+            derived_channels=derived_channels,
         )
         self.derived_channels = self.load_derived_channels(layout, self.nodes)
         self.flow_manifold_variant = flow_manifold_variant
@@ -321,52 +320,6 @@ class House0Layout(HardwareLayout):
             if node.ActorClass == ActorClass.ZeroTenOutputer
         ]
 
-    @classmethod
-    def make_derived_channel(
-        cls,
-        derived_dict: dict[str, Any],
-        nodes: dict[str, ShNode],
-    ) -> DerivedChannel:
-        created_by_node_name = derived_dict.get("CreatedByNodeName", "")
-        created_by_node = nodes.get(created_by_node_name)
-
-        if created_by_node is None:
-            raise ValueError(
-                f"ERROR. DerivedChannel related nodes must exist for "
-                f"{derived_dict.get('Name')}!\n"
-                f"  For CreatedByNodeName<{created_by_node_name}> got None!\n"
-            )
-
-        return DerivedChannel(
-            created_by_node=created_by_node,
-            **derived_dict,
-        )
-
-    @classmethod
-    def load_derived_channels(
-        cls,
-        layout: dict[Any, Any],
-        nodes: dict[str, ShNode],
-        *,
-        raise_errors: bool = True,
-        errors: Optional[list[LoadError]] = None,
-    ) -> dict[str, DerivedChannel]:
-        derived: dict[str, DerivedChannel] = {}
-
-        if errors is None:
-            errors = []
-
-        for d in layout.get("DerivedChannels", []):
-            try:
-                name = d["Name"]
-                derived[name] = cls.make_derived_channel(d, nodes)
-            except Exception as e:  # noqa: PERF203
-                if raise_errors:
-                    raise
-                errors.append(LoadError("DerivedChannel", d, e))
-
-        return derived
-    
     # overwrites base class to return correct object
     @classmethod
     def load(  # noqa: PLR0913
@@ -430,7 +383,7 @@ class House0Layout(HardwareLayout):
             raise_errors=raise_errors,
             errors=errors,
         )
-        synth_channels = cls.load_synth_channels(
+        derived_channels = cls.load_derived_channels(
             layout=layout,
             nodes=nodes,
             raise_errors=raise_errors,
@@ -441,7 +394,7 @@ class House0Layout(HardwareLayout):
             "components": components,
             "nodes": nodes,
             "data_channels": data_channels,
-            "synth_channels": synth_channels,
+            "derived_channels": derived_channels,
             "flow_manifold_variant": FlowManifoldVariant(layout.get("FlowManifoldVariant", "House0")),
             "use_sieg_loop": bool(layout.get("UseSiegLoop", False))
         }

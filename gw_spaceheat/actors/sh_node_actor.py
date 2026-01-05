@@ -28,6 +28,7 @@ from gwsproto.enums import (
     ChangePrimaryPumpControl,
     ChangeRelayState,
     ChangeStoreFlowRelay,
+    GwUnit,
     LogLevel,
     RelayClosedOrOpen,
     StoreFlowRelay,
@@ -65,17 +66,19 @@ class ShNodeActor(Actor, ABC):
         self.h0cn = self.layout.h0cn
 
         # set temperature_channel_names
-        all_tank_depths = list(self.h0cn.buffer.effective)
+        self.tank_temp_channel_names = list(self.h0cn.buffer.effective)
         for tank_idx in sorted(self.h0cn.tank):
             tank = self.h0cn.tank[tank_idx]
-            all_tank_depths.extend([tank.depth1, tank.depth2, tank.depth3])
+            self.tank_temp_channel_names.extend([tank.depth1, tank.depth2, tank.depth3])
 
-        self.temperature_channel_names =  all_tank_depths + [
+        self.pipe_temp_channel_names = [
             self.h0cn.hp_ewt, self.h0cn.hp_lwt,
              self.h0cn.dist_swt, self.h0cn.dist_rwt, 
             self.h0cn.buffer_cold_pipe, self.h0cn.buffer_hot_pipe, 
             self.h0cn.store_cold_pipe, self.h0cn.store_hot_pipe,
         ]
+
+        self.temperature_channel_names =  self.tank_temp_channel_names + self.pipe_temp_channel_names
 
     @property
     def services(self) -> ScadaAppInterface:
@@ -1322,12 +1325,20 @@ class ShNodeActor(Actor, ABC):
         """
 
         if not self.settings.is_simulated:
-            self.data.latest_temperatures_f = {
-                ch: round(self.to_fahrenheit(self.data.latest_channel_values[ch] / 1000), 1)
-                for ch in self.temperature_channel_names
-                if ch in self.data.latest_channel_values
-                and self.data.latest_channel_values[ch] is not None
-                }
+            temps: dict[str, float] = {}
+
+            for ch in self.temperature_channel_names:
+                raw = self.data.latest_channel_values.get(ch)
+                if raw is None:
+                    continue
+
+                temp_f = self.channel_value_to_temp_f(ch, raw)
+                if temp_f is None:
+                    continue
+
+                temps[ch] = round(temp_f, 1)
+
+            self.data.latest_temperatures_f = temps
         else:
             self.log("IN SIMULATION - set all temperatures to 70 degF")
             self.data.latest_temperatures_f = {
@@ -1347,6 +1358,35 @@ class ShNodeActor(Actor, ABC):
             self.fill_missing_store_temps()
 
         self.data.latest_temperatures_f = dict(sorted(self.data.latest_temperatures_f.items()))
+
+    def channel_value_to_temp_f(self, ch_name: str, raw: int) -> float | None:
+        """
+        Returns None if unknown channel name or not a temperature channel
+        """
+        if ch_name in self.layout.data_channels:
+            ch = self.layout.channel(ch_name)
+            if ch is None:
+                return None
+            unit = ch.TelemetryName
+            if unit in [TelemetryName.AirTempCTimes1000, TelemetryName.WaterTempCTimes1000]:
+                return self.to_fahrenheit(raw / 1000)
+            elif unit in [TelemetryName.AirTempFTimes1000, TelemetryName.WaterTempFTimes1000]:
+                return raw / 1000
+            else:
+                return None
+        if ch_name in self.layout.derived_channels:
+            self.log(f"processing temperature for derived channel {ch_name}")
+            ch = self.layout.derived_channel(ch_name)
+            if ch is None:
+                return None
+            unit = ch.OutputUnit
+            if unit in [GwUnit.FahrenheitX100]:
+                self.log(f"returning {round (raw / 100, 1)}")
+                return raw / 100
+            else:
+                return None
+
+        return None
 
     def to_fahrenheit(self, temp_c: float) -> float:
         return 32 + (temp_c * 9 / 5)

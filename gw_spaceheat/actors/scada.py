@@ -806,14 +806,13 @@ class Scada(PrimeActor, ScadaInterface):
             from_node.Name,
             len(payload.ChannelNameList),
         )
-        path_dbg = 0
         for idx, channel_name in enumerate(payload.ChannelNameList):
-            path_dbg |= 0x00000001
-            if channel_name not in self._layout.data_channels:
-                raise ValueError(
-                    f"Name {channel_name} in payload.SyncedReadings not a recognized Data Channel!"
-                )
-            ch = self._layout.data_channels[channel_name]
+            if channel_name in self._layout.data_channels:
+                ch = self._layout.data_channels[channel_name ]
+            elif channel_name in self._layout.derived_channels:
+                ch = self._layout.derived_channels[channel_name ]
+            else:
+                raise Exception(f"Missing channel name {channel_name}!")
             self._data.recent_channel_values[ch.Name].append(payload.ValueList[idx])
             self._data.recent_channel_unix_ms[ch.Name].append(
                 payload.ScadaReadTimeUnixMs
@@ -821,6 +820,7 @@ class Scada(PrimeActor, ScadaInterface):
             self._data.latest_channel_values[ch.Name] = payload.ValueList[idx]
             self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMs
 
+        # Hack for moving out of Initializing rapidly when restarting Scada
         if from_node.Name ==H0N.buffer.reader and not self.got_first_buffer_reading:
             self.got_first_buffer_reading = True
             if self.auto_state == MainAutoState.Atn:
@@ -1591,11 +1591,12 @@ class Scada(PrimeActor, ScadaInterface):
             FlowModuleComponents=[node.component.gt for node in flow_nodes],
             ShNodes=[node.to_gt() for node in self.layout.nodes.values()],
             DataChannels=[ch.to_gt() for ch in self.layout.data_channels.values()],
-            SynthChannels=[ch.to_gt() for ch in self.layout.synth_channels.values()],
+            DerivedChannels=[ch.to_gt() for ch in self.layout.derived_channels.values()],
             Ha1Params=self.data.ha1_params,
             I2cRelayComponent=self.layout.node(H0N.relay_multiplexer).component.gt,
             MessageCreatedMs=int(time.time() * 1000),
             MessageId=str(uuid.uuid4()),
+            TMap=self.layout.tank_temp_calibration_map,
         )
 
     ################################################

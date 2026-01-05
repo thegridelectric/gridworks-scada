@@ -7,8 +7,9 @@ from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
 )
 from gwsproto.named_types.pico_flow_module_component_gt import PicoFlowModuleComponentGt
 from gwsproto.named_types.pico_tank_module_component_gt import PicoTankModuleComponentGt
+from gwsproto.named_types.tank_temp_calibration_map import TankTempCalibrationMap
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
-from gwsproto.named_types.synth_channel_gt import SynthChannelGt
+from gwsproto.named_types.derived_channel_gt import DerivedChannelGt
 from gwsproto.property_format import LeftRightDotStr, UTCMilliseconds, UUID4Str
 from gwsproto.named_types.ha1_params import Ha1Params
 from pydantic import BaseModel, PositiveInt, model_validator
@@ -25,13 +26,14 @@ class LayoutLite(BaseModel):
     TotalStoreTanks: PositiveInt
     ShNodes: List[SpaceheatNodeGt]
     DataChannels: List[DataChannelGt]
-    SynthChannels: List[SynthChannelGt]
+    DerivedChannels: List[DerivedChannelGt]
     TankModuleComponents: List[PicoTankModuleComponentGt]
     FlowModuleComponents: List[PicoFlowModuleComponentGt]
     Ha1Params: Ha1Params
     I2cRelayComponent: I2cMultichannelDtRelayComponentGt
+    TMap: TankTempCalibrationMap | None = None
     TypeName: Literal["layout.lite"] = "layout.lite"
-    Version: Literal["006"] = "006"
+    Version: Literal["007"] = "007"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
