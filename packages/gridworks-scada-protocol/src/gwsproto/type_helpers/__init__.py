@@ -14,7 +14,7 @@ from gwsproto.named_types.rest_poller_gt import (
     URLArgs,
     URLConfig,
 )
-from gwsproto.named_types.web_server_gt import WebServerGt
+
 from gwsproto.type_helpers.cacs_by_make_model import CACS_BY_MAKE_MODEL
 
 __all__ = [
@@ -32,5 +32,4 @@ __all__ = [
     "SessionArgs",
     "URLArgs",
     "URLConfig",
-    "WebServerGt",
 ]

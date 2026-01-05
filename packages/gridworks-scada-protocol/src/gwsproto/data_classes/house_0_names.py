@@ -5,6 +5,9 @@ from gwsproto.property_format import SpaceheatName
 DEFAULT_ANALOG_READER = "analog-temp"
 
 
+class ScadaWeb:
+    DEFAULT_SERVER_NAME = "default"
+
 class ZoneNodes:
     """
     Spaceheat Node names associated to a zone:
@@ -200,6 +203,21 @@ class H0N:
         for i in range(len(zone_list)):
             self.zone[zone_list[i]] = ZoneNodes(zone=zone_list[i], idx=i)
 
+    def tank_index(self, node_name: str) -> int | None:
+        """
+        Return 1-based tank index for a tank node name.
+        Raises ValueError if node_name is not a tank reader
+        Returns None if node_name is not a tank
+        """
+        for idx, tank in self.tank.items():
+            if (
+                node_name == tank.reader
+                or node_name in tank.depths
+            ):
+                return idx
+        return None
+
+
 
 
 #-------------------------------------------------------------
@@ -275,6 +293,24 @@ class BufferChannelNames:
         self.depth2_micro_v = "buffer-depth2-micro-v"
         self.depth3_micro_v = "buffer-depth3-micro-v"
 
+    def device_depth(self, name: str) -> int:
+        if name == self.depth1_device:
+            return 1
+        elif name == self.depth2_device:
+            return 2
+        elif name == self.depth3_device:
+            return 3
+        raise ValueError(f"{name} is not a device channel for {self.reader}")
+
+    def device_to_effective(self, name: str) -> str:
+        if name == self.depth1_device:
+            return self.depth1
+        elif name == self.depth2_device:
+            return self.depth2
+        elif name == self.depth3_device:
+            return self.depth3
+        else:
+            return name
 
     @property
     def effective(self) -> set[str]:
@@ -282,7 +318,7 @@ class BufferChannelNames:
         return {self.depth1, self.depth2, self.depth3}
 
     @property
-    def device(self) -> set[str]:
+    def devices(self) -> set[str]:
         """Temperatures reported by device, e.g. TankModule3"""
         return {self.depth1_device, self.depth2_device, self.depth3_device}
 
@@ -297,7 +333,7 @@ class BufferChannelNames:
     def __repr__(self) -> str:
         return (
             f"Buffer channels | effective={sorted(self.effective)} "
-            f"| device={sorted(self.device)}"
+            f"| device={sorted(self.devices)}"
             f"| electrical={sorted(self.electrical)}"
         )
 
@@ -332,7 +368,7 @@ class TankChannelNames:
         return {self.depth1, self.depth2, self.depth3}
 
     @property
-    def device(self) -> set[str]:
+    def devices(self) -> set[str]:
         """Temperatures reported by device, e.g. TankModule3"""
         return {self.depth1_device, self.depth2_device, self.depth3_device}
 
@@ -344,10 +380,29 @@ class TankChannelNames:
             self.depth3_micro_v,
         }
 
+    def device_depth(self, name: str) -> int:
+        if name == self.depth1_device:
+            return 1
+        elif name == self.depth2_device:
+            return 2
+        elif name == self.depth3_device:
+            return 3
+        raise ValueError(f"{name} is not a device channel for {self.reader}")
+
+    def device_to_effective(self, name: str) -> str:
+        if name == self.depth1_device:
+            return self.depth1
+        elif name == self.depth2_device:
+            return self.depth2
+        elif name == self.depth3_device:
+            return self.depth3
+        else:
+            return name
+
     def __repr__(self) -> str:
         return (
             f"Buffer channels | effective={sorted(self.effective)} "
-            f"| device={sorted(self.device)}"
+            f"| device={sorted(self.devices)}"
             f"| electrical={sorted(self.electrical)}"
         )
 

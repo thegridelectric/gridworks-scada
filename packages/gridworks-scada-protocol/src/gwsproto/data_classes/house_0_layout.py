@@ -7,9 +7,10 @@ from gw.errors import DcError
 from gwsproto.enums import ActorClass
 from gwsproto.data_classes.components import Component
 from gwsproto.data_classes.data_channel import DataChannel
+from gwsproto.data_classes.components.web_server_component import WebServerComponent
 
 
-from gwsproto.data_classes.house_0_names import H0CN, H0N
+from gwsproto.data_classes.house_0_names import H0CN, H0N, ScadaWeb
 from gwsproto.enums import FlowManifoldVariant, HomeAloneStrategy
 
 from gwsproto.data_classes.sh_node import ShNode
@@ -108,8 +109,22 @@ class House0Layout(HardwareLayout):
         if not len(self.zone_kwh_per_deg_f_list) == len(self.zone_list):
             raise ValueError("ZoneKwhPerDegFList must have the same number of elements as ZoneList")
         self.h0n = H0N(self.total_store_tanks, self.zone_list)
-        
-        _ = self.tank_temp_calibration_map # will raise error if it doesn't exist
+
+        web_servers = {
+            ws.web_server_gt.Name
+            for ws in self.get_components_by_type(WebServerComponent)
+        }
+
+        if ScadaWeb.DEFAULT_SERVER_NAME not in web_servers:
+            raise ValueError(
+                f"House0Layout requires a WebServerComponent named "
+                f"'{ScadaWeb.DEFAULT_SERVER_NAME}'"
+            )
+
+        if len(self.tank_temp_calibration_map.Tank) != self.total_store_tanks:
+            raise DcError(f"Tank Temp Calibration Map has {len(self.tank_temp_calibration_map.Tank)} tanks"
+                          f" but system has {self.total_store_tanks}")
+
 
     @property
     def unreported_channels(self) -> set[str]:
@@ -133,9 +148,9 @@ class House0Layout(HardwareLayout):
 
     @property
     def tank_device_temp_channels(self) -> set[str]:
-        channels = set(self.h0cn.buffer.device)
+        channels = set(self.h0cn.buffer.devices)
         for tank in self.h0cn.tank.values():
-            channels |= tank.device
+            channels |= tank.devices
         return channels
 
     @property

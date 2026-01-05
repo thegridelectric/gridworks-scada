@@ -8,9 +8,9 @@ from gwproactor import Problems
 from gwproactor import AppInterface
 from gwproto import Message
 from gwsproto.data_classes.components.hubitat_component import HubitatComponent
-from gwsproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from result import Result
 
+from gwsproto.data_classes.house_0_names import ScadaWeb
 from actors.hubitat_interface import HubitatEventContent
 from actors.hubitat_interface import HubitatWebEventHandler
 from actors.hubitat_interface import HubitatWebEventListenerInterface
@@ -45,7 +45,7 @@ class Hubitat(Actor, HubitatWebServerInterface):
         super().__init__(name, services)
         if self._component.gt.Hubitat.WebListenEnabled:
             self._services.add_web_route(
-                server_name=DEFAULT_WEB_SERVER_NAME,
+                server_name=ScadaWeb.DEFAULT_SERVER_NAME,
                 method="POST",
                 path="/" + self._component.gt.Hubitat.listen_path,
                 handler=self._handle_web_post,

@@ -1,5 +1,6 @@
 import typing
 from pathlib import Path
+from gwproto.named_types.web_server_gt import WebServerGt
 
 from gwsproto.enums import ActorClass
 from gwsproto.enums import MakeModel
@@ -27,6 +28,7 @@ from layout_gen.dfr import add_dfrs
 from layout_gen.dfr import DfrConf
 from layout_gen.relay import add_relays
 from layout_gen.relay import RelayCfg
+from layout_gen.web_server import add_web_server
 
 
 def make_tst_layout(src_path: Path) -> LayoutDb:
@@ -51,6 +53,8 @@ def make_tst_layout(src_path: Path) -> LayoutDb:
         AccessToken="64a43fa4-0eb9-478f-ad2e-374bc9b7e51f",
         MacAddress=MacAddress("34:E1:D1:82:22:22"),
     )
+
+    add_web_server(db, WebServerGt(Host="0.0.0.0"))
 
     add_thermostat(
         db,
@@ -140,7 +144,7 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
                 typing.cast(
                     ComponentAttributeClassGt,
                     ElectricMeterCacGt(
-                        ComponentAttributeClassId=db.make_cac_id(MakeModel.GRIDWORKS__SIMPM1),
+                        ComponentAttributeClassId=db.make_cac_id(make_model=MakeModel.GRIDWORKS__SIMPM1),
                         MakeModel=MakeModel.GRIDWORKS__SIMPM1,
                         DisplayName="Gridworks Pm1 Simulated Power Meter",
                         TelemetryNameList=[TelemetryName.PowerW],

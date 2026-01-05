@@ -761,6 +761,13 @@
   },
   "OtherCacs": [
     {
+      "ComponentAttributeClassId": "b81960f2-37a7-4d82-8269-425f3ed98b39",
+      "DisplayName": "Web Server CAC",
+      "MakeModel": "UNKNOWNMAKE__UNKNOWNMODEL",
+      "TypeName": "component.attribute.class.gt",
+      "Version": "001"
+    },
+    {
       "ComponentAttributeClassId": "62528da5-b510-4ac2-82c1-3782842eae07",
       "DisplayName": "Hubitat Elevation C-7",
       "MakeModel": "HUBITAT__C7__LAN1",
@@ -798,6 +805,21 @@
     }
   ],
   "OtherComponents": [
+    {
+      "ComponentAttributeClassId": "b81960f2-37a7-4d82-8269-425f3ed98b39",
+      "ComponentId": "7ee3ea86-5c59-48ef-a371-728e4de21d3b",
+      "ConfigList": [],
+      "DisplayName": "Web Server default",
+      "TypeName": "web.server.component.gt",
+      "Version": "001",
+      "WebServer": {
+        "Enabled": true,
+        "Host": "0.0.0.0",
+        "Kwargs": {},
+        "Name": "default",
+        "Port": 8080
+      }
+    },
     {
       "ComponentAttributeClassId": "62528da5-b510-4ac2-82c1-3782842eae07",
       "ComponentId": "4a5e3fca-2b8e-4321-bd61-b43401535cc2",

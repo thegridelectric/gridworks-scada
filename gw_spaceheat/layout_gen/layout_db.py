@@ -198,6 +198,8 @@ class LayoutDb:
         existing_layout: LayoutIDMap | None = None,
         add_stubs: bool = False,
         stub_config: Optional[StubConfig] = None,
+        *,
+        tmap: TankTempCalibrationMap | None = None,
     ):
         self.lists: dict[
             str,
@@ -226,7 +228,7 @@ class LayoutDb:
         self.maps = LayoutIDMap()
 
         if add_stubs:
-            self.add_stubs(stub_config)
+            self.add_stubs(stub_config,tmap=tmap)
     
     @property
     def terminal_asset_alias(self):
@@ -254,19 +256,19 @@ class LayoutDb:
     def derived_channel_id_by_name(self, name: str) -> Optional[str]:
         return self.maps.derived_channels_by_name.get(name, None)
 
-    @classmethod
-    def make_cac_id(cls, make_model: MakeModel) -> str:
+    def make_cac_id(
+            self,
+            *,
+            make_model: MakeModel,
+            cac_alias: str | None = None,
+        ) -> str:
         if make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
-            return str(uuid.uuid4())
-        if type(make_model) is str:
-            if make_model in CACS_BY_MAKE_MODEL:
+            if cac_alias is None:
+                raise Exception("For unknown MakeModel, MUST include cac_alias")
+            return self.loaded.cacs_by_alias.get(cac_alias, str(uuid.uuid4()))
+        elif make_model in CACS_BY_MAKE_MODEL:
                 return CACS_BY_MAKE_MODEL[make_model]
-            else:
-                return str(uuid.uuid4())
-        elif make_model.value in CACS_BY_MAKE_MODEL:
-            return CACS_BY_MAKE_MODEL[str(make_model.value)]
-        else:
-            return str(uuid.uuid4())
+        raise Exception(f"Unknown MakeModel {make_model}")
 
     def make_component_id(self, component_alias: str) -> str:
         return self.loaded.components_by_alias.get(component_alias, str(uuid.uuid4()))
@@ -486,11 +488,10 @@ class LayoutDb:
             self,
             cfg: Optional[StubConfig] = None,
             *,
-            tank_calibration_map: TankTempCalibrationMap | None = None,
+            tmap: TankTempCalibrationMap | None = None,
         ):
-        print("add_stub_scadas called")
-        if tank_calibration_map is None:
-            tank_calibration_map = TankTempCalibrationMap(
+        if tmap is None:
+            tmap = TankTempCalibrationMap(
                 Buffer=TankTempCalibration(),
                 Tank={
                     i: TankTempCalibration()
@@ -499,7 +500,7 @@ class LayoutDb:
             )
         else:
             expected = self.loaded.total_store_tanks
-            actual = len(tank_calibration_map.Tank)
+            actual = len(tmap.Tank)
 
             if actual != expected:
                 raise ValueError(
@@ -614,7 +615,7 @@ class LayoutDb:
                     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.derived_generator}",
                     ActorClass=ActorClass.SynthGenerator,
                     DisplayName="Synth Generator",
-                    TankTempCalibrationMap=tank_calibration_map
+                    TankTempCalibrationMap=tmap
                 ),
                 SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.home_alone),
@@ -725,10 +726,13 @@ class LayoutDb:
 
         self.add_derived_channels(channels)
 
-    def add_stubs(self, cfg: Optional[StubConfig] = None):
+    def add_stubs(self, 
+                  cfg: Optional[StubConfig] = None,
+                  *,
+                  tmap: TankTempCalibrationMap | None = None):
         if cfg is None:
             cfg = StubConfig()
-        self.add_stub_scadas(cfg)
+        self.add_stub_scadas(cfg, tmap=tmap)
         if cfg.add_stub_power_meter:
             self.add_stub_power_meter(cfg)
         

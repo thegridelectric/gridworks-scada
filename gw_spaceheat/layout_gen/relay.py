@@ -49,7 +49,7 @@ def add_relays(
             [
                 ComponentAttributeClassGt(
                     ComponentAttributeClassId=db.make_cac_id(
-                        MakeModel.KRIDA__DOUBLEEMR16I2CV3
+                        make_model=MakeModel.KRIDA__DOUBLEEMR16I2CV3
                     ),
                     DisplayName="16-channel i2c krida relay",
                     MakeModel=MakeModel.KRIDA__DOUBLEEMR16I2CV3,

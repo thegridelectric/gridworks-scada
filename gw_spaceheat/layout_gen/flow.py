@@ -83,7 +83,7 @@ def add_flow(
         db.add_cacs(
             [
                 ComponentAttributeClassGt(
-                    ComponentAttributeClassId=db.make_cac_id(make_model),
+                    ComponentAttributeClassId=db.make_cac_id(make_model=make_model),
                     DisplayName=cac_display_name,
                     MakeModel=make_model,
                 ),

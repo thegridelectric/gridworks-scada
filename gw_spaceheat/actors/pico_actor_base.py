@@ -2,9 +2,10 @@ import socket
 
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
+from gwsproto.data_classes.house_0_names import ScadaWeb
+
 
 from gwsproto.data_classes.components.web_server_component import WebServerComponent
-from gwsproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 from gwsproto.named_types import BaseurlFailureAlert, PicoCommsParams
@@ -17,14 +18,14 @@ class PicoActorBase(ShNodeActor):
     def _setup_pico_endpoints(self):
         """Setup common pico endpoints for this actor"""
         self.services.add_web_route(
-            server_name=DEFAULT_WEB_SERVER_NAME,
+            server_name=ScadaWeb.DEFAULT_SERVER_NAME,
             method="POST",
             path=f"/{self.name}/pico-comms-params",
             handler=self._handle_pico_comms_params,
         )
         
         self.services.add_web_route(
-            server_name=DEFAULT_WEB_SERVER_NAME,
+            server_name=ScadaWeb.DEFAULT_SERVER_NAME,
             method="POST",
             path=f"/{self.name}/baseurl-failure-alert",
             handler=self._handle_baseurl_failure_alert,

@@ -12,7 +12,7 @@ from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwsproto.data_classes.components import PicoBtuMeterComponent
 from gwsproto.enums import MakeModel
-from gwsproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
+from gwsproto.data_classes.house_0_names import ScadaWeb
 from gwsproto.named_types import (
     AsyncBtuParams, ChannelFlatlined, 
     MultichannelSnapshot, PicoMissing, SyncedReadings
@@ -55,13 +55,13 @@ class ApiBtuMeter(PicoActorBase):
 
         if self._component.gt.Enabled:
             self._services.add_web_route(
-                server_name=DEFAULT_WEB_SERVER_NAME,
+                server_name=ScadaWeb.DEFAULT_SERVER_NAME,
                 method="POST",
                 path="/" + self.async_btu_params_path,
                 handler=self._handle_async_btu_params_post,
             )
             self._services.add_web_route(
-                server_name=DEFAULT_WEB_SERVER_NAME,
+                server_name=ScadaWeb.DEFAULT_SERVER_NAME,
                 method="POST",
                 path="/" + self.multichannel_snapshot_path,
                 handler=self._handle_multichannel_snapshot_post,

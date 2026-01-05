@@ -11,13 +11,12 @@ from gw.errors import DcError
 from gwproactor import MonitoredName, Problems
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
-from gwsproto.data_classes.components import PicoTankModuleComponent
+from gwsproto.data_classes.components import PicoTankModuleComponent, SimPicoTankModuleComponent
 from gwsproto.enums import TempCalcMethod
-from gwsproto.enums import MakeModel
 from gwsproto.named_types import SyncedReadings, TankModuleParams
-from gwsproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from result import Ok, Result
 from actors.sh_node_actor import ShNodeActor
+from gwsproto.data_classes.house_0_names import ScadaWeb
 from gwsproto.named_types import PicoMissing, ChannelFlatlined, MicroVolts
 
 from scada_app_interface import ScadaAppInterface
@@ -31,7 +30,6 @@ FLATLINE_REPORT_S = 60
 
 class ApiTankModule(ShNodeActor):
     _stop_requested: bool
-    _component: PicoTankModuleComponent
 
     def __init__(
         self,
@@ -41,30 +39,31 @@ class ApiTankModule(ShNodeActor):
         super().__init__(name, services)
         self._component = self.node.component
         
-        if not isinstance(self._component, PicoTankModuleComponent):
+        if not isinstance(
+            self._component,
+            (PicoTankModuleComponent, SimPicoTankModuleComponent),
+            ):
             display_name = getattr(
-                self._component.gt, "display_name", "MISSING ATTRIBUTE display_name"
+                self._component.gt, "DisplayName", "MISSING ATTRIBUTE display_name"
             )
             raise ValueError(
                 f"ERROR. Component <{display_name}> has type {type(self._component)}. "
-                f"Expected PicoTankModuleComponent.\n"
+                f"Expected PicoTankModuleComponent or SimPicoTankModuleComponent.\n"
                 f"  Node: {self.name}\n"
-                f"  Component id: {self.component.gt.ComponentId}"
+                f"  Component id: {self._component.gt.ComponentId}"
             )
-        self.device_type = self._component.cac
-        if self.device_type.MakeModel != MakeModel.GRIDWORKS__TANKMODULE3:
-            raise ValueError(f"Expect TankModule3  not {self.device_type.MakeModel}")
+
         self._stop_requested: bool = False
 
         if self._component.gt.Enabled:
             self._services.add_web_route(
-                server_name=DEFAULT_WEB_SERVER_NAME,
+                server_name=ScadaWeb.DEFAULT_SERVER_NAME,
                 method="POST",
                 path="/" + self.microvolts_path,
                 handler=self._handle_microvolts_post,
             )
             self._services.add_web_route(
-                server_name=DEFAULT_WEB_SERVER_NAME,
+                server_name=ScadaWeb.DEFAULT_SERVER_NAME,
                 method="POST",
                 path="/" + self.params_path,
                 handler=self._handle_params_post,

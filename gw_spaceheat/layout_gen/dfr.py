@@ -23,7 +23,7 @@ def add_dfrs(db: LayoutDb, dfr_config: DfrConf) -> None:
             [
                 ComponentAttributeClassGt(
                     ComponentAttributeClassId=db.make_cac_id(
-                        MakeModel.DFROBOT__DFR0971_TIMES2
+                        make_model=MakeModel.DFROBOT__DFR0971_TIMES2
                     ),
                     DisplayName="DFRobot DFR0971 X 2",
                     MakeModel=MakeModel.DFROBOT__DFR0971_TIMES2

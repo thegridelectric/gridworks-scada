@@ -16,6 +16,7 @@ from gwsproto.named_types.pico_flow_module_component_gt import PicoFlowModuleCom
 from gwsproto.named_types.pico_tank_module_component_gt import PicoTankModuleComponentGt
 from gwsproto.named_types.resistive_heater_component_gt import ResistiveHeaterComponentGt
 from gwsproto.named_types.rest_poller_component_gt import RESTPollerComponentGt
+from gwsproto.named_types.sim_pico_tank_module_component_gt import SimPicoTankModuleComponentGt
 from gwsproto.named_types.web_server_component_gt import WebServerComponentGt
 
 __all__ = [
@@ -33,5 +34,6 @@ __all__ = [
     "PicoTankModuleComponentGt",
     "RESTPollerComponentGt",
     "ResistiveHeaterComponentGt",
+    "SimPicoTankModuleComponentGt",
     "WebServerComponentGt",
 ]

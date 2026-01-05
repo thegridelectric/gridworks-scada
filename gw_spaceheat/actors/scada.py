@@ -23,7 +23,7 @@ from gwsproto.enums import ActorClass
 from actors.scada_interface import ScadaInterface
 from gwsproto.data_classes.house_0_layout import House0Layout
 from gwsproto.named_types import FsmFullReport, PowerWatts, SendSnap, ReportEvent
-from gwsproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
+
 
 from gwsproto.named_types import (
     AnalogDispatch, ChannelReadings, MachineStates, SingleReading, SyncedReadings,
@@ -43,15 +43,17 @@ from actors.home_alone_loader import HomeAlone
 from actors.atomic_ally_loader import AtomicAlly
 from actors.codec_factories import ScadaCodecFactory
 from actors.contract_handler import ContractHandler
-from gwsproto.data_classes.house_0_names import H0N
+from gwsproto.data_classes.house_0_names import H0N, ScadaWeb
+from gwsproto.data_classes.components.web_server_component import WebServerComponent
 from gwsproto.enums import (AtomicAllyState,  ContractStatus, LocalControlTopState,
                    MainAutoEvent, MainAutoState, TopState)
 from gwsproto.named_types import ( ActuatorsReady, FsmEvent,
     AdminDispatch, AdminAnalogDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
     Glitch, GoDormant, LayoutLite, NewCommandTree, NoNewContractWarning, ResetHpKeepValue,
     ScadaParams, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment,
-    SiegTargetTooLow, SingleMachineState,SlowContractHeartbeat, SuitUp, WakeUp
+    SiegTargetTooLow, SingleMachineState,SlowContractHeartbeat, SuitUp, WakeUp,
 )
+
 
 from scada_app_interface import ScadaAppInterface
 
@@ -176,8 +178,19 @@ class Scada(PrimeActor, ScadaInterface):
         if self.layout.use_sieg_loop:
             self.actuator_dependents |= {self.sieg_loop,self.hp_boss}
 
+        # configure web APIs
+        for ws in self.layout.get_components_by_type(WebServerComponent):
+            cfg = ws.web_server_gt
+            self.services.add_web_server_config(
+                name=cfg.Name,
+                host=cfg.Host,
+                port=cfg.Port,
+                enabled=cfg.Enabled,
+                server_kwargs=cfg.Kwargs,
+            )
+
         self.services.add_web_route(
-            server_name=DEFAULT_WEB_SERVER_NAME,
+            server_name=ScadaWeb.DEFAULT_SERVER_NAME,
             method="GET",
             path="/ping",
             handler=self._handle_ping,

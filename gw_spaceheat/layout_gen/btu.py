@@ -64,7 +64,7 @@ def add_btu(
         db.add_cacs(
             [
                 ComponentAttributeClassGt(
-                    ComponentAttributeClassId=db.make_cac_id(MakeModel.GRIDWORKS__GW101),
+                    ComponentAttributeClassId=db.make_cac_id(make_model=MakeModel.GRIDWORKS__GW101),
                     DisplayName="Pico BtuMeter1 Gw101",
                     MakeModel=MakeModel.GRIDWORKS__GW101,
                 ),

@@ -36,7 +36,7 @@ def add_tank3(
         db.add_cacs(
             [
                 ComponentAttributeClassGt(
-                    ComponentAttributeClassId=db.make_cac_id(MakeModel.GRIDWORKS__TANKMODULE3),
+                    ComponentAttributeClassId=db.make_cac_id(make_model=MakeModel.GRIDWORKS__TANKMODULE3),
                     DisplayName="GridWorks TankModule3 (Uses 1 pico)",
                     MakeModel=MakeModel.GRIDWORKS__TANKMODULE3,
                 ),
