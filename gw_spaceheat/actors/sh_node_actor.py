@@ -1156,6 +1156,7 @@ class ShNodeActor(Actor, ABC):
         max_delta_t = max(self.heating_forecast.RswtDeltaTF[:3])
 
         min_buffer_temp_f = round(max_rswt - max_delta_t, 1)
+        min_buffer_temp_f = min(min_buffer_temp_f, self.data.ha1_params.MaxEwtF-10)
         buffer_temp_f = self.latest_temps_f[buffer_top_ch]
 
         if buffer_temp_f < min_buffer_temp_f:
