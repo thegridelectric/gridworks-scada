@@ -1177,6 +1177,9 @@ class ShNodeActor(Actor, ABC):
 
         This is a heuristic predicate used by HomeAlone / AtomicAlly strategies.
         """
+        self.log(f"HP Failsafe Relay State: {self.data.latest_machine_state[H0CN.hp_failsafe_relay_state]}")
+        self.log(f"HP Scada Ops Relay State: {self.data.latest_machine_state[H0CN.hp_scada_ops_relay_state]}")
+        
         if (
             H0CN.hp_failsafe_relay_state in self.data.latest_machine_state 
             and H0CN.hp_scada_ops_relay_state in self.data.latest_machine_state
