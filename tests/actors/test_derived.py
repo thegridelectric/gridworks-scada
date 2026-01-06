@@ -7,7 +7,7 @@ from gwproactor_test.certs import uses_tls
 from gwproactor_test.certs import copy_keys
 
 from actors import Scada
-from actors import SynthGenerator
+from actors import DerivedGenerator
 from actors.config import ScadaSettings
 from gwsproto.data_classes.house_0_layout import House0Layout
 from gwsproto.data_classes.house_0_names import H0N
@@ -31,9 +31,9 @@ def test_ha1(monkeypatch, tmp_path):
     settings.paths.mkdirs()
     scada_app.instantiate()
     s = scada_app.scada
-    synth = SynthGenerator(H0N.derived_generator, services=scada_app)
+    derived = DerivedGenerator(H0N.derived_generator, services=scada_app)
 
-    assert set(synth.temperature_channel_names) == {
+    assert set(derived.temperature_channel_names) == {
         'buffer-depth1', 'buffer-depth2', 'buffer-depth3',
         'hp-ewt', 'hp-lwt', 'dist-swt', 'dist-rwt',
         'buffer-cold-pipe', 'buffer-hot-pipe', 'store-cold-pipe', 'store-hot-pipe',
@@ -44,28 +44,28 @@ def test_ha1(monkeypatch, tmp_path):
 
 
     # test initial calc of quadratic params
-    assert synth.params.IntermediateRswtF == 100
-    assert synth.params.IntermediatePowerKw == 1.5
-    assert synth.params.DdRswtF == 150
-    assert synth.params.DdPowerKw == 5.5
-    assert synth.no_power_rswt == 55
+    assert derived.params.IntermediateRswtF == 100
+    assert derived.params.IntermediatePowerKw == 1.5
+    assert derived.params.DdRswtF == 150
+    assert derived.params.DdPowerKw == 5.5
+    assert derived.no_power_rswt == 55
 
 
-    assert abs(synth.rswt_quadratic_params[0] - 0.0004912280701754388) < 0.000001
-    assert abs(synth.rswt_quadratic_params[1] + 0.042807017543859696) < 0.00001
-    assert abs(synth.rswt_quadratic_params[2] - 0.868421052631581) < 0.001
+    assert abs(derived.rswt_quadratic_params[0] - 0.0004912280701754388) < 0.000001
+    assert abs(derived.rswt_quadratic_params[1] + 0.042807017543859696) < 0.00001
+    assert abs(derived.rswt_quadratic_params[2] - 0.868421052631581) < 0.001
     
     # Intermediate kw and rswt match
-    assert synth.required_swt(required_kw_thermal=1.5) == 100
+    assert derived.required_swt(required_kw_thermal=1.5) == 100
     # design day kw and rswt match
-    assert synth.required_swt(required_kw_thermal=5.5) == 150
+    assert derived.required_swt(required_kw_thermal=5.5) == 150
     # try something hotter
-    assert synth.required_swt(required_kw_thermal=8) == 171.7
+    assert derived.required_swt(required_kw_thermal=8) == 171.7
 
     # test getting new params from atn, resulting in new rswt quad params
-    new = synth.params.model_copy(update={"DdPowerKw": 10})
+    new = derived.params.model_copy(update={"DdPowerKw": 10})
     params_from_atn = ScadaParams(
-        FromGNodeAlias=synth.layout.atn_g_node_alias,
+        FromGNodeAlias=derived.layout.atn_g_node_alias,
         FromName=H0N.atn,
         ToName=H0N.primary_scada,
         UnixTimeMs=int(time.time() * 1000),
@@ -75,7 +75,7 @@ def test_ha1(monkeypatch, tmp_path):
     )
 
     s.process_scada_params(s.atn, params_from_atn, testing=True)
-    assert synth.params.DdPowerKw == 10
+    assert derived.params.DdPowerKw == 10
 
     # wrote the new parameter to .env
     with open(dotenv_filepath, 'r') as file:
@@ -83,7 +83,7 @@ def test_ha1(monkeypatch, tmp_path):
     assert "SCADA_DD_POWER=10\n" in lines
 
     # this changes required_swt etc
-    assert synth.required_swt(required_kw_thermal=5.5) == 128.7
+    assert derived.required_swt(required_kw_thermal=5.5) == 128.7
 
     # Todo: validate scada sends out ScadaParams message with
     # correct new params

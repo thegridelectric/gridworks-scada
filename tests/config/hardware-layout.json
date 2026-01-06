@@ -1611,9 +1611,9 @@
       "Version": "200"
     },
     {
-      "ActorClass": "SynthGenerator",
+      "ActorClass": "DerivedGenerator",
       "ActorHierarchyName": "s.derived-generator",
-      "DisplayName": "Synth Generator",
+      "DisplayName": "Derived Generator",
       "Name": "derived-generator",
       "ShNodeId": "5ca6a864-169e-4bf8-a1a9-c4ea1066b0ea",
       "TankTempCalibrationMap": {

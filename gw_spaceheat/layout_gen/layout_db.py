@@ -613,8 +613,8 @@ class LayoutDb:
                     ShNodeId=self.make_node_id(H0N.derived_generator),
                     Name=H0N.derived_generator,
                     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.derived_generator}",
-                    ActorClass=ActorClass.SynthGenerator,
-                    DisplayName="Synth Generator",
+                    ActorClass=ActorClass.DerivedGenerator,
+                    DisplayName="Derived Generator",
                     TankTempCalibrationMap=tmap
                 ),
                 SpaceheatNodeGt(

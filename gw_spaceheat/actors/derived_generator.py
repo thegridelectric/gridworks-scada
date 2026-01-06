@@ -27,8 +27,7 @@ from gwsproto.named_types import (
 from scada_app_interface import ScadaAppInterface
 
 
-class SynthGenerator(ShNodeActor):
-    """Will rename to DerivedGenerator when ActorClass updates"""
+class DerivedGenerator(ShNodeActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
     GALLONS_PER_TANK = 119
     WATER_SPECIFIC_HEAT_KJ_PER_KG_C = 4.187
