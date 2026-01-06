@@ -7,10 +7,11 @@ from typing import Any
 from typing import Deque
 from typing import Optional
 
-from gwsproto.data_classes.data_channel import DataChannel
+from gwsproto.data_classes.hardware_layout import ChannelRegistry
 from gwsproto.enums import TelemetryName
 
 from gwsproto.named_types import SnapshotSpaceheat
+
 
 from actors.atn.dashboard.channels.channel import HoneywellThermostatStateChannel
 from actors.atn.dashboard.channels.channel import TankChannel
@@ -21,7 +22,7 @@ from actors.atn.dashboard.channels.channel import PowerChannel
 from actors.atn.dashboard.channels.channel import PUMP_OFF_THRESHOLD
 from actors.atn.dashboard.channels.channel import PumpPowerChannel
 from actors.atn.dashboard.channels.channel import TemperatureChannel
-from actors.atn.dashboard.channels.channel import UnusedReading
+from actors.atn.dashboard.channels.read_mixin import UnboundReading
 from actors.atn.dashboard.channels.read_mixin import ReadMixin
 
 
@@ -53,7 +54,7 @@ class PumpPowerChannels(ReadMixin):
     dist_pump_pwr_state_q: Deque[tuple[PumpPowerState, int, int]]
     dist_pump_pwr_state: PumpPowerState
 
-    def __init__(self, channels: dict[str, DataChannel]) -> None:
+    def __init__(self, channels: ChannelRegistry) -> None:
         self.primary = PumpPowerChannel("primary-pump-pwr", channels)
         self.store = PumpPowerChannel("store-pump-pwr", channels)
         self.dist = PumpPowerChannel("dist-pump-pwr", channels)
@@ -81,8 +82,13 @@ class PowerChannels(ReadMixin):
     hp_outdoor: PowerChannel
     pumps: PumpPowerChannels
 
-    def __init__(self, channels: dict[str, DataChannel]) -> None:
+    def __init__(self, channels: ChannelRegistry) -> None:
+
         self.hp_indoor = PowerChannel("hp-idu-pwr", channels)
+        print("hp-idu-pwr type:", type(self.hp_indoor))
+        print("hp-idu-pwr repr:", self.hp_indoor)
+        print("hp-idu-pwr TelemetryName:", getattr(self.hp_indoor, "TelemetryName", "NO_ATTR"))
+        print("hp-idu-pwr telemetry_name:", getattr(self.hp_indoor, "telemetry_name", "NO_ATTR"))
         self.hp_outdoor = PowerChannel("hp-odu-pwr", channels)
         self.hp_total = MissingReading()
         self.pumps = PumpPowerChannels(channels)
@@ -94,10 +100,8 @@ class Thermostat(ReadMixin):
 
     def __init__(
         self, name: str,
-        channels: dict[str, DataChannel],
+        channels: ChannelRegistry,
         *,
-        celcius_data: bool = True,
-        fahrenheit_display: bool = True,
         missing_string: str = DEFAULT_MISSING_STRING,
         raise_errors: bool = False,
         logger: Optional[logging.Logger | logging.LoggerAdapter] = None
@@ -106,8 +110,6 @@ class Thermostat(ReadMixin):
         self.set_point = TemperatureChannel(
             self.name + "-set",
             channels,
-            celcius_data=celcius_data,
-            fahrenheit_display=fahrenheit_display,
             missing_string=missing_string,
             raise_errors=raise_errors,
             logger=logger
@@ -115,8 +117,6 @@ class Thermostat(ReadMixin):
         self.temperature = TemperatureChannel(
             self.name + "-temp",
             channels,
-            celcius_data = celcius_data,
-            fahrenheit_display = fahrenheit_display,
             missing_string = missing_string,
             raise_errors = raise_errors,
             logger = logger,
@@ -127,7 +127,7 @@ class HoneywellThermostat(Thermostat):
 
     def __init__(
         self, name:
-        str, channels: dict[str, DataChannel],
+        str, channels: ChannelRegistry,
         *,
         fahrenheit_display: bool = True,
         missing_string: str = DEFAULT_MISSING_STRING,
@@ -138,8 +138,6 @@ class HoneywellThermostat(Thermostat):
         super().__init__(
             name,
             channels,
-            celcius_data=False,
-            fahrenheit_display=fahrenheit_display,
             missing_string=missing_string,
             raise_errors=raise_errors,
             logger=logger,
@@ -160,7 +158,7 @@ class Tank(ReadMixin):
     depth4: TankChannel
     is_buffer: bool
 
-    def __init__(self, tank_name: str, channels: dict[str, DataChannel], *, is_buffer: bool = False) -> None:
+    def __init__(self, tank_name: str, channels: ChannelRegistry, *, is_buffer: bool = False) -> None:
         self.name = tank_name
         self.depth1 = TankChannel(self.name + "-depth1", channels)
         self.depth2 = TankChannel(self.name + "-depth2", channels)
@@ -176,7 +174,7 @@ class Tanks(ReadMixin):
     buffer: Tank
     store: list[Tank]
 
-    def __init__(self, num_tanks: int, channels: dict[str, DataChannel]) -> None:
+    def __init__(self, num_tanks: int, channels: ChannelRegistry) -> None:
         self.buffer = Tank("buffer", channels, is_buffer=True)
         self.store = [
             Tank(f"tank{tank_idx}", channels)
@@ -200,7 +198,7 @@ class Temperatures(ReadMixin):
         self,
         num_tanks: int,
         thermostat_names: list[str],
-        channels: dict[str, DataChannel]
+        channels: ChannelRegistry
     ) -> None:
         self.tanks = Tanks(num_tanks, channels)
         self.thermostats = [
@@ -224,7 +222,7 @@ class FlowChannels(ReadMixin):
     store_flow: FlowChannel
     sieg_flow: FlowChannel
 
-    def __init__(self, channels: dict[str, DataChannel]) -> None:
+    def __init__(self, channels: ChannelRegistry) -> None:
         self.dist_flow = FlowChannel("dist-flow", channels)
         self.primary_flow = FlowChannel("primary-flow", channels)
         self.store_flow = FlowChannel("store-flow", channels)
@@ -232,21 +230,18 @@ class FlowChannels(ReadMixin):
         
 
 class Channels(ReadMixin):
-    power: PowerChannels
-    temperatures: Temperatures
-    flows: FlowChannels
-    last_unused_readings: list[UnusedReading]
 
     def __init__(
         self,
-        channels: dict[str, DataChannel],
+        channels: ChannelRegistry,
         thermostat_names: list[str],
     ) -> None:
+        self._registry = channels
         self.power = PowerChannels(channels)
         self.temperatures = Temperatures(num_tanks=3, thermostat_names=thermostat_names, channels=channels)
         self.flows = FlowChannels(channels)
-        self.last_unused_readings = []
+        self.last_unbound_readings: list[UnboundReading] = []
 
-    def read_snapshot(self, snap: SnapshotSpaceheat, channel_telemetries: dict[str, TelemetryName]) -> list[UnusedReading]:
-        self.last_unused_readings = super().read_snapshot(snap, channel_telemetries)
-        return self.last_unused_readings
+    def read_snapshot(self, snap: SnapshotSpaceheat) -> list[UnboundReading]:
+        self.last_unbound_readings = super().read_snapshot(snap)
+        return self.last_unbound_readings

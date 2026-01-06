@@ -4,6 +4,7 @@ from gw.enums import GwStrEnum
 
 
 class GwUnit(GwStrEnum):
+    """Encoding used for Derived channels"""
     Unknown = auto()
     Unitless = auto()
     FahrenheitX100 = auto()

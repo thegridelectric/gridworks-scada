@@ -4,8 +4,8 @@ from typing import Callable
 from typing import Optional
 
 from gwsproto.data_classes.data_channel import DataChannel
-from gwsproto.enums import TelemetryName
-from gwsproto.named_types import SingleReading
+from gwsproto.data_classes.derived_channel import DerivedChannel
+from gwsproto.enums import TelemetryName, GwUnit
 from rich.console import Console
 from rich.console import ConsoleOptions
 from rich.console import RenderResult
@@ -13,7 +13,9 @@ from rich.style import Style
 from rich.text import Text
 
 from actors.honeywell_thermostat import HoneywellThermostatOperatingState
+from gwsproto.conversions.temperature import convert_temp_to_f
 from gwsproto.named_types import SnapshotSpaceheat
+from gwsproto.data_classes.hardware_layout import ChannelRegistry
 from actors.atn.dashboard.display.styles import fahrenheit_style
 from actors.atn.dashboard.display.styles import tank_style
 from actors.atn.dashboard.channels.reading import MissingReading
@@ -25,9 +27,12 @@ DEFAULT_MISSING_STRING = " --- "
 DEFAULT_FORMAT_STRING = "{converted:5.1f}"
 DEFAULT_STYLE = ""
 
+
+
+
 class DisplayChannel:
     name: str
-    telemetry_name: TelemetryName = TelemetryName.Unknown
+    unit: TelemetryName | GwUnit | None = None
     format_string: str
     style: Style
     style_calculator: Optional[Callable[[float | int], Style]] = None
@@ -41,7 +46,7 @@ class DisplayChannel:
     def __init__(
         self,
         name: str,
-        channels: dict[str, DataChannel],
+        channels: ChannelRegistry,
         *,
         format_string: str = DEFAULT_FORMAT_STRING,
         style: Style | str  = DEFAULT_STYLE,
@@ -51,10 +56,16 @@ class DisplayChannel:
         logger: Optional[logging.Logger | logging.LoggerAdapter] = None
     ) -> None:
         self.name = name
+        self._registry = channels
+
         channel = channels.get(name)
         self.exists = channel is not None
-        if self.exists:
-            self.telemetry_name = channel.TelemetryName
+
+        if isinstance(channel, DataChannel):
+            self.unit = channel.TelemetryName
+        elif isinstance(channel, DerivedChannel):
+            self.unit = channel.OutputUnit
+
         self.format_string = format_string
         if isinstance(style, str):
             style = Style.parse(style)
@@ -132,58 +143,53 @@ class DisplayChannel:
         return self.reading
 
 class TemperatureChannel(DisplayChannel):
-    celsius_data: bool
-    fahrenheit_display: bool
+
 
     def __init__(
         self,
         name: str,
-        channels: dict[str, DataChannel],
+        channels: ChannelRegistry,
         *,
-        celcius_data: bool = True,
-        fahrenheit_display: bool = True,
         missing_string: str = "  ---  ",
         style: Style | str = DEFAULT_STYLE,
         style_calculator: Optional[Callable[[float | int], Style]] = fahrenheit_style,
         raise_errors: bool = False,
         logger: Optional[logging.Logger | logging.LoggerAdapter] = None
     ) -> None:
-        self.fahrenheit_display = fahrenheit_display
-        self.celcius_data = celcius_data
-        format_string = DEFAULT_FORMAT_STRING + "°"
-        if self.fahrenheit_display:
-            format_string += "F"
-        else:
-            format_string += "C"
+
         super().__init__(
             name=name,
             channels=channels,
-            format_string=format_string,
+            format_string=DEFAULT_FORMAT_STRING + "°F",
             style=style,
             style_calculator=style_calculator,
             missing_string=missing_string,
             raise_errors=raise_errors,
             logger=logger,
         )
-        if self.exists:
-            if self.celcius_data:
-                valid_telemtery_names = TelemetryName.AirTempCTimes1000, TelemetryName.WaterTempCTimes1000
-            else:
-                valid_telemtery_names = TelemetryName.AirTempFTimes1000, TelemetryName.WaterTempFTimes1000
-            if self.telemetry_name not in valid_telemtery_names:
+        if not self.exists:
+            return
+
+        if self.unit not in (
+                TelemetryName.AirTempCTimes1000,
+                TelemetryName.WaterTempCTimes1000,
+                TelemetryName.AirTempFTimes1000,
+                TelemetryName.WaterTempFTimes1000,
+                GwUnit.FahrenheitX100,
+            ):
                 raise ValueError(
-                    f"ERROR. Temperature channel {self.name} expects data in "
-                    f"{valid_telemtery_names} "
-                    f"but found {self.telemetry_name} in hardware layout"
+                    f"TemperatureChannel {self.name} has non-temperature "
+                    f"unit {self.unit}"
                 )
 
+
     def convert(self, raw: int) -> float | int:
-        scaled = raw / 1000
-        if self.celcius_data and self.fahrenheit_display:
-            return 9 / 5 * scaled + 32
-        elif not self.celcius_data and not self.fahrenheit_display:
-            return (scaled - 32) * 5 / 9
-        return scaled
+        if self.unit is None:
+            raise ValueError(f"TemperatureChannel {self.name} has no unit metadata!")
+        return convert_temp_to_f(
+        raw=raw,
+        encoding=self.unit,
+    )
 
 class TankChannel(TemperatureChannel):
 
@@ -200,17 +206,17 @@ class PowerChannel(DisplayChannel):
     def __init__(self, *args, **kwargs) -> None:
         self.kW = kwargs.pop('kW', True)
         super().__init__(*args, **kwargs)
-        if self.exists and self.telemetry_name != TelemetryName.PowerW:
+        if self.exists and self.unit != TelemetryName.PowerW:
             raise ValueError(
-                f"ERROR. Power channel {self.name} expects telemetry "
-                f"{TelemetryName.PowerW}. Got {self.telemetry_name}"
+                f"ERROR. Power channel {self.name} expects "
+                f"{TelemetryName.PowerW}. Got {self.unit}"
             )
 
     def convert(self, raw: int) -> float:
-        raw = float(raw)
+        raw2 = float(raw)
         if self.kW:
-            raw /= 1000
-        return round(raw, 2)
+            raw2 /= 1000
+        return round(raw2, 2)
 
 class PumpPowerChannel(PowerChannel):
 
@@ -224,23 +230,20 @@ class PumpPowerChannel(PowerChannel):
             return "OFF"
         return f"{round(converted, 2)}"
 
-class UnusedReading(SingleReading):
-    Telemetry: TelemetryName
-
 class FlowChannel(DisplayChannel):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        if self.exists and self.telemetry_name != TelemetryName.GpmTimes100:
+        if self.exists and self.unit != TelemetryName.GpmTimes100:
             raise ValueError(
-                f"ERROR. Flow channel {self.name} expects telemetry "
-                f"{TelemetryName.GpmTimes100}. Got {self.telemetry_name}"
+                f"ERROR. Flow channel {self.name} expects "
+                f"{TelemetryName.GpmTimes100}. Got {self.unit}"
             )
     
     def convert(self, raw: int) -> float:
-        raw = float(raw)
-        raw /= 100
-        return round(raw, 1)
+        raw2 = float(raw)
+        raw2 /= 100
+        return round(raw2, 1)
 
 class HoneywellThermostatStateChannel(DisplayChannel):
 

@@ -9,6 +9,7 @@ from typing import Optional
 
 import rich
 
+from gwproactor.logger import LoggerOrAdapter
 from actors.atn.atn_config import HackHpSettings
 from actors.atn.dashboard.channels.containers import enqueue_fifo_q
 from actors.atn.dashboard.channels.containers import Channels
@@ -109,19 +110,14 @@ class HackHpStateCapture:
         )
 
 class HackHp:
-
     state_q: Deque[HackHpStateCapture]
-    settings: HackHpSettings
-    short_name: str
-    raise_dashboard_exceptions: bool
-    logger: logging.Logger | logging.LoggerAdapter
 
     def __init__(
         self,
         settings: HackHpSettings,
         short_name: str,
+        logger: LoggerOrAdapter,
         raise_dashboard_exceptions: bool = False,
-        logger: Optional[logging.Logger | logging.LoggerAdapter] = None,
     ):
         self.settings = settings
         self.short_name = short_name

@@ -4,18 +4,22 @@ from typing import Mapping
 from typing import Optional
 from typing import Sequence
 
-from gwsproto.enums import TelemetryName
+from gwsproto.data_classes.hardware_layout import ChannelRegistry
+from gwsproto.enums import GwUnit, TelemetryName
 from gwsproto.named_types import SingleReading
 from gwsproto.named_types import SnapshotSpaceheat
 
 from actors.atn.dashboard.channels.channel import DisplayChannel
+from actors.atn.dashboard.channels.reading import Reading
 
 
-class UnusedReading(SingleReading):
-    Telemetry: TelemetryName
+class UnboundReading(SingleReading):
+    Unit: TelemetryName | GwUnit | None
 
 class ReadMixin:
-    def read_snapshot(self, snap: SnapshotSpaceheat, channel_telemetries: dict[str, TelemetryName]) -> list[UnusedReading]:
+    _registry: ChannelRegistry
+
+    def read_snapshot(self, snap: SnapshotSpaceheat) -> list[UnboundReading]:
         """Read all existing child channels, update any ReadMixin children,
         return indices of any readings in the snapshot not read by a configured
         channel.
@@ -25,26 +29,32 @@ class ReadMixin:
         for channel in self.channels:
             channel.read_snapshot(snap)
         self.update()
-        return self.collect_unused_readings(snap, channel_telemetries)
+        return self.collect_unused_readings(snap)
 
     def collect_unused_readings(
         self,
         snap: SnapshotSpaceheat,
-        channel_telemetries: dict[str, TelemetryName]
-    ) -> list[UnusedReading]:
-        used_indices = {channel.reading.idx for channel in self.channels if channel.reading}
+    ) -> list[UnboundReading]:
+
+        used_indices = {
+            ch.reading.idx
+            for ch in self.channels
+            if isinstance(ch.reading, Reading)
+        }
+
         unused_readings = []
-        for reading_idx in range(len(snap.LatestReadingList)):
-            if reading_idx not in used_indices:
-                unused_reading = snap.LatestReadingList[reading_idx]
+
+        for idx, reading in enumerate(snap.LatestReadingList):
+            if idx not in used_indices:
                 unused_readings.append(
-                    UnusedReading(
-                        ChannelName=unused_reading.ChannelName,
-                        Value=unused_reading.Value,
-                        ScadaReadTimeUnixMs=unused_reading.ScadaReadTimeUnixMs,
-                        Telemetry=channel_telemetries.get(unused_reading.ChannelName)
+                    UnboundReading(
+                        ChannelName=reading.ChannelName,
+                        Value=reading.Value,
+                        ScadaReadTimeUnixMs=reading.ScadaReadTimeUnixMs,
+                        Unit=self._registry.unit(reading.ChannelName)
                     )
                 )
+
         return unused_readings
 
     def update_self(self) -> None:

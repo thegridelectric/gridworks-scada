@@ -29,7 +29,7 @@ from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.data_classes.derived_channel import DerivedChannel
 from gwsproto.data_classes.telemetry_tuple import TelemetryTuple
 
-from gwsproto.enums import ActorClass, TelemetryName
+from gwsproto.enums import ActorClass, TelemetryName, GwUnit
 from gwsproto.named_types import (
     ComponentAttributeClassGt,
     ComponentGt,
@@ -54,6 +54,30 @@ class LoadArgs(typing.TypedDict):
     nodes: dict[str, ShNode]
     data_channels: dict[str, DataChannel]
     derived_channels: dict[str, DerivedChannel]
+
+
+class ChannelRegistry:
+    def __init__(
+        self,
+        *,
+        data_channels: dict[str, DataChannel],
+        derived_channels: dict[str, DerivedChannel],
+    ):
+        self.data = data_channels
+        self.derived = derived_channels
+
+    def get(self, name: str) -> DataChannel | DerivedChannel | None:
+        return self.data.get(name) or self.derived.get(name)
+
+    def unit(self, name: str) -> GwUnit | TelemetryName | None:
+        ch = self.get(name)
+        if ch is None:
+            return None
+        if isinstance(ch, DataChannel):
+            return ch.TelemetryName
+        if isinstance(ch, DerivedChannel):
+            return ch.OutputUnit
+        return None
 
 
 class HardwareLayout:
@@ -522,6 +546,13 @@ class HardwareLayout:
         }
         self.data_channels = dict(data_channels)
         self.derived_channels = dict(derived_channels)
+
+    @cached_property
+    def channel_registry(self) -> ChannelRegistry:
+        return ChannelRegistry(
+            data_channels=self.data_channels,
+            derived_channels=self.derived_channels,
+        )
 
     def clear_property_cache(self) -> None:
         for cached_prop_name in [

@@ -280,7 +280,6 @@ class Atn(PrimeActor):
     ha1_params: Optional[Ha1Params]
     _stop_requested: bool = False
 
-
     def __init__(self, name: str, services: AppInterface) -> None:
         super().__init__(name, services)
         # self._web_manager.disable()
@@ -302,15 +301,16 @@ class Atn(PrimeActor):
         self.latest_report: Optional[Report] = None
         self.report_output_dir = Path(f"{self.settings.paths.data_dir}/report")
         self.report_output_dir.mkdir(parents=True, exist_ok=True)
+
         if self.settings.dashboard.print_gui:
             self.dashboard = Dashboard(
                 settings=self.settings.dashboard,
                 atn_g_node_alias=self.layout.atn_g_node_alias,
-                data_channels=self.layout.data_channels,
+                data_channels=self.layout.channel_registry,
+                logger=self.logger,
                 thermostat_names=DashboardSettings.thermostat_names(
                     [channel.Name for channel in self.layout.data_channels.values()]
                 ),
-                logger=self.logger,
             )
         else:
             self.dashboard = None
@@ -504,6 +504,7 @@ class Atn(PrimeActor):
         self.data.latest_power_w = pwr.Watts
         if not self.dashboard:
             return
+
         if self.settings.dashboard.print_gui:
             self.dashboard.process_power(pwr)
         else:
