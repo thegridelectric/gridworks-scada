@@ -7,6 +7,7 @@ from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
 )
 from gwsproto.named_types.pico_flow_module_component_gt import PicoFlowModuleComponentGt
 from gwsproto.named_types.pico_tank_module_component_gt import PicoTankModuleComponentGt
+from gwsproto.named_types.sim_pico_tank_module_component_gt import SimPicoTankModuleComponentGt
 from gwsproto.named_types.tank_temp_calibration_map import TankTempCalibrationMap
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwsproto.named_types.derived_channel_gt import DerivedChannelGt
@@ -27,7 +28,7 @@ class LayoutLite(BaseModel):
     ShNodes: List[SpaceheatNodeGt]
     DataChannels: List[DataChannelGt]
     DerivedChannels: List[DerivedChannelGt]
-    TankModuleComponents: List[PicoTankModuleComponentGt]
+    TankModuleComponents: List[PicoTankModuleComponentGt | SimPicoTankModuleComponentGt]
     FlowModuleComponents: List[PicoFlowModuleComponentGt]
     Ha1Params: Ha1Params
     I2cRelayComponent: I2cMultichannelDtRelayComponentGt

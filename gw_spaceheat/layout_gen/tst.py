@@ -17,18 +17,17 @@ from gwsproto.named_types.electric_meter_component_gt import ElectricMeterCompon
 from gwsproto.data_classes.house_0_names import H0N, H0CN
 from pydantic_extra_types.mac_address import MacAddress
 
-from layout_gen import add_tank3
 from layout_gen import LayoutDb
 from layout_gen import LayoutIDMap
 from layout_gen import StubConfig
 from layout_gen import HubitatThermostatGenCfg
 from layout_gen import add_thermostat
-from layout_gen import Tank3Cfg
 from layout_gen.dfr import add_dfrs
 from layout_gen.dfr import DfrConf
 from layout_gen.relay import add_relays
 from layout_gen.relay import RelayCfg
 from layout_gen.web_server import add_web_server
+from layout_gen.simulated_tanks import add_simulated_tanks
 
 
 def make_tst_layout(src_path: Path) -> LayoutDb:
@@ -68,44 +67,7 @@ def make_tst_layout(src_path: Path) -> LayoutDb:
 
     add_relays(db, RelayCfg(PollPeriodMs=200, CapturePeriodS=300))
 
-    add_tank3(
-        db,
-        Tank3Cfg(
-            ActorNodeName="buffer",
-            SerialNumber="9999",
-            PicoHwUid="pico_buffer",
-            SensorOrder=[3,2,1],
-        ),
-    )
-
-    # Add store tanks
-    add_tank3(
-        db,
-        Tank3Cfg(
-            ActorNodeName="tank1",
-            SerialNumber="1001",
-            PicoHwUid="pico_tank1",
-        ),
-    )
-
-    add_tank3(
-        db,
-        Tank3Cfg(
-            ActorNodeName="tank2",
-            SerialNumber="1002",
-            PicoHwUid="pico_tank2",
-        ),
-    )
-
-    add_tank3(
-        db,
-        Tank3Cfg(
-            ActorNodeName="tank3",
-            SerialNumber="1003",
-            PicoHwUid="pico_tank3",
-        ),
-    )
-
+    add_simulated_tanks(db)
 
     add_dfrs(
         db,
