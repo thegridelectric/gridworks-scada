@@ -1148,12 +1148,13 @@ class Atn(PrimeActor):
             rswt_minus_deltaT = round(rswt_minus_deltaT,2)
             m_layer_kg = 120/3 * 3.785
             buffer_available_energy = 0
-            if buffer_temperatures[H0CN.buffer.depth1] > rswt:
-                self.log(f"Buffer depth 1 is above RSWT ({buffer_temperatures[H0CN.buffer.depth1]} > {rswt})")
+            if buffer_temperatures[H0CN.buffer.depth1] > rswt_minus_deltaT:
+                self.log(f"Buffer depth 1 is above rswt_minus_deltaT ({buffer_temperatures[H0CN.buffer.depth1]} > {rswt_minus_deltaT})")
                 return_temp = min(
+                    self.latest_temperatures[H0CN.buffer.depth1],
                     self.latest_temperatures[H0CN.buffer.depth2],
                     self.latest_temperatures[H0CN.buffer.depth3],
-                    120
+                    110
                 )
                 buffer_available_energy += m_layer_kg * 4.187/3600 * (buffer_temperatures[H0CN.buffer.depth1]-rswt_minus_deltaT) * 5/9
                 buffer_available_energy += m_layer_kg * 4.187/3600 * (buffer_temperatures[H0CN.buffer.depth2]-return_temp) * 5/9
