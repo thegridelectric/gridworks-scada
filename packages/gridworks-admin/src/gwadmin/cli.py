@@ -40,6 +40,33 @@ app = typer.Typer(
     help=f"GridWorks Scada Admin Client, version {__version__}",
 )
 
+
+def init_admin_logging(settings: CurrentAdminConfig) -> None:
+    log_dir = settings.paths.log_dir
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    log_file = log_dir / "admin.log"
+
+    level = settings.config.verbosity or logging.INFO
+
+    root = logging.getLogger()
+    root.setLevel(level)
+
+    # Avoid duplicate handlers in tests / reloads
+    if any(isinstance(h, logging.FileHandler) for h in root.handlers):
+        return
+
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setLevel(level)
+    file_handler.setFormatter(
+        logging.Formatter(
+            "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+        )
+    )
+
+    root.addHandler(file_handler)
+
+
 def get_config_name(env_file: str = "", config_name: Optional[str] = None) -> str:
     if config_name is None:
         if CONFIG_ENV_VAR in os.environ and os.environ[CONFIG_ENV_VAR]:
@@ -237,6 +264,8 @@ def watch(
     if save:
         rich.print(f"Saving configuration in {current_config.paths.admin_config_path}")
         current_config.save_config()
+
+    init_admin_logging(current_config)
     watch_app = RelaysApp(settings=current_config)
     watch_app.run()
 
