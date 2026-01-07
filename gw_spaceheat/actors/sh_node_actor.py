@@ -46,14 +46,12 @@ from scada_app_interface import ScadaAppInterface
 
 
 
-
-
 class ShNodeActor(Actor, ABC):
     MIN_USED_TANK_TEMP_F = 70
     MAX_VALID_TANK_TEMP_F = 200
     NUM_LAYERS_PER_TANK = 3
     SIMULATED_TANK_TEMP_F = 70
-
+    PUMP_FLOW_GPM_THRESHOLD = 0.1
 
     def __init__(self, name: str, services: ScadaAppInterface):
         if not isinstance(services, ScadaAppInterface):
@@ -201,6 +199,41 @@ class ShNodeActor(Actor, ABC):
     def hp_loop_keep_send(self) -> ShNode:
         """relay 15"""
         return self.layout.node(H0N.hp_loop_keep_send)
+
+    def discharging_store(self) -> bool:
+        """
+        Returns True if the system is actively discharging the store:
+        - the charge/discharge relay is set to DischargingStore
+        - and the store pump is moving water above threshold
+        """
+        relay_state = self.data.latest_machine_state.get(
+            self.store_charge_discharge_relay.name
+        )
+
+        if relay_state != StoreFlowRelay.DischargingStore:
+            return False
+
+        store_flow = self.data.latest_channel_values.get(H0CN.store_flow) or 0
+
+        return store_flow > self.PUMP_FLOW_GPM_THRESHOLD * 100
+
+    def flowing_from_hp_to_house(self) -> bool:
+        """
+        Returns True if the water is flowing from heat pump to buffer/dist
+
+        Conditions:
+        - charge/discharge relay is set to DischargingStore
+        - primary pump is moving water above threshold
+        - Store is not being charged
+        """
+        relay_state = self.data.latest_machine_state.get(
+            self.store_charge_discharge_relay.name
+        )
+        if relay_state != StoreFlowRelay.DischargingStore:
+            return False
+
+        primary_flow = self.data.latest_channel_values.get(H0CN.primary_flow) or 0
+        return primary_flow > self.PUMP_FLOW_GPM_THRESHOLD * 100
 
     def stat_failsafe_relay(self, zone: str) -> ShNode:
         """
@@ -1180,16 +1213,69 @@ class ShNodeActor(Actor, ABC):
 
     def is_buffer_full(self) -> bool:
         """
-        Returns True if the buffer is considered 'full' relative to near-term
-        heating forecast requirements.
+        Returns True if the buffer is considered thermally full relative to
+        near-term heating requirements.
 
-        This is a heuristic predicate used by HomeAlone / AtomicAlly strategies.
+        Prefers the coldest buffer layer (depth3) as the authoritative signal.
+        If unavailable, may infer buffer fullness from proxy temperatures
+        (e.g. buffer cold pipe or store cold pipe while discharging), emitting
+        an informational glitch when doing so.
+        """
+        used_proxy: bool = True
+
+        if H0CN.buffer.depth3 in self.latest_temps_f:
+            buffer_full_ch = H0CN.buffer.depth3
+            used_proxy = False
+        elif H0CN.buffer_cold_pipe in self.latest_temps_f: # Note: often not even installed
+            buffer_full_ch = H0CN.buffer_cold_pipe
+
+        elif (
+            self.discharging_store()
+            and H0CN.store_cold_pipe in self.latest_temps_f
+        ):
+            buffer_full_ch = H0CN.store_cold_pipe
+        elif (
+            self.flowing_from_hp_to_house()
+            and H0CN.hp_ewt in self.latest_temps_f
+        ):
+            buffer_full_ch = H0CN.hp_ewt
+        else:
+            return False
+
+        if used_proxy:
+            self.send_info(
+                summary="Buffer full inferred from proxy temperature",
+                details=(
+                    f"Depth3 unavailable; using {used_proxy} "
+                    f"({buffer_full_ch}) to infer buffer-full state."
+                ),
+            )
+
+        if self.heating_forecast is None:
+            max_buffer = self.data.ha1_params.MaxEwtF
+        else:
+            max_buffer = round(max(self.heating_forecast.RswtF[:3]), 1)
+            max_buffer = min(max_buffer, self.data.ha1_params.MaxEwtF)
+
+        buffer_full_ch_temp = self.latest_temps_f[buffer_full_ch]
+        if buffer_full_ch_temp > max_buffer:
+            self.log(
+                f"Buffer full ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)"
+            )
+            return True
+        else:
+            self.log(
+                f"Buffer not full ({buffer_full_ch}: {buffer_full_ch_temp} <= {max_buffer} F)"
+            )
+            return False
+
+    def is_buffer_full_alt(self) -> bool:
+        """
+        Reorganization of the default to hp_ewt IF there is water flowing from the hp to the house,
+        otherwise tank 3
         """
         if (
-            H0CN.hp_failsafe_relay_state in self.data.latest_machine_state 
-            and H0CN.hp_scada_ops_relay_state in self.data.latest_machine_state
-            and self.data.latest_machine_state[H0CN.hp_failsafe_relay_state] == HeatPumpControl.Scada
-            and self.data.latest_machine_state[H0CN.hp_scada_ops_relay_state] == RelayClosedOrOpen.RelayClosed
+            self.flowing_from_hp_to_house()
             and H0CN.hp_ewt in self.latest_temps_f
         ):
             buffer_full_ch = H0CN.hp_ewt
@@ -1200,9 +1286,8 @@ class ShNodeActor(Actor, ABC):
         elif H0CN.buffer_cold_pipe in self.latest_temps_f:
             buffer_full_ch = H0CN.buffer_cold_pipe
         
-        elif (
-            H0CN.charge_discharge_relay_state in self.data.latest_machine_state
-            and self.data.latest_machine_state[H0CN.charge_discharge_relay_state] == StoreFlowRelay.DischargingStore
+        elif ( 
+            self.discharging_store()
             and H0CN.store_cold_pipe in self.latest_temps_f
         ):
             buffer_full_ch = H0CN.store_cold_pipe
