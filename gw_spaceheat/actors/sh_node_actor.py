@@ -30,6 +30,7 @@ from gwsproto.enums import (
     ChangeStoreFlowRelay,
     GwUnit,
     LogLevel,
+    HeatPumpControl,
     RelayClosedOrOpen,
     StoreFlowRelay,
     TelemetryName,
@@ -1163,6 +1164,7 @@ class ShNodeActor(Actor, ABC):
         max_delta_t = max(self.heating_forecast.RswtDeltaTF[:3])
 
         min_buffer_temp_f = round(max_rswt - max_delta_t, 1)
+        min_buffer_temp_f = min(min_buffer_temp_f, self.data.ha1_params.MaxEwtF-10)
         buffer_temp_f = self.latest_temps_f[buffer_top_ch]
 
         if buffer_temp_f < min_buffer_temp_f:
@@ -1182,31 +1184,37 @@ class ShNodeActor(Actor, ABC):
         heating forecast requirements.
 
         This is a heuristic predicate used by HomeAlone / AtomicAlly strategies.
-
         """
-        if H0CN.buffer.depth3 in self.latest_temps_f:
+        if (
+            H0CN.hp_failsafe_relay_state in self.data.latest_machine_state 
+            and H0CN.hp_scada_ops_relay_state in self.data.latest_machine_state
+            and self.data.latest_machine_state[H0CN.hp_failsafe_relay_state] == HeatPumpControl.Scada
+            and self.data.latest_machine_state[H0CN.hp_scada_ops_relay_state] == RelayClosedOrOpen.RelayClosed
+            and H0CN.hp_ewt in self.latest_temps_f
+        ):
+            buffer_full_ch = H0CN.hp_ewt
+
+        elif H0CN.buffer.depth3 in self.latest_temps_f:
             buffer_full_ch = H0CN.buffer.depth3
 
         elif H0CN.buffer_cold_pipe in self.latest_temps_f:
             buffer_full_ch = H0CN.buffer_cold_pipe
-    
+        
         elif (
             H0CN.charge_discharge_relay_state in self.data.latest_machine_state
-            and self.data.latest_machine_state[H0CN.charge_discharge_relay_state]
-                == StoreFlowRelay.DischargingStore
+            and self.data.latest_machine_state[H0CN.charge_discharge_relay_state] == StoreFlowRelay.DischargingStore
             and H0CN.store_cold_pipe in self.latest_temps_f
         ):
             buffer_full_ch = H0CN.store_cold_pipe
 
-        elif H0CN.hp_ewt in self.latest_temps_f:
-            buffer_full_ch = H0CN.hp_ewt
         else:
             return False
 
         if self.heating_forecast is None:
-            max_buffer = 170
+            max_buffer = self.data.ha1_params.MaxEwtF
         else:
             max_buffer = round(max(self.heating_forecast.RswtF[:3]), 1)
+            max_buffer = min(max_buffer, self.data.ha1_params.MaxEwtF)
 
         buffer_full_ch_temp = self.latest_temps_f[buffer_full_ch]
         if buffer_full_ch_temp > max_buffer:
