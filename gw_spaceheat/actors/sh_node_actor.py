@@ -1375,13 +1375,11 @@ class ShNodeActor(Actor, ABC):
             else:
                 return None
         if ch_name in self.layout.derived_channels:
-            self.log(f"processing temperature for derived channel {ch_name}")
             ch = self.layout.derived_channel(ch_name)
             if ch is None:
                 return None
             unit = ch.OutputUnit
             if unit in [GwUnit.FahrenheitX100]:
-                self.log(f"returning {round (raw / 100, 1)}")
                 return raw / 100
             else:
                 return None

@@ -161,9 +161,7 @@ class DerivedGenerator(ShNodeActor):
         values = []
         for device_ch, raw_value,  in zip(payload.ChannelNameList, payload.ValueList):
             if device_ch not in tank.devices:
-                self.log(f"{from_node.Name} sent {device_ch}!! skipping this one")
-                self.send_warning(f"{from_node.Name} sent {device_ch}!!")
-                continue # i.e. don't proces that one
+                continue # i.e. don't process micro-volts
             ch = tank.device_to_effective(device_ch)
             device_temp_f = self.to_fahrenheit(raw_value / 1000)
             depth = tank.device_depth(device_ch)
@@ -171,8 +169,8 @@ class DerivedGenerator(ShNodeActor):
 
             # Use linear approximation from TankTempCalibrationMap
             temp_f =  m * device_temp_f + b
-            self.log(f"Got {round(device_temp_f,1)} F for {device_ch}")
-            self.log(f"{ch}: {round(temp_f, 1)}  = {m} * {round(device_temp_f,1)} + {b} ")
+            # self.log(f"Got {round(device_temp_f,1)} F for {device_ch}")
+            # self.log(f"{ch}: {round(temp_f, 1)}  = {m} * {round(device_temp_f,1)} + {b} ")
 
             # Derived tank temp channels have gw1.unit FahrenheitX100
             channel_names.append(ch)
@@ -183,7 +181,6 @@ class DerivedGenerator(ShNodeActor):
             ValueList=values, # in FahrenheitX100
             ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs
         )
-        self.log("Sending effective temps to scada")
         self._send_to(self.primary_scada, msg)
 
     def _depth_calibration(

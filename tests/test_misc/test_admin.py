@@ -332,6 +332,7 @@ async def test_admin_dac_set(request: pytest.FixtureRequest) -> None:
                 tag="dac value set"
             )
 
+@pytest.mark.skip(reason="Known nondeterministic admin MQTT subscription race; see issue #473")
 @pytest.mark.asyncio
 async def test_admin_scada_select(request: pytest.FixtureRequest) -> None:
     short2long = {

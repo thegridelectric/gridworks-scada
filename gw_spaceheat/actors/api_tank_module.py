@@ -226,43 +226,63 @@ class ApiTankModule(ShNodeActor):
 
     def _process_microvolts(self, data: MicroVolts) -> None:
         if data.HwUid != self.pico_uid:
-            self.log(f"{self.name}: Ignoring data from pico {data.HwUid} - not recognized!")
+            self.log(
+                f"{self.name}: Ignoring data from pico {data.HwUid} - not recognized!"
+            )
             return
 
         self.last_heard = time.time()
 
+        # SensorOrder: physical sensor index (1-based) -> correct physical depth
         sensor_order = self._component.gt.SensorOrder or [1, 2, 3]
-        channel_name_list: list[str] = []
-        value_list: list[int] = []
 
-        for logical_idx, physical_idx in enumerate(sensor_order):
-            micro_volts = data.MicroVoltsList[logical_idx]
-            device_channel = self.device_channels[physical_idx]
-            volts = micro_volts / 1e6
+        depth_map: dict[str, str] = {
+            self.depth_about_nodes[i]: self.depth_about_nodes[sensor_order[i - 1]]
+            for i in (1, 2, 3)
+        }
+
+        channel_name_list = []
+        value_list = []
+        for i, incoming_about in enumerate(data.AboutNodeNameList):
+            correct_about_name = depth_map.get(incoming_about, incoming_about)
+    
+            volts = data.MicroVoltsList[i] / 1e6
+            if self._component.gt.SendMicroVolts:
+                value_list.append(data.MicroVoltsList[i])
+                channel_name_list.append(f"{correct_about_name}-micro-v")
+                #print(f"Updated {channel_name_list[-1]}: {round(volts,3)} V")
             if volts <= 0:
                 continue
-
-            if self._component.gt.SendMicroVolts:
-                channel_name_list.append(self.electrical_channels[physical_idx])
-                value_list.append(micro_volts)
-            if self._component.gt.TempCalcMethod == TempCalcMethod.SimpleBeta:
+            elif self._component.gt.TempCalcMethod == TempCalcMethod.SimpleBeta:
                 try:
                     value_list.append(int(self.simple_beta(volts) * 1000))
-                    channel_name_list.append(device_channel)
+                    channel_name_list.append(f"{correct_about_name}-device") # channel names match node names
                 except BaseException as e:
                     self.log(f"Problem with simple_beta({volts})! {e}")
-                    self.send_error(f"Volts to temp problem for {device_channel}",
-                                    details=str(e))
+                    self.services.send_threadsafe(
+                        Message(
+                            Payload=Problems(
+                                msg=(
+                                    f"Volts to temp problem for {correct_about_name}"
+                                ),
+                                errors=[e],
+                            ).problem_event(
+                                summary=(f"Volts to temp problem for {correct_about_name}"),
+                            )
+                        )
+                    )
             else:
                 raise Exception(f"No code for {self._component.gt.TempCalcMethod}!")
-        msg = SyncedReadings(
-            ChannelNameList=channel_name_list,
-            ValueList=value_list,
-            ScadaReadTimeUnixMs=int(time.time() * 1000),
-        )
-        self._send_to(self.pico_cycler, msg)
-        self._send_to(self.primary_scada, msg)
-        self._send_to(self.derived_generator, msg)
+
+        if channel_name_list:
+            msg = SyncedReadings(
+                ChannelNameList=channel_name_list,
+                ValueList=value_list,
+                ScadaReadTimeUnixMs=int(time.time() * 1000),
+            )
+            self._send_to(self.pico_cycler, msg)
+            self._send_to(self.primary_scada, msg)
+            self._send_to(self.derived_generator, msg)
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         match message.Payload:
