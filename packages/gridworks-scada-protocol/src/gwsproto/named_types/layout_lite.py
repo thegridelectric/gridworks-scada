@@ -93,6 +93,28 @@ class LayoutLite(BaseModel):
                 )
         return self
 
+    @model_validator(mode="after")
+    def check_axiom_4(self) -> Self:
+        """
+        Axiom 4: Derived Node Consistency. Every CreatedByNodeName in a
+        DerivedChannelHGt belongs to an ShNode with an active ActorClass
+        """
+        for dc in self.DerivedChannels:
+            if dc.CreatedByNodeName not in [n.Name for n in self.ShNodes]:
+                raise ValueError(
+                    f"Axiom 4 Viloated: dc {dc.Name} AboutNodeName {dc.CreatedByNodeName} not in ShNodes!"
+                )
+            created_by_node = next(
+                (n for n in self.ShNodes if n.Name == dc.CreatedByNodeName), None
+            )
+            assert created_by_node
+
+            if created_by_node.ActorClass == ActorClass.NoActor:
+                raise ValueError(
+                    f"Axiom 1 Viloated: dc {dc.Name}'s CatpuredByNode cannot have ActorClass NoActor!"
+                )
+        return self
+
 def get_handle(node: SpaceheatNodeGt) -> str:
     if node.Handle:
         return node.Handle

@@ -16,6 +16,7 @@ from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 
 from actors.sh_node_actor import ShNodeActor
+from gwsproto.conversions.temperature import convert_temp_to_f
 from gwsproto.enums import HomeAloneStrategy
 from gwsproto.data_classes.house_0_names import H0N, H0CN
 from gwsproto.named_types import (
@@ -162,15 +163,21 @@ class DerivedGenerator(ShNodeActor):
         for device_ch, raw_value,  in zip(payload.ChannelNameList, payload.ValueList):
             if device_ch not in tank.devices:
                 continue # i.e. don't process micro-volts
-            ch = tank.device_to_effective(device_ch)
-            device_temp_f = self.to_fahrenheit(raw_value / 1000)
+
+            device_unit = self.layout.channel_registry.unit(device_ch)
+            assert device_unit is not None
+            device_temp_f = convert_temp_to_f(raw_value, device_unit)
+            if device_temp_f is None:
+                continue
+
             depth = tank.device_depth(device_ch)
             m, b = self._depth_calibration(calibration, depth)
 
             # Use linear approximation from TankTempCalibrationMap
             temp_f =  m * device_temp_f + b
-            # self.log(f"Got {round(device_temp_f,1)} F for {device_ch}")
-            # self.log(f"{ch}: {round(temp_f, 1)}  = {m} * {round(device_temp_f,1)} + {b} ")
+            ch = tank.device_to_effective(device_ch)
+            #self.log(f"Got {round(device_temp_f,1)} F for {device_ch}")
+            #self.log(f"{ch}: {round(temp_f, 1)}  = {m} * {round(device_temp_f,1)} + {b} ")
 
             # Derived tank temp channels have gw1.unit FahrenheitX100
             channel_names.append(ch)

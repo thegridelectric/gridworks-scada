@@ -14,6 +14,7 @@ from gwproto import Message
 
 from actors.config import ScadaSettings
 from actors.scada_data import ScadaData
+from gwsproto.conversions.temperature import convert_temp_to_f
 from gwsproto.data_classes.house_0_layout import House0Layout
 from gwsproto.data_classes.house_0_names import H0N, H0CN, House0RelayIdx
 
@@ -28,9 +29,7 @@ from gwsproto.enums import (
     ChangePrimaryPumpControl,
     ChangeRelayState,
     ChangeStoreFlowRelay,
-    GwUnit,
     LogLevel,
-    HeatPumpControl,
     RelayClosedOrOpen,
     StoreFlowRelay,
     TelemetryName,
@@ -1420,16 +1419,30 @@ class ShNodeActor(Actor, ABC):
         if not self.settings.is_simulated:
             temps: dict[str, float] = {}
 
-            for ch in self.temperature_channel_names:
-                raw = self.data.latest_channel_values.get(ch)
+            for ch_name in self.temperature_channel_names:
+                raw = self.data.latest_channel_values.get(ch_name)
                 if raw is None:
                     continue
 
-                temp_f = self.channel_value_to_temp_f(ch, raw)
+                try:
+                    unit = self.layout.channel_registry.unit(ch_name)
+                    if unit is None:
+                        raise Exception(
+                            f"temperature channels should have units! {ch_name}"
+                        )
+                    temp_f = convert_temp_to_f(
+                        raw=raw,
+                        encoding=unit
+                    )
+                except Exception as e:
+                    note = f"Temperature conversion failed for {ch_name}: {e}"
+                    self.log(note)
+                    self.send_warning(summary=note, details="")  
+                    continue
                 if temp_f is None:
                     continue
 
-                temps[ch] = round(temp_f, 1)
+                temps[ch_name] = round(temp_f, 1)
 
             self.data.latest_temperatures_f = temps
         else:
@@ -1452,62 +1465,47 @@ class ShNodeActor(Actor, ABC):
 
         self.data.latest_temperatures_f = dict(sorted(self.data.latest_temperatures_f.items()))
 
-    def channel_value_to_temp_f(self, ch_name: str, raw: int) -> float | None:
-        """
-        Returns None if unknown channel name or not a temperature channel
-        """
-        if ch_name in self.layout.data_channels:
-            ch = self.layout.channel(ch_name)
-            if ch is None:
-                return None
-            unit = ch.TelemetryName
-            if unit in [TelemetryName.AirTempCTimes1000, TelemetryName.WaterTempCTimes1000]:
-                return self.to_fahrenheit(raw / 1000)
-            elif unit in [TelemetryName.AirTempFTimes1000, TelemetryName.WaterTempFTimes1000]:
-                return raw / 1000
-            else:
-                return None
-        if ch_name in self.layout.derived_channels:
-            ch = self.layout.derived_channel(ch_name)
-            if ch is None:
-                return None
-            unit = ch.OutputUnit
-            if unit in [GwUnit.FahrenheitX100]:
-                return raw / 100
-            else:
-                return None
-
-        return None
-
-    def to_fahrenheit(self, temp_c: float) -> float:
-        return 32 + (temp_c * 9 / 5)
-
-    def to_celsius(self, t: float) -> float:
-        return (t-32)*5/9
-
     def lwt_f(self) -> Optional[float]:
         """Returns the latest Heat pump leaving water temp in deg F, or None
         if it does not exist"""
-        t = self.data.latest_channel_values.get(H0CN.hp_lwt)
-        if t is None:
+        raw = self.data.latest_channel_values.get(H0CN.hp_lwt)
+        if raw is None:
             return None
-        return self.to_fahrenheit(t / 1000)
+        unit = self.layout.channel_registry.unit(H0CN.hp_lwt)
+        if unit is None:
+            raise Exception("hp_lwt must belong!")
+        return convert_temp_to_f(
+                        raw=raw,
+                        encoding=unit
+                    )
 
     def ewt_f(self) -> Optional[float]:
         """Returns the latest Heat pump entering water temp in deg F, or None
         if it does not exist"""
-        t = self.data.latest_channel_values.get(H0CN.hp_ewt)
-        if t is None:
+        raw = self.data.latest_channel_values.get(H0CN.hp_ewt)
+        if raw is None:
             return None
-        return self.to_fahrenheit(t / 1000)
+        unit = self.layout.channel_registry.unit(H0CN.hp_ewt)
+        if unit is None:
+            raise Exception("hp_ewt must belong!")
+        return convert_temp_to_f(
+                        raw=raw,
+                        encoding=unit
+                    )
 
     def sieg_cold_f(self) -> Optional[float]:
         """Returns the latest Siegenthaler Cold temp in deg F, or None
         if it does not exist"""
-        t = self.data.latest_channel_values.get(H0CN.sieg_cold)
-        if t is None:
+        raw = self.data.latest_channel_values.get(H0CN.sieg_cold)
+        if raw is None:
             return None
-        return self.to_fahrenheit(t / 1000)
+        unit = self.layout.channel_registry.unit(H0CN.sieg_cold)
+        if unit is None:
+            raise Exception("sieg_cold must belong!")
+        return convert_temp_to_f(
+                        raw=raw,
+                        encoding=unit
+                    )
 
     def sieg_flow_gpm(self) -> Optional[float]:
         """Returns the latest siegenthaler flow in gallons per minute, or None
@@ -1525,14 +1523,6 @@ class ShNodeActor(Actor, ABC):
             return None
         return primary_x_100 / 100
 
-    def store_cold_pipe_f(self) -> Optional[float]:
-        """Returns the latest cold store pipe water temp in deg F, or None
-        if it does not exist"""
-        t = self.data.latest_channel_values.get(H0CN.store_cold_pipe)
-        if t is None:
-            return None
-        return self.to_fahrenheit(t / 1000)
-
     def lift_f(self) -> Optional[float]:
         """ The lift of the heat pump: leaving water temp minus entering water temp.
         Returns 0 if this is negative (e.g. during defrost). Returns None if missing
@@ -1544,31 +1534,53 @@ class ShNodeActor(Actor, ABC):
         return max(0, lwt_f - ewt_f)
 
     def hottest_store_temp_f(self) -> float | None:
-        ch = self.h0cn.tank[1].depth1
-        t = self.data.latest_channel_values.get(ch)
-        if t is None:
+        raw = self.data.latest_channel_values.get(self.h0cn.tank[1].depth1)
+        if raw is None:
             return None
-        return round(self.to_fahrenheit(t / 1000), 1)
+        unit = self.layout.channel_registry.unit(self.h0cn.tank[1].depth1)
+        if unit is None:
+            raise Exception("tank1-depth1 must belong!")
+        return convert_temp_to_f(
+                        raw=raw,
+                        encoding=unit
+                    )
 
     def coldest_store_temp_f(self) -> float | None:
         last_tank_idx = max(self.h0cn.tank)
-        ch = self.h0cn.tank[last_tank_idx].depth3
-        t = self.data.latest_channel_values.get(ch)
-        if t is None:
+        raw = self.data.latest_channel_values.get(self.h0cn.tank[last_tank_idx].depth3)
+        if raw is None:
             return None
-        return round(self.to_fahrenheit(t / 1000), 1)
+        unit = self.layout.channel_registry.unit(self.h0cn.tank[last_tank_idx].depth3)
+        if unit is None:
+            raise Exception("tank1-depth1 must belong!")
+        return convert_temp_to_f(
+                        raw=raw,
+                        encoding=unit
+                    )
 
     def hottest_buffer_temp_f(self) -> float | None:
-        t = self.data.latest_channel_values.get(H0CN.buffer.depth1)
-        if t is None:
+        raw = self.data.latest_channel_values.get(H0CN.buffer.depth1)
+        if raw is None:
             return None
-        return round(self.to_fahrenheit(t / 1000), 1)
+        unit = self.layout.channel_registry.unit(H0CN.buffer.depth1)
+        if unit is None:
+            raise Exception("buffer-depth1 must belong!")
+        return convert_temp_to_f(
+                        raw=raw,
+                        encoding=unit
+                    )
 
     def coldest_buffer_temp_f(self) -> float | None:
-        t = self.data.latest_channel_values.get(H0CN.buffer.depth3)
-        if t is None:
+        raw = self.data.latest_channel_values.get(H0CN.buffer.depth3)
+        if raw is None:
             return None
-        return round(self.to_fahrenheit(t / 1000), 1)
+        unit = self.layout.channel_registry.unit(H0CN.buffer.depth3)
+        if unit is None:
+            raise Exception("buffer-depth3 must belong!")
+        return convert_temp_to_f(
+                        raw=raw,
+                        encoding=unit
+                    )
 
     def charge_discharge_relay_state(self) -> StoreFlowRelay:
         """ Returns DischargingStore if relay 3 is de-energized (ISO Valve opened, charge/discharge

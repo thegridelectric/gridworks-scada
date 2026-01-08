@@ -54,6 +54,7 @@ from gwproactor.config import LoggerLevels
 from gwproactor.logger import LoggerOrAdapter
 from gwproactor.message import DBGCommands, DBGPayload, MQTTReceiptPayload
 
+from gwsproto.conversions.temperature import convert_temp_to_f
 from gwsproto.data_classes.house_0_layout import House0Layout
 from gwsproto.data_classes.house_0_names import H0CN, H0N
 from gwsproto.enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName, HomeAloneStrategy
@@ -74,8 +75,10 @@ from gwsproto.named_types import (
 from paho.mqtt.client import MQTTMessageInfo
 from pydantic import BaseModel
 
+
 from actors.atn.atn_config import AtnSettings, DashboardSettings
 from actors.atn.dashboard.dashboard import Dashboard
+from actors.atn.atn_data import AtnData
 
 TANK_GALLONS = 120
 class PriceForecast(BaseModel):
@@ -253,21 +256,6 @@ class Telemetry(BaseModel):
     Unit: TelemetryName
 
 
-@dataclass
-class AtnData:
-    layout: House0Layout
-    my_channels: List[DataChannel]
-    latest_snapshot: Optional[SnapshotSpaceheat] = None
-    latest_report: Optional[Report] = None
-    latest_power_w: Optional[int] = None
-
-    def __init__(self, layout: House0Layout):
-        self.layout = layout
-        self.my_channels = list(layout.data_channels.values())
-        self.latest_snapshot = None
-        self.latest_report = None
-        self.latest_power_w = None
-
     
 class Atn(PrimeActor):
     MAIN_LOOP_SLEEP_SECONDS = 61
@@ -283,7 +271,7 @@ class Atn(PrimeActor):
     def __init__(self, name: str, services: AppInterface) -> None:
         super().__init__(name, services)
         # self._web_manager.disable()
-        self.data = AtnData(self.layout)
+        self.data = AtnData()
         self.is_simulated = self.settings.is_simulated
         self.latest_channel_values: Dict[str, int] = {}
         self.timezone = pytz.timezone(self.settings.timezone_str)
@@ -939,21 +927,21 @@ class Atn(PrimeActor):
         )
         for layer in all_store_layers:
             if (
-                layer not in self.latest_temperatures
-                or self.to_fahrenheit(self.latest_temperatures[layer] / 1000) < 70
-                or self.to_fahrenheit(self.latest_temperatures[layer] / 1000) > 200
+                layer not in self.latest_temps_f
+                or self.latest_temps_f[layer] < 70
+                or self.latest_temps_f[layer] > 200
             ):
-                self.latest_temperatures[layer] = None
-        if H0CN.store_cold_pipe in self.latest_temperatures:
-            value_below = self.latest_temperatures[H0CN.store_cold_pipe]
+                self.latest_temps_f[layer] = None
+        if H0CN.store_cold_pipe in self.latest_temps_f:
+            value_below = self.latest_temps_f[H0CN.store_cold_pipe]
         else:
             value_below = 0
         for layer in sorted(all_store_layers, reverse=True):
-            if self.latest_temperatures[layer] is None:
-                self.latest_temperatures[layer] = value_below
-            value_below = self.latest_temperatures[layer]
-        self.latest_temperatures = {
-            k: self.latest_temperatures[k] for k in sorted(self.latest_temperatures)
+            if self.latest_temps_f[layer] is None:
+                self.latest_temps_f[layer] = value_below
+            value_below = self.latest_temps_f[layer]
+        self.latest_temps_f = {
+            k: self.latest_temps_f[k] for k in sorted(self.latest_temps_f)
         }
 
     def get_latest_temperatures(self):
@@ -962,19 +950,34 @@ class Atn(PrimeActor):
             self.log("Can't get latest temperatures, don't have temperature channel names!")
             return
         if not self.settings.is_simulated:
-            temp = {
-                x: self.latest_channel_values[x]
-                for x in self.temperature_channel_names
-                if x in self.latest_channel_values
-                and self.latest_channel_values[x] is not None
-            }
-            self.latest_temperatures = temp.copy()
+            temps = {}
+            for ch_name in self.temperature_channel_names:
+                raw = self.latest_channel_values.get(ch_name)
+                if raw is None:
+                    continue
+                try:
+                    unit = self.layout.channel_registry.unit(ch_name)
+                    if unit is None:
+                        raise Exception(
+                            f"temperature channels should have units! {ch_name}"
+                        )
+                    temp_f = convert_temp_to_f(
+                        raw=raw,
+                        encoding=unit
+                    )
+                except Exception as e:
+                    note = f"Temperature conversion failed for {ch_name}: {e}"
+                    self.log(note)
+                    continue
+                temps[ch_name] = temp_f
+
+            self.latest_temps_f = temps.copy()
         else:
             self.log("IN SIMULATION - set all temperatures to 60 degC")
-            self.latest_temperatures = {}
+            self.latest_temps_f = {}
             for channel_name in self.temperature_channel_names:
-                self.latest_temperatures[channel_name] = 60 * 1000
-        if list(self.latest_temperatures.keys()) == self.temperature_channel_names:
+                self.latest_temps_f[channel_name] = 140.0
+        if list(self.latest_temps_f.keys()) == self.temperature_channel_names:
             self.temperatures_available = True
         else:
             self.temperatures_available = False
@@ -982,7 +985,7 @@ class Atn(PrimeActor):
                 x for x in self.temperature_channel_names if "buffer-depth" in x
             ]
             available_buffer = [
-                x for x in list(self.latest_temperatures.keys()) if "buffer-depth" in x
+                x for x in list(self.latest_temps_f.keys()) if "buffer-depth" in x
             ]
             if all_buffer == available_buffer:
                 self.fill_missing_store_temps()
@@ -1052,7 +1055,7 @@ class Atn(PrimeActor):
         )
         try:
             tank_temps = {
-                key: self.to_fahrenheit(self.latest_temperatures[key] / 1000) 
+                key: self.latest_temps_f[key]
                 for key in all_layers
             }
         except KeyError as e:
@@ -1158,8 +1161,8 @@ class Atn(PrimeActor):
             self.send_layout()
             await asyncio.sleep(5)
         self.get_latest_temperatures()
-        buffer_temperatures = {k: self.to_fahrenheit(v/1000)
-                               for k,v in self.latest_temperatures.items() 
+        buffer_temperatures = {k: v
+                               for k,v in self.latest_temps_f.items()
                                if 'buffer' in k
                                and v is not None}
         if not buffer_temperatures:
