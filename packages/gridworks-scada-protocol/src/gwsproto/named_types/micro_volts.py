@@ -1,6 +1,6 @@
 from typing import List, Literal
 from pydantic import BaseModel
-from gwproto.property_format import SpaceheatName
+from gwsproto.property_format import SpaceheatName
 
 
 class MicroVolts(BaseModel):

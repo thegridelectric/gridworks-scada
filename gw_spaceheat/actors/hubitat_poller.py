@@ -10,9 +10,9 @@ from gwproactor import Problems
 from gwproactor import AppInterface
 from gwproactor.actors.rest import RESTPoller
 from gwproto import Message
-from gwproto.data_classes.components.hubitat_component import HubitatComponent
-from gwproto.data_classes.components.hubitat_poller_component import HubitatPollerComponent
-from gwproto.type_helpers import MakerAPIAttributeGt
+from gwsproto.data_classes.components.hubitat_component import HubitatComponent
+from gwsproto.data_classes.components.hubitat_poller_component import HubitatPollerComponent
+from gwsproto.type_helpers import MakerAPIAttributeGt
 from result import Err
 from result import Ok
 from result import Result
@@ -25,7 +25,7 @@ from actors.hubitat_interface import HubitatWebEventListenerInterface
 from actors.hubitat_interface import HubitatWebServerInterface
 from actors.hubitat_interface import MakerAPIRefreshResponse
 from actors.hubitat_interface import ValueConverter
-from gwproto.named_types import SyncedReadings
+from gwsproto.named_types import SyncedReadings
 
 
 

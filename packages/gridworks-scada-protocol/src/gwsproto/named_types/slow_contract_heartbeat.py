@@ -1,5 +1,5 @@
 from typing import Optional, Literal
-from gwproto.property_format import  UTCMilliseconds, SpaceheatName
+from gwsproto.property_format import  UTCMilliseconds, SpaceheatName
 from pydantic import BaseModel, field_validator, model_validator
 from gwsproto.enums import ContractStatus
 from gwsproto.named_types import SlowDispatchContract
@@ -19,7 +19,7 @@ class SlowContractHeartbeat(BaseModel):
     YourLastDigit: Optional[int] = None
     SignedProof: str = "algo_sig_dummy" # For blockchain validation
     TypeName: Literal["slow.contract.heartbeat"] = "slow.contract.heartbeat"
-    Version: str = "000"
+    Version: Literal["000"] = "000"
 
 
     def contract_grace_period_minutes(self) -> Literal[5]:

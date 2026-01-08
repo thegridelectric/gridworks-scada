@@ -18,8 +18,8 @@ from actors import Parentless
 from actors.scada import Scada
 from actors.config import ScadaSettings
 from gwsproto.data_classes.house_0_layout import House0Layout
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.enums import ActorClass
+from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.enums import ActorClass
 from pydantic_settings import BaseSettings
 from gwsproto.data_classes.house_0_names import H0N
 

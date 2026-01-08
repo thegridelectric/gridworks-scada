@@ -1,11 +1,9 @@
-"""Type energy.instruction, version 000"""
-
 from typing import Literal
-
-from gwproto.property_format import LeftRightDotStr, UTCMilliseconds, UTCSeconds
-from pydantic import BaseModel, PositiveInt, StrictInt, field_validator, model_validator
 from typing_extensions import Self
 
+from pydantic import BaseModel, PositiveInt, StrictInt, field_validator, model_validator
+
+from gwsproto.property_format import LeftRightDotStr, UTCMilliseconds, UTCSeconds
 
 class EnergyInstruction(BaseModel):
     FromGNodeAlias: LeftRightDotStr
@@ -14,7 +12,7 @@ class EnergyInstruction(BaseModel):
     SendTimeMs: UTCMilliseconds
     AvgPowerWatts: StrictInt
     TypeName: Literal["energy.instruction"] = "energy.instruction"
-    Version: str = "000"
+    Version: Literal["000"] = "000"
 
     @field_validator("SlotStartS")
     @classmethod

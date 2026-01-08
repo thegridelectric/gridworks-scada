@@ -5,15 +5,15 @@ from typing import Dict, List, cast, Sequence, Optional
 
 from gw.enums import GwStrEnum
 from gwproto.message import Message
-from gwproto.data_classes.data_channel import DataChannel
+from gwsproto.data_classes.data_channel import DataChannel
 from gwproactor import  MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
-from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import (
+from gwsproto.data_classes.components.i2c_multichannel_dt_relay_component import (
     I2cMultichannelDtRelayComponent,
 )
 from gwsproto.data_classes.house_0_names import H0N
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.enums import (
+from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.enums import (
     AquastatControl,
     ChangeAquastatControl,
     ChangeHeatPumpControl,
@@ -33,7 +33,7 @@ from gwproto.enums import (
 
 )
 
-from gwproto.named_types import FsmAtomicReport, FsmFullReport
+from gwsproto.named_types import FsmAtomicReport, FsmFullReport
 from result import Err, Ok, Result
 from transitions import Machine
 from gwsproto.data_classes.house_0_names import House0RelayIdx

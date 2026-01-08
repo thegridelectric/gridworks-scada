@@ -119,7 +119,6 @@ class ScadaApp(App, ScadaAppInterface):
     def hardware_layout(self) -> House0Layout:
         return typing.cast(House0Layout, self.config.layout)
 
-
     def _get_name(self, layout: HardwareLayout) -> ProactorName:
         return ProactorName(
             long_name=layout.scada_g_node_alias,

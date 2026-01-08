@@ -1,27 +1,45 @@
 import json
+from enum import Enum
 from pathlib import Path
-from typing import Any, List, Literal, Optional
+from typing import Any, List, Optional
 
 from gw.errors import DcError
-from gwproto.enums import ActorClass
-from gwproto.data_classes.components import Component
-from gwproto.data_classes.data_channel import DataChannel
-from gwproto.data_classes.hardware_layout import (
+from gwsproto.enums import ActorClass
+from gwsproto.data_classes.components import Component
+from gwsproto.data_classes.data_channel import DataChannel
+from gwsproto.data_classes.components.web_server_component import WebServerComponent
+
+
+from gwsproto.data_classes.house_0_names import H0CN, H0N, ScadaWeb
+from gwsproto.enums import FlowManifoldVariant, HomeAloneStrategy
+
+from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.decoders import (
+    CacDecoder,
+    ComponentDecoder,
+)
+from gwsproto.named_types import ComponentAttributeClassGt
+from gwsproto.data_classes.derived_channel import DerivedChannel
+from gwsproto.named_types import TankTempCalibrationMap
+from gwsproto.data_classes.hardware_layout import (
     HardwareLayout,
     LoadArgs,
     LoadError,
 )
+class LayoutBucket(str, Enum): 
+    ADS111X = "Ads111xBased"
+    ELECTRIC_METER = "ElectricMeter"
+    OTHER = "Other"
 
-from gwsproto.data_classes.house_0_names import H0CN, H0N
-from gwsproto.enums import FlowManifoldVariant, HomeAloneStrategy
+    @property
+    def device_type_list_name(self) -> str:
+        """e.g. OtherCacs"""
+        return f"{self.value}Cacs"
 
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.data_classes.synth_channel import SynthChannel
-from gwproto.default_decoders import (
-    CacDecoder,
-    ComponentDecoder,
-)
-from gwproto.named_types import ComponentAttributeClassGt
+    @property
+    def component_list_name(self) -> str:
+        """e.g. OtherComponents"""
+        return f"{self.value}Components"
 
 class House0LoadArgs(LoadArgs):
     flow_manifold_variant: FlowManifoldVariant
@@ -41,7 +59,7 @@ class House0Layout(HardwareLayout):
         components: dict[str, Component],  # by id
         nodes: dict[str, ShNode],  # by name
         data_channels: dict[str, DataChannel],  # by name
-        synth_channels: dict[str, SynthChannel],
+        derived_channels: dict[str, DerivedChannel],
         flow_manifold_variant: FlowManifoldVariant = FlowManifoldVariant.House0,
         use_sieg_loop: bool = False,
     ) -> None:
@@ -51,8 +69,9 @@ class House0Layout(HardwareLayout):
             components=components,
             nodes=nodes,
             data_channels=data_channels,
-            synth_channels=synth_channels,
+            derived_channels=derived_channels,
         )
+        self.derived_channels = self.load_derived_channels(layout, self.nodes)
         self.flow_manifold_variant = flow_manifold_variant
         self.use_sieg_loop = use_sieg_loop
 
@@ -68,7 +87,7 @@ class House0Layout(HardwareLayout):
         self.zone_kwh_per_deg_f_list = layout["ZoneKwhPerDegFList"]
         self.total_store_tanks = layout["TotalStoreTanks"]
 
-        self.channel_names = H0CN(self.total_store_tanks, self.zone_list)
+        self.h0cn = H0CN(self.total_store_tanks, self.zone_list)
         if not isinstance(self.total_store_tanks, int):
             raise TypeError("TotalStoreTanks must be an integer")
         if not 1 <= self.total_store_tanks <= 6:
@@ -90,6 +109,72 @@ class House0Layout(HardwareLayout):
             raise ValueError("ZoneKwhPerDegFList must have the same number of elements as ZoneList")
         self.h0n = H0N(self.total_store_tanks, self.zone_list)
 
+        web_servers = {
+            ws.web_server_gt.Name
+            for ws in self.get_components_by_type(WebServerComponent)
+        }
+
+        if ScadaWeb.DEFAULT_SERVER_NAME not in web_servers:
+            raise ValueError(
+                f"House0Layout requires a WebServerComponent named "
+                f"'{ScadaWeb.DEFAULT_SERVER_NAME}'"
+            )
+
+        if len(self.tank_temp_calibration_map.Tank) != self.total_store_tanks:
+            raise DcError(f"Tank Temp Calibration Map has {len(self.tank_temp_calibration_map.Tank)} tanks"
+                          f" but system has {self.total_store_tanks}")
+
+
+    @property
+    def unreported_channels(self) -> set[str]:
+        """
+        Channels that must exist in the layout but are NOT reported upstream.
+        """
+        # Example: exclude all device-level temperature channels
+        # (kept locally for diagnostics and derived generation)
+        # unreported: set[str] = set()
+
+        # # Buffer device channels
+        # unreported |= self.h0cn.buffer.device
+
+        # # Tank device channels
+        # for tank in self.h0cn.tank.values():
+        #     unreported |= tank.device
+
+        # return unreported
+
+        return set()
+
+    @property
+    def tank_device_temp_channels(self) -> set[str]:
+        channels = set(self.h0cn.buffer.devices)
+        for tank in self.h0cn.tank.values():
+            channels |= tank.devices
+        return channels
+
+    @property
+    def tank_temp_calibration_map(self) -> TankTempCalibrationMap:
+        node = self.nodes.get(H0N.derived_generator)
+        if node is None:
+            raise ValueError(
+                "House0Layout invariant violated: "
+                "derived-generator node is missing"
+            )
+
+        raw = getattr(node, "TankTempCalibrationMap", None)
+        if raw is None:
+            raise ValueError(
+                "House0Layout invariant violated: "
+                "derived-generator node missing TankTempCalibrationMap"
+            )
+
+        try:
+            return TankTempCalibrationMap(**raw)
+        except Exception as e:
+            raise ValueError(
+                "Invalid TankTempCalibrationMap on derived-generator node"
+            ) from e
+
     @classmethod
     def validate_house0(  # noqa: C901
         cls,
@@ -109,7 +194,7 @@ class House0Layout(HardwareLayout):
             H0N.primary_scada,
             H0N.atomic_ally,
             H0N.home_alone,
-            H0N.synth_generator,
+            H0N.derived_generator,
             H0N.relay_multiplexer,
             H0N.vdc_relay,
             H0N.tstat_common_relay,
@@ -120,6 +205,7 @@ class House0Layout(HardwareLayout):
             H0N.primary_pump_scada_ops,
             H0N.primary_pump_failsafe
         ]
+
 
         # Add pico_cycler if there are any pico-based actors
         pico_actor_classes = [ActorClass.ApiFlowModule, ActorClass.ApiTankModule, ActorClass.ApiBtuMeter]
@@ -137,16 +223,17 @@ class House0Layout(HardwareLayout):
             if node_name not in nodes:
                 missing_nodes.append(node_name)
 
+
         if missing_nodes:
             error_msg = f"Missing essential nodes in layout: {', '.join(missing_nodes)}"
             if has_pico_actors and H0N.pico_cycler in missing_nodes:
-                error_msg += f"\nNote: pico_cycler is required because layout contains pico-based actors"
+                error_msg += "\nNote: pico_cycler is required because layout contains pico-based actors"
 
             if raise_errors:
                 raise DcError(error_msg)
             if errors is not None:
                 errors_caught.append(LoadError("House0Layout", {"missing_nodes": missing_nodes}, DcError(error_msg)))
-
+                
         flow_manifold_variant = load_args["flow_manifold_variant"]
         use_sieg_loop = load_args["use_sieg_loop"]
 
@@ -193,12 +280,12 @@ class House0Layout(HardwareLayout):
     @classmethod
     def check_actors_when_using_sieg_loop(cls, nodes: dict[str, ShNode]) -> None:
         if H0N.sieg_loop not in nodes.keys():
-            raise DcError(f"Need a SiegLoop actor when using sieg loop!")
+            raise DcError("Need a SiegLoop actor when using sieg loop!")
         sieg_loop = nodes[H0N.sieg_loop]
         if sieg_loop.actor_class != ActorClass.SiegLoop:
             raise DcError(f"SiegLoop actor {sieg_loop.name} shoud have actor class SiegLoop, not {sieg_loop.actor_class}")
         if H0N.hp_boss not in nodes.keys():
-            raise DcError(f"Need HpBoss actor when using sieg loop!")
+            raise DcError("Need HpBoss actor when using sieg loop!")
         hp_boss = nodes[H0N.hp_boss]
         if hp_boss.actor_class != ActorClass.HpBoss:
             raise DcError(f"HpBoss actor {hp_boss.name} shoud have actor class HpBoss, not {hp_boss.actor_class}")
@@ -232,7 +319,6 @@ class House0Layout(HardwareLayout):
             node for node in self.nodes.values()
             if node.ActorClass == ActorClass.ZeroTenOutputer
         ]
-
 
     # overwrites base class to return correct object
     @classmethod
@@ -297,7 +383,7 @@ class House0Layout(HardwareLayout):
             raise_errors=raise_errors,
             errors=errors,
         )
-        synth_channels = cls.load_synth_channels(
+        derived_channels = cls.load_derived_channels(
             layout=layout,
             nodes=nodes,
             raise_errors=raise_errors,
@@ -308,7 +394,7 @@ class House0Layout(HardwareLayout):
             "components": components,
             "nodes": nodes,
             "data_channels": data_channels,
-            "synth_channels": synth_channels,
+            "derived_channels": derived_channels,
             "flow_manifold_variant": FlowManifoldVariant(layout.get("FlowManifoldVariant", "House0")),
             "use_sieg_loop": bool(layout.get("UseSiegLoop", False))
         }
@@ -321,6 +407,88 @@ class House0Layout(HardwareLayout):
         cls.validate_layout(load_args, raise_errors=raise_errors, errors=errors)
         cls.validate_house0(load_args, raise_errors=raise_errors, errors=errors)
         return House0Layout(layout, **load_args)
+
+    @property
+    def required_topology_nodes(self) -> set[str]:
+        node_names =  (
+                {
+                H0N.hp_odu,
+                H0N.hp_idu,
+        
+                H0N.dist_pump,
+                H0N.primary_pump,
+                H0N.store_pump,
+
+                H0N.dist_swt,
+                H0N.dist_rwt,
+                H0N.hp_lwt,
+                H0N.hp_ewt,
+                H0N.store_hot_pipe,
+                H0N.store_cold_pipe,
+                H0N.buffer_hot_pipe,
+                # NOT H0N.buffer_cold_pipe - no good place for it
+
+                H0N.dist_flow,
+                H0N.primary_flow,
+                H0N.store_flow,
+
+                H0N.vdc_relay,
+                H0N.tstat_common_relay,
+                H0N.store_charge_discharge_relay,
+                H0N.hp_failsafe_relay,
+                H0N.hp_scada_ops_relay,
+                H0N.thermistor_common_relay,
+                H0N.aquastat_ctrl_relay,
+                H0N.store_pump_failsafe,
+                H0N.primary_pump_scada_ops,
+                H0N.primary_pump_failsafe,
+
+                H0N.dist_010v,
+                H0N.primary_010v,
+                H0N.store_010v,
+            } | H0N.buffer.depths | {
+                depth
+                for i in self.h0n.tank
+                for depth in self.h0n.tank[i].depths
+            } | {
+            self.h0n.zone[z].whitewire
+            for z in self.h0n.zone
+            } | {
+                self.h0n.zone[z].zone
+                for z in self.h0n.zone
+            }
+        )
+        return node_names
+
+    @property
+    def required_system_actor_nodes(self) -> set[str]:
+        return {
+            H0N.primary_scada,
+            H0N.primary_power_meter,
+            H0N.derived_generator,
+            H0N.secondary_scada,
+            H0N.atn,
+            H0N.atomic_ally,
+            H0N.home_alone,
+            H0N.home_alone_normal,
+            H0N.home_alone_backup,
+            H0N.home_alone_scada_blind,
+            H0N.admin,
+            H0N.auto,
+            H0N.pico_cycler,
+            H0N.hp_boss
+        }
+
+    @property
+    def optional_channels(self) -> set[str]:
+        channels = {
+            H0CN.buffer_cold_pipe,
+            H0CN.oat,
+            H0CN.sieg_cold,
+            H0CN.sieg_flow,
+        }
+        # add store channels and thermostat channels
+        return channels
 
     @property
     def home_alone(self) -> ShNode:

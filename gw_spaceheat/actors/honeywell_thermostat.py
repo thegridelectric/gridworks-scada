@@ -2,7 +2,7 @@ import functools
 from typing import Optional
 from enum import Enum
 
-from gwproto.named_types.hubitat_poller_gt import MakerAPIAttributeGt
+from gwsproto.named_types.hubitat_poller_gt import MakerAPIAttributeGt
 
 from actors.hubitat_poller import HubitatPoller
 from actors.hubitat_interface import default_mapping_converter

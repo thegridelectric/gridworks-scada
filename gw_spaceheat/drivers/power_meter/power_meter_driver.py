@@ -3,17 +3,17 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 from gwproactor.logger import LoggerOrAdapter
-from gwproto.named_types import ElectricMeterChannelConfig
+from gwsproto.named_types import ElectricMeterChannelConfig
 from result import Err
 from result import Ok
 from result import Result
 
 from actors.config import ScadaSettings
-from gwproto.data_classes.data_channel import DataChannel
-from gwproto.data_classes.components.electric_meter_component import \
+from gwsproto.data_classes.data_channel import DataChannel
+from gwsproto.data_classes.components.electric_meter_component import \
     ElectricMeterComponent
 from drivers.driver_result import DriverResult
-from gwproto.enums import TelemetryName
+from gwsproto.enums import TelemetryName
 
 
 class PowerMeterDriver(ABC):

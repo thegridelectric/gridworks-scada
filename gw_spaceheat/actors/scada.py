@@ -12,31 +12,27 @@ from typing import Any, List, Optional
 import dotenv
 from gwproactor import CommunicatorInterface
 from gwproactor import ProactorLogger
-from gwproactor import AppInterface
+
 from gwproactor.actors.actor import PrimeActor
 from transitions import Machine
-from gwproto.message import Header
+from gwproto.message import Header, Message
+from gwproto.messages import EventBase
 
-from gwproto.enums import ActorClass
+from gwsproto.enums import ActorClass
 
 from actors.scada_interface import ScadaInterface
 from gwsproto.data_classes.house_0_layout import House0Layout
-from gwproto.messages import FsmFullReport
-from gwproto.messages import EventBase
-from gwproto.message import Message
-from gwproto.messages import PowerWatts
-from gwproto.messages import SendSnap
-from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
+from gwsproto.named_types import FsmFullReport, PowerWatts, SendSnap, ReportEvent
 
-from gwproto.named_types import (
+
+from gwsproto.named_types import (
     AnalogDispatch, ChannelReadings, MachineStates, SingleReading, SyncedReadings,
 )
 
-from gwproto.messages import ReportEvent
 from actors.scada_data import ScadaData
 from actors.config import ScadaSettings
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.enums import ChangeRelayState
+from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.enums import ChangeRelayState
 from gwproactor import QOS
 
 from gwproactor.links import Transition
@@ -47,15 +43,20 @@ from actors.home_alone_loader import HomeAlone
 from actors.atomic_ally_loader import AtomicAlly
 from actors.codec_factories import ScadaCodecFactory
 from actors.contract_handler import ContractHandler
-from gwsproto.data_classes.house_0_names import H0N
-from gwsproto.enums import (AtomicAllyState,  ContractStatus, FlowManifoldVariant, LocalControlTopState,
+from gwsproto.data_classes.house_0_names import H0N, ScadaWeb
+from gwsproto.data_classes.components.web_server_component import WebServerComponent
+from gwsproto.enums import (AtomicAllyState,  ContractStatus, LocalControlTopState,
                    MainAutoEvent, MainAutoState, TopState)
 from gwsproto.named_types import ( ActuatorsReady, FsmEvent,
     AdminDispatch, AdminAnalogDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
     Glitch, GoDormant, LayoutLite, NewCommandTree, NoNewContractWarning, ResetHpKeepValue,
     ScadaParams, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment,
-    SiegTargetTooLow, SingleMachineState,SlowContractHeartbeat, SuitUp, WakeUp
+    SiegTargetTooLow, SingleMachineState,SlowContractHeartbeat, SuitUp, WakeUp,
 )
+
+
+from scada_app_interface import ScadaAppInterface
+
 
 class ScadaCmdDiagnostic(enum.Enum):
     SUCCESS = "Success"
@@ -100,7 +101,10 @@ class Scada(PrimeActor, ScadaInterface):
         {"trigger": "AutoWakesUp", "source": "Dormant", "dest": "HomeAlone"},
     ]
 
-    def __init__(self, name: str, services: AppInterface) -> None:
+    def __init__(self, name: str, services: ScadaAppInterface) -> None:
+        print("PrimeActor slots:", getattr(PrimeActor, "__slots__", None))
+        print("Scada slots:", getattr(Scada, "__slots__", None))
+        print("MRO:", Scada.__mro__)
         super().__init__(name, services)
         if not isinstance(services.hardware_layout, House0Layout):
             raise Exception("Make sure to pass House0Layout object as hardware_layout!")
@@ -174,8 +178,19 @@ class Scada(PrimeActor, ScadaInterface):
         if self.layout.use_sieg_loop:
             self.actuator_dependents |= {self.sieg_loop,self.hp_boss}
 
+        # configure web APIs
+        for ws in self.layout.get_components_by_type(WebServerComponent):
+            cfg = ws.web_server_gt
+            self.services.add_web_server_config(
+                name=cfg.Name,
+                host=cfg.Host,
+                port=cfg.Port,
+                enabled=cfg.Enabled,
+                server_kwargs=cfg.Kwargs,
+            )
+
         self.services.add_web_route(
-            server_name=DEFAULT_WEB_SERVER_NAME,
+            server_name=ScadaWeb.DEFAULT_SERVER_NAME,
             method="GET",
             path="/ping",
             handler=self._handle_ping,
@@ -302,7 +317,7 @@ class Scada(PrimeActor, ScadaInterface):
             case ScadaParams():
                 try:
                     self.process_scada_params(from_node, payload)
-                    self._send_to(self.synth_generator, payload)
+                    self._send_to(self.derived_generator, payload)
                 except Exception as e:
                     self.log(f"Trouble with process_scada_params: \n {e}")
             case SendLayout():
@@ -342,6 +357,8 @@ class Scada(PrimeActor, ScadaInterface):
                 try:
                     self.process_single_reading(from_node, payload)
                 except Exception as e:
+                    self.payload = payload
+                    self.from_node = from_node
                     self.log(f"Trouble with process_single_reading: \n {e}")
             case SlowContractHeartbeat():
                 try:
@@ -762,8 +779,8 @@ class Scada(PrimeActor, ScadaInterface):
     ) -> None:
         if payload.ChannelName in self._layout.data_channels:
             ch = self._layout.data_channels[payload.ChannelName]
-        elif payload.ChannelName in self._layout.synth_channels:
-            ch = self._layout.synth_channels[payload.ChannelName]
+        elif payload.ChannelName in self._layout.derived_channels:
+            ch = self._layout.derived_channels[payload.ChannelName]
         else:
             raise Exception(f"Missing channel name {payload.ChannelName}!")
         self._data.recent_channel_values[ch.Name].append(payload.Value)
@@ -789,14 +806,13 @@ class Scada(PrimeActor, ScadaInterface):
             from_node.Name,
             len(payload.ChannelNameList),
         )
-        path_dbg = 0
         for idx, channel_name in enumerate(payload.ChannelNameList):
-            path_dbg |= 0x00000001
-            if channel_name not in self._layout.data_channels:
-                raise ValueError(
-                    f"Name {channel_name} in payload.SyncedReadings not a recognized Data Channel!"
-                )
-            ch = self._layout.data_channels[channel_name]
+            if channel_name in self._layout.data_channels:
+                ch = self._layout.data_channels[channel_name ]
+            elif channel_name in self._layout.derived_channels:
+                ch = self._layout.derived_channels[channel_name ]
+            else:
+                raise Exception(f"Missing channel name {channel_name}!")
             self._data.recent_channel_values[ch.Name].append(payload.ValueList[idx])
             self._data.recent_channel_unix_ms[ch.Name].append(
                 payload.ScadaReadTimeUnixMs
@@ -804,6 +820,7 @@ class Scada(PrimeActor, ScadaInterface):
             self._data.latest_channel_values[ch.Name] = payload.ValueList[idx]
             self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMs
 
+        # Hack for moving out of Initializing rapidly when restarting Scada
         if from_node.Name ==H0N.buffer.reader and not self.got_first_buffer_reading:
             self.got_first_buffer_reading = True
             if self.auto_state == MainAutoState.Atn:
@@ -812,7 +829,7 @@ class Scada(PrimeActor, ScadaInterface):
             else:
                 self.log("First Buffer temps arrived! Sending to HomeAlone")
                 self._send_to(self.home_alone, payload)
-    
+
     
     #####################################################################
     # State Machine related
@@ -1480,12 +1497,8 @@ class Scada(PrimeActor, ScadaInterface):
     #################################################
 
     @property
-    def name(self):
-        return self.node.name
-
-    @property
     def node(self) -> ShNode:
-        return self._node
+        return self.layout.node(self.name)
 
     @property
     def publication_name(self) -> str:
@@ -1533,8 +1546,8 @@ class Scada(PrimeActor, ScadaInterface):
         return self.layout.node(H0N.zero_ten_out_multiplexer)
 
     @property
-    def synth_generator(self) -> ShNode:
-        return self.layout.node(H0N.synth_generator)
+    def derived_generator(self) -> ShNode:
+        return self.layout.node(H0N.derived_generator)
 
     @property
     def hp_boss(self) -> ShNode:
@@ -1578,11 +1591,12 @@ class Scada(PrimeActor, ScadaInterface):
             FlowModuleComponents=[node.component.gt for node in flow_nodes],
             ShNodes=[node.to_gt() for node in self.layout.nodes.values()],
             DataChannels=[ch.to_gt() for ch in self.layout.data_channels.values()],
-            SynthChannels=[ch.to_gt() for ch in self.layout.synth_channels.values()],
+            DerivedChannels=[ch.to_gt() for ch in self.layout.derived_channels.values()],
             Ha1Params=self.data.ha1_params,
             I2cRelayComponent=self.layout.node(H0N.relay_multiplexer).component.gt,
             MessageCreatedMs=int(time.time() * 1000),
             MessageId=str(uuid.uuid4()),
+            TMap=self.layout.tank_temp_calibration_map,
         )
 
     ################################################

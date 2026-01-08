@@ -2,20 +2,18 @@ import asyncio
 import time
 import uuid
 from enum import auto
-from typing import Dict, List, Optional, Sequence, cast
+from typing import Dict, List, Optional, Sequence
 from gw.enums import GwStrEnum
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwsproto.data_classes.house_0_names import H0N
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.enums import (
-    ActorClass,
+from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.enums import (
     ChangeRelayState,
     FsmReportType,
-    MakeModel,
 )
-from gwproto.named_types import (
+from gwsproto.named_types import (
 
     ChannelReadings,
     FsmAtomicReport,
@@ -29,7 +27,7 @@ import transitions
 from actors.sh_node_actor import ShNodeActor
 from gwsproto.enums import LogLevel, PicoCyclerEvent, PicoCyclerState
 from gwsproto.named_types import Glitch, GoDormant, PicoMissing, WakeUp
-from gwproto.data_classes.components import PicoTankModuleComponent
+from gwsproto.data_classes.components import PicoTankModuleComponent, PicoFlowModuleComponent, PicoBtuMeterComponent
 
 from scada_app_interface import ScadaAppInterface
 class PicoWarning(ValueError):
@@ -59,7 +57,6 @@ class PicoCycler(ShNodeActor):
     STATE_REPORT_S = 300
     ZOMBIE_UPDATE_HR = 1
     SHAKE_ZOMBIE_HR = 0.5
-    _fsm_task: Optional[asyncio.Task] = None
     actor_by_pico: Dict[str, ShNode]
     pico_actors: List[ShNode]
     pico_states: Dict[str, SinglePicoState]
@@ -67,7 +64,7 @@ class PicoCycler(ShNodeActor):
     trigger_id: Optional[str]
     fsm_reports: List[FsmAtomicReport]
     _stop_requested: bool
-    # PicoCyclerState.values()
+
     states = [
         "Dormant",
         "PicosLive",
@@ -100,41 +97,48 @@ class PicoCycler(ShNodeActor):
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
         self.pico_relay = self.layout.node(H0N.vdc_relay)
-        self.pico_actors = [
-            node
-            for node in self.layout.nodes.values()
-            if node.ActorClass in [ActorClass.ApiBtuMeter,
-                                   ActorClass.ApiFlowModule, 
-                                   ActorClass.ApiTankModule]
-        ]
+
+        # ---------------------------------------------------------
+        # Discover Pico-backed actors
+        # ---------------------------------------------------------
+        self.pico_actors: list[ShNode] = []
+        self.actor_by_pico: dict[str, ShNode] = {}
+        self.picos: list[str] = [] # list of hw_uids
+
+        for node in self.layout.nodes.values():
+
+            # 1. Skip nodes with no component entirely
+            component = getattr(node, "component", None)
+            if component is None:
+                continue
+
+            if isinstance(component, PicoBtuMeterComponent):
+                hw_uid = component.gt.HwUid
+            elif isinstance(component, PicoFlowModuleComponent):
+                hw_uid = component.gt.HwUid
+            elif isinstance(component, PicoTankModuleComponent):
+                hw_uid = component.gt.PicoHwUid
+            else:
+                continue
+            if hw_uid is None:
+                self.send_warning(
+                    "Pico without HwUid",
+                    f"{node.name} of class {node.actor_class} missing HwUid!")
+                continue
+
+            if hw_uid in self.actor_by_pico:
+                raise ValueError(f"Duplicate pico hw_uid {hw_uid} for nodes {self.actor_by_pico[hw_uid].name} and {node.name}")
+            self.actor_by_pico[hw_uid] = node
+            self.pico_actors.append(node)
+            self.picos.append(hw_uid)
+
+        self.pico_by_actor = {actor: pico for pico, actor in self.actor_by_pico.items()}
+
         self.last_open_time = time.time() # used to track how long since the VDC relay was cycled
         self._stop_requested = False
-        self.actor_by_pico = {}
-        self.ab_by_pico = {}
-        self.picos = []
-        for node in self.pico_actors:
-            if node.component is None:
-                raise ValueError("pico actors must have components!!")
-            if node.ActorClass == ActorClass.ApiBtuMeter:
-                self.actor_by_pico[node.component.gt.HwUid] = node
-                self.picos.append(node.component.gt.HwUid)
-            if node.ActorClass == ActorClass.ApiFlowModule:
-                self.actor_by_pico[node.component.gt.HwUid] = node
-                self.picos.append(node.component.gt.HwUid)
-            if node.ActorClass == ActorClass.ApiTankModule:
-                c = cast(PicoTankModuleComponent, node.component)
-                if c.cac.MakeModel != MakeModel.GRIDWORKS__TANKMODULE3:
-                    raise ValueError(
-                        f"PicoCycler only supports TankModule3; "
-                        f"got {c.cac.MakeModel} for node {node.name}"
-                    )
-                if not c.gt.PicoHwUid:
-                    raise ValueError(
-                        f"ApiTankModule {node.name} missing PicoHwUid"
-                    )
-                self.actor_by_pico[c.gt.PicoHwUid] = node
-                self.picos.append(c.gt.PicoHwUid)
                     
+        if not self.pico_actors:
+            self.log("PicoCycler initialized with no Pico-backed actors")
         self.pico_states = {pico: SinglePicoState.Alive for pico in self.picos}
         # This counts consecutive failed reboots per pico
         self.reboots = {pico: 0 for pico in self.picos}
@@ -143,12 +147,12 @@ class PicoCycler(ShNodeActor):
         self.fsm_reports = []
         self.last_zombie_problem_report_s = time.time() - 24 * 3600
         self.last_zombie_shake = time.time()
-        self.state = "PicosLive"
+        self.state = PicoCyclerState.PicosLive
         self.machine = Machine(
             model=self,
             states=PicoCycler.states,
             transitions=PicoCycler.transitions,
-            initial="PicosLive",
+            initial=PicoCyclerState.PicosLive,
             send_event=True,
         )
 
@@ -209,7 +213,15 @@ class PicoCycler(ShNodeActor):
         # in the last minute
         if time.time() - self.last_open_time < 60:
             return
-        pico = payload.PicoHwUid
+        expected = self.pico_by_actor.get(actor)
+        if expected is None:
+            return
+        if expected != payload.PicoHwUid:
+            self.send_error(
+                "Pico Mismatch!",
+                f"Got {payload} from {actor.name} but expected {expected}"
+            )
+        pico = expected
         if actor not in self.pico_actors:
             return
         if pico in self.zombies:
@@ -223,10 +235,7 @@ class PicoCycler(ShNodeActor):
         if self.state == PicoCyclerState.PicosLive:
             # this kicks off an fsm report sequence, which requires a comment
             self.trigger_id = str(uuid.uuid4())
-            if payload.PicoHwUid in self.ab_by_pico:
-                comment=f"triggered by {payload.ActorName}{self.ab_by_pico[payload.PicoHwUid]} {payload.PicoHwUid}"
-            else:
-                comment=f"triggered by {payload.ActorName} {payload.PicoHwUid}"
+            comment=f"triggered by {payload.ActorName} {payload.PicoHwUid}"
             self.fsm_comment = comment
             self.pico_missing()
 
@@ -249,67 +258,53 @@ class PicoCycler(ShNodeActor):
                     self.raise_zombie_pico_warning(pico)
         # Send action on to pico relay
         self.open_vdc_relay(trigger_id=self.trigger_id)
-    
+
     def process_synced_readings(self, actor: ShNode, payload: SyncedReadings) -> None:
         if actor not in self.pico_actors:
             self.log(
-                f"Received channel readings from {actor.name}, not one of its picos!"
+                f"Received SyncedReadings from {actor.name}, not a Pico-backed actor"
             )
             return
-        pico: str | None = None
 
-        if actor.ActorClass in [ActorClass.ApiFlowModule, ActorClass.ApiBtuMeter]:
-            pico = actor.component.gt.HwUid
-            if pico not in self.picos:
-                raise Exception(f"[{self.name}] {pico} should be in self.picos!")
-        elif actor.ActorClass == ActorClass.ApiTankModule:
-            pico = actor.component.gt.PicoHwUid
-            if pico not in self.picos:
-                raise Exception(f"[{self.name}] {pico} should be in self.picos!")
-        else:
-            raise Exception("PicoCycler only expects synced readings from APiFlowModule or APiTankModle"
-                            f", not {actor.ActorClass}"
-            )
+        pico = self.pico_by_actor.get(actor)
         if pico is None:
-            raise ValueError("PICO IS NONE")
+            raise RuntimeError(
+                f"[{self.name}] Pico-backed actor {actor.name} not found in actor_by_pico"
+            )
+
         self.is_alive(pico)
 
     def process_channel_readings(self, actor: ShNode, payload: ChannelReadings) -> None:
         if actor not in self.pico_actors:
             self.log(
-                f"Received channel readings from {actor.name}, not one of its pico relays"
+                f"Received ChannelReadings from {actor.name}, not a Pico-backed actor"
             )
             return
-        pico: str | None = None
-        if actor.ActorClass == ActorClass.ApiFlowModule:
-            if payload.ChannelName != actor.name:
-                raise Exception(
-                    f"[{self.name}] Expect {actor.name} to have channel name {actor.name}!"
-                )
-            pico = actor.component.gt.HwUid
-            if pico not in self.picos:
-                raise Exception(f"[{self.name}] {pico} should be in self.picos!")
-        else:
-            raise ValueError("Only expect ChannelReadings from ApiFlowModules")
+
+        pico = self.pico_by_actor.get(actor)
         if pico is None:
-            raise ValueError("PICO IS NONE")
+            raise RuntimeError(
+                f"[{self.name}] Pico-backed actor {actor.name} not found in actor_by_pico"
+            )
+
         self.is_alive(pico)
 
     def is_alive(self, pico: str) -> None:
-        #self.log(f" [{self.actor_by_pico[pico].name}] is alive")
-        if pico in self.zombies:
-            self.log(f"{pico} [{self.actor_by_pico[pico].name}] in zombies, got to is_alive")
-        if self.pico_states[pico] == SinglePicoState.Flatlined:
-            self.pico_states[pico] = SinglePicoState.Alive
-            self.reboots[pico] = 0
-            if all(
-                self.pico_states[pico] == SinglePicoState.Alive
-                for pico in self.zombies
-            ):
-                self.confirm_rebooted()
+        was_zombie = pico in self.zombies
+
+        self.pico_states[pico] = SinglePicoState.Alive
+        self.reboots[pico] = 0
+
+        if was_zombie:
+            note = f"Pico {pico} [{self.actor_by_pico[pico].name}] recovered from zombie state"
+            self.log(note)
+            self.send_info(f"Zombie {self.actor_by_pico[pico].name} recovered!", note)
+
+        if self.state == PicoCyclerState.PicosRebooting and self.flatlined == []:
+            self.confirm_rebooted()
 
     def confirm_rebooted(self) -> None:
-        if self.state == PicoCyclerState.PicosRebooting.value:
+        if self.state == PicoCyclerState.PicosRebooting:
             # ConfirmRebooted: PicosRebooting -> PicosLive
             if self.trigger_event(PicoCyclerEvent.ConfirmRebooted):
                 self.send_fsm_report()
@@ -365,7 +360,7 @@ class PicoCycler(ShNodeActor):
     
     def WakeUp(self) -> None:
         if self.state == PicoCyclerState.Dormant:
-            self.trigger(PicoCyclerEvent.WakeUp)
+            self.trigger_event(PicoCyclerEvent.WakeUp)
             # WakeUp: Dormant -> PicosLive
             self.log("Waking up and making sure vdc relay is closed!")
             self.close_vdc_relay()
@@ -373,14 +368,14 @@ class PicoCycler(ShNodeActor):
             self.log(f"Got WakeUp message but ignoring since in state {self.state}")
 
     def confirm_opened(self):
-        if self.state == PicoCyclerState.RelayOpening.value:
+        if self.state == PicoCyclerState.RelayOpening:
             # ConfirmOpened: RelayOpening -> RelayOpen
             if self.trigger_event(PicoCyclerEvent.ConfirmOpened):
                 asyncio.create_task(self._wait_and_close_relay())
 
     def confirm_closed(self) -> None:
         self.last_open_time = time.time()
-        if self.state == PicoCyclerState.RelayClosing.value:
+        if self.state == PicoCyclerState.RelayClosing:
             # ConfirmClosed: RelayClosing -> PicosRebooting
             if self.trigger_event(PicoCyclerEvent.ConfirmClosed):
                 asyncio.create_task(self._wait_for_rebooting_picos())
@@ -416,7 +411,7 @@ class PicoCycler(ShNodeActor):
 
     def shake_zombies(self) -> None:
         self.last_zombie_shake = time.time()
-        if self.state not in {PicoCyclerState.PicosLive.value, PicoCyclerState.AllZombies.value}:
+        if self.state not in {PicoCyclerState.PicosLive, PicoCyclerState.AllZombies}:
             self.log(f"State is {self.state} so not shaking zombies")
             return
         zombies = []

@@ -1,9 +1,7 @@
-"""Type dispatch.contract.go.live, version 000"""
-
 from typing import Literal
-
-from gwproto.property_format import LeftRightDotStr
 from pydantic import BaseModel, field_validator
+
+from gwsproto.property_format import LeftRightDotStr
 
 
 class DispatchContractGoLive(BaseModel):
@@ -17,7 +15,7 @@ class DispatchContractGoLive(BaseModel):
     FromGNodeAlias: LeftRightDotStr
     BlockchainSig: str
     TypeName: Literal["dispatch.contract.go.live"] = "dispatch.contract.go.live"
-    Version: str = "000"
+    Version: Literal["000"] = "000"
 
     @field_validator("BlockchainSig")
     @classmethod

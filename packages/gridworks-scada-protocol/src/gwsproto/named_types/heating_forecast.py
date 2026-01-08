@@ -2,7 +2,7 @@
 import time
 from typing import List, Literal
 
-from gwproto.property_format import LeftRightDotStr, UTCSeconds, UUID4Str
+from gwsproto.property_format import LeftRightDotStr, UTCSeconds, UUID4Str
 from pydantic import BaseModel, Field, model_validator
 from typing_extensions import Self
 
@@ -16,7 +16,7 @@ class HeatingForecast(BaseModel):
     WeatherUid: UUID4Str
     ForecastCreatedS: UTCSeconds = Field(default_factory=lambda: int(time.time()))
     TypeName: Literal["heating.forecast"] = "heating.forecast"
-    Version: str = "000"
+    Version: Literal["000"] = "000"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

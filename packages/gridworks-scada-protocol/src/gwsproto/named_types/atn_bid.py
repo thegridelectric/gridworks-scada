@@ -1,10 +1,10 @@
 from typing import List, Literal
+from typing_extensions import Self
+from pydantic import BaseModel, model_validator
 
 from gwsproto.enums import MarketPriceUnit, MarketQuantityUnit
-from gwproto.property_format import LeftRightDotStr, MarketSlotName
+from gwsproto.property_format import LeftRightDotStr, MarketSlotName
 from gwsproto.named_types.price_quantity_unitless import PriceQuantityUnitless
-from pydantic import BaseModel, model_validator
-from typing_extensions import Self
 
 
 class AtnBid(BaseModel):

@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import typing
-from gwproto.data_classes.components import ElectricMeterComponent
+from gwsproto.data_classes.components import ElectricMeterComponent
 from actors.config import ScadaSettings
 from gwsproto.data_classes.house_0_layout import House0Layout
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import GridworksSimPm1_PowerMeterDriver

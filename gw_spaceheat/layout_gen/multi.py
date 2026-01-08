@@ -2,19 +2,19 @@ from typing import cast
 
 from typing import Optional
 
-from gwproto.enums import ActorClass
-from gwproto.enums import MakeModel
-from gwproto.enums import TelemetryName
-from gwproto.enums import Unit
-from gwproto.type_helpers import CACS_BY_MAKE_MODEL
-from gwproto.named_types import ComponentAttributeClassGt
-from gwproto.named_types import ComponentGt
-from gwproto.named_types import Ads111xBasedCacGt
-from gwproto.named_types import SpaceheatNodeGt
-from gwproto.named_types import  AdsChannelConfig
-from gwproto.named_types import DataChannelGt
-from gwproto.named_types.ads111x_based_component_gt import Ads111xBasedComponentGt
-from gwproto.enums import ThermistorDataMethod
+from gwsproto.enums import ActorClass
+from gwsproto.enums import MakeModel
+from gwsproto.enums import TelemetryName
+from gwsproto.enums import Unit
+from gwsproto.type_helpers import CACS_BY_MAKE_MODEL
+from gwsproto.named_types import ComponentAttributeClassGt
+from gwsproto.named_types import ComponentGt
+from gwsproto.named_types import Ads111xBasedCacGt
+from gwsproto.named_types import SpaceheatNodeGt
+from gwsproto.named_types import  AdsChannelConfig
+from gwsproto.named_types import DataChannelGt
+from gwsproto.named_types.ads111x_based_component_gt import Ads111xBasedComponentGt
+from gwsproto.enums import ThermistorDataMethod
 from pydantic import BaseModel
 from gwsproto.data_classes.house_0_names import H0N
 from layout_gen.layout_db import LayoutDb

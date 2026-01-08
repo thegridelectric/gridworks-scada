@@ -1,34 +1,33 @@
 import typing
 from pathlib import Path
+from gwproto.named_types.web_server_gt import WebServerGt
 
-from gwproto.enums import ActorClass
-from gwproto.enums import MakeModel
-from gwproto.enums import TelemetryName
-from gwproto.enums import Unit
-from gwproto.type_helpers import HubitatGt
-from gwproto.named_types import ComponentAttributeClassGt
-from gwproto.named_types import ComponentGt
-from gwproto.named_types import ElectricMeterCacGt
-from gwproto.named_types import SpaceheatNodeGt
-from gwproto.named_types import ElectricMeterChannelConfig
-from gwproto.named_types import DataChannelGt
-from gwproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
+from gwsproto.enums import ActorClass
+from gwsproto.enums import MakeModel
+from gwsproto.enums import TelemetryName
+from gwsproto.enums import Unit
+from gwsproto.type_helpers import HubitatGt
+from gwsproto.named_types import ComponentAttributeClassGt
+from gwsproto.named_types import ComponentGt
+from gwsproto.named_types import ElectricMeterCacGt
+from gwsproto.named_types import SpaceheatNodeGt
+from gwsproto.named_types import ElectricMeterChannelConfig
+from gwsproto.named_types import DataChannelGt
+from gwsproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwsproto.data_classes.house_0_names import H0N, H0CN
 from pydantic_extra_types.mac_address import MacAddress
 
-from layout_gen import add_tank3
 from layout_gen import LayoutDb
 from layout_gen import LayoutIDMap
 from layout_gen import StubConfig
 from layout_gen import HubitatThermostatGenCfg
 from layout_gen import add_thermostat
-from layout_gen import Tank3Cfg
 from layout_gen.dfr import add_dfrs
 from layout_gen.dfr import DfrConf
 from layout_gen.relay import add_relays
 from layout_gen.relay import RelayCfg
-from layout_gen.synth_channels import add_synth
-from layout_gen.synth_channels import SynthConfig
+from layout_gen.web_server import add_web_server
+from layout_gen.simulated_tanks import add_simulated_tanks
 
 
 def make_tst_layout(src_path: Path) -> LayoutDb:
@@ -54,6 +53,8 @@ def make_tst_layout(src_path: Path) -> LayoutDb:
         MacAddress=MacAddress("34:E1:D1:82:22:22"),
     )
 
+    add_web_server(db, WebServerGt(Host="0.0.0.0"))
+
     add_thermostat(
         db,
         HubitatThermostatGenCfg(
@@ -66,59 +67,7 @@ def make_tst_layout(src_path: Path) -> LayoutDb:
 
     add_relays(db, RelayCfg(PollPeriodMs=200, CapturePeriodS=300))
 
-    add_tank3(
-        db,
-        Tank3Cfg(
-            ActorNodeName="buffer",
-            SerialNumber="9999",
-            PicoHwUid="pico_buffer",
-            SensorOrder=[3,2,1],
-        ),
-    )
-
-    # Add store tanks
-    add_tank3(
-        db,
-        Tank3Cfg(
-            ActorNodeName="tank1",
-            SerialNumber="1001",
-            PicoHwUid="pico_tank1",
-        ),
-    )
-
-    add_tank3(
-        db,
-        Tank3Cfg(
-            ActorNodeName="tank2",
-            SerialNumber="1002",
-            PicoHwUid="pico_tank2",
-        ),
-    )
-
-    add_tank3(
-        db,
-        Tank3Cfg(
-            ActorNodeName="tank3",
-            SerialNumber="1003",
-            PicoHwUid="pico_tank3",
-        ),
-    )
-
-    add_synth(
-        db,
-        SynthConfig(
-            Name="usable-energy",
-            Strategy="layer-by-layer",
-        ),
-    )
-
-    add_synth(
-        db,
-        SynthConfig(
-            Name="required-energy",
-            Strategy="house-parameters-and-weather",
-        ),
-    )
+    add_simulated_tanks(db)
 
     add_dfrs(
         db,
@@ -157,7 +106,7 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
                 typing.cast(
                     ComponentAttributeClassGt,
                     ElectricMeterCacGt(
-                        ComponentAttributeClassId=db.make_cac_id(MakeModel.GRIDWORKS__SIMPM1),
+                        ComponentAttributeClassId=db.make_cac_id(make_model=MakeModel.GRIDWORKS__SIMPM1),
                         MakeModel=MakeModel.GRIDWORKS__SIMPM1,
                         DisplayName="Gridworks Pm1 Simulated Power Meter",
                         TelemetryNameList=[TelemetryName.PowerW],

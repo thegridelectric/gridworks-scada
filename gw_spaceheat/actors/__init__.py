@@ -5,6 +5,7 @@ from actors.api_flow_module import ApiFlowModule
 from actors.api_tank_module import ApiTankModule
 from actors.atomic_ally_loader import AtomicAlly
 from actors.contract_handler import ContractHandler
+from actors.derived_generator import DerivedGenerator
 from actors.hp_boss import HpBoss
 from actors.home_alone_loader import HomeAlone
 from actors.honeywell_thermostat import HoneywellThermostat
@@ -20,7 +21,6 @@ from actors.relay import Relay
 from actors.scada import Scada
 from actors.scada_interface import ScadaInterface
 from actors.sieg_loop import SiegLoop
-from actors.synth_generator import SynthGenerator
 from actors.zero_ten_outputer import ZeroTenOutputer
 
 __all__ = [
@@ -29,6 +29,7 @@ __all__ = [
     "ApiTankModule",
     "AtomicAlly",
     "ContractHandler",
+    "DerivedGenerator",
     "HomeAlone", # the factory/loader that selects which strategy
     "HoneywellThermostat",
     "HpBoss",
@@ -44,6 +45,5 @@ __all__ = [
     "Scada",
     "ScadaInterface",
     "SiegLoop",
-    "SynthGenerator",
     "ZeroTenOutputer",
 ]

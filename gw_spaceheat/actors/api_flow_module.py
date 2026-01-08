@@ -8,12 +8,12 @@ import numpy as np
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 from gw.errors import DcError
-from gwproactor import MonitoredName, Problems, AppInterface
+from gwproactor import MonitoredName, Problems
 from gwproactor.message import InternalShutdownMessage, PatInternalWatchdogMessage
 from gwproto import Message
-from gwproto.data_classes.components import PicoFlowModuleComponent
-from gwproto.enums import GpmFromHzMethod, HzCalcMethod, MakeModel, TelemetryName
-from gwproto.named_types import (
+from gwsproto.data_classes.components import PicoFlowModuleComponent
+from gwsproto.enums import GpmFromHzMethod, HzCalcMethod, MakeModel, TelemetryName
+from gwsproto.named_types import (
     ChannelReadings,
     SyncedReadings,
     TicklistHall,
@@ -21,7 +21,7 @@ from gwproto.named_types import (
     TicklistReed,
     TicklistReedReport,
 )
-from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
+from gwsproto.data_classes.house_0_names import ScadaWeb
 from actors.sh_node_actor import ShNodeActor
 from gwsproto.enums import LogLevel
 from gwsproto.named_types import Glitch, PicoMissing
@@ -105,26 +105,26 @@ class ApiFlowModule(ShNodeActor):
         if self._component.gt.Enabled:
             if self._component.cac.MakeModel == MakeModel.GRIDWORKS__PICOFLOWHALL:
                 self._services.add_web_route(
-                    server_name=DEFAULT_WEB_SERVER_NAME,
+                    server_name=ScadaWeb.DEFAULT_SERVER_NAME,
                     method="POST",
                     path="/" + self.hall_params_path,
                     handler=self._handle_hall_params_post,
                 )
                 self._services.add_web_route(
-                    server_name=DEFAULT_WEB_SERVER_NAME,
+                    server_name=ScadaWeb.DEFAULT_SERVER_NAME,
                     method="POST",
                     path="/" + self.ticklist_hall_path,
                     handler=self._handle_ticklist_hall_post,
                 )
             elif self._component.cac.MakeModel == MakeModel.GRIDWORKS__PICOFLOWREED:
                 self._services.add_web_route(
-                    server_name=DEFAULT_WEB_SERVER_NAME,
+                    server_name=ScadaWeb.DEFAULT_SERVER_NAME,
                     method="POST",
                     path="/" + self.reed_params_path,
                     handler=self._handle_reed_params_post,
                 )
                 self._services.add_web_route(
-                    server_name=DEFAULT_WEB_SERVER_NAME,
+                    server_name=ScadaWeb.DEFAULT_SERVER_NAME,
                     method="POST",
                     path="/" + self.ticklist_reed_path,
                     handler=self._handle_ticklist_reed_post,

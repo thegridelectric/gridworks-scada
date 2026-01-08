@@ -10,19 +10,25 @@ from result import Ok, Result
 from datetime import datetime,  timezone
 from gwproto import Message
 
-from gwproto.named_types import SingleReading
+from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.named_types import SingleReading, SyncedReadings
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 
 from actors.sh_node_actor import ShNodeActor
+from gwsproto.conversions.temperature import convert_temp_to_f
 from gwsproto.enums import HomeAloneStrategy
-from gwsproto.data_classes.house_0_names import H0CN
-from gwsproto.named_types import (Ha1Params, HeatingForecast,
-                         WeatherForecast, ScadaParams)
+from gwsproto.data_classes.house_0_names import H0N, H0CN
+from gwsproto.named_types import (
+    Ha1Params, HeatingForecast, ScadaParams,
+    TankTempCalibration,
+    TankTempCalibrationMap,
+    WeatherForecast,
+)
 from scada_app_interface import ScadaAppInterface
 
 
-class SynthGenerator(ShNodeActor):
+class DerivedGenerator(ShNodeActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
     GALLONS_PER_TANK = 119
     WATER_SPECIFIC_HEAT_KJ_PER_KG_C = 4.187
@@ -56,6 +62,7 @@ class SynthGenerator(ShNodeActor):
         self.log(f"self.is_simulated: {self.is_simulated}")
         self.weather_forecast: Optional[WeatherForecast] = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
+        self.tmap: TankTempCalibrationMap = TankTempCalibrationMap.model_validate(getattr(self.node, "TankTempCalibrationMap"))
     
     @property
     def params(self) -> Ha1Params:
@@ -127,11 +134,74 @@ class SynthGenerator(ShNodeActor):
         ...
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
+        from_node = self.layout.node(message.Header.Src)
+        if not from_node:
+            return Ok(True) # or not?
         match message.Payload:
             case ScadaParams():
                 self.log("Received new parameters, time to recompute forecasts!")
                 self.received_new_params = True
+            case SyncedReadings():
+                self.process_synced_readings(from_node, message.Payload)
         return Ok(True)
+
+    def process_synced_readings(self, from_node: ShNode, payload: SyncedReadings) -> None:
+        if from_node.name == H0N.buffer.reader:
+            calibration = self.tmap.Buffer
+            tank= H0CN.buffer
+        else:
+            tank_index = self.layout.h0n.tank_index(from_node.name)
+            if tank_index is None:
+                self.send_info(f"derived-generator got SyncedReadings from {from_node.name}"
+                               " and only expects from tanks!")
+                return
+            calibration = self.tmap.Tank[tank_index]
+            tank = self.h0cn.tank[tank_index]
+
+        channel_names = []
+        values = []
+        for device_ch, raw_value,  in zip(payload.ChannelNameList, payload.ValueList):
+            if device_ch not in tank.devices:
+                continue # i.e. don't process micro-volts
+
+            device_unit = self.layout.channel_registry.unit(device_ch)
+            assert device_unit is not None
+            device_temp_f = convert_temp_to_f(raw_value, device_unit)
+            if device_temp_f is None:
+                continue
+
+            depth = tank.device_depth(device_ch)
+            m, b = self._depth_calibration(calibration, depth)
+
+            # Use linear approximation from TankTempCalibrationMap
+            temp_f =  m * device_temp_f + b
+            ch = tank.device_to_effective(device_ch)
+            #self.log(f"Got {round(device_temp_f,1)} F for {device_ch}")
+            #self.log(f"{ch}: {round(temp_f, 1)}  = {m} * {round(device_temp_f,1)} + {b} ")
+
+            # Derived tank temp channels have gw1.unit FahrenheitX100
+            channel_names.append(ch)
+            values.append(int(temp_f * 100))
+
+        msg = SyncedReadings(
+            ChannelNameList=channel_names,
+            ValueList=values, # in FahrenheitX100
+            ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs
+        )
+        self._send_to(self.primary_scada, msg)
+
+    def _depth_calibration(
+        self,
+        calibration: TankTempCalibration,
+        depth: int,
+    ) -> tuple[float, float]:
+        if depth == 1:
+            return calibration.Depth1M, calibration.Depth1B
+        if depth == 2:
+            return calibration.Depth2M, calibration.Depth2B
+        if depth == 3:
+            return calibration.Depth3M, calibration.Depth3B
+        raise ValueError(f"Unsupported depth {depth}")
 
     # Compute usable and required energy
     def update_usable_energy(self) -> None:

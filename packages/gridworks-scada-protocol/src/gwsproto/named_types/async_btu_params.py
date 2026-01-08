@@ -1,19 +1,11 @@
-"""Type async.btu.params, version 000"""
-
 from typing import Literal, Optional
 from typing_extensions import Self
 
 from pydantic import BaseModel, PositiveInt, model_validator
-from gwproto.property_format import (
-    SpaceheatName,
-)
+from gwsproto.property_format import SpaceheatName
 
 
 class AsyncBtuParams(BaseModel):
-    """
-    Parameters for the GridWorks AsyncBtuMain code
-    """
-
     HwUid: str
     ActorNodeName: SpaceheatName
     FlowChannelName: SpaceheatName

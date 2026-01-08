@@ -4,40 +4,44 @@ import uuid
 from abc import ABC
 from typing import cast, Any, List, Optional
 import pytz
-from gwproactor import QOS
 
-from actors.config import ScadaSettings
-from actors.scada_data import ScadaData
-from gwsproto.data_classes.house_0_layout import House0Layout
-from gwsproto.data_classes.house_0_names import H0N, H0CN, House0RelayIdx
+from pydantic import ValidationError
+
+from gwproactor import QOS
 from gw.errors import DcError
 from gwproactor import Actor
 from gwproto import Message
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.enums import (
+
+from actors.config import ScadaSettings
+from actors.scada_data import ScadaData
+from gwsproto.conversions.temperature import convert_temp_to_f
+from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.house_0_names import H0N, H0CN, House0RelayIdx
+
+from gwsproto.data_classes.sh_node import ShNode
+
+from gwsproto.enums import (
     ActorClass,
     ChangeAquastatControl,
     ChangeHeatcallSource,
     ChangeHeatPumpControl,
+    ChangeKeepSend,
     ChangePrimaryPumpControl,
     ChangeRelayState,
     ChangeStoreFlowRelay,
-    HeatPumpControl,
+    LogLevel,
     RelayClosedOrOpen,
     StoreFlowRelay,
-    TelemetryName
+    TelemetryName,
+    TurnHpOnOff
 )
 
-from gwsproto.enums import ChangeKeepSend, LogLevel, TurnHpOnOff
-from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import (
+from gwsproto.data_classes.components.i2c_multichannel_dt_relay_component import (
     I2cMultichannelDtRelayComponent,
 )
 from gwsproto.named_types import FsmEvent, Glitch, HeatingForecast, NewCommandTree
-from pydantic import ValidationError
 
 from scada_app_interface import ScadaAppInterface
-
-
 
 
 
@@ -46,7 +50,7 @@ class ShNodeActor(Actor, ABC):
     MAX_VALID_TANK_TEMP_F = 200
     NUM_LAYERS_PER_TANK = 3
     SIMULATED_TANK_TEMP_F = 70
-
+    PUMP_FLOW_GPM_THRESHOLD = 0.1
 
     def __init__(self, name: str, services: ScadaAppInterface):
         if not isinstance(services, ScadaAppInterface):
@@ -57,20 +61,22 @@ class ShNodeActor(Actor, ABC):
         super().__init__(name, services)
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.h0n = self.layout.h0n
-        self.h0cn = self.layout.channel_names
+        self.h0cn = self.layout.h0cn
 
         # set temperature_channel_names
-        all_tank_depths = list(self.h0cn.buffer.all)
+        self.tank_temp_channel_names = list(self.h0cn.buffer.effective)
         for tank_idx in sorted(self.h0cn.tank):
             tank = self.h0cn.tank[tank_idx]
-            all_tank_depths.extend([tank.depth1, tank.depth2, tank.depth3])
+            self.tank_temp_channel_names.extend([tank.depth1, tank.depth2, tank.depth3])
 
-        self.temperature_channel_names =  all_tank_depths + [
+        self.pipe_temp_channel_names = [
             self.h0cn.hp_ewt, self.h0cn.hp_lwt,
              self.h0cn.dist_swt, self.h0cn.dist_rwt, 
             self.h0cn.buffer_cold_pipe, self.h0cn.buffer_hot_pipe, 
             self.h0cn.store_cold_pipe, self.h0cn.store_hot_pipe,
         ]
+
+        self.temperature_channel_names =  self.tank_temp_channel_names + self.pipe_temp_channel_names
 
     @property
     def services(self) -> ScadaAppInterface:
@@ -82,7 +88,6 @@ class ShNodeActor(Actor, ABC):
 
     @property
     def node(self) -> ShNode:
-        # note: self._node exists in proactor but may be stale
         return self.layout.node(self.name)
 
     @property
@@ -110,19 +115,19 @@ class ShNodeActor(Actor, ABC):
         return self.layout.node(H0N.home_alone)
     
     @property
-    def synth_generator(self) -> ShNode:
-        return self.layout.node(H0N.synth_generator)
+    def derived_generator(self) -> ShNode:
+        return self.layout.node(H0N.derived_generator)
 
     @property
     def hp_boss(self) -> ShNode:
         if not self.layout.use_sieg_loop:
-            raise Exception(f"Should not be calling for hp_boss if not using sieg loop")
+            raise Exception("Should not be calling for hp_boss if not using sieg loop")
         return self.layout.node(H0N.hp_boss)
 
     @property
     def sieg_loop(self) -> ShNode:
         if not self.layout.use_sieg_loop:
-            raise Exception(f"Should not be calling for sieg_loop if not using sieg loop")
+            raise Exception("Should not be calling for sieg_loop if not using sieg loop")
         return self.layout.node(H0N.sieg_loop)
 
     @property
@@ -193,6 +198,41 @@ class ShNodeActor(Actor, ABC):
     def hp_loop_keep_send(self) -> ShNode:
         """relay 15"""
         return self.layout.node(H0N.hp_loop_keep_send)
+
+    def discharging_store(self) -> bool:
+        """
+        Returns True if the system is actively discharging the store:
+        - the charge/discharge relay is set to DischargingStore
+        - and the store pump is moving water above threshold
+        """
+        relay_state = self.data.latest_machine_state.get(
+            self.store_charge_discharge_relay.name
+        )
+
+        if relay_state != StoreFlowRelay.DischargingStore:
+            return False
+
+        store_flow = self.data.latest_channel_values.get(H0CN.store_flow) or 0
+
+        return store_flow > self.PUMP_FLOW_GPM_THRESHOLD * 100
+
+    def flowing_from_hp_to_house(self) -> bool:
+        """
+        Returns True if the water is flowing from heat pump to buffer/dist
+
+        Conditions:
+        - charge/discharge relay is set to DischargingStore
+        - primary pump is moving water above threshold
+        - Store is not being charged
+        """
+        relay_state = self.data.latest_machine_state.get(
+            self.store_charge_discharge_relay.name
+        )
+        if relay_state != StoreFlowRelay.DischargingStore:
+            return False
+
+        primary_flow = self.data.latest_channel_values.get(H0CN.primary_flow) or 0
+        return primary_flow > self.PUMP_FLOW_GPM_THRESHOLD * 100
 
     def stat_failsafe_relay(self, zone: str) -> ShNode:
         """
@@ -1172,16 +1212,69 @@ class ShNodeActor(Actor, ABC):
 
     def is_buffer_full(self) -> bool:
         """
-        Returns True if the buffer is considered 'full' relative to near-term
-        heating forecast requirements.
+        Returns True if the buffer is considered thermally full relative to
+        near-term heating requirements.
 
-        This is a heuristic predicate used by HomeAlone / AtomicAlly strategies.
+        Prefers the coldest buffer layer (depth3) as the authoritative signal.
+        If unavailable, may infer buffer fullness from proxy temperatures
+        (e.g. buffer cold pipe or store cold pipe while discharging), emitting
+        an informational glitch when doing so.
+        """
+        used_proxy: bool = True
+
+        if H0CN.buffer.depth3 in self.latest_temps_f:
+            buffer_full_ch = H0CN.buffer.depth3
+            used_proxy = False
+        elif H0CN.buffer_cold_pipe in self.latest_temps_f: # Note: often not even installed
+            buffer_full_ch = H0CN.buffer_cold_pipe
+
+        elif (
+            self.discharging_store()
+            and H0CN.store_cold_pipe in self.latest_temps_f
+        ):
+            buffer_full_ch = H0CN.store_cold_pipe
+        elif (
+            self.flowing_from_hp_to_house()
+            and H0CN.hp_ewt in self.latest_temps_f
+        ):
+            buffer_full_ch = H0CN.hp_ewt
+        else:
+            return False
+
+        if used_proxy:
+            self.send_info(
+                summary="Buffer full inferred from proxy temperature",
+                details=(
+                    f"Depth3 unavailable; using {used_proxy} "
+                    f"({buffer_full_ch}) to infer buffer-full state."
+                ),
+            )
+
+        if self.heating_forecast is None:
+            max_buffer = self.data.ha1_params.MaxEwtF
+        else:
+            max_buffer = round(max(self.heating_forecast.RswtF[:3]), 1)
+            max_buffer = min(max_buffer, self.data.ha1_params.MaxEwtF)
+
+        buffer_full_ch_temp = self.latest_temps_f[buffer_full_ch]
+        if buffer_full_ch_temp > max_buffer:
+            self.log(
+                f"Buffer full ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)"
+            )
+            return True
+        else:
+            self.log(
+                f"Buffer not full ({buffer_full_ch}: {buffer_full_ch_temp} <= {max_buffer} F)"
+            )
+            return False
+
+    def is_buffer_full_alt(self) -> bool:
+        """
+        Reorganization of the default to hp_ewt IF there is water flowing from the hp to the house,
+        otherwise tank 3
         """
         if (
-            H0CN.hp_failsafe_relay_state in self.data.latest_machine_state 
-            and H0CN.hp_scada_ops_relay_state in self.data.latest_machine_state
-            and self.data.latest_machine_state[H0CN.hp_failsafe_relay_state] == HeatPumpControl.Scada
-            and self.data.latest_machine_state[H0CN.hp_scada_ops_relay_state] == RelayClosedOrOpen.RelayClosed
+            self.flowing_from_hp_to_house()
             and H0CN.hp_ewt in self.latest_temps_f
         ):
             buffer_full_ch = H0CN.hp_ewt
@@ -1192,9 +1285,8 @@ class ShNodeActor(Actor, ABC):
         elif H0CN.buffer_cold_pipe in self.latest_temps_f:
             buffer_full_ch = H0CN.buffer_cold_pipe
         
-        elif (
-            H0CN.charge_discharge_relay_state in self.data.latest_machine_state
-            and self.data.latest_machine_state[H0CN.charge_discharge_relay_state] == StoreFlowRelay.DischargingStore
+        elif ( 
+            self.discharging_store()
             and H0CN.store_cold_pipe in self.latest_temps_f
         ):
             buffer_full_ch = H0CN.store_cold_pipe
@@ -1270,7 +1362,10 @@ class ShNodeActor(Actor, ABC):
         Latest usable thermal energy in kWh, derived from SCADA channel.
         Returns 0 if not yet available.
         """
-        return self.data.latest_channel_values.get(H0CN.usable_energy, 0) / 1000
+        val =  self.data.latest_channel_values.get(H0CN.usable_energy, 0)
+        if val is None:
+            val = 0
+        return val / 1000
 
     @property
     def required_kwh(self) -> float:
@@ -1278,7 +1373,10 @@ class ShNodeActor(Actor, ABC):
         Latest required thermal energy in kWh, derived from SCADA channel.
         Returns 0 if not yet available.
         """
-        return self.data.latest_channel_values.get(H0CN.required_energy, 0) / 1000
+        val = self.data.latest_channel_values.get(H0CN.required_energy, 0)
+        if val is None:
+            val = 0
+        return  val / 1000
 
     def fill_missing_store_temps(self):
         """
@@ -1319,12 +1417,34 @@ class ShNodeActor(Actor, ABC):
         """
 
         if not self.settings.is_simulated:
-            self.data.latest_temperatures_f = {
-                ch: round(self.to_fahrenheit(self.data.latest_channel_values[ch] / 1000),1)
-                for ch in self.temperature_channel_names
-                if ch in self.data.latest_channel_values
-                and self.data.latest_channel_values[ch] is not None
-                }
+            temps: dict[str, float] = {}
+
+            for ch_name in self.temperature_channel_names:
+                raw = self.data.latest_channel_values.get(ch_name)
+                if raw is None:
+                    continue
+
+                try:
+                    unit = self.layout.channel_registry.unit(ch_name)
+                    if unit is None:
+                        raise Exception(
+                            f"temperature channels should have units! {ch_name}"
+                        )
+                    temp_f = convert_temp_to_f(
+                        raw=raw,
+                        encoding=unit
+                    )
+                except Exception as e:
+                    note = f"Temperature conversion failed for {ch_name}: {e}"
+                    self.log(note)
+                    self.send_warning(summary=note, details="")  
+                    continue
+                if temp_f is None:
+                    continue
+
+                temps[ch_name] = round(temp_f, 1)
+
+            self.data.latest_temperatures_f = temps
         else:
             self.log("IN SIMULATION - set all temperatures to 70 degF")
             self.data.latest_temperatures_f = {
@@ -1333,11 +1453,11 @@ class ShNodeActor(Actor, ABC):
 
         # Update buffer_available
         self.data.buffer_temps_available = (
-            self.h0cn.buffer.all <= self.data.latest_temperatures_f.keys()
+            self.h0cn.buffer.effective <= self.data.latest_temperatures_f.keys()
         )
 
         tank_temps = set().union(
-            *(tank.all for tank in self.h0cn.tank.values())
+            *(tank.effective for tank in self.h0cn.tank.values())
         )
 
         if not (tank_temps <= self.data.latest_temperatures_f.keys()):
@@ -1345,35 +1465,47 @@ class ShNodeActor(Actor, ABC):
 
         self.data.latest_temperatures_f = dict(sorted(self.data.latest_temperatures_f.items()))
 
-    def to_fahrenheit(self, temp_c: float) -> float:
-        return 32 + (temp_c * 9 / 5)
-
-    def to_celsius(self, t: float) -> float:
-        return (t-32)*5/9
-
     def lwt_f(self) -> Optional[float]:
         """Returns the latest Heat pump leaving water temp in deg F, or None
         if it does not exist"""
-        t = self.data.latest_channel_values.get(H0CN.hp_lwt)
-        if t is None:
+        raw = self.data.latest_channel_values.get(H0CN.hp_lwt)
+        if raw is None:
             return None
-        return self.to_fahrenheit(t / 1000)
+        unit = self.layout.channel_registry.unit(H0CN.hp_lwt)
+        if unit is None:
+            raise Exception("hp_lwt must belong!")
+        return convert_temp_to_f(
+                        raw=raw,
+                        encoding=unit
+                    )
 
     def ewt_f(self) -> Optional[float]:
         """Returns the latest Heat pump entering water temp in deg F, or None
         if it does not exist"""
-        t = self.data.latest_channel_values.get(H0CN.hp_ewt)
-        if t is None:
+        raw = self.data.latest_channel_values.get(H0CN.hp_ewt)
+        if raw is None:
             return None
-        return self.to_fahrenheit(t / 1000)
+        unit = self.layout.channel_registry.unit(H0CN.hp_ewt)
+        if unit is None:
+            raise Exception("hp_ewt must belong!")
+        return convert_temp_to_f(
+                        raw=raw,
+                        encoding=unit
+                    )
 
     def sieg_cold_f(self) -> Optional[float]:
         """Returns the latest Siegenthaler Cold temp in deg F, or None
         if it does not exist"""
-        t = self.data.latest_channel_values.get(H0CN.sieg_cold)
-        if t is None:
+        raw = self.data.latest_channel_values.get(H0CN.sieg_cold)
+        if raw is None:
             return None
-        return self.to_fahrenheit(t / 1000)
+        unit = self.layout.channel_registry.unit(H0CN.sieg_cold)
+        if unit is None:
+            raise Exception("sieg_cold must belong!")
+        return convert_temp_to_f(
+                        raw=raw,
+                        encoding=unit
+                    )
 
     def sieg_flow_gpm(self) -> Optional[float]:
         """Returns the latest siegenthaler flow in gallons per minute, or None
@@ -1391,14 +1523,6 @@ class ShNodeActor(Actor, ABC):
             return None
         return primary_x_100 / 100
 
-    def store_cold_pipe_f(self) -> Optional[float]:
-        """Returns the latest cold store pipe water temp in deg F, or None
-        if it does not exist"""
-        t = self.data.latest_channel_values.get(H0CN.store_cold_pipe)
-        if t is None:
-            return None
-        return self.to_fahrenheit(t / 1000)
-
     def lift_f(self) -> Optional[float]:
         """ The lift of the heat pump: leaving water temp minus entering water temp.
         Returns 0 if this is negative (e.g. during defrost). Returns None if missing
@@ -1410,31 +1534,53 @@ class ShNodeActor(Actor, ABC):
         return max(0, lwt_f - ewt_f)
 
     def hottest_store_temp_f(self) -> float | None:
-        ch = self.h0cn.tank[1].depth1
-        t = self.data.latest_channel_values.get(ch)
-        if t is None:
+        raw = self.data.latest_channel_values.get(self.h0cn.tank[1].depth1)
+        if raw is None:
             return None
-        return round(self.to_fahrenheit(t / 1000), 1)
+        unit = self.layout.channel_registry.unit(self.h0cn.tank[1].depth1)
+        if unit is None:
+            raise Exception("tank1-depth1 must belong!")
+        return convert_temp_to_f(
+                        raw=raw,
+                        encoding=unit
+                    )
 
     def coldest_store_temp_f(self) -> float | None:
         last_tank_idx = max(self.h0cn.tank)
-        ch = self.h0cn.tank[last_tank_idx].depth3
-        t = self.data.latest_channel_values.get(ch)
-        if t is None:
+        raw = self.data.latest_channel_values.get(self.h0cn.tank[last_tank_idx].depth3)
+        if raw is None:
             return None
-        return round(self.to_fahrenheit(t / 1000), 1)
+        unit = self.layout.channel_registry.unit(self.h0cn.tank[last_tank_idx].depth3)
+        if unit is None:
+            raise Exception("tank1-depth1 must belong!")
+        return convert_temp_to_f(
+                        raw=raw,
+                        encoding=unit
+                    )
 
     def hottest_buffer_temp_f(self) -> float | None:
-        t = self.data.latest_channel_values.get(H0CN.buffer.depth1)
-        if t is None:
+        raw = self.data.latest_channel_values.get(H0CN.buffer.depth1)
+        if raw is None:
             return None
-        return round(self.to_fahrenheit(t / 1000), 1)
+        unit = self.layout.channel_registry.unit(H0CN.buffer.depth1)
+        if unit is None:
+            raise Exception("buffer-depth1 must belong!")
+        return convert_temp_to_f(
+                        raw=raw,
+                        encoding=unit
+                    )
 
     def coldest_buffer_temp_f(self) -> float | None:
-        t = self.data.latest_channel_values.get(H0CN.buffer.depth3)
-        if t is None:
+        raw = self.data.latest_channel_values.get(H0CN.buffer.depth3)
+        if raw is None:
             return None
-        return round(self.to_fahrenheit(t / 1000), 1)
+        unit = self.layout.channel_registry.unit(H0CN.buffer.depth3)
+        if unit is None:
+            raise Exception("buffer-depth3 must belong!")
+        return convert_temp_to_f(
+                        raw=raw,
+                        encoding=unit
+                    )
 
     def charge_discharge_relay_state(self) -> StoreFlowRelay:
         """ Returns DischargingStore if relay 3 is de-energized (ISO Valve opened, charge/discharge

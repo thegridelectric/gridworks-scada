@@ -1,8 +1,7 @@
-"""Type sieg.loop.endpoint.valve.adjustment, version 000"""
 import time
 from typing import Literal
 
-from gwproto.property_format import HandleName, UTCMilliseconds
+from gwsproto.property_format import HandleName, UTCMilliseconds
 from pydantic import BaseModel, Field, PositiveInt, StrictInt, model_validator
 from typing_extensions import Self
 
@@ -19,7 +18,7 @@ class SiegLoopEndpointValveAdjustment(BaseModel):
     Seconds: PositiveInt
     CreatedMs: UTCMilliseconds = Field(default_factory=lambda: int(time.time() * 1000))
     TypeName: Literal["sieg.loop.endpoint.valve.adjustment"] = "sieg.loop.endpoint.valve.adjustment"
-    Version: str = "000"
+    Version: Literal["000"] = "000"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
