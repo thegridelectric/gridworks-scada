@@ -13,16 +13,17 @@ from drivers.multipurpose_sensor.multipurpose_sensor_driver import \
 from gwproactor import SyncThreadActor
 from gwproactor.sync_thread import SyncAsyncInteractionThread
 from gwproto import Message
-from gwproto.data_classes.components.ads111x_based_component import \
+from gwproto.message import Header
+
+from gwsproto.data_classes.components.ads111x_based_component import \
     Ads111xBasedComponent
 from gwsproto.data_classes.house_0_names import H0N
-from gwproto.data_classes.data_channel import DataChannel
-from gwproto.data_classes.hardware_layout import HardwareLayout
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.enums import MakeModel
-from gwproto.message import Header
-from gwproto.named_types import AdsChannelConfig, SyncedReadings
+from gwsproto.data_classes.data_channel import DataChannel
+from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.enums import MakeModel
+from gwsproto.named_types import AdsChannelConfig, SyncedReadings
 from gwsproto.named_types import Glitch
+from gwsproto.data_classes.hardware_layout import HardwareLayout
 
 from actors.config import ScadaSettings
 from scada_app_interface import ScadaAppInterface

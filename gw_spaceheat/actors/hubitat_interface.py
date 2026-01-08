@@ -9,7 +9,7 @@ from typing import TypeVar
 from gwproto import Message
 from pydantic import ConfigDict, BaseModel
 
-from gwproto.named_types import SyncedReadings
+from gwsproto.named_types import SyncedReadings
 from drivers.exceptions import DriverWarning
 
 

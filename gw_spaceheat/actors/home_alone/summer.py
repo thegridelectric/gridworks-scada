@@ -9,11 +9,11 @@ from gw.enums import GwStrEnum
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 
-from gwproto.enums import ActorClass
+from gwsproto.enums import ActorClass
 from gwproto import Message
 from result import Ok, Result
 from gwsproto.named_types import SingleMachineState
-from gwproto.data_classes.sh_node import ShNode
+from gwsproto.data_classes.sh_node import ShNode
 from transitions import Machine
 from actors.sh_node_actor import ShNodeActor
 from gwsproto.named_types import ActuatorsReady, GoDormant, HeatingForecast, WakeUp

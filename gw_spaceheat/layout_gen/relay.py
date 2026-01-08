@@ -1,7 +1,7 @@
 from typing import List
 
 from gwsproto.data_classes.house_0_names import H0CN, H0N, House0RelayIdx
-from gwproto.enums import (
+from gwsproto.enums import (
     ActorClass,
     AquastatControl,
     ChangeAquastatControl,
@@ -20,14 +20,14 @@ from gwproto.enums import (
     TelemetryName,
     Unit,
 )
-from gwproto.named_types import (
+from gwsproto.named_types import (
     DataChannelGt,
     I2cMultichannelDtRelayComponentGt,
     RelayActorConfig,
     SpaceheatNodeGt,
 )
 from gwsproto.enums import ChangeKeepSend, HpLoopKeepSend
-from gwproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
+from gwsproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
 from layout_gen import LayoutDb
 from pydantic import BaseModel
 
@@ -49,7 +49,7 @@ def add_relays(
             [
                 ComponentAttributeClassGt(
                     ComponentAttributeClassId=db.make_cac_id(
-                        MakeModel.KRIDA__DOUBLEEMR16I2CV3
+                        make_model=MakeModel.KRIDA__DOUBLEEMR16I2CV3
                     ),
                     DisplayName="16-channel i2c krida relay",
                     MakeModel=MakeModel.KRIDA__DOUBLEEMR16I2CV3,

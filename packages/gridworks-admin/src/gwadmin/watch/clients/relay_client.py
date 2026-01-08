@@ -15,10 +15,10 @@ from typing import Sequence
 from gwproto import Message as GWMessage
 from gwproto import MQTTTopic
 from gwsproto.data_classes.house_0_names import H0N
-from gwproto.enums import ActorClass, ChangeRelayPin
+from gwsproto.enums import ActorClass, ChangeRelayPin
 
 
-from gwproto.named_types import SingleReading
+from gwsproto.named_types import SingleReading
 from pydantic import BaseModel
 from pydantic import model_validator
 

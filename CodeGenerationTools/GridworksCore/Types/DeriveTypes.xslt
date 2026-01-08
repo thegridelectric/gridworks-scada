@@ -123,7 +123,7 @@ from gw import check_is_market_slot_name_lrd_format</xsl:text>
 
 <xsl:if test="(IsType = 'true') and (normalize-space(SubTypeDataClass) = '' or IsList = 'true')">
 <xsl:text>
-from gwproto.named_types.</xsl:text>
+from gwsproto.named_types.</xsl:text>
 <xsl:call-template name="python-case">
     <xsl:with-param name="camel-case-text" select="translate(SubTypeName,'.','_')"  />
 </xsl:call-template>
@@ -145,7 +145,7 @@ from gwproto.named_types.</xsl:text>
 </xsl:variable>
 <xsl:if test="count($airtable//TypeAttributes/TypeAttribute[(VersionedType = $versioned-type-id) and (EnumLocalName[text() = $base-name])])>0">
 <xsl:text>
-from gwproto.enums import </xsl:text>
+from gwsproto.enums import </xsl:text>
 <xsl:value-of select="$enum-local-name"/>
 </xsl:if>
 </xsl:for-each>
@@ -158,7 +158,7 @@ import algosdk</xsl:text>
 </xsl:for-each>
 
 <xsl:text>
-from gwproto.property_format import (</xsl:text>
+from gwsproto.property_format import (</xsl:text>
 <xsl:for-each select="$airtable//PropertyFormats/PropertyFormat[(normalize-space(Name) !='')  and (count(TypesThatUse[text()=$versioned-type-id])>0)]">
 <xsl:sort select="Name" data-type="text"/>
 <xsl:choose>

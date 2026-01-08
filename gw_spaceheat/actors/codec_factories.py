@@ -1,28 +1,52 @@
 """Scada Codec"""
 
-from gwproactor import LinkSettings
 
-from gwproactor.codecs import CodecFactory
 from gwproactor.config.proactor_config import ProactorName
 from gwproto import HardwareLayout
 from gwproto import create_message_model
 
+from gwproto import MQTTCodec
+from gwproto.messages import (
+    Ack,
+    Ping,
+    ProblemEvent,
+    ShutdownEvent,
+    MQTTConnectEvent,
+    MQTTConnectFailedEvent,
+    MQTTDisconnectEvent,
+    MQTTFullySubscribedEvent,
+    ResponseTimeoutEvent,
+    PeerActiveEvent,
+)
+
+
+from gwproactor import LinkSettings
+from gwproactor.codecs import CodecFactory
+
+from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.house_0_names import H0N
 
 from actors.scada_interface import ScadaInterface
-from gwsproto.data_classes.house_0_layout import House0Layout
-
-from gwproto import MQTTCodec
-
-from gwsproto.data_classes.house_0_names import H0N
 
 
 
 ScadaMessageDecoder = create_message_model(
     "ScadaMessageDecoder",
-    [
+    module_names=[
         "gwsproto.named_types",
-        "gwproto.messages",
         "gwproactor.message",
+    ],
+    explicit_types=[
+        Ack,
+        Ping,
+        ProblemEvent,
+        ShutdownEvent,
+        MQTTConnectEvent,
+        MQTTConnectFailedEvent,
+        MQTTDisconnectEvent,
+        MQTTFullySubscribedEvent,
+        ResponseTimeoutEvent,
+        PeerActiveEvent,
     ],
 )
 

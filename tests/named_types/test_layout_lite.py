@@ -55,19 +55,7 @@ def test_layout_lite_generated() -> None:
                 "Version": "200",
             },
         ],
-        "SynthChannels": [
-            {
-                "Id": "99fb8f0e-3c7c-4b62-be5a-4f7a6376519f",
-                "Name": "required-swt",
-                "CreatedByNodeName": "homealone",
-                "TelemetryName": "WaterTempCTimes1000",
-                "TerminalAssetAlias": "d1.isone.ct.orange.ta",
-                "Strategy": "simple",
-                "SyncReportMinutes": 60,
-                "DisplayName": "Required Source Water Temp",
-                "TypeName": "synth.channel.gt",
-                "Version": "000",
-            }
+        "DerivedChannels": [
         ],
         "DataChannels": [
             {
@@ -274,7 +262,7 @@ def test_layout_lite_generated() -> None:
             "Version": "002",
         },
         "TypeName": "layout.lite",
-        "Version": "006",
+        "Version": "007",
     }
 
     d2 = LayoutLite.model_validate(d).model_dump(exclude_none=True)

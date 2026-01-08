@@ -5,10 +5,9 @@ from typing import Optional
 from typing import Sequence
 
 import dotenv
-from gwproto.data_classes.components.hubitat_component import HubitatComponent
-from gwproto.data_classes.components.hubitat_poller_component import HubitatPollerComponent
-from gwproto.data_classes.components.hubitat_tank_component import HubitatTankComponent
-from gwproto.data_classes.hardware_layout import LoadError
+from gwsproto.data_classes.components.hubitat_component import HubitatComponent
+from gwsproto.data_classes.components.hubitat_poller_component import HubitatPollerComponent
+from gwsproto.data_classes.components.hubitat_tank_component import HubitatTankComponent
 from rich import print
 from rich.table import Table
 from rich.text import Text
@@ -16,8 +15,10 @@ from rich.text import Text
 from actors.config import ScadaSettings
 from command_line_utils import get_requested_names
 from gw.errors import DcError
+from gwsproto.data_classes.hardware_layout import LoadError
 from gwsproto.data_classes.house_0_layout import House0Layout
-from gwproto.enums import ActorClass
+
+from gwsproto.enums import ActorClass
 
 from scada_app import ScadaApp
 

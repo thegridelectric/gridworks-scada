@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from gwproto.property_format import SpaceheatName
+from gwsproto.property_format import SpaceheatName
 
 class StateMachineSubscription(BaseModel):
     subscriber_name: SpaceheatName

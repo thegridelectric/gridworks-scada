@@ -1,18 +1,17 @@
-"""Implements I2cDfrMultiplexer"""
 import asyncio
 import time
 import smbus2
 from typing import Any, Dict, List, Optional, Sequence, cast
-
+from gw.errors import DcError
+from gwproto.message import Message
 from gwproactor import  MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
-from gwproto.data_classes.components.dfr_component import DfrComponent
+
+from gwsproto.data_classes.components.dfr_component import DfrComponent
 from gwsproto.data_classes.house_0_layout import House0Layout
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.message import Message
-from gwproto.enums import ActorClass, MakeModel
-from gwproto.named_types import AnalogDispatch, SingleReading
-from gw.errors import DcError
+from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.enums import ActorClass, MakeModel
+from gwsproto.named_types import AnalogDispatch, SingleReading
 
 from result import Err, Result
 from actors.sh_node_actor import ShNodeActor

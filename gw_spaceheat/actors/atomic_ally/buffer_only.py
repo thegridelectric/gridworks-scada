@@ -7,12 +7,12 @@ from gwsproto.data_classes.house_0_names import H0CN, H0N
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.data_classes.components.dfr_component import DfrComponent
+from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.data_classes.components.dfr_component import DfrComponent
 
-from gwproto.enums import ActorClass, FsmReportType, RelayClosedOrOpen
+from gwsproto.enums import ActorClass, FsmReportType, RelayClosedOrOpen
 from gwsproto.enums import AaBufferOnlyState, AaBufferOnlyEvent
-from gwproto.named_types import (
+from gwsproto.named_types import (
     AnalogDispatch, FsmAtomicReport, FsmFullReport,
     SyncedReadings,
 )

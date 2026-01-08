@@ -6,9 +6,10 @@ from pydantic import BaseModel
 from enum import auto
 from gw.enums import GwStrEnum
 from gwproto.message import Message
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.named_types import AnalogDispatch, FsmFullReport
-from gwproto.enums import ChangeRelayState
+
+from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.named_types import FsmFullReport
+from gwsproto.enums import ChangeRelayState
 from result import Ok, Result
 
 

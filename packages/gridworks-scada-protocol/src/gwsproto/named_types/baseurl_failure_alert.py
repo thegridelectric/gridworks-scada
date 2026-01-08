@@ -1,9 +1,8 @@
-"""Type baseurl.failure.alert, version 000"""
-
 from typing import Literal
 
-from gwproto.property_format import SpaceheatName
 from pydantic import BaseModel
+
+from gwsproto.property_format import SpaceheatName
 
 
 class BaseurlFailureAlert(BaseModel):
@@ -12,4 +11,4 @@ class BaseurlFailureAlert(BaseModel):
     BaseUrl: str
     Message: str
     TypeName: Literal["baseurl.failure.alert"] = "baseurl.failure.alert"
-    Version: str = "000"
+    Version: Literal["000"] = "000"

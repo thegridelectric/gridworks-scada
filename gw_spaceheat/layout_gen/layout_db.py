@@ -4,116 +4,26 @@ import subprocess
 import typing
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Optional, List, Sequence
+from typing import Any, Optional, List, Sequence
 import uuid
 
 from gw.errors import DcError
 
-from gwproto.type_helpers import CACS_BY_MAKE_MODEL
-from gwproto.enums import ActorClass
-from gwproto.enums import MakeModel
-from gwproto.enums import Unit
-from gwproto.enums import TelemetryName
-from gwproto.named_types import ComponentAttributeClassGt
-from gwproto.named_types import ComponentGt
-from gwproto.named_types import ElectricMeterCacGt
-from gwproto.named_types import SpaceheatNodeGt
-from gwproto.named_types import DataChannelGt
-from gwproto.named_types import SynthChannelGt
-from gwproto.named_types import ElectricMeterChannelConfig
-from gwproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
-from gwproto.property_format import SpaceheatName
-from gwproto.data_classes.telemetry_tuple import ChannelStub
+from gwsproto.type_helpers import CACS_BY_MAKE_MODEL
+from gwsproto.enums import ActorClass
+from gwsproto.enums import MakeModel
+from gwsproto.enums import Unit
+from gwsproto.enums import TelemetryName
+from gwsproto.named_types import ComponentAttributeClassGt
+from gwsproto.named_types import ComponentGt
+from gwsproto.named_types import ElectricMeterCacGt
+from gwsproto.named_types import SpaceheatNodeGt
+from gwsproto.named_types import DataChannelGt
+from gwsproto.named_types import ElectricMeterChannelConfig
+from gwsproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwsproto.data_classes.house_0_names import H0N, H0CN
-from gwsproto.enums import FlowManifoldVariant, HomeAloneStrategy
-
-class ChannelStubDb(ChannelStub):
-    CapturedByNodeName: SpaceheatName
-
-ChanneStubDbByName: Dict[str, ChannelStubDb] = {
-    H0CN.hp_odu_pwr: ChannelStubDb(
-        Name=H0CN.hp_odu_pwr,
-        AboutNodeName=H0N.hp_odu,
-        TelemetryName=TelemetryName.PowerW,
-        InPowerMetering=True,
-        CapturedByNodeName=H0N.primary_power_meter,
-    ),
-    H0CN.hp_idu_pwr: ChannelStubDb(
-        Name=H0CN.hp_idu_pwr,
-        AboutNodeName=H0N.hp_idu,
-        TelemetryName=TelemetryName.PowerW,
-        InPowerMetering=True,
-        CapturedByNodeName=H0N.primary_power_meter,
-    ),
-    H0CN.dist_pump_pwr: ChannelStubDb(
-        Name=H0CN.dist_pump_pwr,
-        AboutNodeName=H0N.dist_pump,
-        TelemetryName=TelemetryName.PowerW,
-        CapturedByNodeName=H0N.primary_power_meter,
-    ),
-     H0CN.primary_pump_pwr: ChannelStubDb(
-        Name=H0CN.primary_pump_pwr,
-        AboutNodeName=H0N.primary_pump,
-        TelemetryName=TelemetryName.PowerW,
-        CapturedByNodeName=H0N.primary_power_meter,
-    ),
-    H0CN.store_pump_pwr: ChannelStubDb(
-        Name=H0CN.store_pump_pwr,
-        AboutNodeName=H0N.store_pump,
-        TelemetryName=TelemetryName.PowerW,
-        CapturedByNodeName=H0N.primary_power_meter,
-    ),
-
-    H0CN.dist_swt: ChannelStubDb(
-        Name=H0CN.dist_swt,
-        AboutNodeName=H0N.dist_swt,
-        TelemetryName=TelemetryName.WaterTempCTimes1000,
-        CapturedByNodeName=H0N.analog_temp,
-    ),
-    H0CN.dist_rwt: ChannelStubDb(
-        Name=H0CN.dist_rwt,
-        AboutNodeName=H0N.dist_rwt,
-        TelemetryName=TelemetryName.WaterTempCTimes1000,
-        CapturedByNodeName=H0N.analog_temp,
-    ),
-    H0CN.hp_lwt: ChannelStubDb(
-        Name=H0CN.hp_lwt,
-        AboutNodeName=H0N.hp_lwt,
-        TelemetryName=TelemetryName.WaterTempCTimes1000,
-        CapturedByNodeName=H0N.analog_temp,
-    ),
-    H0CN.hp_ewt: ChannelStubDb(
-        Name=H0CN.hp_ewt,
-        AboutNodeName=H0N.hp_ewt,
-        TelemetryName=TelemetryName.WaterTempCTimes1000,
-        CapturedByNodeName=H0N.analog_temp,
-    ),
-    H0CN.store_hot_pipe: ChannelStubDb(
-        Name=H0CN.store_hot_pipe,
-        AboutNodeName=H0N.store_hot_pipe,
-        TelemetryName=TelemetryName.WaterTempCTimes1000,
-        CapturedByNodeName=H0N.analog_temp,
-    ),
-    H0CN.store_cold_pipe: ChannelStubDb(
-        Name=H0CN.store_cold_pipe,
-        AboutNodeName=H0N.store_cold_pipe,
-        TelemetryName=TelemetryName.WaterTempCTimes1000,
-        CapturedByNodeName=H0N.analog_temp,
-    ),
-    H0CN.buffer_hot_pipe: ChannelStubDb(
-        Name=H0CN.buffer_hot_pipe,
-        AboutNodeName=H0N.buffer_hot_pipe,
-        TelemetryName=TelemetryName.WaterTempCTimes1000,
-        CapturedByNodeName=H0N.analog_temp,
-    ),
-    H0CN.buffer_cold_pipe: ChannelStubDb(
-        Name=H0CN.buffer_cold_pipe,
-        AboutNodeName=H0N.buffer_cold_pipe,
-        TelemetryName=TelemetryName.WaterTempCTimes1000,
-        CapturedByNodeName=H0N.analog_temp,
-    ),
-
-}
+from gwsproto.enums import FlowManifoldVariant, GwUnit, HomeAloneStrategy
+from gwsproto.named_types import DerivedChannelGt, TankTempCalibration, TankTempCalibrationMap
 
 
 @dataclass
@@ -142,8 +52,7 @@ class LayoutIDMap:
     components_by_alias: dict[str, str]
     nodes_by_name: dict[str, str]
     channels_by_name: dict[str, str]
-    synth_channels_by_name: dict[str, str]
-    gnodes: dict[str, dict]
+    derived_channels_by_name: dict[str, str]
     zone_list: List[str]
     critical_zone_list: List[str]
     zone_kwh_per_deg_f_list: List[float]
@@ -154,8 +63,8 @@ class LayoutIDMap:
         self.components_by_alias = {}
         self.nodes_by_name = {}
         self.channels_by_name = {}
-        self.synth_channels_by_name = {}
-        self.gnodes = {}
+        self.derived_channels_by_name = {}
+        self.gnodes: dict[str, dict] = {}
         self.zone_list = []
         self.critical_zone_list = []
         self.zone_kwh_per_deg_f_list = []
@@ -196,10 +105,10 @@ class LayoutIDMap:
                                 raise Exception(
                                     f"ERROR in LayoutIDMap() for {k}:{channel}. Error: {type(e)}, <{e}>"
                                 )
-                elif k == "SynthChannels":
+                elif k == "DerivedChannels":
                         for channel in v:
                             try:
-                                self.add_synth_channel(
+                                self.add_derived_channel(
                                     channel["Id"],
                                     channel["Name"]
                                 )
@@ -250,8 +159,8 @@ class LayoutIDMap:
     def add_channel(self, id_: str, name: str):
         self.channels_by_name[name] = id_
 
-    def add_synth_channel(self, id_: str, name: str):
-        self.synth_channels_by_name[name] = id_
+    def add_derived_channel(self, id_: str, name: str):
+        self.derived_channels_by_name[name] = id_
 
     @classmethod
     def from_path(cls, path: Path) -> "LayoutIDMap":
@@ -283,55 +192,54 @@ class LayoutIDMap:
         return cls.from_path(dest_path)
 
 class LayoutDb:
-    lists: dict[str, list[ComponentAttributeClassGt | ComponentGt | SpaceheatNodeGt | DataChannelGt | SynthChannelGt]]
-    cacs_by_id: dict[str, ComponentAttributeClassGt]
-    components_by_id: dict[str, ComponentGt]
-    nodes_by_id: dict[str, SpaceheatNodeGt]
-    channels_by_id: dict[str, DataChannelGt]
-    synth_channels_by_id: dict[str, SynthChannelGt]
-    loaded: LayoutIDMap
-    maps: LayoutIDMap
-    misc: dict
-    terminal_asset_alias: str
 
     def __init__(
         self,
-        existing_layout: Optional[LayoutIDMap] = None,
-        cacs: Optional[list[ComponentAttributeClassGt]] = None,
-        components: Optional[list[ComponentGt]] = None,
-        nodes: Optional[list[SpaceheatNodeGt]] = None,
-        channels: Optional[list[DataChannelGt]] = None,
-        synth_channels: Optional[list[SynthChannelGt]] = None,
+        existing_layout: LayoutIDMap | None = None,
         add_stubs: bool = False,
         stub_config: Optional[StubConfig] = None,
+        *,
+        tmap: TankTempCalibrationMap | None = None,
     ):
-        self.lists = dict(OtherComponents=[])
-        self.cacs_by_id = {}
-        self.components_by_id = {}
+        self.lists: dict[
+            str,
+            list[
+                ComponentAttributeClassGt
+                | ComponentGt
+                | SpaceheatNodeGt
+                | DataChannelGt
+                | DerivedChannelGt
+            ]] = {}
+        self.misc: dict[str, Any] = {}
+
+        # TEMPORARY: gwproto HardwareLayout still expects SynthChannels.
+        # DerivedChannels are the real mechanism going forward.
+        self.lists["SynthChannels"] = []
+
+        self.lists["OtherComponents"] = []
+        self.cacs_by_id: dict[str, ComponentAttributeClassGt] = {}
+        self.components_by_id: dict[str, ComponentGt] = {}
         self.component_lists = {}
-        self.nodes_by_id = {}
-        self.channels_by_id = {}
-        self.synth_channels_by_id = {}
+        self.nodes_by_id: dict[str, SpaceheatNodeGt] = {}
+        self.channels_by_id: dict[str, DataChannelGt] = {}
+        self.derived_channels_by_id: dict[str, DerivedChannelGt] = {}
         self.misc = {}
         self.loaded = existing_layout or LayoutIDMap()
         self.maps = LayoutIDMap()
-        if cacs is not None:
-            self.add_cacs(cacs)
-        if components is not None:
-            self.add_components(components)
-        if nodes is not None:
-            self.add_nodes(nodes)
-        if channels is not None:
-            self.add_data_channels(channels)
-        if synth_channels is not None:
-            self.add_synth_channels(synth_channels)
-        
+
         if add_stubs:
-            self.add_stubs(stub_config)
+            self.add_stubs(stub_config,tmap=tmap)
     
     @property
     def terminal_asset_alias(self):
         return self.misc["MyTerminalAssetGNode"]["Alias"]
+
+    @property
+    def h0cn(self) -> H0CN:
+        return H0CN(
+            total_store_tanks = self.loaded.total_store_tanks,
+            zone_list=list(self.loaded.zone_list),
+        )
 
     def cac_id_by_alias(self, make_model: str) -> Optional[str]:
         return self.maps.cacs_by_alias.get(make_model, None)
@@ -345,22 +253,22 @@ class LayoutDb:
     def channel_id_by_name(self, name: str) -> Optional[str]:
         return self.maps.channels_by_name.get(name, None)
     
-    def synth_channel_id_by_name(self, name: str) -> Optional[str]:
-        return self.maps.synth_channels_by_name.get(name, None)
+    def derived_channel_id_by_name(self, name: str) -> Optional[str]:
+        return self.maps.derived_channels_by_name.get(name, None)
 
-    @classmethod
-    def make_cac_id(cls, make_model: MakeModel) -> str:
+    def make_cac_id(
+            self,
+            *,
+            make_model: MakeModel,
+            cac_alias: str | None = None,
+        ) -> str:
         if make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
-            return str(uuid.uuid4())
-        if type(make_model) is str:
-            if make_model in CACS_BY_MAKE_MODEL:
+            if cac_alias is None:
+                raise Exception("For unknown MakeModel, MUST include cac_alias")
+            return self.loaded.cacs_by_alias.get(cac_alias, str(uuid.uuid4()))
+        elif make_model in CACS_BY_MAKE_MODEL:
                 return CACS_BY_MAKE_MODEL[make_model]
-            else:
-                return str(uuid.uuid4())
-        elif make_model.value in CACS_BY_MAKE_MODEL:
-            return CACS_BY_MAKE_MODEL[str(make_model.value)]
-        else:
-            return str(uuid.uuid4())
+        raise Exception(f"Unknown MakeModel {make_model}")
 
     def make_component_id(self, component_alias: str) -> str:
         return self.loaded.components_by_alias.get(component_alias, str(uuid.uuid4()))
@@ -371,8 +279,8 @@ class LayoutDb:
     def make_channel_id(self, name: str) -> str:
         return self.loaded.channels_by_name.get(name, str(uuid.uuid4()))
     
-    def make_synth_channel_id(self, name: str) -> str:
-        return self.loaded.synth_channels_by_name.get(name, str(uuid.uuid4()))
+    def make_derived_channel_id(self, name: str) -> str:
+        return self.loaded.derived_channels_by_name.get(name, str(uuid.uuid4()))
 
     def add_cacs(self, cacs:list[ComponentAttributeClassGt], layout_list_name: str = "OtherCacs"):
         for cac in cacs:
@@ -382,10 +290,14 @@ class LayoutDb:
                     "already present"
                 )
             self.cacs_by_id[cac.ComponentAttributeClassId] = cac
+            if cac.DisplayName is None:
+                display_name = ""
+            else:
+                display_name = cac.DisplayName
             self.maps.add_cacs_by_alias(
                     cac.ComponentAttributeClassId,
                     cac.MakeModel,
-                    cac.DisplayName,
+                    display_name,
                 )
 
             if layout_list_name not in self.lists:
@@ -449,23 +361,22 @@ class LayoutDb:
                 self.lists[layout_list_name] = []
             self.lists[layout_list_name].append(dc)
 
-    def add_synth_channels(self, scs: list[SynthChannelGt]):
-        for sc in scs:
-            if sc.Id in self.synth_channels_by_id:
+    def add_derived_channels(self, dcs: list[DerivedChannelGt]):
+        for dc in dcs:
+            if dc.Id in self.derived_channels_by_id:
                 raise ValueError(
-                    f"ERROR synth channel id {sc.Id} already present."
+                    f"ERROR derived channel id {dc.Id} already present."
                 )
-            if sc.Name in self.maps.synth_channels_by_name:
+            if dc.Name in self.maps.derived_channels_by_name:
                 raise ValueError(
-                    f"ERROR Synth Channel name {sc.Name} already present"
+                    f"ERROR Derived Channel name {dc.Name} already present"
                 )
-            self.synth_channels_by_id[sc.Id] = sc
-            self.maps.add_synth_channel(sc.Id, sc.Name)
-            layout_list_name = "SynthChannels"
+            self.derived_channels_by_id[dc.Id] = dc
+            self.maps.add_derived_channel(dc.Id, dc.Name)
+            layout_list_name = "DerivedChannels"
             if layout_list_name not in self.lists:
                 self.lists[layout_list_name] = []
-            self.lists[layout_list_name].append(sc)
-        
+            self.lists[layout_list_name].append(dc)
 
     def add_stub_power_meter(self, cfg: Optional[StubConfig] = None):
         if cfg is None:
@@ -573,7 +484,31 @@ class LayoutDb:
             ]
         )
 
-    def add_stub_scadas(self, cfg: Optional[StubConfig] = None):
+    def add_stub_scadas(
+            self,
+            cfg: Optional[StubConfig] = None,
+            *,
+            tmap: TankTempCalibrationMap | None = None,
+        ):
+        if tmap is None:
+            tmap = TankTempCalibrationMap(
+                Buffer=TankTempCalibration(),
+                Tank={
+                    i: TankTempCalibration()
+                    for i in range(1, self.loaded.total_store_tanks + 1)
+                },
+            )
+        else:
+            expected = self.loaded.total_store_tanks
+            actual = len(tmap.Tank)
+
+            if actual != expected:
+                raise ValueError(
+                    "TankTempCalibrationMap mismatch with layout: "
+                    f"layout has {expected} tanks, "
+                    f"but calibration map has {actual}"
+                )
+
         if cfg is None:
             cfg = StubConfig()
         if self.loaded.gnodes:
@@ -675,11 +610,12 @@ class LayoutDb:
                     DisplayName="Pico Cycler - responsible for power cycling the 5VDC bus",
                 ),
                 SpaceheatNodeGt(
-                    ShNodeId=self.make_node_id(H0N.synth_generator),
-                    Name=H0N.synth_generator,
-                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.synth_generator}",
-                    ActorClass=ActorClass.SynthGenerator,
-                    DisplayName="Synth Generator",
+                    ShNodeId=self.make_node_id(H0N.derived_generator),
+                    Name=H0N.derived_generator,
+                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.derived_generator}",
+                    ActorClass=ActorClass.DerivedGenerator,
+                    DisplayName="Derived Generator",
+                    TankTempCalibrationMap=tmap
                 ),
                 SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.home_alone),
@@ -722,6 +658,7 @@ class LayoutDb:
                 
             ]
         )
+
         if cfg.use_sieg_loop:
             self.add_nodes(
                 [
@@ -736,24 +673,66 @@ class LayoutDb:
                 ]
             )
 
-            self.add_synth_channels(
-                [SynthChannelGt(
-                Id = self.make_synth_channel_id(H0CN.hp_keep_seconds_x_10),
+            self.add_derived_channels(
+                [DerivedChannelGt(
+                Id = self.make_derived_channel_id(H0CN.hp_keep_seconds_x_10),
                 Name = H0CN.hp_keep_seconds_x_10,
                 CreatedByNodeName = H0N.sieg_loop,
-                TelemetryName = TelemetryName.Unknown,
                 TerminalAssetAlias = self.terminal_asset_alias,
                 Strategy = "Integrate relay motion",
                 DisplayName = "Percent keep in the Siegenthaler loop",
-                SyncReportMinutes = 1
                 )
             ]
             )
 
-    def add_stubs(self, cfg: Optional[StubConfig] = None):
+        self.add_house0_derived_channels()
+
+    def add_house0_derived_channels(self) -> None:
+        channels = [
+            DerivedChannelGt(
+                Id = self.make_derived_channel_id(H0CN.usable_energy),
+                Name = H0CN.usable_energy,
+                CreatedByNodeName = H0N.derived_generator,
+                OutputUnit=GwUnit.WattHours,
+                TerminalAssetAlias = self.terminal_asset_alias,
+                Strategy = "layer-by-layer",
+                DisplayName = "Usable Energy Wh",
+                ),
+            DerivedChannelGt(
+                Id = self.make_derived_channel_id(H0CN.required_energy),
+                Name = H0CN.required_energy,
+                CreatedByNodeName = H0N.derived_generator,
+                OutputUnit=GwUnit.WattHours,
+                TerminalAssetAlias = self.terminal_asset_alias,
+                Strategy = "layer-by-layer",
+                DisplayName = "Required Energy Wh",
+                ),
+            ]
+
+        effective_channels: list[str] = sorted(self.h0cn.buffer.effective)
+        for tank in self.h0cn.tank.values():
+            effective_channels.extend(sorted(tank.effective))
+        for cn in effective_channels:
+            channels.append(
+                DerivedChannelGt(Id = self.make_derived_channel_id(cn),
+                Name = cn,
+                CreatedByNodeName = H0N.derived_generator,
+                OutputUnit=GwUnit.FahrenheitX100,
+                TerminalAssetAlias = self.terminal_asset_alias,
+                Strategy = "linear-fit",
+                DisplayName = f"{cn.replace('-', ' ').title()} Effective Temperature",
+                )
+            )
+
+        self.add_derived_channels(channels)
+
+    def add_stubs(self, 
+                  cfg: Optional[StubConfig] = None,
+                  *,
+                  tmap: TankTempCalibrationMap | None = None):
         if cfg is None:
             cfg = StubConfig()
-        self.add_stub_scadas(cfg)
+        self.add_stub_scadas(cfg, tmap=tmap)
         if cfg.add_stub_power_meter:
             self.add_stub_power_meter(cfg)
         

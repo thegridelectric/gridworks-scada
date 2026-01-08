@@ -4,25 +4,24 @@ from typing import Any, Optional
 
 from gwproactor import PrimeActor
 from gwproactor import ProactorLogger
-from gwproactor import AppInterface
 from gwproto.message import Header
 from gwproto.message import Message
-from gwproto.named_types import PowerWatts, Report, SyncedReadings
 
 from actors import ContractHandler
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.data_classes.house_0_layout import House0Layout
 
-from gwproto.data_classes.sh_node import ShNode
+from gwsproto.data_classes.sh_node import ShNode
 
 from actors.config import ScadaSettings
 from gwproactor import QOS
 from gwproactor.message import MQTTReceiptPayload
+from gwsproto.named_types import PowerWatts, Report, SyncedReadings
 from actors.codec_factories import Scada2CodecFactory
 from gwsproto.named_types import Glitch, SnapshotSpaceheat
 from actors.scada_interface import ScadaInterface
 
-
+from scada_app_interface import ScadaAppInterface
 
 class Scada2Data:
     latest_snap: Optional[SnapshotSpaceheat]
@@ -38,10 +37,11 @@ class Parentless(PrimeActor, ScadaInterface):
     _data: Scada2Data
     _publication_name: str
 
-    def __init__(self, name: str, services: AppInterface) -> None:
+    def __init__(self, name: str, services: ScadaAppInterface) -> None:
         if not isinstance(services.hardware_layout, House0Layout):
             raise Exception("Make sure to pass House0Layout object as hardware_layout!")
         super().__init__(name, services)
+        self._actor_node = services.hardware_layout.node(name)
         self._data = Scada2Data()
 
     @property
@@ -64,12 +64,8 @@ class Parentless(PrimeActor, ScadaInterface):
         """Called after constructor so derived functions can be used in setup."""
 
     @property
-    def name(self):
-        return self.services.name
-
-    @property
     def node(self) -> ShNode:
-        return self._node
+        return self.layout.node(self.name)
 
     @property
     def publication_name(self) -> str:

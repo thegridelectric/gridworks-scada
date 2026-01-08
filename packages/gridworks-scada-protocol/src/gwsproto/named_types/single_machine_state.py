@@ -1,8 +1,6 @@
-"""Type single.machine.state, version 000"""
-
 from typing import Literal, Optional
 
-from gwproto.property_format import HandleName, LeftRightDotStr, UTCMilliseconds
+from gwsproto.property_format import HandleName, LeftRightDotStr, UTCMilliseconds
 from pydantic import BaseModel, model_validator
 from typing_extensions import Self
 
@@ -18,7 +16,7 @@ class SingleMachineState(BaseModel):
     UnixMs: UTCMilliseconds
     Cause: Optional[str] = None
     TypeName: Literal["single.machine.state"] = "single.machine.state"
-    Version: str = "000"
+    Version: Literal["000"] = "000"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

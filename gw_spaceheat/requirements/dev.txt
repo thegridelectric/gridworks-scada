@@ -67,7 +67,7 @@ gridworks-cert==0.4.6
     # via
     #   -r gw_spaceheat/requirements/dev.in
     #   gridworks-proactor
-gridworks-proactor[tests]==4.1.10
+gridworks-proactor[tests] @ git+https://github.com/thegridelectric/gridworks-proactor.git@v4.1.13+jm1
     # via
     #   -r /Users/jessica/Coding/gridworks-scada/gw_spaceheat/requirements/base.in
     #   -r gw_spaceheat/requirements/dev.in

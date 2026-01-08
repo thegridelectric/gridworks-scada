@@ -16,7 +16,7 @@ from gwproto import MQTTTopic
 from gwadmin.config import ScadaConfig
 from gwsproto.data_classes.house_0_names import H0N
 
-from gwproto.named_types import SendSnap
+from gwsproto.named_types import SendSnap
 from paho.mqtt.client import MQTTMessageInfo
 from pydantic import BaseModel
 from result import Result
@@ -122,6 +122,7 @@ class AdminClient:
             paho_logger=paho_logger,
         )
         self._logger = logger
+        self._logger.info("AdminClient initialized for scada=%s", settings.curr_scada)
 
     @property
     def curr_scada(self) -> str:
@@ -254,6 +255,12 @@ class AdminClient:
 
     def _process_layout_lite(self, payload: bytes) -> None:
         message = Message[LayoutLite].model_validate_json(payload)
+        self._logger.info(
+            "LayoutLite received: %s (channels=%d, derived=%d)",
+            message.Payload.FromGNodeAlias,
+            len(message.Payload.DataChannels),
+            len(message.Payload.DerivedChannels),
+        )
         self._layout = message.Payload
         self._request_snapshot()
         for subclient in self.subclients():

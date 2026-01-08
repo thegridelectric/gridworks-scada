@@ -1,11 +1,9 @@
-
-"""Type set.lwt.control.params, version 000"""
 import time
 from typing import Literal
 
-from gwproto.property_format import HandleName, UTCMilliseconds
 from pydantic import BaseModel, PositiveInt, Field
-from typing_extensions import Self
+
+from gwsproto.property_format import HandleName, UTCMilliseconds
 
 
 class SetLwtControlParams(BaseModel):
@@ -19,4 +17,4 @@ class SetLwtControlParams(BaseModel):
     T2: PositiveInt
     CreatedMs:  UTCMilliseconds = Field(default_factory=lambda: int(time.time() * 1000))
     TypeName: Literal["set.lwt.control.params"] = "set.lwt.control.params"
-    Version: str = "000"
+    Version: Literal["000"] = "000"

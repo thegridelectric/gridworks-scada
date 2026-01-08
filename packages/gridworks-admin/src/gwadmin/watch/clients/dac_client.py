@@ -12,10 +12,10 @@ from typing import Sequence
 
 from gwproto import Message as GWMessage
 from gwproto import MQTTTopic
-from gwproto.enums import ActorClass
-from gwproto.named_types import AnalogDispatch
+from gwsproto.enums import ActorClass
+from gwsproto.named_types import AnalogDispatch
 
-from gwproto.named_types import SingleReading
+from gwsproto.named_types import SingleReading
 from pydantic import BaseModel
 from pydantic import model_validator
 

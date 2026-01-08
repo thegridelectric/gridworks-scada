@@ -1,10 +1,10 @@
-"""Type set.target.lwt, version 000"""
 import time
 from typing import Literal
-
-from gwproto.property_format import HandleName, UTCMilliseconds
-from pydantic import BaseModel, PositiveInt, Field, model_validator
 from typing_extensions import Self
+
+from pydantic import BaseModel, PositiveInt, Field, model_validator
+
+from gwsproto.property_format import HandleName, UTCMilliseconds
 
 class SetTargetLwt(BaseModel):
     FromHandle: HandleName
@@ -12,7 +12,7 @@ class SetTargetLwt(BaseModel):
     TargetLwtF: PositiveInt
     CreatedMs: UTCMilliseconds = Field(default_factory=lambda: int(time.time() * 1000))
     TypeName: Literal["set.target.lwt"] = "set.target.lwt"
-    Version: str = "000"
+    Version: Literal["000"] = "000"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
