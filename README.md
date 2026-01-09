@@ -176,6 +176,7 @@ This will generate a simulated hardware layout in `outputs/orange.generated.json
 
 ```
 SCADA_PATHS__HARDWARE_LAYOUT="../tlayouts/output/orange.generated.json"
+ATN_PATHS__HARDWARE_LAYOUT="../tlayouts/output/orange.generated.json"
 ```
 
 ## Testing
