@@ -284,7 +284,7 @@ class Atn(PrimeActor):
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
         self.price_forecast: Optional[PriceForecast] = None
         self.data_channels: List
-        self.temperature_channel_names = None
+        self.tank_temp_channel_names = None
         self.ha1_params: Optional[Ha1Params] = None
         self.latest_report: Optional[Report] = None
         self.report_output_dir = Path(f"{self.settings.paths.data_dir}/report")
@@ -534,8 +534,8 @@ class Atn(PrimeActor):
             self.logger.warning(self.snapshot_str(snapshot))
         for reading in snapshot.LatestReadingList:
             self.latest_channel_values[reading.ChannelName] = reading.Value
-        if self.is_simulated and self.temperature_channel_names is not None:
-            for channel in self.temperature_channel_names:
+        if self.is_simulated and self.tank_temp_channel_names is not None:
+            for channel in self.tank_temp_channel_names:
                 self.latest_channel_values[channel] = 60000
 
     def process_layout_lite(self, layout: LayoutLite) -> None:
@@ -556,11 +556,11 @@ class Atn(PrimeActor):
         self.total_store_tanks = layout.TotalStoreTanks
         self.log(f"FLO strategy: {self.strategy}")
 
-        self.temperature_channel_names = [
-            x.Name
-            for x in layout.DataChannels
-            if "depth" in x.Name and "micro-v" not in x.Name
-        ]
+        self.tank_temp_channel_names = list(H0CN.buffer.effective)
+        for tank_idx in sorted(self.layout.h0cn.tank):
+            tank = self.layout.h0cn.tank[tank_idx]
+            self.tank_temp_channel_names.extend([tank.depth1, tank.depth2, tank.depth3])
+
         if self.contract_handler.layout_received is False:
             self.contract_handler.layout_received = True # Necessary for bids & contracts
             self.log("Received layout data - ATN now ready for contract operations")
@@ -923,7 +923,7 @@ class Atn(PrimeActor):
 
     def fill_missing_store_temps(self):
         all_store_layers = sorted(
-            [x for x in self.temperature_channel_names if "tank" in x]
+            [x for x in self.tank_temp_channel_names if "tank" in x]
         )
         for layer in all_store_layers:
             if (
@@ -945,13 +945,13 @@ class Atn(PrimeActor):
         }
 
     def get_latest_temperatures(self):
-        if self.temperature_channel_names is None:
+        if self.tank_temp_channel_names is None:
             self.temperatures_available = False
             self.log("Can't get latest temperatures, don't have temperature channel names!")
             return
         if not self.settings.is_simulated:
             temps = {}
-            for ch_name in self.temperature_channel_names:
+            for ch_name in self.tank_temp_channel_names:
                 raw = self.latest_channel_values.get(ch_name)
                 if raw is None:
                     continue
@@ -975,14 +975,14 @@ class Atn(PrimeActor):
         else:
             self.log("IN SIMULATION - set all temperatures to 60 degC")
             self.latest_temps_f = {}
-            for channel_name in self.temperature_channel_names:
+            for channel_name in self.tank_temp_channel_names:
                 self.latest_temps_f[channel_name] = 140.0
-        if list(self.latest_temps_f.keys()) == self.temperature_channel_names:
+        if list(self.latest_temps_f.keys()) == self.tank_temp_channel_names:
             self.temperatures_available = True
         else:
             self.temperatures_available = False
             all_buffer = [
-                x for x in self.temperature_channel_names if "buffer-depth" in x
+                x for x in self.tank_temp_channel_names if "buffer-depth" in x
             ]
             available_buffer = [
                 x for x in list(self.latest_temps_f.keys()) if "buffer-depth" in x
@@ -1043,7 +1043,7 @@ class Atn(PrimeActor):
 
     async def get_three_layer_storage_model(self) -> Optional[Tuple[float, int, int, int, int]]:
         # Get all storage tank temperatures in a dict
-        if self.temperature_channel_names is None:
+        if self.tank_temp_channel_names is None:
             self.send_layout()
             await asyncio.sleep(5)
         self.get_latest_temperatures()
@@ -1051,7 +1051,7 @@ class Atn(PrimeActor):
             self.log("Not enough tank temperatures available to compute top temperature and thermocline!")
             return None
         all_layers = sorted(
-            [x for x in self.temperature_channel_names if ("buffer" if self.strategy == HomeAloneStrategy.ShoulderTou else "tank") in x]
+            [x for x in self.tank_temp_channel_names if ("buffer" if self.strategy == HomeAloneStrategy.ShoulderTou else "tank") in x]
         )
         try:
             tank_temps = {
@@ -1157,7 +1157,7 @@ class Atn(PrimeActor):
     async def get_buffer_available_kwh(self):
         if self.strategy == HomeAloneStrategy.ShoulderTou:
             return 0
-        if self.temperature_channel_names is None:
+        if self.tank_temp_channel_names is None:
             self.send_layout()
             await asyncio.sleep(5)
         self.get_latest_temperatures()
