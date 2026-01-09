@@ -10,6 +10,7 @@ from textual.containers import HorizontalGroup
 from textual.logging import TextualHandler
 from textual.widgets import Button
 from textual.widgets import DataTable
+from textual.widgets import Digits
 from textual.widgets import Header, Footer
 from textual.widgets import Input
 from textual.widgets import Select
@@ -34,6 +35,31 @@ __version__: str = importlib.metadata.version('gridworks-admin')
 
 logger = logging.getLogger(__name__)
 logger.addHandler(TextualHandler())
+
+class ActiveScadaBanner(Static):
+    """Large, high-salience indicator of the currently selected SCADA."""
+
+    DEFAULT_CSS = """
+    ActiveScadaBanner {
+        background: #4b1f6f;
+        border: round #6f3fa5;
+        height: 5;
+        min-width: 26;
+        align: center middle;
+        padding: 0 3;
+    }
+    """
+
+    def __init__(self, scada: str, **kwargs):
+        super().__init__(**kwargs)
+        self._digits = Digits()
+        self._digits.update(scada.upper())
+
+    def compose(self):
+        yield self._digits
+
+    def set_scada(self, scada: str) -> None:
+        self._digits.update(scada.upper())
 
 
 class RelaysApp(App):
@@ -91,28 +117,30 @@ class RelaysApp(App):
         else:
             selected_scada_block_classes = "undisplayed"
         yield Header(show_clock=self.settings.config.show_clock)
+        self.active_scada_banner = ActiveScadaBanner(
+            self.settings.curr_scada,
+            id="active_scada_banner",
+        )
+
         yield Horizontal(
             Static(
                 "Selected scada:",
-                id="select_scada_label"),
-                Select(
-                    (
-                        (scada, scada) for scada in [
-                            scada_name
-                            for scada_name, scada_config in self.settings.config.scadas.items()
-                            if scada_config.enabled
-                        ]
-                    ),
-                    value=self.settings.curr_scada,
-                    id="select_scada",
-                    allow_blank=False,
+                id="select_scada_label"
+            ),
+            Select(
+                (
+                    (scada, scada) for scada in [
+                        scada_name
+                        for scada_name, scada_config in self.settings.config.scadas.items()
+                        if scada_config.enabled
+                    ]
                 ),
-                MqttState(id="mqtt_state"),
-                Static(
-                    self.settings.curr_scada,
-                    id="selected_scada_label",
-                    classes=selected_scada_block_classes,
-                ),
+                value=self.settings.curr_scada,
+                id="select_scada",
+                allow_blank=False,
+            ),
+            MqttState(id="mqtt_state"),
+            self.active_scada_banner,
             id="select_scada_container",
             classes="section"
         )
@@ -230,8 +258,8 @@ class RelaysApp(App):
             if self.settings.config.use_last_scada:
                 self.settings.save_curr_scada(self.settings.curr_scada)
             self.sub_title = self.format_sub_title()
-            self.query_one("#selected_scada_label", Static).content = self.settings.curr_scada
             self._admin_client.switch_scada()
+            self.active_scada_banner.set_scada(self.settings.curr_scada)
 
 
 if __name__ == "__main__":
