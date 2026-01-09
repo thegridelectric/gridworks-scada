@@ -243,14 +243,14 @@ class AllTanksAtomicAlly(ShNodeActor):
                     self.no_temps_since = None
                     if self.hp_should_be_off():
                         if (
-                            self.is_buffer_empty()
+                            self.is_buffer_empty(short_cycles=True)
                             and not self.is_storage_colder_than_buffer()
                         ):
                             self.trigger_event(AtomicAllyEvent.NoElecBufferEmpty)
                         else:
                             self.trigger_event(AtomicAllyEvent.NoElecBufferFull)
                     else:
-                        if self.is_buffer_empty() or self.is_storage_full():
+                        if self.is_buffer_empty(short_cycles=True) or self.is_storage_full():
                             self.trigger_event(AtomicAllyEvent.ElecBufferEmpty)
                         else:
                             self.trigger_event(AtomicAllyEvent.ElecBufferFull)
@@ -290,19 +290,19 @@ class AllTanksAtomicAlly(ShNodeActor):
             elif self.state == AtomicAllyState.HpOnStoreCharge:
                 if self.hp_should_be_off():
                     self.trigger_event(AtomicAllyEvent.NoMoreElec)
-                elif self.is_buffer_empty() or self.is_storage_full():
+                elif self.is_buffer_empty(short_cycles=True) or self.is_storage_full():
                     self.trigger_event(AtomicAllyEvent.ElecBufferEmpty)
 
             # 3
             elif self.state == AtomicAllyState.HpOffStoreOff:
                 if self.hp_should_be_off():
                     if (
-                        self.is_buffer_empty()
+                        self.is_buffer_empty(short_cycles=True)
                         and not self.is_storage_colder_than_buffer()
                     ):
                         self.trigger_event(AtomicAllyEvent.NoElecBufferEmpty)
                 else:
-                    if self.is_buffer_empty() or self.is_storage_full():
+                    if self.is_buffer_empty(short_cycles=True) or self.is_storage_full():
                         self.trigger_event(AtomicAllyEvent.ElecBufferEmpty)
                     else:
                         self.trigger_event(AtomicAllyEvent.ElecBufferFull)
@@ -316,7 +316,7 @@ class AllTanksAtomicAlly(ShNodeActor):
                     ):
                         self.trigger_event(AtomicAllyEvent.NoElecBufferFull)
                 else:
-                    if self.is_buffer_empty() or self.is_storage_full():
+                    if self.is_buffer_empty(short_cycles=True) or self.is_storage_full():
                         self.trigger_event(AtomicAllyEvent.ElecBufferEmpty)
                     else:
                         self.trigger_event(AtomicAllyEvent.ElecBufferFull)

@@ -1165,7 +1165,7 @@ class ShNodeActor(Actor, ABC):
     def buffer_temps_available(self):
         return self.data.buffer_temps_available
 
-    def is_buffer_empty(self) -> bool:
+    def is_buffer_empty(self, short_cycles=False) -> bool:
         """
         Returns True if the buffer does not contain enough usable heat
         to meet the near-term required return-water temperature.
@@ -1185,6 +1185,9 @@ class ShNodeActor(Actor, ABC):
             # No meaningful buffer temperature available
             self.log("is_buffer_empty: no buffer temperature channel available")
             return False
+        
+        if short_cycles and H0CN.buffer.depth3 in self.latest_temps_f:
+            buffer_top_ch = H0CN.buffer.depth3
 
         if self.heating_forecast is None:
             # Cannot reason about emptiness without forecast context
