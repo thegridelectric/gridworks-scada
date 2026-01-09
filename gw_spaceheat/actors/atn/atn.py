@@ -31,6 +31,8 @@ from gwproto.messages import (
     PeerActiveEvent,
 )
 
+from gwproto.enums import StoreFlowRelay
+
 from gwproactor import CodecFactory
 from gwproactor import LinkSettings
 from gwproactor import PrimeActor
@@ -272,6 +274,7 @@ class AtnData:
 class Atn(PrimeActor):
     MAIN_LOOP_SLEEP_SECONDS = 61
     HEARTBEAT_INTERVAL_S = 60
+    PUMP_FLOW_GPM_THRESHOLD = 0.1
     P_NODE = "hw1.isone.ver.keene"
     SCADA_MQTT = "scada_mqtt"
     data: AtnData
@@ -286,6 +289,7 @@ class Atn(PrimeActor):
         self.data = AtnData(self.layout)
         self.is_simulated = self.settings.is_simulated
         self.latest_channel_values: Dict[str, int] = {}
+        self.latest_machine_state: Dict[str, MachineStates] = {}
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.latitude = self.settings.latitude
         self.longitude = self.settings.longitude
@@ -546,6 +550,8 @@ class Atn(PrimeActor):
             self.logger.warning(self.snapshot_str(snapshot))
         for reading in snapshot.LatestReadingList:
             self.latest_channel_values[reading.ChannelName] = reading.Value
+        for state in snapshot.LatestStateList:
+            self.latest_machine_state[state.MachineHandle] = state
         if self.is_simulated and self.temperature_channel_names is not None:
             for channel in self.temperature_channel_names:
                 self.latest_channel_values[channel] = 60000
@@ -779,7 +785,7 @@ class Atn(PrimeActor):
             return
         t, m, b, th1, th2 = result
 
-        buffer_available_kwh = await self.get_buffer_available_kwh()
+        buffer_available_kwh, buffer_missing_kwh, buffer_mode = await self.get_buffer_status()
         house_available_kwh = await self.get_house_available_kwh()
         if self.price_forecast is None:
             self.log("Not running flo - no price forecast")
@@ -815,6 +821,8 @@ class Atn(PrimeActor):
             DdDeltaTF=self.ha1_params.DdDeltaTF,
             MaxEwtF=self.ha1_params.MaxEwtF,
             HpIsOff=self.hp_is_off,
+            BufferMode=buffer_mode,
+            BufferMissingKwh=buffer_missing_kwh,
             BufferAvailableKwh=buffer_available_kwh,
             HouseAvailableKwh=house_available_kwh
         )
@@ -997,8 +1005,8 @@ class Atn(PrimeActor):
             alpha = self.ha1_params.AlphaTimes10 / 10
             beta = self.ha1_params.BetaTimes100 / 100
             gamma = self.ha1_params.GammaEx6 / 1e6
-            oat = self.weather_forecast["oat"][0]
-            ws = self.weather_forecast["ws"][0]
+            oat = float(self.weather_forecast["oat"][0])
+            ws = float(self.weather_forecast["ws"][0])
             r = alpha + beta*oat + gamma*ws
             rhp= r if r>0 else 0
             intermediate_rswt = self.ha1_params.IntermediateRswtF
@@ -1015,8 +1023,8 @@ class Atn(PrimeActor):
             deltaT = self.ha1_params.DdDeltaTF/self.ha1_params.DdPowerKw * (a*rswt**2 + b*rswt + c)
             deltaT = deltaT if deltaT>0 else 0
             if minus_deltaT:
-                return rswt - deltaT
-            return rswt
+                return round(float(rswt-deltaT),2)
+            return round(float(rswt),2)
         except:
             self.log("Could not find RSWT!")
             return None
@@ -1150,7 +1158,131 @@ class Atn(PrimeActor):
                 thermocline1 = 12
                 self.log(f"Storage model: {top_temp}({thermocline1})")
                 return top_temp, top_temp, top_temp, thermocline1, thermocline1
-    
+
+    def discharging_store(self) -> bool:
+        """
+        Returns True if the system is actively discharging the store:
+        - the charge/discharge relay is set to DischargingStore
+        - and the store pump is moving water above threshold
+        """
+        relay_state = self.latest_machine_state.get(
+            self.layout.node(H0N.store_charge_discharge_relay).name
+        )
+
+        if relay_state != StoreFlowRelay.DischargingStore:
+            return False
+
+        store_flow = self.latest_channel_values.get(H0CN.store_flow) or 0
+
+        return store_flow > self.PUMP_FLOW_GPM_THRESHOLD * 100
+
+    def flowing_from_hp_to_house(self) -> bool:
+        """
+        Returns True if the water is flowing from heat pump to buffer/dist
+
+        Conditions:
+        - charge/discharge relay is set to DischargingStore
+        - primary pump is moving water above threshold
+        - Store is not being charged
+        """
+        relay_state = self.latest_machine_state.get(
+            self.layout.node(H0N.store_charge_discharge_relay).name
+        )
+        if relay_state != StoreFlowRelay.DischargingStore:
+            return False
+
+        primary_flow = self.latest_channel_values.get(H0CN.primary_flow) or 0
+        return primary_flow > self.PUMP_FLOW_GPM_THRESHOLD * 100
+
+
+    async def get_buffer_status(self):
+        # Initialize
+        if self.strategy == HomeAloneStrategy.ShoulderTou:
+            return 0
+        if self.temperature_channel_names is None:
+            self.send_layout()
+            await asyncio.sleep(5)
+        self.get_latest_temperatures()
+        buffer_temperatures: Dict[str, float] = {
+            k: self.to_fahrenheit(v/1000)
+            for k,v in self.latest_temperatures.items() 
+            if 'buffer' in k and v is not None
+        }
+        if not buffer_temperatures:
+            self.log("Missing temperatures in get_buffer_available_kwh, returning 0 kWh")
+            return 0
+
+        rswt = await self.get_RSWT(minus_deltaT=False)
+        rswt_minus_deltaT = await self.get_RSWT(minus_deltaT=True)
+        m_layer_kg = 120/4 * 3.785
+
+        # -------------------------------------------------------------
+        # Buffer is being charged by the heat pump
+        # -------------------------------------------------------------
+        if self.flowing_from_hp_to_house():
+            buffer_missing_energy_before_full = 0
+            for buffer_depth in buffer_temperatures:
+                if buffer_temperatures[buffer_depth] < rswt:
+                    buffer_missing_energy_before_full += - m_layer_kg * 4.187/3600 * (rswt - buffer_temperatures[buffer_depth]) * 5/9
+            current_mode = "heating_buffer_from_hp"
+            return buffer_available_energy_before_charge, buffer_missing_energy_before_full, current_mode
+            
+            # BELONGS IN FLO CODE
+            # buffer_minutes_before_full = ...
+            # buffer_energy_lost_by_discharge = ...
+            # buffer_heat_in = buffer_missing_energy_before_full - buffer_energy_lost_by_discharge
+
+        # -------------------------------------------------------------
+        # Buffer is being charged by the store
+        # -------------------------------------------------------------
+        elif self.discharging_store():
+            buffer_missing_energy_before_full = 0
+            for buffer_depth in buffer_temperatures:
+                # This needs to be corrected based on the temperatures in the store
+                if buffer_temperatures[buffer_depth] < rswt:
+                    buffer_missing_energy_before_full += - m_layer_kg * 4.187/3600 * (rswt - buffer_temperatures[buffer_depth]) * 5/9
+            current_mode = "heating_buffer_from_store"
+            return buffer_available_energy_before_charge, buffer_missing_energy_before_full, current_mode
+            
+            # BELONGS IN FLO CODE
+            # buffer_minutes_before_full = ...
+            # buffer_energy_lost_by_discharge = ...
+            # buffer_heat_in = buffer_missing_energy_before_full - buffer_energy_lost_by_discharge
+
+        # -------------------------------------------------------------
+        # Buffer is not being charged
+        # -------------------------------------------------------------
+        else:
+            # Get the amount of energy left before we start charging the buffer
+            buffer_available_energy_before_charge = 0
+            if buffer_temperatures[H0CN.buffer.depth1] > rswt_minus_deltaT:
+                return_temp = min(
+                    self.latest_temperatures[H0CN.buffer.depth1],
+                    self.latest_temperatures[H0CN.buffer.depth2],
+                    self.latest_temperatures[H0CN.buffer.depth3],
+                    110
+                )
+                buffer_available_energy_before_charge += m_layer_kg * 4.187/3600 * (buffer_temperatures[H0CN.buffer.depth1]-rswt_minus_deltaT) * 5/9
+                buffer_available_energy_before_charge += m_layer_kg * 4.187/3600 * (buffer_temperatures[H0CN.buffer.depth2]-return_temp) * 5/9
+                buffer_available_energy_before_charge += m_layer_kg * 4.187/3600 * (buffer_temperatures[H0CN.buffer.depth3]-return_temp) * 5/9
+            current_mode = "not_heating_buffer"
+            return buffer_available_energy_before_charge, current_mode
+            
+            # BELONGS IN FLO CODE
+            # Get the amount of time before we start charging the buffer
+            # if buffer_available_energy_before_charge <= house_load:
+            #     buffer_minutes_before_charge = buffer_available_energy_before_charge / house_load * 60
+            # else:
+            #     ... # Reduce load in the future as well, but only if it gets rid of the full hourly load, otherwise 0!
+            # # Get the amount of energy we will put into the buffer after that
+            # if using_hp:
+            #     buffer_energy_gained_by_chage = ...
+            # else:
+            #     buffer_energy_gained_by_chage = ...
+            # buffer_heat_in = -buffer_available_energy_before_charge + buffer_energy_gained_by_chage
+        
+        return buffer_heat_in
+
     async def get_buffer_available_kwh(self):
         if self.strategy == HomeAloneStrategy.ShoulderTou:
             return 0
@@ -1158,24 +1290,38 @@ class Atn(PrimeActor):
             self.send_layout()
             await asyncio.sleep(5)
         self.get_latest_temperatures()
-        buffer_temperatures = {k: self.to_fahrenheit(v/1000)
-                               for k,v in self.latest_temperatures.items() 
-                               if 'buffer' in k
-                               and v is not None}
+        buffer_temperatures: Dict[str, float] = {
+            k: self.to_fahrenheit(v/1000)
+            for k,v in self.latest_temperatures.items() 
+            if 'buffer' in k and v is not None
+        }
         if not buffer_temperatures:
             self.log("Missing temperatures in get_buffer_available_kwh, returning 0 kWh")
             return 0
         try:
             rswt = await self.get_RSWT(minus_deltaT=False)
+            rswt = round(rswt,2)
             rswt_minus_deltaT = await self.get_RSWT(minus_deltaT=True)
-            m_layer_kg = 120/4 * 3.785
+            rswt_minus_deltaT = round(rswt_minus_deltaT,2)
+            m_layer_kg = 120/3 * 3.785
             buffer_available_energy = 0
-            for bl in buffer_temperatures:
-                if buffer_temperatures[bl] >= rswt_minus_deltaT:
-                    buffer_available_energy += m_layer_kg * 4.187/3600 * (buffer_temperatures[bl]-rswt_minus_deltaT) * 5/9
-            if round(buffer_available_energy,2) == 0:
+            if buffer_temperatures[H0CN.buffer.depth1] > rswt_minus_deltaT:
+                self.log(f"Buffer depth 1 is above rswt_minus_deltaT ({buffer_temperatures[H0CN.buffer.depth1]} > {rswt_minus_deltaT})")
+                return_temp = min(
+                    self.latest_temperatures[H0CN.buffer.depth1],
+                    self.latest_temperatures[H0CN.buffer.depth2],
+                    self.latest_temperatures[H0CN.buffer.depth3],
+                    110
+                )
+                buffer_available_energy += m_layer_kg * 4.187/3600 * (buffer_temperatures[H0CN.buffer.depth1]-rswt_minus_deltaT) * 5/9
+                buffer_available_energy += m_layer_kg * 4.187/3600 * (buffer_temperatures[H0CN.buffer.depth2]-return_temp) * 5/9
+                buffer_available_energy += m_layer_kg * 4.187/3600 * (buffer_temperatures[H0CN.buffer.depth3]-return_temp) * 5/9
+                self.log(f"Buffer available kWh: {round(buffer_available_energy,2)}")
+            if round(buffer_available_energy,2) <= 0:
+                buffer_available_energy = 0
                 for bl in buffer_temperatures:
-                    buffer_available_energy += - m_layer_kg * 4.187/3600 * (rswt - buffer_temperatures[bl]) * 5/9
+                    if buffer_temperatures[bl] < rswt:
+                        buffer_available_energy += - m_layer_kg * 4.187/3600 * (rswt - buffer_temperatures[bl]) * 5/9
             self.log(f"Buffer available kWh: {round(buffer_available_energy,2)}")
             return round(buffer_available_energy,2)
         except Exception as e:

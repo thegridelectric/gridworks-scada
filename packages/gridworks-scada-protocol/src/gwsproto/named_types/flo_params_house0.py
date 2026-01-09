@@ -33,6 +33,8 @@ class FloParamsHouse0(BaseModel):
     InitialThermocline1: StrictInt
     InitialThermocline2: StrictInt
     HpIsOff: bool = False
+    BufferMode: Literal["not_heating_buffer", "heating_buffer_from_hp", "heating_buffer_from_store"] = "not_heating_buffer"
+    BufferMissingKwh: float = 0
     BufferAvailableKwh: float = 0
     HouseAvailableKwh: float = 0
     # Forecasts
