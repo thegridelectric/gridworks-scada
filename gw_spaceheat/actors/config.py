@@ -67,33 +67,3 @@ class ScadaSettings(AppSettings):
     whitewire_threshold_watts: float = 20 # TODO: move to layout
     hp_model: HpModel = HpModel.SamsungFiveTonneHydroKit # TODO: move to layout
     model_config = SettingsConfigDict(env_prefix="SCADA_", extra="ignore")
-
-    @model_validator(mode="after")
-    def override_default_hardware_layout(self):
-        hw_raw = self.paths.hardware_layout
-        if hw_raw is None:
-            return self
-
-        hw = Path(hw_raw)
-        # Case 1: explicit path was provided and exists → trust it
-        if hw.exists():
-            return self
-
-        # Case 2: implicit XDG default but file does NOT exist → fall back
-        xdg_default = Path(self.paths.config_dir) / "hardware-layout.json"
-        if hw == xdg_default:
-            fallback = (
-                Path(__file__).resolve()
-                .parents[2]   # repo root
-                / "tests"
-                / "config"
-                / "hardware-layout.json"
-            )
-            if fallback.exists():
-                self.paths = self.paths.duplicate(hardware_layout=fallback)
-                return self
-
-        # Case 3: explicit path was provided but does not exist → fail fast
-        raise FileNotFoundError(
-            f"Hardware layout path does not exist: {hw}"
-        )
