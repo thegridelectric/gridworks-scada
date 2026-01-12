@@ -918,9 +918,6 @@ class Atn(PrimeActor):
         else:
             self.log("Why am I here")
 
-    def to_fahrenheit(self, t: float) -> float:
-        return t * 9 / 5 + 32
-
     def fill_missing_store_temps(self):
         all_store_layers = sorted(
             [x for x in self.tank_temp_channel_names if "tank" in x]
