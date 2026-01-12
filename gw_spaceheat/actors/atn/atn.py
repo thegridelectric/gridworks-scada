@@ -1000,8 +1000,8 @@ class Atn(PrimeActor):
             alpha = self.ha1_params.AlphaTimes10 / 10
             beta = self.ha1_params.BetaTimes100 / 100
             gamma = self.ha1_params.GammaEx6 / 1e6
-            oat = self.weather_forecast["oat"][0]
-            ws = self.weather_forecast["ws"][0]
+            oat = float(self.weather_forecast["oat"][0])
+            ws = float(self.weather_forecast["ws"][0])
             r = alpha + beta*oat + gamma*ws
             rhp= r if r>0 else 0
             intermediate_rswt = self.ha1_params.IntermediateRswtF
@@ -1166,6 +1166,7 @@ class Atn(PrimeActor):
             for k,v in self.latest_temps_f.items() 
             if 'buffer' in k and v is not None
         }
+        self.log(f"Buffer temperatures: {buffer_temperatures}")
         if not buffer_temperatures:
             self.log("Missing temperatures in get_buffer_available_kwh, returning 0 kWh")
             return 0
@@ -1174,6 +1175,7 @@ class Atn(PrimeActor):
             rswt = round(rswt,2)
             rswt_minus_deltaT = await self.get_RSWT(minus_deltaT=True)
             rswt_minus_deltaT = round(rswt_minus_deltaT,2)
+            print(f"rswt: {rswt}, rswt_minus_deltaT: {rswt_minus_deltaT}")
             m_layer_kg = 120/3 * 3.785
             buffer_available_energy = 0
             if buffer_temperatures[H0CN.buffer.depth3] > rswt_minus_deltaT:
