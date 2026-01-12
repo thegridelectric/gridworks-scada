@@ -1162,7 +1162,7 @@ class Atn(PrimeActor):
             await asyncio.sleep(5)
         self.get_latest_temperatures()
         buffer_temperatures: Dict[str, float] = {
-            k: self.to_fahrenheit(v/1000)
+            k: v/100
             for k,v in self.latest_temps_f.items() 
             if 'buffer' in k and v is not None
         }
