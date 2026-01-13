@@ -1152,6 +1152,7 @@ class Atn(PrimeActor):
                 return top_temp, top_temp, top_temp, thermocline1, thermocline1
     
     async def get_buffer_available_kwh(self):
+        return 0
         if self.strategy == HomeAloneStrategy.ShoulderTou:
             return 0
         if self.tank_temp_channel_names is None:
