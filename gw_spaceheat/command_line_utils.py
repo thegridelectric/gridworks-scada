@@ -115,7 +115,7 @@ def get_requested_names(args: argparse.Namespace) -> Optional[set[str]]:
         requested = None
     else:
         requested = set(args.nodes)
-        requested.add(H0N.home_alone)
+        requested.add(H0N.local_control)
         if args.s2 or args.s2_paths:
             requested.add(H0N.secondary_scada)
         else:

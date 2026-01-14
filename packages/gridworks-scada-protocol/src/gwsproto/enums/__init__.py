@@ -15,14 +15,13 @@ on these ideas:
   - [ASLs](https://gridwork-type-registry.readthedocs.io/en/latest/asls.html)
  """
 
-from gw.enums import MarketTypeName
 from gwsproto.enums.aa_buffer_only_event import AaBufferOnlyEvent
 from gwsproto.enums.aa_buffer_only_state import AaBufferOnlyState
 from gwsproto.enums.actor_class import ActorClass
 from gwsproto.enums.atomic_ally_event import AtomicAllyEvent
 from gwsproto.enums.atomic_ally_state import AtomicAllyState
 from gwsproto.enums.aquastat_control import AquastatControl
-from gwsproto.enums.contract_status import ContractStatus
+from gwsproto.enums.slow_dispatch_contract_status import SlowDispatchContractStatus
 from gwsproto.enums.change_aquastat_control import ChangeAquastatControl
 from gwsproto.enums.change_heatcall_source import ChangeHeatcallSource
 from gwsproto.enums.change_heat_pump_control import ChangeHeatPumpControl
@@ -50,6 +49,7 @@ from gwsproto.enums.main_auto_state import MainAutoState
 from gwsproto.enums.make_model import MakeModel
 from gwsproto.enums.market_price_unit import MarketPriceUnit
 from gwsproto.enums.market_quantity_unit import MarketQuantityUnit
+from gwsproto.enums.market_type_name import MarketTypeName
 from gwsproto.enums.pico_cycler_event import PicoCyclerEvent
 from gwsproto.enums.pico_cycler_state import PicoCyclerState
 from gwsproto.enums.primary_pump_control import PrimaryPumpControl
@@ -81,7 +81,6 @@ __all__ = [
     "ChangeRelayPin",
     "ChangeRelayState",
     "ChangeStoreFlowRelay",
-    "ContractStatus",
     "FlowManifoldVariant",
     "FsmActionType",
     "FsmReportType",
@@ -108,6 +107,7 @@ __all__ = [
     "RelayClosedOrOpen",
     "RelayEnergizationState",
     "RelayWiringConfig",
+    "SlowDispatchContractStatus",
     "StoreFlowRelay",
     "TelemetryName",
     "TempCalcMethod",

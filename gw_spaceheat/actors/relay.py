@@ -3,7 +3,7 @@ import asyncio
 import time
 from typing import Dict, List, cast, Sequence, Optional
 
-from gw.enums import GwStrEnum
+from gwsproto.enums.gw_str_enum import AslEnum
 from gwproto.message import Message
 from gwsproto.data_classes.data_channel import DataChannel
 from gwproactor import  MonitoredName
@@ -47,8 +47,8 @@ class Relay(ShNodeActor):
     node: ShNode
     component: I2cMultichannelDtRelayComponent
     wiring_config: RelayWiringConfig
-    my_state_enum: GwStrEnum
-    my_event_enum: GwStrEnum
+    my_state_enum: AslEnum
+    my_event_enum: AslEnum
     reports_by_trigger: Dict[str, List[FsmAtomicReport]]
     boss_by_trigger: Dict[str, ShNode]
     energized_state: str

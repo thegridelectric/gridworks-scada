@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Optional, List, Sequence
 import uuid
 
-from gw.errors import DcError
+from gwsproto.errors import DcError
 
 from gwsproto.type_helpers import CACS_BY_MAKE_MODEL
 from gwsproto.enums import ActorClass
@@ -588,16 +588,16 @@ class LayoutDb:
                     DisplayName="Auto - FSM for dispatch contract",
                 ),
                 SpaceheatNodeGt(
-                    ShNodeId=self.make_node_id(H0N.atn),
-                    Name=H0N.atn,
+                    ShNodeId=self.make_node_id(H0N.ltn),
+                    Name=H0N.ltn,
                     ActorClass=ActorClass.NoActor,
                     DisplayName="Atn",
                 ),
                 SpaceheatNodeGt(
-                    ShNodeId=self.make_node_id(H0N.atomic_ally),
-                    Name=H0N.atomic_ally,
-                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.atomic_ally}",
-                    Handle=f"{H0N.atn}.{H0N.atomic_ally}",
+                    ShNodeId=self.make_node_id(H0N.leaf_ally),
+                    Name=H0N.leaf_ally,
+                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.leaf_ally}",
+                    Handle=f"{H0N.ltn}.{H0N.leaf_ally}",
                     ActorClass=ActorClass.AtomicAlly,
                     DisplayName="Atomic Ally",
                 ),
@@ -618,32 +618,32 @@ class LayoutDb:
                     TankTempCalibrationMap=tmap
                 ),
                 SpaceheatNodeGt(
-                    ShNodeId=self.make_node_id(H0N.home_alone),
-                    Name=H0N.home_alone,
-                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.home_alone}",
-                    Handle="auto.h",
+                    ShNodeId=self.make_node_id(H0N.local_control),
+                    Name=H0N.local_control,
+                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.local_control}",
+                    Handle=f"auto.{H0N.local_control}",
                     ActorClass=ActorClass.HomeAlone,
                     DisplayName="HomeAlone",
                     Strategy=cfg.home_alone_strategy,
                 ),
                 SpaceheatNodeGt(
-                    ShNodeId=self.make_node_id(H0N.home_alone_normal),
-                    Name=H0N.home_alone_normal,
-                    Handle="auto.h.n",
+                    ShNodeId=self.make_node_id(H0N.local_control_normal),
+                    Name=H0N.local_control_normal,
+                    Handle=f"auto.{H0N.local_control}.{H0N.local_control_normal}",
                     ActorClass=ActorClass.NoActor,
                     DisplayName="HomeAlone Normal",
                 ),
                 SpaceheatNodeGt(
-                    ShNodeId=self.make_node_id(H0N.home_alone_backup),
-                    Name=H0N.home_alone_backup,
-                    Handle="auto.h.backup",
+                    ShNodeId=self.make_node_id(H0N.local_control_backup),
+                    Name=H0N.local_control_backup,
+                    Handle=f"auto.{H0N.local_control}.{H0N.local_control_backup}",
                     ActorClass=ActorClass.NoActor,
                     DisplayName="HomeAlone Backup",
                 ),
                 SpaceheatNodeGt(
-                    ShNodeId=self.make_node_id(H0N.home_alone_scada_blind),
-                    Name=H0N.home_alone_scada_blind,
-                    Handle="auto.h.scada-blind",
+                    ShNodeId=self.make_node_id(H0N.local_control_scada_blind),
+                    Name=H0N.local_control_scada_blind,
+                    Handle=f"auto.{H0N.local_control}.{H0N.local_control_scada_blind}",
                     ActorClass=ActorClass.NoActor,
                     DisplayName="HomeAlone Scada Blind",
                 ),
@@ -651,7 +651,7 @@ class LayoutDb:
                     ShNodeId=self.make_node_id(H0N.hp_boss),
                     Name=H0N.hp_boss,
                     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.hp_boss}",
-                    Handle="auto.h.n.hp-boss",
+                    Handle=f"auto.{H0N.local_control}.{H0N.local_control_normal}.{H0N.hp_boss}",
                     ActorClass=ActorClass.HpBoss,
                     DisplayName="HeatpumpBoss",
                 ),
@@ -666,7 +666,7 @@ class LayoutDb:
                     ShNodeId=self.make_node_id(H0N.sieg_loop),
                     Name=H0N.sieg_loop,
                     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.sieg_loop}",
-                    Handle=f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{H0N.sieg_loop}",
+                    Handle=f"{H0N.auto}.{H0N.local_control}.{H0N.local_control_normal}.{H0N.sieg_loop}",
                     ActorClass=ActorClass.SiegLoop,
                     DisplayName="Siegenthaler Loop",
                 ),

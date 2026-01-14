@@ -100,7 +100,7 @@ class ShNodeActor(Actor, ABC):
 
     @property
     def atn(self) -> ShNode:
-        return self.layout.node(H0N.atn)
+        return self.layout.node(H0N.ltn)
 
     @property
     def primary_scada(self) -> ShNode:
@@ -108,11 +108,11 @@ class ShNodeActor(Actor, ABC):
 
     @property
     def atomic_ally(self) -> ShNode:
-        return self.layout.node(H0N.atomic_ally)
+        return self.layout.node(H0N.leaf_ally)
 
     @property
     def home_alone(self) -> ShNode:
-        return self.layout.node(H0N.home_alone)
+        return self.layout.node(H0N.local_control)
     
     @property
     def derived_generator(self) -> ShNode:
@@ -1104,7 +1104,7 @@ class ShNodeActor(Actor, ABC):
             src = self.node
         # HACK FOR nodes whose 'actors' are handled by their parent's communicator
         communicator_by_name = {dst.Name: dst.Name}
-        communicator_by_name[H0N.home_alone_normal] = H0N.home_alone
+        communicator_by_name[H0N.local_control_normal] = H0N.local_control
         
         message = Message(Src=src.name, Dst=communicator_by_name[dst.Name], Payload=payload)
 
@@ -1120,7 +1120,7 @@ class ShNodeActor(Actor, ABC):
                 ),
                 qos=QOS.AtMostOnce,
             ) # noqa: SLF001
-        elif dst.Name == H0N.atn:
+        elif dst.Name == H0N.ltn:
             self.services.publish_upstream(payload)  # noqa: SLF001
         else:
             self.services.publish_message(

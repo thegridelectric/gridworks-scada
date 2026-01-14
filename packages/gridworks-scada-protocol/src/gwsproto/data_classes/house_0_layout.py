@@ -190,10 +190,10 @@ class House0Layout(HardwareLayout):
 
         # Check for essential nodes that must always exist
         essential_nodes = [
-            H0N.atn,
+            H0N.ltn,
             H0N.primary_scada,
-            H0N.atomic_ally,
-            H0N.home_alone,
+            H0N.leaf_ally,
+            H0N.local_control,
             H0N.derived_generator,
             H0N.relay_multiplexer,
             H0N.vdc_relay,
@@ -299,7 +299,7 @@ class House0Layout(HardwareLayout):
     def ha_strategy(self) -> str:
         """Returns the current home alone strategy"""
         # Could be stored as a property or derived from a node
-        ha_node = self.nodes.get(H0N.home_alone)
+        ha_node = self.nodes.get(H0N.local_control)
         return HomeAloneStrategy(HomeAloneStrategy(getattr(ha_node, "Strategy", None)))
     
     @property
@@ -467,12 +467,12 @@ class House0Layout(HardwareLayout):
             H0N.primary_power_meter,
             H0N.derived_generator,
             H0N.secondary_scada,
-            H0N.atn,
-            H0N.atomic_ally,
-            H0N.home_alone,
-            H0N.home_alone_normal,
-            H0N.home_alone_backup,
-            H0N.home_alone_scada_blind,
+            H0N.ltn,
+            H0N.leaf_ally,
+            H0N.local_control,
+            H0N.local_control_normal,
+            H0N.local_control_backup,
+            H0N.local_control_scada_blind,
             H0N.admin,
             H0N.auto,
             H0N.pico_cycler,
@@ -492,7 +492,7 @@ class House0Layout(HardwareLayout):
 
     @property
     def home_alone(self) -> ShNode:
-        return self.node(H0N.home_alone)
+        return self.node(H0N.local_control)
     
     @property
     def auto_node(self) -> ShNode:
@@ -500,11 +500,11 @@ class House0Layout(HardwareLayout):
     
     @property
     def atomic_ally(self) -> ShNode:
-        return self.node(H0N.atomic_ally)
+        return self.node(H0N.leaf_ally)
     
     @property
     def atn(self) -> ShNode:
-        return self.node(H0N.atn)
+        return self.node(H0N.ltn)
     
     @property
     def pico_cycler(self) -> ShNode:

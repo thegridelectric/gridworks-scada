@@ -15,7 +15,7 @@ from gwsproto.data_classes.house_0_layout import House0Layout
 from gwsproto.data_classes.house_0_names import H0N
 from gwproactor.logger import LoggerOrAdapter
 from gwsproto.enums import MarketPriceUnit
-from gwsproto.enums import ContractStatus
+from gwsproto.enums import SlowDispatchContractStatus
 from gwsproto.named_types import ( 
     AtnBid, LatestPrice, SlowContractHeartbeat, SlowDispatchContract, 
 )
@@ -26,18 +26,18 @@ class AtnContractHandler:
     """Handles ATN's side of representation contract with SCADA and dispatch contracts"""
     HEARTBEAT_INTERVAL_S = 60
     DONE_STATES = [
-        ContractStatus.TerminatedByAtn,
-        ContractStatus.TerminatedByScada,
-        ContractStatus.CompletedUnknownOutcome,
-        ContractStatus.CompletedSuccess,
-        ContractStatus.CompletedFailureByAtn,
-        ContractStatus.CompletedFailureByScada,
+        SlowDispatchContractStatus.TerminatedByLtn,
+        SlowDispatchContractStatus.TerminatedByScada,
+        SlowDispatchContractStatus.CompletedUnknownOutcome,
+        SlowDispatchContractStatus.CompletedSuccess,
+        SlowDispatchContractStatus.CompletedFailureByLtn,
+        SlowDispatchContractStatus.CompletedFailureByScada,
     ]
     ACTIVE_STATES = [
-        ContractStatus.Created,
-        ContractStatus.Received,
-        ContractStatus.Confirmed,
-        ContractStatus.Active
+        SlowDispatchContractStatus.Created,
+        SlowDispatchContractStatus.Received,
+        SlowDispatchContractStatus.Confirmed,
+        SlowDispatchContractStatus.Active
     ]
     HEARTBEAT_INTERVAL_SECONDS = 60  # Send heartbeats once per minute
     LOGGER_NAME = "AtnContractHandler" 
@@ -104,7 +104,7 @@ class AtnContractHandler:
                 self.logger.info(f"Loaded active contract: {self.formatted_contract(hb)}")
                 self.energy_updated_s = hb.MessageCreatedMs / 1000
                 if hb.FromNode == self.node.name:
-                    if hb.Status != ContractStatus.Created:
+                    if hb.Status != SlowDispatchContractStatus.Created:
                         raise Exception("Only save atn heartbeats with status Created!")
                     self.energy_used_wh = 0
                     self.latest_hb = hb
@@ -128,9 +128,9 @@ class AtnContractHandler:
             raise Exception("Can't store hb if latest_hb is none!")
         
         if hb_to_store.FromNode == self.node.name:
-            if hb_to_store.Status not in [ContractStatus.Created, 
-                                   ContractStatus.TerminatedByAtn,
-                                   ContractStatus.CompletedUnknownOutcome]:
+            if hb_to_store.Status not in [SlowDispatchContractStatus.Created, 
+                                   SlowDispatchContractStatus.TerminatedByLtn,
+                                   SlowDispatchContractStatus.CompletedUnknownOutcome]:
                 raise Exception(f"Does not store atn hb with status {hb_to_store.Status}")
         
         with open(self.contract_file, "w") as f:
@@ -172,11 +172,11 @@ class AtnContractHandler:
         self.energy_updated_s = time.time()
         self.store_heartbeat(scada_hb)
        
-        if scada_hb.Status == ContractStatus.CompletedUnknownOutcome:
+        if scada_hb.Status == SlowDispatchContractStatus.CompletedUnknownOutcome:
             self.latest_hb = None # we can create new contract now!
             if self.can_create_contract():
                 self.create_new_contract()
-        elif scada_hb.Status == ContractStatus.TerminatedByScada:
+        elif scada_hb.Status == SlowDispatchContractStatus.TerminatedByScada:
             self.latest_hb = None
         else:
             self.latest_hb = scada_hb
@@ -235,7 +235,7 @@ class AtnContractHandler:
         hb = SlowContractHeartbeat(
             FromNode=self.node.name,
             Contract=contract,
-            Status=ContractStatus.Created,
+            Status=SlowDispatchContractStatus.Created,
             MessageCreatedMs=int(time.time() * 1000),
             MyDigit=random.choice(range(10)),
             YourLastDigit=None,  # First message in chain
@@ -274,13 +274,13 @@ class AtnContractHandler:
         await asyncio.sleep(2)
         hb = self.initialize()
         if hb is not None:
-            if hb.Status == ContractStatus.Created:
+            if hb.Status == SlowDispatchContractStatus.Created:
                 # we didn't get any response, send again
                 self.send_threadsafe(Message(Src=self.node.name,Dst=H0N.primary_scada,Payload=hb))
         while not self._stop_requested:
             try:
                 # Only send heartbeats if we have an active contract              
-                if self.latest_hb and self.latest_hb.Status in [ContractStatus.Created, ContractStatus.Received, ContractStatus.Active]:
+                if self.latest_hb and self.latest_hb.Status in [SlowDispatchContractStatus.Created, SlowDispatchContractStatus.Received, SlowDispatchContractStatus.Active]:
                         # Check if contract has expired
                         if time.time() > self.latest_hb.Contract.contract_end_s():
                             # Contract expired - initiate completion
@@ -293,7 +293,7 @@ class AtnContractHandler:
                                 )
                             )
                         else:
-                            if self.latest_hb.Status == ContractStatus.Created: 
+                            if self.latest_hb.Status == SlowDispatchContractStatus.Created: 
                                 send_hb = self.latest_hb # RESEND first contract
                             else:
                                 send_hb = self.create_midcontract_heartbeat() # Create a mid-contract heartbeat
@@ -335,7 +335,7 @@ class AtnContractHandler:
             FromNode=self.node.name,
             Contract=self.latest_hb.Contract,
             PreviousStatus=self.latest_hb.Status,
-            Status=ContractStatus.TerminatedByAtn,
+            Status=SlowDispatchContractStatus.TerminatedByLtn,
             Cause=reason,
             MessageCreatedMs=int(time.time() * 1000),
             MyDigit=random.choice(range(10)),
@@ -359,7 +359,7 @@ class AtnContractHandler:
             FromNode=self.node.name,
             Contract=self.latest_hb.Contract,
             PreviousStatus=self.latest_hb.Status,
-            Status=ContractStatus.CompletedUnknownOutcome,
+            Status=SlowDispatchContractStatus.CompletedUnknownOutcome,
             Cause="Atn notes MarketSlot complete",
             MessageCreatedMs=int(time.time() * 1000),
             MyDigit=random.choice(range(10)),
@@ -377,13 +377,13 @@ class AtnContractHandler:
             raise Exception("Should not call this if latest_hb is None!")
         if time.time() > self.latest_hb.Contract.contract_end_s():
             raise Exception("Don't call this for an expired contract!")
-        if self.latest_hb.Status == ContractStatus.Created:
+        if self.latest_hb.Status == SlowDispatchContractStatus.Created:
             return self.latest_hb # haven't gotten the Received ack yet
-        elif self.latest_hb.Status in [ContractStatus.Received, ContractStatus.Active]:
+        elif self.latest_hb.Status in [SlowDispatchContractStatus.Received, SlowDispatchContractStatus.Active]:
                 return SlowContractHeartbeat(
                     FromNode=self.node.name,
                     Contract=self.latest_hb.Contract,
-                    Status=ContractStatus.Active,
+                    Status=SlowDispatchContractStatus.Active,
                     MessageCreatedMs=int(time.time() * 1000),
                     MyDigit=random.choice(range(10)),
                     YourLastDigit=self.latest_hb.MyDigit, 
@@ -425,7 +425,7 @@ class AtnContractHandler:
         total_energy = hb.Contract.AvgPowerWatts * hb.Contract.DurationMinutes / 60
         
         # Energy used so far (only present in SCADA heartbeats)
-        if hb.Status == ContractStatus.Created:
+        if hb.Status == SlowDispatchContractStatus.Created:
             energy_used = 0
         else:
             energy_used = hb.WattHoursUsed

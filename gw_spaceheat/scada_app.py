@@ -135,7 +135,7 @@ class ScadaApp(App, ScadaAppInterface):
             self.ATN_MQTT: LinkSettings(
                 broker_name=self.ATN_MQTT,
                 peer_long_name=layout.atn_g_node_alias,
-                peer_short_name=H0N.atn,
+                peer_short_name=H0N.ltn,
                 upstream=True,
             ),
             self.LOCAL_MQTT: LinkSettings(

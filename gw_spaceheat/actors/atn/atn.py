@@ -65,7 +65,7 @@ from gwsproto.enums import TelemetryName, RelayClosedOrOpen
 from gwsproto.named_types import PowerWatts, Report, ReportEvent
 from gwsproto.named_types import AnalogDispatch, SendSnap, MachineStates
 from actors.atn_contract_handler import AtnContractHandler
-from gwsproto.enums import ContractStatus, LogLevel
+from gwsproto.enums import SlowDispatchContractStatus, LogLevel
 from gwsproto.named_types import (
     AtnBid, BidRecommendation, FloParamsHouse0, Glitch, Ha1Params, LatestPrice, LayoutLite, NoNewContractWarning,
     ResetHpKeepValue, ScadaParams, SendLayout, SetLwtControlParams, SiegLoopEndpointValveAdjustment,
@@ -200,7 +200,7 @@ class BidRunner(threading.Thread):
 
 class AtnMQTTCodec(MQTTCodec):
     exp_src: str
-    exp_dst: str = H0N.atn
+    exp_dst: str = H0N.ltn
 
     def __init__(self, hardware_layout: House0Layout):
         self.exp_src = hardware_layout.scada_g_node_alias
@@ -478,7 +478,7 @@ class Atn(PrimeActor):
         """
         hb = self.contract_handler.latest_hb
         if hb:
-            if hb.Status == ContractStatus.Created:
+            if hb.Status == SlowDispatchContractStatus.Created:
                 self.services.send_threadsafe(
                     Message(
                         Src=self.name,
@@ -546,7 +546,7 @@ class Atn(PrimeActor):
         self.layout_lite = layout
         self.ha1_params = layout.Ha1Params
         try:
-            home_alone_strategy = getattr(self.layout.node(H0N.home_alone), "Strategy", None)
+            home_alone_strategy = getattr(self.layout.node(H0N.local_control), "Strategy", None)
             self.strategy = HomeAloneStrategy(home_alone_strategy)
             if home_alone_strategy is None:
                 raise ValueError(f"Could not read HomeAlone strategy from layout.")
@@ -610,8 +610,8 @@ class Atn(PrimeActor):
                 Dst=self.scada.name,
                 Payload=ScadaParams(
                     FromGNodeAlias=self.layout.atn_g_node_alias,
-                    FromName=H0N.atn,
-                    ToName=H0N.home_alone,
+                    FromName=H0N.ltn,
+                    ToName=H0N.local_control,
                     UnixTimeMs=int(time.time() * 1000),
                     MessageId=str(uuid.uuid4()),
                     NewParams=new,
@@ -626,7 +626,7 @@ class Atn(PrimeActor):
                 Dst=self.scada.name,
                 Payload=SendLayout(
                     FromGNodeAlias=self.layout.atn_g_node_alias,
-                    FromName=H0N.atn,
+                    FromName=H0N.ltn,
                     ToName=H0N.primary_scada,
                 ),
             )
@@ -1636,8 +1636,8 @@ class Atn(PrimeActor):
                 Dst=self.scada.name,
                 Payload=AnalogDispatch(
                     FromGNodeAlias=self.layout.atn_g_node_alias,
-                    FromHandle=f"{H0N.atn}",
-                    ToHandle=f"{H0N.atn}.{H0N.atomic_ally}",
+                    FromHandle=f"{H0N.ltn}",
+                    ToHandle=f"{H0N.ltn}.{H0N.leaf_ally}",
                     AboutName=H0N.sieg_loop,
                     Value=val,
                     TriggerId=str(uuid.uuid4()),
@@ -1652,8 +1652,8 @@ class Atn(PrimeActor):
                 Src=self.name,
                 Dst=self.scada.name,
                 Payload=ResetHpKeepValue(
-                    FromHandle=f"{H0N.atn}",
-                    ToHandle=f"{H0N.atn}.{H0N.atomic_ally}",
+                    FromHandle=f"{H0N.ltn}",
+                    ToHandle=f"{H0N.ltn}.{H0N.leaf_ally}",
                     HpKeepSecondsTimes10=round(new_seconds * 10),
                 ),
             )
@@ -1665,8 +1665,8 @@ class Atn(PrimeActor):
                 Src=self.name,
                 Dst=self.scada.name,
                 Payload=SiegLoopEndpointValveAdjustment(
-                    FromHandle=f"{H0N.atn}",
-                    ToHandle=f"{H0N.atn}.{H0N.atomic_ally}",
+                    FromHandle=f"{H0N.ltn}",
+                    ToHandle=f"{H0N.ltn}.{H0N.leaf_ally}",
                     HpKeepPercent=0,
                     Seconds=seconds,
                 ),
@@ -1686,8 +1686,8 @@ class Atn(PrimeActor):
                 Src=self.name,
                 Dst=self.scada.name,
                 Payload=SetLwtControlParams(
-                    FromHandle=H0N.atn,
-                    ToHandle=f"{H0N.atn}.{H0N.atomic_ally}",
+                    FromHandle=H0N.ltn,
+                    ToHandle=f"{H0N.ltn}.{H0N.leaf_ally}",
                     ProportionalGain=proportional_gain,
                     IntegralGain=integral_gain,
                     DerivativeGain=derivative_gain,
@@ -1704,8 +1704,8 @@ class Atn(PrimeActor):
                 Src=self.name,
                 Dst=self.scada.name,
                 Payload=SiegLoopEndpointValveAdjustment(
-                    FromHandle=f"{H0N.atn}",
-                    ToHandle=f"{H0N.atn}.{H0N.atomic_ally}",
+                    FromHandle=f"{H0N.ltn}",
+                    ToHandle=f"{H0N.ltn}.{H0N.leaf_ally}",
                     HpKeepPercent=100,
                     Seconds=seconds,
                 ),

@@ -78,12 +78,12 @@ class HomeAloneTouBase(ShNodeActor):
         self.log(f"Params: {self.params}")
         self.log(f"self.is_simulated: {self.is_simulated}")
         self.zone_setpoints = {}
-        if H0N.home_alone_normal not in self.layout.nodes:
-            raise Exception(f"HomeAlone requires {H0N.home_alone_normal} node!!")
-        if H0N.home_alone_scada_blind not in self.layout.nodes:
-            raise Exception(f"HomeAlone requires {H0N.home_alone_scada_blind} node!!")
-        if H0N.home_alone_backup not in self.layout.nodes:
-            raise Exception(f"HomeAlone requires {H0N.home_alone_backup} node!!")
+        if H0N.local_control_normal not in self.layout.nodes:
+            raise Exception(f"HomeAlone requires {H0N.local_control_normal} node!!")
+        if H0N.local_control_scada_blind not in self.layout.nodes:
+            raise Exception(f"HomeAlone requires {H0N.local_control_scada_blind} node!!")
+        if H0N.local_control_backup not in self.layout.nodes:
+            raise Exception(f"HomeAlone requires {H0N.local_control_backup} node!!")
         self.set_command_tree(boss_node=self.normal_node)
         self.actuators_initialized = False
         self.actuators_ready = False
@@ -99,7 +99,7 @@ class HomeAloneTouBase(ShNodeActor):
         """
         Overwrite the standard 
         """
-        return self.layout.node(H0N.home_alone_normal)
+        return self.layout.node(H0N.local_control_normal)
 
     @property
     def backup_node(self) -> ShNode:
@@ -107,7 +107,7 @@ class HomeAloneTouBase(ShNodeActor):
         The node / state machine responsible
         for backup operations
         """
-        return self.layout.node(H0N.home_alone_backup)
+        return self.layout.node(H0N.local_control_backup)
 
     @property
     def scada_blind_node(self) -> ShNode:
@@ -115,7 +115,7 @@ class HomeAloneTouBase(ShNodeActor):
         THe node / state machine responsible
         for when the scada has missing data (forecasts / temperatures)
         """
-        return self.layout.node(H0N.home_alone_scada_blind)
+        return self.layout.node(H0N.local_control_scada_blind)
 
     @property
     def params(self) -> Ha1Params:

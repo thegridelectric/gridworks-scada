@@ -8,7 +8,7 @@ from typing import Optional
 import pytz
 from gwsproto.data_classes.house_0_layout import House0Layout
 from gwsproto.data_classes.house_0_names import H0N
-from gwsproto.enums import ContractStatus
+from gwsproto.enums import SlowDispatchContractStatus
 from gwproactor.logger import LoggerOrAdapter
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.named_types import  SlowContractHeartbeat
@@ -21,12 +21,12 @@ class ContractHandler:
     """Handles SCADA's representation contract and dispatch contracts w Atn"""
 
     DONE_STATES = [
-        ContractStatus.TerminatedByAtn,
-        ContractStatus.TerminatedByScada,
-        ContractStatus.CompletedUnknownOutcome,
-        ContractStatus.CompletedSuccess,
-        ContractStatus.CompletedFailureByAtn,
-        ContractStatus.CompletedFailureByScada,
+        SlowDispatchContractStatus.TerminatedByLtn,
+        SlowDispatchContractStatus.TerminatedByScada,
+        SlowDispatchContractStatus.CompletedUnknownOutcome,
+        SlowDispatchContractStatus.CompletedSuccess,
+        SlowDispatchContractStatus.CompletedFailureByLtn,
+        SlowDispatchContractStatus.CompletedFailureByScada,
     ]
     GRACE_PERIOD_MINUTES = 5  # Time after contract end before auto-ready
     WARNING_MINUTES_AFTER_END  = 2 
@@ -109,9 +109,9 @@ class ContractHandler:
 
         try:
             hb = SlowContractHeartbeat.model_validate(contract_data)
-            if hb.FromNode == H0N.atn:
-                if hb.Status not in [ContractStatus.TerminatedByAtn,
-                                     ContractStatus.CompletedUnknownOutcome]:
+            if hb.FromNode == H0N.ltn:
+                if hb.Status not in [SlowDispatchContractStatus.TerminatedByLtn,
+                                     SlowDispatchContractStatus.CompletedUnknownOutcome]:
                     return
                 self.prev = hb
             else:
@@ -121,7 +121,7 @@ class ContractHandler:
                             FromNode=self.node.name,
                             Contract=hb.Contract,
                             PreviousStatus=hb.Status,
-                            Status=ContractStatus.CompletedUnknownOutcome,
+                            Status=SlowDispatchContractStatus.CompletedUnknownOutcome,
                             WattHoursUsed=hb.WattHoursUsed,
                             MessageCreatedMs=int(time.time() * 1000),
                             Cause="Set by Scada on rebooting",
@@ -157,9 +157,9 @@ class ContractHandler:
             raise ValueError("Do not expect to store_heartbeat when None")
         hb = self.latest_scada_hb
         if atn_hb:
-            if atn_hb.Status not in [ContractStatus.TerminatedByAtn,
-                                     ContractStatus.CompletedUnknownOutcome]:
-                raise ValueError("only stores atn_hb's with Status TerminatedByAtn or CompletedUnknownAutcome")
+            if atn_hb.Status not in [SlowDispatchContractStatus.TerminatedByLtn,
+                                     SlowDispatchContractStatus.CompletedUnknownOutcome]:
+                raise ValueError("only stores atn_hb's with Status TerminatedByLtn or CompletedUnknownAutcome")
             hb = atn_hb
 
         with open(self.contract_file, "w") as f:
@@ -210,9 +210,9 @@ class ContractHandler:
             - right now does not handle a contract for a future time slot
         """
 
-        if atn_hb.Status != ContractStatus.Created:
+        if atn_hb.Status != SlowDispatchContractStatus.Created:
             raise Exception(
-                f"Can only start new contract with a ContractStatus of Created, not {atn_hb.Status}"
+                f"Can only start new contract with a SlowDispatchContractStatus of Created, not {atn_hb.Status}"
             )
         if self.latest_scada_hb:
             self.logger.warning("Ignoring atn hb! Still inside existing contract")
@@ -226,7 +226,7 @@ class ContractHandler:
             FromNode=self.node.Name,
             Contract=atn_hb.Contract,
             PreviousStatus=atn_hb.Status,
-            Status=ContractStatus.Received,
+            Status=SlowDispatchContractStatus.Received,
             WattHoursUsed=round(self.energy_used_wh),
             MessageCreatedMs=int(now * 1000),
             MyDigit=random.choice(range(10)),
@@ -248,7 +248,7 @@ class ContractHandler:
         """
         self.update_energy_usage(self.latest_power_w)
 
-        if atn_hb.Status == ContractStatus.Created:
+        if atn_hb.Status == SlowDispatchContractStatus.Created:
             raise Exception("Does not process newly created contracts!")
         if self.latest_scada_hb is None:
             raise Exception(
@@ -258,12 +258,12 @@ class ContractHandler:
             raise Exception(
                 "Do not call update_existing_contract if self.hb.Contract != atn_hb.Contract"
             )
-        if atn_hb.Status == ContractStatus.TerminatedByAtn:  # clear out contract
+        if atn_hb.Status == SlowDispatchContractStatus.TerminatedByLtn:  # clear out contract
             self.store_heartbeat(atn_hb) 
             self.flush_latest_scada_hb()
             self.prev = atn_hb
             return None
-        elif atn_hb.Status == ContractStatus.CompletedUnknownOutcome:
+        elif atn_hb.Status == SlowDispatchContractStatus.CompletedUnknownOutcome:
             # Determine contracted energy amount
             contracted_energy_wh = atn_hb.Contract.AvgPowerWatts * atn_hb.Contract.DurationMinutes / 60
             # Send final energy accounting
@@ -275,12 +275,12 @@ class ContractHandler:
             self.flush_latest_scada_hb() # then fluses it
             self.prev = final_hb
             return final_hb
-        elif atn_hb.Status in [ContractStatus.Confirmed, ContractStatus.Active]:
+        elif atn_hb.Status in [SlowDispatchContractStatus.Confirmed, SlowDispatchContractStatus.Active]:
             self.latest_scada_hb = SlowContractHeartbeat(
                 FromNode=H0N.primary_scada,
                 Contract=atn_hb.Contract,
                 PreviousStatus=atn_hb.Status,
-                Status=ContractStatus.Active,
+                Status=SlowDispatchContractStatus.Active,
                 WattHoursUsed=round(self.energy_used_wh),
                 MessageCreatedMs=int(time.time() * 1000),
                 MyDigit=random.choice(range(10)),
@@ -302,7 +302,7 @@ class ContractHandler:
             FromNode=self.node.Name,
             Contract=self.latest_scada_hb.Contract,
             PreviousStatus=self.latest_scada_hb.Status,
-            Status=ContractStatus.TerminatedByScada,
+            Status=SlowDispatchContractStatus.TerminatedByScada,
             Cause=cause,
             WattHoursUsed=round(self.energy_used_wh),
             MessageCreatedMs=int(time.time() * 1000),
@@ -331,7 +331,7 @@ class ContractHandler:
             FromNode=self.node.Name,
             Contract=self.latest_scada_hb.Contract,
             PreviousStatus=self.latest_scada_hb.Status,
-            Status=ContractStatus.CompletedUnknownOutcome,
+            Status=SlowDispatchContractStatus.CompletedUnknownOutcome,
             Cause=cause,
             WattHoursUsed=round(self.energy_used_wh),
             MessageCreatedMs=int(time.time() * 1000),
@@ -371,7 +371,7 @@ class ContractHandler:
         total_energy = hb.Contract.AvgPowerWatts * hb.Contract.DurationMinutes / 60
         
         # Energy used so far (only present in SCADA heartbeats)
-        if hb.Status == ContractStatus.Created:
+        if hb.Status == SlowDispatchContractStatus.Created:
             energy_used = 0
         else:
             energy_used = f"{round(self.energy_used_wh, 1)}"

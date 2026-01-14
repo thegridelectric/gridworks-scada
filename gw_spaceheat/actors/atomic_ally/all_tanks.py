@@ -86,8 +86,8 @@ class AllTanksAtomicAlly(ShNodeActor):
         self.log(f"Params: {self.params}")
         self.storage_declared_full = False
         self.storage_full_since = 0
-        if H0N.atomic_ally not in self.layout.nodes:
-            raise Exception(f"AtomicAlly requires {H0N.atomic_ally} node!!")
+        if H0N.leaf_ally not in self.layout.nodes:
+            raise Exception(f"AtomicAlly requires {H0N.leaf_ally} node!!")
 
     @property
     def remaining_watthours(self) -> Optional[int]:

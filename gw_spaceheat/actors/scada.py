@@ -45,7 +45,7 @@ from actors.codec_factories import ScadaCodecFactory
 from actors.contract_handler import ContractHandler
 from gwsproto.data_classes.house_0_names import H0N, ScadaWeb
 from gwsproto.data_classes.components.web_server_component import WebServerComponent
-from gwsproto.enums import (AtomicAllyState,  ContractStatus, LocalControlTopState,
+from gwsproto.enums import (AtomicAllyState,  SlowDispatchContractStatus, LocalControlTopState,
                    MainAutoEvent, MainAutoState, TopState)
 from gwsproto.named_types import ( ActuatorsReady, FsmEvent,
     AdminDispatch, AdminAnalogDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
@@ -121,7 +121,7 @@ class Scada(PrimeActor, ScadaInterface):
         self._last_snap_s = int(now - (now % self.settings.seconds_per_snapshot))
         self.pending_dispatch: Optional[AnalogDispatch] = None
 
-        home_alone_normal = self.layout.node(H0N.home_alone_normal)
+        home_alone_normal = self.layout.node(H0N.local_control_normal)
         self.set_command_tree(home_alone_normal)
         self.top_state: TopState = TopState.Auto
         self.top_machine = Machine(
@@ -790,7 +790,7 @@ class Scada(PrimeActor, ScadaInterface):
         self._forward_single_reading(payload)
 
     def process_suit_up(self, from_node: ShNode, payload: SuitUp) -> None:
-        if from_node.Name != H0N.atomic_ally:
+        if from_node.Name != H0N.leaf_ally:
             self.log(
                 f"Ignoring AllySuitsUp from {from_node.Name} - expect AtomicAlly (aa)"
             )
@@ -928,8 +928,8 @@ class Scada(PrimeActor, ScadaInterface):
             self.ContractGracePeriodEnds()
             self.log("ContractGracePeriodEnds: Atn -> HomeAlone")
             self.set_command_tree(self.home_alone)
-            self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
-            self._send_to(self.atomic_ally, GoDormant(ToName=H0N.atomic_ally))
+            self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.local_control))
+            self._send_to(self.atomic_ally, GoDormant(ToName=H0N.leaf_ally))
         elif trigger == MainAutoEvent.AtnReleasesControl:
             if self.auto_state != MainAutoState.Atn:
                 self.log(f"Ignoring AtnReleasesControl trigger in auto_state {self.auto_state}")
@@ -937,8 +937,8 @@ class Scada(PrimeActor, ScadaInterface):
             self.AtnReleasesControl()
             self.log("AtnReleasesControls: Atn -> HomeAlone")
             self.set_command_tree(self.home_alone)
-            self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
-            self._send_to(self.atomic_ally, GoDormant(ToName=H0N.atomic_ally))
+            self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.local_control))
+            self._send_to(self.atomic_ally, GoDormant(ToName=H0N.leaf_ally))
         elif trigger == MainAutoEvent.AllyGivesUp:
             if self.auto_state != MainAutoState.Atn:
                 self.log(f"Ignoring AllyGivesUp trigger in auto_state {self.auto_state}")
@@ -946,8 +946,8 @@ class Scada(PrimeActor, ScadaInterface):
             self.AllyGivesUp()
             self.log("AllyGivesUp: Atn -> HomeAlone")
             self.set_command_tree(self.home_alone)
-            self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
-            self._send_to(self.atomic_ally, GoDormant(ToName=H0N.atomic_ally))
+            self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.local_control))
+            self._send_to(self.atomic_ally, GoDormant(ToName=H0N.leaf_ally))
         elif trigger == MainAutoEvent.AutoGoesDormant:
             if self.auto_state == MainAutoState.Dormant:
                 self.log(f"Ignoring AutoWakesUp trigger in auto_state {self.auto_state}")
@@ -970,7 +970,7 @@ class Scada(PrimeActor, ScadaInterface):
             self.AutoWakesUp()
             self.log("AutoWakesUp: Dormant -> HomeAlone")
             self.set_command_tree(self.home_alone)
-            self._send_to(self.home_alone, WakeUp(ToName=H0N.home_alone))
+            self._send_to(self.home_alone, WakeUp(ToName=H0N.local_control))
             self._send_to(self.layout.pico_cycler, WakeUp(ToName=H0N.pico_cycler))
             
     def auto_wakes_up(self) -> None:
@@ -989,7 +989,7 @@ class Scada(PrimeActor, ScadaInterface):
 
         self.log(f"{self.contract_handler.formatted_contract(atn_hb)}")
         return_hb = None
-        if atn_hb.Status == ContractStatus.Created:
+        if atn_hb.Status == SlowDispatchContractStatus.Created:
             if self.top_state == TopState.Admin:
                 self.log("Ignoring new contract, in Admin")
                 return
@@ -1005,7 +1005,7 @@ class Scada(PrimeActor, ScadaInterface):
                 self._send_to(self.atomic_ally, self.contract_handler.latest_scada_hb.Contract
                 )
                 # will send hb in process_suit_up, after atomic ally acknowledges
-        elif atn_hb.Status == ContractStatus.TerminatedByAtn:
+        elif atn_hb.Status == SlowDispatchContractStatus.TerminatedByAtn:
             raise Exception("Ack! Haven't thought through termination by atn ...")
         else:
             if self.contract_handler.latest_scada_hb is None:
@@ -1065,7 +1065,7 @@ class Scada(PrimeActor, ScadaInterface):
             return
 
         actual_end_s = hb.Contract.contract_end_s()
-        if hb.Status == ContractStatus.TerminatedByScada:
+        if hb.Status == SlowDispatchContractStatus.TerminatedByScada:
             actual_end_s = hb.MessageCreatedMs / 1000
         delay_s = (actual_end_s +
                         self.contract_handler.WARNING_MINUTES_AFTER_END * 60 - time.time())
@@ -1211,8 +1211,8 @@ class Scada(PrimeActor, ScadaInterface):
         with the top_state reported by `h` [Dormant v anything else] and `aa` [Dormant v anything else]
         """
 
-        h: HomeAlone = self.services.get_communicator_as_type(H0N.home_alone, HomeAlone)
-        aa: AtomicAlly = self.services.get_communicator_as_type(H0N.atomic_ally, AtomicAlly)
+        h: HomeAlone = self.services.get_communicator_as_type(H0N.local_control, HomeAlone)
+        aa: AtomicAlly = self.services.get_communicator_as_type(H0N.leaf_ally, AtomicAlly)
 
         
         #aa_state = self.data.latest_machine_state[self.atomic_ally.name].State
@@ -1360,7 +1360,7 @@ class Scada(PrimeActor, ScadaInterface):
 
         # HACK FOR nodes whose 'actors' are handled by their parent's communicator
         communicator_by_name = {to_node.Name: to_node.Name}
-        communicator_by_name[H0N.home_alone_normal] = H0N.home_alone
+        communicator_by_name[H0N.local_control_normal] = H0N.local_control
     
         # if the message is meant for primary_scada, process here
         if to_node.name == self.name:
@@ -1380,7 +1380,7 @@ class Scada(PrimeActor, ScadaInterface):
                 ),
                 qos=QOS.AtMostOnce,
             )
-        elif to_node.Name == H0N.atn:
+        elif to_node.Name == H0N.ltn:
             #self._links.publish_upstream(payload)
             self.services.publish_message(
                 link_name=self.ATN_MQTT,
@@ -1437,7 +1437,7 @@ class Scada(PrimeActor, ScadaInterface):
                     f"IGNORING message from upstream. Expected {self.layout.atn_g_node_alias} but got {src}"
                 )
                 return
-            src = H0N.atn
+            src = H0N.ltn
         elif message.Payload.client_name == self.ADMIN_MQTT:
             if not self.settings.admin.enabled:
                 return
@@ -1527,15 +1527,15 @@ class Scada(PrimeActor, ScadaInterface):
 
     @property
     def atn(self) -> ShNode:
-        return self.layout.node(H0N.atn)
+        return self.layout.node(H0N.ltn)
 
     @property
     def atomic_ally(self) -> ShNode:
-        return self.layout.node(H0N.atomic_ally)
+        return self.layout.node(H0N.leaf_ally)
 
     @property
     def home_alone(self) -> ShNode:
-        return self.layout.node(H0N.home_alone)
+        return self.layout.node(H0N.local_control)
 
     @property
     def relay_multiplexer(self) -> ShNode:

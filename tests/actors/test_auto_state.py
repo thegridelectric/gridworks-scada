@@ -4,7 +4,7 @@ import pytest
 from gwproto import Message
 from actors import AtomicAlly
 from gwsproto.data_classes.house_0_names import H0N
-from gwsproto.enums import MainAutoState, ContractStatus
+from gwsproto.enums import MainAutoState, SlowDispatchContractStatus
 from gwsproto.named_types import SlowDispatchContract, SlowContractHeartbeat
 from tests.utils.scada_live_test_helper import ScadaLiveTest
 
@@ -26,7 +26,7 @@ async def test_auto_state_home_alone_to_atn(request: pytest.FixtureRequest) -> N
         scada = h.child1_app.scada
         atn = h.parent_app.atn
         aa = h.child1_app.get_communicator_as_type(
-                H0N.atomic_ally,
+                H0N.leaf_ally,
                 AtomicAlly
             )
         if aa is None:
@@ -60,7 +60,7 @@ async def test_auto_state_home_alone_to_atn(request: pytest.FixtureRequest) -> N
         atn_hb = SlowContractHeartbeat(
             FromNode=atn.node.name,
             Contract=contract,
-            Status=ContractStatus.Created,
+            Status=SlowDispatchContractStatus.Created,
             WattHoursUsed=0,
             MessageCreatedMs=int(time.time() * 1000),
             MyDigit=5,
@@ -91,7 +91,7 @@ async def test_auto_state_home_alone_to_atn(request: pytest.FixtureRequest) -> N
         # Verify contract handler has the contract
         assert scada._contract_handler.latest_scada_hb is not None
         assert scada._contract_handler.latest_scada_hb.Contract.ContractId == contract.ContractId
-        assert scada._contract_handler.latest_scada_hb.Status == ContractStatus.Received
+        assert scada._contract_handler.latest_scada_hb.Status == SlowDispatchContractStatus.Received
         
         # Test that ATN receives heartbeat back from Scada
         print("Waiting for ATN to receive heartbeat back from Scada")
@@ -106,7 +106,7 @@ async def test_auto_state_home_alone_to_atn(request: pytest.FixtureRequest) -> N
         # Verify ATN received the heartbeat
         print("ATN received heartbeat from Scada")
         assert atn.contract_handler.latest_hb.FromNode == H0N.primary_scada
-        assert atn.contract_handler.latest_hb.Status == ContractStatus.Received
+        assert atn.contract_handler.latest_hb.Status == SlowDispatchContractStatus.Received
         assert atn.contract_handler.latest_hb.FromNode == H0N.primary_scada
         print(f"ATN contract status: {atn.contract_handler.latest_hb.Status}")
 
@@ -114,7 +114,7 @@ async def test_auto_state_home_alone_to_atn(request: pytest.FixtureRequest) -> N
         #     FromNode=atn.node.name,
         #     Contract=atn.contract_handler.latest_hb.Contract,
         #     PreviousStatus=atn.contract_handler.latest_hb.Status,
-        #     Status=ContractStatus.TerminatedByAtn,
+        #     Status=SlowDispatchContractStatus.TerminatedByAtn,
         #     Cause="Atn testing termination",
         #     MessageCreatedMs=int(time.time() * 1000),
         #     MyDigit=2,

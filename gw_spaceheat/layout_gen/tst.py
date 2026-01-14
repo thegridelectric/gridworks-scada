@@ -83,7 +83,7 @@ def make_tst_layout(src_path: Path) -> LayoutDb:
 
 
 def _add_atn(db: LayoutDb) -> LayoutDb:
-    ATN_NODE_NAME = H0N.atn
+    ATN_NODE_NAME = H0N.ltn
     db.add_nodes(
         [
             SpaceheatNodeGt(

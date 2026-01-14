@@ -66,7 +66,7 @@ def test_ha1(monkeypatch, tmp_path):
     new = derived.params.model_copy(update={"DdPowerKw": 10})
     params_from_atn = ScadaParams(
         FromGNodeAlias=derived.layout.atn_g_node_alias,
-        FromName=H0N.atn,
+        FromName=H0N.ltn,
         ToName=H0N.primary_scada,
         UnixTimeMs=int(time.time() * 1000),
         MessageId=str(uuid.uuid4()),

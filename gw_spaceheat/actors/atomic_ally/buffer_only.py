@@ -75,8 +75,8 @@ class BufferOnlyAtomicAlly(ShNodeActor):
         self.prev_state: AaBufferOnlyState = AaBufferOnlyState.Dormant 
         self.log(f"Params: {self.params}")
         self.time_buffer_full = 0
-        if H0N.atomic_ally not in self.layout.nodes:
-            raise Exception(f"AtomicAlly requires {H0N.atomic_ally} node!!")
+        if H0N.leaf_ally not in self.layout.nodes:
+            raise Exception(f"AtomicAlly requires {H0N.leaf_ally} node!!")
 
     @property
     def remaining_watthours(self) -> Optional[int]:

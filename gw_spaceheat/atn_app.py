@@ -77,7 +77,7 @@ class AtnApp(App):
     def _get_name(self, layout: HardwareLayout) -> ProactorName:
         return ProactorName(
             long_name=layout.atn_g_node_alias,
-            short_name=house_0_names.H0N.atn
+            short_name=house_0_names.H0N.ltn
         )
 
     def _get_link_settings(

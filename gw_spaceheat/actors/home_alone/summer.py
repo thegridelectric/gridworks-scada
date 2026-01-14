@@ -105,7 +105,7 @@ class SummerHomeAlone(ShNodeActor):
 
     @property
     def normal_node(self) -> ShNode:
-        return self.layout.node(H0N.home_alone_normal)
+        return self.layout.node(H0N.local_control_normal)
 
     def initialize_actuators(self) -> None:
         if not self.actuators_ready:
