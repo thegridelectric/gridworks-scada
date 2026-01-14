@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Annotated
 
-from gw.enums import MarketTypeName
+from gwsproto.enums import MarketTypeName
 from pydantic import BeforeValidator, Field
 
 UTC_2000_01_01_TIMESTAMP = datetime(2000, 1, 1, tzinfo=timezone.utc).timestamp()

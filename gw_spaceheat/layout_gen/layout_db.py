@@ -10,10 +10,6 @@ import uuid
 from gwsproto.errors import DcError
 
 from gwsproto.type_helpers import CACS_BY_MAKE_MODEL
-from gwsproto.enums import ActorClass
-from gwsproto.enums import MakeModel
-from gwsproto.enums import Unit
-from gwsproto.enums import TelemetryName
 from gwsproto.named_types import ComponentAttributeClassGt
 from gwsproto.named_types import ComponentGt
 from gwsproto.named_types import ElectricMeterCacGt
@@ -22,16 +18,18 @@ from gwsproto.named_types import DataChannelGt
 from gwsproto.named_types import ElectricMeterChannelConfig
 from gwsproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwsproto.data_classes.house_0_names import H0N, H0CN
-from gwsproto.enums import FlowManifoldVariant, GwUnit, HomeAloneStrategy
+from gwsproto.enums import (
+    ActorClass, FlowManifoldVariant, GwUnit, MakeModel,
+    TelemetryName, Unit,
+)
 from gwsproto.named_types import DerivedChannelGt, TankTempCalibration, TankTempCalibrationMap
 
 
 @dataclass
 class StubConfig:
-    home_alone_strategy: HomeAloneStrategy = HomeAloneStrategy.WinterTou
     flow_manifold_variant: FlowManifoldVariant = FlowManifoldVariant.House0
     use_sieg_loop: bool = False
-    atn_gnode_alias: str = "atn.orange"
+    ltn_gnode_alias: str = "ltn.orange"
     terminal_asset_alias: Optional[str] = None
     zone_list: typing.Sequence[str] = field(default_factory=tuple)
     critical_zone_list: typing.Sequence[str] = field(default_factory=tuple)
@@ -514,29 +512,29 @@ class LayoutDb:
         if self.loaded.gnodes:
             self.misc.update(self.loaded.gnodes)
         else:
-            self.misc["MyAtomicTNodeGNode"] = {
+            self.misc["MyLeafTransactiveNodeGNode"] = {
                 "GNodeId": str(uuid.uuid4()),
-                "Alias": cfg.atn_gnode_alias,
-                "DisplayName": "ATN GNode",
-                "GNodeStatusValue": "Active",
-                "PrimaryGNodeRoleAlias": "AtomicTNode"
+                "Alias": cfg.ltn_gnode_alias,
+                "DisplayName": "LeafTransactiveNode",
+                "GNodeStatus": "Active",
+                "GNodeClass": "LeafTransactiveNode"
             }
             self.misc["MyScadaGNode"] = {
                 "GNodeId": str(uuid.uuid4()),
-                "Alias": f"{cfg.atn_gnode_alias}.scada",
+                "Alias": f"{cfg.ltn_gnode_alias}.scada",
                 "DisplayName": "Scada GNode",
-                "GNodeStatusValue": "Active",
-                "PrimaryGNodeRoleAlias": "Scada"
+                "GNodeStatus": "Active",
+                "GNodeClass": "Scada"
             }
-            ta_alias = f"{cfg.atn_gnode_alias}.ta"
+            ta_alias = f"{cfg.ltn_gnode_alias}.ta"
             if cfg.terminal_asset_alias:
                 ta_alias = cfg.terminal_asset_alias
             self.misc["MyTerminalAssetGNode"] = {
                 "GNodeId": str(uuid.uuid4()),
                 "Alias": ta_alias,
                 "DisplayName": "TerminalAsset GNode",
-                "GNodeStatusValue": "Active",
-                "PrimaryGNodeRoleAlias": "TerminalAsset"
+                "GNodeStatus": "Active",
+                "GNodeClass": "TerminalAsset"
               }
         if self.loaded.zone_list:
             self.misc["ZoneList"] = self.loaded.zone_list
@@ -564,13 +562,13 @@ class LayoutDb:
                 SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.primary_scada),
                     Name=H0N.primary_scada,
-                    ActorClass=ActorClass.Scada,
+                    ActorClass=ActorClass.PrimaryScada,
                     DisplayName=cfg.scada_display_name,
                 ),
                 SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.secondary_scada),
                     Name=H0N.secondary_scada,
-                    ActorClass=ActorClass.Parentless,
+                    ActorClass=ActorClass.SecondaryScada,
                     DisplayName="Secondary Scada"
                 ),
                 SpaceheatNodeGt(
@@ -598,8 +596,8 @@ class LayoutDb:
                     Name=H0N.leaf_ally,
                     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.leaf_ally}",
                     Handle=f"{H0N.ltn}.{H0N.leaf_ally}",
-                    ActorClass=ActorClass.AtomicAlly,
-                    DisplayName="Atomic Ally",
+                    ActorClass=ActorClass.LeafAlly,
+                    DisplayName="Leaf Ally",
                 ),
                 SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.pico_cycler),
@@ -622,30 +620,29 @@ class LayoutDb:
                     Name=H0N.local_control,
                     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.local_control}",
                     Handle=f"auto.{H0N.local_control}",
-                    ActorClass=ActorClass.HomeAlone,
-                    DisplayName="HomeAlone",
-                    Strategy=cfg.home_alone_strategy,
+                    ActorClass=ActorClass.LocalControl,
+                    DisplayName="LocalControl",
                 ),
                 SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.local_control_normal),
                     Name=H0N.local_control_normal,
                     Handle=f"auto.{H0N.local_control}.{H0N.local_control_normal}",
                     ActorClass=ActorClass.NoActor,
-                    DisplayName="HomeAlone Normal",
+                    DisplayName="LocalControl Normal",
                 ),
                 SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.local_control_backup),
                     Name=H0N.local_control_backup,
                     Handle=f"auto.{H0N.local_control}.{H0N.local_control_backup}",
                     ActorClass=ActorClass.NoActor,
-                    DisplayName="HomeAlone Backup",
+                    DisplayName="LocalControl Backup",
                 ),
                 SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.local_control_scada_blind),
                     Name=H0N.local_control_scada_blind,
                     Handle=f"auto.{H0N.local_control}.{H0N.local_control_scada_blind}",
                     ActorClass=ActorClass.NoActor,
-                    DisplayName="HomeAlone Scada Blind",
+                    DisplayName="LocalControl Scada Blind",
                 ),
                 SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.hp_boss),

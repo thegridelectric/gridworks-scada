@@ -1,9 +1,9 @@
 from enum import auto
 
-from gw.enums import GwStrEnum
+from gwsproto.enums.gw_str_enum import AslEnum
 
 
-class ThermistorDataMethod(GwStrEnum):
+class ThermistorDataMethod(AslEnum):
     """
     What method is used to go from raw voltage readings to captured temperature readings.
     Values:

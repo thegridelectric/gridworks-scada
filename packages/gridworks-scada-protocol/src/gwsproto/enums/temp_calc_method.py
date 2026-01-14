@@ -1,9 +1,9 @@
 from enum import auto
 
-from gw.enums import GwStrEnum
+from gwsproto.enums.gw_str_enum import AslEnum
 
 
-class TempCalcMethod(GwStrEnum):
+class TempCalcMethod(AslEnum):
     """
     What method is used to calculate temperature as a function of voltage?
     Values:

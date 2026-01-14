@@ -1,4 +1,3 @@
-"""Test HomeAlone w strategy ha1"""
 import uuid
 import time
 from pathlib import Path
@@ -6,10 +5,8 @@ from pathlib import Path
 from gwproactor_test.certs import uses_tls
 from gwproactor_test.certs import copy_keys
 
-from actors import Scada
 from actors import DerivedGenerator
 from actors.config import ScadaSettings
-from gwsproto.data_classes.house_0_layout import House0Layout
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.named_types import ScadaParams
 from scada_app import ScadaApp
@@ -62,10 +59,10 @@ def test_ha1(monkeypatch, tmp_path):
     # try something hotter
     assert derived.required_swt(required_kw_thermal=8) == 171.7
 
-    # test getting new params from atn, resulting in new rswt quad params
+    # test getting new params from ltn, resulting in new rswt quad params
     new = derived.params.model_copy(update={"DdPowerKw": 10})
-    params_from_atn = ScadaParams(
-        FromGNodeAlias=derived.layout.atn_g_node_alias,
+    params_from_ltn = ScadaParams(
+        FromGNodeAlias=derived.layout.ltn_g_node_alias,
         FromName=H0N.ltn,
         ToName=H0N.primary_scada,
         UnixTimeMs=int(time.time() * 1000),
@@ -74,7 +71,7 @@ def test_ha1(monkeypatch, tmp_path):
 
     )
 
-    s.process_scada_params(s.atn, params_from_atn, testing=True)
+    s.process_scada_params(s.ltn, params_from_ltn, testing=True)
     assert derived.params.DdPowerKw == 10
 
     # wrote the new parameter to .env
@@ -90,7 +87,7 @@ def test_ha1(monkeypatch, tmp_path):
 
     # Todo: test missing various temperatures
 
-    # Todo: test Scada entering/leaving Homealone
+    # Todo: test Scada entering/leaving LocalControl
 
    
 

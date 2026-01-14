@@ -1,7 +1,7 @@
 from enum import auto
-from gw.enums import GwStrEnum
+from gwsproto.enums.gw_str_enum import AslEnum
 
-class HpModel(GwStrEnum):
+class HpModel(AslEnum):
     LgHighTempHydroKitPlusMultiV = auto()  
     SamsungFourTonneHydroKit = auto()   
     SamsungFiveTonneHydroKit = auto()

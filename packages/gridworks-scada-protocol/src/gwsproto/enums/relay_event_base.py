@@ -1,4 +1,4 @@
-from gw.enums import GwStrEnum
+from gwsproto.enums.gw_str_enum import AslEnum
 
 
-class RelayEventBase(GwStrEnum): ...
+class RelayEventBase(AslEnum): ...

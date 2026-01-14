@@ -1,9 +1,9 @@
 from enum import auto
 
-from gw.enums import GwStrEnum
+from gwsproto.enums.gw_str_enum import AslEnum
 
 
-class GpmFromHzMethod(GwStrEnum):
+class GpmFromHzMethod(AslEnum):
     """
 
     Values:

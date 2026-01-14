@@ -3,7 +3,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, List, Optional
 
-from gw.errors import DcError
+from gwsproto.errors import DcError
 from gwsproto.enums import ActorClass
 from gwsproto.data_classes.components import Component
 from gwsproto.data_classes.data_channel import DataChannel
@@ -11,7 +11,7 @@ from gwsproto.data_classes.components.web_server_component import WebServerCompo
 
 
 from gwsproto.data_classes.house_0_names import H0CN, H0N, ScadaWeb
-from gwsproto.enums import FlowManifoldVariant, HomeAloneStrategy
+from gwsproto.enums import FlowManifoldVariant
 
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.decoders import (
@@ -296,14 +296,7 @@ class House0Layout(HardwareLayout):
             raise DcError(f"If not using sieg loop, should not have node {H0N.sieg_loop}!")
 
     @property
-    def ha_strategy(self) -> str:
-        """Returns the current home alone strategy"""
-        # Could be stored as a property or derived from a node
-        ha_node = self.nodes.get(H0N.local_control)
-        return HomeAloneStrategy(HomeAloneStrategy(getattr(ha_node, "Strategy", None)))
-    
-    @property
-    def actuators(self) -> List[ShNode]:
+    def actuators(self) -> List[ShNode]: 
         return self.relays + self.zero_tens
     
     @property
@@ -491,36 +484,81 @@ class House0Layout(HardwareLayout):
         return channels
 
     @property
-    def home_alone(self) -> ShNode:
-        return self.node(H0N.local_control)
+    def primary_scada(self) -> ShNode:
+        n = self.node(H0N.primary_scada)
+        if n is None:
+            raise Exception(f"{H0N.primary_scada} is known to exist")
+        return n
+
+    @property
+    def derived_generator(self) -> ShNode:
+        n = self.node(H0N.derived_generator)
+        if n is None:
+            raise Exception(f"{H0N.derived_generator} is known to exist")
+        return n
+    
+    @property
+    def local_control(self) -> ShNode:
+        n = self.node(H0N.local_control)
+        if n is None:
+            raise Exception(f"{H0N.local_control} is known to exist")
+        return n
     
     @property
     def auto_node(self) -> ShNode:
-        return self.node(H0N.auto)
+        n = self.node(H0N.auto)
+        if n is None:
+            raise Exception(f"{H0N.auto} is known to exist")
+        return n
+
+    @property
+    def hp_boss(self) -> ShNode:
+        n = self.node(H0N.hp_boss)
+        if n is None:
+            raise Exception(f"{H0N.hp_boss} is known to exist")
+        return n
     
     @property
-    def atomic_ally(self) -> ShNode:
-        return self.node(H0N.leaf_ally)
+    def leaf_ally(self) -> ShNode:
+        n = self.node(H0N.leaf_ally)
+        if n is None:
+            raise Exception(f"{H0N.leaf_ally} is known to exist")
+        return n
     
     @property
-    def atn(self) -> ShNode:
-        return self.node(H0N.ltn)
+    def ltn(self) -> ShNode:
+        n = self.node(H0N.ltn)
+        if n is None:
+            raise Exception(f"{H0N.ltn} is known to exist")
+        return n
     
     @property
     def pico_cycler(self) -> ShNode:
-        return self.node(H0N.pico_cycler)
+        n = self.node(H0N.pico_cycler)
+        if n is None:
+            raise Exception(f"{H0N.pico_cycler} is known to exist")
+        return n
 
     @property
     def vdc_relay(self) -> ShNode:
-        return self.node(H0N.vdc_relay)
+        n = self.node(H0N.vdc_relay)
+        if n is None:
+            raise Exception(f"{H0N.vdc_relay} is known to exist")
+        return n
 
     @property
     def tstat_common_relay(self) -> ShNode:
-        return self.node(H0N.tstat_common_relay)
+        n = self.node(H0N.tstat_common_relay)
+        if n is None:
+            raise Exception(f"{H0N.tstat_common_relay} is known to exist")
+        return n
 
     @property
     def charge_discharge_relay(self) -> ShNode:
-        return self.node(H0N.store_charge_discharge_relay)#
+        n = self.node(H0N.store_charge_discharge_relay)
+        if n is None:
+            raise Exception(f"{H0N.store_charge_discharge_relay} is known to exist")
+        return n
 
     def scada2_gnode_name(self) -> str:
         return f"{self.scada_g_node_alias}.{H0N.secondary_scada}"

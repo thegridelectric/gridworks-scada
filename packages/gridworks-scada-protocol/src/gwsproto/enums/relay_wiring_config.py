@@ -1,9 +1,9 @@
 from enum import auto
 
-from gw.enums import GwStrEnum
+from gwsproto.enums.gw_str_enum import AslEnum
 
 
-class RelayWiringConfig(GwStrEnum):
+class RelayWiringConfig(AslEnum):
     """
     While some relays come with only two terminals and a default configuration, many come with
     a common terminal (COM), normally open terminal (NO) and normally closed terminal (NC).

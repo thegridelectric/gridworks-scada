@@ -55,7 +55,7 @@ class SlowContractHeartbeat(BaseModel):
     def _check_axiom_2(self) -> Self:
         """Axiom 2 Check authority: Validate authority for status changes"""
         
-        # Only Atn can create or confirm
+        # Only Ltn can create or confirm
         if self.Status in [SlowDispatchContractStatus.Created, SlowDispatchContractStatus.Confirmed, SlowDispatchContractStatus.TerminatedByLtn]:
             if self.FromNode != LTN_SH_NODE_NAME:
                 raise ValueError(f"Only LeafTransactiveNode can set status {self.Status}")

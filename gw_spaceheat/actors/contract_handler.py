@@ -18,7 +18,7 @@ from actors.config import ScadaSettings
 
 
 class ContractHandler:
-    """Handles SCADA's representation contract and dispatch contracts w Atn"""
+    """Handles SCADA's representation contract and dispatch contracts w Ltn"""
 
     DONE_STATES = [
         SlowDispatchContractStatus.TerminatedByLtn,
@@ -129,7 +129,7 @@ class ContractHandler:
                             MyDigit=random.choice(range(10)),
                         )
                         self.logger.info(
-                            "Contract expired! Should send hb to atn ASAP."
+                            "Contract expired! Should send hb to Ltn ASAP."
                             "Loaded ContractHb into prev"
                         )
                         return self.prev
@@ -144,23 +144,26 @@ class ContractHandler:
                     self.logger.info("Loaded ContractHb into hb")
                     return hb
         except Exception as e:
-            raise ValueError(f"Issue loading contract! {e}")
-            # self.logger.warning(f"Issue loading contract! {e}")
+            self.logger.error(
+                "Ignoring persisted contract heartbeat due to load error",
+                exc_info=e,
+            )
+            return None
 
-    def store_heartbeat(self, atn_hb: Optional[SlowContractHeartbeat] = None) -> None:
+    def store_heartbeat(self, ltn_hb: Optional[SlowContractHeartbeat] = None) -> None:
         """Stores  SlowDispatchContract to persistent storage
 
-          - In default atn_hb None case, stores self.latest_scada_hb
+          - In default ltn_hb None case, stores self.latest_scada_hb
           - 
         """
         if self.latest_scada_hb is None:
             raise ValueError("Do not expect to store_heartbeat when None")
         hb = self.latest_scada_hb
-        if atn_hb:
-            if atn_hb.Status not in [SlowDispatchContractStatus.TerminatedByLtn,
+        if ltn_hb:
+            if ltn_hb.Status not in [SlowDispatchContractStatus.TerminatedByLtn,
                                      SlowDispatchContractStatus.CompletedUnknownOutcome]:
-                raise ValueError("only stores atn_hb's with Status TerminatedByLtn or CompletedUnknownAutcome")
-            hb = atn_hb
+                raise ValueError("only stores ltn_hb's with Status TerminatedByLtn or CompletedUnknownAutcome")
+            hb = ltn_hb
 
         with open(self.contract_file, "w") as f:
             # Store the JSON rep of hb
@@ -171,7 +174,7 @@ class ContractHandler:
 
         Returns a heartbeat if contract has become expired
         """
-        return_hb = self.load_heartbeat()  # None unless returning expired HB to atn
+        return_hb = self.load_heartbeat()  # None unless returning expired HB to ltn
         if return_hb:
             self.logger.info(f"Starting with contract {return_hb.Contract.ContractId[:3]}")
         else:
@@ -190,15 +193,15 @@ class ContractHandler:
         self.energy_used_wh = 0
         self.energy_updated_s = None
 
-    def get_initial_watt_hours(self, atn_hb: SlowContractHeartbeat) -> int:
+    def get_initial_watt_hours(self, ltn_hb: SlowContractHeartbeat) -> int:
         """Contracts start within 10 seconds of market so returns
         delta_t * latest_power_w
         """
-        delta_s = (atn_hb.MessageCreatedMs/1000) - atn_hb.Contract.StartS
+        delta_s = (ltn_hb.MessageCreatedMs/1000) - ltn_hb.Contract.StartS
         return int(self.latest_power_w * delta_s/3600)
 
     def start_new_contract_hb(
-        self, atn_hb: SlowContractHeartbeat
+        self, ltn_hb: SlowContractHeartbeat
     ) -> SlowContractHeartbeat:
         """Managesthe first HB for a newly created Contract
           -  cases:
@@ -210,37 +213,37 @@ class ContractHandler:
             - right now does not handle a contract for a future time slot
         """
 
-        if atn_hb.Status != SlowDispatchContractStatus.Created:
+        if ltn_hb.Status != SlowDispatchContractStatus.Created:
             raise Exception(
-                f"Can only start new contract with a SlowDispatchContractStatus of Created, not {atn_hb.Status}"
+                f"Can only start new contract with a SlowDispatchContractStatus of Created, not {ltn_hb.Status}"
             )
         if self.latest_scada_hb:
-            self.logger.warning("Ignoring atn hb! Still inside existing contract")
+            self.logger.warning("Ignoring Ltn hb! Still inside existing contract")
             self.logger.warning(f"Existing: {self.latest_scada_hb}")
-            raise Exception(f"Inbound: {atn_hb}")
+            raise Exception(f"Inbound: {ltn_hb}")
         
         now = time.time()
-        self.energy_used_wh = self.get_initial_watt_hours(atn_hb)
+        self.energy_used_wh = self.get_initial_watt_hours(ltn_hb)
         self.energy_updated_s = now
         self.latest_scada_hb = SlowContractHeartbeat(
             FromNode=self.node.Name,
-            Contract=atn_hb.Contract,
-            PreviousStatus=atn_hb.Status,
+            Contract=ltn_hb.Contract,
+            PreviousStatus=ltn_hb.Status,
             Status=SlowDispatchContractStatus.Received,
             WattHoursUsed=round(self.energy_used_wh),
             MessageCreatedMs=int(now * 1000),
             MyDigit=random.choice(range(10)),
-            YourLastDigit=atn_hb.MyDigit,
+            YourLastDigit=ltn_hb.MyDigit,
         )
         self.store_heartbeat()
         return self.latest_scada_hb
 
     def update_existing_contract_hb(
-        self, atn_hb: SlowContractHeartbeat
+        self, ltn_hb: SlowContractHeartbeat
     ) -> Optional[SlowContractHeartbeat]:
         """ Update energy usage and 
         - return  hb for Scada to send back
-        - or None if Scada doesn't send anything back (if Atn terminates contract
+        - or None if Scada doesn't send anything back (if Ltn terminates contract
         prior to completion)
 
         raise exception if latest_scada_hb is none or if its contract
@@ -248,24 +251,24 @@ class ContractHandler:
         """
         self.update_energy_usage(self.latest_power_w)
 
-        if atn_hb.Status == SlowDispatchContractStatus.Created:
+        if ltn_hb.Status == SlowDispatchContractStatus.Created:
             raise Exception("Does not process newly created contracts!")
         if self.latest_scada_hb is None:
             raise Exception(
-                "Do not call update_existing_contract_hb if latest_atn_hb is None"
+                "Do not call update_existing_contract_hb if latest_ltn_hb is None"
             )
-        if self.latest_scada_hb.Contract != atn_hb.Contract:
+        if self.latest_scada_hb.Contract != ltn_hb.Contract:
             raise Exception(
-                "Do not call update_existing_contract if self.hb.Contract != atn_hb.Contract"
+                "Do not call update_existing_contract if self.hb.Contract != ltn_hb.Contract"
             )
-        if atn_hb.Status == SlowDispatchContractStatus.TerminatedByLtn:  # clear out contract
-            self.store_heartbeat(atn_hb) 
+        if ltn_hb.Status == SlowDispatchContractStatus.TerminatedByLtn:  # clear out contract
+            self.store_heartbeat(ltn_hb) 
             self.flush_latest_scada_hb()
-            self.prev = atn_hb
+            self.prev = ltn_hb
             return None
-        elif atn_hb.Status == SlowDispatchContractStatus.CompletedUnknownOutcome:
+        elif ltn_hb.Status == SlowDispatchContractStatus.CompletedUnknownOutcome:
             # Determine contracted energy amount
-            contracted_energy_wh = atn_hb.Contract.AvgPowerWatts * atn_hb.Contract.DurationMinutes / 60
+            contracted_energy_wh = ltn_hb.Contract.AvgPowerWatts * ltn_hb.Contract.DurationMinutes / 60
             # Send final energy accounting
 
             final_hb = self.scada_contract_completion_hb(
@@ -275,21 +278,21 @@ class ContractHandler:
             self.flush_latest_scada_hb() # then fluses it
             self.prev = final_hb
             return final_hb
-        elif atn_hb.Status in [SlowDispatchContractStatus.Confirmed, SlowDispatchContractStatus.Active]:
+        elif ltn_hb.Status in [SlowDispatchContractStatus.Confirmed, SlowDispatchContractStatus.Active]:
             self.latest_scada_hb = SlowContractHeartbeat(
                 FromNode=H0N.primary_scada,
-                Contract=atn_hb.Contract,
-                PreviousStatus=atn_hb.Status,
+                Contract=ltn_hb.Contract,
+                PreviousStatus=ltn_hb.Status,
                 Status=SlowDispatchContractStatus.Active,
                 WattHoursUsed=round(self.energy_used_wh),
                 MessageCreatedMs=int(time.time() * 1000),
                 MyDigit=random.choice(range(10)),
-                YourLastDigit=atn_hb.MyDigit,
+                YourLastDigit=ltn_hb.MyDigit,
             )
             self.store_heartbeat()
             return self.latest_scada_hb
         else:
-            raise ValueError(f"Unexpected status from atn_hb: {atn_hb.Status}")
+            raise ValueError(f"Unexpected status from ltn_hb: {ltn_hb.Status}")
 
     def scada_terminates_contract_hb(self, cause: str = "") -> SlowContractHeartbeat:
         """Creats a heartbeat declaring scada termination of contract
@@ -322,7 +325,7 @@ class ContractHandler:
         """
         now = time.time()
         if not self.latest_scada_hb:
-            raise Exception("Cannot call scada terminates contract if no latest_atn_hb")
+            raise Exception("Cannot call scada terminates contract if no latest_ltn_hb")
         if now < self.latest_scada_hb.Contract.contract_end_s():
             raise Exception(
                 f"scada_detects_contract_complete_hb called at {int(now)}, before ContractEndTime of {self.latest_scada_hb.Contract.contract_end_s()}"

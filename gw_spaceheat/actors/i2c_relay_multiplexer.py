@@ -3,7 +3,7 @@ import time
 from enum import Enum
 from typing import Any, Dict, List, Optional, Sequence, cast
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums import AslEnum
 from gwproto.message import Message
 
 from gwproactor import MonitoredName
@@ -163,7 +163,7 @@ class I2cRelayMultiplexer(ShNodeActor):
                     else: 
                         log_level = LogLevel.Info
                         summary = f"i2c board {board_idx} ({hex(address)}) took {setup_attempts+1} attempts to initialize! "
-                        self._send_to(self.atn,
+                        self._send_to(self.ltn,
                                     Glitch(
                                         FromGNodeAlias=self.layout.scada_g_node_alias,
                                         Node=self.node.Name,

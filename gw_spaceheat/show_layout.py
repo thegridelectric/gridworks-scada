@@ -7,14 +7,13 @@ from typing import Sequence
 import dotenv
 from gwsproto.data_classes.components.hubitat_component import HubitatComponent
 from gwsproto.data_classes.components.hubitat_poller_component import HubitatPollerComponent
-from gwsproto.data_classes.components.hubitat_tank_component import HubitatTankComponent
 from rich import print
 from rich.table import Table
 from rich.text import Text
 
 from actors.config import ScadaSettings
 from command_line_utils import get_requested_names
-from gw.errors import DcError
+from gwsproto.errors import DcError
 from gwsproto.data_classes.hardware_layout import LoadError
 from gwsproto.data_classes.house_0_layout import House0Layout
 
@@ -147,9 +146,9 @@ def print_layout_members(
 
     print("Layout identifier attributes")
     for attr in [
-        "atn_g_node_alias",
-        "atn_g_node_instance_id",
-        "atn_g_node_id",
+        "ltn_g_node_alias",
+        "ltn_g_node_instance_id",
+        "ltn_g_node_id",
         "terminal_asset_g_node_alias",
         "terminal_asset_g_node_id",
         "scada_g_node_alias",
@@ -205,7 +204,7 @@ def print_layout_urls(layout: House0Layout) -> None:
         component.gt.DisplayName: component.urls()
         for component in [
         component for component in layout.components.values()
-        if isinstance(component, (HubitatComponent, HubitatTankComponent, HubitatPollerComponent))
+        if isinstance(component, (HubitatComponent, HubitatPollerComponent))
     ]
     }
     if url_dicts:

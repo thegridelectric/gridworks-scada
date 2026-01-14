@@ -3,7 +3,7 @@ import time
 import uuid
 from enum import auto
 from typing import Dict, List, Optional, Sequence
-from gw.enums import GwStrEnum
+from gwsproto.enums.gw_str_enum import GwStrEnum
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
@@ -197,7 +197,7 @@ class PicoCycler(ShNodeActor):
             )
 
         self._send_to(
-            self.atn,
+            self.ltn,
             Glitch(
                 FromGNodeAlias=self.layout.scada_g_node_alias,
                 Node=self.actor_by_pico[pico].name,
@@ -557,7 +557,7 @@ class PicoCycler(ShNodeActor):
             if time.time() > next_zombie_problem and len(zombies) > 0:
                 self.log(f"Sending problem event for zombies {zombies}")
                 self._send_to(
-                    self.atn,
+                    self.ltn,
                     Glitch(
                         FromGNodeAlias=self.layout.scada_g_node_alias,
                         Node=self.node.name,

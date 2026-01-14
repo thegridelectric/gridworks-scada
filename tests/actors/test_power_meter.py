@@ -149,20 +149,20 @@ async def test_power_meter_periodic_update(request: pytest.FixtureRequest) -> No
 
 @pytest.mark.asyncio
 async def test_async_power_update(request: pytest.FixtureRequest):
-#     """Verify that when a simulated change in power is generated, Scadd and Atn both get a PowerWatts message"""
+#     """Verify that when a simulated change in power is generated, Scadd and Ltn both get a PowerWatts message"""
     async with ScadaLiveTest(
         request=request,
     ) as h:
         h.start_child1() # start primary scada
-        h.start_parent() # start atn
+        h.start_parent() # start ltn
         scada = h.child1_app.scada
 
 
         data = scada.data
         print(f"type of h.child1_app.scada is {type(scada)}")
-        atn_received_counts = h.parent_to_child_stats.num_received_by_type
-        initial = atn_received_counts['power.watts']
-        print(f"atn has received {initial} power.watts messages")
+        ltn_received_counts = h.parent_to_child_stats.num_received_by_type
+        initial = ltn_received_counts['power.watts']
+        print(f"ltn has received {initial} power.watts messages")
         await h.await_for(
                 lambda: data.latest_power_w is not None,
                 "Scada wait for initial PowerWatts"
@@ -202,8 +202,8 @@ async def test_async_power_update(request: pytest.FixtureRequest):
         assert data.latest_power_w == 2 * delta_w
 
         await h.await_for(
-            lambda: atn_received_counts['power.watts'] > initial,
-            "Atn wait for power.watts",
+            lambda: ltn_received_counts['power.watts'] > initial,
+            "Ltn wait for power.watts",
         )
-        atn = h.parent_app.atn
-        assert atn.data.latest_power_w == 2 * delta_w
+        ltn = h.parent_app.ltn
+        assert ltn.data.latest_power_w == 2 * delta_w

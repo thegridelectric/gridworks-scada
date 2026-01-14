@@ -7,7 +7,7 @@ from typing import Optional, Sequence
 
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
-from gw.errors import DcError
+from gwsproto.errors import DcError
 from gwproactor import MonitoredName, Problems
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message

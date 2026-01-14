@@ -1,9 +1,9 @@
 from enum import auto
 
-from gw.enums import GwStrEnum
+from gwsproto.enums.gw_str_enum import AslEnum
 
 
-class StoreFlowRelay(GwStrEnum):
+class StoreFlowRelay(AslEnum):
     """
     Used for a double-throw relay that can toggle between a thermal store heating up (flow is
     in the charging direction) or cooling down (flow is in the discharging direction). Events

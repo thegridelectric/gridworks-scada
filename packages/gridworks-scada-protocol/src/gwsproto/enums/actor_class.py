@@ -1,51 +1,35 @@
 from enum import auto
 
-from gw.enums import GwStrEnum
+from gwsproto.enums.gw_str_enum import AslEnum
 
 
-class ActorClass(GwStrEnum):
+class ActorClass(AslEnum):
     """
-    For more information:
-      - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#shactorclass)
-      - [More Info](https://gridworks-protocol.readthedocs.io/en/latest/actor-class.html)
+    Classification of actors in the GridWorks SCADA system.
+    
+    ASL: https://schemas.electricity.works/enums/gw1.actor.class/000
     """
 
     NoActor = auto()
-    Scada = auto()
-    HomeAlone = auto()
-    BooleanActuator = auto()
-    PowerMeter = auto()
-    Atn = auto()
-    SimpleSensor = auto()
-    MultipurposeSensor = auto()
-    Thermostat = auto()
-    HubitatTelemetryReader = auto()
-    HubitatTankModule = auto()
-    HubitatPoller = auto()
+    PrimaryScada = auto()
+    SecondaryScada = auto()
+    PowerMeter = auto()  # Primary power meter
+    LocalControl = auto()
+    LeafAlly = auto()
+    DerivedGenerator = auto()
+    PicoCycler = auto()
+    HpBoss = auto()
     I2cRelayMultiplexer = auto()
-    FlowTotalizer = auto()
-    Relay = auto()
-    Admin = auto()
-    Fsm = auto()
-    Parentless = auto()
+    I2cZeroTenMultiplexer = auto()
     Hubitat = auto()
-    HoneywellThermostat = auto() # TODO: change to ExternalThermostat
+    Relay = auto()
+    MultipurposeSensor = auto()
+    HoneywellThermostat = auto()
     ApiTankModule = auto()
     ApiFlowModule = auto()
-    PicoCycler = auto()
-    I2cDfrMultiplexer = auto()
     ZeroTenOutputer = auto()
-    AtomicAlly = auto()
-    SynthGenerator = auto()
-    FakeAtn = auto()
-    PumpDoctor = auto()
-    StratBoss = auto()
-    HpRelayBoss = auto()
-    SiegLoop = auto()
-    HpBoss = auto()
     ApiBtuMeter = auto()
-    DerivedGenerator = auto()
+    SiegLoop = auto()
 
     @classmethod
     def default(cls) -> "ActorClass":
@@ -57,7 +41,7 @@ class ActorClass(GwStrEnum):
 
     @classmethod
     def enum_name(cls) -> str:
-        return "sh.actor.class"
+        return "gw1.actor.class"
 
     @classmethod
     def enum_version(cls) -> str:

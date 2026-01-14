@@ -7,8 +7,8 @@ and using the repl makes this tricky and some manual testing is required.
 |-----------------|-------|----|-------|
 | gws run         |       |    |       |
 | scada/repl      |       |    |       |
-| gws atn run     |       |    |       |
-| atn in repl     |       |    |       |
+| gws ltn run     |       |    |       |
+| ltn in repl     |       |    |       |
 | gwa watch       |       |    |       |
 | uvx admin       |       |    |       |
 | service         |   -   |    |   -   |
@@ -25,10 +25,10 @@ s = app.prime_actor
 ```
 
 
-### Atn repl code
+### Ltn repl code
 ```python
-from actors.atn.atn_config import AtnSettings; from atn_app import AtnApp; import dotenv
-a = AtnApp.get_repl_app(app_settings=AtnSettings(_env_file=dotenv.find_dotenv())).atn # noqa
+from actors.ltn.config import LtnSettings; from ltn_app import LtnApp; import dotenv
+l = LtnApp.get_repl_app(app_settings=LtnSettings(_env_file=dotenv.find_dotenv())).ltn # noqa
 ```
 
 ### uvx command line

@@ -10,7 +10,7 @@ from gwproactor.logging_setup import enable_aiohttp_logging
 from trogon import Trogon
 from typer.main import get_group
 
-from actors.atn.cli import app as atn_cli
+from actors.ltn.cli import app as ltn_cli
 from actors.config import ScadaSettings
 from layout_gen.genlayout import app as layout_cli
 from scada2_app import Scada2App
@@ -27,7 +27,7 @@ app = typer.Typer(
 )
 
 app.add_typer(layout_cli, name="layout", help="Layout commands")
-app.add_typer(atn_cli, name="atn", help="ATN commands")
+app.add_typer(ltn_cli, name="ltn", help="LTN commands")
 
 @app.command()
 def config(env_file: str = ".env"):
@@ -112,23 +112,6 @@ def run_s2(
         verbose=verbose,
         message_summary=message_summary,
     )
-
-@app.command(hidden=True)
-def admin() -> None:
-    """Admin has been removed from the gws CLI. Admin is accessible as 'gwa' from
-    the development environment or can be installed as a tool for the user with
-    'uv tool install gridworks-admin'"""
-
-    rich.print(f"""Admin has been removed from gws. Instead Run:
-        
-    gwa
-    
-Install Admin for current user with: 
-    
-    uv tool install gridworks-admin
-""")
-    raise typer.Exit(1)
-
 
 def version_callback(value: bool):
     if value:

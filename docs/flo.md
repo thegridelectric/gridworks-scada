@@ -11,13 +11,13 @@ Once storage is added to a system, simple myopic control strategies no longer su
 
 ## The role of forward looking optimizators (FLOs) in the GridWorks architecture
 
-The SCADA system enters into a **representation contract** with its cloud-based agent, which GridWorks calls an Atomic Transactive Node or Atn. That representation contract allows the ATN to both 
-  1) enter into dispatch contracts with the Scada, where the ATN can give commands to the SCADA about 
+The SCADA system enters into a **representation contract** with its cloud-based agent, which GridWorks calls an Atomic Transactive Node or Ltn. That representation contract allows the Ltn to both 
+  1) enter into dispatch contracts with the Scada, where the Ltn can give commands to the SCADA about 
      a) amount of electricity to consume during the duraton of the dispatch contract; and
      b) depending on the specific contract, additional key optimization criteria (related to water temperature or which store to charge if there are multiple stores, for example)
   2) buy electricity on behalf of the SCADA in market structures.
 
-The Atn is responsible for:
+The Ltn is responsible for:
   1) Gathering information it needs to run optimizations
   2) Running the FLO
   3) Using the result of the FLO to bid into a market 

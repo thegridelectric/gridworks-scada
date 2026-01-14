@@ -1,9 +1,9 @@
 from enum import auto
 
-from gw.enums import GwStrEnum
+from gwsproto.enums.gw_str_enum import AslEnum
 
 
-class FsmActionType(GwStrEnum):
+class FsmActionType(AslEnum):
     """
     A list of the finite state machine Actions that a spaceheat node might take. An Action,
     in this context, is a side-effect of a state machine transition that impacts the real world

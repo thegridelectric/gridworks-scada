@@ -1,17 +1,15 @@
 from enum import auto
 
-from gw.enums import GwStrEnum
+from gwsproto.enums.gw_str_enum import AslEnum
 
 
-class GwUnit(GwStrEnum):
+class GwUnit(AslEnum):
     """Encoding used for Derived channels"""
     Unknown = auto()
     Unitless = auto()
     FahrenheitX100 = auto()
     Watts = auto()
     WattHours = auto()
-    VoltsX100 = auto()
-    AmpsX100 = auto()
     Gallons = auto()
     GpmX100 = auto()
 

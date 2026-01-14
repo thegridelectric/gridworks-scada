@@ -35,7 +35,7 @@ def make_tst_layout(src_path: Path) -> LayoutDb:
         existing_layout=LayoutIDMap.from_path(src_path),
         add_stubs=True,
         stub_config=StubConfig(
-            atn_gnode_alias="atn.orange",
+            ltn_gnode_alias="atn.orange",
             scada_display_name="Little Orange House Main Scada",
             zone_list=["main"],
             critical_zone_list=[],
@@ -79,21 +79,6 @@ def make_tst_layout(src_path: Path) -> LayoutDb:
     )
 
 
-    return db
-
-
-def _add_atn(db: LayoutDb) -> LayoutDb:
-    ATN_NODE_NAME = H0N.ltn
-    db.add_nodes(
-        [
-            SpaceheatNodeGt(
-                ShNodeId=db.make_node_id(ATN_NODE_NAME),
-                Name=ATN_NODE_NAME,
-                ActorClass=ActorClass.Atn,
-                DisplayName="AtomicTNode",
-            ),
-        ]
-    )
     return db
 
 def _add_power_meter(db: LayoutDb) -> LayoutDb:
