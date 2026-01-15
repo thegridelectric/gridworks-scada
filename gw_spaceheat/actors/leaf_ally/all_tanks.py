@@ -88,9 +88,10 @@ class AllTanksLeafAlly(ShNodeActor):
         self.log(f"Params: {self.params}")
         self.storage_declared_full = False
         self.storage_full_since = 0
+        self.both_buffer_and_storage_full_since = 0
         if H0N.leaf_ally not in self.layout.nodes:
             raise Exception(f"LeafAlly requires {H0N.leaf_ally} node!!")
-
+        
     @property
     def remaining_watthours(self) -> Optional[int]:
         return self.services.scada.contract_handler.remaining_watthours
@@ -281,6 +282,7 @@ class AllTanksLeafAlly(ShNodeActor):
                     if self.storage_declared_full and time.time()-self.storage_full_since<15*60:
                         self.log("Both storage and buffer are as full as can be")
                         self.trigger_event(LeafAllyAllTanksEvent.NoMoreElec)
+                        self.both_buffer_and_storage_full_since = int(time.time())
                         self.alert(
                             summary="Buffer and storage are full, could not heat as much as contract requires", 
                             details=f"Remaining energy: {self.remaining_watthours} Wh", 
@@ -304,9 +306,9 @@ class AllTanksLeafAlly(ShNodeActor):
                     ):
                         self.trigger_event(LeafAllyAllTanksEvent.NoElecBufferEmpty)
                 else:
-                    if self.is_buffer_empty() or self.is_storage_full():
+                    if time.time()-self.both_buffer_and_storage_full_since>15*60:
                         self.trigger_event(LeafAllyAllTanksEvent.ElecBufferEmpty)
-                    else:
+                    elif not self.is_storage_full():
                         self.trigger_event(LeafAllyAllTanksEvent.ElecBufferFull)
 
             # 4
