@@ -736,7 +736,7 @@ class Atn(PrimeActor):
             self.log(f"NOT RUNNING Dijkstra! Not past minute {self.create_graph_minute}")
             return
         await self.get_weather(session)
-        await self.get_price_forecast_48h()
+        await self.get_price_forecast()
 
         if not self.layout_lite:
             self.log("Do not have layout lite from scada so not running dijkstra... must not be connected!!")
@@ -778,9 +778,20 @@ class Atn(PrimeActor):
         if self.ha1_params is None:
             self.log("Not running flo - no ha1_params")
             return
+
+        # Crop weather and price forecasts to the shortest of the two
+        # And adjust the horizon accordingly
+        horizon = min(len(self.weather_forecast["oat"]), len(self.price_forecast.lmp_usd_per_mwh))
+        self.weather_forecast["oat"] = self.weather_forecast["oat"][:horizon]
+        self.weather_forecast["ws"] = self.weather_forecast["ws"][:horizon]
+        self.price_forecast.lmp_usd_per_mwh = self.price_forecast.lmp_usd_per_mwh[:horizon]
+        self.price_forecast.dp_usd_per_mwh = self.price_forecast.dp_usd_per_mwh[:horizon]
+        self.price_forecast.reg_usd_per_mwh = self.price_forecast.reg_usd_per_mwh[:horizon]
+
         self.flo_params = FloParamsHouse0(
             GNodeAlias=self.layout.scada_g_node_alias,
             StartUnixS=dijkstra_start_time,
+            HorizonHours=horizon,
             InitialTopTempF=int(t),
             InitialMiddleTempF=int(m),
             InitialBottomTempF=int(b),
@@ -1249,9 +1260,9 @@ class Atn(PrimeActor):
             forecasts = dict(list(forecasts.items())[:96])
             cropped_forecast = dict(list(forecasts.items())[:48])
             wf = {
-                "time": list(cropped_forecast.keys()),
-                "oat": [x[0] for x in list(cropped_forecast.values())],
-                "ws": [x[1] for x in list(cropped_forecast.values())],
+                "time": list(forecasts.keys()),
+                "oat": [x[0] for x in list(forecasts.values())],
+                "ws": [x[1] for x in list(forecasts.values())],
             }
             self.log(
                 f"Obtained a {len(forecasts)}-hour weather forecast starting at {wf['time'][0]}"
@@ -1352,7 +1363,7 @@ class Atn(PrimeActor):
         #         self.log(f"Error getting forecast price: {e}")
         #         return 0
 
-    async def get_price_forecast_48h(self) -> None:
+    async def get_price_forecast(self) -> None:
         '''Updates self.price_forecast for the start of next hour. All in USD/MWh'''
         try:
             # Get price forecast from the price service API
