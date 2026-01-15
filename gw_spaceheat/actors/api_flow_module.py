@@ -7,7 +7,7 @@ from typing import List, Literal, Optional, Sequence
 import numpy as np
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
-from gw.errors import DcError
+from gwsproto.errors import DcError
 from gwproactor import MonitoredName, Problems
 from gwproactor.message import InternalShutdownMessage, PatInternalWatchdogMessage
 from gwproto import Message
@@ -542,7 +542,7 @@ class ApiFlowModule(ShNodeActor):
         # Report ticklist if specified in hardware layout
         if self._component.gt.SendTickLists:
             self._send_to(
-                self.atn,
+                self.ltn,
                 TicklistReedReport(
                     TerminalAssetAlias=self.services.hardware_layout.terminal_asset_g_node_alias,
                     ChannelName=self.name,
@@ -580,7 +580,7 @@ class ApiFlowModule(ShNodeActor):
         # Report ticklist if specified in hardware layout
         if self._component.gt.SendTickLists:
             self._send_to(
-                self.atn,
+                self.ltn,
                 TicklistHallReport(
                     TerminalAssetAlias=self.services.hardware_layout.terminal_asset_g_node_alias,
                     ChannelName=self._component.gt.FlowNodeName,
@@ -746,7 +746,7 @@ class ApiFlowModule(ShNodeActor):
             else:
                 glitch_summary = "Sampled Timestamps and Smoothed Frequencies not the same length!"
             self._send_to(
-                self.atn,
+                self.ltn,
                 Glitch(
                     FromGNodeAlias=self.layout.scada_g_node_alias,
                     Node=self.node.name,

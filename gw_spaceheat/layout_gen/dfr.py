@@ -82,7 +82,7 @@ def add_dfrs(db: LayoutDb, dfr_config: DfrConf) -> None:
                 ShNodeId=db.make_node_id(H0N.zero_ten_out_multiplexer),
                 Name=H0N.zero_ten_out_multiplexer,
                 ActorHierarchyName=f"{H0N.primary_scada}.{H0N.zero_ten_out_multiplexer}",
-                ActorClass=ActorClass.I2cDfrMultiplexer,
+                ActorClass=ActorClass.I2cZeroTenMultiplexer,
                 DisplayName="I2c Zero Ten Out Multiplexer",
                 ComponentId=db.component_id_by_alias(component_display_name),
             ),

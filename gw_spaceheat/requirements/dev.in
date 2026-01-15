@@ -6,7 +6,7 @@ isort
 gridworks-cert>=0.4.4
 gridworks-proactor[tests] @ git+https://github.com/thegridelectric/gridworks-proactor.git@v4.1.13+jm1
 # gridworks-proactor[tests] ~= 4.1.13
-requests # for atn dashboard
+requests # for ltn dashboard
 memray
 
 # temporary until FLO is decoupled

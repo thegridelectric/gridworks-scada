@@ -1,10 +1,12 @@
 from enum import auto
 from typing import List
 
-from gw.enums import GwStrEnum
+from gwsproto.enums.gw_str_enum import AslEnum
 
 
-class LocalControlTopState(GwStrEnum):
+class LocalControlTopState(AslEnum):
+    """ASL: https://schemas.electricity.works/enums/gw1.lc.top.state/000"""
+
     Dormant = auto()
     UsingNonElectricBackup = auto()
     Normal = auto()
@@ -21,7 +23,7 @@ class LocalControlTopState(GwStrEnum):
 
     @classmethod
     def enum_name(cls) -> str:
-        return "local.control.top.state.neb" # non-electric backup
+        return "gw1.lc.top.state" # non-electric backup
 
     @classmethod
     def enum_version(cls) -> str:

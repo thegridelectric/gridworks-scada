@@ -10,7 +10,7 @@ from actors.scada_data import ScadaData
 
 
 class ScadaInterface(ActorInterface, ABC):
-    ATN_MQTT: str = "gridworks_mqtt"
+    LTN_MQTT: str = "gridworks_mqtt"
     LOCAL_MQTT: str = "local_mqtt"
     ADMIN_MQTT: str = "admin"
 

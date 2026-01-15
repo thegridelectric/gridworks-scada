@@ -1,9 +1,9 @@
 from enum import auto
 
-from gw.enums import GwStrEnum
+from gwsproto.enums.gw_str_enum import AslEnum
 
 
-class HeatcallSource(GwStrEnum):
+class HeatcallSource(AslEnum):
     """
     Used for reflecting the state of a double-throw relay that can toggle between a failsafe
     for providing a 24V heat call to a zone controller (aka Wall Thermostat) and the SCADA providing

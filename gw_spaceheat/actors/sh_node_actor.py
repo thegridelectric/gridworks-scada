@@ -8,7 +8,7 @@ import pytz
 from pydantic import ValidationError
 
 from gwproactor import QOS
-from gw.errors import DcError
+from gwsproto.errors import DcError
 from gwproactor import Actor
 from gwproto import Message
 
@@ -99,30 +99,30 @@ class ShNodeActor(Actor, ABC):
         return self.services.prime_actor.data
 
     @property
-    def atn(self) -> ShNode:
-        return self.layout.node(H0N.atn)
+    def ltn(self) -> ShNode:
+        return self.layout.ltn
 
     @property
     def primary_scada(self) -> ShNode:
-        return self.layout.node(H0N.primary_scada)
+        return self.layout.primary_scada
 
     @property
     def atomic_ally(self) -> ShNode:
-        return self.layout.node(H0N.atomic_ally)
+        return self.layout.leaf_ally
 
     @property
     def home_alone(self) -> ShNode:
-        return self.layout.node(H0N.home_alone)
+        return self.layout.local_control
     
     @property
     def derived_generator(self) -> ShNode:
-        return self.layout.node(H0N.derived_generator)
+        return self.layout.derived_generator
 
     @property
     def hp_boss(self) -> ShNode:
         if not self.layout.use_sieg_loop:
             raise Exception("Should not be calling for hp_boss if not using sieg loop")
-        return self.layout.node(H0N.hp_boss)
+        return self.layout.hp_boss
 
     @property
     def sieg_loop(self) -> ShNode:
@@ -1088,7 +1088,7 @@ class ShNodeActor(Actor, ABC):
                 node.Handle =  f"{boss_node.handle}.{node.Name}"
 
         self._send_to(
-            self.atn,
+            self.ltn,
             NewCommandTree(
                 FromGNodeAlias=self.layout.scada_g_node_alias,
                 ShNodes=list(self.layout.nodes.values()),
@@ -1104,7 +1104,7 @@ class ShNodeActor(Actor, ABC):
             src = self.node
         # HACK FOR nodes whose 'actors' are handled by their parent's communicator
         communicator_by_name = {dst.Name: dst.Name}
-        communicator_by_name[H0N.home_alone_normal] = H0N.home_alone
+        communicator_by_name[H0N.local_control_normal] = H0N.local_control
         
         message = Message(Src=src.name, Dst=communicator_by_name[dst.Name], Payload=payload)
 
@@ -1120,7 +1120,7 @@ class ShNodeActor(Actor, ABC):
                 ),
                 qos=QOS.AtMostOnce,
             ) # noqa: SLF001
-        elif dst.Name == H0N.atn:
+        elif dst.Name == H0N.ltn:
             self.services.publish_upstream(payload)  # noqa: SLF001
         else:
             self.services.publish_message(
@@ -1317,10 +1317,12 @@ class ShNodeActor(Actor, ABC):
         Returns True if the buffer cannot accept more heat without exceeding MaxEwtF.
         This is a physical limit.
         """
-        if H0CN.hp_ewt in self.latest_temps_f:
+        if H0CN.hp_ewt in self.latest_temps_f and self.flowing_from_hp_to_house():
             channel_used = H0CN.hp_ewt
         elif H0CN.buffer_cold_pipe in self.latest_temps_f:
             channel_used = H0CN.buffer_cold_pipe
+        elif H0CN.buffer.depth3 in self.latest_temps_f:
+            channel_used = H0CN.buffer.depth3
         else:
             return False
 
@@ -1612,7 +1614,7 @@ class ShNodeActor(Actor, ABC):
 
     def alert(self, summary: str, details: str, log_level=LogLevel.Critical) -> None:
         """Send Critical Glitch """
-        self._send_to(self.atn,
+        self._send_to(self.ltn,
             Glitch(
                 FromGNodeAlias=self.layout.scada_g_node_alias,
                 Node=self.node.Name,
@@ -1625,7 +1627,7 @@ class ShNodeActor(Actor, ABC):
 
     def send_warning(self, summary: str, details: str = "") -> None:
         """Send Warning Glitch"""
-        self._send_to(self.atn,
+        self._send_to(self.ltn,
             Glitch(
                 FromGNodeAlias=self.layout.scada_g_node_alias,
                 Node=self.node.Name,
@@ -1638,7 +1640,7 @@ class ShNodeActor(Actor, ABC):
 
     def send_error(self, summary: str, details: str = "") -> None:
         """Send Error Glitch"""
-        self._send_to(self.atn,
+        self._send_to(self.ltn,
             Glitch(
                 FromGNodeAlias=self.layout.scada_g_node_alias,
                 Node=self.node.Name,
@@ -1651,7 +1653,7 @@ class ShNodeActor(Actor, ABC):
 
     def send_info(self, summary: str, details: str = "") -> None:
         """Send Info Glitch"""
-        self._send_to(self.atn,
+        self._send_to(self.ltn,
             Glitch(
                 FromGNodeAlias=self.layout.scada_g_node_alias,
                 Node=self.node.Name,

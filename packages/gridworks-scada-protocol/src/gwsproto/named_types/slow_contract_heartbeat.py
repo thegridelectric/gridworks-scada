@@ -1,25 +1,29 @@
 from typing import Optional, Literal
 from gwsproto.property_format import  UTCMilliseconds, SpaceheatName
 from pydantic import BaseModel, field_validator, model_validator
-from gwsproto.enums import ContractStatus
+from gwsproto.enums import SlowDispatchContractStatus
 from gwsproto.named_types import SlowDispatchContract
 from typing_extensions import Self
 
+SCADA_SH_NODE_NAME = "s"
+LTN_SH_NODE_NAME = "ltn"
 class SlowContractHeartbeat(BaseModel):
-    """Base class for contract lifecycle messages"""
-    FromNode: SpaceheatName # either "a" or "s", for Atn or Scada
+    """Base class for contract lifecycle messages
+    ASL: https://schemas.electricity.works/types/slow.contract.heartbeat/001
+    """
+    FromNode: SpaceheatName # either "ltn" or "s", for Ltn or Scada
     Contract: SlowDispatchContract
-    PreviousStatus: Optional[ContractStatus] = None
-    Status: ContractStatus
+    PreviousStatus: Optional[SlowDispatchContractStatus] = None
+    Status: SlowDispatchContractStatus
     MessageCreatedMs: UTCMilliseconds
     Cause: Optional[str] = None
     IsAuthoritative: bool = True
     WattHoursUsed: Optional[int] = None
     MyDigit: int
     YourLastDigit: Optional[int] = None
-    SignedProof: str = "algo_sig_dummy" # For blockchain validation
+    SignedProof: str = "signed_proof_stub"
     TypeName: Literal["slow.contract.heartbeat"] = "slow.contract.heartbeat"
-    Version: Literal["000"] = "000"
+    Version: Literal["001"] = "001"
 
 
     def contract_grace_period_minutes(self) -> Literal[5]:
@@ -30,7 +34,7 @@ class SlowContractHeartbeat(BaseModel):
         was terminated, in which case 5 minutes after termination
         """
         contract_done_s = self.Contract.contract_end_s()
-        if self.Status in [ContractStatus.TerminatedByAtn, ContractStatus.TerminatedByScada]:
+        if self.Status in [SlowDispatchContractStatus.TerminatedByLtn, SlowDispatchContractStatus.TerminatedByScada]:
             contract_done_s = int(self.MessageCreatedMs / 1000)
         return contract_done_s + self.contract_grace_period_minutes() * 60
         # TODO: Add a test for this logic
@@ -39,7 +43,7 @@ class SlowContractHeartbeat(BaseModel):
     def _check_axiom_1(self) -> Self:
         """Axiom 1: Contracts must be created no later 
         than 10 seconds after StartS"""
-        if self.Status in [ContractStatus.Created]:
+        if self.Status in [SlowDispatchContractStatus.Created]:
             time_s = self.MessageCreatedMs / 1000
             if time_s > self.Contract.StartS + 10:
                 raise ValueError(
@@ -51,23 +55,23 @@ class SlowContractHeartbeat(BaseModel):
     def _check_axiom_2(self) -> Self:
         """Axiom 2 Check authority: Validate authority for status changes"""
         
-        # Only Atn can create or confirm
-        if self.Status in [ContractStatus.Created, ContractStatus.Confirmed, ContractStatus.TerminatedByAtn]:
-            if self.FromNode != "a":
-                raise ValueError(f"Only Atn can set status {self.Status}")
+        # Only Ltn can create or confirm
+        if self.Status in [SlowDispatchContractStatus.Created, SlowDispatchContractStatus.Confirmed, SlowDispatchContractStatus.TerminatedByLtn]:
+            if self.FromNode != LTN_SH_NODE_NAME:
+                raise ValueError(f"Only LeafTransactiveNode can set status {self.Status}")
             if not self.IsAuthoritative:
-                raise ValueError("Atn IsAuthoritative for Created and Confirmed!")
+                raise ValueError("LeafTransactiveNode IsAuthoritative for Created and Confirmed!")
         # Only Scada can mark as received
-        if self.Status in [ContractStatus.Received, ContractStatus.TerminatedByScada]:
-            if self.FromNode != "s":
+        if self.Status in [SlowDispatchContractStatus.Received, SlowDispatchContractStatus.TerminatedByScada]:
+            if self.FromNode != SCADA_SH_NODE_NAME:
                 raise ValueError(f"Only Scada can set status {self.Status}")
             if not self.IsAuthoritative:
                 raise ValueError("Scada IsAuthoritative for Received!")
         # Active/CompletedSuccess/CompletedFailure are for umpire only
         # For now, treat these as claims by participants
-        if self.Status in [ContractStatus.CompletedSuccess,
-                          ContractStatus.CompletedFailureByAtn,
-                          ContractStatus.CompletedFailureByScada]:
+        if self.Status in [SlowDispatchContractStatus.CompletedSuccess,
+                          SlowDispatchContractStatus.CompletedFailureByLtn,
+                          SlowDispatchContractStatus.CompletedFailureByScada]:
             # Later the umpire will enforce these
             # For now just let participants publish their view
             if self.IsAuthoritative:
@@ -78,11 +82,11 @@ class SlowContractHeartbeat(BaseModel):
     @model_validator(mode='after')
     def check_axiom_3(self) -> Self:
         """Axiom 3: Cause required for and limited to Terminated and CompletedFailure/Unknown status"""
-        needs_cause = self.Status in [ContractStatus.TerminatedByAtn,
-                                      ContractStatus.TerminatedByScada, 
-                                      ContractStatus.CompletedUnknownOutcome,
-                                      ContractStatus.CompletedFailureByAtn,
-                                      ContractStatus.CompletedFailureByScada]
+        needs_cause = self.Status in [SlowDispatchContractStatus.TerminatedByLtn,
+                                      SlowDispatchContractStatus.TerminatedByScada, 
+                                      SlowDispatchContractStatus.CompletedUnknownOutcome,
+                                      SlowDispatchContractStatus.CompletedFailureByLtn,
+                                      SlowDispatchContractStatus.CompletedFailureByScada]
         has_cause = self.Cause is not None
 
         if needs_cause and not has_cause:
@@ -95,19 +99,18 @@ class SlowContractHeartbeat(BaseModel):
     @classmethod
     def _check_from_node(cls, v: str) -> str:
         """
-        Axiom 4: FromNode should be 's' (Scada) or 'a' (AtomicTNode)
+        Axiom 4: FromNode should be 's' (Scada) or 'ltn' (LeafTransactiveNode)
         """
-        if v not in ['s', 'a']:
+        if v not in [LTN_SH_NODE_NAME, SCADA_SH_NODE_NAME]:
             raise ValueError(
-                f"Axiom 4: FromNode should be 's' (Scada) or 'a' (AtomicTNode). Got {v}"
+                f"Axiom 4: FromNode should be 's' (Scada) or 'ltn' (LeafTransactiveNode). Got {v}"
             )
         return v
 
     @model_validator(mode='after')
     def check_axiom_5(self) -> Self:
         """
-        Future: Will validate Algorand smart contract transaction signature.
-
+        Future: Validate signed proof. 
         By including YourLastDigit and the previous message's SignedProof,
         this creates an unbreakable chain where:
           - Each party must reference the exact signature from their counterparty's last message
@@ -115,7 +118,7 @@ class SlowContractHeartbeat(BaseModel):
           - The signatures create a cryptographic chain that can't be spoofed by one side after-the-fact
         sign({
             "ContractId": "c3cd6c8d-e8d8-4875-8f7b-d3ea13c28693", 
-            "FromNode": "a",
+            "FromNode": "ltn",
             "Status": "Active",
             "MessageCreatedMs": 1740425972511,
             "MyDigit": 3,
@@ -124,12 +127,6 @@ class SlowContractHeartbeat(BaseModel):
         })
         Currently accepts placeholder that follows basic Algorand message pack format.
         """
-        # TODO: Replace with real Algorand transaction signature validation
-        if not self.SignedProof.startswith("algo_sig_"):
-            raise ValueError(
-                "Even placeholder signatures must start with 'algo_sig_' "
-                "to indicate Algorand signing intent"
-            )
         return self
 
     @model_validator(mode='after')
@@ -145,7 +142,7 @@ class SlowContractHeartbeat(BaseModel):
     @model_validator(mode='after')
     def check_axiom_7(self) -> Self:
         """Axiom 7: Scada (and only Scada) sends WattHoursUsed"""
-        if self.FromNode == "s":
+        if self.FromNode == SCADA_SH_NODE_NAME:
             if self.WattHoursUsed is None:
                 raise ValueError("Scada sends WattHoursUsed")
         else:

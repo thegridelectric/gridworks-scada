@@ -8,8 +8,8 @@ class DispatchContractGoLive(BaseModel):
     """
     Triggers DispatchContract GoLive.
 
-    Sent by the Atn to its SCADA when they share an existing DispatchContract. If the SCADA
-    is in HomeAlone and gets this message, it will move into Atn mode.
+    Sent by the Ltn to its SCADA when they share an existing DispatchContract. If the SCADA
+    is in LocalControl and gets this message, it will move into Ltn mode.
     """
 
     FromGNodeAlias: LeftRightDotStr

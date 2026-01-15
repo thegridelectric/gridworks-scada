@@ -11,8 +11,6 @@ class FloParams(BaseModel):
     Derived classes are expected to have TypeNames enforced as literals that start with flo.params.
     E.g. flo.params.brickstorageheater. This container is used for sending messages that include
     flo.params (i.e, flo.params.report
-
-    [More info](https://gridworks-atn.readthedocs.io/en/latest/flo.html#flo-params)
     """
 
     GNodeAlias: LeftRightDotStr
