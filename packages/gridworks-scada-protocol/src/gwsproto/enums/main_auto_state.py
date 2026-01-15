@@ -1,29 +1,19 @@
 from enum import auto
 from typing import List
 
-from gw.enums import GwStrEnum
+from gwsproto.enums.gw_str_enum import AslEnum
 
 
-class MainAutoState(GwStrEnum):
-    """
-    
-    Values:
-      - HomeAlone
-      - Atn
-      - Dormant
+class MainAutoState(AslEnum):
+    """ASL: https://schemas.electricity.works/enums/gw1.main.auto.state/000"""
 
-    For more information:
-      - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#mainautostate)
-    """
-
-    HomeAlone = auto()
-    Atn = auto()
+    LocalControl = auto()
+    LeafTransactiveNode = auto()
     Dormant = auto()
 
     @classmethod
     def default(cls) -> "MainAutoState":
-        return cls.HomeAlone
+        return cls.LocalControl
 
     @classmethod
     def values(cls) -> List[str]:
@@ -31,7 +21,7 @@ class MainAutoState(GwStrEnum):
 
     @classmethod
     def enum_name(cls) -> str:
-        return "main.auto.state"
+        return "gw1.main.auto.state"
 
     @classmethod
     def enum_version(cls) -> str:

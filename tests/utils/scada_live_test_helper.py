@@ -8,7 +8,7 @@ from gwproactor_test.tree_live_test_helper import TreeLiveTest
 
 from gwsproto.data_classes.house_0_layout import House0Layout
 from tests.conftest import TEST_HARDWARE_LAYOUT_PATH
-from atn_app import AtnApp
+from ltn_app import LtnApp
 from scada2_app import Scada2App
 from scada_app import ScadaApp
 
@@ -17,12 +17,12 @@ class ScadaLiveTest(TreeLiveTest):
     UPLOADER_LONG_NAME = "test_uploader"
 
     @classmethod
-    def parent_app_type(cls) -> type[AtnApp]:
-        return AtnApp
+    def parent_app_type(cls) -> type[LtnApp]:
+        return LtnApp
 
     @property
-    def parent_app(self) -> AtnApp:
-        return typing.cast(AtnApp, self._parent_app)
+    def parent_app(self) -> LtnApp:
+        return typing.cast(LtnApp, self._parent_app)
 
     @classmethod
     def child_app_type(cls) -> type[ScadaApp]:
@@ -104,7 +104,7 @@ class ScadaLiveTest(TreeLiveTest):
         exp_child_persists: Optional[int | MinRangeTuple] = None,
         exp_total_children_events: Optional[int] = None,
     ) -> int:
-        return 0  # ATN does not attempt to forward child events.
+        return 0  # LTN does not attempt to forward child events.
 
     # noinspection PyMethodMayBeStatic
     def default_quiesecent_parent_persists(
@@ -112,7 +112,7 @@ class ScadaLiveTest(TreeLiveTest):
         exp_parent_pending: Optional[int | MinRangeTuple] = None,
         exp_child_persists: Optional[int | MinRangeTuple] = None,
     ) -> int:
-        return 4 # startup, connect, subscribed, child1 active; ATN does not
+        return 4 # startup, connect, subscribed, child1 active; LTN does not
                  #   persist child events
 
     async def await_parent_at_rest(
@@ -140,7 +140,7 @@ class ScadaLiveTest(TreeLiveTest):
         await self.await_for(
             lambda: _child_events_received() >= exp_total_children_events,
             (
-                f"ERROR waiting for ATN to receive {exp_total_children_events} "
+                f"ERROR waiting for LTN to receive {exp_total_children_events} "
                 "told child events"
             ),
             caller_depth=caller_depth,

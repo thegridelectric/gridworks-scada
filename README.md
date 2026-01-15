@@ -25,7 +25,7 @@ configuration and attached devices, please [go here](docs/setting-up-the-pi.md)
 
 ## SCADA Dev Environment Setup Guide
 
-This is a setup guide for running SCADA, SCADA2, test `ltn/atn` and `admin` locally.
+This is a setup guide for running SCADA, SCADA2, test `Ltn` and `admin` locally.
 
 The SCADA uses the [gwproactor](github.com/SmoothStoneComputing/gridworks-proactor) framework, which models communication as links (upstream and downstream) over **MQTT**.
 A SCADA instance expects two different MQTT brokers:
@@ -138,12 +138,12 @@ gws run
 If all is set correctly, you should a second `mqtt-subscription-XXX` queue on the admin panel, and also some messages go by on the mosquitto_sub window..
 
 
-### F. Run `ltn/atn` in repl
+### F. Run `Ltn` in repl
 In a new terminal window:
 
 ```
-from actors.atn.atn_config import AtnSettings; from atn_app import AtnApp; import dotenv
-a = AtnApp.get_repl_app(app_settings=AtnSettings(_env_file=dotenv.find_dotenv())).atn
+from actors.ltn.config import LtnSettings; from ltn_app import LtnApp; import dotenv
+l = LtnApp.get_repl_app(app_settings=LtnSettings(_env_file=dotenv.find_dotenv())).ltn
 ```
 
 ### G. Run `SCADA` in repl
@@ -176,7 +176,7 @@ This will generate a simulated hardware layout in `outputs/orange.generated.json
 
 ```
 SCADA_PATHS__HARDWARE_LAYOUT="../tlayouts/output/orange.generated.json"
-ATN_PATHS__HARDWARE_LAYOUT="../tlayouts/output/orange.generated.json"
+LTN_PATHS__HARDWARE_LAYOUT="../tlayouts/output/orange.generated.json"
 ```
 
 ## Testing
@@ -286,11 +286,11 @@ a local self-signed Certificate Authority to create test certificates and to cre
 broker. Note that [this section](https://gridworks-proactor.readthedocs.io/en/latest/#external-connections)
 is relevant if you will connect to the Mosquitto broker from a Raspberry PI.
 
-##### Create a certificate for the test ATN
+##### Create a certificate for the test Ltn
 
 ```shell
-gwcert key add --certs-dir $HOME/.config/gridworks/atn/certs scada_mqtt
-cp $HOME/.local/share/gridworks/ca/ca.crt $HOME/.config/gridworks/atn/certs/scada_mqtt
+gwcert key add --certs-dir $HOME/.config/gridworks/ltn/certs scada_mqtt
+cp $HOME/.local/share/gridworks/ca/ca.crt $HOME/.config/gridworks/ltn/certs/scada_mqtt
 ```
 
 ##### Create a certificate for test Scada
@@ -306,9 +306,9 @@ In one terminal run:
 ```shell
 
 mosquitto_sub -h localhost -p 8883 -t foo \
-     --cafile $HOME/.config/gridworks/atn/certs/scada_mqtt/ca.crt \
-     --cert $HOME/.config/gridworks/atn/certs/scada_mqtt/scada_mqtt.crt \
-     --key $HOME/.config/gridworks/atn/certs/scada_mqtt/private/scada_mqtt.pem
+     --cafile $HOME/.config/gridworks/ltn/certs/scada_mqtt/ca.crt \
+     --cert $HOME/.config/gridworks/ltn/certs/scada_mqtt/scada_mqtt.crt \
+     --key $HOME/.config/gridworks/ltn/certs/scada_mqtt/private/scada_mqtt.pem
 
 ```
 In another terminal run: 
@@ -349,9 +349,9 @@ This command will will start the scada locally:
 gws run
 ```
 
-These commands will start the local test ATN:
+These commands will start the local test Ltn:
 ```shell
-gws atn run
+gws ltn run
 ```
 
 ## Development flow

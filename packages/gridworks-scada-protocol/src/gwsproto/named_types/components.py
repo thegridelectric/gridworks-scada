@@ -7,7 +7,6 @@ from gwsproto.named_types.fibaro_smart_implant_component_gt import (
 )
 from gwsproto.named_types.hubitat_component_gt import HubitatComponentGt
 from gwsproto.named_types.hubitat_poller_component_gt import HubitatPollerComponentGt
-from gwsproto.named_types.hubitat_tank_component_gt import HubitatTankComponentGt
 from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
     I2cMultichannelDtRelayComponentGt,
 )
@@ -27,7 +26,6 @@ __all__ = [
     "FibaroSmartImplantComponentGt",
     "HubitatComponentGt",
     "HubitatPollerComponentGt",
-    "HubitatTankComponentGt",
     "I2cMultichannelDtRelayComponentGt",
     "PicoBtuMeterComponentGt",
     "PicoFlowModuleComponentGt",

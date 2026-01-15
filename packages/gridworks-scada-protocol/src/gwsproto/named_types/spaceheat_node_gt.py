@@ -1,23 +1,23 @@
-from typing import Literal, Optional
-
+from typing import Literal
 from pydantic import BaseModel, ConfigDict, StrictInt, model_validator
 from typing_extensions import Self
 
+from gwsproto.enums import ActorClass
 from gwsproto.property_format import HandleName, SpaceheatName, UUID4Str
 
 
 class SpaceheatNodeGt(BaseModel):
     Name: SpaceheatName
-    ActorHierarchyName: Optional[HandleName] = None
-    Handle: Optional[HandleName] = None
-    ActorClass: str
-    DisplayName: Optional[str] = None
-    ComponentId: Optional[str] = None
-    NameplatePowerW: Optional[StrictInt] = None
-    InPowerMetering: Optional[bool] = None
+    ActorHierarchyName: HandleName | None = None
+    Handle: HandleName | None = None
+    ActorClass: ActorClass
+    DisplayName: str | None = None
+    ComponentId: str | None = None
+    NameplatePowerW: StrictInt | None = None
+    InPowerMetering: bool | None = None
     ShNodeId: UUID4Str
     TypeName: Literal["spaceheat.node.gt"] = "spaceheat.node.gt"
-    Version: Literal["200"] = "200"
+    Version: Literal["300"] = "300"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

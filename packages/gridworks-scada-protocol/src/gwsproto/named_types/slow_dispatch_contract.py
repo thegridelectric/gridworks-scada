@@ -6,7 +6,7 @@ from gwsproto.property_format import UUID4Str, UTCSeconds,  LeftRightDotStr
 from typing_extensions import Self
 
 class SlowDispatchContract(BaseModel):
-    """Represents a dispatch contract between Atn and Scada"""
+    """Represents a dispatch contract between Ltn and Scada"""
     ScadaAlias: LeftRightDotStr
     StartS: UTCSeconds
     DurationMinutes: PositiveInt

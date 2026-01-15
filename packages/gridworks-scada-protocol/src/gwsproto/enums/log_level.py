@@ -1,9 +1,9 @@
 from enum import auto
 from typing import List, Optional
-from gw.enums import GwStrEnum
+from gwsproto.enums.gw_str_enum import AslEnum
 
 
-class LogLevel(GwStrEnum):
+class LogLevel(AslEnum):
     """
     
     Values:

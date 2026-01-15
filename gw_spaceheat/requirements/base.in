@@ -18,7 +18,7 @@ pymodbus
 pyserial
 pyModbusTCP
 
-# atn
+# ltn
 httpx
 
 # cli tools

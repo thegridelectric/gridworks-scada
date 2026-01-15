@@ -16,7 +16,7 @@ from gwsproto.enums import StoreFlowRelay
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.named_types import FsmFullReport, SingleReading, AnalogDispatch
 from result import Ok, Result
-from gw.enums import GwStrEnum
+from gwsproto.enums.gw_str_enum import GwStrEnum
 from actors.hp_boss import SiegLoopReady, HpBossState
 from actors.sh_node_actor import ShNodeActor
 from gwsproto.enums import HpModel

@@ -3,10 +3,10 @@
 #  - Sent as-is, not in hex symbol
 from enum import auto
 
-from gw.enums import GwStrEnum
+from gwsproto.enums.gw_str_enum import AslEnum
 
 
-class RelayClosedOrOpen(GwStrEnum):
+class RelayClosedOrOpen(AslEnum):
     """
     These are fsm states (as opposed to readings from a pin).
     """

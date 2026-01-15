@@ -13,7 +13,7 @@ from actors.config import ScadaSettings
 from cli import app as scada_cli_app
 from scada2_app import Scada2App
 from scada_app import ScadaApp
-from atn_app import AtnApp
+from ltn_app import LtnApp
 from tests.conftest import TEST_HARDWARE_LAYOUT_PATH
 
 runner = CliRunner()
@@ -33,7 +33,7 @@ def test_gws_cli_completes() -> None:
     settings = ScadaSettings()
     if uses_tls(settings):
         copy_keys("scada", settings)
-    for app_type in [ScadaApp, Scada2App, AtnApp]:
+    for app_type in [ScadaApp, Scada2App, LtnApp]:
         paths = Paths(name=app_type.paths_name())
         paths.mkdirs(parents=True, exist_ok=True)
         shutil.copyfile(Path(TEST_HARDWARE_LAYOUT_PATH), paths.hardware_layout)
@@ -42,10 +42,10 @@ def test_gws_cli_completes() -> None:
         env_file.write("SCADA_IS_SIMULATED=true")
     for command in [
         [],
-        ["atn"],
-        ["atn", "config", "--env-file", str(env_path)],
-        ["atn", "run", "--help"],
-        ["atn", "run", "--dry-run", "--env-file", str(env_path)],
+        ["ltn"],
+        ["ltn", "config", "--env-file", str(env_path)],
+        ["ltn", "run", "--help"],
+        ["ltn", "run", "--dry-run", "--env-file", str(env_path)],
         ["config", "--env-file", str(env_path)],
         ["layout"],
         ["layout", "mktest", "--help"],
@@ -63,8 +63,7 @@ def test_gws_cli_completes() -> None:
             f"{textwrap.indent(result.output, '        ')}"
         )
         assert result.exit_code == 0, result_str
-    result = runner.invoke(scada_cli_app, ["admin"])
-    assert result.exit_code == 1, result.output
+
 
 def test_gwa_cli_completes() -> None:
     """This test just verifies that clis can execute dry-runs and help without

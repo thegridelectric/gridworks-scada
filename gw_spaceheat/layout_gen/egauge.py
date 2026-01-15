@@ -24,7 +24,7 @@ class EgaugeChannelConfig(BaseModel):
     AboutNodeName: str
     EGaugeAddress: int
     NameplatePowerW: int = 10
-    AsyncCaptureDelta: int = 1
+    AsyncCaptureDelta: int = 2
     AsyncCapture: bool = True
     InPowerMetering: bool = False
 
