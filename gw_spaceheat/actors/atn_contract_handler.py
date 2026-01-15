@@ -60,6 +60,7 @@ class AtnContractHandler:
             f"{self.settings.paths.data_dir}/slow_dispatch_contract.json"
         )
         self.next_contract_energy_wh: Optional[int] = None
+        self.use_oil_boiler: bool = False
         self.energy_used_wh: float = 0
         self.latest_power_w: int = 0
         self.energy_updated_s: Optional[float] = None
@@ -214,12 +215,6 @@ class AtnContractHandler:
         now = time.time()
         start_s = int(now - (now % 3600))
 
-        oil_boiler_on = False
-        if watthours > 0 and self.use_oil_as_fuel_substitute():
-            if watthours > 2500:
-                oil_boiler_on = True
-            watthours = 0
-
         duration_minutes=60
         avg_power_watts = int(watthours * (60/duration_minutes))
         contract = SlowDispatchContract(
@@ -227,7 +222,7 @@ class AtnContractHandler:
             StartS=start_s,
             DurationMinutes=duration_minutes,
             AvgPowerWatts=avg_power_watts,
-            OilBoilerOn=oil_boiler_on,
+            OilBoilerOn=self.use_oil_boiler,
             ContractId=str(uuid.uuid4()),
         )
         
@@ -254,20 +249,6 @@ class AtnContractHandler:
                     Payload=self.latest_hb,
                 )
             )
-
-    def use_oil_as_fuel_substitute(self) -> bool:
-        if self.latest_price is None:
-            return False
-        if self.latest_price.PriceUnit != MarketPriceUnit.USDPerMWh:
-            raise Exception(f"Stop being so parochial and assuming {MarketPriceUnit.USDPerMWh}")
-        price_usd_per_mwh = self.latest_price.PriceTimes1000 / 1000
-        self.logger.info(f"Latest price is ${price_usd_per_mwh}/MWh. Fuel sub threshold ${self.settings.fuel_sub_usd_per_mwh}/MWh")
-        if price_usd_per_mwh > self.settings.fuel_sub_usd_per_mwh and self.settings.fuel_substitution:
-            return True
-        elif not self.settings.fuel_substitution:
-            self.logger.info("fuel_substation variable set to False! ")
-            return False
-        return False
 
     async def contract_heartbeat_task(self):
         """Task that sends regular heartbeats while a contract is active"""

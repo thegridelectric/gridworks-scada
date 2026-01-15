@@ -162,6 +162,7 @@ class BidRunner(threading.Thread):
                     BidderAlias=recommendation.BidderAlias,
                     MarketSlotName=recommendation.MarketSlotName,
                     PqPairs=recommendation.PqPairs,
+                    PqPairsWithOilBoiler=recommendation.PqPairsWithOilBoiler,
                     InjectionIsPositive=recommendation.InjectionIsPositive,
                     PriceUnit=recommendation.PriceUnit,
                     QuantityUnit=recommendation.QuantityUnit,
@@ -908,17 +909,40 @@ class Atn(PrimeActor):
             (x.PriceX1000, x.QuantityX1000) for x in self.contract_handler.latest_bid.PqPairs
         ]
         sorted_pq_pairs = sorted(pq_pairs, key=lambda pair_: pair_[0])
+
+        pq_pairs_with_oil_boiler = [
+            (x.PriceX1000, x.QuantityX1000) for x in self.contract_handler.latest_bid.PqPairsWithOilBoiler
+        ]
+        sorted_pq_pairs_with_oil_boiler = sorted(pq_pairs_with_oil_boiler, key=lambda pair_: pair_[0])
+
         self.log(f"Sorted pq pairs: {sorted_pq_pairs} (x1000)")
+        self.log(f"Sorted pq pairs with oil boiler: {sorted_pq_pairs_with_oil_boiler} (x1000)")
         self.log(f"Payload price: {payload.PriceTimes1000} (x1000)")
+
+        price_above_which_buy0_hp = None
+        if [pq[0] for pq in pq_pairs if pq[1]==0]:
+            price_above_which_buy0_hp = [pq[0] for pq in pq_pairs if pq[1]==0][0]
+        price_above_which_buy0_oil = None
+        if [pq[0] for pq in pq_pairs_with_oil_boiler if pq[1]==0]:
+            price_above_which_buy0_oil = [pq[0] for pq in pq_pairs_with_oil_boiler if pq[1]==0][0]
+
         # Quantity is AvgkW, so QuantityX1000 is avg_w
         assert self.contract_handler.latest_bid.QuantityUnit == MarketQuantityUnit.AvgkW
-        for pair in sorted_pq_pairs:
-            if pair[0] < payload.PriceTimes1000:
-                avg_w = pair[1] # WattHours
-        self.log(f"Decided on quantity: {avg_w} WattHours")
+
+        if payload.PriceTimes1000 > price_above_which_buy0_oil and payload.PriceTimes1000 < price_above_which_buy0_hp:
+            avg_w = 0
+            use_oil_boiler = True
+            self.log(f"Decided on using the oil boiler")
+        else:
+            for pair in sorted_pq_pairs:
+                if pair[0] < payload.PriceTimes1000:
+                    avg_w = pair[1]
+            use_oil_boiler = False
+            self.log(f"Decided on quantity: {avg_w} WattHours")
 
         # 1 hour
         self.contract_handler.next_contract_energy_wh = avg_w * 1
+        self.contract_handler.use_oil_boiler = use_oil_boiler
         if self.contract_handler.next_contract_energy_wh < 1000:
             self.contract_handler.next_contract_energy_wh = 0
 

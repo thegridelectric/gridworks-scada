@@ -12,11 +12,12 @@ class BidRecommendation(BaseModel):
     BidderAlias: LeftRightDotStr
     MarketSlotName: MarketSlotName
     PqPairs: list[PriceQuantityUnitless]
+    PqPairsWithOilBoiler: list[PriceQuantityUnitless]
     InjectionIsPositive: bool
     PriceUnit: MarketPriceUnit
     QuantityUnit: MarketQuantityUnit
     TypeName: Literal["bid.recommendation"] = "bid.recommendation"
-    Version: Literal["000"] = "000"
+    Version: Literal["001"] = "001"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
