@@ -11,12 +11,13 @@ class AtnBid(BaseModel):
     BidderAlias: LeftRightDotStr
     MarketSlotName: MarketSlotName
     PqPairs: List[PriceQuantityUnitless]
+    PqPairsWithOilBoiler: List[PriceQuantityUnitless]
     InjectionIsPositive: bool
     PriceUnit: MarketPriceUnit
     QuantityUnit: MarketQuantityUnit
     SignedMarketFeeTxn: str
     TypeName: Literal["atn.bid"] = "atn.bid"
-    Version: Literal["002"] = "002"
+    Version: Literal["003"] = "003"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
