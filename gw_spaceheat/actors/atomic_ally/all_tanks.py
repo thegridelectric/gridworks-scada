@@ -86,6 +86,7 @@ class AllTanksAtomicAlly(ShNodeActor):
         self.log(f"Params: {self.params}")
         self.storage_declared_full = False
         self.storage_full_since = 0
+        self.both_buffer_and_storage_full_since = 0
         if H0N.atomic_ally not in self.layout.nodes:
             raise Exception(f"AtomicAlly requires {H0N.atomic_ally} node!!")
 
@@ -279,6 +280,7 @@ class AllTanksAtomicAlly(ShNodeActor):
                     if self.storage_declared_full and time.time()-self.storage_full_since<15*60:
                         self.log("Both storage and buffer are as full as can be")
                         self.trigger_event(AtomicAllyEvent.NoMoreElec)
+                        self.both_buffer_and_storage_full_since = int(time.time())
                         self.alert(
                             summary="Buffer and storage are full, could not heat as much as contract requires", 
                             details=f"Remaining energy: {self.remaining_watthours} Wh", 
@@ -302,9 +304,9 @@ class AllTanksAtomicAlly(ShNodeActor):
                     ):
                         self.trigger_event(AtomicAllyEvent.NoElecBufferEmpty)
                 else:
-                    if self.is_buffer_empty() or self.is_storage_full():
+                    if time.time()-self.both_buffer_and_storage_full_since>15*60:
                         self.trigger_event(AtomicAllyEvent.ElecBufferEmpty)
-                    else:
+                    elif not self.is_storage_full():
                         self.trigger_event(AtomicAllyEvent.ElecBufferFull)
 
             # 4
