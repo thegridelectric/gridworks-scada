@@ -1317,10 +1317,19 @@ class ShNodeActor(Actor, ABC):
         Returns True if the buffer cannot accept more heat without exceeding MaxEwtF.
         This is a physical limit.
         """
-        if H0CN.buffer_cold_pipe not in self.latest_temps_f:
+        if H0CN.hp_ewt in self.latest_temps_f:
+            channel_used = H0CN.hp_ewt
+        elif H0CN.buffer_cold_pipe in self.latest_temps_f:
+            channel_used = H0CN.buffer_cold_pipe
+        else:
             return False
 
-        return self.latest_temps_f[H0CN.buffer_cold_pipe] >= self.data.ha1_params.MaxEwtF
+        if self.latest_temps_f[channel_used] >= self.data.ha1_params.MaxEwtF:
+            self.log(f"{channel_used}: {self.latest_temps_f[channel_used]} F >= {self.data.ha1_params.MaxEwtF} F")
+            return True
+        else:
+            self.log(f"{channel_used}: {self.latest_temps_f[channel_used]} F < {self.data.ha1_params.MaxEwtF} F")
+            return False
 
     def is_storage_colder_than_buffer(self, min_delta_f: float = 5.4) -> bool:
         """

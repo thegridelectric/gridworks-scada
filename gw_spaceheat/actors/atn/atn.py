@@ -918,9 +918,6 @@ class Atn(PrimeActor):
         else:
             self.log("Why am I here")
 
-    def to_fahrenheit(self, t: float) -> float:
-        return t * 9 / 5 + 32
-
     def fill_missing_store_temps(self):
         all_store_layers = sorted(
             [x for x in self.tank_temp_channel_names if "tank" in x]
@@ -1000,8 +997,8 @@ class Atn(PrimeActor):
             alpha = self.ha1_params.AlphaTimes10 / 10
             beta = self.ha1_params.BetaTimes100 / 100
             gamma = self.ha1_params.GammaEx6 / 1e6
-            oat = self.weather_forecast["oat"][0]
-            ws = self.weather_forecast["ws"][0]
+            oat = float(self.weather_forecast["oat"][0])
+            ws = float(self.weather_forecast["ws"][0])
             r = alpha + beta*oat + gamma*ws
             rhp= r if r>0 else 0
             intermediate_rswt = self.ha1_params.IntermediateRswtF
@@ -1161,10 +1158,12 @@ class Atn(PrimeActor):
             self.send_layout()
             await asyncio.sleep(5)
         self.get_latest_temperatures()
-        buffer_temperatures = {k: v
-                               for k,v in self.latest_temps_f.items()
-                               if 'buffer' in k
-                               and v is not None}
+        buffer_temperatures: Dict[str, float] = {
+            k: v
+            for k,v in self.latest_temps_f.items() 
+            if 'buffer' in k and v is not None
+        }
+        self.log(f"Buffer temperatures: {buffer_temperatures}")
         if not buffer_temperatures:
             self.log("Missing temperatures in get_buffer_available_kwh, returning 0 kWh")
             return 0
