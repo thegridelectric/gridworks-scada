@@ -1317,10 +1317,12 @@ class ShNodeActor(Actor, ABC):
         Returns True if the buffer cannot accept more heat without exceeding MaxEwtF.
         This is a physical limit.
         """
-        if H0CN.hp_ewt in self.latest_temps_f:
+        if H0CN.hp_ewt in self.latest_temps_f and self.flowing_from_hp_to_house():
             channel_used = H0CN.hp_ewt
         elif H0CN.buffer_cold_pipe in self.latest_temps_f:
             channel_used = H0CN.buffer_cold_pipe
+        elif H0CN.buffer.depth3 in self.latest_temps_f:
+            channel_used = H0CN.buffer.depth3
         else:
             return False
 
