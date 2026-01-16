@@ -1590,6 +1590,7 @@ class Scada(PrimeActor, ScadaInterface):
             Strategy=self.layout.flow_manifold_variant,
             SystemMode=self.settings.system_mode,
             SeasonalStorageMode=self.settings.seasonal_storage_mode,
+            BufferShortCycling=self.settings.short_cycle_buffer,
             ZoneList=self.layout.zone_list,
             CriticalZoneList=self.layout.critical_zone_list,
             TotalStoreTanks=self.layout.total_store_tanks,

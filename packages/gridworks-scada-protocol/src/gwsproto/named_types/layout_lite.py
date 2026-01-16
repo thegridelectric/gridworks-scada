@@ -27,6 +27,7 @@ class LayoutLite(BaseModel):
     Strategy: str
     SystemMode: SystemMode
     SeasonalStorageMode: SeasonalStorageMode
+    BufferShortCycling: bool
     ZoneList: List[str]
     CriticalZoneList: List[str]
     TotalStoreTanks: PositiveInt
