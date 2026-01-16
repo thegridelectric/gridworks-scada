@@ -1153,6 +1153,8 @@ class Ltn(PrimeActor):
                 return top_temp, top_temp, top_temp, thermocline1, thermocline1
     
     async def get_buffer_available_kwh(self):
+        if self.settings.short_cycle_buffer:
+            return 0
         if self.seasonal_storage_mode == SeasonalStorageMode.BufferOnly:
             return 0
         if self.tank_temp_channel_names is None:

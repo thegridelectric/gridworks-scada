@@ -54,6 +54,7 @@ class LtnSettings(AppSettings):
     monitor_only: bool = False
     seasonal_storage_mode: SeasonalStorageMode = SeasonalStorageMode.AllTanks
     create_graph_minute: int = 40
+    short_cycle_buffer: bool = False
 
     model_config = SettingsConfigDict(env_prefix="LTN_", extra="ignore")
 
