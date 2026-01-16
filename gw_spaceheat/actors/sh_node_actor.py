@@ -1165,7 +1165,7 @@ class ShNodeActor(Actor, ABC):
     def buffer_temps_available(self):
         return self.data.buffer_temps_available
 
-    def is_buffer_empty(self) -> bool:
+    def is_buffer_empty(self, all_tanks_leaf_ally=False) -> bool:
         """
         Returns True if the buffer does not contain enough usable heat
         to meet the near-term required return-water temperature.
@@ -1177,10 +1177,12 @@ class ShNodeActor(Actor, ABC):
         """
 
         # Select the best available "top of buffer" temperature channel
-        if H0CN.buffer.depth1 in self.latest_temps_f:
-            buffer_top_ch = H0CN.buffer.depth1
+        if all_tanks_leaf_ally and self.settings.short_cycle_buffer and H0CN.buffer.depth3 in self.latest_temps_f:
+            buffer_empty_ch = H0CN.buffer.depth3
+        elif H0CN.buffer.depth1 in self.latest_temps_f:
+            buffer_empty_ch = H0CN.buffer.depth1
         elif H0CN.dist_swt in self.latest_temps_f:
-            buffer_top_ch = H0CN.dist_swt
+            buffer_empty_ch = H0CN.dist_swt
         else:
             # No meaningful buffer temperature available
             self.log("is_buffer_empty: no buffer temperature channel available")
@@ -1197,16 +1199,16 @@ class ShNodeActor(Actor, ABC):
 
         min_buffer_temp_f = round(max_rswt - max_delta_t, 1)
         min_buffer_temp_f = min(min_buffer_temp_f, self.data.ha1_params.MaxEwtF-10)
-        buffer_temp_f = self.latest_temps_f[buffer_top_ch]
+        buffer_temp_f = self.latest_temps_f[buffer_empty_ch]
 
         if buffer_temp_f < min_buffer_temp_f:
             self.log(
-                f"Buffer empty ({buffer_top_ch}: {buffer_temp_f} < {min_buffer_temp_f} F)"
+                f"Buffer empty ({buffer_empty_ch}: {buffer_temp_f} < {min_buffer_temp_f} F)"
             )
             return True
         else:
             self.log(
-                f"Buffer not empty ({buffer_top_ch}: {buffer_temp_f} >= {min_buffer_temp_f} F)"
+                f"Buffer not empty ({buffer_empty_ch}: {buffer_temp_f} >= {min_buffer_temp_f} F)"
             )
             return False
 

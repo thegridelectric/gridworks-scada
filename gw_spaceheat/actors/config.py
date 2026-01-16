@@ -61,6 +61,7 @@ class ScadaSettings(AppSettings):
     dd_delta_t: float = 20
     is_simulated: bool = False
     max_ewt_f: int = 170
+    short_cycle_buffer: bool = False
     load_overestimation_percent: int = 0
     oil_boiler_backup: bool = True
     system_mode: SystemMode = SystemMode.Heating

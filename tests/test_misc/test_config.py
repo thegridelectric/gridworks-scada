@@ -45,6 +45,7 @@ def test_scada_settings_defaults(clean_test_env):
         dd_rswt=150,
         dd_delta_t=20,
         max_ewt_f=170,
+        short_cycle_buffer=False,
         load_overestimation_percent=0,
         whitewire_threshold_watts=20,
         system_mode="Heating",
