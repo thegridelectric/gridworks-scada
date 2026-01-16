@@ -28,7 +28,8 @@ from gwsproto.named_types import (
     AllyGivesUp, GoDormant, Ha1Params,
     SingleMachineState, SlowContractHeartbeat, SlowDispatchContract, SuitUp
 )
-
+from actors.procedural.dist_pump_doctor import DistPumpDoctor
+from actors.procedural.dist_pump_monitor import DistPumpMonitor
 
 class BufferOnlyLeafAlly(ShNodeActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
@@ -75,6 +76,11 @@ class BufferOnlyLeafAlly(ShNodeActor):
         )     
         self.state: LeafAllyBufferOnlyState = LeafAllyBufferOnlyState.Dormant
         self.prev_state: LeafAllyBufferOnlyState = LeafAllyBufferOnlyState.Dormant 
+        self.dist_pump_doctor = DistPumpDoctor(host=self)
+        self.dist_pump_monitor = DistPumpMonitor(
+            host=self,
+            doctor=self.dist_pump_doctor,
+        )
         self.log(f"Params: {self.params}")
         self.time_buffer_full = 0
         if H0N.leaf_ally not in self.layout.nodes:
@@ -274,6 +280,11 @@ class BufferOnlyLeafAlly(ShNodeActor):
         while not self._stop_requested:
 
             self._send(PatInternalWatchdogMessage(src=self.name))
+
+            # Verify distribution pump health; initiate recovery if needed
+            if self.dist_pump_monitor.needs_recovery():
+                await self.dist_pump_doctor.run()
+
             self.engage_brain()
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 

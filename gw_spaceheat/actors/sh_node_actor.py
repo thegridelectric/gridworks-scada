@@ -1,3 +1,4 @@
+import asyncio
 import time
 import typing
 import uuid
@@ -8,6 +9,7 @@ import pytz
 from pydantic import ValidationError
 
 from gwproactor import QOS
+from gwproactor.message import PatInternalWatchdogMessage
 from gwsproto.errors import DcError
 from gwproactor import Actor
 from gwproto import Message
@@ -97,6 +99,28 @@ class ShNodeActor(Actor, ABC):
     @property
     def data(self) -> ScadaData:
         return self.services.prime_actor.data
+
+    async def await_with_watchdog(
+        self,
+        total_seconds: float,
+        pat_every: float = 20.0,
+    ):
+        """
+        Await for total_seconds, patting the internal watchdog periodically.
+
+        IMPORTANT:
+        asyncio.sleep() does NOT pat the watchdog.
+        Any awaited duration in LocalControl must go through this helper.
+        """
+        deadline = time.monotonic() + total_seconds
+
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+
+            await asyncio.sleep(min(pat_every, remaining))
+            self._send(PatInternalWatchdogMessage(src=self.name))
 
     @property
     def ltn(self) -> ShNode:
