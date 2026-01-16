@@ -10,6 +10,7 @@ def test_layout_lite_generated() -> None:
         "ZoneList": ["Down", "Up"],
         "SystemMode": "Heating",
         "SeasonalStorageMode": "AllTanks",
+        "BufferShortCycling": False,
         "CriticalZoneList": ["Down"],
         "TotalStoreTanks": 3,
         "Ha1Params": {
