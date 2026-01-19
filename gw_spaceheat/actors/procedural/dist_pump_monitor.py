@@ -17,6 +17,7 @@ class DistPumpMonitor:
     Owns diagnostic timing state but does not actuate.
     """
     ZONE_CONTROL_DELAY_SECONDS = 50
+    THRESHOLD_FLOW_GPM_X100 = 50
 
     def __init__(self, *, host, doctor):
         self.host = host
@@ -66,7 +67,7 @@ class DistPumpMonitor:
         # --------------------------------------------------------
         # Pump healthy → reset doctor + diagnostics
         # --------------------------------------------------------
-        if flow_gpm_x100 > h.THRESHOLD_FLOW_GPM_X100:
+        if flow_gpm_x100 > self.THRESHOLD_FLOW_GPM_X100:
             if self.zone_controller_triggered_at is not None:
                 h.log(
                     "[DistPumpCheck] Pump running normally "
