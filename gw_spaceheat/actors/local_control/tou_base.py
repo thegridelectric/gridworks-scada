@@ -199,6 +199,10 @@ class LocalControlTouBase(ShNodeActor):
             self.log(f"Top state: {self.top_state}")
             self.log(f"LocalControl: {self.settings.seasonal_storage_mode}  |  State: {self.normal_node_state()}")
 
+            if self.top_state == LocalControlTopState.Dormant:
+                await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
+                continue
+
             # update zone setpoints if just before a new onpeak
             if  self.just_before_onpeak() or self.zone_setpoints=={}:
                 self.get_zone_setpoints()

@@ -281,6 +281,10 @@ class BufferOnlyLeafAlly(ShNodeActor):
 
             self._send(PatInternalWatchdogMessage(src=self.name))
 
+            if self.state == LeafAllyBufferOnlyState.Dormant:
+                await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
+                continue
+
             # Verify distribution pump health; initiate recovery if needed
             if self.dist_pump_monitor.needs_recovery():
                 await self.dist_pump_doctor.run()
