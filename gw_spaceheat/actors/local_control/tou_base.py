@@ -483,6 +483,7 @@ class LocalControlTouBase(ShNodeActor):
 
         # Monitor-only mode: Dormant -> Monitor
         if self.settings.system_mode == SystemMode.MonitorOnly:
+            # MonitorOnly: SCADA must not actuate anything
             self.trigger_top_event(LocalControlTopEvent.MonitorOnly)
             self.log("Monitor-only: WakeUp transitioned Dormant -> Monitor")
             return

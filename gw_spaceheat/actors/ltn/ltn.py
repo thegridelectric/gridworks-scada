@@ -326,8 +326,9 @@ class Ltn(PrimeActor):
         self.total_store_tanks = 3 # will also get updated when LayoutLite arrives
         # TODO: read strategy from hardware layout: node = hardware_layout.node(...)
         self.buffer_flo = False
-        self.system_mode: SystemMode = SystemMode.MonitorOnly # will get updated when LayoutLite arrives from Scada
+        self.system_mode: SystemMode = SystemMode.Heating # will get updated when LayoutLite arrives from Scada
         self.seasonal_storage_mode: SeasonalStorageMode = SeasonalStorageMode.AllTanks # will get updated when LayoutLite arrives from Scada
+        self.short_cycle_buffer: bool = False # will get updated when LayoutLite arrives from Scada
 
     @classmethod
     def get_codec_factory(cls) -> LtnCodecFactory:
@@ -546,6 +547,7 @@ class Ltn(PrimeActor):
         self.ha1_params = layout.Ha1Params
         self.seasonal_storage_mode = layout.SeasonalStorageMode
         self.total_store_tanks = layout.TotalStoreTanks
+        self.short_cycle_buffer = layout.BufferShortCycling
         self.log(f"FLO seasonal storage mode: {self.seasonal_storage_mode}")
 
         self.tank_temp_channel_names = list(H0CN.buffer.effective)
@@ -644,52 +646,61 @@ class Ltn(PrimeActor):
         self.send_layout()
 
         while not self._stop_requested:
-            if self.system_mode == SystemMode.Heating:
-                if datetime.now().minute >= self.create_graph_minute:
-                    if not self.flo_params and not self.bid_runner:
-                        try:
-                            await self.run_d(session)
-                        except Exception as e:
-                            self.log(f"Exception running Dijkstra: {e}")
-                    elif self.flo_params and self.bid_runner:
-                        if datetime.now().minute >= self.send_bid_minute and not self.sent_bid:
-                            self.log("Finding current storage state...")
-                            result = await self.get_three_layer_storage_model()
-                            if result is None:
-                                self.log("get_three_layer_storage_model() failed! Not getting bid.")
-                            else:
-                                t, m, b, th1, th2 = result
-                                updated_flo_params = self.flo_params.model_copy(
-                                    update={
-                                        "InitialTopTempF": int(t),
-                                        "InitialMiddleTempF": int(m),
-                                        "InitialBottomTempF": int(b),
-                                        "InitialThermocline1": int(th1 * 2),
-                                        "InitialThermocline2": int(th2 * 2),
-                                    }
-                                )
-                                self.flo_params = updated_flo_params
-                                self.services.publish_message(
-                                    self.SCADA_MQTT,
-                                    Message(Src=self.publication_name, Dst="broadcast", Payload=self.flo_params)
-                                )
-                                self.bid_runner.get_bid(self.flo_params)
-                        elif not self.sent_bid:
-                            self.log(f"Graph was already created. Waiting for minute {self.send_bid_minute} to send bid.")
-                        elif self.sent_bid:
-                            self.log("Already sent bid.")
-                else:
-                    if self.flo_params:
-                        self.flo_params = None
-                        self.sent_bid = False
-                    else:
-                        self.log(f"No graph exists. Waiting for minute {self.create_graph_minute} to create graph.")
+            if self.settings.monitor_only:
+                # LTN-side: do not originate new bids or contracts
+                await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
+                continue
 
-                # TODO: not sure what this is for
-                if not ((datetime.now().minute >= self.create_graph_minute and not self.flo_params)
-                        or (datetime.now().minute <= self.create_graph_minute and self.flo_params)):
-                    if self.contract_handler.latest_hb is None:
-                        self.log("No active contract.")
+            if self.system_mode != SystemMode.Heating:
+                # SCADA-side: plant is not accepting heating intent
+                await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
+                continue
+
+            if datetime.now().minute >= self.create_graph_minute:
+                if not self.flo_params and not self.bid_runner:
+                    try:
+                        await self.run_d(session)
+                    except Exception as e:
+                        self.log(f"Exception running Dijkstra: {e}")
+                elif self.flo_params and self.bid_runner:
+                    if datetime.now().minute >= self.send_bid_minute and not self.sent_bid:
+                        self.log("Finding current storage state...")
+                        result = await self.get_three_layer_storage_model()
+                        if result is None:
+                            self.log("get_three_layer_storage_model() failed! Not getting bid.")
+                        else:
+                            t, m, b, th1, th2 = result
+                            updated_flo_params = self.flo_params.model_copy(
+                                update={
+                                    "InitialTopTempF": int(t),
+                                    "InitialMiddleTempF": int(m),
+                                    "InitialBottomTempF": int(b),
+                                    "InitialThermocline1": int(th1 * 2),
+                                    "InitialThermocline2": int(th2 * 2),
+                                }
+                            )
+                            self.flo_params = updated_flo_params
+                            self.services.publish_message(
+                                self.SCADA_MQTT,
+                                Message(Src=self.publication_name, Dst="broadcast", Payload=self.flo_params)
+                            )
+                            self.bid_runner.get_bid(self.flo_params)
+                    elif not self.sent_bid:
+                        self.log(f"Graph was already created. Waiting for minute {self.send_bid_minute} to send bid.")
+                    elif self.sent_bid:
+                        self.log("Already sent bid.")
+            else:
+                if self.flo_params:
+                    self.flo_params = None
+                    self.sent_bid = False
+                else:
+                    self.log(f"No graph exists. Waiting for minute {self.create_graph_minute} to create graph.")
+
+            # TODO: not sure what this is for
+            if not ((datetime.now().minute >= self.create_graph_minute and not self.flo_params)
+                    or (datetime.now().minute <= self.create_graph_minute and self.flo_params)):
+                if self.contract_handler.latest_hb is None:
+                    self.log("No active contract.")
 
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
@@ -1144,6 +1155,8 @@ class Ltn(PrimeActor):
                 return top_temp, top_temp, top_temp, thermocline1, thermocline1
     
     async def get_buffer_available_kwh(self):
+        if self.short_cycle_buffer:
+            return 0
         if self.seasonal_storage_mode == SeasonalStorageMode.BufferOnly:
             return 0
         if self.tank_temp_channel_names is None:

@@ -27,6 +27,7 @@ class LayoutLite(BaseModel):
     Strategy: str
     SystemMode: SystemMode
     SeasonalStorageMode: SeasonalStorageMode
+    BufferShortCycling: bool
     ZoneList: List[str]
     CriticalZoneList: List[str]
     TotalStoreTanks: PositiveInt
@@ -39,7 +40,7 @@ class LayoutLite(BaseModel):
     I2cRelayComponent: I2cMultichannelDtRelayComponentGt
     TMap: TankTempCalibrationMap | None = None
     TypeName: Literal["layout.lite"] = "layout.lite"
-    Version: Literal["008"] = "008"
+    Version: Literal["009"] = "009"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

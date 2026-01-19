@@ -254,14 +254,14 @@ class AllTanksLeafAlly(ShNodeActor):
                     self.no_temps_since = None
                     if self.hp_should_be_off():
                         if (
-                            self.is_buffer_empty()
+                            self.is_buffer_empty(all_tanks_leaf_ally=True)
                             and not self.is_storage_colder_than_buffer()
                         ):
                             self.trigger_event(LeafAllyAllTanksEvent.NoElecBufferEmpty)
                         else:
                             self.trigger_event(LeafAllyAllTanksEvent.NoElecBufferFull)
                     else:
-                        if self.is_buffer_empty() or self.is_storage_full():
+                        if self.is_buffer_empty(all_tanks_leaf_ally=True) or self.is_storage_full():
                             self.trigger_event(LeafAllyAllTanksEvent.ElecBufferEmpty)
                         else:
                             self.trigger_event(LeafAllyAllTanksEvent.ElecBufferFull)
@@ -302,14 +302,14 @@ class AllTanksLeafAlly(ShNodeActor):
             elif self.state == LeafAllyAllTanksState.HpOnStoreCharge:
                 if self.hp_should_be_off():
                     self.trigger_event(LeafAllyAllTanksEvent.NoMoreElec)
-                elif self.is_buffer_empty() or self.is_storage_full():
+                elif self.is_buffer_empty(all_tanks_leaf_ally=True) or self.is_storage_full():
                     self.trigger_event(LeafAllyAllTanksEvent.ElecBufferEmpty)
 
             # 3
             elif self.state == LeafAllyAllTanksState.HpOffStoreOff:
                 if self.hp_should_be_off():
                     if (
-                        self.is_buffer_empty()
+                        self.is_buffer_empty(all_tanks_leaf_ally=True)
                         and not self.is_storage_colder_than_buffer()
                     ):
                         self.trigger_event(LeafAllyAllTanksEvent.NoElecBufferEmpty)
@@ -328,7 +328,7 @@ class AllTanksLeafAlly(ShNodeActor):
                     ):
                         self.trigger_event(LeafAllyAllTanksEvent.NoElecBufferFull)
                 else:
-                    if self.is_buffer_empty() or self.is_storage_full():
+                    if self.is_buffer_empty(all_tanks_leaf_ally=True) or self.is_storage_full():
                         self.trigger_event(LeafAllyAllTanksEvent.ElecBufferEmpty)
                     else:
                         self.trigger_event(LeafAllyAllTanksEvent.ElecBufferFull)
