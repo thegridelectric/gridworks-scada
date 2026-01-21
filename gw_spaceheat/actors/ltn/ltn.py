@@ -202,7 +202,7 @@ class BidRunner(threading.Thread):
 
     def pat_watchdog(self):
         self.send_threadsafe(
-            PatInternalWatchdogMessage(src=self.ltn_name)
+            PatInternalWatchdogMessage(src="io_loop_manager")
         )
 
 
