@@ -98,6 +98,7 @@ class PriceForecast(BaseModel):
 class BidRunner(threading.Thread):
     def __init__(self, params: FloParamsHouse0,
                  settings: LtnSettings,
+                 io_loop_manager_name: str,
                  ltn_name: str, 
                  ltn_g_node_alias: str,
                  send_threadsafe: Callable[[Message], None],
@@ -108,6 +109,7 @@ class BidRunner(threading.Thread):
         self.logger = logger or print  # Fallback to print if no logger provided
         self.orig_flo_params = params
         self.settings = settings
+        self.io_loop_manager_name = io_loop_manager_name
         self.ltn_name = ltn_name
         self.ltn_alias = ltn_g_node_alias
         self.send_threadsafe = send_threadsafe
@@ -202,7 +204,7 @@ class BidRunner(threading.Thread):
 
     def pat_watchdog(self):
         self.send_threadsafe(
-            PatInternalWatchdogMessage(src="io_loop_manager")
+            PatInternalWatchdogMessage(src=self.io_loop_manager_name)
         )
 
 
@@ -824,6 +826,7 @@ class Ltn(PrimeActor):
         self.bid_runner = BidRunner(
             params=self.flo_params,
             settings=self.settings,
+            io_loop_manager_name=self.services.io_loop_manager.name,
             ltn_name=self.name, 
             ltn_g_node_alias=self.layout.ltn_g_node_alias,
             send_threadsafe=self.services.send_threadsafe,
