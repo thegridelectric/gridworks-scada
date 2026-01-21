@@ -31,6 +31,8 @@ from gwsproto.named_types import (
 )
 from actors.procedural.dist_pump_doctor import DistPumpDoctor
 from actors.procedural.dist_pump_monitor import DistPumpMonitor
+from actors.procedural.store_pump_doctor import StorePumpDoctor
+from actors.procedural.store_pump_monitor import StorePumpMonitor
 
 class AllTanksLeafAlly(ShNodeActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
@@ -92,6 +94,11 @@ class AllTanksLeafAlly(ShNodeActor):
         self.dist_pump_monitor = DistPumpMonitor(
             host=self,
             doctor=self.dist_pump_doctor,
+        )
+        self.store_pump_doctor = StorePumpDoctor(host=self)
+        self.store_pump_monitor = StorePumpMonitor(
+            host=self,
+            doctor=self.store_pump_doctor,
         )
         self.log(f"Params: {self.params}")
         self.storage_declared_full = False
@@ -345,6 +352,10 @@ class AllTanksLeafAlly(ShNodeActor):
             # Verify distribution pump health; initiate recovery if needed
             if self.dist_pump_monitor.needs_recovery():
                 await self.dist_pump_doctor.run()
+
+            # Verify store pump health; initiate recovery if needed
+            if self.store_pump_monitor.needs_recovery():
+                await self.store_pump_doctor.run()
 
             self.engage_brain()
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)

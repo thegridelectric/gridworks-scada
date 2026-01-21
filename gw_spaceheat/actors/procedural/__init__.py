@@ -15,4 +15,5 @@ Characteristics:
 
 Examples:
 - DistPumpDoctor
+- StorePumpDoctor
 """
