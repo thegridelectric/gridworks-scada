@@ -50,7 +50,7 @@ from gwproto.messages import EventBase
 from gwproactor import QOS
 from gwproactor.config import LoggerLevels
 from gwproactor.logger import LoggerOrAdapter
-from gwproactor.message import DBGCommands, DBGPayload, MQTTReceiptPayload
+from gwproactor.message import DBGCommands, DBGPayload, MQTTReceiptPayload, PatInternalWatchdogMessage
 
 from gwsproto.conversions.temperature import convert_temp_to_f
 from gwsproto.data_classes.house_0_layout import House0Layout
@@ -123,7 +123,7 @@ class BidRunner(threading.Thread):
                 st = time.time()
                 flo_params_bytes = self.orig_flo_params.model_dump_json().encode('utf-8')
                 try:
-                    g = Flo(flo_params_bytes)
+                    g = Flo(flo_params_bytes, patting_watchdog=self.pat_watchdog)
                 except Exception as e:
                     self.logger.error(f"Error creating DGraph with advanced FLO: {e}")
                     glitch = Glitch(
@@ -199,6 +199,11 @@ class BidRunner(threading.Thread):
     def stop(self):
         self.logger.info("Stopping BidRunner")
         self.stop_event.set()
+
+    def pat_watchdog(self):
+        self.send_threadsafe(
+            PatInternalWatchdogMessage(src=self.ltn_name)
+        )
 
 
 class LtnMQTTCodec(MQTTCodec):
