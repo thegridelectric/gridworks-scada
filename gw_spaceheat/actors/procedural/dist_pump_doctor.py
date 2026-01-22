@@ -147,7 +147,7 @@ class DistPumpDoctor:
         poll_s: float = 2.0,
     ) -> bool:
         """
-        Wait up to PUMP_WAIT_SECONDS for distribution flow to exceed threshold.
+        Wait up to MAX_WAIT_SECONDS for distribution flow to exceed threshold.
         Returns True if flow is detected, False on timeout.
         """
         deadline = time.monotonic() + self.MAX_WAIT_SECONDS
