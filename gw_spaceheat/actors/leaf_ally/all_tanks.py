@@ -441,37 +441,6 @@ class AllTanksLeafAlly(ShNodeActor):
         except ValueError as e:
             self.log(f"Trouble with set_010_defaults: {e}")
 
-    def set_010_defaults(self) -> None:
-        """
-        Set 0-10 defaults for ZeroTen outputters that are direct reports
-        """
-        dfr_component = cast(DfrComponent, self.layout.node(H0N.zero_ten_out_multiplexer).component)
-        h_normal_010s = {
-            node
-            for node in self.my_actuators()
-            if node.ActorClass == ActorClass.ZeroTenOutputer and
-            self.the_boss_of(node) == self.node
-        }
-        for dfr_node in h_normal_010s:
-            dfr_config = next(
-                    config
-                    for config in dfr_component.gt.ConfigList
-                    if config.ChannelName == dfr_node.name
-                )
-            self._send_to(
-                dst=dfr_node,
-                payload=AnalogDispatch(
-                    FromGNodeAlias=self.layout.scada_g_node_alias,
-                    FromHandle=self.node.handle,
-                    ToHandle=dfr_node.handle,
-                    AboutName=dfr_node.Name,
-                    Value=dfr_config.InitialVoltsTimes100,
-                    TriggerId=str(uuid.uuid4()),
-                    UnixTimeMs=int(time.time() * 1000),
-                )
-            )
-            self.log(f"Just set {dfr_node.handle} to {dfr_config.InitialVoltsTimes100} from {self.node.handle} ")            
-
     def hp_should_be_off(self) -> bool:
         if self.remaining_watthours:
             if self.remaining_watthours > 0:
