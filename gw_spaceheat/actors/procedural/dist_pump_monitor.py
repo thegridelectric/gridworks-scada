@@ -39,7 +39,6 @@ class DistPumpMonitor:
         but it *does* manage diagnostic state and doctor lifecycle.
         """
         h = self.host
-        return True
 
         # --------------------------------------------------------
         # Guard: procedure already running
