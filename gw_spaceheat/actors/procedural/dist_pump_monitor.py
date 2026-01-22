@@ -1,5 +1,3 @@
-# actors/procedural/dist_pump_monitor.py
-
 import time
 
 from gwsproto.data_classes.house_0_names import H0CN

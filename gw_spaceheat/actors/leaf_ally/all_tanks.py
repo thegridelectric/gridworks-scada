@@ -106,7 +106,17 @@ class AllTanksLeafAlly(ShNodeActor):
         self.both_buffer_and_storage_full_since = 0
         if H0N.leaf_ally not in self.layout.nodes:
             raise Exception(f"LeafAlly requires {H0N.leaf_ally} node!!")
-        
+
+    @property
+    def command_node(self) -> ShNode:
+        """
+        top of command tree
+
+        This is used by procedural, non-transactive interrupts.
+        Always returns an ShNode, even if authority is degraded.
+        """
+        return self.node
+    
     @property
     def remaining_watthours(self) -> Optional[int]:
         return self.services.scada.contract_handler.remaining_watthours

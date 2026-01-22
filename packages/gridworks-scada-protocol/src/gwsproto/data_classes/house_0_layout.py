@@ -561,6 +561,27 @@ class House0Layout(HardwareLayout):
         return n
 
     @property
+    def dist_010v(self) -> ShNode:
+        n = self.node(H0N.dist_010v)
+        if n is None:
+            raise Exception(f"{H0N.dist_010v} is known to exist")
+        return n
+
+    @property
+    def store_010v(self) -> ShNode:
+        n = self.node(H0N.store_010v)
+        if n is None:
+            raise Exception(f"{H0N.store_010v} is known to exist")
+        return n
+
+    @property
+    def primary_010v(self) -> ShNode:
+        n = self.node(H0N.primary_010v)
+        if n is None:
+            raise Exception(f"{H0N.primary_010v} is known to exist")
+        return n
+
+    @property
     def vdc_relay(self) -> ShNode:
         n = self.node(H0N.vdc_relay)
         if n is None:

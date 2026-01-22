@@ -1,9 +1,15 @@
 import uuid
 import time
-from gwproto import Message
+from typing import TYPE_CHECKING
+
 from gwsproto.enums import LogLevel
 from gwsproto.data_classes.house_0_names import H0CN
 from gwsproto.named_types import AnalogDispatch, Glitch
+
+
+if TYPE_CHECKING:
+    from actors.procedural.procedural_host import ProceduralHost
+
 
 class DistPumpDoctor:
     """
@@ -11,10 +17,10 @@ class DistPumpDoctor:
     See actors.procedural for architectural constraints.
     """
     MAX_PUMP_DOCTOR_ATTEMPTS = 3
-    MAX_WAIT_SECONDS = 60
+    MAX_WAIT_SECONDS = 50
     THRESHOLD_FLOW_GPM_X100 = 50
 
-    def __init__(self, host: "LocalControlTouBase"):
+    def __init__(self, host: "ProceduralHost"):
         self.host = host
         self.running = False
         self.attempts = 0
@@ -28,14 +34,6 @@ class DistPumpDoctor:
 
     async def run(self) -> None:
         h = self.host
-        try:
-            try:
-                h_node = self.host.normal_node
-            except:
-                h_node = self.host.node
-        except Exception as e:
-            h.log(f"[DistPumpDoctor] Could not find host node: {e}")
-            return
 
         if self.running:
             h.log("[DistPumpDoctor] Already running, skipping")
@@ -85,29 +83,27 @@ class DistPumpDoctor:
 
             # Switch zones to SCADA
             for zone in h.layout.zone_list:
-                h.heatcall_ctrl_to_scada(zone=zone, from_node=h_node)
+                h.heatcall_ctrl_to_scada(zone=zone, boss_node=h.command_node)
 
-            # Set DFR to zero
-            h.services.send_threadsafe(
-                Message(
-                    Src=h.name,
-                    Dst=h.primary_scada.name,
-                    Payload=AnalogDispatch(
+            # Set 0-10 to zero
+            
+            h._send_to(
+                h.primary_scada,
+                AnalogDispatch(
                         FromGNodeAlias=h.layout.ltn_g_node_alias,
-                        FromHandle="auto",
-                        ToHandle="auto.dist-010v",
-                        AboutName="dist-010v",
+                        FromHandle=h.command_node.handle,
+                        ToHandle=h.dist_010v.handle,
+                        AboutName=h.dist_010v.name,
                         Value=0,
                         TriggerId=str(uuid.uuid4()),
                         UnixTimeMs=int(time.time() * 1000),
                     ),
-                )
             )
-
+        
             await h.await_with_watchdog(5)
 
             for zone in h.layout.zone_list:
-                h.stat_ops_close_relay(zone=zone, from_node=h_node)
+                h.stat_ops_close_relay(zone=zone, boss_node=h.command_node)
 
             h.log("[DistPumpDoctor] Waiting for dist flow")
             flow_detected = await self.wait_for_dist_flow()
@@ -115,11 +111,10 @@ class DistPumpDoctor:
             if flow_detected:
                 h.log("[DistPumpDoctor] Dist flow detected – success")
                 self.attempts = 0
-                h.zone_controller_triggered_at = None
             else:
                 h.log(
                     f"[DistPumpDoctor] No dist flow after "
-                    f"{h.MAX_PUMP_WAIT_SECONDS}s"
+                    f"{self.MAX_WAIT_SECONDS}s"
                 )
                 self.attempts += 1
 
@@ -138,12 +133,12 @@ class DistPumpDoctor:
 
         finally:
             h.log("[DistPumpDoctor] Restoring defaults")
-            h.set_010_defaults()
+            h.set_010_defaults(boss_node=h.command_node)
             for zone in h.layout.zone_list:
-                h.heatcall_ctrl_to_stat(zone=zone, from_node=h_node)
+                h.heatcall_ctrl_to_stat(zone=zone, boss_node=h.command_node)
             await h.await_with_watchdog(5)
             for zone in h.layout.zone_list:
-                h.stat_ops_open_relay(zone=zone, from_node=h_node)
+                h.stat_ops_open_relay(zone=zone, boss_node=h.command_node)
 
             self.running = False
 
@@ -152,7 +147,7 @@ class DistPumpDoctor:
         poll_s: float = 2.0,
     ) -> bool:
         """
-        Wait up to MAX_PUMP_WAIT_SECONDS for distribution flow to exceed threshold.
+        Wait up to PUMP_WAIT_SECONDS for distribution flow to exceed threshold.
         Returns True if flow is detected, False on timeout.
         """
         deadline = time.monotonic() + self.MAX_WAIT_SECONDS
