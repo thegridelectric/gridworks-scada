@@ -71,10 +71,6 @@ class StorePumpDoctor:
                 ),
             )
 
-            if not h.layout.zone_list:
-                h.log("[StorePumpDoctor] No zones found")
-                return
-
             h.turn_off_store_pump()
 
             # Set DFR to zero
