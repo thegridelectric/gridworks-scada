@@ -3,7 +3,8 @@
 import time
 
 from gwsproto.data_classes.house_0_names import H0CN
-from gwsproto.enums import StoreFlowRelay
+from gwsproto.enums import StoreFlowRelay, RelayClosedOrOpen
+from gwsproto.named_types import SingleMachineState
 
 class StorePumpMonitor:
     """
@@ -52,9 +53,13 @@ class StorePumpMonitor:
         # Should the storage be discharging?
         # --------------------------------------------------------
 
-        relay_state = h.data.latest_machine_state.get(h.store_charge_discharge_relay.name)
-        if relay_state != StoreFlowRelay.DischargingStore:
-            h.log(f"Store pump is not discharging: {relay_state}")
+        charge_discharge_relay_state: SingleMachineState = h.data.latest_machine_state.get(h.store_charge_discharge_relay.name)
+        store_pump_failsafe_relay_state: SingleMachineState = h.data.latest_machine_state.get(h.store_pump_failsafe.name)
+        if not (
+            charge_discharge_relay_state.State == StoreFlowRelay.DischargingStore
+            and store_pump_failsafe_relay_state.State == RelayClosedOrOpen.RelayClosed
+        ):
+            h.log(f"Store pump is not discharging:\n{charge_discharge_relay_state.State}\n{store_pump_failsafe_relay_state.State}")
             return False
 
         # --------------------------------------------------------
