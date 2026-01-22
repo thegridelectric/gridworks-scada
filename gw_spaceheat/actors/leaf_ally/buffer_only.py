@@ -94,6 +94,16 @@ class BufferOnlyLeafAlly(ShNodeActor):
             raise Exception(f"LeafAlly requires {H0N.leaf_ally} node!!")
 
     @property
+    def command_node(self) -> ShNode:
+        """
+        top of command tree
+
+        This is used by procedural, non-transactive interrupts.
+        Always returns an ShNode, even if authority is degraded.
+        """
+        return self.node
+
+    @property
     def remaining_watthours(self) -> Optional[int]:
         return self.services.scada.contract_handler.remaining_watthours
     

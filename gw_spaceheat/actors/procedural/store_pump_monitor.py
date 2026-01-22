@@ -16,7 +16,7 @@ class StorePumpMonitor:
 
     Owns diagnostic timing state but does not actuate.
     """
-    PUMP_DELAY_SECONDS = 30
+    PUMP_DELAY_SECONDS = 10
     THRESHOLD_FLOW_GPM_X100 = 50
 
     def __init__(self, *, host, doctor):
@@ -24,7 +24,7 @@ class StorePumpMonitor:
         self.doctor = doctor
 
         # Diagnostic timing state
-        self.discharge_triggered_at: float | None = None
+        self.pump_turned_on_s: float | None = None
 
     # ------------------------------------------------------------
     # Public API
@@ -67,13 +67,13 @@ class StorePumpMonitor:
         # Pump healthy → reset doctor + diagnostics
         # --------------------------------------------------------
         if flow_gpm_x100 > self.THRESHOLD_FLOW_GPM_X100:
-            if self.discharge_triggered_at is not None:
+            if self.pump_turned_on_s is not None:
                 h.log(
                     "[StorePumpCheck] Pump running normally "
                     f"(GPM={flow_gpm_x100 / 100}); resetting state"
                 )
 
-            self.discharge_triggered_at = None
+            self.pump_turned_on_s = None
             self.doctor.reset()
             return False
 
@@ -88,15 +88,14 @@ class StorePumpMonitor:
     
         now = time.monotonic()
 
-        if self.discharge_triggered_at is None:
-            self.discharge_triggered_at = now
+        if self.pump_turned_on_s is None:
+            self.pump_turned_on_s = now
             h.log(
                 "[StorePumpCheck] Store pump failsafe relay triggered; "
-                "awaiting normal startup delay"
             )
             return False
 
-        elapsed = now - self.discharge_triggered_at
+        elapsed = now - self.pump_turned_on_s
 
         if elapsed <= self.PUMP_DELAY_SECONDS:
             h.log(
@@ -114,5 +113,5 @@ class StorePumpMonitor:
             "triggering pump doctor"
         )
 
-        self.discharge_triggered_at = None
+        self.pump_turned_on_s = None
         return True

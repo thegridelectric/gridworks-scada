@@ -249,6 +249,22 @@ class LocalControlTouBase(ShNodeActor):
                     self.engage_brain()
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
+    @property
+    def command_node(self) -> ShNode:
+        """
+        top of command tree
+
+        This is used by procedural, non-transactive interrupts.
+        Always returns an ShNode, even if authority is degraded.
+        """
+        if self.top_state == LocalControlTopState.ScadaBlind:
+            return self.scada_blind_node
+
+        if self.top_state == LocalControlTopState.UsingNonElectricBackup:
+            return self.backup_node
+
+        return self.normal_node
+
     @abstractmethod
     def time_to_trigger_system_cold(self) -> bool:
         """
@@ -327,7 +343,7 @@ class LocalControlTouBase(ShNodeActor):
 
         try:
             self.log("Setting 010 defaults inside initialize_actuators")
-            self.set_010_defaults()
+            self.set_010_defaults(command_node=self.command_node)
         except ValueError as e:
             self.log(f"Trouble with set_010_defaults: {e}")
         self.actuators_initialized = True
@@ -385,7 +401,7 @@ class LocalControlTouBase(ShNodeActor):
           - iso valve open (valved to discharge)
           - turn hp failsafe to aquastat
         """
-        self.turn_off_store_pump(from_node=self.scada_blind_node)
+        self.turn_off_store_pump(command_node=self.scada_blind_node)
         self.valved_to_discharge_store(from_node=self.scada_blind_node)
         self.hp_failsafe_switch_to_aquastat(from_node=self.scada_blind_node)
         
@@ -397,47 +413,13 @@ class LocalControlTouBase(ShNodeActor):
           - if using oil boiler, turns hp failsafe to aquastat and aquastat ctrl to boiler
           - if not using oil boiler, turns on heat pump
         """
-        self.turn_off_store_pump(from_node=self.backup_node)
+        self.turn_off_store_pump(command_node=self.backup_node)
         self.valved_to_discharge_store(from_node=self.backup_node)
         if self.settings.oil_boiler_backup:
             self.hp_failsafe_switch_to_aquastat(from_node=self.backup_node)
             self.aquastat_ctrl_switch_to_boiler(from_node=self.backup_node)
         else:
             self.turn_on_HP(from_node=self.backup_node)
-
-    def set_010_defaults(self) -> None:
-        """
-        Sets default 0-10V values for those actuators that are direct reports
-        of the h.n (home alone normal node).
-        """
-        dfr_component = cast(DfrComponent, self.layout.node(H0N.zero_ten_out_multiplexer).component)
-        h_normal_010s = {
-            node
-            for node in self.my_actuators()
-            if node.ActorClass == ActorClass.ZeroTenOutputer and
-            self.the_boss_of(node) == self.normal_node
-        }
-
-        for dfr_node in h_normal_010s:
-            dfr_config = next(
-                    config
-                    for config in dfr_component.gt.ConfigList
-                    if config.ChannelName == dfr_node.name
-                )
-            self._send_to(
-                dst=dfr_node,
-                payload=AnalogDispatch(
-                    FromGNodeAlias=self.layout.scada_g_node_alias,
-                    FromHandle=self.normal_node.handle,
-                    ToHandle=dfr_node.handle,
-                    AboutName=dfr_node.Name,
-                    Value=dfr_config.InitialVoltsTimes100,
-                    TriggerId=str(uuid.uuid4()),
-                    UnixTimeMs=int(time.time() * 1000),
-                ),
-                src=self.normal_node
-            )
-            self.log(f"Just set {dfr_node.handle} to {dfr_config.InitialVoltsTimes100} from {self.normal_node.handle} ")
 
     def start(self) -> None:
         self.services.add_task(
