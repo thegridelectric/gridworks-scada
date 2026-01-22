@@ -28,6 +28,14 @@ class DistPumpDoctor:
 
     async def run(self) -> None:
         h = self.host
+        try:
+            try:
+                h_node = self.host.normal_node
+            except:
+                h_node = self.host.node
+        except Exception as e:
+            h.log(f"[DistPumpDoctor] Could not find host node: {e}")
+            return
 
         if self.running:
             h.log("[DistPumpDoctor] Already running, skipping")
@@ -77,7 +85,7 @@ class DistPumpDoctor:
 
             # Switch zones to SCADA
             for zone in h.layout.zone_list:
-                h.heatcall_ctrl_to_scada(zone=zone, from_node=h.normal_node)
+                h.heatcall_ctrl_to_scada(zone=zone, from_node=h_node)
 
             # Set DFR to zero
             h.services.send_threadsafe(
@@ -99,7 +107,7 @@ class DistPumpDoctor:
             await h.await_with_watchdog(5)
 
             for zone in h.layout.zone_list:
-                h.stat_ops_close_relay(zone=zone, from_node=h.normal_node)
+                h.stat_ops_close_relay(zone=zone, from_node=h_node)
 
             h.log("[DistPumpDoctor] Waiting for dist flow")
             flow_detected = await self.wait_for_dist_flow()
@@ -132,10 +140,10 @@ class DistPumpDoctor:
             h.log("[DistPumpDoctor] Restoring defaults")
             h.set_010_defaults()
             for zone in h.layout.zone_list:
-                h.heatcall_ctrl_to_stat(zone=zone, from_node=h.normal_node)
+                h.heatcall_ctrl_to_stat(zone=zone, from_node=h_node)
             await h.await_with_watchdog(5)
             for zone in h.layout.zone_list:
-                h.stat_ops_open_relay(zone=zone, from_node=h.normal_node)
+                h.stat_ops_open_relay(zone=zone, from_node=h_node)
 
             self.running = False
 
