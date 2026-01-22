@@ -40,7 +40,6 @@ class StorePumpMonitor:
         but it *does* manage diagnostic state and doctor lifecycle.
         """
         h = self.host
-        h.log(f"Store pump monitor check starting")
 
         # --------------------------------------------------------
         # Guard: procedure already running
@@ -59,7 +58,7 @@ class StorePumpMonitor:
             charge_discharge_relay_state.State == StoreFlowRelay.DischargingStore
             and store_pump_failsafe_relay_state.State == RelayClosedOrOpen.RelayClosed
         ):
-            h.log(f"Store pump is not discharging:\n{charge_discharge_relay_state.State}\n{store_pump_failsafe_relay_state.State}")
+            h.log(f"[StorePumpCheck] Store pump is not discharging")
             return False
 
         # --------------------------------------------------------

@@ -119,7 +119,7 @@ class DistPumpDoctor:
             else:
                 h.log(
                     f"[DistPumpDoctor] No dist flow after "
-                    f"{h.MAX_PUMP_WAIT_SECONDS}s"
+                    f"{self.MAX_WAIT_SECONDS}s"
                 )
                 self.attempts += 1
 
@@ -152,7 +152,7 @@ class DistPumpDoctor:
         poll_s: float = 2.0,
     ) -> bool:
         """
-        Wait up to MAX_PUMP_WAIT_SECONDS for distribution flow to exceed threshold.
+        Wait up to MAX_WAIT_SECONDS for distribution flow to exceed threshold.
         Returns True if flow is detected, False on timeout.
         """
         deadline = time.monotonic() + self.MAX_WAIT_SECONDS
