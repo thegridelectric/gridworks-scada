@@ -40,6 +40,7 @@ class StorePumpMonitor:
         but it *does* manage diagnostic state and doctor lifecycle.
         """
         h = self.host
+        h.log("[StorePumpCheck] Starting")
 
         # --------------------------------------------------------
         # Guard: procedure already running
