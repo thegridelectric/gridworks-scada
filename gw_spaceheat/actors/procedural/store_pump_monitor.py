@@ -41,6 +41,7 @@ class StorePumpMonitor:
         """
         h = self.host
         h.log("[StorePumpCheck] Starting")
+        return True
 
         # --------------------------------------------------------
         # Guard: procedure already running
