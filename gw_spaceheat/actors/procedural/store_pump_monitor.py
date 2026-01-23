@@ -1,10 +1,14 @@
 # actors/procedural/dist_pump_monitor.py
 
 import time
+from typing import TYPE_CHECKING
 
 from gwsproto.data_classes.house_0_names import H0CN
 from gwsproto.enums import StoreFlowRelay, RelayClosedOrOpen
 from gwsproto.named_types import SingleMachineState
+
+if TYPE_CHECKING:
+    from actors.procedural.procedural_host import ProceduralHost
 
 class StorePumpMonitor:
     """
@@ -20,7 +24,7 @@ class StorePumpMonitor:
     PUMP_DELAY_SECONDS = 10
     THRESHOLD_FLOW_GPM_X100 = 50
 
-    def __init__(self, *, host, doctor):
+    def __init__(self, *, host: "ProceduralHost", doctor):
         self.host = host
         self.doctor = doctor
 
@@ -68,6 +72,9 @@ class StorePumpMonitor:
                 return False
             
             h.log(f"[StorePumpCheck] Store pump relay is closed")
+        else:
+            h.log(f"[StorePumpCheck] Store pump relay not found")
+            return False
 
         # --------------------------------------------------------
         # Do we have flow data?

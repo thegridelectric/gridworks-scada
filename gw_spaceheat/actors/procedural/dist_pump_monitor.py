@@ -1,8 +1,12 @@
 # actors/procedural/dist_pump_monitor.py
 
 import time
+from typing import TYPE_CHECKING
 
 from gwsproto.data_classes.house_0_names import H0CN
+
+if TYPE_CHECKING:
+    from actors.procedural.procedural_host import ProceduralHost
 
 
 class DistPumpMonitor:
@@ -19,7 +23,7 @@ class DistPumpMonitor:
     ZONE_CONTROL_DELAY_SECONDS = 50
     THRESHOLD_FLOW_GPM_X100 = 50
 
-    def __init__(self, *, host, doctor):
+    def __init__(self, *, host: "ProceduralHost", doctor):
         self.host = host
         self.doctor = doctor
 
