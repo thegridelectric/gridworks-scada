@@ -27,7 +27,6 @@ from gwsproto.enums.change_relay_pin import ChangeRelayPin
 from gwsproto.enums.change_relay_state import ChangeRelayState
 from gwsproto.enums.change_store_flow_relay import ChangeStoreFlowRelay
 from gwsproto.enums.flow_manifold_variant import FlowManifoldVariant
-from gwsproto.enums.fsm_action_type import FsmActionType
 from gwsproto.enums.fsm_report_type import FsmReportType
 from gwsproto.enums.gpm_from_hz_method import GpmFromHzMethod
 from gwsproto.enums.heatcall_source import HeatcallSource
@@ -60,6 +59,7 @@ from gwsproto.enums.pico_cycler_event import PicoCyclerEvent
 from gwsproto.enums.pico_cycler_state import PicoCyclerState
 from gwsproto.enums.primary_pump_control import PrimaryPumpControl
 from gwsproto.enums.relay_closed_or_open import RelayClosedOrOpen
+from gwsproto.enums.relay_pin_state import RelayPinState
 from gwsproto.enums.relay_energization_state import RelayEnergizationState
 from gwsproto.enums.relay_wiring_config import RelayWiringConfig
 from gwsproto.enums.seasonal_storage_mode import SeasonalStorageMode
@@ -89,7 +89,6 @@ __all__ = [
     "ChangeRelayState",
     "ChangeStoreFlowRelay",
     "FlowManifoldVariant",
-    "FsmActionType",
     "FsmReportType",
     "GpmFromHzMethod",
     "GwUnit",
@@ -123,6 +122,7 @@ __all__ = [
     "PrimaryPumpControl",
     "RelayClosedOrOpen",
     "RelayEnergizationState",
+    "RelayPinState",
     "RelayWiringConfig",
     "SeasonalStorageMode",
     "SlowDispatchContractStatus",

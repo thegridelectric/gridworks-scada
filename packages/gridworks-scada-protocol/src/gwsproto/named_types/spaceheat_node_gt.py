@@ -13,11 +13,12 @@ class SpaceheatNodeGt(BaseModel):
     ActorClass: ActorClass
     DisplayName: str | None = None
     ComponentId: str | None = None
+    BoardComponentId: str | None = None
     NameplatePowerW: StrictInt | None = None
     InPowerMetering: bool | None = None
     ShNodeId: UUID4Str
     TypeName: Literal["spaceheat.node.gt"] = "spaceheat.node.gt"
-    Version: Literal["300"] = "300"
+    Version: Literal["301"] = "301"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

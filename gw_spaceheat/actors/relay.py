@@ -11,6 +11,9 @@ from gwproactor.message import PatInternalWatchdogMessage
 from gwsproto.data_classes.components.i2c_multichannel_dt_relay_component import (
     I2cMultichannelDtRelayComponent,
 )
+from gwsproto.data_classes.components.gw108_gpio_relay_component import (
+    Gw108GpioRelayComponent,
+)
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
@@ -27,6 +30,7 @@ from gwsproto.enums import (
     MakeModel,
     PrimaryPumpControl,
     RelayClosedOrOpen,
+    RelayPinState,
     RelayWiringConfig,
     StoreFlowRelay,
     HeatcallSource,
@@ -42,13 +46,11 @@ from scada_app_interface import ScadaAppInterface
 from gwsproto.enums import LogLevel, ChangeKeepSend, HpLoopKeepSend
 from gwsproto.named_types import FsmEvent, Glitch, SingleMachineState
 
+
 class Relay(ShNodeActor):
     STATE_REPORT_S = 300
     node: ShNode
-    component: I2cMultichannelDtRelayComponent
     wiring_config: RelayWiringConfig
-    my_state_enum: AslEnum
-    my_event_enum: AslEnum
     reports_by_trigger: Dict[str, List[FsmAtomicReport]]
     boss_by_trigger: Dict[str, ShNode]
     energized_state: str
@@ -60,36 +62,53 @@ class Relay(ShNodeActor):
         services: ScadaAppInterface,
     ):
         super().__init__(name, services)
-        self.component = cast(I2cMultichannelDtRelayComponent, self.node.component)
-        if self.component.cac.MakeModel != MakeModel.KRIDA__DOUBLEEMR16I2CV3:
-            raise Exception(
-                f"Expected {MakeModel.KRIDA__DOUBLEEMR16I2CV3}, got {self.component.cac}"
-            )
+
+        self._component = self.node.component
+
+        if not isinstance(
+            self._component,
+            (I2cMultichannelDtRelayComponent, Gw108GpioRelayComponent)
+        ):
+            raise ValueError(f"Component for {self.name} has type "
+                             f"{type(self._component)}. Expected "
+                             "I2cMultichannelDtRelayComponent or "
+                             "Gw108GpioRelayComponent")
+
         self.relay_actor_config = next(
-            (x for x in self.component.gt.ConfigList if x.ActorName == self.node.name),
+            (x for x in self._component.gt.ConfigList if x.ActorName == self.node.name),
             None,
         )
 
         if self.relay_actor_config is None:
             raise Exception(
-                f"Relay {self.node.name} not in component {self.component}'s RelayActorConfigList:\n"
-                f"{self.component.gt.ConfigList}"
+                f"Relay {self.node.name} not in component {self._component}'s RelayActorConfigList:\n"
+                f"{self._component.gt.ConfigList}"
             )
 
         self.de_energizing_event = self.relay_actor_config.DeEnergizingEvent
         self.relay_multiplexer = self.layout.node(H0N.relay_multiplexer)
         self.reports_by_trigger = {}
         self.boss_by_trigger = {}
-        self.my_event_enum = ChangeRelayState.enum_name()
-        self.my_state_enum = RelayClosedOrOpen.enum_name()
+        self.my_event_enum: type[AslEnum] = ChangeRelayState
+        self.my_state_enum: type[AslEnum] = RelayClosedOrOpen
         self.initialize_fsm()
         self._stop_requested = False
+        self.state = self.relay_actor_config.DeEnergizedState
+
+        if not self.settings.is_simulated:
+            import RPi.GPIO as GPIO
+            self.GPIO = GPIO
+            self.GPIO.setmode(GPIO.BCM)
+            self.GPIO.setup(self._component.gt.GpioPin, GPIO.OUT)
+        else:
+            self.GPIO = None
+
 
     def my_channel(self) -> DataChannel:
         relay_config = next(
             (
                 config
-                for config in self.component.gt.ConfigList
+                for config in self._component.gt.ConfigList
                 if config.ActorName == self.name
             ),
             None,
@@ -103,12 +122,12 @@ class Relay(ShNodeActor):
     ) -> Result[bool, BaseException]:
         from_node = self.layout.node(from_name)
         if from_node is None:
-            return
+            return Ok(False)
         if message.FromHandle != from_node.handle:
             self.log(
                 f"from_node {from_node.name} has handle {from_node.handle}, not {message.FromHandle}!"
             )
-            return
+            return Ok(False)
 
         if message.ToHandle != self.node.Handle:
             # TODO: turn this into a report?
@@ -121,66 +140,149 @@ class Relay(ShNodeActor):
                               Details=f"{message.FromHandle} tried to command {self.node.Handle}. Ignoring!"
                           ))
             self.log(f"Handle is {self.node.Handle}; ignoring {message}")
-            return
+            return Ok(False)
 
         if message.EventType != self.my_event_enum.enum_name():
             print(f"Not a {self.my_event_enum} event type. Ignoring: {message}")
 
         orig_state = self.state
         self.trigger(message.EventName)
-        if self.state == orig_state:
-            ...
-            # print(f"{message.EventName} did not change state {self.state}")
-        else:
-            # state changed
-            if message.EventName == self.de_energizing_event:
-                relay_pin_event = ChangeRelayPin.DeEnergize
-                old_pin_state = "Energized"
-                new_pin_state = "DeEnergized"
-            else:
-                relay_pin_event = ChangeRelayPin.Energize
-                old_pin_state = "DeEnergized"
-                new_pin_state = "Energized"
 
-            report = FsmAtomicReport(
+        if self.state == orig_state:
+            return Ok(True)
+
+        self._actuate_and_report(
+            orig_state=orig_state,
+            message=message,
+        )
+
+        return Ok(True)
+
+    def _actuate_and_report(
+        self,
+        *,
+        orig_state: str,
+        message: FsmEvent,
+    ) -> None:
+        """
+        Perform hardware actuation and ensure FSM reporting is completed.
+        Exactly one FsmFullReport will be sent per TriggerId.
+        """
+        from_node = self.layout.node_by_handle(message.FromHandle)
+        assert from_node
+        if message.EventName == self.de_energizing_event:
+            relay_pin_event = ChangeRelayPin.DeEnergize
+            old_pin_state = RelayPinState.Energized
+            new_pin_state = RelayPinState.DeEnergized
+        else:
+            relay_pin_event = ChangeRelayPin.Energize
+            old_pin_state = RelayPinState.DeEnergized
+            new_pin_state = RelayPinState.Energized
+
+        report = FsmAtomicReport(
+            MachineHandle=self.node.handle,
+            StateEnum=self.my_state_enum.enum_name(),
+            ReportType=FsmReportType.Event,
+            EventEnum=self.my_event_enum.enum_name(),
+            Event=message.EventName,
+            FromState=orig_state,
+            ToState=self.state,
+            UnixTimeMs=message.SendTimeUnixMs,
+            TriggerId=message.TriggerId,
+        )
+
+        self.reports_by_trigger[message.TriggerId] = [report]
+        self.boss_by_trigger[message.TriggerId] = from_node
+        
+
+        """Actuate relay and complete FSM reporting"""
+        if isinstance(self._component, Gw108GpioRelayComponent):
+            self._gpio_actuate_and_report(
+                relay_pin_event,
+                old_pin_state,
+                new_pin_state,
+                message
+            )
+        elif isinstance(self._component, I2cMultichannelDtRelayComponent):
+            self._actuate_and_defer_report(
+                relay_pin_event,
+                message,
+            )
+        else:
+            raise Exception(f"Unsupported relay component {type(self._component)}")
+        
+    def _gpio_actuate_and_report(
+        self,
+        relay_pin_event: ChangeRelayPin,
+        old_pin_state: RelayPinState,
+        new_pin_state: RelayPinState,
+        message: FsmEvent,
+    ) -> None:
+        now_ms = int(time.time() * 1000)
+        if self.settings.is_simulated:
+            self.log("Simulated relay actuation; skipping GPIO")
+            return
+
+        pin = self._component.gt.GpioPin
+        if relay_pin_event == ChangeRelayPin.Energize:
+            self.GPIO.output(pin, self.GPIO.HIGH)
+            self.log(f"Energizing: Setting pin {pin} to High")
+        else:
+            self.GPIO.output(pin, self.GPIO.LOW)
+            self.log(f"De-energizing: Setting pin {pin} to Low")
+
+        self.reports_by_trigger[message.TriggerId].append(
+            FsmAtomicReport(
                 MachineHandle=self.node.handle,
-                StateEnum=self.my_state_enum.enum_name(),
+                StateEnum="relay.pin",
                 ReportType=FsmReportType.Event,
-                EventEnum=self.my_event_enum.enum_name(),
-                Event=message.EventName,
-                FromState=orig_state,
-                ToState=self.state,
-                UnixTimeMs=message.SendTimeUnixMs,
+                EventEnum=ChangeRelayPin.enum_name(),
+                Event=relay_pin_event,
+                FromState=old_pin_state.value,
+                ToState=new_pin_state.value,
+                UnixTimeMs=now_ms,
                 TriggerId=message.TriggerId,
             )
-            self.reports_by_trigger[message.TriggerId] = [report]
-            self.boss_by_trigger[message.TriggerId] = from_node
-            now_ms = int(time.time() * 1000)
-            # self.log(f"sending {relay_pin_event} to multiplexer")
-            #  To actually create an action, send to relay multiplexer
-            pin_change_event = FsmEvent(
-                FromHandle=self.node.handle,
-                ToHandle=self.relay_multiplexer.handle,
-                EventType=ChangeRelayPin.enum_name(),
-                EventName=relay_pin_event,
-                TriggerId=message.TriggerId,
-                SendTimeUnixMs=now_ms,
-            )
-            self._send_to(self.relay_multiplexer, pin_change_event)
-            self.reports_by_trigger[message.TriggerId].append(
-                FsmAtomicReport(
-                    MachineHandle=self.node.handle,
-                    StateEnum="relay.pin",
-                    ReportType=FsmReportType.Event,
-                    EventType=ChangeRelayPin.enum_name(),
-                    Event=relay_pin_event,
-                    FromState=old_pin_state,
-                    ToState=new_pin_state,
-                    UnixTimeMs=now_ms,
+        )
+        boss = self.boss_by_trigger.get(message.TriggerId)
+        if boss is not None:
+            self.send_state(now_ms=now_ms)
+            self._send_to(
+                boss,
+                FsmFullReport(
+                    FromName=self.name,
                     TriggerId=message.TriggerId,
+                    AtomicList=self.reports_by_trigger[message.TriggerId]
                 )
             )
-            return Ok()
+
+    def _actuate_and_defer_report(
+            self,
+            relay_pin_event: ChangeRelayPin,
+            message: FsmEvent
+    ) -> None:
+        """
+        Actuate relay via legacy Krida I2C multiplexer.
+
+        Note: This method does NOT complete FSM reporting. The corresponding
+        FsmFullReport is sent only after the relay multiplexer responds with
+        an FsmAtomicReport, which is handled in _process_atomic_report().
+        """
+        now_ms = int(time.time() * 1000)
+        assert self.relay_multiplexer
+
+        self.log(f"sending {relay_pin_event} to multiplexer")
+        #To actually create an action, send to relay multiplexer
+        pin_change_event = FsmEvent(
+            FromHandle=self.node.handle,
+            ToHandle=self.relay_multiplexer.handle,
+            EventType=ChangeRelayPin.enum_name(),
+            EventName=relay_pin_event,
+            TriggerId=message.TriggerId,
+            SendTimeUnixMs=now_ms,
+        )
+        
+        self._send_to(self.relay_multiplexer, pin_change_event)
 
     def _process_atomic_report(
         self, message: FsmAtomicReport
@@ -201,17 +303,18 @@ class Relay(ShNodeActor):
                 AtomicList=self.reports_by_trigger[message.TriggerId],
             ),
         )
+        return Ok(True)
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         if isinstance(message.Payload, FsmEvent):
             return self._process_event_message(
                 from_name=message.Header.Src, message=message.Payload
             )
-        elif (
-            isinstance(message.Payload, FsmAtomicReport)
-            and message.Header.Src == self.relay_multiplexer.name
-        ):
-            return self._process_atomic_report(message.Payload)
+        # elif (
+        #     isinstance(message.Payload, FsmAtomicReport)
+        #     and message.Header.Src == self.relay_multiplexer.name
+        # ):
+        #     return self._process_atomic_report(message.Payload)
 
         return Err(
             ValueError(
@@ -351,7 +454,8 @@ class Relay(ShNodeActor):
                     f"Expect SwitchToWallThermostat as de-energizing event for {self.name}; got {self.de_energizing_event}"
                 )
         
-        
+        if self.relay_actor_config is None:
+            raise Exception(f"RelayActorConfig cannot be none for {self.name}")
         self.transitions = [
                 {
                     "trigger": self.relay_actor_config.DeEnergizingEvent,

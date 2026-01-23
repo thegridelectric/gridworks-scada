@@ -37,10 +37,10 @@ class LayoutLite(BaseModel):
     TankModuleComponents: List[PicoTankModuleComponentGt | SimPicoTankModuleComponentGt]
     FlowModuleComponents: List[PicoFlowModuleComponentGt]
     Ha1Params: Ha1Params
-    I2cRelayComponent: I2cMultichannelDtRelayComponentGt
+    I2cRelayComponent: I2cMultichannelDtRelayComponentGt | None = None
     TMap: TankTempCalibrationMap | None = None
     TypeName: Literal["layout.lite"] = "layout.lite"
-    Version: Literal["009"] = "009"
+    Version: Literal["010"] = "010"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

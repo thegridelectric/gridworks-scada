@@ -9,6 +9,9 @@ from gwsproto.data_classes.components.electric_meter_component import (
 from gwsproto.data_classes.components.fibaro_smart_implant_component import (
     FibaroSmartImplantComponent,
 )
+from gwsproto.data_classes.components.gw108_gpio_relay_component import (
+    Gw108GpioRelayComponent,
+)
 from gwsproto.data_classes.components.hubitat_component import HubitatComponent
 from gwsproto.data_classes.components.hubitat_poller_component import (
     HubitatPollerComponent,
@@ -38,6 +41,7 @@ __all__ = [
     "DfrComponent",
     "ElectricMeterComponent",
     "FibaroSmartImplantComponent",
+    "Gw108GpioRelayComponent",
     "HubitatComponent",
     "HubitatPollerComponent",
     "I2cMultichannelDtRelayComponent",

@@ -5,17 +5,10 @@ from gwsproto.enums.gw_str_enum import AslEnum
 
 
 class FlowManifoldVariant(AslEnum):
-    """
-    Values:
-      - House0
-      - House0Sieg
-
-    For more information:
-      - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#LocalControlTopState)
-    """
+    """ASL: https://schemas.electricity.works/enums/flow.manifold.variant/001"""
     House0 = auto()
     House0Sieg = auto()
+    NolanHouse = auto()
 
 
     @classmethod
@@ -32,4 +25,4 @@ class FlowManifoldVariant(AslEnum):
 
     @classmethod
     def enum_version(cls) -> str:
-        return "000"
+        return "001"

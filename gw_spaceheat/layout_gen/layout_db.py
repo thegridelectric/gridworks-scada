@@ -589,7 +589,7 @@ class LayoutDb:
                     ShNodeId=self.make_node_id(H0N.ltn),
                     Name=H0N.ltn,
                     ActorClass=ActorClass.NoActor,
-                    DisplayName="Atn",
+                    DisplayName="LeafTransactiveNode",
                 ),
                 SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.leaf_ally),

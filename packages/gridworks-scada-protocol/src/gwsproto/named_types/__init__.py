@@ -36,6 +36,7 @@ from gwsproto.named_types.flo_params_house0 import FloParamsHouse0
 from gwsproto.named_types.fsm_atomic_report import FsmAtomicReport
 from gwsproto.named_types.fsm_event import FsmEvent
 from gwsproto.named_types.fsm_full_report import FsmFullReport
+from gwsproto.named_types.gw108_gpio_relay_component_gt import Gw108GpioRelayComponentGt
 from gwsproto.named_types.hubitat_component_gt import HubitatComponentGt
 from gwsproto.named_types.hubitat_poller_component_gt import HubitatPollerComponentGt
 from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
@@ -47,6 +48,9 @@ from gwsproto.named_types.ha1_params import Ha1Params
 from gwsproto.named_types.hack_oil_off import HackOilOff
 from gwsproto.named_types.hack_oil_on import HackOilOn
 from gwsproto.named_types.heating_forecast import HeatingForecast
+from gwsproto.named_types.i2c_read_bit import I2cReadBit
+from gwsproto.named_types.i2c_result import I2cResult
+from gwsproto.named_types.i2c_write_bit import I2cWriteBit
 from gwsproto.named_types.latest_price import LatestPrice
 from gwsproto.named_types.layout_lite import LayoutLite
 from gwsproto.named_types.machine_states import MachineStates
@@ -138,6 +142,7 @@ __all__ = [
     "FsmFullReport",
     "Glitch",
     "GoDormant",
+    "Gw108GpioRelayComponentGt",
     "Ha1Params",
     "HackOilOff",
     "HackOilOn",
@@ -145,6 +150,9 @@ __all__ = [
     "HubitatComponentGt",
     "HubitatPollerComponentGt",
     "I2cMultichannelDtRelayComponentGt",
+    "I2cReadBit",
+    "I2cResult",
+    "I2cWriteBit",
     "LatestPrice",
     "LayoutLite",
     "MarketMakerAck",

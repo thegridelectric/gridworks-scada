@@ -14,11 +14,12 @@ from gwsproto.data_classes.components.i2c_multichannel_dt_relay_component import
 from gwsproto.data_classes.data_channel import DataChannel
 from gwsproto.data_classes.house_0_layout import House0Layout
 from gwsproto.data_classes.sh_node import ShNode
-from gwsproto.enums import (ActorClass, ChangeRelayPin, FsmActionType,
+from gwsproto.enums import (ActorClass, ChangeRelayPin,
                            FsmReportType, MakeModel,
                            RelayEnergizationState, RelayWiringConfig,
                            TelemetryName)
 
+from gwsproto.named_types.fsm_atomic_report import RelayPinSetAction
 from gwsproto.named_types import (SingleReading,
                                  SyncedReadings, FsmAtomicReport)
 from pydantic import BaseModel, Field
@@ -258,14 +259,14 @@ class I2cRelayMultiplexer(ShNodeActor):
                 ScadaReadTimeUnixMs=t_ms,
             ),
         )
+
         self._send_to(
             relay,
             FsmAtomicReport(
                 MachineHandle=self.node.handle,
                 StateEnum="relay.pin",
                 ReportType=FsmReportType.Action,
-                ActionType=FsmActionType.RelayPinSet,
-                Action=self.relay_state[idx].value,
+                Action=RelayPinSetAction(Value=self.relay_state[idx]),
                 UnixTimeMs=t_ms,
                 TriggerId=dispatch.TriggerId,
             ),

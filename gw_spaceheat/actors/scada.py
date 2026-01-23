@@ -1585,6 +1585,10 @@ class Scada(PrimeActor, ScadaInterface):
             for node in self.layout.nodes.values()
             if node.ActorClass == ActorClass.ApiFlowModule
         ]
+        if H0N.relay_multiplexer in self.layout.nodes:
+            i2c_relay_component = self.layout.node(H0N.relay_multiplexer).component.gt
+        else:
+            i2c_relay_component = None
         return LayoutLite(
             FromGNodeAlias=self.layout.scada_g_node_alias,
             Strategy=self.layout.flow_manifold_variant,
@@ -1600,7 +1604,7 @@ class Scada(PrimeActor, ScadaInterface):
             DataChannels=[ch.to_gt() for ch in self.layout.data_channels.values()],
             DerivedChannels=[ch.to_gt() for ch in self.layout.derived_channels.values()],
             Ha1Params=self.data.ha1_params,
-            I2cRelayComponent=self.layout.node(H0N.relay_multiplexer).component.gt,
+            I2cRelayComponent=i2c_relay_component,
             MessageCreatedMs=int(time.time() * 1000),
             MessageId=str(uuid.uuid4()),
             TMap=self.layout.tank_temp_calibration_map,

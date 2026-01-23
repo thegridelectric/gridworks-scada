@@ -26,7 +26,7 @@ class Report(BaseModel):
     MessageCreatedMs: UTCMilliseconds
     Id: UUID4Str
     TypeName: Literal["report"] = "report"
-    Version: str = "002"
+    Version: str = "003"
 
     @field_validator("ChannelReadingList")
     @classmethod

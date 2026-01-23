@@ -132,7 +132,7 @@ def add_egauge(
                 ShNodeId=db.make_node_id(egauge.NodeName),
                 Name=egauge.NodeName,
                 ActorClass=ActorClass.PowerMeter,
-                ActorHierarchyName=f"{H0N.secondary_scada}.{egauge.NodeName}",
+                ActorHierarchyName=f"{H0N.primary_scada}.{egauge.NodeName}",
                 DisplayName=egauge.NodeDisplayName,
                 ComponentId=db.component_id_by_alias(egauge.ComponentDisplayName),
             )
