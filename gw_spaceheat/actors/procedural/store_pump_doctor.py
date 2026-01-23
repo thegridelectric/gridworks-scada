@@ -1,20 +1,23 @@
+from typing import TYPE_CHECKING
 import uuid
 import time
-from gwproto import Message
 from gwsproto.enums import LogLevel
 from gwsproto.data_classes.house_0_names import H0CN
 from gwsproto.named_types import AnalogDispatch, Glitch
 
+
+if TYPE_CHECKING:
+    from actors.procedural.procedural_host import ProceduralHost
 class StorePumpDoctor:
     """
     Procedural, non-transactive recovery for storage pump failures.
     See actors.procedural for architectural constraints.
     """
     MAX_PUMP_DOCTOR_ATTEMPTS = 3
-    MAX_WAIT_SECONDS = 60
+    MAX_WAIT_SECONDS = 15
     THRESHOLD_FLOW_GPM_X100 = 50
 
-    def __init__(self, host: "LocalControlTouBase"):
+    def __init__(self, host: "ProceduralHost"):
         self.host = host
         self.running = False
         self.attempts = 0
@@ -73,21 +76,18 @@ class StorePumpDoctor:
 
             h.turn_off_store_pump()
 
-            # Set DFR to zero
-            h.services.send_threadsafe(
-                Message(
-                    Src=h.name,
-                    Dst=h.primary_scada.name,
-                    Payload=AnalogDispatch(
+            # Set 0-10 to zero
+            h._send_to(
+                h.primary_scada,
+                AnalogDispatch(
                         FromGNodeAlias=h.layout.ltn_g_node_alias,
-                        FromHandle="auto",
-                        ToHandle="auto.store-010v",
-                        AboutName="store-010v",
+                        FromHandle=h.command_node.handle,
+                        ToHandle=h.store_010v.handle,
+                        AboutName=h.store_010v.name,
                         Value=0,
                         TriggerId=str(uuid.uuid4()),
                         UnixTimeMs=int(time.time() * 1000),
-                    ),
-                )
+                ),
             )
 
             await h.await_with_watchdog(5)
@@ -100,7 +100,6 @@ class StorePumpDoctor:
             if flow_detected:
                 h.log("[StorePumpDoctor] Store flow detected - success")
                 self.attempts = 0
-                h.zone_controller_triggered_at = None
             else:
                 h.log(
                     f"[StorePumpDoctor] No store flow after "
