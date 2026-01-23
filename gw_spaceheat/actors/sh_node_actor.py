@@ -43,7 +43,7 @@ from gwsproto.enums import (
 )
 
 
-from gwsproto.named_types import AnalogDispatch, FsmEvent, Glitch, HeatingForecast, NewCommandTree
+from gwsproto.named_types import AnalogDispatch, FsmEvent, Glitch, HeatingForecast, NewCommandTree, SingleMachineState
 
 from scada_app_interface import ScadaAppInterface
 
@@ -245,11 +245,11 @@ class ShNodeActor(Actor, ABC):
         - the charge/discharge relay is set to DischargingStore
         - and the store pump is moving water above threshold
         """
-        relay_state = self.data.latest_machine_state.get(
+        relay_state: SingleMachineState = self.data.latest_machine_state.get(
             self.store_charge_discharge_relay.name
         )
 
-        if relay_state != StoreFlowRelay.DischargingStore:
+        if relay_state.State != StoreFlowRelay.DischargingStore:
             return False
 
         store_flow = self.data.latest_channel_values.get(H0CN.store_flow) or 0
@@ -265,10 +265,10 @@ class ShNodeActor(Actor, ABC):
         - primary pump is moving water above threshold
         - Store is not being charged
         """
-        relay_state = self.data.latest_machine_state.get(
+        relay_state: SingleMachineState = self.data.latest_machine_state.get(
             self.store_charge_discharge_relay.name
         )
-        if relay_state != StoreFlowRelay.DischargingStore:
+        if relay_state.State != StoreFlowRelay.DischargingStore:
             return False
 
         primary_flow = self.data.latest_channel_values.get(H0CN.primary_flow) or 0
@@ -1679,7 +1679,7 @@ class ShNodeActor(Actor, ABC):
         """ Returns DischargingStore if relay 3 is de-energized (ISO Valve opened, charge/discharge
         valve in discharge position.) Returns Charging store if energized (ISO Valve closed, charge/discharge
         valve in charge position) """
-        sms = self.data.latest_machine_state.get(H0N.store_charge_discharge_relay)
+        sms: SingleMachineState = self.data.latest_machine_state.get(H0N.store_charge_discharge_relay)
         if sms is None:
             raise Exception("That's strange! Should have a relay state for the charge discharge relay!")
         if sms.StateEnum != StoreFlowRelay.enum_name():
@@ -1687,7 +1687,7 @@ class ShNodeActor(Actor, ABC):
         return StoreFlowRelay(sms.State)
 
     def hp_relay_state(self) -> RelayClosedOrOpen:
-        sms = self.data.latest_machine_state[H0N.hp_scada_ops_relay]
+        sms: SingleMachineState = self.data.latest_machine_state[H0N.hp_scada_ops_relay]
         if sms is None:
             raise Exception("That's strange! Should have a rela state for the Hp Scada Ops relay!")
         if sms.StateEnum != RelayClosedOrOpen.enum_name():

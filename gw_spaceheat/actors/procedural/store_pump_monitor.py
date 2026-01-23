@@ -53,9 +53,20 @@ class StorePumpMonitor:
         # Is the store pump failsafe relay closed?
         # --------------------------------------------------------
 
-        pump_relay_state: SingleMachineState = h.data.latest_machine_state.get(h.store_pump_failsafe.name)
-        if pump_relay_state.State == RelayClosedOrOpen.RelayOpen:
+        charge_discharge_relay_state: SingleMachineState = h.data.latest_machine_state.get(h.store_charge_discharge_relay.name)
+        store_pump_failsafe_relay_state: SingleMachineState = h.data.latest_machine_state.get(h.store_pump_failsafe.name)
+        if not (
+            charge_discharge_relay_state.State == StoreFlowRelay.DischargingStore
+            and store_pump_failsafe_relay_state.State == RelayClosedOrOpen.RelayClosed
+        ):
+            h.log(f"[StorePumpCheck] Store pump is not discharging")
+            h.log(charge_discharge_relay_state.State)
+            h.log(store_pump_failsafe_relay_state.State)
             return False
+        else:
+            h.log(f"[StorePumpCheck] Store pump is discharging")
+            h.log(charge_discharge_relay_state.State)
+            h.log(store_pump_failsafe_relay_state.State)
 
         # --------------------------------------------------------
         # Do we have flow data?
@@ -69,6 +80,7 @@ class StorePumpMonitor:
         # Pump healthy → reset doctor + diagnostics
         # --------------------------------------------------------
         if flow_gpm_x100 > self.THRESHOLD_FLOW_GPM_X100:
+            h.log(f"Latest GPM ({flow_gpm_x100/100}) is above threshold")
             if self.pump_turned_on_s is not None:
                 h.log(
                     "[StorePumpCheck] Pump running normally "
@@ -78,6 +90,8 @@ class StorePumpMonitor:
             self.pump_turned_on_s = None
             self.doctor.reset()
             return False
+        else:
+            h.log(f"Latest GPM ({flow_gpm_x100/100}) is not above threshold")
 
         # --------------------------------------------------------
         # No flow but relay state is discharging → apply startup delay
