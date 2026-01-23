@@ -54,18 +54,16 @@ class StorePumpMonitor:
 
         charge_discharge_relay_state: SingleMachineState = h.data.latest_machine_state.get(h.store_charge_discharge_relay.name)
         store_pump_failsafe_relay_state: SingleMachineState = h.data.latest_machine_state.get(h.store_pump_failsafe.name)
-        if not (
-            charge_discharge_relay_state.State == StoreFlowRelay.DischargingStore
-            and store_pump_failsafe_relay_state.State == RelayClosedOrOpen.RelayClosed
-        ):
-            h.log(f"[StorePumpCheck] Store pump is not discharging")
-            h.log(charge_discharge_relay_state.State)
-            h.log(store_pump_failsafe_relay_state.State)
-            return False
-        else:
-            h.log(f"[StorePumpCheck] Store pump is discharging")
-            h.log(charge_discharge_relay_state.State)
-            h.log(store_pump_failsafe_relay_state.State)
+        if charge_discharge_relay_state and store_pump_failsafe_relay_state:
+            h.log(f"[StorePumpCheck] relay3 is {charge_discharge_relay_state.State} and relay9 is {store_pump_failsafe_relay_state.State}")
+            if not (
+                charge_discharge_relay_state.State == StoreFlowRelay.DischargingStore
+                and store_pump_failsafe_relay_state.State == RelayClosedOrOpen.RelayClosed
+            ):
+                h.log(f"[StorePumpCheck] Store pump is not discharging")
+                return False
+            else:
+                h.log(f"[StorePumpCheck] Store pump is discharging")
 
         # --------------------------------------------------------
         # Do we have flow data?
