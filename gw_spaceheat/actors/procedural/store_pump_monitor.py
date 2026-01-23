@@ -52,18 +52,22 @@ class StorePumpMonitor:
         # Is the store pump failsafe relay closed?
         # --------------------------------------------------------
 
-        charge_discharge_relay_state: SingleMachineState = h.data.latest_machine_state.get(h.store_charge_discharge_relay.name)
-        store_pump_failsafe_relay_state: SingleMachineState = h.data.latest_machine_state.get(h.store_pump_failsafe.name)
-        if charge_discharge_relay_state and store_pump_failsafe_relay_state:
-            h.log(f"[StorePumpCheck] relay3 is {charge_discharge_relay_state.State} and relay9 is {store_pump_failsafe_relay_state.State}")
-            if not (
-                charge_discharge_relay_state.State == StoreFlowRelay.DischargingStore
-                and store_pump_failsafe_relay_state.State == RelayClosedOrOpen.RelayClosed
-            ):
-                h.log(f"[StorePumpCheck] Store pump is not discharging")
+        charge_discharge_relay_state = h.data.latest_machine_state.get(h.store_charge_discharge_relay.name)
+        pump_relay_state = h.data.latest_machine_state.get(h.store_pump_failsafe.name)
+
+        if pump_relay_state:
+            if charge_discharge_relay_state:
+                if (
+                    charge_discharge_relay_state.State == StoreFlowRelay.ChargingStore
+                    and pump_relay_state.State == RelayClosedOrOpen.RelayClosed
+                ):
+                    h.alert(summary="Store pump on and Charging Store!", details="This should never happen")
+                    h.log("Store pump on and Charging Store! This should never happen")
+
+            if pump_relay_state.State == RelayClosedOrOpen.RelayOpen:
                 return False
-            else:
-                h.log(f"[StorePumpCheck] Store pump is discharging")
+            
+            h.log(f"[StorePumpCheck] Store pump relay is closed")
 
         # --------------------------------------------------------
         # Do we have flow data?
@@ -77,7 +81,6 @@ class StorePumpMonitor:
         # Pump healthy → reset doctor + diagnostics
         # --------------------------------------------------------
         if flow_gpm_x100 > self.THRESHOLD_FLOW_GPM_X100:
-            h.log(f"Latest GPM ({flow_gpm_x100/100}) is above threshold")
             if self.pump_turned_on_s is not None:
                 h.log(
                     "[StorePumpCheck] Pump running normally "
