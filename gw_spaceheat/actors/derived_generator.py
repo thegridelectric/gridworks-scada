@@ -160,6 +160,12 @@ class DerivedGenerator(ShNodeActor):
 
         channel_names = []
         values = []
+
+        if 'tank1-depth1-device' in payload.ChannelNameList and 'tank1-depth2-device':
+            index_tank1depth1 = payload.ChannelNameList.index('tank1-depth1-device')
+            index_tank1depth2 = payload.ChannelNameList.index('tank1-depth2-device')
+            payload.ValueList[index_tank1depth1] = payload.ValueList[index_tank1depth2]
+            
         for device_ch, raw_value,  in zip(payload.ChannelNameList, payload.ValueList):
             if device_ch not in tank.devices:
                 continue # i.e. don't process micro-volts
