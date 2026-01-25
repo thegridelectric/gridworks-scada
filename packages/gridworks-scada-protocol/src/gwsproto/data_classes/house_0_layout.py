@@ -512,6 +512,27 @@ class House0Layout(HardwareLayout):
         return n
 
     @property
+    def local_control_normal_node(self) -> ShNode:
+        n = self.node(H0N.local_control_normal)
+        if n is None:
+            raise Exception(f"{H0N.local_control_normal} is known to exist")
+        return n
+
+    @property
+    def local_control_backup_node(self) -> ShNode:
+        n = self.node(H0N.local_control_backup)
+        if n is None:
+            raise Exception(f"{H0N.local_control_backup} is known to exist")
+        return n
+
+    @property
+    def local_control_scada_blind_node(self) -> ShNode:
+        n = self.node(H0N.local_control_scada_blind)
+        if n is None:
+            raise Exception(f"{H0N.local_control_scada_blind} is known to exist")
+        return n
+    
+    @property
     def hp_boss(self) -> ShNode:
         n = self.node(H0N.hp_boss)
         if n is None:
@@ -537,6 +558,27 @@ class House0Layout(HardwareLayout):
         n = self.node(H0N.pico_cycler)
         if n is None:
             raise Exception(f"{H0N.pico_cycler} is known to exist")
+        return n
+
+    @property
+    def dist_010v(self) -> ShNode:
+        n = self.node(H0N.dist_010v)
+        if n is None:
+            raise Exception(f"{H0N.dist_010v} is known to exist")
+        return n
+
+    @property
+    def store_010v(self) -> ShNode:
+        n = self.node(H0N.store_010v)
+        if n is None:
+            raise Exception(f"{H0N.store_010v} is known to exist")
+        return n
+
+    @property
+    def primary_010v(self) -> ShNode:
+        n = self.node(H0N.primary_010v)
+        if n is None:
+            raise Exception(f"{H0N.primary_010v} is known to exist")
         return n
 
     @property
