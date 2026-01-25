@@ -1694,13 +1694,13 @@ class ShNodeActor(Actor, ABC):
             raise Exception(f"That's strange. Expected StateEnum 'relay.closed.or.open' but got {sms.StateEnum}")
         return RelayClosedOrOpen(sms.State)
 
-    def alert(self, summary: str, details: str, log_level=LogLevel.Critical) -> None:
+    def alert(self, summary: str, details: str) -> None:
         """Send Critical Glitch """
         self._send_to(self.ltn,
             Glitch(
                 FromGNodeAlias=self.layout.scada_g_node_alias,
                 Node=self.node.Name,
-                Type=log_level,
+                Type=LogLevel.Critical,
                 Summary=summary,
                 Details=details
             )

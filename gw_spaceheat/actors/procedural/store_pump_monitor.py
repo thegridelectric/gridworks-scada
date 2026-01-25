@@ -1,10 +1,14 @@
 # actors/procedural/dist_pump_monitor.py
 
 import time
+from typing import TYPE_CHECKING
 
 from gwsproto.data_classes.house_0_names import H0CN
 from gwsproto.enums import StoreFlowRelay, RelayClosedOrOpen
 from gwsproto.named_types import SingleMachineState
+
+if TYPE_CHECKING:
+    from actors.procedural.procedural_host import ProceduralHost
 
 class StorePumpMonitor:
     """
@@ -20,7 +24,7 @@ class StorePumpMonitor:
     PUMP_DELAY_SECONDS = 10
     THRESHOLD_FLOW_GPM_X100 = 50
 
-    def __init__(self, *, host, doctor):
+    def __init__(self, *, host: "ProceduralHost", doctor):
         self.host = host
         self.doctor = doctor
 
@@ -40,7 +44,6 @@ class StorePumpMonitor:
         but it *does* manage diagnostic state and doctor lifecycle.
         """
         h = self.host
-        h.log("[StorePumpCheck] Starting")
 
         # --------------------------------------------------------
         # Guard: procedure already running
@@ -53,20 +56,25 @@ class StorePumpMonitor:
         # Is the store pump failsafe relay closed?
         # --------------------------------------------------------
 
-        charge_discharge_relay_state: SingleMachineState = h.data.latest_machine_state.get(h.store_charge_discharge_relay.name)
-        store_pump_failsafe_relay_state: SingleMachineState = h.data.latest_machine_state.get(h.store_pump_failsafe.name)
-        if not (
-            charge_discharge_relay_state.State == StoreFlowRelay.DischargingStore
-            and store_pump_failsafe_relay_state.State == RelayClosedOrOpen.RelayClosed
-        ):
-            h.log(f"[StorePumpCheck] Store pump is not discharging")
-            h.log(charge_discharge_relay_state.State)
-            h.log(store_pump_failsafe_relay_state.State)
-            return False
+        charge_discharge_relay_state = h.data.latest_machine_state.get(h.store_charge_discharge_relay.name)
+        pump_relay_state = h.data.latest_machine_state.get(h.store_pump_failsafe.name)
+
+        if pump_relay_state:
+            if charge_discharge_relay_state:
+                if (
+                    charge_discharge_relay_state.State == StoreFlowRelay.ChargingStore
+                    and pump_relay_state.State == RelayClosedOrOpen.RelayClosed
+                ):
+                    h.alert(summary="Store pump on and Charging Store!", details="This should never happen")
+                    h.log("Store pump on and Charging Store! This should never happen")
+
+            if pump_relay_state.State == RelayClosedOrOpen.RelayOpen:
+                return False
+            
+            h.log(f"[StorePumpCheck] Store pump relay is closed")
         else:
-            h.log(f"[StorePumpCheck] Store pump is discharging")
-            h.log(charge_discharge_relay_state.State)
-            h.log(store_pump_failsafe_relay_state.State)
+            h.log(f"[StorePumpCheck] Store pump relay not found")
+            return False
 
         # --------------------------------------------------------
         # Do we have flow data?
@@ -80,7 +88,6 @@ class StorePumpMonitor:
         # Pump healthy → reset doctor + diagnostics
         # --------------------------------------------------------
         if flow_gpm_x100 > self.THRESHOLD_FLOW_GPM_X100:
-            h.log(f"Latest GPM ({flow_gpm_x100/100}) is above threshold")
             if self.pump_turned_on_s is not None:
                 h.log(
                     "[StorePumpCheck] Pump running normally "
