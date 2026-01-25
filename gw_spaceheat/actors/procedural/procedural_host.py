@@ -4,6 +4,8 @@ from typing import Any, Protocol
 from gwsproto.data_classes.sh_node import ShNode
 from actors.scada_data import ScadaData
 from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.house_0_names import H0CN
+from actors.config import ScadaSettings
 
 class ProceduralHost(Protocol):
     """
@@ -24,10 +26,12 @@ class ProceduralHost(Protocol):
     # belongs to ShNodActors
 
     @property
+    def settings(self) -> ScadaSettings: ...
+
+    @property
     def node(self) -> ShNode:
         """Audit / identity node (used for glitches, attribution)."""
         ...
-
 
     @property
     def ltn(self) -> ShNode:
@@ -52,6 +56,12 @@ class ProceduralHost(Protocol):
     def primary_010v(self) -> ShNode:
         ...
 
+    @property
+    def store_charge_discharge_relay(self) -> ShNode: ...
+
+    @property
+    def store_pump_failsafe(self) -> ShNode: ...
+
     def _send_to(self, dst: ShNode, payload: Any, src: ShNode | None = None) -> None: ...
 
     @property 
@@ -68,12 +78,13 @@ class ProceduralHost(Protocol):
         """
         ...
 
+    @property
+    def h0cn(self) -> H0CN: ...
+
+    def alert(self, summary: str, details: str) -> None: ...
+
     def set_010_defaults(self, command_node: ShNode | None = None) -> None: ...
-
-    def store_charge_discharge_relay(self) -> None: ...
-
-    def store_pump_failsafe(self) -> None: ...
-
+    
     def stat_ops_open_relay(self, zone: str, command_node: ShNode| None = None) -> None: ...
 
     def heatcall_ctrl_to_scada(self, zone: str, command_node: ShNode | None = None) -> None:
