@@ -29,6 +29,10 @@ from gwsproto.named_types import (
     SingleMachineState, SlowContractHeartbeat, SlowDispatchContract, 
     SuitUp
 )
+from actors.procedural.dist_pump_doctor import DistPumpDoctor
+from actors.procedural.dist_pump_monitor import DistPumpMonitor
+from actors.procedural.store_pump_doctor import StorePumpDoctor
+from actors.procedural.store_pump_monitor import StorePumpMonitor
 
 class AllTanksLeafAlly(ShNodeActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
@@ -85,13 +89,34 @@ class AllTanksLeafAlly(ShNodeActor):
         )     
         self.state: LeafAllyAllTanksState = LeafAllyAllTanksState.Dormant
         self.prev_state: LeafAllyAllTanksState = LeafAllyAllTanksState.Dormant 
+
+        self.dist_pump_doctor = DistPumpDoctor(host=self)
+        self.dist_pump_monitor = DistPumpMonitor(
+            host=self,
+            doctor=self.dist_pump_doctor,
+        )
+        self.store_pump_doctor = StorePumpDoctor(host=self)
+        self.store_pump_monitor = StorePumpMonitor(
+            host=self,
+            doctor=self.store_pump_doctor,
+        )
         self.log(f"Params: {self.params}")
         self.storage_declared_full = False
         self.storage_full_since = 0
         self.both_buffer_and_storage_full_since = 0
         if H0N.leaf_ally not in self.layout.nodes:
             raise Exception(f"LeafAlly requires {H0N.leaf_ally} node!!")
-        
+
+    @property
+    def command_node(self) -> ShNode:
+        """
+        top of command tree
+
+        This is used by procedural, non-transactive interrupts.
+        Always returns an ShNode, even if authority is degraded.
+        """
+        return self.node
+    
     @property
     def remaining_watthours(self) -> Optional[int]:
         return self.services.scada.contract_handler.remaining_watthours
@@ -283,10 +308,9 @@ class AllTanksLeafAlly(ShNodeActor):
                         self.log("Both storage and buffer are as full as can be")
                         self.trigger_event(LeafAllyAllTanksEvent.NoMoreElec)
                         self.both_buffer_and_storage_full_since = int(time.time())
-                        self.alert(
+                        self.send_warning(
                             summary="Buffer and storage are full, could not heat as much as contract requires", 
                             details=f"Remaining energy: {self.remaining_watthours} Wh", 
-                            log_level=LogLevel.Warning
                         )
                         # TODO: send message to Ltn saying the EnergyInstruction will be violated
 
@@ -328,8 +352,20 @@ class AllTanksLeafAlly(ShNodeActor):
     async def main(self):
         await asyncio.sleep(2)
         while not self._stop_requested:
-
             self._send(PatInternalWatchdogMessage(src=self.name))
+
+            if self.state == LeafAllyAllTanksState.Dormant:
+                await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
+                continue
+
+            # Verify distribution pump health; initiate recovery if needed
+            if self.dist_pump_monitor.needs_recovery():
+                await self.dist_pump_doctor.run()
+
+            # Verify store pump health; initiate recovery if needed
+            if self.store_pump_monitor.needs_recovery():
+                await self.store_pump_doctor.run()
+
             self.engage_brain()
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 

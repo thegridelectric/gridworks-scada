@@ -118,7 +118,8 @@ class AllTanksTouLocalControl(LocalControlTouBase):
         Logic for triggering SystemCold (and moving to top state UsingNonElectricBackup).
         In winter, this means: 1) house is cold 2) buffer is really empty and 3) store is empty
         """
-        return self.is_system_cold() and self.is_buffer_empty() and self.is_storage_empty()
+        return self.is_system_cold() # HACK FOR JAN 24th
+        # return self.is_system_cold() and self.is_buffer_empty() and self.is_storage_empty()
 
     def normal_node_state(self) -> str:
         return self.state
@@ -262,9 +263,9 @@ class AllTanksTouLocalControl(LocalControlTouBase):
             self.turn_off_HP(from_node=self.normal_node)
             self.time_hp_turned_on = None
         if "StoreDischarge" in self.state:
-            self.turn_on_store_pump(from_node=self.normal_node)
+            self.turn_on_store_pump(command_node=self.normal_node)
         else:
-            self.turn_off_store_pump(from_node=self.normal_node)         
+            self.turn_off_store_pump(command_node=self.normal_node)         
         if "StoreCharge" in self.state:
             self.valved_to_charge_store(from_node=self.normal_node)
         else:
