@@ -1276,8 +1276,11 @@ class ShNodeActor(Actor, ABC):
         # Conservative near-term requirement (next ~3 hours)
         max_rswt = max(self.heating_forecast.RswtF[:3])
         max_delta_t = max(self.heating_forecast.RswtDeltaTF[:3])
+        if all_tanks_leaf_ally and self.settings.short_cycle_buffer:
+            min_buffer_temp_f = round(max_rswt - max_delta_t, 1)
+        else:
+            min_buffer_temp_f = round(max_rswt, 1)
 
-        min_buffer_temp_f = round(max_rswt - max_delta_t, 1)
         min_buffer_temp_f = min(min_buffer_temp_f, self.data.ha1_params.MaxEwtF-10)
         buffer_temp_f = self.latest_temps_f[buffer_empty_ch]
 
