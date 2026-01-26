@@ -12,6 +12,7 @@ from gwsproto.named_types import (
     ChannelReadings,
     Report,
     SingleReading,
+    SingleMachineState,
 )
 
 from gwsproto.named_types import (
@@ -48,7 +49,7 @@ class ScadaData:
         self.my_derived_channels = self.get_my_derived_channels()
         self.my_channels: list[Union[DataChannel, DerivedChannel]] = self.my_data_channels + self.my_derived_channels
         self.recent_machine_states = {}
-        self.latest_machine_state = {} # latest state by node name
+        self.latest_machine_state: dict[str, SingleMachineState] = {} # latest state by node name
         self.latest_channel_values: Dict[str, int | None] = {
             ch.Name: None for ch in self.my_channels
         }

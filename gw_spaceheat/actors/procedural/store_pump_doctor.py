@@ -8,6 +8,8 @@ from gwsproto.named_types import AnalogDispatch, Glitch
 
 if TYPE_CHECKING:
     from actors.procedural.procedural_host import ProceduralHost
+
+    
 class StorePumpDoctor:
     """
     Procedural, non-transactive recovery for storage pump failures.

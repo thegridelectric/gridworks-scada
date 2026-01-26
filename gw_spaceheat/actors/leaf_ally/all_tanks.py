@@ -308,10 +308,9 @@ class AllTanksLeafAlly(ShNodeActor):
                         self.log("Both storage and buffer are as full as can be")
                         self.trigger_event(LeafAllyAllTanksEvent.NoMoreElec)
                         self.both_buffer_and_storage_full_since = int(time.time())
-                        self.alert(
+                        self.send_warning(
                             summary="Buffer and storage are full, could not heat as much as contract requires", 
                             details=f"Remaining energy: {self.remaining_watthours} Wh", 
-                            log_level=LogLevel.Warning
                         )
                         # TODO: send message to Ltn saying the EnergyInstruction will be violated
 
