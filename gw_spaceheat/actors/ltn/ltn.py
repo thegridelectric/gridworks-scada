@@ -1215,6 +1215,8 @@ class Ltn(PrimeActor):
         self.log(f"Found all zone thermal masses: {thermal_mass}")
         house_availale_kwh = 0
         for zone in zone_names:
+            if 'zone4' in zone or 'upstairs' in zone:
+                continue
             if zone in temps and zone in setpoints and zone in thermal_mass:
                 house_availale_kwh += thermal_mass[zone] * (temps[zone] - setpoints[zone])
         house_availale_kwh = round(house_availale_kwh,2)
