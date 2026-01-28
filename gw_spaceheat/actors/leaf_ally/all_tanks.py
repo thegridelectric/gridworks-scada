@@ -193,6 +193,7 @@ class AllTanksLeafAlly(ShNodeActor):
         else:
             if self.state == LeafAllyAllTanksState.HpOffNonElectricBackup:
                 self.trigger_event(LeafAllyAllTanksEvent.StopNonElectricBackup) # will go to initializing
+            self.log("Engaging brain")
             self.engage_brain()
     
     def trigger_event(self, event: LeafAllyAllTanksEvent) -> None:
