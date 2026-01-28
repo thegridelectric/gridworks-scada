@@ -675,8 +675,8 @@ class Ltn(PrimeActor):
                                     "InitialTopTempF": int(t),
                                     "InitialMiddleTempF": int(m),
                                     "InitialBottomTempF": int(b),
-                                    "InitialThermocline1": int(th1 * 2),
-                                    "InitialThermocline2": int(th2 * 2),
+                                    "InitialThermocline1": int(th1 * 3),
+                                    "InitialThermocline2": int(th2 * 3),
                                 }
                             )
                             self.flo_params = updated_flo_params
