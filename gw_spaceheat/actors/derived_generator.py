@@ -11,16 +11,20 @@ from datetime import datetime,  timezone
 from gwproto import Message
 
 from gwsproto.data_classes.sh_node import ShNode
-from gwsproto.named_types import SingleReading, SyncedReadings
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 
 from actors.sh_node_actor import ShNodeActor
 from gwsproto.conversions.temperature import convert_temp_to_f
-from gwsproto.enums import SystemMode, SeasonalStorageMode
+from gwsproto.enums import (
+    HeatCallInterpretation,
+    SystemMode, SeasonalStorageMode,
+)
 from gwsproto.data_classes.house_0_names import H0N, H0CN
 from gwsproto.named_types import (
-    Ha1Params, HeatingForecast, ScadaParams,
+    Ha1Params, HeatCallDerivation,
+    HeatingForecast, ScadaParams,
+    SingleReading, SyncedReadings,
     TankTempCalibration,
     TankTempCalibrationMap,
     WeatherForecast,
@@ -63,7 +67,21 @@ class DerivedGenerator(ShNodeActor):
         self.weather_forecast: Optional[WeatherForecast] = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
         self.tmap: TankTempCalibrationMap = TankTempCalibrationMap.model_validate(getattr(self.node, "TankTempCalibrationMap"))
-    
+
+        self._heat_call_by_source: dict[str, HeatCallDerivation] = {}
+        self._last_heat_call: dict[str, int] = {}
+        raw_list = getattr(self.node, "HeatCallDerivationList", None)
+        if raw_list:
+            heat_call_derivations = [
+                HeatCallDerivation.model_validate(x) for x in raw_list
+            ]
+            self.heat_call_by_source = {
+                d.SourceChannelName: d for d in heat_call_derivations
+            }
+            self.log(f"Loaded {len(heat_call_derivations)} HeatCallDerivation entries")
+        else:
+            self.log("No HeatCallDerivationList on derived-generator node")
+
     @property
     def params(self) -> Ha1Params:
         return self.data.ha1_params
@@ -141,9 +159,69 @@ class DerivedGenerator(ShNodeActor):
             case ScadaParams():
                 self.log("Received new parameters, time to recompute forecasts!")
                 self.received_new_params = True
+
+            case SingleReading():
+                self.process_single_reading(from_node, message.Payload)
+
             case SyncedReadings():
                 self.process_synced_readings(from_node, message.Payload)
         return Ok(True)
+
+    def process_single_reading(self, from_node: ShNode, payload: SingleReading) -> None:
+        """ To date just creates heat call channels"""
+        heat_call_derivation = self.heat_call_by_source.get(payload.ChannelName)
+        if heat_call_derivation is None:
+            return # Not a source for a heat-call derivation
+
+        heat_call = self._heat_call_value(payload.Value, heat_call_derivation)
+        
+        self._send_to(
+            self.primary_scada,
+            SingleReading(
+                ChannelName=heat_call_derivation.DerivedChannelName,
+                Value=heat_call,
+                ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs
+            )
+        )
+        prev = self._last_heat_call.get(heat_call_derivation.DerivedChannelName)
+        if prev != heat_call:
+            self._last_heat_call[heat_call_derivation.DerivedChannelName] = heat_call
+            self.log(
+                f"[HeatCall] {heat_call_derivation.DerivedChannelName} "
+                f"{prev} → {heat_call} "
+                f"(src={payload.ChannelName}, val={payload.Value})"
+            )
+
+    def _heat_call_value(self, in_val: int, d: HeatCallDerivation) -> int:
+        """
+        Compute the binary heat-call state from a raw source reading.
+
+        Applies the semantic rule specified by `HeatCallDerivation` and returns:
+            1  → zone is calling for heat
+            0  → zone is not calling for heat
+
+        This method implements the runtime behavior defined by the ASL types:
+        - gw1.heat.call.interpretation
+        - gw1.heat.call.derivation
+
+        Refer to the GridWorks ASL documentation for authoritative definitions
+        of each interpretation mode and its intended usage.
+
+        """
+        match d.Interpretation:
+            case HeatCallInterpretation.DigitalZeroIsActive:
+                return 1 if in_val == 0 else 0
+
+            case HeatCallInterpretation.DigitalOneIsActive:
+                return 1 if in_val == 1 else 0
+
+            case HeatCallInterpretation.GreaterThanThreshold:
+                if d.Threshold is None: # should be prevented by axiom, guard anyway
+                    return 0 
+                return 1 if abs(in_val) > d.Threshold else 0
+
+            case _:
+                return 0
 
     def process_synced_readings(self, from_node: ShNode, payload: SyncedReadings) -> None:
         if from_node.name == H0N.buffer.reader:

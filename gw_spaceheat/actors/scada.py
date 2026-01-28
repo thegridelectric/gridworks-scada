@@ -819,7 +819,7 @@ class Scada(PrimeActor, ScadaInterface):
                 self.log("First Buffer temps arrived! Sending to LeafAlly")
                 self._send_to(self.leaf_ally, payload)
             else:
-                self.log("First Buffer temps arrived! Sending to LeafTransactiveNode")
+                self.log("First Buffer temps arrived! Sending to LocalControl")
                 self._send_to(self.local_control, payload)
 
     

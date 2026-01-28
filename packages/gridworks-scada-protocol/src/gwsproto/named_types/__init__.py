@@ -37,6 +37,7 @@ from gwsproto.named_types.fsm_atomic_report import FsmAtomicReport
 from gwsproto.named_types.fsm_event import FsmEvent
 from gwsproto.named_types.fsm_full_report import FsmFullReport
 from gwsproto.named_types.gw108_gpio_relay_component_gt import Gw108GpioRelayComponentGt
+from gwsproto.named_types.gw108_gpio_sensor_component_gt import Gw108GpioSensorComponentGt
 from gwsproto.named_types.hubitat_component_gt import HubitatComponentGt
 from gwsproto.named_types.hubitat_poller_component_gt import HubitatPollerComponentGt
 from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
@@ -47,6 +48,7 @@ from gwsproto.named_types.go_dormant import GoDormant
 from gwsproto.named_types.ha1_params import Ha1Params
 from gwsproto.named_types.hack_oil_off import HackOilOff
 from gwsproto.named_types.hack_oil_on import HackOilOn
+from gwsproto.named_types.heat_call_derivation import HeatCallDerivation
 from gwsproto.named_types.heating_forecast import HeatingForecast
 from gwsproto.named_types.i2c_read_bit import I2cReadBit
 from gwsproto.named_types.i2c_result import I2cResult
@@ -143,9 +145,11 @@ __all__ = [
     "Glitch",
     "GoDormant",
     "Gw108GpioRelayComponentGt",
+    "Gw108GpioSensorComponentGt",
     "Ha1Params",
     "HackOilOff",
     "HackOilOn",
+    "HeatCallDerivation",
     "HeatingForecast",
     "HubitatComponentGt",
     "HubitatPollerComponentGt",

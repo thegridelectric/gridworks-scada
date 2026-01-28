@@ -8,10 +8,9 @@ from gwproto.message import Message
 from gwsproto.data_classes.data_channel import DataChannel
 from gwproactor import  MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
-from gwsproto.data_classes.components.i2c_multichannel_dt_relay_component import (
+
+from gwsproto.data_classes.components import (
     I2cMultichannelDtRelayComponent,
-)
-from gwsproto.data_classes.components.gw108_gpio_relay_component import (
     Gw108GpioRelayComponent,
 )
 from gwsproto.data_classes.house_0_names import H0N

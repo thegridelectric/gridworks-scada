@@ -29,6 +29,7 @@ from gwsproto.enums.change_store_flow_relay import ChangeStoreFlowRelay
 from gwsproto.enums.flow_manifold_variant import FlowManifoldVariant
 from gwsproto.enums.fsm_report_type import FsmReportType
 from gwsproto.enums.gpm_from_hz_method import GpmFromHzMethod
+from gwsproto.enums.heat_call_interpretation import HeatCallInterpretation
 from gwsproto.enums.heatcall_source import HeatcallSource
 from gwsproto.enums.heat_pump_control import HeatPumpControl
 from gwsproto.enums.hp_boss_state import HpBossState
@@ -45,6 +46,7 @@ from gwsproto.enums.local_control_standby_top_event import LocalControlStandbyTo
 from gwsproto.enums.local_control_standby_top_state import LocalControlStandbyTopState
 from gwsproto.enums.local_control_top_state import LocalControlTopState
 from gwsproto.enums.local_control_top_event import LocalControlTopEvent
+from gwsproto.enums.gpio_sense_mode import GpioSenseMode
 from gwsproto.enums.gw_unit import GwUnit
 from gwsproto.enums.hp_model import HpModel
 from gwsproto.enums.hp_loop_keep_send import HpLoopKeepSend
@@ -90,8 +92,10 @@ __all__ = [
     "ChangeStoreFlowRelay",
     "FlowManifoldVariant",
     "FsmReportType",
+    "GpioSenseMode",
     "GpmFromHzMethod",
     "GwUnit",
+    "HeatCallInterpretation",
     "HeatcallSource",
     "HeatPumpControl",
     "HpBossState",

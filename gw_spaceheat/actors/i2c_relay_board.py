@@ -30,7 +30,7 @@ from gwsproto.data_classes.components.i2c_multichannel_dt_relay_component import
 from gwsproto.data_classes.sh_node import ShNode
 
 
-class I2cRelayBoardActor(ShNodeActor):
+class I2cRelayBoard(ShNodeActor):
     """Board-level authority for translating relay semantics into I2C bus command"""
 
     BOARD_LOOP_S = 60

@@ -6,6 +6,7 @@ from gwsproto.named_types.fibaro_smart_implant_component_gt import (
     FibaroSmartImplantComponentGt,
 )
 from gwsproto.named_types.gw108_gpio_relay_component_gt import Gw108GpioRelayComponentGt
+from gwsproto.named_types.gw108_gpio_sensor_component_gt import Gw108GpioSensorComponentGt
 from gwsproto.named_types.hubitat_component_gt import HubitatComponentGt
 from gwsproto.named_types.hubitat_poller_component_gt import HubitatPollerComponentGt
 from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
@@ -26,6 +27,7 @@ __all__ = [
     "ElectricMeterComponentGt",
     "FibaroSmartImplantComponentGt",
     "Gw108GpioRelayComponentGt",
+    "Gw108GpioSensorComponentGt",
     "HubitatComponentGt",
     "HubitatPollerComponentGt",
     "I2cMultichannelDtRelayComponentGt",

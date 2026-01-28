@@ -16,7 +16,7 @@ from gwsproto.named_types import Glitch
 
 
 
-class I2cBusActor(ShNodeActor):
+class I2cBus(ShNodeActor):
     """
     Exclusive serialized executor for a single named I2C bus.
 

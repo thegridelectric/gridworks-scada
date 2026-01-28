@@ -4,25 +4,7 @@ from gwsproto.enums.gw_str_enum import AslEnum
 
 
 class Unit(AslEnum):
-    """
-    Specifies the physical unit of sensed data reported by SCADA
-    Values:
-      - Unknown
-      - Unitless
-      - W
-      - Celcius
-      - Fahrenheit
-      - Gpm
-      - WattHours
-      - AmpsRms
-      - VoltsRms
-      - Gallons
-      - ThermostatStateEnum
-
-    For more information:
-      - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#spaceheatunit)
-    """
+    """ASL: https://schemas.electricity.works/enums/gw1.local.control.top.event/000"""
 
     Unknown = auto()
     Unitless = auto()
