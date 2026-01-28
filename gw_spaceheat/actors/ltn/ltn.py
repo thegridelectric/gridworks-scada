@@ -790,8 +790,8 @@ class Ltn(PrimeActor):
             InitialTopTempF=int(t),
             InitialMiddleTempF=int(m),
             InitialBottomTempF=int(b),
-            InitialThermocline1= int(th1*2),
-            InitialThermocline2= int(th2*2),
+            InitialThermocline1= int(th1*3),
+            InitialThermocline2= int(th2*3),
             StorageVolumeGallons = TANK_GALLONS if self.seasonal_storage_mode == SeasonalStorageMode.BufferOnly else self.total_store_tanks * TANK_GALLONS,
             # TODO: price and weather forecasts should include the current hour if we are running a partial hour
             LmpForecast=self.price_forecast.lmp_usd_per_mwh,

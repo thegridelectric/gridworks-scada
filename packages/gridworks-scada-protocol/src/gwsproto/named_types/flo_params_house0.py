@@ -14,7 +14,7 @@ class FloParamsHouse0(BaseModel):
     TimezoneStr: str = "America/New_York"
     StartUnixS: UTCSeconds
     HorizonHours: PositiveInt = 48
-    NumLayers: PositiveInt = 24
+    NumLayers: PositiveInt = 27
     # Equipment
     StorageVolumeGallons: PositiveInt = 360
     StorageLossesPercent: float = 0.5
