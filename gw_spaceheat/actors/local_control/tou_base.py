@@ -210,16 +210,16 @@ class LocalControlTouBase(ShNodeActor):
             if  self.just_before_onpeak() or self.zone_setpoints=={}:
                 self.get_zone_setpoints()
 
-            # Verify distribution pump health; initiate recovery if needed
-            if self.dist_pump_monitor.needs_recovery():
-                await self.dist_pump_doctor.run()
-
-            # Verify store pump health; initiate recovery if needed
-            if self.store_pump_monitor.needs_recovery():
-                await self.store_pump_doctor.run()
-
             # No control of actuators when in Monitor
             if not self.top_state == LocalControlTopState.Monitor:
+                # Verify distribution pump health; initiate recovery if needed
+                if self.dist_pump_monitor.needs_recovery():
+                    await self.dist_pump_doctor.run()
+
+                # Verify store pump health; initiate recovery if needed
+                if self.store_pump_monitor.needs_recovery():
+                    await self.store_pump_doctor.run()
+
                 self.get_temperatures()
 
                 # Update top state
