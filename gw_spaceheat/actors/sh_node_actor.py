@@ -1,3 +1,4 @@
+import asyncio
 import time
 import typing
 import uuid
@@ -8,6 +9,7 @@ import pytz
 from pydantic import ValidationError
 
 from gwproactor import QOS
+from gwproactor.message import PatInternalWatchdogMessage
 from gwsproto.errors import DcError
 from gwproactor import Actor
 from gwproto import Message
@@ -19,6 +21,10 @@ from gwsproto.data_classes.house_0_layout import House0Layout
 from gwsproto.data_classes.house_0_names import H0N, H0CN, House0RelayIdx
 
 from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.data_classes.components.i2c_multichannel_dt_relay_component import (
+    I2cMultichannelDtRelayComponent,
+)
+from gwsproto.data_classes.components.dfr_component import DfrComponent
 
 from gwsproto.enums import (
     ActorClass,
@@ -36,10 +42,8 @@ from gwsproto.enums import (
     TurnHpOnOff
 )
 
-from gwsproto.data_classes.components.i2c_multichannel_dt_relay_component import (
-    I2cMultichannelDtRelayComponent,
-)
-from gwsproto.named_types import FsmEvent, Glitch, HeatingForecast, NewCommandTree
+
+from gwsproto.named_types import AnalogDispatch, FsmEvent, Glitch, HeatingForecast, NewCommandTree, SingleMachineState
 
 from scada_app_interface import ScadaAppInterface
 
@@ -88,7 +92,10 @@ class ShNodeActor(Actor, ABC):
 
     @property
     def node(self) -> ShNode:
-        return self.layout.node(self.name)
+        node = self.layout.node(self.name)
+        if node is None:
+            raise Exception(f"{self.name} node must exist")
+        return node
 
     @property
     def layout(self) -> House0Layout:
@@ -97,6 +104,28 @@ class ShNodeActor(Actor, ABC):
     @property
     def data(self) -> ScadaData:
         return self.services.prime_actor.data
+
+    async def await_with_watchdog(
+        self,
+        total_seconds: float,
+        pat_every: float = 20.0,
+    ):
+        """
+        Await for total_seconds, patting the internal watchdog periodically.
+
+        IMPORTANT:
+        asyncio.sleep() does NOT pat the watchdog.
+        Any awaited duration in LocalControl must go through this helper.
+        """
+        deadline = time.monotonic() + total_seconds
+
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+
+            await asyncio.sleep(min(pat_every, remaining))
+            self._send(PatInternalWatchdogMessage(src=self.name))
 
     @property
     def ltn(self) -> ShNode:
@@ -142,6 +171,17 @@ class ShNodeActor(Actor, ABC):
             if node.handle.startswith(my_handle_prefix)
         ]
 
+    @property
+    def dist_010v(self) -> ShNode:
+        return self.layout.dist_010v
+
+    @property
+    def store_010v(self) -> ShNode:
+        return self.layout.store_010v
+
+    @property
+    def primary_010v(self) -> ShNode:
+        return self.layout.primary_010v
 
     ################################
     # Relays
@@ -205,11 +245,11 @@ class ShNodeActor(Actor, ABC):
         - the charge/discharge relay is set to DischargingStore
         - and the store pump is moving water above threshold
         """
-        relay_state = self.data.latest_machine_state.get(
+        relay_state: SingleMachineState = self.data.latest_machine_state.get(
             self.store_charge_discharge_relay.name
         )
 
-        if relay_state != StoreFlowRelay.DischargingStore:
+        if relay_state.State != StoreFlowRelay.DischargingStore:
             return False
 
         store_flow = self.data.latest_channel_values.get(H0CN.store_flow) or 0
@@ -225,10 +265,10 @@ class ShNodeActor(Actor, ABC):
         - primary pump is moving water above threshold
         - Store is not being charged
         """
-        relay_state = self.data.latest_machine_state.get(
+        relay_state: SingleMachineState = self.data.latest_machine_state.get(
             self.store_charge_discharge_relay.name
         )
-        if relay_state != StoreFlowRelay.DischargingStore:
+        if relay_state.State != StoreFlowRelay.DischargingStore:
             return False
 
         primary_flow = self.data.latest_channel_values.get(H0CN.primary_flow) or 0
@@ -664,48 +704,48 @@ class ShNodeActor(Actor, ABC):
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
-    def turn_off_store_pump(self, from_node: Optional[ShNode] = None) -> None:
+    def turn_off_store_pump(self, command_node: ShNode | None = None) -> None:
         """
         Turn off the store pump by opening (de-energizing) store_pump_failsafe relay (9).
         Will log an error and do nothing if not the boss of this relay
         """
-        if from_node is None:
-            from_node = self.node
+        if command_node is None:
+            command_node = self.node
         try:
             event = FsmEvent(
-                FromHandle=self.node.handle if from_node is None else from_node.handle,
+                FromHandle=self.node.handle if command_node is None else command_node.handle,
                 ToHandle=self.store_pump_failsafe.handle,
                 EventType=ChangeRelayState.enum_name(),
                 EventName=ChangeRelayState.OpenRelay,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
-            self._send_to(self.store_pump_failsafe, event, from_node)
+            self._send_to(self.store_pump_failsafe, event, command_node)
             self.log(
-                f"{from_node.handle} sending OpenRelay to StorePump OnOff {self.store_pump_failsafe.handle}"
+                f"{command_node.handle} sending OpenRelay to StorePump OnOff {self.store_pump_failsafe.handle}"
             )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
-    def turn_on_store_pump(self, from_node: Optional[ShNode] = None) -> None:
+    def turn_on_store_pump(self, command_node:  ShNode | None = None) -> None:
         """
         Turn on the store pump by closing (energizing) store_pump_failsafe relay (9).
         Will log an error and do nothing if not the boss of this relay
         """
-        if from_node is None:
-            from_node = self.node
+        if command_node is None:
+            command_node = self.node
         try:
             event = FsmEvent(
-                FromHandle=from_node.handle,
+                FromHandle=command_node.handle,
                 ToHandle=self.store_pump_failsafe.handle,
                 EventType=ChangeRelayState.enum_name(),
                 EventName=ChangeRelayState.CloseRelay,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
-            self._send_to(self.store_pump_failsafe, event, from_node)
+            self._send_to(self.store_pump_failsafe, event, command_node)
             self.log(
-                f"{self.node.handle if from_node is None else from_node.handle} sending CloseRelay to StorePump OnOff {self.store_pump_failsafe.handle}"
+                f"{self.node.handle if command_node is None else command_node.handle} sending CloseRelay to StorePump OnOff {self.store_pump_failsafe.handle}"
             )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
@@ -900,20 +940,20 @@ class ShNodeActor(Actor, ABC):
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
-    def heatcall_ctrl_to_scada(self, zone: str, from_node: Optional[ShNode] = None) -> None:
+    def heatcall_ctrl_to_scada(self, zone: str, command_node: ShNode | None = None) -> None:
         """
         Take over thermostatic control of the zone from the wall thermostat
         by energizing appropriate relay.
         Will log an error and do nothing if not the boss of this relay.
         """
-        if from_node is None:
-            from_node = self.node
+        if command_node is None:
+            command_node = self.node
         if zone not in self.layout.zone_list:
             self.log(f"{zone} not a recongized zone!")
             return
         try:
             event = FsmEvent(
-                FromHandle=self.node.handle if from_node is None else from_node.handle,
+                FromHandle=self.node.handle if command_node is None else command_node.handle,
                 ToHandle=self.stat_failsafe_relay(zone).handle,
                 EventType=ChangeHeatcallSource.enum_name(),
                 EventName=ChangeHeatcallSource.SwitchToScada,
@@ -921,93 +961,133 @@ class ShNodeActor(Actor, ABC):
                 TriggerId=str(uuid.uuid4()),
             )
 
-            self._send_to(self.stat_failsafe_relay(zone), event, from_node)
+            self._send_to(self.stat_failsafe_relay(zone), event, command_node)
             self.log(
-                f"{from_node.handle} sending SwitchToScada to {self.stat_failsafe_relay(zone).handle} (zone {zone})"
+                f"{command_node.handle} sending SwitchToScada to {self.stat_failsafe_relay(zone).handle} (zone {zone})"
             )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
-    def heatcall_ctrl_to_stat(self, zone: str, from_node: Optional[ShNode] = None) -> None:
+    def heatcall_ctrl_to_stat(self, zone: str, command_node: ShNode| None = None) -> None:
         """
         Return control of the whitewire heatcall signal to the wall thermostat
         by de-energizing appropriate relay.
+
+        If provided command_node is None, command_node defaults to self.node
+
         Will log an error and do nothing if not the boss of this relay.
         """
-        if from_node is None:
-            from_node = self.node
+        if command_node is None:
+            command_node = self.node
         if zone not in self.layout.zone_list:
             self.log(f"{zone} not a recongized zone!")
             return
         try:
             event = FsmEvent(
-                FromHandle=from_node.handle,
+                FromHandle=command_node.handle,
                 ToHandle=self.stat_failsafe_relay(zone).handle,
                 EventType=ChangeHeatcallSource.enum_name(),
                 EventName=ChangeHeatcallSource.SwitchToWallThermostat,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
-            self._send_to(self.stat_failsafe_relay(zone), event, from_node)
+            self._send_to(self.stat_failsafe_relay(zone), event, command_node)
             self.log(
-                f"{from_node.handle} sending SwitchToWallThermostat to {self.stat_failsafe_relay(zone).handle} (zone {zone})"
+                f"{command_node.handle} sending SwitchToWallThermostat to {self.stat_failsafe_relay(zone).handle} (zone {zone})"
             )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
-    def stat_ops_close_relay(self, zone: str, from_node: Optional[ShNode] = None) -> None:
+    def stat_ops_close_relay(self, zone: str, command_node: ShNode | None = None) -> None:
         """
         Close (energize) the ScadaOps relay for associated zone. Will send a heatcall on the white
         wire IF the associated failsafe relay is energized (switched to SCADA).
         Will log an error and do nothing if not the boss of this relay.
         """
-        if from_node is None:
-            from_node = self.node
+        if command_node is None:
+            command_node = self.node
         if zone not in self.layout.zone_list:
             self.log(f"{zone} not a recongized zone!")
             return
         try:
             event = FsmEvent(
-                FromHandle=from_node.handle,
+                FromHandle=command_node.handle,
                 ToHandle=self.stat_ops_relay(zone).handle,
                 EventType=ChangeRelayState.enum_name(),
                 EventName=ChangeRelayState.CloseRelay,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
-            self._send_to(self.stat_ops_relay(zone), event, from_node)
+            self._send_to(self.stat_ops_relay(zone), event, command_node)
             self.log(
-                f"{from_node.handle} sending CloseRelay to {self.stat_ops_relay(zone).handle} (zone {zone})"
+                f"{command_node.handle} sending CloseRelay to {self.stat_ops_relay(zone).handle} (zone {zone})"
             )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
-    def stat_ops_open_relay(self, zone: str, from_node: Optional[ShNode] = None) -> None:
+    def stat_ops_open_relay(self, zone: str, command_node: ShNode | None = None) -> None:
         """
         Open (de-energize) the ScadaOps relay for associated zone. Will send 0 on the white
         wire IF the associated failsafe relay is energized (switched to SCADA).
         Will log an error and do nothing if not the boss of this relay.
         """
-        if from_node is None:
-            from_node = self.node
+        if command_node is None:
+            command_node = self.node
         if zone not in self.layout.zone_list:
             self.log(f"{zone} not a recongized zone!")
             return
         try:
             event = FsmEvent(
-                FromHandle=from_node.handle,
+                FromHandle=command_node.handle,
                 ToHandle=self.stat_ops_relay(zone).handle,
                 EventType=ChangeRelayState.enum_name(),
                 EventName=ChangeRelayState.OpenRelay,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
-            self._send_to(self.stat_ops_relay(zone), event, from_node)
+            self._send_to(self.stat_ops_relay(zone), event, command_node)
             self.log(
-                f"{from_node.handle} sending OpenRelay to {self.stat_ops_relay(zone).handle} (zone {zone})"
+                f"{command_node.handle} sending OpenRelay to {self.stat_ops_relay(zone).handle} (zone {zone})"
             )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
+
+    def set_010_defaults(self, command_node: ShNode | None = None) -> None:
+        """
+        Sets default 0-10V values for those actuators that are direct reports
+        of the h.n (home alone normal node).
+        """
+        if command_node is None:
+            command_node = self.node
+
+        dfr_component = cast(DfrComponent, self.layout.node(H0N.zero_ten_out_multiplexer).component)
+        commanded_010s = {
+            node
+            for node in self.my_actuators()
+            if node.ActorClass == ActorClass.ZeroTenOutputer and
+            self.the_boss_of(node) == command_node
+        }
+
+        for dfr_node in commanded_010s:
+            dfr_config = next(
+                    config
+                    for config in dfr_component.gt.ConfigList
+                    if config.ChannelName == dfr_node.name
+                )
+            self._send_to(
+                dst=dfr_node,
+                payload=AnalogDispatch(
+                    FromGNodeAlias=self.layout.scada_g_node_alias,
+                    FromHandle=command_node.handle,
+                    ToHandle=dfr_node.handle,
+                    AboutName=dfr_node.Name,
+                    Value=dfr_config.InitialVoltsTimes100,
+                    TriggerId=str(uuid.uuid4()),
+                    UnixTimeMs=int(time.time() * 1000),
+                ),
+                src=command_node
+            )
+            self.log(f"Just set {dfr_node.handle} to {dfr_config.InitialVoltsTimes100} from {command_node.handle} ")
 
     @property
     def boss(self) -> ShNode:
@@ -1599,7 +1679,7 @@ class ShNodeActor(Actor, ABC):
         """ Returns DischargingStore if relay 3 is de-energized (ISO Valve opened, charge/discharge
         valve in discharge position.) Returns Charging store if energized (ISO Valve closed, charge/discharge
         valve in charge position) """
-        sms = self.data.latest_machine_state.get(H0N.store_charge_discharge_relay)
+        sms: SingleMachineState = self.data.latest_machine_state.get(H0N.store_charge_discharge_relay)
         if sms is None:
             raise Exception("That's strange! Should have a relay state for the charge discharge relay!")
         if sms.StateEnum != StoreFlowRelay.enum_name():
@@ -1607,20 +1687,20 @@ class ShNodeActor(Actor, ABC):
         return StoreFlowRelay(sms.State)
 
     def hp_relay_state(self) -> RelayClosedOrOpen:
-        sms = self.data.latest_machine_state[H0N.hp_scada_ops_relay]
+        sms: SingleMachineState = self.data.latest_machine_state[H0N.hp_scada_ops_relay]
         if sms is None:
             raise Exception("That's strange! Should have a rela state for the Hp Scada Ops relay!")
         if sms.StateEnum != RelayClosedOrOpen.enum_name():
             raise Exception(f"That's strange. Expected StateEnum 'relay.closed.or.open' but got {sms.StateEnum}")
         return RelayClosedOrOpen(sms.State)
 
-    def alert(self, summary: str, details: str, log_level=LogLevel.Critical) -> None:
+    def alert(self, summary: str, details: str) -> None:
         """Send Critical Glitch """
         self._send_to(self.ltn,
             Glitch(
                 FromGNodeAlias=self.layout.scada_g_node_alias,
                 Node=self.node.Name,
-                Type=log_level,
+                Type=LogLevel.Critical,
                 Summary=summary,
                 Details=details
             )
