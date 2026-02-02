@@ -716,7 +716,7 @@ class LayoutDb:
                 CreatedByNodeName = H0N.derived_generator,
                 OutputUnit=GwUnit.FahrenheitX100,
                 TerminalAssetAlias = self.terminal_asset_alias,
-                Strategy = "linear-fit",
+                Strategy = "tank-linear-map",
                 DisplayName = f"{cn.replace('-', ' ').title()} Effective Temperature",
                 )
             )

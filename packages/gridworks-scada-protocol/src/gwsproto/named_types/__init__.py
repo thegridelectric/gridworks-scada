@@ -48,13 +48,13 @@ from gwsproto.named_types.go_dormant import GoDormant
 from gwsproto.named_types.ha1_params import Ha1Params
 from gwsproto.named_types.hack_oil_off import HackOilOff
 from gwsproto.named_types.hack_oil_on import HackOilOn
-from gwsproto.named_types.heat_call_derivation import HeatCallDerivation
 from gwsproto.named_types.heating_forecast import HeatingForecast
 from gwsproto.named_types.i2c_read_bit import I2cReadBit
 from gwsproto.named_types.i2c_result import I2cResult
 from gwsproto.named_types.i2c_write_bit import I2cWriteBit
 from gwsproto.named_types.latest_price import LatestPrice
 from gwsproto.named_types.layout_lite import LayoutLite
+from gwsproto.named_types.linear_one_dimensional_calibration import LinearOneDimensionalCalibration
 from gwsproto.named_types.machine_states import MachineStates
 from gwsproto.named_types.micro_volts import MicroVolts
 from gwsproto.named_types.market_maker_ack import MarketMakerAck
@@ -72,6 +72,7 @@ from gwsproto.named_types.relay_actor_config import RelayActorConfig
 from gwsproto.named_types.remaining_elec import RemainingElec
 from gwsproto.named_types.events import RemainingElecEvent, ReportEvent
 from gwsproto.named_types.report import Report
+from gwsproto.named_types.required_energy_layered import RequiredEnergyLayered
 from gwsproto.named_types.reset_hp_keep_value import ResetHpKeepValue
 from gwsproto.named_types.resistive_heater_cac_gt import ResistiveHeaterCacGt
 from gwsproto.named_types.resistive_heater_component_gt import ResistiveHeaterComponentGt
@@ -100,6 +101,7 @@ from gwsproto.named_types.ticklist_hall import TicklistHall
 from gwsproto.named_types.ticklist_hall_report import TicklistHallReport
 from gwsproto.named_types.ticklist_reed import TicklistReed
 from gwsproto.named_types.ticklist_reed_report import TicklistReedReport
+from gwsproto.named_types.usable_energy_layered import UsableEnergyLayered
 from gwsproto.named_types.wake_up import WakeUp
 from gwsproto.named_types.web_server_component_gt import WebServerComponentGt
 from gwsproto.named_types.weather_forecast import WeatherForecast
@@ -149,7 +151,6 @@ __all__ = [
     "Ha1Params",
     "HackOilOff",
     "HackOilOn",
-    "HeatCallDerivation",
     "HeatingForecast",
     "HubitatComponentGt",
     "HubitatPollerComponentGt",
@@ -159,6 +160,7 @@ __all__ = [
     "I2cWriteBit",
     "LatestPrice",
     "LayoutLite",
+    "LinearOneDimensionalCalibration",
     "MarketMakerAck",
     "MachineStates",
     "MicroVolts",
@@ -177,6 +179,7 @@ __all__ = [
     "RemainingElecEvent",
     "Report",
     "ReportEvent",
+    "RequiredEnergyLayered",
     "ResetHpKeepValue",
     "ResistiveHeaterCacGt",
     "ResistiveHeaterComponentGt",
@@ -205,6 +208,7 @@ __all__ = [
     "TicklistHallReport",
     "TicklistReed",
     "TicklistReedReport",
+    "UsableEnergyLayered",
     "WakeUp",
     "WeatherForecast",
     "WebServerComponentGt",

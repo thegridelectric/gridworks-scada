@@ -29,7 +29,7 @@ from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.data_classes.derived_channel import DerivedChannel
 from gwsproto.data_classes.telemetry_tuple import TelemetryTuple
 
-from gwsproto.enums import ActorClass, TelemetryName, GwUnit
+from gwsproto.enums import ActorClass, TelemetryName, GwUnit, EmissionMethod
 from gwsproto.named_types import (
     ComponentAttributeClassGt,
     ComponentGt,
@@ -198,7 +198,10 @@ class HardwareLayout:
         if isinstance(node_dict, SpaceheatNodeGt):
             node_gt = node_dict
         else:
-            node_gt = SpaceheatNodeGt.model_validate(node_dict)
+            try:
+                node_gt = SpaceheatNodeGt.model_validate(node_dict)
+            except Exception as e:
+                raise Exception(f"trouble wi {node_dict}: {e}")
         if node_gt.ComponentId:
             component = components.get(node_gt.ComponentId)
             if component is None:
@@ -269,10 +272,15 @@ class HardwareLayout:
                 f"  For CreatedByNodeName<{created_by_node_name}> got None!\n"
             )
 
-        return DerivedChannel(
-            created_by_node=created_by_node,
-            **derived_dict,
-        )
+        try:
+            d = DerivedChannel(
+                created_by_node=created_by_node,
+                **derived_dict,
+            )
+        except Exception as e:
+            raise Exception(f" trouble with {derived_dict}: {e}")
+
+        return d
 
     @classmethod
     def check_dc_id_uniqueness(
@@ -329,15 +337,29 @@ class HardwareLayout:
             dc_names_by_component.update(channel_names)
         actual_dc_names = {dc.Name for dc in data_channels.values()}
         if dc_names_by_component != actual_dc_names:
-            by_comp = list(dc_names_by_component)
-            by_comp.sort()
-            actual = list(actual_dc_names)
-            actual.sort()
-            raise DcError(
-                "Channel inconsistency! \n"
-                f"From Components:{by_comp}\n"
-                f"From DataChannel list:{actual}\n"
+            referenced_not_declared = sorted(
+                dc_names_by_component - actual_dc_names
             )
+            declared_not_referenced = sorted(
+                actual_dc_names - dc_names_by_component
+            )
+
+            msg_lines = ["Channel inconsistency detected:"]
+
+            if referenced_not_declared:
+                msg_lines.append(
+                    f"  Referenced by components but missing from DataChannels: "
+                    f"{referenced_not_declared}"
+                )
+
+            if declared_not_referenced:
+                msg_lines.append(
+                    f"  Declared in DataChannels but not referenced by any component: "
+                    f"{declared_not_referenced}"
+                )
+
+            raise DcError("\n".join(msg_lines))
+
         cls.check_node_channel_consistency(nodes, data_channels)
 
     @classmethod
@@ -546,6 +568,124 @@ class HardwareLayout:
         }
         self.data_channels = dict(data_channels)
         self.derived_channels = dict(derived_channels)
+        self.validate_derived_channels()
+
+    def validate_api_tank_module_wiring(self) -> None:
+        errors: list[str] = []
+
+        for node in self.nodes.values():
+            if node.ActorClass != ActorClass.ApiTankModule:
+                continue
+
+            for depth in (1, 2, 3):
+                ch = f"{node.Name}-depth{depth}-device"
+                dc = self.data_channels.get(ch)
+                if dc is None:
+                    errors.append(
+                        f"ApiTankModule '{node.Name}' missing DataChannel '{ch}'"
+                    )
+                elif dc.gt.CapturedBy != node.Name:
+                    errors.append(
+                        f"DataChannel '{ch}' must be captured by '{node.Name}'"
+                    )
+
+        if errors:
+            raise DcError(
+                "ApiTankModule wiring validation failed:\n"
+                + "\n".join(f"  - {e}" for e in errors)
+            )
+
+    def validate_derived_channels(self) -> None:
+        """
+        Validate GridWorks-specific semantic constraints for DerivedChannelGt.
+
+        This enforces:
+        - All InputChannelNames reference existing DataChannels
+        - Strategy-specific requirements on inputs, parameters, and emission method
+        """
+        data_channel_names = set(self.data_channels.keys())
+        errors: list[str] = []
+
+        # --- Input channel existence ---
+        for dc in self.derived_channels.values():
+            for input_name in dc.InputChannelNames:
+                if input_name not in data_channel_names:
+                    errors.append(
+                        f"DerivedChannel '{dc.Name}' references unknown input "
+                        f"DataChannel '{input_name}'"
+                    )
+
+            match dc.Strategy:
+                case "identity":
+                    if len(dc.InputChannelNames) != 1:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy 'identity' "
+                            "but does not declare exactly one InputChannelName"
+                        )
+                    if dc.EmissionMethod != EmissionMethod.OnTrigger:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy 'identity' "
+                            "but must use EmissionMethod.OnTrigger"
+                        )
+
+                case "affine":
+                    if len(dc.InputChannelNames) != 1:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy 'affine' "
+                            "but does not declare exactly one InputChannelName"
+                        )
+                    if not dc.Parameters or "Calibration" not in dc.Parameters:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy 'affine' "
+                            "but is missing Parameters.Calibration"
+                        )
+                    if dc.EmissionMethod != EmissionMethod.OnTrigger:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy 'affine' "
+                            "but must use EmissionMethod.OnTrigger"
+                        )
+
+                case "heat-call":
+                    if len(dc.InputChannelNames) != 1:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy 'heat-call' "
+                            "but does not declare exactly one InputChannelName"
+                        )
+                    if not dc.Parameters or "Interpretation" not in dc.Parameters:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy 'heat-call' "
+                            "but is missing Parameters.Interpretation"
+                        )
+                    if dc.EmissionMethod != EmissionMethod.AsyncAndPeriodic:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy 'heat-call' "
+                            "but must use EmissionMethod.AsyncAndPeriodic"
+                        )
+
+                case "system-model":
+                    if dc.InputChannelNames:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy '{dc.Strategy}' "
+                            "but must not declare InputChannelNames"
+                        )
+                    if dc.EmissionMethod != EmissionMethod.Periodic:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy '{dc.Strategy}' "
+                            "but must use EmissionMethod.Periodic"
+                        )
+
+                case _:
+                    errors.append(
+                        f"DerivedChannel '{dc.Name}' uses unsupported strategy "
+                        f"'{dc.Strategy}'"
+                    )
+
+        if errors:
+            raise ValueError(
+                "DerivedChannel input validation failed:\n"
+                + "\n".join(f"  - {e}" for e in errors)
+            )
+
 
     @cached_property
     def channel_registry(self) -> ChannelRegistry:
