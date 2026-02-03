@@ -39,6 +39,7 @@ class LocalControlTouBase(ShNodeActor):
     should inherit from this base class."""
     MAIN_LOOP_SLEEP_SECONDS = 60
     BLIND_MINUTES = 5
+    SYSTEM_COLD_MINUTES = 5  # Min time house+tanks cold before switching to UsingNonElectricBackup
 
 
     top_states = LocalControlTopState.values()
@@ -64,6 +65,7 @@ class LocalControlTouBase(ShNodeActor):
         self.hardware_layout = self._services.hardware_layout
         
         self.time_since_blind: Optional[float] = None
+        self.system_cold_since: Optional[float] = None
         self.scadablind_scada = False
         self.scadablind_boiler = False
 
@@ -225,7 +227,14 @@ class LocalControlTouBase(ShNodeActor):
                 # Update top state
                 if self.top_state == LocalControlTopState.Normal:
                     if self.time_to_trigger_system_cold():
-                        self.trigger_system_cold_event()
+                        now = time.time()
+                        if self.system_cold_since is None:
+                            self.system_cold_since = now
+                        elif now - self.system_cold_since >= self.SYSTEM_COLD_MINUTES * 60:
+                            self.trigger_system_cold_event()
+                            self.system_cold_since = None
+                    else:
+                        self.system_cold_since = None
                 elif self.top_state == LocalControlTopState.UsingNonElectricBackup and not self.is_system_cold() and not self.is_onpeak():
                     self.trigger_zones_at_setpoint_offpeak()
                 elif self.top_state == LocalControlTopState.ScadaBlind:
