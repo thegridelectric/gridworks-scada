@@ -535,25 +535,40 @@ class LocalControlTouBase(ShNodeActor):
         # self.log(f"Found all zone temperatures: {temps}")
     
     def is_system_cold(self) -> bool:
-        """Returns True if at least one critical zones is more than 1F below setpoint, where the 
-        setpoint is set at the beginning of the latest onpeak period"""
+        """Returns True if at least one critical zone is more than 1F below setpoint.
+        Setpoint used is the minimum of: (a) setpoint at start of on-peak, (b) current setpoint.
+        Using (a) avoids triggering when the user raises the thermostat during on-peak; using the
+        minimum with (b) avoids triggering when the user lowers the thermostat during on-peak."""
         if not self.is_onpeak(): #TODO: bleed into the first half hour of offpeak
             self.get_zone_setpoints()
+        if self.is_simulated:
+            return False
         for zone in self.zone_setpoints:
             zone_name_no_prefix = zone[6:] if zone[:4]=='zone' else zone
             if zone_name_no_prefix not in self.layout.critical_zone_list:
-                continue
-            setpoint = self.zone_setpoints[zone]
-            if not self.is_simulated:
-                if zone+'-temp' not in self.data.latest_channel_values:
-                    self.log(f"Could not find latest temperature for {zone}!")
-                    continue
-                temperature = self.data.latest_channel_values[zone+'-temp']
+                continue      
+
+            # Use the lower of setpoint at start of on-peak vs current setpoint
+            setpoint_at_onpeak = self.zone_setpoints[zone]
+            current_setpoint = self.data.latest_channel_values.get(zone + '-set')
+            if setpoint_at_onpeak is not None and current_setpoint is not None:  
+                setpoint = min(setpoint_at_onpeak, current_setpoint)
+            elif setpoint_at_onpeak is not None:
+                setpoint = setpoint_at_onpeak
+            elif current_setpoint is not None:
+                setpoint = current_setpoint
             else:
-                temperature = 40
+                self.log(f"Could not find setpoint for {zone}!")
+                continue
+
+            temperature = self.data.latest_channel_values.get(zone+'-temp')
+            if temperature is None:
+                self.log(f"Could not find latest temperature for {zone}!")
+                continue
+
             if temperature < setpoint - 1*1000:
-                self.log(f"{zone} temperature is at least 1F lower than the setpoint before starting on-peak")
-                return True    
-        self.log("All zones are at or above their setpoint at the beginning of on-peak")
+                self.log(f"{zone} temperature is at least 1F lower than the effective setpoint (min of on-peak start and current)")
+                return True
+        self.log("All critical zones are at or above their effective setpoint")
         return False
 
