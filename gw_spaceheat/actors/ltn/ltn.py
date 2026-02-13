@@ -69,9 +69,9 @@ from gwsproto.named_types import AnalogDispatch, SendSnap, MachineStates
 from actors.ltn.contract_handler import LtnContractHandler
  
 from gwsproto.named_types import (
-    Bid, BidRecommendation, FloParamsHouse0, Glitch, Ha1Params, LatestPrice, LayoutLite, NoNewContractWarning,
-    ResetHpKeepValue, ScadaParams, SendLayout, SetLwtControlParams, SiegLoopEndpointValveAdjustment,
-    SlowContractHeartbeat,  SnapshotSpaceheat,
+    Bid, BidRecommendation, FloParamsHouse0, FloNextHourPlans, Glitch, Ha1Params, LatestPrice,
+    LayoutLite, NoNewContractWarning, ResetHpKeepValue, ScadaParams, SendLayout,
+    SetLwtControlParams, SiegLoopEndpointValveAdjustment, SlowContractHeartbeat, SnapshotSpaceheat,
 )
 
 from paho.mqtt.client import MQTTMessageInfo
@@ -116,6 +116,7 @@ class BidRunner(threading.Thread):
         self.on_complete = on_complete
         self.bid: Optional[Bid] = None
         self.get_bid_event = threading.Event()
+        self.get_next_hour_plans_event = threading.Event()
 
     def run(self):
         try:
@@ -182,6 +183,32 @@ class BidRunner(threading.Thread):
                     )
                 )
 
+                # Keep graph reference for get_plans_at_price; pause until get_next_hour_plans
+                self.get_next_hour_plans_event.clear()
+                self.logger.info("BidRunner waiting for get_next_hour_plans to be called before getting next hour's plans.")
+                self.get_next_hour_plans_event.wait()
+                self.logger.info("Getting plan at clearing price.")
+                try:
+                    g.get_next_node_at_price(self.latest_price_usd_mwh)
+                    expected_storage_kwh_at_hour1 = g.initial_node.next_node.energy
+                    hourly_hp_kwh_el_plan = g.initial_node.next_node.shortest_path_hp_kwh_el
+                except Exception as e:
+                    self.logger.info(f"Error getting plan at price: {e}")
+                    return
+
+                # Send flo next hour plans through LTN's message processing
+                flo_next_hour_plans = FloNextHourPlans(
+                    ExpectedStorageKwhAtHour1=expected_storage_kwh_at_hour1,
+                    HourlyHpKwhElPlan=hourly_hp_kwh_el_plan,
+                )
+                self.send_threadsafe(
+                    Message(
+                        Src=self.ltn_name,
+                        Dst=self.ltn_name,
+                        Payload=flo_next_hour_plans
+                    )
+                )
+
                 # Explicitly delete the graph to free memory
                 del g
 
@@ -197,6 +224,10 @@ class BidRunner(threading.Thread):
         self.logger.info("Getting bid...")
         self.updated_flo_params = updated_flo_params
         self.get_bid_event.set()
+
+    def get_next_hour_plans(self, price_usd_mwh: float) -> Optional[List[float]]:
+        self.latest_price_usd_mwh = price_usd_mwh
+        self.get_next_hour_plans_event.set()
 
     def stop(self):
         self.logger.info("Stopping BidRunner")
@@ -291,6 +322,7 @@ class Ltn(PrimeActor):
         self.flo_params = None
         self.hp_is_off = False
         self.weather_forecast = None
+        self.flo_next_hour_plans: Optional[FloNextHourPlans] = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
         self.price_forecast: Optional[PriceForecast] = None
         self.data_channels: List
@@ -412,6 +444,18 @@ class Ltn(PrimeActor):
                 )  
                 self.log(f"Bid: {bid}")
                 self.sent_bid = True
+            case FloNextHourPlans():
+                path_dbg |= 0x00000003
+                flo_next_hour_plans = message.Payload
+                self.flo_next_hour_plans = flo_next_hour_plans
+                self.services.publish_message(
+                    self.SCADA_MQTT,
+                    Message(Src=self.publication_name, Dst="broadcast", Payload=flo_next_hour_plans)
+                )
+                self.log(
+                    f"FloNextHourPlans: storage_at_hour1={flo_next_hour_plans.ExpectedStorageKwhAtHour1} kWh, "
+                    f"{flo_next_hour_plans.HourlyHpKwhElPlan}"
+                )
             case Glitch():
                 path_dbg |= 0x00000002
                 self.services.publish_message(
@@ -790,6 +834,13 @@ class Ltn(PrimeActor):
         self.price_forecast.dp_usd_per_mwh = self.price_forecast.dp_usd_per_mwh[:horizon]
         self.price_forecast.reg_usd_per_mwh = self.price_forecast.reg_usd_per_mwh[:horizon]
 
+        if self.flo_next_hour_plans:
+            previous_plan_hp_kwh_el_list = self.flo_next_hour_plans.HourlyHpKwhElPlan
+            previous_estimate_storage_kwh_now = self.flo_next_hour_plans.ExpectedStorageKwhAtHour1
+        else:
+            previous_plan_hp_kwh_el_list = None
+            previous_estimate_storage_kwh_now = None
+
         self.flo_params = FloParamsHouse0(
             GNodeAlias=self.layout.scada_g_node_alias,
             StartUnixS=dijkstra_start_time,
@@ -817,7 +868,9 @@ class Ltn(PrimeActor):
             MaxEwtF=self.ha1_params.MaxEwtF,
             HpIsOff=self.hp_is_off,
             BufferAvailableKwh=buffer_available_kwh,
-            HouseAvailableKwh=house_available_kwh
+            HouseAvailableKwh=house_available_kwh,
+            PreviousPlanHpKwhElList=previous_plan_hp_kwh_el_list,
+            PreviousEstimateStorageKwhNow=previous_estimate_storage_kwh_now,
         )
         self.services.publish_message(
             self.SCADA_MQTT, 
@@ -912,8 +965,9 @@ class Ltn(PrimeActor):
         self.log(f"Payload price: {payload.PriceTimes1000} (x1000)")
         # Quantity is AvgkW, so QuantityX1000 is avg_w
         assert self.contract_handler.latest_bid.QuantityUnit == MarketQuantityUnit.AvgkW
+        avg_w = sorted_pq_pairs[0][1]
         for pair in sorted_pq_pairs:
-            if pair[0] < payload.PriceTimes1000:
+            if payload.PriceTimes1000 > pair[0]:
                 avg_w = pair[1] # WattHours
         self.log(f"Decided on quantity: {avg_w} WattHours")
 
@@ -928,6 +982,11 @@ class Ltn(PrimeActor):
             self.contract_handler.create_new_contract()
         else:
             self.log("Why am I here")
+
+        # Get this hour's plans to give as input to the next FLO
+        if self.bid_runner and self.bid_runner.is_alive():
+            price_usd_mwh = payload.PriceTimes1000 / 1000
+            self.bid_runner.get_next_hour_plans(price_usd_mwh)
 
     def fill_missing_store_temps(self):
         all_store_layers = sorted(
@@ -1229,7 +1288,7 @@ class Ltn(PrimeActor):
                 house_availale_kwh += thermal_mass[zone] * (temps[zone] - setpoints[zone])
         house_availale_kwh = round(house_availale_kwh,2)
         self.log(f"House available kWh: {house_availale_kwh}")
-        return house_availale_kwh
+        return min(0, house_availale_kwh) # TODO: TEMPORARY only consider negative values
 
     async def get_weather(self, session: aiohttp.ClientSession) -> None:
         config_dir = self.settings.paths.config_dir

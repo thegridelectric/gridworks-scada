@@ -53,11 +53,18 @@ class FloParamsHouse0(BaseModel):
     DdRswtF: StrictInt
     DdDeltaTF: StrictInt
     MaxEwtF: StrictInt
+    # Plan stability penalty
+    PreviousPlanHpKwhElList: list[float] | None = None
+    PreviousEstimateStorageKwhNow: float | None = None
+    StabilityWeight: float = 0.2
+    StabilityDecay: float = 0.8
+    StabilityThresholdKwh: float = 10.0
+    StabilityHorizonHours: int = 5
     PriceUnit: MarketPriceUnit = MarketPriceUnit.USDPerMWh
     ParamsGeneratedS: UTCSeconds = Field(default_factory=lambda: int(time.time()))
     ConstantDeltaT: StrictInt = 20
     TypeName: Literal["flo.params.house0"] = "flo.params.house0"
-    Version: Literal["004"] = "004"
+    Version: Literal["005"] = "005"
 
     model_config = ConfigDict(extra="allow", frozen=True, use_enum_values=True)
 
