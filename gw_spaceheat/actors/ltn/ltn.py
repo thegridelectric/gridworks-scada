@@ -190,7 +190,7 @@ class BidRunner(threading.Thread):
                 self.logger.info("Getting plan at clearing price.")
                 try:
                     g.get_next_node_at_price(self.latest_price_usd_mwh)
-                    expected_storage_kwh_at_hour1 = g.initial_node.next_node.energy
+                    expected_storage_kwh_at_hour1 = round(g.initial_node.next_node.energy,2)
                     hourly_hp_kwh_el_plan = g.initial_node.next_node.shortest_path_hp_kwh_el
                 except Exception as e:
                     self.logger.info(f"Error getting plan at price: {e}")
