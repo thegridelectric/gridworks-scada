@@ -1,9 +1,11 @@
 setuptools
-numpy
+numpy>=2.3.3
+pydantic>=2.11.9
+pydantic-settings>=2.11.0
+python-dotenv>=1.1.1
 paho-mqtt
 pytz
-python-dotenv
-pydantic
+
 xdg
 result
 transitions
@@ -21,9 +23,20 @@ pyModbusTCP
 # ltn
 httpx
 
-# cli tools
-rich
-typer
+# CLI tooling
+# CLI tooling
+# Intended behavior: invoking `gws` with no arguments should display the help
+# screen and exit with code 0.
+#
+# Typer >=0.24 / Click >=8.3 changed group invocation semantics so that
+# invoking a command group with no subcommand exits with code 2 (usage error).
+# That breaks test_cli expectations and changes CLI behavior.
+#
+# Pin Typer/Click below those versions until CLI behavior is intentionally
+# updated and tests adjusted accordingly.
+rich>=14.1.0
+typer>=0.17.4,<0.24
+click<8.3
 trogon
-textual>=5.3.0
+textual>=6.1.0
 textual-dev
