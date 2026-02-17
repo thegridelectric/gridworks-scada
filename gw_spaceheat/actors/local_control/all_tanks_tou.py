@@ -26,7 +26,7 @@ class AllTanksTouLocalControl(LocalControlTouBase):
             {"trigger": "OnPeakStorageColderThanBuffer", "source": "Initializing", "dest": "HpOffStoreOff"},
             {"trigger": "OffPeakBufferEmpty", "source": "Initializing", "dest": "HpOnStoreOff"},
             {"trigger": "OffPeakBufferFullStorageReady", "source": "Initializing", "dest": "HpOffStoreOff"},
-            {"trigger": "OffPeakBufferFullStorageNotReady", "source": "Initializing", "dest": "HpOnStoreCharge"},
+            {"trigger": "OffPeakBufferFullStorageNotReady", "source": "Initializing", "dest": "HpOnStoreOff"},
             # Starting at: HP on, Store off ============= HP -> buffer
             {"trigger": "OffPeakBufferFullStorageNotReady", "source": "HpOnStoreOff", "dest": "HpOnStoreCharge"},
             {"trigger": "OffPeakBufferFullStorageReady", "source": "HpOnStoreOff", "dest": "HpOffStoreOff"},
@@ -38,7 +38,7 @@ class AllTanksTouLocalControl(LocalControlTouBase):
             # Starting at: HP off, Store off ============ idle
             {"trigger": "OnPeakBufferEmpty", "source": "HpOffStoreOff", "dest": "HpOffStoreDischarge"},
             {"trigger": "OffPeakBufferEmpty", "source": "HpOffStoreOff", "dest": "HpOnStoreOff"},
-            {"trigger": "OffPeakStorageNotReady", "source": "HpOffStoreOff", "dest": "HpOnStoreCharge"},
+            {"trigger": "OffPeakStorageNotReady", "source": "HpOffStoreOff", "dest": "HpOnStoreOff"},
             # Starting at: Hp off, Store discharging ==== Storage -> buffer
             {"trigger": "OnPeakBufferFull", "source": "HpOffStoreDischarge", "dest": "HpOffStoreOff"},
             {"trigger": "OnPeakStorageColderThanBuffer", "source": "HpOffStoreDischarge", "dest": "HpOffStoreOff"},
@@ -205,7 +205,10 @@ class AllTanksTouLocalControl(LocalControlTouBase):
                     else:
 
                         if self.usable_kwh < self.required_kwh:
-                            self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakBufferFullStorageNotReady)
+                            if self.time_hp_turned_on is not None and time.time() - self.time_hp_turned_on < 15 * 60:
+                                self.log(f"HP warmup: {round((time.time() - self.time_hp_turned_on) / 60, 1)} min since HP turned on, waiting 15 min before charging store")
+                            else:
+                                self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakBufferFullStorageNotReady)
                         else:
                             self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakBufferFullStorageReady)
                 

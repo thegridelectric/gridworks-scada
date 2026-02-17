@@ -45,7 +45,7 @@ class AllTanksLeafAlly(ShNodeActor):
         {"trigger": "NoElecBufferEmpty", "source": "Initializing", "dest": "HpOffStoreDischarge"},
         {"trigger": "NoElecBufferFull", "source": "Initializing", "dest": "HpOffStoreOff"},
         {"trigger": "ElecBufferEmpty", "source": "Initializing", "dest": "HpOnStoreOff"},
-        {"trigger": "ElecBufferFull", "source": "Initializing", "dest": "HpOnStoreCharge"},
+        {"trigger": "ElecBufferFull", "source": "Initializing", "dest": "HpOnStoreOff"},
         # 1 Starting at: HP on, Store off ============= HP -> buffer
         {"trigger": "ElecBufferFull", "source": "HpOnStoreOff", "dest": "HpOnStoreCharge"},
         {"trigger": "NoMoreElec", "source": "HpOnStoreOff", "dest": "HpOffStoreOff"},
@@ -55,11 +55,11 @@ class AllTanksLeafAlly(ShNodeActor):
         # 3 Starting at: HP off, Store off ============ idle
         {"trigger": "NoElecBufferEmpty", "source": "HpOffStoreOff", "dest": "HpOffStoreDischarge"},
         {"trigger": "ElecBufferEmpty", "source": "HpOffStoreOff", "dest": "HpOnStoreOff"},
-        {"trigger": "ElecBufferFull", "source": "HpOffStoreOff", "dest": "HpOnStoreCharge"},
+        {"trigger": "ElecBufferFull", "source": "HpOffStoreOff", "dest": "HpOnStoreOff"},
         # 4 Starting at: Hp off, Store discharging ==== Storage -> buffer
         {"trigger": "NoElecBufferFull", "source": "HpOffStoreDischarge", "dest": "HpOffStoreOff"},
         {"trigger": "ElecBufferEmpty", "source": "HpOffStoreDischarge", "dest": "HpOnStoreOff"},
-        {"trigger": "ElecBufferFull", "source": "HpOffStoreDischarge", "dest": "HpOnStoreCharge"},
+        {"trigger": "ElecBufferFull", "source": "HpOffStoreDischarge", "dest": "HpOnStoreOff"},
         # 5 Oil boiler on during onpeak
     ] + [
         {"trigger": "StartNonElectricBackup", "source": state, "dest": "HpOffNonElectricBackup"}
@@ -101,6 +101,7 @@ class AllTanksLeafAlly(ShNodeActor):
             doctor=self.store_pump_doctor,
         )
         self.log(f"Params: {self.params}")
+        self.time_hp_turned_on = None
         self.storage_declared_full = False
         self.storage_full_since = 0
         self.both_buffer_and_storage_full_since = 0
@@ -299,7 +300,10 @@ class AllTanksLeafAlly(ShNodeActor):
                 if self.hp_should_be_off():
                     self.trigger_event(LeafAllyAllTanksEvent.NoMoreElec)
                 elif self.is_buffer_full() and not self.is_storage_full():
-                    self.trigger_event(LeafAllyAllTanksEvent.ElecBufferFull)
+                    if self.time_hp_turned_on is not None and time.time() - self.time_hp_turned_on < 15 * 60:
+                        self.log(f"HP warmup: {round((time.time() - self.time_hp_turned_on) / 60, 1)} min since HP turned on, waiting 15 min before charging store")
+                    else:
+                        self.trigger_event(LeafAllyAllTanksEvent.ElecBufferFull)
 
                 elif self.is_buffer_charge_limited():
                     if not self.storage_declared_full or time.time()-self.storage_full_since>15*60:
@@ -383,8 +387,10 @@ class AllTanksLeafAlly(ShNodeActor):
             self.aquastat_ctrl_switch_to_scada()
         if "HpOn" not in self.prev_state and "HpOn" in self.state:
             self.turn_on_HP()
+            self.time_hp_turned_on = time.time()
         if "HpOff" not in self.prev_state and "HpOff" in self.state:
             self.turn_off_HP()
+            self.time_hp_turned_on = None
         if "StoreDischarge" in self.state:
             self.turn_on_store_pump()
         else:
