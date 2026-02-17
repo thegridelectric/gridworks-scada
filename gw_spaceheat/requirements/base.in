@@ -1,9 +1,11 @@
 setuptools
-numpy
+numpy>=2.3.3
+pydantic>=2.11.9
+pydantic-settings>=2.11.0
+python-dotenv>=1.1.1
 paho-mqtt
 pytz
-python-dotenv
-pydantic
+
 xdg
 result
 transitions
@@ -22,8 +24,8 @@ pyModbusTCP
 httpx
 
 # cli tools
-rich
-typer
+rich>=14.1.0
+typer>=0.17.4
 trogon
-textual>=5.3.0
+textual>=6.1.0
 textual-dev
