@@ -84,6 +84,8 @@ from actors.ltn.data import LtnData
 
 TANK_GALLONS = 120
 MAX_HORIZON_HOURS = 48
+
+
 class PriceForecast(BaseModel):
     dp_usd_per_mwh: List[float]
     lmp_usd_per_mwh: List[float]
@@ -322,7 +324,6 @@ class Ltn(PrimeActor):
         self.flo_params = None
         self.hp_is_off = False
         self.weather_forecast = None
-        self.flo_next_hour_plans: Optional[FloNextHourPlans] = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
         self.price_forecast: Optional[PriceForecast] = None
         self.data_channels: List
@@ -331,6 +332,8 @@ class Ltn(PrimeActor):
         self.latest_report: Optional[Report] = None
         self.report_output_dir = Path(f"{self.settings.paths.data_dir}/report")
         self.report_output_dir.mkdir(parents=True, exist_ok=True)
+        self._flo_next_hour_plans_file = Path(f"{self.settings.paths.data_dir}/flo_next_hour_plans.json")
+        self.flo_next_hour_plans = self._load_flo_next_hour_plans()
 
         if self.settings.dashboard.print_gui:
             self.dashboard = Dashboard(
@@ -448,6 +451,7 @@ class Ltn(PrimeActor):
                 path_dbg |= 0x00000003
                 flo_next_hour_plans = message.Payload
                 self.flo_next_hour_plans = flo_next_hour_plans
+                self._save_flo_next_hour_plans(flo_next_hour_plans)
                 self.services.publish_message(
                     self.SCADA_MQTT,
                     Message(Src=self.publication_name, Dst="broadcast", Payload=flo_next_hour_plans)
@@ -898,6 +902,47 @@ class Ltn(PrimeActor):
         Note: This is called from the BidRunner thread."""
         self.log("Cleaned up bid runner")
         self.bid_runner = None
+
+    def _save_flo_next_hour_plans(self, flo_next_hour_plans: FloNextHourPlans) -> None:
+        """Persist flo_next_hour_plans to file with timestamp for restart recovery."""
+        try:
+            data = {
+                "saved_at_unix_s": int(time.time()),
+                "flo_next_hour_plans": flo_next_hour_plans.model_dump(),
+            }
+            with open(self._flo_next_hour_plans_file, "w") as f:
+                json.dump(data, f)
+            self.log(f"Saved FloNextHourPlans to {self._flo_next_hour_plans_file}")
+        except Exception as e:
+            self.log(f"Failed to save FloNextHourPlans: {e}")
+
+    def _load_flo_next_hour_plans(self) -> Optional[FloNextHourPlans]:
+        """Load flo_next_hour_plans from file if it exists and was saved in the same hour.
+        Plans from a different hour are ignored (restart after outage)."""
+        if not self._flo_next_hour_plans_file.exists():
+            return None
+        try:
+            with open(self._flo_next_hour_plans_file, "r") as f:
+                data = json.load(f)
+            saved_at = data.get("saved_at_unix_s")
+            if saved_at is None:
+                self.log("FloNextHourPlans file missing saved_at_unix_s, ignoring")
+                return None
+            saved_dt = datetime.fromtimestamp(saved_at, tz=self.timezone)
+            now_dt = datetime.now(self.timezone)
+            if (saved_dt.year, saved_dt.month, saved_dt.day, saved_dt.hour) != (
+                now_dt.year, now_dt.month, now_dt.day, now_dt.hour
+            ):
+                self.log(
+                    f"FloNextHourPlans from different hour (saved {saved_dt}), not reusing"
+                )
+                return None
+            plans = FloNextHourPlans.model_validate(data["flo_next_hour_plans"])
+            self.log("Loaded FloNextHourPlans from file (same hour)")
+            return plans
+        except Exception as e:
+            self.log(f"Failed to load FloNextHourPlans: {e}")
+            return None
 
     def latest_contract_is_live(self) -> bool:
         """ Validates that the bid's market slot name corresponds to the current hour."""
