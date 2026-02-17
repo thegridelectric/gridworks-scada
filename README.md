@@ -412,14 +412,6 @@ To publish a new version admin to PyPI [install uv], if necessary, and then:
 
 See the [packages directory README.md](./packages/README.md) for more information.
 
-Update the version locally via:
-```
-pipx upgrade gridworks-admin
-gridworks-admin --version
-```
-
-
-
 ## License
 
 Distributed under the terms of the [MIT license](./LICENSE),
