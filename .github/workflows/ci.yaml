@@ -31,19 +31,22 @@ jobs:
           ls -lR ${{ github.workspace }}/tests/.ci-ca
 
       - name: Start 'Local' Mosquitto
-        uses: namoshek/mosquitto-github-action@v1.1.0
-        with:
-          ports: '18831:18831'
-          config: ${{ github.workspace }}/tests/config/local_mosquitto.conf
-          container-name: 'local-mqtt'
+        run: |
+          docker run -d \
+            --name local-mqtt \
+            -p 18831:18831 \
+            -v ${{ github.workspace }}/tests/config/local_mosquitto.conf:/mosquitto/config/mosquitto.conf:ro \
+            eclipse-mosquitto:2
 
       - name: Start 'GridWorks' Mosquitto
-        uses: namoshek/mosquitto-github-action@v1.1.0
-        with:
-          ports: '1883:1883 8883:8883'
-          config: ${{ github.workspace }}/tests/config/gw_mosquitto.conf
-          certificates: ${{ github.workspace }}/tests/.ci-ca
-          container-name: 'gw-mqtt'
+        run: |
+          docker run -d \
+            --name gw-mqtt \
+            -p 1883:1883 \
+            -p 8883:8883 \
+            -v ${{ github.workspace }}/tests/config/gw_mosquitto.conf:/mosquitto/config/mosquitto.conf:ro \
+            -v ${{ github.workspace }}/tests/.ci-ca:/mosquitto-certs:ro \
+            eclipse-mosquitto:2
 
       - name: Wait for 'GridWorks' Mosquitto
         uses: iFaxity/wait-on-action@v1.1.0

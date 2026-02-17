@@ -3,7 +3,7 @@ import asyncio
 import json
 import random
 import time
-import datetime
+from datetime import datetime, timedelta
 import uuid
 from pathlib import Path
 from typing import Optional, Callable
@@ -219,8 +219,7 @@ class LtnContractHandler:
 
         oil_boiler_on = False
         if watthours > 0 and self.use_oil_as_fuel_substitute():
-            if watthours > 2500:
-                oil_boiler_on = True
+            oil_boiler_on = True
             watthours = 0
 
         duration_minutes=60
@@ -258,7 +257,18 @@ class LtnContractHandler:
                 )
             )
 
+    def is_onpeak(self) -> bool:
+        time_now = datetime.now(self.timezone)
+        time_in_2min = time_now + timedelta(minutes=2)
+        peak_hours = [7,8,9,10,11] + [16,17,18,19]
+        if (time_now.hour in peak_hours or time_in_2min.hour in peak_hours) and time_now.weekday() < 5:
+            return True
+        else:
+            return False
+
     def use_oil_as_fuel_substitute(self) -> bool:
+        if not self.is_onpeak():
+            return False
         if self.latest_price is None:
             return False
         if self.latest_price.PriceUnit != MarketPriceUnit.USDPerMWh:
@@ -409,17 +419,17 @@ class LtnContractHandler:
         if not hb:
             return ""
         
-        slot_start = datetime.datetime.fromtimestamp(
+        slot_start = datetime.fromtimestamp(
             hb.Contract.StartS, 
             tz=self.timezone
         ).strftime('%H:%M')
 
-        slot_end = datetime.datetime.fromtimestamp(
+        slot_end = datetime.fromtimestamp(
             hb.Contract.contract_end_s(), 
             tz=self.timezone
         ).strftime('%H:%M')
 
-        created_time = datetime.datetime.fromtimestamp(
+        created_time = datetime.fromtimestamp(
             hb.MessageCreatedMs / 1000, 
             tz=self.timezone
         ).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]

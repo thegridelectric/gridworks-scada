@@ -1276,19 +1276,22 @@ class ShNodeActor(Actor, ABC):
         # Conservative near-term requirement (next ~3 hours)
         max_rswt = max(self.heating_forecast.RswtF[:3])
         max_delta_t = max(self.heating_forecast.RswtDeltaTF[:3])
+        if all_tanks_leaf_ally and self.settings.short_cycle_buffer:
+            min_buffer_temp_f = round(max_rswt - max_delta_t, 1)
+        else:
+            min_buffer_temp_f = round(max_rswt, 1)
 
-        min_buffer_temp_f = round(max_rswt - max_delta_t, 1)
         min_buffer_temp_f = min(min_buffer_temp_f, self.data.ha1_params.MaxEwtF-10)
         buffer_temp_f = self.latest_temps_f[buffer_empty_ch]
 
         if buffer_temp_f < min_buffer_temp_f:
             self.log(
-                f"Buffer empty ({buffer_empty_ch}: {buffer_temp_f} < {min_buffer_temp_f} F)"
+                f"Buffer empty ({buffer_empty_ch}: {buffer_temp_f} < {min_buffer_temp_f} F), RSWT is {max_rswt}F"
             )
             return True
         else:
             self.log(
-                f"Buffer not empty ({buffer_empty_ch}: {buffer_temp_f} >= {min_buffer_temp_f} F)"
+                f"Buffer not empty ({buffer_empty_ch}: {buffer_temp_f} >= {min_buffer_temp_f} F), RSWT is {max_rswt}F"
             )
             return False
 
@@ -1334,19 +1337,20 @@ class ShNodeActor(Actor, ABC):
 
         if self.heating_forecast is None:
             max_buffer = self.data.ha1_params.MaxEwtF
+            max_rswt = 0
         else:
-            max_buffer = round(max(self.heating_forecast.RswtF[:3]), 1)
-            max_buffer = min(max_buffer, self.data.ha1_params.MaxEwtF)
+            max_rswt = round(max(self.heating_forecast.RswtF[:3]), 1)
+            max_buffer = min(max_rswt, self.data.ha1_params.MaxEwtF)
 
         buffer_full_ch_temp = self.latest_temps_f[buffer_full_ch]
         if buffer_full_ch_temp > max_buffer:
             self.log(
-                f"Buffer full ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)"
+                f"Buffer full ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F), RSWT is {max_rswt} F"
             )
             return True
         else:
             self.log(
-                f"Buffer not full ({buffer_full_ch}: {buffer_full_ch_temp} <= {max_buffer} F)"
+                f"Buffer not full ({buffer_full_ch}: {buffer_full_ch_temp} <= {max_buffer} F), RSWT is {max_rswt} F"
             )
             return False
 
