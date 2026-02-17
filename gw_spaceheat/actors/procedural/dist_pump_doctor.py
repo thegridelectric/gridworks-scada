@@ -100,7 +100,7 @@ class DistPumpDoctor:
                     ),
             )
         
-            await h.await_with_watchdog(5)
+            await h.await_with_watchdog(15)
 
             for zone in h.layout.zone_list:
                 h.stat_ops_close_relay(zone=zone, command_node=self.host.command_node)

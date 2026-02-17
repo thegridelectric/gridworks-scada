@@ -92,7 +92,7 @@ class StorePumpDoctor:
                 ),
             )
 
-            await h.await_with_watchdog(5)
+            await h.await_with_watchdog(15)
 
             h.turn_on_store_pump()
 
