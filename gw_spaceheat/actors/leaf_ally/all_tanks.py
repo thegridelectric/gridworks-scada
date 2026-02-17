@@ -22,7 +22,7 @@ from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 from gwsproto.enums import  (
 LeafAllyAllTanksState, LeafAllyAllTanksEvent, LogLevel,
-SystemMode,
+SystemMode, HpModel,
 )
 from gwsproto.named_types import (
     AllyGivesUp, GoDormant, Ha1Params,
@@ -300,8 +300,11 @@ class AllTanksLeafAlly(ShNodeActor):
                 if self.hp_should_be_off():
                     self.trigger_event(LeafAllyAllTanksEvent.NoMoreElec)
                 elif self.is_buffer_full() and not self.is_storage_full():
-                    if self.time_hp_turned_on is not None and time.time() - self.time_hp_turned_on < 15 * 60:
-                        self.log(f"HP warmup: {round((time.time() - self.time_hp_turned_on) / 60, 1)} min since HP turned on, waiting 15 min before charging store")
+                    lg_heat_pump = self.settings.hp_model.value == HpModel.LgHighTempHydroKitPlusMultiV.value
+                    hp_lwt = self.latest_temps_f.get(self.layout.h0cn.hp_lwt)
+                    store_top = self.latest_temps_f.get(self.layout.h0cn.tank[1].depth1)
+                    if lg_heat_pump and hp_lwt is not None and store_top is not None and hp_lwt < store_top - 10:
+                        self.log(f"HP warmup: hp-lwt {hp_lwt:.1f}F < store-top {store_top:.1f}F - 5, waiting before charging store")
                     else:
                         self.trigger_event(LeafAllyAllTanksEvent.ElecBufferFull)
 
