@@ -11,5 +11,5 @@ then
 	echo "Usage: $0"
 	exit 0
 fi
-export PYTHON=python3.11
+
 ./tools/mkenv.sh "gw_spaceheat/requirements/drivers.txt" "no_admin" "no_flo"
