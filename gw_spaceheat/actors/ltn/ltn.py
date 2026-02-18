@@ -280,6 +280,7 @@ class Ltn(PrimeActor):
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.latitude = self.settings.latitude
         self.longitude = self.settings.longitude
+        self.flo_horizon_hours = self.settings.flo_horizon_hours
         self.sent_bid = False
         self.flo_params = None
         self.hp_is_off = False
@@ -772,21 +773,28 @@ class Ltn(PrimeActor):
             self.log("Not running flo - no ha1_params")
             return
 
-        # Crop weather and price forecasts to the shortest of the two
-        # And adjust the horizon accordingly
-        # For now limit to 48 as we are CPU-constrained on the ec2 instances
-        horizon = min(MAX_HORIZON_HOURS, len(self.weather_forecast["oat"]), len(self.price_forecast.lmp_usd_per_mwh))
-        self.log(f"{horizon} hour horizon")
-        self.weather_forecast["oat"] = self.weather_forecast["oat"][:horizon]
-        self.weather_forecast["ws"] = self.weather_forecast["ws"][:horizon]
-        self.price_forecast.lmp_usd_per_mwh = self.price_forecast.lmp_usd_per_mwh[:horizon]
-        self.price_forecast.dp_usd_per_mwh = self.price_forecast.dp_usd_per_mwh[:horizon]
-        self.price_forecast.reg_usd_per_mwh = self.price_forecast.reg_usd_per_mwh[:horizon]
+        # Crop weather and price forecasts to the horizon
+        self.log(f"Settings ask for a {self.flo_horizon_hours} hour horizon")
+        if self.flo_horizon_hours > MAX_HORIZON_HOURS:
+            self.log(f"Horizon hours is greater than max allowed {MAX_HORIZON_HOURS}!")
+            self.flo_horizon_hours = MAX_HORIZON_HOURS
+        if self.flo_horizon_hours > len(self.weather_forecast["oat"]):
+            self.log(f"Horizon hours is greater than weather forecast length {len(self.weather_forecast['oat'])}!")
+            self.flo_horizon_hours = self.weather_forecast["oat"]
+        if self.flo_horizon_hours > len(self.price_forecast.lmp_usd_per_mwh):
+            self.log(f"Horizon hours is greater than price forecast length {len(self.price_forecast.lmp_usd_per_mwh)}!")
+            self.flo_horizon_hours = len(self.price_forecast.lmp_usd_per_mwh)
+        self.log(f"Using a {self.flo_horizon_hours} hour horizon")
+        self.weather_forecast["oat"] = self.weather_forecast["oat"][:self.flo_horizon_hours]
+        self.weather_forecast["ws"] = self.weather_forecast["ws"][:self.flo_horizon_hours]
+        self.price_forecast.lmp_usd_per_mwh = self.price_forecast.lmp_usd_per_mwh[:self.flo_horizon_hours]
+        self.price_forecast.dp_usd_per_mwh = self.price_forecast.dp_usd_per_mwh[:self.flo_horizon_hours]
+        self.price_forecast.reg_usd_per_mwh = self.price_forecast.reg_usd_per_mwh[:self.flo_horizon_hours]
 
         self.flo_params = FloParamsHouse0(
             GNodeAlias=self.layout.scada_g_node_alias,
             StartUnixS=dijkstra_start_time,
-            HorizonHours=horizon,
+            HorizonHours=self.flo_horizon_hours,
             InitialTopTempF=int(t),
             InitialMiddleTempF=int(m),
             InitialBottomTempF=int(b),
