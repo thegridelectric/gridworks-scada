@@ -61,6 +61,11 @@ class ScadaSettings(AppSettings):
     dd_delta_t: float = 20
     is_simulated: bool = False
     max_ewt_f: int = 170
+    cop_intercept: float = 1.02
+    cop_oat_coeff: float = 0.0257
+    cop_lwt_coeff: float = 0
+    cop_min: float = 1.4
+    cop_min_oat_f: float = 15
     short_cycle_buffer: bool = False
     load_overestimation_percent: int = 0
     oil_boiler_backup: bool = True
