@@ -2,6 +2,7 @@ import importlib.metadata
 import logging
 
 import dotenv
+import pyfiglet
 from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -10,7 +11,6 @@ from textual.containers import HorizontalGroup
 from textual.logging import TextualHandler
 from textual.widgets import Button
 from textual.widgets import DataTable
-from textual.widgets import Digits
 from textual.widgets import Header, Footer
 from textual.widgets import Input
 from textual.widgets import Select
@@ -43,23 +43,30 @@ class ActiveScadaBanner(Static):
     ActiveScadaBanner {
         background: #4b1f6f;
         border: round #6f3fa5;
-        height: 5;
-        min-width: 26;
-        align: center middle;
+        height: auto;
+        min-height: 3;
+        width: auto;
+        content-align: center middle;
         padding: 0 3;
+        color: white;
+        text-style: bold;
     }
     """
 
     def __init__(self, scada: str, **kwargs):
         super().__init__(**kwargs)
-        self._digits = Digits()
-        self._digits.update(scada.upper())
+        self._scada = scada
 
-    def compose(self):
-        yield self._digits
+    @staticmethod
+    def _render_name(scada: str) -> str:
+        return pyfiglet.figlet_format(scada.upper(), font="small").rstrip("\n")
+
+    def on_mount(self) -> None:
+        self.update(self._render_name(self._scada))
 
     def set_scada(self, scada: str) -> None:
-        self._digits.update(scada.upper())
+        self._scada = scada
+        self.update(self._render_name(scada))
 
 
 class RelaysApp(App):
