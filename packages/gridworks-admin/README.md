@@ -9,6 +9,12 @@ Install for the current user with:
 uv tool install gridworks-admin
 ```
 
+To upgrade:
+
+```shell
+uv tool upgrade gridworks-admin
+```
+
 and then run the admin with:
 
 ```shell
