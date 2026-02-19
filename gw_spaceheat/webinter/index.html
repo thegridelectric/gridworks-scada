@@ -1,0 +1,2476 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GridWorks | Dashboard and Admin Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Fixed Status Bar -->
+    <div id="status" style="position: fixed; top: 0; left: 0; right: 0; background-color: var(--card-background); border-bottom: 1px solid var(--border-color); padding: 8px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 1000;">
+        <div id="status-left" style="font-size: 1.5em;">Connecting...</div>
+        <div id="status-right"></div>
+    </div>
+    
+    <!-- Main Content -->
+    <div id="main-content" style="padding-top: 60px;">
+        <h1 style="text-align: center; margin-top: 30px; margin-bottom: 0px;">Dashboard</h1>
+        <div id="last-snapshot-timestamp" style="text-align: center; margin-top: 10px; margin-bottom: -5px; color: #888; font-size: 13px;">
+            Last snapshot: <span id="snapshot-time">-</span>
+        </div>
+        
+        <!-- System Diagram -->
+        <div id="system-diagram" style="text-align: center; max-width: 1200px; margin: 0 auto 40px auto;">
+            <svg id="diagram-svg" viewBox="0 0 1000 500" style="width: 100%; height: auto; max-width: 1000px;">
+                <defs>
+                    <!-- Dynamic gradient for heat pump animation (EWT to LWT) -->
+                    <linearGradient id="heatGradient" x1="0%" y1="100%" x2="0%" y2="0%">
+                        <stop id="ewt-stop" offset="25%" style="stop-color:#888; stop-opacity:1" />
+                        <stop id="lwt-stop" offset="75%" style="stop-color:#888; stop-opacity:1" />
+                    </linearGradient>
+                    
+                    <!-- Dynamic gradient for house animation (dist-rwt to dist-swt, left to right) -->
+                    <linearGradient id="houseHeatGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop id="dist-rwt-stop" offset="25%" style="stop-color:#888; stop-opacity:1" />
+                        <stop id="dist-swt-stop" offset="75%" style="stop-color:#888; stop-opacity:1" />
+                    </linearGradient>
+                    
+                    <!-- Flow pattern for HpOffStoreDischarge top horizontal pipe -->
+                    <pattern id="flowPattern" x="0" y="0" width="90" height="15" patternUnits="userSpaceOnUse">
+                        <rect width="90" height="15" fill="#4CAF50"/>
+                        <rect x="0" y="0" width="15" height="15" fill="#66BB6A"/>
+                        <rect x="30" y="0" width="15" height="15" fill="#66BB6A"/>
+                        <rect x="60" y="0" width="15" height="15" fill="#66BB6A"/>
+                        <animateTransform
+                            attributeName="patternTransform"
+                            type="translate"
+                            values="0 0; 90 0"
+                            dur="1.2s"
+                            repeatCount="indefinite"/>
+                    </pattern>
+                    
+                    <!-- Flow pattern for HpOffStoreDischarge vertical pipe (upward flow) -->
+                    <pattern id="verticalFlowPattern" x="0" y="0" width="15" height="90" patternUnits="userSpaceOnUse">
+                        <rect width="15" height="90" fill="#4CAF50"/>
+                        <rect x="0" y="0" width="15" height="15" fill="#66BB6A"/>
+                        <rect x="0" y="30" width="15" height="15" fill="#66BB6A"/>
+                        <rect x="0" y="60" width="15" height="15" fill="#66BB6A"/>
+                        <animateTransform
+                            attributeName="patternTransform"
+                            type="translate"
+                            values="0 0; 0 -90"
+                            dur="1.2s"
+                            repeatCount="indefinite"/>
+                    </pattern>
+                    
+                    <!-- Flow pattern for HpOffStoreDischarge vertical pipe (downward flow) -->
+                    <pattern id="verticalDownFlowPattern" x="0" y="0" width="15" height="90" patternUnits="userSpaceOnUse">
+                        <rect width="15" height="90" fill="#4CAF50"/>
+                        <rect x="0" y="0" width="15" height="15" fill="#66BB6A"/>
+                        <rect x="0" y="30" width="15" height="15" fill="#66BB6A"/>
+                        <rect x="0" y="60" width="15" height="15" fill="#66BB6A"/>
+                        <animateTransform
+                            attributeName="patternTransform"
+                            type="translate"
+                            values="0 0; 0 90"
+                            dur="1.2s"
+                            repeatCount="indefinite"/>
+                    </pattern>
+                    
+                    <!-- Flow pattern for HpOffStoreDischarge horizontal pipe (leftward flow) -->
+                    <pattern id="leftFlowPattern" x="0" y="0" width="90" height="15" patternUnits="userSpaceOnUse">
+                        <rect width="90" height="15" fill="#4CAF50"/>
+                        <rect x="0" y="0" width="15" height="15" fill="#66BB6A"/>
+                        <rect x="30" y="0" width="15" height="15" fill="#66BB6A"/>
+                        <rect x="60" y="0" width="15" height="15" fill="#66BB6A"/>
+                        <animateTransform
+                            attributeName="patternTransform"
+                            type="translate"
+                            values="0 0; -90 0"
+                            dur="1.2s"
+                            repeatCount="indefinite"/>
+                    </pattern>
+                    
+                    <!-- Moving heat lines pattern -->
+                    <pattern id="heatLinesPattern" x="0" y="0" width="20" height="120" patternUnits="userSpaceOnUse">
+                        <path d="M 3,10 Q 10,7 17,10 Q 10,13 3,10" fill="#999" opacity="0.12"/>
+                        <path d="M 3,30 Q 10,27 17,30 Q 10,33 3,30" fill="#999" opacity="0.12"/>
+                        <path d="M 3,50 Q 10,47 17,50 Q 10,53 3,50" fill="#999" opacity="0.12"/>
+                        <path d="M 3,70 Q 10,67 17,70 Q 10,73 3,70" fill="#999" opacity="0.12"/>
+                        <path d="M 3,90 Q 10,87 17,90 Q 10,93 3,90" fill="#999" opacity="0.12"/>
+                        <path d="M 3,110 Q 10,107 17,110 Q 10,113 3,110" fill="#999" opacity="0.12"/>
+                        <animateTransform
+                            attributeName="patternTransform"
+                            type="translate"
+                            values="0 0; 0 -120"
+                            dur="3s"
+                            repeatCount="indefinite"/>
+                    </pattern>
+                    
+                    <!-- Buffer heat lines pattern - top to bottom flow -->
+                    <pattern id="bufferHeatLinesTopToBottom" x="0" y="0" width="20" height="120" patternUnits="userSpaceOnUse">
+                        <path d="M 3,10 Q 10,7 17,10 Q 10,13 3,10" fill="#999" opacity="0.12"/>
+                        <path d="M 3,30 Q 10,27 17,30 Q 10,33 3,30" fill="#999" opacity="0.12"/>
+                        <path d="M 3,50 Q 10,47 17,50 Q 10,53 3,50" fill="#999" opacity="0.12"/>
+                        <path d="M 3,70 Q 10,67 17,70 Q 10,73 3,70" fill="#999" opacity="0.12"/>
+                        <path d="M 3,90 Q 10,87 17,90 Q 10,93 3,90" fill="#999" opacity="0.12"/>
+                        <path d="M 3,110 Q 10,107 17,110 Q 10,113 3,110" fill="#999" opacity="0.12"/>
+                        <animateTransform
+                            attributeName="patternTransform"
+                            type="translate"
+                            values="0 0; 0 120"
+                            dur="3s"
+                            repeatCount="indefinite"/>
+                    </pattern>
+                    
+                    <!-- Buffer heat lines pattern - bottom to top flow -->
+                    <pattern id="bufferHeatLinesBottomToTop" x="0" y="0" width="20" height="120" patternUnits="userSpaceOnUse">
+                        <path d="M 3,10 Q 10,7 17,10 Q 10,13 3,10" fill="#999" opacity="0.12"/>
+                        <path d="M 3,30 Q 10,27 17,30 Q 10,33 3,30" fill="#999" opacity="0.12"/>
+                        <path d="M 3,50 Q 10,47 17,50 Q 10,53 3,50" fill="#999" opacity="0.12"/>
+                        <path d="M 3,70 Q 10,67 17,70 Q 10,73 3,70" fill="#999" opacity="0.12"/>
+                        <path d="M 3,90 Q 10,87 17,90 Q 10,93 3,90" fill="#999" opacity="0.12"/>
+                        <path d="M 3,110 Q 10,107 17,110 Q 10,113 3,110" fill="#999" opacity="0.12"/>
+                        <animateTransform
+                            attributeName="patternTransform"
+                            type="translate"
+                            values="0 120; 0 0"
+                            dur="3s"
+                            repeatCount="indefinite"/>
+                    </pattern>
+                    
+                    <!-- Moving heat lines pattern for house (uniform, seamless) -->
+                    <pattern id="houseHeatLinesPattern" x="0" y="0" width="120" height="20" patternUnits="userSpaceOnUse">
+                        <path d="M 10,3 Q 7,10 10,17 Q 13,10 10,3" fill="#999" opacity="0.12"/>
+                        <path d="M 30,3 Q 27,10 30,17 Q 33,10 30,3" fill="#999" opacity="0.12"/>
+                        <path d="M 50,3 Q 47,10 50,17 Q 53,10 50,3" fill="#999" opacity="0.12"/>
+                        <path d="M 70,3 Q 67,10 70,17 Q 73,10 70,3" fill="#999" opacity="0.12"/>
+                        <path d="M 90,3 Q 87,10 90,17 Q 93,10 90,3" fill="#999" opacity="0.12"/>
+                        <path d="M 110,3 Q 107,10 110,17 Q 113,10 110,3" fill="#999" opacity="0.12"/>
+                        <animateTransform
+                            attributeName="patternTransform"
+                            type="translate"
+                            values="0 0; -120 0"
+                            dur="3s"
+                            repeatCount="indefinite"/>
+                    </pattern>
+                    
+                    <!-- Tank heat lines pattern - top to bottom flow -->
+                    <pattern id="tankHeatLinesTopToBottom" x="0" y="0" width="20" height="120" patternUnits="userSpaceOnUse">
+                        <path d="M 3,10 Q 10,7 17,10 Q 10,13 3,10" fill="#999" opacity="0.12"/>
+                        <path d="M 3,30 Q 10,27 17,30 Q 10,33 3,30" fill="#999" opacity="0.12"/>
+                        <path d="M 3,50 Q 10,47 17,50 Q 10,53 3,50" fill="#999" opacity="0.12"/>
+                        <path d="M 3,70 Q 10,67 17,70 Q 10,73 3,70" fill="#999" opacity="0.12"/>
+                        <path d="M 3,90 Q 10,87 17,90 Q 10,93 3,90" fill="#999" opacity="0.12"/>
+                        <path d="M 3,110 Q 10,107 17,110 Q 10,113 3,110" fill="#999" opacity="0.12"/>
+                        <animateTransform
+                            attributeName="patternTransform"
+                            type="translate"
+                            values="0 0; 0 120"
+                            dur="3s"
+                            repeatCount="indefinite"/>
+                    </pattern>
+                    
+                    <!-- Tank heat lines pattern - bottom to top flow -->
+                    <pattern id="tankHeatLinesBottomToTop" x="0" y="0" width="20" height="120" patternUnits="userSpaceOnUse">
+                        <path d="M 3,10 Q 10,7 17,10 Q 10,13 3,10" fill="#999" opacity="0.12"/>
+                        <path d="M 3,30 Q 10,27 17,30 Q 10,33 3,30" fill="#999" opacity="0.12"/>
+                        <path d="M 3,50 Q 10,47 17,50 Q 10,53 3,50" fill="#999" opacity="0.12"/>
+                        <path d="M 3,70 Q 10,67 17,70 Q 10,73 3,70" fill="#999" opacity="0.12"/>
+                        <path d="M 3,90 Q 10,87 17,90 Q 10,93 3,90" fill="#999" opacity="0.12"/>
+                        <path d="M 3,110 Q 10,107 17,110 Q 10,113 3,110" fill="#999" opacity="0.12"/>
+                        <animateTransform
+                            attributeName="patternTransform"
+                            type="translate"
+                            values="0 120; 0 0"
+                            dur="3s"
+                            repeatCount="indefinite"/>
+                    </pattern>
+                </defs>
+
+                <!-- Heat pump -->
+                <rect x="20" y="50" width="120" height="200" rx="10" fill="#888"/>
+                <g id="hp-animation" style="display: none;">
+                    <rect x="20" y="50" width="120" height="200" rx="10" fill="url(#heatGradient)"/>
+                    <rect x="20" y="50" width="120" height="200" rx="10" fill="url(#heatLinesPattern)"/>
+                </g>
+                <text x="80" y="270" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">Heat pump</text>
+                <text id="hp-lift" x="80" y="150" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">Lift<tspan x="80" dy="1.2em">-°F</tspan>
+                </text>
+                
+                <!-- Buffer -->
+                <rect x="860" y="50" width="120" height="200" rx="10" fill="transparent"/>
+                <g id="buffer-animation" style="display: none;">
+                    <rect x="860" y="50" width="120" height="200" rx="10" fill="url(#bufferHeatLinesTopToBottom)"/>
+                </g>
+                <!-- Buffer sections -->
+                <path id="buffer-section1" d="M 860,60 Q 860,50 870,50 L 970,50 Q 980,50 980,60 L 980,116 L 860,116 Z" fill="#444"/>
+                <rect id="buffer-section2" x="860" y="116" width="120" height="66" fill="#444"/>
+                <path id="buffer-section3" d="M 860,182 L 980,182 L 980,240 Q 980,250 970,250 L 870,250 Q 860,250 860,240 Z" fill="#444"/>
+                <text id="buffer-depth1" x="920" y="90" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <text id="buffer-depth2" x="920" y="156" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <text id="buffer-depth3" x="920" y="222" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <text x="920" y="270" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">Buffer</text>
+                
+                <!-- House (bottom right, left of buffer) -->
+                <rect x="660" y="280" width="120" height="200" rx="10" fill="#888"/>
+                <g id="house-animation" style="display: none;">
+                    <rect x="660" y="280" width="120" height="200" rx="10" fill="url(#houseHeatGradient)"/>
+                    <rect x="660" y="280" width="120" height="200" rx="10" fill="url(#houseHeatLinesPattern)"/>
+                </g>
+                <text x="720" y="500" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">House</text>
+                <text id="house-drop" x="720" y="380" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="16" font-weight="600">Drop<tspan x="720" dy="1.2em">-°F</tspan>
+                </text>
+                
+                <!-- Tank 3 (bottom left) -->
+                <rect x="200" y="280" width="120" height="200" rx="10" fill="transparent"/>
+                <g id="tank3-animation" style="display: none;">
+                    <rect x="200" y="280" width="120" height="200" rx="10" fill="url(#tankHeatLinesTopToBottom)"/>
+                </g>
+                <!-- Tank 3 sections -->
+                <path id="tank3-section1" d="M 200,290 Q 200,280 210,280 L 310,280 Q 320,280 320,290 L 320,346 L 200,346 Z" fill="#444"/>
+                <rect id="tank3-section2" x="200" y="346" width="120" height="66" fill="#444"/>
+                <path id="tank3-section3" d="M 200,412 L 320,412 L 320,470 Q 320,480 310,480 L 210,480 Q 200,480 200,470 Z" fill="#444"/>
+                <text id="tank3-depth1" x="260" y="320" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <text id="tank3-depth2" x="260" y="386" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <text id="tank3-depth3" x="260" y="452" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <text x="260" y="500" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">Tank 3</text>
+                
+                <!-- Tank 2 (bottom center) -->
+                <rect x="330" y="280" width="120" height="200" rx="10" fill="transparent"/>
+                <g id="tank2-animation" style="display: none;">
+                    <rect x="330" y="280" width="120" height="200" rx="10" fill="url(#tankHeatLinesTopToBottom)"/>
+                </g>
+                <!-- Tank 2 sections -->
+                <path id="tank2-section1" d="M 330,290 Q 330,280 340,280 L 440,280 Q 450,280 450,290 L 450,346 L 330,346 Z" fill="#444"/>
+                <rect id="tank2-section2" x="330" y="346" width="120" height="66" fill="#444"/>
+                <path id="tank2-section3" d="M 330,412 L 450,412 L 450,470 Q 450,480 440,480 L 340,480 Q 330,480 330,470 Z" fill="#444"/>
+                <text id="tank2-depth1" x="390" y="320" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <text id="tank2-depth2" x="390" y="386" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <text id="tank2-depth3" x="390" y="452" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <text x="390" y="500" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">Tank 2</text>
+                
+                <!-- Tank 1 (bottom right) -->
+                <rect x="460" y="280" width="120" height="200" rx="10" fill="transparent"/>
+                <g id="tank1-animation" style="display: none;">
+                    <rect x="460" y="280" width="120" height="200" rx="10" fill="url(#tankHeatLinesTopToBottom)"/>
+                </g>
+                <!-- Tank 1 sections -->
+                <path id="tank1-section1" d="M 460,290 Q 460,280 470,280 L 570,280 Q 580,280 580,290 L 580,346 L 460,346 Z" fill="#444"/>
+                <rect id="tank1-section2" x="460" y="346" width="120" height="66" fill="#444"/>
+                <path id="tank1-section3" d="M 460,412 L 580,412 L 580,470 Q 580,480 570,480 L 470,480 Q 460,480 460,470 Z" fill="#444"/>
+                <text id="tank1-depth1" x="520" y="320" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <text id="tank1-depth2" x="520" y="386" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <text id="tank1-depth3" x="520" y="452" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <text x="520" y="500" text-anchor="middle" fill="var(--text-color)" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">Tank 1</text>
+                
+                <!-- Store hot pipe temperature label (above Tank 1) -->
+                <text id="store-hot-pipe" x="560" y="260" text-anchor="middle" fill="#888" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                
+                <!-- Store cold pipe temperature label (left of Tank 3) -->
+                <text id="store-cold-pipe" x="145" y="430" text-anchor="middle" fill="#888" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                
+                <!-- Top pipe (from top of heat pump to top of buffer) -->
+                <rect id="hp-buffer-top-pipe" x="140" y="75" width="720" height="15" fill="#888"/>
+                <text id="hp-lwt" x="170" y="70" text-anchor="middle" fill="#888" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+
+                <!-- Bottom pipe (from bottom of heat pump to bottom of buffer) -->
+                <rect id="hp-buffer-bottom-pipe" x="140" y="215" width="720" height="15" fill="#888"/>
+                <text id="hp-ewt" x="170" y="210" text-anchor="middle" fill="#888" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+
+                <!-- Horizontal pipe from Tank1 vertical pipe to heat pump top (HpOnStoreCharge) -->
+                <rect id="tank1-hp-horizontal-pipe-charge" x="140" y="75" width="465" height="15" fill="#888"/>
+                
+                <!-- Horizontal pipe from Tank3 vertical pipe to heat pump bottom (HpOnStoreCharge) -->
+                <rect id="tank3-hp-horizontal-pipe-charge" x="140" y="215" width="50" height="15" fill="#888"/>
+
+                <!-- Vertical pipe from Tank 1 to heat pump top pipe (HpOffStoreDischarge) -->
+                <rect id="tank1-hp-vertical-pipe" x="590" y="90" width="15" height="205" fill="#888"/>
+                
+                <!-- Horizontal pipe from Tank1-HP vertical pipe to buffer top (HpOffStoreDischarge) -->
+                <rect id="tank1-buffer-horizontal-pipe" x="590" y="75" width="270" height="15" fill="#888"/>
+                
+                <!-- Small horizontal pipe from bottom of vertical pipe to top of Tank1 (HpOffStoreDischarge) -->
+                <rect id="tank1-connection-pipe" x="580" y="295" width="25" height="15" fill="#888"/>
+                
+                <!-- Vertical pipe from bottom left of Tank3 to HP-Buffer bottom pipe (HpOffStoreDischarge) -->
+                <rect id="tank3-hp-vertical-pipe" x="175" y="220" width="15" height="220" fill="#888"/>
+                
+                <!-- Horizontal pipe from top of Tank3 vertical pipe to bottom of buffer (HpOffStoreDischarge) -->
+                <rect id="tank3-buffer-horizontal-pipe" x="175" y="215" width="685" height="15" fill="#888"/>
+                
+                <!-- Small horizontal pipe from Tank3 vertical pipe to bottom of Tank3 (HpOffStoreDischarge) -->
+                <rect id="tank3-connection-pipe" x="175" y="440" width="25" height="15" fill="#888"/>
+                
+                <!-- Vertical pipe from Tank1 to heat pump top pipe (HpOnStoreCharge) -->
+                <rect id="tank1-hp-vertical-pipe-charge" x="590" y="90" width="15" height="205" fill="#888"/>
+                
+                <!-- Vertical pipe from bottom left of Tank3 to HP-Buffer bottom pipe (HpOnStoreCharge) -->
+                <rect id="tank3-hp-vertical-pipe-charge" x="175" y="220" width="15" height="220" fill="#888"/>
+                
+                <!-- Small horizontal pipe from Tank1 vertical pipe to top of Tank1 (HpOnStoreCharge) -->
+                <rect id="tank1-connection-pipe-charge" x="580" y="295" width="25" height="15" fill="#888"/>
+
+                <!-- Small horizontal pipe from Tank3 vertical pipe to bottom of Tank3 (HpOnStoreCharge) -->
+                <rect id="tank3-connection-pipe-charge" x="175" y="440" width="25" height="15" fill="#888"/>
+                
+                <!-- Vertical pipe from House to heat pump top pipe -->
+                <rect id="house-hp-vertical-pipe" x="790" y="90" width="15" height="280" fill="#888"/>
+                
+                <!-- Small horizontal pipe from House vertical pipe to top of House -->
+                <rect id="house-connection-pipe" x="780" y="370" width="25" height="15" fill="#888"/>
+                
+                <!-- Vertical pipe from House bottom to heat pump bottom pipe -->
+                <rect id="house-hp-vertical-pipe-bottom" x="635" y="230" width="15" height="140" fill="#888"/>
+                
+                <!-- Small horizontal pipe from House vertical pipe to bottom of House -->
+                <rect id="house-connection-pipe-bottom" x="635" y="370" width="25" height="15" fill="#888"/>
+                
+                <!-- Dist system labels -->
+                <text id="dist-swt" x="810" y="405" text-anchor="middle" fill="#888" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <text id="dist-rwt" x="630" y="405" text-anchor="middle" fill="#888" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                
+                <!-- Horizontal pipe from top of right House vertical to buffer top -->
+                <rect id="house-buffer-top-pipe" x="790" y="75" width="70" height="15" fill="#888"/>
+                
+                <!-- Horizontal pipe from top of left House vertical to buffer bottom -->
+                <rect id="house-buffer-bottom-pipe" x="635" y="215" width="225" height="15" fill="#888"/>
+                
+                <!-- Buffer pipe temperature labels -->
+                <text id="buffer-hot-pipe" x="830" y="70" text-anchor="middle" fill="#888" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                <text id="buffer-cold-pipe" x="830" y="210" text-anchor="middle" fill="#888" font-family="Montserrat, sans-serif" font-size="14" font-weight="600">-</text>
+                
+            </svg>
+        </div>
+
+        <!-- System Monitoring Tables -->
+        <div id="monitoring-tables" style="max-width: 1400px; margin: 20px auto 40px auto; display: flex; flex-wrap: wrap; gap: 30px; justify-content: center;">
+            <!-- Thermostats and Hot Water Table -->
+            <div>
+                <table id="thermostat-table" style="border: 1px solid var(--border-color); border-collapse: collapse; border-radius: 0.25rem; background-color: var(--card-background); margin: 0 auto;">
+                    <thead>
+                        <tr style="background-color: #f0f0f0;">
+                            <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">Thermostats</th>
+                            <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">Setpoint</th>
+                            <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">Temperature</th>
+                            <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">State</th>
+                        </tr>
+                    </thead>
+                    <tbody id="thermostat-tbody">
+                        <tr>
+                            <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
+                            <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
+                            <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
+                            <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- HP Power Table -->
+            <div>
+                <table id="hp-power-table" style="border: 1px solid var(--border-color); border-collapse: collapse; border-radius: 0.25rem; background-color: var(--card-background); margin: 0 auto;">
+                    <thead>
+                        <tr style="background-color: #f0f0f0;">
+                            <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">Heat pump</th>
+                            <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">kW</th>
+                        </tr>
+                    </thead>
+                    <tbody id="hp-power-tbody">
+                        <tr>
+                            <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
+                            <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pump Table -->
+            <div>
+                <table id="pump-table" style="border: 1px solid var(--border-color); border-collapse: collapse; border-radius: 0.25rem; background-color: var(--card-background); margin: 0 auto;">
+                    <thead>
+                        <tr style="background-color: #f0f0f0;">
+                            <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">Pumps</th>
+                            <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">GPM</th>
+                            <th style="border: 1px solid var(--border-color); padding: 8px; text-align: left; font-weight: bold;">W</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pump-tbody">
+                        <tr>
+                            <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
+                            <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
+                            <td style="border: 1px solid var(--border-color); padding: 8px;">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Test Mode Dropdown -->
+        <div style="text-align: center; margin: 20px auto 60px auto; display: none;">
+            <label for="testModeSelect" style="color: var(--text-color); font-family: Montserrat, sans-serif; font-size: 14px; margin-right: 10px;">Show system state:</label>
+            <select id="testModeSelect" style="padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; background: var(--bg-color); color: var(--text-color); font-family: Montserrat, sans-serif; font-size: 14px;">
+                <option value="Auto" selected>Real system state</option>
+                <option value="HpOnStoreOff">HpOnStoreOff</option>
+                <option value="HpOnStoreCharge">HpOnStoreCharge</option>
+                <option value="HpOffStoreDischarge">HpOffStoreDischarge</option>
+                <option value="HpOffStoreOff">HpOffStoreOff</option>
+            </select>
+        </div>
+
+        <!-- Horizontal separator line -->
+        <hr style="border: none; border-top: 1px solid var(--border-color); margin: 60px auto 60px auto; max-width: 1200px;">
+
+        <!-- Admin panel -->
+        <h1 style="text-align: center; margin-top: 20px; margin-bottom: 20px;">Admin panel</h1>
+        <div id="control-panel" style="text-align: center; max-width: 770px; margin: 0px auto 20px auto; background-color: transparent; border: 0px solid #ddd; border-radius: 3px; padding: 20px;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 20px; flex-wrap: wrap;">
+                <div id="timer-display" style="font-family: monospace; font-size: 25px; color: #333; font-weight: bold; margin-right: 20px;">00:00:00</div>
+                <div style="display: inline-block;">
+                    <label for="timeout-input">Timeout (minutes):</label>
+                    <input type="number" id="timeout-input" value="5" min="1" max="1440" style="width: 60px; margin: 0 5px; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 0.25rem; background-color: white; font-family: inherit; font-size: inherit;">
+                </div>
+                <button id="keep-alive-btn" onclick="sendKeepAlive()" style="margin: 0 5px; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 0.25rem; background-color: #FAFAFA; cursor: pointer; font-family: inherit; font-size: inherit;">Keep alive</button>
+                <button id="release-control-btn" onclick="sendReleaseControl()" style="margin: 0 5px; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 0.25rem; background-color: #FAFAFA; cursor: pointer; font-family: inherit; font-size: inherit;">Release control</button>
+                <button id="request-snapshot-btn" onclick="sendRequestSnapshot()" style="margin: 0 5px; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 0.25rem; background-color: #FAFAFA; cursor: pointer; font-family: inherit; font-size: inherit;">Request Snapshot</button>
+            </div>
+        </div>
+        <div id="relays" style="margin-bottom: 40px;"></div>
+
+    <style>
+        :root {
+            --background-color: #f8f9fa;
+            --card-background: #ffffff;
+            --datetime-background: #f1f3f5;
+            --datetime-text: #1b1b1c;
+            --text-color: #212529;
+            --text-muted: #6c757d;
+            --border-color: rgba(0, 0, 0, 0.1);
+            --hover-color: #f1f3f5;
+        }
+
+        body {
+            font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            font-size: 14px;
+            margin: 0;
+            padding: 0;
+        }
+
+        table tr:hover {
+            background-color: var(--hover-color);
+        }
+    </style>
+
+
+    <script>
+        let websocket = null;
+        let relays = {};
+        let thermostatNames = [];
+        let currentUserId = 'user_' + Math.random().toString(36).substr(2, 9);
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//visualizer.electricity.works:8080/ws`;
+            
+            websocket = new WebSocket(wsUrl);
+            
+            websocket.onopen = function(event) {
+                document.getElementById('status-left').textContent = 'Connected';
+                document.getElementById('status-right').textContent = '';
+                ////console.log('WebSocket connected');
+            };
+            
+            websocket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                handleMessage(data);
+            };
+            
+            websocket.onclose = function(event) {
+                document.getElementById('status-left').textContent = 'Disconnected, try to refresh the page';
+                document.getElementById('status-right').textContent = '-';
+                ////console.log('WebSocket disconnected');
+                const mainContent = document.getElementById('main-content');
+                mainContent.innerHTML = '';
+            };
+            
+            websocket.onerror = function(error) {
+                console.error('WebSocket error:', error);
+                document.getElementById('status-left').textContent = 'Error, connection failed';
+                document.getElementById('status-right').textContent = '-';
+                const mainContent = document.getElementById('main-content');
+                mainContent.innerHTML = '';
+            };
+        }
+
+        function handleMessage(data) {
+            ////console.log('Received message:', data);
+            
+            if (data.type === 'status') {
+                updateStatus(data);
+            } else if (data.type === 'timer_update') {
+                updateTimer(data);
+            } else if (data.type === 'mqtt_message') {
+                // Handle MQTT messages (could be relay state updates)
+                if (data.message_type === 'single.reading') {
+                    updateRelayState(data.payload);
+                } else if (data.message_type === 'snapshot.spaceheat') {
+                    updateMonitoringTables(data.payload);
+                }
+            } else if (data.type === 'error') {
+                console.error('Error: ' + data.message);
+            }
+        }
+
+        function updateStatus(data) {
+            // Build status for left and right sides
+            let leftStatus = '';
+            let rightStatus = '';
+            
+            // Left side: target_gnode (bold)
+            const gnodeParts = data.target_gnode ? data.target_gnode.split('.') : [];
+            const beforeLastPart = gnodeParts.length > 1 ? gnodeParts[gnodeParts.length - 2] : '';
+            const capitalizedPart = beforeLastPart.charAt(0).toUpperCase() + beforeLastPart.slice(1);
+            if (data.target_gnode) {
+                leftStatus = `<b>${capitalizedPart}</b>`;
+            }
+            
+            // Right side: full gnode
+            if (data.target_gnode) {
+                rightStatus = `<span style="color: var(--text-muted); font-size: 1em;">${data.target_gnode}</span>`;
+            }
+
+            // Second line: MQTT connection status and message count
+            // if (data.mqtt_connected) {
+            //     statusText += 'MQTT broker connection: active';
+            // } else {
+            //     statusText += 'MQTT broker connection: inactive';
+            // }
+            
+            // if (data.messages_received !== undefined) {
+            //     statusText += ` | Messages received: ${data.messages_received}`;
+            // }
+            
+            document.getElementById('status-left').innerHTML = leftStatus;
+            document.getElementById('status-right').innerHTML = rightStatus;
+            
+            // Update relays
+            if (data.relays) {
+                //console.log('Status message relays:', data.relays);
+                
+                // Check if any relay states changed
+                let relayStatesChanged = false;
+                Object.keys(data.relays).forEach(relayName => {
+                    if (relays[relayName] && relays[relayName].state !== data.relays[relayName].state) {
+                        ////console.log(`Status update: ${relayName}: ${relays[relayName].state} → ${data.relays[relayName].state}`);
+                        relayStatesChanged = true;
+                    }
+                });
+                
+                relays = data.relays;
+                updateRelayButtons();
+            }
+            
+            // Update thermostat names
+            if (data.thermostat_names) {
+                thermostatNames = data.thermostat_names;
+                //console.log('Updated thermostat names:', thermostatNames);
+            }
+            
+            // Update timer from status
+            if (data.time_remaining !== undefined) {
+                updateTimer({ time_remaining: data.time_remaining, controller: data.controller });
+            }
+        }
+        
+        function updateTimer(data) {
+            const hours = Math.floor(data.time_remaining / 3600);
+            const minutes = Math.floor((data.time_remaining % 3600) / 60);
+            const seconds = Math.floor(data.time_remaining % 60);
+            
+            const timerElement = document.getElementById('timer-display');
+            timerElement.textContent = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Change color based on timer state
+            if (data.time_remaining > 0) {
+                timerElement.style.color = '#CC1616';
+            } else {
+                timerElement.style.color = '#333';
+            }
+            
+            // Show which user has last controlled the system
+            // if (data.controller) {
+            //     const isCurrentUser = data.controller === currentUserId;
+            //     document.getElementById('control-status').textContent = 
+            //         // `Control: ${data.controller}${isCurrentUser ? ' (You)' : ''}`;
+            //         `Last action done by ${isCurrentUser ? ' you' : 'another user'}`;
+            //     } else {
+            //     document.getElementById('control-status').textContent = 'No control';
+            // }
+        }
+
+        function updateRelayButtons() {
+            const relaysDiv = document.getElementById('relays');
+            relaysDiv.innerHTML = '';
+            
+            // Create table
+            const table = document.createElement('table');
+            table.style.border = '1px solid var(--border-color)';
+            table.style.borderCollapse = 'collapse';
+            table.style.borderRadius = '0.25rem';
+            table.style.maxWidth = '1000px';
+            table.style.margin = '0 auto';
+            table.style.backgroundColor = 'var(--card-background)';
+            
+            // Create header row
+            const headerRow = document.createElement('tr');
+            const headers = ['Relay', 'Name', 'Current State', 'Action', 'Energized'];
+            headers.forEach((headerText, index) => {
+                const th = document.createElement('th');
+                th.textContent = headerText;
+                // th.style.border = '1px solid var(--border-color)';
+                th.style.padding = '8px 10px';
+                th.style.backgroundColor = '#f0f0f0';
+                
+                // Set fixed width for "Current State" column (index 2)
+                if (index === 2) {
+                    th.style.width = '170px';
+                }
+                
+                headerRow.appendChild(th);
+            });
+            table.appendChild(headerRow);
+            
+            // Sort relays by relay number
+            const sortedRelays = Object.entries(relays).sort((a, b) => {
+                const relayNumberA = parseInt(a[0].replace('relay', ''));
+                const relayNumberB = parseInt(b[0].replace('relay', ''));
+                return relayNumberA - relayNumberB;
+            });
+            
+            // Create data rows
+            for (const [relayName, relayInfo] of sortedRelays) {
+                const row = document.createElement('tr');
+                
+                // Extract relay number from relay name (e.g., "relay1" -> "1")
+                const relayNumber = relayName.replace('relay', '');
+                
+                // Get current state
+                const currentState = relayInfo.state || 'unknown';
+                
+                // Get the actual state description for this relay
+                let currentStateDescription = 'unknown';
+                if (currentState === 'energized') {
+                    currentStateDescription = relayInfo.energized_state || 'energized';
+                } else if (currentState === 'deenergized') {
+                    currentStateDescription = relayInfo.deenergized_state || 'deenergized';
+                }
+                
+                // Determine action text based on current state using actual event names
+                let actionText = 'unknown';
+                if (currentState === 'energized') {
+                    actionText = relayInfo.de_energizing_event || 'De-energize';
+                } else if (currentState === 'deenergized') {
+                    actionText = relayInfo.energizing_event || 'Energize';
+                }
+                
+                // Determine energized icon
+                const energizedIcon = currentState === 'energized' ? '🔴' : '⚪';
+                
+                // Create cells
+                const cells = [
+                    relayNumber,
+                    relayInfo.display_name.replace(/Relay\s*/i, ''),
+                    currentStateDescription,
+                    actionText,
+                    energizedIcon
+                ];
+                
+                cells.forEach((cellText, index) => {
+                    const td = document.createElement('td');
+                    // Only show left and right borders for data cells (no top/bottom borders between rows)
+                    // td.style.borderLeft = '1px solid var(--border-color)';
+                    // td.style.borderRight = '1px solid var(--border-color)';
+                    td.style.padding = '2px 16px';
+                    
+                    if (index === 3) { // Action column - make it clickable
+                        const button = document.createElement('button');
+                        button.textContent = cellText;
+                        button.onclick = () => toggleRelay(relayName);
+                        button.style.width = '200px';
+                        button.style.padding = '3px 14px';
+                        button.style.border = '1px solid var(--border-color)';
+                        button.style.borderRadius = '0.25rem';
+                        button.style.backgroundColor = currentState === 'energized' ? '#FAFAFA' : '#FAFAFA';
+                        button.style.cursor = 'pointer';
+                        button.style.fontFamily = 'inherit';
+                        button.style.fontSize = 'inherit';
+                        td.appendChild(button);
+                    } else if (index === 4) { // Energized column - center the content
+                        td.textContent = cellText;
+                        td.style.textAlign = 'center';
+                    } else {
+                        td.textContent = cellText;
+                    }
+                    
+                    row.appendChild(td);
+                });
+                
+                table.appendChild(row);
+            }
+            
+            // Add bottom border to the last row
+            if (sortedRelays.length > 0) {
+                const lastRow = table.rows[table.rows.length - 1];
+                for (let i = 0; i < lastRow.cells.length; i++) {
+                    lastRow.cells[i].style.borderBottom = '1px solid var(--border-color)';
+                }
+            }
+            
+            relaysDiv.appendChild(table);
+            
+        }
+
+
+        function updateRelayState(payload) {
+            // Update individual relay state from MQTT message
+            if (payload && payload.relay_name && payload.state) {
+                const oldState = relays[payload.relay_name] ? relays[payload.relay_name].state : 'unknown';
+                //console.log(`Relay ${payload.relay_name}: ${oldState} → ${payload.state} (MQTT)`);
+                
+                relays[payload.relay_name] = {
+                    ...relays[payload.relay_name],
+                    state: payload.state
+                };
+                
+                // Update the relay buttons display
+                updateRelayButtons();
+            }
+        }
+
+        function toggleRelay(relayName) {
+            if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+                console.error('Not connected to server');
+                return;
+            }
+
+            // Log current state before toggle
+            if (relays[relayName]) {
+                //console.log(`Toggling ${relayName} (current: ${relays[relayName].state})`);
+            }
+
+            const timeoutMinutes = parseInt(document.getElementById('timeout-input').value) || 5;
+            const timeoutSeconds = timeoutMinutes * 60;
+
+            const message = {
+                type: 'relay_control',
+                data: {
+                    relay_name: relayName,
+                    timeout_seconds: timeoutSeconds,
+                    user_id: currentUserId
+                }
+            };
+
+            websocket.send(JSON.stringify(message));
+        }
+
+        function sendKeepAlive() {
+            if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+                console.error('Not connected to server');
+                return;
+            }
+
+            const timeoutMinutes = parseInt(document.getElementById('timeout-input').value) || 5;
+            const timeoutSeconds = timeoutMinutes * 60;
+
+            const message = {
+                type: 'keepalive',
+                data: {
+                    timeout_seconds: timeoutSeconds,
+                    user_id: currentUserId
+                }
+            };
+
+            websocket.send(JSON.stringify(message));
+            //console.log(`Sending keep alive for ${timeoutMinutes} minutes`);
+        }
+
+        function sendReleaseControl() {
+            if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+                console.error('Not connected to server');
+                return;
+            }
+
+            //console.log('Releasing control');
+
+            const message = {
+                type: 'release_control',
+                data: {}
+            };
+
+            websocket.send(JSON.stringify(message));
+        }
+
+        function sendRequestSnapshot() {
+            if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+                console.error('Not connected to server');
+                return;
+            }
+
+            console.log('Requesting snapshot from SCADA');
+
+            const message = {
+                type: 'request_snapshot',
+                data: {}
+            };
+
+            websocket.send(JSON.stringify(message));
+        }
+
+        function updateMonitoringTables(snapshotData) {
+            //console.log('New snapshot received');
+            
+            // Update the last snapshot timestamp
+            updateSnapshotTimestamp(snapshotData);
+            
+            // Update thermostat table
+            updateThermostatTable(snapshotData);
+            
+            // Update power and pump table
+            updatePowerPumpTable(snapshotData);
+            
+            // Update tank temperatures
+            updateTankTemperatures(snapshotData);
+                                    
+            // Store snapshot data for test mode dropdown
+            window.lastSnapshotData = snapshotData;
+            
+            // Update pipe colors based on system state
+            updatePipeColors(snapshotData);
+        }
+
+        function updateSnapshotTimestamp(snapshotData) {
+            const timestampElement = document.getElementById('snapshot-time');
+            if (!timestampElement) return;
+            
+            if (snapshotData && snapshotData.SnapshotTimeUnixMs) {
+                // Convert Unix timestamp in milliseconds to Date object
+                const timestamp = new Date(snapshotData.SnapshotTimeUnixMs);
+                
+                // Format the date and time in New York timezone (24-hour format)
+                const formattedTime = timestamp.toLocaleString('sv-SE', {
+                    timeZone: 'America/New_York',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                });
+                
+                timestampElement.textContent = formattedTime;
+            } else {
+                timestampElement.textContent = 'Unknown';
+            }
+        }
+
+        function updateThermostatTable(snapshotData) {
+            const tbody = document.getElementById('thermostat-tbody');
+            if (!tbody || !snapshotData.LatestReadingList) return;
+            
+            // Use dynamic thermostat names from the server
+            if (!thermostatNames || thermostatNames.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="border: 1px solid var(--border-color); padding: 8px; text-align: center;">Loading thermostat names...</td></tr>';
+                return;
+            }
+            
+            // Create zone mappings dynamically from thermostat names
+            const zones = thermostatNames.map((name, index) => ({
+                key: `zone${index + 1}-${name}`,
+                display: `zone${index + 1}-${name}`
+            }));
+            
+            // Create a lookup map for readings
+            const readingsMap = {};
+            snapshotData.LatestReadingList.forEach(reading => {
+                readingsMap[reading.ChannelName] = reading;
+            });
+            
+            
+            tbody.innerHTML = '';
+            
+            zones.forEach(zone => {
+                // Look for temperature and set point readings for this zone using actual channel names
+                const tempReading = readingsMap[`${zone.key}-temp`];
+                const setPointReading = readingsMap[`${zone.key}-set`];
+                const stateReading = readingsMap[`${zone.key}-state`]; // TODO: Change for whitewire state
+                
+                // Temperature values are in degrees Fahrenheit * 10
+                const tempF = tempReading ? (tempReading.Value / 1000).toFixed(1) : '-';
+                const setPointF = setPointReading ? (setPointReading.Value / 1000).toFixed(1) : '-';
+                const state = stateReading ? (stateReading.Value > 0 ? 'heating' : 'idle') : 'idle'; // TODO: Change for whitewire state
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td style="border: 1px solid var(--border-color); padding: 8px;">${zone.display}</td>
+                    <td style="border: 1px solid var(--border-color); padding: 8px;">${setPointF}°F</td>
+                    <td style="border: 1px solid var(--border-color); padding: 8px;">${tempF}°F</td>
+                    <td style="border: 1px solid var(--border-color); padding: 8px;">${state}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function updatePowerPumpTable(snapshotData) {
+            if (!snapshotData.LatestReadingList) return;
+            
+            // Create a lookup map for readings
+            const readingsMap = {};
+            snapshotData.LatestReadingList.forEach(reading => {
+                readingsMap[reading.ChannelName] = reading;
+            });
+            
+            
+            // Update HP Power table
+            updateHpPowerTable(readingsMap);
+            
+            // Update Pump table
+            updatePumpTable(readingsMap);
+        }
+
+        function updateHpPowerTable(readingsMap) {
+            const tbody = document.getElementById('hp-power-tbody');
+            if (!tbody) return;
+            
+            // Get power readings using actual channel names
+            const hpOduReading = readingsMap['hp-odu-pwr'];
+            const hpIduReading = readingsMap['hp-idu-pwr'];
+            const hpTotalReading = hpOduReading && hpIduReading ? 
+                { Value: hpOduReading.Value + hpIduReading.Value } : null;
+            
+            // Convert power from watts to kW
+            const hpTotalKw = hpTotalReading ? (hpTotalReading.Value / 1000).toFixed(2) : '0.00';
+            const hpOduKw = hpOduReading ? (hpOduReading.Value / 1000).toFixed(2) : '0.00';
+            const hpIduKw = hpIduReading ? (hpIduReading.Value / 1000).toFixed(2) : '0.00';
+            
+            tbody.innerHTML = '';
+            
+            // Outdoor row
+            const row2 = document.createElement('tr');
+            row2.innerHTML = `
+                <td style="border: 1px solid var(--border-color); padding: 8px;">Outdoor unit</td>
+                <td style="border: 1px solid var(--border-color); padding: 8px;">${hpOduKw}</td>
+            `;
+            tbody.appendChild(row2);
+            
+            // Indoor row
+            const row3 = document.createElement('tr');
+            row3.innerHTML = `
+                <td style="border: 1px solid var(--border-color); padding: 8px;">Indoor unit</td>
+                <td style="border: 1px solid var(--border-color); padding: 8px;">${hpIduKw}</td>
+            `;
+            tbody.appendChild(row3);
+
+            // HP Total row
+            const row1 = document.createElement('tr');
+            row1.innerHTML = `
+                <td style="border: 1px solid var(--border-color); padding: 8px;">Total</td>
+                <td style="border: 1px solid var(--border-color); padding: 8px;">${hpTotalKw}</td>
+            `;
+            tbody.appendChild(row1);
+        }
+
+        function updatePumpTable(readingsMap) {
+            const tbody = document.getElementById('pump-tbody');
+            if (!tbody) return;
+            
+            // Get pump readings using actual channel names
+            const primaryFlowReading = readingsMap['primary-flow'];
+            const primaryPowerReading = readingsMap['primary-pump-pwr'];
+            const distFlowReading = readingsMap['dist-flow'];
+            const distPowerReading = readingsMap['dist-pump-pwr'];
+            const storeFlowReading = readingsMap['store-flow'];
+            const storePowerReading = readingsMap['store-pump-pwr'];
+            
+            tbody.innerHTML = '';
+            
+            // Primary pump row
+            const row1 = document.createElement('tr');
+            row1.innerHTML = `
+                <td style="border: 1px solid var(--border-color); padding: 8px;">Primary</td>
+                <td style="border: 1px solid var(--border-color); padding: 8px;">${primaryFlowReading ? (primaryFlowReading.Value / 100).toFixed(1) : '0.0'}</td>
+                <td style="border: 1px solid var(--border-color); padding: 8px;">${primaryPowerReading && primaryPowerReading.Value > 0 ? primaryPowerReading.Value.toFixed(1) : '0.0'}</td>
+            `;
+            tbody.appendChild(row1);
+            
+            // Distribution pump row
+            const row2 = document.createElement('tr');
+            row2.innerHTML = `
+                <td style="border: 1px solid var(--border-color); padding: 8px;">Distribution</td>
+                <td style="border: 1px solid var(--border-color); padding: 8px;">${distFlowReading ? (distFlowReading.Value / 100).toFixed(1) : '0.0'}</td>
+                <td style="border: 1px solid var(--border-color); padding: 8px;">${distPowerReading && distPowerReading.Value > 0 ? distPowerReading.Value.toFixed(1) : '0.0'}</td>
+            `;
+            tbody.appendChild(row2);
+            
+            // Storage pump row
+            const row3 = document.createElement('tr');
+            row3.innerHTML = `
+                <td style="border: 1px solid var(--border-color); padding: 8px;">Store</td>
+                <td style="border: 1px solid var(--border-color); padding: 8px;">${storeFlowReading ? (storeFlowReading.Value / 100).toFixed(1) : '0.0'}</td>
+                <td style="border: 1px solid var(--border-color); padding: 8px;">${storePowerReading && storePowerReading.Value > 0 ? storePowerReading.Value.toFixed(1) : '0.0'}</td>
+            `;
+            tbody.appendChild(row3);
+        }
+
+        function updateLayerBackground(temp) {
+            const minTemp = 50;
+            const maxTemp = 160;
+            const normalizedTemp = (temp - minTemp) / (maxTemp - minTemp);
+            const red = Math.min(255, Math.floor(255 * normalizedTemp));
+            const blue = Math.min(255, Math.floor(255 * (1 - normalizedTemp)));
+            const backgroundColor = `rgba(${red}, 0, ${blue}, 0.86)`;
+            return backgroundColor;
+        }
+
+        function updateTankTemperatures(snapshotData) {
+            if (!snapshotData || !snapshotData.LatestReadingList) return;
+            
+            // Create a lookup map for readings
+            const readingsMap = {};
+            snapshotData.LatestReadingList.forEach(reading => {
+                readingsMap[reading.ChannelName] = reading;
+            });
+            
+            
+            // Detect number of depth layers for each component
+            const getMaxDepth = (componentName) => {
+                let maxDepth = 3; // Default to 3 layers
+                for (let depth = 4; depth <= 10; depth++) { // Check up to 10 layers
+                    if (readingsMap[`${componentName}-depth${depth}`]) {
+                        maxDepth = depth;
+                    }
+                }
+                return maxDepth;
+            };
+            
+            // Update each tank's temperature readings
+            for (let tankNum = 1; tankNum <= 3; tankNum++) {
+                const maxDepth = getMaxDepth(`tank${tankNum}`);
+                
+                // Create or update sections dynamically
+                createTankSections(tankNum, maxDepth);
+                
+                for (let depth = 1; depth <= maxDepth; depth++) {
+                    const channelName = `tank${tankNum}-depth${depth}`;
+                    const reading = readingsMap[channelName];
+                    const elementId = `tank${tankNum}-depth${depth}`;
+                    const element = document.getElementById(elementId);
+                    
+                    if (element && reading) {
+                        // Convert temperature from Celsius * 1000 to Fahrenheit
+                        // Formula: °F = (°C * 9/5) + 32
+                        const tempC = reading.Value / 1000; // Convert from degCx1000 to degC
+                        const tempF = (tempC * 9/5 + 32).toFixed(1); // Convert to Fahrenheit
+                        element.textContent = `${tempF}°F`;
+                        
+                        // Update background color based on temperature
+                        const sectionElement = document.getElementById(`tank${tankNum}-section${depth}`);
+                        if (sectionElement) {
+                            const tempFNum = parseFloat(tempF);
+                            const backgroundColor = updateLayerBackground(tempFNum);
+                            sectionElement.setAttribute('fill', backgroundColor);
+                        }
+                        
+                    } else if (element) {
+                        // If no reading available, show placeholder
+                        element.textContent = '-';
+                        //console.log(`No reading available for ${channelName}`);
+                    }
+                }
+            }
+            
+            // Update buffer temperature readings
+            const bufferMaxDepth = getMaxDepth('buffer');
+            
+            // Create or update buffer sections dynamically
+            createBufferSections(bufferMaxDepth);
+            
+            for (let depth = 1; depth <= bufferMaxDepth; depth++) {
+                const channelName = `buffer-depth${depth}`;
+                const reading = readingsMap[channelName];
+                const elementId = `buffer-depth${depth}`;
+                const element = document.getElementById(elementId);
+                
+                if (element && reading) {
+                    // Convert temperature from Celsius * 1000 to Fahrenheit
+                    // Formula: °F = (°C * 9/5) + 32
+                    const tempC = reading.Value / 1000; // Convert from degCx1000 to degC
+                    const tempF = (tempC * 9/5 + 32).toFixed(1); // Convert to Fahrenheit
+                    element.textContent = `${tempF}°F`;
+                    
+                    // Update background color based on temperature
+                    const sectionElement = document.getElementById(`buffer-section${depth}`);
+                    if (sectionElement) {
+                        const tempFNum = parseFloat(tempF);
+                        const backgroundColor = updateLayerBackground(tempFNum);
+                        sectionElement.setAttribute('fill', backgroundColor);
+                    }
+                    
+                } else if (element) {
+                    // If no reading available, show placeholder
+                    element.textContent = '-';
+                    //console.log(`No reading available for ${channelName}`);
+                }
+            }
+            
+            // Update heat pump leaving water temperature (hp-lwt)
+            const hpLwtReading = readingsMap['hp-lwt'];
+            const hpLwtElement = document.getElementById('hp-lwt');
+            let hpLwtTempF = null;
+            
+            if (hpLwtElement && hpLwtReading) {
+                // Convert temperature from Celsius * 1000 to Fahrenheit
+                // Formula: °F = (°C * 9/5) + 32
+                const tempC = hpLwtReading.Value / 1000; // Convert from degCx1000 to degC
+                hpLwtTempF = parseFloat((tempC * 9/5 + 32).toFixed(1)); // Convert to Fahrenheit
+                hpLwtElement.textContent = `${hpLwtTempF}°F`;
+                
+            } else if (hpLwtElement) {
+                // If no reading available, show placeholder
+                hpLwtElement.textContent = '-';
+                //console.log(`No reading available for hp-lwt`);
+            }
+            
+            // Update heat pump entering water temperature (hp-ewt)
+            const hpEwtReading = readingsMap['hp-ewt'];
+            const hpEwtElement = document.getElementById('hp-ewt');
+            let hpEwtTempF = null;
+            
+            if (hpEwtElement && hpEwtReading) {
+                // Convert temperature from Celsius * 1000 to Fahrenheit
+                // Formula: °F = (°C * 9/5) + 32
+                const tempC = hpEwtReading.Value / 1000; // Convert from degCx1000 to degC
+                hpEwtTempF = parseFloat((tempC * 9/5 + 32).toFixed(1)); // Convert to Fahrenheit
+                hpEwtElement.textContent = `${hpEwtTempF}°F`;
+                
+            } else if (hpEwtElement) {
+                // If no reading available, show placeholder
+                hpEwtElement.textContent = '-';
+                //console.log(`No reading available for hp-ewt`);
+            }
+            
+            // Calculate and update heat pump lift (hp-lwt - hp-ewt)
+            const hpLiftElement = document.getElementById('hp-lift');
+            if (hpLiftElement && hpLwtTempF !== null && hpEwtTempF !== null) {
+                const lift = (hpLwtTempF - hpEwtTempF).toFixed(1);
+                hpLiftElement.innerHTML = `Lift<tspan x="80" dy="1.2em">${lift}°F</tspan>`;
+            } else if (hpLiftElement) {
+                // If either temperature is not available, show placeholder
+                hpLiftElement.innerHTML = `Lift<tspan x="80" dy="1.2em">-°F</tspan>`;
+                //console.log(`Cannot calculate lift - missing temperature data`);
+            }
+            
+            // Update heat pump gradient colors based on EWT and LWT temperatures
+            const ewtStop = document.getElementById('ewt-stop');
+            const lwtStop = document.getElementById('lwt-stop');
+            if (ewtStop && lwtStop && hpEwtTempF !== null && hpLwtTempF !== null) {
+                const ewtColor = updateLayerBackground(hpEwtTempF);
+                const lwtColor = updateLayerBackground(hpLwtTempF);
+                
+                // Force update by removing and re-adding the style attribute
+                ewtStop.removeAttribute('style');
+                lwtStop.removeAttribute('style');
+                ewtStop.setAttribute('style', `stop-color:${ewtColor};stop-opacity:1`);
+                lwtStop.setAttribute('style', `stop-color:${lwtColor};stop-opacity:1`);
+                
+                // Also try setting the stop-color attribute directly
+                ewtStop.setAttribute('stop-color', ewtColor);
+                lwtStop.setAttribute('stop-color', lwtColor);
+                
+            } else if (ewtStop && lwtStop) {
+                // Reset to default colors if temperatures are not available
+                ewtStop.removeAttribute('style');
+                lwtStop.removeAttribute('style');
+                ewtStop.setAttribute('style', 'stop-color:#888;stop-opacity:1');
+                lwtStop.setAttribute('style', 'stop-color:#888;stop-opacity:1');
+                ewtStop.setAttribute('stop-color', '#888');
+                lwtStop.setAttribute('stop-color', '#888');
+                //console.log('Reset heat pump gradient to default colors - missing temperature data');
+            } else {
+                //console.log('Gradient elements not found: ewtStop=', !!ewtStop, 'lwtStop=', !!lwtStop);
+            }
+            
+            // Update buffer hot pipe temperature (buffer-hot-pipe)
+            const bufferHotPipeReading = readingsMap['buffer-hot-pipe'];
+            const bufferHotPipeElement = document.getElementById('buffer-hot-pipe');
+            
+            if (bufferHotPipeElement && bufferHotPipeReading) {
+                // Convert temperature from Celsius * 1000 to Fahrenheit
+                // Formula: °F = (°C * 9/5) + 32
+                const tempC = bufferHotPipeReading.Value / 1000; // Convert from degCx1000 to degC
+                const tempF = (tempC * 9/5 + 32).toFixed(1); // Convert to Fahrenheit
+                bufferHotPipeElement.textContent = `${tempF}°F`;
+                
+            } else if (bufferHotPipeElement) {
+                // If no reading available, show placeholder
+                bufferHotPipeElement.textContent = '-';
+                //console.log(`No reading available for buffer-hot-pipe`);
+            }
+            
+            // Update buffer cold pipe temperature (buffer-cold-pipe)
+            const bufferColdPipeReading = readingsMap['buffer-cold-pipe'];
+            const bufferColdPipeElement = document.getElementById('buffer-cold-pipe');
+            
+            if (bufferColdPipeElement && bufferColdPipeReading) {
+                // Convert temperature from Celsius * 1000 to Fahrenheit
+                // Formula: °F = (°C * 9/5) + 32
+                const tempC = bufferColdPipeReading.Value / 1000; // Convert from degCx1000 to degC
+                const tempF = (tempC * 9/5 + 32).toFixed(1); // Convert to Fahrenheit
+                bufferColdPipeElement.textContent = `${tempF}°F`;
+                
+            } else if (bufferColdPipeElement) {
+                // If no reading available, show placeholder
+                bufferColdPipeElement.textContent = '-';
+                //console.log(`No reading available for buffer-cold-pipe`);
+            }
+            
+            // Update store hot pipe temperature (store-hot-pipe)
+            const storeHotPipeReading = readingsMap['store-hot-pipe'];
+            const storeHotPipeElement = document.getElementById('store-hot-pipe');
+            
+            
+            if (storeHotPipeElement && storeHotPipeReading) {
+                // Convert temperature from Celsius * 1000 to Fahrenheit
+                // Formula: °F = (°C * 9/5) + 32
+                const tempC = storeHotPipeReading.Value / 1000; // Convert from degCx1000 to degC
+                const tempF = (tempC * 9/5 + 32).toFixed(1); // Convert to Fahrenheit
+                storeHotPipeElement.textContent = `${tempF}°F`;
+                
+            } else if (storeHotPipeElement) {
+                // If no reading available, show placeholder
+                storeHotPipeElement.textContent = '-';
+                //console.log(`No reading available for store-hot-pipe`);
+            }
+            
+            // Update store cold pipe temperature (store-cold-pipe)
+            const storeColdPipeReading = readingsMap['store-cold-pipe'];
+            const storeColdPipeElement = document.getElementById('store-cold-pipe');
+            
+            
+            if (storeColdPipeElement && storeColdPipeReading) {
+                // Convert temperature from Celsius * 1000 to Fahrenheit
+                // Formula: °F = (°C * 9/5) + 32
+                const tempC = storeColdPipeReading.Value / 1000; // Convert from degCx1000 to degC
+                const tempF = (tempC * 9/5 + 32).toFixed(1); // Convert to Fahrenheit
+                storeColdPipeElement.textContent = `${tempF}°F`;
+                
+            } else if (storeColdPipeElement) {
+                // If no reading available, show placeholder
+                storeColdPipeElement.textContent = '-';
+                //console.log(`No reading available for store-cold-pipe`);
+            }
+            
+            // Update house distribution supply water temperature (dist-swt)
+            const distSwtReading = readingsMap['dist-swt'];
+            let distSwtTempF = null;
+            
+            if (distSwtReading) {
+                // Convert temperature from Celsius * 1000 to Fahrenheit
+                // Formula: °F = (°C * 9/5) + 32
+                const tempC = distSwtReading.Value / 1000; // Convert from degCx1000 to degC
+                distSwtTempF = parseFloat((tempC * 9/5 + 32).toFixed(1)); // Convert to Fahrenheit
+            } else {
+                //console.log(`No reading available for dist-swt`);
+            }
+            
+            // Update house distribution return water temperature (dist-rwt)
+            const distRwtReading = readingsMap['dist-rwt'];
+            let distRwtTempF = null;
+            
+            if (distRwtReading) {
+                // Convert temperature from Celsius * 1000 to Fahrenheit
+                // Formula: °F = (°C * 9/5) + 32
+                const tempC = distRwtReading.Value / 1000; // Convert from degCx1000 to degC
+                distRwtTempF = parseFloat((tempC * 9/5 + 32).toFixed(1)); // Convert to Fahrenheit
+            } else {
+                //console.log(`No reading available for dist-rwt`);
+            }
+            
+            // Calculate and update house drop (dist-swt - dist-rwt)
+            const houseDropElement = document.getElementById('house-drop');
+            if (houseDropElement && distSwtTempF !== null && distRwtTempF !== null) {
+                const drop = (distSwtTempF - distRwtTempF).toFixed(1);
+                houseDropElement.innerHTML = `Drop<tspan x="720" dy="1.2em">${drop}°F</tspan>`;
+            } else if (houseDropElement) {
+                // If either temperature is not available, show placeholder
+                houseDropElement.innerHTML = `Drop<tspan x="720" dy="1.2em">-°F</tspan>`;
+                //console.log(`Cannot calculate drop - missing temperature data`);
+            }
+            
+            // Update individual distribution temperature labels
+            const distSwtElement = document.getElementById('dist-swt');
+            if (distSwtElement) {
+                if (distSwtTempF !== null) {
+                    distSwtElement.textContent = `${distSwtTempF}°F`;
+                } else {
+                    distSwtElement.textContent = '-';
+                    //console.log(`dist-swt label: no data available`);
+                }
+            }
+            
+            const distRwtElement = document.getElementById('dist-rwt');
+            if (distRwtElement) {
+                if (distRwtTempF !== null) {
+                    distRwtElement.textContent = `${distRwtTempF}°F`;
+                } else {
+                    distRwtElement.textContent = '-';
+                    //console.log(`dist-rwt label: no data available`);
+                }
+            }
+            
+            // Update house gradient colors based on dist-rwt and dist-swt temperatures
+            const distRwtStop = document.getElementById('dist-rwt-stop');
+            const distSwtStop = document.getElementById('dist-swt-stop');
+            if (distRwtStop && distSwtStop && distRwtTempF !== null && distSwtTempF !== null) {
+                const distRwtColor = updateLayerBackground(distRwtTempF);
+                const distSwtColor = updateLayerBackground(distSwtTempF);
+                
+                // Force update by removing and re-adding the style attribute
+                distRwtStop.removeAttribute('style');
+                distSwtStop.removeAttribute('style');
+                distRwtStop.setAttribute('style', `stop-color:${distRwtColor};stop-opacity:1`);
+                distSwtStop.setAttribute('style', `stop-color:${distSwtColor};stop-opacity:1`);
+                
+                // Also try setting the stop-color attribute directly
+                distRwtStop.setAttribute('stop-color', distRwtColor);
+                distSwtStop.setAttribute('stop-color', distSwtColor);
+                
+            } else if (distRwtStop && distSwtStop) {
+                // Reset to default colors if temperatures are not available
+                distRwtStop.removeAttribute('style');
+                distSwtStop.removeAttribute('style');
+                distRwtStop.setAttribute('style', 'stop-color:#888;stop-opacity:1');
+                distSwtStop.setAttribute('style', 'stop-color:#888;stop-opacity:1');
+                distRwtStop.setAttribute('stop-color', '#888');
+                distSwtStop.setAttribute('stop-color', '#888');
+                //console.log('Reset house gradient to default colors - missing temperature data');
+            } else {
+                //console.log('House gradient elements not found: distRwtStop=', !!distRwtStop, 'distSwtStop=', !!distSwtStop);
+            }
+        }
+
+        function ensureBufferLabelsOnTop() {
+            // Ensure buffer pipe temperature labels are always on top of all other elements
+            const bufferHotPipe = document.getElementById('buffer-hot-pipe');
+            const bufferColdPipe = document.getElementById('buffer-cold-pipe');
+            
+            if (bufferHotPipe) {
+                bufferHotPipe.parentNode.appendChild(bufferHotPipe);
+            }
+            if (bufferColdPipe) {
+                bufferColdPipe.parentNode.appendChild(bufferColdPipe);
+            }
+        }
+
+        function updatePipeColors(snapshotData) {
+            // Check if test mode is selected
+            const testModeSelect = document.getElementById('testModeSelect');
+            let currentState = null;
+            
+            if (testModeSelect && testModeSelect.value !== 'Auto') {
+                // Use test mode selection - don't let WebSocket data override it
+                currentState = testModeSelect.value;
+                //console.log('Using test mode (ignoring WebSocket data):', currentState);
+            } else {
+                // Get the current system state using the same logic as updateSystemState
+                
+                // Check relay states to determine system state (same logic as updateSystemState)
+                const relay5 = relays['relay5'];
+                const relay6 = relays['relay6'];
+                const relay3 = relays['relay3'];
+                const relay9 = relays['relay9'];
+                
+                if (relay5 && relay6 && relay3 && relay9) {
+                    const relay5State = relay5.state;
+                    const relay6State = relay6.state;
+                    const relay3State = relay3.state;
+                    const relay9State = relay9.state;
+                    
+                    // Determine HP state
+                    let hpOn = false;
+                    if (relay5State === 'energized' && relay6State === 'deenergized') {
+                        hpOn = true;
+                    }
+                    
+                    // Determine storage state
+                    let storeCharge = false;
+                    let storeDischarge = false;
+                    if (relay3State === 'energized') {
+                        storeCharge = true;
+                    } else if (relay3State === 'deenergized' && relay9State === 'energized') {
+                        storeDischarge = true;
+                    }
+                    
+                    // Calculate combined state
+                    if (hpOn && storeCharge) {
+                        currentState = 'HpOnStoreCharge';
+                    } else if (hpOn && !storeCharge && !storeDischarge) {
+                        currentState = 'HpOnStoreOff';
+                    } else if (!hpOn && storeDischarge) {
+                        currentState = 'HpOffStoreDischarge';
+                    } else if (!hpOn && !storeCharge && !storeDischarge) {
+                        currentState = 'HpOffStoreOff';
+                    } else {
+                        currentState = 'Unknown combined state';
+                    }
+                }
+                
+            }
+            
+            // Get pipe elements
+            const hpBufferTopPipe = document.getElementById('hp-buffer-top-pipe');
+            const hpBufferBottomPipe = document.getElementById('hp-buffer-bottom-pipe');
+            const tank1HpVerticalPipe = document.getElementById('tank1-hp-vertical-pipe');
+            const tank1BufferHorizontalPipe = document.getElementById('tank1-buffer-horizontal-pipe');
+            const tank1ConnectionPipe = document.getElementById('tank1-connection-pipe');
+            const tank3HpVerticalPipe = document.getElementById('tank3-hp-vertical-pipe');
+            const tank3BufferHorizontalPipe = document.getElementById('tank3-buffer-horizontal-pipe');
+            const tank3ConnectionPipe = document.getElementById('tank3-connection-pipe');
+            const tank1HpVerticalPipeCharge = document.getElementById('tank1-hp-vertical-pipe-charge');
+            const tank3HpVerticalPipeCharge = document.getElementById('tank3-hp-vertical-pipe-charge');
+            const tank1ConnectionPipeCharge = document.getElementById('tank1-connection-pipe-charge');
+            const tank3ConnectionPipeCharge = document.getElementById('tank3-connection-pipe-charge');
+            const tank1HpHorizontalPipeCharge = document.getElementById('tank1-hp-horizontal-pipe-charge');
+            const tank3HpHorizontalPipeCharge = document.getElementById('tank3-hp-horizontal-pipe-charge');
+            const houseHpVerticalPipe = document.getElementById('house-hp-vertical-pipe');
+            const houseConnectionPipe = document.getElementById('house-connection-pipe');
+            const houseHpVerticalPipeBottom = document.getElementById('house-hp-vertical-pipe-bottom');
+            const houseConnectionPipeBottom = document.getElementById('house-connection-pipe-bottom');
+            const houseBufferTopPipe = document.getElementById('house-buffer-top-pipe');
+            const houseBufferBottomPipe = document.getElementById('house-buffer-bottom-pipe');
+            
+            // Check for distribution flow to animate House pipes
+            const readingsMap = {};
+            if (snapshotData && snapshotData.LatestReadingList) {
+                snapshotData.LatestReadingList.forEach(reading => {
+                    readingsMap[reading.ChannelName] = reading;
+                });
+            }
+            
+            const distFlowReading = readingsMap['dist-flow'];
+            const hasDistFlow = distFlowReading && distFlowReading.Value && parseFloat(distFlowReading.Value) > 0;
+            
+            // Check for zone relay conditions: Failsf relay with state "energized" and Scada ops relay with state "energized"
+            let hasZoneRelayCondition = false;
+            Object.keys(relays).forEach(relayName => {
+                const relay = relays[relayName];
+                if (relay && relay.display_name) {
+                    const displayName = relay.display_name.toLowerCase();
+                    
+                    // Check if this is a Failsf relay with state "energized"
+                    if (displayName.includes('failsf') && relay.state === 'energized') {
+                        // Find the corresponding Scada ops relay for the same zone
+                        Object.keys(relays).forEach(otherRelayName => {
+                            const otherRelay = relays[otherRelayName];
+                            if (otherRelay && otherRelay.display_name) {
+                                const otherDisplayName = otherRelay.display_name.toLowerCase();
+                                
+                                // Check if this is a Scada ops relay for the same zone with state "energized"
+                                if (otherDisplayName.includes('scada ops') && otherRelay.state === 'energized') {
+                                    // Extract zone identifier from the beginning of the display name
+                                    const zoneFromFailsf = displayName.split(' zone ')[0].trim();
+                                    const zoneFromScadaOps = otherDisplayName.split(' zone ')[0].trim();
+                                    
+                                    if (zoneFromFailsf === zoneFromScadaOps && zoneFromFailsf !== '') {
+                                        hasZoneRelayCondition = true;
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+            
+            // Combined condition: dist-flow > 0 OR zone relay condition
+            const shouldAnimate = hasDistFlow || hasZoneRelayCondition;
+            
+            // Debug logging for HpOnStoreOff state
+            if (currentState === 'HpOnStoreOff') {
+                console.log('HpOnStoreOff Debug:', {
+                    hasDistFlow: hasDistFlow,
+                    hasZoneRelayCondition: hasZoneRelayCondition,
+                    shouldAnimate: shouldAnimate,
+                    distFlowValue: distFlowReading ? distFlowReading.Value : 'no reading'
+                });
+            }
+            
+            // Set pipe colors based on state
+            
+            if (currentState === 'HpOnStoreOff') {
+                // Animated green pipes for HpOnStoreOff state (HP to Buffer)
+                // Show heat pump animation
+                const hpAnimation = document.getElementById('hp-animation');
+                const hpLiftText = document.getElementById('hp-lift');
+                if (hpAnimation) {
+                    hpAnimation.style.display = 'block';
+                    hpAnimation.parentNode.appendChild(hpAnimation);
+                    // Ensure lift text stays on top
+                    if (hpLiftText) {
+                        hpLiftText.parentNode.appendChild(hpLiftText);
+                    }
+                }
+                
+                // Show buffer animation - top to bottom flow
+                const bufferAnimation = document.getElementById('buffer-animation');
+                if (bufferAnimation) {
+                    bufferAnimation.style.display = 'block';
+                    bufferAnimation.parentNode.appendChild(bufferAnimation);
+                    // Set top to bottom flow pattern
+                    const bufferRect = bufferAnimation.querySelector('rect');
+                    if (bufferRect) {
+                        bufferRect.setAttribute('fill', 'url(#bufferHeatLinesTopToBottom)');
+                    }
+                }
+                
+                if (hpBufferTopPipe) {
+                    hpBufferTopPipe.setAttribute('fill', 'url(#flowPattern)'); // Rightward flow
+                    hpBufferTopPipe.removeAttribute('stroke');
+                    // Move to end of SVG to appear on top
+                    hpBufferTopPipe.parentNode.appendChild(hpBufferTopPipe);
+                }
+                if (hpBufferBottomPipe) {
+                    hpBufferBottomPipe.setAttribute('fill', 'url(#leftFlowPattern)'); // Leftward flow
+                    hpBufferBottomPipe.removeAttribute('stroke');
+                    // Move to end of SVG to appear on top
+                    hpBufferBottomPipe.parentNode.appendChild(hpBufferBottomPipe);
+                }
+                // Gray for Tank1 pipes
+                if (tank1HpVerticalPipe) {
+                    tank1HpVerticalPipe.setAttribute('fill', '#888');
+                    tank1HpVerticalPipe.removeAttribute('stroke');
+                }
+                if (tank1BufferHorizontalPipe) {
+                    tank1BufferHorizontalPipe.setAttribute('fill', '#888');
+                    tank1BufferHorizontalPipe.removeAttribute('stroke');
+                }
+                if (tank1ConnectionPipe) {
+                    tank1ConnectionPipe.setAttribute('fill', '#888');
+                    tank1ConnectionPipe.removeAttribute('stroke');
+                }
+                if (tank3HpVerticalPipe) {
+                    tank3HpVerticalPipe.setAttribute('fill', '#888');
+                    tank3HpVerticalPipe.removeAttribute('stroke');
+                }
+                if (tank3BufferHorizontalPipe) {
+                    tank3BufferHorizontalPipe.setAttribute('fill', '#888');
+                    tank3BufferHorizontalPipe.removeAttribute('stroke');
+                }
+                if (tank3ConnectionPipe) {
+                    tank3ConnectionPipe.setAttribute('fill', '#888');
+                    tank3ConnectionPipe.removeAttribute('stroke');
+                }
+                if (tank1HpVerticalPipeCharge) {
+                    tank1HpVerticalPipeCharge.setAttribute('fill', '#888');
+                    tank1HpVerticalPipeCharge.removeAttribute('stroke');
+                }
+                if (tank3HpVerticalPipeCharge) {
+                    tank3HpVerticalPipeCharge.setAttribute('fill', '#888');
+                    tank3HpVerticalPipeCharge.removeAttribute('stroke');
+                }
+                if (tank1ConnectionPipeCharge) {
+                    tank1ConnectionPipeCharge.setAttribute('fill', '#888');
+                    tank1ConnectionPipeCharge.removeAttribute('stroke');
+                }
+                if (tank3ConnectionPipeCharge) {
+                    tank3ConnectionPipeCharge.setAttribute('fill', '#888');
+                    tank3ConnectionPipeCharge.removeAttribute('stroke');
+                }
+                if (tank1HpHorizontalPipeCharge) {
+                    tank1HpHorizontalPipeCharge.setAttribute('fill', '#888');
+                    tank1HpHorizontalPipeCharge.removeAttribute('stroke');
+                }
+                if (tank3HpHorizontalPipeCharge) {
+                    tank3HpHorizontalPipeCharge.setAttribute('fill', '#888');
+                    tank3HpHorizontalPipeCharge.removeAttribute('stroke');
+                }
+                if (houseHpVerticalPipe) {
+                    houseHpVerticalPipe.setAttribute('fill', '#888');
+                    houseHpVerticalPipe.removeAttribute('stroke');
+                }
+                if (houseConnectionPipe) {
+                    houseConnectionPipe.setAttribute('fill', '#888');
+                    houseConnectionPipe.removeAttribute('stroke');
+                }
+                if (houseHpVerticalPipeBottom) {
+                    houseHpVerticalPipeBottom.setAttribute('fill', '#888');
+                    houseHpVerticalPipeBottom.removeAttribute('stroke');
+                }
+                if (houseConnectionPipeBottom) {
+                    houseConnectionPipeBottom.setAttribute('fill', '#888');
+                    houseConnectionPipeBottom.removeAttribute('stroke');
+                }
+                if (houseBufferTopPipe) {
+                    houseBufferTopPipe.setAttribute('fill', '#888');
+                    houseBufferTopPipe.removeAttribute('stroke');
+                }
+                if (houseBufferBottomPipe) {
+                    houseBufferBottomPipe.setAttribute('fill', '#888');
+                    houseBufferBottomPipe.removeAttribute('stroke');
+                }
+                
+                // Animate House pipes based on distribution flow
+                if (shouldAnimate) {
+                    // Show house animation
+                    const houseAnimation = document.getElementById('house-animation');
+                    const houseDropText = document.getElementById('house-drop');
+                    if (houseAnimation) {
+                        houseAnimation.style.display = 'block';
+                        houseAnimation.parentNode.appendChild(houseAnimation);
+                        // Ensure drop text stays on top
+                        if (houseDropText) {
+                            houseDropText.parentNode.appendChild(houseDropText);
+                        }
+                    }
+                    
+                    // Right vertical pipe (house-hp-vertical-pipe) - downward flow
+                    if (houseHpVerticalPipe) {
+                        houseHpVerticalPipe.setAttribute('fill', 'url(#verticalDownFlowPattern)');
+                        houseHpVerticalPipe.removeAttribute('stroke');
+                        houseHpVerticalPipe.parentNode.appendChild(houseHpVerticalPipe);
+                    }
+                    // Left vertical pipe (house-hp-vertical-pipe-bottom) - upward flow  
+                    if (houseHpVerticalPipeBottom) {
+                        houseHpVerticalPipeBottom.setAttribute('fill', 'url(#verticalFlowPattern)');
+                        houseHpVerticalPipeBottom.removeAttribute('stroke');
+                        houseHpVerticalPipeBottom.parentNode.appendChild(houseHpVerticalPipeBottom);
+                    }
+                    // Top connection pipe - leftward flow
+                    if (houseConnectionPipe) {
+                        houseConnectionPipe.setAttribute('fill', 'url(#leftFlowPattern)');
+                        houseConnectionPipe.removeAttribute('stroke');
+                        houseConnectionPipe.parentNode.appendChild(houseConnectionPipe);
+                    }
+                    // Bottom connection pipe - leftward flow
+                    if (houseConnectionPipeBottom) {
+                        houseConnectionPipeBottom.setAttribute('fill', 'url(#leftFlowPattern)');
+                        houseConnectionPipeBottom.removeAttribute('stroke');
+                        houseConnectionPipeBottom.parentNode.appendChild(houseConnectionPipeBottom);
+                    }
+                } else {
+                    // Hide house animation when no distribution flow and no zone relay conditions
+                    const houseAnimation = document.getElementById('house-animation');
+                    if (houseAnimation) {
+                        houseAnimation.style.display = 'none';
+                    }
+                }
+                
+                // Special logic for HpOnStoreOff: House to Buffer pipes when dist flow is active or zone relay conditions met
+                if (shouldAnimate) {
+                    // House to Buffer top pipe - rightward flow
+                    if (houseBufferTopPipe) {
+                        houseBufferTopPipe.setAttribute('fill', 'url(#flowPattern)');
+                        houseBufferTopPipe.removeAttribute('stroke');
+                        houseBufferTopPipe.parentNode.appendChild(houseBufferTopPipe);
+                    }
+                    // House to Buffer bottom pipe - NOT animated in HpOnStoreOff
+                    // (bottom pipe stays gray)
+                }
+                
+            } else if (currentState === 'HpOffStoreDischarge') {
+                // Green pipes for HpOffStoreDischarge state (Tank1 to Buffer)
+                
+                // Hide heat pump animation
+                const hpAnimation = document.getElementById('hp-animation');
+                if (hpAnimation) {
+                    hpAnimation.style.display = 'none';
+                }
+                
+                // Show tank animations - bottom to top flow
+                const tank1Animation = document.getElementById('tank1-animation');
+                const tank2Animation = document.getElementById('tank2-animation');
+                const tank3Animation = document.getElementById('tank3-animation');
+                
+                if (tank1Animation) {
+                    tank1Animation.style.display = 'block';
+                    tank1Animation.parentNode.appendChild(tank1Animation);
+                    const tank1Rect = tank1Animation.querySelector('rect');
+                    if (tank1Rect) {
+                        tank1Rect.setAttribute('fill', 'url(#tankHeatLinesBottomToTop)');
+                    }
+                }
+                
+                if (tank2Animation) {
+                    tank2Animation.style.display = 'block';
+                    tank2Animation.parentNode.appendChild(tank2Animation);
+                    const tank2Rect = tank2Animation.querySelector('rect');
+                    if (tank2Rect) {
+                        tank2Rect.setAttribute('fill', 'url(#tankHeatLinesBottomToTop)');
+                    }
+                }
+                
+                if (tank3Animation) {
+                    tank3Animation.style.display = 'block';
+                    tank3Animation.parentNode.appendChild(tank3Animation);
+                    const tank3Rect = tank3Animation.querySelector('rect');
+                    if (tank3Rect) {
+                        tank3Rect.setAttribute('fill', 'url(#tankHeatLinesBottomToTop)');
+                    }
+                }
+                
+                // Show buffer animation - top to bottom flow
+                const bufferAnimation = document.getElementById('buffer-animation');
+                if (bufferAnimation) {
+                    bufferAnimation.style.display = 'block';
+                    bufferAnimation.parentNode.appendChild(bufferAnimation);
+                    // Set top to bottom flow pattern
+                    const bufferRect = bufferAnimation.querySelector('rect');
+                    if (bufferRect) {
+                        bufferRect.setAttribute('fill', 'url(#bufferHeatLinesTopToBottom)');
+                    }
+                }
+                if (tank1HpVerticalPipe) {
+                    tank1HpVerticalPipe.setAttribute('fill', 'url(#verticalFlowPattern)');
+                    tank1HpVerticalPipe.removeAttribute('stroke');
+                    tank1HpVerticalPipe.parentNode.appendChild(tank1HpVerticalPipe);
+                } else {
+                    //console.log('Tank1-HP vertical pipe element not found!');
+                }
+                if (tank1BufferHorizontalPipe) {
+                    tank1BufferHorizontalPipe.setAttribute('fill', 'url(#flowPattern)');
+                    tank1BufferHorizontalPipe.removeAttribute('stroke');
+                    tank1BufferHorizontalPipe.parentNode.appendChild(tank1BufferHorizontalPipe);
+                } else {
+                    //console.log('Tank1-Buffer horizontal pipe element not found!');
+                }
+                if (tank1ConnectionPipe) {
+                    tank1ConnectionPipe.setAttribute('fill', 'url(#flowPattern)');
+                    tank1ConnectionPipe.removeAttribute('stroke');
+                    tank1ConnectionPipe.parentNode.appendChild(tank1ConnectionPipe);
+                } else {
+                    //console.log('Tank1 connection pipe element not found!');
+                }
+                if (tank3HpVerticalPipe) {
+                    tank3HpVerticalPipe.setAttribute('fill', 'url(#verticalDownFlowPattern)');
+                    tank3HpVerticalPipe.removeAttribute('stroke');
+                    tank3HpVerticalPipe.parentNode.appendChild(tank3HpVerticalPipe);
+                } else {
+                    //console.log('Tank3-HP vertical pipe element not found!');
+                }
+                if (tank3BufferHorizontalPipe) {
+                    tank3BufferHorizontalPipe.setAttribute('fill', 'url(#leftFlowPattern)');
+                    tank3BufferHorizontalPipe.removeAttribute('stroke');
+                    tank3BufferHorizontalPipe.parentNode.appendChild(tank3BufferHorizontalPipe);
+                } else {
+                    //console.log('Tank3-Buffer horizontal pipe element not found!');
+                }
+                if (tank3ConnectionPipe) {
+                    tank3ConnectionPipe.setAttribute('fill', 'url(#flowPattern)');
+                    tank3ConnectionPipe.removeAttribute('stroke');
+                    tank3ConnectionPipe.parentNode.appendChild(tank3ConnectionPipe);
+                } else {
+                    //console.log('Tank3 connection pipe element not found!');
+                }
+                // Gray for HpOnStoreCharge pipes
+                if (tank1HpVerticalPipeCharge) {
+                    tank1HpVerticalPipeCharge.setAttribute('fill', '#888');
+                    tank1HpVerticalPipeCharge.removeAttribute('stroke');
+                }
+                if (tank3HpVerticalPipeCharge) {
+                    tank3HpVerticalPipeCharge.setAttribute('fill', '#888');
+                    tank3HpVerticalPipeCharge.removeAttribute('stroke');
+                }
+                if (tank1ConnectionPipeCharge) {
+                    tank1ConnectionPipeCharge.setAttribute('fill', '#888');
+                    tank1ConnectionPipeCharge.removeAttribute('stroke');
+                }
+                if (tank3ConnectionPipeCharge) {
+                    tank3ConnectionPipeCharge.setAttribute('fill', '#888');
+                    tank3ConnectionPipeCharge.removeAttribute('stroke');
+                }
+                // Gray for HP-Buffer pipes
+                if (hpBufferTopPipe) {
+                    hpBufferTopPipe.setAttribute('fill', '#888');
+                    hpBufferTopPipe.removeAttribute('stroke');
+                }
+                if (hpBufferBottomPipe) {
+                    hpBufferBottomPipe.setAttribute('fill', '#888');
+                    hpBufferBottomPipe.removeAttribute('stroke');
+                }
+                if (tank1HpHorizontalPipeCharge) {
+                    tank1HpHorizontalPipeCharge.setAttribute('fill', '#888');
+                    tank1HpHorizontalPipeCharge.removeAttribute('stroke');
+                }
+                if (tank3HpHorizontalPipeCharge) {
+                    tank3HpHorizontalPipeCharge.setAttribute('fill', '#888');
+                    tank3HpHorizontalPipeCharge.removeAttribute('stroke');
+                }
+                if (houseHpVerticalPipe) {
+                    houseHpVerticalPipe.setAttribute('fill', '#888');
+                    houseHpVerticalPipe.removeAttribute('stroke');
+                }
+                if (houseConnectionPipe) {
+                    houseConnectionPipe.setAttribute('fill', '#888');
+                    houseConnectionPipe.removeAttribute('stroke');
+                }
+                if (houseHpVerticalPipeBottom) {
+                    houseHpVerticalPipeBottom.setAttribute('fill', '#888');
+                    houseHpVerticalPipeBottom.removeAttribute('stroke');
+                }
+                if (houseConnectionPipeBottom) {
+                    houseConnectionPipeBottom.setAttribute('fill', '#888');
+                    houseConnectionPipeBottom.removeAttribute('stroke');
+                }
+                if (houseBufferTopPipe) {
+                    houseBufferTopPipe.setAttribute('fill', '#888');
+                    houseBufferTopPipe.removeAttribute('stroke');
+                }
+                if (houseBufferBottomPipe) {
+                    houseBufferBottomPipe.setAttribute('fill', '#888');
+                    houseBufferBottomPipe.removeAttribute('stroke');
+                }
+                
+                // Animate House pipes based on distribution flow
+                if (shouldAnimate) {
+                    // Show house animation
+                    const houseAnimation = document.getElementById('house-animation');
+                    const houseDropText = document.getElementById('house-drop');
+                    if (houseAnimation) {
+                        houseAnimation.style.display = 'block';
+                        houseAnimation.parentNode.appendChild(houseAnimation);
+                        // Ensure drop text stays on top
+                        if (houseDropText) {
+                            houseDropText.parentNode.appendChild(houseDropText);
+                        }
+                    }
+                    
+                    // Right vertical pipe (house-hp-vertical-pipe) - downward flow
+                    if (houseHpVerticalPipe) {
+                        houseHpVerticalPipe.setAttribute('fill', 'url(#verticalDownFlowPattern)');
+                        houseHpVerticalPipe.removeAttribute('stroke');
+                        houseHpVerticalPipe.parentNode.appendChild(houseHpVerticalPipe);
+                    }
+                    // Left vertical pipe (house-hp-vertical-pipe-bottom) - upward flow  
+                    if (houseHpVerticalPipeBottom) {
+                        houseHpVerticalPipeBottom.setAttribute('fill', 'url(#verticalFlowPattern)');
+                        houseHpVerticalPipeBottom.removeAttribute('stroke');
+                        houseHpVerticalPipeBottom.parentNode.appendChild(houseHpVerticalPipeBottom);
+                    }
+                    // Top connection pipe - leftward flow
+                    if (houseConnectionPipe) {
+                        houseConnectionPipe.setAttribute('fill', 'url(#leftFlowPattern)');
+                        houseConnectionPipe.removeAttribute('stroke');
+                        houseConnectionPipe.parentNode.appendChild(houseConnectionPipe);
+                    }
+                    // Bottom connection pipe - leftward flow
+                    if (houseConnectionPipeBottom) {
+                        houseConnectionPipeBottom.setAttribute('fill', 'url(#leftFlowPattern)');
+                        houseConnectionPipeBottom.removeAttribute('stroke');
+                        houseConnectionPipeBottom.parentNode.appendChild(houseConnectionPipeBottom);
+                    }
+                } else {
+                    // Hide house animation when no distribution flow and no zone relay conditions
+                    const houseAnimation = document.getElementById('house-animation');
+                    if (houseAnimation) {
+                        houseAnimation.style.display = 'none';
+                    }
+                }
+                
+            } else if (currentState === 'HpOnStoreCharge') {
+                // Green pipes for HpOnStoreCharge state (Tanks to HP)
+                
+                // Show heat pump animation
+                const hpAnimation = document.getElementById('hp-animation');
+                const hpLiftText = document.getElementById('hp-lift');
+                if (hpAnimation) {
+                    hpAnimation.style.display = 'block';
+                    hpAnimation.parentNode.appendChild(hpAnimation);
+                    // Ensure lift text stays on top
+                    if (hpLiftText) {
+                        hpLiftText.parentNode.appendChild(hpLiftText);
+                    }
+                }
+                
+                // Show tank animations - top to bottom flow
+                const tank1Animation = document.getElementById('tank1-animation');
+                const tank2Animation = document.getElementById('tank2-animation');
+                const tank3Animation = document.getElementById('tank3-animation');
+                
+                if (tank1Animation) {
+                    tank1Animation.style.display = 'block';
+                    tank1Animation.parentNode.appendChild(tank1Animation);
+                    const tank1Rect = tank1Animation.querySelector('rect');
+                    if (tank1Rect) {
+                        tank1Rect.setAttribute('fill', 'url(#tankHeatLinesTopToBottom)');
+                    }
+                }
+                
+                if (tank2Animation) {
+                    tank2Animation.style.display = 'block';
+                    tank2Animation.parentNode.appendChild(tank2Animation);
+                    const tank2Rect = tank2Animation.querySelector('rect');
+                    if (tank2Rect) {
+                        tank2Rect.setAttribute('fill', 'url(#tankHeatLinesTopToBottom)');
+                    }
+                }
+                
+                if (tank3Animation) {
+                    tank3Animation.style.display = 'block';
+                    tank3Animation.parentNode.appendChild(tank3Animation);
+                    const tank3Rect = tank3Animation.querySelector('rect');
+                    if (tank3Rect) {
+                        tank3Rect.setAttribute('fill', 'url(#tankHeatLinesTopToBottom)');
+                    }
+                }
+                
+                // Show buffer animation - bottom to top flow, only when dist-flow is active or zone relay conditions met
+                if (shouldAnimate) {
+                    const bufferAnimation = document.getElementById('buffer-animation');
+                    if (bufferAnimation) {
+                        bufferAnimation.style.display = 'block';
+                        bufferAnimation.parentNode.appendChild(bufferAnimation);
+                        // Set bottom to top flow pattern
+                        const bufferRect = bufferAnimation.querySelector('rect');
+                        if (bufferRect) {
+                            bufferRect.setAttribute('fill', 'url(#bufferHeatLinesBottomToTop)');
+                        }
+                    }
+                } else {
+                    // Hide buffer animation when no dist-flow and no zone relay conditions
+                    const bufferAnimation = document.getElementById('buffer-animation');
+                    if (bufferAnimation) {
+                        bufferAnimation.style.display = 'none';
+                    }
+                }
+                if (tank1HpVerticalPipeCharge) {
+                    tank1HpVerticalPipeCharge.setAttribute('fill', 'url(#verticalDownFlowPattern)'); // Downward flow
+                    tank1HpVerticalPipeCharge.removeAttribute('stroke');
+                    tank1HpVerticalPipeCharge.parentNode.appendChild(tank1HpVerticalPipeCharge);
+                } else {
+                    //console.log('Tank1-HP vertical pipe (charge) element not found!');
+                }
+                if (tank3HpVerticalPipeCharge) {
+                    tank3HpVerticalPipeCharge.setAttribute('fill', 'url(#verticalFlowPattern)'); // Upward flow
+                    tank3HpVerticalPipeCharge.removeAttribute('stroke');
+                    tank3HpVerticalPipeCharge.parentNode.appendChild(tank3HpVerticalPipeCharge);
+                } else {
+                    //console.log('Tank3-HP vertical pipe (charge) element not found!');
+                }
+                if (tank1ConnectionPipeCharge) {
+                    tank1ConnectionPipeCharge.setAttribute('fill', 'url(#leftFlowPattern)'); // Leftward flow
+                    tank1ConnectionPipeCharge.removeAttribute('stroke');
+                    tank1ConnectionPipeCharge.parentNode.appendChild(tank1ConnectionPipeCharge);
+                } else {
+                    //console.log('Tank1 connection pipe (charge) element not found!');
+                }
+                if (tank3ConnectionPipeCharge) {
+                    tank3ConnectionPipeCharge.setAttribute('fill', 'url(#leftFlowPattern)'); // Leftward flow
+                    tank3ConnectionPipeCharge.removeAttribute('stroke');
+                    tank3ConnectionPipeCharge.parentNode.appendChild(tank3ConnectionPipeCharge);
+                } else {
+                    //console.log('Tank3 connection pipe (charge) element not found!');
+                }
+                if (tank1HpHorizontalPipeCharge) {
+                    tank1HpHorizontalPipeCharge.setAttribute('fill', 'url(#flowPattern)'); // Rightward flow
+                    tank1HpHorizontalPipeCharge.removeAttribute('stroke');
+                    tank1HpHorizontalPipeCharge.parentNode.appendChild(tank1HpHorizontalPipeCharge);
+                } else {
+                    //console.log('Tank1-HP horizontal pipe (charge) element not found!');
+                }
+                if (tank3HpHorizontalPipeCharge) {
+                    tank3HpHorizontalPipeCharge.setAttribute('fill', 'url(#leftFlowPattern)'); // Leftward flow
+                    tank3HpHorizontalPipeCharge.removeAttribute('stroke');
+                    tank3HpHorizontalPipeCharge.parentNode.appendChild(tank3HpHorizontalPipeCharge);
+                } else {
+                    //console.log('Tank3-HP horizontal pipe (charge) element not found!');
+                }
+                // Gray for all other pipes
+                if (hpBufferTopPipe) {
+                    hpBufferTopPipe.setAttribute('fill', '#888');
+                    hpBufferTopPipe.removeAttribute('stroke');
+                }
+                if (hpBufferBottomPipe) {
+                    hpBufferBottomPipe.setAttribute('fill', '#888');
+                    hpBufferBottomPipe.removeAttribute('stroke');
+                }
+                if (tank1HpVerticalPipe) {
+                    tank1HpVerticalPipe.setAttribute('fill', '#888');
+                    tank1HpVerticalPipe.removeAttribute('stroke');
+                }
+                if (tank1BufferHorizontalPipe) {
+                    tank1BufferHorizontalPipe.setAttribute('fill', '#888');
+                    tank1BufferHorizontalPipe.removeAttribute('stroke');
+                }
+                if (tank1ConnectionPipe) {
+                    tank1ConnectionPipe.setAttribute('fill', '#888');
+                    tank1ConnectionPipe.removeAttribute('stroke');
+                }
+                if (tank3HpVerticalPipe) {
+                    tank3HpVerticalPipe.setAttribute('fill', '#888');
+                    tank3HpVerticalPipe.removeAttribute('stroke');
+                }
+                if (tank3BufferHorizontalPipe) {
+                    tank3BufferHorizontalPipe.setAttribute('fill', '#888');
+                    tank3BufferHorizontalPipe.removeAttribute('stroke');
+                }
+                if (tank3ConnectionPipe) {
+                    tank3ConnectionPipe.setAttribute('fill', '#888');
+                    tank3ConnectionPipe.removeAttribute('stroke');
+                }
+                
+                // Special logic for HpOnStoreCharge: House to Buffer pipes when dist flow is active or zone relay conditions met
+                if (shouldAnimate) {
+                    // Show house animation
+                    const houseAnimation = document.getElementById('house-animation');
+                    const houseDropText = document.getElementById('house-drop');
+                    if (houseAnimation) {
+                        houseAnimation.style.display = 'block';
+                        houseAnimation.parentNode.appendChild(houseAnimation);
+                        // Ensure drop text stays on top
+                        if (houseDropText) {
+                            houseDropText.parentNode.appendChild(houseDropText);
+                        }
+                    }
+                    
+                    // House to Buffer top pipe - leftward flow (opposite direction from HpOnStoreOff)
+                    if (houseBufferTopPipe) {
+                        houseBufferTopPipe.setAttribute('fill', 'url(#leftFlowPattern)');
+                        houseBufferTopPipe.removeAttribute('stroke');
+                        houseBufferTopPipe.parentNode.appendChild(houseBufferTopPipe);
+                    }
+                    // House to Buffer bottom pipe - rightward flow
+                    if (houseBufferBottomPipe) {
+                        houseBufferBottomPipe.setAttribute('fill', 'url(#flowPattern)');
+                        houseBufferBottomPipe.removeAttribute('stroke');
+                        houseBufferBottomPipe.parentNode.appendChild(houseBufferBottomPipe);
+                    }
+                    
+                    // Animate House vertical pipes
+                    // Right vertical pipe (house-hp-vertical-pipe) - downward flow
+                    if (houseHpVerticalPipe) {
+                        houseHpVerticalPipe.setAttribute('fill', 'url(#verticalDownFlowPattern)');
+                        houseHpVerticalPipe.removeAttribute('stroke');
+                        houseHpVerticalPipe.parentNode.appendChild(houseHpVerticalPipe);
+                    }
+                    // Left vertical pipe (house-hp-vertical-pipe-bottom) - upward flow  
+                    if (houseHpVerticalPipeBottom) {
+                        houseHpVerticalPipeBottom.setAttribute('fill', 'url(#verticalFlowPattern)');
+                        houseHpVerticalPipeBottom.removeAttribute('stroke');
+                        houseHpVerticalPipeBottom.parentNode.appendChild(houseHpVerticalPipeBottom);
+                    }
+                    // Top connection pipe - leftward flow
+                    if (houseConnectionPipe) {
+                        houseConnectionPipe.setAttribute('fill', 'url(#leftFlowPattern)');
+                        houseConnectionPipe.removeAttribute('stroke');
+                        houseConnectionPipe.parentNode.appendChild(houseConnectionPipe);
+                    }
+                    // Bottom connection pipe - leftward flow
+                    if (houseConnectionPipeBottom) {
+                        houseConnectionPipeBottom.setAttribute('fill', 'url(#leftFlowPattern)');
+                        houseConnectionPipeBottom.removeAttribute('stroke');
+                        houseConnectionPipeBottom.parentNode.appendChild(houseConnectionPipeBottom);
+                    }
+                } else {
+                    // Hide house animation when no distribution flow and no zone relay conditions
+                    const houseAnimation = document.getElementById('house-animation');
+                    if (houseAnimation) {
+                        houseAnimation.style.display = 'none';
+                    }
+                    
+                    // Reset house-buffer pipes to gray when no animation
+                    if (houseBufferTopPipe) {
+                        houseBufferTopPipe.setAttribute('fill', '#888');
+                        houseBufferTopPipe.removeAttribute('stroke');
+                    }
+                    if (houseBufferBottomPipe) {
+                        houseBufferBottomPipe.setAttribute('fill', '#888');
+                        houseBufferBottomPipe.removeAttribute('stroke');
+                    }
+                    
+                    // Reset house vertical pipes to gray when no animation
+                    if (houseHpVerticalPipe) {
+                        houseHpVerticalPipe.setAttribute('fill', '#888');
+                        houseHpVerticalPipe.removeAttribute('stroke');
+                    }
+                    if (houseHpVerticalPipeBottom) {
+                        houseHpVerticalPipeBottom.setAttribute('fill', '#888');
+                        houseHpVerticalPipeBottom.removeAttribute('stroke');
+                    }
+                    if (houseConnectionPipe) {
+                        houseConnectionPipe.setAttribute('fill', '#888');
+                        houseConnectionPipe.removeAttribute('stroke');
+                    }
+                    if (houseConnectionPipeBottom) {
+                        houseConnectionPipeBottom.setAttribute('fill', '#888');
+                        houseConnectionPipeBottom.removeAttribute('stroke');
+                    }
+                }
+            } else {
+                // Gray pipes for other states
+                // Hide heat pump animation
+                const hpAnimation = document.getElementById('hp-animation');
+                if (hpAnimation) {
+                    hpAnimation.style.display = 'none';
+                }
+                
+                // Hide buffer animation for other states (not HpOffStoreOff)
+                if (currentState !== 'HpOffStoreOff') {
+                    const bufferAnimation = document.getElementById('buffer-animation');
+                    if (bufferAnimation) {
+                        bufferAnimation.style.display = 'none';
+                    }
+                }
+                
+                // Hide tank animations for other states
+                const tank1Animation = document.getElementById('tank1-animation');
+                const tank2Animation = document.getElementById('tank2-animation');
+                const tank3Animation = document.getElementById('tank3-animation');
+                
+                if (tank1Animation) {
+                    tank1Animation.style.display = 'none';
+                }
+                if (tank2Animation) {
+                    tank2Animation.style.display = 'none';
+                }
+                if (tank3Animation) {
+                    tank3Animation.style.display = 'none';
+                }
+                
+                if (hpBufferTopPipe) {
+                    hpBufferTopPipe.setAttribute('fill', '#888');
+                    hpBufferTopPipe.removeAttribute('stroke');
+                }
+                if (hpBufferBottomPipe) {
+                    hpBufferBottomPipe.setAttribute('fill', '#888');
+                    hpBufferBottomPipe.removeAttribute('stroke');
+                }
+                if (tank1HpVerticalPipe) {
+                    tank1HpVerticalPipe.setAttribute('fill', '#888');
+                    tank1HpVerticalPipe.removeAttribute('stroke');
+                }
+                if (tank1BufferHorizontalPipe) {
+                    tank1BufferHorizontalPipe.setAttribute('fill', '#888');
+                    tank1BufferHorizontalPipe.removeAttribute('stroke');
+                }
+                if (tank1ConnectionPipe) {
+                    tank1ConnectionPipe.setAttribute('fill', '#888');
+                    tank1ConnectionPipe.removeAttribute('stroke');
+                }
+                if (tank3HpVerticalPipe) {
+                    tank3HpVerticalPipe.setAttribute('fill', '#888');
+                    tank3HpVerticalPipe.removeAttribute('stroke');
+                }
+                if (tank3BufferHorizontalPipe) {
+                    tank3BufferHorizontalPipe.setAttribute('fill', '#888');
+                    tank3BufferHorizontalPipe.removeAttribute('stroke');
+                }
+                if (tank3ConnectionPipe) {
+                    tank3ConnectionPipe.setAttribute('fill', '#888');
+                    tank3ConnectionPipe.removeAttribute('stroke');
+                }
+                if (tank1HpVerticalPipeCharge) {
+                    tank1HpVerticalPipeCharge.setAttribute('fill', '#888');
+                    tank1HpVerticalPipeCharge.removeAttribute('stroke');
+                }
+                if (tank3HpVerticalPipeCharge) {
+                    tank3HpVerticalPipeCharge.setAttribute('fill', '#888');
+                    tank3HpVerticalPipeCharge.removeAttribute('stroke');
+                }
+                if (tank1ConnectionPipeCharge) {
+                    tank1ConnectionPipeCharge.setAttribute('fill', '#888');
+                    tank1ConnectionPipeCharge.removeAttribute('stroke');
+                }
+                if (tank3ConnectionPipeCharge) {
+                    tank3ConnectionPipeCharge.setAttribute('fill', '#888');
+                    tank3ConnectionPipeCharge.removeAttribute('stroke');
+                }
+                if (tank1HpHorizontalPipeCharge) {
+                    tank1HpHorizontalPipeCharge.setAttribute('fill', '#888');
+                    tank1HpHorizontalPipeCharge.removeAttribute('stroke');
+                }
+                if (tank3HpHorizontalPipeCharge) {
+                    tank3HpHorizontalPipeCharge.setAttribute('fill', '#888');
+                    tank3HpHorizontalPipeCharge.removeAttribute('stroke');
+                }
+                if (houseHpVerticalPipe) {
+                    houseHpVerticalPipe.setAttribute('fill', '#888');
+                    houseHpVerticalPipe.removeAttribute('stroke');
+                }
+                if (houseConnectionPipe) {
+                    houseConnectionPipe.setAttribute('fill', '#888');
+                    houseConnectionPipe.removeAttribute('stroke');
+                }
+                if (houseHpVerticalPipeBottom) {
+                    houseHpVerticalPipeBottom.setAttribute('fill', '#888');
+                    houseHpVerticalPipeBottom.removeAttribute('stroke');
+                }
+                if (houseConnectionPipeBottom) {
+                    houseConnectionPipeBottom.setAttribute('fill', '#888');
+                    houseConnectionPipeBottom.removeAttribute('stroke');
+                }
+                if (houseBufferTopPipe) {
+                    houseBufferTopPipe.setAttribute('fill', '#888');
+                    houseBufferTopPipe.removeAttribute('stroke');
+                }
+                if (houseBufferBottomPipe) {
+                    houseBufferBottomPipe.setAttribute('fill', '#888');
+                    houseBufferBottomPipe.removeAttribute('stroke');
+                }
+                
+                // Animate House pipes based on distribution flow
+                if (shouldAnimate) {
+                    // Show house animation
+                    const houseAnimation = document.getElementById('house-animation');
+                    const houseDropText = document.getElementById('house-drop');
+                    if (houseAnimation) {
+                        houseAnimation.style.display = 'block';
+                        houseAnimation.parentNode.appendChild(houseAnimation);
+                        // Ensure drop text stays on top
+                        if (houseDropText) {
+                            houseDropText.parentNode.appendChild(houseDropText);
+                        }
+                    }
+                    
+                    // Right vertical pipe (house-hp-vertical-pipe) - downward flow
+                    if (houseHpVerticalPipe) {
+                        houseHpVerticalPipe.setAttribute('fill', 'url(#verticalDownFlowPattern)');
+                        houseHpVerticalPipe.removeAttribute('stroke');
+                        houseHpVerticalPipe.parentNode.appendChild(houseHpVerticalPipe);
+                    }
+                    // Left vertical pipe (house-hp-vertical-pipe-bottom) - upward flow  
+                    if (houseHpVerticalPipeBottom) {
+                        houseHpVerticalPipeBottom.setAttribute('fill', 'url(#verticalFlowPattern)');
+                        houseHpVerticalPipeBottom.removeAttribute('stroke');
+                        houseHpVerticalPipeBottom.parentNode.appendChild(houseHpVerticalPipeBottom);
+                    }
+                    // Top connection pipe - leftward flow
+                    if (houseConnectionPipe) {
+                        houseConnectionPipe.setAttribute('fill', 'url(#leftFlowPattern)');
+                        houseConnectionPipe.removeAttribute('stroke');
+                        houseConnectionPipe.parentNode.appendChild(houseConnectionPipe);
+                    }
+                    // Bottom connection pipe - leftward flow
+                    if (houseConnectionPipeBottom) {
+                        houseConnectionPipeBottom.setAttribute('fill', 'url(#leftFlowPattern)');
+                        houseConnectionPipeBottom.removeAttribute('stroke');
+                        houseConnectionPipeBottom.parentNode.appendChild(houseConnectionPipeBottom);
+                    }
+                    
+                    // Special logic for HpOffStoreOff: House to Buffer pipes when dist flow is active
+                    // (same as HpOnStoreCharge)
+                    if (currentState === 'HpOffStoreOff') {
+                        // House to Buffer top pipe - leftward flow (same as HpOnStoreCharge)
+                        if (houseBufferTopPipe) {
+                            houseBufferTopPipe.setAttribute('fill', 'url(#leftFlowPattern)');
+                            houseBufferTopPipe.removeAttribute('stroke');
+                            houseBufferTopPipe.parentNode.appendChild(houseBufferTopPipe);
+                        }
+                        // House to Buffer bottom pipe - rightward flow (same as HpOnStoreCharge)
+                        if (houseBufferBottomPipe) {
+                            houseBufferBottomPipe.setAttribute('fill', 'url(#flowPattern)');
+                            houseBufferBottomPipe.removeAttribute('stroke');
+                            houseBufferBottomPipe.parentNode.appendChild(houseBufferBottomPipe);
+                        }
+                        
+                        // Show buffer animation - bottom to top flow (same as HpOnStoreCharge)
+                        const bufferAnimation = document.getElementById('buffer-animation');
+                        if (bufferAnimation) {
+                            bufferAnimation.style.display = 'block';
+                            bufferAnimation.parentNode.appendChild(bufferAnimation);
+                            // Set bottom to top flow pattern
+                            const bufferRect = bufferAnimation.querySelector('rect');
+                            if (bufferRect) {
+                                bufferRect.setAttribute('fill', 'url(#bufferHeatLinesBottomToTop)');
+                            }
+                        }
+                    }
+                } else {
+                    // Hide house animation when no distribution flow and no zone relay conditions
+                    const houseAnimation = document.getElementById('house-animation');
+                    if (houseAnimation) {
+                        houseAnimation.style.display = 'none';
+                    }
+                    
+                    // Hide buffer animation when no distribution flow (for HpOffStoreOff)
+                    if (currentState === 'HpOffStoreOff') {
+                        const bufferAnimation = document.getElementById('buffer-animation');
+                        if (bufferAnimation) {
+                            bufferAnimation.style.display = 'none';
+                        }
+                    }
+                }
+                
+            }
+            
+            // Ensure buffer pipe labels are always on top of all animated elements
+            ensureBufferLabelsOnTop();
+        }
+
+        function createTankSections(tankNum, maxDepth) {
+            // Tank positions
+            const tankPositions = {
+                1: { x: 460, y: 280 },
+                2: { x: 330, y: 280 },
+                3: { x: 200, y: 280 }
+            };
+            
+            const pos = tankPositions[tankNum];
+            if (!pos) return;
+            
+            const sectionHeight = 200 / maxDepth; // Divide total height by number of sections
+            
+            // Clear existing sections for this tank
+            for (let i = 1; i <= 10; i++) {
+                const existingSection = document.getElementById(`tank${tankNum}-section${i}`);
+                const existingText = document.getElementById(`tank${tankNum}-depth${i}`);
+                if (existingSection) existingSection.remove();
+                if (existingText) existingText.remove();
+            }
+            
+            // Create new sections
+            for (let depth = 1; depth <= maxDepth; depth++) {
+                const y = pos.y + (depth - 1) * sectionHeight;
+                const height = sectionHeight;
+                
+                // Create section element
+                let sectionElement;
+                if (depth === 1) {
+                    // Top section - rounded top corners only
+                    sectionElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    const d = `M ${pos.x},${y + 10} Q ${pos.x},${y} ${pos.x + 10},${y} L ${pos.x + 110},${y} Q ${pos.x + 120},${y} ${pos.x + 120},${y + 10} L ${pos.x + 120},${y + height} L ${pos.x},${y + height} Z`;
+                    sectionElement.setAttribute('d', d);
+                } else if (depth === maxDepth) {
+                    // Bottom section - rounded bottom corners only
+                    sectionElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    const d = `M ${pos.x},${y} L ${pos.x + 120},${y} L ${pos.x + 120},${y + height - 10} Q ${pos.x + 120},${y + height} ${pos.x + 110},${y + height} L ${pos.x + 10},${y + height} Q ${pos.x},${y + height} ${pos.x},${y + height - 10} Z`;
+                    sectionElement.setAttribute('d', d);
+                } else {
+                    // Middle section - no rounded corners
+                    sectionElement = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    sectionElement.setAttribute('x', pos.x);
+                    sectionElement.setAttribute('y', y);
+                    sectionElement.setAttribute('width', 120);
+                    sectionElement.setAttribute('height', height);
+                }
+                
+                sectionElement.setAttribute('id', `tank${tankNum}-section${depth}`);
+                sectionElement.setAttribute('fill', '#444');
+                
+                // Insert after the tank background rectangle
+                const tankRect = document.querySelector(`rect[x="${pos.x}"][y="${pos.y}"]`);
+                if (tankRect) {
+                    tankRect.parentNode.insertBefore(sectionElement, tankRect.nextSibling);
+                }
+                
+                // Create text element
+                const textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                textElement.setAttribute('id', `tank${tankNum}-depth${depth}`);
+                textElement.setAttribute('x', pos.x + 60);
+                textElement.setAttribute('y', y + height / 2 + 4);
+                textElement.setAttribute('text-anchor', 'middle');
+                textElement.setAttribute('fill', 'white');
+                textElement.setAttribute('font-family', 'Montserrat, sans-serif');
+                textElement.setAttribute('font-size', '14');
+                textElement.setAttribute('font-weight', '600');
+                textElement.textContent = '-';
+                
+                sectionElement.parentNode.insertBefore(textElement, sectionElement.nextSibling);
+            }
+        }
+
+        function createBufferSections(maxDepth) {
+            const pos = { x: 860, y: 50 };
+            const sectionHeight = 200 / maxDepth; // Divide total height by number of sections
+            
+            // Clear existing sections for buffer
+            for (let i = 1; i <= 10; i++) {
+                const existingSection = document.getElementById(`buffer-section${i}`);
+                const existingText = document.getElementById(`buffer-depth${i}`);
+                if (existingSection) existingSection.remove();
+                if (existingText) existingText.remove();
+            }
+            
+            // Create new sections
+            for (let depth = 1; depth <= maxDepth; depth++) {
+                const y = pos.y + (depth - 1) * sectionHeight;
+                const height = sectionHeight;
+                
+                // Create section element
+                let sectionElement;
+                if (depth === 1) {
+                    // Top section - rounded top corners only
+                    sectionElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    const d = `M ${pos.x},${y + 10} Q ${pos.x},${y} ${pos.x + 10},${y} L ${pos.x + 110},${y} Q ${pos.x + 120},${y} ${pos.x + 120},${y + 10} L ${pos.x + 120},${y + height} L ${pos.x},${y + height} Z`;
+                    sectionElement.setAttribute('d', d);
+                } else if (depth === maxDepth) {
+                    // Bottom section - rounded bottom corners only
+                    sectionElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    const d = `M ${pos.x},${y} L ${pos.x + 120},${y} L ${pos.x + 120},${y + height - 10} Q ${pos.x + 120},${y + height} ${pos.x + 110},${y + height} L ${pos.x + 10},${y + height} Q ${pos.x},${y + height} ${pos.x},${y + height - 10} Z`;
+                    sectionElement.setAttribute('d', d);
+                } else {
+                    // Middle section - no rounded corners
+                    sectionElement = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    sectionElement.setAttribute('x', pos.x);
+                    sectionElement.setAttribute('y', y);
+                    sectionElement.setAttribute('width', 120);
+                    sectionElement.setAttribute('height', height);
+                }
+                
+                sectionElement.setAttribute('id', `buffer-section${depth}`);
+                sectionElement.setAttribute('fill', '#444');
+                
+                // Insert after the buffer background rectangle
+                const bufferRect = document.querySelector(`rect[x="860"][y="50"]`);
+                if (bufferRect) {
+                    bufferRect.parentNode.insertBefore(sectionElement, bufferRect.nextSibling);
+                }
+                
+                // Create text element
+                const textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                textElement.setAttribute('id', `buffer-depth${depth}`);
+                textElement.setAttribute('x', pos.x + 60);
+                textElement.setAttribute('y', y + height / 2 + 4);
+                textElement.setAttribute('text-anchor', 'middle');
+                textElement.setAttribute('fill', 'white');
+                textElement.setAttribute('font-family', 'Montserrat, sans-serif');
+                textElement.setAttribute('font-size', '14');
+                textElement.setAttribute('font-weight', '600');
+                textElement.textContent = '-';
+                
+                sectionElement.parentNode.insertBefore(textElement, sectionElement.nextSibling);
+            }
+        }
+
+        // Initialize diagram with default 3 layers for each component
+        function initializeDiagram() {
+            // Initialize tanks with 3 layers each
+            for (let tankNum = 1; tankNum <= 3; tankNum++) {
+                createTankSections(tankNum, 3);
+            }
+            
+            // Initialize buffer with 3 layers
+            createBufferSections(3);
+        }
+
+        // Connect when page loads
+        window.onload = function() {
+            initializeDiagram();
+            connectWebSocket();
+            
+            // Add event listener for test mode dropdown
+            const testModeSelect = document.getElementById('testModeSelect');
+            if (testModeSelect) {
+                testModeSelect.addEventListener('change', function() {
+                    ////console.log('Test mode changed to:', this.value);
+                    // Trigger pipe color update with current snapshot data
+                    if (window.lastSnapshotData) {
+                        updatePipeColors(window.lastSnapshotData);
+                    }
+                });
+            }
+        };
+    </script>
+    </div>
+</body>
+</html>
