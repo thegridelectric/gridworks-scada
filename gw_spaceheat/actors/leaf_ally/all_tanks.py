@@ -37,6 +37,9 @@ from actors.procedural.store_pump_monitor import StorePumpMonitor
 class AllTanksLeafAlly(ShNodeActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
     NO_TEMPS_BAIL_MINUTES = 5
+    LG_HEAT_PUMP_RAMP_UP_MINUTES = 15*60
+    DEFAULT_HEAT_PUMP_RAMP_UP_MINUTES = 5*60
+
     states = LeafAllyAllTanksState.values()
     # Uses LeafAllyAllTanksEvent as transitions
     transitions = (
@@ -301,10 +304,9 @@ class AllTanksLeafAlly(ShNodeActor):
                     self.trigger_event(LeafAllyAllTanksEvent.NoMoreElec)
                 elif self.is_buffer_full() and not self.is_storage_full():
                     lg_heat_pump = self.settings.hp_model.value == HpModel.LgHighTempHydroKitPlusMultiV.value
-                    hp_lwt = self.latest_temps_f.get(self.layout.h0cn.hp_lwt)
-                    store_top = self.latest_temps_f.get(self.layout.h0cn.tank[1].depth1)
-                    if lg_heat_pump and hp_lwt is not None and store_top is not None and hp_lwt < store_top - 10:
-                        self.log(f"HP warmup: hp-lwt {hp_lwt:.1f}F < store-top {store_top:.1f}F - 5, waiting before charging store")
+                    hp_ramp_up_min = self.LG_HEAT_PUMP_RAMP_UP_MINUTES if lg_heat_pump else self.DEFAULT_HEAT_PUMP_RAMP_UP_MINUTES
+                    if self.time_hp_turned_on is not None and time.time() - self.time_hp_turned_on < hp_ramp_up_min*60:
+                        self.log(f"HP warmup: {round((time.time() - self.time_hp_turned_on)/60, 1)} min since HP turned on, waiting {hp_ramp_up_min} min before charging store")
                     else:
                         self.trigger_event(LeafAllyAllTanksEvent.ElecBufferFull)
 

@@ -6,7 +6,7 @@ from actors.local_control.tou_base import LocalControlTouBase
 from gwsproto.data_classes.house_0_names import H0CN, H0N
 from gwsproto.enums import (
     LocalControlAllTanksEvent, LocalControlAllTanksState, LocalControlTopState, 
-    SeasonalStorageMode
+    SeasonalStorageMode, HpModel
 )
     
 from gwsproto.named_types import SingleMachineState
@@ -17,6 +17,9 @@ from scada_app_interface import ScadaAppInterface
 
 
 class AllTanksTouLocalControl(LocalControlTouBase):
+    LG_HEAT_PUMP_RAMP_UP_MINUTES = 15*60
+    DEFAULT_HEAT_PUMP_RAMP_UP_MINUTES = 5*60
+
     states = LocalControlAllTanksState.values()
 
     transitions = [
@@ -203,10 +206,11 @@ class AllTanksTouLocalControl(LocalControlTouBase):
                     if self.is_storage_ready():
                         self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakBufferFullStorageReady)
                     else:
-
                         if self.usable_kwh < self.required_kwh:
-                            if self.time_hp_turned_on is not None and time.time() - self.time_hp_turned_on < 15 * 60:
-                                self.log(f"HP warmup: {round((time.time() - self.time_hp_turned_on) / 60, 1)} min since HP turned on, waiting 15 min before charging store")
+                            lg_heat_pump = self.settings.hp_model.value == HpModel.LgHighTempHydroKitPlusMultiV.value
+                            hp_ramp_up_min = self.LG_HEAT_PUMP_RAMP_UP_MINUTES if lg_heat_pump else self.DEFAULT_HEAT_PUMP_RAMP_UP_MINUTES
+                            if self.time_hp_turned_on is not None and time.time() - self.time_hp_turned_on < hp_ramp_up_min*60:
+                                self.log(f"HP warmup: {round((time.time() - self.time_hp_turned_on)/60, 1)} min since HP turned on, waiting {hp_ramp_up_min} min before charging store")
                             else:
                                 self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakBufferFullStorageNotReady)
                         else:
