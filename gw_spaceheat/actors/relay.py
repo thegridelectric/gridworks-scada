@@ -3,17 +3,17 @@ import asyncio
 import time
 from typing import Dict, List, cast, Sequence, Optional
 
-from gw.enums import GwStrEnum
+from gwsproto.enums import AslEnum
 from gwproto.message import Message
-from gwproto.data_classes.data_channel import DataChannel
+from gwsproto.data_classes.data_channel import DataChannel
 from gwproactor import  MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
-from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import (
+from gwsproto.data_classes.components.i2c_multichannel_dt_relay_component import (
     I2cMultichannelDtRelayComponent,
 )
 from gwsproto.data_classes.house_0_names import H0N
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.enums import (
+from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.enums import (
     AquastatControl,
     ChangeAquastatControl,
     ChangeHeatPumpControl,
@@ -33,22 +33,22 @@ from gwproto.enums import (
 
 )
 
-from gwproto.named_types import FsmAtomicReport, FsmFullReport
+from gwsproto.named_types import FsmAtomicReport, FsmFullReport
 from result import Err, Ok, Result
 from transitions import Machine
 from gwsproto.data_classes.house_0_names import House0RelayIdx
-from actors.scada_actor import ScadaActor
+from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 from gwsproto.enums import LogLevel, ChangeKeepSend, HpLoopKeepSend
 from gwsproto.named_types import FsmEvent, Glitch, SingleMachineState
 
-class Relay(ScadaActor):
+class Relay(ShNodeActor):
     STATE_REPORT_S = 300
     node: ShNode
     component: I2cMultichannelDtRelayComponent
     wiring_config: RelayWiringConfig
-    my_state_enum: GwStrEnum
-    my_event_enum: GwStrEnum
+    my_state_enum: AslEnum
+    my_event_enum: AslEnum
     reports_by_trigger: Dict[str, List[FsmAtomicReport]]
     boss_by_trigger: Dict[str, ShNode]
     energized_state: str
@@ -112,7 +112,7 @@ class Relay(ScadaActor):
 
         if message.ToHandle != self.node.Handle:
             # TODO: turn this into a report?
-            self._send_to(self.atn,
+            self._send_to(self.ltn,
                           Glitch(
                               FromGNodeAlias=self.layout.scada_g_node_alias,
                               Node=self.name,

@@ -5,10 +5,10 @@ from gwsproto.named_types import PriceQuantityUnitless
 
 def test_price_quantity_unitless_generated() -> None:
     d = {
-        "PriceTimes1000": 40000,
-        "QuantityTimes1000": 10000,
+        "PriceX1000": 40000,
+        "QuantityX1000": 10000,
         "TypeName": "price.quantity.unitless",
-        "Version": "000",
+        "Version": "100",
     }
 
     d2 = PriceQuantityUnitless.model_validate(d).model_dump(exclude_none=True)

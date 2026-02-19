@@ -7,14 +7,14 @@ from typing import Any
 from typing import Optional
 
 from gwproactor.logger import LoggerOrAdapter
-from gwproto.named_types import ElectricMeterChannelConfig
+from gwsproto.named_types import ElectricMeterChannelConfig
 from pyModbusTCP.client import ModbusClient
 from result import Ok
 from result import Result
 
 from actors.config import ScadaSettings
-from gwproto.data_classes.data_channel import DataChannel
-from gwproto.data_classes.components.electric_meter_component import ElectricMeterComponent
+from gwsproto.data_classes.data_channel import DataChannel
+from gwsproto.data_classes.components.electric_meter_component import ElectricMeterComponent
 from drivers.driver_result import DriverResult
 from drivers.exceptions import DriverWarning
 from drivers.power_meter.egauge import ModbusClientSettings

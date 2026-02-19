@@ -143,6 +143,11 @@ class ConstrainedMQTTClient:
     def _subscribe_all(self) -> tuple[int, Optional[int]]:
         subscribe_result: tuple[int, Optional[int]]
         if self._subscriptions:
+            if self._logger.isEnabledFor(logging.DEBUG):
+                s = f"Subscribing to {len(self._subscriptions)} topics\n"
+                for topic in self._subscriptions:
+                    s += f"  {topic}\n"
+                self._logger.debug(s)
             subscribe_result = self._client.subscribe(
                 [(topic, 0) for topic in self._subscriptions]
             )
@@ -180,7 +185,7 @@ class ConstrainedMQTTClient:
         ):
             self._callbacks.state_change_callback(old_state, new_state)
         if old_state != new_state:
-            self._logger.debug("MQTTClient: %s -> %s", old_state, new_state)
+            self._logger.info("MQTTClient: %s -> %s", old_state, new_state)
         return old_state != new_state
 
     def start(self):
@@ -192,6 +197,7 @@ class ConstrainedMQTTClient:
                     target=self._client_thread,
                     name="admin-MQTT-client-thread"
                 )
+                self._thread.daemon = True
                 self._thread.start()
 
     def stop(self):
@@ -243,7 +249,7 @@ class ConstrainedMQTTClient:
     def _on_connect_fail(self, _: Any, _userdata: Any) -> None:
         self._change_state(self.States.connecting)
 
-    def _on_disconnect(self, _: Any, _userdata: Any, _rc: int, _properties: Any) -> None:
+    def _on_disconnect(self, _: Any, _userdata: Any, _flags: Any, _rc: int, _properties: Any) -> None:
         self._pending_subscriptions = set(self._subscriptions)
         # Reset pending subacks to avoid stale entries causing issues on reconnect
         self._pending_subacks = {}
@@ -296,6 +302,9 @@ class ConstrainedMQTTClient:
     def _client_thread(self) -> None:
         max_back_off = 1024
         backoff = 1
+        if self._logger.isEnabledFor(logging.DEBUG):
+            self._logger.debug("MQTT Settings:")
+            self._logger.debug(self._settings)
         try:
             while not self._stop_requested:
                 try:

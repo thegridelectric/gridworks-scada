@@ -1,29 +1,29 @@
-"""Implements I2cRelayMultiplexer Actors"""
 import asyncio
 import time
 from enum import Enum
 from typing import Any, Dict, List, Optional, Sequence, cast
 
-from gw.enums import GwStrEnum
-# from actors.simple_sensor import SimpleSensor, SimpleSensorDriverThread
+from gwsproto.enums import AslEnum
+from gwproto.message import Message
+
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
-from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import \
+from gwsproto.data_classes.components.i2c_multichannel_dt_relay_component import \
     I2cMultichannelDtRelayComponent
 
-from gwproto.data_classes.data_channel import DataChannel
+from gwsproto.data_classes.data_channel import DataChannel
 from gwsproto.data_classes.house_0_layout import House0Layout
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.enums import (ActorClass, ChangeRelayPin, FsmActionType,
+from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.enums import (ActorClass, ChangeRelayPin, FsmActionType,
                            FsmReportType, MakeModel,
                            RelayEnergizationState, RelayWiringConfig,
                            TelemetryName)
-from gwproto.message import Message
-from gwproto.named_types import (SingleReading,
+
+from gwsproto.named_types import (SingleReading,
                                  SyncedReadings, FsmAtomicReport)
 from pydantic import BaseModel, Field
 from result import Err, Ok, Result
-from actors.scada_actor import ScadaActor
+from actors.sh_node_actor import ShNodeActor
 from gwsproto.named_types import ActuatorsReady, FsmEvent, Glitch
 from gwsproto.enums import LogLevel
 from scada_app_interface import ScadaAppInterface
@@ -45,13 +45,13 @@ class SimulatedPin(BaseModel):
 SLEEP_STEP_SECONDS = 0.1
 
 
-class I2cRelayMultiplexer(ScadaActor):
+class I2cRelayMultiplexer(ShNodeActor):
     RELAY_MULTIPLEXER_LOGGER_NAME: str = "RelayMultiplexer"
     RELAY_LOOP_S = 60
     node: ShNode
     component: I2cMultichannelDtRelayComponent
     wiring_config: RelayWiringConfig
-    event_enum: GwStrEnum
+    event_enum: AslEnum
     layout: House0Layout
     _stop_requested: bool
     i2c_bus: Optional[Any]  # board.I2C()
@@ -163,7 +163,7 @@ class I2cRelayMultiplexer(ScadaActor):
                     else: 
                         log_level = LogLevel.Info
                         summary = f"i2c board {board_idx} ({hex(address)}) took {setup_attempts+1} attempts to initialize! "
-                        self._send_to(self.atn,
+                        self._send_to(self.ltn,
                                     Glitch(
                                         FromGNodeAlias=self.layout.scada_g_node_alias,
                                         Node=self.node.Name,

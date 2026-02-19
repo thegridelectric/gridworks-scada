@@ -14,12 +14,12 @@ from gwproactor.config import MQTTClient
 from gwproactor.config.paths import TLSPaths
 from pydantic import BaseModel
 
-from actors import Parentless
+from actors import SecondaryScada
 from actors.scada import Scada
 from actors.config import ScadaSettings
 from gwsproto.data_classes.house_0_layout import House0Layout
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.enums import ActorClass
+from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.enums import ActorClass
 from pydantic_settings import BaseSettings
 from gwsproto.data_classes.house_0_names import H0N
 
@@ -81,12 +81,12 @@ def parse_args(
     parser.add_argument(
         "--s2",
         action="store_true",
-        help="Whether to run Parentless ('scada 2') instead of Scada."
+        help="Whether to run Secondary Scada ('scada 2') instead of Scada."
     )
     parser.add_argument(
         "--s2-paths",
         action="store_true",
-        help="Run parentless ('scada 2') but with .config/.local paths with name 'scada2' rather than 'scada'"
+        help="Run Secondary Scada ('scada 2') but with .config/.local paths with name 'scada2' rather than 'scada'"
     )
     parser.add_argument(
         "--aiohttp-logging",
@@ -115,7 +115,7 @@ def get_requested_names(args: argparse.Namespace) -> Optional[set[str]]:
         requested = None
     else:
         requested = set(args.nodes)
-        requested.add(H0N.home_alone)
+        requested.add(H0N.local_control)
         if args.s2 or args.s2_paths:
             requested.add(H0N.secondary_scada)
         else:
@@ -127,7 +127,7 @@ def get_nodes_run_by_scada(
         requested_names: Optional[set[str]],
         layout: House0Layout,
         actors_package_name: str,
-        scada_actor_class: ActorClass = ActorClass.Scada,
+        scada_actor_class: ActorClass = ActorClass.PrimaryScada,
 ) -> Tuple[ShNode, list[ShNode]]:
     actors_package = importlib.import_module(actors_package_name)
     if requested_names:
@@ -137,7 +137,7 @@ def get_nodes_run_by_scada(
     actor_nodes: List[ShNode] = []
     scada_node: Optional[ShNode] = None
     for node in requested_nodes:
-        if node.ActorClass not in [ActorClass.Atn] and node.has_actor:
+        if node.ActorClass not in [ActorClass.SecondaryScada] and node.has_actor:
             if node.actor_class == scada_actor_class:
                 if scada_node is not None:
                     raise ValueError(
@@ -195,7 +195,7 @@ def get_scada(
     # noinspection PyArgumentList
     settings = ScadaSettings(_env_file=dotenv_file)
     if args.s2 or args.s2_paths:
-        scada_actor_class = ActorClass.Parentless
+        scada_actor_class = ActorClass.SecondaryScada
         if args.s2_paths:
             # https://github.com/koxudaxi/pydantic-pycharm-plugin/issues/1013
             # noinspection PyArgumentList
@@ -204,7 +204,7 @@ def get_scada(
                 paths=settings.paths.copy(name="scada2")
             )
     else:
-        scada_actor_class = ActorClass.Scada
+        scada_actor_class = ActorClass.PrimaryScada
     if args.power_meter_logging:
         if settings.power_meter_logging_level > logging.INFO:
             settings.power_meter_logging_level = logging.INFO
@@ -246,7 +246,7 @@ def get_scada(
         )
         logger.info("Done")
         print(f"actor nodes run by scada: {actor_nodes}")
-        if scada_actor_class == ActorClass.Scada:
+        if scada_actor_class == ActorClass.PrimaryScada:
             scada = Scada(
                 name=scada_node.Name,
                 settings=settings,
@@ -254,7 +254,7 @@ def get_scada(
                 actor_nodes=actor_nodes,
             )
         else:
-            scada = Parentless(
+            scada = SecondaryScada(
                 name=scada_node.Name,
                 settings=settings,
                 hardware_layout=layout,
@@ -273,7 +273,7 @@ def get_scada2(
     run_in_thread: bool = False,
     add_screen_handler: bool = True,
     actors_package_name: str = Scada.DEFAULT_ACTORS_MODULE,
-) -> Parentless:
+) -> SecondaryScada:
     args = parse_args(argv)
     dotenv_file = dotenv.find_dotenv(args.env_file)
     dotenv_file_debug_str = f"Env file: <{dotenv_file}>  exists:{Path(dotenv_file).exists()}"
@@ -308,7 +308,7 @@ def get_scada2(
         requested_names = get_requested_names(args)
         layout = House0Layout.load(settings.paths.hardware_layout, included_node_names=requested_names)
         print(f"type of layout is {type(layout)}")
-        scada2 = Parentless(name=H0N.secondary_scada, settings=settings, hardware_layout=layout, actors_package_name=actors_package_name)
+        scada2 = SecondaryScada(name=H0N.secondary_scada, settings=settings, hardware_layout=layout, actors_package_name=actors_package_name)
         if run_in_thread:
             logger.info("run_async_actors_main() starting")
             scada2.run_in_thread()

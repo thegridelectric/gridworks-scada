@@ -1,18 +1,19 @@
 import time
 import uuid
 import asyncio
-from typing import List, Literal
+from typing import Literal
 from pydantic import BaseModel
-from enum import auto
-from gw.enums import GwStrEnum
+
+
 from gwproto.message import Message
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.named_types import AnalogDispatch, FsmFullReport
-from gwproto.enums import ChangeRelayState
+
+from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.named_types import FsmFullReport
+from gwsproto.enums import ChangeRelayState, HpBossState
 from result import Ok, Result
 
 
-from actors.scada_actor import ScadaActor
+from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 from gwsproto.enums import LogLevel, TurnHpOnOff
 from gwsproto.named_types import ActuatorsReady, FsmEvent, Glitch, SingleMachineState
@@ -21,20 +22,7 @@ class SiegLoopReady(BaseModel):
     TypeName: Literal["sieg.loop.ready"] = "sieg.loop.ready"
     Version: str = "000"
 
-class HpBossState(GwStrEnum):
-    PreparingToTurnOn = auto()
-    HpOn = auto()
-    HpOff = auto()
-
-    @classmethod
-    def values(cls) -> List[str]:
-        return [elt.value for elt in cls]
-
-    @classmethod
-    def enum_name(cls) -> str:
-        return "hp.boss.state"
-
-class HpBoss(ScadaActor):
+class HpBoss(ShNodeActor):
     """
     Direct Reports:
     HpBoss
@@ -91,7 +79,7 @@ class HpBoss(ScadaActor):
         self.log(f"Got {payload}")   
         if payload.ToHandle != self.node.handle:
              # TODO: turn this into a report?
-            self._send_to(self.atn,
+            self._send_to(self.ltn,
                           Glitch(
                               FromGNodeAlias=self.layout.scada_g_node_alias,
                               Node=self.name,

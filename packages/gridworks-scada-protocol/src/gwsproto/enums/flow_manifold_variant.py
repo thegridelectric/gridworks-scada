@@ -1,10 +1,10 @@
 from enum import auto
 from typing import List
 
-from gw.enums import GwStrEnum
+from gwsproto.enums.gw_str_enum import AslEnum
 
 
-class FlowManifoldVariant(GwStrEnum):
+class FlowManifoldVariant(AslEnum):
     """
     Values:
       - House0
@@ -12,7 +12,7 @@ class FlowManifoldVariant(GwStrEnum):
 
     For more information:
       - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#homealonetopstate)
+      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#LocalControlTopState)
     """
     House0 = auto()
     House0Sieg = auto()

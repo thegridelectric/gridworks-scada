@@ -1,12 +1,12 @@
 from typing import Literal
-import time
+
 
 from pydantic import BaseModel, field_validator, model_validator, PositiveInt, StrictInt
-from gwproto.property_format import UUID4Str, UTCSeconds,  LeftRightDotStr
+from gwsproto.property_format import UUID4Str, UTCSeconds,  LeftRightDotStr
 from typing_extensions import Self
 
 class SlowDispatchContract(BaseModel):
-    """Represents a dispatch contract between Atn and Scada"""
+    """Represents a dispatch contract between Ltn and Scada"""
     ScadaAlias: LeftRightDotStr
     StartS: UTCSeconds
     DurationMinutes: PositiveInt
@@ -14,7 +14,7 @@ class SlowDispatchContract(BaseModel):
     OilBoilerOn: bool
     ContractId: UUID4Str
     TypeName: Literal["slow.dispatch.contract"] = "slow.dispatch.contract"
-    Version: str = "000"
+    Version: Literal["000"] = "000"
 
     @field_validator("StartS")
     @classmethod

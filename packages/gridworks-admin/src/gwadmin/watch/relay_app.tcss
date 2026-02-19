@@ -2,27 +2,9 @@ Screen {
     layout: vertical;
 }
 
-#mqtt_state {
-    height: 1fr;
+.section {
     border: solid $border;
-}
 
-#message_table {
-    height: 3fr;
-    border: solid $border;
-}
-
-#relays_table {
-    height: 6fr;
-    border: solid $border;
-}
-
-#relay_toggle_button_container {
-    layout: horizontal;
-    border: solid $border;
-    align: center middle;
-    height: 2fr;
-    padding: 1 1;
 }
 
 Button {
@@ -30,22 +12,121 @@ Button {
     border-title-color: $text;
 }
 
-RelayToggleButton {
-    width: 40;
+#select_scada_container {
+    height: auto;
+    border: solid $border;
+    align: left middle;
+}
+
+#select_scada_label {
     height: 3;
+    content-align: center middle;
+    width: auto;
+    margin: 2 1 0 1;
+}
+
+#select_scada {
+     width: 20;
+     height: 3;
+     margin: 2 0 0 0;
+     padding: 0 0;
+}
+
+#select_scada SelectCurrent Static {
+  color: $accent;
+}
+
+#mqtt_state {
+    margin: 1 4 0 4;
+    content-align: left middle;
+    width: auto;
+}
+
+#selected_scada_label {
+    margin: 0 5;
+    padding: 1 5;
+    color: $text;
+    background: $success-lighten-3;
+    width: auto;
+}
+
+
+#relays {
+    height: 10fr;
+}
+
+#relays_table {
+    width: 4fr;
+}
+
+#relay_toggle_button_container {
+    layout: horizontal;
+    border: solid $border;
+    align: center middle;
+    padding: 1 1;
+    width: 2.5fr;
+}
+
+#relay_toggle_button {
+    width: 1fr;
+    height: 5;
     margin: 0 1;
     padding: 0 0;
     text-style: bold;
+    text-align: center;
 }
 
+#dacs {
+    height: 4fr;
+}
+#dacs_table {
+    width: 4fr;
+    height: auto;
+    height: 8;
+}
+
+#dac_control_container {
+    width: 2.5fr;
+    border: solid $border;
+    height: 8;
+}
+
+#dac_input_vertical {
+    width: 20;
+    margin: 0 3;
+}
+
+#dacs_input_label {
+    margin: 2 1;
+    width: auto;
+}
+
+#dac_value_input {
+    width: 1fr;
+    align: center middle;
+    margin: 1 0;
+}
+
+#send_dac_button {
+    width: 1fr;
+    align: center middle;
+}
+
+KeepAliveButton {
+    margin: 0 2;
+}
+
+ReleaseControlButton {
+   margin: 0 2;
+}
 TimerDigits {
-    margin: 1 2;
+    margin: 0 2;
 }
 
 TimeInput {
     width: 35;
-    margin: 1 2;
-    }
+    margin: 0 2;
+}
 
 .undisplayed {
     display: none;

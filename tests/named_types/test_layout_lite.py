@@ -1,16 +1,17 @@
-"""Tests layout.lite type, version 001"""
-
 from gwsproto.named_types import LayoutLite
 
 
 def test_layout_lite_generated() -> None:
     d = {
         "FromGNodeAlias": "hw1.isone.me.versant.keene.beech.scada",
-        "FromGNodeInstanceId": "98542a17-3180-4f2a-a929-6023f0e7a106",
         "MessageCreatedMs": 1728651445746,
         "MessageId": "1302c0f8-1983-43b2-90d2-61678d731db3",
         "Strategy": "House0",
         "ZoneList": ["Down", "Up"],
+        "SystemMode": "Heating",
+        "SeasonalStorageMode": "AllTanks",
+        "BufferShortCycling": False,
+        "CriticalZoneList": ["Down"],
         "TotalStoreTanks": 3,
         "Ha1Params": {
             "AlphaTimes10": 120,
@@ -24,18 +25,22 @@ def test_layout_lite_generated() -> None:
             "HpMaxKwTh": 6,
             "MaxEwtF": 170,
             "LoadOverestimationPercent": 10,
-            "StratBossDist010": 100,
+            "CopIntercept": 1.02,
+            "CopOatCoeff": 0.0257,
+            "CopLwtCoeff": 0,
+            "CopMin": 1.4,
+            "CopMinOatF": 15,
             "TypeName": "ha1.params",
-            "Version": "003",
+            "Version": "004",
         },
         "ShNodes": [
             {
-                "ActorClass": "Scada",
+                "ActorClass": "PrimaryScada",
                 "DisplayName": "Keene Beech Scada",
                 "Name": "s",
                 "ShNodeId": "da9a0427-d6c0-44c0-b51c-492c1e580dc5",
                 "TypeName": "spaceheat.node.gt",
-                "Version": "200",
+                "Version": "300",
             },
             {
                 "ActorClass": "PowerMeter",
@@ -45,7 +50,7 @@ def test_layout_lite_generated() -> None:
                 "Name": "power-meter",
                 "ShNodeId": "6c0563b7-5171-4b1c-bba3-de156bea4b95",
                 "TypeName": "spaceheat.node.gt",
-                "Version": "200",
+                "Version": "300",
             },
             {
                 "ActorClass": "NoActor",
@@ -55,22 +60,10 @@ def test_layout_lite_generated() -> None:
                 "NameplatePowerW": 4000,
                 "ShNodeId": "07b8ca98-12c4-4510-8d0f-14fda2331215",
                 "TypeName": "spaceheat.node.gt",
-                "Version": "200",
+                "Version": "300",
             },
         ],
-        "SynthChannels": [
-            {
-                "Id": "99fb8f0e-3c7c-4b62-be5a-4f7a6376519f",
-                "Name": "required-swt",
-                "CreatedByNodeName": "homealone",
-                "TelemetryName": "WaterTempCTimes1000",
-                "TerminalAssetAlias": "d1.isone.ct.orange.ta",
-                "Strategy": "simple",
-                "SyncReportMinutes": 60,
-                "DisplayName": "Required Source Water Temp",
-                "TypeName": "synth.channel.gt",
-                "Version": "000",
-            }
+        "DerivedChannels": [
         ],
         "DataChannels": [
             {
@@ -121,15 +114,6 @@ def test_layout_lite_generated() -> None:
                     },
                     {
                         "AsyncCapture": True,
-                        "CapturePeriodS": 60,
-                        "ChannelName": "buffer-depth4",
-                        "Exponent": 3,
-                        "TypeName": "channel.config",
-                        "Unit": "Celcius",
-                        "Version": "000",
-                    },
-                    {
-                        "AsyncCapture": True,
                         "AsyncCaptureDelta": 2000,
                         "CapturePeriodS": 60,
                         "ChannelName": "buffer-depth1-micro-v",
@@ -158,31 +142,19 @@ def test_layout_lite_generated() -> None:
                         "Unit": "VoltsRms",
                         "Version": "000",
                     },
-                    {
-                        "AsyncCapture": True,
-                        "AsyncCaptureDelta": 2000,
-                        "CapturePeriodS": 60,
-                        "ChannelName": "buffer-depth4-micro-v",
-                        "Exponent": 6,
-                        "TypeName": "channel.config",
-                        "Unit": "VoltsRms",
-                        "Version": "000",
-                    },
                 ],
                 "DisplayName": "buffer PicoTankModule",
                 "Enabled": True,
                 "SerialNumber": "1030",
                 "NumSampleAverages": 10,
-                "PicoAHwUid": "pico_4c1a21",
-                "PicoBHwUid": "pico_487a22",
-                "PicoKOhms": 30,
+                "PicoHwUid": "pico_aaaaaa",
                 "Samples": 1000,
                 "SendMicroVolts": True,
-                "TempCalcMethod": "SimpleBetaForPico",
+                "TempCalcMethod": "SimpleBeta",
                 "ThermistorBeta": 3977,
                 "AsyncCaptureDeltaMicroVolts": 2000,
                 "TypeName": "pico.tank.module.component.gt",
-                "Version": "000",
+                "Version": "011",
             }
         ],
         "FlowModuleComponents": [
@@ -298,7 +270,7 @@ def test_layout_lite_generated() -> None:
             "Version": "002",
         },
         "TypeName": "layout.lite",
-        "Version": "004",
+        "Version": "009",
     }
 
     d2 = LayoutLite.model_validate(d).model_dump(exclude_none=True)

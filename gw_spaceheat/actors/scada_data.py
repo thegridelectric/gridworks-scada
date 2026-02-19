@@ -6,38 +6,31 @@ import uuid
 from typing import Dict, List, Optional, Union
 
 from actors.config import ScadaSettings
-from gwproto.data_classes.data_channel import DataChannel
-from gwproto.data_classes.synth_channel import SynthChannel
-from gwproto.data_classes.hardware_layout import HardwareLayout
-from gwproto.messages import (
+from gwsproto.data_classes.data_channel import DataChannel
+from gwsproto.data_classes.house_0_names import H0CN
+from gwsproto.named_types import (
     ChannelReadings,
-    FsmFullReport,
-    MachineStates,
     Report,
     SingleReading,
+    SingleMachineState,
 )
 
-from gwsproto.named_types import Ha1Params, SingleMachineState, SnapshotSpaceheat
+from gwsproto.named_types import (
+    Ha1Params,
+    HeatingForecast,
+    SnapshotSpaceheat,
+)
+
+from gwsproto.data_classes.derived_channel import DerivedChannel
+from gwsproto.data_classes.house_0_layout import House0Layout
 class ScadaData:
-    reports_to_store: Dict[str, Report]
-    recent_machine_states: Dict[str, MachineStates] # key is machine handle
-    latest_machine_state: Dict[str, SingleMachineState] # key is the node name
-    latest_power_w: Optional[int]
-    latest_channel_unix_ms: Dict[str, int]
-    latest_channel_values: Dict[str, int]
-    recent_channel_values: Dict[str, List]
-    recent_channel_unix_ms: Dict[str, List]
-    recent_fsm_reports: Dict[str, FsmFullReport]
-    settings: ScadaSettings
-    layout: HardwareLayout
-    ha1_params: Ha1Params
 
-    def __init__(self, settings: ScadaSettings, hardware_layout: HardwareLayout):
-        self.reports_to_store: Dict[str:Report] = {}
-        self.seconds_by_channel: Dict[str:int] = {}
+    def __init__(self, settings: ScadaSettings, hardware_layout: House0Layout):
+        self.reports_to_store: Dict[str, Report] = {}
+        self.seconds_by_channel: Dict[str, int] = {}
 
-        self.settings = settings
-        self.layout = hardware_layout
+        self.settings: ScadaSettings = settings
+        self.layout: House0Layout = hardware_layout
         # TODO: move into layout when better UI for it
         self.ha1_params = Ha1Params(
             AlphaTimes10=int(self.settings.alpha * 10),
@@ -51,19 +44,28 @@ class ScadaData:
             HpMaxKwTh=self.settings.hp_max_kw_th,
             MaxEwtF=self.settings.max_ewt_f,
             LoadOverestimationPercent=self.settings.load_overestimation_percent,
-            StratBossDist010=0 # REMOVE AT SOME POINT
+            CopIntercept=self.settings.cop_intercept,
+            CopOatCoeff=self.settings.cop_oat_coeff,
+            CopLwtCoeff=self.settings.cop_lwt_coeff,
+            CopMin=self.settings.cop_min,
+            CopMinOatF=self.settings.cop_min_oat_f,
         )
         self.my_data_channels = self.get_my_data_channels()
-        self.my_synth_channels = self.get_my_synth_channels()
-        self.my_channels: list[Union[DataChannel, SynthChannel]] = self.my_data_channels + self.my_synth_channels
+        self.my_derived_channels = self.get_my_derived_channels()
+        self.my_channels: list[Union[DataChannel, DerivedChannel]] = self.my_data_channels + self.my_derived_channels
         self.recent_machine_states = {}
-        self.latest_machine_state = {} # latest state by node name
-        self.latest_channel_values: Dict[str, int] = {  # noqa
+        self.latest_machine_state: dict[str, SingleMachineState] = {} # latest state by node name
+        self.latest_channel_values: Dict[str, int | None] = {
             ch.Name: None for ch in self.my_channels
         }
-        self.latest_channel_unix_ms: Dict[str, int] = {  # noqa
+        self.latest_channel_unix_ms: Dict[str, int | None] = {
             ch.Name: None for ch in self.my_channels
         }
+        self.latest_temperatures_f: Dict[str, float] = {}
+        self.buffer_temps_available: bool = False # change to buffer_available
+
+        self.latest_channel_values[H0CN.usable_energy] = 0
+        self.latest_channel_unix_ms[H0CN.usable_energy] = int(time.time() * 1000)
         self.recent_channel_values: Dict[str, List] = {
             ch.Name: [] for ch in self.my_channels
         }
@@ -71,14 +73,21 @@ class ScadaData:
             ch.Name: [] for ch in self.my_channels
         }
         self.latest_power_w: Optional[int] = None
+        self.heating_forecast: HeatingForecast | None = None
         self.recent_fsm_reports = {}
         self.flush_recent_readings()
 
     def get_my_data_channels(self) -> List[DataChannel]:
         return list(self.layout.data_channels.values())
     
-    def get_my_synth_channels(self) -> List[SynthChannel]:
-        return list(self.layout.synth_channels.values())
+    def get_my_derived_channels(self) -> List[DerivedChannel]:
+        return list(self.layout.derived_channels.values())
+
+    def channel_has_value(self, channel: str) -> bool:
+        return (
+            channel in self.latest_channel_values
+            and self.latest_channel_values[channel] is not None
+        )
 
     def flush_channel_from_latest(self, channel_name: str) -> None:
         """
@@ -101,16 +110,25 @@ class ScadaData:
                 return None
             return ChannelReadings(
                 ChannelName=ch.Name,
-                ChannelId=ch.Id,
                 ValueList=self.recent_channel_values[ch.Name],
                 ScadaReadTimeUnixMsList=self.recent_channel_unix_ms[ch.Name],
             )
         else:
             return None
 
+    @property
+    def my_reported_channels(self) -> list[Union[DataChannel, DerivedChannel]]:
+        """
+        Channels that should be included in reports.
+        """
+        return [
+            ch for ch in self.my_channels
+            if ch.Name not in self.layout.unreported_channels
+        ]
+
     def make_report(self, slot_start_seconds: int) -> Report:
         channel_reading_list = []
-        for ch in self.my_channels:
+        for ch in self.my_reported_channels:
             channel_readings = self.make_channel_readings(ch)
             if channel_readings:
                 channel_reading_list.append(channel_readings)
@@ -128,18 +146,18 @@ class ScadaData:
             Id=str(uuid.uuid4()),
         )
 
-    def capture_seconds(self, ch: Union[DataChannel, SynthChannel]) -> int:
+    def capture_seconds(self, ch: Union[DataChannel, DerivedChannel]) -> int:
         if ch.Name not in self.seconds_by_channel:
             self.seconds_by_channel = {}
             components = [c.gt for c in self.layout.components.values()]
             for c in components:
                 for config in c.ConfigList:
                     self.seconds_by_channel[config.ChannelName] = config.CapturePeriodS
-            for s in self.my_synth_channels:
-                self.seconds_by_channel[s.Name] = s.SyncReportMinutes * 60
+            for s in self.my_derived_channels:
+                self.seconds_by_channel[s.Name] = 60  # TODO: fix
         return self.seconds_by_channel[ch.Name]
 
-    def flatlined(self, ch: Union[DataChannel, SynthChannel]) -> bool:
+    def flatlined(self, ch: Union[DataChannel, DerivedChannel]) -> bool:
         if self.latest_channel_unix_ms[ch.Name] is None:
             return True
         # nyquist

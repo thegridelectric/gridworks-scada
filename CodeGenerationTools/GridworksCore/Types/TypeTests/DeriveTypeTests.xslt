@@ -68,7 +68,7 @@
 <xsl:if test="count($airtable//TypeAttributes/TypeAttribute[(VersionedType = $versioned-type-id) and (EnumLocalName[text() = $base-name])])>0">
 
 <xsl:text>
-from gwproto.enums import </xsl:text>
+from gwsproto.enums import </xsl:text>
 <xsl:value-of select="$enum-local-name"/>
 
 </xsl:if>

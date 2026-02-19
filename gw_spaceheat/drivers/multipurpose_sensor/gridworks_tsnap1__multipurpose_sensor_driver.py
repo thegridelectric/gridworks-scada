@@ -15,11 +15,11 @@ from drivers.driver_result import DriverOutcome
 from drivers.multipurpose_sensor.multipurpose_sensor_driver import \
     MultipurposeSensorDriver
 from gwsproto.enums import LogLevel
-from gwproto.data_classes.components.ads111x_based_component import \
+from gwsproto.data_classes.components.ads111x_based_component import \
     Ads111xBasedComponent
-from gwproto.data_classes.data_channel import DataChannel
-from gwproto.enums import MakeModel, TelemetryName
-from gwproto.enums import ThermistorDataMethod
+from gwsproto.data_classes.data_channel import DataChannel
+from gwsproto.enums import MakeModel, TelemetryName
+from gwsproto.enums import ThermistorDataMethod
 from result import Err, Ok, Result
 
 # TODO: sense this and update it in synth channels
@@ -373,7 +373,7 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
             return Err(Exception(f"Didn't get to therm resistance! {str(e)}"))
 
         # Calculate the temperature in degrees Celsius. Note that 273 is
-        # 0 degrees Celcius as measured in Kelvin.
+        # 0 degrees Celsius as measured in Kelvin.
 
         try:
             temp_c = 1 / ((1 / t0) + (math.log(rt / r0) / beta)) - 273

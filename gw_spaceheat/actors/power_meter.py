@@ -7,15 +7,15 @@ from typing import Dict, List, Optional
 
 from gwproactor.logger import LoggerOrAdapter
 from gwproto import Message
-from gwproto.enums import TelemetryName
+from gwsproto.enums import TelemetryName
 
 from actors.config import ScadaSettings
 from gwsproto.data_classes.house_0_names import H0N
 from gwproactor import SyncThreadActor
-from gwproto.data_classes.components.electric_meter_component import ElectricMeterComponent
-from gwproto.data_classes.hardware_layout import HardwareLayout
-from gwproto.data_classes.data_channel import DataChannel
-from gwproto.data_classes.sh_node import ShNode
+from gwsproto.data_classes.components.electric_meter_component import ElectricMeterComponent
+
+from gwsproto.data_classes.data_channel import DataChannel
+from gwsproto.data_classes.sh_node import ShNode
 from drivers.exceptions import DriverWarning
 from drivers.power_meter.egauge_4030__power_meter_driver import EGuage4030_PowerMeterDriver
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
@@ -26,8 +26,10 @@ from drivers.power_meter.unknown_power_meter_driver import UnknownPowerMeterDriv
 from gwproactor.message import InternalShutdownMessage
 from gwproactor.sync_thread import SyncAsyncInteractionThread
 from gwproactor import Problems
-from gwproto.enums import MakeModel
-from gwproto.named_types import ElectricMeterChannelConfig, PowerWatts, SyncedReadings
+from gwsproto.enums import MakeModel
+from gwsproto.named_types import ElectricMeterChannelConfig, PowerWatts, SyncedReadings
+
+from gwsproto.data_classes.hardware_layout import HardwareLayout
 
 from scada_app_interface import ScadaAppInterface
 
@@ -297,7 +299,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         except Exception as e:
             self._report_problems(Problems(warnings=[e, [self.latest_telemetry_value[ch] for ch in channel_report_list]]), "synced reading generation failure")
 
-    def value_exceeds_async_threshold(self, ch: DataChannel) -> bool:
+    def value_hits_async_threshold(self, ch: DataChannel) -> bool:
         """This telemetry tuple is supposed to report asynchronously on change, with
         the amount of change required (as a function of the absolute max value) determined
         in the EqConfig.
@@ -308,7 +310,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         last_reported_value = self.last_reported_telemetry_value[ch]
         latest_telemetry_value = self.latest_telemetry_value[ch]
         telemetry_delta = abs(latest_telemetry_value - last_reported_value)
-        if telemetry_delta > config.AsyncCaptureDelta:
+        if telemetry_delta >= config.AsyncCaptureDelta:
             return True
         return False
 
@@ -335,7 +337,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
             > self.eq_reporting_config[ch].CapturePeriodS
         ):
             return True
-        if self.value_exceeds_async_threshold(ch):
+        if self.value_hits_async_threshold(ch):
             return True
         return False
 

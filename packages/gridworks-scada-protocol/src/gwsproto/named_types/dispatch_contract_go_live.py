@@ -1,23 +1,21 @@
-"""Type dispatch.contract.go.live, version 000"""
-
 from typing import Literal
-
-from gwproto.property_format import LeftRightDotStr
 from pydantic import BaseModel, field_validator
+
+from gwsproto.property_format import LeftRightDotStr
 
 
 class DispatchContractGoLive(BaseModel):
     """
     Triggers DispatchContract GoLive.
 
-    Sent by the Atn to its SCADA when they share an existing DispatchContract. If the SCADA
-    is in HomeAlone and gets this message, it will move into Atn mode.
+    Sent by the Ltn to its SCADA when they share an existing DispatchContract. If the SCADA
+    is in LocalControl and gets this message, it will move into Ltn mode.
     """
 
     FromGNodeAlias: LeftRightDotStr
     BlockchainSig: str
     TypeName: Literal["dispatch.contract.go.live"] = "dispatch.contract.go.live"
-    Version: str = "000"
+    Version: Literal["000"] = "000"
 
     @field_validator("BlockchainSig")
     @classmethod

@@ -5,20 +5,22 @@ import asyncio
 import uuid
 from collections import deque
 from enum import auto
+
+from gwproto.message import Message
+
 from gwsproto.data_classes.house_0_names import H0CN
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
-from gwproto.enums import StoreFlowRelay
-from gwproto.message import Message
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.named_types import FsmFullReport, SingleReading, AnalogDispatch
+from gwsproto.enums import StoreFlowRelay
+
+from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.named_types import FsmFullReport, SingleReading, AnalogDispatch
 from result import Ok, Result
-from gw.enums import GwStrEnum
+from gwsproto.enums.gw_str_enum import GwStrEnum
 from actors.hp_boss import SiegLoopReady, HpBossState
-from actors.scada_actor import ScadaActor
-from actors.scada_interface import ScadaInterface
-from gwsproto.enums import HpModel, LogLevel
-from gwsproto.named_types import (ActuatorsReady, Glitch, ResetHpKeepValue, SetLwtControlParams,
+from actors.sh_node_actor import ShNodeActor
+from gwsproto.enums import HpModel
+from gwsproto.named_types import (ActuatorsReady, ResetHpKeepValue, SetLwtControlParams,
     SetTargetLwt, SiegTargetTooLow,  SingleMachineState)
 
 from transitions import Machine
@@ -78,7 +80,7 @@ class ControlEvent(GwStrEnum):
     ReachFullSend = auto()
 
 
-class SiegLoop(ScadaActor):
+class SiegLoop(ShNodeActor):
     """
     ```
               ├── HpLoopOnOff relay
@@ -881,7 +883,7 @@ class SiegLoop(ScadaActor):
     def process_reset_hp_keep_value(
         self, from_node: ShNode, payload: ResetHpKeepValue
     ) -> None:
-        self.log(f"Got ResetHpKeepValue")
+        self.log("Got ResetHpKeepValue")
         if from_node != self.boss:
             self.log(f"sieg loop expects commands from its boss {self.boss.Handle}, not {from_node.Handle}")
             return
@@ -891,7 +893,7 @@ class SiegLoop(ScadaActor):
             return
         
         if self._movement_task:
-            self.send_glitch(f"Not resetting hp keep value while moving")
+            self.send_info("[SiegValve] Not resetting hp keep value while moving")
             return
         self.log(f"Resetting percent keep from {self.keep_seconds} to {payload.HpKeepSecondsTimes10 / 10} without moving valve")
         self.keep_seconds = payload.HpKeepSecondsTimes10 / 10
@@ -1195,7 +1197,7 @@ class SiegLoop(ScadaActor):
                 return
             self.change_to_hp_keep_more()
             self.sieg_valve_active()
-            self.send_glitch(f"[{task_id}] Keeping for {seconds} seconds more")
+            self.send_info(f"[SiegValve {task_id}] Keeping for {seconds} seconds more")
             await asyncio.sleep(seconds)
             # Check if this task has been superseded
             if task_id != self._current_task_id:
@@ -1204,13 +1206,13 @@ class SiegLoop(ScadaActor):
                 self.sieg_valve_dormant()
                 
         except asyncio.CancelledError:
-            self.log(f"send_harder task cancelled")
+            self.log("send_harder task cancelled")
             # Don't set valve to dormant - the cancelling code handles this
             raise
         except Exception as e:
             self.log(f"Error during keep_harder: {e}")
             self.sieg_valve_dormant()
-            self.send_glitch(f"Error during keep_harder: {e}", LogLevel.Error)
+            self.send_error(f"Error during keep_harder: {e}")
         finally:
             # Always set the task to None when complete
             self._movement_task = None
@@ -1223,7 +1225,7 @@ class SiegLoop(ScadaActor):
                 return
             self.change_to_hp_keep_less()
             self.sieg_valve_active()
-            self.send_glitch(f"[{task_id}] Sending for {seconds} seconds more")
+            self.send_info(f"[SiegLoop{task_id}] Sending for {seconds} seconds more")
             await asyncio.sleep(seconds)
             # Check if this task has been superseded
             if task_id != self._current_task_id:
@@ -1231,13 +1233,13 @@ class SiegLoop(ScadaActor):
             else:
                 self.sieg_valve_dormant()
         except asyncio.CancelledError:
-            self.log(f"keep_harder task cancelled")
+            self.log("keep_harder task cancelled")
             # Don't set valve to dormant - the cancelling code handles this
             raise
         except Exception as e:
             self.log(f"Error during send_harder: {e}")
             self.sieg_valve_dormant()
-            self.send_glitch(f"Error during send_harder: {e}", LogLevel.Error)
+            self.send_error(f"Error during send_harder: {e}")
         finally:
             # Always set the task to None when complete
             self._movement_task = None
@@ -1295,19 +1297,6 @@ class SiegLoop(ScadaActor):
                         ScadaReadTimeUnixMs=int(time.time() *1000)
                     )
                 )
-            
-    def send_glitch(self, summary: str, log_level: LogLevel=LogLevel.Info) -> None:
-        self._send_to(
-                self.primary_scada,
-                Glitch(
-                    FromGNodeAlias=self.layout.scada_g_node_alias,
-                    Node=self.node.Name,
-                    Type=log_level,
-                    Summary=summary,
-                    Details=summary
-                )
-            )
-        self.log(summary)
 
     def anticipated_sieg_cold_f(self) -> Optional[float]:
         """Returns the anticipated water temperature at the cold side of the mixing T into

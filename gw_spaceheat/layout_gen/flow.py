@@ -1,15 +1,15 @@
-from gwproto.named_types import PicoFlowModuleComponentGt
 from typing import Optional, Any
 from pydantic import BaseModel
-from gwproto.property_format import SpaceheatName
-from layout_gen import LayoutDb
-from gwproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
-from gwproto.named_types.data_channel_gt import DataChannelGt
-from gwproto.enums import MakeModel, Unit, ActorClass, TelemetryName
-from gwproto.named_types.channel_config import ChannelConfig
-from gwproto.named_types import SpaceheatNodeGt
+from gwsproto.property_format import SpaceheatName
+
+from gwsproto.enums import MakeModel, Unit, ActorClass, TelemetryName
 from gwsproto.data_classes.house_0_names import H0N
-from gwproto.enums import GpmFromHzMethod, HzCalcMethod
+from gwsproto.enums import GpmFromHzMethod, HzCalcMethod
+from gwsproto.named_types import (
+    ChannelConfig, ComponentAttributeClassGt, DataChannelGt, 
+    PicoFlowModuleComponentGt, SpaceheatNodeGt,
+)
+from layout_gen import LayoutDb
 
 
 SAIER_CONSTANT_GALLONS_PER_TICK = 0.0009
@@ -83,7 +83,7 @@ def add_flow(
         db.add_cacs(
             [
                 ComponentAttributeClassGt(
-                    ComponentAttributeClassId=db.make_cac_id(make_model),
+                    ComponentAttributeClassId=db.make_cac_id(make_model=make_model),
                     DisplayName=cac_display_name,
                     MakeModel=make_model,
                 ),

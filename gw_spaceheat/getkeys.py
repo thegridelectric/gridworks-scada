@@ -37,12 +37,12 @@ if __name__ == "__main__":
     
         python gw_spaceheat/getkeys.py almond gridworks_mqtt almond /home/pi/.config/gridworks/scada/certs
 
-    For test ATN
+    For test Ltn
     ------------
-    To generate and copy keys for the test ATN running on the 'cloudatn' machine used by the scada 'almond', ensure you
-    have remotes configured for 'certbot' and 'cloudatn' and run: 
+    To generate and copy keys for the test Ltn running on the 'cloudltn' machine used by the scada 'almond', ensure you
+    have remotes configured for 'certbot' and 'cloudltn' and run: 
     
-        python gw_spaceheat/getkeys.py almond-atn scada_mqtt cloudatn /home/ubuntu/almond-atn/.config/gridworks/atn/certs
+        python gw_spaceheat/getkeys.py almond-ltn scada_mqtt cloudltn /home/ubuntu/almond-ltn/.config/gridworks/ltn/certs
     
     To an arbitrary directory
     -------------------------
@@ -130,8 +130,8 @@ if __name__ == "__main__":
         help=(
             "Name of the MQTTConfig used in ProactorSettings-derived class to refer to the connection these "
             "keys enable. For example, For a scada use 'gridworks_mqtt', the name of the MQTTConfig used to communicate "
-            "with the ATN in ScadaSettings. For the test ATN use 'scada_mqtt', the name of the MQTTConfig used to "
-            "communicate with the scada in AtnSettings."
+            "with the Ltn in ScadaSettings. For the test Ltn use 'scada_mqtt', the name of the MQTTConfig used to "
+            "communicate with the scada in LtnSettings."
         ),
     )
     parser.add_argument(

@@ -1,12 +1,12 @@
 from gwsproto.data_classes.house_0_names import H0CN, H0N
-from gwproto.enums import ActorClass, MakeModel, TelemetryName, Unit
-from gwproto.named_types import (
+from gwsproto.enums import ActorClass, MakeModel, TelemetryName, Unit
+from gwsproto.named_types import (
     DataChannelGt,
     DfrComponentGt,
     DfrConfig,
     SpaceheatNodeGt,
 )
-from gwproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
+from gwsproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
 from pydantic import BaseModel
 from layout_gen import LayoutDb
 
@@ -23,7 +23,7 @@ def add_dfrs(db: LayoutDb, dfr_config: DfrConf) -> None:
             [
                 ComponentAttributeClassGt(
                     ComponentAttributeClassId=db.make_cac_id(
-                        MakeModel.DFROBOT__DFR0971_TIMES2
+                        make_model=MakeModel.DFROBOT__DFR0971_TIMES2
                     ),
                     DisplayName="DFRobot DFR0971 X 2",
                     MakeModel=MakeModel.DFROBOT__DFR0971_TIMES2
@@ -82,7 +82,7 @@ def add_dfrs(db: LayoutDb, dfr_config: DfrConf) -> None:
                 ShNodeId=db.make_node_id(H0N.zero_ten_out_multiplexer),
                 Name=H0N.zero_ten_out_multiplexer,
                 ActorHierarchyName=f"{H0N.primary_scada}.{H0N.zero_ten_out_multiplexer}",
-                ActorClass=ActorClass.I2cDfrMultiplexer,
+                ActorClass=ActorClass.I2cZeroTenMultiplexer,
                 DisplayName="I2c Zero Ten Out Multiplexer",
                 ComponentId=db.component_id_by_alias(component_display_name),
             ),

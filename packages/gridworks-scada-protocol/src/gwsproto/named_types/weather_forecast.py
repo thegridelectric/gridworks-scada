@@ -3,7 +3,7 @@ import time
 import uuid
 from typing import List, Literal
 
-from gwproto.property_format import  LeftRightDotStr, UTCSeconds, UUID4Str
+from gwsproto.property_format import  LeftRightDotStr, UTCSeconds, UUID4Str
 from pydantic import BaseModel, Field, model_validator
 from typing_extensions import Self
 

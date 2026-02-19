@@ -1,11 +1,11 @@
-"""Type flo.params.house0, version 000"""
 import time
 import uuid
 from typing import List, Literal, Optional
 
-from gwsproto.enums import MarketPriceUnit
-from gwproto.property_format import LeftRightDotStr, UTCSeconds, UUID4Str
 from pydantic import BaseModel, ConfigDict, Field, PositiveInt, StrictInt
+
+from gwsproto.enums import MarketPriceUnit
+from gwsproto.property_format import LeftRightDotStr, UTCSeconds, UUID4Str
 
 
 class FloParamsHouse0(BaseModel):
@@ -20,11 +20,6 @@ class FloParamsHouse0(BaseModel):
     StorageLossesPercent: float = 0.5
     HpMinElecKw: float = -0.5
     HpMaxElecKw: float = 11
-    CopIntercept: float = 1.02
-    CopOatCoeff: float = 0.0257
-    CopLwtCoeff: float = 0
-    CopMin: float = 1.4
-    CopMinOatF: float = 15
     HpTurnOnMinutes: int = 10
     # Initial state
     InitialTopTempF: StrictInt
@@ -53,12 +48,38 @@ class FloParamsHouse0(BaseModel):
     DdRswtF: StrictInt
     DdDeltaTF: StrictInt
     MaxEwtF: StrictInt
+    CopIntercept: float
+    CopOatCoeff: float
+    CopLwtCoeff: float
+    CopMin: float
+    CopMinOatF: float
     PriceUnit: MarketPriceUnit = MarketPriceUnit.USDPerMWh
     ParamsGeneratedS: UTCSeconds = Field(default_factory=lambda: int(time.time()))
-    # Flo type
-    FloAlias: str = "Winter.Oak"
-    FloGitCommit: str = "76e267b"
+    ConstantDeltaT: StrictInt = 20
     TypeName: Literal["flo.params.house0"] = "flo.params.house0"
-    Version: str = "003"
+    Version: Literal["004"] = "004"
 
-    model_config = ConfigDict(extra="allow", use_enum_values=True)
+    model_config = ConfigDict(extra="allow", frozen=True, use_enum_values=True)
+
+    @property
+    def total_price_forecast(self) -> list[float]:
+        """
+        returns reg + dist + lmp in USDPerMwh
+        """
+        if not self.PriceUnit == MarketPriceUnit.USDPerMWh:
+            raise Exception("Expecting prices of USD per MWh")
+        reg_usd_per_mwh = self.RegPriceForecast[:self.HorizonHours]
+        dist_usd_per_mwh = self.DistPriceForecast[:self.HorizonHours]
+        lmp_usd_per_mwh = self.LmpForecast[:self.HorizonHours]
+        return [rp + dp + lmp for rp, dp, lmp in zip(
+            reg_usd_per_mwh, dist_usd_per_mwh, lmp_usd_per_mwh, strict=True
+        )]
+
+    def COP(self, oat: float) -> float:
+        """
+        Coefficient of Performance as function of Outside Air Temp in F
+        """
+        if oat < self.CopMinOatF:
+            return self.CopMin
+        else:
+            return self.CopIntercept + self.CopOatCoeff * oat

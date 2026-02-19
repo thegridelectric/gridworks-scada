@@ -1,18 +1,17 @@
-"""Type channel.flatlined, version 000"""
-
 from typing import Literal
-
-from gwproto.named_types import DataChannelGt
-from gwproto.property_format import SpaceheatName
-from pydantic import BaseModel, model_validator
 from typing_extensions import Self
+
+from pydantic import BaseModel, model_validator
+
+from gwsproto.named_types.data_channel_gt import DataChannelGt
+from gwsproto.property_format import SpaceheatName
 
 
 class ChannelFlatlined(BaseModel):
     FromName: SpaceheatName
     Channel: DataChannelGt
     TypeName: Literal["channel.flatlined"] = "channel.flatlined"
-    Version: str = "000"
+    Version: Literal["000"] = "000"
 
     @model_validator(mode="after")
     def check_axiom_2(self) -> Self:

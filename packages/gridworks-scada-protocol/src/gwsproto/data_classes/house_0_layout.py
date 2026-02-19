@@ -1,35 +1,55 @@
 import json
+from enum import Enum
 from pathlib import Path
-from typing import Any, List, Literal, Optional
+from typing import Any, List, Optional
 
-from gw.errors import DcError
-from gwproto.enums import ActorClass
-from gwproto.data_classes.components import Component
-from gwproto.data_classes.data_channel import DataChannel
-from gwproto.data_classes.hardware_layout import (
+from gwsproto.errors import DcError
+from gwsproto.enums import ActorClass
+from gwsproto.data_classes.components import Component
+from gwsproto.data_classes.data_channel import DataChannel
+from gwsproto.data_classes.components.web_server_component import WebServerComponent
+
+
+from gwsproto.data_classes.house_0_names import H0CN, H0N, ScadaWeb
+from gwsproto.enums import FlowManifoldVariant
+
+from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.decoders import (
+    CacDecoder,
+    ComponentDecoder,
+)
+from gwsproto.named_types import ComponentAttributeClassGt
+from gwsproto.data_classes.derived_channel import DerivedChannel
+from gwsproto.named_types import TankTempCalibrationMap
+from gwsproto.data_classes.hardware_layout import (
     HardwareLayout,
     LoadArgs,
     LoadError,
 )
+class LayoutBucket(str, Enum): 
+    ADS111X = "Ads111xBased"
+    ELECTRIC_METER = "ElectricMeter"
+    OTHER = "Other"
 
-from gwsproto.data_classes.house_0_names import H0CN, H0N
-from gwsproto.enums import FlowManifoldVariant, HomeAloneStrategy
+    @property
+    def device_type_list_name(self) -> str:
+        """e.g. OtherCacs"""
+        return f"{self.value}Cacs"
 
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.data_classes.synth_channel import SynthChannel
-from gwproto.default_decoders import (
-    CacDecoder,
-    ComponentDecoder,
-)
-from gwproto.named_types import ComponentAttributeClassGt
+    @property
+    def component_list_name(self) -> str:
+        """e.g. OtherComponents"""
+        return f"{self.value}Components"
 
 class House0LoadArgs(LoadArgs):
     flow_manifold_variant: FlowManifoldVariant
     use_sieg_loop: bool
+
 class House0Layout(HardwareLayout):
     zone_list: List[str]
+    critical_zone_list: List[str]
+    zone_kwh_per_deg_f_list: List[float]
     total_store_tanks: int
-
 
     def __init__(  # noqa: PLR0913
         self,
@@ -39,7 +59,7 @@ class House0Layout(HardwareLayout):
         components: dict[str, Component],  # by id
         nodes: dict[str, ShNode],  # by name
         data_channels: dict[str, DataChannel],  # by name
-        synth_channels: dict[str, SynthChannel],
+        derived_channels: dict[str, DerivedChannel],
         flow_manifold_variant: FlowManifoldVariant = FlowManifoldVariant.House0,
         use_sieg_loop: bool = False,
     ) -> None:
@@ -49,8 +69,9 @@ class House0Layout(HardwareLayout):
             components=components,
             nodes=nodes,
             data_channels=data_channels,
-            synth_channels=synth_channels,
+            derived_channels=derived_channels,
         )
+        self.derived_channels = self.load_derived_channels(layout, self.nodes)
         self.flow_manifold_variant = flow_manifold_variant
         self.use_sieg_loop = use_sieg_loop
 
@@ -62,9 +83,11 @@ class House0Layout(HardwareLayout):
 
 
         self.zone_list = layout["ZoneList"]
+        self.critical_zone_list = layout["CriticalZoneList"]
+        self.zone_kwh_per_deg_f_list = layout["ZoneKwhPerDegFList"]
         self.total_store_tanks = layout["TotalStoreTanks"]
 
-        self.channel_names = H0CN(self.total_store_tanks, self.zone_list)
+        self.h0cn = H0CN(self.total_store_tanks, self.zone_list)
         if not isinstance(self.total_store_tanks, int):
             raise TypeError("TotalStoreTanks must be an integer")
         if not 1 <= self.total_store_tanks <= 6:
@@ -73,7 +96,84 @@ class House0Layout(HardwareLayout):
             raise TypeError("ZoneList must be a list")
         if not 1 <= len(self.zone_list) <= 6:
             raise ValueError("Must have between 1 and 6 store zones")
+        if not isinstance(self.critical_zone_list, List):
+            raise TypeError("CriticalZoneList must be a list")
+        if not len(self.critical_zone_list) <= len(self.zone_list):
+            raise ValueError("CriticalZoneList must be a subset of ZoneList")
+        for zone in self.critical_zone_list:
+            if zone not in self.zone_list:
+                raise ValueError(f"{zone} is in CriticalZoneList but not in ZoneList")
+        if not isinstance(self.zone_kwh_per_deg_f_list, List):
+            raise TypeError("ZoneKwhPerDegFList must be a list")
+        if not len(self.zone_kwh_per_deg_f_list) == len(self.zone_list):
+            raise ValueError("ZoneKwhPerDegFList must have the same number of elements as ZoneList")
         self.h0n = H0N(self.total_store_tanks, self.zone_list)
+
+        web_servers = {
+            ws.web_server_gt.Name
+            for ws in self.get_components_by_type(WebServerComponent)
+        }
+
+        if ScadaWeb.DEFAULT_SERVER_NAME not in web_servers:
+            raise ValueError(
+                f"House0Layout requires a WebServerComponent named "
+                f"'{ScadaWeb.DEFAULT_SERVER_NAME}'"
+            )
+
+        if len(self.tank_temp_calibration_map.Tank) != self.total_store_tanks:
+            raise DcError(f"Tank Temp Calibration Map has {len(self.tank_temp_calibration_map.Tank)} tanks"
+                          f" but system has {self.total_store_tanks}")
+
+
+    @property
+    def unreported_channels(self) -> set[str]:
+        """
+        Channels that must exist in the layout but are NOT reported upstream.
+        """
+        # Example: exclude all device-level temperature channels
+        # (kept locally for diagnostics and derived generation)
+        # unreported: set[str] = set()
+
+        # # Buffer device channels
+        # unreported |= self.h0cn.buffer.device
+
+        # # Tank device channels
+        # for tank in self.h0cn.tank.values():
+        #     unreported |= tank.device
+
+        # return unreported
+
+        return set()
+
+    @property
+    def tank_device_temp_channels(self) -> set[str]:
+        channels = set(self.h0cn.buffer.devices)
+        for tank in self.h0cn.tank.values():
+            channels |= tank.devices
+        return channels
+
+    @property
+    def tank_temp_calibration_map(self) -> TankTempCalibrationMap:
+        node = self.nodes.get(H0N.derived_generator)
+        if node is None:
+            raise ValueError(
+                "House0Layout invariant violated: "
+                "derived-generator node is missing"
+            )
+
+        raw = getattr(node, "TankTempCalibrationMap", None)
+        if raw is None:
+            raise ValueError(
+                "House0Layout invariant violated: "
+                "derived-generator node missing TankTempCalibrationMap"
+            )
+
+        try:
+            return TankTempCalibrationMap(**raw)
+        except Exception as e:
+            raise ValueError(
+                "Invalid TankTempCalibrationMap on derived-generator node"
+            ) from e
 
     @classmethod
     def validate_house0(  # noqa: C901
@@ -84,8 +184,56 @@ class House0Layout(HardwareLayout):
         errors: Optional[list[LoadError]] = None,
     ) -> None:
         nodes = load_args["nodes"]
+        components = load_args["components"]
         data_channels = load_args["data_channels"]
         errors_caught = []
+
+        # Check for essential nodes that must always exist
+        essential_nodes = [
+            H0N.ltn,
+            H0N.primary_scada,
+            H0N.leaf_ally,
+            H0N.local_control,
+            H0N.derived_generator,
+            H0N.relay_multiplexer,
+            H0N.vdc_relay,
+            H0N.tstat_common_relay,
+            H0N.store_charge_discharge_relay,
+            H0N.thermistor_common_relay,
+            H0N.aquastat_ctrl_relay,
+            H0N.store_pump_failsafe,
+            H0N.primary_pump_scada_ops,
+            H0N.primary_pump_failsafe
+        ]
+
+
+        # Add pico_cycler if there are any pico-based actors
+        pico_actor_classes = [ActorClass.ApiFlowModule, ActorClass.ApiTankModule, ActorClass.ApiBtuMeter]
+        has_pico_actors = any(
+            node.actor_class in pico_actor_classes
+            for node in nodes.values()
+        )
+        if has_pico_actors:
+            essential_nodes.append(H0N.pico_cycler)
+            essential_nodes.append(H0N.vdc_relay)  # Also needed for pico cycling
+
+        # Check for missing essential nodes
+        missing_nodes = []
+        for node_name in essential_nodes:
+            if node_name not in nodes:
+                missing_nodes.append(node_name)
+
+
+        if missing_nodes:
+            error_msg = f"Missing essential nodes in layout: {', '.join(missing_nodes)}"
+            if has_pico_actors and H0N.pico_cycler in missing_nodes:
+                error_msg += "\nNote: pico_cycler is required because layout contains pico-based actors"
+
+            if raise_errors:
+                raise DcError(error_msg)
+            if errors is not None:
+                errors_caught.append(LoadError("House0Layout", {"missing_nodes": missing_nodes}, DcError(error_msg)))
+                
         flow_manifold_variant = load_args["flow_manifold_variant"]
         use_sieg_loop = load_args["use_sieg_loop"]
 
@@ -117,6 +265,7 @@ class House0Layout(HardwareLayout):
                 if raise_errors:
                     raise
                 errors_caught.append(LoadError("hardware.layout", nodes, e))
+
     @classmethod
     def check_house0_sieg_manifold(cls, channels: dict[str, DataChannel]) -> None:
         # if H0CN.sieg_cold not in channels.keys():
@@ -131,12 +280,12 @@ class House0Layout(HardwareLayout):
     @classmethod
     def check_actors_when_using_sieg_loop(cls, nodes: dict[str, ShNode]) -> None:
         if H0N.sieg_loop not in nodes.keys():
-            raise DcError(f"Need a SiegLoop actor when using sieg loop!")
+            raise DcError("Need a SiegLoop actor when using sieg loop!")
         sieg_loop = nodes[H0N.sieg_loop]
         if sieg_loop.actor_class != ActorClass.SiegLoop:
             raise DcError(f"SiegLoop actor {sieg_loop.name} shoud have actor class SiegLoop, not {sieg_loop.actor_class}")
         if H0N.hp_boss not in nodes.keys():
-            raise DcError(f"Need HpBoss actor when using sieg loop!")
+            raise DcError("Need HpBoss actor when using sieg loop!")
         hp_boss = nodes[H0N.hp_boss]
         if hp_boss.actor_class != ActorClass.HpBoss:
             raise DcError(f"HpBoss actor {hp_boss.name} shoud have actor class HpBoss, not {hp_boss.actor_class}")
@@ -147,14 +296,7 @@ class House0Layout(HardwareLayout):
             raise DcError(f"If not using sieg loop, should not have node {H0N.sieg_loop}!")
 
     @property
-    def ha_strategy(self) -> str:
-        """Returns the current home alone strategy"""
-        # Could be stored as a property or derived from a node
-        ha_node = self.nodes.get(H0N.home_alone)
-        return HomeAloneStrategy(HomeAloneStrategy(getattr(ha_node, "Strategy", None)))
-    
-    @property
-    def actuators(self) -> List[ShNode]:
+    def actuators(self) -> List[ShNode]: 
         return self.relays + self.zero_tens
     
     @property
@@ -170,7 +312,6 @@ class House0Layout(HardwareLayout):
             node for node in self.nodes.values()
             if node.ActorClass == ActorClass.ZeroTenOutputer
         ]
-
 
     # overwrites base class to return correct object
     @classmethod
@@ -235,7 +376,7 @@ class House0Layout(HardwareLayout):
             raise_errors=raise_errors,
             errors=errors,
         )
-        synth_channels = cls.load_synth_channels(
+        derived_channels = cls.load_derived_channels(
             layout=layout,
             nodes=nodes,
             raise_errors=raise_errors,
@@ -246,7 +387,7 @@ class House0Layout(HardwareLayout):
             "components": components,
             "nodes": nodes,
             "data_channels": data_channels,
-            "synth_channels": synth_channels,
+            "derived_channels": derived_channels,
             "flow_manifold_variant": FlowManifoldVariant(layout.get("FlowManifoldVariant", "House0")),
             "use_sieg_loop": bool(layout.get("UseSiegLoop", False))
         }
@@ -261,36 +402,205 @@ class House0Layout(HardwareLayout):
         return House0Layout(layout, **load_args)
 
     @property
-    def home_alone(self) -> ShNode:
-        return self.node(H0N.home_alone)
+    def required_topology_nodes(self) -> set[str]:
+        node_names =  (
+                {
+                H0N.hp_odu,
+                H0N.hp_idu,
+        
+                H0N.dist_pump,
+                H0N.primary_pump,
+                H0N.store_pump,
+
+                H0N.dist_swt,
+                H0N.dist_rwt,
+                H0N.hp_lwt,
+                H0N.hp_ewt,
+                H0N.store_hot_pipe,
+                H0N.store_cold_pipe,
+                H0N.buffer_hot_pipe,
+                # NOT H0N.buffer_cold_pipe - no good place for it
+
+                H0N.dist_flow,
+                H0N.primary_flow,
+                H0N.store_flow,
+
+                H0N.vdc_relay,
+                H0N.tstat_common_relay,
+                H0N.store_charge_discharge_relay,
+                H0N.hp_failsafe_relay,
+                H0N.hp_scada_ops_relay,
+                H0N.thermistor_common_relay,
+                H0N.aquastat_ctrl_relay,
+                H0N.store_pump_failsafe,
+                H0N.primary_pump_scada_ops,
+                H0N.primary_pump_failsafe,
+
+                H0N.dist_010v,
+                H0N.primary_010v,
+                H0N.store_010v,
+            } | H0N.buffer.depths | {
+                depth
+                for i in self.h0n.tank
+                for depth in self.h0n.tank[i].depths
+            } | {
+            self.h0n.zone[z].whitewire
+            for z in self.h0n.zone
+            } | {
+                self.h0n.zone[z].zone
+                for z in self.h0n.zone
+            }
+        )
+        return node_names
+
+    @property
+    def required_system_actor_nodes(self) -> set[str]:
+        return {
+            H0N.primary_scada,
+            H0N.primary_power_meter,
+            H0N.derived_generator,
+            H0N.secondary_scada,
+            H0N.ltn,
+            H0N.leaf_ally,
+            H0N.local_control,
+            H0N.local_control_normal,
+            H0N.local_control_backup,
+            H0N.local_control_scada_blind,
+            H0N.admin,
+            H0N.auto,
+            H0N.pico_cycler,
+            H0N.hp_boss
+        }
+
+    @property
+    def optional_channels(self) -> set[str]:
+        channels = {
+            H0CN.buffer_cold_pipe,
+            H0CN.oat,
+            H0CN.sieg_cold,
+            H0CN.sieg_flow,
+        }
+        # add store channels and thermostat channels
+        return channels
+
+    @property
+    def primary_scada(self) -> ShNode:
+        n = self.node(H0N.primary_scada)
+        if n is None:
+            raise Exception(f"{H0N.primary_scada} is known to exist")
+        return n
+
+    @property
+    def derived_generator(self) -> ShNode:
+        n = self.node(H0N.derived_generator)
+        if n is None:
+            raise Exception(f"{H0N.derived_generator} is known to exist")
+        return n
+    
+    @property
+    def local_control(self) -> ShNode:
+        n = self.node(H0N.local_control)
+        if n is None:
+            raise Exception(f"{H0N.local_control} is known to exist")
+        return n
     
     @property
     def auto_node(self) -> ShNode:
-        return self.node(H0N.auto)
+        n = self.node(H0N.auto)
+        if n is None:
+            raise Exception(f"{H0N.auto} is known to exist")
+        return n
+
+    @property
+    def local_control_normal_node(self) -> ShNode:
+        n = self.node(H0N.local_control_normal)
+        if n is None:
+            raise Exception(f"{H0N.local_control_normal} is known to exist")
+        return n
+
+    @property
+    def local_control_backup_node(self) -> ShNode:
+        n = self.node(H0N.local_control_backup)
+        if n is None:
+            raise Exception(f"{H0N.local_control_backup} is known to exist")
+        return n
+
+    @property
+    def local_control_scada_blind_node(self) -> ShNode:
+        n = self.node(H0N.local_control_scada_blind)
+        if n is None:
+            raise Exception(f"{H0N.local_control_scada_blind} is known to exist")
+        return n
     
     @property
-    def atomic_ally(self) -> ShNode:
-        return self.node(H0N.atomic_ally)
+    def hp_boss(self) -> ShNode:
+        n = self.node(H0N.hp_boss)
+        if n is None:
+            raise Exception(f"{H0N.hp_boss} is known to exist")
+        return n
     
     @property
-    def atn(self) -> ShNode:
-        return self.node(H0N.atn)
+    def leaf_ally(self) -> ShNode:
+        n = self.node(H0N.leaf_ally)
+        if n is None:
+            raise Exception(f"{H0N.leaf_ally} is known to exist")
+        return n
+    
+    @property
+    def ltn(self) -> ShNode:
+        n = self.node(H0N.ltn)
+        if n is None:
+            raise Exception(f"{H0N.ltn} is known to exist")
+        return n
     
     @property
     def pico_cycler(self) -> ShNode:
-        return self.node(H0N.pico_cycler)
+        n = self.node(H0N.pico_cycler)
+        if n is None:
+            raise Exception(f"{H0N.pico_cycler} is known to exist")
+        return n
+
+    @property
+    def dist_010v(self) -> ShNode:
+        n = self.node(H0N.dist_010v)
+        if n is None:
+            raise Exception(f"{H0N.dist_010v} is known to exist")
+        return n
+
+    @property
+    def store_010v(self) -> ShNode:
+        n = self.node(H0N.store_010v)
+        if n is None:
+            raise Exception(f"{H0N.store_010v} is known to exist")
+        return n
+
+    @property
+    def primary_010v(self) -> ShNode:
+        n = self.node(H0N.primary_010v)
+        if n is None:
+            raise Exception(f"{H0N.primary_010v} is known to exist")
+        return n
 
     @property
     def vdc_relay(self) -> ShNode:
-        return self.node(H0N.vdc_relay)
+        n = self.node(H0N.vdc_relay)
+        if n is None:
+            raise Exception(f"{H0N.vdc_relay} is known to exist")
+        return n
 
     @property
     def tstat_common_relay(self) -> ShNode:
-        return self.node(H0N.tstat_common_relay)
+        n = self.node(H0N.tstat_common_relay)
+        if n is None:
+            raise Exception(f"{H0N.tstat_common_relay} is known to exist")
+        return n
 
     @property
     def charge_discharge_relay(self) -> ShNode:
-        return self.node(H0N.store_charge_discharge_relay)#
+        n = self.node(H0N.store_charge_discharge_relay)
+        if n is None:
+            raise Exception(f"{H0N.store_charge_discharge_relay} is known to exist")
+        return n
 
     def scada2_gnode_name(self) -> str:
         return f"{self.scada_g_node_alias}.{H0N.secondary_scada}"

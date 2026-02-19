@@ -7,16 +7,13 @@ from typing import List, Literal, Optional, Sequence
 import numpy as np
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
-from gw.errors import DcError
-from gwproactor import MonitoredName, Problems, AppInterface
+from gwsproto.errors import DcError
+from gwproactor import MonitoredName, Problems
 from gwproactor.message import InternalShutdownMessage, PatInternalWatchdogMessage
 from gwproto import Message
-from gwproto.data_classes.components import PicoFlowModuleComponent
-from gwsproto.data_classes.house_0_names import H0N
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.enums import GpmFromHzMethod, HzCalcMethod, MakeModel, TelemetryName
-from gwproto.messages import ProblemEvent
-from gwproto.named_types import (
+from gwsproto.data_classes.components import PicoFlowModuleComponent
+from gwsproto.enums import GpmFromHzMethod, HzCalcMethod, MakeModel, TelemetryName
+from gwsproto.named_types import (
     ChannelReadings,
     SyncedReadings,
     TicklistHall,
@@ -24,14 +21,14 @@ from gwproto.named_types import (
     TicklistReed,
     TicklistReedReport,
 )
-from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
-from actors.scada_actor import ScadaActor
+from gwsproto.data_classes.house_0_names import ScadaWeb
+from actors.sh_node_actor import ShNodeActor
 from gwsproto.enums import LogLevel
 from gwsproto.named_types import Glitch, PicoMissing
 from pydantic import BaseModel
 from result import Ok, Result
 from drivers.pipe_flow_sensor.signal_processing import butter_lowpass, filtering
-
+from scada_app_interface import ScadaAppInterface
 
 FLATLINE_REPORT_S = 60
 
@@ -57,7 +54,7 @@ class FlowReedParams(BaseModel):
     Version: str = "101"
 
 
-class ApiFlowModule(ScadaActor):
+class ApiFlowModule(ShNodeActor):
     _stop_requested: bool
     _component: PicoFlowModuleComponent
     # last_heard: float
@@ -67,7 +64,7 @@ class ApiFlowModule(ScadaActor):
     def __init__(
         self,
         name: str,
-        services: AppInterface,
+        services: ScadaAppInterface,
     ):
         super().__init__(name, services)
         component = services.hardware_layout.component(name)
@@ -108,26 +105,26 @@ class ApiFlowModule(ScadaActor):
         if self._component.gt.Enabled:
             if self._component.cac.MakeModel == MakeModel.GRIDWORKS__PICOFLOWHALL:
                 self._services.add_web_route(
-                    server_name=DEFAULT_WEB_SERVER_NAME,
+                    server_name=ScadaWeb.DEFAULT_SERVER_NAME,
                     method="POST",
                     path="/" + self.hall_params_path,
                     handler=self._handle_hall_params_post,
                 )
                 self._services.add_web_route(
-                    server_name=DEFAULT_WEB_SERVER_NAME,
+                    server_name=ScadaWeb.DEFAULT_SERVER_NAME,
                     method="POST",
                     path="/" + self.ticklist_hall_path,
                     handler=self._handle_ticklist_hall_post,
                 )
             elif self._component.cac.MakeModel == MakeModel.GRIDWORKS__PICOFLOWREED:
                 self._services.add_web_route(
-                    server_name=DEFAULT_WEB_SERVER_NAME,
+                    server_name=ScadaWeb.DEFAULT_SERVER_NAME,
                     method="POST",
                     path="/" + self.reed_params_path,
                     handler=self._handle_reed_params_post,
                 )
                 self._services.add_web_route(
-                    server_name=DEFAULT_WEB_SERVER_NAME,
+                    server_name=ScadaWeb.DEFAULT_SERVER_NAME,
                     method="POST",
                     path="/" + self.ticklist_reed_path,
                     handler=self._handle_ticklist_reed_post,
@@ -545,7 +542,7 @@ class ApiFlowModule(ScadaActor):
         # Report ticklist if specified in hardware layout
         if self._component.gt.SendTickLists:
             self._send_to(
-                self.atn,
+                self.ltn,
                 TicklistReedReport(
                     TerminalAssetAlias=self.services.hardware_layout.terminal_asset_g_node_alias,
                     ChannelName=self.name,
@@ -583,7 +580,7 @@ class ApiFlowModule(ScadaActor):
         # Report ticklist if specified in hardware layout
         if self._component.gt.SendTickLists:
             self._send_to(
-                self.atn,
+                self.ltn,
                 TicklistHallReport(
                     TerminalAssetAlias=self.services.hardware_layout.terminal_asset_g_node_alias,
                     ChannelName=self._component.gt.FlowNodeName,
@@ -749,7 +746,7 @@ class ApiFlowModule(ScadaActor):
             else:
                 glitch_summary = "Sampled Timestamps and Smoothed Frequencies not the same length!"
             self._send_to(
-                self.atn,
+                self.ltn,
                 Glitch(
                     FromGNodeAlias=self.layout.scada_g_node_alias,
                     Node=self.node.name,

@@ -1,18 +1,21 @@
 [project]
 name = "gridworks-admin"
-version = "1.0.0.dev4"
+version = "1.2.2"
 description = "CLI tool for monitoring gridworks-scada devices."
 readme = "README.md"
 authors = [
     { name = "Andrew Schweitzer", email = "schweitz72@gmail.com" }
 ]
+homepage = "https://github.com/thegridelectric/gridworks-scada/tree/dev/packages/gridworks-admin"
+repository = "https://github.com/thegridelectric/gridworks-scada/tree/dev/packages/gridworks-admin"
 requires-python = ">=3.11"
 dependencies = [
     "gridworks-proactor>=4.1.9",
-    "gridworks-scada-protocol",
+    "gridworks-scada-protocol>=1.2.1",
     "numpy>=2.3.3",
     "paho-mqtt>=2.1.0",
     "pydantic>=2.11.9",
+    "pyfiglet>=1.0.4",
     "python-dotenv>=1.1.1",
     "result>=0.9.0",
     "rich>=14.1.0",
@@ -22,6 +25,7 @@ dependencies = [
 
 [project.scripts]
 gwa = "gwadmin:cli.app"
+gridworks-admin = "gwadmin:cli.app"
 
 [build-system]
 requires = ["uv_build>=0.8.8,<0.9.0"]

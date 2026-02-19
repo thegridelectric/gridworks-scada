@@ -13,7 +13,7 @@ from gwproactor.config.links import LinkSettings
 from gwproactor.config.proactor_config import ProactorName
 from gwproactor.external_watchdog import SystemDWatchdogCommandBuilder
 from gwproactor.persister import TimedRollingFilePersister
-from gwproto import HardwareLayout
+from gwsproto.data_classes.hardware_layout import HardwareLayout
 
 import actors
 from actors.scada import Scada
@@ -26,7 +26,7 @@ from scada_app_interface import ScadaAppInterface
 
 
 class ScadaApp(App, ScadaAppInterface):
-    ATN_MQTT: str = ScadaInterface.ATN_MQTT
+    LTN_MQTT: str = ScadaInterface.LTN_MQTT
     LOCAL_MQTT: str = ScadaInterface.LOCAL_MQTT
     ADMIN_MQTT: str = ScadaInterface.ADMIN_MQTT
 
@@ -119,7 +119,6 @@ class ScadaApp(App, ScadaAppInterface):
     def hardware_layout(self) -> House0Layout:
         return typing.cast(House0Layout, self.config.layout)
 
-
     def _get_name(self, layout: HardwareLayout) -> ProactorName:
         return ProactorName(
             long_name=layout.scada_g_node_alias,
@@ -133,10 +132,10 @@ class ScadaApp(App, ScadaAppInterface):
             brokers: dict[str, MQTTClient]
     ) -> dict[str, LinkSettings]:
         return {
-            self.ATN_MQTT: LinkSettings(
-                broker_name=self.ATN_MQTT,
-                peer_long_name=layout.atn_g_node_alias,
-                peer_short_name=H0N.atn,
+            self.LTN_MQTT: LinkSettings(
+                broker_name=self.LTN_MQTT,
+                peer_long_name=layout.ltn_g_node_alias,
+                peer_short_name=H0N.ltn,
                 upstream=True,
             ),
             self.LOCAL_MQTT: LinkSettings(

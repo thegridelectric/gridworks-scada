@@ -1,11 +1,10 @@
-"""Type go.dormant, version 000"""
-
 from typing import Literal
-from gwproto.property_format import SpaceheatName
+
 from pydantic import BaseModel
+from gwsproto.property_format import SpaceheatName
 
 
 class GoDormant(BaseModel):
     ToName: SpaceheatName
     TypeName: Literal["go.dormant"] = "go.dormant"
-    Version: str = "001"
+    Version: Literal["001"] = "001"

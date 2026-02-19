@@ -20,7 +20,16 @@ which pip
 pip install --upgrade pip
 pip install -r ${1:-$dev_requirements}
 pip install -e packages/gridworks-scada-protocol
-pip install -e packages/gridworks-admin
+if [ "${2:-install_admin}" == "install_admin" ]
+then
+  pip install -e packages/gridworks-admin
+fi
 rm gw_spaceheat/venv/bin/gws > /dev/null 2>&1
 ln -s `pwd`/gw_spaceheat/gws gw_spaceheat/venv/bin
 
+INSTALL_FLO="${3:-install_flo}"
+
+if [ "$INSTALL_FLO" == "install_flo" ]
+then
+  pip install -e ../gridworks-innovations/gridworks-flo/
+fi

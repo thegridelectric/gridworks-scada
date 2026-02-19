@@ -1,20 +1,20 @@
-from typing import cast
-from typing import Optional
-
-from gwproto.type_helpers import CACS_BY_MAKE_MODEL
-from gwproto.enums import ActorClass
-from gwproto.enums import MakeModel
-from gwproto.enums import TelemetryName 
-from gwproto.enums import Unit
-from gwproto.named_types import ComponentAttributeClassGt
-from gwproto.named_types import ComponentGt
-from gwproto.named_types import EgaugeRegisterConfig
-from gwproto.named_types import ElectricMeterCacGt
-from gwproto.named_types import SpaceheatNodeGt
-from gwproto.named_types import ElectricMeterChannelConfig
-from gwproto.named_types import DataChannelGt
-from gwproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
+from typing import cast, Optional
 from pydantic import BaseModel
+
+from gwsproto.type_helpers import CACS_BY_MAKE_MODEL
+from gwsproto.enums import ActorClass
+from gwsproto.enums import MakeModel
+from gwsproto.enums import TelemetryName 
+from gwsproto.enums import Unit
+from gwsproto.named_types import ComponentAttributeClassGt
+from gwsproto.named_types import ComponentGt
+from gwsproto.named_types import EgaugeRegisterConfig
+from gwsproto.named_types import ElectricMeterCacGt
+from gwsproto.named_types import SpaceheatNodeGt
+from gwsproto.named_types import ElectricMeterChannelConfig
+from gwsproto.named_types import DataChannelGt
+from gwsproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
+
 
 from gwsproto.data_classes.house_0_names import H0N
 from layout_gen.layout_db import LayoutDb
@@ -24,7 +24,7 @@ class EgaugeChannelConfig(BaseModel):
     AboutNodeName: str
     EGaugeAddress: int
     NameplatePowerW: int = 10
-    AsyncCaptureDelta: int = 1
+    AsyncCaptureDelta: int = 2
     AsyncCapture: bool = True
     InPowerMetering: bool = False
 

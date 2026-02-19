@@ -45,11 +45,11 @@
 from enum import auto
 from typing import List
 
-from gw.enums import GwStrEnum
+from gwsproto.enums.gw_str_enum import AslEnum
 
 
 class </xsl:text><xsl:value-of select="$enum-class-name"/>
-<xsl:text>(GwStrEnum):
+<xsl:text>(AslEnum):
     """
     </xsl:text>
     <!-- Enum description, wrapped, if it exists -->

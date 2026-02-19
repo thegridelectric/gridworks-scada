@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import typing
-from gwproto.data_classes.components import ElectricMeterComponent
+from gwsproto.data_classes.components import ElectricMeterComponent
 from actors.config import ScadaSettings
 from gwsproto.data_classes.house_0_layout import House0Layout
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import GridworksSimPm1_PowerMeterDriver
@@ -64,14 +64,14 @@ def test_power_meter_small():
 
     driver_thread.last_reported_telemetry_value[ch_1] = driver_thread.latest_telemetry_value[ch_1]
 
-    assert driver_thread.value_exceeds_async_threshold(ch_1) is False
+    assert driver_thread.value_hits_async_threshold(ch_1) is False
     store_pump_capture_delta = driver_thread.eq_reporting_config[ch_1].AsyncCaptureDelta
     assert store_pump_capture_delta == 5
     driver_thread.latest_telemetry_value[ch_1] += 4
-    assert driver_thread.value_exceeds_async_threshold(ch_1) is False
+    assert driver_thread.value_hits_async_threshold(ch_1) is False
 
     driver_thread.latest_telemetry_value[ch_1] += 2
-    assert driver_thread.value_exceeds_async_threshold(ch_1) is True
+    assert driver_thread.value_hits_async_threshold(ch_1) is True
     assert driver_thread.should_report_telemetry_reading(ch_1) is True
     driver_thread.report_sampled_telemetry_values([ch_1])
     assert driver_thread.last_reported_telemetry_value[ch_1] == 6
@@ -149,20 +149,20 @@ async def test_power_meter_periodic_update(request: pytest.FixtureRequest) -> No
 
 @pytest.mark.asyncio
 async def test_async_power_update(request: pytest.FixtureRequest):
-#     """Verify that when a simulated change in power is generated, Scadd and Atn both get a PowerWatts message"""
+#     """Verify that when a simulated change in power is generated, Scadd and Ltn both get a PowerWatts message"""
     async with ScadaLiveTest(
         request=request,
     ) as h:
         h.start_child1() # start primary scada
-        h.start_parent() # start atn
+        h.start_parent() # start ltn
         scada = h.child1_app.scada
 
 
         data = scada.data
         print(f"type of h.child1_app.scada is {type(scada)}")
-        atn_received_counts = h.parent_to_child_stats.num_received_by_type
-        initial = atn_received_counts['power.watts']
-        print(f"atn has received {initial} power.watts messages")
+        ltn_received_counts = h.parent_to_child_stats.num_received_by_type
+        initial = ltn_received_counts['power.watts']
+        print(f"ltn has received {initial} power.watts messages")
         await h.await_for(
                 lambda: data.latest_power_w is not None,
                 "Scada wait for initial PowerWatts"
@@ -202,8 +202,8 @@ async def test_async_power_update(request: pytest.FixtureRequest):
         assert data.latest_power_w == 2 * delta_w
 
         await h.await_for(
-            lambda: atn_received_counts['power.watts'] > initial,
-            "Atn wait for power.watts",
+            lambda: ltn_received_counts['power.watts'] > initial,
+            "Ltn wait for power.watts",
         )
-        atn = h.parent_app.atn
-        assert atn.data.latest_power_w == 2 * delta_w
+        ltn = h.parent_app.ltn
+        assert ltn.data.latest_power_w == 2 * delta_w

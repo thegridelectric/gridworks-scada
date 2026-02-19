@@ -1,28 +1,52 @@
 """Scada Codec"""
 
-from gwproactor import LinkSettings
 
-from gwproactor.codecs import CodecFactory
 from gwproactor.config.proactor_config import ProactorName
 from gwproto import HardwareLayout
 from gwproto import create_message_model
 
+from gwproto import MQTTCodec
+from gwproto.messages import (
+    Ack,
+    Ping,
+    ProblemEvent,
+    ShutdownEvent,
+    MQTTConnectEvent,
+    MQTTConnectFailedEvent,
+    MQTTDisconnectEvent,
+    MQTTFullySubscribedEvent,
+    ResponseTimeoutEvent,
+    PeerActiveEvent,
+)
+
+
+from gwproactor import LinkSettings
+from gwproactor.codecs import CodecFactory
+
+from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.house_0_names import H0N
 
 from actors.scada_interface import ScadaInterface
-from gwsproto.data_classes.house_0_layout import House0Layout
-
-from gwproto import MQTTCodec
-
-from gwsproto.data_classes.house_0_names import H0N
 
 
 
 ScadaMessageDecoder = create_message_model(
     "ScadaMessageDecoder",
-    [
+    module_names=[
         "gwsproto.named_types",
-        "gwproto.messages",
         "gwproactor.message",
+    ],
+    explicit_types=[
+        Ack,
+        Ping,
+        ProblemEvent,
+        ShutdownEvent,
+        MQTTConnectEvent,
+        MQTTConnectFailedEvent,
+        MQTTDisconnectEvent,
+        MQTTFullySubscribedEvent,
+        ResponseTimeoutEvent,
+        PeerActiveEvent,
     ],
 )
 
@@ -32,7 +56,7 @@ class GridworksMQTTCodec(MQTTCodec):
     exp_dst: str = H0N.primary_scada
 
     def __init__(self, hardware_layout: House0Layout):
-        self.exp_src = hardware_layout.atn_g_node_alias
+        self.exp_src = hardware_layout.ltn_g_node_alias
         super().__init__(ScadaMessageDecoder)
 
     def validate_source_and_destination(self, src: str, dst: str) -> None:
@@ -96,7 +120,7 @@ class AdminCodec(MQTTCodec):
             )
 
 class ScadaCodecFactory(CodecFactory):
-    ATN_MQTT: str = ScadaInterface.ATN_MQTT
+    LTN_MQTT: str = ScadaInterface.LTN_MQTT
     LOCAL_MQTT: str = ScadaInterface.LOCAL_MQTT
     ADMIN_MQTT: str = ScadaInterface.ADMIN_MQTT
 
@@ -114,7 +138,7 @@ class ScadaCodecFactory(CodecFactory):
                 "to be an instance of House0Layout but received layout type "
                 f"<{type(layout)}>"
             )
-        if link_name == self.ATN_MQTT:
+        if link_name == self.LTN_MQTT:
             return GridworksMQTTCodec(layout)
         elif link_name == self.LOCAL_MQTT:
             scada_node = layout.node(H0N.primary_scada)

@@ -1,9 +1,7 @@
-"""Type flo.params, version 001"""
-
 from typing import Literal
-
-from gwproto.property_format import LeftRightDotStr, UTCSeconds, UUID4Str
 from pydantic import BaseModel, ConfigDict, field_validator
+
+from gwsproto.property_format import LeftRightDotStr, UTCSeconds, UUID4Str
 
 
 class FloParams(BaseModel):
@@ -13,8 +11,6 @@ class FloParams(BaseModel):
     Derived classes are expected to have TypeNames enforced as literals that start with flo.params.
     E.g. flo.params.brickstorageheater. This container is used for sending messages that include
     flo.params (i.e, flo.params.report
-
-    [More info](https://gridworks-atn.readthedocs.io/en/latest/flo.html#flo-params)
     """
 
     GNodeAlias: LeftRightDotStr
@@ -23,7 +19,7 @@ class FloParams(BaseModel):
     TimezoneString: str
     StartUnixS: UTCSeconds
     TypeName: Literal["flo.params"] = "flo.params"
-    Version: str = "001"
+    Version: Literal["001"] = "001"
 
     model_config = ConfigDict(extra="allow")
 
