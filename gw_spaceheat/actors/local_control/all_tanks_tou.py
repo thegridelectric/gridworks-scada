@@ -6,7 +6,7 @@ from actors.local_control.tou_base import LocalControlTouBase
 from gwsproto.data_classes.house_0_names import H0CN, H0N
 from gwsproto.enums import (
     LocalControlAllTanksEvent, LocalControlAllTanksState, LocalControlTopState, 
-    SeasonalStorageMode
+    SeasonalStorageMode, HpModel
 )
     
 from gwsproto.named_types import SingleMachineState
@@ -17,6 +17,9 @@ from scada_app_interface import ScadaAppInterface
 
 
 class AllTanksTouLocalControl(LocalControlTouBase):
+    LG_HEAT_PUMP_RAMP_UP_MINUTES = 15
+    DEFAULT_HEAT_PUMP_RAMP_UP_MINUTES = 5
+
     states = LocalControlAllTanksState.values()
 
     transitions = [
@@ -26,7 +29,7 @@ class AllTanksTouLocalControl(LocalControlTouBase):
             {"trigger": "OnPeakStorageColderThanBuffer", "source": "Initializing", "dest": "HpOffStoreOff"},
             {"trigger": "OffPeakBufferEmpty", "source": "Initializing", "dest": "HpOnStoreOff"},
             {"trigger": "OffPeakBufferFullStorageReady", "source": "Initializing", "dest": "HpOffStoreOff"},
-            {"trigger": "OffPeakBufferFullStorageNotReady", "source": "Initializing", "dest": "HpOnStoreCharge"},
+            {"trigger": "OffPeakBufferFullStorageNotReady", "source": "Initializing", "dest": "HpOnStoreOff"},
             # Starting at: HP on, Store off ============= HP -> buffer
             {"trigger": "OffPeakBufferFullStorageNotReady", "source": "HpOnStoreOff", "dest": "HpOnStoreCharge"},
             {"trigger": "OffPeakBufferFullStorageReady", "source": "HpOnStoreOff", "dest": "HpOffStoreOff"},
@@ -38,7 +41,7 @@ class AllTanksTouLocalControl(LocalControlTouBase):
             # Starting at: HP off, Store off ============ idle
             {"trigger": "OnPeakBufferEmpty", "source": "HpOffStoreOff", "dest": "HpOffStoreDischarge"},
             {"trigger": "OffPeakBufferEmpty", "source": "HpOffStoreOff", "dest": "HpOnStoreOff"},
-            {"trigger": "OffPeakStorageNotReady", "source": "HpOffStoreOff", "dest": "HpOnStoreCharge"},
+            {"trigger": "OffPeakStorageNotReady", "source": "HpOffStoreOff", "dest": "HpOnStoreOff"},
             # Starting at: Hp off, Store discharging ==== Storage -> buffer
             {"trigger": "OnPeakBufferFull", "source": "HpOffStoreDischarge", "dest": "HpOffStoreOff"},
             {"trigger": "OnPeakStorageColderThanBuffer", "source": "HpOffStoreDischarge", "dest": "HpOffStoreOff"},
@@ -203,9 +206,17 @@ class AllTanksTouLocalControl(LocalControlTouBase):
                     if self.is_storage_ready():
                         self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakBufferFullStorageReady)
                     else:
-
                         if self.usable_kwh < self.required_kwh:
-                            self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakBufferFullStorageNotReady)
+                            lg_heat_pump = self.settings.hp_model.value == HpModel.LgHighTempHydroKitPlusMultiV.value
+                            hp_ramp_up_min = self.LG_HEAT_PUMP_RAMP_UP_MINUTES if lg_heat_pump else self.DEFAULT_HEAT_PUMP_RAMP_UP_MINUTES
+                            if (
+                                self.time_hp_turned_on is not None 
+                                and time.time() - self.time_hp_turned_on < hp_ramp_up_min*60
+                                and not self.is_buffer_charge_limited()
+                            ):
+                                self.log(f"HP warmup: {round((time.time() - self.time_hp_turned_on)/60, 1)} min since HP turned on, waiting {hp_ramp_up_min} min before charging store")
+                            else:
+                                self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakBufferFullStorageNotReady)
                         else:
                             self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakBufferFullStorageReady)
                 
