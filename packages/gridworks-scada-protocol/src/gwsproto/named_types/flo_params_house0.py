@@ -56,10 +56,10 @@ class FloParamsHouse0(BaseModel):
     # Plan stability penalty
     PreviousPlanHpKwhElList: list[float] | None = None
     PreviousEstimateStorageKwhNow: float | None = None
-    StabilityWeight: float = 0.2
-    StabilityDecay: float = 0.8
+    StabilityWeight: float = 0.5
+    StabilityDecay: float = 0.9
     StabilityThresholdKwh: float = 10.0
-    StabilityHorizonHours: int = 5
+    StabilityHorizonHours: int = 20
     PriceUnit: MarketPriceUnit = MarketPriceUnit.USDPerMWh
     ParamsGeneratedS: UTCSeconds = Field(default_factory=lambda: int(time.time()))
     ConstantDeltaT: StrictInt = 20
