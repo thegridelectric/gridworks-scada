@@ -19,8 +19,8 @@ class FloParamsHouse0(BaseModel):
     StorageVolumeGallons: PositiveInt = 360
     StorageLossesPercent: float = 0.5
     HpMinElecKw: float = -0.5
-    HpMaxElecKw: float = 11
-    HpTurnOnMinutes: int = 10
+    HpMaxElecKw: float = 9.66
+    HpTurnOnMinutes: int = 12
     # Initial state
     InitialTopTempF: StrictInt
     InitialMiddleTempF: StrictInt
