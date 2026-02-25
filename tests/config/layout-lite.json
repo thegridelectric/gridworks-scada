@@ -2814,11 +2814,11 @@
          "DdPowerKw":9.0,
          "DdRswtF":170,
          "DdDeltaTF":20,
-         "HpMaxKwTh":14.0,
+         "HpMaxKwEl":9.66,
          "MaxEwtF":166,
          "LoadOverestimationPercent":0,
          "TypeName":"ha1.params",
-         "Version":"004"
+         "Version":"005"
       },
       "I2cRelayComponent":{
          "ComponentId":"25f344ee-39ea-4904-bff9-54f2022337af",
@@ -3201,5 +3201,5 @@
          "Version":"000"
       },
       "TypeName":"layout.lite",
-      "Version":"007"
+      "Version":"008"
    }

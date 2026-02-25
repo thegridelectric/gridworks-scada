@@ -41,7 +41,7 @@ class ScadaData:
             DdPowerKw=self.settings.dd_power,
             DdRswtF=int(self.settings.dd_rswt),
             DdDeltaTF=int(self.settings.dd_delta_t),
-            HpMaxKwTh=self.settings.hp_max_kw_th,
+            HpMaxKwEl=self.settings.hp_max_kw_el,
             MaxEwtF=self.settings.max_ewt_f,
             LoadOverestimationPercent=self.settings.load_overestimation_percent,
             CopIntercept=self.settings.cop_intercept,

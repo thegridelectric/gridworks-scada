@@ -22,7 +22,7 @@ def test_layout_lite_generated() -> None:
             "DdPowerKw": 12,
             "DdRswtF": 160,
             "DdDeltaTF": 20,
-            "HpMaxKwTh": 6,
+            "HpMaxKwEl": 9.66,
             "MaxEwtF": 170,
             "LoadOverestimationPercent": 10,
             "CopIntercept": 1.02,
@@ -31,7 +31,7 @@ def test_layout_lite_generated() -> None:
             "CopMin": 1.4,
             "CopMinOatF": 15,
             "TypeName": "ha1.params",
-            "Version": "004",
+            "Version": "005",
         },
         "ShNodes": [
             {
@@ -270,7 +270,7 @@ def test_layout_lite_generated() -> None:
             "Version": "002",
         },
         "TypeName": "layout.lite",
-        "Version": "010",
+        "Version": "011",
     }
 
     d2 = LayoutLite.model_validate(d).model_dump(exclude_none=True)

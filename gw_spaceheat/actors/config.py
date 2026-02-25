@@ -53,7 +53,7 @@ class ScadaSettings(AppSettings):
     alpha: float = 5.5
     beta: float = -0.1
     gamma: float = 0
-    hp_max_kw_th: float = 14
+    hp_max_kw_el: float = 9.66
     intermediate_power: float = 1.5
     intermediate_rswt: float = 100
     dd_power: float = 5.5
