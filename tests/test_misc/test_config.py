@@ -36,7 +36,7 @@ def test_scada_settings_defaults(clean_test_env):
         alpha= 5.5,
         beta=-0.1,
         gamma=0.0,
-        hp_max_kw_th=14,
+        hp_max_kw_el=9.66,
         latitude=45.6573,
         longitude=-68.7098,
         intermediate_power=1.5,

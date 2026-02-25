@@ -14,7 +14,7 @@ class Ha1Params(BaseModel):
     DdPowerKw: float
     DdRswtF: StrictInt
     DdDeltaTF: StrictInt
-    HpMaxKwTh: float
+    HpMaxKwEl: float
     MaxEwtF: StrictInt
     LoadOverestimationPercent: StrictInt
     CopIntercept: float
@@ -23,4 +23,4 @@ class Ha1Params(BaseModel):
     CopMin: float
     CopMinOatF: float
     TypeName: Literal["ha1.params"] = "ha1.params"
-    Version: str = "005"
+    Version: str = "006"

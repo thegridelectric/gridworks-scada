@@ -376,7 +376,9 @@ class DerivedGenerator(ShNodeActor):
             simulated_layers = simulated_layers[1:] + [self.rwt_f(simulated_layers[0])]
         if (((time_now.weekday()<4 or time_now.weekday()==6) and time_now.hour>=20) or (time_now.weekday()<5 and time_now.hour<=6)):
             self.log('Preparing for a morning onpeak + afternoon onpeak')
-            afternoon_missing_kWh = afternoon_kWh - (4*self.params.HpMaxKwTh - midday_kWh) # TODO make the kW_th a function of COP and kW_el
+            min_oat = min(self.weather_forecast.OatF)
+            min_cop = self.params.CopMin if min_oat < self.params.CopMinOatF else self.params.CopIntercept + self.params.CopOatCoeff*min_oat
+            afternoon_missing_kWh = afternoon_kWh - (4*self.params.HpMaxKwEl*min_cop - midday_kWh)
             if afternoon_missing_kWh<0:
                 required = morning_kWh
             else:
