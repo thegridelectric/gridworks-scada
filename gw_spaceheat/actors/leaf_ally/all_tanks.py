@@ -500,11 +500,13 @@ class AllTanksLeafAlly(ShNodeActor):
                 if self.contract_hb is None:
                     return False
                 # If the relay is closed and in the last 5 minutes of >= 30 minute contract,
+                # TODO: edited to If the relay is closed and in the last 30 minutes of >= 30 minute contract,
                 #  keep it closed
                 elif self.contract_hb.Contract.DurationMinutes >= 30:  
                     c = self.contract_hb.Contract
                     last_5 = c.StartS + (c.DurationMinutes - 5)*60  
-                    if time.time() > last_5:
+                    last_30 = c.StartS + (c.DurationMinutes - 30)*60
+                    if time.time() > last_30:
                         return False
         return True
         
