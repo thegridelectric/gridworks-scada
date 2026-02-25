@@ -30,6 +30,7 @@ def test_layout_lite_generated() -> None:
             "CopLwtCoeff": 0,
             "CopMin": 1.4,
             "CopMinOatF": 15,
+            "HpTurnOnMinutes": 12,
             "TypeName": "ha1.params",
             "Version": "005",
         },

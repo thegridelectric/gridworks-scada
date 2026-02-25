@@ -49,6 +49,7 @@ class ScadaData:
             CopLwtCoeff=self.settings.cop_lwt_coeff,
             CopMin=self.settings.cop_min,
             CopMinOatF=self.settings.cop_min_oat_f,
+            HpTurnOnMinutes=self.settings.hp_turn_on_minutes,
         )
         self.my_data_channels = self.get_my_data_channels()
         self.my_derived_channels = self.get_my_derived_channels()

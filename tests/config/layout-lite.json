@@ -2817,6 +2817,7 @@
          "HpMaxKwEl":9.66,
          "MaxEwtF":166,
          "LoadOverestimationPercent":0,
+         "HpTurnOnMinutes":12,
          "TypeName":"ha1.params",
          "Version":"005"
       },

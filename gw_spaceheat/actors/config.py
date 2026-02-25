@@ -66,6 +66,7 @@ class ScadaSettings(AppSettings):
     cop_lwt_coeff: float = 0
     cop_min: float = 1.4
     cop_min_oat_f: float = 15
+    hp_turn_on_minutes: int = 12
     short_cycle_buffer: bool = False
     load_overestimation_percent: int = 0
     oil_boiler_backup: bool = True
