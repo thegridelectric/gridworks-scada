@@ -22,5 +22,6 @@ class Ha1Params(BaseModel):
     CopLwtCoeff: float
     CopMin: float
     CopMinOatF: float
+    HpTurnOnMinutes: StrictInt = 12
     TypeName: Literal["ha1.params"] = "ha1.params"
     Version: str = "006"

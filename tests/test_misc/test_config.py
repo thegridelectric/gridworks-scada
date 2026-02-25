@@ -50,6 +50,7 @@ def test_scada_settings_defaults(clean_test_env):
         cop_lwt_coeff=0,
         cop_min=1.4,
         cop_min_oat_f=15,
+        hp_turn_on_minutes=12,
         short_cycle_buffer=False,
         load_overestimation_percent=0,
         whitewire_threshold_watts=20,
