@@ -17,6 +17,7 @@ from scada_app_interface import ScadaAppInterface
 
 
 class AllTanksTouLocalControl(LocalControlTouBase):
+    DEFROST_TIMEOUT_MINUTES = 20
 
     states = LocalControlAllTanksState.values()
 
@@ -36,6 +37,7 @@ class AllTanksTouLocalControl(LocalControlTouBase):
             {"trigger": "OffPeakBufferEmpty", "source": "HpOnStoreCharge", "dest": "HpOnStoreOff"},
             {"trigger": "OffPeakStorageReady", "source": "HpOnStoreCharge", "dest": "HpOffStoreOff"},
             {"trigger": "OnPeakStart", "source": "HpOnStoreCharge", "dest": "HpOffStoreOff"},
+            {"trigger": "DefrostDetected", "source": "HpOnStoreCharge", "dest": "HpOnStoreOff"},
             # Starting at: HP off, Store off ============ idle
             {"trigger": "OnPeakBufferEmpty", "source": "HpOffStoreOff", "dest": "HpOffStoreDischarge"},
             {"trigger": "OffPeakBufferEmpty", "source": "HpOffStoreOff", "dest": "HpOnStoreOff"},
@@ -58,6 +60,7 @@ class AllTanksTouLocalControl(LocalControlTouBase):
         self.storage_declared_ready = False
         self.time_hp_turned_on = None
         self.full_storage_energy: Optional[float] = None
+        self.defrost_detected_since = None
         
         self.machine = Machine(
             model=self,
@@ -94,6 +97,8 @@ class AllTanksTouLocalControl(LocalControlTouBase):
             self.OnPeakStorageColderThanBuffer()
         elif event  == LocalControlAllTanksEvent.TemperaturesAvailable:
             self.TemperaturesAvailable()
+        elif event  == LocalControlAllTanksEvent.DefrostDetected:
+            self.DefrostDetected()
         elif event  == LocalControlAllTanksEvent.GoDormant:
             self.GoDormant()
         elif event  == LocalControlAllTanksEvent.WakeUp:
@@ -205,20 +210,35 @@ class AllTanksTouLocalControl(LocalControlTouBase):
                         self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakBufferFullStorageReady)
                     else:
                         if self.usable_kwh < self.required_kwh:
-                            if (
-                                self.time_hp_turned_on is not None 
-                                and time.time() - self.time_hp_turned_on < self.params.HpTurnOnMinutes*60
-                                and not self.is_buffer_charge_limited()
-                            ):
-                                self.log(f"HP warmup: {round((time.time() - self.time_hp_turned_on)/60, 1)} min since HP turned on, waiting {self.params.HpTurnOnMinutes} min before charging store")
-                            else:
+                            if self.is_buffer_charge_limited():
                                 self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakBufferFullStorageNotReady)
+                            else:
+                                if self.time_hp_turned_on is None:
+                                    self.log("Could not find HP turn on time")
+                                    self.alert("Could not find HP turn on time", "")
+                                    self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakBufferFullStorageNotReady)
+                                elif time.time() - self.time_hp_turned_on < self.params.HpTurnOnMinutes*60:
+                                    self.log(f"HP warmup: {round((time.time() - self.time_hp_turned_on)/60, 1)} min since HP turned on, waiting {self.params.HpTurnOnMinutes} min before charging store")
+                                elif self.hp_in_defrost():
+                                    if self.defrost_detected_since is None:
+                                        self.defrost_detected_since = int(time.time())
+                                    if time.time() - self.defrost_detected_since < self.DEFROST_TIMEOUT_MINUTES*60:
+                                        self.log(f"In defrost, waiting before charging store")
+                                    else:
+                                        self.log("Defrost timeout reached, charging store")
+                                        self.defrost_detected_since = None
+                                        self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakBufferFullStorageNotReady)
+                                else:
+                                    self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakBufferFullStorageNotReady)
                         else:
                             self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakBufferFullStorageReady)
                 
             elif self.state==LocalControlAllTanksState.HpOnStoreCharge:
                 if self.is_onpeak():
                     self.trigger_normal_event(LocalControlAllTanksEvent.OnPeakStart)
+                elif self.hp_in_defrost():
+                    self.defrost_detected_since = time.time()
+                    self.trigger_normal_event(LocalControlAllTanksEvent.DefrostDetected)
                 elif self.is_buffer_empty():
                     self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakBufferEmpty)
                 elif self.is_storage_ready():
