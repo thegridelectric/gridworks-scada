@@ -57,7 +57,7 @@ class FloParamsHouse0(BaseModel):
     PreviousPlanHpKwhElList: list[float] | None = None
     PreviousEstimateStorageKwhNow: float | None = None
     StabilityWeight: float = 0.5
-    StabilityDecay: float = 0.9
+    StabilityDecay: float = 0.75
     StabilityThresholdKwh: float = 10.0
     StabilityHorizonHours: int = 20
     PriceUnit: MarketPriceUnit = MarketPriceUnit.USDPerMWh
