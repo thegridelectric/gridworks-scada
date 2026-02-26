@@ -37,8 +37,7 @@ from actors.procedural.store_pump_monitor import StorePumpMonitor
 class AllTanksLeafAlly(ShNodeActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
     NO_TEMPS_BAIL_MINUTES = 5
-    LG_HEAT_PUMP_RAMP_UP_MINUTES = 15
-    DEFAULT_HEAT_PUMP_RAMP_UP_MINUTES = 5
+    DEFROST_TIMEOUT_MINUTES = 20
 
     states = LeafAllyAllTanksState.values()
     # Uses LeafAllyAllTanksEvent as transitions
@@ -55,6 +54,7 @@ class AllTanksLeafAlly(ShNodeActor):
         # 2 Starting at: HP on, Store charging ======== HP -> storage
         {"trigger": "ElecBufferEmpty", "source": "HpOnStoreCharge", "dest": "HpOnStoreOff"},
         {"trigger": "NoMoreElec", "source": "HpOnStoreCharge", "dest": "HpOffStoreOff"},
+        {"trigger": "DefrostDetected", "source": "HpOnStoreCharge", "dest": "HpOnStoreOff"},
         # 3 Starting at: HP off, Store off ============ idle
         {"trigger": "NoElecBufferEmpty", "source": "HpOffStoreOff", "dest": "HpOffStoreDischarge"},
         {"trigger": "ElecBufferEmpty", "source": "HpOffStoreOff", "dest": "HpOnStoreOff"},
@@ -108,6 +108,7 @@ class AllTanksLeafAlly(ShNodeActor):
         self.storage_declared_full = False
         self.storage_full_since = 0
         self.both_buffer_and_storage_full_since = 0
+        self.defrost_detected_since = None
         if H0N.leaf_ally not in self.layout.nodes:
             raise Exception(f"LeafAlly requires {H0N.leaf_ally} node!!")
 
@@ -304,16 +305,28 @@ class AllTanksLeafAlly(ShNodeActor):
                 if self.hp_should_be_off():
                     self.trigger_event(LeafAllyAllTanksEvent.NoMoreElec)
                 elif self.is_buffer_full() and not self.is_storage_full():
-                    lg_heat_pump = self.settings.hp_model.value == HpModel.LgHighTempHydroKitPlusMultiV.value
-                    hp_ramp_up_min = self.LG_HEAT_PUMP_RAMP_UP_MINUTES if lg_heat_pump else self.DEFAULT_HEAT_PUMP_RAMP_UP_MINUTES
-                    if (
-                        self.time_hp_turned_on is not None 
-                        and time.time() - self.time_hp_turned_on < hp_ramp_up_min*60
-                        and not self.is_buffer_charge_limited()
-                    ):
-                        self.log(f"HP warmup: {round((time.time() - self.time_hp_turned_on)/60, 1)} min since HP turned on, waiting {hp_ramp_up_min} min before charging store")
-                    else:
+                    if self.is_buffer_charge_limited():
                         self.trigger_event(LeafAllyAllTanksEvent.ElecBufferFull)
+                    else:
+                        if self.time_hp_turned_on is None:
+                            self.log("Could not find HP turn on time")
+                            self.alert(summary="Could not find HP turn on time", details="")
+                            self.trigger_event(LeafAllyAllTanksEvent.ElecBufferFull)
+                        # Heat pump is ramping up
+                        elif time.time() - self.time_hp_turned_on < self.params.HpTurnOnMinutes*60:
+                            self.log(f"HP warmup: {round((time.time() - self.time_hp_turned_on)/60, 1)} min since HP turned on, waiting {self.params.HpTurnOnMinutes} min before charging store")
+                        # Heat pump is in defrost
+                        elif self.hp_in_defrost():
+                            if self.defrost_detected_since is None:
+                                self.defrost_detected_since = int(time.time())
+                            if time.time() - self.defrost_detected_since < self.DEFROST_TIMEOUT_MINUTES*60:
+                                self.log(f"In defrost, waiting before charging store")
+                            else:
+                                self.log("Defrost timeout reached, charging store")
+                                self.defrost_detected_since = None
+                                self.trigger_event(LeafAllyAllTanksEvent.ElecBufferFull)
+                        else:
+                            self.trigger_event(LeafAllyAllTanksEvent.ElecBufferFull)
 
                 elif self.is_buffer_charge_limited():
                     if not self.storage_declared_full or time.time()-self.storage_full_since>15*60:
@@ -332,6 +345,9 @@ class AllTanksLeafAlly(ShNodeActor):
             elif self.state == LeafAllyAllTanksState.HpOnStoreCharge:
                 if self.hp_should_be_off():
                     self.trigger_event(LeafAllyAllTanksEvent.NoMoreElec)
+                elif self.hp_in_defrost():
+                    self.defrost_detected_since = time.time()
+                    self.trigger_event(LeafAllyAllTanksEvent.DefrostDetected)
                 elif self.is_buffer_empty(all_tanks_leaf_ally=True) or self.is_storage_full():
                     self.trigger_event(LeafAllyAllTanksEvent.ElecBufferEmpty)
 

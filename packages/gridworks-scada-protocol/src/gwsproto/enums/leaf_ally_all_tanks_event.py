@@ -16,6 +16,7 @@ class LeafAllyAllTanksEvent(AslEnum):
     NoElecBufferEmpty = auto()
     StartNonElectricBackup = auto()
     StopNonElectricBackup = auto()
+    DefrostDetected = auto()
 
     @classmethod
     def default(cls) -> "LeafAllyAllTanksEvent":
