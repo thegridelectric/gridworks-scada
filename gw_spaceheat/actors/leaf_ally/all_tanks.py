@@ -323,6 +323,7 @@ class AllTanksLeafAlly(ShNodeActor):
                                 self.trigger_event(LeafAllyAllTanksEvent.ElecBufferFull)
                         # None of the above
                         else:
+                            self.defrost_detected_since = None
                             self.trigger_event(LeafAllyAllTanksEvent.ElecBufferFull)
 
                 elif self.is_buffer_charge_limited():

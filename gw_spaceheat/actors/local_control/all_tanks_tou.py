@@ -229,6 +229,7 @@ class AllTanksTouLocalControl(LocalControlTouBase):
                                         self.defrost_detected_since = None
                                         self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakBufferFullStorageNotReady)
                                 else:
+                                    self.defrost_detected_since = None
                                     self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakBufferFullStorageNotReady)
                         else:
                             self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakBufferFullStorageReady)
