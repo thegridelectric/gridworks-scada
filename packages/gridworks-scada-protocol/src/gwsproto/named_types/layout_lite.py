@@ -40,7 +40,7 @@ class LayoutLite(BaseModel):
     I2cRelayComponent: I2cMultichannelDtRelayComponentGt
     TMap: TankTempCalibrationMap | None = None
     TypeName: Literal["layout.lite"] = "layout.lite"
-    Version: Literal["010"] = "010"
+    Version: Literal["011"] = "011"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
