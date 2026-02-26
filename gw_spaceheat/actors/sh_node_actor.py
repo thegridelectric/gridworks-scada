@@ -35,6 +35,7 @@ from gwsproto.enums import (
     ChangePrimaryPumpControl,
     ChangeRelayState,
     ChangeStoreFlowRelay,
+    HpModel,
     LogLevel,
     RelayClosedOrOpen,
     StoreFlowRelay,
@@ -1232,6 +1233,22 @@ class ShNodeActor(Actor, ABC):
         idu_pwr_channel = self.layout.channel(H0CN.hp_idu_pwr)
         assert idu_pwr_channel.TelemetryName == TelemetryName.PowerW
         return self.data.latest_channel_values.get(H0CN.hp_idu_pwr)
+
+    #-----------------------------------------------------------------------
+    # Defrost related
+    #-----------------------------------------------------------------------
+
+    def hp_in_defrost(self) -> bool:
+        odu = self.odu_pwr()
+        idu = self.idu_pwr()
+        if odu is None or idu is None:
+            return False
+        hp_model = self.settings.hp_model
+        if hp_model in (HpModel.SamsungFourTonneHydroKit, HpModel.SamsungFiveTonneHydroKit):
+            return idu < 4000
+        elif hp_model == HpModel.LgHighTempHydroKitPlusMultiV:
+            return odu + idu < 8400
+        return False
 
     #-----------------------------------------------------------------------
     # Temperature related
