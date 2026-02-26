@@ -1491,8 +1491,8 @@ class Ltn(PrimeActor):
                         lmp_usd_per_mwh=data['LmpList'],  
                         reg_usd_per_mwh=[0] * len(data['LmpList']),
                     )
-                    self.log(f"- LMP USD/MWh {self.price_forecast.lmp_usd_per_mwh}")
-                    self.log(f"- Total energy USD/MWh {[round(x,2) for x in self.price_forecast.total_energy]}")
+                    # self.log(f"- LMP USD/MWh {self.price_forecast.lmp_usd_per_mwh}")
+                    # self.log(f"- Total energy USD/MWh {[round(x,2) for x in self.price_forecast.total_energy]}")
                     
                     # Save price forecast to a local CSV file
                     prices_file = Path(f"{self.settings.paths.data_dir}/price_forecast.csv")
@@ -1555,8 +1555,8 @@ class Ltn(PrimeActor):
                     reg_usd_per_mwh=reg_forecast_usd_per_mwh,
                 )
                 self.log("Successfully read price forecast from local CSV.")
-                self.log(f"- LMP USD/MWh {self.price_forecast.lmp_usd_per_mwh}")
-                self.log(f"- Total energy USD/MWh {[round(x,2) for x in self.price_forecast.total_energy]}")
+                # self.log(f"- LMP USD/MWh {self.price_forecast.lmp_usd_per_mwh}")
+                # self.log(f"- Total energy USD/MWh {[round(x,2) for x in self.price_forecast.total_energy]}")
 
             except Exception as e:
                 self.log(f"Could not get a price forecast from the local CSV file: {e}.")
