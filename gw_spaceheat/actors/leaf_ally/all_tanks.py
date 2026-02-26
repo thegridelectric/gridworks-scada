@@ -309,7 +309,7 @@ class AllTanksLeafAlly(ShNodeActor):
                     else:
                         # Heat pump is ramping up
                         if time.time() - self.time_hp_turned_on < self.params.HpTurnOnMinutes*60:
-                            self.log(f"HP warmup: {round((time.time() - self.time_hp_turned_on)/60, 1)} min since HP turned on, waiting {self.params.HpTurnOnMinutes} min before charging store")
+                            self.log(f"HP warmup: {round((time.time() - self.time_hp_turned_on)/60, 1)} out of {self.params.HpTurnOnMinutes} min")
                         # Heat pump is in defrost
                         elif self.hp_in_defrost():
                             if self.defrost_detected_since is None:
