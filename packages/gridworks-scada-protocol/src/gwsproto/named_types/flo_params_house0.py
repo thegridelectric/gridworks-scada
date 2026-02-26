@@ -21,6 +21,8 @@ class FloParamsHouse0(BaseModel):
     HpMinElecKw: float = -0.5
     HpMaxElecKw: float = 9.66
     HpTurnOnMinutes: int = 12
+    MaxHpKwhTh: float = 25
+    MaxLoadKwhTh: float = 20
     # Initial state
     InitialTopTempF: StrictInt
     InitialMiddleTempF: StrictInt
@@ -53,18 +55,27 @@ class FloParamsHouse0(BaseModel):
     CopLwtCoeff: float
     CopMin: float
     CopMinOatF: float
+    # Penalties
+    RswtPenaltyEnabled: bool = True
+    StabilityPenaltyEnabled: bool = True
+    # RSWT penalty
+    RswtPenaltyWeight: float = 0.3
+    RswtPenaltyDecay: float = 0.9
+    RswtPenaltyExponentRate: float = 0.15
+    RswtPenaltyDecayMaxHour: int = 5
     # Plan stability penalty
     PreviousPlanHpKwhElList: list[float] | None = None
     PreviousEstimateStorageKwhNow: float | None = None
-    StabilityWeight: float = 0.5
-    StabilityDecay: float = 0.75
-    StabilityThresholdKwh: float = 10.0
-    StabilityHorizonHours: int = 20
+    StabilityPenaltyWeight: float = 0.5
+    StabilityPenaltyDecay: float = 0.75
+    StabilityPenaltyThresholdKwh: float = 10.0
+    StabilityPenaltyHorizonHours: int = 20
+    # Other
     PriceUnit: MarketPriceUnit = MarketPriceUnit.USDPerMWh
     ParamsGeneratedS: UTCSeconds = Field(default_factory=lambda: int(time.time()))
     ConstantDeltaT: StrictInt = 20
     TypeName: Literal["flo.params.house0"] = "flo.params.house0"
-    Version: Literal["005"] = "005"
+    Version: Literal["006"] = "006"
 
     model_config = ConfigDict(extra="allow", frozen=True, use_enum_values=True)
 
