@@ -17,8 +17,6 @@ from scada_app_interface import ScadaAppInterface
 
 
 class AllTanksTouLocalControl(LocalControlTouBase):
-    LG_HEAT_PUMP_RAMP_UP_MINUTES = 15
-    DEFAULT_HEAT_PUMP_RAMP_UP_MINUTES = 5
 
     states = LocalControlAllTanksState.values()
 
@@ -207,14 +205,12 @@ class AllTanksTouLocalControl(LocalControlTouBase):
                         self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakBufferFullStorageReady)
                     else:
                         if self.usable_kwh < self.required_kwh:
-                            lg_heat_pump = self.settings.hp_model.value == HpModel.LgHighTempHydroKitPlusMultiV.value
-                            hp_ramp_up_min = self.LG_HEAT_PUMP_RAMP_UP_MINUTES if lg_heat_pump else self.DEFAULT_HEAT_PUMP_RAMP_UP_MINUTES
                             if (
                                 self.time_hp_turned_on is not None 
-                                and time.time() - self.time_hp_turned_on < hp_ramp_up_min*60
+                                and time.time() - self.time_hp_turned_on < self.params.HpTurnOnMinutes*60
                                 and not self.is_buffer_charge_limited()
                             ):
-                                self.log(f"HP warmup: {round((time.time() - self.time_hp_turned_on)/60, 1)} min since HP turned on, waiting {hp_ramp_up_min} min before charging store")
+                                self.log(f"HP warmup: {round((time.time() - self.time_hp_turned_on)/60, 1)} min since HP turned on, waiting {self.params.HpTurnOnMinutes} min before charging store")
                             else:
                                 self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakBufferFullStorageNotReady)
                         else:
