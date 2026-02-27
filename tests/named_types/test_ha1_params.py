@@ -13,7 +13,7 @@ def test_ha1_params_generated() -> None:
         "DdPowerKw": 12,
         "DdRswtF": 160,
         "DdDeltaTF": 20,
-        "HpMaxKwTh": 6,
+        "HpMaxKwEl": 9.66,
         "MaxEwtF": 170,
         "LoadOverestimationPercent": 10,
         "CopIntercept": 1.02,
@@ -21,8 +21,9 @@ def test_ha1_params_generated() -> None:
         "CopLwtCoeff": 0,
         "CopMin": 1.4,
         "CopMinOatF": 15,
+        "HpTurnOnMinutes": 12,
         "TypeName": "ha1.params",
-        "Version": "004",
+        "Version": "005",
     }
 
     d2 = Ha1Params.model_validate(d).model_dump(exclude_none=True)

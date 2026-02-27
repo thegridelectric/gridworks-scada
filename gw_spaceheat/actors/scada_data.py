@@ -41,7 +41,7 @@ class ScadaData:
             DdPowerKw=self.settings.dd_power,
             DdRswtF=int(self.settings.dd_rswt),
             DdDeltaTF=int(self.settings.dd_delta_t),
-            HpMaxKwTh=self.settings.hp_max_kw_th,
+            HpMaxKwEl=self.settings.hp_max_kw_el,
             MaxEwtF=self.settings.max_ewt_f,
             LoadOverestimationPercent=self.settings.load_overestimation_percent,
             CopIntercept=self.settings.cop_intercept,
@@ -49,6 +49,7 @@ class ScadaData:
             CopLwtCoeff=self.settings.cop_lwt_coeff,
             CopMin=self.settings.cop_min,
             CopMinOatF=self.settings.cop_min_oat_f,
+            HpTurnOnMinutes=self.settings.hp_turn_on_minutes,
         )
         self.my_data_channels = self.get_my_data_channels()
         self.my_derived_channels = self.get_my_derived_channels()
