@@ -18,6 +18,12 @@ from tests.conftest import TEST_HARDWARE_LAYOUT_PATH
 
 runner = CliRunner()
 
+import typer
+import click
+import sys
+
+
+
 admin_commands = [
     [],
     ["add-scada", "--help"],
@@ -26,6 +32,11 @@ admin_commands = [
     ["mkconfig", "--help"],
     ["watch", "--help"],
 ]
+
+
+print("Python:", sys.version)
+print("Typer:", typer.__version__)
+print("Click:", click.__version__)
 
 def test_gws_cli_completes() -> None:
     """This test just verifies that clis can execute dry-runs and help without

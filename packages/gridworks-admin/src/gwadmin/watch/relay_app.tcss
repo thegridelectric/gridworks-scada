@@ -15,19 +15,20 @@ Button {
 #select_scada_container {
     height: auto;
     border: solid $border;
+    align: left middle;
 }
 
 #select_scada_label {
     height: 3;
     content-align: center middle;
     width: auto;
-    margin: 0 1;
+    margin: 2 1 0 1;
 }
 
 #select_scada {
      width: 20;
      height: 3;
-     margin: 0 0;
+     margin: 2 0 0 0;
      padding: 0 0;
 }
 
@@ -36,7 +37,7 @@ Button {
 }
 
 #mqtt_state {
-    margin: 0 4;
+    margin: 1 4 0 4;
     content-align: left middle;
     width: auto;
 }
