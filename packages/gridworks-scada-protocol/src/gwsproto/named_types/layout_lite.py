@@ -5,6 +5,7 @@ from gwsproto.named_types.data_channel_gt import DataChannelGt
 from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
     I2cMultichannelDtRelayComponentGt,
 )
+from gwsproto.enums import SystemMode, SeasonalStorageMode
 from gwsproto.named_types.pico_flow_module_component_gt import PicoFlowModuleComponentGt
 from gwsproto.named_types.pico_tank_module_component_gt import PicoTankModuleComponentGt
 from gwsproto.named_types.sim_pico_tank_module_component_gt import SimPicoTankModuleComponentGt
@@ -18,10 +19,15 @@ from typing_extensions import Self
 
 
 class LayoutLite(BaseModel):
+    """ASL: https://schemas.electricity.works/types/layout.lite/000"""
+
     FromGNodeAlias: LeftRightDotStr
     MessageCreatedMs: UTCMilliseconds
     MessageId: UUID4Str
     Strategy: str
+    SystemMode: SystemMode
+    SeasonalStorageMode: SeasonalStorageMode
+    BufferShortCycling: bool
     ZoneList: List[str]
     CriticalZoneList: List[str]
     TotalStoreTanks: PositiveInt
@@ -34,7 +40,7 @@ class LayoutLite(BaseModel):
     I2cRelayComponent: I2cMultichannelDtRelayComponentGt
     TMap: TankTempCalibrationMap | None = None
     TypeName: Literal["layout.lite"] = "layout.lite"
-    Version: Literal["007"] = "007"
+    Version: Literal["010"] = "010"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

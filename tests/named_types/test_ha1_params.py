@@ -16,6 +16,11 @@ def test_ha1_params_generated() -> None:
         "HpMaxKwTh": 6,
         "MaxEwtF": 170,
         "LoadOverestimationPercent": 10,
+        "CopIntercept": 1.02,
+        "CopOatCoeff": 0.0257,
+        "CopLwtCoeff": 0,
+        "CopMin": 1.4,
+        "CopMinOatF": 15,
         "TypeName": "ha1.params",
         "Version": "004",
     }

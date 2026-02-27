@@ -1,15 +1,15 @@
 import time
 import uuid
 import asyncio
-from typing import List, Literal
+from typing import Literal
 from pydantic import BaseModel
-from enum import auto
-from gw.enums import GwStrEnum
+
+
 from gwproto.message import Message
 
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.named_types import FsmFullReport
-from gwsproto.enums import ChangeRelayState
+from gwsproto.enums import ChangeRelayState, HpBossState
 from result import Ok, Result
 
 
@@ -21,19 +21,6 @@ from gwsproto.named_types import ActuatorsReady, FsmEvent, Glitch, SingleMachine
 class SiegLoopReady(BaseModel):
     TypeName: Literal["sieg.loop.ready"] = "sieg.loop.ready"
     Version: str = "000"
-
-class HpBossState(GwStrEnum):
-    PreparingToTurnOn = auto()
-    HpOn = auto()
-    HpOff = auto()
-
-    @classmethod
-    def values(cls) -> List[str]:
-        return [elt.value for elt in cls]
-
-    @classmethod
-    def enum_name(cls) -> str:
-        return "hp.boss.state"
 
 class HpBoss(ShNodeActor):
     """
@@ -92,7 +79,7 @@ class HpBoss(ShNodeActor):
         self.log(f"Got {payload}")   
         if payload.ToHandle != self.node.handle:
              # TODO: turn this into a report?
-            self._send_to(self.atn,
+            self._send_to(self.ltn,
                           Glitch(
                               FromGNodeAlias=self.layout.scada_g_node_alias,
                               Node=self.name,

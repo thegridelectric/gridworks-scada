@@ -13,7 +13,7 @@ from gwproactor.persister import TimedRollingFilePersister
 from gwproto import HardwareLayout
 
 import actors
-from actors import Parentless
+from actors import SecondaryScada
 from actors import ScadaInterface
 from actors.config import ScadaSettings
 from actors.scada import ScadaCodecFactory
@@ -31,8 +31,8 @@ class Scada2App(App, ScadaAppInterface):
         return ScadaSettings
 
     @classmethod
-    def prime_actor_type(cls) -> type[Parentless]:
-        return Parentless
+    def prime_actor_type(cls) -> type[SecondaryScada]:
+        return SecondaryScada
 
     @classmethod
     def actors_module(cls) -> ModuleType:
@@ -94,8 +94,8 @@ class Scada2App(App, ScadaAppInterface):
         return typing.cast(ScadaSettings, super().settings)
 
     @property
-    def prime_actor(self) -> Parentless:
-        return typing.cast(Parentless, super().prime_actor)
+    def prime_actor(self) -> SecondaryScada:
+        return typing.cast(SecondaryScada, super().prime_actor)
 
     @property
     def scada(self) -> ScadaInterface:

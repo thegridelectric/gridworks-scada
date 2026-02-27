@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from gwsproto.data_classes.house_0_names import H0N
 from gwproactor.config import MQTTClient
 from pydantic_settings import SettingsConfigDict
-from gwsproto.enums import HpModel
+from gwsproto.enums import HpModel, SystemMode, SeasonalStorageMode
 
 # gridworks-scada/tests/config/hardware-layout.json
 DEFAULT_TEST_LAYOUT = (
@@ -61,9 +61,16 @@ class ScadaSettings(AppSettings):
     dd_delta_t: float = 20
     is_simulated: bool = False
     max_ewt_f: int = 170
+    cop_intercept: float = 1.02
+    cop_oat_coeff: float = 0.0257
+    cop_lwt_coeff: float = 0
+    cop_min: float = 1.4
+    cop_min_oat_f: float = 15
+    short_cycle_buffer: bool = False
     load_overestimation_percent: int = 0
     oil_boiler_backup: bool = True
-    monitor_only: bool = False
+    system_mode: SystemMode = SystemMode.Heating
+    seasonal_storage_mode: SeasonalStorageMode = SeasonalStorageMode.AllTanks
     whitewire_threshold_watts: float = 20 # TODO: move to layout
     hp_model: HpModel = HpModel.SamsungFiveTonneHydroKit # TODO: move to layout
     model_config = SettingsConfigDict(env_prefix="SCADA_", extra="ignore")

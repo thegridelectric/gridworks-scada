@@ -104,11 +104,11 @@ async def test_scada_periodic_report_delivery(request: pytest.FixtureRequest):
         msg_type = ReportEvent.model_fields["TypeName"].default
         # Note: for sanity get the *link* stats, not the global stats.
         # the globals stats *might* work in this case.
-        atn_received_counts = h.parent_to_child_stats.num_received_by_type
-        initial_count = atn_received_counts[msg_type]
+        ltn_received_counts = h.parent_to_child_stats.num_received_by_type
+        initial_count = ltn_received_counts[msg_type]
         await h.await_for(
-            lambda: atn_received_counts[msg_type] > initial_count,
-            f"ERROR waiting for ATN to receive > {initial_count} reports",
+            lambda: ltn_received_counts[msg_type] > initial_count,
+            f"ERROR waiting for LTN to receive > {initial_count} reports",
         )
         # print(h.summary_str())
 
@@ -122,18 +122,18 @@ async def test_scada_periodic_snapshot_delivery(request: pytest.FixtureRequest):
         request=request,
     ) as h:
         msg_type = SnapshotSpaceheat.model_fields["TypeName"].default
-        atn_received_counts = h.parent_to_child_stats.num_received_by_type
-        initial_count = atn_received_counts[msg_type]
+        ltn_received_counts = h.parent_to_child_stats.num_received_by_type
+        initial_count = ltn_received_counts[msg_type]
         await h.await_for(
-            lambda: atn_received_counts[msg_type] > initial_count,
-            f"ERROR waiting for ATN to receive > {initial_count} snapshots"
+            lambda: ltn_received_counts[msg_type] > initial_count,
+            f"ERROR waiting for LTN to receive > {initial_count} snapshots"
         )
 
 
 
 @pytest.mark.asyncio
 async def test_scada_snaphot_request_delivery(request: pytest.FixtureRequest):
-    """Verify scada sends snapshot upon request from Atn"""
+    """Verify scada sends snapshot upon request from Ltn"""
     async with ScadaLiveTest(
             start_all=True,
             child_app_settings=ScadaSettings(seconds_per_snapshot=100000000),
@@ -141,13 +141,13 @@ async def test_scada_snaphot_request_delivery(request: pytest.FixtureRequest):
     ) as h:
         await h.await_quiescent_connections()
         h.child.delimit("Sending snapshot request", log_level=logging.WARNING)
-        atn_receive_counts = h.parent_to_child_stats.num_received_by_type
+        ltn_receive_counts = h.parent_to_child_stats.num_received_by_type
         snap_type = SnapshotSpaceheat.model_fields["TypeName"].default
-        initital_snapshots = atn_receive_counts[snap_type]
+        initital_snapshots = ltn_receive_counts[snap_type]
         h.parent_app.prime_actor.snap()
         await h.await_for(
-            lambda: atn_receive_counts[snap_type] > initital_snapshots,
-            f"ERROR waiting for ATN to receice > {initital_snapshots} snapshots"
+            lambda: ltn_receive_counts[snap_type] > initital_snapshots,
+            f"ERROR waiting for LTN to receice > {initital_snapshots} snapshots"
         )
 
 # @pytest.mark.skip(reason="Skipping for now")
@@ -164,7 +164,7 @@ async def test_scada_snaphot_request_delivery(request: pytest.FixtureRequest):
 #         settings,
 #         layout=layout,
 #         scada=ScadaRecorder(H0N.primary_scada, settings, hardware_layout=layout),
-#         atn_settings=AsyncFragmentRunner.make_atn_settings()
+#         ltn_settings=AsyncFragmentRunner.make_ltn_settings()
 #     )
 #     actors.scada._last_status_second = int(time.time())
 #     actors.scada.suppress_report = True
@@ -172,10 +172,10 @@ async def test_scada_snaphot_request_delivery(request: pytest.FixtureRequest):
 #     class Fragment(ProtocolFragment):
 #
 #         def get_requested_proactors(self):
-#             return [self.runner.actors.scada, self.runner.actors.atn]
+#             return [self.runner.actors.scada, self.runner.actors.ltn]
 #
 #         async def async_run(self):
-#             atn = self.runner.actors.atn
+#             ltn = self.runner.actors.ltn
 #             scada = self.runner.actors.scada
 #             link_stats = scada.stats.links["gridworks"]
 #             meter = self.runner.actors.meter
@@ -198,7 +198,7 @@ async def test_scada_snaphot_request_delivery(request: pytest.FixtureRequest):
 #                 "ERROR waiting link active",
 #                 err_str_f=scada.summary_str
 #             )
-#             assert scada.scada_atn_fast_dispatch_contract_is_alive
+#             assert scada.scada_ltn_fast_dispatch_contract_is_alive
 #
 #             # Provoke a message by increasing the power of hp-odu
 #             hp_odu = scada._data.hardware_layout.node(H0N.hp_odu)
@@ -224,26 +224,26 @@ async def test_scada_snaphot_request_delivery(request: pytest.FixtureRequest):
 #             # Cause scada to send a report (and snapshot) now
 #             scada.suppress_report = False
 #
-#             # Verify Atn got status and snapshot
+#             # Verify Ltn got status and snapshot
 #             await await_for(
-#                 lambda: atn.stats.num_received_by_type[ReportEvent.model_fields["TypeName"].default] == 1,
+#                 lambda: ltn.stats.num_received_by_type[ReportEvent.model_fields["TypeName"].default] == 1,
 #                 5,
-#                 "Atn wait for status message",
-#                 err_str_f=atn.summary_str
+#                 "Ltn wait for status message",
+#                 err_str_f=ltn.summary_str
 #             )
 #             # await await_for(
-#             #     lambda: atn.stats.num_received_by_type[SnapshotSpaceheat.model_fields["TypeName"].default] == 1,
+#             #     lambda: ltn.stats.num_received_by_type[SnapshotSpaceheat.model_fields["TypeName"].default] == 1,
 #             #     5,
-#             #     "Atn wait for snapshot message",
-#             #     err_str_f=atn.summary_str
+#             #     "Ltn wait for snapshot message",
+#             #     err_str_f=ltn.summary_str
 #             # )
 #
 #             # Verify contents of status and snapshot are as expected
-#             report = atn.data.latest_report
+#             report = ltn.data.latest_report
 #             assert isinstance(report, Report)
 #             print(report.ChannelReadingList)
 #             assert len(report.ChannelReadingList) == NUM_POWER_CHANNELS
-#             # snapshot = atn.data.latest_snapshot
+#             # snapshot = ltn.data.latest_snapshot
 #             # assert isinstance(snapshot, SnapshotSpaceheat)
 #
 #             # I don't understand why this is 0
@@ -256,12 +256,12 @@ async def test_scada_snaphot_request_delivery(request: pytest.FixtureRequest):
 #             for actor in [meter]:
 #                 await actor.join()
 #             # Wait for scada to send at least one more status.
-#             reports_received = atn.stats.total_received(ReportEvent.model_fields["TypeName"].default)
+#             reports_received = ltn.stats.total_received(ReportEvent.model_fields["TypeName"].default)
 #             await await_for(
-#                 lambda: atn.stats.total_received(ReportEvent.model_fields["TypeName"].default) > reports_received,
+#                 lambda: ltn.stats.total_received(ReportEvent.model_fields["TypeName"].default) > reports_received,
 #                 5,
-#                 "Atn wait for status message 2",
-#                 err_str_f=atn.summary_str
+#                 "Ltn wait for status message 2",
+#                 err_str_f=ltn.summary_str
 #             )
 #
 #             # Verify scada has cleared its state

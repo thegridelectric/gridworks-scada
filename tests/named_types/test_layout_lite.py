@@ -8,6 +8,9 @@ def test_layout_lite_generated() -> None:
         "MessageId": "1302c0f8-1983-43b2-90d2-61678d731db3",
         "Strategy": "House0",
         "ZoneList": ["Down", "Up"],
+        "SystemMode": "Heating",
+        "SeasonalStorageMode": "AllTanks",
+        "BufferShortCycling": False,
         "CriticalZoneList": ["Down"],
         "TotalStoreTanks": 3,
         "Ha1Params": {
@@ -22,17 +25,22 @@ def test_layout_lite_generated() -> None:
             "HpMaxKwTh": 6,
             "MaxEwtF": 170,
             "LoadOverestimationPercent": 10,
+            "CopIntercept": 1.02,
+            "CopOatCoeff": 0.0257,
+            "CopLwtCoeff": 0,
+            "CopMin": 1.4,
+            "CopMinOatF": 15,
             "TypeName": "ha1.params",
             "Version": "004",
         },
         "ShNodes": [
             {
-                "ActorClass": "Scada",
+                "ActorClass": "PrimaryScada",
                 "DisplayName": "Keene Beech Scada",
                 "Name": "s",
                 "ShNodeId": "da9a0427-d6c0-44c0-b51c-492c1e580dc5",
                 "TypeName": "spaceheat.node.gt",
-                "Version": "200",
+                "Version": "300",
             },
             {
                 "ActorClass": "PowerMeter",
@@ -42,7 +50,7 @@ def test_layout_lite_generated() -> None:
                 "Name": "power-meter",
                 "ShNodeId": "6c0563b7-5171-4b1c-bba3-de156bea4b95",
                 "TypeName": "spaceheat.node.gt",
-                "Version": "200",
+                "Version": "300",
             },
             {
                 "ActorClass": "NoActor",
@@ -52,7 +60,7 @@ def test_layout_lite_generated() -> None:
                 "NameplatePowerW": 4000,
                 "ShNodeId": "07b8ca98-12c4-4510-8d0f-14fda2331215",
                 "TypeName": "spaceheat.node.gt",
-                "Version": "200",
+                "Version": "300",
             },
         ],
         "DerivedChannels": [
@@ -262,7 +270,7 @@ def test_layout_lite_generated() -> None:
             "Version": "002",
         },
         "TypeName": "layout.lite",
-        "Version": "007",
+        "Version": "010",
     }
 
     d2 = LayoutLite.model_validate(d).model_dump(exclude_none=True)

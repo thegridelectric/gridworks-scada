@@ -1,10 +1,10 @@
 from enum import auto
 from typing import List
 
-from gw.enums import GwStrEnum
+from gwsproto.enums.gw_str_enum import AslEnum
 
 
-class TopEvent(GwStrEnum):
+class TopEvent(AslEnum):
     """
     
     Values:

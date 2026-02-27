@@ -1,9 +1,9 @@
 from enum import auto
 
-from gw.enums import GwStrEnum
+from gwsproto.enums.gw_str_enum import AslEnum
 
 
-class Unit(GwStrEnum):
+class Unit(AslEnum):
     """
     Specifies the physical unit of sensed data reported by SCADA
     Values:

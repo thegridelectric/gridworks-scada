@@ -17,7 +17,7 @@ from gwproactor.message import PatInternalWatchdogMessage
 
 from actors.sh_node_actor import ShNodeActor
 from gwsproto.conversions.temperature import convert_temp_to_f
-from gwsproto.enums import HomeAloneStrategy
+from gwsproto.enums import SystemMode, SeasonalStorageMode
 from gwsproto.data_classes.house_0_names import H0N, H0CN
 from gwsproto.named_types import (
     Ha1Params, HeatingForecast, ScadaParams,
@@ -214,7 +214,7 @@ class DerivedGenerator(ShNodeActor):
         - Assumes stratified storage
         - Publishes usable energy as a SCADA reading
         """
-        if self.layout.ha_strategy == HomeAloneStrategy.Summer:
+        if self.settings.system_mode != SystemMode.Heating:
             return
 
         if self.heating_forecast is None:
@@ -224,7 +224,7 @@ class DerivedGenerator(ShNodeActor):
         latest_temps_f = self.latest_temps_f.copy()
 
         ordered_tank_layers = []
-        if self.layout.ha_strategy == HomeAloneStrategy.WinterTou:
+        if self.settings.seasonal_storage_mode== SeasonalStorageMode.AllTanks:
             for tank_idx in sorted(self.h0cn.tank):
                 tank = self.h0cn.tank[tank_idx]
                 ordered_tank_layers.extend([
@@ -232,14 +232,14 @@ class DerivedGenerator(ShNodeActor):
                     tank.depth2,
                     tank.depth3,
                 ])
-        elif self.layout.ha_strategy == HomeAloneStrategy.ShoulderTou: 
+        elif self.settings.seasonal_storage_mode== SeasonalStorageMode.BufferOnly: 
             ordered_tank_layers = [
                     H0CN.buffer.depth1,
                     H0CN.buffer.depth2,
                     H0CN.buffer.depth3,
                 ]
         else:
-            raise ValueError(f"Unsupported HA strategy {self.layout.ha_strategy}")
+            raise ValueError(f"Unsupported SeasonalStorageMode {self.settings.seasonal_storage_mode}")
 
         simulated_layers_f = [
             latest_temps_f[ch]
@@ -301,7 +301,7 @@ class DerivedGenerator(ShNodeActor):
         """
         Send an info Glitch if we think its time to change strategy
         """
-        if self.layout.ha_strategy != HomeAloneStrategy.ShoulderTou:
+        if self.settings.seasonal_storage_mode != SeasonalStorageMode.BufferOnly:
             return
         if time.time() - self.last_evaluated_strategy > 3600:
             self.last_evaluated_strategy = time.time()
@@ -357,12 +357,12 @@ class DerivedGenerator(ShNodeActor):
              if 16<=t.hour<=19]
             )
         # Find the maximum storage
-        if self.layout.ha_strategy == HomeAloneStrategy.WinterTou:
+        if self.settings.seasonal_storage_mode == SeasonalStorageMode.AllTanks:
             num_layers = len(self.h0cn.tank) * self.NUM_LAYERS_PER_TANK
-        elif self.layout.ha_strategy == HomeAloneStrategy.ShoulderTou:
+        elif self.settings.seasonal_storage_mode == SeasonalStorageMode.BufferOnly:
             num_layers = self.NUM_LAYERS_PER_TANK # just the buffer
         else:
-            raise Exception(f"not prepared for home alone strategy {self.layout.ha_strategy}")
+            raise Exception(f"not prepared for seasonal storage mode {self.settings.seasonal_storage_mode}")
 
         simulated_layers = [self.params.MaxEwtF + 10] * num_layers
         max_storage_kwh = 0
@@ -536,7 +536,7 @@ class DerivedGenerator(ShNodeActor):
         forecasts['required_swt_delta_T'] = [round(self.delta_T(x),2) for x in forecasts['required_swt']]
 
         # Send cropped 24-hour heating forecast to aa & ha for their own use
-        # and send both the 48-hour weather forecast and 24-hr heating forecast to atn for record-keeping
+        # and send both the 48-hour weather forecast and 24-hr heating forecast to Ltn for record-keeping
         hf = HeatingForecast(
             FromGNodeAlias=self.layout.scada_g_node_alias,
             Time = forecasts['time'][:24],
@@ -549,8 +549,8 @@ class DerivedGenerator(ShNodeActor):
         # Ensure energy state is up-to-date before publishing forecast;
         # downstream actors treat the forecast as a trigger, not as state.
         self.data.heating_forecast = hf
-        self._send_to(self.atn, hf)
-        self._send_to(self.atn, self.weather_forecast)
+        self._send_to(self.ltn, hf)
+        self._send_to(self.ltn, self.weather_forecast)
 
         if not self.first_required_energy_update_done:
             self.log("Updating usable and required energy")

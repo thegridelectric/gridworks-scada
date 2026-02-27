@@ -13,7 +13,6 @@ from gwsproto.data_classes.components.hubitat_component import HubitatComponent
 from gwsproto.data_classes.components.hubitat_poller_component import (
     HubitatPollerComponent,
 )
-from gwsproto.data_classes.components.hubitat_tank_component import HubitatTankComponent
 from gwsproto.data_classes.components.i2c_multichannel_dt_relay_component import (
     I2cMultichannelDtRelayComponent,
 )
@@ -41,7 +40,6 @@ __all__ = [
     "FibaroSmartImplantComponent",
     "HubitatComponent",
     "HubitatPollerComponent",
-    "HubitatTankComponent",
     "I2cMultichannelDtRelayComponent",
     "PicoBtuMeterComponent",
     "PicoFlowModuleComponent",

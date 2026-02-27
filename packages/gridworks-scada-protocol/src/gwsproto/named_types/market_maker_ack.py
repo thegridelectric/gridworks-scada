@@ -1,7 +1,7 @@
 from typing import Literal
 from pydantic import BaseModel, field_validator, model_validator
 from typing_extensions import Self
-from gw.enums import MarketTypeName
+from gwsproto.enums import MarketTypeName
 from gwsproto.property_format import UUID4Str, MarketName,MarketSlotName, LeftRightDotStr, UTCMilliseconds
 
 class MarketMakerAck(BaseModel):
@@ -85,20 +85,20 @@ class MarketMakerAck(BaseModel):
                     f"StartUnixS mismatch: {slot_start_s} vs {self.StartUnixS}"
                 )
 
-            # Check that the StartUnixS aligns with market duration
-            from gw.data_classes.market_type import MarketType
-            market_obj = MarketType.by_id.get(self.MarketType)
-            if market_obj:
-                if self.DurationMinutes != market_obj.duration_minutes:
-                    raise ValueError(
-                        f"DurationMinutes {self.DurationMinutes} does not match "
-                        f"market type {market_obj.name} duration {market_obj.duration_minutes}"
-                    )
-                if slot_start_s % (market_obj.duration_minutes * 60) != 0:
-                    raise ValueError(
-                        f"StartUnixS {slot_start_s} not aligned with "
-                        f"market duration {market_obj.duration_minutes} minutes"
-                    )
+            # # Check that the StartUnixS aligns with market duration
+            # from gwsproto.data_classes.market_type import MarketType
+            # market_obj = MarketType.by_id.get(self.MarketType)
+            # if market_obj:
+            #     if self.DurationMinutes != market_obj.duration_minutes:
+            #         raise ValueError(
+            #             f"DurationMinutes {self.DurationMinutes} does not match "
+            #             f"market type {market_obj.name} duration {market_obj.duration_minutes}"
+            #         )
+            #     if slot_start_s % (market_obj.duration_minutes * 60) != 0:
+            #         raise ValueError(
+            #             f"StartUnixS {slot_start_s} not aligned with "
+            #             f"market duration {market_obj.duration_minutes} minutes"
+            #         )
 
         except ValueError as e:
             raise ValueError(f"MarketMakerAck consistency check failed: {str(e)}")

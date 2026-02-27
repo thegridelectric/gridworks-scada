@@ -156,7 +156,7 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
                 Details=outcome.comments_to_details(),
             )
             message = Message(
-                header=Header(Src=self.name, Dst=H0N.atn,  MessageType=payload.TypeName),
+                header=Header(Src=self.name, Dst=H0N.ltn,  MessageType=payload.TypeName),
                 Payload=payload,
             )
             # TODO: add analog temp logging
@@ -199,7 +199,7 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
                 Details=outcome.comments_to_details(),
             )
             message = Message(
-                header=Header(Src=self.name, Dst=H0N.atn, MessageType=payload.TypeName),
+                header=Header(Src=self.name, Dst=H0N.ltn, MessageType=payload.TypeName),
                 Payload=payload,
             )
             # TODO: add analog temp logging

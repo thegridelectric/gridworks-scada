@@ -7,11 +7,11 @@ from gwsproto.enums import MainAutoState
 
 def test_main_auto_state() -> None:
     assert set(MainAutoState.values()) == {
-        "HomeAlone",
-        "Atn",
+        "LocalControl",
+        "LeafTransactiveNode",
         "Dormant",
     }
 
-    assert MainAutoState.default() == MainAutoState.HomeAlone
-    assert MainAutoState.enum_name() == "main.auto.state"
+    assert MainAutoState.default() == MainAutoState.LocalControl
+    assert MainAutoState.enum_name() == "gw1.main.auto.state"
     assert MainAutoState.enum_version() == "000"

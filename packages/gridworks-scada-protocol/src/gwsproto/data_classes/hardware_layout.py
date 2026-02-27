@@ -7,7 +7,7 @@ from functools import cached_property
 from pathlib import Path
 from typing import Any, Optional, TypeVar
 
-from gw.errors import DcError
+from gwsproto.errors import DcError
 from gwsproto.decoders import (
     CacDecoder,
     ComponentDecoder,
@@ -820,26 +820,26 @@ class HardwareLayout:
         return next((n for n in self.nodes.values() if n.handle == handle), None)
 
     @cached_property
-    def atn_g_node_alias(self) -> str:
-        return self.layout["MyAtomicTNodeGNode"]["Alias"]  # type: ignore[no-any-return]
+    def ltn_g_node_alias(self) -> str:
+        return self.layout["MyLeafTransactiveNodeGNode"]["Alias"]  # type: ignore[no-any-return]
 
     @cached_property
-    def atn_g_node_instance_id(self) -> str:
-        return self.layout["MyAtomicTNodeGNode"]["GNodeId"]  # type: ignore[no-any-return]
+    def ltn_g_node_instance_id(self) -> str:
+        return self.layout["MyLeafTransactiveNodeGNode"]["GNodeId"]  # type: ignore[no-any-return]
 
     @cached_property
-    def atn_g_node_id(self) -> str:
-        return self.layout["MyAtomicTNodeGNode"]["GNodeId"]  # type: ignore[no-any-return]
+    def ltn_g_node_id(self) -> str:
+        return self.layout["MyLeafTransactiveNodeGNode"]["GNodeId"]  # type: ignore[no-any-return]
 
     @cached_property
     def terminal_asset_g_node_alias(self) -> str:
-        my_atn_as_dict = self.layout["MyTerminalAssetGNode"]
-        return my_atn_as_dict["Alias"]  # type: ignore[no-any-return]
+        d = self.layout["MyTerminalAssetGNode"]
+        return d["Alias"]  # type: ignore[no-any-return]
 
     @cached_property
     def terminal_asset_g_node_id(self) -> str:
-        my_atn_as_dict = self.layout["MyTerminalAssetGNode"]
-        return my_atn_as_dict["GNodeId"]  # type: ignore[no-any-return]
+        d = self.layout["MyTerminalAssetGNode"]
+        return d["GNodeId"]  # type: ignore[no-any-return]
 
     @cached_property
     def scada_g_node_alias(self) -> str:

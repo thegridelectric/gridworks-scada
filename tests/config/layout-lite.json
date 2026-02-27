@@ -67,11 +67,11 @@
             "Version":"200"
          },
          {
-            "Name":"a",
+            "Name":"ltn",
             "ActorHierarchyName":null,
             "Handle":null,
             "ActorClass":"NoActor",
-            "DisplayName":"Atn",
+            "DisplayName":"Leaf Transactive Node",
             "ComponentId":null,
             "NameplatePowerW":null,
             "InPowerMetering":null,
@@ -80,10 +80,10 @@
             "Version":"200"
          },
          {
-            "Name":"aa",
-            "ActorHierarchyName":"s.aa",
+            "Name":"la",
+            "ActorHierarchyName":"s.la",
             "Handle":"a.aa",
-            "ActorClass":"AtomicAlly",
+            "ActorClass":"LeafAlly",
             "DisplayName":"Atomic Ally",
             "ComponentId":null,
             "NameplatePowerW":null,
@@ -165,11 +165,11 @@
             }
          },
          {
-            "Name":"h",
-            "ActorHierarchyName":"s.h",
-            "Handle":"auto.h",
-            "ActorClass":"HomeAlone",
-            "DisplayName":"HomeAlone",
+            "Name":"lc",
+            "ActorHierarchyName":"s.lc",
+            "Handle":"auto.lc",
+            "ActorClass":"LocalControl",
+            "DisplayName":"LocalControl",
             "ComponentId":null,
             "NameplatePowerW":null,
             "InPowerMetering":null,
@@ -181,9 +181,9 @@
          {
             "Name":"n",
             "ActorHierarchyName":null,
-            "Handle":"auto.h.n",
+            "Handle":"auto.lc.n",
             "ActorClass":"NoActor",
-            "DisplayName":"HomeAlone Normal",
+            "DisplayName":"LocalControl Normal",
             "ComponentId":null,
             "NameplatePowerW":null,
             "InPowerMetering":null,
@@ -194,9 +194,9 @@
          {
             "Name":"backup",
             "ActorHierarchyName":null,
-            "Handle":"auto.h.backup",
+            "Handle":"auto.lc.backup",
             "ActorClass":"NoActor",
-            "DisplayName":"HomeAlone Backup",
+            "DisplayName":"LocalControl Backup",
             "ComponentId":null,
             "NameplatePowerW":null,
             "InPowerMetering":null,
@@ -207,9 +207,9 @@
          {
             "Name":"scada-blind",
             "ActorHierarchyName":null,
-            "Handle":"auto.h.scada-blind",
+            "Handle":"auto.lc.scada-blind",
             "ActorClass":"NoActor",
-            "DisplayName":"HomeAlone Scada Blind",
+            "DisplayName":"LocalControl Scada Blind",
             "ComponentId":null,
             "NameplatePowerW":null,
             "InPowerMetering":null,
@@ -220,7 +220,7 @@
          {
             "Name":"hp-boss",
             "ActorHierarchyName":"s.hp-boss",
-            "Handle":"auto.h.n.hp-boss",
+            "Handle":"auto.lc.n.hp-boss",
             "ActorClass":"HpBoss",
             "DisplayName":"HeatpumpBoss",
             "ComponentId":null,
@@ -363,7 +363,7 @@
          {
             "Name":"relay2",
             "ActorHierarchyName":"s.relay2",
-            "Handle":"auto.h.n.relay2",
+            "Handle":"auto.lc.n.relay2",
             "ActorClass":"Relay",
             "DisplayName":"TStat Common Relay",
             "ComponentId":"25f344ee-39ea-4904-bff9-54f2022337af",
@@ -376,7 +376,7 @@
          {
             "Name":"relay3",
             "ActorHierarchyName":"s.relay3",
-            "Handle":"auto.h.n.relay3",
+            "Handle":"auto.lc.n.relay3",
             "ActorClass":"Relay",
             "DisplayName":"Store Charge/Discharge Relay",
             "ComponentId":"25f344ee-39ea-4904-bff9-54f2022337af",
@@ -389,7 +389,7 @@
          {
             "Name":"relay5",
             "ActorHierarchyName":"s.relay5",
-            "Handle":"auto.h.n.relay5",
+            "Handle":"auto.lc.n.relay5",
             "ActorClass":"Relay",
             "DisplayName":"Hp Failsafe Relay",
             "ComponentId":"25f344ee-39ea-4904-bff9-54f2022337af",
@@ -402,7 +402,7 @@
          {
             "Name":"relay6",
             "ActorHierarchyName":"s.relay6",
-            "Handle":"auto.h.n.relay6",
+            "Handle":"auto.lc.n.relay6",
             "ActorClass":"Relay",
             "DisplayName":"Hp Scada Ops Relay",
             "ComponentId":"25f344ee-39ea-4904-bff9-54f2022337af",
@@ -415,7 +415,7 @@
          {
             "Name":"relay7",
             "ActorHierarchyName":"s.relay7",
-            "Handle":"auto.h.n.relay7",
+            "Handle":"auto.lc.n.relay7",
             "ActorClass":"Relay",
             "DisplayName":"Thermistor Common Relay",
             "ComponentId":"25f344ee-39ea-4904-bff9-54f2022337af",
@@ -428,7 +428,7 @@
          {
             "Name":"relay8",
             "ActorHierarchyName":"s.relay8",
-            "Handle":"auto.h.n.relay8",
+            "Handle":"auto.lc.n.relay8",
             "ActorClass":"Relay",
             "DisplayName":"Aquastat Ctrl Relay",
             "ComponentId":"25f344ee-39ea-4904-bff9-54f2022337af",
@@ -441,7 +441,7 @@
          {
             "Name":"relay9",
             "ActorHierarchyName":"s.relay9",
-            "Handle":"auto.h.n.relay9",
+            "Handle":"auto.lc.n.relay9",
             "ActorClass":"Relay",
             "DisplayName":"Store Pump Failsafe",
             "ComponentId":"25f344ee-39ea-4904-bff9-54f2022337af",
@@ -454,7 +454,7 @@
          {
             "Name":"relay12",
             "ActorHierarchyName":"s.relay12",
-            "Handle":"auto.h.n.relay12",
+            "Handle":"auto.lc.n.relay12",
             "ActorClass":"Relay",
             "DisplayName":"Primary Pump Failsafe",
             "ComponentId":"25f344ee-39ea-4904-bff9-54f2022337af",
@@ -467,7 +467,7 @@
          {
             "Name":"relay11",
             "ActorHierarchyName":"s.relay11",
-            "Handle":"auto.h.n.relay11",
+            "Handle":"auto.lc.n.relay11",
             "ActorClass":"Relay",
             "DisplayName":"Primary Pump SCADA Ops",
             "ComponentId":"25f344ee-39ea-4904-bff9-54f2022337af",
@@ -480,7 +480,7 @@
          {
             "Name":"relay14",
             "ActorHierarchyName":"s.relay14",
-            "Handle":"auto.h.n.relay14",
+            "Handle":"auto.lc.n.relay14",
             "ActorClass":"Relay",
             "DisplayName":"Hp Loop Valve Active/Dormant Relay",
             "ComponentId":"25f344ee-39ea-4904-bff9-54f2022337af",
@@ -493,7 +493,7 @@
          {
             "Name":"relay15",
             "ActorHierarchyName":"s.relay15",
-            "Handle":"auto.h.n.relay15",
+            "Handle":"auto.lc.n.relay15",
             "ActorClass":"Relay",
             "DisplayName":"Hp Loop Valve SendMore/SendLess Relay",
             "ComponentId":"25f344ee-39ea-4904-bff9-54f2022337af",
@@ -506,7 +506,7 @@
          {
             "Name":"relay17",
             "ActorHierarchyName":"s.relay17",
-            "Handle":"auto.h.n.relay17",
+            "Handle":"auto.lc.n.relay17",
             "ActorClass":"Relay",
             "DisplayName":"Down Zone 1 Failsf",
             "ComponentId":"25f344ee-39ea-4904-bff9-54f2022337af",
@@ -519,7 +519,7 @@
          {
             "Name":"relay18",
             "ActorHierarchyName":"s.relay18",
-            "Handle":"auto.h.n.relay18",
+            "Handle":"auto.lc.n.relay18",
             "ActorClass":"Relay",
             "DisplayName":"Down Zone Scada Ops",
             "ComponentId":"25f344ee-39ea-4904-bff9-54f2022337af",
@@ -532,7 +532,7 @@
          {
             "Name":"relay19",
             "ActorHierarchyName":"s.relay19",
-            "Handle":"auto.h.n.relay19",
+            "Handle":"auto.lc.n.relay19",
             "ActorClass":"Relay",
             "DisplayName":"Up Zone 2 Failsf",
             "ComponentId":"25f344ee-39ea-4904-bff9-54f2022337af",
@@ -545,7 +545,7 @@
          {
             "Name":"relay20",
             "ActorHierarchyName":"s.relay20",
-            "Handle":"auto.h.n.relay20",
+            "Handle":"auto.lc.n.relay20",
             "ActorClass":"Relay",
             "DisplayName":"Up Zone Scada Ops",
             "ComponentId":"25f344ee-39ea-4904-bff9-54f2022337af",
@@ -559,7 +559,7 @@
             "Name":"zero-ten-multiplexer",
             "ActorHierarchyName":"s.zero-ten-multiplexer",
             "Handle":null,
-            "ActorClass":"I2cDfrMultiplexer",
+            "ActorClass":"I2cZeroTenMultiplexer",
             "DisplayName":"I2c Zero Ten Out Multiplexer",
             "ComponentId":"c65dd292-3487-4d90-97bb-4112882736ed",
             "NameplatePowerW":null,
@@ -571,7 +571,7 @@
          {
             "Name":"dist-010v",
             "ActorHierarchyName":"s.dist-010v",
-            "Handle":"auto.h.n.dist-010v",
+            "Handle":"auto.lc.n.dist-010v",
             "ActorClass":"ZeroTenOutputer",
             "DisplayName":"Dist DFR",
             "ComponentId":null,
@@ -584,7 +584,7 @@
          {
             "Name":"primary-010v",
             "ActorHierarchyName":"s.primary-010v",
-            "Handle":"auto.h.n.primary-010v",
+            "Handle":"auto.lc.n.primary-010v",
             "ActorClass":"ZeroTenOutputer",
             "DisplayName":"Primary DFR",
             "ComponentId":null,
@@ -597,7 +597,7 @@
          {
             "Name":"store-010v",
             "ActorHierarchyName":"s.store-010v",
-            "Handle":"auto.h.n.store-010v",
+            "Handle":"auto.lc.n.store-010v",
             "ActorClass":"ZeroTenOutputer",
             "DisplayName":"Store DFR",
             "ComponentId":null,

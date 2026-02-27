@@ -5,7 +5,8 @@
 	"ruff.fixAll": true,
 	"python.testing.pytestEnabled": true,    
     "python.analysis.extraPaths": [
-        "gw_spaceheat"
+        "gw_spaceheat",
+        "gridworks-scada-protocol"
     ],
     // Enable this if you want Ruff to fix on save:
     // "editor.codeActionsOnSave": {

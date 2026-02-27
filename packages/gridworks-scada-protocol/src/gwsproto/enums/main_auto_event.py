@@ -1,28 +1,15 @@
 from enum import auto
 from typing import List
 
-from gw.enums import GwStrEnum
+from gwsproto.enums.gw_str_enum import AslEnum
 
 
-class MainAutoEvent(GwStrEnum):
-    """
-    
-    Values:
-      - DispatchContractLive # HomeAlone -> Atn
-      - ContractGracePeriodEnds # Atn -> HomeAlone
-      - AtnReleasesControl # Atn -> HomeAlone
-      - AllyGivesUp # Atn -> HomeAlone
-      - AutoGoesDormant # Atn or HomeAlone -> Dormant
-      - AutoWakesUp # Dormant -> HomeAlone
-
-    For more information:
-      - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#mainautoevent)
-    """
+class MainAutoEvent(AslEnum):
+    """ASL: https://schemas.electricity.works/enums/gw1.main.auto.event/000"""
 
     DispatchContractLive = auto()
     ContractGracePeriodEnds = auto()
-    AtnReleasesControl = auto()
+    LtnReleasesControl = auto()
     AllyGivesUp = auto()
     AutoGoesDormant = auto()
     AutoWakesUp = auto()
@@ -37,8 +24,8 @@ class MainAutoEvent(GwStrEnum):
 
     @classmethod
     def enum_name(cls) -> str:
-        return "main.auto.event"
+        return "gw1.main.auto.event"
 
     @classmethod
     def enum_version(cls) -> str:
-        return "001"
+        return "000"
