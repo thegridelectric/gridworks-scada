@@ -203,7 +203,6 @@ class AllTanksTouLocalControl(LocalControlTouBase):
                     if self.is_storage_ready():
                         self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakBufferFullStorageReady)
                     else:
-
                         if self.usable_kwh < self.required_kwh:
                             self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakBufferFullStorageNotReady)
                         else:
@@ -225,17 +224,16 @@ class AllTanksTouLocalControl(LocalControlTouBase):
                     if self.is_buffer_empty():
                         self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakBufferEmpty)
                     elif not self.is_storage_ready():
-
                         if self.storage_declared_ready:
                             if self.full_storage_energy is None:
                                 if self.usable_kwh > 0.9 * self.required_kwh:
                                     self.log("The storage was already declared ready during this off-peak period")
-                                else:
+                                elif self.required_kwh - self.usable_kwh > 3:
                                     self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakStorageNotReady)
                             else:
                                 if self.usable_kwh > 0.9 * self.full_storage_energy:
                                     self.log("The storage was already declared full during this off-peak period")
-                                else:
+                                elif self.required_kwh - self.usable_kwh > 3:
                                     self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakStorageNotReady)
                         else:
                             self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakStorageNotReady)
