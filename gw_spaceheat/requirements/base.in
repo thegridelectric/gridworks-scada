@@ -40,3 +40,6 @@ click<8.3
 trogon
 textual>=6.1.0
 textual-dev
+
+# web interface
+aiohttp-cors
