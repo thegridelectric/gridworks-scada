@@ -30,9 +30,6 @@ from scada_app_interface import ScadaAppInterface
 
 class DerivedGenerator(ShNodeActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
-    GALLONS_PER_TANK = 119
-    WATER_SPECIFIC_HEAT_KJ_PER_KG_C = 4.187
-    GALLON_PER_LITER = 3.78541
 
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
@@ -277,9 +274,8 @@ class DerivedGenerator(ShNodeActor):
             # add this layer's delta energy
             usable_kwh += (
                 mass_kg_per_layer
-                * self.WATER_SPECIFIC_HEAT_KJ_PER_KG_C # kJoules needed to raise 1 liter 1 deg C
+                * self.WATER_SPECIFIC_HEAT_KWH_PER_KG_C # kWh needed to raise 1 liter 1 deg C
                 * delta_c
-                / 3600
             )
             # pop the layer
             simulated_layers_f = (
@@ -314,7 +310,8 @@ class DerivedGenerator(ShNodeActor):
                 simulated_layers = [sum(simulated_layers)/len(simulated_layers) for x in simulated_layers]
                 if round(self.rwt_f(simulated_layers[0])) == round(simulated_layers[0]):
                     break
-            max_buffer_usable_kwh += 120/3 * 3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt_f(simulated_layers[0]))*5/9
+            delta_t_celcius = (simulated_layers[0] - self.rwt_f(simulated_layers[0])) * 5/9
+            max_buffer_usable_kwh += self.LITERS_PER_LAYER * self.WATER_SPECIFIC_HEAT_KWH_PER_KG_C * delta_t_celcius
             simulated_layers = simulated_layers[1:] + [self.rwt_f(simulated_layers[0])]          
         self.log(f"Max buffer usable energy: {round(max_buffer_usable_kwh,1)} kWh")
         required_energy = self.data.latest_channel_values.get(H0CN.required_energy, 0)
@@ -372,11 +369,18 @@ class DerivedGenerator(ShNodeActor):
                 if round(self.rwt_f(simulated_layers[0])) == round(simulated_layers[0]):
                     break
 
-            max_storage_kwh += 120/3 * 3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt_f(simulated_layers[0]))*5/9
+            delta_t_celcius = (simulated_layers[0] - self.rwt_f(simulated_layers[0])) * 5/9
+            max_storage_kwh += self.LITERS_PER_LAYER * self.WATER_SPECIFIC_HEAT_KWH_PER_KG_C * delta_t_celcius
             simulated_layers = simulated_layers[1:] + [self.rwt_f(simulated_layers[0])]
         if (((time_now.weekday()<4 or time_now.weekday()==6) and time_now.hour>=20) or (time_now.weekday()<5 and time_now.hour<=6)):
             self.log('Preparing for a morning onpeak + afternoon onpeak')
-            afternoon_missing_kWh = afternoon_kWh - (4*self.params.HpMaxKwTh - midday_kWh) # TODO make the kW_th a function of COP and kW_el
+            weather_forecasts_times_tz = [datetime.fromtimestamp(x, tz=self.timezone) for x in self.weather_forecast.Time]
+            midday_oat = min([
+                oat for t, oat in zip(weather_forecasts_times_tz, self.weather_forecast.OatF)
+                if 12<=t.hour<=15
+            ])
+            midday_cop = self.params.CopMin if midday_oat<self.params.CopMinOatF else self.params.CopIntercept + self.params.CopOatCoeff*midday_oat
+            afternoon_missing_kWh = afternoon_kWh - (0.8*4*self.params.HpMaxKwEl*midday_cop - midday_kWh) # assume 80% of max power (defrosts, turn on)
             if afternoon_missing_kWh<0:
                 required = morning_kWh
             else:
