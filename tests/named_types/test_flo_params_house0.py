@@ -4,7 +4,7 @@ from gwsproto.named_types import FloParamsHouse0
 def test_flo_params_house0() -> None:
     d = {
     "TypeName": "flo.params.house0",
-    "Version": "004",
+    "Version": "006",
     "GNodeAlias": "hw1.isone.me.versant.keene.beech.scada",
     "FloParamsUid": "2a9b0f40-c8ac-493a-bf3f-8d3d00e8e54d",
     "TimezoneStr": "America/New_York",
