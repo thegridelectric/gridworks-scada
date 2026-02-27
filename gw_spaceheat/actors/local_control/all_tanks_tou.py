@@ -57,6 +57,7 @@ class AllTanksTouLocalControl(LocalControlTouBase):
         self.storage_declared_ready = False
         self.time_hp_turned_on = None
         self.full_storage_energy: Optional[float] = None
+        self.time_stopped_charging_store = None
         
         self.machine = Machine(
             model=self,
@@ -200,7 +201,10 @@ class AllTanksTouLocalControl(LocalControlTouBase):
                 if self.is_onpeak():
                     self.trigger_normal_event(LocalControlAllTanksEvent.OnPeakStart)
                 elif self.is_buffer_full():
-                    if self.is_storage_ready():
+                    if (
+                        self.is_storage_ready()
+                        or (self.time_stopped_charging_store is not None and time.time() - self.time_stopped_charging_store < 15*60)
+                    ):
                         self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakBufferFullStorageReady)
                     else:
                         if self.usable_kwh < self.required_kwh:
@@ -268,6 +272,10 @@ class AllTanksTouLocalControl(LocalControlTouBase):
             self.valved_to_charge_store(from_node=self.normal_node)
         else:
             self.valved_to_discharge_store(from_node=self.normal_node)
+        if previous_state=="HpOnStoreCharge" and self.state=="HpOnStoreOff":
+            self.time_stopped_charging_store = time.time()
+        else:
+            self.time_stopped_charging_store = None
 
     def is_storage_ready(self) -> bool:
         if self.usable_kwh >=self.required_kwh:
