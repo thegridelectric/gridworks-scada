@@ -292,7 +292,19 @@ def test_flo_params_house0() -> None:
     "MaxEwtF": 170,
     "PriceUnit": "USDPerMWh",
     "ParamsGeneratedS": 1762177726,
-    "ConstantDeltaT": 20
+    "ConstantDeltaT": 20,
+    "MaxHpKwhTh": 25,
+    "MaxLoadKwhTh": 20,
+    "RswtPenaltyDecay": 0.9,
+    "RswtPenaltyDecayMaxHour": 5,
+    "RswtPenaltyEnabled": True,
+    "RswtPenaltyExponentRate": 0.15,
+    "RswtPenaltyWeight": 0.3,
+    "StabilityPenaltyDecay": 0.75,
+    "StabilityPenaltyEnabled": True,
+    "StabilityPenaltyHorizonHours": 20,
+    "StabilityPenaltyThresholdKwh": 10.0,
+    "StabilityPenaltyWeight": 0.5
     }
 
     d2 = FloParamsHouse0.model_validate(d).model_dump(exclude_none=True)
