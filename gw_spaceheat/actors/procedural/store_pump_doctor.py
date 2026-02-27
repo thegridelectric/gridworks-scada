@@ -76,7 +76,7 @@ class StorePumpDoctor:
                 ),
             )
 
-            h.turn_off_store_pump()
+            h.turn_off_store_pump(command_node=h.command_node)
 
             # Set 0-10 to zero
             h._send_to(
@@ -94,7 +94,7 @@ class StorePumpDoctor:
 
             await h.await_with_watchdog(15)
 
-            h.turn_on_store_pump()
+            h.turn_on_store_pump(command_node=h.command_node)
 
             h.log("[StorePumpDoctor] Waiting for store flow")
             flow_detected = await self.wait_for_store_flow()
