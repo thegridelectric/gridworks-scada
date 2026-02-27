@@ -33,7 +33,7 @@ class AllTanksTouLocalControl(LocalControlTouBase):
             {"trigger": "OnPeakStart", "source": "HpOnStoreOff", "dest": "HpOffStoreOff"},
             # Starting at: HP on, Store charging ======== HP -> storage
             {"trigger": "OffPeakBufferEmpty", "source": "HpOnStoreCharge", "dest": "HpOnStoreOff"},
-            {"trigger": "OffPeakStorageReady", "source": "HpOnStoreCharge", "dest": "HpOffStoreOff"},
+            {"trigger": "OffPeakStorageReady", "source": "HpOnStoreCharge", "dest": "HpOnStoreOff"},
             {"trigger": "OnPeakStart", "source": "HpOnStoreCharge", "dest": "HpOffStoreOff"},
             # Starting at: HP off, Store off ============ idle
             {"trigger": "OnPeakBufferEmpty", "source": "HpOffStoreOff", "dest": "HpOffStoreDischarge"},
@@ -272,7 +272,6 @@ class AllTanksTouLocalControl(LocalControlTouBase):
             self.valved_to_discharge_store(from_node=self.normal_node)
 
     def is_storage_ready(self) -> bool:
-
         if self.usable_kwh >=self.required_kwh:
             self.log(f"Storage ready (usable {round(self.usable_kwh,1)} kWh >= required {round(self.required_kwh,1)} kWh)")
             self.storage_declared_ready = True
