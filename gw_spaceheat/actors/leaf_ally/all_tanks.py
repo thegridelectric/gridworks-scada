@@ -354,7 +354,7 @@ class AllTanksLeafAlly(ShNodeActor):
                 if self.hp_should_be_off():
                     if (
                         self.is_buffer_empty(all_tanks_leaf_ally=True)
-                        and not self.is_storage_colder_than_buffer()
+                        and not self.is_storage_colder_than_buffer(all_tanks_leaf_ally=True)
                     ):
                         self.trigger_event(LeafAllyAllTanksEvent.NoElecBufferEmpty)
                 else:
