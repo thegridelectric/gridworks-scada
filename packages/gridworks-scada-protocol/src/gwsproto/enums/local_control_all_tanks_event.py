@@ -18,6 +18,7 @@ class LocalControlAllTanksEvent(AslEnum):
     OffPeakStorageNotReady = auto()
     OnPeakStorageColderThanBuffer = auto()
     TemperaturesAvailable = auto()
+    DefrostDetected = auto()
     GoDormant = auto()
 
     @classmethod
