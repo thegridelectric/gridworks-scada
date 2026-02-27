@@ -50,7 +50,7 @@ from gwproto.messages import EventBase
 from gwproactor import QOS
 from gwproactor.config import LoggerLevels
 from gwproactor.logger import LoggerOrAdapter
-from gwproactor.message import DBGCommands, DBGPayload, MQTTReceiptPayload
+from gwproactor.message import DBGCommands, DBGPayload, MQTTReceiptPayload, PatInternalWatchdogMessage
 
 from gwsproto.conversions.temperature import convert_temp_to_f
 from gwsproto.data_classes.house_0_layout import House0Layout
@@ -98,6 +98,7 @@ class PriceForecast(BaseModel):
 class BidRunner(threading.Thread):
     def __init__(self, params: FloParamsHouse0,
                  settings: LtnSettings,
+                 io_loop_manager_name: str,
                  ltn_name: str, 
                  ltn_g_node_alias: str,
                  send_threadsafe: Callable[[Message], None],
@@ -108,6 +109,7 @@ class BidRunner(threading.Thread):
         self.logger = logger or print  # Fallback to print if no logger provided
         self.orig_flo_params = params
         self.settings = settings
+        self.io_loop_manager_name = io_loop_manager_name
         self.ltn_name = ltn_name
         self.ltn_alias = ltn_g_node_alias
         self.send_threadsafe = send_threadsafe
@@ -123,7 +125,7 @@ class BidRunner(threading.Thread):
                 st = time.time()
                 flo_params_bytes = self.orig_flo_params.model_dump_json().encode('utf-8')
                 try:
-                    g = Flo(flo_params_bytes)
+                    g = Flo(flo_params_bytes, patting_watchdog=self.pat_watchdog)
                 except Exception as e:
                     self.logger.error(f"Error creating DGraph with advanced FLO: {e}")
                     glitch = Glitch(
@@ -199,6 +201,11 @@ class BidRunner(threading.Thread):
     def stop(self):
         self.logger.info("Stopping BidRunner")
         self.stop_event.set()
+
+    def pat_watchdog(self):
+        self.send_threadsafe(
+            PatInternalWatchdogMessage(src=self.io_loop_manager_name)
+        )
 
 
 class LtnMQTTCodec(MQTTCodec):
@@ -832,6 +839,7 @@ class Ltn(PrimeActor):
         self.bid_runner = BidRunner(
             params=self.flo_params,
             settings=self.settings,
+            io_loop_manager_name=self.services.io_loop_manager.name,
             ltn_name=self.name, 
             ltn_g_node_alias=self.layout.ltn_g_node_alias,
             send_threadsafe=self.services.send_threadsafe,
