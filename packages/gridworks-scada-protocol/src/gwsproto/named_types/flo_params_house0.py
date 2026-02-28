@@ -62,7 +62,7 @@ class FloParamsHouse0(BaseModel):
     RswtPenaltyWeight: float = 0.3
     RswtPenaltyDecay: float = 0.9
     RswtPenaltyExponentRate: float = 0.15
-    RswtPenaltyDecayMaxHour: int = 5
+    RswtPenaltyDecayMaxHour: int = 12
     # Plan stability penalty
     PreviousPlanHpKwhElList: list[float] | None = None
     PreviousEstimateStorageKwhNow: float | None = None
