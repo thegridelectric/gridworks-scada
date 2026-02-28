@@ -4,7 +4,7 @@ from gwsproto.named_types import FloParamsHouse0
 def test_flo_params_house0() -> None:
     d = {
     "TypeName": "flo.params.house0",
-    "Version": "004",
+    "Version": "006",
     "GNodeAlias": "hw1.isone.me.versant.keene.beech.scada",
     "FloParamsUid": "2a9b0f40-c8ac-493a-bf3f-8d3d00e8e54d",
     "TimezoneStr": "America/New_York",
@@ -292,7 +292,19 @@ def test_flo_params_house0() -> None:
     "MaxEwtF": 170,
     "PriceUnit": "USDPerMWh",
     "ParamsGeneratedS": 1762177726,
-    "ConstantDeltaT": 20
+    "ConstantDeltaT": 20,
+    "MaxHpKwhTh": 25,
+    "MaxLoadKwhTh": 20,
+    "RswtPenaltyDecay": 0.9,
+    "RswtPenaltyDecayMaxHour": 5,
+    "RswtPenaltyEnabled": True,
+    "RswtPenaltyExponentRate": 0.15,
+    "RswtPenaltyWeight": 0.3,
+    "StabilityPenaltyDecay": 0.75,
+    "StabilityPenaltyEnabled": True,
+    "StabilityPenaltyHorizonHours": 20,
+    "StabilityPenaltyThresholdKwh": 10.0,
+    "StabilityPenaltyWeight": 0.5
     }
 
     d2 = FloParamsHouse0.model_validate(d).model_dump(exclude_none=True)

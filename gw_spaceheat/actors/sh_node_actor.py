@@ -35,6 +35,7 @@ from gwsproto.enums import (
     ChangePrimaryPumpControl,
     ChangeRelayState,
     ChangeStoreFlowRelay,
+    HpModel,
     LogLevel,
     RelayClosedOrOpen,
     StoreFlowRelay,
@@ -1239,6 +1240,22 @@ class ShNodeActor(Actor, ABC):
         return self.data.latest_channel_values.get(H0CN.hp_idu_pwr)
 
     #-----------------------------------------------------------------------
+    # Defrost related
+    #-----------------------------------------------------------------------
+
+    def hp_in_defrost(self) -> bool:
+        odu = self.odu_pwr()
+        idu = self.idu_pwr()
+        if odu is None or idu is None:
+            return False
+        hp_model = self.settings.hp_model
+        if hp_model in (HpModel.SamsungFourTonneHydroKit, HpModel.SamsungFiveTonneHydroKit):
+            return idu < 4000
+        elif hp_model == HpModel.LgHighTempHydroKitPlusMultiV:
+            return odu + idu < 8400
+        return False
+
+    #-----------------------------------------------------------------------
     # Temperature related
     #-----------------------------------------------------------------------
 
@@ -1424,10 +1441,11 @@ class ShNodeActor(Actor, ABC):
             self.log(f"{channel_used}: {self.latest_temps_f[channel_used]} F < {self.data.ha1_params.MaxEwtF} F")
             return False
 
-    def is_storage_colder_than_buffer(self, min_delta_f: float = 5.4) -> bool:
+    def is_storage_colder_than_buffer(self, min_delta_f: float = 5.4, all_tanks_leaf_ally: bool = False) -> bool:
         """
         Returns True if the top of the storage is at least `min_delta_f` colder
         than the top of the buffer.
+        If all_tanks_leaf_ally is True, uses the depth3 layer of the buffer instead.
 
         Pure physical predicate:
         - Returns False if required temperatures are unavailable
@@ -1441,7 +1459,7 @@ class ShNodeActor(Actor, ABC):
             buffer_top = H0CN.buffer.depth3
         elif H0CN.buffer_cold_pipe in self.latest_temps_f:
             buffer_top = H0CN.buffer_cold_pipe
-        else:
+        elif not all_tanks_leaf_ally or not self.settings.short_cycle_buffer:
             return False
 
         # --- Determine storage top ---
@@ -1454,9 +1472,19 @@ class ShNodeActor(Actor, ABC):
         else:
             return False
 
-        return self.latest_temps_f[buffer_top] > (
-            self.latest_temps_f[tank_top] + min_delta_f
-        )
+        # --- Determine buffer bottom ---
+        if all_tanks_leaf_ally and self.settings.short_cycle_buffer:
+            if H0CN.buffer.depth3 in self.latest_temps_f:
+                buffer_bottom = H0CN.buffer.depth3
+            elif H0CN.buffer.depth2 in self.latest_temps_f:
+                buffer_bottom = H0CN.buffer.depth2
+            elif H0CN.buffer.depth1 in self.latest_temps_f:
+                buffer_bottom = H0CN.buffer.depth1
+            else:
+                return False
+            return self.latest_temps_f[buffer_bottom] > self.latest_temps_f[tank_top]
+
+        return self.latest_temps_f[buffer_top] > self.latest_temps_f[tank_top] + min_delta_f
 
     @property
     def usable_kwh(self) -> float:

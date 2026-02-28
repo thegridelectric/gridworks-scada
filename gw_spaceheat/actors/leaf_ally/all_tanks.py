@@ -22,7 +22,7 @@ from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 from gwsproto.enums import  (
 LeafAllyAllTanksState, LeafAllyAllTanksEvent, LogLevel,
-SystemMode,
+SystemMode, HpModel,
 )
 from gwsproto.named_types import (
     AllyGivesUp, GoDormant, Ha1Params,
@@ -37,6 +37,8 @@ from actors.procedural.store_pump_monitor import StorePumpMonitor
 class AllTanksLeafAlly(ShNodeActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
     NO_TEMPS_BAIL_MINUTES = 5
+    DEFROST_TIMEOUT_MINUTES = 20
+
     states = LeafAllyAllTanksState.values()
     # Uses LeafAllyAllTanksEvent as transitions
     transitions = (
@@ -45,21 +47,22 @@ class AllTanksLeafAlly(ShNodeActor):
         {"trigger": "NoElecBufferEmpty", "source": "Initializing", "dest": "HpOffStoreDischarge"},
         {"trigger": "NoElecBufferFull", "source": "Initializing", "dest": "HpOffStoreOff"},
         {"trigger": "ElecBufferEmpty", "source": "Initializing", "dest": "HpOnStoreOff"},
-        {"trigger": "ElecBufferFull", "source": "Initializing", "dest": "HpOnStoreCharge"},
+        {"trigger": "ElecBufferFull", "source": "Initializing", "dest": "HpOnStoreOff"},
         # 1 Starting at: HP on, Store off ============= HP -> buffer
         {"trigger": "ElecBufferFull", "source": "HpOnStoreOff", "dest": "HpOnStoreCharge"},
         {"trigger": "NoMoreElec", "source": "HpOnStoreOff", "dest": "HpOffStoreOff"},
         # 2 Starting at: HP on, Store charging ======== HP -> storage
         {"trigger": "ElecBufferEmpty", "source": "HpOnStoreCharge", "dest": "HpOnStoreOff"},
         {"trigger": "NoMoreElec", "source": "HpOnStoreCharge", "dest": "HpOffStoreOff"},
+        {"trigger": "DefrostDetected", "source": "HpOnStoreCharge", "dest": "HpOnStoreOff"},
         # 3 Starting at: HP off, Store off ============ idle
         {"trigger": "NoElecBufferEmpty", "source": "HpOffStoreOff", "dest": "HpOffStoreDischarge"},
         {"trigger": "ElecBufferEmpty", "source": "HpOffStoreOff", "dest": "HpOnStoreOff"},
-        {"trigger": "ElecBufferFull", "source": "HpOffStoreOff", "dest": "HpOnStoreCharge"},
+        {"trigger": "ElecBufferFull", "source": "HpOffStoreOff", "dest": "HpOnStoreOff"},
         # 4 Starting at: Hp off, Store discharging ==== Storage -> buffer
         {"trigger": "NoElecBufferFull", "source": "HpOffStoreDischarge", "dest": "HpOffStoreOff"},
         {"trigger": "ElecBufferEmpty", "source": "HpOffStoreDischarge", "dest": "HpOnStoreOff"},
-        {"trigger": "ElecBufferFull", "source": "HpOffStoreDischarge", "dest": "HpOnStoreCharge"},
+        {"trigger": "ElecBufferFull", "source": "HpOffStoreDischarge", "dest": "HpOnStoreOff"},
         # 5 Oil boiler on during onpeak
     ] + [
         {"trigger": "StartNonElectricBackup", "source": state, "dest": "HpOffNonElectricBackup"}
@@ -101,9 +104,11 @@ class AllTanksLeafAlly(ShNodeActor):
             doctor=self.store_pump_doctor,
         )
         self.log(f"Params: {self.params}")
+        self.time_hp_turned_on = None
         self.storage_declared_full = False
         self.storage_full_since = 0
         self.both_buffer_and_storage_full_since = 0
+        self.defrost_detected_since = None
         if H0N.leaf_ally not in self.layout.nodes:
             raise Exception(f"LeafAlly requires {H0N.leaf_ally} node!!")
 
@@ -193,6 +198,7 @@ class AllTanksLeafAlly(ShNodeActor):
         else:
             if self.state == LeafAllyAllTanksState.HpOffNonElectricBackup:
                 self.trigger_event(LeafAllyAllTanksEvent.StopNonElectricBackup) # will go to initializing
+            self.log("Engaging brain")
             self.engage_brain()
     
     def trigger_event(self, event: LeafAllyAllTanksEvent) -> None:
@@ -299,7 +305,26 @@ class AllTanksLeafAlly(ShNodeActor):
                 if self.hp_should_be_off():
                     self.trigger_event(LeafAllyAllTanksEvent.NoMoreElec)
                 elif self.is_buffer_full() and not self.is_storage_full():
-                    self.trigger_event(LeafAllyAllTanksEvent.ElecBufferFull)
+                    if self.is_buffer_charge_limited():
+                        self.trigger_event(LeafAllyAllTanksEvent.ElecBufferFull)
+                    else:
+                        # Heat pump is ramping up
+                        if time.time() - self.time_hp_turned_on < self.params.HpTurnOnMinutes*60:
+                            self.log(f"HP warmup: {round((time.time() - self.time_hp_turned_on)/60, 1)} out of {self.params.HpTurnOnMinutes} min")
+                        # Heat pump is in defrost
+                        elif self.hp_in_defrost():
+                            if self.defrost_detected_since is None:
+                                self.defrost_detected_since = int(time.time())
+                            if time.time() - self.defrost_detected_since < self.DEFROST_TIMEOUT_MINUTES*60:
+                                self.log(f"In defrost, waiting before charging store")
+                            else:
+                                self.log("In defrost but timeout reached, switch to charging store")
+                                self.defrost_detected_since = None
+                                self.trigger_event(LeafAllyAllTanksEvent.ElecBufferFull)
+                        # None of the above
+                        else:
+                            self.defrost_detected_since = None
+                            self.trigger_event(LeafAllyAllTanksEvent.ElecBufferFull)
 
                 elif self.is_buffer_charge_limited():
                     if not self.storage_declared_full or time.time()-self.storage_full_since>15*60:
@@ -318,6 +343,9 @@ class AllTanksLeafAlly(ShNodeActor):
             elif self.state == LeafAllyAllTanksState.HpOnStoreCharge:
                 if self.hp_should_be_off():
                     self.trigger_event(LeafAllyAllTanksEvent.NoMoreElec)
+                elif self.hp_in_defrost():
+                    self.defrost_detected_since = int(time.time())
+                    self.trigger_event(LeafAllyAllTanksEvent.DefrostDetected)
                 elif self.is_buffer_empty(all_tanks_leaf_ally=True) or self.is_storage_full():
                     self.trigger_event(LeafAllyAllTanksEvent.ElecBufferEmpty)
 
@@ -326,7 +354,7 @@ class AllTanksLeafAlly(ShNodeActor):
                 if self.hp_should_be_off():
                     if (
                         self.is_buffer_empty(all_tanks_leaf_ally=True)
-                        and not self.is_storage_colder_than_buffer()
+                        and not self.is_storage_colder_than_buffer(all_tanks_leaf_ally=True)
                     ):
                         self.trigger_event(LeafAllyAllTanksEvent.NoElecBufferEmpty)
                 else:
@@ -383,8 +411,10 @@ class AllTanksLeafAlly(ShNodeActor):
             self.aquastat_ctrl_switch_to_scada()
         if "HpOn" not in self.prev_state and "HpOn" in self.state:
             self.turn_on_HP()
+            self.time_hp_turned_on = time.time()
         if "HpOff" not in self.prev_state and "HpOff" in self.state:
             self.turn_off_HP()
+            self.time_hp_turned_on = None
         if "StoreDischarge" in self.state:
             self.turn_on_store_pump()
         else:
@@ -487,9 +517,14 @@ class AllTanksLeafAlly(ShNodeActor):
                 #  keep it closed
                 elif self.contract_hb.Contract.DurationMinutes >= 30:  
                     c = self.contract_hb.Contract
-                    last_5 = c.StartS + (c.DurationMinutes - 5)*60  
-                    if time.time() > last_5:
+                    # TODO: go to the end of the hour if the contract is the max power
+                    max_kw_with_turn_on = (1-self.settings.hp_turn_on_minutes/60) * self.settings.hp_max_kw_el
+                    if self.contract_hb.Contract.AvgPowerWatts >= (max_kw_with_turn_on-1)*1000:
                         return False
+                    else:
+                        last_5 = c.StartS + (c.DurationMinutes - 5)*60  
+                        if time.time() > last_5:
+                            return False
         return True
         
     def is_storage_full(self) -> bool:
