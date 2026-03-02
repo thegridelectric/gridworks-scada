@@ -136,19 +136,21 @@ class AllTanksLeafAlly(ShNodeActor):
             if self.data.latest_channel_values[zone_setpoint] is not None:
                 self.zone_setpoints[zone_name] = self.data.latest_channel_values[zone_setpoint]
 
-    def _is_any_zone_below_setpoint(self) -> bool:
-        """Returns True if at least one zone with setpoint data is more than 1F below setpoint."""
+    def _is_any_critical_zone_below_setpoint(self) -> bool:
+        """Returns True if at least one critical zone is more than 1F below setpoint."""
         self.get_zone_setpoints()
         if self.settings.is_simulated:
             return False
         for zone in self.zone_setpoints:
+            zone_name_no_prefix = zone[6:] if zone[:4] == 'zone' else zone
+            if zone_name_no_prefix not in self.layout.critical_zone_list:
+                continue
             setpoint = self.zone_setpoints[zone]
             temperature = self.data.latest_channel_values.get(zone + '-temp')
-            self.log(f"Zone {zone} setpoint: {setpoint}, temperature: {temperature}")
             if temperature is None:
                 continue
-            if temperature < setpoint - 1:
-                self.log(f"{zone} temperature is at least 1F below setpoint")
+            if temperature < setpoint - 1000:
+                self.log(f"{zone} (critical) temperature is at least 1F below setpoint")
                 return True
         return False
 
@@ -425,7 +427,7 @@ class AllTanksLeafAlly(ShNodeActor):
                 await self.store_pump_doctor.run()
 
             # Breach ongoing LTN contract if a zone is below setpoint
-            if self.contract_hb is not None and self._is_any_zone_below_setpoint():
+            if self.contract_hb is not None and self._is_any_critical_zone_below_setpoint():
                 self.log("Zone(s) below setpoint - breaching contract")
                 self._send_to(
                     self.primary_scada,
