@@ -90,6 +90,7 @@ class BufferOnlyLeafAlly(ShNodeActor):
         )
         self.log(f"Params: {self.params}")
         self.time_buffer_full = 0
+        self.zone_setpoints: dict = {}
         if H0N.leaf_ally not in self.layout.nodes:
             raise Exception(f"LeafAlly requires {H0N.leaf_ally} node!!")
 
@@ -102,6 +103,35 @@ class BufferOnlyLeafAlly(ShNodeActor):
         Always returns an ShNode, even if authority is degraded.
         """
         return self.node
+
+    def get_zone_setpoints(self) -> None:
+        """Populate zone_setpoints from latest_channel_values"""
+        self.zone_setpoints = {}
+        if self.settings.is_simulated:
+            return
+        for zone_setpoint in [x for x in self.data.latest_channel_values if 'zone' in x and 'set' in x]:
+            zone_name = zone_setpoint.replace('-set', '')
+            zone_name_no_prefix = zone_name[6:] if zone_name[:4] == 'zone' else zone_name
+            if zone_name_no_prefix not in self.layout.zone_list:
+                continue
+            if self.data.latest_channel_values[zone_setpoint] is not None:
+                self.zone_setpoints[zone_name] = self.data.latest_channel_values[zone_setpoint]
+
+    def _is_any_zone_below_setpoint(self) -> bool:
+        """Returns True if at least one zone with setpoint data is more than 1F below setpoint."""
+        self.get_zone_setpoints()
+        if self.settings.is_simulated:
+            return False
+        for zone in self.zone_setpoints:
+            setpoint = self.zone_setpoints[zone]
+            temperature = self.data.latest_channel_values.get(zone + '-temp')
+            self.log(f"Zone {zone} setpoint: {setpoint}, temperature: {temperature}")
+            if temperature is None:
+                continue
+            if temperature < setpoint - 1:
+                self.log(f"{zone} temperature is at least 1F below setpoint")
+                return True
+        return False
 
     @property
     def remaining_watthours(self) -> Optional[int]:
@@ -309,6 +339,16 @@ class BufferOnlyLeafAlly(ShNodeActor):
             # Verify store pump health; initiate recovery if needed
             if self.store_pump_monitor.needs_recovery():
                 await self.store_pump_doctor.run()
+
+            # Breach ongoing LTN contract if a zone is below setpoint
+            if self.contract_hb is not None and self._is_any_zone_below_setpoint():
+                self.log("Zone(s) below setpoint - breaching contract")
+                self._send_to(
+                    self.primary_scada,
+                    AllyGivesUp(Reason="Zone(s) below setpoint"),
+                )
+                await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
+                continue
 
             self.engage_brain()
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
