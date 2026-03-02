@@ -13,6 +13,7 @@ def test_leaf_ally_buffer_only_event() -> None:
         "GoDormant",
         "StartNonElectricBackup",
         "StopNonElectricBackup",
+        "DefrostDetected",
     }
 
     assert  LeafAllyAllTanksEvent.default() ==  LeafAllyAllTanksEvent.GoDormant
