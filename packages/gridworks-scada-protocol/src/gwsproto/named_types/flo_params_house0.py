@@ -74,8 +74,9 @@ class FloParamsHouse0(BaseModel):
     PriceUnit: MarketPriceUnit = MarketPriceUnit.USDPerMWh
     ParamsGeneratedS: UTCSeconds = Field(default_factory=lambda: int(time.time()))
     ConstantDeltaT: StrictInt = 20
+    FloGitCommit: str = 'Unknown'
     TypeName: Literal["flo.params.house0"] = "flo.params.house0"
-    Version: Literal["006"] = "006"
+    Version: Literal["007"] = "007"
 
     model_config = ConfigDict(extra="allow", frozen=True, use_enum_values=True)
 

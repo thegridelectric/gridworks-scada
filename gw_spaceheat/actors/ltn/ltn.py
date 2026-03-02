@@ -1,6 +1,7 @@
 import csv
 import asyncio
 import json
+import subprocess
 import threading
 import time
 import uuid
@@ -84,6 +85,33 @@ from actors.ltn.data import LtnData
 
 TANK_GALLONS = 120
 MAX_HORIZON_HOURS = 48
+
+
+def _get_flo_git_commit() -> str:
+    """Get gridworks-innovations HEAD commit when available; else FloParamsHouse0 default."""
+    candidates: list[Path] = []
+    # Prefer: gridflo package location (editable install)
+    try:
+        import gridflo
+        if p := getattr(gridflo, "__file__", None):
+            # gridflo/__init__.py -> gridflo -> gridworks-flo -> gridworks-innovations
+            candidates.append(Path(p).resolve().parents[2])
+    except ImportError:
+        pass
+    # Fallback: sibling of gridworks-scada
+    scada_root = Path(__file__).resolve().parents[3]
+    candidates.append(scada_root.parent / "gridworks-innovations")
+    for repo_path in candidates:
+        if (repo_path / ".git").exists():
+            r = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=repo_path,
+                capture_output=True,
+                text=True,
+            )
+            if r.returncode == 0 and r.stdout.strip():
+                return r.stdout.strip()
+    return FloParamsHouse0.model_fields["FloGitCommit"].default
 
 
 class PriceForecast(BaseModel):
@@ -853,6 +881,8 @@ class Ltn(PrimeActor):
             previous_plan_hp_kwh_el_list = None
             previous_estimate_storage_kwh_now = None
 
+        flo_git_commit = _get_flo_git_commit()
+
         self.flo_params = FloParamsHouse0(
             GNodeAlias=self.layout.scada_g_node_alias,
             StartUnixS=dijkstra_start_time,
@@ -888,6 +918,7 @@ class Ltn(PrimeActor):
             HouseAvailableKwh=house_available_kwh,
             PreviousPlanHpKwhElList=previous_plan_hp_kwh_el_list,
             PreviousEstimateStorageKwhNow=previous_estimate_storage_kwh_now,
+            FloGitCommit=flo_git_commit,
         )
         self.services.publish_message(
             self.SCADA_MQTT, 
