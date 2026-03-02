@@ -175,8 +175,8 @@ async def _await_scada_connected(
         timeout=timeout,
     )
     await lt.await_for(
-        lambda: app.layout_received(),
-        "ERROR wait for admin to receive a layout (from pear)",
+        lambda: app.ctrl_capabilities_received(),
+        "ERROR wait for admin to receive ctrl capabilities (from pear)",
         timeout=timeout,
     )
     await lt.await_for(
@@ -222,7 +222,7 @@ async def test_admin_relay_set(request: pytest.FixtureRequest) -> None:
                 "ERROR wait for admin mqtt state active",
             )
             await h.await_for(
-                lambda: relays_app.layout_received(),
+                lambda: relays_app.ctrl_capabilities_received(),
                 "ERROR wait for admin to receive a layout",
             )
             await h.await_for(
@@ -284,7 +284,7 @@ async def test_admin_dac_set(request: pytest.FixtureRequest) -> None:
                 "ERROR wait for admin mqtt state active",
             )
             await h.await_for(
-                lambda: relays_app.layout_received(),
+                lambda: relays_app.ctrl_capabilities_received(),
                 "ERROR wait for admin to receive a layout",
             )
             await h.await_for(

@@ -71,7 +71,9 @@ from gwsproto.named_types.resistive_heater_cac_gt import ResistiveHeaterCacGt
 from gwsproto.named_types.resistive_heater_component_gt import ResistiveHeaterComponentGt
 from gwsproto.named_types.rest_poller_component_gt import RESTPollerComponentGt
 from gwsproto.named_types.slow_dispatch_contract import SlowDispatchContract
+from gwsproto.named_types.scada_control_capabilities import ScadaControlCapabilities
 from gwsproto.named_types.scada_params import ScadaParams
+from gwsproto.named_types.send_control_capabilities import SendControlCapabilities
 from gwsproto.named_types.send_layout import SendLayout
 from gwsproto.named_types.send_snap import SendSnap
 from gwsproto.named_types.set_lwt_control_params import SetLwtControlParams
@@ -171,7 +173,9 @@ __all__ = [
     "RESTPollerComponentGt",
     "SlowContractHeartbeat",
     "SlowDispatchContract",
+    "ScadaControlCapabilities",
     "ScadaParams",
+    "SendControlCapabilities",
     "SendLayout",
     "SendSnap",
     "SetLwtControlParams",
