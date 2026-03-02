@@ -304,7 +304,8 @@ def test_flo_params_house0() -> None:
     "StabilityPenaltyEnabled": True,
     "StabilityPenaltyHorizonHours": 20,
     "StabilityPenaltyThresholdKwh": 10.0,
-    "StabilityPenaltyWeight": 0.5
+    "StabilityPenaltyWeight": 0.5,
+    "FloGitCommit": "Unknown"
     }
 
     d2 = FloParamsHouse0.model_validate(d).model_dump(exclude_none=True)
