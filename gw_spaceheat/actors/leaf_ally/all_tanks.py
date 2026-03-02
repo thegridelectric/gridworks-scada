@@ -124,13 +124,10 @@ class AllTanksLeafAlly(ShNodeActor):
         return self.node
     
     def get_zone_setpoints(self) -> None:
-        """Populate zone_setpoints from latest_channel_values.
-        Follows the same logic as LocalControlTouBase.get_zone_setpoints in tou_base.py."""
-        if self.settings.is_simulated:
-            self.zone_setpoints = {'zone1': 70 * 1000, 'zone2': 65 * 1000}
-            self.log(f"IN SIMULATION - fake setpoints set to {self.zone_setpoints}")
-            return
+        """Populate zone_setpoints from latest_channel_values"""
         self.zone_setpoints = {}
+        if self.settings.is_simulated:
+            return
         for zone_setpoint in [x for x in self.data.latest_channel_values if 'zone' in x and 'set' in x]:
             zone_name = zone_setpoint.replace('-set', '')
             zone_name_no_prefix = zone_name[6:] if zone_name[:4] == 'zone' else zone_name
@@ -147,9 +144,10 @@ class AllTanksLeafAlly(ShNodeActor):
         for zone in self.zone_setpoints:
             setpoint = self.zone_setpoints[zone]
             temperature = self.data.latest_channel_values.get(zone + '-temp')
+            self.log(f"Zone {zone} setpoint: {setpoint}, temperature: {temperature}")
             if temperature is None:
                 continue
-            if temperature < setpoint - 1000:  # 1F in millidegrees
+            if temperature < setpoint - 1:
                 self.log(f"{zone} temperature is at least 1F below setpoint")
                 return True
         return False
@@ -426,14 +424,12 @@ class AllTanksLeafAlly(ShNodeActor):
             if self.store_pump_monitor.needs_recovery():
                 await self.store_pump_doctor.run()
 
-            # Breach ongoing LTN contract if a zone is below setpoint so we can prioritize heating.
-            # This sends AllyGivesUp to Scada, which uses contract_handler.scada_terminates_contract_hb
-            # to produce SlowDispatchContractStatus.TerminatedByScada and notify the LTN.
+            # Breach ongoing LTN contract if a zone is below setpoint
             if self.contract_hb is not None and self._is_any_zone_below_setpoint():
-                self.log("Zone(s) below setpoint - breaching contract to prioritize heating")
+                self.log("Zone(s) below setpoint - breaching contract")
                 self._send_to(
                     self.primary_scada,
-                    AllyGivesUp(Reason="Zone(s) below setpoint - terminating contract to prioritize heating"),
+                    AllyGivesUp(Reason="Zone(s) below setpoint"),
                 )
                 await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
                 continue
