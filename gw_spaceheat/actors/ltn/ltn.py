@@ -882,6 +882,7 @@ class Ltn(PrimeActor):
             previous_estimate_storage_kwh_now = None
 
         flo_git_commit = _get_flo_git_commit()
+        self.log(f"Flo git commit: {flo_git_commit}")
 
         self.flo_params = FloParamsHouse0(
             GNodeAlias=self.layout.scada_g_node_alias,
