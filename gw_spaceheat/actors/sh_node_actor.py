@@ -105,6 +105,15 @@ class ShNodeActor(Actor, ABC):
             if self.data.latest_channel_values[zone_setpoint] is not None:
                 self.zone_setpoints[zone_name] = self.data.latest_channel_values[zone_setpoint]
 
+
+    # ------------------------------------------------------------------
+    # tariff-related utilities
+    # ------------------------------------------------------------------
+
+    def just_before_onpeak(self) -> bool:
+        time_now = datetime.now(self.timezone)
+        return ((time_now.hour==6 or time_now.hour==16) and time_now.minute>57)
+
     def is_onpeak(self) -> bool:
         time_now = datetime.now(self.timezone)
         time_in_2min = time_now + timedelta(minutes=2)

@@ -495,9 +495,6 @@ class LocalControlTouBase(ShNodeActor):
     # utilities
     # ------------------------------------------------------------------
 
-    def just_before_onpeak(self) -> bool:
-        time_now = datetime.now(self.timezone)
-        return ((time_now.hour==6 or time_now.hour==16) and time_now.minute>57)
 
     def is_storage_empty(self):
         if self.usable_kwh < 0.2:
