@@ -704,8 +704,7 @@ class Ltn(PrimeActor):
                 Dst=self.scada.name,
                 Payload=SendLayout(
                     FromGNodeAlias=self.layout.ltn_g_node_alias,
-                    FromName=H0N.ltn,
-                    ToName=H0N.primary_scada,
+                    MessageCreatedMs=int(time.time() * 1000)
                 ),
             )
         )

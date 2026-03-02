@@ -12,10 +12,9 @@ from typing import Sequence
 
 from gwproto import Message as GWMessage
 from gwproto import MQTTTopic
-from gwsproto.enums import ActorClass
-from gwsproto.named_types import AnalogDispatch
+from gwsproto.named_types import AnalogDispatch, SingleReading
 
-from gwsproto.named_types import SingleReading
+from gwsproto.property_format import SpaceheatName
 from pydantic import BaseModel
 from pydantic import model_validator
 
@@ -27,17 +26,17 @@ from gwadmin.watch.clients.constrained_mqtt_client import StateChangeCallback
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.named_types import AdminAnalogDispatch
 from gwsproto.named_types import (AdminKeepAlive, AdminReleaseControl,
-                         LayoutLite, SnapshotSpaceheat)
+                         ScadaControlCapabilities, SnapshotSpaceheat)
 
 module_logger = logging.getLogger(__name__)
 
 class DACConfig(BaseModel):
-    about_node_name: str = ""
-    channel_name: str = ""
+    about_node_name: SpaceheatName
+    channel_name: SpaceheatName
 
 class DACState(BaseModel):
     value: int
-    time: datetime.datetime
+    time: int # unix ms
 
 class DACInfo(BaseModel):
     config: DACConfig
@@ -56,7 +55,7 @@ class ObservedDACStateChange(BaseModel):
         return self
 
 DACStateChangeCallback = Callable[[dict[str, ObservedDACStateChange]], None]
-LayoutCallback = Callable[[LayoutLite], None]
+CtrlCapabilitiesCallback = Callable[[ScadaControlCapabilities], None]
 SnapshotCallback = Callable[[SnapshotSpaceheat], None]
 
 class DACConfigChange(BaseModel):
@@ -95,8 +94,8 @@ class DACClientCallbacks:
     """Hook for user. Called when a DAC config change is observed. 
     Called from Paho thread. Must be threadsafe."""
 
-    layout_callback: Optional[LayoutCallback] = None
-    """Hook for user. Called when a layout received. Called from Paho thread. 
+    ctrl_capabilities_callback: Optional[CtrlCapabilitiesCallback] = None
+    """Hook for user. Called when a ScadaControlCapabilities received. Called from Paho thread. 
     Must be threadsafe."""
 
     snapshot_callback: Optional[SnapshotCallback] = None
@@ -105,12 +104,11 @@ class DACClientCallbacks:
 
 class DACWatchClient(AdminSubClient):
     _lock: threading.RLock
-    _dacs: dict[str, DACInfo]
-    _channel2node: dict[str, str]
-    _pass_all_message: bool = False
+    _dacs: dict[SpaceheatName, DACInfo]
+    _channel2node: dict[SpaceheatName, SpaceheatName]
     _admin_client: AdminClient
     _callbacks: DACClientCallbacks
-    _layout: Optional[LayoutLite] = None
+    _ctrl_capabilities: ScadaControlCapabilities | None = None
     _snap: Optional[SnapshotSpaceheat] = None
     _logger: Logger | logging.LoggerAdapter[Logger] = module_logger
 
@@ -118,7 +116,6 @@ class DACWatchClient(AdminSubClient):
             self,
             callbacks: Optional[DACClientCallbacks] = None,
             *,
-            pass_all_messages: bool = False,
             logger: Logger | logging.LoggerAdapter[Logger] = module_logger,
     ) -> None:
         self._lock = threading.RLock()
@@ -126,7 +123,6 @@ class DACWatchClient(AdminSubClient):
         self._logger = logger
         self._dacs = {}
         self._channel2node = {}
-        self._pass_all_message = pass_all_messages
 
     def set_admin_client(self, client: AdminClient) -> None:
         self._admin_client = client
@@ -140,9 +136,9 @@ class DACWatchClient(AdminSubClient):
         self._callbacks = callbacks
 
     @classmethod
-    def _get_dac_configs(cls, layout: LayoutLite) -> dict[str, DACConfig]:
-        dac_node_names = {node.Name for node in layout.ShNodes if node.ActorClass == ActorClass.ZeroTenOutputer}
-        dac_channels = {channel.AboutNodeName: channel for channel in layout.DataChannels if channel.AboutNodeName in dac_node_names}
+    def _get_dac_configs(cls, ctrl_capabilities: ScadaControlCapabilities) -> dict[str, DACConfig]:
+        dac_node_names = {node.Name for node in ctrl_capabilities.DacNodes}
+        dac_channels = {channel.AboutNodeName: channel for channel in ctrl_capabilities.ControlChannels if channel.AboutNodeName in dac_node_names}
         return {
             node_name : DACConfig(
                 about_node_name=node_name,
@@ -150,10 +146,10 @@ class DACWatchClient(AdminSubClient):
             ) for node_name in dac_node_names
         }
 
-    def _update_layout(self, new_layout: LayoutLite) -> dict[str, DACConfigChange]:
+    def _update_ctrl_capabilities(self, new_ctrl_capabilities: ScadaControlCapabilities) -> dict[SpaceheatName, DACConfigChange]:
         with self._lock:
-            self._layout = new_layout.model_copy()
-            new_dac_configs = self._get_dac_configs(self._layout)
+            self._ctrl_capabilities = new_ctrl_capabilities.model_copy()
+            new_dac_configs = self._get_dac_configs(self._ctrl_capabilities)
             old_dac_names = set(self._dacs.keys())
             new_dac_names = set(new_dac_configs.keys())
             changed_configs = {}
@@ -185,12 +181,12 @@ class DACWatchClient(AdminSubClient):
                 }
         return changed_configs
 
-    def process_layout_lite(self, layout: LayoutLite) -> None:
-        config_changes = self._update_layout(layout)
+    def process_scada_control_capabilities(self, ctrl_capabilities: ScadaControlCapabilities) -> None:
+        config_changes = self._update_ctrl_capabilities(ctrl_capabilities)
         if config_changes and self._callbacks.dac_config_change_callback is not None:
             self._callbacks.dac_config_change_callback(config_changes)
-        if self._callbacks.layout_callback is not None:
-            self._callbacks.layout_callback(layout)
+        if self._callbacks.ctrl_capabilities_callback is not None:
+            self._callbacks.ctrl_capabilities_callback(ctrl_capabilities)
         if self._snap is not None:
            self._process_snapshot(self._snap)
 
@@ -231,7 +227,7 @@ class DACWatchClient(AdminSubClient):
         return states
 
     def _process_single_reading(self, payload: bytes) -> None:
-        if self._layout is not None:
+        if self._ctrl_capabilities is not None:
             self._handle_new_dac_states(
                 self._extract_dac_states(
                     [GWMessage[SingleReading].model_validate_json(payload).Payload]
@@ -248,7 +244,7 @@ class DACWatchClient(AdminSubClient):
         # self._logger.debug("--DACWatchClient.process_snapshot  path:0x%08X", path_dbg)
 
     def _process_snapshot(self, snapshot: SnapshotSpaceheat) -> None:
-        if self._layout is not None:
+        if self._ctrl_capabilities is not None:
             self._handle_new_dac_states(
                 self._extract_dac_states(snapshot.LatestReadingList)
             )
@@ -301,7 +297,7 @@ class DACWatchClient(AdminSubClient):
         )
 
     def scada_selection_reset(self) -> None:
-        self._layout = None
+        self._ctrl_capabilities = None
         self._snap = None
         with self._lock:
             removed_dacs = self._dacs
