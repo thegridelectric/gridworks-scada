@@ -415,7 +415,7 @@ class DerivedGenerator(ShNodeActor):
         alpha = self.params.AlphaTimes10 / 10
         beta = self.params.BetaTimes100 / 100
         gamma = self.params.GammaEx6 / 1e6
-        r = alpha + beta*oat + gamma*ws
+        r = alpha + beta*oat + gamma*ws*(65-oat)
         r = r * (1 + self.settings.load_overestimation_percent/100)
         return round(r,2) if r>0 else 0
 
