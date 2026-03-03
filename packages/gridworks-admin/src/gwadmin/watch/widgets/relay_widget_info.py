@@ -102,7 +102,7 @@ class RelayWidgetConfig(RelayConfig):
     
 
 class RelayWidgetInfo(BaseModel):
-    config: RelayWidgetConfig = RelayWidgetConfig()
+    config: RelayWidgetConfig
     observed: Optional[RelayState] = None
 
     @classmethod

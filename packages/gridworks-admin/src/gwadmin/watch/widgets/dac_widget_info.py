@@ -69,7 +69,7 @@ class DACWidgetConfig(DACConfig):
 
 
 class DACWidgetInfo(BaseModel):
-    config: DACWidgetConfig = DACWidgetConfig()
+    config: DACWidgetConfig
     observed: Optional[DACState] = None
 
     @classmethod

@@ -172,6 +172,13 @@ class AllTanksLeafAlly(ShNodeActor):
         self.log("Processing SlowDispatchContract!")
         if from_node != self.primary_scada:
             raise Exception("contract should come from scada!")
+
+        if self.is_system_cold():
+            self.log("Cannot wake up - system is cold")
+            self._send_to(
+                self.primary_scada,
+                AllyGivesUp(Reason="System is cold, not entering DispatchContracts"))
+            return
         
         if self.settings.system_mode != SystemMode.Heating:
             self.log("Cannot wake up - in standby mode")
@@ -198,6 +205,7 @@ class AllTanksLeafAlly(ShNodeActor):
         else:
             if self.state == LeafAllyAllTanksState.HpOffNonElectricBackup:
                 self.trigger_event(LeafAllyAllTanksEvent.StopNonElectricBackup) # will go to initializing
+            self.log("Engaging brain")
             self.engage_brain()
     
     def trigger_event(self, event: LeafAllyAllTanksEvent) -> None:
@@ -277,7 +285,7 @@ class AllTanksLeafAlly(ShNodeActor):
                     if self.hp_should_be_off():
                         if (
                             self.is_buffer_empty(all_tanks_leaf_ally=True)
-                            and not self.is_storage_colder_than_buffer()
+                            and not self.is_storage_colder_than_buffer(all_tanks_leaf_ally=True)
                         ):
                             self.trigger_event(LeafAllyAllTanksEvent.NoElecBufferEmpty)
                         else:
@@ -322,6 +330,7 @@ class AllTanksLeafAlly(ShNodeActor):
                                 self.trigger_event(LeafAllyAllTanksEvent.ElecBufferFull)
                         # None of the above
                         else:
+                            self.defrost_detected_since = None
                             self.trigger_event(LeafAllyAllTanksEvent.ElecBufferFull)
 
                 elif self.is_buffer_charge_limited():
@@ -352,7 +361,7 @@ class AllTanksLeafAlly(ShNodeActor):
                 if self.hp_should_be_off():
                     if (
                         self.is_buffer_empty(all_tanks_leaf_ally=True)
-                        and not self.is_storage_colder_than_buffer()
+                        and not self.is_storage_colder_than_buffer(all_tanks_leaf_ally=True)
                     ):
                         self.trigger_event(LeafAllyAllTanksEvent.NoElecBufferEmpty)
                 else:
@@ -366,7 +375,7 @@ class AllTanksLeafAlly(ShNodeActor):
                 if self.hp_should_be_off():
                     if (
                         self.is_buffer_full()
-                        or self.is_storage_colder_than_buffer()
+                        or self.is_storage_colder_than_buffer(all_tanks_leaf_ally=True)
                     ):
                         self.trigger_event(LeafAllyAllTanksEvent.NoElecBufferFull)
                 else:
@@ -391,6 +400,18 @@ class AllTanksLeafAlly(ShNodeActor):
             # Verify store pump health; initiate recovery if needed
             if self.store_pump_monitor.needs_recovery():
                 await self.store_pump_doctor.run()
+
+            # Breach ongoing LTN contract if a zone is below setpoint
+            if self.contract_hb is not None:
+                self.get_zone_setpoints()
+                if self.is_system_cold():
+                    self.log("Zone(s) below setpoint - breaching contract")
+                    self._send_to(
+                        self.primary_scada,
+                        AllyGivesUp(Reason="Zone(s) below setpoint"),
+                    )
+                    await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
+                    continue
 
             self.engage_brain()
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
@@ -515,9 +536,14 @@ class AllTanksLeafAlly(ShNodeActor):
                 #  keep it closed
                 elif self.contract_hb.Contract.DurationMinutes >= 30:  
                     c = self.contract_hb.Contract
-                    last_5 = c.StartS + (c.DurationMinutes - 5)*60  
-                    if time.time() > last_5:
+                    # TODO: go to the end of the hour if the contract is the max power
+                    max_kw_with_turn_on = (1-self.settings.hp_turn_on_minutes/60) * self.settings.hp_max_kw_el
+                    if self.contract_hb.Contract.AvgPowerWatts >= (max_kw_with_turn_on-1)*1000:
                         return False
+                    else:
+                        last_5 = c.StartS + (c.DurationMinutes - 5)*60  
+                        if time.time() > last_5:
+                            return False
         return True
         
     def is_storage_full(self) -> bool:

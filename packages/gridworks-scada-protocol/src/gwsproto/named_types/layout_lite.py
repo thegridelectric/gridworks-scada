@@ -19,7 +19,7 @@ from typing_extensions import Self
 
 
 class LayoutLite(BaseModel):
-    """ASL: https://schemas.electricity.works/types/layout.lite/000"""
+    """Sema: https://schemas.electricity.works/types/layout.lite/011"""
 
     FromGNodeAlias: LeftRightDotStr
     MessageCreatedMs: UTCMilliseconds

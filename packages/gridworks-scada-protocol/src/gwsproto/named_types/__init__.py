@@ -52,6 +52,7 @@ from gwsproto.named_types.layout_lite import LayoutLite
 from gwsproto.named_types.machine_states import MachineStates
 from gwsproto.named_types.micro_volts import MicroVolts
 from gwsproto.named_types.market_maker_ack import MarketMakerAck
+from gwsproto.named_types.flo_next_hour_plans import FloNextHourPlans
 from gwsproto.named_types.multichannel_snapshot import MultichannelSnapshot
 from gwsproto.named_types.new_command_tree import NewCommandTree
 from gwsproto.named_types.no_new_contract_warning import NoNewContractWarning
@@ -71,7 +72,9 @@ from gwsproto.named_types.resistive_heater_cac_gt import ResistiveHeaterCacGt
 from gwsproto.named_types.resistive_heater_component_gt import ResistiveHeaterComponentGt
 from gwsproto.named_types.rest_poller_component_gt import RESTPollerComponentGt
 from gwsproto.named_types.slow_dispatch_contract import SlowDispatchContract
+from gwsproto.named_types.scada_control_capabilities import ScadaControlCapabilities
 from gwsproto.named_types.scada_params import ScadaParams
+from gwsproto.named_types.send_control_capabilities import SendControlCapabilities
 from gwsproto.named_types.send_layout import SendLayout
 from gwsproto.named_types.send_snap import SendSnap
 from gwsproto.named_types.set_lwt_control_params import SetLwtControlParams
@@ -150,6 +153,7 @@ __all__ = [
     "MarketMakerAck",
     "MachineStates",
     "MicroVolts",
+    "FloNextHourPlans",
     "MultichannelSnapshot",
     "NewCommandTree",
     "NoNewContractWarning",
@@ -171,7 +175,9 @@ __all__ = [
     "RESTPollerComponentGt",
     "SlowContractHeartbeat",
     "SlowDispatchContract",
+    "ScadaControlCapabilities",
     "ScadaParams",
+    "SendControlCapabilities",
     "SendLayout",
     "SendSnap",
     "SetLwtControlParams",
