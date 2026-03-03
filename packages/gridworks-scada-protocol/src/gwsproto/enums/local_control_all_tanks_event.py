@@ -4,7 +4,7 @@ from gwsproto.enums.gw_str_enum import AslEnum
 
 
 class LocalControlAllTanksEvent(AslEnum):
-    """ASL: https://schemas.electricity.works/enums/gw1.local.control.all.tanks.event/000"""
+    """ASL: https://schemas.electricity.works/enums/gw1.local.control.all.tanks.event/001"""
 
     WakeUp = auto()
     OnPeakStart = auto()
@@ -35,5 +35,5 @@ class LocalControlAllTanksEvent(AslEnum):
 
     @classmethod
     def version(cls) -> str:
-        return "000"
+        return "001"
     

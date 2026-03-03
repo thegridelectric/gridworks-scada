@@ -18,4 +18,4 @@ def test_leaf_ally_buffer_only_event() -> None:
 
     assert  LeafAllyAllTanksEvent.default() ==  LeafAllyAllTanksEvent.GoDormant
     assert  LeafAllyAllTanksEvent.enum_name() == "gw1.leaf.ally.all.tanks.event"
-    assert  LeafAllyAllTanksEvent.enum_version() == "000"
+    assert  LeafAllyAllTanksEvent.enum_version() == "001"
