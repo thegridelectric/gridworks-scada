@@ -61,6 +61,7 @@ class AllTanksLeafAlly(ShNodeActor):
         {"trigger": "ElecBufferFull", "source": "HpOffStoreOff", "dest": "HpOnStoreOff"},
         # 4 Starting at: Hp off, Store discharging ==== Storage -> buffer
         {"trigger": "NoElecBufferFull", "source": "HpOffStoreDischarge", "dest": "HpOffStoreOff"},
+        {"trigger": "NoElecStorageColderThanBuffer", "source": "HpOffStoreDischarge", "dest": "HpOffStoreOff"},
         {"trigger": "ElecBufferEmpty", "source": "HpOffStoreDischarge", "dest": "HpOnStoreOff"},
         {"trigger": "ElecBufferFull", "source": "HpOffStoreDischarge", "dest": "HpOnStoreOff"},
         # 5 Oil boiler on during onpeak
@@ -278,7 +279,7 @@ class AllTanksLeafAlly(ShNodeActor):
                     if self.hp_should_be_off():
                         if (
                             self.is_buffer_empty(all_tanks_leaf_ally=True)
-                            and not self.is_storage_colder_than_buffer()
+                            and not self.is_storage_colder_than_buffer(all_tanks_leaf_ally=True)
                         ):
                             self.trigger_event(LeafAllyAllTanksEvent.NoElecBufferEmpty)
                         else:
@@ -368,7 +369,7 @@ class AllTanksLeafAlly(ShNodeActor):
                 if self.hp_should_be_off():
                     if (
                         self.is_buffer_full()
-                        or self.is_storage_colder_than_buffer()
+                        or self.is_storage_colder_than_buffer(all_tanks_leaf_ally=True)
                     ):
                         self.trigger_event(LeafAllyAllTanksEvent.NoElecBufferFull)
                 else:
