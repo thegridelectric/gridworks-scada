@@ -173,6 +173,13 @@ class AllTanksLeafAlly(ShNodeActor):
         self.log("Processing SlowDispatchContract!")
         if from_node != self.primary_scada:
             raise Exception("contract should come from scada!")
+
+        if self.is_system_cold():
+            self.log("Cannot wake up - system is cold")
+            self._send_to(
+                self.primary_scada,
+                AllyGivesUp(Reason="System is cold, not entering DispatchContracts"))
+            return
         
         if self.settings.system_mode != SystemMode.Heating:
             self.log("Cannot wake up - in standby mode")
