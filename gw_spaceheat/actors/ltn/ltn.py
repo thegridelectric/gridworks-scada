@@ -1158,7 +1158,7 @@ class Ltn(PrimeActor):
             gamma = self.ha1_params.GammaEx6 / 1e6
             oat = float(self.weather_forecast["oat"][0])
             ws = float(self.weather_forecast["ws"][0])
-            r = alpha + beta*oat + gamma*ws
+            r = alpha + beta*oat + gamma*ws*(65-oat)
             rhp= r if r>0 else 0
             intermediate_rswt = self.ha1_params.IntermediateRswtF
             dd_rswt = self.ha1_params.DdRswtF
