@@ -48,6 +48,7 @@ from gwsproto.enums.local_control_standby_top_state import LocalControlStandbyTo
 from gwsproto.enums.local_control_top_state import LocalControlTopState
 from gwsproto.enums.local_control_top_event import LocalControlTopEvent
 from gwsproto.enums.gpio_sense_mode import GpioSenseMode
+from gwsproto.enums.gw_quantity import GwQuantity
 from gwsproto.enums.gw_unit import GwUnit
 from gwsproto.enums.hp_model import HpModel
 from gwsproto.enums.hp_loop_keep_send import HpLoopKeepSend
@@ -96,6 +97,7 @@ __all__ = [
     "FsmReportType",
     "GpioSenseMode",
     "GpmFromHzMethod",
+    "GwQuantity",
     "GwUnit",
     "HeatCallInterpretation",
     "HeatcallSource",

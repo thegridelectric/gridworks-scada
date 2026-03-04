@@ -399,6 +399,7 @@
       "Id": "23bf86b8-266a-4244-9b72-914179ab85aa",
       "Name": "usable-energy",
       "OutputUnit": "WattHours",
+      "OutputQuantity": "Energy",
       "Strategy": "system-model",
       "EmissionMethod": "Periodic",
       "EmitPeriodS": 60,
@@ -411,7 +412,7 @@
       "InputChannelNames": [],
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "CreatedByNodeName": "derived-generator",
@@ -419,6 +420,7 @@
       "Id": "26c5f643-96cc-4ede-b958-75d626790c01",
       "Name": "required-energy",
       "OutputUnit": "WattHours",
+      "OutputQuantity": "Energy",
       "Strategy": "system-model",
       "EmissionMethod": "Periodic",
       "EmitPeriodS": 60,
@@ -439,12 +441,13 @@
       "Id": "e9e383c7-b9b4-4583-8992-1bd800190bc9",
       "Name": "buffer-depth1",
       "OutputUnit": "FahrenheitX100",
+      "OutputQuantity": "Temperature",
       "Strategy": "identity",
       "EmissionMethod": "OnTrigger",
       "InputChannelNames": ["buffer-depth1-device"],
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "CreatedByNodeName": "derived-generator",
@@ -452,12 +455,13 @@
       "Id": "bd8f88b0-bf92-4133-a98d-bc51b75effbe",
       "Name": "buffer-depth2",
       "OutputUnit": "FahrenheitX100",
+      "OutputQuantity": "Temperature",
       "Strategy": "identity",
       "EmissionMethod": "OnTrigger",
       "InputChannelNames": ["buffer-depth2-device"],
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "CreatedByNodeName": "derived-generator",
@@ -465,11 +469,12 @@
       "Id": "9361490f-8286-4263-88d0-501ee6a7278b",
       "Name": "buffer-depth3",
       "OutputUnit": "FahrenheitX100",
+      "OutputQuantity": "Temperature",
       "Strategy": "affine",
       "Parameters": { 
         "Calibration": {
           "M": 1.0,
-          "B": 0.0,
+          "B": 0.2,
           "TypeName": "linear.one.dimensional.calibration",
           "Version": "000"
         }
@@ -478,7 +483,7 @@
       "InputChannelNames": ["buffer-depth3-device"],
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "CreatedByNodeName": "derived-generator",
@@ -486,12 +491,13 @@
       "Id": "91061a8a-7f9e-42a6-b8dd-53612d146777",
       "Name": "tank1-depth1",
       "OutputUnit": "FahrenheitX100",
+      "OutputQuantity": "Temperature",
       "Strategy": "identity",
       "EmissionMethod": "OnTrigger",
       "InputChannelNames": ["tank1-depth1-device"],
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "CreatedByNodeName": "derived-generator",
@@ -499,12 +505,13 @@
       "Id": "17db3a70-71c8-4565-8fa0-7cc6ae38da06",
       "Name": "tank1-depth2",
       "OutputUnit": "FahrenheitX100",
+      "OutputQuantity": "Temperature",
       "Strategy": "identity",
       "EmissionMethod": "OnTrigger",
-      "InputChannelNames": ["tank1-depth1-device"],
+      "InputChannelNames": ["tank1-depth2-device"],
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "CreatedByNodeName": "derived-generator",
@@ -512,12 +519,13 @@
       "Id": "976b0878-f9eb-47e1-9cb4-6cdd7eed7f2a",
       "Name": "tank1-depth3",
       "OutputUnit": "FahrenheitX100",
+      "OutputQuantity": "Temperature",
       "Strategy": "identity",
       "EmissionMethod": "OnTrigger",
-      "InputChannelNames": ["tank1-depth1-device"],
+      "InputChannelNames": ["tank1-depth3-device"],
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     }
   ],
   "ElectricMeterCacs": [
@@ -1714,35 +1722,8 @@
     }
   ],
   "Strategy": "House0",
-  "SynthChannels": [],
   "TotalStoreTanks": 1,
   "UseSiegLoop": false,
-  "TankTempCalibrationMap": {
-      "Buffer": {
-        "Depth1B": 0.0,
-        "Depth1M": 1.0,
-        "Depth2B": 0.0,
-        "Depth2M": 1.0,
-        "Depth3B": 0.0,
-        "Depth3M": 1.0,
-        "TypeName": "gw1.tank.temp.calibration",
-        "Version": "000"
-      },
-      "Tank": {
-        "1": {
-        "Depth1B": 0.0,
-        "Depth1M": 1.0,
-        "Depth2B": 0.0,
-        "Depth2M": 1.0,
-        "Depth3B": 0.0,
-        "Depth3M": 1.0,
-        "TypeName": "gw1.tank.temp.calibration",
-        "Version": "000"
-      }
-      },
-      "TypeName": "gw1.tank.temp.calibration.map",
-      "Version": "000"
-  },
   "ZoneKwhPerDegFList": [
     1
   ],

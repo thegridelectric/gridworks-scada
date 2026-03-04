@@ -8,18 +8,19 @@ from gwsproto.property_format import (
     UUID4Str,
 )
 
-from gwsproto.enums import GwUnit, EmissionMethod
-
+from gwsproto.enums import GwUnit, GwQuantity, EmissionMethod
+from gwsproto.named_types.unit_quantity_projection import UnitQuantityProjection
 
 class DerivedChannelGt(BaseModel):
-    """Sema: https://schemas.electricity.works/types/derived.channel.gt/001"""
+    """Sema: https://schemas.electricity.works/types/derived.channel.gt/002"""
 
     Id: UUID4Str
     Name: SpaceheatName
     CreatedByNodeName: SpaceheatName
     Strategy: SpaceheatName
     InputChannelNames: list[SpaceheatName]
-    OutputUnit: GwUnit | None = None
+    OutputUnit: GwUnit
+    OutputQuantity: GwQuantity
     EmissionMethod: EmissionMethod
     AsyncEmitDelta: PositiveInt | None = None
     EmitPeriodS: PositiveInt | None = None
@@ -27,7 +28,7 @@ class DerivedChannelGt(BaseModel):
     DisplayName: str
     TerminalAssetAlias: LeftRightDotStr
     TypeName: Literal["derived.channel.gt"] = "derived.channel.gt"
-    Version: Literal["001"] = "001"
+    Version: Literal["002"] = "002"
 
 
     @model_validator(mode="after")
@@ -76,5 +77,28 @@ class DerivedChannelGt(BaseModel):
                 raise ValueError(
                     f"Unknown EmissionMethod {method}"
                 )
+
+        return self
+
+    
+    @model_validator(mode="after")
+    def check_axiom_2(self) -> Self:
+        """
+        Axiom 2: OutputUnitQuantityConsistency
+
+        OutputQuantity SHALL equal the Quantity defined by the canonical
+        gw1.unit.quantity.projection/000 instance for the specified OutputUnit.
+        """
+        try:
+            UnitQuantityProjection(
+                Unit=self.OutputUnit,
+                Quantity=self.OutputQuantity,
+            )
+        except Exception as e:
+            raise ValueError(
+                f"OutputUnit {self.OutputUnit} and "
+                f"OutputQuantity {self.OutputQuantity} "
+                f"do not form a valid gw1.unit.quantity.projection"
+            ) from e
 
         return self

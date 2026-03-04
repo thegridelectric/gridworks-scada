@@ -16,6 +16,22 @@ class UnitQuantityProjection(BaseModel):
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
+        """
+        Axiom 1: Enumerated ProjectMapping
+        For version 000, the projection is defined exhaustively as follows:
+
+        Unknown → Unknown
+          Unitless → Unitless
+          FahrenheitX100 → Temperature
+          Watts → Power
+          WattHours → Energy
+          Gallons → Volume
+          GpmX100 → FlowRate
+          Seconds → Time
+          SecondsX10 → Time
+
+        Any other combination SHALL be invalid.
+        """
         valid_pairs = {
             GwUnit.Unknown: GwQuantity.Unknown,
             GwUnit.Unitless: GwQuantity.Unitless,
@@ -24,6 +40,8 @@ class UnitQuantityProjection(BaseModel):
             GwUnit.WattHours: GwQuantity.Energy,
             GwUnit.Gallons: GwQuantity.Volume,
             GwUnit.GpmX100: GwQuantity.FlowRate,
+            GwUnit.Seconds: GwQuantity.Time,
+            GwUnit.SecondsX10: GwQuantity.Time,
         }
 
         if valid_pairs.get(self.Unit) != self.Quantity:

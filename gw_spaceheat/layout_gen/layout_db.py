@@ -19,10 +19,10 @@ from gwsproto.named_types import ElectricMeterChannelConfig
 from gwsproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwsproto.data_classes.house_0_names import H0N, H0CN
 from gwsproto.enums import (
-    ActorClass, FlowManifoldVariant, GwUnit, MakeModel,
+    ActorClass, EmissionMethod, FlowManifoldVariant, GwUnit, GwQuantity, MakeModel,
     TelemetryName, Unit,
 )
-from gwsproto.named_types import DerivedChannelGt, TankTempCalibration, TankTempCalibrationMap
+from gwsproto.named_types import DerivedChannelGt, UsableEnergyLayered, RequiredEnergyLayered
 
 
 @dataclass
@@ -196,8 +196,6 @@ class LayoutDb:
         existing_layout: LayoutIDMap | None = None,
         add_stubs: bool = False,
         stub_config: Optional[StubConfig] = None,
-        *,
-        tmap: TankTempCalibrationMap | None = None,
     ):
         self.lists: dict[
             str,
@@ -226,7 +224,7 @@ class LayoutDb:
         self.maps = LayoutIDMap()
 
         if add_stubs:
-            self.add_stubs(stub_config,tmap=tmap)
+            self.add_stubs(stub_config)
     
     @property
     def terminal_asset_alias(self):
@@ -485,28 +483,7 @@ class LayoutDb:
     def add_stub_scadas(
             self,
             cfg: Optional[StubConfig] = None,
-            *,
-            tmap: TankTempCalibrationMap | None = None,
         ):
-        if tmap is None:
-            tmap = TankTempCalibrationMap(
-                Buffer=TankTempCalibration(),
-                Tank={
-                    i: TankTempCalibration()
-                    for i in range(1, self.loaded.total_store_tanks + 1)
-                },
-            )
-        else:
-            expected = self.loaded.total_store_tanks
-            actual = len(tmap.Tank)
-
-            if actual != expected:
-                raise ValueError(
-                    "TankTempCalibrationMap mismatch with layout: "
-                    f"layout has {expected} tanks, "
-                    f"but calibration map has {actual}"
-                )
-
         if cfg is None:
             cfg = StubConfig()
         if self.loaded.gnodes:
@@ -613,7 +590,6 @@ class LayoutDb:
                     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.derived_generator}",
                     ActorClass=ActorClass.DerivedGenerator,
                     DisplayName="Derived Generator",
-                    TankTempCalibrationMap=tmap
                 ),
                 SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.local_control),
@@ -669,15 +645,21 @@ class LayoutDb:
                 ),
                 ]
             )
-
+            EmissionMethod.AsyncAndPeriodic
             self.add_derived_channels(
                 [DerivedChannelGt(
                 Id = self.make_derived_channel_id(H0CN.hp_keep_seconds_x_10),
                 Name = H0CN.hp_keep_seconds_x_10,
                 CreatedByNodeName = H0N.sieg_loop,
+                InputChannelNames=[],
+                OutputUnit=GwUnit.SecondsX10,
+                OutputQuantity=GwQuantity.Time,
+                EmissionMethod=EmissionMethod.AsyncAndPeriodic,
+                EmitPeriodS=300,
+                AsyncEmitDelta=5,
                 TerminalAssetAlias = self.terminal_asset_alias,
-                Strategy = "Integrate relay motion",
-                DisplayName = "Percent keep in the Siegenthaler loop",
+                Strategy = "integrate-relay-motion",
+                DisplayName = "Seconds of keep Siegenthaler loop",
                 )
             ]
             )
@@ -689,19 +671,33 @@ class LayoutDb:
             DerivedChannelGt(
                 Id = self.make_derived_channel_id(H0CN.usable_energy),
                 Name = H0CN.usable_energy,
-                CreatedByNodeName = H0N.derived_generator,
+                CreatedByNodeName=H0N.derived_generator,
+                InputChannelNames=[],
                 OutputUnit=GwUnit.WattHours,
-                TerminalAssetAlias = self.terminal_asset_alias,
-                Strategy = "layer-by-layer",
-                DisplayName = "Usable Energy Wh",
+                OutputQuantity=GwQuantity.Energy,
+                TerminalAssetAlias=self.terminal_asset_alias,
+                Strategy="system-model",
+                EmissionMethod=EmissionMethod.Periodic,
+                EmitPeriodS=60,
+                Parameters={
+                    "EnergyModel": UsableEnergyLayered().model_dump()
+                },
+                DisplayName="Usable Energy Wh",
                 ),
             DerivedChannelGt(
                 Id = self.make_derived_channel_id(H0CN.required_energy),
                 Name = H0CN.required_energy,
                 CreatedByNodeName = H0N.derived_generator,
+                InputChannelNames=[],
                 OutputUnit=GwUnit.WattHours,
+                OutputQuantity=GwQuantity.Energy,
                 TerminalAssetAlias = self.terminal_asset_alias,
-                Strategy = "layer-by-layer",
+                EmissionMethod=EmissionMethod.Periodic,
+                EmitPeriodS=60,
+                Strategy = "system-model",
+                Parameters={
+                    "EnergyModel": RequiredEnergyLayered().model_dump()
+                },
                 DisplayName = "Required Energy Wh",
                 ),
             ]
@@ -724,12 +720,10 @@ class LayoutDb:
         self.add_derived_channels(channels)
 
     def add_stubs(self, 
-                  cfg: Optional[StubConfig] = None,
-                  *,
-                  tmap: TankTempCalibrationMap | None = None):
+                  cfg: Optional[StubConfig] = None,):
         if cfg is None:
             cfg = StubConfig()
-        self.add_stub_scadas(cfg, tmap=tmap)
+        self.add_stub_scadas(cfg)
         if cfg.add_stub_power_meter:
             self.add_stub_power_meter(cfg)
         
