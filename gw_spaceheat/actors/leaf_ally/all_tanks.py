@@ -61,6 +61,7 @@ class AllTanksLeafAlly(ShNodeActor):
         {"trigger": "ElecBufferFull", "source": "HpOffStoreOff", "dest": "HpOnStoreOff"},
         # 4 Starting at: Hp off, Store discharging ==== Storage -> buffer
         {"trigger": "NoElecBufferFull", "source": "HpOffStoreDischarge", "dest": "HpOffStoreOff"},
+        {"trigger": "NoElecStorageColderThanBuffer", "source": "HpOffStoreDischarge", "dest": "HpOffStoreOff"},
         {"trigger": "ElecBufferEmpty", "source": "HpOffStoreDischarge", "dest": "HpOnStoreOff"},
         {"trigger": "ElecBufferFull", "source": "HpOffStoreDischarge", "dest": "HpOnStoreOff"},
         # 5 Oil boiler on during onpeak
