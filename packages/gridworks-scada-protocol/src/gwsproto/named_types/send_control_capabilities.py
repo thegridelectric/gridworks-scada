@@ -5,8 +5,8 @@ from pydantic import BaseModel
 from gwsproto.property_format import LeftRightDotStr, UTCMilliseconds
 
 
-class SendLayout(BaseModel):
+class SendControlCapabilities(BaseModel):
     FromGNodeAlias: LeftRightDotStr
     MessageCreatedMs: UTCMilliseconds
-    TypeName: Literal["send.layout"] = "send.layout"
-    Version: Literal["001"] = "001"
+    TypeName: Literal["send.control.capabilities"] = "send.control.capabilities"
+    Version: Literal["000"] = "000"

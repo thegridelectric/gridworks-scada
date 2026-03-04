@@ -1,4 +1,5 @@
 import asyncio
+import time
 import logging
 import threading
 from dataclasses import dataclass
@@ -26,7 +27,7 @@ from gwadmin.watch.clients.constrained_mqtt_client import ConstrainedMQTTClient
 from gwadmin.watch.clients.constrained_mqtt_client import MessageReceivedCallback
 from gwadmin.watch.clients.constrained_mqtt_client import MQTTClientCallbacks
 from gwadmin.watch.clients.constrained_mqtt_client import StateChangeCallback
-from gwsproto.named_types import LayoutLite, SendLayout, SnapshotSpaceheat
+from gwsproto.named_types import ScadaControlCapabilities, SendControlCapabilities, SnapshotSpaceheat
 
 module_logger = logging.getLogger(__name__)
 
@@ -59,7 +60,7 @@ class AdminSubClient:
     def set_admin_client(self, client: "AdminClient") -> None:
         ...
 
-    def process_layout_lite(self, layout: LayoutLite) -> None:
+    def process_scada_control_capabilities(self, scada_control_capabilities: ScadaControlCapabilities) -> None:
         ...
 
     def process_snapshot(self, snapshot: SnapshotSpaceheat) -> None:
@@ -82,7 +83,7 @@ class AdminClient:
     _subclients: list[AdminSubClient]
     _callbacks: AdminClientCallbacks
     _logger: Logger | logging.LoggerAdapter[Logger] = module_logger
-    _layout: Optional[LayoutLite] = None
+    _ctrl_capabilities: Optional[ScadaControlCapabilities] = None
     _snap: Optional[SnapshotSpaceheat] = None
     _init_task: Optional[asyncio.Task] = None
 
@@ -151,13 +152,13 @@ class AdminClient:
         subclient.set_admin_client(self)
         with self._lock:
             self._subclients.append(subclient)
-        if self._layout is not None:
-            subclient.process_layout_lite(self._layout)
+        if self._ctrl_capabilities is not None:
+            subclient.process_scada_control_capabilities(self._ctrl_capabilities)
         if self._snap is not None:
             subclient.process_snapshot(self._snap)
 
-    def layout_received(self) -> bool:
-        return self._layout is not None
+    def ctrl_capabilities_received(self) -> bool:
+        return self._ctrl_capabilities is not None
 
     def snapshot_received(self) -> bool:
         return self._snap is not None
@@ -165,12 +166,12 @@ class AdminClient:
     async def _ensure_init(self) -> None:
         while (
             self._paho_wrapper.started()
-            and self._layout is None
+            and self._ctrl_capabilities is None
             and self._snap is None
         ):
             await asyncio.sleep(60)
-            if self._layout is None:
-                self._request_layout_lite()
+            if self._ctrl_capabilities is None:
+                self._request_ctrl_capabilities()
             elif self._snap is None:  # noqa
                 self._request_snapshot()  # noqa
 
@@ -182,7 +183,7 @@ class AdminClient:
         if self._init_task is not None and not self._init_task.cancelled():
             self._init_task.cancel()
         self._init_task = None
-        self._layout = None
+        self._ctrl_capabilities = None
         self._snap = None
         self._paho_wrapper.stop()
 
@@ -227,12 +228,11 @@ class AdminClient:
             message.model_dump_json(indent=2).encode()
         )
 
-    def _request_layout_lite(self) -> None:
+    def _request_ctrl_capabilities(self) -> None:
         self.publish(
-            SendLayout(
+            SendControlCapabilities(
                 FromGNodeAlias=H0N.admin,
-                FromName=H0N.admin,
-                ToName=H0N.primary_scada,
+                MessageCreatedMs=int(time.time() * 1000)
             )
         )
 
@@ -242,7 +242,7 @@ class AdminClient:
     def _mqtt_state_changed(self, old_state: str, new_state: str) -> None:
         try:
             if new_state == ConstrainedMQTTClient.States.active:
-                self._request_layout_lite()
+                self._request_ctrl_capabilities()
             for subclient in self._subclients:
                 subclient.process_mqtt_state_changed(old_state, new_state)
             if self._callbacks.mqtt_state_change_callback:
@@ -253,18 +253,17 @@ class AdminClient:
                 old_state, new_state, type(e), e,
             )
 
-    def _process_layout_lite(self, payload: bytes) -> None:
-        message = Message[LayoutLite].model_validate_json(payload)
+    def _process_scada_control_capabilities(self, payload: bytes) -> None:
+        message = Message[ScadaControlCapabilities].model_validate_json(payload)
         self._logger.info(
-            "LayoutLite received: %s (channels=%d, derived=%d)",
+            "ScadaControlCapabilities received: %s (channels=%d)",
             message.Payload.FromGNodeAlias,
-            len(message.Payload.DataChannels),
-            len(message.Payload.DerivedChannels),
+            len(message.Payload.ControlChannels),
         )
-        self._layout = message.Payload
+        self._ctrl_capabilities = message.Payload
         self._request_snapshot()
         for subclient in self.subclients():
-            subclient.process_layout_lite(self._layout)
+            subclient.process_scada_control_capabilities(self._ctrl_capabilities)
 
     def _process_snapshot(self, payload: bytes) -> None:
         # self._logger.debug("++AdminClient._process_snapshot")
@@ -286,9 +285,9 @@ class AdminClient:
         self._logger.debug("++AdminClient._mqtt_message_received  <%s>", topic)
         try:
             decoded_topic = MQTTTopic.decode(topic)
-            if decoded_topic.message_type == type_name(LayoutLite):
+            if decoded_topic.message_type == type_name(ScadaControlCapabilities):
                 path_dbg |= 0x00000001
-                self._process_layout_lite(payload)
+                self._process_scada_control_capabilities(payload)
             elif decoded_topic.message_type == type_name(SnapshotSpaceheat):
                 path_dbg |= 0x00000002
                 self._process_snapshot(payload)

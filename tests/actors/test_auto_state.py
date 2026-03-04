@@ -10,7 +10,7 @@ from tests.utils.scada_live_test_helper import ScadaLiveTest
 
 
 @pytest.mark.asyncio
-async def test_auto_state_home_alone_to_ltn(request: pytest.FixtureRequest) -> None:
+async def test_auto_state_local_to_ltn(request: pytest.FixtureRequest) -> None:
     """Test that auto_state transitions from LocalControl to Ltn when a SlowDispatchContract starts."""
     
     async with ScadaLiveTest(

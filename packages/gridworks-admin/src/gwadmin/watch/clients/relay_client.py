@@ -15,8 +15,8 @@ from typing import Sequence
 from gwproto import Message as GWMessage
 from gwproto import MQTTTopic
 from gwsproto.data_classes.house_0_names import H0N
-from gwsproto.enums import ActorClass, ChangeRelayPin
-
+from gwsproto.enums import ChangeRelayPin
+from gwsproto.property_format import SpaceheatName
 
 from gwsproto.named_types import SingleReading
 from pydantic import BaseModel
@@ -28,19 +28,19 @@ from gwadmin.watch.clients.admin_client import AdminSubClient
 from gwadmin.watch.clients.constrained_mqtt_client import MessageReceivedCallback
 from gwadmin.watch.clients.constrained_mqtt_client import StateChangeCallback
 from gwsproto.named_types import (AdminDispatch,  AdminKeepAlive, AdminReleaseControl,
-                         FsmEvent, LayoutLite, SnapshotSpaceheat)
+                        ScadaControlCapabilities, FsmEvent, SnapshotSpaceheat)
 from gwsproto.enums import TurnHpOnOff
 
 module_logger = logging.getLogger(__name__)
 
 class RelayConfig(BaseModel):
-    about_node_name: str = ""
-    channel_name: str = ""
-    event_type: str = ""
-    energizing_event: str = ""
-    de_energizing_event: str = ""
-    energized_state: str = ""
-    deenergized_state: str = ""
+    about_node_name: SpaceheatName
+    channel_name: SpaceheatName
+    event_type: str
+    energizing_event: str
+    de_energizing_event: str
+    energized_state: str
+    deenergized_state: str
 
 class RelayEnergized(StrEnum):
     deenergized = auto()
@@ -48,7 +48,7 @@ class RelayEnergized(StrEnum):
 
 class RelayState(BaseModel):
     value: RelayEnergized
-    time: datetime.datetime
+    time: int # unix ms
 
 class RelayInfo(BaseModel):
     config: RelayConfig
@@ -67,7 +67,7 @@ class ObservedRelayStateChange(BaseModel):
         return self
 
 RelayStateChangeCallback = Callable[[dict[str, ObservedRelayStateChange]], None]
-LayoutCallback = Callable[[LayoutLite], None]
+CtrlCapabilitiesCallback = Callable[[ScadaControlCapabilities], None]
 SnapshotCallback = Callable[[SnapshotSpaceheat], None]
 
 class RelayConfigChange(BaseModel):
@@ -106,8 +106,8 @@ class RelayClientCallbacks:
     """Hook for user. Called when a relay config change is observed. 
     Called from Paho thread. Must be threadsafe."""
 
-    layout_callback: Optional[LayoutCallback] = None
-    """Hook for user. Called when a layout received. Called from Paho thread. 
+    ctrl_capabilities_callback: Optional[CtrlCapabilitiesCallback] = None
+    """Hook for user. Called when ScadaControlCapabilities received. Called from Paho thread. 
     Must be threadsafe."""
 
     snapshot_callback: Optional[SnapshotCallback] = None
@@ -116,12 +116,11 @@ class RelayClientCallbacks:
 
 class RelayWatchClient(AdminSubClient):
     _lock: threading.RLock
-    _relays: dict[str, RelayInfo]
-    _channel2node: dict[str, str]
-    _pass_all_message: bool = False
+    _relays: dict[SpaceheatName, RelayInfo]
+    _channel2node: dict[SpaceheatName, SpaceheatName]
     _admin_client: AdminClient
     _callbacks: RelayClientCallbacks
-    _layout: Optional[LayoutLite] = None
+    _ctrl_capabilities: ScadaControlCapabilities | None = None
     _snap: Optional[SnapshotSpaceheat] = None
     _logger: Logger | logging.LoggerAdapter[Logger] = module_logger
 
@@ -137,7 +136,6 @@ class RelayWatchClient(AdminSubClient):
         self._logger = logger
         self._relays = {}
         self._channel2node = {}
-        self._pass_all_message = pass_all_messages
 
     def set_admin_client(self, client: AdminClient) -> None:
         self._admin_client = client
@@ -151,10 +149,10 @@ class RelayWatchClient(AdminSubClient):
         self._callbacks = callbacks
 
     @classmethod
-    def _get_relay_configs(cls, layout: LayoutLite) -> dict[str, RelayConfig]:
-        relay_node_names = {node.Name for node in layout.ShNodes if node.ActorClass == ActorClass.Relay}
-        relay_channels = {channel.AboutNodeName: channel for channel in layout.DataChannels if channel.AboutNodeName in relay_node_names}
-        relay_actor_configs = {config.ActorName: config for config in layout.I2cRelayComponent.ConfigList}
+    def _get_relay_configs(cls, ctrl_capabilities: ScadaControlCapabilities) -> dict[str, RelayConfig]:
+        relay_node_names = {node.Name for node in ctrl_capabilities.RelayNodes}
+        relay_channels = {channel.AboutNodeName: channel for channel in ctrl_capabilities.ControlChannels if channel.AboutNodeName in relay_node_names}
+        relay_actor_configs = {config.ActorName: config for config in ctrl_capabilities.I2cRelayComponent.ConfigList}
         return {
             node_name : RelayConfig(
                 about_node_name=node_name,
@@ -167,10 +165,10 @@ class RelayWatchClient(AdminSubClient):
             ) for node_name in relay_node_names
         }
 
-    def _update_layout(self, new_layout: LayoutLite) -> dict[str, RelayConfigChange]:
+    def _update_ctrl_capabilities(self, new_ctrl_capabilities: ScadaControlCapabilities) -> dict[SpaceheatName, RelayConfigChange]:
         with self._lock:
-            self._layout = new_layout.model_copy()
-            new_relay_configs = self._get_relay_configs(self._layout)
+            self._ctrl_capabilities = new_ctrl_capabilities.model_copy()
+            new_relay_configs = self._get_relay_configs(self._ctrl_capabilities)
             old_relay_names = set(self._relays.keys())
             new_relay_names = set(new_relay_configs.keys())
             changed_configs = {}
@@ -202,12 +200,12 @@ class RelayWatchClient(AdminSubClient):
                 }
         return changed_configs
 
-    def process_layout_lite(self, layout: LayoutLite) -> None:
-        config_changes = self._update_layout(layout)
+    def process_scada_control_capabilities(self, ctrl_capabilities: ScadaControlCapabilities) -> None:
+        config_changes = self._update_ctrl_capabilities(ctrl_capabilities)
         if config_changes and self._callbacks.relay_config_change_callback is not None:
             self._callbacks.relay_config_change_callback(config_changes)
-        if self._callbacks.layout_callback is not None:
-            self._callbacks.layout_callback(layout)
+        if self._callbacks.ctrl_capabilities_callback is not None:
+            self._callbacks.ctrl_capabilities_callback(ctrl_capabilities)
         if self._snap is not None:
            self._process_snapshot(self._snap)
 
@@ -248,7 +246,7 @@ class RelayWatchClient(AdminSubClient):
         return states
 
     def _process_single_reading(self, payload: bytes) -> None:
-        if self._layout is not None:
+        if self._ctrl_capabilities is not None:
             self._handle_new_relay_states(
                 self._extract_relay_states(
                     [GWMessage[SingleReading].model_validate_json(payload).Payload]
@@ -265,7 +263,7 @@ class RelayWatchClient(AdminSubClient):
         # self._logger.debug("--RelayWatchClient.process_snapshot  path:0x%08X", path_dbg)
 
     def _process_snapshot(self, snapshot: SnapshotSpaceheat) -> None:
-        if self._layout is not None:
+        if self._ctrl_capabilities is not None:
             self._handle_new_relay_states(
                 self._extract_relay_states(snapshot.LatestReadingList)
             )
@@ -282,7 +280,7 @@ class RelayWatchClient(AdminSubClient):
             self._callbacks.mqtt_message_received_callback(topic, payload)
 
     def scada_selection_reset(self) -> None:
-        self._layout = None
+        self._ctrl_capabilities = None
         self._snap = None
         with self._lock:
             removed_relays = self._relays

@@ -48,10 +48,12 @@ from gwsproto.data_classes.components.web_server_component import WebServerCompo
 from gwsproto.enums import (LeafAllyBufferOnlyState,  LeafAllyAllTanksState,
                             SlowDispatchContractStatus, LocalControlTopState,
                    MainAutoEvent, MainAutoState, SeasonalStorageMode,  TopState)
+
+from gwsproto.named_types.scada_control_capabilities import ControlNode, ControlChannel
 from gwsproto.named_types import ( ActuatorsReady, FsmEvent,
     AdminDispatch, AdminAnalogDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
-    Glitch, GoDormant, LayoutLite, NewCommandTree, NoNewContractWarning, ResetHpKeepValue,
-    ScadaParams, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment,
+    Glitch, GoDormant, LayoutLite, NewCommandTree, NoNewContractWarning, ResetHpKeepValue, ScadaControlCapabilities,
+    ScadaParams, SendControlCapabilities, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment,
     SiegTargetTooLow, SingleMachineState,SlowContractHeartbeat, SuitUp, WakeUp,
 )
 
@@ -312,6 +314,11 @@ class Scada(PrimeActor, ScadaInterface):
                     self._send_to(self.derived_generator, payload)
                 except Exception as e:
                     self.log(f"Trouble with process_scada_params: \n {e}")
+            case SendControlCapabilities():
+                try:
+                    self._send_to(from_node, self.control_capabilities)
+                except Exception as e:
+                    self.log(f"Trouble with SendLayout: {e}")
             case SendLayout():
                 try:
                     self._send_to(from_node, self.layout_lite)
@@ -1572,6 +1579,48 @@ class Scada(PrimeActor, ScadaInterface):
     @property
     def data(self) -> ScadaData:
         return self._data
+
+    @property
+    def control_capabilities(self) -> ScadaControlCapabilities:
+        relay_nodes = [ 
+            ControlNode(
+                Name=node.Name,
+                ActorClass=node.ActorClass,
+                DisplayName=node.DisplayName
+            )
+            for node in self.layout.nodes.values()
+            if node.ActorClass == ActorClass.Relay
+        ]
+        dac_nodes = [
+            ControlNode(
+                Name=node.Name,
+                ActorClass=node.ActorClass,
+                DisplayName=node.DisplayName
+            )
+            for node in self.layout.nodes.values()
+            if node.ActorClass == ActorClass.ZeroTenOutputer
+        ]
+
+        relay_node_names = {n.Name for n in relay_nodes}
+        dac_node_names = {n.Name for n in dac_nodes}
+        control_node_names = relay_node_names | dac_node_names
+
+        ctrl_channels = [
+            ControlChannel(
+                Name=channel.Name,
+                AboutNodeName=channel.AboutNodeName,
+            )
+            for channel in self.layout.data_channels.values()
+            if channel.AboutNodeName in control_node_names
+        ]
+        return ScadaControlCapabilities(
+            FromGNodeAlias=self.layout.scada_g_node_alias,
+            MessageCreatedMs=int(time.time() * 1000),
+            RelayNodes = relay_nodes,
+            DacNodes=dac_nodes,
+            ControlChannels= ctrl_channels,
+            I2cRelayComponent=self.layout.node(H0N.relay_multiplexer).component.gt
+        )
 
     @property
     def layout_lite(self) -> LayoutLite:

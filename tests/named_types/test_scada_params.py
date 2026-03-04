@@ -17,14 +17,20 @@ def test_scada_params_generated() -> None:
             "DdPowerKw": 12.0,
             "DdRswtF": 160,
             "DdDeltaTF": 20,
-            "HpMaxKwTh": 6.0,
+            "HpMaxKwEl": 9.66,
             "MaxEwtF": 170,
             "LoadOverestimationPercent": 10,
+            "CopIntercept": 1.02,
+            "CopOatCoeff": 0.0257,
+            "CopLwtCoeff": 0,
+            "CopMin": 1.4,
+            "CopMinOatF": 15,
+            "HpTurnOnMinutes": 12,
             "TypeName": "ha1.params",
-            "Version": "004",
+            "Version": "005",
         },
         "TypeName": "scada.params",
-        "Version": "004",
+        "Version": "005",
     }
 
     d2 = ScadaParams.model_validate(d).model_dump(exclude_none=True)
