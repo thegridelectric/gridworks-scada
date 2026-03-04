@@ -173,7 +173,7 @@ class AllTanksLeafAlly(ShNodeActor):
         if from_node != self.primary_scada:
             raise Exception("contract should come from scada!")
 
-        if self.is_system_cold():
+        if self.is_system_cold() and self.is_buffer_empty() and self.is_storage_empty():
             self.log("Cannot wake up - system is cold")
             self._send_to(
                 self.primary_scada,
