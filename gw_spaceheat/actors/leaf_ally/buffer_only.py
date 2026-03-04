@@ -154,8 +154,8 @@ class BufferOnlyLeafAlly(ShNodeActor):
         if from_node != self.primary_scada:
             raise Exception("contract should come from scada!")
 
-        if self.is_system_cold():
-            self.log("Cannot wake up - system is cold")
+        if self.is_system_cold() and self.is_buffer_empty():
+            self.log("Cannot wake up - system is cold and buffer is empty")
             self._send_to(
                 self.primary_scada,
                 AllyGivesUp(Reason="System is cold, not entering DispatchContracts"))
