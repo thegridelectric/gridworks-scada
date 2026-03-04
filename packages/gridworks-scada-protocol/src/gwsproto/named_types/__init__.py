@@ -100,10 +100,12 @@ from gwsproto.named_types.synced_readings import SyncedReadings
 from gwsproto.named_types.tank_module_params import TankModuleParams
 from gwsproto.named_types.tank_temp_calibration import TankTempCalibration
 from gwsproto.named_types.tank_temp_calibration_map import TankTempCalibrationMap
+from gwsproto.named_types.telemetry_name_quantity_projection import TelemetryNameQuantityProjection
 from gwsproto.named_types.ticklist_hall import TicklistHall
 from gwsproto.named_types.ticklist_hall_report import TicklistHallReport
 from gwsproto.named_types.ticklist_reed import TicklistReed
 from gwsproto.named_types.ticklist_reed_report import TicklistReedReport
+from gwsproto.named_types.unit_quantity_projection import UnitQuantityProjection
 from gwsproto.named_types.usable_energy_layered import UsableEnergyLayered
 from gwsproto.named_types.wake_up import WakeUp
 from gwsproto.named_types.web_server_component_gt import WebServerComponentGt
@@ -210,10 +212,12 @@ __all__ = [
     "TankModuleParams",
     "TankTempCalibration",
     "TankTempCalibrationMap",
+    "TelemetryNameQuantityProjection",
     "TicklistHall",
     "TicklistHallReport",
     "TicklistReed",
     "TicklistReedReport",
+    "UnitQuantityProjection",
     "UsableEnergyLayered",
     "WakeUp",
     "WeatherForecast",

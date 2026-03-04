@@ -1,9 +1,9 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class MakeModel(AslEnum):
+class MakeModel(SemaEnum):
 
     UNKNOWNMAKE__UNKNOWNMODEL = auto()
     EGAUGE__4030 = auto()

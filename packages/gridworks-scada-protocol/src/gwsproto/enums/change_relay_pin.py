@@ -3,10 +3,10 @@
 #  - Sent as-is, not in hex symbol
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class ChangeRelayPin(AslEnum):
+class ChangeRelayPin(SemaEnum):
     """
     Clarifies the event request sent to an internal multiplexing actor regarding a single relay
     on a relay board (energize or de-energize).

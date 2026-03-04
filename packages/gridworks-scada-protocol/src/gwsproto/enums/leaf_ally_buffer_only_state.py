@@ -1,10 +1,10 @@
 from enum import auto
 from typing import List
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class LeafAllyBufferOnlyState(AslEnum):
+class LeafAllyBufferOnlyState(SemaEnum):
     """ASL: https://schemas.electricity.works/enums/gw1.leaf.ally.buffer.only.state/000"""
 
     Dormant = auto()

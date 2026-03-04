@@ -1,10 +1,10 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class GwUnit(AslEnum):
-    """Encoding used for Derived channels"""
+class GwUnit(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/gw1.unit/000"""
     Unknown = auto()
     Unitless = auto()
     FahrenheitX100 = auto()

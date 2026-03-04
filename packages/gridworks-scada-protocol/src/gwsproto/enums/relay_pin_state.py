@@ -1,9 +1,9 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class RelayPinState(AslEnum):
+class RelayPinState(SemaEnum):
     """ASL: https://schemas.electricity.works/enums/relay.pin.state/000"""
 
     Energized = auto()

@@ -1,9 +1,9 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class LocalControlAllTanksState(AslEnum):
+class LocalControlAllTanksState(SemaEnum):
     """ASL: https://schemas.electricity.works/enums/gw1.local.control.all.tanks.state/000"""
 
     Initializing = auto()

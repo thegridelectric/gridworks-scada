@@ -15,7 +15,7 @@ on these ideas:
   - [ASLs](https://gridwork-type-registry.readthedocs.io/en/latest/asls.html)
  """
 
-from gwsproto.enums.gw_str_enum import GwStrEnum, AslEnum
+from gwsproto.enums.gw_str_enum import GwStrEnum, SemaEnum
 from gwsproto.enums.actor_class import ActorClass
 from gwsproto.enums.aquastat_control import AquastatControl
 from gwsproto.enums.change_aquastat_control import ChangeAquastatControl
@@ -79,7 +79,7 @@ from gwsproto.enums.unit import Unit
 
 
 __all__ = [
-    "AslEnum",
+    "SemaEnum",
     "GwStrEnum",
     "ActorClass",
     "AquastatControl",

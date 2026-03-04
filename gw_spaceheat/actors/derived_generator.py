@@ -5,7 +5,7 @@ import asyncio
 import aiohttp
 import math
 import numpy as np
-from typing import Optional, Sequence
+from typing import Optional, Protocol, Sequence
 from result import Ok, Result
 from datetime import datetime,  timezone
 from gwproto import Message
@@ -22,7 +22,7 @@ from gwsproto.enums import (
     GwUnit, HeatCallInterpretation, 
     SystemMode, SeasonalStorageMode, TelemetryName
 )
-from gwsproto.data_classes.house_0_names import H0N, H0CN
+from gwsproto.data_classes.house_0_names import H0CN
 from gwsproto.named_types import (
     Ha1Params, HeatingForecast, LinearOneDimensionalCalibration,
     RequiredEnergyLayered, ScadaParams,
@@ -31,8 +31,6 @@ from gwsproto.named_types import (
 )
 from scada_app_interface import ScadaAppInterface
 
-from typing import Protocol, Optional
-from gwsproto.named_types import SingleReading
 
 class DerivedHandler(Protocol):
     def __call__(

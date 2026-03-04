@@ -1,9 +1,9 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class ActorClass(AslEnum):
+class ActorClass(SemaEnum):
     """ASL: https://schemas.electricity.works/enums/gw1.actor.class.010"""
 
     NoActor = auto()

@@ -3,7 +3,7 @@ import asyncio
 import time
 from typing import Dict, List, cast, Sequence, Optional
 
-from gwsproto.enums import AslEnum
+from gwsproto.enums import SemaEnum
 from gwproto.message import Message
 from gwsproto.data_classes.data_channel import DataChannel
 from gwproactor import  MonitoredName
@@ -88,8 +88,8 @@ class Relay(ShNodeActor):
         self.relay_multiplexer = self.layout.node(H0N.relay_multiplexer)
         self.reports_by_trigger = {}
         self.boss_by_trigger = {}
-        self.my_event_enum: type[AslEnum] = ChangeRelayState
-        self.my_state_enum: type[AslEnum] = RelayClosedOrOpen
+        self.my_event_enum: type[SemaEnum] = ChangeRelayState
+        self.my_state_enum: type[SemaEnum] = RelayClosedOrOpen
         self.initialize_fsm()
         self._stop_requested = False
         self.state = self.relay_actor_config.DeEnergizedState

@@ -431,7 +431,7 @@
       },
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "CreatedByNodeName": "derived-generator",

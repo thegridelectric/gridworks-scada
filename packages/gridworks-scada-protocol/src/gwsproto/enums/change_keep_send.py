@@ -4,10 +4,10 @@
 from enum import auto
 from typing import List
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class ChangeKeepSend(AslEnum):
+class ChangeKeepSend(SemaEnum):
     """
     HpLoop relay - change to send more or send less
     """

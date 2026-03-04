@@ -1,9 +1,9 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class EmissionMethod(AslEnum):
+class EmissionMethod(SemaEnum):
     """ASL: https://schemas.electricity.works/enums/gw1.emission.method/000"""
 
     OnTrigger = auto()

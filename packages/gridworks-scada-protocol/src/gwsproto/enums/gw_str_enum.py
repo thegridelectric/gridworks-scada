@@ -44,20 +44,20 @@ class GwStrEnum(StrEnum):
         return default
 
 
-class AslEnum(GwStrEnum):
+class SemaEnum(GwStrEnum):
     """
-    Base for enums published in the ASL registry.
+    Base for enums published in the Sema.
     Requires enum_name(). Version is optional (return None for stable enums).
     """
 
     @classmethod
     def enum_name(cls) -> str:
-        """ASL registry identifier (e.g., 'gw1.relay.state')"""
+        """Sema identifier (e.g., 'gw1.relay.state')"""
         raise NotImplementedError(
             f"{cls.__name__} must implement enum_name() for ASL registry"
         )
 
-class SymbolizedEnum(AslEnum):
+class SymbolizedEnum(SemaEnum):
     @classmethod
     def symbol_to_value(cls, symbol: str) -> str:
         raise NotImplementedError

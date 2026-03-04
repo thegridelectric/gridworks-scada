@@ -1,9 +1,9 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class LocalControlStandbyTopState(AslEnum):
+class LocalControlStandbyTopState(SemaEnum):
     """ASL: https://schemas.electricity.works/enums/gw1.local.control.standby.top.state/000"""
 
     EverythingOff = auto()

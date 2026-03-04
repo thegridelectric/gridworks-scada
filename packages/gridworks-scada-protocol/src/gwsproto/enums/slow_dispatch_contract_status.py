@@ -1,8 +1,8 @@
 from enum import auto
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 from typing import List
 
-class SlowDispatchContractStatus(AslEnum):
+class SlowDispatchContractStatus(SemaEnum):
     """Lifecycle status for dispatch contracts between LeafTransactiveNode 
     and SCADA, tracking creation through completion or termination.
     

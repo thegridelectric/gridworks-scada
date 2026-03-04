@@ -1,9 +1,9 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class HzCalcMethod(AslEnum):
+class HzCalcMethod(SemaEnum):
     """
 
     Values:

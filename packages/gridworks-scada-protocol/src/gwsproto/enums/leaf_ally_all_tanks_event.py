@@ -1,11 +1,11 @@
 from enum import auto
 from typing import List
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class LeafAllyAllTanksEvent(AslEnum):
-    """ASL: https://schemas.electricity.works/enums/gw1.leaf.ally.all.tanks.event/001"""
+class LeafAllyAllTanksEvent(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/gw1.leaf.ally.all.tanks.event/001"""
 
     GoDormant = auto()
     WakeUp = auto()

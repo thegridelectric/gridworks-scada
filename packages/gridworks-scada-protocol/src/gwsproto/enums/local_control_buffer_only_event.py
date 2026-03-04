@@ -1,10 +1,10 @@
 
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class LocalControlBufferOnlyEvent(AslEnum):
+class LocalControlBufferOnlyEvent(SemaEnum):
     """ ASL: https://schemas.electricity.works/enums/gw1.local.control.buffer.only.event/000"""
     WakeUp = auto()
     OnPeakStart = auto()

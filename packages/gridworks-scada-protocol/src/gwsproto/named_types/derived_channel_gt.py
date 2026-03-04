@@ -12,11 +12,13 @@ from gwsproto.enums import GwUnit, EmissionMethod
 
 
 class DerivedChannelGt(BaseModel):
+    """Sema: https://schemas.electricity.works/types/derived.channel.gt/001"""
+
     Id: UUID4Str
     Name: SpaceheatName
     CreatedByNodeName: SpaceheatName
     Strategy: SpaceheatName
-    InputChannelNames: list[SpaceheatName] = []
+    InputChannelNames: list[SpaceheatName]
     OutputUnit: GwUnit | None = None
     EmissionMethod: EmissionMethod
     AsyncEmitDelta: PositiveInt | None = None
