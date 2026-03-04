@@ -491,14 +491,4 @@ class LocalControlTouBase(ShNodeActor):
         # let normal node know its waking up
         self.normal_node_wakes_up()
 
-    # ------------------------------------------------------------------
-    # utilities
-    # ------------------------------------------------------------------
-
-
-    def is_storage_empty(self):
-        if self.usable_kwh < 0.2:
-            return True
-        else:
-            return False
 

@@ -1559,6 +1559,12 @@ class ShNodeActor(Actor, ABC):
 
         return self.latest_temps_f[buffer_top] > self.latest_temps_f[tank_top] + min_delta_f
 
+    def is_storage_empty(self):
+        if self.usable_kwh < 0.2:
+            return True
+        else:
+            return False
+
     @property
     def usable_kwh(self) -> float:
         """
