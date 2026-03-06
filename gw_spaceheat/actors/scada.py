@@ -1008,13 +1008,14 @@ class Scada(PrimeActor, ScadaInterface):
                 return_hb = self.contract_handler.start_new_contract_hb(ltn_hb) #sets up matching latest_scada_hb
                 if self.auto_state == MainAutoState.LocalControl:
                     self.dispatch_contract_live() # sets up the trees, changes state, let's aa and h know
+                elif self.auto_state == MainAutoState.LeafTransactiveNode:
+                    self._send_to(self.leaf_ally, self.contract_handler.latest_scada_hb.Contract)
             elif self.contract_handler.active_contract_has_expired(): # wrap up existing
                 self._send_to(self.ltn,
                     self.contract_handler.scada_contract_completion_hb("Wrapping up existing contract")
                 )
                 self.contract_handler.start_new_contract_hb(ltn_hb)
-                self._send_to(self.leaf_ally, self.contract_handler.latest_scada_hb.Contract
-                )
+                self._send_to(self.leaf_ally, self.contract_handler.latest_scada_hb.Contract)
                 # will send hb in process_suit_up, after leaf ally acknowledges
         elif ltn_hb.Status == SlowDispatchContractStatus.TerminatedByLtn:
             raise Exception("Ack! Haven't thought through termination by Ltn ...")
