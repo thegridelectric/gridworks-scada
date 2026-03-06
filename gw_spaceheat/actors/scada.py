@@ -1006,9 +1006,14 @@ class Scada(PrimeActor, ScadaInterface):
                 return
             if self.contract_handler.latest_scada_hb is None: # contract already wrapped up
                 return_hb = self.contract_handler.start_new_contract_hb(ltn_hb) #sets up matching latest_scada_hb
+                self.log(f"self.contract_handler.latest_scada_hb is None")
+                self.log(f"self.contract_handler.active_contract_has_expired() = {self.contract_handler.active_contract_has_expired()}")
                 if self.auto_state == MainAutoState.LocalControl:
                     self.dispatch_contract_live() # sets up the trees, changes state, let's aa and h know
+                elif self.auto_state == MainAutoState.LeafTransactiveNode:
+                    self._send_to(self.leaf_ally, self.contract_handler.latest_scada_hb.Contract)
             elif self.contract_handler.active_contract_has_expired(): # wrap up existing
+                self.log(f"self.contract_handler.latest_scada_hb is not None and active contract has expired")
                 self._send_to(self.ltn,
                     self.contract_handler.scada_contract_completion_hb("Wrapping up existing contract")
                 )
