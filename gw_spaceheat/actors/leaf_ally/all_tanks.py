@@ -174,29 +174,32 @@ class AllTanksLeafAlly(ShNodeActor):
         if from_node != self.primary_scada:
             raise Exception("contract should come from scada!")
 
-        if self.is_system_cold() and self.is_buffer_empty() and self.is_storage_empty():
-            self.log("Cannot wake up - system is cold and buffer and storage are empty")
-            self._send_to(
-                self.primary_scada,
-                AllyGivesUp(Reason="System is cold, not entering DispatchContracts"))
-            return
-        
-        if self.settings.system_mode != SystemMode.Heating:
-            self.log("Cannot wake up - in standby mode")
-            self._send_to(
-                self.primary_scada,
-                AllyGivesUp(Reason=f"In {self.settings.system_mode} Mode ... not entering DispatchContracts"))
-            return
-
-        if not self.heating_forecast:
-            self.log("Cannot Wake up - missing forecasts!")
-            self._send_to(
-                self.primary_scada,
-                AllyGivesUp(Reason="Missing forecasts required for operation"))
-            return
         if self.state == LeafAllyAllTanksState.Dormant:
             self.log("Got a slow dispatch contract ... waking up")
+
+            if self.is_system_cold() and self.is_buffer_empty() and self.is_storage_empty():
+                self.log("Cannot wake up - system is cold and buffer and storage are empty")
+                self._send_to(
+                    self.primary_scada,
+                    AllyGivesUp(Reason="System is cold, not entering DispatchContracts"))
+                return
+            
+            if self.settings.system_mode != SystemMode.Heating:
+                self.log("Cannot wake up - in standby mode")
+                self._send_to(
+                    self.primary_scada,
+                    AllyGivesUp(Reason=f"In {self.settings.system_mode} Mode ... not entering DispatchContracts"))
+                return
+
+            if not self.heating_forecast:
+                self.log("Cannot Wake up - missing forecasts!")
+                self._send_to(
+                    self.primary_scada,
+                    AllyGivesUp(Reason="Missing forecasts required for operation"))
+                return
+        
             self.wake_up()
+            
         if contract.OilBoilerOn:
             if self.state != LeafAllyAllTanksState.HpOffNonElectricBackup:
                 self.log("SlowDispatchContract: OilBoilerOn")
