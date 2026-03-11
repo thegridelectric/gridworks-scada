@@ -1,8 +1,10 @@
 import csv
+import ctypes
 import asyncio
 import json
 import gc
-import multiprocessing
+import pickle
+import platform
 import subprocess
 import threading
 import time
@@ -89,59 +91,19 @@ TANK_GALLONS = 120
 MAX_HORIZON_HOURS = 48
 
 
-def _flo_worker(
-    flo_params_bytes: bytes,
-    cmd_queue: multiprocessing.Queue,
-    result_queue: multiprocessing.Queue,
-) -> None:
-    """Run in a child process: build the Flo, solve, then serve commands.
+def _force_release_memory() -> None:
+    """Collect garbage and ask the C library to return free memory to the OS.
 
-    Commands received via *cmd_queue*:
-        ("generate_recommendation", updated_flo_params_bytes)
-        ("get_next_node_at_price", price_usd_mwh)
-        ("stop",)
-
-    Results sent via *result_queue*:
-        ("ready",)
-        ("recommendation", recommendation_bytes)
-        ("next_hour_plans", expected_storage_kwh, hourly_plan_list)
-        ("error", error_string)
+    On Linux (glibc), freed Python objects leave behind empty malloc arenas
+    that still count toward RSS.  ``malloc_trim(0)`` compacts the heap and
+    returns those pages to the OS.
     """
-    try:
-        g = Flo(flo_params_bytes)
-        g.solve_dijkstra()
-        g.trim_graph_for_waiting()
-        result_queue.put(("ready",))
-    except Exception as e:
-        result_queue.put(("error", f"Flo build failed: {e}"))
-        return
-
-    # Serve commands until told to stop
-    while True:
+    gc.collect()
+    if platform.system() == "Linux":
         try:
-            cmd = cmd_queue.get()
+            ctypes.CDLL("libc.so.6").malloc_trim(0)
         except Exception:
-            break
-
-        if cmd[0] == "generate_recommendation":
-            try:
-                recommendation_bytes = g.generate_recommendation(cmd[1])
-                result_queue.put(("recommendation", recommendation_bytes))
-            except Exception as e:
-                result_queue.put(("error", f"generate_recommendation failed: {e}"))
-
-        elif cmd[0] == "get_next_node_at_price":
-            try:
-                g.get_next_node_at_price(cmd[1])
-                expected_storage_kwh = round(float(g.initial_node.next_node.energy), 2)
-                hourly_plan = [float(x) for x in list(g.initial_node.next_node.shortest_path_hp_kwh_el)]
-                result_queue.put(("next_hour_plans", expected_storage_kwh, hourly_plan))
-            except Exception as e:
-                result_queue.put(("error", f"get_next_node_at_price failed: {e}"))
-
-        elif cmd[0] == "stop":
-            break
-    # Child exits here — OS reclaims ALL memory.
+            pass
 
 
 def _get_flo_git_commit() -> str:
@@ -183,17 +145,6 @@ class PriceForecast(BaseModel):
 
 
 class BidRunner(threading.Thread):
-    """Manages a child *process* that builds and solves the Flo graph.
-
-    The heavy allocations (thousands of DNodes/DEdges) happen entirely inside
-    the child process.  When the child exits, the OS reclaims all of its
-    memory — no arena fragmentation, no reference cycles to worry about.
-
-    This thread acts as a lightweight coordinator: it starts the child,
-    waits for events from the LTN main loop, relays commands to the child
-    via queues, and forwards results back via ``send_threadsafe``.
-    """
-
     def __init__(self, params: FloParamsHouse0,
                  settings: LtnSettings,
                  io_loop_manager_name: str,
@@ -204,7 +155,7 @@ class BidRunner(threading.Thread):
                  logger: LoggerOrAdapter):
         super().__init__()
         self.stop_event = threading.Event()
-        self.logger = logger or print
+        self.logger = logger or print  # Fallback to print if no logger provided
         self.orig_flo_params = params
         self.settings = settings
         self.io_loop_manager_name = io_loop_manager_name
@@ -216,117 +167,149 @@ class BidRunner(threading.Thread):
         self.get_next_hour_plans_event = threading.Event()
 
     def run(self):
-        proc: multiprocessing.Process | None = None
+        g: Flo | None = None
         try:
-            self.logger.info("Creating graph and solving Dijkstra (in child process)...")
-            st = time.time()
-            flo_params_bytes = self.orig_flo_params.model_dump_json().encode('utf-8')
-
-            ctx = multiprocessing.get_context("spawn")
-            cmd_queue = ctx.Queue()
-            result_queue = ctx.Queue()
-
-            proc = ctx.Process(
-                target=_flo_worker,
-                args=(flo_params_bytes, cmd_queue, result_queue),
-                daemon=True,
-            )
-            proc.start()
-
-            # Wait for the child to finish building + solving,
-            # patting the watchdog periodically so we don't get killed.
-            result = None
-            while result is None:
-                self.pat_watchdog()
+            while not self.stop_event.is_set():
+                # Run FLO
+                self.logger.info("Creating graph and solving Dijkstra...")
+                st = time.time()
+                flo_params_bytes = self.orig_flo_params.model_dump_json().encode('utf-8')
                 try:
-                    result = result_queue.get(timeout=30)
-                except Exception:
-                    # Queue.get timed out — child still working
-                    if not proc.is_alive():
-                        result = ("error", "Child process died unexpectedly")
-                        break
-            if result[0] == "error":
-                self.logger.error(f"Error in child process: {result[1]}")
-                glitch = Glitch(
-                    FromGNodeAlias=self.ltn_alias,
-                    Node=self.ltn_name,
-                    Type=LogLevel.Error,
-                    Summary=f"{self.ltn_alias.split('.')[-2]}.{self.ltn_alias.split('.')[-1]} - Error creating DGraph w Advanced FLO",
-                    Details=result[1],
-                    CreatedMs=int(time.time() * 1000)
+                    g = Flo(flo_params_bytes, patting_watchdog=self.pat_watchdog)
+                except Exception as e:
+                    self.logger.error(f"Error creating DGraph with advanced FLO: {e}")
+                    glitch = Glitch(
+                        FromGNodeAlias=self.ltn_alias,
+                        Node=self.ltn_name,
+                        Type=LogLevel.Error,
+                        Summary=f"{self.ltn_alias.split('.')[-2]}.{self.ltn_alias.split('.')[-1]} - Error creating DGraph w Advanced FLO",
+                        Details=f"{e}",
+                        CreatedMs=int(time.time() * 1000)
+                    )
+                    self.send_threadsafe(Message(Src=self.ltn_name, Dst=self.ltn_name, Payload=glitch))
+                    self.logger.info("Sent glitch")
+                    return
+
+                g.solve_dijkstra()
+                self.logger.info(f"Built and solved in {round(time.time()-st,2)} seconds!")
+                # After solving, trim the graph to reduce memory usage while waiting
+                g.trim_graph_for_waiting()
+
+                # Serialize the trimmed graph, then break circular references
+                # and delete the original so gc can fully reclaim the memory.
+                flo_logger = g.logger
+                g.logger = None
+                g.patting_watchdog = None
+                g.settings = None
+                trimmed_graph_data = pickle.dumps(g)
+                g.cleanup()
+                g = None
+                _force_release_memory()
+                self.logger.info(f"Serialized trimmed graph ({len(trimmed_graph_data)} bytes) and freed graph memory")
+
+                # Pause until get_bid is called
+                self.get_bid_event.clear()
+                self.logger.info("BidRunner waiting for get_bid to be called before computing bid.")
+                self.get_bid_event.wait()
+                self.logger.info("Generating bid recommendation")
+
+                try:
+                    g = pickle.loads(trimmed_graph_data)
+                    del trimmed_graph_data
+                    gc.collect()
+                    g.logger = flo_logger
+                except Exception as e:
+                    self.logger.info(f"Error deserializing trimmed graph: {e}")
+                    return
+
+                try:
+                    recommendation_bytes = g.generate_recommendation(
+                        self.updated_flo_params.model_dump_json().encode('utf-8')
+                    )
+                except Exception as e:
+                    self.logger.info(f"Error generating recommendation: {e}")
+                    return
+                # deserialize
+                recommendation_dict = json.loads(recommendation_bytes)
+                recommendation = BidRecommendation.model_validate(recommendation_dict)
+                self.logger.info(f"Done! Found {len(recommendation.PqPairs)} PQ pairs.")
+
+                # Generate bid
+                bid = Bid(
+                    BidderAlias=str(recommendation.BidderAlias),
+                    MarketSlotName=str(recommendation.MarketSlotName),
+                    PqPairs=list(recommendation.PqPairs),
+                    InjectionIsPositive=bool(recommendation.InjectionIsPositive),
+                    PriceUnit=MarketPriceUnit(recommendation.PriceUnit),
+                    QuantityUnit=MarketQuantityUnit(recommendation.QuantityUnit),
+                    SignedMarketFeeTxn="BogusAlgoSignature",
                 )
-                self.send_threadsafe(Message(Src=self.ltn_name, Dst=self.ltn_name, Payload=glitch))
-                return
 
-            self.logger.info(f"Built and solved in {round(time.time()-st,2)} seconds!")
+                # Send bid through LTN's message processing
+                self.send_threadsafe(
+                    Message(
+                        Src=self.ltn_name,
+                        Dst=self.ltn_name,
+                        Payload=bid
+                    )
+                )
 
-            # ── Phase 1: wait for get_bid ──
-            self.get_bid_event.clear()
-            self.logger.info("BidRunner waiting for get_bid to be called before computing bid.")
-            self.get_bid_event.wait()
-            self.logger.info("Generating bid recommendation")
+                del recommendation
+                del recommendation_dict
+                del recommendation_bytes
+                del bid
+                gc.collect()
 
-            updated_bytes = self.updated_flo_params.model_dump_json().encode('utf-8')
-            cmd_queue.put(("generate_recommendation", updated_bytes))
-            result = result_queue.get()
-            if result[0] == "error":
-                self.logger.info(f"Error generating recommendation: {result[1]}")
-                return
+                # Keep graph reference for get_plans_at_price; pause until get_next_hour_plans
+                self.get_next_hour_plans_event.clear()
+                self.logger.info("BidRunner waiting for get_next_hour_plans to be called before getting next hour's plans.")
+                self.get_next_hour_plans_event.wait()
+                self.logger.info("Getting plan at clearing price.")
+                try:
+                    g.get_next_node_at_price(self.latest_price_usd_mwh)
+                    expected_storage_kwh_at_hour1 = round(float(g.initial_node.next_node.energy),2)
+                    # Copy list to avoid retaining graph reference via shared list object
+                    hourly_hp_kwh_el_plan = [float(x) for x in list(g.initial_node.next_node.shortest_path_hp_kwh_el)]
+                except Exception as e:
+                    self.logger.info(f"Error getting plan at price: {e}")
+                    return
 
-            recommendation_bytes = result[1]
-            recommendation_dict = json.loads(recommendation_bytes)
-            recommendation = BidRecommendation.model_validate(recommendation_dict)
-            self.logger.info(f"Done! Found {len(recommendation.PqPairs)} PQ pairs.")
+                # Send flo next hour plans through LTN's message processing
+                flo_next_hour_plans = FloNextHourPlans(
+                    ExpectedStorageKwhAtHour1=expected_storage_kwh_at_hour1,
+                    HourlyHpKwhElPlan=hourly_hp_kwh_el_plan,
+                )
+                self.send_threadsafe(
+                    Message(
+                        Src=self.ltn_name,
+                        Dst=self.ltn_name,
+                        Payload=flo_next_hour_plans
+                    )
+                )
 
-            bid = Bid(
-                BidderAlias=str(recommendation.BidderAlias),
-                MarketSlotName=str(recommendation.MarketSlotName),
-                PqPairs=list(recommendation.PqPairs),
-                InjectionIsPositive=bool(recommendation.InjectionIsPositive),
-                PriceUnit=MarketPriceUnit(recommendation.PriceUnit),
-                QuantityUnit=MarketQuantityUnit(recommendation.QuantityUnit),
-                SignedMarketFeeTxn="BogusAlgoSignature",
-            )
-            self.send_threadsafe(
-                Message(Src=self.ltn_name, Dst=self.ltn_name, Payload=bid)
-            )
+                # Break all circular references inside the graph so gc
+                # can fully reclaim the memory (DNode ↔ DEdge cycles).
+                g.cleanup()
+                del flo_next_hour_plans
+                del flo_logger
+                g = None
+                _force_release_memory()
 
-            # ── Phase 2: wait for get_next_hour_plans ──
-            self.get_next_hour_plans_event.clear()
-            self.logger.info("BidRunner waiting for get_next_hour_plans to be called before getting next hour's plans.")
-            self.get_next_hour_plans_event.wait()
-            self.logger.info("Getting plan at clearing price.")
-
-            cmd_queue.put(("get_next_node_at_price", self.latest_price_usd_mwh))
-            result = result_queue.get()
-            if result[0] == "error":
-                self.logger.info(f"Error getting plan at price: {result[1]}")
-                return
-
-            _, expected_storage_kwh_at_hour1, hourly_hp_kwh_el_plan = result
-            flo_next_hour_plans = FloNextHourPlans(
-                ExpectedStorageKwhAtHour1=expected_storage_kwh_at_hour1,
-                HourlyHpKwhElPlan=hourly_hp_kwh_el_plan,
-            )
-            self.send_threadsafe(
-                Message(Src=self.ltn_name, Dst=self.ltn_name, Payload=flo_next_hour_plans)
-            )
-
-            # Tell child to exit
-            cmd_queue.put(("stop",))
-
+                break
         except Exception as e:
             self.logger.info(f"An error occured running Dijkstra or getting bid: {e}")
         finally:
-            if proc is not None and proc.is_alive():
-                proc.terminate()
-                proc.join(timeout=5)
+            # Break circular references even on error/early-return paths
+            if g is not None:
+                g.cleanup()
+                g = None
+                _force_release_memory()
             self.logger.info("Done running bid runner")
             self.on_complete(self.ltn_name)
             self._clear()
 
     def _clear(self) -> None:
-        """Release all references to help gc reclaim memory."""
+        """Release all references to help gc reclaim memory. Call when run() is finished."""
         self.orig_flo_params = None
         self.updated_flo_params = None
         self.settings = None
