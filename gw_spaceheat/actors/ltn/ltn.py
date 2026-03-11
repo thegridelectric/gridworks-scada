@@ -261,9 +261,15 @@ class BidRunner(threading.Thread):
                     )
                 )
 
-                # Explicitly delete the graph to free memory
+                # Explicitly delete the graph and all objects that may share
+                # its memory arenas, so gc can return the arenas to the OS.
                 del g
                 del flo_logger
+                del flo_next_hour_plans
+                del recommendation
+                del recommendation_dict
+                del recommendation_bytes
+                self.bid = None
                 gc.collect()
 
                 break
