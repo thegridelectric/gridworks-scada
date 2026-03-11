@@ -3,7 +3,6 @@ import asyncio
 import json
 import gc
 import pickle
-import tracemalloc
 import subprocess
 import threading
 import time
@@ -153,7 +152,6 @@ class BidRunner(threading.Thread):
 
     def run(self):
         try:
-            tracemalloc.start()
             while not self.stop_event.is_set():
                 # Run FLO
                 self.logger.info("Creating graph and solving Dijkstra...")
@@ -264,18 +262,6 @@ class BidRunner(threading.Thread):
                     )
                 )
 
-                # Diagnostics: before cleanup, log referrers to graph and memory
-                snapshot_before = tracemalloc.take_snapshot()
-                referrers = gc.get_referrers(g)
-                ref_types = [type(r).__name__ for r in referrers]
-                self.logger.info(
-                    f"[MEM_DEBUG] Before cleanup: g has {len(referrers)} referrers: {ref_types}"
-                )
-                current, peak = tracemalloc.get_traced_memory()
-                self.logger.info(
-                    f"[MEM_DEBUG] Before cleanup: current={current / 1024**2:.1f} MB, peak={peak / 1024**2:.1f} MB"
-                )
-
                 # Explicitly delete the graph and all objects that may share
                 # its memory arenas, so gc can return the arenas to the OS.
                 del g
@@ -284,45 +270,14 @@ class BidRunner(threading.Thread):
                 del recommendation
                 del recommendation_dict
                 del recommendation_bytes
-                del expected_storage_kwh_at_hour1
-                del hourly_hp_kwh_el_plan
                 self.bid = None
                 gc.collect()
-
-                current_after, peak_after = tracemalloc.get_traced_memory()
-                self.logger.info(
-                    f"[MEM_DEBUG] After cleanup: current={current_after / 1024**2:.1f} MB, peak={peak_after / 1024**2:.1f} MB"
-                )
-                # Snapshot diff: allocations that grew (potentially leaked)
-                snapshot_after = tracemalloc.take_snapshot()
-                top_stats = [
-                    s for s in snapshot_after.compare_to(snapshot_before, "lineno")
-                    if s.size_diff > 0
-                ][:10]
-                for stat in top_stats:
-                    self.logger.info(
-                        f"[MEM_DEBUG] Retained +{stat.size_diff / 1024:.1f} KB: {stat.traceback}"
-                    )
-                # Check for retained graph instances (would indicate a reference leak)
-                flo_instances = [o for o in gc.get_objects() if type(o).__name__ == "Flo"]
-                self.logger.info(
-                    f"[MEM_DEBUG] After cleanup: {len(flo_instances)} Flo instance(s) still in gc.get_objects()"
-                )
-                if flo_instances:
-                    for i, flo in enumerate(flo_instances):
-                        refs = gc.get_referrers(flo)
-                        self.logger.info(
-                            f"[MEM_DEBUG] Flo #{i} referrers: {[type(r).__name__ for r in refs]}"
-                        )
-                tracemalloc.stop()
 
                 break
         except Exception as e:
             self.logger.info(f"An error occured running Dijkstra or getting bid: {e}")
         finally:
             # Ensure cleanup happens even if there's an error
-            if tracemalloc.is_tracing():
-                tracemalloc.stop()
             self.logger.info("Done running bid runner")
             self.on_complete(self.ltn_name)
 
