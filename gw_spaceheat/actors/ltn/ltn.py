@@ -1,10 +1,9 @@
 import csv
-import ctypes
 import asyncio
 import json
 import gc
+import multiprocessing
 import pickle
-import platform
 import subprocess
 import threading
 import time
@@ -91,19 +90,27 @@ TANK_GALLONS = 120
 MAX_HORIZON_HOURS = 48
 
 
-def _force_release_memory() -> None:
-    """Collect garbage and ask the C library to return free memory to the OS.
+def _flo_build_worker(flo_params_bytes: bytes, result_queue: multiprocessing.Queue) -> None:
+    """Child process: build Flo, solve Dijkstra, trim, pickle the trimmed graph, send it back, exit.
 
-    On Linux (glibc), freed Python objects leave behind empty malloc arenas
-    that still count toward RSS.  ``malloc_trim(0)`` compacts the heap and
-    returns those pages to the OS.
+    The full graph (thousands of DNodes/DEdges across all time slices) is
+    allocated entirely in this child process.  After trimming and pickling
+    the small bid-layer, the child exits and the OS reclaims ALL memory —
+    no arena fragmentation, no reference cycles, guaranteed zero residual.
+
+    The parent only ever holds the small pickled bytes (~few MB).
     """
-    gc.collect()
-    if platform.system() == "Linux":
-        try:
-            ctypes.CDLL("libc.so.6").malloc_trim(0)
-        except Exception:
-            pass
+    try:
+        g = Flo(flo_params_bytes)
+        g.solve_dijkstra()
+        g.trim_graph_for_waiting()
+        g.logger = None
+        g.patting_watchdog = None
+        g.settings = None
+        trimmed_data = pickle.dumps(g)
+        result_queue.put(("ok", trimmed_data))
+    except Exception as e:
+        result_queue.put(("error", str(e)))
 
 
 def _get_flo_git_commit() -> str:
@@ -145,6 +152,17 @@ class PriceForecast(BaseModel):
 
 
 class BidRunner(threading.Thread):
+    """Coordinates Flo graph building (in a child process) and bid generation.
+
+    The heavy work (build + solve + trim) runs in a short-lived child process
+    via ``_flo_build_worker``.  The child pickles just the trimmed bid-layer
+    and sends it back, then exits — the OS reclaims all build memory.
+
+    The lightweight work (generate_recommendation, get_next_node_at_price)
+    unpickles the small trimmed graph in-thread.  cleanup() breaks circular
+    references when done so gc can reclaim it fully.
+    """
+
     def __init__(self, params: FloParamsHouse0,
                  settings: LtnSettings,
                  io_loop_manager_name: str,
@@ -170,44 +188,56 @@ class BidRunner(threading.Thread):
         g: Flo | None = None
         try:
             while not self.stop_event.is_set():
-                # Run FLO
-                self.logger.info("Creating graph and solving Dijkstra...")
+                # ── Build + solve in a child process ──
+                self.logger.info("Creating graph and solving Dijkstra (in child process)...")
                 st = time.time()
                 flo_params_bytes = self.orig_flo_params.model_dump_json().encode('utf-8')
-                try:
-                    g = Flo(flo_params_bytes, patting_watchdog=self.pat_watchdog)
-                except Exception as e:
-                    self.logger.error(f"Error creating DGraph with advanced FLO: {e}")
+
+                ctx = multiprocessing.get_context("fork")
+                result_queue = ctx.Queue()
+                proc = ctx.Process(
+                    target=_flo_build_worker,
+                    args=(flo_params_bytes, result_queue),
+                    daemon=True,
+                )
+                proc.start()
+
+                # Wait for the child, patting the watchdog periodically
+                result = None
+                while result is None:
+                    self.pat_watchdog()
+                    try:
+                        result = result_queue.get(timeout=30)
+                    except Exception:
+                        if not proc.is_alive():
+                            result = ("error", "Child process died unexpectedly")
+                            break
+
+                proc.join(timeout=5)
+                if proc.is_alive():
+                    proc.terminate()
+                    proc.join(timeout=5)
+
+                if result[0] == "error":
+                    self.logger.error(f"Error in child process: {result[1]}")
                     glitch = Glitch(
                         FromGNodeAlias=self.ltn_alias,
                         Node=self.ltn_name,
                         Type=LogLevel.Error,
                         Summary=f"{self.ltn_alias.split('.')[-2]}.{self.ltn_alias.split('.')[-1]} - Error creating DGraph w Advanced FLO",
-                        Details=f"{e}",
+                        Details=result[1],
                         CreatedMs=int(time.time() * 1000)
                     )
                     self.send_threadsafe(Message(Src=self.ltn_name, Dst=self.ltn_name, Payload=glitch))
-                    self.logger.info("Sent glitch")
                     return
 
-                g.solve_dijkstra()
-                self.logger.info(f"Built and solved in {round(time.time()-st,2)} seconds!")
-                # After solving, trim the graph to reduce memory usage while waiting
-                g.trim_graph_for_waiting()
+                trimmed_graph_data = result[1]
+                self.logger.info(
+                    f"Built and solved in {round(time.time()-st,2)} seconds! "
+                    f"Trimmed graph: {len(trimmed_graph_data)} bytes"
+                )
 
-                # Serialize the trimmed graph, then break circular references
-                # and delete the original so gc can fully reclaim the memory.
-                flo_logger = g.logger
-                g.logger = None
-                g.patting_watchdog = None
-                g.settings = None
-                trimmed_graph_data = pickle.dumps(g)
-                g.cleanup()
-                g = None
-                _force_release_memory()
-                self.logger.info(f"Serialized trimmed graph ({len(trimmed_graph_data)} bytes) and freed graph memory")
-
-                # Pause until get_bid is called
+                # ── Wait for get_bid ──
                 self.get_bid_event.clear()
                 self.logger.info("BidRunner waiting for get_bid to be called before computing bid.")
                 self.get_bid_event.wait()
@@ -216,8 +246,8 @@ class BidRunner(threading.Thread):
                 try:
                     g = pickle.loads(trimmed_graph_data)
                     del trimmed_graph_data
-                    gc.collect()
-                    g.logger = flo_logger
+                    import logging as _logging
+                    g.logger = _logging.getLogger("gridflo.flo")
                 except Exception as e:
                     self.logger.info(f"Error deserializing trimmed graph: {e}")
                     return
@@ -260,7 +290,7 @@ class BidRunner(threading.Thread):
                 del bid
                 gc.collect()
 
-                # Keep graph reference for get_plans_at_price; pause until get_next_hour_plans
+                # ── Wait for get_next_hour_plans ──
                 self.get_next_hour_plans_event.clear()
                 self.logger.info("BidRunner waiting for get_next_hour_plans to be called before getting next hour's plans.")
                 self.get_next_hour_plans_event.wait()
@@ -287,13 +317,11 @@ class BidRunner(threading.Thread):
                     )
                 )
 
-                # Break all circular references inside the graph so gc
-                # can fully reclaim the memory (DNode ↔ DEdge cycles).
+                # Break all circular references so gc can fully reclaim
                 g.cleanup()
                 del flo_next_hour_plans
-                del flo_logger
                 g = None
-                _force_release_memory()
+                gc.collect()
 
                 break
         except Exception as e:
@@ -303,7 +331,7 @@ class BidRunner(threading.Thread):
             if g is not None:
                 g.cleanup()
                 g = None
-                _force_release_memory()
+                gc.collect()
             self.logger.info("Done running bid runner")
             self.on_complete(self.ltn_name)
             self._clear()
