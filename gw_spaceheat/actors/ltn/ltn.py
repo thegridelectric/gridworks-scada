@@ -2,6 +2,7 @@ import csv
 import asyncio
 import json
 import gc
+import pickle
 import subprocess
 import threading
 import time
@@ -176,14 +177,33 @@ class BidRunner(threading.Thread):
                 self.logger.info(f"Built and solved in {round(time.time()-st,2)} seconds!")
                 # After solving, trim the graph to reduce memory usage while waiting
                 g.trim_graph_for_waiting()
+
+                # Serialize the trimmed graph, then break circular references
+                # and delete the original so gc can fully reclaim the memory.
+                flo_logger = g.logger
+                g.logger = None
                 g.patting_watchdog = None
+                g.settings = None
+                trimmed_graph_data = pickle.dumps(g)
+                g.cleanup()
+                g = None
                 gc.collect()
+                self.logger.info(f"Serialized trimmed graph ({len(trimmed_graph_data)} bytes) and freed graph memory")
 
                 # Pause until get_bid is called
                 self.get_bid_event.clear()
                 self.logger.info("BidRunner waiting for get_bid to be called before computing bid.")
                 self.get_bid_event.wait()
                 self.logger.info("Generating bid recommendation")
+
+                try:
+                    g = pickle.loads(trimmed_graph_data)
+                    del trimmed_graph_data
+                    gc.collect()
+                    g.logger = flo_logger
+                except Exception as e:
+                    self.logger.info(f"Error deserializing trimmed graph: {e}")
+                    return
 
                 try:
                     recommendation_bytes = g.generate_recommendation(
