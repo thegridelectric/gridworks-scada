@@ -2,7 +2,6 @@ import csv
 import asyncio
 import json
 import gc
-import pickle
 import subprocess
 import threading
 import time
@@ -150,6 +149,7 @@ class BidRunner(threading.Thread):
         self.get_next_hour_plans_event = threading.Event()
 
     def run(self):
+        g: Flo | None = None
         try:
             while not self.stop_event.is_set():
                 # Run FLO
@@ -176,32 +176,14 @@ class BidRunner(threading.Thread):
                 self.logger.info(f"Built and solved in {round(time.time()-st,2)} seconds!")
                 # After solving, trim the graph to reduce memory usage while waiting
                 g.trim_graph_for_waiting()
-
-                # Serialize the trimmed graph for the bid, then delete the full graph to release memory
-                flo_logger = g.logger
-                g.logger = None
                 g.patting_watchdog = None
-                g.settings = None
-                trimmed_graph_data = pickle.dumps(g)
-                del g
                 gc.collect()
-                self.logger.info(f"Serialized trimmed graph ({len(trimmed_graph_data)} bytes) and freed graph memory")
-                # Pause until get_bid is called
 
+                # Pause until get_bid is called
                 self.get_bid_event.clear()
                 self.logger.info("BidRunner waiting for get_bid to be called before computing bid.")
                 self.get_bid_event.wait()
                 self.logger.info("Generating bid recommendation")
-                # generate_recommendation returns serialialized BidRecommendation
-
-                try:
-                    g: Flo = pickle.loads(trimmed_graph_data)
-                    del trimmed_graph_data
-                    gc.collect()
-                    g.logger = flo_logger
-                except Exception as e:
-                    self.logger.info(f"Error deserializing trimmed graph: {e}")
-                    return
 
                 try:
                     recommendation_bytes = g.generate_recommendation(
@@ -268,17 +250,22 @@ class BidRunner(threading.Thread):
                     )
                 )
 
-                # Explicitly delete the graph and all objects that may share
-                # its memory arenas, so gc can return the arenas to the OS.
+                # Break all circular references inside the graph so gc
+                # can fully reclaim the memory (DNode ↔ DEdge cycles).
+                g.cleanup()
                 del flo_next_hour_plans
-                del flo_logger
-                del g
+                g = None
                 gc.collect()
 
                 break
         except Exception as e:
             self.logger.info(f"An error occured running Dijkstra or getting bid: {e}")
         finally:
+            # Break circular references even on error/early-return paths
+            if g is not None:
+                g.cleanup()
+                del g
+                gc.collect()
             # Ensure cleanup happens even if there's an error
             self.logger.info("Done running bid runner")
             self.on_complete(self.ltn_name)
