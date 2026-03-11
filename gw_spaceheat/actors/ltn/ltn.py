@@ -177,28 +177,30 @@ class BidRunner(threading.Thread):
                 self.logger.info(f"Built and solved in {round(time.time()-st,2)} seconds!")
                 # After solving, trim the graph to reduce memory usage while waiting
                 g.trim_graph_for_waiting()
+                # Pause until get_bid is called
 
                 # Serialize the trimmed graph for the bid, then delete the full graph to release memory
                 flo_logger = g.logger
                 g.logger = None
                 g.patting_watchdog = None
                 g.settings = None
-                bid_data = pickle.dumps(g)
+                trimmed_graph_data = pickle.dumps(g)
                 del g
                 gc.collect()
-                self.logger.info(f"Serialized bid data ({len(bid_data)} bytes) and freed graph memory")
+                self.logger.info(f"Serialized trimmed graph ({len(trimmed_graph_data)} bytes) and freed graph memory")
 
                 self.get_bid_event.clear()
                 self.logger.info("BidRunner waiting for get_bid to be called before computing bid.")
                 self.get_bid_event.wait()
                 self.logger.info("Generating bid recommendation")
+                # generate_recommendation returns serialialized BidRecommendation
 
                 try:
-                    g: Flo = pickle.loads(bid_data)
-                    del bid_data
+                    g: Flo = pickle.loads(trimmed_graph_data)
+                    del trimmed_graph_data
                     g.logger = flo_logger
                 except Exception as e:
-                    self.logger.info(f"Error deserializing bid data: {e}")
+                    self.logger.info(f"Error deserializing trimmed graph: {e}")
                     return
 
                 try:
@@ -259,6 +261,7 @@ class BidRunner(threading.Thread):
                     )
                 )
 
+                # Explicitly delete the graph to free memory
                 del g
                 del flo_logger
                 gc.collect()
