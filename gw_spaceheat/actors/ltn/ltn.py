@@ -259,8 +259,9 @@ class BidRunner(threading.Thread):
                     )
                 )
 
-                # Explicitly delete the graph to free memory
                 del g
+                del flo_logger
+                gc.collect()
 
                 break
         except Exception as e:
