@@ -146,7 +146,6 @@ class BidRunner(threading.Thread):
         self.ltn_alias = ltn_g_node_alias
         self.send_threadsafe = send_threadsafe
         self.on_complete = on_complete
-        self.bid: Optional[Bid] = None
         self.get_bid_event = threading.Event()
         self.get_next_hour_plans_event = threading.Event()
 
@@ -177,7 +176,6 @@ class BidRunner(threading.Thread):
                 self.logger.info(f"Built and solved in {round(time.time()-st,2)} seconds!")
                 # After solving, trim the graph to reduce memory usage while waiting
                 g.trim_graph_for_waiting()
-                # Pause until get_bid is called
 
                 # Serialize the trimmed graph for the bid, then delete the full graph to release memory
                 flo_logger = g.logger
@@ -188,6 +186,7 @@ class BidRunner(threading.Thread):
                 del g
                 gc.collect()
                 self.logger.info(f"Serialized trimmed graph ({len(trimmed_graph_data)} bytes) and freed graph memory")
+                # Pause until get_bid is called
 
                 self.get_bid_event.clear()
                 self.logger.info("BidRunner waiting for get_bid to be called before computing bid.")
@@ -198,6 +197,7 @@ class BidRunner(threading.Thread):
                 try:
                     g: Flo = pickle.loads(trimmed_graph_data)
                     del trimmed_graph_data
+                    gc.collect()
                     g.logger = flo_logger
                 except Exception as e:
                     self.logger.info(f"Error deserializing trimmed graph: {e}")
@@ -216,13 +216,13 @@ class BidRunner(threading.Thread):
                 self.logger.info(f"Done! Found {len(recommendation.PqPairs)} PQ pairs.")
 
                 # Generate bid
-                self.bid = Bid(
-                    BidderAlias=recommendation.BidderAlias,
-                    MarketSlotName=recommendation.MarketSlotName,
-                    PqPairs=recommendation.PqPairs,
-                    InjectionIsPositive=recommendation.InjectionIsPositive,
-                    PriceUnit=recommendation.PriceUnit,
-                    QuantityUnit=recommendation.QuantityUnit,
+                bid = Bid(
+                    BidderAlias=str(recommendation.BidderAlias),
+                    MarketSlotName=str(recommendation.MarketSlotName),
+                    PqPairs=list(recommendation.PqPairs),
+                    InjectionIsPositive=bool(recommendation.InjectionIsPositive),
+                    PriceUnit=MarketPriceUnit(recommendation.PriceUnit),
+                    QuantityUnit=MarketQuantityUnit(recommendation.QuantityUnit),
                     SignedMarketFeeTxn="BogusAlgoSignature",
                 )
                 
@@ -231,9 +231,15 @@ class BidRunner(threading.Thread):
                     Message(
                         Src=self.ltn_name,
                         Dst=self.ltn_name,
-                        Payload=self.bid
+                        Payload=bid
                     )
                 )
+
+                del recommendation
+                del recommendation_dict
+                del recommendation_bytes
+                del bid
+                gc.collect()
 
                 # Keep graph reference for get_plans_at_price; pause until get_next_hour_plans
                 self.get_next_hour_plans_event.clear()
@@ -242,9 +248,9 @@ class BidRunner(threading.Thread):
                 self.logger.info("Getting plan at clearing price.")
                 try:
                     g.get_next_node_at_price(self.latest_price_usd_mwh)
-                    expected_storage_kwh_at_hour1 = round(g.initial_node.next_node.energy,2)
+                    expected_storage_kwh_at_hour1 = round(float(g.initial_node.next_node.energy),2)
                     # Copy list to avoid retaining graph reference via shared list object
-                    hourly_hp_kwh_el_plan = list(g.initial_node.next_node.shortest_path_hp_kwh_el)
+                    hourly_hp_kwh_el_plan = [float(x) for x in list(g.initial_node.next_node.shortest_path_hp_kwh_el)]
                 except Exception as e:
                     self.logger.info(f"Error getting plan at price: {e}")
                     return
@@ -264,13 +270,9 @@ class BidRunner(threading.Thread):
 
                 # Explicitly delete the graph and all objects that may share
                 # its memory arenas, so gc can return the arenas to the OS.
-                del g
-                del flo_logger
                 del flo_next_hour_plans
-                del recommendation
-                del recommendation_dict
-                del recommendation_bytes
-                self.bid = None
+                del flo_logger
+                del g
                 gc.collect()
 
                 break
@@ -280,6 +282,21 @@ class BidRunner(threading.Thread):
             # Ensure cleanup happens even if there's an error
             self.logger.info("Done running bid runner")
             self.on_complete(self.ltn_name)
+            self._clear()
+
+    def _clear(self) -> None:
+        """Release all references to help gc reclaim memory. Call when run() is finished."""
+        self.orig_flo_params = None
+        self.updated_flo_params = None
+        self.settings = None
+        self.logger = None
+        self.send_threadsafe = None
+        self.on_complete = None
+        self.io_loop_manager_name = None
+        self.ltn_name = None
+        self.ltn_alias = None
+        self.get_bid_event = None
+        self.get_next_hour_plans_event = None
 
     def get_bid(self, updated_flo_params: FloParamsHouse0):
         self.logger.info("Getting bid...")
@@ -977,6 +994,7 @@ class Ltn(PrimeActor):
         Note: This is called from the BidRunner thread."""
         self.log("Cleaned up bid runner")
         self.bid_runner = None
+        gc.collect()
 
     def _save_flo_next_hour_plans(self, flo_next_hour_plans: FloNextHourPlans) -> None:
         """Persist flo_next_hour_plans to file with timestamp for restart recovery."""
