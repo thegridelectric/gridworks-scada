@@ -18,6 +18,7 @@ from scada_app_interface import ScadaAppInterface
 
 class AllTanksTouLocalControl(LocalControlTouBase):
     DEFROST_TIMEOUT_MINUTES = 20
+    STORE_DEFROST_DETECTION_MINUTES = 10
 
     states = LocalControlAllTanksState.values()
 
@@ -61,6 +62,7 @@ class AllTanksTouLocalControl(LocalControlTouBase):
         self.time_hp_turned_on = None
         self.full_storage_energy: Optional[float] = None
         self.defrost_detected_since = None
+        self.time_started_charging_store = None
         
         self.machine = Machine(
             model=self,
@@ -237,8 +239,12 @@ class AllTanksTouLocalControl(LocalControlTouBase):
                 if self.is_onpeak():
                     self.trigger_normal_event(LocalControlAllTanksEvent.OnPeakStart)
                 elif self.hp_in_defrost():
-                    self.defrost_detected_since = time.time()
-                    self.trigger_normal_event(LocalControlAllTanksEvent.DefrostDetected)
+                    if self.time_started_charging_store is not None and \
+                            time.time() - self.time_started_charging_store > self.STORE_DEFROST_DETECTION_MINUTES*60:
+                        self.defrost_detected_since = time.time()
+                        self.trigger_normal_event(LocalControlAllTanksEvent.DefrostDetected)
+                    else:
+                        self.log(f"Just started charging store (first {self.STORE_DEFROST_DETECTION_MINUTES} minutes), not yet detecting defrosts")
                 elif self.is_buffer_empty():
                     self.trigger_normal_event(LocalControlAllTanksEvent.OffPeakBufferEmpty)
                 elif self.is_storage_ready():
@@ -296,6 +302,11 @@ class AllTanksTouLocalControl(LocalControlTouBase):
             self.valved_to_charge_store(from_node=self.normal_node)
         else:
             self.valved_to_discharge_store(from_node=self.normal_node)
+        if "HpOnStoreOff" in previous_state and "HpOnStoreCharge" in self.state:
+            self.log("Store was off and is now charging")
+            self.time_started_charging_store = time.time()
+        else:
+            self.time_started_charging_store = None
 
     def is_storage_ready(self) -> bool:
         if self.usable_kwh >=self.required_kwh:
