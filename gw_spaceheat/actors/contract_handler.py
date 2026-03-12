@@ -112,7 +112,8 @@ class ContractHandler:
             if hb.FromNode == H0N.ltn:
                 if hb.Status not in [SlowDispatchContractStatus.TerminatedByLtn,
                                      SlowDispatchContractStatus.CompletedUnknownOutcome]:
-                    return
+                    self.logger.info(f"Ignoring stale LTN hb with status {hb.Status}")
+                    return None
                 self.prev = hb
             else:
                 if time.time() > hb.Contract.contract_end_s():
@@ -128,8 +129,11 @@ class ContractHandler:
                             YourLastDigit=hb.MyDigit,
                             MyDigit=random.choice(range(10)),
                         )
+                        # Persist the completion so the file won't be stale on next restart
+                        with open(self.contract_file, "w") as fw:
+                            fw.write(self.prev.model_dump_json(indent=4))
                         self.logger.info(
-                            "Contract expired! Should send hb to Ltn ASAP."
+                            "Contract expired! Should send hb to Ltn ASAP. "
                             "Loaded ContractHb into prev"
                         )
                         return self.prev

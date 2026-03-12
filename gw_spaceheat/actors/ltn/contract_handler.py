@@ -95,8 +95,22 @@ class LtnContractHandler:
                 if hb.Status not in self.DONE_STATES:
                     # Contract has expired, need to mark as completed
                     self.logger.info("Loaded contract has expired, will send completion heartbeat")
-                    completion_hb = self.create_completion_heartbeat()
+                    # Build completion inline (can't use create_completion_heartbeat
+                    # because self.latest_hb hasn't been set yet)
+                    completion_hb = SlowContractHeartbeat(
+                        FromNode=self.node.name,
+                        Contract=hb.Contract,
+                        PreviousStatus=hb.Status,
+                        Status=SlowDispatchContractStatus.CompletedUnknownOutcome,
+                        Cause="Ltn notes expired contract on startup",
+                        MessageCreatedMs=int(time.time() * 1000),
+                        MyDigit=random.choice(range(10)),
+                        YourLastDigit=hb.MyDigit,
+                    )
                     self.latest_hb = None
+                    # Persist the completion so the file won't be stale on next restart
+                    with open(self.contract_file, "w") as fw:
+                        fw.write(completion_hb.model_dump_json(indent=4))
                     return completion_hb
                 else:
                     return None
@@ -283,16 +297,27 @@ class LtnContractHandler:
         return False
 
     async def contract_heartbeat_task(self):
-        """Task that sends regular heartbeats while a contract is active"""
+        """Task that sends regular heartbeats while a contract is active.
+
+        Skips heartbeating entirely when monitor_only is True — no old
+        contracts should be resent if we're not creating new ones.
+        """
         await asyncio.sleep(2)
-        hb = self.initialize()
-        if hb is not None:
-            if hb.Status == SlowDispatchContractStatus.Created:
-                # we didn't get any response, send again
-                self.send_threadsafe(Message(Src=self.node.name,Dst=H0N.primary_scada,Payload=hb))
+        if not self.settings.monitor_only:
+            hb = self.initialize()
+            if hb is not None:
+                if hb.Status == SlowDispatchContractStatus.Created:
+                    # we didn't get any response, send again
+                    self.send_threadsafe(Message(Src=self.node.name,Dst=H0N.primary_scada,Payload=hb))
+                elif hb.Status == SlowDispatchContractStatus.CompletedUnknownOutcome:
+                    # expired contract found on startup — notify SCADA
+                    self.send_threadsafe(Message(Src=self.node.name,Dst=H0N.primary_scada,Payload=hb))
         while not self._stop_requested:
             try:
-                # Only send heartbeats if we have an active contract              
+                if self.settings.monitor_only:
+                    await asyncio.sleep(self.HEARTBEAT_INTERVAL_S)
+                    continue
+                # Only send heartbeats if we have an active contract
                 if self.latest_hb and self.latest_hb.Status in [SlowDispatchContractStatus.Created, SlowDispatchContractStatus.Received, SlowDispatchContractStatus.Active]:
                         # Check if contract has expired
                         if time.time() > self.latest_hb.Contract.contract_end_s():
@@ -305,12 +330,15 @@ class LtnContractHandler:
                                     Payload=completion_hb
                                 )
                             )
+                            # Persist and clear so we don't resend every 60s
+                            self.store_heartbeat(completion_hb)
+                            self.latest_hb = None
                         else:
-                            if self.latest_hb.Status == SlowDispatchContractStatus.Created: 
+                            if self.latest_hb.Status == SlowDispatchContractStatus.Created:
                                 send_hb = self.latest_hb # RESEND first contract
                             else:
                                 send_hb = self.create_midcontract_heartbeat() # Create a mid-contract heartbeat
-                
+
                             self.send_threadsafe(
                                 Message(
                                     Src=self.node.name,

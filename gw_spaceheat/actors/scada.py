@@ -1004,6 +1004,10 @@ class Scada(PrimeActor, ScadaInterface):
             if self.top_state == TopState.Admin:
                 self.log("Ignoring new contract, in Admin")
                 return
+            # Reject contracts that have already expired (stale file on LTN side)
+            if time.time() > ltn_hb.Contract.contract_end_s():
+                self.log(f"Ignoring already-expired Created contract {ltn_hb.Contract.ContractId[:3]}")
+                return
             if self.contract_handler.latest_scada_hb is None: # contract already wrapped up
                 return_hb = self.contract_handler.start_new_contract_hb(ltn_hb) #sets up matching latest_scada_hb
                 if self.auto_state == MainAutoState.LocalControl:
@@ -1216,7 +1220,9 @@ class Scada(PrimeActor, ScadaInterface):
 
         if hb:
             self._send_to(self.ltn, hb)
-            self._send_to(self.leaf_ally, hb)
+            # Only send active contracts to leaf_ally, not completions
+            if self.contract_handler.latest_scada_hb:
+                self._send_to(self.leaf_ally, self.contract_handler.latest_scada_hb.Contract)
     
     def enforce_auto_state_consistency(self) -> None:
         """ Enforces that auto_state [LocalControl, LeafTransactiveNode, Dormant] is consistent
