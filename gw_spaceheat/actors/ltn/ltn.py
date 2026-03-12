@@ -91,15 +91,7 @@ MAX_HORIZON_HOURS = 48
 
 
 def _flo_build_worker(flo_params_bytes: bytes, result_queue: multiprocessing.Queue) -> None:
-    """Child process: build Flo, solve Dijkstra, trim, pickle the trimmed graph, send it back, exit.
-
-    The full graph (thousands of DNodes/DEdges across all time slices) is
-    allocated entirely in this child process.  After trimming and pickling
-    the small bid-layer, the child exits and the OS reclaims ALL memory —
-    no arena fragmentation, no reference cycles, guaranteed zero residual.
-
-    The parent only ever holds the small pickled bytes (~few MB).
-    """
+    """Child process: build Flo, solve Dijkstra, trim, pickle the trimmed graph, send it back, exit."""
     try:
         g = Flo(flo_params_bytes)
         g.solve_dijkstra()
@@ -109,6 +101,44 @@ def _flo_build_worker(flo_params_bytes: bytes, result_queue: multiprocessing.Que
         g.settings = None
         trimmed_data = pickle.dumps(g)
         result_queue.put(("ok", trimmed_data))
+    except Exception as e:
+        result_queue.put(("error", str(e)))
+
+
+def _flo_recommend_worker(
+    trimmed_graph_data: bytes,
+    updated_flo_params_bytes: bytes,
+    result_queue: multiprocessing.Queue,
+) -> None:
+    """Child process: unpickle trimmed graph, generate recommendation, send back result bytes."""
+    try:
+        import logging as _logging
+        g: Flo = pickle.loads(trimmed_graph_data)
+        g.logger = _logging.getLogger("gridflo.flo")
+        recommendation_bytes = g.generate_recommendation(updated_flo_params_bytes)
+        # Also pickle the trimmed graph again (with initial_node etc. now set)
+        # so the next child can use it for get_next_node_at_price
+        g.logger = None
+        updated_trimmed_data = pickle.dumps(g)
+        result_queue.put(("ok", recommendation_bytes, updated_trimmed_data))
+    except Exception as e:
+        result_queue.put(("error", str(e)))
+
+
+def _flo_plans_worker(
+    trimmed_graph_data: bytes,
+    price_usd_mwh: float,
+    result_queue: multiprocessing.Queue,
+) -> None:
+    """Child process: unpickle trimmed graph, get next hour plans at price, send back results."""
+    try:
+        import logging as _logging
+        g: Flo = pickle.loads(trimmed_graph_data)
+        g.logger = _logging.getLogger("gridflo.flo")
+        g.get_next_node_at_price(price_usd_mwh)
+        expected_storage_kwh = round(float(g.initial_node.next_node.energy), 2)
+        hourly_plan = [float(x) for x in list(g.initial_node.next_node.shortest_path_hp_kwh_el)]
+        result_queue.put(("ok", expected_storage_kwh, hourly_plan))
     except Exception as e:
         result_queue.put(("error", str(e)))
 
@@ -152,15 +182,12 @@ class PriceForecast(BaseModel):
 
 
 class BidRunner(threading.Thread):
-    """Coordinates Flo graph building (in a child process) and bid generation.
+    """Coordinates Flo work across three short-lived child processes.
 
-    The heavy work (build + solve + trim) runs in a short-lived child process
-    via ``_flo_build_worker``.  The child pickles just the trimmed bid-layer
-    and sends it back, then exits — the OS reclaims all build memory.
-
-    The lightweight work (generate_recommendation, get_next_node_at_price)
-    unpickles the small trimmed graph in-thread.  cleanup() breaks circular
-    references when done so gc can reclaim it fully.
+    Every phase that touches the Flo graph (build, recommend, plans) runs
+    in a forked child process.  The parent thread only holds pickle bytes
+    and plain results (floats, lists).  When each child exits, the OS
+    reclaims all its memory — guaranteed zero residual.
     """
 
     def __init__(self, params: FloParamsHouse0,
@@ -184,39 +211,43 @@ class BidRunner(threading.Thread):
         self.get_bid_event = threading.Event()
         self.get_next_hour_plans_event = threading.Event()
 
+    def _run_in_child(self, target, args, timeout_s=30, pat_watchdog=True):
+        """Run *target* in a forked child process and return the result tuple.
+
+        Pats the watchdog every *timeout_s* seconds while waiting.
+        Returns the result tuple from the child's result_queue.
+        """
+        ctx = multiprocessing.get_context("fork")
+        result_queue = ctx.Queue()
+        proc = ctx.Process(target=target, args=(*args, result_queue), daemon=True)
+        proc.start()
+
+        result = None
+        while result is None:
+            if pat_watchdog:
+                self.pat_watchdog()
+            try:
+                result = result_queue.get(timeout=timeout_s)
+            except Exception:
+                if not proc.is_alive():
+                    result = ("error", "Child process died unexpectedly")
+                    break
+
+        proc.join(timeout=5)
+        if proc.is_alive():
+            proc.terminate()
+            proc.join(timeout=5)
+        return result
+
     def run(self):
-        g: Flo | None = None
         try:
             while not self.stop_event.is_set():
-                # ── Build + solve in a child process ──
+                # ── Phase 0: Build + solve in a child process ──
                 self.logger.info("Creating graph and solving Dijkstra (in child process)...")
                 st = time.time()
                 flo_params_bytes = self.orig_flo_params.model_dump_json().encode('utf-8')
 
-                ctx = multiprocessing.get_context("fork")
-                result_queue = ctx.Queue()
-                proc = ctx.Process(
-                    target=_flo_build_worker,
-                    args=(flo_params_bytes, result_queue),
-                    daemon=True,
-                )
-                proc.start()
-
-                # Wait for the child, patting the watchdog periodically
-                result = None
-                while result is None:
-                    self.pat_watchdog()
-                    try:
-                        result = result_queue.get(timeout=30)
-                    except Exception:
-                        if not proc.is_alive():
-                            result = ("error", "Child process died unexpectedly")
-                            break
-
-                proc.join(timeout=5)
-                if proc.is_alive():
-                    proc.terminate()
-                    proc.join(timeout=5)
+                result = self._run_in_child(_flo_build_worker, (flo_params_bytes,))
 
                 if result[0] == "error":
                     self.logger.error(f"Error in child process: {result[1]}")
@@ -237,34 +268,31 @@ class BidRunner(threading.Thread):
                     f"Trimmed graph: {len(trimmed_graph_data)} bytes"
                 )
 
-                # ── Wait for get_bid ──
+                # ── Phase 1: Wait for get_bid, then generate recommendation in child ──
                 self.get_bid_event.clear()
                 self.logger.info("BidRunner waiting for get_bid to be called before computing bid.")
                 self.get_bid_event.wait()
-                self.logger.info("Generating bid recommendation")
+                self.logger.info("Generating bid recommendation (in child process)")
 
-                try:
-                    g = pickle.loads(trimmed_graph_data)
-                    del trimmed_graph_data
-                    import logging as _logging
-                    g.logger = _logging.getLogger("gridflo.flo")
-                except Exception as e:
-                    self.logger.info(f"Error deserializing trimmed graph: {e}")
+                updated_bytes = self.updated_flo_params.model_dump_json().encode('utf-8')
+                result = self._run_in_child(
+                    _flo_recommend_worker,
+                    (trimmed_graph_data, updated_bytes),
+                    pat_watchdog=False,
+                )
+                del trimmed_graph_data
+
+                if result[0] == "error":
+                    self.logger.info(f"Error generating recommendation: {result[1]}")
                     return
 
-                try:
-                    recommendation_bytes = g.generate_recommendation(
-                        self.updated_flo_params.model_dump_json().encode('utf-8')
-                    )
-                except Exception as e:
-                    self.logger.info(f"Error generating recommendation: {e}")
-                    return
-                # deserialize
+                recommendation_bytes = result[1]
+                trimmed_graph_data = result[2]  # updated graph with initial_node set
+
                 recommendation_dict = json.loads(recommendation_bytes)
                 recommendation = BidRecommendation.model_validate(recommendation_dict)
                 self.logger.info(f"Done! Found {len(recommendation.PqPairs)} PQ pairs.")
 
-                # Generate bid
                 bid = Bid(
                     BidderAlias=str(recommendation.BidderAlias),
                     MarketSlotName=str(recommendation.MarketSlotName),
@@ -274,64 +302,40 @@ class BidRunner(threading.Thread):
                     QuantityUnit=MarketQuantityUnit(recommendation.QuantityUnit),
                     SignedMarketFeeTxn="BogusAlgoSignature",
                 )
-
-                # Send bid through LTN's message processing
                 self.send_threadsafe(
-                    Message(
-                        Src=self.ltn_name,
-                        Dst=self.ltn_name,
-                        Payload=bid
-                    )
+                    Message(Src=self.ltn_name, Dst=self.ltn_name, Payload=bid)
                 )
 
-                del recommendation
-                del recommendation_dict
-                del recommendation_bytes
-                del bid
-                gc.collect()
-
-                # ── Wait for get_next_hour_plans ──
+                # ── Phase 2: Wait for get_next_hour_plans, then run in child ──
                 self.get_next_hour_plans_event.clear()
-                self.logger.info("BidRunner waiting for get_next_hour_plans to be called before getting next hour's plans.")
+                self.logger.info("BidRunner waiting for get_next_hour_plans to be called.")
                 self.get_next_hour_plans_event.wait()
-                self.logger.info("Getting plan at clearing price.")
-                try:
-                    g.get_next_node_at_price(self.latest_price_usd_mwh)
-                    expected_storage_kwh_at_hour1 = round(float(g.initial_node.next_node.energy),2)
-                    # Copy list to avoid retaining graph reference via shared list object
-                    hourly_hp_kwh_el_plan = [float(x) for x in list(g.initial_node.next_node.shortest_path_hp_kwh_el)]
-                except Exception as e:
-                    self.logger.info(f"Error getting plan at price: {e}")
+                self.logger.info("Getting plan at clearing price (in child process)")
+
+                result = self._run_in_child(
+                    _flo_plans_worker,
+                    (trimmed_graph_data, self.latest_price_usd_mwh),
+                    pat_watchdog=False,
+                )
+                del trimmed_graph_data
+
+                if result[0] == "error":
+                    self.logger.info(f"Error getting plan at price: {result[1]}")
                     return
 
-                # Send flo next hour plans through LTN's message processing
+                _, expected_storage_kwh_at_hour1, hourly_hp_kwh_el_plan = result
                 flo_next_hour_plans = FloNextHourPlans(
                     ExpectedStorageKwhAtHour1=expected_storage_kwh_at_hour1,
                     HourlyHpKwhElPlan=hourly_hp_kwh_el_plan,
                 )
                 self.send_threadsafe(
-                    Message(
-                        Src=self.ltn_name,
-                        Dst=self.ltn_name,
-                        Payload=flo_next_hour_plans
-                    )
+                    Message(Src=self.ltn_name, Dst=self.ltn_name, Payload=flo_next_hour_plans)
                 )
-
-                # Break all circular references so gc can fully reclaim
-                g.cleanup()
-                del flo_next_hour_plans
-                g = None
-                gc.collect()
 
                 break
         except Exception as e:
             self.logger.info(f"An error occured running Dijkstra or getting bid: {e}")
         finally:
-            # Break circular references even on error/early-return paths
-            if g is not None:
-                g.cleanup()
-                g = None
-                gc.collect()
             self.logger.info("Done running bid runner")
             self.on_complete(self.ltn_name)
             self._clear()
