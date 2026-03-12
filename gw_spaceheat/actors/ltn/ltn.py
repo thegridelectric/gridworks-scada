@@ -269,9 +269,11 @@ class BidRunner(threading.Thread):
                 )
 
                 # ── Phase 1: Wait for get_bid, then generate recommendation in child ──
-                self.get_bid_event.clear()
+                # Don't clear() before wait() — if get_bid() was already called
+                # during Phase 0, the flag is already set and we should proceed.
                 self.logger.info("BidRunner waiting for get_bid to be called before computing bid.")
                 self.get_bid_event.wait()
+                self.get_bid_event.clear()
                 self.logger.info("Generating bid recommendation (in child process)")
 
                 updated_bytes = self.updated_flo_params.model_dump_json().encode('utf-8')
@@ -307,9 +309,9 @@ class BidRunner(threading.Thread):
                 )
 
                 # ── Phase 2: Wait for get_next_hour_plans, then run in child ──
-                self.get_next_hour_plans_event.clear()
                 self.logger.info("BidRunner waiting for get_next_hour_plans to be called.")
                 self.get_next_hour_plans_event.wait()
+                self.get_next_hour_plans_event.clear()
                 self.logger.info("Getting plan at clearing price (in child process)")
 
                 result = self._run_in_child(
