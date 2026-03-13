@@ -211,19 +211,29 @@ class BidRunner(threading.Thread):
         self.get_bid_event = threading.Event()
         self.get_next_hour_plans_event = threading.Event()
 
-    def _run_in_child(self, target, args, timeout_s=30, pat_watchdog=True):
+    def _run_in_child(self, target, args, timeout_s=30, max_total_s=300, pat_watchdog=True):
         """Run *target* in a forked child process and return the result tuple.
 
         Pats the watchdog every *timeout_s* seconds while waiting.
-        Returns the result tuple from the child's result_queue.
+        Kills the child and returns an error after *max_total_s* seconds
+        to prevent deadlocked children from blocking the BidRunner forever.
+        Uses 'forkserver' context to avoid inheriting parent thread locks.
         """
-        ctx = multiprocessing.get_context("fork")
+        ctx = multiprocessing.get_context("forkserver")
         result_queue = ctx.Queue()
         proc = ctx.Process(target=target, args=(*args, result_queue), daemon=True)
         proc.start()
 
+        deadline = time.time() + max_total_s
         result = None
         while result is None:
+            if time.time() > deadline:
+                self.logger.error(
+                    f"Child process timed out after {max_total_s}s — killing it"
+                )
+                proc.kill()
+                proc.join(timeout=5)
+                return ("error", f"Child process timed out after {max_total_s}s")
             if pat_watchdog:
                 self.pat_watchdog()
             try:
