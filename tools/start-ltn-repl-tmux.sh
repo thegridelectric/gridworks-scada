@@ -2,28 +2,50 @@
 
 set -euo pipefail
 
-WAIT_SECONDS="${WAIT_SECONDS:-0.25}"
+WAIT_SECONDS="${WAIT_SECONDS:-0.5}"
 
 if ! command -v tmux >/dev/null 2>&1; then
   echo "Error: tmux is not installed."
   exit 1
 fi
 
-repo_root="$(pwd)"
-if [[ "$(basename "$repo_root")" != "gridworks-scada" ]]; then
-  echo "Error: run this script from the gridworks-scada directory."
-  echo "Current directory: $repo_root"
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  echo "Usage: $(basename "$0") <session_name>"
+  echo
+  echo "Example: $(basename "$0") honeycrisp"
+  echo "Starts/restarts tmux session 'honeycrisp' using repos under:"
+  echo "  \$HOME/ltn-honeycrisp/gridworks-scada"
+  echo "  \$HOME/ltn-honeycrisp/gridworks-innovations"
+  exit 0
+fi
+
+if [[ $# -gt 1 ]]; then
+  echo "Error: expected at most one argument: <session_name>"
   exit 1
 fi
 
-parent_dir="$(basename "$(dirname "$repo_root")")"
-session_name="${parent_dir#ltn-}"
+if [[ $# -eq 1 ]]; then
+  session_name="$1"
+else
+  cwd="$(pwd)"
+  parent_dir="$(basename "$(dirname "$cwd")")"
+  if [[ "$(basename "$cwd")" == "gridworks-scada" && "$parent_dir" == ltn-* ]]; then
+    session_name="${parent_dir#ltn-}"
+    echo "No session name provided; inferred '$session_name' from current directory."
+  else
+    echo "Error: missing required argument <session_name>."
+    echo "Run from anywhere as: $(basename "$0") <session_name>"
+    exit 1
+  fi
+fi
+
+repo_root="$HOME/ltn-$session_name/gridworks-scada/gw_spaceheat"
 if [[ -z "$session_name" ]]; then
-  echo "Error: could not infer tmux session name from parent directory: $parent_dir"
+  echo "Error: session_name cannot be empty."
   exit 1
 fi
 
-venv_activate="$HOME/ltn-$session_name/gridworks-scada/gw_spaceheat/venv/bin/activate"
+venv_activate="$repo_root/venv/bin/activate"
 if [[ ! -f "$venv_activate" ]]; then
   echo "Error: venv activate script not found at:"
   echo "  $venv_activate"
@@ -35,6 +57,19 @@ if tmux has-session -t "$session_name" 2>/dev/null; then
   tmux kill-session -t "$session_name"
   sleep "$WAIT_SECONDS"
 fi
+
+ltn_scada_repo="$HOME/ltn-$session_name/gridworks-scada"
+ltn_innovations_repo="$HOME/ltn-$session_name/gridworks-innovations"
+
+for repo_dir in "$ltn_scada_repo" "$ltn_innovations_repo"; do
+  if [[ ! -d "$repo_dir/.git" ]]; then
+    echo "Error: expected git repo not found at:"
+    echo "  $repo_dir"
+    exit 1
+  fi
+  echo "Updating repo: $repo_dir"
+  git -C "$repo_dir" pull --ff-only
+done
 
 tmux new-session -d -s "$session_name"
 sleep "$WAIT_SECONDS"
