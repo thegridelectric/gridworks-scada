@@ -14,7 +14,7 @@ class TelemetryName(SemaEnum):
 
     Unknown = auto()
     PowerW = auto()
-    RelayState = auto()
+    RelayState = auto() # 1 => energized, 0 => de-energized
     WaterTempCTimes1000 = auto()
     WaterTempFTimes1000 = auto()
     GpmTimes100 = auto()

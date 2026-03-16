@@ -31,10 +31,6 @@ class StubConfig:
     use_sieg_loop: bool = False
     ltn_gnode_alias: str = "ltn.orange"
     terminal_asset_alias: Optional[str] = None
-    zone_list: typing.Sequence[str] = field(default_factory=tuple)
-    critical_zone_list: typing.Sequence[str] = field(default_factory=tuple)
-    zone_kwh_per_deg_f_list: typing.Sequence[float] = field(default_factory=tuple)
-    total_store_tanks: int = 3
     scada_display_name: str = "Dummy Orange Scada"
     add_stub_power_meter: bool = True
     power_meter_cac_alias: str = "Dummy Power Meter Cac"
@@ -51,10 +47,6 @@ class LayoutIDMap:
     nodes_by_name: dict[str, str]
     channels_by_name: dict[str, str]
     derived_channels_by_name: dict[str, str]
-    zone_list: List[str]
-    critical_zone_list: List[str]
-    zone_kwh_per_deg_f_list: List[float]
-    total_store_tanks: int
 
     def __init__(self, d: Optional[dict] = None):
         self.cacs_by_alias = {}
@@ -63,24 +55,12 @@ class LayoutIDMap:
         self.channels_by_name = {}
         self.derived_channels_by_name = {}
         self.gnodes: dict[str, dict] = {}
-        self.zone_list = []
-        self.critical_zone_list = []
-        self.zone_kwh_per_deg_f_list = []
-        self.total_store_tanks = 3
         self.strategy = "House0"
         if not d:
             return
         for k, v in d.items():
                 if isinstance(v, dict) and "GNodeId" in v:
                     self.gnodes[k] = v
-                if k == "ZoneList":
-                    self.zone_list = v
-                elif k == "CriticalZoneList":
-                    self.critical_zone_list = v
-                elif k == "ZoneKwhPerDegFList":
-                    self.zone_kwh_per_deg_f_list = v
-                elif k == "TotalStoreTanks":
-                    self.total_store_tanks = v
                 elif k == "ShNodes":
                         for node in v:
                             try:
@@ -231,10 +211,18 @@ class LayoutDb:
         return self.misc["MyTerminalAssetGNode"]["Alias"]
 
     @property
+    def total_store_tanks(self) -> int:
+        return self.misc.get("TotalStoreTanks", 3)
+
+    @property
+    def zone_list(self) -> list[str]:
+        return self.misc["ZoneList"]
+
+    @property
     def h0cn(self) -> H0CN:
         return H0CN(
-            total_store_tanks = self.loaded.total_store_tanks,
-            zone_list=list(self.loaded.zone_list),
+            total_store_tanks = self.total_store_tanks,
+            zone_list=self.zone_list,
         )
 
     def cac_id_by_alias(self, make_model: str) -> Optional[str]:
@@ -513,24 +501,7 @@ class LayoutDb:
                 "GNodeStatus": "Active",
                 "GNodeClass": "TerminalAsset"
               }
-        if self.loaded.zone_list:
-            self.misc["ZoneList"] = self.loaded.zone_list
-        else:
-            self.misc["ZoneList"] = cfg.zone_list
 
-        if self.loaded.critical_zone_list:
-            self.misc["CriticalZoneList"] = self.loaded.critical_zone_list
-        else:
-            self.misc["CriticalZoneList"] = cfg.critical_zone_list
-        if self.loaded.zone_kwh_per_deg_f_list:
-            self.misc["ZoneKwhPerDegFList"] = self.loaded.zone_kwh_per_deg_f_list
-        else:
-            self.misc["ZoneKwhPerDegFList"] = cfg.zone_kwh_per_deg_f_list
-
-        if self.loaded.total_store_tanks:
-            self.misc["TotalStoreTanks"] = self.loaded.total_store_tanks
-        else:
-            self.misc["TotalStoreTanks"] =  self.loaded.total_store_tanks
         self.misc["Strategy"] = "House0"
         self.misc["FlowManifoldVariant"] = cfg.flow_manifold_variant
         self.misc["UseSiegLoop"] = cfg.use_sieg_loop
@@ -702,21 +673,6 @@ class LayoutDb:
                 ),
             ]
 
-        effective_channels: list[str] = sorted(self.h0cn.buffer.effective)
-        for tank in self.h0cn.tank.values():
-            effective_channels.extend(sorted(tank.effective))
-        for cn in effective_channels:
-            channels.append(
-                DerivedChannelGt(Id = self.make_derived_channel_id(cn),
-                Name = cn,
-                CreatedByNodeName = H0N.derived_generator,
-                OutputUnit=GwUnit.FahrenheitX100,
-                TerminalAssetAlias = self.terminal_asset_alias,
-                Strategy = "tank-linear-map",
-                DisplayName = f"{cn.replace('-', ' ').title()} Effective Temperature",
-                )
-            )
-
         self.add_derived_channels(channels)
 
     def add_stubs(self, 
@@ -733,7 +689,7 @@ class LayoutDb:
             self.misc,
             **{
                 list_name: [
-                    entry.as_dict() if hasattr(entry, "as_dict") else entry.model_dump(by_alias=True, exclude_none=True) for entry in entries
+                     entry.model_dump(by_alias=True, exclude_none=True) for entry in entries
                 ]
                 for list_name, entries in self.lists.items()
             }
