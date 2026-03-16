@@ -9,7 +9,7 @@ from gwsproto.named_types import ComponentGt, ChannelConfig
 class Gw108GpioSensorComponentGt(ComponentGt):
     GpioPin: PositiveInt
     SenseMode: GpioSenseMode = GpioSenseMode.Polling
-    SendToDerived: bool = False
+    SendToDerived: bool
 
     TypeName: Literal["gw108.gpio.sensor.component.gt"] = "gw108.gpio.sensor.component.gt"
     Version: Literal["001"] = "001"
