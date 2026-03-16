@@ -9,7 +9,6 @@ from gwsproto.enums import SystemMode, SeasonalStorageMode
 from gwsproto.named_types.pico_flow_module_component_gt import PicoFlowModuleComponentGt
 from gwsproto.named_types.pico_tank_module_component_gt import PicoTankModuleComponentGt
 from gwsproto.named_types.sim_pico_tank_module_component_gt import SimPicoTankModuleComponentGt
-from gwsproto.named_types.tank_temp_calibration_map import TankTempCalibrationMap
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwsproto.named_types.derived_channel_gt import DerivedChannelGt
 from gwsproto.property_format import LeftRightDotStr, UTCMilliseconds, UUID4Str
@@ -38,7 +37,6 @@ class LayoutLite(BaseModel):
     FlowModuleComponents: List[PicoFlowModuleComponentGt]
     Ha1Params: Ha1Params
     I2cRelayComponent: I2cMultichannelDtRelayComponentGt | None = None
-    TMap: TankTempCalibrationMap | None = None
     TypeName: Literal["layout.lite"] = "layout.lite"
     Version: Literal["012"] = "012"
 

@@ -98,8 +98,6 @@ from gwsproto.named_types.suit_up import SuitUp
 from gwsproto.named_types.synth_channel_gt import SynthChannelGt
 from gwsproto.named_types.synced_readings import SyncedReadings
 from gwsproto.named_types.tank_module_params import TankModuleParams
-from gwsproto.named_types.tank_temp_calibration import TankTempCalibration
-from gwsproto.named_types.tank_temp_calibration_map import TankTempCalibrationMap
 from gwsproto.named_types.telemetry_name_quantity_projection import TelemetryNameQuantityProjection
 from gwsproto.named_types.ticklist_hall import TicklistHall
 from gwsproto.named_types.ticklist_hall_report import TicklistHallReport
@@ -210,8 +208,6 @@ __all__ = [
     "SynthChannelGt",
     "SyncedReadings",
     "TankModuleParams",
-    "TankTempCalibration",
-    "TankTempCalibrationMap",
     "TelemetryNameQuantityProjection",
     "TicklistHall",
     "TicklistHallReport",

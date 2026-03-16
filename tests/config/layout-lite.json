@@ -116,53 +116,7 @@
             "InPowerMetering":null,
             "ShNodeId":"58578dc0-0ca6-4fe9-be1e-a0a5564f11a0",
             "TypeName":"spaceheat.node.gt",
-            "Version":"200",
-            "TankTempCalibrationMap":{
-               "Buffer":{
-                  "Depth1B":-4.303,
-                  "Depth1M":1.069,
-                  "Depth2B":0.0,
-                  "Depth2M":1.0,
-                  "Depth3B":-4.303,
-                  "Depth3M":1.069,
-                  "TypeName":"gw1.tank.temp.calibration",
-                  "Version":"000"
-               },
-               "Tank":{
-                  "1":{
-                     "Depth1B":-5.427,
-                     "Depth1M":1.045,
-                     "Depth2B":0.0,
-                     "Depth2M":1.0,
-                     "Depth3B":-5.427,
-                     "Depth3M":1.045,
-                     "TypeName":"gw1.tank.temp.calibration",
-                     "Version":"000"
-                  },
-                  "2":{
-                     "Depth1B":-3.386,
-                     "Depth1M":1.047,
-                     "Depth2B":0.0,
-                     "Depth2M":1.0,
-                     "Depth3B":-3.386,
-                     "Depth3M":1.047,
-                     "TypeName":"gw1.tank.temp.calibration",
-                     "Version":"000"
-                  },
-                  "3":{
-                     "Depth1B":-1.085,
-                     "Depth1M":1.085,
-                     "Depth2B":0.0,
-                     "Depth2M":1.0,
-                     "Depth3B":-4.813,
-                     "Depth3M":1.085,
-                     "TypeName":"gw1.tank.temp.calibration",
-                     "Version":"000"
-                  }
-               },
-               "TypeName":"gw1.tank.temp.calibration.map",
-               "Version":"000"
-            }
+            "Version":"200"
          },
          {
             "Name":"lc",

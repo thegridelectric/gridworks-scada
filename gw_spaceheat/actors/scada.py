@@ -1656,7 +1656,6 @@ class Scada(PrimeActor, ScadaInterface):
             I2cRelayComponent=i2c_relay_component,
             MessageCreatedMs=int(time.time() * 1000),
             MessageId=str(uuid.uuid4()),
-            TMap=self.layout.tank_temp_calibration_map,
         )
 
     ################################################
