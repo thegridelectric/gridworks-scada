@@ -473,10 +473,10 @@
       "Strategy": "affine",
       "Parameters": { 
         "Calibration": {
-          "M": 1.0,
-          "B": 0.2,
+          "M": 1.01,
+          "B": -3,
           "TypeName": "linear.one.dimensional.calibration",
-          "Version": "000"
+          "Version": "001"
         }
       },
       "EmissionMethod": "OnTrigger",

@@ -22,7 +22,6 @@ from gwsproto.named_types import ComponentAttributeClassGt
 from gwsproto.data_classes.derived_channel import DerivedChannel
 from gwsproto.named_types import (
     RequiredEnergyLayered,
-    TankTempCalibrationMap,
     UsableEnergyLayered,
 )
 from gwsproto.data_classes.hardware_layout import (
@@ -82,7 +81,6 @@ class House0Layout(HardwareLayout):
             "CriticalZoneList",
             "TotalStoreTanks",
             "ZoneKwhPerDegFList",
-            "TankTempCalibrationMap",
         ]
         for key in required_keys:
             if key not in layout:
@@ -94,22 +92,6 @@ class House0Layout(HardwareLayout):
         self.zone_kwh_per_deg_f_list = layout["ZoneKwhPerDegFList"]
         self.total_store_tanks = layout["TotalStoreTanks"]
 
-        # ---- Tank temperature calibration map (layout-level authority) ----
-        try:
-            self.tank_temp_calibration_map = TankTempCalibrationMap(
-                **layout["TankTempCalibrationMap"]
-            )
-        except Exception as e:
-            raise DcError(
-                "Invalid TankTempCalibrationMap in House0 layout"
-            ) from e
-
-        if len(self.tank_temp_calibration_map.Tank) != self.total_store_tanks:
-            raise DcError(
-                f"TankTempCalibrationMap has "
-                f"{len(self.tank_temp_calibration_map.Tank)} tanks "
-                f"but TotalStoreTanks is {self.total_store_tanks}"
-            )
 
         if not isinstance(self.total_store_tanks, int):
             raise TypeError("TotalStoreTanks must be an integer")
@@ -143,73 +125,7 @@ class House0Layout(HardwareLayout):
                 f"'{ScadaWeb.DEFAULT_SERVER_NAME}'"
             )
 
-        if len(self.tank_temp_calibration_map.Tank) != self.total_store_tanks:
-            raise DcError(f"Tank Temp Calibration Map has {len(self.tank_temp_calibration_map.Tank)} tanks"
-                          f" but system has {self.total_store_tanks}")
-
-        self.validate_tank_temp_calibration_consistency()
         self.validate_house0_system_models()
-
-    def validate_tank_temp_calibration_consistency(self) -> None:
-        tmap = self.tank_temp_calibration_map
-        errors: list[str] = []
-
-        # Local helper to validate a single depth's DerivedChannel vs TMap entry
-        def check(depth_name: str, m: float, b: float) -> None:
-            dc = self.derived_channels.get(depth_name)
-            if dc is None:
-                errors.append(f"Missing DerivedChannel '{depth_name}'")
-                return
-
-            if dc.Strategy == "identity":
-                if not (m == 1.0 and b == 0.0):
-                    errors.append(
-                        f"DerivedChannel '{depth_name}' uses identity but "
-                        f"TMap specifies M={m}, B={b}"
-                    )
-
-            elif dc.Strategy == "affine":
-                calib = dc.Parameters and dc.Parameters.get("Calibration")
-                if calib is None:
-                    errors.append(
-                        f"Affine DerivedChannel '{depth_name}' missing Calibration"
-                    )
-                    return
-                if calib["M"] != m or calib["B"] != b:
-                    errors.append(
-                        f"DerivedChannel '{depth_name}' calibration "
-                        f"(M={calib['M']}, B={calib['B']}) does not match TMap "
-                        f"(M={m}, B={b})"
-                    )
-
-            else:
-                errors.append(
-                    f"DerivedChannel '{depth_name}' must use identity or affine"
-                )
-
-        # Buffer
-        for depth in (1, 2, 3):
-            calib = tmap.Buffer
-            check(
-                f"buffer-depth{depth}",
-                getattr(calib, f"Depth{depth}M"),
-                getattr(calib, f"Depth{depth}B"),
-            )
-
-        # Tanks
-        for tank_idx, calib in tmap.Tank.items():
-            for depth in (1, 2, 3):
-                check(
-                    f"tank{tank_idx}-depth{depth}",
-                    getattr(calib, f"Depth{depth}M"),
-                    getattr(calib, f"Depth{depth}B"),
-                )
-
-        if errors:
-            raise DcError(
-                "Tank temperature calibration mismatch:\n"
-                + "\n".join(f"  - {e}" for e in errors)
-            )
 
     def validate_house0_system_models(self) -> None:
         """

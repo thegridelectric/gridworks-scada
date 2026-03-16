@@ -308,12 +308,14 @@ def add_relays(
                 ),
             ]
 
+        device_id = db.cac_id_by_alias(MakeModel.KRIDA__DOUBLEEMR16I2CV3)
+        if not device_id:
+            raise Exception("No device id for KRIDA__DOUBLEEMR16I2CV3")
         db.add_components(
             [I2cMultichannelDtRelayComponentGt(
+                    I2cBus="krida-bus",
                     ComponentId=db.make_component_id(component_display_name),
-                    ComponentAttributeClassId=db.cac_id_by_alias(
-                        MakeModel.KRIDA__DOUBLEEMR16I2CV3
-                    ),
+                    ComponentAttributeClassId=device_id,
                     DisplayName=component_display_name,
                     ConfigList=config_list,
                     I2cAddressList=cfg.I2cAddressList,

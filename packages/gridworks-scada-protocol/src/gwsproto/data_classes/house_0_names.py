@@ -312,6 +312,16 @@ class BufferChannelNames:
         else:
             return name
 
+    def effective_to_device(self, name: str) -> str:
+        if name == self.depth1:
+            return self.depth1_device
+        elif name == self.depth2:
+            return self.depth2_device
+        elif name == self.depth3:
+            return self.depth3_device
+        else:
+            return name
+
     @property
     def effective(self) -> set[str]:
         """Effective (derived) channels:buffer-depth1, buffer-depth2, buffer-depth3"""
@@ -362,6 +372,7 @@ class TankChannelNames:
         self.depth2_micro_v = f"{self.reader}-depth2-micro-v"
         self.depth3_micro_v = f"{self.reader}-depth3-micro-v"
 
+
     @property
     def effective(self) -> set[str]:
         """Effective (derived) channels"""
@@ -379,6 +390,16 @@ class TankChannelNames:
             self.depth2_micro_v,
             self.depth3_micro_v,
         }
+
+    def effective_to_device(self, name: str) -> str:
+        if name == self.depth1:
+            return self.depth1_device
+        elif name == self.depth2:
+            return self.depth2_device
+        elif name == self.depth3:
+            return self.depth3_device
+        else:
+            return name
 
     def device_depth(self, name: str) -> int:
         if name == self.depth1_device:
@@ -414,6 +435,7 @@ class H0CN:
     primary_pump_pwr = f"{H0N.primary_pump}-pwr"
     store_pump_pwr = f"{H0N.store_pump}-pwr"
 
+
     # Temperature Channels
     dist_swt = H0N.dist_swt
     dist_rwt = H0N.dist_rwt
@@ -436,7 +458,8 @@ class H0CN:
     primary_flow_hz = f"{H0N.primary_flow}-hz"
     store_flow_hz = f"{H0N.store_flow}-hz"
 
-    # Synth Channels
+    # Derived Channels
+    asset_electric_power = "asset-electric-power"
     required_energy = "required-energy"
     usable_energy = "usable-energy"
     hp_keep_seconds_x_10 = "hp-keep-seconds-x-10"
