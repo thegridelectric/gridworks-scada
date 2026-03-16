@@ -10,6 +10,7 @@ from gwsproto.property_format import (
 
 from gwsproto.enums import GwUnit, GwQuantity, EmissionMethod
 from gwsproto.named_types.unit_quantity_projection import UnitQuantityProjection
+from gwsproto.named_types.linear_one_dimensional_calibration import LinearOneDimensionalCalibration
 
 class DerivedChannelGt(BaseModel):
     """Sema: https://schemas.electricity.works/types/derived.channel.gt/002"""
@@ -99,6 +100,38 @@ class DerivedChannelGt(BaseModel):
                 f"OutputUnit {self.OutputUnit} and "
                 f"OutputQuantity {self.OutputQuantity} "
                 f"do not form a valid gw1.unit.quantity.projection"
+            ) from e
+
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_3(self) -> Self:
+        """
+        Axiom 3: AffineStrategyRequiresCalibration
+        If Strategy == "affine", then Parameters must contain a valid
+        linear.one.dimensional.calibration instance under the key "Calibration".
+        """
+
+        if self.Strategy != "affine":
+            return self
+
+        if self.Parameters is None:
+            raise ValueError(
+                "Strategy 'affine' requires Parameters to be present"
+            )
+
+        calibration_data = self.Parameters.get("Calibration")
+        if calibration_data is None:
+            raise ValueError(
+                "Strategy 'affine' requires Parameters['Calibration']"
+            )
+
+        try:
+            LinearOneDimensionalCalibration(**calibration_data)
+        except Exception as e:
+            raise ValueError(
+                "Axiom 3 violated! Parameters['Calibration'] must be a valid "
+                "linear.one.dimensional.calibration instance"
             ) from e
 
         return self
