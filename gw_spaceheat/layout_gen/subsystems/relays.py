@@ -28,7 +28,7 @@ from gwsproto.named_types import (
 )
 from gwsproto.enums import ChangeKeepSend, HpLoopKeepSend
 from gwsproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
-from layout_gen import LayoutDb
+from layout_gen.core import LayoutDb
 from pydantic import BaseModel
 
 component_display_name = "i2c krida relay boards"

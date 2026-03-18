@@ -15,6 +15,8 @@ class NolanNodeNames:
     auto = CNN.auto
     derived_generator = CNN.derived_generator
 
+    pico_cycler = HNN.pico_cycler
+    hp_boss = HNN.hp_boss
     local_control_normal = HNN.local_control_normal
     local_control_backup = HNN.local_control_backup
     local_control_scada_blind = HNN.local_control_scada_blind

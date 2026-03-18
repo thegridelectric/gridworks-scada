@@ -3,7 +3,7 @@ from gwproto.type_helpers import WebServerGt
 from gwsproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
 from gwsproto.named_types.web_server_component_gt import WebServerComponentGt
 
-from layout_gen import LayoutDb
+from layout_gen.core import LayoutDb
 
 def add_web_server(
     db: LayoutDb,

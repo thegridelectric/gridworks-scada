@@ -203,19 +203,7 @@ class H0N:
         for i in range(len(zone_list)):
             self.zone[zone_list[i]] = ZoneNodes(zone=zone_list[i], idx=i)
 
-    def tank_index(self, node_name: str) -> int | None:
-        """
-        Return 1-based tank index for a tank node name.
-        Raises ValueError if node_name is not a tank reader
-        Returns None if node_name is not a tank
-        """
-        for idx, tank in self.tank.items():
-            if (
-                node_name == tank.reader
-                or node_name in tank.depths
-            ):
-                return idx
-        return None
+
 
 
 

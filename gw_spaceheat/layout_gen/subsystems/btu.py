@@ -1,9 +1,8 @@
 from gwsproto.named_types import PicoBtuMeterComponentGt
-from typing import Optional, Any
+from typing import Optional
 from typing_extensions import Self
 from pydantic import BaseModel, model_validator
 from gwsproto.property_format import SpaceheatName
-from layout_gen import LayoutDb
 from gwsproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
 from gwsproto.named_types.data_channel_gt import DataChannelGt
 from gwsproto.enums import MakeModel, Unit, ActorClass, TelemetryName
@@ -12,6 +11,8 @@ from gwsproto.named_types.channel_config import ChannelConfig
 from gwsproto.named_types import SpaceheatNodeGt
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import GpmFromHzMethod, HzCalcMethod
+
+from layout_gen.core import LayoutDb
 
 
 SAIER_CONSTANT_GALLONS_PER_TICK = 0.0009

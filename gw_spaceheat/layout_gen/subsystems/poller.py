@@ -1,4 +1,3 @@
-from typing import Self
 
 from gwsproto.enums import ActorClass
 from gwsproto.enums import MakeModel
@@ -15,8 +14,8 @@ from gwsproto.named_types.hubitat_gt import HubitatGt
 from gwsproto.named_types import ChannelConfig
 from pydantic import BaseModel
 from gwsproto.data_classes.house_0_names import H0N
-from layout_gen import LayoutDb
-from layout_gen.hubitat import add_hubitat
+from layout_gen.core import LayoutDb
+from layout_gen.subsystems.hubitat import add_hubitat
 
 HUBITAT_MIN_POLL_S = 5
 TEMP_CHANNEL_SUFFIX = "temp"

@@ -17,7 +17,7 @@ from gwsproto.named_types.ads111x_based_component_gt import Ads111xBasedComponen
 from gwsproto.enums import ThermistorDataMethod
 from pydantic import BaseModel
 from gwsproto.data_classes.house_0_names import H0N
-from layout_gen.layout_db import LayoutDb
+from layout_gen.core import LayoutDb
 
 class SensorNodeGenCfg(BaseModel):
     ChannelName: str

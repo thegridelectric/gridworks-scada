@@ -12,8 +12,8 @@ class SpaceheatNodeGt(BaseModel):
     Handle: HandleName | None = None
     ActorClass: ActorClass
     DisplayName: str | None = None
-    ComponentId: str | None = None
-    BoardComponentId: str | None = None
+    ComponentId: UUID4Str | None = None
+    BoardComponentId: UUID4Str | None = None
     NameplatePowerW: StrictInt | None = None
     InPowerMetering: bool | None = None
     ShNodeId: UUID4Str

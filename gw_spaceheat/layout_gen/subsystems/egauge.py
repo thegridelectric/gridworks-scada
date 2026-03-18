@@ -17,7 +17,7 @@ from gwsproto.named_types.electric_meter_component_gt import ElectricMeterCompon
 
 
 from gwsproto.data_classes.house_0_names import H0N
-from layout_gen.layout_db import LayoutDb
+from layout_gen.core import LayoutDb
 
 
 class EgaugeChannelConfig(BaseModel):

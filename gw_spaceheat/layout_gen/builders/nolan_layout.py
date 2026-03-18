@@ -4,9 +4,9 @@ from dataclasses import dataclass
 from typing import Sequence
 from gwsproto.property_format import  LeftRightDotStr, SpaceheatName
 from gwsproto.names.hydronic_spaceheat.helpers import HydronicSpaceheatZones
-from layout_gen.layout_db import LayoutDb 
+from layout_gen.core.layout_db import LayoutDb 
 from layout_gen.base_layout_gen import ZoneWhitewireNames
-from layout_gen.gw108_layout_gen import (
+from layout_gen.builders.gw108_layout_gen import (
     add_whitewire_zone,
     GW108_WHITEWIRE_GPIO_PINS,
 )

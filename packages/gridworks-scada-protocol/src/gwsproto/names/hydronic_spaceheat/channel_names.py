@@ -1,3 +1,4 @@
+from typing import Literal
 from gwsproto.names.core.channel_names import CoreChannelNames as CCN
 from gwsproto.names.hydronic_spaceheat.helpers import BufferChannelNames
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HNN
@@ -40,5 +41,5 @@ class HydronicSpaceheatChannelNames:
     store_010v = "store_010v"
 
     # relay state channels
-    vdc_relay_state = "vdc_relay"
+    vdc_relay_state: Literal["vdc-relay"] = "vdc-relay"
     

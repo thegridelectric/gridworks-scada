@@ -1,59 +1,22 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-\
+from gwsproto.enums import (ActorClass, EmissionMethod, GwQuantity, GwUnit,
+                            TelemetryName)
+from gwsproto.named_types import (DataChannelGt, DerivedChannelGt,
+                                  SpaceheatNodeGt)
+from gwsproto.property_format import SpaceheatName, UUID4Str, HandleName
+from layout_gen.core.layout_db import LayoutDb
 
-from gwsproto.enums import ActorClass, EmissionMethod, TelemetryName, Unit, GwUnit, GwQuantity
-from gwsproto.named_types import (
-    SpaceheatNodeGt,
-    DataChannelGt,
-    DerivedChannelGt,
-)
-
-from layout_gen.layout_db import LayoutDb
-
-
-@dataclass(frozen=True)
-class ZoneWhitewireNames:
-    """
-    Canonical naming for the 'whitewire opto input' pattern.
-    """
-    idx: int
-    zone: str
-
-    @property
-    def zone_node(self) -> str:
-        return f"zone{self.idx}-{self.zone}".lower()
-
-    @property
-    def whitewire_sensor_node(self) -> str:
-        return f"{self.zone_node}-opto"
-
-    @property
-    def whitewire_data_channel(self) -> str:
-        return f"{self.zone_node}-opto-input"
-
-    @property
-    def heat_call_channel(self) -> str:
-        return f"{self.zone_node}-heat-call"
-
-    @property
-    def zone_display_prefix(self) -> str:
-        return f"Zone {self.idx} {self.display_zone}"
-
-    @property
-    def display_zone(self) -> str:
-        return " ".join(word.capitalize() for word in self.zone.split("-"))
 
 def add_spaceheat_node(
     db: LayoutDb,
     *,
-    name: str,
+    name: SpaceheatName,
     actor_class: ActorClass,
     display_name: str,
-    component_id: str | None = None,
-    actor_hierarchy_name: str | None = None,
-    handle: str | None = None,
+    component_id: UUID4Str | None = None,
+    actor_hierarchy_name: HandleName | None = None,
+    handle: HandleName | None = None,
 ) -> None:
     db.add_nodes(
         [

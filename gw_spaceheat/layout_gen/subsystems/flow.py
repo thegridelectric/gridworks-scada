@@ -9,7 +9,7 @@ from gwsproto.named_types import (
     ChannelConfig, ComponentAttributeClassGt, DataChannelGt, 
     PicoFlowModuleComponentGt, SpaceheatNodeGt,
 )
-from layout_gen import LayoutDb
+from layout_gen.core import LayoutDb
 
 
 SAIER_CONSTANT_GALLONS_PER_TICK = 0.0009

@@ -9,7 +9,7 @@ from gwsproto.named_types import (
 )
 
 
-from layout_gen.tank3 import Tank3Cfg, add_tank3
+from layout_gen.subsystems.tank3 import TankCfg, add_tank3
 
    
 def add_simulated_tanks(
@@ -42,7 +42,7 @@ def add_simulated_tanks(
 
 def add_sim_tank(db: LayoutDb, reader: str):
 
-    cfg = Tank3Cfg(
+    cfg = TankCfg(
         SerialNumber="NA",
         PicoHwUid=f"sim-{reader}-pico",
     )

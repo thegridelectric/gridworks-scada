@@ -8,7 +8,7 @@ from gwsproto.named_types import (
 )
 from gwsproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
 from pydantic import BaseModel
-from layout_gen import LayoutDb
+from layout_gen.core import LayoutDb
 
 component_display_name = "DFRobot 010V output X 2"
 
@@ -62,13 +62,14 @@ def add_dfrs(db: LayoutDb, dfr_config: DfrConf) -> None:
             ),
         ]
 
+        device_id = db.cac_id_by_alias(MakeModel.DFROBOT__DFR0971_TIMES2)
+        if not device_id:
+            raise Exception("Missing DFROBOT__DFR0971_TIMES in device list~")
         db.add_components(
             [
                 DfrComponentGt(
                     ComponentId=db.make_component_id(component_display_name),
-                    ComponentAttributeClassId=db.cac_id_by_alias(
-                        MakeModel.DFROBOT__DFR0971_TIMES2
-                    ),
+                    ComponentAttributeClassId=device_id,
                     DisplayName=component_display_name,
                     ConfigList=config_list,
                     I2cAddressList=[94, 95],  # 0x5e, 0x5f

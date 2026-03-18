@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import GwUnit, GwQuantity, EmissionMethod
 from gwsproto.named_types import DerivedChannelGt, LinearOneDimensionalCalibration
-from layout_gen.layout_db import LayoutDb
+from layout_gen.core.layout_db import LayoutDb
 
 
 class AffineTempCal(BaseModel):
