@@ -1,14 +1,12 @@
 from typing import Protocol
 
-
-
-from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HNN
 from gwsproto.names.hydronic_spaceheat.helpers import (
- BufferChannelNames, BufferNodeNames, Tanks, TankNodeNames, TankChannelNames, 
+ BufferChannelNames, BufferNodeNames, TankNodeNames, TankChannelNames, 
 )
 
 from layout_gen.core.layout_db import LayoutDb
-from layout_gen.subsystems.tanks.config import TankCfg
+from layout_gen.subsystems.tanks.config import TankCfg, TanksConfig
+
 
 class TankImplementation(Protocol):
     def add_tank(
@@ -17,34 +15,39 @@ class TankImplementation(Protocol):
             *, 
             nodes: TankNodeNames | BufferNodeNames,
             channels: TankChannelNames | BufferChannelNames,
-            cfg: TankCfg
+            cfg: TankCfg,
             ) -> None: ...
 
 
 def add_tanks(
     db: LayoutDb,
     *,
-    total_store_tanks: int,
     implementation: TankImplementation,
-    cfg: TankCfg,
-) -> None:
-    db.misc["TotalStoreTanks"] = total_store_tanks
+    cfgs: TanksConfig,
 
-    tanks = Tanks(total_store_tanks)
+) -> None:
+
+    hydronic = db.misc.setdefault("Hydronic", {})
+    hydronic["TotalStoreTanks"] = len(cfgs.store)
+    hydronic["StoreTankIndices"] = sorted(cfgs.store.keys())
+
     # buffer
     implementation.add_tank(
         db, 
         nodes=BufferNodeNames(),
         channels=BufferChannelNames(),
-        cfg=cfg
+        cfg=cfgs.buffer
     )    
     
     # storage tanks
-    for idx in range(1, total_store_tanks + 1):
+    for idx, cfg in sorted(cfgs.store.items()):
+        if idx < 1 or idx > 6:
+            raise ValueError(f"Tank idx {idx} out of valid range 1–6")
+
         implementation.add_tank(
             db,
-            nodes=tanks.nodes[idx],
-            channels=tanks.channels[idx],
-            cfg=cfg
+            nodes=TankNodeNames(idx),
+            channels=TankChannelNames(idx),
+            cfg=cfg,
         )
         

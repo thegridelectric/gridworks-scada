@@ -1,138 +1,117 @@
-from layout_gen import LayoutDb
-from gwsproto.type_helpers import CACS_BY_MAKE_MODEL
-
-from gwsproto.data_classes.house_0_names import H0N
-from gwsproto.enums import MakeModel, Unit, ActorClass, TelemetryName
-from gwsproto.named_types import (
-    ChannelConfig, ComponentAttributeClassGt,  
-    DataChannelGt, SimPicoTankModuleComponentGt, SpaceheatNodeGt,
-)
+from gwsproto.enums import MakeModel, Unit
+from gwsproto.named_types import (ChannelConfig, ComponentAttributeClassGt,
+                                  SimPicoTankModuleComponentGt)
+from layout_gen.core.layout_db import LayoutDb
+from layout_gen.subsystems.tanks.config import TankCfg, TanksConfig
+from layout_gen.subsystems.tanks.tank_module3 import TankModule3Implementation
+from layout_gen.subsystems.tanks.tanks import add_tanks
 
 
-from layout_gen.subsystems.tank3 import TankCfg, add_tank3
+class SimTankModule3Implementation(TankModule3Implementation):
+    """
+    Simulated implementation of TankModule3.
 
-   
+    Overrides device and component creation (SimPicoTankModuleComponentGt)
+    """
+
+    def _ensure_device(self, db: LayoutDb) -> str:
+        alias = MakeModel.GRIDWORKS__SIMMULTITEMP
+
+        cac_id = db.cac_id_by_alias(alias)
+        if cac_id:
+            return cac_id
+
+        device_id = db.make_cac_id(make_model=alias)
+
+        db.add_cacs([
+            ComponentAttributeClassGt(
+                ComponentAttributeClassId=device_id,
+                DisplayName="GridWorks Simulated MultiTemp sensor",
+                MakeModel=alias,
+            )
+        ])
+
+        return device_id
+
+    def _ensure_component(
+        self,
+        db: LayoutDb,
+        cfg: TankCfg,
+        nodes,
+        channels,
+        device_id: str,
+    ) -> str:
+
+        display_name = f"{nodes.reader} SimTankModule"
+
+        existing = db.component_id_by_alias(display_name)
+        if existing:
+            return existing
+
+        component_id = db.make_component_id(display_name)
+
+        config_list: list[ChannelConfig] = []
+
+        # device temperature channels
+        for ch in channels.devices:
+            config_list.append(
+                ChannelConfig(
+                    ChannelName=ch,
+                    CapturePeriodS=cfg.ops.capture_period_s,
+                    AsyncCapture=True,
+                    Exponent=3,
+                    Unit=Unit.Celcius,
+                )
+            )
+
+        # optional microvolt channels
+        if cfg.ops.send_micro_volts:
+            for ch in channels.electrical:
+                config_list.append(
+                    ChannelConfig(
+                        ChannelName=ch,
+                        CapturePeriodS=cfg.ops.capture_period_s,
+                        AsyncCapture=True,
+                        Exponent=6,
+                        Unit=Unit.VoltsRms,
+                    )
+                )
+
+        db.add_components([
+            SimPicoTankModuleComponentGt(
+                ComponentId=component_id,
+                ComponentAttributeClassId=device_id,
+                DisplayName=display_name,
+                SerialNumber=cfg.id.serial_number,
+                PicoHwUid=cfg.id.pico_hw_uid,
+                ConfigList=config_list,
+                Enabled=cfg.ops.enabled,
+                SendMicroVolts=cfg.ops.send_micro_volts,
+                Samples=cfg.ops.samples,
+                NumSampleAverages=cfg.ops.num_sample_averages,
+                TempCalcMethod=cfg.ops.temp_calc,
+                ThermistorBeta=cfg.ops.thermistor_beta,
+                AsyncCaptureDeltaMicroVolts=cfg.ops.async_capture_delta_micro_volts,
+                SensorOrder=cfg.id.sensor_order,
+            )
+        ])
+
+        return component_id
+
+
 def add_simulated_tanks(
     db: LayoutDb,
+    *,
+    cfgs: TanksConfig,
 ) -> None:
+    """
+    Add simulated tanks using the same topology and channel structure
+    as real tanks, but with simulated components.
+    """
+    implementation = SimTankModule3Implementation()
 
-    if not db.cac_id_by_alias(MakeModel.GRIDWORKS__SIMMULTITEMP):
-        db.add_cacs(
-            [
-                ComponentAttributeClassGt(
-                    ComponentAttributeClassId=db.make_cac_id(make_model=MakeModel.GRIDWORKS__SIMMULTITEMP),
-                    DisplayName="GridWorks Simulated MultiTemp sensor",
-                    MakeModel=MakeModel.GRIDWORKS__SIMMULTITEMP,
-                ),
-            ]
-        )
-
-    # -------------------------------------------------
-    # Buffer tank
-    # -------------------------------------------------
-    add_sim_tank(db, "buffer")
-
-    # # -------------------------------------------------
-    # # Storage tanks: tank1 .. tankN
-    # # -------------------------------------------------
-    # for tank_idx in range(1, db.loaded.total_store_tanks + 1):
-    #     reader = f"tank{tank_idx}"
-    #     add_sim_tank(db, reader)
-
-
-def add_sim_tank(db: LayoutDb, reader: str):
-
-    cfg = TankCfg(
-        SerialNumber="NA",
-        PicoHwUid=f"sim-{reader}-pico",
+    add_tanks(
+        db,
+        implementation=implementation,
+        cfgs=cfgs,
     )
-    display_name = reader.replace("-", " ").title()
-    component_id = db.make_component_id(display_name)
-    db.add_nodes(
-            [
-                SpaceheatNodeGt(
-                    ShNodeId=db.make_node_id(reader),
-                    Name=reader,
-                    ActorHierarchyName=f"{H0N.primary_scada}.{reader}",
-                    ActorClass=ActorClass.ApiTankModule,
-                    DisplayName=f"{display_name} SIMULATED ApiTankModule actor",
-                    ComponentId=component_id,
-                )
-            ] + [
-                SpaceheatNodeGt(
-                ShNodeId=db.make_node_id(f"{reader}-depth{i}"),
-                Name=f"{reader}-depth{i}",
-                ActorClass=ActorClass.NoActor,
-                DisplayName=f"{reader}-depth{i}",
-                )
-                for i in  range(1,4)
-            ]
-        )
-
-    config_list = []
-    for i in range(1,4):
-        depth_i_channels = [ChannelConfig(
-                ChannelName=f"{reader}-depth{i}-device",
-                CapturePeriodS=cfg.CapturePeriodS,
-                AsyncCapture=True,
-                AsyncCaptureDelta=cfg.AsyncCaptureDeltaMicroVolts,
-                Exponent=3,
-                Unit=Unit.Celcius
-            )]
-        if cfg.SendMicroVolts:
-            depth_i_channels.append( ChannelConfig(
-                ChannelName=f"{reader}-depth{i}-micro-v",
-                CapturePeriodS=cfg.CapturePeriodS,
-                AsyncCapture=True,
-                AsyncCaptureDelta=cfg.AsyncCaptureDeltaMicroVolts,
-                Exponent=6,
-                Unit=Unit.VoltsRms
-            ))
-        config_list += depth_i_channels
-
-    db.add_components([
-            SimPicoTankModuleComponentGt(
-            ComponentId=component_id,
-            ComponentAttributeClassId=CACS_BY_MAKE_MODEL[MakeModel.GRIDWORKS__SIMMULTITEMP],
-            DisplayName=display_name,
-            SerialNumber=cfg.SerialNumber,
-            ConfigList=config_list,
-            PicoHwUid=cfg.PicoHwUid,
-            Enabled=cfg.Enabled,
-            SendMicroVolts=cfg.SendMicroVolts,
-            Samples=cfg.Samples,
-            NumSampleAverages=cfg.NumSampleAverages,
-            TempCalcMethod=cfg.TempCalc,
-            ThermistorBeta=cfg.ThermistorBeta,
-            AsyncCaptureDeltaMicroVolts=cfg.AsyncCaptureDeltaMicroVolts,
-            SensorOrder=cfg.SensorOrder,
-            ),
-        ]
-    )
-
-    db.add_data_channels(
-        [ DataChannelGt(
-            Name=f"{reader}-depth{i}-device",
-            DisplayName=f"{reader.capitalize()} Depth {i} Device Temp",
-            AboutNodeName=f"{reader}-depth{i}",
-            CapturedByNodeName=reader,
-            TelemetryName=TelemetryName.WaterTempCTimes1000,
-            TerminalAssetAlias=db.terminal_asset_alias,
-            Id=db.make_channel_id(f"{reader}-depth{i}-device")
-            ) for i in range(1,4)
-        ]
-    )
-
-    if cfg.SendMicroVolts:
-        db.add_data_channels(
-            [ DataChannelGt(
-                Name=f"{reader}-depth{i}-micro-v",
-                DisplayName=f"{reader.capitalize()} Depth {i} MicroVolts",
-                AboutNodeName=f"{reader}-depth{i}",
-                CapturedByNodeName=reader,
-                TelemetryName=TelemetryName.MicroVolts,
-                TerminalAssetAlias=db.terminal_asset_alias,
-                Id=db.make_channel_id(f"{reader}-depth{i}-micro-v")
-                ) for i in range(1,4)
-            ]
-        )

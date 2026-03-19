@@ -57,6 +57,7 @@ class LayoutDb:
     ):
         self.lists = {}
         self.misc =  {}
+        self.misc.update(self.loaded.g_nodes)
         self.lists["OtherComponents"] = []
 
         self.cacs_by_id = {}
@@ -76,6 +77,13 @@ class LayoutDb:
         self.maps.nodes_by_name = dict(self.loaded.nodes_by_name)
         self.maps.channels_by_name = dict(self.loaded.channels_by_name)
         self.maps.derived_channels_by_name = dict(self.loaded.derived_channels_by_name)
+
+    @property
+    def terminal_asset_alias(self) -> str:
+        ta = self.misc.get("MyTerminalAssetGNode")
+        if not ta:
+            raise Exception("Missing MyTerminalAssetGNode in layout")
+        return ta["Alias"]
 
     def cac_id_by_alias(self, alias: str) -> Optional[str]:
         return self.maps.cacs_by_alias.get(alias, None)

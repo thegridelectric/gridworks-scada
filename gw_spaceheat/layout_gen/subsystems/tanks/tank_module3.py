@@ -1,19 +1,16 @@
-from gwsproto.named_types import PicoTankModuleComponentGt
-
+from gwsproto.enums import ActorClass, MakeModel, TelemetryName, Unit
+from gwsproto.named_types import (ChannelConfig, ComponentAttributeClassGt,
+                                  DataChannelGt, PicoTankModuleComponentGt,
+                                  SpaceheatNodeGt)
+from gwsproto.names.core.node_names import CoreNodeNames as CNN
+from gwsproto.names.hydronic_spaceheat.helpers import (BufferChannelNames,
+                                                       BufferNodeNames,
+                                                       TankChannelNames,
+                                                       TankNodeNames)
+from gwsproto.property_format import UUID4Str
 from layout_gen.core import LayoutDb
-from gwsproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
-from gwsproto.named_types.data_channel_gt import DataChannelGt
-
-
-from gwsproto.enums import MakeModel, Unit, ActorClass, TelemetryName
-from gwsproto.named_types.channel_config import ChannelConfig
-from gwsproto.named_types import SpaceheatNodeGt
-from gwsproto.data_classes.house_0_names import H0N
-from gwsproto.names.hydronic_spaceheat.helpers import (
- BufferChannelNames, BufferNodeNames, Tanks, TankNodeNames, TankChannelNames, 
-)
-
-
+from layout_gen.core.derived_channels import add_temperature_channel
+from layout_gen.subsystems.tanks.calibration import TankCalibration
 from layout_gen.subsystems.tanks.config import TankCfg
 
 
@@ -24,111 +21,174 @@ class TankModule3Implementation:
             *,
             nodes: TankNodeNames | BufferNodeNames,
             channels: TankChannelNames | BufferChannelNames,
-            cfg: TankCfg
+            cfg: TankCfg,
     ) -> None:
-        if not db.cac_id_by_alias(MakeModel.GRIDWORKS__TANKMODULE3):
-            db.add_cacs(
-                [
-                    ComponentAttributeClassGt(
-                        ComponentAttributeClassId=db.make_cac_id(make_model=MakeModel.GRIDWORKS__TANKMODULE3),
-                        DisplayName="GridWorks TankModule3 (Uses 1 pico)",
-                        MakeModel=MakeModel.GRIDWORKS__TANKMODULE3,
-                    ),
-                ]
+        device_id = self._ensure_device(db)
+        component_id = self._ensure_component(
+            db, cfg, nodes, channels, device_id
+        )
+        self._add_nodes(db, nodes, component_id)
+        self._add_data_channels(db, nodes, channels)
+        self._add_derived_channels(db, channels, cfg.cal)
+
+    def _ensure_device(self, db: LayoutDb) -> UUID4Str:
+        alias = MakeModel.GRIDWORKS__TANKMODULE3
+
+        cac_id = db.cac_id_by_alias(alias)
+        if cac_id:
+            return cac_id
+
+        cac_id = db.make_cac_id(make_model=alias)
+
+        db.add_cacs([
+            ComponentAttributeClassGt(
+                ComponentAttributeClassId=cac_id,
+                DisplayName="GridWorks TankModule3 (Uses 1 pico)",
+                MakeModel=alias,
             )
-        
-        if not db.component_id_by_alias(cfg.component_display_name()):
-            config_list = []
-            for i in range(1,4):
+        ])
+
+        return cac_id
+
+    def _ensure_component(self, 
+                          db: LayoutDb, 
+                          cfg: TankCfg, 
+                          nodes: TankNodeNames | BufferNodeNames,
+                          channels: TankChannelNames | BufferChannelNames, 
+                          device_id: UUID4Str) -> str:
+        display_name = f"{nodes.reader} PicoTankModule"
+
+        existing = db.component_id_by_alias(display_name)
+        if existing:
+            return existing
+
+        config_list = []
+
+        for ch in channels.devices:
+            config_list.append(
+                ChannelConfig(
+                    ChannelName=ch,
+                    CapturePeriodS=cfg.ops.capture_period_s,
+                    AsyncCapture=True,
+                    Exponent=3,
+                    Unit=Unit.Celcius,
+                )
+            )
+
+        if cfg.ops.send_micro_volts:
+            for ch in channels.electrical:
                 config_list.append(
                     ChannelConfig(
-                        ChannelName=f"{cfg.ActorNodeName}-depth{i}-device",
-                        CapturePeriodS=cfg.CapturePeriodS,
+                        ChannelName=ch,
+                        CapturePeriodS=cfg.ops.capture_period_s,
                         AsyncCapture=True,
-                        Exponent=3,
-                        Unit=Unit.Celcius
+                        Exponent=6,
+                        Unit=Unit.VoltsRms,
                     )
                 )
-            if cfg.SendMicroVolts:
-                for i in range(1,4):
-                    config_list.append(
-                        ChannelConfig(
-                            ChannelName=f"{cfg.ActorNodeName}-depth{i}-micro-v",
-                            CapturePeriodS=cfg.CapturePeriodS,
-                            AsyncCapture=True,
-                            Exponent=6,
-                            Unit=Unit.VoltsRms
-                        )
-                    )
 
-            cac_id = db.cac_id_by_alias(MakeModel.GRIDWORKS__TANKMODULE3)
-            if not cac_id:
-                    raise Exception("NOPE THAT DOES NOT MAKE SENSE")
-            db.add_components(
-                [
-                    PicoTankModuleComponentGt(
-                        ComponentId=db.make_component_id(cfg.component_display_name()),
-                        ComponentAttributeClassId=cac_id,
-                        DisplayName=cfg.component_display_name(),
-                        SerialNumber=cfg.SerialNumber,
-                        ConfigList=config_list,
-                        PicoHwUid=cfg.PicoHwUid,
-                        Enabled=cfg.Enabled,
-                        SendMicroVolts=cfg.SendMicroVolts,
-                        Samples=cfg.Samples,
-                        NumSampleAverages=cfg.NumSampleAverages,
-                        TempCalcMethod=cfg.TempCalc,
-                        ThermistorBeta=cfg.ThermistorBeta,
-                        AsyncCaptureDeltaMicroVolts=cfg.AsyncCaptureDeltaMicroVolts,
-                        SensorOrder=cfg.SensorOrder,
-                    ),
-                ]
+        component_id = db.make_component_id(display_name)
+
+        db.add_components([
+            PicoTankModuleComponentGt(
+                ComponentId=component_id,
+                ComponentAttributeClassId=device_id,
+                DisplayName=display_name,
+                SerialNumber=cfg.id.serial_number,
+                PicoHwUid=cfg.id.pico_hw_uid,
+                ConfigList=config_list,
+                Enabled=cfg.ops.enabled,
+                SendMicroVolts=cfg.ops.send_micro_volts,
+                Samples=cfg.ops.samples,
+                NumSampleAverages=cfg.ops.num_sample_averages,
+                TempCalcMethod=cfg.ops.temp_calc,
+                ThermistorBeta=cfg.ops.thermistor_beta,
+                AsyncCaptureDeltaMicroVolts=cfg.ops.async_capture_delta_micro_volts,
+                SensorOrder=cfg.id.sensor_order,
             )
+        ])
 
-            db.add_nodes(
-                [
-                    SpaceheatNodeGt(
-                        ShNodeId=db.make_node_id(cfg.ActorNodeName),
-                        Name=cfg.ActorNodeName,
-                        ActorHierarchyName=f"{H0N.primary_scada}.{cfg.ActorNodeName}",
-                        ActorClass=ActorClass.ApiTankModule,
-                        DisplayName=f"{cfg.ActorNodeName.capitalize()} Tank",
-                        ComponentId=db.component_id_by_alias(cfg.component_display_name())
-                    )
-                ] + [
-                    SpaceheatNodeGt(
-                    ShNodeId=db.make_node_id(f"{cfg.ActorNodeName}-depth{i}"),
-                    Name=f"{cfg.ActorNodeName}-depth{i}",
+        return component_id
+
+    def _add_nodes(self,
+                    db: LayoutDb, 
+                    nodes: TankNodeNames | BufferNodeNames, 
+                    component_id: UUID4Str):
+        db.add_nodes(
+            [
+                SpaceheatNodeGt(
+                    ShNodeId=db.make_node_id(nodes.reader),
+                    Name=nodes.reader,
+                    ActorHierarchyName=f"{CNN.primary_scada}.{nodes.reader}",
+                    ActorClass=ActorClass.ApiTankModule,
+                    DisplayName=f"{nodes.reader.capitalize()} Tank",
+                    ComponentId=component_id,
+                )
+            ]
+            + [
+                SpaceheatNodeGt(
+                    ShNodeId=db.make_node_id(depth),
+                    Name=depth,
                     ActorClass=ActorClass.NoActor,
-                    DisplayName=f"{cfg.ActorNodeName}-depth{i}",
-                    )
-                    for i in  range(1,4)
-                ]
-            )
+                    DisplayName=depth,
+                )
+                for depth in nodes.depths
+            ]
+        )
+
+    def _add_data_channels(self, 
+                           db: LayoutDb, 
+                           nodes: TankNodeNames | BufferNodeNames,
+                           channels: TankChannelNames | BufferChannelNames):
+        depth_nodes = sorted(nodes.depths)
+
+        device_channels = sorted(channels.devices)
+
+        db.add_data_channels(
+            [
+                DataChannelGt(
+                    Name=ch,
+                    DisplayName=f"{nodes.reader.capitalize()} Depth {i+1} Device Temp",
+                    AboutNodeName=depth_nodes[i],
+                    CapturedByNodeName=nodes.reader,
+                    TelemetryName=TelemetryName.WaterTempCTimes1000,
+                    TerminalAssetAlias=db.terminal_asset_alias,
+                    Id=db.make_channel_id(ch),
+                )
+                for i, ch in enumerate(device_channels)
+            ]
+        )
+
+
+        if channels.electrical:
+            electrical_channels = sorted(channels.electrical)
 
             db.add_data_channels(
-                [ DataChannelGt(
-                Name=f"{cfg.ActorNodeName}-depth{i}-device",
-                DisplayName=f"{cfg.ActorNodeName.capitalize()} Depth {i} Device Temp",
-                AboutNodeName=f"{cfg.ActorNodeName}-depth{i}",
-                CapturedByNodeName=cfg.ActorNodeName,
-                TelemetryName=TelemetryName.WaterTempCTimes1000,
-                TerminalAssetAlias=db.terminal_asset_alias,
-                Id=db.make_channel_id(f"{cfg.ActorNodeName}-depth{i}-device")
-                ) for i in range(1,4)
+                [
+                    DataChannelGt(
+                        Name=ch,
+                        DisplayName=f"{nodes.reader.capitalize()} Depth {i+1} MicroVolts",
+                        AboutNodeName=depth_nodes[i],
+                        CapturedByNodeName=nodes.reader,
+                        TelemetryName=TelemetryName.MicroVolts,
+                        TerminalAssetAlias=db.terminal_asset_alias,
+                        Id=db.make_channel_id(ch),
+                    )
+                    for i, ch in enumerate(electrical_channels)
                 ]
             )
 
-            if cfg.SendMicroVolts:
-                db.add_data_channels(
-                    [ DataChannelGt(
-                        Name=f"{cfg.ActorNodeName}-depth{i}-micro-v",
-                        DisplayName=f"{cfg.ActorNodeName.capitalize()} Depth {i} MicroVolts",
-                        AboutNodeName=f"{cfg.ActorNodeName}-depth{i}",
-                        CapturedByNodeName=cfg.ActorNodeName,
-                        TelemetryName=TelemetryName.MicroVolts,
-                        TerminalAssetAlias=db.terminal_asset_alias,
-                        Id=db.make_channel_id(f"{cfg.ActorNodeName}-depth{i}-micro-v")
-                    ) for i in range(1,4)
-                    ]
-                )
+    def _add_derived_channels(self,
+                              db: LayoutDb,
+                              channels: TankChannelNames | BufferChannelNames,
+                              calibration: TankCalibration
+                              ):
+
+        for i, effective in enumerate(sorted(channels.effective), start=1):
+            add_temperature_channel(
+                db,
+                node_name=CNN.derived_generator,
+                channel_name=effective,
+                input_channel=channels.effective_to_device(effective),
+                calibration=calibration.calibration_for_depth(i),
+            )
