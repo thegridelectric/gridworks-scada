@@ -8,13 +8,13 @@ from gwsproto.named_types import (
 )
 from gwsproto.names.hydronic_spaceheat.helpers import ZoneNodeNames, ZoneChannelNames
 
-from layout_gen.layout_db import LayoutDb  # <- adjust
-from layout_gen.base_layout_gen import (
+from layout_gen.core import (
+    LayoutDb,
     add_spaceheat_node, 
     add_data_channel,
     add_heat_call_derived_channel,
-    ZoneWhitewireNames
 )
+
 
 DERIVED_GENERATOR_NODE_NAME = "derived-generator"
 

@@ -4,12 +4,8 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class TelemetryName(SemaEnum):
-    """ Encoding used for raw channels
-  
-    For more information:
-      - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#spaceheattelemetryname)
-      - [More Info](https://gridworks-protocol.readthedocs.io/en/latest/telemetry-name.html)
+    """
+    ASL: https://schemas.electricity.works/enums/spaceheat.telemetry.name/007
     """
 
     Unknown = auto()
@@ -34,6 +30,7 @@ class TelemetryName(SemaEnum):
     CelsiusTimes100 = auto()
     VoltsTimes100 = auto()
     HzTimes100 = auto()
+    BinaryState = auto()
 
     @classmethod
     def default(cls) -> "TelemetryName":
@@ -49,4 +46,4 @@ class TelemetryName(SemaEnum):
 
     @classmethod
     def enum_version(cls) -> str:
-        return "006"
+        return "007"

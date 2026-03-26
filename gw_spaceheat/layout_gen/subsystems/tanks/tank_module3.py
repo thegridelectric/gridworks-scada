@@ -11,17 +11,18 @@ from gwsproto.property_format import UUID4Str
 from layout_gen.core import LayoutDb
 from layout_gen.core.derived_channels import add_temperature_channel
 from layout_gen.subsystems.tanks.calibration import TankCalibration
-from layout_gen.subsystems.tanks.config import TankCfg
+from layout_gen.subsystems.tanks.config import TankConfig
 
 
 class TankModule3Implementation:
+
     def add_tank(
             self,
             db: LayoutDb,
             *,
             nodes: TankNodeNames | BufferNodeNames,
             channels: TankChannelNames | BufferChannelNames,
-            cfg: TankCfg,
+            cfg: TankConfig,
     ) -> None:
         device_id = self._ensure_device(db)
         component_id = self._ensure_component(
@@ -52,7 +53,7 @@ class TankModule3Implementation:
 
     def _ensure_component(self, 
                           db: LayoutDb, 
-                          cfg: TankCfg, 
+                          cfg: TankConfig, 
                           nodes: TankNodeNames | BufferNodeNames,
                           channels: TankChannelNames | BufferChannelNames, 
                           device_id: UUID4Str) -> str:

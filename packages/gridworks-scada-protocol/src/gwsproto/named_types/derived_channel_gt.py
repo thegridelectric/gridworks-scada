@@ -135,3 +135,45 @@ class DerivedChannelGt(BaseModel):
             ) from e
 
         return self
+
+    @model_validator(mode="after")
+    def check_axiom_4(self) -> Self:
+        """
+        Axiom 4: SystemModelRequiresParameters.
+
+        If Strategy equals "system-model", then:
+        - Parameters SHALL be present.
+        - Parameters SHALL contain a key "EnergyModel".
+        - Parameters["EnergyModel"] SHALL include:
+            - TypeName
+            - Version
+        """
+        if self.Strategy == "system-model":
+            if self.Parameters is None:
+                raise ValueError(
+                    "Parameters must be present when Strategy is 'system-model'."
+                )
+
+            if "EnergyModel" not in self.Parameters:
+                raise ValueError(
+                    "Parameters must contain 'EnergyModel' when Strategy is 'system-model'."
+                )
+
+            model = self.Parameters["EnergyModel"]
+
+            if not isinstance(model, dict):
+                raise ValueError(
+                    "Parameters['EnergyModel'] must be an object with TypeName and Version."
+                )
+
+            if "TypeName" not in model:
+                raise ValueError(
+                    "Parameters['EnergyModel'] must include 'TypeName'."
+                )
+
+            if "Version" not in model:
+                raise ValueError(
+                    "Parameters['EnergyModel'] must include 'Version'."
+                )
+
+        return self

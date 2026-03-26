@@ -1,14 +1,14 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from gwsproto.enums import TempCalcMethod
 
 from layout_gen.subsystems.tanks.calibration import TankCalibration
 
-class TankDeviceIdentity(BaseModel):
+class TankId(BaseModel):
     serial_number: str
     pico_hw_uid: str
     sensor_order: list[int] | None = None
 
-class TankOperationalConfig(BaseModel):
+class TankOps(BaseModel):
     capture_period_s: int = 60
     async_capture_delta_micro_volts: int = 2000
     samples: int = 1000
@@ -19,12 +19,12 @@ class TankOperationalConfig(BaseModel):
     thermistor_beta: int = 3977
 
 
-class TankCfg(BaseModel):
-    id: TankDeviceIdentity
-    ops: TankOperationalConfig
-    cal: TankCalibration
+class TankConfig(BaseModel):
+    id: TankId
+    ops: TankOps = Field(default_factory=TankOps)
+    cal: TankCalibration = Field(default_factory=TankCalibration)
 
 
 class TanksConfig(BaseModel):
-    buffer: TankCfg
-    store: dict[int, TankCfg]
+    buffer: TankConfig
+    store: dict[int, TankConfig]

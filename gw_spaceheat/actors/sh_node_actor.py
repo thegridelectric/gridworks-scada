@@ -266,6 +266,12 @@ class ShNodeActor(Actor, ABC):
     # Relays
     ################################
 
+    def failsafe_relay(self, zone_idx: int) -> ShNode:
+        return self.layout.zones.node[zone_idx].failsafe_relay
+
+    def ops_relay(self, zone_idx: int) -> ShNode:
+        return self.layout.zones.nodes[zone_idx].ops_relay
+
     @property
     def vdc_relay(self) -> ShNode:
         return self.layout.node(H0N.vdc_relay)

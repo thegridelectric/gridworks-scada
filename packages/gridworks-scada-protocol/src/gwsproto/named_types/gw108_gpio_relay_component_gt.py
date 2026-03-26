@@ -11,7 +11,7 @@ from gwsproto.named_types.relay_actor_config import RelayActorConfig
 class Gw108GpioRelayComponentGt(ComponentGt):
     GpioPin: PositiveInt
     ConfigList: list[RelayActorConfig]
-    TypeName: Literal["gw108.vdc.relay.component.gt"] = "gw108.vdc.relay.component.gt"
+    TypeName: Literal["gw108.gpio.relay.component.gt"] = "gw108.gpio.relay.component.gt"
     Version: Literal["001"] = "001"
 
     @field_validator("ConfigList")

@@ -1,7 +1,8 @@
 from typing import Literal, Sequence
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HNN
+from gwsproto.names.hydronic_spaceheat.helpers import  HydronicSpaceheatZoneNodeNames as HZoneNodeNames
 from gwsproto.names.hydronic_spaceheat.helpers import Tanks
-from gwsproto.names.house0.helpers import House0ZoneNodeNames
+
 from gwsproto.names.core.node_names import CoreNodeNames as CNN
 
 class House0NodeNames:
@@ -85,9 +86,7 @@ class House0NodeNames:
     # Optional
     oat = HNN.oat
     buffer_cold_pipe = HNN.buffer_cold_pipe
-    sieg_flow = "sieg-flow"
-    sieg_cold = "sieg-cold"
-    sieg_loop = "sieg-loop"
+
 
 
 
@@ -100,50 +99,26 @@ class House0NodeNames:
         }
 
 
+HOUSE_0_BASE_STAT_IDX = 17
+
+def krida_failsafe_relay_suffix(zone_idx: int) -> int:
+    """Returns krida relay idx for ops relay from zone_idx"""
+    i = zone_idx - 1
+    return HOUSE_0_BASE_STAT_IDX + 2 * i
 
 
-"""
-Nolan node name vocabulary.
+def krida_ops_relay_suffix(zone_idx: int) -> int:
+    """Returns krida relay idx for failsafe relay zone_idx"""
+    i = zone_idx - 1
+    return HOUSE_0_BASE_STAT_IDX + 2 * i + 1
 
-Design note
------------
+class House0ZoneNodeNames:
+    """
 
-This class intentionally uses *composition/aliasing* rather than inheritance
-to expose names from CoreNodeNames and HydronicSpaceheatNodeNames.
+    """
+    def __init__(self, idx: int) -> None:
 
-Example:
-    primary_scada = CNN.primary_scada
-    asset_power_meter = CNN.asset_power_meter
-
-Why this pattern?
-
-1. Layouts are not vocabularies.
-   CoreNodeNames and HydronicSpaceheatNodeNames define reusable domain
-   vocabularies. NolanNodeNames represents a specific *layout* that selects
-   and assembles names from those vocabularies.
-
-2. Prevent vocabulary leakage.
-   Inheritance would implicitly expose every name defined in upstream
-   vocabularies, even if the Nolan layout does not actually use them.
-
-3. Preserve architectural layering.
-
-       CoreNames
-           ↓
-       HydronicSpaceheatNames
-           ↓
-       NolanNames / House0Names (layout-specific assemblies)
-
-4. Make layout code readable.
-
-   Layout generators and actors can reference a single namespace:
-
-       NN.primary_scada
-       NN.asset_power_meter
-       NN.zone["down"].ops_relay
-
-   instead of mixing multiple vocabularies (CNN.*, HNN.*, etc.).
-
-The small duplication introduced by aliasing is intentional and keeps the
-layout vocabulary explicit and stable.
-"""
+        failsafe_idx = krida_failsafe_relay_suffix(idx)
+        ops_idx = krida_ops_relay_suffix(idx)
+        self.failsafe_relay = f"relay{failsafe_idx}"
+        self.ops_relay= f"relay{ops_idx}"

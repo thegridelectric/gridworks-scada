@@ -2,8 +2,8 @@ from typing import Literal, Sequence
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from gwsproto.names.hydronic_spaceheat.helpers import Tanks
 from gwsproto.names.core.channel_names import CoreChannelNames as CCN
-from gwsproto.names.house0.node_names import House0NodeNames as H0NN
-from gwsproto.names.house0.helpers import House0ZoneChannelNames
+from gwsproto.names.hydronic_spaceheat.helpers import HydronicSpaceheatZoneChannelNames as HSZoneChannelNames
+
 
 
 class House0ChannelNames:
@@ -26,9 +26,6 @@ class House0ChannelNames:
     oat = HCN.oat
     buffer = HCN.buffer
 
-    # sieg channels
-    sieg_cold = H0NN.sieg_cold
-    hp_keep_seconds_x_10 = "hp-keep-seconds-x-10"
 
     dist_flow = HCN.dist_flow
     primary_flow = HCN.primary_flow
@@ -66,3 +63,15 @@ class House0ChannelNames:
             name: House0ZoneChannelNames(name, i + 1)
             for i, name in enumerate(zone_list) 
         }
+
+
+class House0ZoneChannelNames:
+    """
+    zone1-living-rm-whitewire-pwr, zone1-living-rm-stat-temp
+    """
+    def __init__(self, zone: str, idx: int) -> None:
+        base = HSZoneChannelNames(zone, idx).base
+
+        # raw measurements
+        self.whitewire_pwr = f"{base}-whitewire-pwr"
+        self.stat_temp = f"{base}-stat-temp"

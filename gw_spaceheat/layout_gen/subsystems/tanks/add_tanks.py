@@ -5,7 +5,7 @@ from gwsproto.names.hydronic_spaceheat.helpers import (
 )
 
 from layout_gen.core.layout_db import LayoutDb
-from layout_gen.subsystems.tanks.config import TankCfg, TanksConfig
+from layout_gen.subsystems.tanks.config import TankConfig, TanksConfig
 
 
 class TankImplementation(Protocol):
@@ -15,7 +15,7 @@ class TankImplementation(Protocol):
             *, 
             nodes: TankNodeNames | BufferNodeNames,
             channels: TankChannelNames | BufferChannelNames,
-            cfg: TankCfg,
+            cfg: TankConfig,
             ) -> None: ...
 
 

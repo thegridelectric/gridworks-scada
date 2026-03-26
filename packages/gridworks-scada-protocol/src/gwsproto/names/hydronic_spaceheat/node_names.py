@@ -1,4 +1,25 @@
-from gwsproto.names.hydronic_spaceheat.helpers import BufferNodeNames
+class BufferNodeNames:
+    """
+    Spaceheat Node names associated to the buffer"
+
+    self.reader, self.depth1, self.depth2, self.depth3
+    """
+    def __init__(self) -> None:
+        self.reader = "buffer"
+        self.depth1 = "buffer-depth1"
+        self.depth2 = "buffer-depth2"
+        self.depth3 = "buffer-depth3"
+
+    @property
+    def depths(self) -> set[str]:
+        return {
+            self.depth1,
+            self.depth2,
+            self.depth3
+        }
+
+    def __repr__(self) -> str:
+        return f"{self.reader} reads {sorted(self.depths)}"
 
 
 class HydronicSpaceheatNodeNames:
@@ -23,7 +44,7 @@ class HydronicSpaceheatNodeNames:
     # pumps
     dist_pump = "dist-pump"
     primary_pump = "primary-pump"
-    store_pump = "store_pump"
+    store_pump = "store-pump"
 
     # required pipe temperatures
     dist_swt = "dist-swt"
@@ -46,7 +67,57 @@ class HydronicSpaceheatNodeNames:
     primary_010v = "primary-010v"
     store_010v = "store-010v"
 
+    # relays
+    vdc_relay = "vdc_relay"
+
     # buffer tank
-    buffer = BufferNodeNames()
+    buffer = BufferNodeNames()  # set below
+
+    sieg_flow = "sieg-flow"
+    sieg_cold = "sieg-cold"
+    sieg_loop = "sieg-loop"
     
     oat = "oat"
+
+
+class HydronicSpaceheatZoneNodeNames:
+
+    """
+    Spaceheat Node names associated to a zone:
+    self.zone_name, self.stat, self.whitewire
+"""
+    def __init__(self, zone_label: str, idx: int) -> None:
+        self.zone =  f"zone{idx}-{zone_label}".lower()
+        self.stat = f"{self.zone}-stat"
+        self.whitewire=f"{self.zone}-whitewire"
+
+
+class TankNodeNames: 
+    """
+    Spaceheat Node names associated to the buffer"
+
+    self.reader, self.depth1, self.depth2, self.depth3
+    """
+
+    def __init__(self, idx: int) -> None:
+        """ use idx between 1 and 6"""
+        if idx > 6 or idx < 1:
+            raise ValueError("Tank idx must be in between 1 and 6")
+        self.reader = f"tank{idx}"
+        self.depth1 = f"{self.reader}-depth1"
+        self.depth2 = f"{self.reader}-depth2"
+        self.depth3 = f"{self.reader}-depth3"
+
+    @property
+    def depths(self) -> set[str]:
+        return {
+            self.depth1,
+            self.depth2,
+            self.depth3
+        }
+
+    def __repr__(self) -> str:
+        return f"{self.reader} reads {sorted(self.depths)}"
+
+
+HydronicSpaceheatNodeNames.buffer = BufferNodeNames()

@@ -4,18 +4,7 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class HeatcallSource(SemaEnum):
-    """
-    Used for reflecting the state of a double-throw relay that can toggle between a failsafe
-    for providing a 24V heat call to a zone controller (aka Wall Thermostat) and the SCADA providing
-    that heat call
-    Values:
-      - WallThermostat
-      - Scada
-
-    For more information:
-      - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#heatcallsource)
-    """
+    """Sema: https://schemas.electricity.works/enums/heatcall.source/000"""
 
     WallThermostat = auto()
     Scada = auto()

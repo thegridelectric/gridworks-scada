@@ -2,9 +2,8 @@ from gwsproto.enums import MakeModel, Unit
 from gwsproto.named_types import (ChannelConfig, ComponentAttributeClassGt,
                                   SimPicoTankModuleComponentGt)
 from layout_gen.core.layout_db import LayoutDb
-from layout_gen.subsystems.tanks.config import TankCfg, TanksConfig
+from layout_gen.subsystems.tanks.config import TankConfig
 from layout_gen.subsystems.tanks.tank_module3 import TankModule3Implementation
-from layout_gen.subsystems.tanks.tanks import add_tanks
 
 
 class SimTankModule3Implementation(TankModule3Implementation):
@@ -36,7 +35,7 @@ class SimTankModule3Implementation(TankModule3Implementation):
     def _ensure_component(
         self,
         db: LayoutDb,
-        cfg: TankCfg,
+        cfg: TankConfig,
         nodes,
         channels,
         device_id: str,
@@ -97,21 +96,3 @@ class SimTankModule3Implementation(TankModule3Implementation):
         ])
 
         return component_id
-
-
-def add_simulated_tanks(
-    db: LayoutDb,
-    *,
-    cfgs: TanksConfig,
-) -> None:
-    """
-    Add simulated tanks using the same topology and channel structure
-    as real tanks, but with simulated components.
-    """
-    implementation = SimTankModule3Implementation()
-
-    add_tanks(
-        db,
-        implementation=implementation,
-        cfgs=cfgs,
-    )
