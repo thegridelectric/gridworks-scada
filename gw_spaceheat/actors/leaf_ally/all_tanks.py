@@ -38,6 +38,7 @@ class AllTanksLeafAlly(ShNodeActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
     NO_TEMPS_BAIL_MINUTES = 5
     DEFROST_TIMEOUT_MINUTES = 20
+    STORE_DEFROST_DETECTION_MINUTES = 10
 
     states = LeafAllyAllTanksState.values()
     # Uses LeafAllyAllTanksEvent as transitions
@@ -110,6 +111,7 @@ class AllTanksLeafAlly(ShNodeActor):
         self.storage_full_since = 0
         self.both_buffer_and_storage_full_since = 0
         self.defrost_detected_since = None
+        self.time_started_charging_store = None
         if H0N.leaf_ally not in self.layout.nodes:
             raise Exception(f"LeafAlly requires {H0N.leaf_ally} node!!")
 
@@ -355,8 +357,11 @@ class AllTanksLeafAlly(ShNodeActor):
                 if self.hp_should_be_off():
                     self.trigger_event(LeafAllyAllTanksEvent.NoMoreElec)
                 elif self.hp_in_defrost():
-                    self.defrost_detected_since = int(time.time())
-                    self.trigger_event(LeafAllyAllTanksEvent.DefrostDetected)
+                    if time.time() - self.time_started_charging_store > self.STORE_DEFROST_DETECTION_MINUTES*60:
+                        self.defrost_detected_since = int(time.time())
+                        self.trigger_event(LeafAllyAllTanksEvent.DefrostDetected)
+                    else:
+                        self.log(f"Just started charging store (first {self.STORE_DEFROST_DETECTION_MINUTES} minutes), not yet detecting defrosts")     
                 elif self.is_buffer_empty(all_tanks_leaf_ally=True) or self.is_storage_full():
                     self.trigger_event(LeafAllyAllTanksEvent.ElecBufferEmpty)
 
@@ -452,6 +457,11 @@ class AllTanksLeafAlly(ShNodeActor):
         else:
             self.hp_failsafe_switch_to_scada()
             self.aquastat_ctrl_switch_to_scada()
+        if "HpOnStoreOff" in self.prev_state and "HpOnStoreCharge" in self.state:
+            self.log("Store was off and is now charging")
+            self.time_started_charging_store = time.time()
+        else:
+            self.time_started_charging_store = None
 
     def initialize_actuators(self):
         """
