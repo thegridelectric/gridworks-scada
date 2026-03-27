@@ -51,6 +51,8 @@ from gwsproto.named_types.hack_oil_on import HackOilOn
 from gwsproto.named_types.heating_forecast import HeatingForecast
 from gwsproto.named_types.i2c_read_bit import I2cReadBit
 from gwsproto.named_types.i2c_result import I2cResult
+from gwsproto.named_types.i2c_thermistor_channel_config import I2cThermistorChannelConfig
+from gwsproto.named_types.i2c_thermistor_reader_component_gt import I2cThermistorReaderComponentGt
 from gwsproto.named_types.i2c_write_bit import I2cWriteBit
 from gwsproto.named_types.latest_price import LatestPrice
 from gwsproto.named_types.layout_lite import LayoutLite
@@ -157,6 +159,8 @@ __all__ = [
     "I2cMultichannelDtRelayComponentGt",
     "I2cReadBit",
     "I2cResult",
+    "I2cThermistorChannelConfig",
+    "I2cThermistorReaderComponentGt",
     "I2cWriteBit",
     "LatestPrice",
     "LayoutLite",

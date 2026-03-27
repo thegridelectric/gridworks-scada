@@ -189,7 +189,7 @@ class ShNodeActor(Actor, ABC):
 
     @property
     def vdc_relay(self) -> ShNode:
-        return self.layout.node(H0N.vdc_relay)
+        return self.layout.vdc_relay
 
     @property
     def tstat_common_relay(self) -> ShNode:

@@ -11,6 +11,49 @@ UTC_2000_01_01_TIMESTAMP = datetime(2000, 1, 1, tzinfo=timezone.utc).timestamp()
 UTC_3000_01_01_TIMESTAMP = datetime(3000, 1, 1, tzinfo=timezone.utc).timestamp()
 
 
+UTC_ISO_8601_SECONDS_PATTERN = re.compile(
+    r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T"
+    r"[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+)
+
+UTC_ISO_8601_MILLIS_PATTERN = re.compile(
+    r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T"
+    r"[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z$"
+)
+
+
+def is_utc_iso8601_seconds(v: str) -> str:
+    """
+    utc.iso8601.seconds format:
+    UTC timestamp in ISO 8601 format with second precision (no fractional seconds)
+    and a 'Z' suffix.
+    Example: 2025-02-26T00:00:00Z
+    """
+    if not isinstance(v, str):
+        raise ValueError(f"<{v}>: utc.iso8601.seconds must be a string.")
+
+    if not UTC_ISO_8601_SECONDS_PATTERN.fullmatch(v):
+        raise ValueError(f"<{v}>: Fails utc.iso8601.seconds format.")
+
+    return v
+
+
+def is_utc_iso8601_millis(v: str) -> str:
+    """
+    utc.iso8601.millis format:
+    UTC timestamp in ISO 8601 format with exactly three digits of fractional
+    seconds and a 'Z' suffix.
+    Example: 2025-02-26T00:00:00.000Z
+    """
+    if not isinstance(v, str):
+        raise ValueError(f"<{v}>: utc.iso8601.millis must be a string.")
+
+    if not UTC_ISO_8601_MILLIS_PATTERN.fullmatch(v):
+        raise ValueError(f"<{v}>: Fails utc.iso8601.millis format.")
+
+    return v
+
+
 def check_is_log_style_date_with_millis(v: str) -> None:
     """Checks LogStyleDateWithMillis format
 
@@ -295,3 +338,5 @@ UTCSeconds = Annotated[
 UTCMilliseconds = Annotated[
     int, Field(ge=UTC_2000_01_01_TIMESTAMP * 1000, le=UTC_3000_01_01_TIMESTAMP * 1000)
 ]
+UtcIso8601Seconds = Annotated[str, BeforeValidator(is_utc_iso8601_seconds)]
+UtcIso8601Millis = Annotated[str, BeforeValidator(is_utc_iso8601_millis)]

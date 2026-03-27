@@ -382,9 +382,10 @@ class Relay(ShNodeActor):
             ops_idx = House0RelayIdx.base_stat + 2*i + 1
             stat_failsafe_names.append(f"relay{failsafe_idx}")
             stat_ops_names.append( f"relay{ops_idx}")
+        vdc_relay_name = self.layout.vdc_relay.name
     
         if self.name in {
-            H0N.vdc_relay,
+            vdc_relay_name,
             H0N.tstat_common_relay,
             H0N.hp_scada_ops_relay,
             H0N.thermistor_common_relay,
@@ -394,7 +395,7 @@ class Relay(ShNodeActor):
         } | set(stat_ops_names):
         
             if self.name in {
-                H0N.vdc_relay,
+                vdc_relay_name,
                 H0N.tstat_common_relay,
                 H0N.hp_scada_ops_relay,
                 H0N.thermistor_common_relay,

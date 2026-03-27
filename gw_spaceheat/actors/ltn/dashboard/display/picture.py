@@ -138,6 +138,8 @@ class AsciiPicture:
     def _hp_hack_comments(self) -> tuple[str, str]:
         hp_health_comment_1 = hp_health_comment_2 = ""
         if self.print_hack_hp:
+            if not self.hack_hp_state_q:
+                return hp_health_comment_1, hp_health_comment_2
             hack_hp_state = self.hack_hp_state_q[0]
             if hack_hp_state.state == HackHpState.Heating:
                 heating = True
@@ -161,4 +163,3 @@ class AsciiPicture:
 
     def __rich_console__(self, _console: Console, _options: ConsoleOptions) -> RenderResult:
         yield self.ascii_picture
-

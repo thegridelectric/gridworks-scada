@@ -96,7 +96,7 @@ class PicoCycler(ShNodeActor):
 
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
-        self.pico_relay = self.layout.node(H0N.vdc_relay)
+        self.pico_relay = self.layout.vdc_relay
 
         # ---------------------------------------------------------
         # Discover Pico-backed actors
@@ -310,7 +310,7 @@ class PicoCycler(ShNodeActor):
                 self.send_fsm_report()
 
     def process_fsm_full_report(self, payload: FsmFullReport) -> None:
-        if payload.FromName != H0N.vdc_relay:
+        if payload.FromName != self.layout.vdc_relay.name:
             raise Exception(
                 f"should only get FsmFullReports from VdcRelay, not {payload.FromName}"
             )

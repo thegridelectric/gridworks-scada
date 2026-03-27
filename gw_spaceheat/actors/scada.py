@@ -1167,7 +1167,7 @@ class Scada(PrimeActor, ScadaInterface):
             sieg_loop.Handle = f"{boss.handle}.{H0N.sieg_loop}"
 
             for node in self.layout.actuators:
-                if node.Name == H0N.vdc_relay and boss != self.admin:
+                if node.Name == self.layout.vdc_relay.name and boss != self.admin:
                     node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
                 elif node.Name == H0N.hp_scada_ops_relay:
                     node.Handle = f"{boss.handle}.{hp_boss.Name}.{node.Name}"
@@ -1178,7 +1178,7 @@ class Scada(PrimeActor, ScadaInterface):
         else:
             # For no sieg loop, everybody but the vdc relay reports directly to boss
             for node in self.layout.actuators:
-                if node.Name == H0N.vdc_relay and boss != self.admin:
+                if node.Name == self.layout.vdc_relay.name and boss != self.admin:
                     node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
                 else:
                     node.Handle = (f"{boss.handle}.{node.Name}")

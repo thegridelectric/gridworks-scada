@@ -10,6 +10,7 @@ from actors.hubitat import Hubitat
 from actors.hubitat_poller import HubitatPoller
 from actors.i2c_zero_ten_multiplexer import I2cZeroTenMultiplexer
 from actors.i2c_relay_multiplexer import I2cRelayMultiplexer
+from actors.i2c_thermistor_reader import I2cThermistorReader
 from actors.leaf_ally_loader import LeafAlly
 from actors.local_control_loader import LocalControl
 from actors.multipurpose_sensor import MultipurposeSensor
@@ -35,6 +36,7 @@ __all__ = [
     "GpioSensor",
     "I2cZeroTenMultiplexer",
     "I2cRelayMultiplexer",
+    "I2cThermistorReader",
     "LeafAlly",
     "LocalControl",
     "MultipurposeSensor",

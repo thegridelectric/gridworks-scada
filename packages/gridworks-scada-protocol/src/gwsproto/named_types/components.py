@@ -12,6 +12,9 @@ from gwsproto.named_types.hubitat_poller_component_gt import HubitatPollerCompon
 from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
     I2cMultichannelDtRelayComponentGt,
 )
+from gwsproto.named_types.i2c_thermistor_reader_component_gt import (
+    I2cThermistorReaderComponentGt
+)
 from gwsproto.named_types.pico_btu_meter_component_gt import PicoBtuMeterComponentGt
 from gwsproto.named_types.pico_flow_module_component_gt import PicoFlowModuleComponentGt
 from gwsproto.named_types.pico_tank_module_component_gt import PicoTankModuleComponentGt
@@ -31,6 +34,7 @@ __all__ = [
     "HubitatComponentGt",
     "HubitatPollerComponentGt",
     "I2cMultichannelDtRelayComponentGt",
+    "I2cThermistorReaderComponentGt",
     "PicoBtuMeterComponentGt",
     "PicoFlowModuleComponentGt",
     "PicoTankModuleComponentGt",
