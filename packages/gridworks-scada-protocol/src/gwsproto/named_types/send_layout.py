@@ -2,12 +2,11 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from gwsproto.property_format import LeftRightDotStr, SpaceheatName
+from gwsproto.property_format import LeftRightDotStr, UTCMilliseconds
 
 
 class SendLayout(BaseModel):
     FromGNodeAlias: LeftRightDotStr
-    FromName: SpaceheatName
-    ToName: SpaceheatName
+    MessageCreatedMs: UTCMilliseconds
     TypeName: Literal["send.layout"] = "send.layout"
-    Version: Literal["000"] = "000"
+    Version: Literal["001"] = "001"

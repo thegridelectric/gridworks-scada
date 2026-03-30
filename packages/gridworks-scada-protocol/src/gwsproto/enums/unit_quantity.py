@@ -55,6 +55,7 @@ UNIT_TO_QUANTITY: dict[GwUnit | TelemetryName, GwQuantity] = {
 
     TelemetryName.RelayState: GwQuantity.Unitless,
     TelemetryName.ThermostatState: GwQuantity.Unitless,
+    TelemetryName.BinaryState: GwQuantity.Unitless,
 
     TelemetryName.PercentKeep: GwQuantity.Percent,
     TelemetryName.StorageLayer: GwQuantity.Unitless,

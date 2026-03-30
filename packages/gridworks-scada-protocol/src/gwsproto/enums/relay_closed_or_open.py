@@ -7,9 +7,7 @@ from gwsproto.enums.gw_str_enum import AslEnum
 
 
 class RelayClosedOrOpen(AslEnum):
-    """
-    These are fsm states (as opposed to readings from a pin).
-    """
+    """Sema: https://schemas.electricity.works/enums/relay.closed.or.open/000"""
 
     RelayClosed = auto()
     RelayOpen = auto()

@@ -1,16 +1,16 @@
 {
   "CriticalZoneList": [
-    "living-rm",
     "bedrooms",
+    "living-rm",
     "upstairs"
   ],
   "DataChannels": [
     {
-      "AboutNodeName": "relay1",
-      "CapturedByNodeName": "relay1",
+      "AboutNodeName": "vdc-relay-gpio-23",
+      "CapturedByNodeName": "vdc-relay-gpio-23",
       "DisplayName": "5V DC Bus Relay State",
       "Id": "57d123f9-8bc5-4667-9668-4529235b224c",
-      "Name": "vdc-relay1",
+      "Name": "vdc-relay",
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
@@ -473,7 +473,7 @@
       "Version": "001"
     },
     {
-      "AboutNodeName": "zone1-bedrooms",
+      "AboutNodeName": "zone1-bedrooms-whitewire",
       "CapturedByNodeName": "zone1-bedrooms-opto",
       "DisplayName": "zone1 Bedrooms Opto Input",
       "Id": "e7fef97c-4371-4e55-9ee4-bcb16fc92e9f",
@@ -484,7 +484,7 @@
       "Version": "001"
     },
     {
-      "AboutNodeName": "zone2-living-rm",
+      "AboutNodeName": "zone2-living-rm-whitewire",
       "CapturedByNodeName": "zone2-living-rm-opto",
       "DisplayName": "Zone2 Living Rm Opto Input",
       "Id": "947944e5-d0c2-482e-8cbf-a794302bd384",
@@ -495,12 +495,78 @@
       "Version": "001"
     },
     {
-      "AboutNodeName": "zone4-garage",
+      "AboutNodeName": "zone4-garage-whitewire",
       "CapturedByNodeName": "zone4-garage-opto",
       "DisplayName": "Zone4 Garage Opto Input",
       "Id": "1b7b929b-9d5b-4505-af97-9d6193a65a6c",
       "Name": "zone4-garage-opto-input",
       "TelemetryName": "Unitless",
+      "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "zone1-bedrooms",
+      "CapturedByNodeName": "gw108-thermistor-reader",
+      "DisplayName": "Zone 1 Bedrooms GW Temp",
+      "Id": "91c4e4df-9a64-47d9-bf76-f0d279863eec",
+      "Name": "zone1-bedrooms-gw-temp",
+      "TelemetryName": "CelsiusTimes100",
+      "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "zone1-bedrooms",
+      "CapturedByNodeName": "gw108-thermistor-reader",
+      "DisplayName": "Zone 1 Bedrooms GW Microvolts",
+      "Id": "01597d48-bec3-41c8-a597-972573e4a7f1",
+      "Name": "zone1-bedrooms-gw-microvolts",
+      "TelemetryName": "MicroVolts",
+      "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "zone2-living-rm",
+      "CapturedByNodeName": "gw108-thermistor-reader",
+      "DisplayName": "Zone 2 Living Rm GW Temp",
+      "Id": "a698510e-1fa9-4793-bc3a-ff4117c3ebf8",
+      "Name": "zone2-living-rm-gw-temp",
+      "TelemetryName": "CelsiusTimes100",
+      "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "zone2-living-rm",
+      "CapturedByNodeName": "gw108-thermistor-reader",
+      "DisplayName": "Zone 2 Living Rm GW Microvolts",
+      "Id": "9d08481c-d332-4f96-82d6-6e3d14fa9f43",
+      "Name": "zone2-living-rm-gw-microvolts",
+      "TelemetryName": "MicroVolts",
+      "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "zone4-garage",
+      "CapturedByNodeName": "gw108-thermistor-reader",
+      "DisplayName": "Zone 4 Garage GW Temp",
+      "Id": "2c89cac8-9953-4c08-a801-38764c8df31a",
+      "Name": "zone4-garage-gw-temp",
+      "TelemetryName": "CelsiusTimes100",
+      "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "zone4-garage",
+      "CapturedByNodeName": "gw108-thermistor-reader",
+      "DisplayName": "Zone 4 Garage GW Microvolts",
+      "Id": "1ce95561-b758-4826-8465-4b97a7ec7ccd",
+      "Name": "zone4-garage-gw-microvolts",
+      "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
       "Version": "001"
@@ -661,9 +727,9 @@
     },
     {
       "CreatedByNodeName": "derived-generator",
-      "DisplayName": "Bedrooms radiant floor sensor",
+      "DisplayName": "Zone 1 Bedrooms Floor Temp",
       "Id": "3d82a3d9-bd27-45f6-bbcc-3279d2a63b4f",
-      "Name": "bedrooms-floor-sensor1",
+      "Name": "zone1-bedrooms-floor-temp",
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "EmissionMethod": "OnTrigger",
@@ -674,9 +740,9 @@
     },
     {
       "CreatedByNodeName": "derived-generator",
-      "DisplayName": "Living rm floor sensor",
+      "DisplayName": "Zone 2 Living Rm Floor Temp",
       "Id": "b27c2d74-2c9f-4a3b-bea7-ac7497e792d8",
-      "Name": "livingrm-floor-sensor2",
+      "Name": "zone2-living-rm-floor-temp",
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "EmissionMethod": "OnTrigger",
@@ -687,9 +753,9 @@
     },
     {
       "CreatedByNodeName": "derived-generator",
-      "DisplayName": "Garage floor sensor",
+      "DisplayName": "Zone 4 Garage Floor Temp",
       "Id": "6765e5a1-6981-4e93-88fd-eb461697f967",
-      "Name": "garage-floor-sensor1",
+      "Name": "zone4-garage-floor-temp",
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "EmissionMethod": "OnTrigger",
@@ -932,352 +998,6 @@
       "Version": "001"
     }
   ],
-  "ScadaDeviceTypes": [
-      {
-        "ComponentAttributeClassId": "8ad2f6fe-e834-4334-80c8-4a0d4ef4b04f",
-        "MakeModel": "GRIDWORKS__SCADA_GW108",
-        "TypeName": "gw1.scada.device.type.gt",
-        "Version": "001",
-        "NativeGpio": {
-          "Inputs": {
-            "Zone1Whitewire": 17,
-            "Zone2Whitewire": 27,
-            "Zone3Whitewire": 22,
-            "Zone4Whitewire": 10,
-            "Zone5Whitewire": 9,
-            "Zone6Whitewire": 11,
-            "Shutdown": 18
-          },
-          "Outputs": {
-            "TstatPower": 4,
-            "Vdc": 23,
-            "Watchdog": 24,
-            "PowerOff": 25
-          }
-        },
-        "I2cRelays": {
-          "Zone1Failsafe": {
-            "Address": {
-              "I2cAddress": 32,
-              "Register": 2,
-              "BitIndex": 0
-            },
-            "SupportedWiringConfigs": [
-              "DoubleThrow"
-            ]
-          },
-          "Zone2Failsafe": {
-            "Address": {
-              "I2cAddress": 32,
-              "Register": 2,
-              "BitIndex": 1
-            },
-            "SupportedWiringConfigs": [
-              "DoubleThrow"
-            ]
-          },
-          "Zone3Failsafe": {
-            "Address": {
-              "I2cAddress": 32,
-              "Register": 2,
-              "BitIndex": 2
-            },
-            "SupportedWiringConfigs": [
-              "DoubleThrow"
-            ]
-          },
-          "Zone4Failsafe": {
-            "Address": {
-              "I2cAddress": 32,
-              "Register": 2,
-              "BitIndex": 3
-            },
-            "SupportedWiringConfigs": [
-              "DoubleThrow"
-            ]
-          },
-          "Zone5Failsafe": {
-            "Address": {
-              "I2cAddress": 32,
-              "Register": 2,
-              "BitIndex": 4
-            },
-            "SupportedWiringConfigs": [
-              "DoubleThrow"
-            ]
-          },
-          "Zone6Failsafe": {
-            "Address": {
-              "I2cAddress": 32,
-              "Register": 2,
-              "BitIndex": 5
-            },
-            "SupportedWiringConfigs": [
-              "DoubleThrow"
-            ]
-          },
-          "Zone1Scada": {
-            "Address": {
-              "I2cAddress": 32,
-              "Register": 3,
-              "BitIndex": 0
-            },
-            "SupportedWiringConfigs": [
-              "NormallyOpen"
-            ]
-          },
-          "Zone2Scada": {
-            "Address": {
-              "I2cAddress": 32,
-              "Register": 3,
-              "BitIndex": 1
-            },
-            "SupportedWiringConfigs": [
-              "NormallyOpen"
-            ]
-          },
-          "Zone3Scada": {
-            "Address": {
-              "I2cAddress": 32,
-              "Register": 3,
-              "BitIndex": 2
-            },
-            "SupportedWiringConfigs": [
-              "NormallyOpen"
-            ]
-          },
-          "Zone4Scada": {
-            "Address": {
-              "I2cAddress": 32,
-              "Register": 3,
-              "BitIndex": 3
-            },
-            "SupportedWiringConfigs": [
-              "NormallyOpen"
-            ]
-          },
-          "Zone5Scada": {
-            "Address": {
-              "I2cAddress": 32,
-              "Register": 3,
-              "BitIndex": 4
-            },
-            "SupportedWiringConfigs": [
-              "NormallyOpen"
-            ]
-          },
-          "Zone6Scada": {
-            "Address": {
-              "I2cAddress": 32,
-              "Register": 3,
-              "BitIndex": 5
-            },
-            "SupportedWiringConfigs": [
-              "NormallyOpen"
-            ]
-          },
-          "BufferTop": {
-            "Address": {
-              "I2cAddress": 33,
-              "Register": 2,
-              "BitIndex": 1
-            },
-            "SupportedWiringConfigs": [
-              "NormallyOpen"
-            ],
-            "Notes": "Upper buffer resistive heating element"
-          },
-          "BufferBottom": {
-            "Address": {
-              "I2cAddress": 33,
-              "Register": 2,
-              "BitIndex": 2
-            },
-            "SupportedWiringConfigs": [
-              "NormallyOpen"
-            ],
-            "Notes": "Lower buffer resistive heating element"
-          },
-          "StoreTop": {
-            "Address": {
-              "I2cAddress": 33,
-              "Register": 3,
-              "BitIndex": 6
-            },
-            "SupportedWiringConfigs": [
-              "NormallyOpen"
-            ],
-            "Notes": "Upper buffer resistive heating element"
-          },
-          "StoreBottom": {
-            "Address": {
-              "I2cAddress": 33,
-              "Register": 3,
-              "BitIndex": 7
-            },
-            "SupportedWiringConfigs": [
-              "NormallyOpen"
-            ],
-            "Notes": "Lower buffer resistive heating element"
-          },
-          "HeatPumpEnable": {
-            "Address": {
-              "I2cAddress": 33,
-              "Register": 2,
-              "BitIndex": 0
-            },
-            "SupportedWiringConfigs": [
-              "NormallyOpen"
-            ],
-            "Notes": "??"
-          },
-          "BoilerBufferValve": {
-            "Address": {
-              "I2cAddress": 33,
-              "Register": 2,
-              "BitIndex": 3
-            },
-            "SupportedWiringConfigs": [
-              "DoubleThrow"
-            ],
-            "Notes": "??"
-          },
-          "BoilerIntercept": {
-            "Address": {
-              "I2cAddress": 33,
-              "Register": 2,
-              "BitIndex": 4
-            },
-            "SupportedWiringConfigs": [
-              "NormallyClosed"
-            ],
-            "Notes": "By default, signal goes to boiler. "
-          },
-          "PrimaryPump": {
-            "Address": {
-              "I2cAddress": 33,
-              "Register": 2,
-              "BitIndex": 7
-            },
-            "SupportedWiringConfigs": [
-              "NormallyOpen"
-            ],
-            "Notes": ""
-          },
-          "SecondaryPump": {
-            "Address": {
-              "I2cAddress": 33,
-              "Register": 3,
-              "BitIndex": 5
-            },
-            "SupportedWiringConfigs": [
-              "NormallyOpen"
-            ],
-            "Notes": ""
-          },
-          "StorePump": {
-            "Address": {
-              "I2cAddress": 33,
-              "Register": 3,
-              "BitIndex": 4
-            },
-            "SupportedWiringConfigs": [
-              "NormallyOpen"
-            ],
-            "Notes": ""
-          },
-          "DischargeValve": {
-            "Address": {
-              "I2cAddress": 33,
-              "Register": 3,
-              "BitIndex": 3
-            },
-            "SupportedWiringConfigs": [
-              "DoubleThrow"
-            ],
-            "Notes": ""
-          },
-          "IsoValve": {
-            "Address": {
-              "I2cAddress": 33,
-              "Register": 3,
-              "BitIndex": 2
-            },
-            "SupportedWiringConfigs": [
-              "DoubleThrow"
-            ],
-            "Notes": ""
-          },
-          "IsoValveFailsafe": {
-            "Address": {
-              "I2cAddress": 33,
-              "Register": 3,
-              "BitIndex": 1
-            },
-            "SupportedWiringConfigs": [
-              "DoubleThrow"
-            ],
-            "Notes": ""
-          },
-          "FcmMisc": {
-            "Address": {
-              "I2cAddress": 33,
-              "Register": 3,
-              "BitIndex": 0
-            },
-            "SupportedWiringConfigs": [
-              "NormallyOpen",
-              "NormallyClosed",
-              "DoubleThrow"
-            ],
-            "Notes": ""
-          },
-          "Misc1": {
-            "Address": {
-              "I2cAddress": 33,
-              "Register": 2,
-              "BitIndex": 5
-            },
-            "SupportedWiringConfigs": [
-              "NormallyOpen",
-              "NormallyClosed",
-              "DoubleThrow"
-            ],
-            "Notes": ""
-          },
-          "Misc2": {
-            "Address": {
-              "I2cAddress": 33,
-              "Register": 2,
-              "BitIndex": 6
-            },
-            "SupportedWiringConfigs": [
-              "NormallyOpen",
-              "NormallyClosed",
-              "DoubleThrow"
-            ],
-            "Notes": ""
-          }
-        },
-        "CtAdc": {
-          "I2cAddress": 72,
-          "AdcType": "ADS1115",
-          "Channels": 4
-        },
-        "ThermistorAdc": {
-          "I2cAddress": 73,
-          "AdcType": "ADS1115",
-          "Channels": 4
-        },
-        "Dacs": {
-          "Zones": {
-            "I2cAddress": 96,
-            "DacType": "MCP4728",
-            "Channels": 4
-          }
-        }
-      }
-  ],
   "OtherComponents": [
     {
       "ComponentAttributeClassId": "8ad2f6fe-e834-4334-80c8-4a0d4ef4b04f",
@@ -1354,10 +1074,10 @@
       "GpioPin": 23,
       "ConfigList": [
         {
-          "ActorName": "relay1",
+          "ActorName": "vdc-relay-gpio-23",
           "AsyncCapture": true,
           "CapturePeriodS": 300,
-          "ChannelName": "vdc-relay1",
+          "ChannelName": "vdc-relay",
           "DeEnergizedState": "RelayClosed",
           "DeEnergizingEvent": "CloseRelay",
           "EnergizedState": "RelayOpen",
@@ -1376,6 +1096,95 @@
       "DisplayName": "VDC GPIO Relay",
       "TypeName": "gw108.vdc.relay.component.gt",
       "Version": "001"
+    },
+    {
+      "AdcAddress": 73,
+      "AdcReferenceVolts": 3.3,
+      "Bus": "i2c-1",
+      "ComponentAttributeClassId": "8ad2f6fe-e834-4334-80c8-4a0d4ef4b04f",
+      "ComponentId": "d2f4d553-6ef0-453d-976d-a1cf297ed1c0",
+      "ConfigList": [
+        {
+          "AdcChannel": "P0",
+          "AsyncCapture": true,
+          "AsyncCaptureDelta": 50,
+          "CapturePeriodS": 60,
+          "ChannelName": "zone1-bedrooms-gw-temp",
+          "Exponent": 2,
+          "PollPeriodMs": 1000,
+          "ThermistorBeta": 3977,
+          "TypeName": "i2c.thermistor.channel.config",
+          "Unit": "Celcius",
+          "Version": "000"
+        },
+        {
+          "AdcChannel": "P0",
+          "AsyncCapture": true,
+          "CapturePeriodS": 60,
+          "ChannelName": "zone1-bedrooms-gw-microvolts",
+          "Exponent": 6,
+          "PollPeriodMs": 1000,
+          "ThermistorBeta": 3977,
+          "TypeName": "i2c.thermistor.channel.config",
+          "Unit": "VoltsRms",
+          "Version": "000"
+        },
+        {
+          "AdcChannel": "P1",
+          "AsyncCapture": true,
+          "AsyncCaptureDelta": 50,
+          "CapturePeriodS": 60,
+          "ChannelName": "zone2-living-rm-gw-temp",
+          "Exponent": 2,
+          "PollPeriodMs": 1000,
+          "ThermistorBeta": 3977,
+          "TypeName": "i2c.thermistor.channel.config",
+          "Unit": "Celcius",
+          "Version": "000"
+        },
+        {
+          "AdcChannel": "P1",
+          "AsyncCapture": true,
+          "CapturePeriodS": 60,
+          "ChannelName": "zone2-living-rm-gw-microvolts",
+          "Exponent": 6,
+          "PollPeriodMs": 1000,
+          "ThermistorBeta": 3977,
+          "TypeName": "i2c.thermistor.channel.config",
+          "Unit": "VoltsRms",
+          "Version": "000"
+        },
+        {
+          "AdcChannel": "P2",
+          "AsyncCapture": true,
+          "AsyncCaptureDelta": 50,
+          "CapturePeriodS": 60,
+          "ChannelName": "zone4-garage-gw-temp",
+          "Exponent": 2,
+          "PollPeriodMs": 1000,
+          "ThermistorBeta": 3977,
+          "TypeName": "i2c.thermistor.channel.config",
+          "Unit": "Celcius",
+          "Version": "000"
+        },
+        {
+          "AdcChannel": "P2",
+          "AsyncCapture": true,
+          "CapturePeriodS": 60,
+          "ChannelName": "zone4-garage-gw-microvolts",
+          "Exponent": 6,
+          "PollPeriodMs": 1000,
+          "ThermistorBeta": 3977,
+          "TypeName": "i2c.thermistor.channel.config",
+          "Unit": "VoltsRms",
+          "Version": "000"
+        }
+      ],
+      "DisplayName": "GW108 Thermistor Reader",
+      "SeriesResistanceKOhms": 5.6,
+      "TempCalcMethod": "SimpleBeta",
+      "TypeName": "i2c.thermistor.reader.component.gt",
+      "Version": "000"
     },
     {
       "ComponentAttributeClassId": "ca086b78-91ab-4ed4-a4ab-b6542bcd2a16",
@@ -1922,11 +1731,11 @@
     },
     {
       "ActorClass": "Relay",
-      "ActorHierarchyName": "s.relay1",
+      "ActorHierarchyName": "s.vdc-relay-gpio-23",
       "ComponentId": "c8baa219-8dec-4fcb-8d05-2c3ce6d8e2af",
       "DisplayName": "5VDC Relay",
-      "Handle": "auto.pico-cycler.relay1",
-      "Name": "relay1",
+      "Handle": "auto.pico-cycler.vdc-relay-gpio-23",
+      "Name": "vdc-relay-gpio-23",
       "ShNodeId": "7ce8e05e-a18f-483d-82d4-5be8bda36837",
       "TypeName": "spaceheat.node.gt",
       "Version": "301"
@@ -1936,6 +1745,30 @@
       "DisplayName": "Zone 1 Bedrooms",
       "Name": "zone1-bedrooms",
       "ShNodeId": "541fc9b2-767c-4e7e-9be3-f15a50136a9b",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "301"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "Zone 1 Bedrooms Thermostat",
+      "Name": "zone1-bedrooms-stat",
+      "ShNodeId": "f46b1913-0139-4dea-a014-0bf15d409009",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "301"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "Zone 1 Bedrooms Whitewire",
+      "Name": "zone1-bedrooms-whitewire",
+      "ShNodeId": "3dc592f9-cfce-4a5d-a7ff-d89ed55dfca0",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "301"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "Zone 1 Bedrooms Floor",
+      "Name": "zone1-bedrooms-floor",
+      "ShNodeId": "4b7c7061-6a81-4988-b3b7-d56399bb45b8",
       "TypeName": "spaceheat.node.gt",
       "Version": "301"
     },
@@ -1958,6 +1791,30 @@
       "Version": "301"
     },
     {
+      "ActorClass": "NoActor",
+      "DisplayName": "Zone 2 Living Rm Thermostat",
+      "Name": "zone2-living-rm-stat",
+      "ShNodeId": "99ead21d-8fc5-4b26-a6af-742141b22d22",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "301"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "Zone 2 Living Rm Whitewire",
+      "Name": "zone2-living-rm-whitewire",
+      "ShNodeId": "3a7c4961-62a7-45e2-94a5-01f93c7437ae",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "301"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "Zone 2 Living Rm Floor",
+      "Name": "zone2-living-rm-floor",
+      "ShNodeId": "4bb6eb72-efd1-449f-9755-8e0a051811d9",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "301"
+    },
+    {
       "ActorClass": "GpioSensor",
       "ActorHierarchyName": "s.zone2-living-rm-opto",
       "ComponentId": "aad0387d-43fd-4333-929e-284be446fdf2",
@@ -1976,12 +1833,46 @@
       "Version": "301"
     },
     {
+      "ActorClass": "NoActor",
+      "DisplayName": "Zone 4 Garage Thermostat",
+      "Name": "zone4-garage-stat",
+      "ShNodeId": "d0e4b6ea-5000-43eb-b55c-e223b0114ca7",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "301"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "Zone 4 Garage Whitewire",
+      "Name": "zone4-garage-whitewire",
+      "ShNodeId": "d3c53e05-5ff5-414a-8c85-9dd7afb511ee",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "301"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "Zone 4 Garage Floor",
+      "Name": "zone4-garage-floor",
+      "ShNodeId": "859a97be-cfd5-4477-9bf9-5af5f49ae5c6",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "301"
+    },
+    {
       "ActorClass": "GpioSensor",
       "ActorHierarchyName": "s.zone4-garage-opto",
       "ComponentId": "79791ea4-2021-40f6-bb8b-e42644a865bf",
-      "DisplayName": "Whitewire sensor for Zone3 Garage",
+      "DisplayName": "Whitewire sensor for Zone4 Garage",
       "Name": "zone4-garage-opto",
       "ShNodeId": "04a712fa-6c35-4406-a585-b104a19485c1",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "301"
+    },
+    {
+      "ActorClass": "I2cThermistorReader",
+      "ActorHierarchyName": "s.gw108-thermistor-reader",
+      "ComponentId": "d2f4d553-6ef0-453d-976d-a1cf297ed1c0",
+      "DisplayName": "GW108 Thermistor Reader",
+      "Name": "gw108-thermistor-reader",
+      "ShNodeId": "e1754bb5-d410-4d37-9f3d-7ca407591dca",
       "TypeName": "spaceheat.node.gt",
       "Version": "301"
     },
@@ -2340,7 +2231,7 @@
       "Version": "301"
     }
   ],
-  "Strategy": "House0",
+  "Strategy": "Nolan",
   "TotalStoreTanks": 1,
   "UseSiegLoop": false,
   "TankTempCalibrationMap": {
@@ -2376,8 +2267,8 @@
     1
   ],
   "ZoneList": [
-    "living-rm",
     "bedrooms",
+    "living-rm",
     "upstairs",
     "garage"
   ]

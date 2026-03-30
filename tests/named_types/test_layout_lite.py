@@ -22,11 +22,17 @@ def test_layout_lite_generated() -> None:
             "DdPowerKw": 12,
             "DdRswtF": 160,
             "DdDeltaTF": 20,
-            "HpMaxKwTh": 6,
+            "HpMaxKwEl": 6.0,
             "MaxEwtF": 170,
             "LoadOverestimationPercent": 10,
+            "CopIntercept": 1.02,
+            "CopOatCoeff": 0.0257,
+            "CopLwtCoeff": 0.0,
+            "CopMin": 1.4,
+            "CopMinOatF": 15.0,
+            "HpTurnOnMinutes": 12,
             "TypeName": "ha1.params",
-            "Version": "004",
+            "Version": "006",
         },
         "ShNodes": [
             {
@@ -67,12 +73,13 @@ def test_layout_lite_generated() -> None:
                 "AboutNodeName": "hp-idu",
                 "CapturedByNodeName": "power-meter",
                 "TelemetryName": "PowerW",
+                "Quantity": "Power",
                 "TerminalAssetAlias": "hw1.isone.me.versant.keene.beech.ta",
                 "InPowerMetering": True,
                 "StartS": 1721405699,
                 "Id": "50cf426b-ff3f-4a30-8415-8d3fba5e0ab7",
                 "TypeName": "data.channel.gt",
-                "Version": "001",
+                "Version": "002",
             }
         ],
         "TankModuleComponents": [
@@ -80,28 +87,31 @@ def test_layout_lite_generated() -> None:
                 "ComponentAttributeClassId": "f88fbf89-5b74-46d6-84a3-8e7494d08435",
                 "ComponentId": "8aef0b11-5a1c-415e-b40e-d277e0ff4403",
                 "ConfigList": [
-                    {
-                        "AsyncCapture": True,
-                        "CapturePeriodS": 60,
-                        "ChannelName": "buffer-depth1",
+                        {
+                            "AsyncCapture": True,
+                            "AsyncCaptureDelta": 200,
+                            "CapturePeriodS": 60,
+                            "ChannelName": "buffer-depth1",
                         "Exponent": 3,
                         "TypeName": "channel.config",
                         "Unit": "Celcius",
                         "Version": "000",
                     },
-                    {
-                        "AsyncCapture": True,
-                        "CapturePeriodS": 60,
-                        "ChannelName": "buffer-depth2",
+                        {
+                            "AsyncCapture": True,
+                            "AsyncCaptureDelta": 200,
+                            "CapturePeriodS": 60,
+                            "ChannelName": "buffer-depth2",
                         "Exponent": 3,
                         "TypeName": "channel.config",
                         "Unit": "Celcius",
                         "Version": "000",
                     },
-                    {
-                        "AsyncCapture": True,
-                        "CapturePeriodS": 60,
-                        "ChannelName": "buffer-depth3",
+                        {
+                            "AsyncCapture": True,
+                            "AsyncCaptureDelta": 200,
+                            "CapturePeriodS": 60,
+                            "ChannelName": "buffer-depth3",
                         "Exponent": 3,
                         "TypeName": "channel.config",
                         "Unit": "Celcius",
@@ -158,19 +168,21 @@ def test_layout_lite_generated() -> None:
                 "ComponentAttributeClassId": "aa4ad342-883a-4f89-bf86-9eb430aeb308",
                 "ComponentId": "b505a781-1671-467f-af8f-6d0ad7aca172",
                 "ConfigList": [
-                    {
-                        "AsyncCapture": True,
-                        "CapturePeriodS": 10,
-                        "ChannelName": "primary-flow",
+                        {
+                            "AsyncCapture": True,
+                            "AsyncCaptureDelta": 5,
+                            "CapturePeriodS": 10,
+                            "ChannelName": "primary-flow",
                         "Exponent": 2,
                         "TypeName": "channel.config",
                         "Unit": "Gpm",
                         "Version": "000",
                     },
-                    {
-                        "AsyncCapture": True,
-                        "CapturePeriodS": 10,
-                        "ChannelName": "primary-flow-hz",
+                        {
+                            "AsyncCapture": True,
+                            "AsyncCaptureDelta": 1,
+                            "CapturePeriodS": 10,
+                            "ChannelName": "primary-flow-hz",
                         "Exponent": 6,
                         "TypeName": "channel.config",
                         "Unit": "VoltsRms",
@@ -201,10 +213,11 @@ def test_layout_lite_generated() -> None:
             "ComponentAttributeClassId": "29eab8b1-100f-4230-bb44-3a2fcba33cc3",
             "ComponentId": "b95e75a3-1483-484f-954f-65d202d50e6d",
             "ConfigList": [
-                {
-                    "ActorName": "relay1",
-                    "AsyncCapture": True,
-                    "CapturePeriodS": 300,
+                    {
+                        "ActorName": "relay1",
+                        "AsyncCapture": True,
+                        "AsyncCaptureDelta": 1,
+                        "CapturePeriodS": 300,
                     "ChannelName": "vdc-relay1",
                     "DeEnergizedState": "RelayClosed",
                     "DeEnergizingEvent": "CloseRelay",
@@ -220,10 +233,11 @@ def test_layout_lite_generated() -> None:
                     "Version": "002",
                     "WiringConfig": "NormallyClosed",
                 },
-                {
-                    "ActorName": "relay2",
-                    "AsyncCapture": True,
-                    "CapturePeriodS": 300,
+                    {
+                        "ActorName": "relay2",
+                        "AsyncCapture": True,
+                        "AsyncCaptureDelta": 1,
+                        "CapturePeriodS": 300,
                     "ChannelName": "tstat-common-relay2",
                     "DeEnergizedState": "RelayClosed",
                     "DeEnergizingEvent": "CloseRelay",
@@ -239,10 +253,11 @@ def test_layout_lite_generated() -> None:
                     "Version": "002",
                     "WiringConfig": "NormallyClosed",
                 },
-                {
-                    "ActorName": "relay3",
-                    "AsyncCapture": True,
-                    "CapturePeriodS": 300,
+                    {
+                        "ActorName": "relay3",
+                        "AsyncCapture": True,
+                        "AsyncCaptureDelta": 1,
+                        "CapturePeriodS": 300,
                     "ChannelName": "charge-discharge-relay3",
                     "DeEnergizedState": "DischargingStore",
                     "DeEnergizingEvent": "DischargeStore",
@@ -264,10 +279,10 @@ def test_layout_lite_generated() -> None:
             "I2cAddressList": [32, 33],
             "TypeName": "i2c.multichannel.dt.relay.component.gt",
             "Version": "003",
-        },
-        "TypeName": "layout.lite",
-            "Version": "011",
-    }
+            },
+            "TypeName": "layout.lite",
+            "Version": "012",
+        }
 
     d2 = LayoutLite.model_validate(d).model_dump(exclude_none=True)
 

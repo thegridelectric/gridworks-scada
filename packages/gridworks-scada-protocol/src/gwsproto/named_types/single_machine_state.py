@@ -7,7 +7,7 @@ from typing_extensions import Self
 
 class SingleMachineState(BaseModel):
     """
-    Intra-scada comms type for sharing the current state of a state machine.
+    Sema: https://schemas.electricity.works/types/single.machine.state/000
     """
 
     MachineHandle: HandleName

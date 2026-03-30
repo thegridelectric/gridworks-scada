@@ -4,7 +4,7 @@ from gwsproto.enums.gw_str_enum import AslEnum
 
 
 class EmissionMethod(AslEnum):
-    """ASL: https://schemas.electricity.works/enums/gw1.emission.method/000"""
+    """Sema: https://schemas.electricity.works/enums/gw1.emission.method/000"""
 
     OnTrigger = auto()
     Periodic = auto()

@@ -1,4 +1,4 @@
-"""Tests ha1.params type, version 000"""
+"""Tests ha1.params type, version 006"""
 
 from gwsproto.named_types import Ha1Params
 
@@ -13,11 +13,17 @@ def test_ha1_params_generated() -> None:
         "DdPowerKw": 12,
         "DdRswtF": 160,
         "DdDeltaTF": 20,
-        "HpMaxKwTh": 6,
+        "HpMaxKwEl": 6.0,
         "MaxEwtF": 170,
         "LoadOverestimationPercent": 10,
+        "CopIntercept": 1.02,
+        "CopOatCoeff": 0.0257,
+        "CopLwtCoeff": 0.0,
+        "CopMin": 1.4,
+        "CopMinOatF": 15.0,
+        "HpTurnOnMinutes": 12,
         "TypeName": "ha1.params",
-        "Version": "004",
+        "Version": "006",
     }
 
     d2 = Ha1Params.model_validate(d).model_dump(exclude_none=True)

@@ -4,7 +4,7 @@ from gwsproto.enums.gw_str_enum import AslEnum
 
 
 class Unit(AslEnum):
-    """ASL: https://schemas.electricity.works/enums/gw1.local.control.top.event/000"""
+    """Sema: https://schemas.electricity.works/enums/spaceheat.unit/001"""
 
     Unknown = auto()
     Unitless = auto()

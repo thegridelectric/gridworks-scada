@@ -20,9 +20,9 @@ class I2cMultichannelDtRelayComponentGt(ComponentGt):
     model_config = ConfigDict(extra="allow", use_enum_values=True)
 
     @model_validator(mode="after")
-    def check_axiom_3(self) -> Self:
+    def check_axiom_1(self) -> Self:
         """
-        Axiom 2: Actor and Idx Consistency.
+        Axiom 1: Actor and Idx Consistency.
         There are no duplicates of ActorName or RelayIdx in the RelayConfigList
         """
         # Implement Axiom(s)
