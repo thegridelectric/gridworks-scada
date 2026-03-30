@@ -266,7 +266,7 @@ def test_layout_lite_generated() -> None:
             "Version": "003",
         },
         "TypeName": "layout.lite",
-        "Version": "010",
+            "Version": "011",
     }
 
     d2 = LayoutLite.model_validate(d).model_dump(exclude_none=True)
