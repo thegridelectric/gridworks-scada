@@ -351,15 +351,6 @@ class ApiTankModule(ShNodeActor):
         temp_f = 32 + (temp_c * 9 / 5)
         return round(temp_f, 2) if fahrenheit else round(temp_c, 2)
 
-    def thermistor_resistance(self, volts):
-        r_fixed = R_FIXED_KOHMS
-        r_pico = self._component.gt.PicoKOhms
-        if r_pico is None:
-            raise DcError(f"{self.name} component missing PicoKOhms!")
-        r_therm = 1 / ((3.3 / volts - 1) / r_fixed - 1 / r_pico)
-        if r_therm <= 0:
-            raise ValueError("Disconnected thermistor!")
-        return r_therm
 
     def pico_state_log(self, note: str) -> None:
         log_str = f"[PicoRelated] {note}"

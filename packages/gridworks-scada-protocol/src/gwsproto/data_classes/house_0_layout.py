@@ -8,6 +8,8 @@ from gwsproto.enums import ActorClass
 from gwsproto.data_classes.components import Component
 from gwsproto.data_classes.data_channel import DataChannel
 from gwsproto.data_classes.components.web_server_component import WebServerComponent
+from gwsproto.names.house0.node_names import House0NodeNames
+from gwsproto.names.nolan.node_names import NolanNodeNames
 
 
 from gwsproto.data_classes.house_0_names import H0CN, H0N, ScadaWeb
@@ -49,6 +51,10 @@ class LayoutBucket(str, Enum):
 class House0LoadArgs(LoadArgs):
     flow_manifold_variant: FlowManifoldVariant
     use_sieg_loop: bool
+
+class HouseStrategy(str, Enum):
+    House0 = "House0"
+    Nolan = "Nolan"
 
 class House0Layout(HardwareLayout):
 
@@ -149,6 +155,12 @@ class House0Layout(HardwareLayout):
 
         self.validate_tank_temp_calibration_consistency()
         self.validate_house0_system_models()
+
+    @property
+    def vdc_relay_name(self) -> str:
+        if self.layout.get("Strategy", HouseStrategy.House0.value) == HouseStrategy.Nolan.value:
+            return NolanNodeNames.vdc_relay
+        return House0NodeNames.vdc_relay
 
     def validate_tank_temp_calibration_consistency(self) -> None:
         tmap = self.tank_temp_calibration_map
@@ -724,9 +736,9 @@ class House0Layout(HardwareLayout):
 
     @property
     def vdc_relay(self) -> ShNode:
-        n = self.node(H0N.vdc_relay)
+        n = self.node(self.vdc_relay_name)
         if n is None:
-            raise Exception(f"{H0N.vdc_relay} is known to exist")
+            raise Exception(f"{self.vdc_relay_name} is known to exist")
         return n
 
     @property
@@ -755,4 +767,3 @@ def deserialize_house0_load_args(data: dict) -> House0LoadArgs:
     data["UseSiegLoop"] = bool(data.get("UseSiegLoop", False))
     # TypedDict expects a regular dictionary, so we just pass it in
     return House0LoadArgs(**data)
-
