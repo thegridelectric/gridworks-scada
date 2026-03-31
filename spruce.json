@@ -14,7 +14,8 @@
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Unitless"
     },
     {
       "AboutNodeName": "buffer-depth1",
@@ -25,7 +26,8 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Temperature"
     },
     {
       "AboutNodeName": "buffer-depth2",
@@ -36,7 +38,8 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Temperature"
     },
     {
       "AboutNodeName": "buffer-depth3",
@@ -47,7 +50,8 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Temperature"
     },
     {
       "AboutNodeName": "buffer-depth1",
@@ -58,7 +62,8 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Voltage"
     },
     {
       "AboutNodeName": "buffer-depth2",
@@ -69,7 +74,8 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Voltage"
     },
     {
       "AboutNodeName": "buffer-depth3",
@@ -80,7 +86,8 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Voltage"
     },
     {
       "AboutNodeName": "tank1-depth1",
@@ -91,7 +98,8 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Temperature"
     },
     {
       "AboutNodeName": "tank1-depth2",
@@ -102,7 +110,8 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Temperature"
     },
     {
       "AboutNodeName": "tank1-depth3",
@@ -113,7 +122,8 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Temperature"
     },
     {
       "AboutNodeName": "tank1-depth1",
@@ -124,7 +134,8 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Voltage"
     },
     {
       "AboutNodeName": "tank1-depth2",
@@ -135,7 +146,8 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Voltage"
     },
     {
       "AboutNodeName": "tank1-depth3",
@@ -146,7 +158,8 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Voltage"
     },
     {
       "AboutNodeName": "store-flow",
@@ -157,7 +170,8 @@
       "TelemetryName": "GpmTimes100",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "FlowRate"
     },
     {
       "AboutNodeName": "store-hot-pipe",
@@ -168,7 +182,8 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Temperature"
     },
     {
       "AboutNodeName": "store-cold-pipe",
@@ -179,7 +194,8 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Temperature"
     },
     {
       "AboutNodeName": "dist-flow",
@@ -190,7 +206,8 @@
       "TelemetryName": "GpmTimes100",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "FlowRate"
     },
     {
       "AboutNodeName": "dist-swt",
@@ -201,7 +218,8 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Temperature"
     },
     {
       "AboutNodeName": "dist-rwt",
@@ -212,9 +230,10 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Temperature"
     },
-      {
+    {
       "AboutNodeName": "pipes1-depth1",
       "CapturedByNodeName": "pipes1",
       "DisplayName": "Pipes1 Depth 1 Device Temp",
@@ -223,7 +242,8 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Temperature"
     },
     {
       "AboutNodeName": "pipes1-depth2",
@@ -234,7 +254,8 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Temperature"
     },
     {
       "AboutNodeName": "pipes1-depth3",
@@ -245,7 +266,8 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Temperature"
     },
     {
       "AboutNodeName": "pipes1-depth1",
@@ -256,7 +278,8 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Voltage"
     },
     {
       "AboutNodeName": "pipes1-depth2",
@@ -267,7 +290,8 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Voltage"
     },
     {
       "AboutNodeName": "pipes1-depth3",
@@ -278,7 +302,8 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Voltage"
     },
     {
       "AboutNodeName": "floor1-depth1",
@@ -289,7 +314,8 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Temperature"
     },
     {
       "AboutNodeName": "floor1-depth2",
@@ -300,7 +326,8 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Temperature"
     },
     {
       "AboutNodeName": "floor1-depth3",
@@ -311,7 +338,8 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Temperature"
     },
     {
       "AboutNodeName": "floor1-depth1",
@@ -322,7 +350,8 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Voltage"
     },
     {
       "AboutNodeName": "floor1-depth2",
@@ -333,7 +362,8 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Voltage"
     },
     {
       "AboutNodeName": "floor1-depth3",
@@ -344,7 +374,8 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Voltage"
     },
     {
       "AboutNodeName": "floor2-depth1",
@@ -355,7 +386,8 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Temperature"
     },
     {
       "AboutNodeName": "floor2-depth2",
@@ -366,7 +398,8 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Temperature"
     },
     {
       "AboutNodeName": "floor2-depth3",
@@ -377,7 +410,8 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Temperature"
     },
     {
       "AboutNodeName": "floor2-depth1",
@@ -388,7 +422,8 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Voltage"
     },
     {
       "AboutNodeName": "floor2-depth2",
@@ -399,7 +434,8 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Voltage"
     },
     {
       "AboutNodeName": "floor2-depth3",
@@ -410,7 +446,8 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Voltage"
     },
     {
       "AboutNodeName": "elt-buffer-top",
@@ -422,7 +459,8 @@
       "TelemetryName": "PowerW",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Power"
     },
     {
       "AboutNodeName": "elt-buffer-bottom",
@@ -434,7 +472,8 @@
       "TelemetryName": "PowerW",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Power"
     },
     {
       "AboutNodeName": "elt-store-top",
@@ -446,7 +485,8 @@
       "TelemetryName": "PowerW",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Power"
     },
     {
       "AboutNodeName": "elt-store-bottom",
@@ -458,7 +498,8 @@
       "TelemetryName": "PowerW",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Power"
     },
     {
       "AboutNodeName": "dist-pump",
@@ -470,7 +511,8 @@
       "TelemetryName": "PowerW",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Power"
     },
     {
       "AboutNodeName": "zone1-bedrooms-whitewire",
@@ -478,10 +520,11 @@
       "DisplayName": "zone1 Bedrooms Opto Input",
       "Id": "e7fef97c-4371-4e55-9ee4-bcb16fc92e9f",
       "Name": "zone1-bedrooms-opto-input",
-      "TelemetryName": "Unitless",
+      "TelemetryName": "BinaryState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Unitless"
     },
     {
       "AboutNodeName": "zone2-living-rm-whitewire",
@@ -489,10 +532,11 @@
       "DisplayName": "Zone2 Living Rm Opto Input",
       "Id": "947944e5-d0c2-482e-8cbf-a794302bd384",
       "Name": "zone2-living-rm-opto-input",
-      "TelemetryName": "Unitless",
+      "TelemetryName": "BinaryState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Unitless"
     },
     {
       "AboutNodeName": "zone4-garage-whitewire",
@@ -500,10 +544,11 @@
       "DisplayName": "Zone4 Garage Opto Input",
       "Id": "1b7b929b-9d5b-4505-af97-9d6193a65a6c",
       "Name": "zone4-garage-opto-input",
-      "TelemetryName": "Unitless",
+      "TelemetryName": "BinaryState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Unitless"
     },
     {
       "AboutNodeName": "zone1-bedrooms",
@@ -514,7 +559,8 @@
       "TelemetryName": "CelsiusTimes100",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Temperature"
     },
     {
       "AboutNodeName": "zone1-bedrooms",
@@ -525,7 +571,8 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Voltage"
     },
     {
       "AboutNodeName": "zone2-living-rm",
@@ -536,7 +583,8 @@
       "TelemetryName": "CelsiusTimes100",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Temperature"
     },
     {
       "AboutNodeName": "zone2-living-rm",
@@ -547,7 +595,8 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Voltage"
     },
     {
       "AboutNodeName": "zone4-garage",
@@ -558,7 +607,8 @@
       "TelemetryName": "CelsiusTimes100",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Temperature"
     },
     {
       "AboutNodeName": "zone4-garage",
@@ -569,7 +619,8 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "data.channel.gt",
-      "Version": "001"
+      "Version": "002",
+      "Quantity": "Voltage"
     }
   ],
   "DerivedChannels": [
@@ -621,7 +672,9 @@
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "EmissionMethod": "OnTrigger",
-      "InputChannelNames": ["buffer-depth1-device"],
+      "InputChannelNames": [
+        "buffer-depth1-device"
+      ],
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "derived.channel.gt",
       "Version": "001"
@@ -634,7 +687,9 @@
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "EmissionMethod": "OnTrigger",
-      "InputChannelNames": ["buffer-depth2-device"],
+      "InputChannelNames": [
+        "buffer-depth2-device"
+      ],
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "derived.channel.gt",
       "Version": "001"
@@ -646,7 +701,7 @@
       "Name": "buffer-depth3",
       "OutputUnit": "FahrenheitX100",
       "Strategy": "affine",
-      "Parameters": { 
+      "Parameters": {
         "Calibration": {
           "M": 1.0,
           "B": 0.0,
@@ -655,7 +710,9 @@
         }
       },
       "EmissionMethod": "OnTrigger",
-      "InputChannelNames": ["buffer-depth3-device"],
+      "InputChannelNames": [
+        "buffer-depth3-device"
+      ],
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "derived.channel.gt",
       "Version": "001"
@@ -668,7 +725,9 @@
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "EmissionMethod": "OnTrigger",
-      "InputChannelNames": ["tank1-depth1-device"],
+      "InputChannelNames": [
+        "tank1-depth1-device"
+      ],
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "derived.channel.gt",
       "Version": "001"
@@ -681,7 +740,9 @@
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "EmissionMethod": "OnTrigger",
-      "InputChannelNames": ["tank1-depth2-device"],
+      "InputChannelNames": [
+        "tank1-depth2-device"
+      ],
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "derived.channel.gt",
       "Version": "001"
@@ -694,7 +755,9 @@
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "EmissionMethod": "OnTrigger",
-      "InputChannelNames": ["tank1-depth3-device"],
+      "InputChannelNames": [
+        "tank1-depth3-device"
+      ],
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "derived.channel.gt",
       "Version": "001"
@@ -707,7 +770,9 @@
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "EmissionMethod": "OnTrigger",
-      "InputChannelNames": ["pipes1-depth1-device"],
+      "InputChannelNames": [
+        "pipes1-depth1-device"
+      ],
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "derived.channel.gt",
       "Version": "001"
@@ -720,7 +785,9 @@
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "EmissionMethod": "OnTrigger",
-      "InputChannelNames": ["pipes1-depth2-device"],
+      "InputChannelNames": [
+        "pipes1-depth2-device"
+      ],
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "derived.channel.gt",
       "Version": "001"
@@ -733,7 +800,9 @@
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "EmissionMethod": "OnTrigger",
-      "InputChannelNames": ["floor1-depth1-device"],
+      "InputChannelNames": [
+        "floor1-depth1-device"
+      ],
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "derived.channel.gt",
       "Version": "001"
@@ -746,7 +815,9 @@
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "EmissionMethod": "OnTrigger",
-      "InputChannelNames": ["floor1-depth2-device"],
+      "InputChannelNames": [
+        "floor1-depth2-device"
+      ],
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "derived.channel.gt",
       "Version": "001"
@@ -759,7 +830,9 @@
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "EmissionMethod": "OnTrigger",
-      "InputChannelNames": ["floor1-depth3-device"],
+      "InputChannelNames": [
+        "floor1-depth3-device"
+      ],
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "derived.channel.gt",
       "Version": "001"
@@ -774,8 +847,12 @@
       "EmissionMethod": "AsyncAndPeriodic",
       "AsyncEmitDelta": 1,
       "EmitPeriodS": 300,
-      "InputChannelNames": ["zone1-bedrooms-opto-input"],
-      "Parameters": {"Interpretation": "DigitalZeroIsActive"},
+      "InputChannelNames": [
+        "zone1-bedrooms-opto-input"
+      ],
+      "Parameters": {
+        "Interpretation": "DigitalZeroIsActive"
+      },
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "derived.channel.gt",
       "Version": "001"
@@ -790,8 +867,12 @@
       "EmissionMethod": "AsyncAndPeriodic",
       "AsyncEmitDelta": 1,
       "EmitPeriodS": 300,
-      "InputChannelNames": ["zone2-living-rm-opto-input"],
-      "Parameters": {"Interpretation": "DigitalZeroIsActive"},
+      "InputChannelNames": [
+        "zone2-living-rm-opto-input"
+      ],
+      "Parameters": {
+        "Interpretation": "DigitalZeroIsActive"
+      },
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "derived.channel.gt",
       "Version": "001"
@@ -806,13 +887,16 @@
       "EmissionMethod": "AsyncAndPeriodic",
       "AsyncEmitDelta": 1,
       "EmitPeriodS": 300,
-      "InputChannelNames": ["zone4-garage-opto-input"],
-      "Parameters": {"Interpretation": "DigitalZeroIsActive"},
+      "InputChannelNames": [
+        "zone4-garage-opto-input"
+      ],
+      "Parameters": {
+        "Interpretation": "DigitalZeroIsActive"
+      },
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "TypeName": "derived.channel.gt",
       "Version": "001"
     }
-
   ],
   "ElectricMeterCacs": [
     {
@@ -1090,7 +1174,8 @@
           "TypeName": "relay.actor.config",
           "Unit": "Unitless",
           "Version": "002",
-          "WiringConfig": "NormallyClosed"
+          "WiringConfig": "NormallyClosed",
+          "AsyncCaptureDelta": 1
         }
       ],
       "DisplayName": "VDC GPIO Relay",
@@ -1127,7 +1212,8 @@
           "ThermistorBeta": 3977,
           "TypeName": "i2c.thermistor.channel.config",
           "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 5000
         },
         {
           "AdcChannel": "P1",
@@ -1152,7 +1238,8 @@
           "ThermistorBeta": 3977,
           "TypeName": "i2c.thermistor.channel.config",
           "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 5000
         },
         {
           "AdcChannel": "P2",
@@ -1177,7 +1264,8 @@
           "ThermistorBeta": 3977,
           "TypeName": "i2c.thermistor.channel.config",
           "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 5000
         }
       ],
       "DisplayName": "GW108 Thermistor Reader",
@@ -1213,7 +1301,8 @@
           "Exponent": 3,
           "TypeName": "channel.config",
           "Unit": "Celcius",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 200
         },
         {
           "AsyncCapture": true,
@@ -1222,7 +1311,8 @@
           "Exponent": 3,
           "TypeName": "channel.config",
           "Unit": "Celcius",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 200
         },
         {
           "AsyncCapture": true,
@@ -1231,7 +1321,8 @@
           "Exponent": 3,
           "TypeName": "channel.config",
           "Unit": "Celcius",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 200
         },
         {
           "AsyncCapture": true,
@@ -1240,7 +1331,8 @@
           "Exponent": 6,
           "TypeName": "channel.config",
           "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 5000
         },
         {
           "AsyncCapture": true,
@@ -1249,7 +1341,8 @@
           "Exponent": 6,
           "TypeName": "channel.config",
           "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 5000
         },
         {
           "AsyncCapture": true,
@@ -1258,7 +1351,8 @@
           "Exponent": 6,
           "TypeName": "channel.config",
           "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 5000
         }
       ],
       "DisplayName": "buffer PicoTankModule",
@@ -1285,7 +1379,8 @@
           "Exponent": 3,
           "TypeName": "channel.config",
           "Unit": "Celcius",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 200
         },
         {
           "AsyncCapture": true,
@@ -1294,7 +1389,8 @@
           "Exponent": 3,
           "TypeName": "channel.config",
           "Unit": "Celcius",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 200
         },
         {
           "AsyncCapture": true,
@@ -1303,7 +1399,8 @@
           "Exponent": 3,
           "TypeName": "channel.config",
           "Unit": "Celcius",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 200
         },
         {
           "AsyncCapture": true,
@@ -1312,7 +1409,8 @@
           "Exponent": 6,
           "TypeName": "channel.config",
           "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 5000
         },
         {
           "AsyncCapture": true,
@@ -1321,7 +1419,8 @@
           "Exponent": 6,
           "TypeName": "channel.config",
           "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 5000
         },
         {
           "AsyncCapture": true,
@@ -1330,7 +1429,8 @@
           "Exponent": 6,
           "TypeName": "channel.config",
           "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 5000
         }
       ],
       "DisplayName": "tank1 PicoTankModule",
@@ -1359,7 +1459,8 @@
           "Exponent": 2,
           "TypeName": "channel.config",
           "Unit": "Gpm",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 10
         },
         {
           "AsyncCapture": true,
@@ -1368,7 +1469,8 @@
           "Exponent": 2,
           "TypeName": "channel.config",
           "Unit": "Celcius",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 20
         },
         {
           "AsyncCapture": true,
@@ -1377,7 +1479,8 @@
           "Exponent": 2,
           "TypeName": "channel.config",
           "Unit": "Celcius",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 20
         }
       ],
       "DisplayName": "store-btu BtuMeter",
@@ -1411,7 +1514,8 @@
           "Exponent": 2,
           "TypeName": "channel.config",
           "Unit": "Gpm",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 10
         },
         {
           "AsyncCapture": true,
@@ -1420,7 +1524,8 @@
           "Exponent": 2,
           "TypeName": "channel.config",
           "Unit": "Celcius",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 20
         },
         {
           "AsyncCapture": true,
@@ -1429,7 +1534,8 @@
           "Exponent": 2,
           "TypeName": "channel.config",
           "Unit": "Celcius",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 20
         }
       ],
       "DisplayName": "dist-btu BtuMeter",
@@ -1449,7 +1555,7 @@
       "TypeName": "pico.btu.meter.component.gt",
       "Version": "000"
     },
-        {
+    {
       "AsyncCaptureDeltaMicroVolts": 2000,
       "ComponentAttributeClassId": "cbe49338-5d14-47ff-b05e-22031876962e",
       "ComponentId": "6683cb17-698e-4026-8b6f-d6b83d2bc5bf",
@@ -1461,7 +1567,8 @@
           "Exponent": 3,
           "TypeName": "channel.config",
           "Unit": "Celcius",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 200
         },
         {
           "AsyncCapture": true,
@@ -1470,7 +1577,8 @@
           "Exponent": 3,
           "TypeName": "channel.config",
           "Unit": "Celcius",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 200
         },
         {
           "AsyncCapture": true,
@@ -1479,7 +1587,8 @@
           "Exponent": 3,
           "TypeName": "channel.config",
           "Unit": "Celcius",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 200
         },
         {
           "AsyncCapture": true,
@@ -1488,7 +1597,8 @@
           "Exponent": 6,
           "TypeName": "channel.config",
           "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 5000
         },
         {
           "AsyncCapture": true,
@@ -1497,7 +1607,8 @@
           "Exponent": 6,
           "TypeName": "channel.config",
           "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 5000
         },
         {
           "AsyncCapture": true,
@@ -1506,7 +1617,8 @@
           "Exponent": 6,
           "TypeName": "channel.config",
           "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 5000
         }
       ],
       "DisplayName": "pipes1 PicoTankModule",
@@ -1533,7 +1645,8 @@
           "Exponent": 3,
           "TypeName": "channel.config",
           "Unit": "Celcius",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 200
         },
         {
           "AsyncCapture": true,
@@ -1542,7 +1655,8 @@
           "Exponent": 3,
           "TypeName": "channel.config",
           "Unit": "Celcius",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 200
         },
         {
           "AsyncCapture": true,
@@ -1551,7 +1665,8 @@
           "Exponent": 3,
           "TypeName": "channel.config",
           "Unit": "Celcius",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 200
         },
         {
           "AsyncCapture": true,
@@ -1560,7 +1675,8 @@
           "Exponent": 6,
           "TypeName": "channel.config",
           "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 5000
         },
         {
           "AsyncCapture": true,
@@ -1569,7 +1685,8 @@
           "Exponent": 6,
           "TypeName": "channel.config",
           "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 5000
         },
         {
           "AsyncCapture": true,
@@ -1578,7 +1695,8 @@
           "Exponent": 6,
           "TypeName": "channel.config",
           "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 5000
         }
       ],
       "DisplayName": "floor1 PicoTankModule",
@@ -1605,7 +1723,8 @@
           "Exponent": 3,
           "TypeName": "channel.config",
           "Unit": "Celcius",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 200
         },
         {
           "AsyncCapture": true,
@@ -1614,7 +1733,8 @@
           "Exponent": 3,
           "TypeName": "channel.config",
           "Unit": "Celcius",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 200
         },
         {
           "AsyncCapture": true,
@@ -1623,7 +1743,8 @@
           "Exponent": 3,
           "TypeName": "channel.config",
           "Unit": "Celcius",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 200
         },
         {
           "AsyncCapture": true,
@@ -1632,7 +1753,8 @@
           "Exponent": 6,
           "TypeName": "channel.config",
           "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 5000
         },
         {
           "AsyncCapture": true,
@@ -1641,7 +1763,8 @@
           "Exponent": 6,
           "TypeName": "channel.config",
           "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 5000
         },
         {
           "AsyncCapture": true,
@@ -1650,7 +1773,8 @@
           "Exponent": 6,
           "TypeName": "channel.config",
           "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "000",
+          "AsyncCaptureDelta": 5000
         }
       ],
       "DisplayName": "floor2 PicoTankModule",
@@ -2068,7 +2192,7 @@
       "TypeName": "spaceheat.node.gt",
       "Version": "301"
     },
-        {
+    {
       "ActorClass": "ApiTankModule",
       "ActorHierarchyName": "s.pipes1",
       "ComponentId": "6683cb17-698e-4026-8b6f-d6b83d2bc5bf",
@@ -2235,18 +2359,18 @@
   "TotalStoreTanks": 1,
   "UseSiegLoop": false,
   "TankTempCalibrationMap": {
-      "Buffer": {
-        "Depth1B": 0.0,
-        "Depth1M": 1.0,
-        "Depth2B": 0.0,
-        "Depth2M": 1.0,
-        "Depth3B": 0.0,
-        "Depth3M": 1.0,
-        "TypeName": "gw1.tank.temp.calibration",
-        "Version": "000"
-      },
-      "Tank": {
-        "1": {
+    "Buffer": {
+      "Depth1B": 0.0,
+      "Depth1M": 1.0,
+      "Depth2B": 0.0,
+      "Depth2M": 1.0,
+      "Depth3B": 0.0,
+      "Depth3M": 1.0,
+      "TypeName": "gw1.tank.temp.calibration",
+      "Version": "000"
+    },
+    "Tank": {
+      "1": {
         "Depth1B": 0.0,
         "Depth1M": 1.0,
         "Depth2B": 0.0,
@@ -2256,9 +2380,9 @@
         "TypeName": "gw1.tank.temp.calibration",
         "Version": "000"
       }
-      },
-      "TypeName": "gw1.tank.temp.calibration.map",
-      "Version": "000"
+    },
+    "TypeName": "gw1.tank.temp.calibration.map",
+    "Version": "000"
   },
   "ZoneKwhPerDegFList": [
     1,
