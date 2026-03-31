@@ -1,4 +1,15 @@
-"""Scada implementation"""
+"""
+Scada prime-actor implementation.
+
+This module does not hand-wire the full SCADA actor graph by itself. SCADA runs
+as the prime actor inside a gwproactor app, and the proactor/bootstrap path
+loads child actors from the hardware layout and actor registry.
+
+In practice, that means layout ActorClass values must match the actor exports in
+gw_spaceheat/actors/__init__.py. If an ActorClass is present in the layout but
+does not resolve through that registry, the proactor app will not be able to
+instantiate the expected actor at runtime.
+"""
 import os
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
