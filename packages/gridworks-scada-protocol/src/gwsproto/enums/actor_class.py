@@ -4,7 +4,7 @@ from gwsproto.enums.gw_str_enum import AslEnum
 
 
 class ActorClass(AslEnum):
-    """ASL: https://schemas.electricity.works/enums/gw1.actor.class/011"""
+    """Sema: https://schemas.electricity.works/enums/gw1.actor.class/011"""
 
     NoActor = auto()
     PrimaryScada = auto()

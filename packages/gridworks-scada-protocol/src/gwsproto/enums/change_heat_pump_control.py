@@ -3,7 +3,7 @@
 #  - Sent as-is, not in hex symbol
 from enum import auto
 
-from gwproto.enums.relay_event_base import RelayEventBase
+from gwsproto.enums.relay_event_base import RelayEventBase
 
 
 class ChangeHeatPumpControl(RelayEventBase):

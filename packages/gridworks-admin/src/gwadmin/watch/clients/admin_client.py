@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import threading
+import time
 from dataclasses import dataclass
 from logging import Logger
 from typing import Any
@@ -231,8 +232,7 @@ class AdminClient:
         self.publish(
             SendLayout(
                 FromGNodeAlias=H0N.admin,
-                FromName=H0N.admin,
-                ToName=H0N.primary_scada,
+                MessageCreatedMs=int(time.time() * 1000),
             )
         )
 
@@ -309,4 +309,3 @@ class AdminClient:
                 ),
             )
         self._logger.debug("--AdminClient._mqtt_message_received  path:0x%08X", path_dbg)
-

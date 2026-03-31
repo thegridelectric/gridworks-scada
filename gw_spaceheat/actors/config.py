@@ -53,7 +53,7 @@ class ScadaSettings(AppSettings):
     alpha: float = 5.5
     beta: float = -0.1
     gamma: float = 0
-    hp_max_kw_th: float = 14
+    hp_max_kw_el: float = 9.66
     intermediate_power: float = 1.5
     intermediate_rswt: float = 100
     dd_power: float = 5.5
@@ -61,6 +61,12 @@ class ScadaSettings(AppSettings):
     dd_delta_t: float = 20
     is_simulated: bool = False
     max_ewt_f: int = 170
+    cop_intercept: float = 1.02
+    cop_oat_coeff: float = 0.0257
+    cop_lwt_coeff: float = 0
+    cop_min: float = 1.4
+    cop_min_oat_f: float = 15
+    hp_turn_on_minutes: int = 12
     short_cycle_buffer: bool = False
     load_overestimation_percent: int = 0
     oil_boiler_backup: bool = True

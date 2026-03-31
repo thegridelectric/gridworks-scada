@@ -91,6 +91,9 @@ from gwsproto.named_types.sim_pico_tank_module_component_gt import SimPicoTankMo
 from gwsproto.named_types.single_machine_state import SingleMachineState
 from gwsproto.named_types.slow_contract_heartbeat import SlowContractHeartbeat
 from gwsproto.named_types.single_reading import SingleReading
+from gwsproto.named_types.spaceheat_telemetry_quantity_projection import (
+    SpaceheatTelemetryQuantityProjection,
+)
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwsproto.named_types.snapshot_spaceheat import SnapshotSpaceheat
 from gwsproto.named_types.suit_up import SuitUp
@@ -200,6 +203,7 @@ __all__ = [
     "SimPicoTankModuleComponentGt",
     "SingleMachineState",
     "SingleReading",
+    "SpaceheatTelemetryQuantityProjection",
     "SnapshotSpaceheat",
     "SpaceheatNodeGt",
     "SuitUp",

@@ -14,6 +14,9 @@ from gwsproto.property_format import (
 
 
 class Report(BaseModel):
+    """
+    Sema: https://schemas.electricity.works/types/report/003
+    """
 
     FromGNodeAlias: LeftRightDotStr
     FromGNodeInstanceId: UUID4Str
@@ -26,7 +29,7 @@ class Report(BaseModel):
     MessageCreatedMs: UTCMilliseconds
     Id: UUID4Str
     TypeName: Literal["report"] = "report"
-    Version: str = "003"
+    Version: Literal["003"] = "003"
 
     @field_validator("ChannelReadingList")
     @classmethod

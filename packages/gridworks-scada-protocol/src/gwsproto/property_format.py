@@ -21,6 +21,14 @@ UTC_ISO_8601_MILLIS_PATTERN = re.compile(
     r"[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z$"
 )
 
+SPACEHEAT_NAME_PATTERN = re.compile(
+    r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+)
+
+HANDLE_NAME_PATTERN = re.compile(
+    r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*)*$"
+)
+
 
 def is_utc_iso8601_seconds(v: str) -> str:
     """
@@ -83,27 +91,23 @@ def check_is_log_style_date_with_millis(v: str) -> None:
 
 def is_handle_name(v: str) -> str:
     """
-    HandleName format: words separated by periods, where the worlds are lowercase
-    alphanumeric plus hyphens
+    HandleName format:
+    Dot-separated hierarchical identifier composed of lowercase
+    alphanumeric segments with optional internal hyphen-separated words.
+
+    Rules:
+      - Each segment must start with a lowercase letter
+      - Hyphens may appear only between alphanumeric characters
+      - No trailing or leading hyphens in any segment
+      - No empty segments
+      - Entire string must be lowercase
     """
-    try:
-        x = v.split(".")
-    except Exception as e:
-        raise ValueError(f"Failed to seperate <{v}> into words with split'.'") from e
-    first_word = x[0]
-    first_char = first_word[0]
-    if not first_char.isalpha():
-        raise ValueError(
-            f"Most significant word of <{v}> must start wif64th alphabet char."
-        )
-    for word in x:
-        for char in word:
-            if not (char.isalnum() or char == "-"):
-                raise ValueError(
-                    f"words of <{v}> split by by '.' must be alphanumeric or hyphen."
-                )
-    if not v.islower():
-        raise ValueError(f" <{v}> must be lowercase.")
+    if not isinstance(v, str):
+        raise ValueError(f"<{v}>: HandleName must be a string.")
+
+    if not HANDLE_NAME_PATTERN.fullmatch(v):
+        raise ValueError(f"<{v}>: Fails HandleName format.")
+
     return v
 
 
@@ -173,29 +177,28 @@ def has_mac_address_format(mac_str: str) -> bool:
 
 def is_spaceheat_name(v: str) -> str:
     """
-    SpaceheatName format: Lowercase alphanumeric words separated by hypens
+    Validate the SpaceheatName format.
+
+    Rules:
+      - Must be a string
+      - Single segment (no dots)
+      - Must start with a lowercase alphabetic character
+      - May contain lowercase alphanumeric characters
+      - Hyphens allowed only between alphanumeric characters
+      - No leading or trailing hyphens
+      - No consecutive hyphens
+      - Entire string must be lowercase
+      - Maximum length 64 characters
     """
-    try:
-        x = v.split("-")
-    except Exception as e:
-        raise ValueError(
-            f"<{v}>: Fails SpaceheatName format! Failed to seperate into words with split'-'"
-        ) from e
-    first_word = x[0]
-    first_char = first_word[0]
-    if not first_char.isalpha():
-        raise ValueError(
-            f"<{v}>: Fails SpaceheatName format! Most significant word  must start with alphabet char."
-        )
-    for word in x:
-        if not word.isalnum():
-            raise ValueError(
-                f"<{v}>: Fails SpaceheatName format! words of split by by '-' must be alphanumeric."
-            )
-    if not v.islower():
-        raise ValueError(
-            f"<{v}>: Fails SpaceheatName format! All characters of  must be lowercase."
-        )
+    if not isinstance(v, str):
+        raise ValueError(f"<{v}>: SpaceheatName must be a string.")
+
+    if len(v) > 64:
+        raise ValueError(f"<{v}>: SpaceheatName exceeds maximum length of 64.")
+
+    if not SPACEHEAT_NAME_PATTERN.fullmatch(v):
+        raise ValueError(f"<{v}>: Fails SpaceheatName format.")
+
     return v
 
 
