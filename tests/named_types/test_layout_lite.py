@@ -230,7 +230,7 @@ def test_layout_lite_generated() -> None:
                     "StateType": "relay.closed.or.open",
                     "TypeName": "relay.actor.config",
                     "Unit": "Unitless",
-                    "Version": "002",
+                    "Version": "003",
                     "WiringConfig": "NormallyClosed",
                 },
                     {
@@ -250,7 +250,7 @@ def test_layout_lite_generated() -> None:
                     "StateType": "relay.closed.or.open",
                     "TypeName": "relay.actor.config",
                     "Unit": "Unitless",
-                    "Version": "002",
+                    "Version": "003",
                     "WiringConfig": "NormallyClosed",
                 },
                     {
@@ -270,7 +270,7 @@ def test_layout_lite_generated() -> None:
                     "StateType": "store.flow.relay",
                     "TypeName": "relay.actor.config",
                     "Unit": "Unitless",
-                    "Version": "002",
+                    "Version": "003",
                     "WiringConfig": "NormallyOpen",
                 },
             ],
@@ -278,10 +278,10 @@ def test_layout_lite_generated() -> None:
             "DisplayName": "i2c krida relay boards",
             "I2cAddressList": [32, 33],
             "TypeName": "i2c.multichannel.dt.relay.component.gt",
-            "Version": "003",
+            "Version": "004",
             },
             "TypeName": "layout.lite",
-            "Version": "012",
+            "Version": "013",
         }
 
     d2 = LayoutLite.model_validate(d).model_dump(exclude_none=True)

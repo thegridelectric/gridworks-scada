@@ -827,7 +827,7 @@
           "StateType": "relay.closed.or.open",
           "TypeName": "relay.actor.config",
           "Unit": "Unitless",
-          "Version": "002",
+          "Version": "003",
           "WiringConfig": "NormallyClosed"
         },
         {
@@ -846,7 +846,7 @@
           "StateType": "relay.closed.or.open",
           "TypeName": "relay.actor.config",
           "Unit": "Unitless",
-          "Version": "002",
+          "Version": "003",
           "WiringConfig": "NormallyClosed"
         },
         {
@@ -865,7 +865,7 @@
           "StateType": "store.flow.relay",
           "TypeName": "relay.actor.config",
           "Unit": "Unitless",
-          "Version": "002",
+          "Version": "003",
           "WiringConfig": "NormallyOpen"
         },
         {
@@ -884,7 +884,7 @@
           "StateType": "heat.pump.control",
           "TypeName": "relay.actor.config",
           "Unit": "Unitless",
-          "Version": "002",
+          "Version": "003",
           "WiringConfig": "DoubleThrow"
         },
         {
@@ -903,7 +903,7 @@
           "StateType": "relay.closed.or.open",
           "TypeName": "relay.actor.config",
           "Unit": "Unitless",
-          "Version": "002",
+          "Version": "003",
           "WiringConfig": "NormallyClosed"
         },
         {
@@ -922,7 +922,7 @@
           "StateType": "relay.closed.or.open",
           "TypeName": "relay.actor.config",
           "Unit": "Unitless",
-          "Version": "002",
+          "Version": "003",
           "WiringConfig": "NormallyClosed"
         },
         {
@@ -941,7 +941,7 @@
           "StateType": "aquastat.control.state",
           "TypeName": "relay.actor.config",
           "Unit": "Unitless",
-          "Version": "002",
+          "Version": "003",
           "WiringConfig": "DoubleThrow"
         },
         {
@@ -960,7 +960,7 @@
           "StateType": "relay.closed.or.open",
           "TypeName": "relay.actor.config",
           "Unit": "Unitless",
-          "Version": "002",
+          "Version": "003",
           "WiringConfig": "NormallyOpen"
         },
         {
@@ -979,7 +979,7 @@
           "StateType": "primary.pump.control",
           "TypeName": "relay.actor.config",
           "Unit": "Unitless",
-          "Version": "002",
+          "Version": "003",
           "WiringConfig": "DoubleThrow"
         },
         {
@@ -998,7 +998,7 @@
           "StateType": "relay.closed.or.open",
           "TypeName": "relay.actor.config",
           "Unit": "Unitless",
-          "Version": "002",
+          "Version": "003",
           "WiringConfig": "NormallyOpen"
         },
         {
@@ -1017,7 +1017,7 @@
           "StateType": "relay.closed.or.open",
           "TypeName": "relay.actor.config",
           "Unit": "Unitless",
-          "Version": "002",
+          "Version": "003",
           "WiringConfig": "NormallyClosed"
         },
         {
@@ -1036,7 +1036,7 @@
           "StateType": "hp.loop.keep.send",
           "TypeName": "relay.actor.config",
           "Unit": "Unitless",
-          "Version": "002",
+          "Version": "003",
           "WiringConfig": "DoubleThrow"
         },
         {
@@ -1055,7 +1055,7 @@
           "StateType": "heatcall.source",
           "TypeName": "relay.actor.config",
           "Unit": "Unitless",
-          "Version": "002",
+          "Version": "003",
           "WiringConfig": "DoubleThrow"
         },
         {
@@ -1074,7 +1074,7 @@
           "StateType": "relay.closed.or.open",
           "TypeName": "relay.actor.config",
           "Unit": "Unitless",
-          "Version": "002",
+          "Version": "003",
           "WiringConfig": "NormallyOpen"
         }
       ],
@@ -1085,7 +1085,7 @@
       ],
       "I2cBus": "default",
       "TypeName": "i2c.multichannel.dt.relay.component.gt",
-      "Version": "003"
+      "Version": "004"
     },
     {
       "AsyncCaptureDeltaMicroVolts": 2000,

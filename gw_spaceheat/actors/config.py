@@ -74,4 +74,5 @@ class ScadaSettings(AppSettings):
     seasonal_storage_mode: SeasonalStorageMode = SeasonalStorageMode.AllTanks
     whitewire_threshold_watts: float = 20 # TODO: move to layout
     hp_model: HpModel = HpModel.SamsungFiveTonneHydroKit # TODO: move to layout
+    airtable_pat: str = "bogus_pat"
     model_config = SettingsConfigDict(env_prefix="SCADA_", extra="ignore")

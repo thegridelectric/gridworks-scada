@@ -20,9 +20,13 @@ from gwsproto.enums import (
     StoreFlowRelay,
     ChangeHeatcallSource,
 )
-from gwsproto.named_types import ChannelConfig
 from gwsproto.property_format import (
-    SpaceheatName,
+    SpaceheatName, LeftRightDotStr
+)
+from gwsproto.type_helpers.channel_config_base import (
+    ChannelConfigBase,
+    check_async_capture_consistency,
+    check_channel_config_axiom_1,
 )
 
 KNOWN_EVENT_ENUMS = {
@@ -98,27 +102,46 @@ EVENT_TO_STATE = {
 }
 
 
-class RelayActorConfig(ChannelConfig):
+class RelayActorConfig(ChannelConfigBase):
     """
-    Sema: https://schemas.electricity.works/types/relay.actor.config/002
+    Sema: https://schemas.electricity.works/types/relay.actor.config/003
     """
 
     RelayIdx: PositiveInt
     ActorName: SpaceheatName
     WiringConfig: RelayWiringConfig
-    EventType: str
+    EventType: LeftRightDotStr
     DeEnergizingEvent: str
     EnergizingEvent: str
-    StateType: str
+    StateType: LeftRightDotStr
     DeEnergizedState: str
     EnergizedState: str
     TypeName: Literal["relay.actor.config"] = "relay.actor.config"
-    Version: Literal["002"] = "002"
+    Version: Literal["003"] = "003"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
         """
-        Axiom 1: EventType, DeEnergizingEvent/EnergizingEvent consistency.
+        Axiom 1: AsyncCaptureConsistency.
+        If AsyncCapture is true, AsyncCaptureDelta must be present.
+        """
+        return check_async_capture_consistency(self)
+
+    @model_validator(mode="after")
+    def check_axiom_2(self) -> Self:
+        """
+        Axiom 2: CapturePollingConsistency.
+        If PollPeriodMs exists, then CapturePeriodMs (CapturePeriodS * 1000)
+        must be larger than PollPeriodMs. If CapturePeriodMs is less than
+        10 * PollPeriodMs, then CapturePeriodMs must be a multiple of
+        PollPeriodMs.
+        """
+        return check_channel_config_axiom_1(self, axiom_number=2)
+
+    @model_validator(mode="after")
+    def check_axiom_3(self) -> Self:
+        """
+        Axiom 3: EventTypeEventConsistency.
         If the event type is the name of a known enum, then the DeEnergizingEvent, EnergizingEvent pair are the values of that enum.
         """
         event_enum = KNOWN_EVENT_ENUMS.get(self.EventType)
@@ -131,15 +154,15 @@ class RelayActorConfig(ChannelConfig):
             ]
             if invalid:
                 raise ValueError(
-                    "Axiom 1 violated! "
+                    "Axiom 3 violated! "
                     f"{invalid} not in {self.EventType} values {sorted(valid_values)}"
                 )
         return self
 
     @model_validator(mode="after")
-    def check_axiom_2(self) -> Self:
+    def check_axiom_4(self) -> Self:
         """
-        Axiom 2: StateType, EnergizedState/DeEnergizedState consistency.
+        Axiom 4: StateTypeStateConsistency.
         If the state type is the name of a known enum, then the DeEnergizedState, EnergizedState pair are the values of that enum.
         """
         state_enum = KNOWN_STATE_ENUMS.get(self.StateType)
@@ -152,15 +175,15 @@ class RelayActorConfig(ChannelConfig):
             ]
             if invalid:
                 raise ValueError(
-                    "Axiom 2 violated! "
+                    "Axiom 4 violated! "
                     f"{invalid} not in {self.StateType} values {sorted(valid_values)}"
                 )
         return self
 
     @model_validator(mode="after")
-    def check_axiom_3(self) -> Self:
+    def check_axiom_5(self) -> Self:
         """
-        Axiom 3: Events and States match. .
+        Axiom 5: EventStateMatch.
          E.g. if RelayOpen is the EnergizedState then the EnergizingEvent is OpenRelay.
         """
         expected_states = EVENT_TO_STATE.get((self.EventType, self.StateType))
@@ -169,13 +192,13 @@ class RelayActorConfig(ChannelConfig):
             expected_energized = expected_states.get(self.EnergizingEvent)
             if expected_de_energized != self.DeEnergizedState:
                 raise ValueError(
-                    "Axiom 3 violated! "
+                    "Axiom 5 violated! "
                     f"DeEnergizingEvent {self.DeEnergizingEvent} implies "
                     f"DeEnergizedState {expected_de_energized}, not {self.DeEnergizedState}"
                 )
             if expected_energized != self.EnergizedState:
                 raise ValueError(
-                    "Axiom 3 violated! "
+                    "Axiom 5 violated! "
                     f"EnergizingEvent {self.EnergizingEvent} implies "
                     f"EnergizedState {expected_energized}, not {self.EnergizedState}"
                 )

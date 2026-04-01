@@ -17,13 +17,13 @@ class I2cThermistorReaderComponentGt(ComponentGt):
     ConfigList: Sequence[I2cThermistorChannelConfig]
 
     TypeName: Literal["i2c.thermistor.reader.component.gt"] = "i2c.thermistor.reader.component.gt"
-    Version: Literal["000"] = "000"
+    Version: Literal["001"] = "001"
 
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
         """
-        Axiom 1: Config uniqueness and device-channel consistency.
+        Axiom 1: ConfigUniqueness.
         - Each ChannelName SHALL appear at most once in ConfigList.
         - Each AdcChannel SHALL have at most one config whose Unit is Celcius.
         """
@@ -53,7 +53,7 @@ class I2cThermistorReaderComponentGt(ComponentGt):
     @model_validator(mode="after")
     def check_axiom_2(self) -> Self:
         """
-        Axiom 2: Address validity.
+        Axiom 2: AddressValidity.
         AdcAddress SHALL be a valid 7-bit I2C address (0–127).
         """
         if not (0 <= self.AdcAddress <= 127):

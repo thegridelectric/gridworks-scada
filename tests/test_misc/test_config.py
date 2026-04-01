@@ -100,7 +100,8 @@ def test_scada_settings_defaults(default_test_env, clean_test_env, clean_scada_e
         timezone_str="America/New_York",
         is_simulated=False,
         contract_rep_logging_level=20,
-        hp_model=HpModel.SamsungFiveTonneHydroKit
+        hp_model=HpModel.SamsungFiveTonneHydroKit,
+        airtable_pat="bogus_pat"
     )
     assert settings.local_mqtt.tls.model_dump() == exp_local_mqtt.tls.model_dump()
     assert settings.local_mqtt.model_dump() == exp_local_mqtt.model_dump()

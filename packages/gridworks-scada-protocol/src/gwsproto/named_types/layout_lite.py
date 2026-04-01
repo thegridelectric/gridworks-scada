@@ -20,7 +20,7 @@ from typing_extensions import Self
 
 class LayoutLite(BaseModel):
     """
-    Sema: https://schemas.electricity.works/enums/layout.lite/012
+    Sema: https://schemas.electricity.works/enums/layout.lite/013
     """
 
     FromGNodeAlias: LeftRightDotStr
@@ -42,7 +42,7 @@ class LayoutLite(BaseModel):
     I2cRelayComponent: I2cMultichannelDtRelayComponentGt | None = None
     TMap: TankTempCalibrationMap | None = None
     TypeName: Literal["layout.lite"] = "layout.lite"
-    Version: Literal["012"] = "012"
+    Version: Literal["013"] = "013"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

@@ -15,15 +15,23 @@ class I2cMultichannelDtRelayComponentGt(ComponentGt):
     TypeName: Literal["i2c.multichannel.dt.relay.component.gt"] = (
         "i2c.multichannel.dt.relay.component.gt"
     )
-    Version: Literal["003"] = "003"
+    Version: Literal["004"] = "004"
 
     model_config = ConfigDict(extra="allow", use_enum_values=True)
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
         """
-        Axiom 1: Actor and Idx Consistency.
+        Axiom 1: ActorIdxConsistency.
         There are no duplicates of ActorName or RelayIdx in the RelayConfigList
         """
-        # Implement Axiom(s)
+        actor_names = [cfg.ActorName for cfg in self.ConfigList]
+        if len(actor_names) != len(set(actor_names)):
+            duplicates = sorted({name for name in actor_names if actor_names.count(name) > 1})
+            raise ValueError(f"Duplicate ActorName(s) {duplicates}")
+
+        relay_idxs = [cfg.RelayIdx for cfg in self.ConfigList]
+        if len(relay_idxs) != len(set(relay_idxs)):
+            duplicates = sorted({idx for idx in relay_idxs if relay_idxs.count(idx) > 1})
+            raise ValueError(f"Duplicate RelayIdx(s) {duplicates}")
         return self

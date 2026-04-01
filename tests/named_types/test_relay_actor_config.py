@@ -1,4 +1,4 @@
-"""Tests relay.actor.config type, version 002"""
+"""Tests relay.actor.config type, version 003"""
 
 import pytest
 
@@ -11,6 +11,7 @@ def base_config() -> dict:
         "PollPeriodMs": 200,
         "CapturePeriodS": 300,
         "AsyncCapture": True,
+        "AsyncCaptureDelta": 1,
         "Exponent": 0,
         "Unit": "Unitless",
         "RelayIdx": 6,
@@ -23,7 +24,7 @@ def base_config() -> dict:
         "DeEnergizedState": "RelayClosed",
         "EnergizedState": "RelayOpen",
         "TypeName": "relay.actor.config",
-        "Version": "002",
+        "Version": "003",
     }
 
 
@@ -37,7 +38,7 @@ def test_relay_actor_config_generated() -> None:
 
 def test_relay_actor_config_axiom_1() -> None:
     d = base_config()
-    d["EnergizingEvent"] = "NotARealRelayEvent"
+    d["AsyncCaptureDelta"] = None
 
     with pytest.raises(ValueError, match="Axiom 1 violated!"):
         RelayActorConfig.model_validate(d)
@@ -45,7 +46,8 @@ def test_relay_actor_config_axiom_1() -> None:
 
 def test_relay_actor_config_axiom_2() -> None:
     d = base_config()
-    d["EnergizedState"] = "NotARealRelayState"
+    d["PollPeriodMs"] = 1000
+    d["CapturePeriodS"] = 1
 
     with pytest.raises(ValueError, match="Axiom 2 violated!"):
         RelayActorConfig.model_validate(d)
@@ -53,7 +55,23 @@ def test_relay_actor_config_axiom_2() -> None:
 
 def test_relay_actor_config_axiom_3() -> None:
     d = base_config()
-    d["EnergizedState"] = "RelayClosed"
+    d["EnergizingEvent"] = "NotARealRelayEvent"
 
     with pytest.raises(ValueError, match="Axiom 3 violated!"):
+        RelayActorConfig.model_validate(d)
+
+
+def test_relay_actor_config_axiom_4() -> None:
+    d = base_config()
+    d["EnergizedState"] = "NotARealRelayState"
+
+    with pytest.raises(ValueError, match="Axiom 4 violated!"):
+        RelayActorConfig.model_validate(d)
+
+
+def test_relay_actor_config_axiom_5() -> None:
+    d = base_config()
+    d["EnergizedState"] = "RelayClosed"
+
+    with pytest.raises(ValueError, match="Axiom 5 violated!"):
         RelayActorConfig.model_validate(d)
