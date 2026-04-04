@@ -301,6 +301,8 @@ class AllTanksTouLocalControl(LocalControlTouBase):
 
         if "StoreCharge" in self.state or self.state == LocalControlAllTanksState.HpOffStoreOff:
             self.valved_to_charge_store(from_node=self.normal_node)
+            if self.state == LocalControlAllTanksState.HpOffStoreOff:
+                self.log("HP is off so ISO Valve CLOSED")
         else:
             self.valved_to_discharge_store(from_node=self.normal_node)
 
