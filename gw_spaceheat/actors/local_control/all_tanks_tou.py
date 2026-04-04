@@ -297,11 +297,13 @@ class AllTanksTouLocalControl(LocalControlTouBase):
         if "StoreDischarge" in self.state:
             self.turn_on_store_pump(command_node=self.normal_node)
         else:
-            self.turn_off_store_pump(command_node=self.normal_node)         
-        if "StoreCharge" in self.state:
+            self.turn_off_store_pump(command_node=self.normal_node)
+
+        if "StoreCharge" in self.state or self.state == LocalControlAllTanksState.HpOffStoreOff:
             self.valved_to_charge_store(from_node=self.normal_node)
         else:
             self.valved_to_discharge_store(from_node=self.normal_node)
+
         if "HpOnStoreOff" in previous_state and "HpOnStoreCharge" in self.state:
             self.log("Store was off and is now charging")
             self.time_started_charging_store = time.time()
