@@ -181,10 +181,10 @@ class ApiFlowModule(ShNodeActor):
                 ChannelNameList=channel_names,
                 ValueList=values,
                 ScadaReadTimeUnixMs=int(time.time() * 1000),
-            ),
+            )
             self._send_to(self.primary_scada, msg)
             if self.node.name == "sieg-flow":
-                self._send_to(self.primary_scada, msg)
+                self._send_to(self.derived_generator, msg)
 
     def flatline_seconds(self) -> int:
         if self._component.cac.MakeModel == MakeModel.GRIDWORKS__PICOFLOWHALL:
@@ -481,7 +481,7 @@ class ApiFlowModule(ShNodeActor):
         )
         self._send_to(self.primary_scada, msg)
         if self.node.name == "sieg-flow":
-            self._send_to(self.primary_scada, msg)
+            self._send_to(self.derived_generator, msg)
         self._send_to(
             self.pico_cycler,
             ChannelReadings(
@@ -523,7 +523,7 @@ class ApiFlowModule(ShNodeActor):
         )
         self._send_to(self.primary_scada, msg)
         if self.node.name == "sieg-flow":
-            self._send_to(self.primary_scada, msg)
+            self._send_to(self.derived_generator, msg)
         self._send_to(
             self.pico_cycler,
             ChannelReadings(
@@ -621,7 +621,7 @@ class ApiFlowModule(ShNodeActor):
         )
         self._send_to(self.primary_scada, gpm_readings)
         if self.node.name == "sieg-flow":
-            self._send_to(self.primary_scada, gpm_readings)
+            self._send_to(self.derived_generator, gpm_readings)
         self._send_to(self.pico_cycler, gpm_readings)
         if self._component.gt.SendHz:
             self._send_to(self.primary_scada, micro_hz_readings)
