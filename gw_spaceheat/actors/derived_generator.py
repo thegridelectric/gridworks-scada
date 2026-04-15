@@ -42,6 +42,7 @@ class DerivedGenerator(ShNodeActor):
         self.last_evaluated_strategy = 0
         self.first_required_energy_update_done: bool = False
 
+
         # House parameters in the .env file
         self.is_simulated = self.settings.is_simulated
         self.timezone = pytz.timezone(self.settings.timezone_str)
@@ -142,8 +143,36 @@ class DerivedGenerator(ShNodeActor):
                 self.process_synced_readings(from_node, message.Payload)
         return Ok(True)
 
+    def hack_maple_primary_flow(self, from_node: ShNode, payload: SyncedReadings) -> None:
+        """
+        Compute primary-flow = sieg-send + sieg-flow using one fresh value
+        from payload and one cached value from latest_channel_values.
+        """
+        if from_node.name == "sieg-send":
+            sieg_send = payload.get_value("sieg-send")
+            sieg_flow = self.data.latest_channel_values.get("sieg-flow")
+        elif from_node.name == "sieg-flow":
+            sieg_flow = payload.get_value("sieg-flow")
+            sieg_send = self.data.latest_channel_values.get("sieg-send")
+        else:
+            self.log("hack_maple_primary_flow only expects sieg-send and seig-flow")
+            return
+        if sieg_flow is None or sieg_send is None:
+            self.log(f"Not caluclating primary-flow: sieg_send {sieg_send}, sieg_flow: {sieg_flow}")
+            return
+        primary_flow = sieg_send + sieg_flow
+        msg = SingleReading(
+            ChannelName="primary-flow",
+            Value=primary_flow,
+            ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs
+        )
+        
+        self._send_to(self.primary_scada, msg)
+
     def process_synced_readings(self, from_node: ShNode, payload: SyncedReadings) -> None:
-        if from_node.name == H0N.buffer.reader:
+        if from_node.name == "sieg-send" or from_node.name == "sieg-flow":
+            self.hack_maple_primary_flow(from_node, payload)
+        elif from_node.name == H0N.buffer.reader:
             calibration = self.tmap.Buffer
             tank= H0CN.buffer
         else:
