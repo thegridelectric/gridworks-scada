@@ -80,8 +80,50 @@ class ControlEvent(GwStrEnum):
     ReachFullSend = auto()
 
 
-class SiegLoop(ShNodeActor):
+class OrigSiegLoop(ShNodeActor):
     """
+    ```
+              ├── HpLoopOnOff relay
+              └── HpLoopKeepSend relay
+    ```
+    SiegLoop: Heat Pump Leaving Water Temperature Control System
+
+    This class manages a Siegenthaler loop valve which controls the mixing ratio between:
+    1. Water recirculating directly back to the heat pump (keep path)
+    2. Water flowing to the heating distribution system (send path)
+
+    Control Problem:
+    ---------------
+    The primary objective is to maintain a target leaving water temperature (LWT) from the heat 
+    pump while optimizing overall system efficiency. The challenge involves:
+
+    1. Physical Characteristics:
+    - Recirculation loop (~7 feet of 1" pipe) with ~4 second travel time
+    - Temperature sensors with ~10 second response time
+    - Valve movement takes ~70 seconds for full 0-100% travel
+
+    2. System Dynamics:
+    - At 100% keep: All water recirculates back to heat pump, increasing LWT
+    - At 0% keep: All water sent to distribution; LWT set by HP lift
+    - System has inherent thermal lag and momentum
+
+    Control Algorithm:
+    ----------------
+    The system implements a hybrid model-based + PID control strategy:
+
+    1. When the heat pump starts up, the valve stays fully closed and then
+    attempts to nail the appropriate position to get the correct leaving
+    water temperature, given the current lift and entering water temp
+
+    2. PID. After that, the heat pump uses a classic PID mechanism, adjusting
+    the valve position every 30 seconds. 
+
+    Recalibration of Percent Keep
+    -----------------
+    - The valve position is controlled by two relays. One (`hp_loop_on_off`)
+    determines if the valve is moving. The other determines what direction 
+    it is moving. 
+
     """
     flow_from_time_points = [
             [7,0], [9, 8], [11.2, 11.4], [14.7, 24.1], [18.2, 39.0], [22.4, 51.7],
