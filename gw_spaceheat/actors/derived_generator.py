@@ -151,7 +151,7 @@ class DerivedGenerator(ShNodeActor):
         if from_node.name == "sieg-send":
             sieg_send = payload.get_value("sieg-send")
             sieg_flow = self.data.latest_channel_values.get("sieg-flow")
-        elif from_node.name == "sieg-flow":
+        elif from_node.name == "sieg-btu":
             sieg_flow = payload.get_value("sieg-flow")
             sieg_send = self.data.latest_channel_values.get("sieg-send")
         else:
@@ -170,7 +170,7 @@ class DerivedGenerator(ShNodeActor):
         self._send_to(self.primary_scada, msg)
 
     def process_synced_readings(self, from_node: ShNode, payload: SyncedReadings) -> None:
-        if from_node.name == "sieg-send" or from_node.name == "sieg-flow":
+        if from_node.name == "sieg-send" or from_node.name == "sieg-btu":
             self.hack_maple_primary_flow(from_node, payload)
         elif from_node.name == H0N.buffer.reader:
             calibration = self.tmap.Buffer
