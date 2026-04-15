@@ -172,6 +172,7 @@ class DerivedGenerator(ShNodeActor):
     def process_synced_readings(self, from_node: ShNode, payload: SyncedReadings) -> None:
         if from_node.name == "sieg-send" or from_node.name == "sieg-btu":
             self.hack_maple_primary_flow(from_node, payload)
+            return
         elif from_node.name == H0N.buffer.reader:
             calibration = self.tmap.Buffer
             tank= H0CN.buffer
