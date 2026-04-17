@@ -47,6 +47,7 @@ class SiegValveEvent(GwStrEnum):
 
 
 class SiegControlState(GwStrEnum):
+    Initializing = auto()
     Blind = auto()
     HpOff = auto()
     HpStartingUp = auto()
@@ -62,6 +63,7 @@ class SiegControlState(GwStrEnum):
 
 
 class SiegControlEvent(GwStrEnum):
+    DoneInitializing = auto()
     BecameBlind = auto()
     NoLongerBlind = auto()
     HpTurnsOff = auto()
@@ -118,6 +120,9 @@ class SiegLoop(ShNodeActor):
         # --------------------------------------
 
         self.control_transitions = [
+            # Initializing
+            {"trigger": "DoneInitializing", "source": "Initializing", "dest": "Blind"},
+
             # Turning off the heat pump
             {"trigger": "HpTurnsOff", "source": "HpStartingUp", "dest": "HpOff"},
             {"trigger": "HpTurnsOff", "source": "HpOn", "dest": "HpOff"},
@@ -141,7 +146,7 @@ class SiegLoop(ShNodeActor):
             model_attribute="control_state",
             send_event=True,
         )
-        self.control_state: SiegControlState = SiegControlState.Blind
+        self.control_state: SiegControlState = SiegControlState.Initializing
 
         self.keep_seconds: float = self.FULL_RANGE_S # TODO: check if this is still correct
         self.log(f"Starting with keep seconds at {self.keep_seconds} s")
@@ -173,19 +178,23 @@ class SiegLoop(ShNodeActor):
     
     async def main(self):
         while not self._stop_requested:
-
-            # Engage brain
+            # Check if actuators are ready
+            if self.actuators_ready:
+                self.trigger_control_event(SiegControlEvent.DoneInitializing)
+            
+            # Get in/out of Blind state
             if self.control_state != SiegControlState.Blind and self.is_blind():
                 self.trigger_control_event(SiegControlEvent.BecameBlind)
             elif self.control_state == SiegControlState.Blind and not self.is_blind():
                 self.trigger_control_event(SiegControlEvent.NoLongerBlind)
 
+            # Adapt state if not Blind
+            if self.control_state == SiegControlState.Blind:
+                self.log(f"Not adapting state: Blind")
             elif self.control_state != SiegControlState.HpOff and self.hp_boss_state == HpBossState.HpOff:
                 self.trigger_control_event(SiegControlEvent.HpTurnsOff)
-
             elif self.control_state not in [SiegControlState.HpStartingUp, SiegControlState.HpOn] and self.hp_boss_state == HpBossState.HpOn:
                 self.trigger_control_event(SiegControlEvent.HpTurnsOn)
-
             elif self.control_state == SiegControlState.HpStartingUp:
                 if not self.is_blind() and self.lift_f() > 5 and time.time()-self.hp_start_s > 60:
                     self.trigger_control_event(SiegControlEvent.HpStartUpDone)
@@ -270,19 +279,9 @@ class SiegLoop(ShNodeActor):
         self._send_to(self.hp_boss, SiegLoopReady())
         asyncio.create_task(self._prepare_new_movement_task(-self.keep_seconds + self.t2))
 
-    def _ensure_basemode_fully_send(self) -> None: # TODO check if this is still usefull
-        """Hold valve at full send while in BaseMode control state."""
-        if self.resetting:
-            return
-        if hasattr(self, "_movement_task") and self._movement_task and not self._movement_task.done():
-            return
-        if self.keep_seconds <= 0.01:
-            return
-        asyncio.create_task(self._prepare_new_movement_task(-self.keep_seconds))
-
-    ##############################################
+    # --------------------------------------
     # Valve State Machine
-    ##############################################
+    # --------------------------------------
 
     def before_keeping_more(self, event):
         self.change_to_hp_keep_more()
@@ -345,10 +344,7 @@ class SiegLoop(ShNodeActor):
         payload = message.Payload
         match payload:
             case ActuatorsReady():
-                try:
-                    self.process_actuators_ready(from_node, payload)
-                except Exception as e:
-                    self.log(f"Trouble with process_actuators_ready")
+                self.actuators_ready = True
             case AnalogDispatch():
                 try:
                     asyncio.create_task(self.process_analog_dispatch(from_node, payload), name="analog_dispatch")
@@ -367,23 +363,6 @@ class SiegLoop(ShNodeActor):
                 self.log(f"{self.name} received unexpected message: {message.Header}"
             )
         return Ok(True)
-
-    def process_actuators_ready(self, from_node: ShNode, payload: ActuatorsReady) -> None:
-        asyncio.create_task(self.initialize())
-
-    async def initialize(self) -> None:
-        self.log("Actuators ready - initializing Sieg valve to FullyKeep position")
-        await self._prepare_new_movement_task(self.FULL_RANGE_S - self.keep_seconds)
-
-        # Wait for the movement to complete (and 5 more seconds)
-        await asyncio.sleep(self.FULL_RANGE_S + 5)
-
-        if self.control_state == SiegControlState.Initializing:
-            self.trigger_control_event(SiegControlEvent.InitializationComplete)
-        
-        # HpStartingUp: Dormant -> MovingToFullKeep
-        if self.hp_boss_state in [HpBossState.PreparingToTurnOn, HpBossState.HpOn]:
-            self.trigger_control_event(SiegControlEvent.HpStartingUp)
 
     async def process_analog_dispatch(self, from_node: ShNode, payload: AnalogDispatch) -> None:    
         # TODO: fix this later
