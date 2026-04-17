@@ -166,6 +166,82 @@ class SiegLoop(ShNodeActor):
         if self.flow_percent_from_seconds[-1][1] != 100:
             raise Exception(f"Last flow point should be [x,100]!")
 
+    # --------------------------------------
+    # Control State Machine
+    # --------------------------------------
+
+    def trigger_control_event(self, event: SiegControlEvent) -> None:
+        if self.resetting:
+            raise Exception("Do not interrupt resetting to fully send or fully keep!")
+
+        now_ms = int(time.time() * 1000)
+        orig_state = self.control_state
+
+        if event == SiegControlEvent.BecameBlind:
+            self.BecameBlind()
+        elif event == SiegControlEvent.NoLongerBlind:
+            self.NoLongerBlind()
+        elif event == SiegControlEvent.HpTurnsOff:
+            self.HpTurnsOff()
+        elif event == SiegControlEvent.HpTurnsOn:
+            self.HpTurnsOn()
+        elif event == SiegControlEvent.HpStartUpDone:
+            self.HpStartUpDone()
+        else:
+            raise Exception(f"Unknown control event {event}")
+        
+        self.log(f"{event}: {orig_state} -> {self.control_state}")
+        if self.control_state == orig_state:
+            self.log(f"Warning: event {event} did not cause a change in control state")
+            return
+
+        # If we're leaving HpStartingUp state, cancel the startup_hover monitor task # TODO
+        if orig_state == SiegControlState.HpStartingUp:
+            if hasattr(self, '_startup_hover_monitor_task') and self._startup_hover_monitor_task is not None:
+                if not self._startup_hover_monitor_task.done():
+                    self._startup_hover_monitor_task.cancel()
+                self._startup_hover_monitor_task = None
+
+        # Manually call the appropriate callback based on the new state
+        if self.control_state == SiegControlState.Blind:
+            self.on_enter_moving_to_full_send(event)
+        elif self.control_state == SiegControlState.HpOff:
+            self.on_enter_moving_to_keep(event) #TODO why is this not full keep?
+        elif self.control_state == SiegControlState.HpStartingUp:
+            self.on_enter_moving_to_keep(event) #TODO why is this not full keep?
+        elif self.control_state == SiegControlState.HpOn:
+            self.on_enter_moving_to_full_send(event)
+
+        self._send_to(
+            self.primary_scada,
+            SingleMachineState(
+                MachineHandle=self.node.handle,
+                StateEnum=SiegControlState.enum_name(),
+                State=self.control_state,
+                UnixMs=now_ms,
+                Cause=event
+            )
+        )
+    
+    def on_enter_moving_to_full_send(self, event):
+        self.log(f"Moving to full send")
+        asyncio.create_task(self._prepare_new_movement_task(-self.keep_seconds - 10))
+
+    def on_enter_moving_to_keep(self, event):
+        self.log(f"Moving to keep position t2 to prepare for heat pump start")
+        self._send_to(self.hp_boss, SiegLoopReady())
+        asyncio.create_task(self._prepare_new_movement_task(-self.keep_seconds + self.t2))
+
+    def on_enter_startup_hover(self, event): #TODO
+        self.log(f"Hovering at t2 position ({self.t2}%) waiting for heat pump to establish flow")
+        self._send_to(self.hp_boss, SiegLoopReady())
+
+        # Create a task to monitor for when to leave startup hover
+        self._startup_hover_monitor_task = asyncio.create_task(
+            self._monitor_startup_hover(), 
+            name="startup_hover_monitor"
+        )
+
     ##############################################
     # Control loop mechanics
     ##############################################
@@ -212,109 +288,6 @@ class SiegLoop(ShNodeActor):
         if self.keep_seconds <= 0.01:
             return
         asyncio.create_task(self._prepare_new_movement_task(-self.keep_seconds))
-
-    ##############################################
-    # Control State Machine
-    ##############################################
-
-    def on_enter_moving_to_keep(self, event):
-        """Called when entering the MovingToFullKeep state"""
-        self.log(f"Moving to keep position (t2: {self.t2}%) to prepare for heat pump start")
-        if self.hp_model == HpModel.LgHighTempHydroKitPlusMultiV: #TODO
-            self._send_to(
-                self.hp_boss,
-                SiegLoopReady()
-            )
-        else:
-            raise Exception("Think through how Sieg Loop works for Samsung or Mitsubishi")
-        self.hp_start_s = time.time()
-        # Create a new task for the movement to t2
-        delta_s = self.t2 - self.keep_seconds
-        asyncio.create_task(self._prepare_new_movement_task(delta_s))
-
-    def on_enter_startup_hover(self, event):
-        """Called when entering the Hover state"""
-        self.log(f"Hovering at t2 position ({self.t2}%) waiting for heat pump to establish flow")
-
-        if self.hp_model in [HpModel.SamsungFiveTonneHydroKit, HpModel.SamsungFourTonneHydroKit]: #TODO
-            self._send_to(
-                self.hp_boss,
-                SiegLoopReady()
-            )
-
-        # Create a task to monitor for when to leave startup hover
-        self._startup_hover_monitor_task = asyncio.create_task(
-            self._monitor_startup_hover(), 
-            name="startup_hover_monitor"
-        )
-
-    def on_enter_dormant(self, event):
-        """Called when entering the Dormant state"""
-        self.log("Heat pump off, entering dormant state")
-
-    def on_enter_moving_to_full_send(self, event):
-        self.log(f"Moving to full send")
-        asyncio.create_task(self._prepare_new_movement_task(-self.keep_seconds - 10))
-
-    def trigger_control_event(self, event: SiegControlEvent) -> None:
-        if self.resetting:
-            raise Exception("Do not interrupt resetting to fully send or fully keep!")
-
-        now_ms = int(time.time() * 1000)
-        orig_state = self.control_state
-
-        if event == SiegControlEvent.BecameBlind:
-            self.BecameBlind()
-        elif event == SiegControlEvent.InitializationComplete:
-            self.InitializationComplete()
-        elif event == SiegControlEvent.HpTurnsOff:
-            self.HpTurnsOff()
-        elif event == SiegControlEvent.HpStartingUp:
-            self.HpStartingUp()
-        elif event == SiegControlEvent.HpStartUpDone:
-            self.HpStartUpDone()
-        elif event == SiegControlEvent.ReachedFullKeep:
-            self.ReachedFullKeep()
-        elif event == SiegControlEvent.ReachedFullSend:
-            self.ReachedFullSend()
-        elif event == SiegControlEvent.NoLongerBlind:
-            self.NoLongerBlind()
-        else:
-            raise Exception(f"Unknown control event {event}")
-
-        self.log(f"{event}: {orig_state} -> {self.control_state}")
-
-        # If we're leaving HoldingFullKeep state, cancel the startup_hover monitor task
-        if orig_state == SiegControlState.HoldingFullKeep and self.control_state != SiegControlState.HoldingFullKeep:
-            if hasattr(self, '_startup_hover_monitor_task') and self._startup_hover_monitor_task is not None:
-                if not self._startup_hover_monitor_task.done():
-                    self._startup_hover_monitor_task.cancel()
-                self._startup_hover_monitor_task = None
-
-        # Manually call the appropriate callback based on the new state
-        if self.control_state == orig_state:
-            self.log(f"Warning: no change in control state ({self.control_state}, {orig_state})")
-        elif self.control_state == SiegControlState.MovingToFullKeep:
-            self.on_enter_moving_to_keep(event)
-        elif self.control_state == SiegControlState.HoldingFullKeep:
-            self.on_enter_startup_hover(event)
-        elif self.control_state == SiegControlState.Dormant:
-            self.on_enter_dormant(event)
-        elif self.control_state == SiegControlState.MovingToFullSend:
-            self.on_enter_moving_to_full_send(event)
-        elif self.control_state == SiegControlState.BaseMode and orig_state == SiegControlState.HoldingFullKeep:
-            asyncio.create_task(self.leave_startup_hover())
-
-        self._send_to(
-            self.primary_scada,
-            SingleMachineState(
-                MachineHandle=self.node.handle,
-                StateEnum=SiegControlState.enum_name(),
-                State=self.control_state,
-                UnixMs=now_ms,
-                Cause=event
-            )
-        )
 
     ##############################################
     # Valve State Machine
