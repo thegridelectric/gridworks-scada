@@ -178,33 +178,14 @@ class SiegLoop(ShNodeActor):
     
     async def main(self):
         while not self._stop_requested:
-            # Check if actuators are ready
-            if self.actuators_ready:
-                self.trigger_control_event(SiegControlEvent.DoneInitializing)
-            
-            # Get in/out of Blind state
-            if self.control_state != SiegControlState.Blind and self.is_blind():
-                self.trigger_control_event(SiegControlEvent.BecameBlind)
-            elif self.control_state == SiegControlState.Blind and not self.is_blind():
-                self.trigger_control_event(SiegControlEvent.NoLongerBlind)
-
-            # Adapt state if not Blind
-            if self.control_state == SiegControlState.Blind:
-                self.log(f"Not adapting state: Blind")
-            elif self.control_state != SiegControlState.HpOff and self.hp_boss_state == HpBossState.HpOff:
-                self.trigger_control_event(SiegControlEvent.HpTurnsOff)
-            elif self.control_state not in [SiegControlState.HpStartingUp, SiegControlState.HpOn] and self.hp_boss_state == HpBossState.HpOn:
-                self.trigger_control_event(SiegControlEvent.HpTurnsOn)
-            elif self.control_state == SiegControlState.HpStartingUp:
-                if not self.is_blind() and self.lift_f() > 5 and time.time()-self.hp_start_s > 60:
-                    self.trigger_control_event(SiegControlEvent.HpStartUpDone)
+            self.engage_brain()
         
             # Pat watchdog and report status every 5 minutes
             if self.time_since_last_report >= 5*60:
                 self.time_since_last_report = 0
                 self._send(PatInternalWatchdogMessage(src=self.name))
                 self._send_to(
-                self.primary_scada,
+                    self.primary_scada,
                     SingleReading(
                         ChannelName=H0CN.hp_keep_seconds_x_10,
                         Value=round(self.keep_seconds * 10),
@@ -214,6 +195,30 @@ class SiegLoop(ShNodeActor):
             
             self.time_since_last_report += self.control_interval_seconds
             await asyncio.sleep(self.control_interval_seconds)
+
+    def engage_brain(self):
+        # Check if actuators are ready
+        if self.control_state == SiegControlState.Initializing and self.actuators_ready:
+            self.trigger_control_event(SiegControlEvent.DoneInitializing)
+        else:
+            self.log(f"Waiting for actuators to be ready to get out of Initializing state")
+            return
+        
+        # Get in/out of Blind state
+        if self.control_state != SiegControlState.Blind and self.is_blind():
+            self.trigger_control_event(SiegControlEvent.BecameBlind)
+            return
+        elif self.control_state == SiegControlState.Blind and not self.is_blind():
+            self.trigger_control_event(SiegControlEvent.NoLongerBlind)
+
+        # Adapt state if not Blind
+        if self.control_state != SiegControlState.HpOff and self.hp_boss_state == HpBossState.HpOff:
+            self.trigger_control_event(SiegControlEvent.HpTurnsOff)
+        elif self.control_state not in [SiegControlState.HpStartingUp, SiegControlState.HpOn] and self.hp_boss_state == HpBossState.HpOn:
+            self.trigger_control_event(SiegControlEvent.HpTurnsOn)
+        elif self.control_state == SiegControlState.HpStartingUp:
+            if not self.is_blind() and self.lift_f() > 5 and time.time()-self.hp_start_s > 60:
+                self.trigger_control_event(SiegControlEvent.HpStartUpDone)
 
     def is_blind(self) -> bool:
         if self.lift_f() is None:
@@ -283,19 +288,6 @@ class SiegLoop(ShNodeActor):
     # Valve State Machine
     # --------------------------------------
 
-    def before_keeping_more(self, event):
-        self.change_to_hp_keep_more()
-        self.sieg_valve_active()
-        self.move_start_s = time.time()
-
-    def before_keeping_less(self, event):
-        self.change_to_hp_keep_less()
-        self.sieg_valve_active()
-        self.move_start_s = time.time()
-
-    def before_keeping_steady(self, event):
-        self.sieg_valve_dormant()
-
     def trigger_valve_event(self, event: SiegValveEvent) -> None:
         if self.resetting:
             raise Exception("Do not interrupt resetting to fully send or fully keep!")
@@ -333,14 +325,28 @@ class SiegLoop(ShNodeActor):
         #     )
         # )
 
-    ##############################################
+    def before_keeping_more(self, event):
+        self.change_to_hp_keep_more()
+        self.sieg_valve_active()
+        self.move_start_s = time.time()
+
+    def before_keeping_less(self, event):
+        self.change_to_hp_keep_less()
+        self.sieg_valve_active()
+        self.move_start_s = time.time()
+
+    def before_keeping_steady(self, event):
+        self.sieg_valve_dormant()
+
+    # --------------------------------------
     # Message processing
-    ##############################################
+    # --------------------------------------
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         from_node = self.layout.node(message.Header.Src, None)
         if from_node is None:
             return Ok(False)
+           
         payload = message.Payload
         match payload:
             case ActuatorsReady():
@@ -369,7 +375,6 @@ class SiegLoop(ShNodeActor):
         # if from_node != self.boss:
         #     self.log(f"sieg loop expects commands from its boss {self.boss.Handle}, not {from_node.Handle}")
         #     return
-
         # if self.boss.handle != payload.FromHandle:
         #     self.log(f"boss's handle {self.boss.handle} does not match payload FromHandle {payload.FromHandle}")
         #     return
@@ -411,31 +416,15 @@ class SiegLoop(ShNodeActor):
         if from_node != self.hp_boss:
             raise Exception("Not expecting single machine state messages except from HpBoss")
 
-        self.hp_boss_state = payload.State
-
-        if self.control_state == SiegControlState.Initializing:
-            self.log(f"Ignoring HP state {payload.State} until done initializing")
-            return
-
-        if payload.State == HpBossState.HpOff:
-            if self.control_state not in [SiegControlState.Dormant, SiegControlState.MovingToFullSend]:
-                self.trigger_control_event(SiegControlEvent.HpTurnsOff)
-
-        elif payload.State == HpBossState.PreparingToTurnOn:
-            if self.control_state in [SiegControlState.Dormant, SiegControlState.MovingToFullSend]:
-                if not self.is_blind():
-                    self.trigger_control_event(SiegControlEvent.HpStartingUp)
-                else:
-                    self.log(f"Not entering control loop: EWT: {self.ewt_f()} LWT: {self.lwt_f()}")                    
-            else:
-                self.log(f"That's strange! Got PreparingToTurnOn when control state is {self.control_state}")                
-
-        elif payload.State == HpBossState.HpOn:
+        if self.hp_boss_state != HpBossState.HpOn and payload.State == HpBossState.HpOn:
             self.hp_start_s = time.time()
 
-    ##############################################
+        self.hp_boss_state = payload.State
+        self.engage_brain()             
+
+    # --------------------------------------
     # Movements
-    ##############################################
+    # --------------------------------------
 
     def complete_move(self, task_id: str) -> None:
         if self.valve_state == SiegValveState.KeepingMore:
@@ -461,6 +450,7 @@ class SiegLoop(ShNodeActor):
             if self.valve_state == SiegValveState.KeepingMore:
                 self.trigger_valve_event(SiegValveEvent.StopKeepingMore)
                 self.log(f"Triggered StopKeepingMore after cancellation")
+            
             elif self.valve_state == SiegValveState.KeepingLess:
                 self.trigger_valve_event(SiegValveEvent.StopKeepingLess)
                 self.log(f"Triggered StopKeepingLess after cancellation")
@@ -469,7 +459,7 @@ class SiegLoop(ShNodeActor):
             self._movement_task = None
 
     async def _prepare_new_movement_task(self, delta_s: float) -> str:
-        """Create a new movement task with proper cleanup of existing tasks."""
+        """Create a new movement task adding delta_s to the current keep seconds."""
         await self.clean_up_old_task()
         
         new_task_id = str(uuid.uuid4())[-4:]
@@ -479,27 +469,17 @@ class SiegLoop(ShNodeActor):
             self.log(f"Task {new_task_id}: move to keep for {round(delta_s,1)} seconds")
         else:
             self.log(f"Task {new_task_id}: move to send for {round(-delta_s,1)} seconds")
+        
         self._movement_task = asyncio.create_task(self._adjust_keep_seconds(delta_s, new_task_id))
-
-        return new_task_id
     
     async def _adjust_keep_seconds(self, delta_s: float, task_id: str) -> None:
-        """Move the valve by delta_s seconds."""
+        """Move the valve by adding delta_s to the current keep seconds."""
+        if delta_s == 0:
+            self.log(f"Already at target, delta_s is 0 seconds")
+            return
 
         # Adding delta_s to the current keep seconds
         target_seconds = self.keep_seconds + delta_s
-
-        # If the delta is 0, we are already at the target seconds
-        if delta_s == 0:
-            self.log(f"Already at target {round(delta_s,1)} s")
-            if self.control_state == SiegControlState.MovingToFullKeep and target_seconds == self.t2:
-                self.trigger_control_event(SiegControlEvent.ReachedFullKeep)
-            elif self.control_state == SiegControlState.MovingToFullSend and self.keep_seconds <= 0.01:
-                self.trigger_control_event(SiegControlEvent.ReachedFullSend)
-            return
-        
-        # Wait a moment to ensure the state machine has settled
-        await asyncio.sleep(0.2)
 
         # Set the appropriate state
         try:
@@ -541,18 +521,9 @@ class SiegLoop(ShNodeActor):
             if task_id == self._current_task_id:
                 self.complete_move(task_id)
 
-                if self.control_state == SiegControlState.MovingToFullKeep and target_seconds >= self.t2:
-                    self.trigger_control_event(SiegControlEvent.ReachedFullKeep)
-                elif (
-                    self.control_state == SiegControlState.MovingToFullSend
-                    and self.keep_seconds <= 0.01
-                ):
-                    self.trigger_control_event(SiegControlEvent.ReachedFullSend)
-
         except asyncio.CancelledError:
             self.log(f"Movement cancelled at {self.keep_seconds} seconds from FullSend")
             raise
-        
         except Exception as e:
             self.log(f"Error during movement: {e}")
             self.complete_move(task_id)
