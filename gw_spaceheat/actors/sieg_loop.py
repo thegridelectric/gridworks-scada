@@ -63,9 +63,14 @@ class SiegControlState(GwStrEnum):
 
 
 class SiegControlEvent(GwStrEnum):
-    DoneInitializing = auto()
+    DoneInitializingBlind = auto()
+    DoneInitializingHpOn = auto()
+    DoneInitializingHpOff = auto()
+    DoneInitializingHpStartingUp = auto()
     BecameBlind = auto()
-    NoLongerBlind = auto()
+    NoLongerBlindHpOn = auto()
+    NoLongerBlindHpOff = auto()
+    NoLongerBlindHpStartingUp = auto()
     HpTurnsOff = auto()
     HpTurnsOn = auto()
     HpStartUpDone = auto()
@@ -121,7 +126,10 @@ class SiegLoop(ShNodeActor):
 
         self.control_transitions = [
             # Initializing
-            {"trigger": "DoneInitializing", "source": "Initializing", "dest": "Blind"},
+            {"trigger": "DoneInitializingBlind", "source": "Initializing", "dest": "Blind"},
+            {"trigger": "DoneInitializingHpOn", "source": "Initializing", "dest": "HpOn"},
+            {"trigger": "DoneInitializingHpOff", "source": "Initializing", "dest": "HpOff"},
+            {"trigger": "DoneInitializingHpStartingUp", "source": "Initializing", "dest": "HpStartingUp"},
 
             # Turning off the heat pump
             {"trigger": "HpTurnsOff", "source": "HpStartingUp", "dest": "HpOff"},
@@ -135,7 +143,9 @@ class SiegLoop(ShNodeActor):
 
             # Going / leaving Blind state
             {"trigger": "BecameBlind", "source": "*", "dest": "Blind"},
-            {"trigger": "NoLongerBlind", "source": "Blind", "dest": "HpStartingUp"},
+            {"trigger": "NoLongerBlindHpOn", "source": "Blind", "dest": "HpStartingUp"},
+            {"trigger": "NoLongerBlindHpOff", "source": "Blind", "dest": "HpOff"},
+            {"trigger": "NoLongerBlindHpStartingUp", "source": "Blind", "dest": "HpStartingUp"},
         ]
 
         self.control_machine = Machine(
@@ -200,7 +210,14 @@ class SiegLoop(ShNodeActor):
         # Check if actuators are ready
         if self.control_state == SiegControlState.Initializing:
             if self.actuators_ready:
-                self.trigger_control_event(SiegControlEvent.DoneInitializing)
+                if self.is_blind():
+                    self.trigger_control_event(SiegControlEvent.DoneInitializingBlind)
+                elif self.hp_boss_state == HpBossState.HpOff:
+                    self.trigger_control_event(SiegControlEvent.DoneInitializingHpOff)
+                elif self.hp_boss_state == HpBossState.PreparingToTurnOn:
+                    self.trigger_control_event(SiegControlEvent.DoneInitializingHpStartingUp)
+                elif self.hp_boss_state == HpBossState.HpOn:
+                    self.trigger_control_event(SiegControlEvent.DoneInitializingHpOn)
             else:
                 self.log(f"Waiting for actuators to be ready to get out of Initializing state")
                 return
@@ -209,14 +226,22 @@ class SiegLoop(ShNodeActor):
         if self.control_state != SiegControlState.Blind and self.is_blind():
             self.trigger_control_event(SiegControlEvent.BecameBlind)
         elif self.control_state == SiegControlState.Blind and not self.is_blind():
-            self.trigger_control_event(SiegControlEvent.NoLongerBlind)
+            if self.hp_boss_state == HpBossState.HpOff:
+                self.trigger_control_event(SiegControlEvent.NoLongerBlindHpOff)
+            elif self.hp_boss_state == HpBossState.PreparingToTurnOn:
+                self.trigger_control_event(SiegControlEvent.NoLongerBlindHpStartingUp)
+            elif self.hp_boss_state == HpBossState.HpOn:
+                self.trigger_control_event(SiegControlEvent.NoLongerBlindHpOn)
         if self.control_state == SiegControlState.Blind:
             return
 
         # Adapt state if not Blind
         if self.control_state != SiegControlState.HpOff and self.hp_boss_state == HpBossState.HpOff:
             self.trigger_control_event(SiegControlEvent.HpTurnsOff)
-        elif self.control_state not in [SiegControlState.HpStartingUp, SiegControlState.HpOn] and self.hp_boss_state == HpBossState.HpOn:
+        elif (
+            self.control_state not in [SiegControlState.HpStartingUp, SiegControlState.HpOn] 
+            and self.hp_boss_state in [HpBossState.HpOn, HpBossState.PreparingToTurnOn]
+        ):
             self.trigger_control_event(SiegControlEvent.HpTurnsOn)
         elif self.control_state == SiegControlState.HpStartingUp:
             if not self.is_blind() and self.lift_f() > 5 and time.time()-self.hp_start_s > 60:
@@ -238,12 +263,22 @@ class SiegLoop(ShNodeActor):
         now_ms = int(time.time() * 1000)
         orig_state = self.control_state
 
-        if event == SiegControlEvent.DoneInitializing:
-            self.DoneInitializing()
+        if event == SiegControlEvent.DoneInitializingBlind:
+            self.DoneInitializingBlind()
+        elif event == SiegControlEvent.DoneInitializingHpOn:
+            self.DoneInitializingHpOn()
+        elif event == SiegControlEvent.DoneInitializingHpOff:
+            self.DoneInitializingHpOff()
+        elif event == SiegControlEvent.DoneInitializingHpStartingUp:
+            self.DoneInitializingHpStartingUp()
         elif event == SiegControlEvent.BecameBlind:
             self.BecameBlind()
-        elif event == SiegControlEvent.NoLongerBlind:
-            self.NoLongerBlind()
+        elif event == SiegControlEvent.NoLongerBlindHpOn:
+            self.NoLongerBlindHpOn()
+        elif event == SiegControlEvent.NoLongerBlindHpOff:
+            self.NoLongerBlindHpOff()
+        elif event == SiegControlEvent.NoLongerBlindHpStartingUp:
+            self.NoLongerBlindHpStartingUp()
         elif event == SiegControlEvent.HpTurnsOff:
             self.HpTurnsOff()
         elif event == SiegControlEvent.HpTurnsOn:
