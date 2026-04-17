@@ -433,14 +433,15 @@ class SiegLoop(ShNodeActor):
         # Reset the keep seconds without moving the valve
         self.log(f"Resetting keep seconds from {self.keep_seconds} to {payload.HpKeepSecondsTimes10 / 10} without moving valve")
         self.keep_seconds = payload.HpKeepSecondsTimes10 / 10
-        self._send_to(
-            self.primary_scada,
-            SingleReading(
-                ChannelName=H0CN.hp_keep_seconds_x_10,
-                Value=round(self.keep_seconds * 10),
-                ScadaReadTimeUnixMs=int(time.time() *1000)
-            )
-        )
+        # TODO
+        # self._send_to(
+        #     self.primary_scada,
+        #     SingleReading(
+        #         ChannelName=H0CN.hp_keep_seconds_x_10,
+        #         Value=round(self.keep_seconds * 10),
+        #         ScadaReadTimeUnixMs=int(time.time() *1000)
+        #     )
+        # )
 
     def process_single_machine_state(self, from_node: ShNode, payload: SingleMachineState) -> None:
         self.log(f"Just received state {payload.State} from HpBoss")
@@ -594,14 +595,15 @@ class SiegLoop(ShNodeActor):
         delta_s = now - start_s
         self.keep_seconds = max(0, orig_keep_seconds - delta_s)
 
-        self._send_to(
-            self.primary_scada,
-            SingleReading(
-                ChannelName=H0CN.hp_keep_seconds_x_10,
-                Value=round(self.keep_seconds * 10),
-                ScadaReadTimeUnixMs=int(time.time() *1000)
-            )
-        )
+        # TODO
+        # self._send_to(
+        #     self.primary_scada,
+        #     SingleReading(
+        #         ChannelName=H0CN.hp_keep_seconds_x_10,
+        #         Value=round(self.keep_seconds * 10),
+        #         ScadaReadTimeUnixMs=int(time.time() *1000)
+        #     )
+        # )
 
     async def _keep_more(self, start_s: float, task_id: str, fraction: Optional[float] = None) -> None:
         """Or keep fraction percent more ... REQUIRES fraction to be less than 1"""
@@ -630,14 +632,15 @@ class SiegLoop(ShNodeActor):
         delta_s = now - start_s
         self.keep_seconds = min(self.FULL_RANGE_S, orig_keep_seconds + delta_s)
 
-        self._send_to(
-            self.primary_scada,
-            SingleReading(
-                ChannelName=H0CN.hp_keep_seconds_x_10,
-                Value=round(self.keep_seconds * 10),
-                ScadaReadTimeUnixMs=int(time.time() *1000)
-            )
-        )
+        # TODO
+        # self._send_to(
+        #     self.primary_scada,
+        #     SingleReading(
+        #         ChannelName=H0CN.hp_keep_seconds_x_10,
+        #         Value=round(self.keep_seconds * 10),
+        #         ScadaReadTimeUnixMs=int(time.time() *1000)
+        #     )
+        # )
 
     async def keep_harder(self, seconds: int, task_id: str) -> None:
         try:
