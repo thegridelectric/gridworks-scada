@@ -3,7 +3,6 @@ import uuid
 import asyncio
 from enum import auto
 from result import Ok, Result
-from datetime import datetime
 from transitions import Machine
 from typing import List, Optional, Sequence
 
@@ -59,7 +58,7 @@ class SiegControlState(GwStrEnum):
 
     @classmethod
     def enum_name(cls) -> str:
-        return "sieg.control.state"
+        return "gw1.sieg.control.state"
 
 
 class SiegControlEvent(GwStrEnum):
@@ -202,6 +201,15 @@ class SiegLoop(ShNodeActor):
                         ScadaReadTimeUnixMs=int(time.time() *1000)
                     )
                 )
+                self._send_to(
+                    self.primary_scada,
+                    SingleMachineState(
+                        MachineHandle=self.node.handle,
+                        StateEnum=SiegControlState.enum_name(),
+                        State=self.control_state,
+                        UnixMs=int(time.time() * 1000),
+                    )
+                )
             
             self.time_since_last_report += self.control_interval_seconds
             await asyncio.sleep(self.control_interval_seconds)
@@ -244,7 +252,7 @@ class SiegLoop(ShNodeActor):
         ):
             self.trigger_control_event(SiegControlEvent.HpTurnsOn)
         elif self.control_state == SiegControlState.HpStartingUp:
-            if not self.is_blind() and self.lift_f() > 5 and time.time()-self.hp_start_s > 60:
+            if self.lift_f() and self.lift_f() > 5 and time.time()-self.hp_start_s > 60:
                 self.trigger_control_event(SiegControlEvent.HpStartUpDone)
 
     def is_blind(self) -> bool:
@@ -263,28 +271,9 @@ class SiegLoop(ShNodeActor):
         now_ms = int(time.time() * 1000)
         orig_state = self.control_state
 
-        if event == SiegControlEvent.DoneInitializingBlind:
-            self.DoneInitializingBlind()
-        elif event == SiegControlEvent.DoneInitializingHpOn:
-            self.DoneInitializingHpOn()
-        elif event == SiegControlEvent.DoneInitializingHpOff:
-            self.DoneInitializingHpOff()
-        elif event == SiegControlEvent.DoneInitializingHpStartingUp:
-            self.DoneInitializingHpStartingUp()
-        elif event == SiegControlEvent.BecameBlind:
-            self.BecameBlind()
-        elif event == SiegControlEvent.NoLongerBlindHpOn:
-            self.NoLongerBlindHpOn()
-        elif event == SiegControlEvent.NoLongerBlindHpOff:
-            self.NoLongerBlindHpOff()
-        elif event == SiegControlEvent.NoLongerBlindHpStartingUp:
-            self.NoLongerBlindHpStartingUp()
-        elif event == SiegControlEvent.HpTurnsOff:
-            self.HpTurnsOff()
-        elif event == SiegControlEvent.HpTurnsOn:
-            self.HpTurnsOn()
-        elif event == SiegControlEvent.HpStartUpDone:
-            self.HpStartUpDone()
+        control_fn = getattr(self, event)
+        if control_fn:
+            control_fn(self)
         else:
             raise Exception(f"Unknown control event {event}")
         
@@ -295,13 +284,13 @@ class SiegLoop(ShNodeActor):
 
         # Manually call the appropriate callback based on the new state
         if self.control_state == SiegControlState.Blind:
-            self.on_enter_moving_to_full_send(event)
+            self.moving_to_full_send(event)
         elif self.control_state == SiegControlState.HpOff:
-            self.on_enter_moving_to_full_keep(event)
+            self.moving_to_full_keep(event)
         elif self.control_state == SiegControlState.HpStartingUp:
-            self.on_enter_moving_to_full_keep(event)
+            self.moving_to_just_keep(event)
         elif self.control_state == SiegControlState.HpOn:
-            self.on_enter_moving_to_full_send(event)
+            self.moving_to_full_send(event)
 
         self._send_to(
             self.primary_scada,
@@ -314,13 +303,16 @@ class SiegLoop(ShNodeActor):
             )
         )
     
-    def on_enter_moving_to_full_send(self, event):
+    def moving_to_full_send(self, event):
         self.log(f"Moving to full send")
         asyncio.create_task(self._prepare_new_movement_task(-self.keep_seconds - 10))
 
-    def on_enter_moving_to_full_keep(self, event):
-        self.log(f"Moving to keep position t2 to prepare for heat pump start")
-        self._send_to(self.hp_boss, SiegLoopReady())
+    def moving_to_full_keep(self, event):
+        self.log(f"Moving to full keep position")
+        asyncio.create_task(self._prepare_new_movement_task(-self.keep_seconds + self.FULL_RANGE_S + 10))
+
+    def moving_to_just_keep(self, event):
+        self.log(f"Moving to just keep position to prepare for heat pump start")
         asyncio.create_task(self._prepare_new_movement_task(-self.keep_seconds + self.t2))
 
     # --------------------------------------
@@ -390,6 +382,7 @@ class SiegLoop(ShNodeActor):
         match payload:
             case ActuatorsReady():
                 self.actuators_ready = True
+                self.engage_brain()
             case AnalogDispatch():
                 try:
                     asyncio.create_task(self.process_analog_dispatch(from_node, payload), name="analog_dispatch")
@@ -457,6 +450,9 @@ class SiegLoop(ShNodeActor):
 
         if self.hp_boss_state != HpBossState.HpOn and payload.State == HpBossState.HpOn:
             self.hp_start_s = time.time()
+
+        if self.hp_boss_state == HpBossState.PreparingToTurnOn:
+            self._send_to(self.hp_boss, SiegLoopReady())
 
         self.hp_boss_state = payload.State
         self.engage_brain()             
