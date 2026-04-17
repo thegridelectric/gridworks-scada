@@ -76,7 +76,7 @@ class SiegControlEvent(GwStrEnum):
 
 
 class SiegLoop(ShNodeActor):
-    FULL_RANGE_S = 70
+    FULL_RANGE_S = 100
     MAIN_LOOP_SLEEP_S = 2
     flow_percent_from_seconds = [
         [7,0], [9, 8], [11.2, 11.4], [14.7, 24.1], [18.2, 39.0], [22.4, 51.7],
@@ -172,8 +172,8 @@ class SiegLoop(ShNodeActor):
         self.time_since_last_report = 5*60
         self.resetting = False # TODO: check if this is still usefull
 
-        self.t1 = 7 # seconds where some flow starts going through the Sieg Loop
-        self.t2 = 67 # seconds where all flow starts going through the Sieg Loop
+        self.t1 = 26                        # seconds where some flow starts going through the Sieg Loop
+        self.t2 = self.FULL_RANGE_S - 18    # seconds where all flow starts going through the Sieg Loop
 
         if self.flow_percent_from_seconds[0][1] != 0:
             raise Exception(f"First flow point should be [x,0]!")
