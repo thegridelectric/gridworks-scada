@@ -155,6 +155,7 @@ class SiegLoop(ShNodeActor):
 
         self.actuators_ready: bool = False
         self.control_interval_seconds = 30
+        self.time_since_last_report = 5*60
         self.resetting = False # TODO: check if this is still usefull
 
         self.t1 = 7 # seconds where some flow starts going through the Sieg Loop
@@ -165,6 +166,50 @@ class SiegLoop(ShNodeActor):
 
         if self.flow_percent_from_seconds[-1][1] != 100:
             raise Exception(f"Last flow point should be [x,100]!")
+
+    # --------------------------------------
+    # Main loop
+    # --------------------------------------
+    
+    async def main(self):
+        while not self._stop_requested:
+
+            # Engage brain
+            if self.control_state != SiegControlState.Blind and self.is_blind():
+                self.trigger_control_event(SiegControlEvent.BecameBlind)
+            elif self.control_state == SiegControlState.Blind and not self.is_blind():
+                self.trigger_control_event(SiegControlEvent.NoLongerBlind)
+
+            elif self.control_state != SiegControlState.HpOff and self.hp_boss_state == HpBossState.HpOff:
+                self.trigger_control_event(SiegControlEvent.HpTurnsOff)
+
+            elif self.control_state not in [SiegControlState.HpStartingUp, SiegControlState.HpOn] and self.hp_boss_state == HpBossState.HpOn:
+                self.trigger_control_event(SiegControlEvent.HpTurnsOn)
+
+            elif self.control_state == SiegControlState.HpStartingUp:
+                if not self.is_blind() and self.lift_f() > 5 and time.time()-self.hp_start_s > 60:
+                    self.trigger_control_event(SiegControlEvent.HpStartUpDone)
+        
+            # Pat watchdog and report status every 5 minutes
+            if self.time_since_last_report >= 5*60:
+                self.time_since_last_report = 0
+                self._send(PatInternalWatchdogMessage(src=self.name))
+                self._send_to(
+                self.primary_scada,
+                    SingleReading(
+                        ChannelName=H0CN.hp_keep_seconds_x_10,
+                        Value=round(self.keep_seconds * 10),
+                        ScadaReadTimeUnixMs=int(time.time() *1000)
+                    )
+                )
+            
+            self.time_since_last_report += self.control_interval_seconds
+            await asyncio.sleep(self.control_interval_seconds)
+
+    def is_blind(self) -> bool:
+        if self.lift_f() is None:
+            return True
+        return False        
 
     # --------------------------------------
     # Control State Machine
@@ -195,20 +240,13 @@ class SiegLoop(ShNodeActor):
             self.log(f"Warning: event {event} did not cause a change in control state")
             return
 
-        # If we're leaving HpStartingUp state, cancel the startup_hover monitor task # TODO
-        if orig_state == SiegControlState.HpStartingUp:
-            if hasattr(self, '_startup_hover_monitor_task') and self._startup_hover_monitor_task is not None:
-                if not self._startup_hover_monitor_task.done():
-                    self._startup_hover_monitor_task.cancel()
-                self._startup_hover_monitor_task = None
-
         # Manually call the appropriate callback based on the new state
         if self.control_state == SiegControlState.Blind:
             self.on_enter_moving_to_full_send(event)
         elif self.control_state == SiegControlState.HpOff:
-            self.on_enter_moving_to_keep(event) #TODO why is this not full keep?
+            self.on_enter_moving_to_full_keep(event)
         elif self.control_state == SiegControlState.HpStartingUp:
-            self.on_enter_moving_to_keep(event) #TODO why is this not full keep?
+            self.on_enter_moving_to_full_keep(event)
         elif self.control_state == SiegControlState.HpOn:
             self.on_enter_moving_to_full_send(event)
 
@@ -227,59 +265,12 @@ class SiegLoop(ShNodeActor):
         self.log(f"Moving to full send")
         asyncio.create_task(self._prepare_new_movement_task(-self.keep_seconds - 10))
 
-    def on_enter_moving_to_keep(self, event):
+    def on_enter_moving_to_full_keep(self, event):
         self.log(f"Moving to keep position t2 to prepare for heat pump start")
         self._send_to(self.hp_boss, SiegLoopReady())
         asyncio.create_task(self._prepare_new_movement_task(-self.keep_seconds + self.t2))
 
-    def on_enter_startup_hover(self, event): #TODO
-        self.log(f"Hovering at t2 position ({self.t2}%) waiting for heat pump to establish flow")
-        self._send_to(self.hp_boss, SiegLoopReady())
-
-        # Create a task to monitor for when to leave startup hover
-        self._startup_hover_monitor_task = asyncio.create_task(
-            self._monitor_startup_hover(), 
-            name="startup_hover_monitor"
-        )
-
-    ##############################################
-    # Control loop mechanics
-    ##############################################
-
-    def is_blind(self) -> bool:
-        if self.lift_f() is None:
-            return True
-        return False
-
-    def time_to_leave_startup_hover(self) -> bool:
-        """BaseMode: Leave hover once we have lift (not blind)."""
-        if not self.is_blind() and self.lift_f() > 5 and time.time()-self.hp_start_s > 60:
-            self.log(f"Lift is more than 5 degrees and HP has been on for at least a minute.")
-            return True
-        return False
-
-    async def leave_startup_hover(self) -> None:
-        """BaseMode state: move valve to full send."""
-        await self._prepare_new_movement_task(-self.keep_seconds)
-
-    async def _monitor_startup_hover(self) -> None:
-        """Poll until BaseMode says to leave startup hover."""
-        try:
-            while self.control_state == SiegControlState.HoldingFullKeep:
-                if self.time_to_leave_startup_hover():
-                    self.log("Leaving startup hover")
-                    self.trigger_control_event(SiegControlEvent.HpStartUpDone)
-                    break
-                await asyncio.sleep(1.0)
-        except asyncio.CancelledError:
-            self.log("Startup hover monitoring cancelled")
-            raise
-        except Exception as e:
-            self.log(f"Error in startup hover monitoring: {e}")
-        finally:
-            self.log("Startup hover monitoring complete")
-
-    def _ensure_basemode_fully_send(self) -> None:
+    def _ensure_basemode_fully_send(self) -> None: # TODO check if this is still usefull
         """Hold valve at full send while in BaseMode control state."""
         if self.resetting:
             return
@@ -709,45 +700,6 @@ class SiegLoop(ShNodeActor):
         finally:
             self._movement_task = None
             self.log(f"Task {task_id} complete")
-
-    ##############################################
-    # Main loop
-    ##############################################
-    
-    async def main(self):
-        while not self._stop_requested:
-            now = datetime.now()
-
-            if self.control_state == SiegControlState.BaseMode:
-                self._ensure_basemode_fully_send()
-            
-            elif self.control_state == SiegControlState.HoldingFullKeep: 
-                if self.time_to_leave_startup_hover():
-                    self.trigger_control_event(SiegControlEvent.HpStartUpDone)
-
-            # Every control_interval_seconds, check if we should trigger a BecameBlind event
-            seconds_into_control_loop = now.second % self.control_interval_seconds
-            milliseconds = now.microsecond/1000
-            if seconds_into_control_loop == 0 and milliseconds < 100:
-                if self.control_state != SiegControlState.Blind and self.is_blind():
-                    self.trigger_control_event(SiegControlEvent.BecameBlind)
-                elif self.control_state == SiegControlState.Blind and not self.is_blind():
-                    self.trigger_control_event(SiegControlEvent.NoLongerBlind)
-        
-            nap_time = self.MAIN_LOOP_SLEEP_S - (now.microsecond / 1_000_000)
-            await asyncio.sleep(nap_time)
-
-            # Report status periodically
-            if now.second == 0 and now.minute % 5 == 0:
-                self._send(PatInternalWatchdogMessage(src=self.name))
-                self._send_to(
-                self.primary_scada,
-                    SingleReading(
-                        ChannelName=H0CN.hp_keep_seconds_x_10,
-                        Value=round(self.keep_seconds * 10),
-                        ScadaReadTimeUnixMs=int(time.time() *1000)
-                    )
-                )
 
     ##############################################
     # Flow related conversions
