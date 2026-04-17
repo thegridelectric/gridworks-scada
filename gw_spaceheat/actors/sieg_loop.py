@@ -193,14 +193,15 @@ class SiegLoop(ShNodeActor):
             if self.time_since_last_report >= 5*60:
                 self.time_since_last_report = 0
                 self._send(PatInternalWatchdogMessage(src=self.name))
-                self._send_to(
-                    self.primary_scada,
-                    SingleReading(
-                        ChannelName=H0CN.hp_keep_seconds_x_10,
-                        Value=round(self.keep_seconds * 10),
-                        ScadaReadTimeUnixMs=int(time.time() *1000)
-                    )
-                )
+                # TODO: Create a channel for this
+                # self._send_to(
+                #     self.primary_scada,
+                #     SingleReading(
+                #         ChannelName=H0CN.hp_keep_seconds_x_10,
+                #         Value=round(self.keep_seconds * 10),
+                #         ScadaReadTimeUnixMs=int(time.time() *1000)
+                #     )
+                # )
                 self._send_to(
                     self.primary_scada,
                     SingleMachineState(
