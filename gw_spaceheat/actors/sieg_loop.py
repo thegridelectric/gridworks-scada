@@ -135,7 +135,7 @@ class SiegLoop(ShNodeActor):
 
             # Going / leaving Blind state
             {"trigger": "BecameBlind", "source": "*", "dest": "Blind"},
-            {"trigger": "NoLongerBlind", "source": "Blind", "dest": "HpOn"},
+            {"trigger": "NoLongerBlind", "source": "Blind", "dest": "HpStartingUp"},
         ]
 
         self.control_machine = Machine(
@@ -198,18 +198,20 @@ class SiegLoop(ShNodeActor):
 
     def engage_brain(self):
         # Check if actuators are ready
-        if self.control_state == SiegControlState.Initializing and self.actuators_ready:
-            self.trigger_control_event(SiegControlEvent.DoneInitializing)
-        else:
-            self.log(f"Waiting for actuators to be ready to get out of Initializing state")
-            return
+        if self.control_state == SiegControlState.Initializing:
+            if self.actuators_ready:
+                self.trigger_control_event(SiegControlEvent.DoneInitializing)
+            else:
+                self.log(f"Waiting for actuators to be ready to get out of Initializing state")
+                return
         
         # Get in/out of Blind state
         if self.control_state != SiegControlState.Blind and self.is_blind():
             self.trigger_control_event(SiegControlEvent.BecameBlind)
-            return
         elif self.control_state == SiegControlState.Blind and not self.is_blind():
             self.trigger_control_event(SiegControlEvent.NoLongerBlind)
+        if self.control_state == SiegControlState.Blind:
+            return
 
         # Adapt state if not Blind
         if self.control_state != SiegControlState.HpOff and self.hp_boss_state == HpBossState.HpOff:
@@ -236,7 +238,9 @@ class SiegLoop(ShNodeActor):
         now_ms = int(time.time() * 1000)
         orig_state = self.control_state
 
-        if event == SiegControlEvent.BecameBlind:
+        if event == SiegControlEvent.DoneInitializing:
+            self.DoneInitializing()
+        elif event == SiegControlEvent.BecameBlind:
             self.BecameBlind()
         elif event == SiegControlEvent.NoLongerBlind:
             self.NoLongerBlind()
@@ -458,7 +462,7 @@ class SiegLoop(ShNodeActor):
             # Set task to None after cancellation
             self._movement_task = None
 
-    async def _prepare_new_movement_task(self, delta_s: float) -> str:
+    async def _prepare_new_movement_task(self, delta_s: float):
         """Create a new movement task adding delta_s to the current keep seconds."""
         await self.clean_up_old_task()
         
