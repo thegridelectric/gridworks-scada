@@ -158,7 +158,7 @@ class DerivedGenerator(ShNodeActor):
             self.log("hack_maple_primary_flow only expects sieg-send and seig-flow")
             return
         if sieg_flow is None or sieg_send is None:
-            self.log(f"Not caluclating primary-flow: sieg_send {sieg_send}, sieg_flow: {sieg_flow}")
+            # self.log(f"Not calculating primary-flow: sieg_send {sieg_send}, sieg_flow: {sieg_flow}")
             return
         primary_flow = sieg_send + sieg_flow
         msg = SingleReading(

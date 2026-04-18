@@ -50,7 +50,7 @@ class SiegControlState(GwStrEnum):
     Blind = auto()
     HpOff = auto()
     HpStartingUp = auto()
-    HpOn = auto()
+    HpHasLift = auto()
 
     @classmethod
     def values(cls) -> List[str]:
@@ -188,8 +188,18 @@ class SiegLoop(ShNodeActor):
     async def main(self):
         while not self._stop_requested:
             self.engage_brain()
-        
-            # Pat watchdog and report status every 5 minutes
+
+            self._send_to(
+                self.primary_scada,
+                SingleMachineState(
+                    MachineHandle=self.node.handle,
+                    StateEnum=SiegControlState.enum_name(),
+                    State=self.control_state,
+                    UnixMs=int(time.time() * 1000),
+                ),
+            )
+
+            # Pat watchdog every 5 minutes
             if self.time_since_last_report >= 5*60:
                 self.time_since_last_report = 0
                 self._send(PatInternalWatchdogMessage(src=self.name))
@@ -202,16 +212,7 @@ class SiegLoop(ShNodeActor):
                 #         ScadaReadTimeUnixMs=int(time.time() *1000)
                 #     )
                 # )
-                self._send_to(
-                    self.primary_scada,
-                    SingleMachineState(
-                        MachineHandle=self.node.handle,
-                        StateEnum=SiegControlState.enum_name(),
-                        State=self.control_state,
-                        UnixMs=int(time.time() * 1000),
-                    )
-                )
-            
+
             self.time_since_last_report += self.control_interval_seconds
             await asyncio.sleep(self.control_interval_seconds)
 
@@ -248,7 +249,7 @@ class SiegLoop(ShNodeActor):
         if self.control_state != SiegControlState.HpOff and self.hp_boss_state == HpBossState.HpOff:
             self.trigger_control_event(SiegControlEvent.HpTurnsOff)
         elif (
-            self.control_state not in [SiegControlState.HpStartingUp, SiegControlState.HpOn] 
+            self.control_state not in [SiegControlState.HpStartingUp, SiegControlState.HpHasLift] 
             and self.hp_boss_state in [HpBossState.HpOn, HpBossState.PreparingToTurnOn]
         ):
             self.trigger_control_event(SiegControlEvent.HpTurnsOn)
@@ -290,7 +291,7 @@ class SiegLoop(ShNodeActor):
             self.moving_to_full_keep(event)
         elif self.control_state == SiegControlState.HpStartingUp:
             self.moving_to_just_keep(event)
-        elif self.control_state == SiegControlState.HpOn:
+        elif self.control_state == SiegControlState.HpHasLift:
             self.moving_to_full_send(event)
 
         self._send_to(

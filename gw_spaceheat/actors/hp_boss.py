@@ -147,16 +147,19 @@ class HpBoss(ShNodeActor):
         await asyncio.sleep(120)
         # If still in state WaitingToTurnOn, turn on:
         if self.state == HpBossState.PreparingToTurnOn:
-            self.state = HpBossState.HpOn
-            self.close_hp_scada_ops_relay()
-            self.log(f"Did not hear from Sieg loop for 2 moinutes. Turning on anyway!")
-            self._send_to(self.primary_scada,
-                            SingleMachineState(
-                                MachineHandle=self.node.handle,
-                                StateEnum=HpBossState.enum_name(),
-                                State=self.state,
-                                UnixMs=int(time.time() * 1000)
-                            ))
+            self.state = HpBossState.HpOff
+            self.open_hp_scada_ops_relay()
+            self.log(f"Did not hear from Sieg loop for 2 moinutes. Turning off!")
+            self._send_to(
+                self.primary_scada,
+                SingleMachineState(
+                    MachineHandle=self.node.handle,
+                    StateEnum=HpBossState.enum_name(),
+                    State=HpBossState.HpOff,
+                    UnixMs=int(time.time() * 1000)
+                ),
+            )
+        self.alert(f"Sieg loop did not say it was ready within 2 minutes of turning on the heat pump. Turning off!")
 
     def open_hp_scada_ops_relay(self) -> None:
         try:
