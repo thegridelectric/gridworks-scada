@@ -130,6 +130,7 @@ class HpBoss(ShNodeActor):
                 self.close_hp_scada_ops_relay()
 
     def process_sieg_loop_ready(self, from_node: ShNode, payload: SiegLoopReady):
+        self.log(f"Got SiegLoop ready, state is {self.state}")
         if self.state == HpBossState.PreparingToTurnOn:
             self.state = HpBossState.HpOn
             self.close_hp_scada_ops_relay()
