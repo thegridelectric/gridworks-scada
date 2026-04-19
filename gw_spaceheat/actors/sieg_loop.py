@@ -126,19 +126,19 @@ class SiegLoop(ShNodeActor):
         self.control_transitions = [
             # Initializing
             {"trigger": "DoneInitializingBlind", "source": "Initializing", "dest": "Blind"},
-            {"trigger": "DoneInitializingHpOn", "source": "Initializing", "dest": "HpOn"},
+            {"trigger": "DoneInitializingHpOn", "source": "Initializing", "dest": "HpHasLift"},
             {"trigger": "DoneInitializingHpOff", "source": "Initializing", "dest": "HpOff"},
             {"trigger": "DoneInitializingHpStartingUp", "source": "Initializing", "dest": "HpStartingUp"},
 
             # Turning off the heat pump
             {"trigger": "HpTurnsOff", "source": "HpStartingUp", "dest": "HpOff"},
-            {"trigger": "HpTurnsOff", "source": "HpOn", "dest": "HpOff"},
+            {"trigger": "HpTurnsOff", "source": "HpHasLift", "dest": "HpOff"},
 
             # Turning on the heat pump
             {"trigger": "HpTurnsOn", "source": "HpOff", "dest": "HpStartingUp"},
 
             # Reaching the end of the heat pump startup
-            {"trigger": "HpStartUpDone", "source": "HpStartingUp", "dest": "HpOn"},
+            {"trigger": "HpStartUpDone", "source": "HpStartingUp", "dest": "HpHasLift"},
 
             # Going / leaving Blind state
             {"trigger": "BecameBlind", "source": "*", "dest": "Blind"},
