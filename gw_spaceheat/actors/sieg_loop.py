@@ -268,6 +268,7 @@ class SiegLoop(ShNodeActor):
     # --------------------------------------
 
     def trigger_control_event(self, event: SiegControlEvent) -> None:
+        self.log(f"Triggering control event {event}, control state is {self.control_state}")
         if self.resetting:
             raise Exception("Do not interrupt resetting to fully send or fully keep!")
 
