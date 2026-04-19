@@ -217,6 +217,7 @@ class SiegLoop(ShNodeActor):
             await asyncio.sleep(self.control_interval_seconds)
 
     def engage_brain(self):
+        self.log(f"Engaging brain, control state is {self.control_state}, hp boss state is {self.hp_boss_state}")
         # Check if actuators are ready
         if self.control_state == SiegControlState.Initializing:
             if self.actuators_ready:
