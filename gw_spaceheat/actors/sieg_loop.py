@@ -142,7 +142,7 @@ class SiegLoop(ShNodeActor):
 
             # Going / leaving Blind state
             {"trigger": "BecameBlind", "source": "*", "dest": "Blind"},
-            {"trigger": "NoLongerBlindHpOn", "source": "Blind", "dest": "HpStartingUp"},
+            {"trigger": "NoLongerBlindHpOn", "source": "Blind", "dest": "HpHasLift"},
             {"trigger": "NoLongerBlindHpOff", "source": "Blind", "dest": "HpOff"},
             {"trigger": "NoLongerBlindHpStartingUp", "source": "Blind", "dest": "HpStartingUp"},
         ]
@@ -245,7 +245,11 @@ class SiegLoop(ShNodeActor):
             elif self.hp_boss_state == HpBossState.PreparingToTurnOn:
                 self.trigger_control_event(SiegControlEvent.NoLongerBlindHpStartingUp)
             elif self.hp_boss_state == HpBossState.HpOn:
-                self.trigger_control_event(SiegControlEvent.NoLongerBlindHpOn)
+                if self.lift_f() and self.lift_f() > 5 and time.time()-self.hp_start_s > 60:
+                    self.trigger_control_event(SiegControlEvent.NoLongerBlindHpOn)
+                else:
+                    self.trigger_control_event(SiegControlEvent.NoLongerBlindHpStartingUp)
+
         if self.control_state == SiegControlState.Blind:
             return
 
