@@ -228,7 +228,10 @@ class SiegLoop(ShNodeActor):
                 elif self.hp_boss_state == HpBossState.PreparingToTurnOn:
                     self.trigger_control_event(SiegControlEvent.DoneInitializingHpStartingUp)
                 elif self.hp_boss_state == HpBossState.HpOn:
-                    self.trigger_control_event(SiegControlEvent.DoneInitializingHpOn)
+                    if self.lift_f() and self.lift_f() > 5 and time.time()-self.hp_start_s > 60:
+                        self.trigger_control_event(SiegControlEvent.DoneInitializingHpOn)
+                    else:
+                        self.trigger_control_event(SiegControlEvent.DoneInitializingHpStartingUp)
             else:
                 self.log(f"Waiting for actuators to be ready to get out of Initializing state")
                 return
@@ -251,7 +254,7 @@ class SiegLoop(ShNodeActor):
             self.trigger_control_event(SiegControlEvent.HpTurnsOff)
         elif (
             self.control_state not in [SiegControlState.HpStartingUp, SiegControlState.HpHasLift] 
-            and self.hp_boss_state in [HpBossState.HpOn, HpBossState.PreparingToTurnOn]
+            and self.hp_boss_state in [HpBossState.PreparingToTurnOn, HpBossState.HpOn]
         ):
             self.trigger_control_event(SiegControlEvent.HpTurnsOn)
         elif self.control_state == SiegControlState.HpStartingUp:
