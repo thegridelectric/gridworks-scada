@@ -160,7 +160,10 @@ class HpBoss(ShNodeActor):
                     UnixMs=int(time.time() * 1000)
                 ),
             )
-        self.alert(f"Sieg loop did not say it was ready within 2 minutes of turning on the heat pump. Turning off!")
+            self.alert(
+                "Sieg loop did not report ready within 2 minutes",
+                "Turning off the heat pump (opened HP scada ops relay).",
+            )
 
     def open_hp_scada_ops_relay(self) -> None:
         try:

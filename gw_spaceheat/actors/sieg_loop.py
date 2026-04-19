@@ -463,7 +463,10 @@ class SiegLoop(ShNodeActor):
         if self.hp_boss_state != HpBossState.HpOn and payload.State == HpBossState.HpOn:
             self.hp_start_s = time.time()
 
-        if self.hp_boss_state == HpBossState.PreparingToTurnOn:
+        if (
+            payload.State == HpBossState.PreparingToTurnOn
+            and self.hp_boss_state != HpBossState.PreparingToTurnOn
+        ):
             self.log(f"Sending SiegLoopReady to HpBoss")
             self._send_to(self.hp_boss, SiegLoopReady())
 
