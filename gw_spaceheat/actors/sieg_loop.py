@@ -165,7 +165,19 @@ class SiegLoop(ShNodeActor):
 
         self.hp_boss_state = HpBossState.HpOn
         self.hp_start_s: float = time.time()
+        self.ewt_at_hp_start: float | None = self.ewt_f()
         self.hp_model = self.settings.hp_model
+
+        # Heat pump lift model
+        M_SIEG_KG = 3 * 3.7854 # TODO: assuming 3 gallons in the sieg loop
+        CP = 4.187/3600
+        hp_kw_th_at_minute = [
+            0.009, 0.393, 0.000, 0.000, 0.617, 4.283, 4.080, 4.355, # minutes 0-7
+            6.836, 8.661, 8.997, 9.477, 9.337, 9.269, 9.010, 9.560, # minutes 8-15
+            11.733, 14.073, 15.059, 15.574, 16.336, 16.918, 16.965 # minutes 16-22
+        ]
+        hp_kwh_th_at_minute = [x/60 for x in hp_kw_th_at_minute]
+        self.hp_lift_at_minute = [hp_kwh_th_at_minute[minutes_since_hp_on]/(M_SIEG_KG*CP*5/9) for minutes_since_hp_on in range(len(hp_kw_th_at_minute))]
 
         self.actuators_ready: bool = False
         self.control_interval_seconds = 30
@@ -216,6 +228,26 @@ class SiegLoop(ShNodeActor):
             self.time_since_last_report += self.control_interval_seconds
             await asyncio.sleep(self.control_interval_seconds)
 
+    def hp_has_enough_lift(self):
+        if self.is_blind():
+            raise Exception("hp_has_enough_lift failed because Blind")
+        if self.ewt_at_hp_start is None:
+            self.log(f"Warning: ewt_at_hp_start is None")
+            return True
+
+        top_buffer_temp = self.hottest_buffer_temp_f()
+        top_storage_temp = self.hottest_store_temp_f()
+
+        minutes_since_hp_on = round((time.time()-self.hp_start_s)/60)
+        if minutes_since_hp_on > len(self.hp_lift_at_minute):
+            return True
+        lwt_if_closed_for_one_more_minute = self.lwt_f() + self.hp_lift_at_minute[minutes_since_hp_on]
+        threshold_lwt = min(top_buffer_temp, top_storage_temp, self.data.ha1_params.MaxEwtF-20)
+
+        if lwt_if_closed_for_one_more_minute >= threshold_lwt:
+            return True
+        return False
+
     def engage_brain(self):
         self.log(f"Engaging brain, control state is {self.control_state}, hp boss state is {self.hp_boss_state}")
         # Check if actuators are ready
@@ -228,7 +260,7 @@ class SiegLoop(ShNodeActor):
                 elif self.hp_boss_state == HpBossState.PreparingToTurnOn:
                     self.trigger_control_event(SiegControlEvent.DoneInitializingHpStartingUp)
                 elif self.hp_boss_state == HpBossState.HpOn:
-                    if self.lift_f() and self.lift_f() > 5 and time.time()-self.hp_start_s > 60:
+                    if self.hp_has_enough_lift():
                         self.trigger_control_event(SiegControlEvent.DoneInitializingHpOn)
                     else:
                         self.trigger_control_event(SiegControlEvent.DoneInitializingHpStartingUp)
@@ -245,7 +277,7 @@ class SiegLoop(ShNodeActor):
             elif self.hp_boss_state == HpBossState.PreparingToTurnOn:
                 self.trigger_control_event(SiegControlEvent.NoLongerBlindHpStartingUp)
             elif self.hp_boss_state == HpBossState.HpOn:
-                if self.lift_f() and self.lift_f() > 5 and time.time()-self.hp_start_s > 60:
+                if self.hp_has_enough_lift():
                     self.trigger_control_event(SiegControlEvent.NoLongerBlindHpOn)
                 else:
                     self.trigger_control_event(SiegControlEvent.NoLongerBlindHpStartingUp)
@@ -262,11 +294,11 @@ class SiegLoop(ShNodeActor):
         ):
             self.trigger_control_event(SiegControlEvent.HpTurnsOn)
         elif self.control_state == SiegControlState.HpStartingUp:
-            if self.lift_f() and self.lift_f() > 5 and time.time()-self.hp_start_s > 60:
+            if self.hp_has_enough_lift():
                 self.trigger_control_event(SiegControlEvent.HpStartUpDone)
 
     def is_blind(self) -> bool:
-        if self.lift_f() is None:
+        if self.lift_f() is None or self.hottest_buffer_temp_f() is None or self.hottest_store_temp_f() is None:
             return True
         return False        
 
@@ -462,6 +494,7 @@ class SiegLoop(ShNodeActor):
 
         if self.hp_boss_state != HpBossState.HpOn and payload.State == HpBossState.HpOn:
             self.hp_start_s = time.time()
+            self.ewt_at_hp_start = self.ewt_f()
 
         if (
             payload.State == HpBossState.PreparingToTurnOn
