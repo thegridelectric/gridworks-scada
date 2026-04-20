@@ -231,9 +231,6 @@ class SiegLoop(ShNodeActor):
     def hp_has_enough_lift(self):
         if self.is_blind():
             raise Exception("hp_has_enough_lift failed because Blind")
-        if self.ewt_at_hp_start is None:
-            self.log(f"Warning: ewt_at_hp_start is None")
-            return True
 
         top_buffer_temp = self.hottest_buffer_temp_f()
         top_storage_temp = self.hottest_store_temp_f()
