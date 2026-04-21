@@ -16,7 +16,7 @@ from typing_extensions import Self
 
 class ControlNode(BaseModel):
     Name: SpaceheatName
-    Handle: HandleName
+    Handle: HandleName | None = None
     ActorClass: ActorClass
     DisplayName: str | None = None
 

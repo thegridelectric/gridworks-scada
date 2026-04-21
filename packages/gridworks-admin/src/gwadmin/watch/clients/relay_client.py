@@ -158,7 +158,7 @@ class RelayWatchClient(AdminSubClient):
         return {
             node_name : RelayConfig(
                 about_node_name=node_name,
-                handle=relay_nodes[node_name].Handle,
+                handle=relay_nodes[node_name].Handle or f"{H0N.admin}.{node_name}",
                 channel_name=relay_channels[node_name].Name,
                 event_type=relay_actor_configs[node_name].EventType,
                 energizing_event=relay_actor_configs[node_name].EnergizingEvent,

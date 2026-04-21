@@ -6,12 +6,14 @@ from gwadmin.watch.clients.relay_client import RelayConfig
 from gwadmin.watch.clients.relay_client import RelayInfo
 from gwadmin.watch.clients.relay_client import RelayWatchClient
 from gwsproto.data_classes.house_0_names import H0N
+from gwsproto.enums import ActorClass
 from gwsproto.enums import ChangeRelayPin
 from gwsproto.enums import ChangeRelayState
 from gwsproto.enums import TopState
 from gwsproto.enums import TurnHpOnOff
 from gwsproto.named_types import AdminDispatch
 from gwsproto.named_types import FsmEvent
+from gwsproto.named_types.scada_control_capabilities import ControlNode
 
 
 class FakeAdminClient:
@@ -29,6 +31,11 @@ class FakeCommunicator:
 
     def process_message(self, message) -> None:
         self.messages.append(message)
+
+
+def test_control_node_handle_is_backward_compatible() -> None:
+    node = ControlNode(Name=H0N.hp_scada_ops_relay, ActorClass=ActorClass.Relay)
+    assert node.Handle is None
 
 
 def test_relay_watch_client_uses_configured_control_handle() -> None:
