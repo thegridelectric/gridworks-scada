@@ -185,7 +185,7 @@ class SiegLoop(ShNodeActor):
         self.resetting = False # TODO: check if this is still usefull
 
         self.t1 = 26                        # seconds where some flow starts going through the Sieg Loop
-        self.t2 = self.FULL_RANGE_S - 18    # seconds where all flow starts going through the Sieg Loop
+        self.t2 = self.FULL_RANGE_S - 16    # seconds where all flow starts going through the Sieg Loop
 
         if self.flow_percent_from_seconds[0][1] != 0:
             raise Exception(f"First flow point should be [x,0]!")
@@ -242,11 +242,10 @@ class SiegLoop(ShNodeActor):
         lwt_if_closed_for_one_more_minute = self.lwt_f() + self.hp_lift_at_minute[minutes_since_hp_on]
         threshold_lwt = min(top_buffer_temp, top_storage_temp, self.data.ha1_params.MaxEwtF-20)
 
-        self.log(f"LWT now {self.lwt_f()}, projected in 1 minute if remains closed: {lwt_if_closed_for_one_more_minute}, threshold: {threshold_lwt}")
+        self.log(f"LWT now {self.lwt_f()}, projected in 1 minute: {lwt_if_closed_for_one_more_minute}, threshold: {threshold_lwt}")
         if lwt_if_closed_for_one_more_minute >= threshold_lwt:
             self.log(f"LWT is projected to be above threshold in 1 minute, opening valve")
             return True
-        self.log(f"LWT is projected to be below threshold in 1 minute, keeping valve closed")
         return False
 
     def engage_brain(self):
@@ -308,7 +307,6 @@ class SiegLoop(ShNodeActor):
     # --------------------------------------
 
     def trigger_control_event(self, event: SiegControlEvent) -> None:
-        self.log(f"Triggering control event {event}, control state is {self.control_state}")
         if self.resetting:
             raise Exception("Do not interrupt resetting to fully send or fully keep!")
 
@@ -356,7 +354,7 @@ class SiegLoop(ShNodeActor):
         asyncio.create_task(self._prepare_new_movement_task(-self.keep_seconds + self.FULL_RANGE_S + 10))
 
     def moving_to_just_keep(self, event):
-        self.log(f"Moving to just keep position to prepare for heat pump start")
+        self.log(f"Moving to just keep position")
         asyncio.create_task(self._prepare_new_movement_task(-self.keep_seconds + self.t2))
 
     # --------------------------------------
