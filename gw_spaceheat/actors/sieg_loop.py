@@ -185,7 +185,7 @@ class SiegLoop(ShNodeActor):
         self.resetting = False # TODO: check if this is still usefull
 
         self.t1 = 26                        # seconds where some flow starts going through the Sieg Loop
-        self.t2 = self.FULL_RANGE_S - 16    # seconds where all flow starts going through the Sieg Loop
+        self.t2 = self.FULL_RANGE_S - 18    # seconds where all flow starts going through the Sieg Loop
 
         if self.flow_percent_from_seconds[0][1] != 0:
             raise Exception(f"First flow point should be [x,0]!")
