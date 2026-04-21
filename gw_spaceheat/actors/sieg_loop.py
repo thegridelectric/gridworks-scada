@@ -240,9 +240,9 @@ class SiegLoop(ShNodeActor):
             self.log(f"HP has been on for {minutes_since_hp_on} minutes, opening valve fully")
             return True
         lwt_if_closed_for_one_more_minute = self.lwt_f() + self.hp_lift_at_minute[minutes_since_hp_on]
-        threshold_lwt = min(top_buffer_temp, top_storage_temp, self.data.ha1_params.MaxEwtF-20)
+        threshold_lwt = min(max(top_buffer_temp, top_storage_temp), self.data.ha1_params.MaxEwtF-20)
 
-        self.log(f"LWT now {self.lwt_f()}, projected in 1 minute: {lwt_if_closed_for_one_more_minute}, threshold: {threshold_lwt}")
+        self.log(f"LWT now {round(self.lwt_f(),1)}, projected in 1 minute: {round(lwt_if_closed_for_one_more_minute, 1)}, threshold: {round(threshold_lwt, 1)}")
         if lwt_if_closed_for_one_more_minute >= threshold_lwt:
             self.log(f"LWT is projected to be above threshold in 1 minute, opening valve")
             return True
