@@ -16,7 +16,7 @@ from gwproto import Message as GWMessage
 from gwproto import MQTTTopic
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import ChangeRelayPin
-from gwsproto.property_format import SpaceheatName
+from gwsproto.property_format import HandleName, SpaceheatName
 
 from gwsproto.named_types import SingleReading
 from pydantic import BaseModel
@@ -35,6 +35,7 @@ module_logger = logging.getLogger(__name__)
 
 class RelayConfig(BaseModel):
     about_node_name: SpaceheatName
+    handle: HandleName
     channel_name: SpaceheatName
     event_type: str
     energizing_event: str
@@ -150,12 +151,14 @@ class RelayWatchClient(AdminSubClient):
 
     @classmethod
     def _get_relay_configs(cls, ctrl_capabilities: ScadaControlCapabilities) -> dict[str, RelayConfig]:
-        relay_node_names = {node.Name for node in ctrl_capabilities.RelayNodes}
+        relay_nodes = {node.Name: node for node in ctrl_capabilities.RelayNodes}
+        relay_node_names = set(relay_nodes)
         relay_channels = {channel.AboutNodeName: channel for channel in ctrl_capabilities.ControlChannels if channel.AboutNodeName in relay_node_names}
         relay_actor_configs = {config.ActorName: config for config in ctrl_capabilities.I2cRelayComponent.ConfigList}
         return {
             node_name : RelayConfig(
                 about_node_name=node_name,
+                handle=relay_nodes[node_name].Handle,
                 channel_name=relay_channels[node_name].Name,
                 event_type=relay_actor_configs[node_name].EventType,
                 energizing_event=relay_actor_configs[node_name].EnergizingEvent,
@@ -314,16 +317,14 @@ class RelayWatchClient(AdminSubClient):
 
         relay_config = self._relays[relay_name].config
 
-        to_handle = f"{H0N.admin}.{relay_name}"
+        to_handle = relay_config.handle
         event_type = relay_config.event_type
         event_name = (
-                relay_config.energizing_event
-                if trigger == ChangeRelayPin.Energize
-                else relay_config.de_energizing_event
+            relay_config.energizing_event
+            if trigger == ChangeRelayPin.Energize
+            else relay_config.de_energizing_event
         )
-        # TODO: if flow manifold variant is House0Sieg
-        if relay_name == H0N.hp_scada_ops_relay:
-            to_handle = f"{H0N.admin}.{H0N.hp_boss}"
+        if to_handle.split(".")[-1] == H0N.hp_boss:
             event_type = TurnHpOnOff.enum_name()
             if trigger == ChangeRelayPin.DeEnergize:
                 event_name = TurnHpOnOff.TurnOn
@@ -355,4 +356,3 @@ class RelayWatchClient(AdminSubClient):
         self._admin_client.publish(
             AdminReleaseControl()
         )
-

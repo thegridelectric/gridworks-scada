@@ -4,13 +4,19 @@ from gwsproto.enums import ActorClass
 from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
     I2cMultichannelDtRelayComponentGt,
 )
-from gwsproto.property_format import LeftRightDotStr, UTCMilliseconds, SpaceheatName
+from gwsproto.property_format import (
+    HandleName,
+    LeftRightDotStr,
+    SpaceheatName,
+    UTCMilliseconds,
+)
 from pydantic import BaseModel,  model_validator
 from typing_extensions import Self
 
 
 class ControlNode(BaseModel):
     Name: SpaceheatName
+    Handle: HandleName
     ActorClass: ActorClass
     DisplayName: str | None = None
 
