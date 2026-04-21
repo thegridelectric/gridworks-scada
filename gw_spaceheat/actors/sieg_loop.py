@@ -237,12 +237,16 @@ class SiegLoop(ShNodeActor):
 
         minutes_since_hp_on = round((time.time()-self.hp_start_s)/60)
         if minutes_since_hp_on > len(self.hp_lift_at_minute):
+            self.log(f"HP has been on for {minutes_since_hp_on} minutes, opening valve fully")
             return True
         lwt_if_closed_for_one_more_minute = self.lwt_f() + self.hp_lift_at_minute[minutes_since_hp_on]
         threshold_lwt = min(top_buffer_temp, top_storage_temp, self.data.ha1_params.MaxEwtF-20)
 
+        self.log(f"LWT now {self.lwt_f()}, projected in 1 minute if remains closed: {lwt_if_closed_for_one_more_minute}, threshold: {threshold_lwt}")
         if lwt_if_closed_for_one_more_minute >= threshold_lwt:
+            self.log(f"LWT is projected to be above threshold in 1 minute, opening valve")
             return True
+        self.log(f"LWT is projected to be below threshold in 1 minute, keeping valve closed")
         return False
 
     def engage_brain(self):
