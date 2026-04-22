@@ -234,13 +234,16 @@ class SiegLoop(ShNodeActor):
 
         top_buffer_temp = self.hottest_buffer_temp_f()
         top_storage_temp = self.hottest_store_temp_f()
+        if not top_buffer_temp or not top_storage_temp:
+            threshold_lwt = self.data.ha1_params.MaxEwtF-20
+        else:
+            threshold_lwt = min(max(top_buffer_temp, top_storage_temp), self.data.ha1_params.MaxEwtF-20)
 
         minutes_since_hp_on = round((time.time()-self.hp_start_s)/60)
         if minutes_since_hp_on > len(self.hp_lift_at_minute):
             self.log(f"HP has been on for {minutes_since_hp_on} minutes, opening valve fully")
             return True
         lwt_if_closed_for_one_more_minute = self.lwt_f() + self.hp_lift_at_minute[minutes_since_hp_on]
-        threshold_lwt = min(max(top_buffer_temp, top_storage_temp), self.data.ha1_params.MaxEwtF-20)
 
         self.log(f"LWT now {round(self.lwt_f(),1)}, projected in 1 minute: {round(lwt_if_closed_for_one_more_minute, 1)}, threshold: {round(threshold_lwt, 1)}")
         if lwt_if_closed_for_one_more_minute >= threshold_lwt:
@@ -298,7 +301,7 @@ class SiegLoop(ShNodeActor):
                 self.trigger_control_event(SiegControlEvent.HpStartUpDone)
 
     def is_blind(self) -> bool:
-        if self.lift_f() is None or self.hottest_buffer_temp_f() is None or self.hottest_store_temp_f() is None:
+        if self.lift_f() is None:
             return True
         return False        
 
