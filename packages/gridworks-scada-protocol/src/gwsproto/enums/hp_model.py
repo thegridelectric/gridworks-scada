@@ -5,6 +5,7 @@ class HpModel(AslEnum):
     LgHighTempHydroKitPlusMultiV = auto()  
     SamsungFourTonneHydroKit = auto()   
     SamsungFiveTonneHydroKit = auto()
+    MitsubishiEcodan = auto()
 
     @classmethod
     def enum_name(cls) -> str:
