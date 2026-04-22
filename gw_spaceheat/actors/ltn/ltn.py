@@ -185,9 +185,9 @@ class BidRunner(threading.Thread):
     """Coordinates Flo work across three short-lived child processes.
 
     Every phase that touches the Flo graph (build, recommend, plans) runs
-    in a forked child process.  The parent thread only holds pickle bytes
-    and plain results (floats, lists).  When each child exits, the OS
-    reclaims all its memory — guaranteed zero residual.
+    in a forked child process. The parent thread only holds pickle bytes
+    and plain results (floats, lists). When each child exits, the OS
+    reclaims all its memory.
     """
 
     def __init__(self, params: FloParamsHouse0,
@@ -212,12 +212,11 @@ class BidRunner(threading.Thread):
         self.get_next_hour_plans_event = threading.Event()
 
     def _run_in_child(self, target, args, timeout_s=30, max_total_s=300, pat_watchdog=True):
-        """Run *target* in a forked child process and return the result tuple.
+        """Run target in a forked child process and return the result tuple.
 
-        Pats the watchdog every *timeout_s* seconds while waiting.
-        Kills the child and returns an error after *max_total_s* seconds
+        Pats the watchdog every timeout_s seconds while waiting.
+        Kills the child and returns an error after max_total_s seconds
         to prevent deadlocked children from blocking the BidRunner forever.
-        Uses 'forkserver' context to avoid inheriting parent thread locks.
         """
         ctx = multiprocessing.get_context("forkserver")
         result_queue = ctx.Queue()
@@ -228,9 +227,7 @@ class BidRunner(threading.Thread):
         result = None
         while result is None:
             if time.time() > deadline:
-                self.logger.error(
-                    f"Child process timed out after {max_total_s}s — killing it"
-                )
+                self.logger.error(f"Child process timed out after {max_total_s}s — killing it")
                 proc.kill()
                 proc.join(timeout=5)
                 return ("error", f"Child process timed out after {max_total_s}s")
@@ -314,8 +311,14 @@ class BidRunner(threading.Thread):
                     QuantityUnit=MarketQuantityUnit(recommendation.QuantityUnit),
                     SignedMarketFeeTxn="BogusAlgoSignature",
                 )
+
+                # Send bid through LTN's message processing
                 self.send_threadsafe(
-                    Message(Src=self.ltn_name, Dst=self.ltn_name, Payload=bid)
+                    Message(
+                        Src=self.ltn_name, 
+                        Dst=self.ltn_name, 
+                        Payload=bid
+                    )
                 )
 
                 # ── Phase 2: Wait for get_next_hour_plans, then run in child ──
@@ -335,13 +338,18 @@ class BidRunner(threading.Thread):
                     self.logger.info(f"Error getting plan at price: {result[1]}")
                     return
 
+                # Send flo next hour plans through LTN's message processing
                 _, expected_storage_kwh_at_hour1, hourly_hp_kwh_el_plan = result
                 flo_next_hour_plans = FloNextHourPlans(
                     ExpectedStorageKwhAtHour1=expected_storage_kwh_at_hour1,
                     HourlyHpKwhElPlan=hourly_hp_kwh_el_plan,
                 )
                 self.send_threadsafe(
-                    Message(Src=self.ltn_name, Dst=self.ltn_name, Payload=flo_next_hour_plans)
+                    Message(
+                        Src=self.ltn_name, 
+                        Dst=self.ltn_name, 
+                        Payload=flo_next_hour_plans
+                    )
                 )
 
                 break
