@@ -315,8 +315,8 @@ class BidRunner(threading.Thread):
                 # Send bid through LTN's message processing
                 self.send_threadsafe(
                     Message(
-                        Src=self.ltn_name, 
-                        Dst=self.ltn_name, 
+                        Src=self.ltn_name,
+                        Dst=self.ltn_name,
                         Payload=bid
                     )
                 )
@@ -346,8 +346,8 @@ class BidRunner(threading.Thread):
                 )
                 self.send_threadsafe(
                     Message(
-                        Src=self.ltn_name, 
-                        Dst=self.ltn_name, 
+                        Src=self.ltn_name,
+                        Dst=self.ltn_name,
                         Payload=flo_next_hour_plans
                     )
                 )
