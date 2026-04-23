@@ -8,16 +8,14 @@ from typing import List, Optional, Sequence
 
 from scada_app_interface import ScadaAppInterface
 from gwproto.message import Message
-from gwsproto.data_classes.house_0_names import H0CN
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwsproto.data_classes.sh_node import ShNode
-from gwsproto.named_types import FsmFullReport, SingleReading, AnalogDispatch
+from gwsproto.named_types import FsmFullReport
 from gwsproto.enums.gw_str_enum import GwStrEnum
 from actors.hp_boss import SiegLoopReady, HpBossState
 from actors.sh_node_actor import ShNodeActor
-from gwsproto.enums import HpModel
-from gwsproto.named_types import ActuatorsReady, ResetHpKeepValue, SingleMachineState
+from gwsproto.named_types import ActuatorsReady, SingleMachineState
 
 
 class SiegValveState(GwStrEnum):
@@ -77,11 +75,6 @@ class SiegControlEvent(GwStrEnum):
 
 class SiegLoop(ShNodeActor):
     FULL_RANGE_S = 100
-    MAIN_LOOP_SLEEP_S = 2
-    flow_percent_from_seconds = [
-        [7,0], [9, 8], [11.2, 11.4], [14.7, 24.1], [18.2, 39.0], [22.4, 51.7],
-        [28.7, 66.6], [35.7, 75.2], [39.9, 80.6], [42.7, 83.7], [67.2, 100]
-    ]
 
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
@@ -157,41 +150,18 @@ class SiegLoop(ShNodeActor):
         )
         self.control_state: SiegControlState = SiegControlState.Initializing
 
-        self.keep_seconds: float = self.FULL_RANGE_S # TODO: check if this is still correct
-        self.log(f"Starting with keep seconds at {self.keep_seconds} s")
+        self.keep_seconds: float = self.FULL_RANGE_S
 
         self._movement_task = None
-        self.move_start_s: float = 0
 
         self.hp_boss_state = HpBossState.HpOn
-        self.hp_start_s: float = time.time()
-        self.ewt_at_hp_start: float | None = self.ewt_f()
-        self.hp_model = self.settings.hp_model
-
-        # Heat pump lift model
-        M_SIEG_KG = 3 * 3.7854 # TODO: assuming 3 gallons in the sieg loop
-        CP = 4.187/3600
-        hp_kw_th_at_minute = [
-            0.009, 0.393, 0.000, 0.000, 0.617, 4.283, 4.080, 4.355, # minutes 0-7
-            6.836, 8.661, 8.997, 9.477, 9.337, 9.269, 9.010, 9.560, # minutes 8-15
-            11.733, 14.073, 15.059, 15.574, 16.336, 16.918, 16.965 # minutes 16-22
-        ]
-        hp_kwh_th_at_minute = [x/60 for x in hp_kw_th_at_minute]
-        self.hp_lift_at_minute = [hp_kwh_th_at_minute[minutes_since_hp_on]/(M_SIEG_KG*CP*5/9) for minutes_since_hp_on in range(len(hp_kw_th_at_minute))]
 
         self.actuators_ready: bool = False
         self.control_interval_seconds = 30
         self.time_since_last_report = 5*60
-        self.resetting = False # TODO: check if this is still usefull
 
         self.t1 = 26                        # seconds where some flow starts going through the Sieg Loop
         self.t2 = self.FULL_RANGE_S - 18    # seconds where all flow starts going through the Sieg Loop
-
-        if self.flow_percent_from_seconds[0][1] != 0:
-            raise Exception(f"First flow point should be [x,0]!")
-
-        if self.flow_percent_from_seconds[-1][1] != 100:
-            raise Exception(f"Last flow point should be [x,100]!")
 
     # --------------------------------------
     # Main loop
@@ -230,24 +200,11 @@ class SiegLoop(ShNodeActor):
 
     def hp_has_enough_lift(self):
         if self.is_blind():
-            raise Exception("hp_has_enough_lift failed because Blind")
-
-        top_buffer_temp = self.hottest_buffer_temp_f()
-        top_storage_temp = self.hottest_store_temp_f()
-        if not top_buffer_temp or not top_storage_temp:
-            threshold_lwt = self.data.ha1_params.MaxEwtF-20
-        else:
-            threshold_lwt = min(max(top_buffer_temp, top_storage_temp), self.data.ha1_params.MaxEwtF-20)
-
-        minutes_since_hp_on = round((time.time()-self.hp_start_s)/60)
-        if minutes_since_hp_on > len(self.hp_lift_at_minute):
-            self.log(f"HP has been on for {minutes_since_hp_on} minutes, opening valve fully")
+            self.log(f"Warning: hp_has_enough_lift called but blind")
             return True
-        lwt_if_closed_for_one_more_minute = self.lwt_f() + self.hp_lift_at_minute[minutes_since_hp_on]
-
-        self.log(f"LWT now {round(self.lwt_f(),1)}, projected in 1 minute: {round(lwt_if_closed_for_one_more_minute, 1)}, threshold: {round(threshold_lwt, 1)}")
-        if lwt_if_closed_for_one_more_minute >= threshold_lwt:
-            self.log(f"LWT is projected to be above threshold in 1 minute, opening valve")
+        
+        threshold_lwt = self.data.ha1_params.MaxEwtF-20
+        if max(self.lwt_f(), self.ewt_f()) > threshold_lwt:
             return True
         return False
 
@@ -310,9 +267,6 @@ class SiegLoop(ShNodeActor):
     # --------------------------------------
 
     def trigger_control_event(self, event: SiegControlEvent) -> None:
-        if self.resetting:
-            raise Exception("Do not interrupt resetting to fully send or fully keep!")
-
         now_ms = int(time.time() * 1000)
         orig_state = self.control_state
 
@@ -353,7 +307,7 @@ class SiegLoop(ShNodeActor):
         asyncio.create_task(self._prepare_new_movement_task(-self.keep_seconds - 10))
 
     def moving_to_full_keep(self, event):
-        self.log(f"Moving to full keep position")
+        self.log(f"Moving to full keep position (overshoot the full range by 10 seconds to be safe)")
         asyncio.create_task(self._prepare_new_movement_task(-self.keep_seconds + self.FULL_RANGE_S + 10))
 
     def moving_to_just_keep(self, event):
@@ -365,29 +319,19 @@ class SiegLoop(ShNodeActor):
     # --------------------------------------
 
     def trigger_valve_event(self, event: SiegValveEvent) -> None:
-        if self.resetting:
-            raise Exception("Do not interrupt resetting to fully send or fully keep!")
-
         now_ms = int(time.time() * 1000)
         orig_state = self.valve_state 
 
-        # Trigger the state machine transition
-        if event == SiegValveEvent.StartKeepingMore:
-            self.StartKeepingMore()
-        elif event == SiegValveEvent.StartKeepingLess:
-            self.StartKeepingLess()
-        elif event == SiegValveEvent.StopKeepingMore:
-            self.StopKeepingMore()
-        elif event == SiegValveEvent.StopKeepingLess:
-            self.StopKeepingLess()
-        elif event == SiegValveEvent.ResetToFullySend:
-            self.ResetToFullySend()
-        elif event == SiegValveEvent.ResetToFullyKeep:
-            self.ResetToFullyKeep()
+        control_fn = getattr(self, event)
+        if control_fn:
+            control_fn(self)
         else:
-            raise Exception(f"Unknown valve event {event}")
-
+            raise Exception(f"Unknown control event {event}")
+        
         self.log(f"{event}: {orig_state} -> {self.valve_state}")
+        if self.valve_state == orig_state:
+            self.log(f"Warning: event {event} did not cause a change in valve state")
+            return
 
         # TODO: add a new node for the valve; sieg-loop will be control state
         # self._send_to(
@@ -404,12 +348,10 @@ class SiegLoop(ShNodeActor):
     def before_keeping_more(self, event):
         self.change_to_hp_keep_more()
         self.sieg_valve_active()
-        self.move_start_s = time.time()
 
     def before_keeping_less(self, event):
         self.change_to_hp_keep_less()
         self.sieg_valve_active()
-        self.move_start_s = time.time()
 
     def before_keeping_steady(self, event):
         self.sieg_valve_dormant()
@@ -428,64 +370,11 @@ class SiegLoop(ShNodeActor):
             case ActuatorsReady():
                 self.actuators_ready = True
                 self.engage_brain()
-            case AnalogDispatch():
-                try:
-                    asyncio.create_task(self.process_analog_dispatch(from_node, payload), name="analog_dispatch")
-                except Exception as e:
-                    self.log(f"Trouble with process_analog_dispatch: {e}")
-            case FsmFullReport():
-                ... # got report back from relays
-            case ResetHpKeepValue():
-                try:
-                    self.process_reset_hp_keep_value(from_node, payload)
-                except Exception as e:
-                    self.log(f"Trouble with process_reset_hp_keep_value: {e}")
             case SingleMachineState():
                 self.process_single_machine_state(from_node, payload)
             case _: 
-                self.log(f"{self.name} received unexpected message: {message.Header}"
-            )
+                self.log(f"{self.name} received unexpected message: {message.Header}")
         return Ok(True)
-
-    async def process_analog_dispatch(self, from_node: ShNode, payload: AnalogDispatch) -> None:    
-        # TODO: fix this later
-        # if from_node != self.boss:
-        #     self.log(f"sieg loop expects commands from its boss {self.boss.Handle}, not {from_node.Handle}")
-        #     return
-        # if self.boss.handle != payload.FromHandle:
-        #     self.log(f"boss's handle {self.boss.handle} does not match payload FromHandle {payload.FromHandle}")
-        #     return
-
-        # Move to the target seconds
-        target_s = payload.Value
-        self.log(f"Received command to set valve to {target_s} seconds")
-        delta_s = target_s - self.keep_seconds
-        asyncio.create_task(self._prepare_new_movement_task(delta_s))
-
-    def process_reset_hp_keep_value(self, from_node: ShNode, payload: ResetHpKeepValue) -> None:
-        self.log("Got ResetHpKeepValue")
-        if from_node != self.boss:
-            self.log(f"sieg loop expects commands from its boss {self.boss.Handle}, not {from_node.Handle}")
-            return
-        if self.boss.handle != payload.FromHandle:
-            self.log(f"boss's handle {self.boss.handle} does not match payload FromHandle {payload.FromHandle}")
-            return
-        if self._movement_task:
-            self.send_info("[SiegValve] Not resetting hp keep value while moving")
-            return
-        
-        # Reset the keep seconds without moving the valve
-        self.log(f"Resetting keep seconds from {self.keep_seconds} to {payload.HpKeepSecondsTimes10 / 10} without moving valve")
-        self.keep_seconds = payload.HpKeepSecondsTimes10 / 10
-        # TODO
-        # self._send_to(
-        #     self.primary_scada,
-        #     SingleReading(
-        #         ChannelName=H0CN.hp_keep_seconds_x_10,
-        #         Value=round(self.keep_seconds * 10),
-        #         ScadaReadTimeUnixMs=int(time.time() *1000)
-        #     )
-        # )
 
     def process_single_machine_state(self, from_node: ShNode, payload: SingleMachineState) -> None:
         self.log(f"Just received state {payload.State} from HpBoss")
@@ -493,10 +382,6 @@ class SiegLoop(ShNodeActor):
             raise Exception(f"The StateEnum {payload.StateEnum}is not a HpBossState enum: {HpBossState.enum_name()}")
         if from_node != self.hp_boss:
             raise Exception("Not expecting single machine state messages except from HpBoss")
-
-        if self.hp_boss_state != HpBossState.HpOn and payload.State == HpBossState.HpOn:
-            self.hp_start_s = time.time()
-            self.ewt_at_hp_start = self.ewt_f()
 
         if (
             payload.State == HpBossState.PreparingToTurnOn
@@ -564,10 +449,6 @@ class SiegLoop(ShNodeActor):
             self.log(f"Already at target, delta_s is 0 seconds")
             return
 
-        # Adding delta_s to the current keep seconds
-        target_seconds = self.keep_seconds + delta_s
-
-        # Set the appropriate state
         try:
             # Moving to keeping more
             if delta_s>0:
@@ -603,7 +484,6 @@ class SiegLoop(ShNodeActor):
                     # Allow for cancellation to be processed
                     await asyncio.sleep(0)
 
-            # At the end of the method, after movement is complete:
             if task_id == self._current_task_id:
                 self.complete_move(task_id)
 
@@ -690,116 +570,6 @@ class SiegLoop(ShNodeActor):
         #         ScadaReadTimeUnixMs=int(time.time() *1000)
         #     )
         # )
-
-    async def keep_harder(self, seconds: int, task_id: str) -> None:
-        try:
-            if self.valve_state != SiegValveState.FullyKeep:
-                self.log("Use only when in FullyKeep")
-                return
-            self.change_to_hp_keep_more()
-            self.sieg_valve_active()
-            self.send_info(f"[SiegValve {task_id}] Keeping for {seconds} seconds more")
-            await asyncio.sleep(seconds)
-            if task_id != self._current_task_id:
-                self.log(f"Task {task_id} has been superseded!")
-            else:
-                self.sieg_valve_dormant()
-        except asyncio.CancelledError:
-            self.log("keep_harder task cancelled")
-            raise
-        except Exception as e:
-            self.log(f"Error during keep_harder: {e}")
-            self.sieg_valve_dormant()
-            self.send_error(f"Error during keep_harder: {e}")
-        finally:
-            self._movement_task = None
-            self.log(f"Task {task_id} complete")
-
-    async def send_harder(self, seconds: int, task_id: str) -> None:
-        try:
-            if self.valve_state != SiegValveState.FullySend:
-                self.log("Use when in FullySend")
-                return
-            self.change_to_hp_keep_less()
-            self.sieg_valve_active()
-            self.send_info(f"[SiegLoop{task_id}] Sending for {seconds} seconds more")
-            await asyncio.sleep(seconds)
-            if task_id != self._current_task_id:
-                self.log(f"Task {task_id} has been superseded!")
-            else:
-                self.sieg_valve_dormant()
-        except asyncio.CancelledError:
-            self.log("send_harder task cancelled")
-            raise
-        except Exception as e:
-            self.log(f"Error during send_harder: {e}")
-            self.sieg_valve_dormant()
-            self.send_error(f"Error during send_harder: {e}")
-        finally:
-            self._movement_task = None
-            self.log(f"Task {task_id} complete")
-
-    ##############################################
-    # Flow related conversions
-    ##############################################
-
-    def flow_percent_from_time(self, time_s: float) -> float:
-        """
-        Convert valve position in seconds (time_s,  seconds from valve 
-        at its fully send stop endpoint) to actual flow percentage (flow_percent_keep)
-        """
-        # Time to flow points (experimental)
-        points =  self.flow_percent_from_seconds
-        x = time_s
-
-        # Below the first point
-        if x <= points[0][0]:
-            return 0
-
-        # Above the last point
-        if x >= points[-1][0]:
-            return 100
-
-        # Find the segment x lies within
-        for i in range(1, len(points)):
-            x0, y0 = points[i - 1]
-            x1, y1 = points[i]
-            if x0 <= x <= x1:
-                y = (x - x0) * (y1 - y0) / (x1 - x0) + y0
-                return y
-
-        raise ValueError(f"Interpolation failed – {x} not in 0-100!")
-
-    def time_from_flow_percent(self, flow_percent_keep: float) -> float:
-        """
-        Convert actual flow percentage (flow_percent_keep) to valve position
-        (seconds from valve at its fully send stop endpoint)
-        """
-        points = []
-        for point in self.flow_percent_from_seconds:
-            points.append([point[1], point[0]])
-
-        # Bound the flow percent keep between 0 and 100
-        x = flow_percent_keep
-        if not (0<=x and x<=100):
-            old_x = x
-            x = max(0, min(x, 100))
-            self.log(f"changing flow percent keep from {old_x} to {x}")
-        
-        # Find the segment x lies within
-        for i in range(1, len(points)):
-            x0, y0 = points[i - 1]
-            x1, y1 = points[i]
-            if x0 <= x <= x1:
-                y = (x - x0) * (y1 - y0) / (x1 - x0) + y0
-                return y
-
-        raise Exception(f"time_from_flow_percent requires flow_percent_keep between 0 and 100")
-
-    @property
-    def flow_percent_keep(self) -> float:
-        """Calculate the current flow percentage through the keep path based on valve position"""
-        return self.flow_percent_from_time(self.keep_seconds)
 
     # --------------------------------------
     # Required methods and properties
