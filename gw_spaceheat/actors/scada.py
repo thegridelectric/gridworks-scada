@@ -412,35 +412,39 @@ class Scada(PrimeActor, ScadaInterface):
         event = payload.DispatchTrigger
         self.log(f"AdminDispatch event is {event.EventName}")
 
-        to_node = self.layout.node_by_handle(event.ToHandle)
-        if to_node is None:
-            to_node = self.layout.node(event.ToHandle.split(".")[-1], None)
-        if to_node is None:
-            self.log(f"Ignoring AdminDispatch to unknown handle {event.ToHandle}")
-            return
+        to_name = event.ToHandle.split(".")[-1]
+        if to_name == "hp-boss":
+            if payload.DispatchTrigger.EventName == "TurnOn":
+                event = FsmEvent(
+                    FromHandle="admin",
+                    ToHandle="admin.relay6",
+                    EventType=ChangeRelayState.enum_name(),
+                    EventName=ChangeRelayState.CloseRelay,
+                    SendTimeUnixMs=int(time.time() * 1000),
+                    TriggerId=str(uuid.uuid4()),
+                )
+            else:
+                event = FsmEvent(
+                    FromHandle="admin",
+                    ToHandle="admin.relay6",
+                    EventType=ChangeRelayState.enum_name(),
+                    EventName=ChangeRelayState.OpenRelay,
+                    SendTimeUnixMs=int(time.time() * 1000),
+                    TriggerId=str(uuid.uuid4()),
+                )
 
-        boss = self.layout.boss_node(to_node)
-        if boss is None:
-            self.log(f"Ignoring AdminDispatch to {to_node.name} with no boss")
-            return
-
-        forwarded_event = event.model_copy(
-            update={
-                "FromHandle": boss.handle,
-                "ToHandle": to_node.handle,
-            }
-        )
+            to_name = "relay6"
 
         # TODO: change this to work if relays etc are NOT on primary scada
-        if communicator := self.get_communicator(to_node.name):
+        if communicator := self.get_communicator(to_name):
             communicator.process_message(
                 Message(
                     header=Header(
-                        Src=boss.name,
+                        Src=H0N.admin,
                         Dst=communicator.name,
-                        MessageType=forwarded_event.TypeName,
+                        MessageType=event.TypeName,
                     ),
-                    Payload=forwarded_event,
+                    Payload=event,
                 )
             )
 
@@ -1577,17 +1581,11 @@ class Scada(PrimeActor, ScadaInterface):
     def data(self) -> ScadaData:
         return self._data
 
-    def _control_handle(self, node: ShNode) -> str:
-        if self.layout.use_sieg_loop and node.Name == H0N.hp_scada_ops_relay:
-            return self.hp_boss.handle
-        return node.handle
-
     @property
     def control_capabilities(self) -> ScadaControlCapabilities:
         relay_nodes = [ 
             ControlNode(
                 Name=node.Name,
-                Handle=self._control_handle(node),
                 ActorClass=node.ActorClass,
                 DisplayName=node.DisplayName
             )
@@ -1597,7 +1595,6 @@ class Scada(PrimeActor, ScadaInterface):
         dac_nodes = [
             ControlNode(
                 Name=node.Name,
-                Handle=self._control_handle(node),
                 ActorClass=node.ActorClass,
                 DisplayName=node.DisplayName
             )
