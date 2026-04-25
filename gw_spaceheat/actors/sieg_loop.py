@@ -159,6 +159,7 @@ class SiegLoop(ShNodeActor):
         self.actuators_ready: bool = False
         self.control_interval_seconds = 30
         self.time_since_last_report = 5*60
+        self.hp_turned_off_time = None
 
         self.t1 = 26                        # seconds where some flow starts going through the Sieg Loop
         self.t2 = self.FULL_RANGE_S - 18    # seconds where all flow starts going through the Sieg Loop
@@ -265,8 +266,9 @@ class SiegLoop(ShNodeActor):
             return True
         if self.total_hp_pwr_w() is None:
             return True
-        if self.total_hp_pwr_w() > 500:
-            return True
+        if self.hp_turned_off_time is not None and time.time()-self.hp_turned_off_time>120:
+            if self.total_hp_pwr_w() > 500:
+                return True
         return False        
 
     # --------------------------------------
@@ -389,6 +391,12 @@ class SiegLoop(ShNodeActor):
             raise Exception(f"The StateEnum {payload.StateEnum}is not a HpBossState enum: {HpBossState.enum_name()}")
         if from_node != self.hp_boss:
             raise Exception("Not expecting single machine state messages except from HpBoss")
+
+        if (
+            payload.State == HpBossState.HpOff
+            and self.hp_boss_state != HpBossState.HpOff
+        ):
+            self.hp_turned_off_time = time.time()
 
         if (
             payload.State == HpBossState.PreparingToTurnOn
