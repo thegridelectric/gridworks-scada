@@ -211,6 +211,17 @@ class OrigSiegLoop(ShNodeActor):
         self.moving_to_calculated_target = False
         self.control_interval_seconds = 30
 
+        # Heat pump lift model
+        M_SIEG_KG = 3 * 3.7854 # TODO: assuming 3 gallons in the sieg loop
+        CP = 4.187/3600
+        hp_kw_th_at_minute = [
+            0.009, 0.393, 0.000, 0.000, 0.617, 4.283, 4.080, 4.355, # minutes 0-7
+            6.836, 8.661, 8.997, 9.477, 9.337, 9.269, 9.010, 9.560, # minutes 8-15
+            11.733, 14.073, 15.059, 15.574, 16.336, 16.918, 16.965 # minutes 16-22
+        ]
+        hp_kwh_th_at_minute = [x/60 for x in hp_kw_th_at_minute]
+        self.hp_lift_at_minute = [hp_kwh_th_at_minute[minutes_since_hp_on]/(M_SIEG_KG*CP*5/9) for minutes_since_hp_on in range(len(hp_kw_th_at_minute))]
+
         self.lwt_readings = deque(maxlen=40)
         if self.flow_from_time_points[0][1] != 0:
             raise Exception(f"First flow point should be [x,0]!")
