@@ -4,17 +4,17 @@ import asyncio
 from enum import auto
 from result import Ok, Result
 from transitions import Machine
-from typing import List, Optional, Sequence
+from typing import Any, Optional, Sequence
 
-from scada_app_interface import ScadaAppInterface
+from gw_spaceheat.scada_app_interface import ScadaAppInterface
 from gwproto.message import Message
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwsproto.data_classes.sh_node import ShNode
-from gwsproto.named_types import FsmFullReport
 from gwsproto.enums.gw_str_enum import GwStrEnum
-from actors.hp_boss import SiegLoopReady, HpBossState
-from actors.sh_node_actor import ShNodeActor
+from gw_spaceheat.actors.hp_boss import SiegLoopReady
+from gwsproto.enums.hp_boss_state import HpBossState
+from gw_spaceheat.actors.sh_node_actor import ShNodeActor
 from gwsproto.named_types import ActuatorsReady, SingleMachineState
 
 
@@ -26,7 +26,7 @@ class SiegValveState(GwStrEnum):
     FullyKeep = auto() 
 
     @classmethod
-    def values(cls) -> List[str]:
+    def values(cls) -> list[str]:
         return [elt.value for elt in cls]
 
     @classmethod
@@ -51,7 +51,7 @@ class SiegControlState(GwStrEnum):
     HpHasLift = auto()
 
     @classmethod
-    def values(cls) -> List[str]:
+    def values(cls) -> list[str]:
         return [elt.value for elt in cls]
 
     @classmethod
@@ -198,13 +198,16 @@ class SiegLoop(ShNodeActor):
             self.time_since_last_report += self.control_interval_seconds
             await asyncio.sleep(self.control_interval_seconds)
 
-    def hp_has_enough_lift(self):
-        if self.is_blind():
-            self.log(f"Warning: hp_has_enough_lift called but blind")
+    def hp_loop_is_getting_hot(self):
+        lwt = self.lwt_f()
+        ewt = self.ewt_f()
+        
+        if self.is_blind() or not lwt or not ewt:
+            self.log(f"Warning: hp_loop_is_getting_hot called but blind")
             return True
         
         threshold_lwt = self.data.ha1_params.MaxEwtF-20
-        if max(self.lwt_f(), self.ewt_f()) > threshold_lwt:
+        if max(lwt, ewt) > threshold_lwt:
             return True
         return False
 
@@ -220,7 +223,7 @@ class SiegLoop(ShNodeActor):
                 elif self.hp_boss_state == HpBossState.PreparingToTurnOn:
                     self.trigger_control_event(SiegControlEvent.DoneInitializingHpStartingUp)
                 elif self.hp_boss_state == HpBossState.HpOn:
-                    if self.hp_has_enough_lift():
+                    if self.hp_loop_is_getting_hot():
                         self.trigger_control_event(SiegControlEvent.DoneInitializingHpOn)
                     else:
                         self.trigger_control_event(SiegControlEvent.DoneInitializingHpStartingUp)
@@ -237,7 +240,7 @@ class SiegLoop(ShNodeActor):
             elif self.hp_boss_state == HpBossState.PreparingToTurnOn:
                 self.trigger_control_event(SiegControlEvent.NoLongerBlindHpStartingUp)
             elif self.hp_boss_state == HpBossState.HpOn:
-                if self.hp_has_enough_lift():
+                if self.hp_loop_is_getting_hot():
                     self.trigger_control_event(SiegControlEvent.NoLongerBlindHpOn)
                 else:
                     self.trigger_control_event(SiegControlEvent.NoLongerBlindHpStartingUp)
@@ -254,7 +257,7 @@ class SiegLoop(ShNodeActor):
         ):
             self.trigger_control_event(SiegControlEvent.HpTurnsOn)
         elif self.control_state == SiegControlState.HpStartingUp:
-            if self.hp_has_enough_lift():
+            if self.hp_loop_is_getting_hot():
                 self.trigger_control_event(SiegControlEvent.HpStartUpDone)
 
     def is_blind(self) -> bool:
@@ -302,15 +305,15 @@ class SiegLoop(ShNodeActor):
             )
         )
     
-    def moving_to_full_send(self, event):
+    def moving_to_full_send(self, event: SiegControlEvent) -> None:
         self.log(f"Moving to full send")
         asyncio.create_task(self._prepare_new_movement_task(-self.keep_seconds - 10))
 
-    def moving_to_full_keep(self, event):
+    def moving_to_full_keep(self, event: SiegControlEvent) -> None:
         self.log(f"Moving to full keep position (overshoot the full range by 10 seconds to be safe)")
         asyncio.create_task(self._prepare_new_movement_task(-self.keep_seconds + self.FULL_RANGE_S + 10))
 
-    def moving_to_just_keep(self, event):
+    def moving_to_just_keep(self, event: SiegControlEvent) -> None:
         self.log(f"Moving to just keep position")
         asyncio.create_task(self._prepare_new_movement_task(-self.keep_seconds + self.t2))
 
@@ -345,22 +348,22 @@ class SiegLoop(ShNodeActor):
         #     )
         # )
 
-    def before_keeping_more(self, event):
+    def before_keeping_more(self, event: SiegValveEvent) -> None:
         self.change_to_hp_keep_more()
         self.sieg_valve_active()
 
-    def before_keeping_less(self, event):
+    def before_keeping_less(self, event: SiegValveEvent) -> None:
         self.change_to_hp_keep_less()
         self.sieg_valve_active()
 
-    def before_keeping_steady(self, event):
+    def before_keeping_steady(self, event: SiegValveEvent) -> None:
         self.sieg_valve_dormant()
 
     # --------------------------------------
     # Message processing
     # --------------------------------------
 
-    def process_message(self, message: Message) -> Result[bool, BaseException]:
+    def process_message(self, message: Message[Any]) -> Result[bool, Exception]:
         from_node = self.layout.node(message.Header.Src, None)
         if from_node is None:
             return Ok(False)
