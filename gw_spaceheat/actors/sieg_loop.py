@@ -6,15 +6,15 @@ from result import Ok, Result
 from transitions import Machine
 from typing import Any, Optional, Sequence
 
-from gw_spaceheat.scada_app_interface import ScadaAppInterface
+from scada_app_interface import ScadaAppInterface
 from gwproto.message import Message
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums.gw_str_enum import GwStrEnum
-from gw_spaceheat.actors.hp_boss import SiegLoopReady
+from actors.hp_boss import SiegLoopReady
 from gwsproto.enums.hp_boss_state import HpBossState
-from gw_spaceheat.actors.sh_node_actor import ShNodeActor
+from actors.sh_node_actor import ShNodeActor
 from gwsproto.named_types import ActuatorsReady, SingleMachineState
 
 
