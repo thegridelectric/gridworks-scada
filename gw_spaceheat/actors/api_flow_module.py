@@ -183,7 +183,7 @@ class ApiFlowModule(ShNodeActor):
                 ScadaReadTimeUnixMs=int(time.time() * 1000),
             )
             self._send_to(self.primary_scada, msg)
-            if self.node.name == "sieg-flow":
+            if self.layout.use_sieg_loop and self.node.name == "sieg-flow":
                 self._send_to(self.derived_generator, msg)
 
     def flatline_seconds(self) -> int:
@@ -480,7 +480,7 @@ class ApiFlowModule(ShNodeActor):
             ScadaReadTimeUnixMs=zero_flow_ms,
         )
         self._send_to(self.primary_scada, msg)
-        if self.node.name == "sieg-flow":
+        if self.layout.use_sieg_loop and self.node.name == "sieg-flow":
             self._send_to(self.derived_generator, msg)
         self._send_to(
             self.pico_cycler,
@@ -522,7 +522,7 @@ class ApiFlowModule(ShNodeActor):
             ScadaReadTimeUnixMs=int(self.latest_tick_ns/1e6),
         )
         self._send_to(self.primary_scada, msg)
-        if self.node.name == "sieg-flow":
+        if self.layout.use_sieg_loop and self.node.name == "sieg-flow":
             self._send_to(self.derived_generator, msg)
         self._send_to(
             self.pico_cycler,
@@ -620,7 +620,7 @@ class ApiFlowModule(ShNodeActor):
             ScadaReadTimeUnixMsList=micro_hz_readings.ScadaReadTimeUnixMsList,
         )
         self._send_to(self.primary_scada, gpm_readings)
-        if self.node.name == "sieg-flow":
+        if self.layout.use_sieg_loop and self.node.name == "sieg-flow":
             self._send_to(self.derived_generator, gpm_readings)
         self._send_to(self.pico_cycler, gpm_readings)
         if self._component.gt.SendHz:

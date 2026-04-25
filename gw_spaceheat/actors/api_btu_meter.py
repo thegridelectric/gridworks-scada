@@ -258,7 +258,7 @@ class ApiBtuMeter(PicoActorBase):
         )
         self._send_to(self.pico_cycler, msg)
         self._send_to(self.primary_scada, msg)
-        if self.node.name == "sieg-btu":
+        if self.layout.use_sieg_loop and self.node.name == "sieg-btu":
             self._send_to(self.derived_generator, msg)
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
