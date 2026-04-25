@@ -263,6 +263,10 @@ class SiegLoop(ShNodeActor):
     def is_blind(self) -> bool:
         if self.lift_f() is None:
             return True
+        if self.total_hp_pwr_w() is None:
+            return True
+        if self.total_hp_pwr_w() > 500:
+            return True
         return False        
 
     # --------------------------------------
