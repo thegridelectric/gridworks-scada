@@ -1674,6 +1674,31 @@ class ShNodeActor(Actor, ABC):
 
         self.data.latest_temperatures_f = dict(sorted(self.data.latest_temperatures_f.items()))
 
+    def hp_idu_pwr_w(self) -> Optional[float]:
+        """Returns the latest Heat Pump indoor unit power in Watts, or None
+        if it does not exist"""
+        raw = self.data.latest_channel_values.get(H0CN.hp_idu_pwr)
+        if raw is None:
+            return None
+        return raw
+    
+    def hp_odu_pwr_w(self) -> Optional[float]:
+        """Returns the latest Heat Pump outdoor unit power in Watts, or None
+        if it does not exist"""
+        raw = self.data.latest_channel_values.get(H0CN.hp_odu_pwr)
+        if raw is None:
+            return None
+        return raw
+
+    def total_hp_pwr_w(self) -> Optional[float]:
+        """Returns the latest Heat Pump total power in Watts, or None
+        if it does not exist"""
+        idu_pwr = self.hp_idu_pwr_w()
+        odu_pwr = self.hp_odu_pwr_w()
+        if idu_pwr is None or odu_pwr is None:
+            return None
+        return idu_pwr + odu_pwr
+
     def lwt_f(self) -> Optional[float]:
         """Returns the latest Heat pump leaving water temp in deg F, or None
         if it does not exist"""
