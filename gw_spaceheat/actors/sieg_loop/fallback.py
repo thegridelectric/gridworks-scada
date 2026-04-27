@@ -73,7 +73,7 @@ class SiegControlEvent(GwStrEnum):
     HpStartUpDone = auto()
 
 
-class SiegLoop(ShNodeActor):
+class SiegLoopFallback(ShNodeActor):
     FULL_RANGE_S = 100
 
     def __init__(self, name: str, services: ScadaAppInterface):

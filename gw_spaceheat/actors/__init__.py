@@ -18,7 +18,7 @@ from actors.power_meter import PowerMeter
 from actors.relay import Relay
 from actors.scada import Scada
 from actors.scada_interface import ScadaInterface
-from actors.sieg_loop import SiegLoop
+from actors.sieg_loop_loader import SiegLoop
 from actors.zero_ten_outputer import ZeroTenOutputer
 
 __all__ = [
