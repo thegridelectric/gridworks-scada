@@ -38,7 +38,10 @@ For most contributors:
  2. **Create venv**: Run `./tools/mkenv.sh`.  This creates `gw_spaceheat/venv/`
     - (On a Raspberry Pi use `./tools/mkenv-pi.sh`.)
  3.  **Activate venv**:  `source gw_spaceheat/venv/bin/activate`
- 4. **Run tests:** `pytest -v`
+ 4.  **Export pythonpath**: include gw_spaceheat in the pythonpath
+     - Linux/mac: `export PYTHONPATH=[PATH TO]/gridworks-scada/gw_spaceheat:$PYTHONPATH`
+     - Windows in powershell: $env:PYTHONPATH="C:\Users\Joe\Coding\gridworks-scada\gw_spaceheat;$env:PYTHONPATH"
+ 6. **Run tests:** `pytest -v`
 
 ### Test Environment Notes
 
