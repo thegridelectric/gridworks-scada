@@ -1,7 +1,6 @@
 import logging
 from pathlib import Path
 
-from pydantic import model_validator
 from gwproactor import AppSettings
 from gwproactor.config.mqtt import TLSInfo
 from pydantic import BaseModel
@@ -9,7 +8,7 @@ from pydantic import BaseModel
 from gwsproto.data_classes.house_0_names import H0N
 from gwproactor.config import MQTTClient
 from pydantic_settings import SettingsConfigDict
-from gwsproto.enums import HpModel, SystemMode, SeasonalStorageMode
+from gwsproto.enums import HpModel, SiegLoopMode, SystemMode, SeasonalStorageMode
 
 # gridworks-scada/tests/config/hardware-layout.json
 DEFAULT_TEST_LAYOUT = (
@@ -31,6 +30,7 @@ class AdminLinkSettings(MQTTClient):
     enabled: bool = False
     name: str = H0N.admin
     max_timeout_seconds: float = 60 * 60 * 24
+
 
 class ScadaSettings(AppSettings):
     """Settings for the GridWorks scada."""
@@ -72,6 +72,7 @@ class ScadaSettings(AppSettings):
     oil_boiler_backup: bool = True
     system_mode: SystemMode = SystemMode.Heating
     seasonal_storage_mode: SeasonalStorageMode = SeasonalStorageMode.AllTanks
+    sieg_loop_default_mode: SiegLoopMode = SiegLoopMode.Fallback
     whitewire_threshold_watts: float = 20 # TODO: move to layout
     hp_model: HpModel = HpModel.SamsungFiveTonneHydroKit # TODO: move to layout
     model_config = SettingsConfigDict(env_prefix="SCADA_", extra="ignore")

@@ -63,6 +63,7 @@ from gwsproto.enums.relay_closed_or_open import RelayClosedOrOpen
 from gwsproto.enums.relay_energization_state import RelayEnergizationState
 from gwsproto.enums.relay_wiring_config import RelayWiringConfig
 from gwsproto.enums.seasonal_storage_mode import SeasonalStorageMode
+from gwsproto.enums.sieg_loop_mode import SiegLoopMode
 from gwsproto.enums.slow_dispatch_contract_status import SlowDispatchContractStatus
 from gwsproto.enums.store_flow_relay import StoreFlowRelay
 from gwsproto.enums.system_mode import SystemMode
@@ -125,6 +126,7 @@ __all__ = [
     "RelayEnergizationState",
     "RelayWiringConfig",
     "SeasonalStorageMode",
+    "SiegLoopMode",
     "SlowDispatchContractStatus",
     "StoreFlowRelay",
     "SystemMode",
