@@ -65,9 +65,11 @@ class SiegLoop(ShNodeActor):
         return self._impl
 
     def switch_to_fallback(self, reason: str) -> None:
+        self.log(f"Switching to Fallback mode: {reason}")
         self._switch_to_mode(SiegLoopMode.Fallback, reason=reason)
 
     def switch_to_pid(self, reason: str) -> None:
+        self.log(f"Switching to PID mode: {reason}")
         healthy, health_reason = self.evaluate_strategy_health()
         if not healthy:
             summary = "SiegLoop PID strategy not started"
@@ -169,6 +171,7 @@ class SiegLoop(ShNodeActor):
     async def _health_check_loop(self) -> None:
         while not self._stop_requested:
             await asyncio.sleep(self.HEALTH_CHECK_SECONDS)
+            self.log(f"SiegLoop health check: {self._mode}")
             try:
                 if self._mode == SiegLoopMode.Fallback:
                     continue
