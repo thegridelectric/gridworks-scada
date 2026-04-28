@@ -41,12 +41,12 @@ class ScadaSettings(AppSettings):
     relay_multiplexer_logging_level: int = logging.INFO
     paho_logging: bool = False
     local_mqtt: MQTTClient = MQTTClient(tls=TLSInfo(use_tls=False))
-    gridworks_mqtt: MQTTClient = MQTTClient()
+    gridworks_mqtt: MQTTClient = MQTTClient(tls=TLSInfo(use_tls=False))
     seconds_per_report: int = 300
     seconds_per_snapshot: int = 30
     async_power_reporting_threshold: float = 0.02
     persister: PersisterSettings = PersisterSettings()
-    admin: AdminLinkSettings = AdminLinkSettings()
+    admin: AdminLinkSettings = AdminLinkSettings(tls=TLSInfo(use_tls=False))
     timezone_str: str = "America/New_York"
     latitude: float = 45.6573 
     longitude: float = -68.7098

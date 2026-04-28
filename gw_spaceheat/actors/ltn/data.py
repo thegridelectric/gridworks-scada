@@ -60,12 +60,7 @@ class LtnData:
         """
         Load a LayoutLite fixture for simulated Ltn operation.
         """
-        path = Path(__file__).parents[2] / "tests" / "config.layout-lite.json"
-
-        with path.open("r", encoding="utf-8") as f:
-            payload = json.load(f)
-        layout_gt = LayoutLite(**payload)
-        self.layout_lite = self.load_layout_lite(layout_gt)
+        raise NotImplementedError("TODO: add fixtures to Sema type tests")
 
     def load_layout_lite(self, layout_gt: LayoutLite) -> None:
         self.layout_lite = LayoutLiteDc(layout_gt)

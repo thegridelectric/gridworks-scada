@@ -193,7 +193,14 @@ async def _await_scada_connected(
 @pytest.mark.asyncio
 async def test_admin_relay_set(request: pytest.FixtureRequest) -> None:
     """Set a relay and verify we see the set take effect."""
-    settings = ScadaSettings(admin=AdminLinkSettings(enabled=True))
+    settings = ScadaSettings(
+        admin=AdminLinkSettings(
+            enabled=True,
+            host="127.0.0.1",
+            port=1883,
+            tls=TLSInfo(use_tls=False),
+        )
+    )
     layout = House0Layout.load(settings.paths.hardware_layout)
     async with ScadaLiveTest(
             request=request,
@@ -223,7 +230,7 @@ async def test_admin_relay_set(request: pytest.FixtureRequest) -> None:
             )
             await h.await_for(
                 lambda: relays_app.ctrl_capabilities_received(),
-                "ERROR wait for admin to receive a layout",
+                "ERROR wait for admin to receive ControlCapbilities",
             )
             await h.await_for(
                 lambda: relays_app.snapshot_received(),
@@ -255,7 +262,14 @@ async def test_admin_relay_set(request: pytest.FixtureRequest) -> None:
 @pytest.mark.asyncio
 async def test_admin_dac_set(request: pytest.FixtureRequest) -> None:
     """Set a dac and verify we see the set take effect."""
-    settings = ScadaSettings(admin=AdminLinkSettings(enabled=True))
+    settings = ScadaSettings(
+        admin=AdminLinkSettings(
+            enabled=True,
+            host="127.0.0.1",
+            port=1883,
+            tls=TLSInfo(use_tls=False),
+        )
+    )
     layout = House0Layout.load(settings.paths.hardware_layout)
     async with ScadaLiveTest(
             request=request,
@@ -482,7 +496,7 @@ def test_admin_mkconfig_force() -> None:
 
     # Try to overwrite it
     result = _gwa(["mkconfig"], 4)
-    assert "Doing nothing" in result.output
+    assert "Doing nothing" in " ".join(result.output.split())
     assert curr_config.config == _check_config(curr_config.config)
 
     # Force overwrite it
@@ -562,4 +576,3 @@ def test_admin_add_scada() -> None:
     # Verify the change took
     exp.scadas[scada_name].long_name = new_long_name
     _check_config(exp)
-

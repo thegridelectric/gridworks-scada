@@ -1,9 +1,11 @@
 """Test config module"""
+import os
 import textwrap
 from pathlib import Path
 import logging
 
 import dotenv
+import pytest
 from gwproactor.config import Paths
 from gwproactor.config.mqtt import TLSInfo
 from gwproactor.config.proactor_settings import ACK_TIMEOUT_SECONDS
@@ -18,8 +20,22 @@ from actors.config import ScadaSettings
 from gwsproto.enums import HpModel
 from gwproactor.config.proactor_settings import MQTT_LINK_POLL_SECONDS
 from gwproactor_test import clean_test_env
+from gwproactor_test.clean import DefaultTestEnv
 
-def test_scada_settings_defaults(clean_test_env):
+
+@pytest.fixture
+def clean_scada_env(monkeypatch):
+    for env_var in list(os.environ):
+        if env_var.startswith("SCADA_"):
+            monkeypatch.delenv(env_var, raising=False)
+
+
+@pytest.mark.parametrize(
+    "default_test_env",
+    [DefaultTestEnv(use_test_dotenv=False)],
+    indirect=True,
+)
+def test_scada_settings_defaults(default_test_env, clean_test_env, clean_scada_env):
     """Test ScadaSettings defaults"""
 
     # defaults
@@ -62,7 +78,7 @@ def test_scada_settings_defaults(clean_test_env):
         relay_multiplexer_logging_level=logging.INFO,
         local_mqtt=exp_local_mqtt.model_dump(),
         gridworks_mqtt=MQTTClient(
-            tls=TLSInfo().update_tls_paths(
+            tls=TLSInfo(use_tls=False).update_tls_paths(
                 Paths().certs_dir,
                 "gridworks_mqtt"
             )
@@ -76,7 +92,7 @@ def test_scada_settings_defaults(clean_test_env):
         logging=LoggingSettings().model_dump(),
         persister=PersisterSettings().model_dump(),
         admin=AdminLinkSettings(
-            tls=TLSInfo().update_tls_paths(
+            tls=TLSInfo(use_tls=False).update_tls_paths(
                 Paths().certs_dir,
                 "admin"
             )
@@ -94,7 +110,14 @@ def test_scada_settings_defaults(clean_test_env):
     assert settings.local_mqtt.password.get_secret_value() == ""
 
 
-def test_scada_settings_from_env(monkeypatch, clean_test_env):
+@pytest.mark.parametrize(
+    "default_test_env",
+    [DefaultTestEnv(use_test_dotenv=False)],
+    indirect=True,
+)
+def test_scada_settings_from_env(
+    default_test_env, monkeypatch, clean_test_env, clean_scada_env
+):
     """Verify settings loaded from env as expected. """
     settings = ScadaSettings()
     assert settings.seconds_per_report == 300
@@ -119,7 +142,14 @@ def test_scada_settings_from_env(monkeypatch, clean_test_env):
     assert settings.gridworks_mqtt.password.get_secret_value() == exp["SCADA_GRIDWORKS_MQTT__PASSWORD"]
 
 
-def test_scada_settings_from_dotenv(monkeypatch, tmp_path, clean_test_env):
+@pytest.mark.parametrize(
+    "default_test_env",
+    [DefaultTestEnv(use_test_dotenv=False)],
+    indirect=True,
+)
+def test_scada_settings_from_dotenv(
+    default_test_env, monkeypatch, tmp_path, clean_test_env, clean_scada_env
+):
     """Verify settings loaded from .env file as expected. """
     env_file = Path(tmp_path) / ".env"
     settings = ScadaSettings(_env_file=env_file)

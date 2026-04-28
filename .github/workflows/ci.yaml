@@ -44,7 +44,7 @@ jobs:
             --name gw-mqtt \
             -p 1883:1883 \
             -p 8883:8883 \
-            -v ${{ github.workspace }}/tests/config/gw_mosquitto.conf:/mosquitto/config/mosquitto.conf:ro \
+            -v ${{ github.workspace }}/tests/config/ci_mosquitto.conf:/mosquitto/config/mosquitto.conf:ro \
             -v ${{ github.workspace }}/tests/.ci-ca:/mosquitto-certs:ro \
             eclipse-mosquitto:2
 
