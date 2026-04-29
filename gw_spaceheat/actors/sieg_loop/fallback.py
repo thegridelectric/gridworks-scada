@@ -73,7 +73,7 @@ class SiegControlEvent(GwStrEnum):
     HpStartUpDone = auto()
 
 
-class SiegLoop(ShNodeActor):
+class SiegLoopFallback(ShNodeActor):
     FULL_RANGE_S = 100
 
     def __init__(self, name: str, services: ScadaAppInterface):
@@ -153,6 +153,8 @@ class SiegLoop(ShNodeActor):
         self.keep_seconds: float = self.FULL_RANGE_S
 
         self._movement_task = None
+        self._main_task: asyncio.Task | None = None
+        self._background_tasks: set[asyncio.Task] = set()
 
         self.hp_boss_state = HpBossState.HpOn
 
@@ -163,6 +165,12 @@ class SiegLoop(ShNodeActor):
 
         self.t1 = 26                        # seconds where some flow starts going through the Sieg Loop
         self.t2 = self.FULL_RANGE_S - 18    # seconds where all flow starts going through the Sieg Loop
+
+    def _create_task(self, coro, *, name: str | None = None) -> asyncio.Task:
+        task = asyncio.create_task(coro, name=name)
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
+        return task
 
     # --------------------------------------
     # Main loop
@@ -204,7 +212,7 @@ class SiegLoop(ShNodeActor):
         ewt = self.ewt_f()
         
         if self.is_blind() or not lwt or not ewt:
-            self.log(f"Warning: hp_loop_is_getting_hot called but blind")
+            self.log("Warning: hp_loop_is_getting_hot called but blind")
             return True
         
         threshold_lwt = self.data.ha1_params.MaxEwtF-20
@@ -229,7 +237,7 @@ class SiegLoop(ShNodeActor):
                     else:
                         self.trigger_control_event(SiegControlEvent.DoneInitializingHpStartingUp)
             else:
-                self.log(f"Waiting for actuators to be ready to get out of Initializing state")
+                self.log("Waiting for actuators to be ready to get out of Initializing state")
                 return
         
         # Get in/out of Blind state
@@ -312,23 +320,22 @@ class SiegLoop(ShNodeActor):
         )
     
     def moving_to_full_send(self, event: SiegControlEvent) -> None:
-        self.log(f"Moving to full send")
-        asyncio.create_task(self._prepare_new_movement_task(-self.keep_seconds - 10))
+        self.log("Moving to full send")
+        self._create_task(self._prepare_new_movement_task(-self.keep_seconds - 10))
 
     def moving_to_full_keep(self, event: SiegControlEvent) -> None:
-        self.log(f"Moving to full keep position (overshoot the full range by 10 seconds to be safe)")
-        asyncio.create_task(self._prepare_new_movement_task(-self.keep_seconds + self.FULL_RANGE_S + 10))
+        self.log("Moving to full keep position (overshoot the full range by 10 seconds to be safe)")
+        self._create_task(self._prepare_new_movement_task(-self.keep_seconds + self.FULL_RANGE_S + 10))
 
     def moving_to_just_keep(self, event: SiegControlEvent) -> None:
-        self.log(f"Moving to just keep position")
-        asyncio.create_task(self._prepare_new_movement_task(-self.keep_seconds + self.t2))
+        self.log("Moving to just keep position")
+        self._create_task(self._prepare_new_movement_task(-self.keep_seconds + self.t2))
 
     # --------------------------------------
     # Valve State Machine
     # --------------------------------------
 
     def trigger_valve_event(self, event: SiegValveEvent) -> None:
-        now_ms = int(time.time() * 1000)
         orig_state = self.valve_state 
 
         control_fn = getattr(self, event)
@@ -402,7 +409,7 @@ class SiegLoop(ShNodeActor):
             payload.State == HpBossState.PreparingToTurnOn
             and self.hp_boss_state != HpBossState.PreparingToTurnOn
         ):
-            self.log(f"Sending SiegLoopReady to HpBoss")
+            self.log("Sending SiegLoopReady to HpBoss")
             self._send_to(self.hp_boss, SiegLoopReady())
 
         self.hp_boss_state = payload.State
@@ -435,11 +442,11 @@ class SiegLoop(ShNodeActor):
             # Ensure proper state cleanup regardless of how the task ended
             if self.valve_state == SiegValveState.KeepingMore:
                 self.trigger_valve_event(SiegValveEvent.StopKeepingMore)
-                self.log(f"Triggered StopKeepingMore after cancellation")
+                self.log("Triggered StopKeepingMore after cancellation")
             
             elif self.valve_state == SiegValveState.KeepingLess:
                 self.trigger_valve_event(SiegValveEvent.StopKeepingLess)
-                self.log(f"Triggered StopKeepingLess after cancellation")
+                self.log("Triggered StopKeepingLess after cancellation")
 
             # Set task to None after cancellation
             self._movement_task = None
@@ -456,12 +463,12 @@ class SiegLoop(ShNodeActor):
         else:
             self.log(f"Task {new_task_id}: move to send for {round(-delta_s,1)} seconds")
         
-        self._movement_task = asyncio.create_task(self._adjust_keep_seconds(delta_s, new_task_id))
+        self._movement_task = self._create_task(self._adjust_keep_seconds(delta_s, new_task_id))
     
     async def _adjust_keep_seconds(self, delta_s: float, task_id: str) -> None:
         """Move the valve by adding delta_s to the current keep seconds."""
         if delta_s == 0:
-            self.log(f"Already at target, delta_s is 0 seconds")
+            self.log("Already at target, delta_s is 0 seconds")
             return
 
         try:
@@ -591,14 +598,36 @@ class SiegLoop(ShNodeActor):
     # --------------------------------------
 
     def start(self) -> None:
-        self.services.add_task(asyncio.create_task(self.main(), name="Sieg Loop Synchronous Report"))
+        self._stop_requested = False
+        self._main_task = self._create_task(
+            self.main(),
+            name="Sieg Loop Fallback Synchronous Report",
+        )
+        self.services.add_task(self._main_task)
 
     def stop(self) -> None:
         self._stop_requested = True
+        if self._movement_task and not self._movement_task.done():
+            self._movement_task.cancel()
+            try:
+                if self.valve_state == SiegValveState.KeepingMore:
+                    self.trigger_valve_event(SiegValveEvent.StopKeepingMore)
+                elif self.valve_state == SiegValveState.KeepingLess:
+                    self.trigger_valve_event(SiegValveEvent.StopKeepingLess)
+            except Exception as e:
+                self.log(f"Trouble stopping valve movement: {e}")
+        if self._main_task and not self._main_task.done():
+            self._main_task.cancel()
+        for task in list(self._background_tasks):
+            if not task.done():
+                task.cancel()
 
     async def join(self) -> None:
-        """IOLoop will take care of shutting down the associated task."""
-        ...
+        if self._background_tasks:
+            await asyncio.gather(
+                *list(self._background_tasks),
+                return_exceptions=True,
+            )
     
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:

@@ -1695,6 +1695,8 @@ class ShNodeActor(Actor, ABC):
         if it does not exist"""
         idu_pwr = self.hp_idu_pwr_w()
         odu_pwr = self.hp_odu_pwr_w()
+        if self.settings.hp_model == HpModel.MitsubishiEcodan:
+            idu_pwr = 0
         if idu_pwr is None or odu_pwr is None:
             return None
         return idu_pwr + odu_pwr

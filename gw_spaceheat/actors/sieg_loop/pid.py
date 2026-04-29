@@ -80,7 +80,7 @@ class ControlEvent(GwStrEnum):
     ReachFullSend = auto()
 
 
-class OrigSiegLoop(ShNodeActor):
+class SiegLoopPid(ShNodeActor):
     """
     ```
               ├── HpLoopOnOff relay
@@ -140,6 +140,9 @@ class OrigSiegLoop(ShNodeActor):
         self.target_temp_too_low: bool = False
         self.resetting = False
         self._movement_task = None # Track the current movement task
+        self._main_task: asyncio.Task | None = None
+        self._startup_hover_monitor_task: asyncio.Task | None = None
+        self._background_tasks: set[asyncio.Task] = set()
         self.move_start_s: float = 0
         self.idu_w_readings = deque(maxlen=15)
         self.odu_w_readings = deque(maxlen=15)
@@ -224,24 +227,52 @@ class OrigSiegLoop(ShNodeActor):
 
         self.lwt_readings = deque(maxlen=40)
         if self.flow_from_time_points[0][1] != 0:
-            raise Exception(f"First flow point should be [x,0]!")
+            raise Exception("First flow point should be [x,0]!")
         if self.flow_from_time_points[-1][1] != 100:
-            raise Exception(f"Last flow point should be [x,100]!")
+            raise Exception("Last flow point should be [x,100]!")
         self.log(f"Starting with keep seconds at {round(self.keep_seconds,1)} s")
+
+    def _create_task(self, coro, *, name: str | None = None) -> asyncio.Task:
+        task = asyncio.create_task(coro, name=name)
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
+        return task
 
     def start(self) -> None:
         """ Required method. """
-        self.services.add_task(
-                asyncio.create_task(self.main(), name="Sieg Loop Synchronous Report")
-            )
+        self._stop_requested = False
+        self._main_task = self._create_task(
+            self.main(),
+            name="Sieg Loop PID Synchronous Report",
+        )
+        self.services.add_task(self._main_task)
 
     def stop(self) -> None:
         """ Required method, used for stopping tasks. Noop"""
         self._stop_requested = True
+        if self._startup_hover_monitor_task and not self._startup_hover_monitor_task.done():
+            self._startup_hover_monitor_task.cancel()
+        if self._movement_task and not self._movement_task.done():
+            self._movement_task.cancel()
+            try:
+                if self.valve_state == SiegValveState.KeepingMore:
+                    self.trigger_valve_event(ValveEvent.StopKeepingMore)
+                elif self.valve_state == SiegValveState.KeepingLess:
+                    self.trigger_valve_event(ValveEvent.StopKeepingLess)
+            except Exception as e:
+                self.log(f"Trouble stopping valve movement: {e}")
+        if self._main_task and not self._main_task.done():
+            self._main_task.cancel()
+        for task in list(self._background_tasks):
+            if not task.done():
+                task.cancel()
 
     async def join(self) -> None:
-        """IOLoop will take care of shutting down the associated task."""
-        ...
+        if self._background_tasks:
+            await asyncio.gather(
+                *list(self._background_tasks),
+                return_exceptions=True,
+            )
 
     ##############################################
     # Managing the target temperature
@@ -414,8 +445,9 @@ class OrigSiegLoop(ShNodeActor):
         Only call this in the PID control state"""
 
         if self.control_state != SiegControlState.PID:
-            raise Exception(f"target_too_low only ")
-        tsc = self.sieg_cold_f(); lift = self.lift_f()
+            raise Exception("target_too_low only ")
+        tsc = self.sieg_cold_f()
+        lift = self.lift_f()
         if tsc is None or lift is None:
             self.trigger_control_event(ControlEvent.Blind)
             return
@@ -527,7 +559,7 @@ class OrigSiegLoop(ShNodeActor):
         
         integral_term = self.integral_gain * self.error_integral
 
-        self.log(f"PID adjustment:")
+        self.log("PID adjustment:")
         self.log(f"  Error: {round(err, 1)}°F")
         # 4. Calculate total flow adjustment
         if seconds_hack:
@@ -576,14 +608,14 @@ class OrigSiegLoop(ShNodeActor):
 
         flow_target_percent = self.calc_eq_flow_percent(lift_f + 3)
         if flow_target_percent is None:
-            raise Exception(f"Should not get here if blind")
+            raise Exception("Should not get here if blind")
         self.log(f"flow_target_percent is {round(flow_target_percent)}")
         keep_seconds_target = self.time_from_flow(flow_target_percent)
         self.log(f"Calculated target time: {round(keep_seconds_target,1)}% keep")
         delta_s = keep_seconds_target - self.keep_seconds
         await self._prepare_new_movement_task(delta_s)
         # and now wait another 25 seconds to settle down trigger_control_event(ControlEvent.ReachFullSend)
-        self.log(f"Waiting 1 minute to see how this level works")
+        self.log("Waiting 1 minute to see how this level works")
         await asyncio.sleep(delta_s + 60)
         self.moving_to_calculated_target = False
 
@@ -595,7 +627,7 @@ class OrigSiegLoop(ShNodeActor):
         else:
             delta_s = self.target_seconds_for_leaving_defrost - self.keep_seconds
             self.log(f"Moving back to {round(self.target_seconds_for_leaving_defrost,1)} seconds")
-        asyncio.create_task(self._prepare_new_movement_task(delta_s))
+        self._create_task(self._prepare_new_movement_task(delta_s))
         # wait another minute before going back into PID adjustments
         await asyncio.sleep(delta_s + 60)
         self.moving_to_calculated_target = False
@@ -607,7 +639,8 @@ class OrigSiegLoop(ShNodeActor):
         #TODO think through safety to make sure it doesn't stay in 100% keep
         # if temps go away
 
-        lwt_f = self.lwt_f(); lift_f = self.lift_f()
+        lwt_f = self.lwt_f()
+        lift_f = self.lift_f()
         if lwt_f is None or lift_f is None:
             self.log("Missing temperature readings, Blind ... aborting!")
             self.trigger_control_event(ControlEvent.Blind)
@@ -642,7 +675,7 @@ class OrigSiegLoop(ShNodeActor):
         self.hp_start_s = time.time()
         # Create a new task for the movement to t2
         delta_s = self.t2 - self.keep_seconds
-        asyncio.create_task(self._prepare_new_movement_task(delta_s))
+        self._create_task(self._prepare_new_movement_task(delta_s))
 
     def on_enter_startup_hover(self, event):
         """Called when entering the Hover state"""
@@ -655,7 +688,7 @@ class OrigSiegLoop(ShNodeActor):
             )
 
         # Create a task to monitor for when to leave startup hover
-        self._startup_hover_monitor_task = asyncio.create_task(
+        self._startup_hover_monitor_task = self._create_task(
             self._monitor_startup_hover(), 
             name="startup_hover_monitor"
         )
@@ -665,8 +698,8 @@ class OrigSiegLoop(ShNodeActor):
         self.log("Heat pump off, entering dormant state")
 
     def on_enter_moving_to_full_send(self, event):
-        self.log(f"Moving to full send")
-        asyncio.create_task(self._prepare_new_movement_task(-self.keep_seconds - 10))
+        self.log("Moving to full send")
+        self._create_task(self._prepare_new_movement_task(-self.keep_seconds - 10))
 
     def on_enter_defrost(self, event) -> None:
         """ Set the target seconds for leaving defrost and then move to full keep.
@@ -686,7 +719,7 @@ class OrigSiegLoop(ShNodeActor):
         nominal_delta_s = self.FULL_RANGE_S - self.target_seconds_for_leaving_defrost
 
         # Go 15 seconds more for good measure
-        asyncio.create_task(self._prepare_new_movement_task(nominal_delta_s + 15))
+        self._create_task(self._prepare_new_movement_task(nominal_delta_s + 15))
 
 
     def trigger_control_event(self, event: ControlEvent) -> None:
@@ -733,9 +766,9 @@ class OrigSiegLoop(ShNodeActor):
         elif self.control_state == SiegControlState.StartupHover and orig_state != SiegControlState.StartupHover:
             self.on_enter_startup_hover(event)
         elif self.control_state == SiegControlState.PID and orig_state == SiegControlState.StartupHover:
-            asyncio.create_task(self.leave_startup_hover())
+            self._create_task(self.leave_startup_hover())
         elif self.control_state == SiegControlState.PID and orig_state == SiegControlState.Defrost:
-            asyncio.create_task(self.leave_defrost())
+            self._create_task(self.leave_defrost())
         elif self.control_state == SiegControlState.Dormant and orig_state != SiegControlState.Dormant:
             self.on_enter_dormant(event)
         elif self.control_state == SiegControlState.MovingToFullSend and orig_state != SiegControlState.MovingToFullSend:
@@ -775,7 +808,6 @@ class OrigSiegLoop(ShNodeActor):
         self.latest_move_duration_s = time.time() - self.move_start_s
 
     def trigger_valve_event(self, event: ValveEvent) -> None:
-        now_ms = int(time.time() * 1000)
         orig_state = self.valve_state
 
         if self.resetting:
@@ -821,10 +853,10 @@ class OrigSiegLoop(ShNodeActor):
                 try:
                     self.process_actuators_ready(from_node, payload)
                 except Exception as e:
-                    self.log(f"Trouble with process_actuators_ready")
+                    self.log(f"Trouble with process_actuators_ready: {e}")
             case AnalogDispatch():
                 try:
-                    asyncio.create_task(self.process_analog_dispatch(from_node, payload), name="analog_dispatch")
+                    self._create_task(self.process_analog_dispatch(from_node, payload), name="analog_dispatch")
                 except Exception as e:
                     self.log(f"Trouble with process_analog_dispatch: {e}")
             case FsmFullReport():
@@ -854,8 +886,8 @@ class OrigSiegLoop(ShNodeActor):
     def process_actuators_ready(self, from_node: ShNode, payload: ActuatorsReady) -> None:
         """Move to full send on startup"""
         self.actuators_ready = True
-        asyncio.create_task(self.initialize())
-        self.log(f"Actuators ready")
+        self._create_task(self.initialize())
+        self.log("Actuators ready")
 
     async def initialize(self) -> None:
         if not self.actuators_ready:
@@ -889,7 +921,7 @@ class OrigSiegLoop(ShNodeActor):
         self.log(f"Received command to set valve to {target_s} seconds")
         delta_s = target_s - self.keep_seconds
         # move to target percent
-        asyncio.create_task(self._prepare_new_movement_task(delta_s))
+        self._create_task(self._prepare_new_movement_task(delta_s))
 
     def process_reset_hp_keep_value(
         self, from_node: ShNode, payload: ResetHpKeepValue
@@ -977,10 +1009,10 @@ class OrigSiegLoop(ShNodeActor):
             # Ensure proper state cleanup regardless of how the task ended
             if self.valve_state == SiegValveState.KeepingMore:
                 self.trigger_valve_event(ValveEvent.StopKeepingMore)
-                self.log(f"Triggered StopKeepingMore after cancellation")
+                self.log("Triggered StopKeepingMore after cancellation")
             elif self.valve_state == SiegValveState.KeepingLess:
                 self.trigger_valve_event(ValveEvent.StopKeepingLess)
-                self.log(f"Triggered StopKeepingLess after cancellation")
+                self.log("Triggered StopKeepingLess after cancellation")
 
             # Set task to None after cancellation
             self._movement_task = None
@@ -1012,7 +1044,7 @@ class OrigSiegLoop(ShNodeActor):
                 if self.time_to_leave_startup_hover():
                     self.log("Leaving startup hover based on LWT rate of change")
                     self.trigger_control_event(ControlEvent.LeaveStartupHover)
-                    asyncio.create_task(self.leave_startup_hover())
+                    self._create_task(self.leave_startup_hover())
                     break
                 
                 # Check every second
@@ -1051,7 +1083,7 @@ class OrigSiegLoop(ShNodeActor):
             self.log(f"Task {new_task_id}: move to send for {round(-delta_s,1)} seconds")
 
         # Create a new task for the movement
-        self._movement_task = asyncio.create_task(
+        self._movement_task = self._create_task(
             self._adjust_keep_seconds(delta_s, new_task_id)
         )
         
@@ -1290,7 +1322,7 @@ class OrigSiegLoop(ShNodeActor):
                     # Consider adding additional control states
                     if not self.moving_to_calculated_target and not self.target_temp_too_low:
                         # Run temperature control without awaiting to avoid blocking
-                        asyncio.create_task(self.run_pid())
+                        self._create_task(self.run_pid())
                     else:
                         self.log("Not running PID loop ... still moving to calculated target")
         
@@ -1399,7 +1431,7 @@ class OrigSiegLoop(ShNodeActor):
                 y = (x - x0) * (y1 - y0) / (x1 - x0) + y0
                 return y
 
-        raise Exception(f"time_from_flow requires flow_percent_keep between 0 and 100")
+        raise Exception("time_from_flow requires flow_percent_keep between 0 and 100")
 
     @property
     def flow_percent_keep(self) -> float:

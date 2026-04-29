@@ -72,6 +72,7 @@ def test_scada_settings_defaults(default_test_env, clean_test_env, clean_scada_e
         whitewire_threshold_watts=20,
         system_mode="Heating",
         seasonal_storage_mode="AllTanks",
+        sieg_loop_default_mode="Fallback",
         oil_boiler_backup=True,
         pico_cycler_state_logging=False,
         power_meter_logging_level=logging.WARNING,
