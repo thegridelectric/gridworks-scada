@@ -15,6 +15,7 @@ from scada_app_interface import ScadaAppInterface
 
 class SiegLoop(ShNodeActor):
     HEALTH_CHECK_SECONDS = 60
+    DEFAULT_MODE_DELAY_SECONDS = 3 * 60
 
     _IMPL_BY_MODE = {
         SiegLoopMode.PidControl: SiegLoopPid,
@@ -45,10 +46,11 @@ class SiegLoop(ShNodeActor):
         self._started = False
         self._stop_requested = False
         self._health_check_task: asyncio.Task | None = None
+        self._default_mode_task: asyncio.Task | None = None
 
         self._switch_to_mode(
-            self.settings.sieg_loop_default_mode,
-            reason="Default SiegLoop strategy from SCADA settings",
+            SiegLoopMode.Fallback,
+            reason="Initial SiegLoop strategy before delayed default-mode check",
             emit_info=False,
         )
 
@@ -107,7 +109,7 @@ class SiegLoop(ShNodeActor):
             channels.extend(sorted(self.h0cn.tank[tank_idx].effective))
         return list(dict.fromkeys(channels))
 
-    def _check_channel_availability(self, channel_name: str) -> Optional[str]:
+    def _check_channel_availability(self, channel_name: str) -> tuple[bool, Optional[str]]:
         channel = (
             self.layout.channel(channel_name)
             or self.layout.derived_channels.get(channel_name)
@@ -183,6 +185,21 @@ class SiegLoop(ShNodeActor):
             except Exception as e:
                 self.log(f"Trouble evaluating SiegLoop strategy health: {e}")
 
+    async def _delayed_default_mode_check(self) -> None:
+        await asyncio.sleep(self.DEFAULT_MODE_DELAY_SECONDS)
+        if self._stop_requested:
+            return
+
+        default_mode = self.settings.sieg_loop_default_mode
+        reason = (f"Delayed SiegLoop default-mode check after {self.DEFAULT_MODE_DELAY_SECONDS} seconds")
+        self.log(f"{reason}: {default_mode}")
+        if default_mode == SiegLoopMode.PidControl:
+            self.switch_to_pid(reason)
+        elif default_mode == SiegLoopMode.Fallback:
+            self.switch_to_fallback(reason)
+        else:
+            self.log(f"Unsupported SiegLoop default mode {default_mode}; staying in {self.mode}")
+
     def process_message(self, message: Message[Any]) -> Result[bool, Exception]:
         return self.active_implementation.process_message(message)
 
@@ -195,18 +212,27 @@ class SiegLoop(ShNodeActor):
             name="Sieg Loop Strategy Health Check",
         )
         self.services.add_task(self._health_check_task)
+        self._default_mode_task = asyncio.create_task(self._delayed_default_mode_check())
+        self.services.add_task(self._default_mode_task)
 
     def stop(self) -> None:
         self._stop_requested = True
         self._started = False
         if self._health_check_task and not self._health_check_task.done():
             self._health_check_task.cancel()
+        if self._default_mode_task and not self._default_mode_task.done():
+            self._default_mode_task.cancel()
         self.active_implementation.stop()
 
     async def join(self) -> None:
         if self._health_check_task is not None:
             try:
                 await self._health_check_task
+            except asyncio.CancelledError:
+                ...
+        if self._default_mode_task is not None:
+            try:
+                await self._default_mode_task
             except asyncio.CancelledError:
                 ...
         await self.active_implementation.join()
