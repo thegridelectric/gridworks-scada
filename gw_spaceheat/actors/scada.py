@@ -1085,13 +1085,25 @@ class Scada(PrimeActor, ScadaInterface):
 
         grace_end_s = int(actual_end_s+ self.contract_handler.GRACE_PERIOD_MINUTES* 60)
         # Case 1: latest_scada_hb is None - old contract was properly expired
-        # Still send warning since we haven't received a new contract
+        # Still send warning since we haven't received a new contract, then
+        # keep ownership of the grace-period handoff.
         if not self.contract_handler.latest_scada_hb:
             self._send_to(self.ltn, NoNewContractWarning(
                 FromGNodeAlias=self.layout.scada_g_node_alias,
                 ContractId=hb.Contract.ContractId,
                 GraceEndTimeS=grace_end_s
             ))
+            await asyncio.sleep(max(0, grace_end_s - time.time()))
+            if (
+                self.auto_state == MainAutoState.LeafTransactiveNode
+                and self.contract_handler.latest_scada_hb is None
+                and not self.in_grace_period()
+            ):
+                self.log(
+                    f"Grace period expired for contract {hb.Contract.ContractId} "
+                    "- transitioning to LocalControl"
+                )
+                self.auto_trigger(MainAutoEvent.ContractGracePeriodEnds)
             return
          # Case 2: We have a different contract after the wait - this is the normal
          # case where the old contract expired and Ltn sent a new one
@@ -1228,12 +1240,14 @@ class Scada(PrimeActor, ScadaInterface):
 
         ally_state = la.state
         local_control_state = lc.top_state
-
-        if not self.settings.seasonal_storage_mode == SeasonalStorageMode.AllTanks:
-            return # TODO figure out a graceful way to do this for BufferOnly as well
+        dormant_state = (
+            LeafAllyAllTanksState.Dormant 
+            if self.settings.seasonal_storage_mode == SeasonalStorageMode.AllTanks 
+            else LeafAllyBufferOnlyState.Dormant
+        )
 
         if self.auto_state == MainAutoState.Dormant:
-            if ally_state != LeafAllyAllTanksState.Dormant:
+            if ally_state != dormant_state:
                 self.log(f"Noticed auto_state Dormant but LeafAlly in {ally_state}! Sending GoDormant")
                 self._send_to(self.leaf_ally, GoDormant(ToName=self.leaf_ally.name))
             if local_control_state != LocalControlTopState.Dormant:
@@ -1244,7 +1258,7 @@ class Scada(PrimeActor, ScadaInterface):
                 self.log("Noticed auto_state Ltn but no longer in grace period!")
                 self.auto_trigger(MainAutoEvent.ContractGracePeriodEnds)
                 return 
-            if ally_state == LeafAllyAllTanksState.Dormant:
+            if ally_state == dormant_state:
                 self.log("Noticed auto_state Ltn but LeafAlly Dormant!")
                 if self.contract_handler.latest_scada_hb:
                     contract = self.contract_handler.latest_scada_hb.Contract
@@ -1255,7 +1269,7 @@ class Scada(PrimeActor, ScadaInterface):
                 self.log(f"Noticed auto_state Ltn but LocalControl in {local_control_state}! Sending GoDormant")
                 self._send_to(self.local_control, GoDormant(ToName=self.local_control.name))
         elif self.auto_state == MainAutoState.LocalControl:
-            if ally_state != LeafAllyAllTanksState.Dormant:
+            if ally_state != dormant_state:
                 self.log(f"Noticed auto_state LocalControl but LeafAlly in {ally_state}! Sending GoDormant")
                 self._send_to(self.leaf_ally, GoDormant(ToName=self.leaf_ally.name))
             if local_control_state == LocalControlTopState.Dormant:
