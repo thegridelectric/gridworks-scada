@@ -883,18 +883,19 @@ class Ltn(PrimeActor):
         flo_git_commit = _get_flo_git_commit()
         self.log(f"Flo git commit: {flo_git_commit}")
 
+        num_tanks = self.total_store_tanks if self.seasonal_storage_mode == SeasonalStorageMode.AllTanks else 1
+
         self.flo_params = FloParamsHouse0(
             GNodeAlias=self.layout.scada_g_node_alias,
             StartUnixS=dijkstra_start_time,
             HorizonHours=self.flo_horizon_hours,
-            NumLayers=int(3*self.total_store_tanks*3), # 3 sensors per tank, 3 layers per sensor
+            NumLayers=int(3*num_tanks*3), # 3 sensors per tank, 3 layers per sensor
             InitialTopTempF=int(t),
             InitialMiddleTempF=int(m),
             InitialBottomTempF=int(b),
             InitialThermocline1= int(th1*3),
             InitialThermocline2= int(th2*3),
-            StorageVolumeGallons = TANK_GALLONS if self.seasonal_storage_mode == SeasonalStorageMode.BufferOnly else self.total_store_tanks * TANK_GALLONS,
-            # TODO: price and weather forecasts should include the current hour if we are running a partial hour
+            StorageVolumeGallons = TANK_GALLONS*num_tanks,
             LmpForecast=self.price_forecast.lmp_usd_per_mwh,
             DistPriceForecast=self.price_forecast.dp_usd_per_mwh,
             RegPriceForecast=self.price_forecast.reg_usd_per_mwh,
