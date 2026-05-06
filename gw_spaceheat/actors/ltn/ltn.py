@@ -157,6 +157,7 @@ class BidRunner(threading.Thread):
                 flo_params_bytes = self.orig_flo_params.model_dump_json().encode('utf-8')
                 try:
                     g = Flo(flo_params_bytes, patting_watchdog=self.pat_watchdog)
+                    self.logger.info(f"Created DGraph with supergraph_meta_path: {g.supergraph_meta_path} and graph file {self.graph_file}")
                 except Exception as e:
                     self.logger.error(f"Error creating DGraph with advanced FLO: {e}")
                     glitch = Glitch(
@@ -887,6 +888,7 @@ class Ltn(PrimeActor):
             GNodeAlias=self.layout.scada_g_node_alias,
             StartUnixS=dijkstra_start_time,
             HorizonHours=self.flo_horizon_hours,
+            NumLayers=int(3*self.total_store_tanks*3), # 3 sensors per tank, 3 layers per sensor
             InitialTopTempF=int(t),
             InitialMiddleTempF=int(m),
             InitialBottomTempF=int(b),
@@ -920,6 +922,7 @@ class Ltn(PrimeActor):
             PreviousEstimateStorageKwhNow=previous_estimate_storage_kwh_now,
             FloGitCommit=flo_git_commit,
         )
+        self.log(f"Flo params: {self.flo_params}") # TODO remove this
         self.services.publish_message(
             self.SCADA_MQTT, 
             Message(Src=self.publication_name, Dst="broadcast", Payload=self.flo_params)
@@ -1222,8 +1225,8 @@ class Ltn(PrimeActor):
             top_temp = round(tank_temps[H0CN.buffer.depth1],1)
             middle_temp = round(tank_temps[H0CN.buffer.depth2],1)
             bottom_temp = round(tank_temps[H0CN.buffer.depth3],1)
-            thermocline1 = 4 #out of 12 layers
-            thermocline2 = 8 #out of 12 layers
+            thermocline1 = 1
+            thermocline2 = 2
             return top_temp, middle_temp, bottom_temp, thermocline1, thermocline2
 
         # Process layer temperatures
@@ -1284,7 +1287,7 @@ class Ltn(PrimeActor):
             top_temp = round(sum(cluster_top)/len(cluster_top))
             middle_temp = round(sum(cluster_middle)/len(cluster_middle))
             bottom_temp = round(sum(cluster_bottom)/len(cluster_bottom))
-            self.log(f"Storage model: {top_temp}({thermocline1}){middle_temp}({thermocline2}){bottom_temp}")
+            self.log(f"Storage model: {top_temp}({thermocline1}){middle_temp}({thermocline2}){bottom_temp} ({len(layer_temps)} layers)")
             return top_temp, middle_temp, bottom_temp, thermocline1, thermocline2
 
         # Dealing with less than 3 clusters
@@ -1300,14 +1303,14 @@ class Ltn(PrimeActor):
                 thermocline1 = len(cluster_top)
                 top_temp = round(sum(cluster_top)/len(cluster_top))
                 bottom_temp = round(sum(cluster_bottom)/len(cluster_bottom))
-                self.log(f"Storage model: {top_temp}({thermocline1}){bottom_temp}")
+                self.log(f"Storage model: {top_temp}({thermocline1}){bottom_temp} ({len(layer_temps)} layers)")
                 return top_temp, top_temp, bottom_temp, thermocline1, thermocline1
             # Single cluster
             else:
                 cluster_top = max(cluster_0, cluster_1, cluster_2, key=lambda x: len(x))
                 top_temp = round(sum(cluster_top)/len(cluster_top))
-                thermocline1 = 12
-                self.log(f"Storage model: {top_temp}({thermocline1})")
+                thermocline1 = len(layer_temps)
+                self.log(f"Storage model: {top_temp}({thermocline1}) ({len(layer_temps)} layers)")
                 return top_temp, top_temp, top_temp, thermocline1, thermocline1
     
     async def get_buffer_available_kwh(self):
