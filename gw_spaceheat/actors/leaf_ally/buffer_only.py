@@ -321,11 +321,12 @@ class BufferOnlyLeafAlly(ShNodeActor):
             if self.contract_hb is not None:
                 self.get_zone_setpoints()
                 if self.is_system_cold():
-                    self.log("Zone(s) below setpoint - breaching contract")
+                    self.log("System is cold - breaching contract")
                     self._send_to(
                         self.primary_scada,
-                        AllyGivesUp(Reason="Zone(s) below setpoint"),
+                        AllyGivesUp(Reason="System is cold"),
                     )
+                    self.send_info("System is cold - breaching contract")
                     await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
                     continue
 
