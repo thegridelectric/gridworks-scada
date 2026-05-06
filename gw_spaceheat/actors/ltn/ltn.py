@@ -157,7 +157,6 @@ class BidRunner(threading.Thread):
                 flo_params_bytes = self.orig_flo_params.model_dump_json().encode('utf-8')
                 try:
                     g = Flo(flo_params_bytes, patting_watchdog=self.pat_watchdog)
-                    self.logger.info(f"Created DGraph with supergraph_meta_path: {g.supergraph_meta_path} and graph file {self.graph_file}")
                 except Exception as e:
                     self.logger.error(f"Error creating DGraph with advanced FLO: {e}")
                     glitch = Glitch(
@@ -922,7 +921,6 @@ class Ltn(PrimeActor):
             PreviousEstimateStorageKwhNow=previous_estimate_storage_kwh_now,
             FloGitCommit=flo_git_commit,
         )
-        self.log(f"Flo params: {self.flo_params}") # TODO remove this
         self.services.publish_message(
             self.SCADA_MQTT, 
             Message(Src=self.publication_name, Dst="broadcast", Payload=self.flo_params)
