@@ -500,6 +500,11 @@ class Scada(PrimeActor, ScadaInterface):
         self.log(f"LeafAlly giving up: {payload.Reason}")
         self.log("Sending termination hb to Scada. State: LeafTransactiveNode -> LocalControl")
         hb = self.contract_handler.scada_terminates_contract_hb(cause=f"Ally Gives up: {payload.Reason}")
+        
+        self.contract_handler.latest_scada_hb = hb
+        self.contract_handler.store_heartbeat()
+        self.contract_handler.flush_latest_scada_hb()
+    
         self._send_to(self.ltn, hb)
         # Cancel any existing warning task
         if hasattr(self, 'contract_task'):
@@ -1011,10 +1016,17 @@ class Scada(PrimeActor, ScadaInterface):
                 elif self.auto_state == MainAutoState.LeafTransactiveNode:
                     self._send_to(self.leaf_ally, self.contract_handler.latest_scada_hb.Contract)
             elif self.contract_handler.active_contract_has_expired(): # wrap up existing
-                self._send_to(self.ltn,
-                    self.contract_handler.scada_contract_completion_hb("Wrapping up existing contract")
+                completion_hb = self.contract_handler.scada_contract_completion_hb(
+                    "Wrapping up existing contract"
                 )
+
+                self.contract_handler.latest_scada_hb = completion_hb
+                self.contract_handler.store_heartbeat()
+                self.contract_handler.flush_latest_scada_hb()
+                self._send_to(self.ltn, completion_hb)
+
                 self.contract_handler.start_new_contract_hb(ltn_hb)
+
                 self._send_to(self.leaf_ally, self.contract_handler.latest_scada_hb.Contract)
                 # will send hb in process_suit_up, after leaf ally acknowledges
         elif ltn_hb.Status == SlowDispatchContractStatus.TerminatedByLtn:
@@ -1050,17 +1062,24 @@ class Scada(PrimeActor, ScadaInterface):
         )
 
     def in_grace_period(self) -> bool:
-        """Scada is NOT dormant, and a contract is active or was active within 5 minutes
-        Effect: if contract_handler.active_contract_has_expired, send a final
-        completion heartbeat, None -> latest_scada_hb -> prev
-        """
+        """Scada is not dormant, and a contract is active or was active within grace period."""
         if self.contract_handler.active_contract_has_expired():
-                self._send_to(self.ltn,
-                        self.contract_handler.scada_contract_completion_hb("Active contract has expired"))
-        if self.contract_handler.latest_scada_hb: # will not be expired
+            completion_hb = self.contract_handler.scada_contract_completion_hb(
+                "Active contract has expired"
+            )
+
+            self.contract_handler.latest_scada_hb = completion_hb
+            self.contract_handler.store_heartbeat()
+            self.contract_handler.flush_latest_scada_hb()
+
+            self._send_to(self.ltn, completion_hb)
+
+        elif self.contract_handler.latest_scada_hb:
             return True
-        elif not self.contract_handler.prev:
+        
+        if not self.contract_handler.prev:
             return False
+
         elif time.time() > self.contract_handler.prev.grace_period_end_s():
             return False
         else:
@@ -1102,6 +1121,11 @@ class Scada(PrimeActor, ScadaInterface):
 
         # Send completion heartbeat and set contract_handler.latest_scada_hb to None
         completion_hb = self.contract_handler.scada_contract_completion_hb("Noticed active contract complete")
+
+        self.contract_handler.latest_scada_hb = completion_hb
+        self.contract_handler.store_heartbeat()
+        self.contract_handler.flush_latest_scada_hb()
+        
         self._send_to(self.ltn, completion_hb)
 
         # Set backup timer for grace period
