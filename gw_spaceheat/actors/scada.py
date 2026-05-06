@@ -495,18 +495,37 @@ class Scada(PrimeActor, ScadaInterface):
             self.log("Admin Wakes Up")
 
     def process_ally_gives_up(self, from_node: ShNode, payload: AllyGivesUp) -> None:
-        # AutoState transition: AllyGivesUp: LeafTransactiveNode -> LocalControl
+        """Handle LeafAlly relinquishing supervisory authority.
+
+        Effects:
+        - Transitions auto_state from LeafTransactiveNode -> LocalControl
+        - If an active contract exists, sends a terminating heartbeat to the Ltn
+        - Cancels any outstanding contract timing task
+
+        Note:
+        LeafAlly may give up authority even when no active contract heartbeat
+        exists (for example during grace period or after contract completion).
+        In that case we still transition to LocalControl but do not send a
+        terminating heartbeat.
+        """
         self.auto_trigger(MainAutoEvent.AllyGivesUp)
+
         self.log(f"LeafAlly giving up: {payload.Reason}")
-        self.log("Sending termination hb to Scada. State: LeafTransactiveNode -> LocalControl")
-        hb = self.contract_handler.scada_terminates_contract_hb(cause=f"Ally Gives up: {payload.Reason}")
-        
-        self.contract_handler.latest_scada_hb = hb
-        self.contract_handler.store_heartbeat()
-        self.contract_handler.flush_latest_scada_hb()
     
-        self._send_to(self.ltn, hb)
-        # Cancel any existing warning task
+        if self.contract_handler.latest_scada_hb:
+            self.log("Sending termination hb to Scada. State: LeafTransactiveNode -> LocalControl")
+            hb = self.contract_handler.scada_terminates_contract_hb(cause=f"Ally Gives up: {payload.Reason}")
+        
+            self.contract_handler.latest_scada_hb = hb
+            self.contract_handler.store_heartbeat()
+            self.contract_handler.flush_latest_scada_hb()
+    
+            self._send_to(self.ltn, hb)
+        else:
+            self.log(
+                "No active contract heartbeat while processing AllyGivesUp"
+            )
+
         if hasattr(self, 'contract_task'):
             self.contract_task.cancel()
 
