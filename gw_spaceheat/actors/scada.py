@@ -1085,25 +1085,13 @@ class Scada(PrimeActor, ScadaInterface):
 
         grace_end_s = int(actual_end_s+ self.contract_handler.GRACE_PERIOD_MINUTES* 60)
         # Case 1: latest_scada_hb is None - old contract was properly expired
-        # Still send warning since we haven't received a new contract, then
-        # keep ownership of the grace-period handoff.
+        # Still send warning since we haven't received a new contract
         if not self.contract_handler.latest_scada_hb:
             self._send_to(self.ltn, NoNewContractWarning(
                 FromGNodeAlias=self.layout.scada_g_node_alias,
                 ContractId=hb.Contract.ContractId,
                 GraceEndTimeS=grace_end_s
             ))
-            await asyncio.sleep(max(0, grace_end_s - time.time()))
-            if (
-                self.auto_state == MainAutoState.LeafTransactiveNode
-                and self.contract_handler.latest_scada_hb is None
-                and not self.in_grace_period()
-            ):
-                self.log(
-                    f"Grace period expired for contract {hb.Contract.ContractId} "
-                    "- transitioning to LocalControl"
-                )
-                self.auto_trigger(MainAutoEvent.ContractGracePeriodEnds)
             return
          # Case 2: We have a different contract after the wait - this is the normal
          # case where the old contract expired and Ltn sent a new one
