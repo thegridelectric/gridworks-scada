@@ -319,8 +319,8 @@ class BufferOnlyLeafAlly(ShNodeActor):
 
             # Go Dormant if cold
             self.get_zone_setpoints()
-            if self.is_system_cold():
-                self.log("System is cold - breaching contract")
+            if self.is_system_cold() and self.is_buffer_empty():
+                self.log("System is cold, buffer is empty - breaching contract")
                 self._send_to(
                     self.primary_scada,
                     AllyGivesUp(Reason="System is cold"),
