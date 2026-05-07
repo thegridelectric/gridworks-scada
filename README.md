@@ -41,7 +41,7 @@ For most contributors:
  4.  **Export pythonpath**: include gw_spaceheat in the pythonpath
      - Linux/mac: `export PYTHONPATH=[PATH TO]/gridworks-scada/gw_spaceheat:$PYTHONPATH`
      - Windows in powershell: $env:PYTHONPATH="C:\Users\Joe\Coding\gridworks-scada\gw_spaceheat;$env:PYTHONPATH"
- 6. **Run tests:** `pytest -v`
+ 5. **Run tests:** `pytest -v`
 
 ### Test Environment Notes
 
