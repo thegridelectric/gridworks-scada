@@ -5,7 +5,8 @@ import asyncio
 import aiohttp
 import math
 import numpy as np
-from typing import Optional, Sequence
+from dataclasses import dataclass
+from typing import Optional, Protocol, Sequence
 from result import Ok, Result
 from datetime import datetime,  timezone
 from gwproto import Message
@@ -22,7 +23,7 @@ from gwsproto.enums import (
     GwUnit, HeatCallInterpretation, 
     SystemMode, SeasonalStorageMode, TelemetryName
 )
-from gwsproto.data_classes.house_0_names import H0N, H0CN
+from gwsproto.data_classes.house_0_names import H0CN
 from gwsproto.named_types import (
     Ha1Params, HeatingForecast, LinearOneDimensionalCalibration,
     RequiredEnergyLayered, ScadaParams,
@@ -31,8 +32,14 @@ from gwsproto.named_types import (
 )
 from scada_app_interface import ScadaAppInterface
 
-from typing import Protocol, Optional
-from gwsproto.named_types import SingleReading
+
+@dataclass
+class PredictedSetpointState:
+    predicted_setpoint_f: float | None = None
+    latest_gw_temp_f: float | None = None
+    heat_call_active: bool | None = None
+    last_emitted_predicted_setpoint_f: float = 1e9
+
 
 class DerivedHandler(Protocol):
     def __call__(
@@ -46,6 +53,9 @@ class DerivedGenerator(ShNodeActor):
     GALLONS_PER_TANK = 119
     WATER_SPECIFIC_HEAT_KJ_PER_KG_C = 4.187
     GALLON_PER_LITER = 3.78541
+    PRED_SETPOINT_DEVIATION_THRESHOLD_F = 2
+    PRED_SETPOINT_WHEN_LOWERED = -1000
+    PRED_SETPOINT_WHEN_RAISED = 1000
 
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
@@ -78,11 +88,13 @@ class DerivedGenerator(ShNodeActor):
             "identity": self.handle_identity,
             "affine": self.handle_affine,
             "heat-call": self.handle_heat_call,
+            "predicted-setpoint": self.handle_predicted_setpoint,
             "system-model": self.handle_system_model,
         }
 
         self.derived_by_input: dict[str, list[DerivedChannel]] = {}
         self.system_models: list[DerivedChannel] = []
+        self.pred_setpoint_states: dict[str, PredictedSetpointState] = {}
         self.last_emitted: dict[str, int] = {}
         self.next_period_boundary_ts: dict[str, float] = {} # channel name, unix seconds
         self.init_derived_channels()
@@ -138,6 +150,8 @@ class DerivedGenerator(ShNodeActor):
                 if dc.OutputUnit != GwUnit.FahrenheitX100:
                     raise RuntimeError(f"DerivedGenerator only handles affine conversions with output unit"
                                     f" FahrenheitX100, not {dc.OutputUnit}")
+            elif dc.Strategy == "predicted-setpoint":
+                self.init_predicted_setpoint_channel(dc)
 
         # 4) Final sanity check: every DerivedChannel must be reachable
         handled = set()
@@ -158,6 +172,29 @@ class DerivedGenerator(ShNodeActor):
                 "DerivedGenerator has DerivedChannels it will never emit:\n"
                 + "\n".join(missing)
             )
+
+    def init_predicted_setpoint_channel(self, dc: DerivedChannel) -> None:
+        if dc.OutputUnit != GwUnit.FahrenheitX100:
+            raise RuntimeError(f"Predicted setpoint channel '{dc.Name}' must use OutputUnit FahrenheitX100, not {dc.OutputUnit}")
+        if len(dc.InputChannelNames) != 1:
+            raise RuntimeError(f"Predicted setpoint channel '{dc.Name}' must declare exactly one gw-temp InputChannelName")
+
+        gw_temp_name = dc.InputChannelNames[0]
+        in_unit = self.layout.channel_registry.unit(gw_temp_name)
+        if in_unit is None:
+            raise RuntimeError(f"No unit registered for input channel '{gw_temp_name}' (required by predicted setpoint channel '{dc.Name}')")
+        try:
+            convert_temp_to_f(0, in_unit)
+        except ValueError as e:
+            raise RuntimeError(f"Predicted setpoint channel '{dc.Name}' requires a temperature input, but '{gw_temp_name}' uses {in_unit}") from e
+
+        assert dc.Parameters is not None
+        heat_call_name = dc.Parameters.get("HeatCallChannelName")
+        heat_call_dc = self.layout.derived_channels.get(heat_call_name)
+        if not heat_call_dc:
+            raise RuntimeError(f"Predicted setpoint channel '{dc.Name}' requires heat-call DerivedChannel '{heat_call_name}'")
+
+        self.pred_setpoint_states[dc.Name] = PredictedSetpointState()
 
     def handle_identity(self, dc: DerivedChannel, payload: SingleReading | None = None) -> None:
         """Returns the identical data, after unit transformation"""
@@ -309,6 +346,77 @@ class DerivedGenerator(ShNodeActor):
 
             case _:
                 return 0
+
+    def handle_predicted_setpoint(self, dc: DerivedChannel, payload: SingleReading | None = None) -> None:
+        """
+        Derive a zone thermostat setpoint estimate from the zone's temperature and heat-call state.
+
+        The learned value is the gw-temp at the end of the last completed heat call. 
+        -> If the setpont seems to have been lowered, use -1000 while we wait for the next heat call.
+        -> If the setpont seems to have been raised, use 1000 while we wait for the end of the heat call.
+        """
+        try:
+            gw_temp_name = dc.InputChannelNames[0]
+            if payload is None or payload.ChannelName != gw_temp_name:
+                return
+
+            state = self.pred_setpoint_states[dc.Name]
+
+            assert dc.Parameters is not None
+            heat_call_name = dc.Parameters.get("HeatCallChannelName")
+            heat_call_dc = self.layout.derived_channels.get(heat_call_name)
+            if heat_call_dc is None:
+                self.log(f"Predicted setpoint channel '{dc.Name}' requires heat-call DerivedChannel '{heat_call_name}'")
+                return
+
+            # Read the latest gw-temp
+            in_unit = self.layout.channel_registry.unit(payload.ChannelName)
+            assert in_unit
+            state.latest_gw_temp_f = convert_temp_to_f(payload.Value, in_unit)
+
+            # The heat call switched from active to inactive -> update predicted setpoint
+            was_active = state.heat_call_active
+            latest_heat_call = self.data.latest_channel_values.get(heat_call_dc.Name)
+            if latest_heat_call is not None:
+                state.heat_call_active = latest_heat_call >= 1
+            if was_active and not state.heat_call_active:
+                state.predicted_setpoint_f = state.latest_gw_temp_f
+
+            # Suspected setpoint change
+            if state.heat_call_active is not None and state.latest_gw_temp_f is not None and state.predicted_setpoint_f is not None:
+                if (
+                    state.heat_call_active
+                    and state.latest_gw_temp_f >= state.predicted_setpoint_f + self.PRED_SETPOINT_DEVIATION_THRESHOLD_F
+                ):
+                    state.predicted_setpoint_f = self.PRED_SETPOINT_WHEN_RAISED
+                elif (
+                    not state.heat_call_active
+                    and state.latest_gw_temp_f <= state.predicted_setpoint_f - self.PRED_SETPOINT_DEVIATION_THRESHOLD_F
+                ):
+                    state.predicted_setpoint_f = self.PRED_SETPOINT_WHEN_LOWERED
+
+            if state.predicted_setpoint_f is None:
+                return
+
+            self.log(f"Predicted setpoint channel '{dc.Name}' value: {state.predicted_setpoint_f} F")
+
+            if (
+                state.predicted_setpoint_f is not None
+                and abs(state.last_emitted_predicted_setpoint_f - state.predicted_setpoint_f) > 0.2
+            ):
+                self._send_to(
+                    self.primary_scada,
+                    SingleReading(
+                        ChannelName=dc.Name,
+                        Value=int(state.predicted_setpoint_f*100),
+                        ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs,
+                    )
+                )
+                state.last_emitted_predicted_setpoint_f = state.predicted_setpoint_f
+
+        except Exception as e:
+            self.send_info(f"Error handling predicted setpoint channel '{dc.Name}': {e}")
+            return
 
     def handle_system_model(
         self,

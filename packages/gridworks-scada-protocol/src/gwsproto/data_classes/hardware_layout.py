@@ -662,6 +662,26 @@ class HardwareLayout:
                             "but must use EmissionMethod.AsyncAndPeriodic"
                         )
 
+                case "predicted-setpoint":
+                    if len(dc.InputChannelNames) != 1:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy "
+                            "'predicted-setpoint' but does not declare exactly "
+                            "one InputChannelName"
+                        )
+                    if dc.OutputUnit != GwUnit.FahrenheitX100:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy "
+                            "'predicted-setpoint' but must use OutputUnit "
+                            "FahrenheitX100"
+                        )
+                    if dc.EmissionMethod != EmissionMethod.AsyncAndPeriodic:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy "
+                            "'predicted-setpoint' but must use "
+                            "EmissionMethod.OnTrigger"
+                        )
+
                 case "system-model":
                     if dc.InputChannelNames:
                         errors.append(
