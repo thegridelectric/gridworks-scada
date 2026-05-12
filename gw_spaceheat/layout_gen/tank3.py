@@ -7,6 +7,9 @@ from gwsproto.named_types.data_channel_gt import DataChannelGt
 from gwsproto.enums import MakeModel, Unit, ActorClass, TelemetryName
 from gwsproto.named_types.channel_config import ChannelConfig
 from gwsproto.named_types import SpaceheatNodeGt
+from gwsproto.named_types.spaceheat_telemetry_quantity_projection import (
+    SpaceheatTelemetryQuantityProjection,
+)
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import TempCalcMethod
 
@@ -51,6 +54,7 @@ def add_tank3(
                     ChannelName=f"{tank_cfg.ActorNodeName}-depth{i}-device",
                     CapturePeriodS=tank_cfg.CapturePeriodS,
                     AsyncCapture=True,
+                    AsyncCaptureDelta=tank_cfg.AsyncCaptureDeltaMicroVolts,
                     Exponent=3,
                     Unit=Unit.Celcius
                 )
@@ -62,6 +66,7 @@ def add_tank3(
                         ChannelName=f"{tank_cfg.ActorNodeName}-depth{i}-micro-v",
                         CapturePeriodS=tank_cfg.CapturePeriodS,
                         AsyncCapture=True,
+                        AsyncCaptureDelta=tank_cfg.AsyncCaptureDeltaMicroVolts,
                         Exponent=6,
                         Unit=Unit.VoltsRms
                     )
@@ -119,6 +124,9 @@ def add_tank3(
                AboutNodeName=f"{tank_cfg.ActorNodeName}-depth{i}",
                CapturedByNodeName=tank_cfg.ActorNodeName,
                TelemetryName=TelemetryName.WaterTempCTimes1000,
+               Quantity=SpaceheatTelemetryQuantityProjection.canonical(
+                   TelemetryName.WaterTempCTimes1000
+               ).Quantity,
                TerminalAssetAlias=db.terminal_asset_alias,
                Id=db.make_channel_id(f"{tank_cfg.ActorNodeName}-depth{i}-device")
                ) for i in range(1,4)
@@ -133,6 +141,9 @@ def add_tank3(
                     AboutNodeName=f"{tank_cfg.ActorNodeName}-depth{i}",
                     CapturedByNodeName=tank_cfg.ActorNodeName,
                     TelemetryName=TelemetryName.MicroVolts,
+                    Quantity=SpaceheatTelemetryQuantityProjection.canonical(
+                        TelemetryName.MicroVolts
+                    ).Quantity,
                     TerminalAssetAlias=db.terminal_asset_alias,
                     Id=db.make_channel_id(f"{tank_cfg.ActorNodeName}-depth{i}-micro-v")
                 ) for i in range(1,4)

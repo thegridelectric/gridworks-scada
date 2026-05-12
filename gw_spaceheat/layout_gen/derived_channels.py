@@ -3,7 +3,7 @@ from typing import Sequence
 
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import EmissionMethod, GwUnit, HeatCallInterpretation
-from layout_gen import LayoutDb
+from layout_gen.layout_db import LayoutDb
 from gwsproto.named_types import DerivedChannelGt
 # TODO: add to H0N and H0CN
 
@@ -127,6 +127,9 @@ def _add_zone_predicted_setpoint_channel(
     if heat_call_channel_name is None:
         heat_call_channel_name = f"{zone_base}-heat-call"
 
+    # DerivedChannelGt.AsyncEmitDelta: int, hundredths °F (consistent with GwUnit.FahrenheitX100).
+    async_emit_delta_x100 = max(1, int(round(async_emit_delta_f * 100)))
+
     db.add_derived_channels(
         [
             DerivedChannelGt(
@@ -137,7 +140,7 @@ def _add_zone_predicted_setpoint_channel(
                 InputChannelNames=[gw_temp_channel_name],
                 OutputUnit=GwUnit.FahrenheitX100,
                 EmissionMethod=EmissionMethod.AsyncAndPeriodic,
-                AsyncEmitDelta=async_emit_delta_f,
+                AsyncEmitDelta=async_emit_delta_x100,
                 EmitPeriodS=emit_period_s,
                 Parameters={
                     "HeatCallChannelName": heat_call_channel_name,
