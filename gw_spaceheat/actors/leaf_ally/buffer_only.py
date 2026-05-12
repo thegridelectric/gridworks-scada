@@ -317,17 +317,17 @@ class BufferOnlyLeafAlly(ShNodeActor):
             if self.store_pump_monitor.needs_recovery():
                 await self.store_pump_doctor.run()
 
-            # Breach ongoing LTN contract if a zone is below setpoint
-            if self.contract_hb is not None:
-                self.get_zone_setpoints()
-                if self.is_system_cold():
-                    self.log("Zone(s) below setpoint - breaching contract")
-                    self._send_to(
-                        self.primary_scada,
-                        AllyGivesUp(Reason="Zone(s) below setpoint"),
-                    )
-                    await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
-                    continue
+            # Go Dormant if cold
+            self.get_zone_setpoints()
+            if self.is_system_cold() and self.is_buffer_empty():
+                self.log("System is cold, buffer is empty - breaching contract")
+                self._send_to(
+                    self.primary_scada,
+                    AllyGivesUp(Reason="System is cold"),
+                )
+                self.send_info("System is cold - breaching contract")
+                await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
+                continue
 
             self.engage_brain()
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)

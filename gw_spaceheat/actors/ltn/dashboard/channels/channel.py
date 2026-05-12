@@ -234,10 +234,10 @@ class FlowChannel(DisplayChannel):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        if self.exists and self.unit != TelemetryName.GpmTimes100:
+        if self.exists and self.unit not in [TelemetryName.GpmTimes100, GwUnit.GpmX100]:
             raise ValueError(
                 f"ERROR. Flow channel {self.name} expects "
-                f"{TelemetryName.GpmTimes100}. Got {self.unit}"
+                f"{TelemetryName.GpmTimes100} or {GwUnit.GpmX100}. Got {self.unit}"
             )
     
     def convert(self, raw: int) -> float:
