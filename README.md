@@ -186,15 +186,45 @@ Run the tests from the root directory of the repo with:
 pytest
 ```
 
-A hardware layout file is necessary to run the scada locally. Find the default path the layout file with: 
+The test suite loads `tests/config/nolan-layout.json` by default (set in
+`tests/conftest.py`). Both `tests/config/nolan-layout.json` and
+`tests/config/house0-layout.json` are checked-in generated artifacts — regenerate
+them via the commands in [Regenerating test layouts](#regenerating-test-layouts)
+below if you change a layout builder.
+
+A hardware layout file is necessary to run the scada locally. Find the default path the layout file with:
 
 ```shell
 python -c "from gwproactor.config.paths import Paths; print(Paths().hardware_layout)"
-```    
+```
 
-For initial experiments the test layout file can be used. The test layout file is located at:
-    
-    tests/config/hardware-layout.json
+For initial experiments the test layout files can be used. They live at:
+
+    tests/config/nolan-layout.json    # default — Nolan-strategy, zone opto + gw-temp + derived heat-call / setpoint channels
+    tests/config/house0-layout.json   # House0-strategy, no zone derived channels
+
+### Regenerating test layouts
+
+The two test layouts are produced by `gw_spaceheat/layout_gen/fixture_layouts.py`
+(`make_nolan_fixture_layout` and `make_house0_fixture_layout`). Regenerate them
+with `gws layout mktest`, run from the repo root with the scada venv activated:
+
+```shell
+gws layout mktest --layout nolan      # writes tests/config/nolan-layout.json
+gws layout mktest --layout house0     # writes tests/config/house0-layout.json
+```
+
+Each invocation also writes a working copy to
+`gw_spaceheat/layout_gen/output/{layout}.generated.json` and prints the rendered
+layout via `show_layout`.
+
+**Bootstrap.** `mktest` reads the existing `tests/config/{layout}-layout.json` as
+its source-of-IDs so that ShNode / channel / component / cac IDs remain stable
+across regenerations. If that file does not exist, pass an explicit `--src`:
+
+```shell
+gws layout mktest --layout nolan --src path/to/existing-layout.json
+```
 
 Display the hardware layout with:
 

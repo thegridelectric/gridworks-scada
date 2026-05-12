@@ -1,12 +1,14 @@
 import json
 import os
 import textwrap
+from pathlib import Path
 from typing import Any
 from typing import Optional
 
 import pytest
 import rich
 from gwproactor.config import Paths
+from gwproactor_test.clean import DefaultTestEnv
 
 from gwproactor.config.mqtt import TLSInfo
 from click.testing import Result as ClickResult
@@ -38,6 +40,12 @@ from tests.utils.scada_live_test_helper import ScadaLiveTest
 
 
 runner = CliRunner()
+
+# test_admin_relay_set / test_admin_dac_set assert House0-specific layout
+# structure (relay index 18 "Zone1 Main Ops", DACs from add_dfrs). The default
+# Nolan test layout has one pico-cycler-managed relay and no DACs, so those
+# tests run against house0-layout.json instead.
+HOUSE0_LAYOUT_PATH = Path(__file__).parent.parent / "config" / "house0-layout.json"
 
 def get_admin_verbosity(request: pytest.FixtureRequest, default: int = 0) -> int:
     option = request.config.getoption("--admin-verbosity")
@@ -190,6 +198,11 @@ async def _await_scada_connected(
     assert select_box.value == short_name
 
 
+@pytest.mark.parametrize(
+    "default_test_env",
+    [DefaultTestEnv(src_test_layout=HOUSE0_LAYOUT_PATH)],
+    indirect=True,
+)
 @pytest.mark.asyncio
 async def test_admin_relay_set(request: pytest.FixtureRequest) -> None:
     """Set a relay and verify we see the set take effect."""
@@ -252,6 +265,11 @@ async def test_admin_relay_set(request: pytest.FixtureRequest) -> None:
                 [18, "Zone1 Main Ops", "RelayClosed", "OpenRelay", "🔴"]
             )
 
+@pytest.mark.parametrize(
+    "default_test_env",
+    [DefaultTestEnv(src_test_layout=HOUSE0_LAYOUT_PATH)],
+    indirect=True,
+)
 @pytest.mark.asyncio
 async def test_admin_dac_set(request: pytest.FixtureRequest) -> None:
     """Set a dac and verify we see the set take effect."""

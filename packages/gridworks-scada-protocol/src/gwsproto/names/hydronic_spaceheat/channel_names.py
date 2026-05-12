@@ -219,6 +219,10 @@ class HydronicSpaceheatZoneChannelNames:
         self.set = f"{self.base}-set"
         self.heat_call = f"{self.base}-heat-call"
 
+        # raw thermistor microvolts (optional; emitted by hardware
+        # implementations that report the raw ADC reading alongside temp)
+        self.gw_microvolts = f"{self.base}-gw-microvolts"
+
         # relay states
         self.failsafe_relay_state = f"{self.base}-failsafe-relay"
         self.ops_relay_state = f"{self.base}-ops-relay"

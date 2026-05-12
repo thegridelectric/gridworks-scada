@@ -4,6 +4,7 @@ venv
 **/__pycache__/
 *.pyc
 
+CLAUDE.md
 # local files only
 price_forecast.csv
 

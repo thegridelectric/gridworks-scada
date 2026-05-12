@@ -564,6 +564,7 @@ class LayoutDb:
             self.misc["TotalStoreTanks"] = self.loaded.total_store_tanks
         else:
             self.misc["TotalStoreTanks"] =  self.loaded.total_store_tanks
+        self.misc["TankTempCalibrationMap"] = tmap.model_dump()
         self.misc["Strategy"] = self.loaded.strategy
         self.misc["FlowManifoldVariant"] = cfg.flow_manifold_variant
         self.misc["UseSiegLoop"] = cfg.use_sieg_loop
