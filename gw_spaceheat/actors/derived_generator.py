@@ -355,6 +355,10 @@ class DerivedGenerator(ShNodeActor):
         -> If the setpont seems to have been lowered, use -1000 while we wait for the next heat call.
         -> If the setpont seems to have been raised, use 1000 while we wait for the end of the heat call.
         """
+
+        def next_period_boundary(now: float, period: int) -> float:
+            return ((int(now) // period) + 1) * period
+
         try:
             gw_temp_name = dc.InputChannelNames[0]
             if payload is None or payload.ChannelName != gw_temp_name:
@@ -400,10 +404,21 @@ class DerivedGenerator(ShNodeActor):
 
             self.log(f"Predicted setpoint channel '{dc.Name}' value: {state.predicted_setpoint_f} F")
 
-            if (
-                state.predicted_setpoint_f is not None
-                and abs(state.last_emitted_predicted_setpoint_f - state.predicted_setpoint_f) > 0.2
-            ):
+            assert dc.EmitPeriodS is not None
+            period = dc.EmitPeriodS
+            now = time.time()
+
+            next_ts = self.next_period_boundary_ts.get(dc.Name)
+            if next_ts is None:
+                # First time seeing this channel → align to next boundary
+                next_ts = next_period_boundary(now, period)
+                self.next_period_boundary_ts[dc.Name] = next_ts
+
+            periodic_due = now >= next_ts
+            changed = abs(state.last_emitted_predicted_setpoint_f - state.predicted_setpoint_f) > dc.AsyncEmitDelta
+            should_emit = changed or periodic_due
+
+            if should_emit:
                 self._send_to(
                     self.primary_scada,
                     SingleReading(
@@ -413,6 +428,9 @@ class DerivedGenerator(ShNodeActor):
                     )
                 )
                 state.last_emitted_predicted_setpoint_f = state.predicted_setpoint_f
+                if periodic_due:
+                    while self.next_period_boundary_ts[dc.Name] <= now:
+                        self.next_period_boundary_ts[dc.Name] += dc.EmitPeriodS
 
         except Exception as e:
             self.send_info(f"Error handling predicted setpoint channel '{dc.Name}': {e}")

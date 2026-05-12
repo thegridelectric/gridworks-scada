@@ -679,7 +679,7 @@ class HardwareLayout:
                         errors.append(
                             f"DerivedChannel '{dc.Name}' uses strategy "
                             "'predicted-setpoint' but must use "
-                            "EmissionMethod.OnTrigger"
+                            "EmissionMethod.AsyncAndPeriodic"
                         )
 
                 case "system-model":
