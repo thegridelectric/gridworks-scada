@@ -2,14 +2,14 @@ from layout_gen import LayoutDb
 from gwsproto.type_helpers import CACS_BY_MAKE_MODEL
 
 from gwsproto.data_classes.house_0_names import H0N
-from gwsproto.enums import MakeModel, Unit, ActorClass, TelemetryName
+from gwsproto.enums import ActorClass, GwQuantity, MakeModel, TelemetryName, Unit
 from gwsproto.named_types import (
     ChannelConfig, ComponentAttributeClassGt,  
     DataChannelGt, SimPicoTankModuleComponentGt, SpaceheatNodeGt,
 )
 
 
-from layout_gen.tank3 import Tank3Cfg, add_tank3
+from layout_gen.tank3 import Tank3Cfg
 
    
 def add_simulated_tanks(
@@ -117,6 +117,7 @@ def add_sim_tank(db: LayoutDb, reader: str):
             AboutNodeName=f"{reader}-depth{i}",
             CapturedByNodeName=reader,
             TelemetryName=TelemetryName.WaterTempCTimes1000,
+            Quantity=GwQuantity.Temperature,
             TerminalAssetAlias=db.terminal_asset_alias,
             Id=db.make_channel_id(f"{reader}-depth{i}-device")
             ) for i in range(1,4)
@@ -131,6 +132,7 @@ def add_sim_tank(db: LayoutDb, reader: str):
                 AboutNodeName=f"{reader}-depth{i}",
                 CapturedByNodeName=reader,
                 TelemetryName=TelemetryName.MicroVolts,
+                Quantity=GwQuantity.Voltage,
                 TerminalAssetAlias=db.terminal_asset_alias,
                 Id=db.make_channel_id(f"{reader}-depth{i}-micro-v")
                 ) for i in range(1,4)

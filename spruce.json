@@ -1179,8 +1179,8 @@
         }
       ],
       "DisplayName": "VDC GPIO Relay",
-      "TypeName": "gw108.vdc.relay.component.gt",
-      "Version": "001"
+      "TypeName": "gw108.gpio.relay.component.gt",
+      "Version": "000"
     },
     {
       "AdcAddress": 73,
@@ -1242,7 +1242,7 @@
           "AsyncCaptureDelta": 5000
         },
         {
-          "AdcChannel": "P2",
+          "AdcChannel": "P3",
           "AsyncCapture": true,
           "AsyncCaptureDelta": 50,
           "CapturePeriodS": 60,
@@ -1255,7 +1255,7 @@
           "Version": "000"
         },
         {
-          "AdcChannel": "P2",
+          "AdcChannel": "P3",
           "AsyncCapture": true,
           "CapturePeriodS": 60,
           "ChannelName": "zone4-garage-gw-microvolts",

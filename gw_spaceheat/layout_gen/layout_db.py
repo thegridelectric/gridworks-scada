@@ -19,7 +19,7 @@ from gwsproto.named_types import ElectricMeterChannelConfig
 from gwsproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwsproto.data_classes.house_0_names import H0N, H0CN
 from gwsproto.enums import (
-    ActorClass, EmissionMethod, FlowManifoldVariant, GwUnit, MakeModel,
+    ActorClass, EmissionMethod, FlowManifoldVariant, GwUnit, GwQuantity, MakeModel,
     TelemetryName, Unit,
 )
 from gwsproto.named_types import (
@@ -88,6 +88,8 @@ class LayoutIDMap:
                     self.zone_kwh_per_deg_f_list = v
                 elif k == "TotalStoreTanks":
                     self.total_store_tanks = v
+                elif k == "Strategy":
+                    self.strategy = v
                 elif k == "ShNodes":
                         for node in v:
                             try:
@@ -463,7 +465,6 @@ class LayoutDb:
                 ),
             ]
         )
-        
         self.add_data_channels(
             [
                 DataChannelGt(
@@ -473,6 +474,7 @@ class LayoutDb:
                     AboutNodeName=H0N.hp_odu,
                     CapturedByNodeName=H0N.primary_power_meter,
                     TelemetryName=TelemetryName.PowerW,
+                    Quantity=GwQuantity.Power,
                     InPowerMetering=True,
                     TerminalAssetAlias=self.terminal_asset_alias
                 ),
@@ -483,6 +485,7 @@ class LayoutDb:
                     AboutNodeName=H0N.hp_idu,
                     CapturedByNodeName=H0N.primary_power_meter,
                     TelemetryName=TelemetryName.PowerW,
+                    Quantity=GwQuantity.Power,
                     InPowerMetering=True,
                     TerminalAssetAlias=self.terminal_asset_alias
                 )
@@ -561,7 +564,7 @@ class LayoutDb:
             self.misc["TotalStoreTanks"] = self.loaded.total_store_tanks
         else:
             self.misc["TotalStoreTanks"] =  self.loaded.total_store_tanks
-        self.misc["Strategy"] = "House0"
+        self.misc["Strategy"] = self.loaded.strategy
         self.misc["FlowManifoldVariant"] = cfg.flow_manifold_variant
         self.misc["UseSiegLoop"] = cfg.use_sieg_loop
         self.add_nodes(
@@ -620,7 +623,6 @@ class LayoutDb:
                     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.derived_generator}",
                     ActorClass=ActorClass.DerivedGenerator,
                     DisplayName="Derived Generator",
-                    TankTempCalibrationMap=tmap
                 ),
                 SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.local_control),
