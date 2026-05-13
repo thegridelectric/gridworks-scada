@@ -1,3 +1,4 @@
+import time
 import asyncio
 from typing import Any, Optional, Sequence
 
@@ -10,12 +11,12 @@ from actors.sieg_loop.fallback import SiegLoopFallback
 from actors.sieg_loop.pid import SiegLoopPid
 from gwsproto.data_classes.house_0_names import H0CN, H0N
 from gwsproto.enums import ActorClass, SiegLoopMode
+from gwsproto.named_types import ActuatorsReady, SetTargetLwt
 from scada_app_interface import ScadaAppInterface
 
 
 class SiegLoop(ShNodeActor):
     HEALTH_CHECK_SECONDS = 60
-    DEFAULT_MODE_DELAY_SECONDS = 3 * 60
 
     _IMPL_BY_MODE = {
         SiegLoopMode.PidControl: SiegLoopPid,
@@ -46,7 +47,19 @@ class SiegLoop(ShNodeActor):
         self._started = False
         self._stop_requested = False
         self._health_check_task: asyncio.Task | None = None
-        self._default_mode_task: asyncio.Task | None = None
+
+        self.actuators_ready: bool = False
+        self.last_target_lwt_received: Optional[float] = None
+
+        channels = [
+            H0CN.hp_ewt, H0CN.hp_lwt,
+            H0CN.hp_odu_pwr, H0CN.hp_idu_pwr,
+            H0CN.sieg_cold,
+        ]
+        channels.extend(sorted(self.h0cn.buffer.effective))
+        for tank_idx in sorted(self.h0cn.tank):
+            channels.extend(sorted(self.h0cn.tank[tank_idx].effective))
+        self.pid_required_channels = list(dict.fromkeys(channels))
 
         self._switch_to_mode(
             SiegLoopMode.Fallback,
@@ -66,24 +79,28 @@ class SiegLoop(ShNodeActor):
             raise Exception("SiegLoop implementation has not been initialized")
         return self._impl
 
-    def switch_to_fallback(self, reason: str) -> None:
-        self.log(f"Switching to Fallback mode: {reason}")
-        self._switch_to_mode(SiegLoopMode.Fallback, reason=reason)
+    def pid_control_allowed(self) -> tuple[bool, Optional[str]]:
+        if self.settings.sieg_loop_default_mode != SiegLoopMode.PidControl:
+            return False, f"SCADA sieg_loop_default_mode is not set to PID"
 
-    def switch_to_pid(self, reason: str) -> None:
-        self.log(f"Switching to PID mode: {reason}")
-        healthy, health_reason = self.evaluate_strategy_health()
-        if not healthy:
-            summary = "SiegLoop PID strategy not started"
-            details = f"{reason}\n{health_reason}"
-            self.log(f"{summary}: {details}")
-            self.send_info(summary, details)
-            return
-        self._switch_to_mode(SiegLoopMode.PidControl, reason=reason)
+        if not self.actuators_ready:
+            return False, "ActuatorsReady has not been received"
 
-    def evaluate_strategy_health(self) -> tuple[bool, str]:
+        available, missing_data = self.check_pid_required_channels()
+        if not available:
+            return False, missing_data
+
+        if self.last_target_lwt_received is None:
+            return False, "SetTargetLwt has not been received"
+        
+        if time.time() - self.last_target_lwt_received > 5*60:
+            return False, f"Latest SetTargetLwt message received more than 5 minutes ago"
+
+        return True, None
+
+    def check_pid_required_channels(self) -> tuple[bool, Optional[str]]:
         missing = []
-        for channel_name in self._pid_required_channels():
+        for channel_name in self.pid_required_channels:
             available, reason = self._check_channel_availability(channel_name)
             if not available:
                 missing.append(f"{channel_name}: {reason}")
@@ -94,26 +111,10 @@ class SiegLoop(ShNodeActor):
         if missing:
             details = "Missing PID input data:\n" + "\n".join(f"- {x}" for x in missing)
             return False, details
-        return True, "PID input data present"
-
-    def _pid_required_channels(self) -> list[str]:
-        channels = [
-            H0CN.hp_ewt,
-            H0CN.hp_lwt,
-            H0CN.hp_odu_pwr,
-            H0CN.hp_idu_pwr,
-            H0CN.sieg_cold,
-        ]
-        channels.extend(sorted(self.h0cn.buffer.effective))
-        for tank_idx in sorted(self.h0cn.tank):
-            channels.extend(sorted(self.h0cn.tank[tank_idx].effective))
-        return list(dict.fromkeys(channels))
+        return True, None
 
     def _check_channel_availability(self, channel_name: str) -> tuple[bool, Optional[str]]:
-        channel = (
-            self.layout.channel(channel_name)
-            or self.layout.derived_channels.get(channel_name)
-        )
+        channel = self.layout.channel(channel_name) or self.layout.derived_channels.get(channel_name)
         if channel is None:
             return False, "not in hardware layout"
         if not self.data.channel_has_value(channel_name):
@@ -122,13 +123,7 @@ class SiegLoop(ShNodeActor):
             return False, "flatlined"
         return True, None
 
-    def _switch_to_mode(
-        self,
-        mode: SiegLoopMode,
-        *,
-        reason: str,
-        emit_info: bool = True,
-    ) -> None:
+    def _switch_to_mode(self, mode: SiegLoopMode, *, reason: str, emit_info: bool = True) -> None:
         if mode not in self._IMPL_BY_MODE:
             raise ValueError(f"Unsupported SiegLoop mode {mode}")
         if self._mode == mode:
@@ -136,13 +131,17 @@ class SiegLoop(ShNodeActor):
             return
 
         old_mode = self._mode
-        old_impl = self._impl
+        old_impl: ShNodeActor = self._impl
         if old_impl is not None:
             old_impl.stop()
 
         impl_class = self._IMPL_BY_MODE[mode]
-        new_impl = impl_class(self.name, self.services)
-        self._copy_runtime_state(old_impl, new_impl)
+        new_impl: ShNodeActor = impl_class(self.name, self.services)
+        if old_impl is not None:
+            for attr in self._SHARED_RUNTIME_ATTRS:
+                if hasattr(old_impl, attr) and hasattr(new_impl, attr):
+                    setattr(new_impl, attr, getattr(old_impl, attr))
+
         self._impl = new_impl
         self._mode = mode
 
@@ -151,56 +150,33 @@ class SiegLoop(ShNodeActor):
 
         old_label = old_mode.value if old_mode is not None else "None"
         summary = f"SiegLoop strategy changed: {old_label} -> {mode.value}"
-        details = (
-            f"Reason: {reason}\n"
-            f"Implementation: {impl_class.__module__}.{impl_class.__name__}"
-        )
+        details = (f"Reason: {reason}\nImplementation: {impl_class.__module__}.{impl_class.__name__}")
         self.log(f"{summary}. {details}")
         if emit_info:
             self.send_info(summary, details)
-
-    def _copy_runtime_state(
-        self,
-        old_impl: ShNodeActor | None,
-        new_impl: ShNodeActor,
-    ) -> None:
-        if old_impl is None:
-            return
-        for attr in self._SHARED_RUNTIME_ATTRS:
-            if hasattr(old_impl, attr) and hasattr(new_impl, attr):
-                setattr(new_impl, attr, getattr(old_impl, attr))
 
     async def _health_check_loop(self) -> None:
         while not self._stop_requested:
             await asyncio.sleep(self.HEALTH_CHECK_SECONDS)
             self.log(f"SiegLoop health check: {self._mode}")
             try:
-                if self._mode == SiegLoopMode.Fallback:
-                    continue
-                healthy, reason = self.evaluate_strategy_health()
-                if not healthy:
-                    self.switch_to_fallback(reason)
+                allowed, reason = self.pid_control_allowed()
+                if self._mode != SiegLoopMode.PidControl and allowed:
+                    self._switch_to_mode(SiegLoopMode.PidControl, reason="Conditions passed", emit_info=False)
+                elif self._mode == SiegLoopMode.PidControl and not allowed:
+                    self._switch_to_mode(SiegLoopMode.Fallback, reason=reason, emit_info=True)
             except asyncio.CancelledError:
                 raise
             except Exception as e:
                 self.log(f"Trouble evaluating SiegLoop strategy health: {e}")
 
-    async def _delayed_default_mode_check(self) -> None:
-        await asyncio.sleep(self.DEFAULT_MODE_DELAY_SECONDS)
-        if self._stop_requested:
-            return
-
-        default_mode = self.settings.sieg_loop_default_mode
-        reason = (f"Delayed SiegLoop default-mode check after {self.DEFAULT_MODE_DELAY_SECONDS} seconds")
-        self.log(f"{reason}: {default_mode}")
-        if default_mode == SiegLoopMode.PidControl:
-            self.switch_to_pid(reason)
-        elif default_mode == SiegLoopMode.Fallback:
-            self.switch_to_fallback(reason)
-        else:
-            self.log(f"Unsupported SiegLoop default mode {default_mode}; staying in {self.mode}")
-
     def process_message(self, message: Message[Any]) -> Result[bool, Exception]:
+        payload = message.Payload
+        match payload:
+            case ActuatorsReady():
+                self.actuators_ready = True
+            case SetTargetLwt():
+                self.last_target_lwt_received = time.time()
         return self.active_implementation.process_message(message)
 
     def start(self) -> None:
@@ -212,27 +188,18 @@ class SiegLoop(ShNodeActor):
             name="Sieg Loop Strategy Health Check",
         )
         self.services.add_task(self._health_check_task)
-        self._default_mode_task = asyncio.create_task(self._delayed_default_mode_check())
-        self.services.add_task(self._default_mode_task)
 
     def stop(self) -> None:
         self._stop_requested = True
         self._started = False
         if self._health_check_task and not self._health_check_task.done():
             self._health_check_task.cancel()
-        if self._default_mode_task and not self._default_mode_task.done():
-            self._default_mode_task.cancel()
         self.active_implementation.stop()
 
     async def join(self) -> None:
         if self._health_check_task is not None:
             try:
                 await self._health_check_task
-            except asyncio.CancelledError:
-                ...
-        if self._default_mode_task is not None:
-            try:
-                await self._default_mode_task
             except asyncio.CancelledError:
                 ...
         await self.active_implementation.join()
