@@ -1,7 +1,9 @@
 import time
 import uuid
 import asyncio
+from datetime import datetime
 from enum import auto
+from collections import deque
 from result import Ok, Result
 from transitions import Machine
 from typing import Any, Optional, Sequence
@@ -15,7 +17,7 @@ from gwsproto.enums.gw_str_enum import GwStrEnum
 from actors.hp_boss import SiegLoopReady
 from gwsproto.enums.hp_boss_state import HpBossState
 from actors.sh_node_actor import ShNodeActor
-from gwsproto.named_types import ActuatorsReady, SingleMachineState
+from gwsproto.named_types import ActuatorsReady, SetTargetLwt, SingleMachineState
 
 
 class SiegValveState(GwStrEnum):
@@ -44,11 +46,8 @@ class SiegValveEvent(GwStrEnum):
 
 
 class SiegControlState(GwStrEnum):
-    Initializing = auto()
-    Blind = auto()
-    HpOff = auto()
-    HpStartingUp = auto()
-    HpHasLift = auto()
+    WaitingForTargetLwt = auto()
+    HasTargetLwt = auto()
 
     @classmethod
     def values(cls) -> list[str]:
@@ -60,21 +59,13 @@ class SiegControlState(GwStrEnum):
 
 
 class SiegControlEvent(GwStrEnum):
-    DoneInitializingBlind = auto()
-    DoneInitializingHpOn = auto()
-    DoneInitializingHpOff = auto()
-    DoneInitializingHpStartingUp = auto()
-    BecameBlind = auto()
-    NoLongerBlindHpOn = auto()
-    NoLongerBlindHpOff = auto()
-    NoLongerBlindHpStartingUp = auto()
-    HpTurnsOff = auto()
-    HpTurnsOn = auto()
-    HpStartUpDone = auto()
+    ReceivedTargetLwt = auto()
+    TargetLwtTimedOut = auto()
 
 
-class SiegLoopFallback(ShNodeActor):
+class SiegLoopPid(ShNodeActor):
     FULL_RANGE_S = 100
+    MAIN_LOOP_SLEEP_S = 2
 
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
@@ -117,38 +108,19 @@ class SiegLoopFallback(ShNodeActor):
         # --------------------------------------
 
         self.control_transitions = [
-            # Initializing
-            {"trigger": "DoneInitializingBlind", "source": "Initializing", "dest": "Blind"},
-            {"trigger": "DoneInitializingHpOn", "source": "Initializing", "dest": "HpHasLift"},
-            {"trigger": "DoneInitializingHpOff", "source": "Initializing", "dest": "HpOff"},
-            {"trigger": "DoneInitializingHpStartingUp", "source": "Initializing", "dest": "HpStartingUp"},
-
-            # Turning off the heat pump
-            {"trigger": "HpTurnsOff", "source": "HpStartingUp", "dest": "HpOff"},
-            {"trigger": "HpTurnsOff", "source": "HpHasLift", "dest": "HpOff"},
-
-            # Turning on the heat pump
-            {"trigger": "HpTurnsOn", "source": "HpOff", "dest": "HpStartingUp"},
-
-            # Reaching the end of the heat pump startup
-            {"trigger": "HpStartUpDone", "source": "HpStartingUp", "dest": "HpHasLift"},
-
-            # Going / leaving Blind state
-            {"trigger": "BecameBlind", "source": "*", "dest": "Blind"},
-            {"trigger": "NoLongerBlindHpOn", "source": "Blind", "dest": "HpHasLift"},
-            {"trigger": "NoLongerBlindHpOff", "source": "Blind", "dest": "HpOff"},
-            {"trigger": "NoLongerBlindHpStartingUp", "source": "Blind", "dest": "HpStartingUp"},
+            {"trigger": "ReceivedTargetLwt", "source": "WaitingForTargetLwt", "dest": "HasTargetLwt"},
+            {"trigger": "TargetLwtTimedOut", "source": "HasTargetLwt", "dest": "WaitingForTargetLwt"},
         ]
 
         self.control_machine = Machine(
             model=self,
             states=SiegControlState.values(),
             transitions=self.control_transitions,
-            initial=SiegControlState.Initializing,
+            initial=SiegControlState.WaitingForTargetLwt,
             model_attribute="control_state",
             send_event=True,
         )
-        self.control_state: SiegControlState = SiegControlState.Initializing
+        self.control_state: SiegControlState = SiegControlState.WaitingForTargetLwt
 
         self.keep_seconds: float = self.FULL_RANGE_S
 
@@ -157,11 +129,32 @@ class SiegLoopFallback(ShNodeActor):
         self._background_tasks: set[asyncio.Task] = set()
 
         self.hp_boss_state = HpBossState.HpOn
+        self.target_lwt: Optional[float] = None
+        self.target_lwt_time_received: Optional[float] = None
 
-        self.actuators_ready: bool = False
         self.control_interval_seconds = 30
+        self.time_since_last_control_loop = 30
         self.time_since_last_report = 5*60
         self.hp_turned_off_time = None
+
+        # PID parameters
+        self.lwt_readings = deque(maxlen=40)
+        self.ultimate_gain = 1.0  # Ku
+        self.ultimate_gain_seconds = 230 # Tu
+        self.pid_sensitivity = 2
+        self.proportional_gain = .4 * self.pid_sensitivity #  P = 0.2*Ku
+        self.derivative_gain = 15 * self.pid_sensitivity # D = 0.33 * P * Tu
+        self.integral_gain = 0.00017 * self.pid_sensitivity #  I =  0.1 × P ÷ Tu
+        
+        # Flow percent keep from keep seconds
+        self.flow_from_time_points = [
+            [7,0], [9, 8], [11.2, 11.4], [14.7, 24.1], [18.2, 39.0], [22.4, 51.7],
+            [28.7, 66.6], [35.7, 75.2], [39.9, 80.6], [42.7, 83.7], [67.2, 100]
+        ]
+        if self.flow_from_time_points[0][1] != 0:
+            raise Exception("First flow point should be [x,0]!")
+        if self.flow_from_time_points[-1][1] != 100:
+            raise Exception("Last flow point should be [x,100]!")
 
         self.t1 = 26                        # seconds where some flow starts going through the Sieg Loop
         self.t2 = self.FULL_RANGE_S - 18    # seconds where all flow starts going through the Sieg Loop
@@ -178,17 +171,22 @@ class SiegLoopFallback(ShNodeActor):
     
     async def main(self):
         while not self._stop_requested:
-            self.engage_brain()
+            self.update_lwt_readings()
 
-            self._send_to(
-                self.primary_scada,
-                SingleMachineState(
-                    MachineHandle=self.node.handle,
-                    StateEnum=SiegControlState.enum_name(),
-                    State=self.control_state,
-                    UnixMs=int(time.time() * 1000),
-                ),
-            )
+            if self.time_since_last_control_loop >= self.control_interval_seconds:
+                self.time_since_last_control_loop = 0
+
+                self.engage_brain(called_from_main=True)
+
+                self._send_to(
+                    self.primary_scada,
+                    SingleMachineState(
+                        MachineHandle=self.node.handle,
+                        StateEnum=SiegControlState.enum_name(),
+                        State=self.control_state,
+                        UnixMs=int(time.time() * 1000),
+                    ),
+                )
 
             # Pat watchdog every 5 minutes
             if self.time_since_last_report >= 5*60:
@@ -204,80 +202,181 @@ class SiegLoopFallback(ShNodeActor):
                 #     )
                 # )
 
-            self.time_since_last_report += self.control_interval_seconds
-            await asyncio.sleep(self.control_interval_seconds)
+            self.time_since_last_control_loop += self.MAIN_LOOP_SLEEP_S
+            self.time_since_last_report += self.MAIN_LOOP_SLEEP_S
+            await asyncio.sleep(self.MAIN_LOOP_SLEEP_S)
 
-    def hp_loop_is_getting_hot(self):
+    def engage_brain(self, called_from_main=False):
+        self.log(f"Engaging brain, control state is {self.control_state}, hp boss state is {self.hp_boss_state}")
+
+        if self.control_state == SiegControlState.HasTargetLwt:
+            if self.target_lwt_time_received and time.time() - self.target_lwt_time_received > 15*60:
+                self.trigger_control_event(SiegControlEvent.TargetLwtTimedOut)
+            elif self.should_leave_pid_mode(): #TODO add a timer during which banned from being in Target mode
+                self.trigger_control_event(SiegControlEvent.TargetLwtTimedOut)
+            elif called_from_main:
+                self._create_task(self.run_pid())
+        elif self.control_state == SiegControlState.WaitingForTargetLwt:
+            if self.target_lwt_time_received and time.time() - self.target_lwt_time_received <= 5*60:
+                self.trigger_control_event(SiegControlEvent.ReceivedTargetLwt)
+
+    def should_leave_pid_mode(self):
         lwt = self.lwt_f()
         ewt = self.ewt_f()
-        
-        if self.is_blind() or not lwt or not ewt:
-            self.log("Warning: hp_loop_is_getting_hot called but blind")
+        if lwt is None or ewt is None:
+            self.log("Warning: in PID mode, but missing temperature readings")
+            self.send_info("Sieg PID was told to leave PID mode, missing EWT and/or LWT")
             return True
-        
-        threshold_lwt = self.data.ha1_params.MaxEwtF-20
-        if max(lwt, ewt) > threshold_lwt:
+        if ewt > self.data.ha1_params.MaxEwtF:
+            self.log(f"Warning: EWT {round(ewt,1)}°F is greater than max EWT {self.data.ha1_params.MaxEwtF}°F")
+            self.send_info("Sieg PID was told to leave PID mode, EWT higher than max EWT", f"")
             return True
         return False
 
-    def engage_brain(self):
-        self.log(f"Engaging brain, control state is {self.control_state}, hp boss state is {self.hp_boss_state}")
-        # Check if actuators are ready
-        if self.control_state == SiegControlState.Initializing:
-            if self.actuators_ready:
-                if self.is_blind():
-                    self.trigger_control_event(SiegControlEvent.DoneInitializingBlind)
-                elif self.hp_boss_state == HpBossState.HpOff:
-                    self.trigger_control_event(SiegControlEvent.DoneInitializingHpOff)
-                elif self.hp_boss_state == HpBossState.PreparingToTurnOn:
-                    self.trigger_control_event(SiegControlEvent.DoneInitializingHpStartingUp)
-                elif self.hp_boss_state == HpBossState.HpOn:
-                    if self.hp_loop_is_getting_hot():
-                        self.trigger_control_event(SiegControlEvent.DoneInitializingHpOn)
-                    else:
-                        self.trigger_control_event(SiegControlEvent.DoneInitializingHpStartingUp)
-            else:
-                self.log("Waiting for actuators to be ready to get out of Initializing state")
-                return
-        
-        # Get in/out of Blind state
-        if self.control_state != SiegControlState.Blind and self.is_blind():
-            self.trigger_control_event(SiegControlEvent.BecameBlind)
-        elif self.control_state == SiegControlState.Blind and not self.is_blind():
-            if self.hp_boss_state == HpBossState.HpOff:
-                self.trigger_control_event(SiegControlEvent.NoLongerBlindHpOff)
-            elif self.hp_boss_state == HpBossState.PreparingToTurnOn:
-                self.trigger_control_event(SiegControlEvent.NoLongerBlindHpStartingUp)
-            elif self.hp_boss_state == HpBossState.HpOn:
-                if self.hp_loop_is_getting_hot():
-                    self.trigger_control_event(SiegControlEvent.NoLongerBlindHpOn)
-                else:
-                    self.trigger_control_event(SiegControlEvent.NoLongerBlindHpStartingUp)
+    # --------------------------------------
+    # PID functions
+    # --------------------------------------
 
-        if self.control_state == SiegControlState.Blind:
+    async def run_pid(self) -> None:
+        """Check current temperatures and adjust valve position if needed"""
+        lwt_f = self.lwt_f()
+        lift_f = self.lift_f()
+        if lwt_f is None or lift_f is None:
+            self.log("Missing temperature readings in PID loop!")
             return
+        self.log(f"LWT {round(lwt_f,1)} | Target {round(self.target_lwt,1)} | Lift {round(lift_f,1)}")
 
-        # Adapt state if not Blind
-        if self.control_state != SiegControlState.HpOff and self.hp_boss_state == HpBossState.HpOff:
-            self.trigger_control_event(SiegControlEvent.HpTurnsOff)
-        elif (
-            self.control_state not in [SiegControlState.HpStartingUp, SiegControlState.HpHasLift] 
-            and self.hp_boss_state in [HpBossState.PreparingToTurnOn, HpBossState.HpOn]
-        ):
-            self.trigger_control_event(SiegControlEvent.HpTurnsOn)
-        elif self.control_state == SiegControlState.HpStartingUp:
-            if self.hp_loop_is_getting_hot():
-                self.trigger_control_event(SiegControlEvent.HpStartUpDone)
+        # Calculate target keep seconds change, and only move if significant change needed
+        delta_s = self.calculate_delta_seconds(seconds_hack=True)
+        if delta_s is not None and abs(delta_s) >= 0.5:
+            await self._prepare_new_movement_task(delta_s) 
+    
+    def update_lwt_readings(self) -> None:
+        lwt_f = self.lwt_f()
+        if lwt_f is None:
+            return
+        self.lwt_readings.append((time.time(), lwt_f))
 
-    def is_blind(self) -> bool:
-        if self.lift_f() is None:
-            return True
-        if self.total_hp_pwr_w() is None:
-            return True
-        if self.hp_turned_off_time is not None and time.time()-self.hp_turned_off_time>120:
-            if self.total_hp_pwr_w() > 500:
-                return True
-        return False        
+    def calculate_delta_seconds(self, seconds_hack: bool = False) -> Optional[float]:
+        """Calculate delta seconds for the next PID control interval, using
+        ratio of flow as the independent variable. If seconds_hack is true, use
+        the keep_seconds as the independant variable. Returns None if missing temperature readings.
+        """
+
+        if self.control_state not in [SiegControlState.HasTargetLwt]:
+            raise Exception(f"Should not be running control loop in state {self.control_state}")
+
+        lwt_f = self.lwt_f()
+        lift_f = self.lift_f()
+        if lift_f is None or lwt_f is None or self.target_lwt is None:
+            return None
+        
+        err = self.target_lwt - lwt_f
+        
+        # Proportional term
+        proportional_term = self.proportional_gain * err
+        
+        # Derivative term (rate of change of error)
+        current_time = time.time()
+        if len(self.lwt_readings) <= 1:
+            error_delta = 0
+            time_delta_s = 1
+        else:
+            last_lwt_time, last_lwt_f = self.lwt_readings[-2]
+            if current_time - last_lwt_time < 20:
+                error_delta = 0
+                time_delta_s = 1
+                self.log(f"That's strange, last_lwt_time is {round(current_time - last_lwt_time)} seconds ago!")
+            else:
+                last_error = self.target_lwt - last_lwt_f
+                time_delta_s = current_time - last_lwt_time
+                error_delta = err - last_error
+        derivative_term = self.derivative_gain * (error_delta / time_delta_s)
+
+        # Integral term (add current error to integral, with anti-windup protection)
+        if not hasattr(self, 'error_integral'): #TODO can't we just initialize this?
+            self.error_integral = 0
+        max_integral = 50
+        self.error_integral += err * self.control_interval_seconds
+        self.error_integral = max(-max_integral, min(self.error_integral, max_integral))
+        integral_term = self.integral_gain * self.error_integral
+        self.log("PID adjustment:")
+        self.log(f"  Error: {round(err, 1)}°F")
+
+        # Calculate total flow adjustment
+        if seconds_hack:
+            self.log(f"  P: {round(proportional_term, 1)} s, I: {round(integral_term, 1)} s,  D: {round(derivative_term, 1)} s")
+            delta_s = proportional_term + integral_term + derivative_term
+        else:
+            self.log(f"  P: {round(proportional_term, 1)}% flow, I: {round(integral_term, 1)}% flow,  D: {round(derivative_term, 1)}% flow")
+            flow_percent_adjustment = proportional_term + integral_term + derivative_term
+            
+            # Convert to time_percent_keep
+            flow_percent_keep = self.flow_from_time(self.keep_seconds)
+            target_flow_percent = flow_percent_keep + flow_percent_adjustment
+            target_time_s = self.time_from_flow(target_flow_percent)
+            delta_s = target_time_s - self.keep_seconds
+            self.log(f"  Flow target: {round(target_flow_percent,1)}%")
+            self.log(f"  Flow adjustment: {round(flow_percent_adjustment,1)}%")
+
+        # Bound the adjustment to the physical limits of the valve
+        if delta_s > 0:
+            bounded_adjustment = min(delta_s, self.control_interval_seconds)
+        else:
+            bounded_adjustment = max(delta_s, -self.control_interval_seconds)
+        self.log(f"  Time adjustment: {round(delta_s,1)} seconds")
+        self.log(f"  Bounded time adjustment: {round(bounded_adjustment,1)} seconds")
+        return bounded_adjustment
+
+    def flow_from_time(self, time_s: float) -> float:
+        """
+        Convert valve position in seconds (time_s,  seconds from valve 
+        at its fully send stop endpoint) to actual flow percentage (flow_percent_keep)
+        """
+        # Time to flow points (experimental)
+        points =  self.flow_from_time_points
+        x = time_s
+        # Below the first point
+        if x <= points[0][0]:
+            return 0
+
+        # Above the last point
+        if x >= points[-1][0]:
+            return 100
+
+        # Find the segment x lies within
+        for i in range(1, len(points)):
+            x0, y0 = points[i - 1]
+            x1, y1 = points[i]
+            if x0 <= x <= x1:
+                y = (x - x0) * (y1 - y0) / (x1 - x0) + y0
+                return y
+
+        raise ValueError(f"Interpolation failed – {x} not in 0-100!")
+
+    def time_from_flow(self, flow_percent_keep: float) -> float:
+        """
+        Convert actual flow percentage (flow_percent_keep) to valve position
+        (seconds from valve at its fully send stop endpoint)
+        """
+        points = []
+        for point in self.flow_from_time_points:
+            points.append([point[1], point[0]])
+
+        x = flow_percent_keep
+        if not (0<=x and x<=100):
+            old_x = x
+            x = max(0, min(x, 100))
+            self.log(f"changing flow percent keep from {old_x} to {x}")
+        
+        for i in range(1, len(points)):
+            x0, y0 = points[i - 1]
+            x1, y1 = points[i]
+            if x0 <= x <= x1:
+                y = (x - x0) * (y1 - y0) / (x1 - x0) + y0
+                return y
+
+        raise Exception("time_from_flow requires flow_percent_keep between 0 and 100")
 
     # --------------------------------------
     # Control State Machine
@@ -299,13 +398,9 @@ class SiegLoopFallback(ShNodeActor):
             return
 
         # Manually call the appropriate callback based on the new state
-        if self.control_state == SiegControlState.Blind:
-            self.moving_to_full_send(event)
-        elif self.control_state == SiegControlState.HpOff:
-            self.moving_to_full_keep(event)
-        elif self.control_state == SiegControlState.HpStartingUp:
-            self.moving_to_just_keep(event)
-        elif self.control_state == SiegControlState.HpHasLift:
+        if self.control_state == SiegControlState.HasTargetLwt:
+            self.log("Target LWT has been received, using PID loop")
+        elif self.control_state == SiegControlState.WaitingForTargetLwt:
             self.moving_to_full_send(event)
 
         self._send_to(
@@ -384,10 +479,11 @@ class SiegLoopFallback(ShNodeActor):
         payload = message.Payload
         match payload:
             case ActuatorsReady():
-                self.actuators_ready = True
-                self.engage_brain()
+                self.send_info("Received an actuators ready message, should not be in PID mode!")
             case SingleMachineState():
                 self.process_single_machine_state(from_node, payload)
+            case SetTargetLwt():
+                self.process_set_target_lwt(from_node, payload)
             case _: 
                 self.log(f"{self.name} received unexpected message: {message.Header}")
         return Ok(True)
@@ -414,6 +510,23 @@ class SiegLoopFallback(ShNodeActor):
 
         self.hp_boss_state = payload.State
         self.engage_brain()             
+
+    def process_set_target_lwt(self, from_node: ShNode, payload: SetTargetLwt) -> None:
+        if payload.ToHandle != self.node.handle:
+            self.log(f"Ignoring SetTargetLwt with ToHandle {payload.ToHandle} != {self.node.handle}")
+            return
+        if from_node.Handle != payload.FromHandle:
+            raise Exception(f"from_node handle {from_node.Handle} does not match payload {payload.FromHandle}")
+        boss = self.layout.boss_node(self.node)
+        if boss is None:
+            raise Exception(f"No boss found for node {self.node.handle}")
+        if payload.FromHandle != boss.Handle:
+            raise Exception(f"Invalid SetTargetLwt: {payload.FromHandle} is not boss of this node, {boss.Handle} is")
+   
+        self.log(f"Boss set target LWT to {payload.TargetLwtF}°F ({from_node.Name})")
+        self.target_lwt = float(payload.TargetLwtF)
+        self.target_lwt_time_received = time.time()
+        self.engage_brain()
 
     # --------------------------------------
     # Movements
