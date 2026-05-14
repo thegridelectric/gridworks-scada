@@ -681,6 +681,38 @@ class HardwareLayout:
                             "'predicted-setpoint' but must use "
                             "EmissionMethod.AsyncAndPeriodic"
                         )
+                    if not dc.Parameters:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy "
+                            "'predicted-setpoint' but is missing Parameters"
+                        )
+                    else:
+                        heat_call_name = dc.Parameters.get("HeatCallChannelName")
+                        if not isinstance(heat_call_name, str):
+                            errors.append(
+                                f"DerivedChannel '{dc.Name}' uses strategy "
+                                "'predicted-setpoint' but Parameters."
+                                "HeatCallChannelName is missing or not a string"
+                            )
+                        elif heat_call_name not in self.derived_channels:
+                            errors.append(
+                                f"DerivedChannel '{dc.Name}' uses strategy "
+                                "'predicted-setpoint' but Parameters."
+                                f"HeatCallChannelName '{heat_call_name}' is not a "
+                                "known DerivedChannel"
+                            )
+                        threshold = dc.Parameters.get("SetpointThresholdFX100")
+                        if (
+                            not isinstance(threshold, int)
+                            or isinstance(threshold, bool)
+                            or threshold <= 0
+                        ):
+                            errors.append(
+                                f"DerivedChannel '{dc.Name}' uses strategy "
+                                "'predicted-setpoint' but Parameters."
+                                "SetpointThresholdFX100 is missing or not a "
+                                "positive integer"
+                            )
 
                 case "system-model":
                     if dc.InputChannelNames:
