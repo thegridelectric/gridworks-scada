@@ -53,7 +53,6 @@ class DerivedGenerator(ShNodeActor):
     GALLONS_PER_TANK = 119
     WATER_SPECIFIC_HEAT_KJ_PER_KG_C = 4.187
     GALLON_PER_LITER = 3.78541
-    PRED_SETPOINT_DEVIATION_THRESHOLD_F = 2
     PRED_SETPOINT_WHEN_LOWERED = -1000
     PRED_SETPOINT_WHEN_RAISED = 1000
 
@@ -194,6 +193,9 @@ class DerivedGenerator(ShNodeActor):
         if not heat_call_dc:
             raise RuntimeError(f"Predicted setpoint channel '{dc.Name}' requires heat-call DerivedChannel '{heat_call_name}'")
 
+        # Parameters shape (HeatCallChannelName, SetpointThresholdFX100) is the
+        # authoritative responsibility of HardwareLayout validation, which fails
+        # at layout-load rather than here in actor init.
         self.pred_setpoint_states[dc.Name] = PredictedSetpointState()
 
     def handle_identity(self, dc: DerivedChannel, payload: SingleReading | None = None) -> None:
@@ -257,6 +259,17 @@ class DerivedGenerator(ShNodeActor):
             )
         )
 
+    @staticmethod
+    def _next_period_boundary(now: float, period: int) -> float:
+        return ((int(now) // period) + 1) * period
+
+    def _advance_period_boundary(self, dc_name: str, now: float, period: int) -> None:
+        """Advance a channel's period boundary in whole `period` steps until it is
+        in the future, so a gap in input readings yields one emission rather than
+        a burst of catch-up emissions on subsequent readings."""
+        while self.next_period_boundary_ts[dc_name] <= now:
+            self.next_period_boundary_ts[dc_name] += period
+
     def handle_heat_call(self, dc: DerivedChannel, payload: SingleReading | None = None) -> None:
         """
         Derive and emit a binary heat-call signal from a single raw input reading.
@@ -275,9 +288,6 @@ class DerivedGenerator(ShNodeActor):
         interp = HeatCallInterpretation(dc.Parameters.get("Interpretation"))
         threshold = dc.Parameters.get("Threshold")
 
-        def next_period_boundary(now: float, period: int) -> float:
-            return ((int(now) // period) + 1) * period
-    
         value = self.heat_call_value(payload.Value, interp, threshold)
         
         now = time.time()
@@ -291,7 +301,7 @@ class DerivedGenerator(ShNodeActor):
 
         if next_ts is None:
             # First time seeing this channel → align to next boundary
-            next_ts = next_period_boundary(now, period)
+            next_ts = self._next_period_boundary(now, period)
             self.next_period_boundary_ts[dc.Name] = next_ts
 
         periodic_due = now >= next_ts
@@ -310,14 +320,13 @@ class DerivedGenerator(ShNodeActor):
             self.last_emitted[dc.Name] = value
 
             if periodic_due:
-                # Advance by exact multiples, not `now + period`
                 self.log(
                     f"[HeatCall periodic] {dc.Name} "
                     f"now={round(now,1)} "
                     f"next={round(self.next_period_boundary_ts[dc.Name],1)} "
                     f"period={dc.EmitPeriodS}"
                 )
-                self.next_period_boundary_ts[dc.Name] += period
+                self._advance_period_boundary(dc.Name, now, period)
 
     def heat_call_value(
             self, 
@@ -356,91 +365,84 @@ class DerivedGenerator(ShNodeActor):
         -> If the setpont seems to have been raised, use 1000 while we wait for the end of the heat call.
         """
 
-        def next_period_boundary(now: float, period: int) -> float:
-            return ((int(now) // period) + 1) * period
-
-        try:
-            gw_temp_name = dc.InputChannelNames[0]
-            if payload is None or payload.ChannelName != gw_temp_name:
-                return
-
-            state = self.pred_setpoint_states[dc.Name]
-
-            assert dc.Parameters is not None
-            heat_call_name = dc.Parameters.get("HeatCallChannelName")
-            heat_call_dc = self.layout.derived_channels.get(heat_call_name)
-            if heat_call_dc is None:
-                self.log(f"Predicted setpoint channel '{dc.Name}' requires heat-call DerivedChannel '{heat_call_name}'")
-                return
-
-            # Read the latest gw-temp
-            in_unit = self.layout.channel_registry.unit(payload.ChannelName)
-            assert in_unit
-            state.latest_gw_temp_f = convert_temp_to_f(payload.Value, in_unit)
-
-            # The heat call switched from active to inactive -> update predicted setpoint
-            was_active = state.heat_call_active
-            latest_heat_call = self.data.latest_channel_values.get(heat_call_dc.Name)
-            if latest_heat_call is not None:
-                state.heat_call_active = latest_heat_call >= 1
-            if was_active and not state.heat_call_active:
-                state.predicted_setpoint_f = state.latest_gw_temp_f
-
-            # Suspected setpoint change
-            if state.heat_call_active is not None and state.latest_gw_temp_f is not None and state.predicted_setpoint_f is not None:
-                if (
-                    state.heat_call_active
-                    and state.latest_gw_temp_f >= state.predicted_setpoint_f + self.PRED_SETPOINT_DEVIATION_THRESHOLD_F
-                ):
-                    state.predicted_setpoint_f = self.PRED_SETPOINT_WHEN_RAISED
-                elif (
-                    not state.heat_call_active
-                    and state.latest_gw_temp_f <= state.predicted_setpoint_f - self.PRED_SETPOINT_DEVIATION_THRESHOLD_F
-                ):
-                    state.predicted_setpoint_f = self.PRED_SETPOINT_WHEN_LOWERED
-
-            if state.predicted_setpoint_f is None:
-                return
-
-            self.log(f"Predicted setpoint channel '{dc.Name}' value: {state.predicted_setpoint_f} F")
-
-            assert dc.EmitPeriodS is not None
-            period = dc.EmitPeriodS
-            now = time.time()
-
-            next_ts = self.next_period_boundary_ts.get(dc.Name)
-            if next_ts is None:
-                # First time seeing this channel → align to next boundary
-                next_ts = next_period_boundary(now, period)
-                self.next_period_boundary_ts[dc.Name] = next_ts
-
-            periodic_due = now >= next_ts
-            # AsyncEmitDelta is expressed in OutputUnit (FahrenheitX100); the
-            # setpoint state is in whole degrees F, so scale the threshold by 100.
-            async_emit_delta_f = dc.AsyncEmitDelta / 100
-            changed = (
-                abs(state.last_emitted_predicted_setpoint_f - state.predicted_setpoint_f)
-                > async_emit_delta_f
-            )
-            should_emit = changed or periodic_due
-
-            if should_emit:
-                self._send_to(
-                    self.primary_scada,
-                    SingleReading(
-                        ChannelName=dc.Name,
-                        Value=int(state.predicted_setpoint_f*100),
-                        ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs,
-                    )
-                )
-                state.last_emitted_predicted_setpoint_f = state.predicted_setpoint_f
-                if periodic_due:
-                    while self.next_period_boundary_ts[dc.Name] <= now:
-                        self.next_period_boundary_ts[dc.Name] += dc.EmitPeriodS
-
-        except Exception as e:
-            self.send_info(f"Error handling predicted setpoint channel '{dc.Name}': {e}")
+        gw_temp_name = dc.InputChannelNames[0]
+        if payload is None or payload.ChannelName != gw_temp_name:
             return
+
+        state = self.pred_setpoint_states[dc.Name]
+
+        assert dc.Parameters is not None
+        heat_call_name = dc.Parameters.get("HeatCallChannelName")
+        # SetpointThresholdFX100 is hundredths °F; the setpoint state is in °F.
+        setpoint_threshold_f = dc.Parameters["SetpointThresholdFX100"] / 100
+        heat_call_dc = self.layout.derived_channels.get(heat_call_name)
+        if heat_call_dc is None:
+            self.log(f"Predicted setpoint channel '{dc.Name}' requires heat-call DerivedChannel '{heat_call_name}'")
+            return
+
+        # Read the latest gw-temp
+        in_unit = self.layout.channel_registry.unit(payload.ChannelName)
+        assert in_unit
+        state.latest_gw_temp_f = convert_temp_to_f(payload.Value, in_unit)
+
+        # The heat call switched from active to inactive -> update predicted setpoint
+        was_active = state.heat_call_active
+        latest_heat_call = self.data.latest_channel_values.get(heat_call_dc.Name)
+        if latest_heat_call is not None:
+            state.heat_call_active = latest_heat_call >= 1
+        if was_active and not state.heat_call_active:
+            state.predicted_setpoint_f = state.latest_gw_temp_f
+
+        # Suspected setpoint change
+        if state.heat_call_active is not None and state.latest_gw_temp_f is not None and state.predicted_setpoint_f is not None:
+            if (
+                state.heat_call_active
+                and state.latest_gw_temp_f >= state.predicted_setpoint_f + setpoint_threshold_f
+            ):
+                state.predicted_setpoint_f = self.PRED_SETPOINT_WHEN_RAISED
+            elif (
+                not state.heat_call_active
+                and state.latest_gw_temp_f <= state.predicted_setpoint_f - setpoint_threshold_f
+            ):
+                state.predicted_setpoint_f = self.PRED_SETPOINT_WHEN_LOWERED
+
+        if state.predicted_setpoint_f is None:
+            return
+
+        self.log(f"Predicted setpoint channel '{dc.Name}' value: {state.predicted_setpoint_f} F")
+
+        assert dc.EmitPeriodS is not None
+        period = dc.EmitPeriodS
+        now = time.time()
+
+        next_ts = self.next_period_boundary_ts.get(dc.Name)
+        if next_ts is None:
+            # First time seeing this channel → align to next boundary
+            next_ts = self._next_period_boundary(now, period)
+            self.next_period_boundary_ts[dc.Name] = next_ts
+
+        periodic_due = now >= next_ts
+        # AsyncEmitDelta is expressed in OutputUnit (FahrenheitX100); the
+        # setpoint state is in whole degrees F, so scale the threshold by 100.
+        async_emit_delta_f = dc.AsyncEmitDelta / 100
+        changed = (
+            abs(state.last_emitted_predicted_setpoint_f - state.predicted_setpoint_f)
+            > async_emit_delta_f
+        )
+        should_emit = changed or periodic_due
+
+        if should_emit:
+            self._send_to(
+                self.primary_scada,
+                SingleReading(
+                    ChannelName=dc.Name,
+                    Value=int(state.predicted_setpoint_f*100),
+                    ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs,
+                )
+            )
+            state.last_emitted_predicted_setpoint_f = state.predicted_setpoint_f
+            if periodic_due:
+                self._advance_period_boundary(dc.Name, now, period)
 
     def handle_system_model(
         self,

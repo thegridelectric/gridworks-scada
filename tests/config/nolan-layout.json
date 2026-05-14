@@ -400,7 +400,7 @@
       "OutputUnit": "FahrenheitX100",
       "Parameters": {
         "HeatCallChannelName": "zone1-main-heat-call",
-        "SetpointThresholdF": 2.0
+        "SetpointThresholdFX100": 200
       },
       "Strategy": "predicted-setpoint",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",

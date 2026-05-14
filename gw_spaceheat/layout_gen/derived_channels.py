@@ -116,8 +116,10 @@ def _add_zone_predicted_setpoint_channel(
     zone_channels = HSZoneChannelNames(zone_name, zone_idx)
     nolan_channels = NolanZoneChannelNames(zone_name, zone_idx)
 
-    # DerivedChannelGt.AsyncEmitDelta: int, hundredths °F (consistent with GwUnit.FahrenheitX100).
+    # AsyncEmitDelta and SetpointThresholdFX100: int, hundredths °F (consistent
+    # with GwUnit.FahrenheitX100).
     async_emit_delta_x100 = max(1, int(round(async_emit_delta_f * 100)))
+    setpoint_threshold_fx100 = max(1, int(round(threshold_f * 100)))
 
     db.add_derived_channels(
         [
@@ -133,7 +135,7 @@ def _add_zone_predicted_setpoint_channel(
                 EmitPeriodS=emit_period_s,
                 Parameters={
                     "HeatCallChannelName": zone_channels.heat_call,
-                    "SetpointThresholdF": threshold_f,
+                    "SetpointThresholdFX100": setpoint_threshold_fx100,
                 },
                 DisplayName=(
                     f"Zone {zone_idx} {zone_name.replace('-', ' ').title()} "
