@@ -415,7 +415,13 @@ class DerivedGenerator(ShNodeActor):
                 self.next_period_boundary_ts[dc.Name] = next_ts
 
             periodic_due = now >= next_ts
-            changed = abs(state.last_emitted_predicted_setpoint_f - state.predicted_setpoint_f) > dc.AsyncEmitDelta
+            # AsyncEmitDelta is expressed in OutputUnit (FahrenheitX100); the
+            # setpoint state is in whole degrees F, so scale the threshold by 100.
+            async_emit_delta_f = dc.AsyncEmitDelta / 100
+            changed = (
+                abs(state.last_emitted_predicted_setpoint_f - state.predicted_setpoint_f)
+                > async_emit_delta_f
+            )
             should_emit = changed or periodic_due
 
             if should_emit:
