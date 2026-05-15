@@ -15,8 +15,7 @@ from gwsproto.enums.gw_str_enum import GwStrEnum
 from actors.hp_boss import SiegLoopReady
 from gwsproto.enums.hp_boss_state import HpBossState
 from actors.sh_node_actor import ShNodeActor
-from gwsproto.named_types import ActuatorsReady, SingleMachineState
-
+from gwsproto.named_types import ActuatorsReady, SingleMachineState, SetTargetLwt
 
 class SiegValveState(GwStrEnum):
     KeepingMore = auto()
@@ -388,6 +387,9 @@ class SiegLoopFallback(ShNodeActor):
                 self.engage_brain()
             case SingleMachineState():
                 self.process_single_machine_state(from_node, payload)
+            case SetTargetLwt():
+                self.log(f"In fallback mode, ignoring SetTargetLwt")
+                pass
             case _: 
                 self.log(f"{self.name} received unexpected message: {message.Header}")
         return Ok(True)
