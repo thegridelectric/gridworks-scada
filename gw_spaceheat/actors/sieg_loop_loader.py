@@ -142,6 +142,10 @@ class SiegLoop(ShNodeActor):
             for attr in self._SHARED_RUNTIME_ATTRS:
                 if hasattr(old_impl, attr) and hasattr(new_impl, attr):
                     setattr(new_impl, attr, getattr(old_impl, attr))
+            if hasattr(old_impl, "valve_state") and hasattr(new_impl, "valve_state"):
+                old_valve_state = getattr(old_impl, "valve_state")
+                new_valve_state_type = type(getattr(new_impl, "valve_state"))
+                setattr(new_impl, "valve_state", new_valve_state_type(old_valve_state.value))
 
         self._impl = new_impl
         self._mode = mode
