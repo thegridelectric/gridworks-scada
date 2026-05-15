@@ -50,6 +50,7 @@ class SiegLoop(ShNodeActor):
 
         self.actuators_ready: bool = False
         self.last_target_lwt_received: Optional[float] = None
+        self.last_target_lwt_message: Message[Any] | None = None
 
         channels = [
             H0CN.hp_ewt, H0CN.hp_lwt,
@@ -92,7 +93,7 @@ class SiegLoop(ShNodeActor):
 
         if self.last_target_lwt_received is None:
             return False, "SetTargetLwt has not been received"
-        
+
         if time.time() - self.last_target_lwt_received > 5*60:
             return False, f"Latest SetTargetLwt message received more than 5 minutes ago"
 
@@ -162,7 +163,9 @@ class SiegLoop(ShNodeActor):
             try:
                 allowed, reason = self.pid_control_allowed()
                 if self._mode != SiegLoopMode.PidControl and allowed:
-                    self._switch_to_mode(SiegLoopMode.PidControl, reason="Conditions passed", emit_info=False)
+                    self._switch_to_mode(SiegLoopMode.PidControl, reason="Conditions passed")
+                    if self.last_target_lwt_message is not None:
+                        self.active_implementation.process_message(self.last_target_lwt_message)
                 elif self._mode == SiegLoopMode.PidControl and not allowed:
                     self._switch_to_mode(SiegLoopMode.Fallback, reason=reason, emit_info=True)
             except asyncio.CancelledError:
@@ -177,6 +180,7 @@ class SiegLoop(ShNodeActor):
                 self.actuators_ready = True
             case SetTargetLwt():
                 self.last_target_lwt_received = time.time()
+                self.last_target_lwt_message = message
         return self.active_implementation.process_message(message)
 
     def start(self) -> None:
