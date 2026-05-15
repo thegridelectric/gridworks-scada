@@ -13,6 +13,7 @@ from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import StoreFlowRelay
+from gwsproto.named_types import FsmFullReport
 from gwsproto.enums.gw_str_enum import GwStrEnum
 from actors.hp_boss import SiegLoopReady
 from gwsproto.enums.hp_boss_state import HpBossState
@@ -621,6 +622,8 @@ class SiegLoopPid(ShNodeActor):
                 self.process_single_machine_state(from_node, payload)
             case SetTargetLwt():
                 self.process_set_target_lwt(from_node, payload)
+            case FsmFullReport():
+                pass
             case _: 
                 self.log(f"{self.name} received unexpected message: {message.Header}")
         return Ok(True)
