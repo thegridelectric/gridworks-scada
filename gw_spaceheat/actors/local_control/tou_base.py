@@ -254,6 +254,7 @@ class LocalControlTouBase(ShNodeActor):
                             self.log("ScadaBlind: switching to Aqaustatically controlled SCADA offpeak")
                 
                 if self.top_state == LocalControlTopState.Normal:
+                    self.send_sieg_loop_target_lwt()
                     self.engage_brain()
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
@@ -283,6 +284,11 @@ class LocalControlTouBase(ShNodeActor):
     @abstractmethod
     def normal_node_state(self) -> str:
         """ Return the state of the 'normal' state machine"""
+        raise NotImplementedError
+
+    @abstractmethod
+    def send_sieg_loop_target_lwt(self) -> None:
+        """Strategy hook for local-control implementations that command SiegLoop."""
         raise NotImplementedError
 
     @abstractmethod
@@ -490,5 +496,3 @@ class LocalControlTouBase(ShNodeActor):
         self.set_command_tree(boss_node=self.normal_node)
         # let normal node know its waking up
         self.normal_node_wakes_up()
-
-

@@ -6,9 +6,9 @@ from actors.local_control.tou_base import LocalControlTouBase
 from gwsproto.data_classes.house_0_names import H0CN, H0N
 from gwsproto.enums import (
    LocalControlBufferOnlyState, LocalControlBufferOnlyEvent, LocalControlTopState,
-   SeasonalStorageMode
+   SeasonalStorageMode, StoreFlowRelay
 )
-from gwsproto.named_types import SingleMachineState
+from gwsproto.named_types import SetTargetLwt, SingleMachineState
 from transitions import Machine
 
 from scada_app_interface import ScadaAppInterface
@@ -98,6 +98,33 @@ class BufferOnlyTouLocalControl(LocalControlTouBase):
 
     def normal_node_state(self) -> str:
         return self.state
+
+    def default_target_lwt(self) -> float:
+        if self.charge_discharge_relay_state() == StoreFlowRelay.DischargingStore:
+            t = self.hottest_buffer_temp_f()
+        else:
+            t = self.hottest_store_temp_f()
+        if t is None:
+            t = 0
+        return t
+
+    def send_sieg_loop_target_lwt(self) -> None:
+        if not self.layout.use_sieg_loop:
+            return
+        try:
+            target_lwt_f = round(self.default_target_lwt())
+        except Exception as e:
+            self.log(f"Could not send SiegLoop target LWT: {e}")
+            return
+        self._send_to(
+            self.sieg_loop,
+            SetTargetLwt(
+                FromHandle=self.normal_node.handle,
+                ToHandle=self.sieg_loop.handle,
+                TargetLwtF=target_lwt_f,
+            ),
+            self.normal_node,
+        )
 
     def is_initializing(self) -> bool:
         return self.state == LocalControlBufferOnlyState.Initializing

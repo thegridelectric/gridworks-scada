@@ -131,6 +131,9 @@ class AllTanksTouLocalControl(LocalControlTouBase):
     def normal_node_state(self) -> str:
         return self.state
 
+    def send_sieg_loop_target_lwt(self) -> None:
+        pass
+
     def is_initializing(self) -> bool:
         return self.state == LocalControlAllTanksState.Initializing
 
@@ -330,4 +333,3 @@ class AllTanksTouLocalControl(LocalControlTouBase):
                 return True
             self.log(f"Storage not ready (usable {round(self.usable_kwh,1)} kWh < required {round(self.required_kwh,1)} kWh)")
             return False
-

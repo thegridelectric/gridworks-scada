@@ -323,6 +323,11 @@ class SiegLoopPid(ShNodeActor):
             bounded_adjustment = min(delta_s, self.control_interval_seconds)
         else:
             bounded_adjustment = max(delta_s, -self.control_interval_seconds)
+        target_keep_seconds = max(
+            0,
+            min(self.FULL_RANGE_S, self.keep_seconds + bounded_adjustment),
+        )
+        bounded_adjustment = target_keep_seconds - self.keep_seconds
         self.log(f"  Time adjustment: {round(delta_s,1)} seconds")
         self.log(f"  Bounded time adjustment: {round(bounded_adjustment,1)} seconds")
         return bounded_adjustment
