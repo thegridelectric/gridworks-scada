@@ -105,8 +105,8 @@ class BufferOnlyTouLocalControl(LocalControlTouBase):
         else:
             t = self.hottest_store_temp_f()
         if t is None:
-            t = 0
-        return t
+            t = self.settings.max_ewt_f - 40
+        return max(40, t)
 
     def send_sieg_loop_target_lwt(self) -> None:
         if not self.layout.use_sieg_loop:
