@@ -76,7 +76,7 @@ class HpBoss(ShNodeActor):
     
 
     def process_fsm_event(self, from_node: ShNode, payload: FsmEvent) -> None: 
-        self.log(f"Got {payload}")   
+        self.log(f"Received {payload.EventName} event from {payload.FromHandle}")   
         if payload.ToHandle != self.node.handle:
              # TODO: turn this into a report?
             self._send_to(self.ltn,

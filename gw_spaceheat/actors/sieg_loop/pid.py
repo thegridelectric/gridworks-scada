@@ -532,10 +532,16 @@ class SiegLoopPid(ShNodeActor):
         )
     
     def moving_to_full_send(self, event: SiegControlEvent) -> None:
+        if self.valve_state == SiegValveState.FullySend and self.keep_seconds <= 0:
+            self.log("Already at full send")
+            return
         self.log("Moving to full send")
         self._create_task(self._prepare_new_movement_task(-self.keep_seconds - 10))
 
     def moving_to_full_keep(self, event: SiegControlEvent) -> None:
+        if self.valve_state == SiegValveState.FullyKeep and self.keep_seconds >= self.FULL_RANGE_S:
+            self.log("Already at full keep")
+            return
         self.log("Moving to full keep position (overshoot the full range by 10 seconds to be safe)")
         self._create_task(self._prepare_new_movement_task(-self.keep_seconds + self.FULL_RANGE_S + 10))
 

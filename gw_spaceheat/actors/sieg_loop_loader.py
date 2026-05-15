@@ -65,7 +65,6 @@ class SiegLoop(ShNodeActor):
         self._switch_to_mode(
             SiegLoopMode.Fallback,
             reason="Initial SiegLoop strategy before delayed default-mode check",
-            emit_info=False,
         )
 
     @property
@@ -124,7 +123,7 @@ class SiegLoop(ShNodeActor):
             return False, "flatlined"
         return True, None
 
-    def _switch_to_mode(self, mode: SiegLoopMode, *, reason: str, emit_info: bool = True) -> None:
+    def _switch_to_mode(self, mode: SiegLoopMode, *, reason: str, emit_info: bool = False) -> None:
         if mode not in self._IMPL_BY_MODE:
             raise ValueError(f"Unsupported SiegLoop mode {mode}")
         if self._mode == mode:
@@ -162,6 +161,8 @@ class SiegLoop(ShNodeActor):
             self.log(f"SiegLoop health check: {self._mode}")
             try:
                 allowed, reason = self.pid_control_allowed()
+                if not allowed:
+                    self.log(f"PID not allowed: {reason}")
                 if self._mode != SiegLoopMode.PidControl and allowed:
                     self._switch_to_mode(SiegLoopMode.PidControl, reason="Conditions passed")
                     if self.last_target_lwt_message is not None:
