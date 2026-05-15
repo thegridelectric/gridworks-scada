@@ -10,7 +10,7 @@ from actors.sh_node_actor import ShNodeActor
 from actors.sieg_loop.fallback import SiegLoopFallback
 from actors.sieg_loop.pid import SiegLoopPid
 from gwsproto.data_classes.house_0_names import H0CN, H0N
-from gwsproto.enums import ActorClass, SiegLoopMode
+from gwsproto.enums import ActorClass, HpModel, SiegLoopMode
 from gwsproto.named_types import ActuatorsReady, SetTargetLwt
 from scada_app_interface import ScadaAppInterface
 
@@ -54,9 +54,10 @@ class SiegLoop(ShNodeActor):
 
         channels = [
             H0CN.hp_ewt, H0CN.hp_lwt,
-            H0CN.hp_odu_pwr, H0CN.hp_idu_pwr,
-            H0CN.sieg_cold,
+            H0CN.hp_odu_pwr, H0CN.sieg_cold,
         ]
+        if not self.settings.hp_model == HpModel.MitsubishiEcodan:
+            channels.append(H0CN.hp_idu_pwr)
         channels.extend(sorted(self.h0cn.buffer.effective))
         for tank_idx in sorted(self.h0cn.tank):
             channels.extend(sorted(self.h0cn.tank[tank_idx].effective))
