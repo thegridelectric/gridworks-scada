@@ -99,20 +99,16 @@ class BufferOnlyTouLocalControl(LocalControlTouBase):
     def normal_node_state(self) -> str:
         return self.state
 
-    def default_target_lwt(self) -> float:
-        if self.charge_discharge_relay_state() == StoreFlowRelay.DischargingStore:
-            t = self.hottest_buffer_temp_f()
-        else:
-            t = self.hottest_store_temp_f()
-        if t is None:
-            t = self.settings.max_ewt_f - 40
-        return max(40, t)
-
     def send_sieg_loop_target_lwt(self) -> None:
         if not self.layout.use_sieg_loop:
             return
         try:
-            target_lwt_f = round(self.default_target_lwt())
+            if self.charge_discharge_relay_state() == StoreFlowRelay.DischargingStore:
+                target_lwt_f = self.hottest_buffer_temp_f()
+            else:
+                target_lwt_f = self.hottest_store_temp_f()
+            if target_lwt_f is None:
+                return
         except Exception as e:
             self.log(f"Could not send SiegLoop target LWT: {e}")
             return
@@ -121,7 +117,7 @@ class BufferOnlyTouLocalControl(LocalControlTouBase):
             SetTargetLwt(
                 FromHandle=self.normal_node.handle,
                 ToHandle=self.sieg_loop.handle,
-                TargetLwtF=target_lwt_f,
+                TargetLwtF=round(target_lwt_f)
             ),
             self.normal_node,
         )
