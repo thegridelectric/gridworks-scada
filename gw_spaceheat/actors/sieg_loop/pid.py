@@ -663,7 +663,6 @@ class SiegLoopPid(ShNodeActor):
         self.log(f"Boss set target LWT to {payload.TargetLwtF}°F ({from_node.Name})")
         self.target_lwt = float(payload.TargetLwtF)
         self.target_lwt_time_received = time.time()
-        self.engage_brain()
 
     # --------------------------------------
     # Movements
@@ -724,6 +723,9 @@ class SiegLoopPid(ShNodeActor):
         try:
             # Moving to keeping more
             if delta_s>0:
+                if self.valve_state == SiegValveState.FullyKeep and self.keep_seconds >= self.FULL_RANGE_S:
+                    self.log("Already at full keep")
+                    return
                 self.trigger_valve_event(SiegValveEvent.StartKeepingMore)
                 # Process the movement in a loop
                 delta_so_far = 0
@@ -739,8 +741,11 @@ class SiegLoopPid(ShNodeActor):
                     # Allow for cancellation to be processed
                     await asyncio.sleep(0)
 
-            # Moving to keeping less
+            # Moving to sending more
             else:
+                if self.valve_state == SiegValveState.FullySend and self.keep_seconds <= 0:
+                    self.log("Already at full send")
+                    return
                 self.trigger_valve_event(SiegValveEvent.StartKeepingLess)
                 # Now process the movement in a loop
                 delta_so_far = 0
