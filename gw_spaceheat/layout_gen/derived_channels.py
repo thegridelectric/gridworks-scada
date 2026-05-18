@@ -32,10 +32,7 @@ def _zone_items(db: LayoutDb) -> list[tuple[int, str]]:
 
 
 def _has_data_channel(db: LayoutDb, channel_name: str) -> bool:
-    return (
-        channel_name in db.maps.channels_by_name
-        or channel_name in db.loaded.channels_by_name
-    )
+    return channel_name in db.maps.channels_by_name
 
 
 def _add_zone_heat_call_channel(

@@ -5,6 +5,8 @@ Nolan-strategy layout running on the GW108 board: an optocoupler GpioSensor on
 each zone's thermostat whitewire, plus a shared ADS1115 thermistor reader that
 measures each zone's GW temperature.
 """
+from typing import Sequence
+
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import (
     ActorClass,
@@ -33,7 +35,7 @@ from gwsproto.names.hydronic_spaceheat.node_names import (
 from gwsproto.names.nolan.channel_names import NolanZoneChannelNames
 from gwsproto.names.nolan.node_names import NolanZoneNodeNames
 
-from layout_gen import LayoutDb
+from layout_gen.layout_db import LayoutDb
 
 GW108_THERMISTOR_READER = "gw108-thermistor-reader"
 
@@ -100,7 +102,11 @@ def _zone_thermistor_configs(
     ]
 
 
-def add_gw108_nolan_zones(db: LayoutDb) -> None:
+def add_gw108_nolan_zones(
+    db: LayoutDb,
+    *,
+    zone_idxs: Sequence[int] | None = None,
+) -> None:
     """GW108 hardware implementation of Nolan thermostat zones.
 
     Per zone in db.misc["ZoneList"]: zone + whitewire (NoActor) nodes, an opto
@@ -110,10 +116,12 @@ def add_gw108_nolan_zones(db: LayoutDb) -> None:
     channel P{i-1}. Requires len(ZoneList) <= 4.
     """
     zone_list = db.misc["ZoneList"]
-    if len(zone_list) > len(_ADS1115_CHANNELS):
+    if zone_idxs is None:
+        zone_idxs = range(1, len(zone_list) + 1)
+    if max(zone_idxs) > len(_ADS1115_CHANNELS):
         raise ValueError(
             f"GW108 thermistor reader supports at most {len(_ADS1115_CHANNELS)} "
-            f"zones (one ADS1115 at 0x49); got {len(zone_list)}"
+            f"zones (one ADS1115 at 0x49); got zone {max(zone_idxs)}"
         )
 
     if not db.cac_id_by_alias(MakeModel.GRIDWORKS__SCADA_GW108):
@@ -135,7 +143,8 @@ def add_gw108_nolan_zones(db: LayoutDb) -> None:
     thermistor_configs: list[I2cThermistorChannelConfig] = []
     adc_addresses: set[int] = set()
 
-    for zone_idx, zone_name in enumerate(zone_list, start=1):
+    for zone_idx in zone_idxs:
+        zone_name = zone_list[zone_idx - 1]
         zone_nodes = HSZoneNodeNames(zone_name, zone_idx)
         nolan_nodes = NolanZoneNodeNames(zone_name, zone_idx)
         zone_channels = NolanZoneChannelNames(zone_name, zone_idx)
