@@ -1,10 +1,10 @@
-from typing import Self
+
 
 from gwsproto.enums import ActorClass
+from gwsproto.enums import GwQuantity
 from gwsproto.enums import MakeModel
 from gwsproto.enums import TelemetryName
 from gwsproto.enums import Unit
-from gwsproto.enums.unit_quantity import UNIT_TO_QUANTITY
 from gwsproto.named_types import ComponentAttributeClassGt
 from gwsproto.named_types import HubitatPollerComponentGt
 from gwsproto.type_helpers import CACS_BY_MAKE_MODEL
@@ -164,7 +164,7 @@ def add_thermostat(
                 AboutNodeName=zone_node_name,
                 CapturedByNodeName=stat_node_name,
                 TelemetryName=TelemetryName.AirTempFTimes1000,
-                Quantity=UNIT_TO_QUANTITY[TelemetryName.AirTempFTimes1000],
+                Quantity=GwQuantity.Temperature,
                 TerminalAssetAlias=db.terminal_asset_alias,
                 Id = db.make_channel_id(temp_channel_name)
             ),
@@ -174,7 +174,7 @@ def add_thermostat(
                 AboutNodeName=stat_node_name,
                 CapturedByNodeName=stat_node_name,
                 TelemetryName=TelemetryName.AirTempFTimes1000,
-                Quantity=UNIT_TO_QUANTITY[TelemetryName.AirTempFTimes1000],
+                Quantity=GwQuantity.Temperature,
                 TerminalAssetAlias=db.terminal_asset_alias,
                 Id = db.make_channel_id(setpt_channel_name)
             ),
@@ -184,7 +184,7 @@ def add_thermostat(
                 AboutNodeName=stat_node_name,
                 CapturedByNodeName=stat_node_name,
                 TelemetryName=TelemetryName.ThermostatState,
-                Quantity=UNIT_TO_QUANTITY[TelemetryName.ThermostatState],
+                Quantity=GwQuantity.Unitless,
                 TerminalAssetAlias=db.terminal_asset_alias,
                 Id = db.make_channel_id(state_channel_name)
             ),

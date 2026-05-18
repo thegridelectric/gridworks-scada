@@ -15,7 +15,7 @@ def test_show_layout_on_test_layout(tmp_path):
     settings = ScadaSettings()
     if uses_tls(settings):
         copy_keys("scada", settings)
-    layout_path = Path(__file__).parent.parent / "config" / "hardware-layout.json"
+    layout_path = Path(__file__).parent.parent / "config" / "nolan-layout.json"
     errors = show_layout.main(
         [
             "-e", str(env_path),

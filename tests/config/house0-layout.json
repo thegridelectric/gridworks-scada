@@ -10,11 +10,11 @@
       "Id": "4cb6a9e6-24c4-4b72-9a7d-af5b884c83bd",
       "InPowerMetering": true,
       "Name": "hp-odu-pwr",
+      "Quantity": "Power",
       "TelemetryName": "PowerW",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Power"
+      "Version": "002"
     },
     {
       "AboutNodeName": "hp-idu",
@@ -23,11 +23,11 @@
       "Id": "5ac27781-2976-49c4-8890-0d0fdad219f7",
       "InPowerMetering": true,
       "Name": "hp-idu-pwr",
+      "Quantity": "Power",
       "TelemetryName": "PowerW",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Power"
+      "Version": "002"
     },
     {
       "AboutNodeName": "store-pump",
@@ -36,11 +36,11 @@
       "Id": "7876ebb2-03d2-4c7f-9046-011b7c5d4deb",
       "InPowerMetering": false,
       "Name": "store-pump-pwr",
+      "Quantity": "Power",
       "TelemetryName": "PowerW",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Power"
+      "Version": "002"
     },
     {
       "AboutNodeName": "zone1-main",
@@ -48,11 +48,11 @@
       "DisplayName": "Zone1 Main Temp",
       "Id": "607f614c-32b9-4381-92b3-44be066f1b80",
       "Name": "zone1-main-temp",
+      "Quantity": "Temperature",
       "TelemetryName": "AirTempFTimes1000",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Temperature"
+      "Version": "002"
     },
     {
       "AboutNodeName": "zone1-main-stat",
@@ -60,11 +60,11 @@
       "DisplayName": "Zone1 Main Set",
       "Id": "53e6ce11-27b4-4202-974c-4b261d74dcc6",
       "Name": "zone1-main-set",
+      "Quantity": "Temperature",
       "TelemetryName": "AirTempFTimes1000",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Temperature"
+      "Version": "002"
     },
     {
       "AboutNodeName": "zone1-main-stat",
@@ -72,11 +72,11 @@
       "DisplayName": "Zone1 Main State",
       "Id": "8b38be0c-e42d-46eb-ac5f-c5904b89dcd3",
       "Name": "zone1-main-state",
+      "Quantity": "Unitless",
       "TelemetryName": "ThermostatState",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Unitless"
+      "Version": "002"
     },
     {
       "AboutNodeName": "relay1",
@@ -84,11 +84,11 @@
       "DisplayName": "5V DC Bus Relay State",
       "Id": "61cfe3be-3f69-4bae-a815-31b2222e04ce",
       "Name": "vdc-relay1",
+      "Quantity": "Unitless",
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Unitless"
+      "Version": "002"
     },
     {
       "AboutNodeName": "relay2",
@@ -96,11 +96,11 @@
       "DisplayName": "TStat Common Relay State",
       "Id": "206c0832-c005-4b3b-95a4-8ca0ba2a89b6",
       "Name": "tstat-common-relay2",
+      "Quantity": "Unitless",
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Unitless"
+      "Version": "002"
     },
     {
       "AboutNodeName": "relay3",
@@ -108,11 +108,11 @@
       "DisplayName": "Charge/Discharge Relay State",
       "Id": "5c65b687-d357-41a7-8e4e-5274ba01e00d",
       "Name": "charge-discharge-relay3",
+      "Quantity": "Unitless",
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Unitless"
+      "Version": "002"
     },
     {
       "AboutNodeName": "relay5",
@@ -120,11 +120,11 @@
       "DisplayName": "Hp Failsafe Relay State",
       "Id": "6c906bfd-27f2-4ac8-bde8-1c8f94ef926c",
       "Name": "hp-failsafe-relay5",
+      "Quantity": "Unitless",
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Unitless"
+      "Version": "002"
     },
     {
       "AboutNodeName": "relay6",
@@ -132,11 +132,11 @@
       "DisplayName": "Hp Scada Ops Relay State",
       "Id": "22db6c24-45ff-4e54-a8ce-c2de56814d8e",
       "Name": "hp-scada-ops-relay6",
+      "Quantity": "Unitless",
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Unitless"
+      "Version": "002"
     },
     {
       "AboutNodeName": "relay7",
@@ -144,11 +144,11 @@
       "DisplayName": "Thermistor Common Relay State",
       "Id": "d81acabc-ad72-48c7-bd81-94c3cf07fc51",
       "Name": "thermistor-common-relay7",
+      "Quantity": "Unitless",
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Unitless"
+      "Version": "002"
     },
     {
       "AboutNodeName": "relay8",
@@ -156,11 +156,11 @@
       "DisplayName": "Aquastat Control Relay State",
       "Id": "426352c4-5acd-44e2-be89-8af4f0fdf7ed",
       "Name": "aquastat-ctrl-relay8",
+      "Quantity": "Unitless",
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Unitless"
+      "Version": "002"
     },
     {
       "AboutNodeName": "relay9",
@@ -168,11 +168,11 @@
       "DisplayName": "Store Pump Failsafe Relay State",
       "Id": "09b17d24-69fc-4b9e-89c2-7ddc0a48f9db",
       "Name": "store-pump-failsafe-relay9",
+      "Quantity": "Unitless",
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Unitless"
+      "Version": "002"
     },
     {
       "AboutNodeName": "relay12",
@@ -180,11 +180,11 @@
       "DisplayName": "Primary Pump Failsafe Relay State",
       "Id": "3023844f-5ac5-431c-af53-061ed7d1da9c",
       "Name": "primary-pump-failsafe-relay12",
+      "Quantity": "Unitless",
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Unitless"
+      "Version": "002"
     },
     {
       "AboutNodeName": "relay11",
@@ -192,11 +192,11 @@
       "DisplayName": "Primary Pump SCADA Ops Relay State",
       "Id": "3bff1462-4fcb-40f0-9b65-8b34d23239ab",
       "Name": "primary-pump-scada-ops-relay11",
+      "Quantity": "Unitless",
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Unitless"
+      "Version": "002"
     },
     {
       "AboutNodeName": "relay14",
@@ -204,11 +204,11 @@
       "DisplayName": "Hp Loop On Off Relay State",
       "Id": "67a26f67-40d4-4bbd-9c5a-e0541947bd91",
       "Name": "hp-loop-on-off-relay14",
+      "Quantity": "Unitless",
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Unitless"
+      "Version": "002"
     },
     {
       "AboutNodeName": "relay15",
@@ -216,11 +216,11 @@
       "DisplayName": "Hp Loop Keep/Send Relay State",
       "Id": "5b9d25f4-6285-437c-b319-77e4d644bbdd",
       "Name": "hp-loop-keep-send-relay15",
+      "Quantity": "Unitless",
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Unitless"
+      "Version": "002"
     },
     {
       "AboutNodeName": "relay17",
@@ -228,11 +228,11 @@
       "DisplayName": "Main Zone 1 Failsf Relay State",
       "Id": "9ed4ebf6-236d-44d8-8ac4-cde159267c71",
       "Name": "zone1-main-failsafe-relay17",
+      "Quantity": "Unitless",
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Unitless"
+      "Version": "002"
     },
     {
       "AboutNodeName": "relay18",
@@ -240,11 +240,11 @@
       "DisplayName": "Main Zone 1 Scada Ops Relay State",
       "Id": "cc4fe406-f785-4a23-a736-8a1a6f9ab064",
       "Name": "zone1-main-ops-relay18",
+      "Quantity": "Unitless",
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Unitless"
+      "Version": "002"
     },
     {
       "AboutNodeName": "buffer-depth1",
@@ -252,11 +252,11 @@
       "DisplayName": "Buffer Depth 1 Device Temp",
       "Id": "688294c8-0045-487e-909e-feaa1116731f",
       "Name": "buffer-depth1-device",
+      "Quantity": "Temperature",
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Temperature"
+      "Version": "002"
     },
     {
       "AboutNodeName": "buffer-depth2",
@@ -264,11 +264,11 @@
       "DisplayName": "Buffer Depth 2 Device Temp",
       "Id": "a44d54b2-a745-40da-b4dc-0deb822bcac9",
       "Name": "buffer-depth2-device",
+      "Quantity": "Temperature",
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Temperature"
+      "Version": "002"
     },
     {
       "AboutNodeName": "buffer-depth3",
@@ -276,11 +276,11 @@
       "DisplayName": "Buffer Depth 3 Device Temp",
       "Id": "f221308c-1ccf-4e31-8761-31d6f735eed0",
       "Name": "buffer-depth3-device",
+      "Quantity": "Temperature",
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Temperature"
+      "Version": "002"
     },
     {
       "AboutNodeName": "buffer-depth1",
@@ -288,11 +288,11 @@
       "DisplayName": "Buffer Depth 1 MicroVolts",
       "Id": "e7a9c6eb-493b-4030-ae4c-90303088b61d",
       "Name": "buffer-depth1-micro-v",
+      "Quantity": "Voltage",
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Voltage"
+      "Version": "002"
     },
     {
       "AboutNodeName": "buffer-depth2",
@@ -300,11 +300,11 @@
       "DisplayName": "Buffer Depth 2 MicroVolts",
       "Id": "10620558-7c19-462d-9677-c412cf7bb65f",
       "Name": "buffer-depth2-micro-v",
+      "Quantity": "Voltage",
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Voltage"
+      "Version": "002"
     },
     {
       "AboutNodeName": "buffer-depth3",
@@ -312,11 +312,11 @@
       "DisplayName": "Buffer Depth 3 MicroVolts",
       "Id": "d071e40c-8196-4c5f-aa69-12c6d40e28d6",
       "Name": "buffer-depth3-micro-v",
+      "Quantity": "Voltage",
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Voltage"
+      "Version": "002"
     },
     {
       "AboutNodeName": "tank1-depth1",
@@ -324,11 +324,11 @@
       "DisplayName": "Tank1 Depth 1 Device Temp",
       "Id": "5982051b-dc4a-41fc-bdcc-2731bd821ccd",
       "Name": "tank1-depth1-device",
+      "Quantity": "Temperature",
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Temperature"
+      "Version": "002"
     },
     {
       "AboutNodeName": "tank1-depth2",
@@ -336,11 +336,11 @@
       "DisplayName": "Tank1 Depth 2 Device Temp",
       "Id": "732f8bbb-bf6b-4b66-a3d3-b581e68b1993",
       "Name": "tank1-depth2-device",
+      "Quantity": "Temperature",
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Temperature"
+      "Version": "002"
     },
     {
       "AboutNodeName": "tank1-depth3",
@@ -348,11 +348,11 @@
       "DisplayName": "Tank1 Depth 3 Device Temp",
       "Id": "61740e76-ff8d-444a-ac30-dff5e9b51177",
       "Name": "tank1-depth3-device",
+      "Quantity": "Temperature",
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Temperature"
+      "Version": "002"
     },
     {
       "AboutNodeName": "tank1-depth1",
@@ -360,11 +360,11 @@
       "DisplayName": "Tank1 Depth 1 MicroVolts",
       "Id": "05f95dbd-5221-4913-8901-14e0844a78cf",
       "Name": "tank1-depth1-micro-v",
+      "Quantity": "Voltage",
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Voltage"
+      "Version": "002"
     },
     {
       "AboutNodeName": "tank1-depth2",
@@ -372,11 +372,11 @@
       "DisplayName": "Tank1 Depth 2 MicroVolts",
       "Id": "10b0b49b-65d2-46e8-8388-2ad0373467fe",
       "Name": "tank1-depth2-micro-v",
+      "Quantity": "Voltage",
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Voltage"
+      "Version": "002"
     },
     {
       "AboutNodeName": "tank1-depth3",
@@ -384,11 +384,11 @@
       "DisplayName": "Tank1 Depth 3 MicroVolts",
       "Id": "fdc533b0-569f-499f-85e2-3bb449856e0a",
       "Name": "tank1-depth3-micro-v",
+      "Quantity": "Voltage",
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Voltage"
+      "Version": "002"
     },
     {
       "AboutNodeName": "dist-010v",
@@ -396,11 +396,11 @@
       "DisplayName": "Dist 010V",
       "Id": "3eafa498-0a7a-4222-8e70-2645f01cc215",
       "Name": "dist-010v",
+      "Quantity": "Voltage",
       "TelemetryName": "VoltsTimesTen",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Voltage"
+      "Version": "002"
     },
     {
       "AboutNodeName": "primary-010v",
@@ -408,11 +408,11 @@
       "DisplayName": "Primary 010V",
       "Id": "ddca1429-ae7e-4b0d-9a03-99754e4a7d31",
       "Name": "primary-010v",
+      "Quantity": "Voltage",
       "TelemetryName": "VoltsTimesTen",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Voltage"
+      "Version": "002"
     },
     {
       "AboutNodeName": "store-010v",
@@ -420,30 +420,30 @@
       "DisplayName": "Store 010V",
       "Id": "566ad060-37d2-4bcb-a9d1-ce0111a03b56",
       "Name": "store-010v",
+      "Quantity": "Voltage",
       "TelemetryName": "VoltsTimesTen",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002",
-      "Quantity": "Voltage"
+      "Version": "002"
     }
   ],
   "DerivedChannels": [
     {
       "CreatedByNodeName": "derived-generator",
       "DisplayName": "Usable Energy Wh",
-      "Id": "23bf86b8-266a-4244-9b72-914179ab85aa",
-      "Name": "usable-energy",
-      "OutputUnit": "WattHours",
-      "Strategy": "system-model",
       "EmissionMethod": "Periodic",
       "EmitPeriodS": 60,
+      "Id": "23bf86b8-266a-4244-9b72-914179ab85aa",
+      "InputChannelNames": [],
+      "Name": "usable-energy",
+      "OutputUnit": "WattHours",
       "Parameters": {
         "EnergyModel": {
           "TypeName": "gw0.usable.energy.layered",
           "Version": "000"
         }
       },
-      "InputChannelNames": [],
+      "Strategy": "system-model",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "derived.channel.gt",
       "Version": "001"
@@ -451,19 +451,19 @@
     {
       "CreatedByNodeName": "derived-generator",
       "DisplayName": "Required Energy Wh",
-      "Id": "26c5f643-96cc-4ede-b958-75d626790c01",
-      "Name": "required-energy",
-      "OutputUnit": "WattHours",
-      "Strategy": "system-model",
       "EmissionMethod": "Periodic",
       "EmitPeriodS": 60,
+      "Id": "26c5f643-96cc-4ede-b958-75d626790c01",
       "InputChannelNames": [],
+      "Name": "required-energy",
+      "OutputUnit": "WattHours",
       "Parameters": {
         "EnergyModel": {
           "TypeName": "gw0.required.energy.layered",
           "Version": "000"
         }
       },
+      "Strategy": "system-model",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "derived.channel.gt",
       "Version": "001"
@@ -471,14 +471,14 @@
     {
       "CreatedByNodeName": "derived-generator",
       "DisplayName": "Buffer Depth1 Effective Temperature",
-      "Id": "e9e383c7-b9b4-4583-8992-1bd800190bc9",
-      "Name": "buffer-depth1",
-      "OutputUnit": "FahrenheitX100",
-      "Strategy": "identity",
       "EmissionMethod": "OnTrigger",
+      "Id": "e9e383c7-b9b4-4583-8992-1bd800190bc9",
       "InputChannelNames": [
         "buffer-depth1-device"
       ],
+      "Name": "buffer-depth1",
+      "OutputUnit": "FahrenheitX100",
+      "Strategy": "identity",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "derived.channel.gt",
       "Version": "001"
@@ -486,14 +486,14 @@
     {
       "CreatedByNodeName": "derived-generator",
       "DisplayName": "Buffer Depth2 Effective Temperature",
-      "Id": "bd8f88b0-bf92-4133-a98d-bc51b75effbe",
-      "Name": "buffer-depth2",
-      "OutputUnit": "FahrenheitX100",
-      "Strategy": "identity",
       "EmissionMethod": "OnTrigger",
+      "Id": "bd8f88b0-bf92-4133-a98d-bc51b75effbe",
       "InputChannelNames": [
         "buffer-depth2-device"
       ],
+      "Name": "buffer-depth2",
+      "OutputUnit": "FahrenheitX100",
+      "Strategy": "identity",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "derived.channel.gt",
       "Version": "001"
@@ -501,22 +501,14 @@
     {
       "CreatedByNodeName": "derived-generator",
       "DisplayName": "Buffer Depth3 Effective Temperature",
-      "Id": "9361490f-8286-4263-88d0-501ee6a7278b",
-      "Name": "buffer-depth3",
-      "OutputUnit": "FahrenheitX100",
-      "Strategy": "affine",
-      "Parameters": {
-        "Calibration": {
-          "M": 1.0,
-          "B": 0.0,
-          "TypeName": "linear.one.dimensional.calibration",
-          "Version": "000"
-        }
-      },
       "EmissionMethod": "OnTrigger",
+      "Id": "9361490f-8286-4263-88d0-501ee6a7278b",
       "InputChannelNames": [
         "buffer-depth3-device"
       ],
+      "Name": "buffer-depth3",
+      "OutputUnit": "FahrenheitX100",
+      "Strategy": "identity",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "derived.channel.gt",
       "Version": "001"
@@ -524,14 +516,14 @@
     {
       "CreatedByNodeName": "derived-generator",
       "DisplayName": "Tank1 Depth1 Effective Temperature",
-      "Id": "91061a8a-7f9e-42a6-b8dd-53612d146777",
-      "Name": "tank1-depth1",
-      "OutputUnit": "FahrenheitX100",
-      "Strategy": "identity",
       "EmissionMethod": "OnTrigger",
+      "Id": "91061a8a-7f9e-42a6-b8dd-53612d146777",
       "InputChannelNames": [
         "tank1-depth1-device"
       ],
+      "Name": "tank1-depth1",
+      "OutputUnit": "FahrenheitX100",
+      "Strategy": "identity",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "derived.channel.gt",
       "Version": "001"
@@ -539,14 +531,14 @@
     {
       "CreatedByNodeName": "derived-generator",
       "DisplayName": "Tank1 Depth2 Effective Temperature",
+      "EmissionMethod": "OnTrigger",
       "Id": "17db3a70-71c8-4565-8fa0-7cc6ae38da06",
+      "InputChannelNames": [
+        "tank1-depth2-device"
+      ],
       "Name": "tank1-depth2",
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
-      "EmissionMethod": "OnTrigger",
-      "InputChannelNames": [
-        "tank1-depth1-device"
-      ],
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "derived.channel.gt",
       "Version": "001"
@@ -554,14 +546,14 @@
     {
       "CreatedByNodeName": "derived-generator",
       "DisplayName": "Tank1 Depth3 Effective Temperature",
+      "EmissionMethod": "OnTrigger",
       "Id": "976b0878-f9eb-47e1-9cb4-6cdd7eed7f2a",
+      "InputChannelNames": [
+        "tank1-depth3-device"
+      ],
       "Name": "tank1-depth3",
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
-      "EmissionMethod": "OnTrigger",
-      "InputChannelNames": [
-        "tank1-depth1-device"
-      ],
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "derived.channel.gt",
       "Version": "001"
@@ -822,7 +814,6 @@
         {
           "ActorName": "relay1",
           "AsyncCapture": true,
-          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "vdc-relay1",
           "DeEnergizedState": "RelayClosed",
@@ -842,7 +833,6 @@
         {
           "ActorName": "relay2",
           "AsyncCapture": true,
-          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "tstat-common-relay2",
           "DeEnergizedState": "RelayClosed",
@@ -862,7 +852,6 @@
         {
           "ActorName": "relay3",
           "AsyncCapture": true,
-          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "charge-discharge-relay3",
           "DeEnergizedState": "DischargingStore",
@@ -882,7 +871,6 @@
         {
           "ActorName": "relay5",
           "AsyncCapture": true,
-          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "hp-failsafe-relay5",
           "DeEnergizedState": "BufferTankAquastat",
@@ -902,7 +890,6 @@
         {
           "ActorName": "relay6",
           "AsyncCapture": true,
-          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "hp-scada-ops-relay6",
           "DeEnergizedState": "RelayClosed",
@@ -922,7 +909,6 @@
         {
           "ActorName": "relay7",
           "AsyncCapture": true,
-          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "thermistor-common-relay7",
           "DeEnergizedState": "RelayClosed",
@@ -942,7 +928,6 @@
         {
           "ActorName": "relay8",
           "AsyncCapture": true,
-          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "aquastat-ctrl-relay8",
           "DeEnergizedState": "Boiler",
@@ -962,7 +947,6 @@
         {
           "ActorName": "relay9",
           "AsyncCapture": true,
-          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "store-pump-failsafe-relay9",
           "DeEnergizedState": "RelayOpen",
@@ -982,7 +966,6 @@
         {
           "ActorName": "relay12",
           "AsyncCapture": true,
-          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "primary-pump-failsafe-relay12",
           "DeEnergizedState": "HeatPump",
@@ -1002,7 +985,6 @@
         {
           "ActorName": "relay11",
           "AsyncCapture": true,
-          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "primary-pump-scada-ops-relay11",
           "DeEnergizedState": "RelayOpen",
@@ -1022,7 +1004,6 @@
         {
           "ActorName": "relay14",
           "AsyncCapture": true,
-          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "hp-loop-on-off-relay14",
           "DeEnergizedState": "RelayClosed",
@@ -1042,7 +1023,6 @@
         {
           "ActorName": "relay15",
           "AsyncCapture": true,
-          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "hp-loop-keep-send-relay15",
           "DeEnergizedState": "SendMore",
@@ -1062,7 +1042,6 @@
         {
           "ActorName": "relay17",
           "AsyncCapture": true,
-          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "zone1-main-failsafe-relay17",
           "DeEnergizedState": "WallThermostat",
@@ -1082,7 +1061,6 @@
         {
           "ActorName": "relay18",
           "AsyncCapture": true,
-          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "zone1-main-ops-relay18",
           "DeEnergizedState": "RelayOpen",
@@ -1101,93 +1079,13 @@
         }
       ],
       "DisplayName": "i2c krida relay boards",
-      "I2cBus": "bus-1",
       "I2cAddressList": [
         32,
         33
       ],
+      "I2cBus": "default",
       "TypeName": "i2c.multichannel.dt.relay.component.gt",
       "Version": "003"
-    },
-    {
-      "AsyncCaptureDeltaMicroVolts": 2000,
-      "ComponentAttributeClassId": "627ac482-24fe-46b2-ba8c-3d6f1e1ee069",
-      "ComponentId": "bd65556c-2ca4-499d-ad25-57767a785685",
-      "ConfigList": [
-        {
-          "AsyncCapture": true,
-          "AsyncCaptureDelta": 2000,
-          "CapturePeriodS": 60,
-          "ChannelName": "tank1-depth1-device",
-          "Exponent": 3,
-          "TypeName": "channel.config",
-          "Unit": "Celcius",
-          "Version": "000"
-        },
-        {
-          "AsyncCapture": true,
-          "AsyncCaptureDelta": 2000,
-          "CapturePeriodS": 60,
-          "ChannelName": "tank1-depth1-micro-v",
-          "Exponent": 6,
-          "TypeName": "channel.config",
-          "Unit": "VoltsRms",
-          "Version": "000"
-        },
-        {
-          "AsyncCapture": true,
-          "AsyncCaptureDelta": 2000,
-          "CapturePeriodS": 60,
-          "ChannelName": "tank1-depth2-device",
-          "Exponent": 3,
-          "TypeName": "channel.config",
-          "Unit": "Celcius",
-          "Version": "000"
-        },
-        {
-          "AsyncCapture": true,
-          "AsyncCaptureDelta": 2000,
-          "CapturePeriodS": 60,
-          "ChannelName": "tank1-depth2-micro-v",
-          "Exponent": 6,
-          "TypeName": "channel.config",
-          "Unit": "VoltsRms",
-          "Version": "000"
-        },
-        {
-          "AsyncCapture": true,
-          "AsyncCaptureDelta": 2000,
-          "CapturePeriodS": 60,
-          "ChannelName": "tank1-depth3-device",
-          "Exponent": 3,
-          "TypeName": "channel.config",
-          "Unit": "Celcius",
-          "Version": "000"
-        },
-        {
-          "AsyncCapture": true,
-          "AsyncCaptureDelta": 2000,
-          "CapturePeriodS": 60,
-          "ChannelName": "tank1-depth3-micro-v",
-          "Exponent": 6,
-          "TypeName": "channel.config",
-          "Unit": "VoltsRms",
-          "Version": "000"
-        }
-      ],
-      "DisplayName": "Tank1",
-      "Enabled": true,
-      "NumSampleAverages": 30,
-      "PicoHwUid": "sim-tank1-pico",
-      "Samples": 1000,
-      "SendMicroVolts": true,
-      "SerialNumber": "NA",
-      "SimulatesTypeName": "pico.tank.module.component.gt",
-      "SimulatesVersion": "011",
-      "TempCalcMethod": "SimpleBeta",
-      "ThermistorBeta": 3977,
-      "TypeName": "sim.pico.tank.module.component.gt",
-      "Version": "000"
     },
     {
       "AsyncCaptureDeltaMicroVolts": 2000,
@@ -1259,6 +1157,86 @@
       "Enabled": true,
       "NumSampleAverages": 30,
       "PicoHwUid": "sim-buffer-pico",
+      "Samples": 1000,
+      "SendMicroVolts": true,
+      "SerialNumber": "NA",
+      "SimulatesTypeName": "pico.tank.module.component.gt",
+      "SimulatesVersion": "011",
+      "TempCalcMethod": "SimpleBeta",
+      "ThermistorBeta": 3977,
+      "TypeName": "sim.pico.tank.module.component.gt",
+      "Version": "000"
+    },
+    {
+      "AsyncCaptureDeltaMicroVolts": 2000,
+      "ComponentAttributeClassId": "627ac482-24fe-46b2-ba8c-3d6f1e1ee069",
+      "ComponentId": "bd65556c-2ca4-499d-ad25-57767a785685",
+      "ConfigList": [
+        {
+          "AsyncCapture": true,
+          "AsyncCaptureDelta": 2000,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank1-depth1-device",
+          "Exponent": 3,
+          "TypeName": "channel.config",
+          "Unit": "Celcius",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "AsyncCaptureDelta": 2000,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank1-depth1-micro-v",
+          "Exponent": 6,
+          "TypeName": "channel.config",
+          "Unit": "VoltsRms",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "AsyncCaptureDelta": 2000,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank1-depth2-device",
+          "Exponent": 3,
+          "TypeName": "channel.config",
+          "Unit": "Celcius",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "AsyncCaptureDelta": 2000,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank1-depth2-micro-v",
+          "Exponent": 6,
+          "TypeName": "channel.config",
+          "Unit": "VoltsRms",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "AsyncCaptureDelta": 2000,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank1-depth3-device",
+          "Exponent": 3,
+          "TypeName": "channel.config",
+          "Unit": "Celcius",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "AsyncCaptureDelta": 2000,
+          "CapturePeriodS": 60,
+          "ChannelName": "tank1-depth3-micro-v",
+          "Exponent": 6,
+          "TypeName": "channel.config",
+          "Unit": "VoltsRms",
+          "Version": "000"
+        }
+      ],
+      "DisplayName": "Tank1",
+      "Enabled": true,
+      "NumSampleAverages": 30,
+      "PicoHwUid": "sim-tank1-pico",
       "Samples": 1000,
       "SendMicroVolts": true,
       "SerialNumber": "NA",
@@ -1356,7 +1334,7 @@
     },
     {
       "ActorClass": "NoActor",
-      "DisplayName": "Atn",
+      "DisplayName": "LeafTransactiveNode",
       "Name": "ltn",
       "ShNodeId": "ed56817a-cd46-4f33-bb4d-525d01718f2c",
       "TypeName": "spaceheat.node.gt",
@@ -1779,8 +1757,6 @@
   ],
   "Strategy": "House0",
   "SynthChannels": [],
-  "TotalStoreTanks": 1,
-  "UseSiegLoop": false,
   "TankTempCalibrationMap": {
     "Buffer": {
       "Depth1B": 0.0,
@@ -1807,6 +1783,8 @@
     "TypeName": "gw1.tank.temp.calibration.map",
     "Version": "000"
   },
+  "TotalStoreTanks": 1,
+  "UseSiegLoop": false,
   "ZoneKwhPerDegFList": [
     1
   ],

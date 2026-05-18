@@ -2,7 +2,7 @@ from typing import Optional, Any
 from pydantic import BaseModel
 from gwsproto.property_format import SpaceheatName
 
-from gwsproto.enums import MakeModel, Unit, ActorClass, TelemetryName
+from gwsproto.enums import ActorClass, GwQuantity, MakeModel, TelemetryName, Unit
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import GpmFromHzMethod, HzCalcMethod
 from gwsproto.named_types import (
@@ -184,6 +184,7 @@ def add_flow(
                AboutNodeName=flow_cfg.FlowNodeName,
                CapturedByNodeName=flow_cfg.ActorNodeName,
                TelemetryName=TelemetryName.GpmTimes100,
+               Quantity=GwQuantity.FlowRate,
                TerminalAssetAlias=db.terminal_asset_alias,
                Id=db.make_channel_id(flow_cfg.ActorNodeName)
             )
@@ -198,6 +199,7 @@ def add_flow(
                     AboutNodeName=flow_cfg.ActorNodeName,
                     CapturedByNodeName=flow_cfg.ActorNodeName,
                     TelemetryName=TelemetryName.MicroHz,
+                    Quantity=GwQuantity.Frequency,
                     TerminalAssetAlias=db.terminal_asset_alias,
                     Id=db.make_channel_id(f"{flow_cfg.ActorNodeName}-hz")
                 )

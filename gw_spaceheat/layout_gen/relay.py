@@ -10,6 +10,7 @@ from gwsproto.enums import (
     ChangePrimaryPumpControl,
     ChangeRelayState,
     ChangeStoreFlowRelay,
+    GwQuantity,
     HeatcallSource,
     HeatPumpControl,
     MakeModel,
@@ -22,12 +23,17 @@ from gwsproto.enums import (
 )
 from gwsproto.named_types import (
     DataChannelGt,
+    Gw108GpioRelayComponentGt,
     I2cMultichannelDtRelayComponentGt,
     RelayActorConfig,
     SpaceheatNodeGt,
 )
 from gwsproto.enums import ChangeKeepSend, HpLoopKeepSend
 from gwsproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
+from gwsproto.names.hydronic_spaceheat.channel_names import (
+    HydronicSpaceheatChannelNames as HCN,
+)
+from gwsproto.names.nolan.node_names import NolanNodeNames
 from layout_gen import LayoutDb
 from pydantic import BaseModel
 
@@ -40,7 +46,7 @@ class RelayCfg(BaseModel):
     I2cAddressList: List[int] = [0x20, 0x21]
 
 
-def add_relays(
+def add_house0_relays(
     db: LayoutDb,
     cfg: RelayCfg,
 ) -> None:
@@ -316,6 +322,7 @@ def add_relays(
                     ),
                     DisplayName=component_display_name,
                     ConfigList=config_list,
+                    I2cBus="default",
                     I2cAddressList=cfg.I2cAddressList,
                 )
             ]
@@ -475,6 +482,7 @@ def add_relays(
             AboutNodeName=H0N.vdc_relay,
             CapturedByNodeName=H0N.relay_multiplexer,
             TelemetryName=TelemetryName.RelayState,
+            Quantity=GwQuantity.Unitless,
             TerminalAssetAlias=db.terminal_asset_alias,
             Id=db.make_channel_id(H0CN.vdc_relay_state),
         ),
@@ -484,6 +492,7 @@ def add_relays(
             AboutNodeName=H0N.tstat_common_relay,
             CapturedByNodeName=H0N.relay_multiplexer,
             TelemetryName=TelemetryName.RelayState,
+            Quantity=GwQuantity.Unitless,
             TerminalAssetAlias=db.terminal_asset_alias,
             Id=db.make_channel_id(H0CN.tstat_common_relay_state),
         ),
@@ -493,6 +502,7 @@ def add_relays(
             AboutNodeName=H0N.store_charge_discharge_relay,
             CapturedByNodeName=H0N.relay_multiplexer,
             TelemetryName=TelemetryName.RelayState,
+            Quantity=GwQuantity.Unitless,
             TerminalAssetAlias=db.terminal_asset_alias,
             Id=db.make_channel_id(H0CN.charge_discharge_relay_state),
         ),
@@ -502,6 +512,7 @@ def add_relays(
             AboutNodeName=H0N.hp_failsafe_relay,
             CapturedByNodeName=H0N.relay_multiplexer,
             TelemetryName=TelemetryName.RelayState,
+            Quantity=GwQuantity.Unitless,
             TerminalAssetAlias=db.terminal_asset_alias,
             Id=db.make_channel_id(H0CN.hp_failsafe_relay_state),
         ),
@@ -511,6 +522,7 @@ def add_relays(
             AboutNodeName=H0N.hp_scada_ops_relay,
             CapturedByNodeName=H0N.relay_multiplexer,
             TelemetryName=TelemetryName.RelayState,
+            Quantity=GwQuantity.Unitless,
             TerminalAssetAlias=db.terminal_asset_alias,
             Id=db.make_channel_id(H0CN.hp_scada_ops_relay_state),
         ),
@@ -520,6 +532,7 @@ def add_relays(
             AboutNodeName=H0N.thermistor_common_relay,
             CapturedByNodeName=H0N.relay_multiplexer,
             TelemetryName=TelemetryName.RelayState,
+            Quantity=GwQuantity.Unitless,
             TerminalAssetAlias=db.terminal_asset_alias,
             Id=db.make_channel_id(H0CN.thermistor_common_relay_state),
         ),
@@ -529,6 +542,7 @@ def add_relays(
             AboutNodeName=H0N.aquastat_ctrl_relay,
             CapturedByNodeName=H0N.relay_multiplexer,
             TelemetryName=TelemetryName.RelayState,
+            Quantity=GwQuantity.Unitless,
             TerminalAssetAlias=db.terminal_asset_alias,
             Id=db.make_channel_id(H0CN.aquastat_ctrl_relay_state),
         ),
@@ -538,6 +552,7 @@ def add_relays(
             AboutNodeName=H0N.store_pump_failsafe,
             CapturedByNodeName=H0N.relay_multiplexer,
             TelemetryName=TelemetryName.RelayState,
+            Quantity=GwQuantity.Unitless,
             TerminalAssetAlias=db.terminal_asset_alias,
             Id=db.make_channel_id(H0CN.store_pump_failsafe_relay_state),
         ),
@@ -547,6 +562,7 @@ def add_relays(
             AboutNodeName=H0N.primary_pump_failsafe,
             CapturedByNodeName=H0N.relay_multiplexer,
             TelemetryName=TelemetryName.RelayState,
+            Quantity=GwQuantity.Unitless,
             TerminalAssetAlias=db.terminal_asset_alias,
             Id=db.make_channel_id(H0CN.primary_pump_failsafe_relay_state),
         ),
@@ -556,6 +572,7 @@ def add_relays(
             AboutNodeName=H0N.primary_pump_scada_ops,
             CapturedByNodeName=H0N.relay_multiplexer,
             TelemetryName=TelemetryName.RelayState,
+            Quantity=GwQuantity.Unitless,
             TerminalAssetAlias=db.terminal_asset_alias,
             Id=db.make_channel_id(H0CN.primary_pump_scada_ops_relay_state),
         ),
@@ -565,6 +582,7 @@ def add_relays(
             AboutNodeName=H0N.hp_loop_on_off,
             CapturedByNodeName=H0N.relay_multiplexer,
             TelemetryName=TelemetryName.RelayState,
+            Quantity=GwQuantity.Unitless,
             TerminalAssetAlias=db.terminal_asset_alias,
             Id=db.make_channel_id(H0CN.hp_loop_on_off_relay_state),
         ),
@@ -574,6 +592,7 @@ def add_relays(
             AboutNodeName=H0N.hp_loop_keep_send,
             CapturedByNodeName=H0N.relay_multiplexer,
             TelemetryName=TelemetryName.RelayState,
+            Quantity=GwQuantity.Unitless,
             TerminalAssetAlias=db.terminal_asset_alias,
             Id=db.make_channel_id(H0CN.hp_loop_keep_send_relay_state),
         ),
@@ -596,6 +615,7 @@ def add_relays(
                 AboutNodeName=stat_failsafe_name,
                 CapturedByNodeName=H0N.relay_multiplexer,
                 TelemetryName=TelemetryName.RelayState,
+                Quantity=GwQuantity.Unitless,
                 TerminalAssetAlias=db.terminal_asset_alias,
                 Id=db.make_channel_id(failsafe_ch_name),
             ),
@@ -605,8 +625,102 @@ def add_relays(
                 AboutNodeName=stat_ops_name,
                 CapturedByNodeName=H0N.relay_multiplexer,
                 TelemetryName=TelemetryName.RelayState,
+                Quantity=GwQuantity.Unitless,
                 TerminalAssetAlias=db.terminal_asset_alias,
                 Id=db.make_channel_id(ops_ch_name),
             ),
         ]
     db.add_data_channels(data_channels)
+
+
+_NOLAN_VDC_RELAY_GPIO_PIN = 23
+_NOLAN_VDC_COMPONENT_DISPLAY_NAME = "5VDC Relay Gw108 GPIO"
+
+
+def add_nolan_relays(
+    db: LayoutDb,
+    cfg: RelayCfg,
+) -> None:
+    """Add Nolan-strategy relays.
+
+    Nolan currently has actors only for the vdc relay (on Gw108 GPIO pin 23).
+    Other Nolan relays will be added when their i2c driver is written.
+    """
+    vdc_node_name = NolanNodeNames.vdc_relay
+    vdc_channel_name = HCN.vdc_relay_state
+
+    if not db.cac_id_by_alias(MakeModel.GRIDWORKS__SCADA_GW108):
+        db.add_cacs(
+            [
+                ComponentAttributeClassGt(
+                    ComponentAttributeClassId=db.make_cac_id(
+                        make_model=MakeModel.GRIDWORKS__SCADA_GW108,
+                    ),
+                    DisplayName="GridWorks SCADA Gw108",
+                    MakeModel=MakeModel.GRIDWORKS__SCADA_GW108,
+                ),
+            ]
+        )
+
+    if not db.component_id_by_alias(_NOLAN_VDC_COMPONENT_DISPLAY_NAME):
+        db.add_components(
+            [
+                Gw108GpioRelayComponentGt(
+                    ComponentId=db.make_component_id(_NOLAN_VDC_COMPONENT_DISPLAY_NAME),
+                    ComponentAttributeClassId=db.cac_id_by_alias(
+                        MakeModel.GRIDWORKS__SCADA_GW108
+                    ),
+                    DisplayName=_NOLAN_VDC_COMPONENT_DISPLAY_NAME,
+                    GpioPin=_NOLAN_VDC_RELAY_GPIO_PIN,
+                    ConfigList=[
+                        RelayActorConfig(
+                            ChannelName=vdc_channel_name,
+                            RelayIdx=1,
+                            ActorName=vdc_node_name,
+                            PollPeriodMs=cfg.PollPeriodMs,
+                            CapturePeriodS=cfg.CapturePeriodS,
+                            WiringConfig=RelayWiringConfig.NormallyClosed,
+                            EventType=ChangeRelayState.enum_name(),
+                            StateType=RelayClosedOrOpen.enum_name(),
+                            DeEnergizingEvent=ChangeRelayState.CloseRelay,
+                            EnergizingEvent=ChangeRelayState.OpenRelay,
+                            DeEnergizedState=RelayClosedOrOpen.RelayClosed,
+                            EnergizedState=RelayClosedOrOpen.RelayOpen,
+                            AsyncCapture=True,
+                            AsyncCaptureDelta=1,
+                            Exponent=0,
+                            Unit=Unit.Unitless,
+                        ),
+                    ],
+                )
+            ]
+        )
+
+    db.add_nodes(
+        [
+            SpaceheatNodeGt(
+                ShNodeId=db.make_node_id(vdc_node_name),
+                Name=vdc_node_name,
+                ActorHierarchyName=f"{H0N.primary_scada}.{vdc_node_name}",
+                Handle=f"auto.{H0N.pico_cycler}.{vdc_node_name}",
+                ActorClass=ActorClass.Relay,
+                DisplayName="5VDC Relay",
+                ComponentId=db.component_id_by_alias(_NOLAN_VDC_COMPONENT_DISPLAY_NAME),
+            ),
+        ]
+    )
+
+    db.add_data_channels(
+        [
+            DataChannelGt(
+                Name=vdc_channel_name,
+                DisplayName="5V DC Bus Relay State",
+                AboutNodeName=vdc_node_name,
+                CapturedByNodeName=vdc_node_name,
+                TelemetryName=TelemetryName.RelayState,
+                Quantity=GwQuantity.Unitless,
+                TerminalAssetAlias=db.terminal_asset_alias,
+                Id=db.make_channel_id(vdc_channel_name),
+            ),
+        ]
+    )
