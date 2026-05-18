@@ -12,6 +12,7 @@ from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.named_types import AnalogDispatch, SyncedReadings
 from result import Ok, Result
 from transitions import Machine
+from gwsproto.data_classes.house_0_layout import HouseStrategy
 from gwsproto.data_classes.house_0_names import H0N, H0CN
 from gwsproto.data_classes.components.dfr_component import DfrComponent
 
@@ -543,7 +544,34 @@ class LocalControlTouBase(ShNodeActor):
             return True
         else:
             return False
-        
+
+    def _layout_strategy_is_nolan(self) -> bool:
+        return (
+            self.layout.layout.get("Strategy", HouseStrategy.House0.value)
+            == HouseStrategy.Nolan.value
+        )
+
+    def _latest_zone_temp_x100(
+        self, zone_prefix: str, lc: Optional[dict] = None
+    ) -> int | float | None:
+        """Zone air / stat temperature for ``zone_prefix`` like ``zone1-bedrooms``.
+
+        Nolan Gw108 uses ``{prefix}-gw-temp``. House0/Hubitat historically uses ``{prefix}-temp``.
+        Prefer the strategy-specific primary channel and fall back.
+        """
+        values = lc if lc is not None else self.data.latest_channel_values
+        gw_temp = f"{zone_prefix}-gw-temp"
+        classic_temp = f"{zone_prefix}-temp"
+        if self._layout_strategy_is_nolan():
+            t = values.get(gw_temp)
+            if t is not None:
+                return t
+            return values.get(classic_temp)
+        t = values.get(classic_temp)
+        if t is not None:
+            return t
+        return values.get(gw_temp)
+
     def get_zone_setpoints(self):
         if self.is_simulated:
             self.zone_setpoints = {'zone1': 70, 'zone2': 65}
@@ -558,8 +586,9 @@ class LocalControlTouBase(ShNodeActor):
             # self.log(f"Found zone: {zone_name}, critical: {zone_name_no_prefix in self.layout.critical_zone_list}, thermal mass: {thermal_mass} kWh/degF")
             if self.data.latest_channel_values[zone_setpoint] is not None:
                 self.zone_setpoints[zone_name] = self.data.latest_channel_values[zone_setpoint]
-            if self.data.latest_channel_values[zone_setpoint.replace('-set','-temp')] is not None:
-                temps[zone_name] = self.data.latest_channel_values[zone_setpoint.replace('-set','-temp')]
+            temp_val = self._latest_zone_temp_x100(zone_name)
+            if temp_val is not None:
+                temps[zone_name] = temp_val
         # self.log(f"Found all zone setpoints: {self.zone_setpoints}")
         # self.log(f"Found all zone temperatures: {temps}")
     
@@ -590,7 +619,7 @@ class LocalControlTouBase(ShNodeActor):
                 self.log(f"Could not find setpoint for {zone}!")
                 continue
 
-            temperature = self.data.latest_channel_values.get(zone+'-temp')
+            temperature = self._latest_zone_temp_x100(zone)
             if temperature is None:
                 self.log(f"Could not find latest temperature for {zone}!")
                 continue

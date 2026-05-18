@@ -736,9 +736,18 @@ class House0Layout(HardwareLayout):
 
     @property
     def vdc_relay(self) -> ShNode:
-        n = self.node(self.vdc_relay_name)
+        name = self.vdc_relay_name
+        n = self.node(name)
         if n is None:
-            raise Exception(f"{self.vdc_relay_name} is known to exist")
+            if name == NolanNodeNames.vdc_relay:
+                raise Exception(
+                    f"VDC relay node {name!r} missing from hardware layout "
+                    "(expected for Strategy Nolan / Gw108 GPIO). Regenerate layout with "
+                    "add_nolan_relays(), or if this install uses Krida multiplexed relays "
+                    f"instead, set Strategy to House0 so the relay node resolves to "
+                    f"{House0NodeNames.vdc_relay!r}."
+                )
+            raise Exception(f"VDC relay node {name!r} missing from hardware layout.")
         return n
 
     @property
