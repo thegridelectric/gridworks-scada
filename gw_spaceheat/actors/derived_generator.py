@@ -397,17 +397,24 @@ class DerivedGenerator(ShNodeActor):
             state.predicted_setpoint_f = state.latest_gw_temp_f
 
         # Suspected setpoint change
-        if state.heat_call_active is not None and state.latest_gw_temp_f is not None and state.predicted_setpoint_f is not None:
-            if (
-                state.heat_call_active
-                and state.latest_gw_temp_f >= state.predicted_setpoint_f + setpoint_threshold_f
-            ):
-                state.predicted_setpoint_f = self.PRED_SETPOINT_WHEN_RAISED
-            elif (
-                not state.heat_call_active
-                and state.latest_gw_temp_f <= state.predicted_setpoint_f - setpoint_threshold_f
-            ):
-                state.predicted_setpoint_f = self.PRED_SETPOINT_WHEN_LOWERED
+        if state.heat_call_active is not None and state.latest_gw_temp_f is not None:
+            if state.predicted_setpoint_f is not None:
+                if (
+                    state.heat_call_active
+                    and state.latest_gw_temp_f >= state.predicted_setpoint_f + setpoint_threshold_f
+                ):
+                    state.predicted_setpoint_f = self.PRED_SETPOINT_WHEN_RAISED
+                elif (
+                    not state.heat_call_active
+                    and state.latest_gw_temp_f <= state.predicted_setpoint_f - setpoint_threshold_f
+                ):
+                    state.predicted_setpoint_f = self.PRED_SETPOINT_WHEN_LOWERED
+            
+            else:
+                if state.heat_call_active:
+                    state.predicted_setpoint_f = self.PRED_SETPOINT_WHEN_RAISED
+                else:
+                    state.predicted_setpoint_f = self.PRED_SETPOINT_WHEN_LOWERED
 
         if state.predicted_setpoint_f is None:
             self.log("Predicted setpoint is None")
