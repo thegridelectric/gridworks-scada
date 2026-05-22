@@ -6,6 +6,7 @@ import aiohttp
 import math
 import numpy as np
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Optional, Protocol, Sequence
 from result import Ok, Result
 from datetime import datetime,  timezone
@@ -33,14 +34,22 @@ from gwsproto.named_types import (
 from scada_app_interface import ScadaAppInterface
 
 
+class SetpointPhase(StrEnum):
+    Unknown = "Unknown"
+    LastHeatCallEndTemp = "LastHeatCallEndTemp"
+    SuspectZoneBelowSetpoint = "SuspectZoneBelowSetpoint"
+    SuspectZoneAboveSetpoint = "SuspectZoneAboveSetpoint"
+
+
 @dataclass
 class SimpleFallingEdgeSetpointState:
     gw_temp_name: str
     heat_call_name: str
-    predicted_setpoint_f: float | None = None
+    phase: SetpointPhase = SetpointPhase.Unknown
+    setpoint_f: float | None = None
     latest_gw_temp_f: float | None = None
     heat_call_active: bool | None = None
-    last_emitted_predicted_setpoint_f: float = 1e9
+    last_emitted_setpoint_f: float = 1e9
 
 
 class DerivedHandler(Protocol):
@@ -55,8 +64,6 @@ class DerivedGenerator(ShNodeActor):
     GALLONS_PER_TANK = 119
     WATER_SPECIFIC_HEAT_KJ_PER_KG_C = 4.187
     GALLON_PER_LITER = 3.78541
-    PRED_SETPOINT_WHEN_LOWERED = -1000
-    PRED_SETPOINT_WHEN_RAISED = 1000
 
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
@@ -384,11 +391,11 @@ class DerivedGenerator(ShNodeActor):
 
     def handle_simple_falling_edge_setpoint(self, dc: DerivedChannel, payload: SingleReading | None = None) -> None:
         """
-        Derive a zone thermostat setpoint estimate from its corresponding gw-temp and heat-call.
+        Derive a zone thermostat setpoint estimate from gw-temp and heat-call.
 
-        The learned value is the gw-temp at the end of the last completed heat call. 
-        -> If the setpont seems to have been lowered, use -1000 while we wait for the next heat call.
-        -> If the setpont seems to have been raised, use 1000 while we wait for the end of the heat call.
+        The learned value is gw-temp at the falling edge of a heat call. Suspected
+        manual setpoint changes are tracked in SetpointPhase without overwriting
+        the last learned temperature on the wire.
         """
         if payload is None:
             return
@@ -416,7 +423,8 @@ class DerivedGenerator(ShNodeActor):
                 if state.latest_gw_temp_f is None:
                     state.latest_gw_temp_f = self._latest_gw_temp_f(gw_temp_name)
                 if state.latest_gw_temp_f is not None:
-                    state.predicted_setpoint_f = state.latest_gw_temp_f
+                    state.setpoint_f = state.latest_gw_temp_f
+                    state.phase = SetpointPhase.LastHeatCallEndTemp
 
         if state.heat_call_active is None:
             latest_heat_call = self.data.latest_channel_values.get(heat_call_name)
@@ -428,28 +436,30 @@ class DerivedGenerator(ShNodeActor):
 
         # Suspected setpoint change
         if state.heat_call_active is not None and state.latest_gw_temp_f is not None:
-            if state.predicted_setpoint_f is not None:
+            if state.setpoint_f is not None and state.phase == SetpointPhase.LastHeatCallEndTemp:
                 if (
                     state.heat_call_active
-                    and state.latest_gw_temp_f >= state.predicted_setpoint_f + setpoint_threshold_f
+                    and state.latest_gw_temp_f >= state.setpoint_f + setpoint_threshold_f
                 ):
-                    state.predicted_setpoint_f = self.PRED_SETPOINT_WHEN_RAISED
+                    state.setpoint_f = None
+                    state.phase = SetpointPhase.SuspectZoneBelowSetpoint
                 elif (
                     not state.heat_call_active
-                    and state.latest_gw_temp_f <= state.predicted_setpoint_f - setpoint_threshold_f
+                    and state.latest_gw_temp_f <= state.setpoint_f - setpoint_threshold_f
                 ):
-                    state.predicted_setpoint_f = self.PRED_SETPOINT_WHEN_LOWERED
+                    state.setpoint_f = None
+                    state.phase = SetpointPhase.SuspectZoneAboveSetpoint
             
-            else:
+            elif state.phase == SetpointPhase.Unknown:
                 if state.heat_call_active:
-                    state.predicted_setpoint_f = self.PRED_SETPOINT_WHEN_RAISED
+                    state.phase = SetpointPhase.SuspectZoneBelowSetpoint
                 else:
-                    state.predicted_setpoint_f = self.PRED_SETPOINT_WHEN_LOWERED
+                    state.phase = SetpointPhase.SuspectZoneAboveSetpoint
 
-        if state.predicted_setpoint_f is None:
+        if state.setpoint_f is None:
             return
 
-        self.log(f"Predicted setpoint {dc.Name}: {state.predicted_setpoint_f} F")
+        self.log(f"Setpoint {dc.Name}: {state.setpoint_f} F phase={state.phase}")
 
         assert dc.EmitPeriodS is not None
         period = dc.EmitPeriodS
@@ -466,7 +476,7 @@ class DerivedGenerator(ShNodeActor):
         # setpoint state is in whole degrees F, so scale the threshold by 100.
         async_emit_delta_f = dc.AsyncEmitDelta / 100
         changed = (
-            abs(state.last_emitted_predicted_setpoint_f - state.predicted_setpoint_f)
+            abs(state.last_emitted_setpoint_f - state.setpoint_f)
             > async_emit_delta_f
         )
         should_emit = changed or periodic_due
@@ -476,11 +486,11 @@ class DerivedGenerator(ShNodeActor):
                 self.primary_scada,
                 SingleReading(
                     ChannelName=dc.Name,
-                    Value=int(state.predicted_setpoint_f*100),
+                    Value=int(state.setpoint_f * 100),
                     ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs,
                 )
             )
-            state.last_emitted_predicted_setpoint_f = state.predicted_setpoint_f
+            state.last_emitted_setpoint_f = state.setpoint_f
             if periodic_due:
                 self._advance_period_boundary(dc.Name, now, period)
 
