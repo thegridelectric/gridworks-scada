@@ -365,11 +365,8 @@ class DerivedGenerator(ShNodeActor):
         -> If the setpont seems to have been raised, use 1000 while we wait for the end of the heat call.
         """
 
-        self.log("Inside handle_predicted_setpoint")
-
         gw_temp_name = dc.InputChannelNames[0]
         if payload is None or payload.ChannelName != gw_temp_name:
-            self.log("Was not a gw-temp reading")
             return
 
         state = self.pred_setpoint_states[dc.Name]
