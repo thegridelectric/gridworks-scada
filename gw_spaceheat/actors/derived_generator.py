@@ -417,7 +417,7 @@ class DerivedGenerator(ShNodeActor):
             self.log("Predicted setpoint is None")
             return
 
-        self.log(f"Predicted setpoint channel '{dc.Name}' value: {state.predicted_setpoint_f} F")
+        self.log(f"Predicted setpoint {dc.Name}: {state.predicted_setpoint_f} F")
 
         assert dc.EmitPeriodS is not None
         period = dc.EmitPeriodS
