@@ -394,15 +394,15 @@
       "EmitPeriodS": 300,
       "Id": "5aada055-4694-4875-bb06-67bf121c3ea8",
       "InputChannelNames": [
-        "zone1-main-gw-temp"
+        "zone1-main-gw-temp",
+        "zone1-main-heat-call"
       ],
       "Name": "zone1-main-set",
       "OutputUnit": "FahrenheitX100",
       "Parameters": {
-        "HeatCallChannelName": "zone1-main-heat-call",
         "SetpointThresholdFX100": 200
       },
-      "Strategy": "predicted-setpoint",
+      "Strategy": "simple-falling-edge-setpoint",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "derived.channel.gt",
       "Version": "001"

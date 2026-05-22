@@ -34,7 +34,9 @@ from scada_app_interface import ScadaAppInterface
 
 
 @dataclass
-class PredictedSetpointState:
+class SimpleFallingEdgeSetpointState:
+    gw_temp_name: str
+    heat_call_name: str
     predicted_setpoint_f: float | None = None
     latest_gw_temp_f: float | None = None
     heat_call_active: bool | None = None
@@ -87,13 +89,13 @@ class DerivedGenerator(ShNodeActor):
             "identity": self.handle_identity,
             "affine": self.handle_affine,
             "heat-call": self.handle_heat_call,
-            "predicted-setpoint": self.handle_predicted_setpoint,
+            "simple-falling-edge-setpoint": self.handle_simple_falling_edge_setpoint,
             "system-model": self.handle_system_model,
         }
 
         self.derived_by_input: dict[str, list[DerivedChannel]] = {}
         self.system_models: list[DerivedChannel] = []
-        self.pred_setpoint_states: dict[str, PredictedSetpointState] = {}
+        self.simple_falling_edge_setpoint_states: dict[str, SimpleFallingEdgeSetpointState] = {}
         self.last_emitted: dict[str, int] = {}
         self.next_period_boundary_ts: dict[str, float] = {} # channel name, unix seconds
         self.init_derived_channels()
@@ -149,8 +151,8 @@ class DerivedGenerator(ShNodeActor):
                 if dc.OutputUnit != GwUnit.FahrenheitX100:
                     raise RuntimeError(f"DerivedGenerator only handles affine conversions with output unit"
                                     f" FahrenheitX100, not {dc.OutputUnit}")
-            elif dc.Strategy == "predicted-setpoint":
-                self.init_predicted_setpoint_channel(dc)
+            elif dc.Strategy == "simple-falling-edge-setpoint":
+                self.init_simple_falling_edge_setpoint_channel(dc)
 
         # 4) Final sanity check: every DerivedChannel must be reachable
         handled = set()
@@ -172,31 +174,44 @@ class DerivedGenerator(ShNodeActor):
                 + "\n".join(missing)
             )
 
-    def init_predicted_setpoint_channel(self, dc: DerivedChannel) -> None:
+    def init_simple_falling_edge_setpoint_channel(self, dc: DerivedChannel) -> None:
         if dc.OutputUnit != GwUnit.FahrenheitX100:
-            raise RuntimeError(f"Predicted setpoint channel '{dc.Name}' must use OutputUnit FahrenheitX100, not {dc.OutputUnit}")
-        if len(dc.InputChannelNames) != 1:
-            raise RuntimeError(f"Predicted setpoint channel '{dc.Name}' must declare exactly one gw-temp InputChannelName")
+            raise RuntimeError(
+                f"Simple falling-edge setpoint channel '{dc.Name}' must use "
+                f"OutputUnit FahrenheitX100, not {dc.OutputUnit}"
+            )
+        if len(dc.InputChannelNames) != 2:
+            raise RuntimeError(
+                f"Simple falling-edge setpoint channel '{dc.Name}' must declare "
+                "exactly two InputChannelNames: [gw-temp, heat-call]"
+            )
 
-        gw_temp_name = dc.InputChannelNames[0]
+        gw_temp_name, heat_call_name = dc.InputChannelNames
         in_unit = self.layout.channel_registry.unit(gw_temp_name)
         if in_unit is None:
-            raise RuntimeError(f"No unit registered for input channel '{gw_temp_name}' (required by predicted setpoint channel '{dc.Name}')")
+            raise RuntimeError(
+                f"No unit registered for input channel '{gw_temp_name}' "
+                f"(required by simple falling-edge setpoint channel '{dc.Name}')"
+            )
         try:
             convert_temp_to_f(0, in_unit)
         except ValueError as e:
-            raise RuntimeError(f"Predicted setpoint channel '{dc.Name}' requires a temperature input, but '{gw_temp_name}' uses {in_unit}") from e
+            raise RuntimeError(
+                f"Simple falling-edge setpoint channel '{dc.Name}' requires a "
+                f"temperature input, but '{gw_temp_name}' uses {in_unit}"
+            ) from e
 
-        assert dc.Parameters is not None
-        heat_call_name = dc.Parameters.get("HeatCallChannelName")
         heat_call_dc = self.layout.derived_channels.get(heat_call_name)
-        if not heat_call_dc:
-            raise RuntimeError(f"Predicted setpoint channel '{dc.Name}' requires heat-call DerivedChannel '{heat_call_name}'")
+        if heat_call_dc is None or heat_call_dc.Strategy != "heat-call":
+            raise RuntimeError(
+                f"Simple falling-edge setpoint channel '{dc.Name}' requires a "
+                f"heat-call DerivedChannel as its second input, not '{heat_call_name}'"
+            )
 
-        # Parameters shape (HeatCallChannelName, SetpointThresholdFX100) is the
-        # authoritative responsibility of HardwareLayout validation, which fails
-        # at layout-load rather than here in actor init.
-        self.pred_setpoint_states[dc.Name] = PredictedSetpointState()
+        self.simple_falling_edge_setpoint_states[dc.Name] = SimpleFallingEdgeSetpointState(
+            gw_temp_name=gw_temp_name,
+            heat_call_name=heat_call_name,
+        )
 
     def handle_identity(self, dc: DerivedChannel, payload: SingleReading | None = None) -> None:
         """Returns the identical data, after unit transformation"""
@@ -289,6 +304,11 @@ class DerivedGenerator(ShNodeActor):
         threshold = dc.Parameters.get("Threshold")
 
         value = self.heat_call_value(payload.Value, interp, threshold)
+        heat_call_reading = SingleReading(
+            ChannelName=dc.Name,
+            Value=value,
+            ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs,
+        )
         
         now = time.time()
     
@@ -311,12 +331,8 @@ class DerivedGenerator(ShNodeActor):
         if should_emit:
             self._send_to(
                 self.primary_scada,
-                    SingleReading(
-                        ChannelName=dc.Name,
-                        Value=value,
-                        ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs,
-                    ),
-                )
+                heat_call_reading,
+            )
             self.last_emitted[dc.Name] = value
 
             if periodic_due:
@@ -327,6 +343,8 @@ class DerivedGenerator(ShNodeActor):
                     f"period={dc.EmitPeriodS}"
                 )
                 self._advance_period_boundary(dc.Name, now, period)
+
+        self._dispatch_derived_input(heat_call_reading)
 
     def heat_call_value(
             self, 
@@ -356,42 +374,57 @@ class DerivedGenerator(ShNodeActor):
             case _:
                 return 0
 
-    def handle_predicted_setpoint(self, dc: DerivedChannel, payload: SingleReading | None = None) -> None:
+    def _latest_gw_temp_f(self, gw_temp_name: str) -> float | None:
+        in_unit = self.layout.channel_registry.unit(gw_temp_name)
+        assert in_unit is not None
+        raw = self.data.latest_channel_values.get(gw_temp_name)
+        if raw is None:
+            return None
+        return convert_temp_to_f(raw, in_unit)
+
+    def handle_simple_falling_edge_setpoint(self, dc: DerivedChannel, payload: SingleReading | None = None) -> None:
         """
-        Derive a zone thermostat setpoint estimate from the zone's temperature and heat-call state.
+        Derive a zone thermostat setpoint estimate from its corresponding gw-temp and heat-call.
 
         The learned value is the gw-temp at the end of the last completed heat call. 
         -> If the setpont seems to have been lowered, use -1000 while we wait for the next heat call.
         -> If the setpont seems to have been raised, use 1000 while we wait for the end of the heat call.
         """
-
-        gw_temp_name = dc.InputChannelNames[0]
-        if payload is None or payload.ChannelName != gw_temp_name:
+        if payload is None:
             return
 
-        state = self.pred_setpoint_states[dc.Name]
+        state = self.simple_falling_edge_setpoint_states[dc.Name]
+        gw_temp_name = state.gw_temp_name
+        heat_call_name = state.heat_call_name
+
+        if payload.ChannelName not in {gw_temp_name, heat_call_name}:
+            return
 
         assert dc.Parameters is not None
-        heat_call_name = dc.Parameters.get("HeatCallChannelName")
-        # SetpointThresholdFX100 is hundredths °F; the setpoint state is in °F.
         setpoint_threshold_f = dc.Parameters["SetpointThresholdFX100"] / 100
-        heat_call_dc = self.layout.derived_channels.get(heat_call_name)
-        if heat_call_dc is None:
-            self.log(f"Predicted setpoint channel '{dc.Name}' requires heat-call DerivedChannel '{heat_call_name}'")
-            return
 
-        # Read the latest gw-temp
-        in_unit = self.layout.channel_registry.unit(payload.ChannelName)
-        assert in_unit
-        state.latest_gw_temp_f = convert_temp_to_f(payload.Value, in_unit)
+        if payload.ChannelName == gw_temp_name:
+            in_unit = self.layout.channel_registry.unit(payload.ChannelName)
+            assert in_unit
+            state.latest_gw_temp_f = convert_temp_to_f(payload.Value, in_unit)
+        else:
+            was_active = state.heat_call_active
+            now_active = payload.Value >= 1
+            state.heat_call_active = now_active
+            # Heat call has just ended -> update the setpoint
+            if was_active and not now_active:
+                if state.latest_gw_temp_f is None:
+                    state.latest_gw_temp_f = self._latest_gw_temp_f(gw_temp_name)
+                if state.latest_gw_temp_f is not None:
+                    state.predicted_setpoint_f = state.latest_gw_temp_f
 
-        # The heat call switched from active to inactive -> update predicted setpoint
-        was_active = state.heat_call_active
-        latest_heat_call = self.data.latest_channel_values.get(heat_call_dc.Name)
-        if latest_heat_call is not None:
-            state.heat_call_active = latest_heat_call >= 1
-        if was_active and not state.heat_call_active:
-            state.predicted_setpoint_f = state.latest_gw_temp_f
+        if state.heat_call_active is None:
+            latest_heat_call = self.data.latest_channel_values.get(heat_call_name)
+            if latest_heat_call is not None:
+                state.heat_call_active = latest_heat_call >= 1
+
+        if state.latest_gw_temp_f is None:
+            state.latest_gw_temp_f = self._latest_gw_temp_f(gw_temp_name)
 
         # Suspected setpoint change
         if state.heat_call_active is not None and state.latest_gw_temp_f is not None:
@@ -414,7 +447,6 @@ class DerivedGenerator(ShNodeActor):
                     state.predicted_setpoint_f = self.PRED_SETPOINT_WHEN_LOWERED
 
         if state.predicted_setpoint_f is None:
-            self.log("Predicted setpoint is None")
             return
 
         self.log(f"Predicted setpoint {dc.Name}: {state.predicted_setpoint_f} F")
@@ -600,9 +632,7 @@ class DerivedGenerator(ShNodeActor):
                     )
         return Ok(True)
 
-    def handle_input_reading(self, from_node: ShNode, payload: SingleReading) -> None:
-        """ To date just creates heat call channels"""
-
+    def _dispatch_derived_input(self, payload: SingleReading) -> None:
         derived_channels = self.derived_by_input.get(payload.ChannelName)
         if not derived_channels:
             return
@@ -612,6 +642,9 @@ class DerivedGenerator(ShNodeActor):
             if handler is None:
                 raise RuntimeError(f"No handler for strategy {dc.Strategy} (dc={dc.Name})")
             handler(dc, payload)
+
+    def handle_input_reading(self, from_node: ShNode, payload: SingleReading) -> None:
+        self._dispatch_derived_input(payload)
 
     # Compute usable and required energy
     def compute_usable_energy_wh(self) -> int | None:

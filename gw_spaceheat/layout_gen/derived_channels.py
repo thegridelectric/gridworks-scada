@@ -124,14 +124,13 @@ def _add_zone_predicted_setpoint_channel(
                 Id=db.make_derived_channel_id(zone_channels.set),
                 Name=zone_channels.set,
                 CreatedByNodeName=H0N.derived_generator,
-                Strategy="predicted-setpoint",
-                InputChannelNames=[nolan_channels.gw_temp],
+                Strategy="simple-falling-edge-setpoint",
+                InputChannelNames=[nolan_channels.gw_temp, zone_channels.heat_call],
                 OutputUnit=GwUnit.FahrenheitX100,
                 EmissionMethod=EmissionMethod.AsyncAndPeriodic,
                 AsyncEmitDelta=async_emit_delta_x100,
                 EmitPeriodS=emit_period_s,
                 Parameters={
-                    "HeatCallChannelName": zone_channels.heat_call,
                     "SetpointThresholdFX100": setpoint_threshold_fx100,
                 },
                 DisplayName=(

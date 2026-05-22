@@ -604,15 +604,19 @@ class HardwareLayout:
         - Strategy-specific requirements on inputs, parameters, and emission method
         """
         data_channel_names = set(self.data_channels.keys())
+        derived_channel_names = set(self.derived_channels.keys())
         errors: list[str] = []
 
         # --- Input channel existence ---
         for dc in self.derived_channels.values():
             for input_name in dc.InputChannelNames:
-                if input_name not in data_channel_names:
+                if (
+                    input_name not in data_channel_names
+                    and input_name not in derived_channel_names
+                ):
                     errors.append(
                         f"DerivedChannel '{dc.Name}' references unknown input "
-                        f"DataChannel '{input_name}'"
+                        f"channel '{input_name}'"
                     )
 
             match dc.Strategy:
@@ -662,45 +666,55 @@ class HardwareLayout:
                             "but must use EmissionMethod.AsyncAndPeriodic"
                         )
 
-                case "predicted-setpoint":
-                    if len(dc.InputChannelNames) != 1:
+                case "simple-falling-edge-setpoint":
+                    if len(dc.InputChannelNames) != 2:
                         errors.append(
                             f"DerivedChannel '{dc.Name}' uses strategy "
-                            "'predicted-setpoint' but does not declare exactly "
-                            "one InputChannelName"
+                            "'simple-falling-edge-setpoint' but does not declare "
+                            "exactly two InputChannelNames: [gw-temp, heat-call]"
                         )
+                    elif dc.InputChannelNames[0] not in data_channel_names:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy "
+                            "'simple-falling-edge-setpoint' but its first "
+                            f"InputChannelName '{dc.InputChannelNames[0]}' is not a "
+                            "known DataChannel"
+                        )
+                    else:
+                        heat_call_name = dc.InputChannelNames[1]
+                        heat_call_dc = self.derived_channels.get(heat_call_name)
+                        if heat_call_dc is None:
+                            errors.append(
+                                f"DerivedChannel '{dc.Name}' uses strategy "
+                                "'simple-falling-edge-setpoint' but its second "
+                                f"InputChannelName '{heat_call_name}' is not a "
+                                "known DerivedChannel"
+                            )
+                        elif heat_call_dc.Strategy != "heat-call":
+                            errors.append(
+                                f"DerivedChannel '{dc.Name}' uses strategy "
+                                "'simple-falling-edge-setpoint' but its second "
+                                f"InputChannelName '{heat_call_name}' must reference "
+                                "a DerivedChannel with strategy 'heat-call'"
+                            )
                     if dc.OutputUnit != GwUnit.FahrenheitX100:
                         errors.append(
                             f"DerivedChannel '{dc.Name}' uses strategy "
-                            "'predicted-setpoint' but must use OutputUnit "
+                            "'simple-falling-edge-setpoint' but must use OutputUnit "
                             "FahrenheitX100"
                         )
                     if dc.EmissionMethod != EmissionMethod.AsyncAndPeriodic:
                         errors.append(
                             f"DerivedChannel '{dc.Name}' uses strategy "
-                            "'predicted-setpoint' but must use "
+                            "'simple-falling-edge-setpoint' but must use "
                             "EmissionMethod.AsyncAndPeriodic"
                         )
                     if not dc.Parameters:
                         errors.append(
                             f"DerivedChannel '{dc.Name}' uses strategy "
-                            "'predicted-setpoint' but is missing Parameters"
+                            "'simple-falling-edge-setpoint' but is missing Parameters"
                         )
                     else:
-                        heat_call_name = dc.Parameters.get("HeatCallChannelName")
-                        if not isinstance(heat_call_name, str):
-                            errors.append(
-                                f"DerivedChannel '{dc.Name}' uses strategy "
-                                "'predicted-setpoint' but Parameters."
-                                "HeatCallChannelName is missing or not a string"
-                            )
-                        elif heat_call_name not in self.derived_channels:
-                            errors.append(
-                                f"DerivedChannel '{dc.Name}' uses strategy "
-                                "'predicted-setpoint' but Parameters."
-                                f"HeatCallChannelName '{heat_call_name}' is not a "
-                                "known DerivedChannel"
-                            )
                         threshold = dc.Parameters.get("SetpointThresholdFX100")
                         if (
                             not isinstance(threshold, int)
@@ -709,7 +723,7 @@ class HardwareLayout:
                         ):
                             errors.append(
                                 f"DerivedChannel '{dc.Name}' uses strategy "
-                                "'predicted-setpoint' but Parameters."
+                                "'simple-falling-edge-setpoint' but Parameters."
                                 "SetpointThresholdFX100 is missing or not a "
                                 "positive integer"
                             )
