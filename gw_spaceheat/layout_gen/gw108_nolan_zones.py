@@ -87,6 +87,7 @@ def _zone_thermistor_configs(
             AsyncCaptureDelta=50,
             Exponent=2,
             Unit=Unit.Celcius,
+            SendToDerived=True,
         ),
         I2cThermistorChannelConfig(
             ChannelName=gw_microvolts_channel,

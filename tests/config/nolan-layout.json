@@ -754,7 +754,7 @@
           "ChannelName": "zone1-main-gw-temp",
           "Exponent": 2,
           "PollPeriodMs": 1000,
-          "SendToDerived": false,
+          "SendToDerived": true,
           "ThermistorBeta": 3977,
           "TypeName": "i2c.thermistor.channel.config",
           "Unit": "Celcius",
