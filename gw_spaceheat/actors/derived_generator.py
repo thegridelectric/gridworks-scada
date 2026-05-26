@@ -481,15 +481,13 @@ class DerivedGenerator(ShNodeActor):
         phase_log_periodic_due = now >= next_phase_log_ts
 
         if phase_changed or phase_log_periodic_due:
-            self.log(f"Setpoint {dc.Name}: phase={state.phase}")
+            self.log(f"Setpoint {dc.Name}: phase={state.phase.name}")
             state.last_logged_phase = state.phase
             if phase_log_periodic_due:
                 self._advance_period_boundary(dc.Name, now, period, self.next_phase_log_boundary_ts)
 
         if state.setpoint_f is None:
             return
-
-        self.log(f"Setpoint {dc.Name}: {state.setpoint_f} F phase={state.phase}")
 
         next_ts = self.next_period_boundary_ts.get(dc.Name)
         if next_ts is None:
@@ -508,6 +506,7 @@ class DerivedGenerator(ShNodeActor):
         should_emit = changed or periodic_due
 
         if should_emit:
+            self.log(f"Setpoint {dc.Name}: {state.setpoint_f} F phase={state.phase}")
             self._send_to(
                 self.primary_scada,
                 SingleReading(
