@@ -50,6 +50,7 @@ class SimpleFallingEdgeSetpointState:
     latest_gw_temp_f: float | None = None
     heat_call_active: bool | None = None
     last_emitted_setpoint_f: float = 1e9
+    last_logged_phase: SetpointPhase | None = None
 
 
 class DerivedHandler(Protocol):
@@ -216,6 +217,7 @@ class DerivedGenerator(ShNodeActor):
             gw_temp_name=gw_temp_name,
             heat_call_name=heat_call_name,
         )
+        self.log(f"Initialized simple falling-edge setpoint channel '{dc.Name}'")
 
     def handle_identity(self, dc: DerivedChannel, payload: SingleReading | None = None) -> None:
         """Returns the identical data, after unit transformation"""
@@ -422,6 +424,9 @@ class DerivedGenerator(ShNodeActor):
                 if state.latest_gw_temp_f is not None:
                     state.setpoint_f = state.latest_gw_temp_f
                     state.phase = SetpointPhase.LastHeatCallEndTemp
+                    self.log(f"Setpoint {dc.Name}: learned {state.setpoint_f} F at heat-call end")
+                else:
+                    self.log(f"Setpoint {dc.Name}: heat-call ended but no gw-temp available to learn setpoint")
 
         if state.heat_call_active is None:
             latest_heat_call = self.data.latest_channel_values.get(heat_call_name)
@@ -452,6 +457,10 @@ class DerivedGenerator(ShNodeActor):
                     state.phase = SetpointPhase.SuspectZoneBelowSetpoint
                 else:
                     state.phase = SetpointPhase.SuspectZoneAboveSetpoint
+
+        if state.phase != state.last_logged_phase:
+            self.log(f"Setpoint {dc.Name}: phase={state.phase}")
+            state.last_logged_phase = state.phase
 
         if state.setpoint_f is None:
             return
