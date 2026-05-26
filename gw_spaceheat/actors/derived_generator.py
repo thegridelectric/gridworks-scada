@@ -103,6 +103,7 @@ class DerivedGenerator(ShNodeActor):
         self.simple_falling_edge_setpoint_states: dict[str, SimpleFallingEdgeSetpointState] = {}
         self.last_emitted: dict[str, int] = {}
         self.next_period_boundary_ts: dict[str, float] = {} # channel name, unix seconds
+        self.next_phase_log_boundary_ts: dict[str, float] = {}
         self.init_derived_channels()
 
     def init_derived_channels(self) -> None:
@@ -284,12 +285,20 @@ class DerivedGenerator(ShNodeActor):
     def _next_period_boundary(now: float, period: int) -> float:
         return ((int(now) // period) + 1) * period
 
-    def _advance_period_boundary(self, dc_name: str, now: float, period: int) -> None:
+    def _advance_period_boundary(
+        self,
+        dc_name: str,
+        now: float,
+        period: int,
+        boundaries: dict[str, float] | None = None,
+    ) -> None:
         """Advance a channel's period boundary in whole `period` steps until it is
         in the future, so a gap in input readings yields one emission rather than
         a burst of catch-up emissions on subsequent readings."""
-        while self.next_period_boundary_ts[dc_name] <= now:
-            self.next_period_boundary_ts[dc_name] += period
+        if boundaries is None:
+            boundaries = self.next_period_boundary_ts
+        while boundaries[dc_name] <= now:
+            boundaries[dc_name] += period
 
     def handle_heat_call(self, dc: DerivedChannel, payload: SingleReading | None = None) -> None:
         """
@@ -458,18 +467,29 @@ class DerivedGenerator(ShNodeActor):
                 else:
                     state.phase = SetpointPhase.SuspectZoneAboveSetpoint
 
-        if state.phase != state.last_logged_phase:
+        phase_changed = state.phase != state.last_logged_phase
+
+        assert dc.EmitPeriodS is not None
+        period = dc.EmitPeriodS
+        now = time.time()
+
+        next_phase_log_ts = self.next_phase_log_boundary_ts.get(dc.Name)
+        if next_phase_log_ts is None:
+            next_phase_log_ts = self._next_period_boundary(now, period)
+            self.next_phase_log_boundary_ts[dc.Name] = next_phase_log_ts
+
+        phase_log_periodic_due = now >= next_phase_log_ts
+
+        if phase_changed or phase_log_periodic_due:
             self.log(f"Setpoint {dc.Name}: phase={state.phase}")
             state.last_logged_phase = state.phase
+            if phase_log_periodic_due:
+                self._advance_period_boundary(dc.Name, now, period, self.next_phase_log_boundary_ts)
 
         if state.setpoint_f is None:
             return
 
         self.log(f"Setpoint {dc.Name}: {state.setpoint_f} F phase={state.phase}")
-
-        assert dc.EmitPeriodS is not None
-        period = dc.EmitPeriodS
-        now = time.time()
 
         next_ts = self.next_period_boundary_ts.get(dc.Name)
         if next_ts is None:
