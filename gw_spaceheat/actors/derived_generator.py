@@ -6,7 +6,7 @@ import aiohttp
 import math
 import numpy as np
 from dataclasses import dataclass
-from enum import StrEnum
+from enum import StrEnum, auto
 from typing import Optional, Protocol, Sequence
 from result import Ok, Result
 from datetime import datetime,  timezone
@@ -35,10 +35,10 @@ from scada_app_interface import ScadaAppInterface
 
 
 class SetpointPhase(StrEnum):
-    Unknown = "Unknown"
-    LastHeatCallEndTemp = "LastHeatCallEndTemp"
-    SuspectZoneBelowSetpoint = "SuspectZoneBelowSetpoint"
-    SuspectZoneAboveSetpoint = "SuspectZoneAboveSetpoint"
+    Unknown = auto()
+    LastHeatCallEndTemp = auto()
+    SuspectZoneBelowSetpoint = auto()
+    SuspectZoneAboveSetpoint = auto()
 
 
 @dataclass
