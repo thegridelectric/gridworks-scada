@@ -189,6 +189,7 @@ class ContractHandler:
             return
         if self.latest_scada_hb.Status not in self.DONE_STATES:
             return
+        self.prev = self.latest_scada_hb
         self.latest_scada_hb = None
         self.energy_used_wh = 0
         self.energy_updated_s = None
@@ -295,13 +296,16 @@ class ContractHandler:
             raise ValueError(f"Unexpected status from ltn_hb: {ltn_hb.Status}")
 
     def scada_terminates_contract_hb(self, cause: str = "") -> SlowContractHeartbeat:
-        """Creats a heartbeat declaring scada termination of contract
-        - can only call if self.latest_scada_hb exists
-        - sets prev to terminating_hb  and latest_scada_hb to None
+        """Creates a heartbeat declaring scada termination of contract
+
+        - Can only call if self.latest_scada_hb exists
+        - Returns the terminating heartbeat
+        - Caller is responsible for persisting and flushing if desired
         """
         if not self.latest_scada_hb:
             raise Exception("Cannot call scada terminates contract if no latest_scada_hb")
-        hb = SlowContractHeartbeat(
+
+        return SlowContractHeartbeat(
             FromNode=self.node.Name,
             Contract=self.latest_scada_hb.Contract,
             PreviousStatus=self.latest_scada_hb.Status,
@@ -312,25 +316,26 @@ class ContractHandler:
             MyDigit=random.choice(range(10)),
             YourLastDigit=self.latest_scada_hb.MyDigit,
         )
-        self.prev = hb
-        self.latest_scada_hb = None
-        return hb
 
     def scada_contract_completion_hb(self, cause="") -> SlowContractHeartbeat:
-        """Creats a heartbeat noting time has passed completion
-        - can only call if self.latest_scada_hb exists
-        - sets prev to this hb and latest_scada_hb to None
+        """Creates a heartbeat noting contract completion by passage of time.
 
-        Raises exception if called before the ContractEndS
+        - Can only call if self.latest_scada_hb exists
+        - Raises exception if called before ContractEndS
+        - Returns completion heartbeat
+        - Caller is responsible for persisting and flushing if desired
         """
         now = time.time()
+    
         if not self.latest_scada_hb:
             raise Exception("Cannot call scada terminates contract if no latest_ltn_hb")
+
         if now < self.latest_scada_hb.Contract.contract_end_s():
             raise Exception(
                 f"scada_detects_contract_complete_hb called at {int(now)}, before ContractEndTime of {self.latest_scada_hb.Contract.contract_end_s()}"
             )
-        hb = SlowContractHeartbeat(
+
+        return SlowContractHeartbeat(
             FromNode=self.node.Name,
             Contract=self.latest_scada_hb.Contract,
             PreviousStatus=self.latest_scada_hb.Status,
@@ -342,9 +347,6 @@ class ContractHandler:
             YourLastDigit=self.latest_scada_hb.MyDigit,
             IsAuthoritative=False # not claiming authority on outcome
         )
-        self.prev = hb
-        self.latest_scada_hb = None
-        return hb
 
     def formatted_contract(self, hb_to_format: Optional[SlowContractHeartbeat] = None) -> str:
         """Format contract heartbeat information for logging in a human-readable format."""

@@ -130,6 +130,7 @@ class HpBoss(ShNodeActor):
                 self.close_hp_scada_ops_relay()
 
     def process_sieg_loop_ready(self, from_node: ShNode, payload: SiegLoopReady):
+        self.log(f"Got SiegLoop ready, state is {self.state}")
         if self.state == HpBossState.PreparingToTurnOn:
             self.state = HpBossState.HpOn
             self.close_hp_scada_ops_relay()
@@ -147,16 +148,22 @@ class HpBoss(ShNodeActor):
         await asyncio.sleep(120)
         # If still in state WaitingToTurnOn, turn on:
         if self.state == HpBossState.PreparingToTurnOn:
-            self.state = HpBossState.HpOn
-            self.close_hp_scada_ops_relay()
-            self.log(f"Did not hear from Sieg loop for 2 moinutes. Turning on anyway!")
-            self._send_to(self.primary_scada,
-                            SingleMachineState(
-                                MachineHandle=self.node.handle,
-                                StateEnum=HpBossState.enum_name(),
-                                State=self.state,
-                                UnixMs=int(time.time() * 1000)
-                            ))
+            self.state = HpBossState.HpOff
+            self.open_hp_scada_ops_relay()
+            self.log(f"Did not hear from Sieg loop for 2 moinutes. Turning off!")
+            self._send_to(
+                self.primary_scada,
+                SingleMachineState(
+                    MachineHandle=self.node.handle,
+                    StateEnum=HpBossState.enum_name(),
+                    State=HpBossState.HpOff,
+                    UnixMs=int(time.time() * 1000)
+                ),
+            )
+            self.alert(
+                "Sieg loop did not report ready within 2 minutes",
+                "Turning off the heat pump (opened HP scada ops relay).",
+            )
 
     def open_hp_scada_ops_relay(self) -> None:
         try:

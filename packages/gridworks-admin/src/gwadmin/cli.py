@@ -394,13 +394,13 @@ def mkconfig(
     if paths.admin_config_path.exists():
         if not force:
             rich.print(
-                f"Configuartion file {paths.admin_config_path} [red][bold]already exists. Doing nothing.[/red][/bold]"
+                f"Configuration file {paths.admin_config_path} [red][bold]already exists. Doing nothing.[/red][/bold]"
             )
-            rich.print(f"Use --force to overwrite existing configuration.")
+            rich.print("Use --force to overwrite existing configuration.")
             raise typer.Exit(4)
         else:
             rich.print(
-                f"[red][bold]DELETING existing configuration[/red][/bold]."
+                "[red][bold]DELETING existing configuration[/red][/bold]."
             )
             paths.admin_config_path.unlink()
     rich.print(f"Creating {paths.admin_config_path}")

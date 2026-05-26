@@ -24,7 +24,7 @@ class RelayToggleButton(Button, can_focus=True):
     ]
 
     energized: Reactive[Optional[bool]] = reactive(None)
-    config: Reactive[RelayWidgetConfig] = reactive(RelayWidgetConfig)
+    config: Reactive[Optional[RelayWidgetConfig]] = reactive(None)
     timeout_seconds: int
 
     def __init__(
@@ -42,7 +42,7 @@ class RelayToggleButton(Button, can_focus=True):
         )
         self.default_timeout_seconds = default_timeout_seconds
         self.set_reactive(RelayToggleButton.energized, energized)
-        self.set_reactive(RelayToggleButton.config, config or RelayWidgetConfig())
+        self.set_reactive(RelayToggleButton.config, config or None)
         self.update_title()
 
     def update_title(self):
@@ -60,6 +60,8 @@ class RelayToggleButton(Button, can_focus=True):
         return "error"
 
     def action_toggle_relay(self) -> None:
+        if self.config is None:
+            return
         input_value = self.app.query_one(TimeInput).value
         try:
             time_in_minutes = float(input_value) if input_value else int(self.default_timeout_seconds/60)
@@ -76,12 +78,20 @@ class RelayToggleButton(Button, can_focus=True):
             )
 
     def watch_energized(self) -> None:
+        if self.config is None:
+            self.disabled = True
+            return
         self.label = self.config.get_state_str(not self.energized)
         self.disabled = self.energized is None
         self.variant = self.variant_from_state(self.energized)
         self.update_title()
 
     def watch_config(self):
+        if self.config is None:
+            self.disabled = True
+            self.border_title = ""
+            self.label = ""
+            return
         self.label = self.config.get_state_str(not self.energized)
         self.update_title()
 
@@ -93,6 +103,8 @@ class RelayToggleButton(Button, can_focus=True):
             self.timeout_seconds = timeout_seconds
 
     def on_button_pressed(self):
+        if self.config is None:
+            return
         input_value = self.app.query_one(TimeInput).value
         try:
             time_in_minutes = float(input_value) if input_value else int(self.default_timeout_seconds/60)

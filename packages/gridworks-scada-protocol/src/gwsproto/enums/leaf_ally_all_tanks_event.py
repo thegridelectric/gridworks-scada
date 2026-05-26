@@ -5,7 +5,7 @@ from gwsproto.enums.gw_str_enum import AslEnum
 
 
 class LeafAllyAllTanksEvent(AslEnum):
-    """ASL: https://schemas.electricity.works/enums/gw1.leaf.ally.all.tanks.event/000"""
+    """ASL: https://schemas.electricity.works/enums/gw1.leaf.ally.all.tanks.event/001"""
 
     GoDormant = auto()
     WakeUp = auto()
@@ -16,6 +16,7 @@ class LeafAllyAllTanksEvent(AslEnum):
     NoElecBufferEmpty = auto()
     StartNonElectricBackup = auto()
     StopNonElectricBackup = auto()
+    DefrostDetected = auto()
 
     @classmethod
     def default(cls) -> "LeafAllyAllTanksEvent":
@@ -31,4 +32,4 @@ class LeafAllyAllTanksEvent(AslEnum):
 
     @classmethod 
     def enum_version(cls) -> str:
-        return "000"
+        return "001"

@@ -24,12 +24,12 @@ from gwsproto.enums import (
     GwUnit, HeatCallInterpretation, 
     SystemMode, SeasonalStorageMode, TelemetryName
 )
-from gwsproto.data_classes.house_0_names import H0CN
+from gwsproto.data_classes.house_0_names import H0CN, H0N
 from gwsproto.named_types import (
     Ha1Params, HeatingForecast, LinearOneDimensionalCalibration,
     RequiredEnergyLayered, ScadaParams,
     SingleReading, SyncedReadings,
-    UsableEnergyLayered, WeatherForecast,
+    UsableEnergyLayered, WeatherForecast, TankTempCalibration
 )
 from scada_app_interface import ScadaAppInterface
 
@@ -61,9 +61,6 @@ class DerivedHandler(Protocol):
 
 class DerivedGenerator(ShNodeActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
-    GALLONS_PER_TANK = 119
-    WATER_SPECIFIC_HEAT_KJ_PER_KG_C = 4.187
-    GALLON_PER_LITER = 3.78541
 
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
@@ -642,6 +639,93 @@ class DerivedGenerator(ShNodeActor):
                     )
         return Ok(True)
 
+    def hack_maple_primary_flow(self, from_node: ShNode, payload: SyncedReadings) -> None:
+        """
+        Compute primary-flow = sieg-send + sieg-flow using one fresh value
+        from payload and one cached value from latest_channel_values.
+        """
+        if from_node.name == "sieg-send":
+            sieg_send = payload.get_value("sieg-send")
+            sieg_flow = self.data.latest_channel_values.get("sieg-flow")
+        elif from_node.name == "sieg-btu":
+            sieg_flow = payload.get_value("sieg-flow")
+            sieg_send = self.data.latest_channel_values.get("sieg-send")
+        else:
+            self.log("hack_maple_primary_flow only expects sieg-send and seig-flow")
+            return
+        if sieg_flow is None or sieg_send is None:
+            # self.log(f"Not calculating primary-flow: sieg_send {sieg_send}, sieg_flow: {sieg_flow}")
+            return
+        primary_flow = sieg_send + sieg_flow
+        msg = SingleReading(
+            ChannelName="primary-flow",
+            Value=primary_flow,
+            ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs
+        )
+        
+        self._send_to(self.primary_scada, msg)
+
+    def process_synced_readings(self, from_node: ShNode, payload: SyncedReadings) -> None:
+        if from_node.name == "sieg-send" or from_node.name == "sieg-btu":
+            self.hack_maple_primary_flow(from_node, payload)
+            return
+        elif from_node.name == H0N.buffer.reader:
+            calibration = self.tmap.Buffer
+            tank= H0CN.buffer
+        else:
+            tank_index = self.layout.h0n.tank_index(from_node.name)
+            if tank_index is None:
+                self.send_info(f"derived-generator got SyncedReadings from {from_node.name}"
+                               " and only expects from tanks!")
+                return
+            calibration = self.tmap.Tank[tank_index]
+            tank = self.h0cn.tank[tank_index]
+
+        channel_names = []
+        values = []
+        for device_ch, raw_value,  in zip(payload.ChannelNameList, payload.ValueList):
+            if device_ch not in tank.devices:
+                continue # i.e. don't process micro-volts
+
+            device_unit = self.layout.channel_registry.unit(device_ch)
+            assert device_unit is not None
+            device_temp_f = convert_temp_to_f(raw_value, device_unit)
+            if device_temp_f is None:
+                continue
+
+            depth = tank.device_depth(device_ch)
+            m, b = self._depth_calibration(calibration, depth)
+
+            # Use linear approximation from TankTempCalibrationMap
+            temp_f =  m * device_temp_f + b
+            ch = tank.device_to_effective(device_ch)
+            #self.log(f"Got {round(device_temp_f,1)} F for {device_ch}")
+            #self.log(f"{ch}: {round(temp_f, 1)}  = {m} * {round(device_temp_f,1)} + {b} ")
+
+            # Derived tank temp channels have gw1.unit FahrenheitX100
+            channel_names.append(ch)
+            values.append(int(temp_f * 100))
+
+        msg = SyncedReadings(
+            ChannelNameList=channel_names,
+            ValueList=values, # in FahrenheitX100
+            ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs
+        )
+        self._send_to(self.primary_scada, msg)
+
+    def _depth_calibration(
+        self,
+        calibration: TankTempCalibration,
+        depth: int,
+    ) -> tuple[float, float]:
+        if depth == 1:
+            return calibration.Depth1M, calibration.Depth1B
+        if depth == 2:
+            return calibration.Depth2M, calibration.Depth2B
+        if depth == 3:
+            return calibration.Depth3M, calibration.Depth3B
+        raise ValueError(f"Unsupported depth {depth}")
+    
     def _dispatch_derived_input(self, payload: SingleReading) -> None:
         derived_channels = self.derived_by_input.get(payload.ChannelName)
         if not derived_channels:
@@ -732,9 +816,8 @@ class DerivedGenerator(ShNodeActor):
             # add this layer's delta energy
             usable_kwh += (
                 mass_kg_per_layer
-                * self.WATER_SPECIFIC_HEAT_KJ_PER_KG_C # kJoules needed to raise 1 liter 1 deg C
+                * self.WATER_SPECIFIC_HEAT_KWH_PER_KG_C # kWh needed to raise 1 liter 1 deg C
                 * delta_c
-                / 3600
             )
             # pop the layer
             simulated_layers_f = (
@@ -761,7 +844,8 @@ class DerivedGenerator(ShNodeActor):
                 simulated_layers = [sum(simulated_layers)/len(simulated_layers) for x in simulated_layers]
                 if round(self.rwt_f(simulated_layers[0])) == round(simulated_layers[0]):
                     break
-            max_buffer_usable_kwh += 120/3 * 3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt_f(simulated_layers[0]))*5/9
+            delta_t_celcius = (simulated_layers[0] - self.rwt_f(simulated_layers[0])) * 5/9
+            max_buffer_usable_kwh += self.LITERS_PER_LAYER * self.WATER_SPECIFIC_HEAT_KWH_PER_KG_C * delta_t_celcius
             simulated_layers = simulated_layers[1:] + [self.rwt_f(simulated_layers[0])]          
         self.log(f"Max buffer usable energy: {round(max_buffer_usable_kwh,1)} kWh")
         required_energy = self.data.latest_channel_values.get(H0CN.required_energy, 0)
@@ -822,11 +906,18 @@ class DerivedGenerator(ShNodeActor):
                 if round(self.rwt_f(simulated_layers[0])) == round(simulated_layers[0]):
                     break
 
-            max_storage_kwh += 120/3 * 3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt_f(simulated_layers[0]))*5/9
+            delta_t_celcius = (simulated_layers[0] - self.rwt_f(simulated_layers[0])) * 5/9
+            max_storage_kwh += self.LITERS_PER_LAYER * self.WATER_SPECIFIC_HEAT_KWH_PER_KG_C * delta_t_celcius
             simulated_layers = simulated_layers[1:] + [self.rwt_f(simulated_layers[0])]
         if (((time_now.weekday()<4 or time_now.weekday()==6) and time_now.hour>=20) or (time_now.weekday()<5 and time_now.hour<=6)):
             self.log('Preparing for a morning onpeak + afternoon onpeak')
-            afternoon_missing_kWh = afternoon_kWh - (4*self.params.HpMaxKwTh - midday_kWh) # TODO make the kW_th a function of COP and kW_el
+            weather_forecasts_times_tz = [datetime.fromtimestamp(x, tz=self.timezone) for x in self.weather_forecast.Time]
+            midday_oat = min([
+                oat for t, oat in zip(weather_forecasts_times_tz, self.weather_forecast.OatF)
+                if 12<=t.hour<=15
+            ])
+            midday_cop = self.params.CopMin if midday_oat<self.params.CopMinOatF else self.params.CopIntercept + self.params.CopOatCoeff*midday_oat
+            afternoon_missing_kWh = afternoon_kWh - (0.8*4*self.params.HpMaxKwEl*midday_cop - midday_kWh) # assume 80% of max power (defrosts, turn on)
             if afternoon_missing_kWh<0:
                 required = morning_kWh
             else:
@@ -853,7 +944,7 @@ class DerivedGenerator(ShNodeActor):
         alpha = self.params.AlphaTimes10 / 10
         beta = self.params.BetaTimes100 / 100
         gamma = self.params.GammaEx6 / 1e6
-        r = alpha + beta*oat + gamma*ws
+        r = alpha + beta*oat + gamma*ws*(65-oat)
         r = r * (1 + self.settings.load_overestimation_percent/100)
         return round(r,2) if r>0 else 0
 

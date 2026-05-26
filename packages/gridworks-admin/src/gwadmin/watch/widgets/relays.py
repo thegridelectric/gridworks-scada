@@ -38,7 +38,7 @@ class Relays(Widget):
     mqtt_state: Reactive[str] = reactive(ConstrainedMQTTClient.States.stopped)
     state_colors: Reactive[bool] = reactive(False)
     curr_energized: Reactive[Optional[bool]] = reactive(None)
-    curr_config: Reactive[RelayWidgetConfig] = reactive(RelayWidgetConfig)
+    curr_config: Reactive[Optional[RelayWidgetConfig]] = reactive(None)
     logger: Logger
     _relays: dict[str, RelayWidgetInfo]
     _scadas: list[str]
@@ -200,7 +200,7 @@ class Relays(Widget):
             curr_title = relay_info.config.table_name.border_title
         else:
             curr_energized = None
-            curr_config = RelayWidgetConfig()
+            curr_config = None
             curr_title = ""
         self.curr_energized = curr_energized
         self.curr_config = curr_config
@@ -241,7 +241,7 @@ class Relays(Widget):
             relay_config_change_callback=self.relay_config_change_callback,
             # disable these as defense against memroy leaks
             mqtt_message_received_callback=None,
-            layout_callback=None,
+            ctrl_capabilities_callback=None,
             snapshot_callback=None,
         )
 

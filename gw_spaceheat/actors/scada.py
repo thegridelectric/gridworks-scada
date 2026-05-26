@@ -48,10 +48,12 @@ from gwsproto.data_classes.components.web_server_component import WebServerCompo
 from gwsproto.enums import (LeafAllyBufferOnlyState,  LeafAllyAllTanksState,
                             SlowDispatchContractStatus, LocalControlTopState,
                    MainAutoEvent, MainAutoState, SeasonalStorageMode,  TopState)
+
+from gwsproto.named_types.scada_control_capabilities import ControlNode, ControlChannel
 from gwsproto.named_types import ( ActuatorsReady, FsmEvent,
     AdminDispatch, AdminAnalogDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
-    Glitch, GoDormant, LayoutLite, NewCommandTree, NoNewContractWarning, ResetHpKeepValue,
-    ScadaParams, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment,
+    Glitch, GoDormant, LayoutLite, NewCommandTree, NoNewContractWarning, ResetHpKeepValue, ScadaControlCapabilities,
+    ScadaParams, SendControlCapabilities, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment,
     SiegTargetTooLow, SingleMachineState,SlowContractHeartbeat, SuitUp, WakeUp,
 )
 
@@ -312,6 +314,11 @@ class Scada(PrimeActor, ScadaInterface):
                     self._send_to(self.derived_generator, payload)
                 except Exception as e:
                     self.log(f"Trouble with process_scada_params: \n {e}")
+            case SendControlCapabilities():
+                try:
+                    self._send_to(from_node, self.control_capabilities)
+                except Exception as e:
+                    self.log(f"Trouble with SendLayout: {e}")
             case SendLayout():
                 try:
                     self._send_to(from_node, self.layout_lite)
@@ -488,13 +495,37 @@ class Scada(PrimeActor, ScadaInterface):
             self.log("Admin Wakes Up")
 
     def process_ally_gives_up(self, from_node: ShNode, payload: AllyGivesUp) -> None:
-        # AutoState transition: AllyGivesUp: LeafTransactiveNode -> LocalControl
+        """Handle LeafAlly relinquishing supervisory authority.
+
+        Effects:
+        - Transitions auto_state from LeafTransactiveNode -> LocalControl
+        - If an active contract exists, sends a terminating heartbeat to the Ltn
+        - Cancels any outstanding contract timing task
+
+        Note:
+        LeafAlly may give up authority even when no active contract heartbeat
+        exists (for example during grace period or after contract completion).
+        In that case we still transition to LocalControl but do not send a
+        terminating heartbeat.
+        """
         self.auto_trigger(MainAutoEvent.AllyGivesUp)
+
         self.log(f"LeafAlly giving up: {payload.Reason}")
-        self.log("Sending termination hb to Scada. State: LeafTransactiveNode -> LocalControl")
-        hb = self.contract_handler.scada_terminates_contract_hb(cause=f"Ally Gives up: {payload.Reason}")
-        self._send_to(self.ltn, hb)
-        # Cancel any existing warning task
+    
+        if self.contract_handler.latest_scada_hb:
+            self.log("Sending termination hb to Scada. State: LeafTransactiveNode -> LocalControl")
+            hb = self.contract_handler.scada_terminates_contract_hb(cause=f"Ally Gives up: {payload.Reason}")
+        
+            self.contract_handler.latest_scada_hb = hb
+            self.contract_handler.store_heartbeat()
+            self.contract_handler.flush_latest_scada_hb()
+    
+            self._send_to(self.ltn, hb)
+        else:
+            self.log(
+                "No active contract heartbeat while processing AllyGivesUp"
+            )
+
         if hasattr(self, 'contract_task'):
             self.contract_task.cancel()
 
@@ -1001,13 +1032,21 @@ class Scada(PrimeActor, ScadaInterface):
                 return_hb = self.contract_handler.start_new_contract_hb(ltn_hb) #sets up matching latest_scada_hb
                 if self.auto_state == MainAutoState.LocalControl:
                     self.dispatch_contract_live() # sets up the trees, changes state, let's aa and h know
+                elif self.auto_state == MainAutoState.LeafTransactiveNode:
+                    self._send_to(self.leaf_ally, self.contract_handler.latest_scada_hb.Contract)
             elif self.contract_handler.active_contract_has_expired(): # wrap up existing
-                self._send_to(self.ltn,
-                    self.contract_handler.scada_contract_completion_hb("Wrapping up existing contract")
+                completion_hb = self.contract_handler.scada_contract_completion_hb(
+                    "Wrapping up existing contract"
                 )
+
+                self.contract_handler.latest_scada_hb = completion_hb
+                self.contract_handler.store_heartbeat()
+                self.contract_handler.flush_latest_scada_hb()
+                self._send_to(self.ltn, completion_hb)
+
                 self.contract_handler.start_new_contract_hb(ltn_hb)
-                self._send_to(self.leaf_ally, self.contract_handler.latest_scada_hb.Contract
-                )
+
+                self._send_to(self.leaf_ally, self.contract_handler.latest_scada_hb.Contract)
                 # will send hb in process_suit_up, after leaf ally acknowledges
         elif ltn_hb.Status == SlowDispatchContractStatus.TerminatedByLtn:
             raise Exception("Ack! Haven't thought through termination by Ltn ...")
@@ -1042,17 +1081,24 @@ class Scada(PrimeActor, ScadaInterface):
         )
 
     def in_grace_period(self) -> bool:
-        """Scada is NOT dormant, and a contract is active or was active within 5 minutes
-        Effect: if contract_handler.active_contract_has_expired, send a final
-        completion heartbeat, None -> latest_scada_hb -> prev
-        """
+        """Scada is not dormant, and a contract is active or was active within grace period."""
         if self.contract_handler.active_contract_has_expired():
-                self._send_to(self.ltn,
-                        self.contract_handler.scada_contract_completion_hb("Active contract has expired"))
-        if self.contract_handler.latest_scada_hb: # will not be expired
+            completion_hb = self.contract_handler.scada_contract_completion_hb(
+                "Active contract has expired"
+            )
+
+            self.contract_handler.latest_scada_hb = completion_hb
+            self.contract_handler.store_heartbeat()
+            self.contract_handler.flush_latest_scada_hb()
+
+            self._send_to(self.ltn, completion_hb)
+
+        elif self.contract_handler.latest_scada_hb:
             return True
-        elif not self.contract_handler.prev:
+        
+        if not self.contract_handler.prev:
             return False
+
         elif time.time() > self.contract_handler.prev.grace_period_end_s():
             return False
         else:
@@ -1094,6 +1140,11 @@ class Scada(PrimeActor, ScadaInterface):
 
         # Send completion heartbeat and set contract_handler.latest_scada_hb to None
         completion_hb = self.contract_handler.scada_contract_completion_hb("Noticed active contract complete")
+
+        self.contract_handler.latest_scada_hb = completion_hb
+        self.contract_handler.store_heartbeat()
+        self.contract_handler.flush_latest_scada_hb()
+        
         self._send_to(self.ltn, completion_hb)
 
         # Set backup timer for grace period
@@ -1220,12 +1271,14 @@ class Scada(PrimeActor, ScadaInterface):
 
         ally_state = la.state
         local_control_state = lc.top_state
-
-        if not self.settings.seasonal_storage_mode == SeasonalStorageMode.AllTanks:
-            return # TODO figure out a graceful way to do this for BufferOnly as well
+        dormant_state = (
+            LeafAllyAllTanksState.Dormant 
+            if self.settings.seasonal_storage_mode == SeasonalStorageMode.AllTanks 
+            else LeafAllyBufferOnlyState.Dormant
+        )
 
         if self.auto_state == MainAutoState.Dormant:
-            if ally_state != LeafAllyAllTanksState.Dormant:
+            if ally_state != dormant_state:
                 self.log(f"Noticed auto_state Dormant but LeafAlly in {ally_state}! Sending GoDormant")
                 self._send_to(self.leaf_ally, GoDormant(ToName=self.leaf_ally.name))
             if local_control_state != LocalControlTopState.Dormant:
@@ -1236,7 +1289,7 @@ class Scada(PrimeActor, ScadaInterface):
                 self.log("Noticed auto_state Ltn but no longer in grace period!")
                 self.auto_trigger(MainAutoEvent.ContractGracePeriodEnds)
                 return 
-            if ally_state == LeafAllyAllTanksState.Dormant:
+            if ally_state == dormant_state:
                 self.log("Noticed auto_state Ltn but LeafAlly Dormant!")
                 if self.contract_handler.latest_scada_hb:
                     contract = self.contract_handler.latest_scada_hb.Contract
@@ -1247,7 +1300,7 @@ class Scada(PrimeActor, ScadaInterface):
                 self.log(f"Noticed auto_state Ltn but LocalControl in {local_control_state}! Sending GoDormant")
                 self._send_to(self.local_control, GoDormant(ToName=self.local_control.name))
         elif self.auto_state == MainAutoState.LocalControl:
-            if ally_state != LeafAllyAllTanksState.Dormant:
+            if ally_state != dormant_state:
                 self.log(f"Noticed auto_state LocalControl but LeafAlly in {ally_state}! Sending GoDormant")
                 self._send_to(self.leaf_ally, GoDormant(ToName=self.leaf_ally.name))
             if local_control_state == LocalControlTopState.Dormant:
@@ -1572,6 +1625,48 @@ class Scada(PrimeActor, ScadaInterface):
     @property
     def data(self) -> ScadaData:
         return self._data
+
+    @property
+    def control_capabilities(self) -> ScadaControlCapabilities:
+        relay_nodes = [ 
+            ControlNode(
+                Name=node.Name,
+                ActorClass=node.ActorClass,
+                DisplayName=node.DisplayName
+            )
+            for node in self.layout.nodes.values()
+            if node.ActorClass == ActorClass.Relay
+        ]
+        dac_nodes = [
+            ControlNode(
+                Name=node.Name,
+                ActorClass=node.ActorClass,
+                DisplayName=node.DisplayName
+            )
+            for node in self.layout.nodes.values()
+            if node.ActorClass == ActorClass.ZeroTenOutputer
+        ]
+
+        relay_node_names = {n.Name for n in relay_nodes}
+        dac_node_names = {n.Name for n in dac_nodes}
+        control_node_names = relay_node_names | dac_node_names
+
+        ctrl_channels = [
+            ControlChannel(
+                Name=channel.Name,
+                AboutNodeName=channel.AboutNodeName,
+            )
+            for channel in self.layout.data_channels.values()
+            if channel.AboutNodeName in control_node_names
+        ]
+        return ScadaControlCapabilities(
+            FromGNodeAlias=self.layout.scada_g_node_alias,
+            MessageCreatedMs=int(time.time() * 1000),
+            RelayNodes = relay_nodes,
+            DacNodes=dac_nodes,
+            ControlChannels= ctrl_channels,
+            I2cRelayComponent=self.layout.node(H0N.relay_multiplexer).component.gt
+        )
 
     @property
     def layout_lite(self) -> LayoutLite:

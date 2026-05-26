@@ -253,8 +253,8 @@ class RelaysApp(App):
     def on_release_control_button_pressed(self, _: ReleaseControlButton.Pressed):
         self._relay_client.send_release_control()
 
-    def layout_received(self) -> bool:
-        return self._admin_client.layout_received()
+    def ctrl_capabilities_received(self) -> bool:
+        return self._admin_client.ctrl_capabilities_received()
 
     def snapshot_received(self) -> bool:
         return self._admin_client.snapshot_received()

@@ -3,6 +3,7 @@ import time
 import typing
 import uuid
 from abc import ABC
+from datetime import datetime, timedelta
 from typing import cast, Any, List, Optional
 import pytz
 
@@ -35,6 +36,7 @@ from gwsproto.enums import (
     ChangePrimaryPumpControl,
     ChangeRelayState,
     ChangeStoreFlowRelay,
+    HpModel,
     LogLevel,
     RelayClosedOrOpen,
     StoreFlowRelay,
@@ -52,7 +54,12 @@ from scada_app_interface import ScadaAppInterface
 class ShNodeActor(Actor, ABC):
     MIN_USED_TANK_TEMP_F = 70
     MAX_VALID_TANK_TEMP_F = 200
+    GALLONS_PER_TANK = 120
     NUM_LAYERS_PER_TANK = 3
+    GALLON_PER_LITER = 3.78541
+    LITERS_PER_LAYER = GALLONS_PER_TANK/NUM_LAYERS_PER_TANK * GALLON_PER_LITER
+    WATER_SPECIFIC_HEAT_KJ_PER_KG_C = 4.187
+    WATER_SPECIFIC_HEAT_KWH_PER_KG_C = WATER_SPECIFIC_HEAT_KJ_PER_KG_C / 3600
     SIMULATED_TANK_TEMP_F = 70
     PUMP_FLOW_GPM_THRESHOLD = 0.1
 
@@ -81,6 +88,78 @@ class ShNodeActor(Actor, ABC):
         ]
 
         self.temperature_channel_names =  self.tank_temp_channel_names + self.pipe_temp_channel_names
+
+        self.zone_setpoints: dict = {}
+
+    def get_zone_setpoints(self) -> None:
+        """Populate zone_setpoints from latest_channel_values.
+        Values are in millidegrees (F * 1000) per TelemetryName.AirTempFTimes1000."""
+        self.zone_setpoints = {}
+        if self.settings.is_simulated:
+            return
+        for zone_setpoint in [x for x in self.data.latest_channel_values if 'zone' in x and 'set' in x]:
+            zone_name = zone_setpoint.replace('-set', '')
+            zone_name_no_prefix = zone_name[6:] if zone_name[:4] == 'zone' else zone_name
+            if zone_name_no_prefix not in self.layout.zone_list:
+                continue
+            if self.data.latest_channel_values[zone_setpoint] is not None:
+                self.zone_setpoints[zone_name] = self.data.latest_channel_values[zone_setpoint]
+
+
+    # ------------------------------------------------------------------
+    # tariff-related utilities
+    # ------------------------------------------------------------------
+
+    def just_before_onpeak(self) -> bool:
+        time_now = datetime.now(self.timezone)
+        return ((time_now.hour==6 or time_now.hour==16) and time_now.minute>57)
+
+    def is_onpeak(self) -> bool:
+        time_now = datetime.now(self.timezone)
+        time_in_2min = time_now + timedelta(minutes=2)
+        peak_hours = [7, 8, 9, 10, 11] + [16, 17, 18, 19]
+        return (time_now.hour in peak_hours or time_in_2min.hour in peak_hours) and time_now.weekday() < 5
+
+    def is_system_cold(self) -> bool:
+        """Returns True if at least one critical zone is more than 1F below setpoint.
+        Setpoint used is the minimum of: (a) setpoint at start of on-peak, (b) current setpoint.
+        Using (a) avoids triggering when the user raises the thermostat during on-peak; using the
+        minimum with (b) avoids triggering when the user lowers the thermostat during on-peak."""
+        if not self.is_onpeak():  # TODO: bleed into the first half hour of offpeak
+            self.get_zone_setpoints()
+        if self.settings.is_simulated:
+            return False
+        for zone in self.zone_setpoints:
+            zone_name_no_prefix = zone[6:] if zone[:4] == 'zone' else zone
+            if zone_name_no_prefix not in self.layout.critical_zone_list:
+                continue
+
+            # Use the lower of setpoint at start of on-peak vs current setpoint
+            setpoint_at_onpeak = self.zone_setpoints[zone]
+            current_setpoint = self.data.latest_channel_values.get(zone + '-set')
+            if setpoint_at_onpeak is not None and current_setpoint is not None:
+                setpoint = min(setpoint_at_onpeak, current_setpoint)
+            elif setpoint_at_onpeak is not None:
+                setpoint = setpoint_at_onpeak
+            elif current_setpoint is not None:
+                setpoint = current_setpoint
+            else:
+                self.log(f"Could not find setpoint for {zone}!")
+                continue
+
+            temperature = self.data.latest_channel_values.get(zone + '-temp')
+            if temperature is None:
+                self.log(f"Could not find latest temperature for {zone}!")
+                continue
+
+            if temperature < setpoint - 1000:  # 1F in millidegrees
+                self.log(
+                    f"{zone} temperature is at least 1F lower than the effective setpoint "
+                    "(min of on-peak start and current)"
+                )
+                return True
+        self.log("All critical zones are at or above their effective setpoint")
+        return False
 
     @property
     def services(self) -> ScadaAppInterface:
@@ -1234,6 +1313,22 @@ class ShNodeActor(Actor, ABC):
         return self.data.latest_channel_values.get(H0CN.hp_idu_pwr)
 
     #-----------------------------------------------------------------------
+    # Defrost related
+    #-----------------------------------------------------------------------
+
+    def hp_in_defrost(self) -> bool:
+        odu = self.odu_pwr()
+        idu = self.idu_pwr()
+        if odu is None or idu is None:
+            return False
+        hp_model = self.settings.hp_model
+        if hp_model in (HpModel.SamsungFourTonneHydroKit, HpModel.SamsungFiveTonneHydroKit):
+            return idu < 4000
+        elif hp_model == HpModel.LgHighTempHydroKitPlusMultiV:
+            return odu + idu < 8400
+        return False
+
+    #-----------------------------------------------------------------------
     # Temperature related
     #-----------------------------------------------------------------------
 
@@ -1419,10 +1514,11 @@ class ShNodeActor(Actor, ABC):
             self.log(f"{channel_used}: {self.latest_temps_f[channel_used]} F < {self.data.ha1_params.MaxEwtF} F")
             return False
 
-    def is_storage_colder_than_buffer(self, min_delta_f: float = 5.4) -> bool:
+    def is_storage_colder_than_buffer(self, min_delta_f: float = 5.4, all_tanks_leaf_ally: bool = False) -> bool:
         """
         Returns True if the top of the storage is at least `min_delta_f` colder
         than the top of the buffer.
+        If all_tanks_leaf_ally is True, uses the depth3 layer of the buffer instead.
 
         Pure physical predicate:
         - Returns False if required temperatures are unavailable
@@ -1436,7 +1532,7 @@ class ShNodeActor(Actor, ABC):
             buffer_top = H0CN.buffer.depth3
         elif H0CN.buffer_cold_pipe in self.latest_temps_f:
             buffer_top = H0CN.buffer_cold_pipe
-        else:
+        elif not all_tanks_leaf_ally or not self.settings.short_cycle_buffer:
             return False
 
         # --- Determine storage top ---
@@ -1449,9 +1545,25 @@ class ShNodeActor(Actor, ABC):
         else:
             return False
 
-        return self.latest_temps_f[buffer_top] > (
-            self.latest_temps_f[tank_top] + min_delta_f
-        )
+        # --- Determine buffer bottom ---
+        if all_tanks_leaf_ally and self.settings.short_cycle_buffer:
+            if H0CN.buffer.depth3 in self.latest_temps_f:
+                buffer_bottom = H0CN.buffer.depth3
+            elif H0CN.buffer.depth2 in self.latest_temps_f:
+                buffer_bottom = H0CN.buffer.depth2
+            elif H0CN.buffer.depth1 in self.latest_temps_f:
+                buffer_bottom = H0CN.buffer.depth1
+            else:
+                return False
+            return self.latest_temps_f[buffer_bottom] > self.latest_temps_f[tank_top]
+
+        return self.latest_temps_f[buffer_top] > self.latest_temps_f[tank_top] + min_delta_f
+
+    def is_storage_empty(self):
+        if self.usable_kwh < 0.2:
+            return True
+        else:
+            return False
 
     @property
     def usable_kwh(self) -> float:
@@ -1561,6 +1673,31 @@ class ShNodeActor(Actor, ABC):
             self.fill_missing_store_temps()
 
         self.data.latest_temperatures_f = dict(sorted(self.data.latest_temperatures_f.items()))
+
+    def hp_idu_pwr_w(self) -> Optional[float]:
+        """Returns the latest Heat Pump indoor unit power in Watts, or None
+        if it does not exist"""
+        raw = self.data.latest_channel_values.get(H0CN.hp_idu_pwr)
+        if raw is None:
+            return None
+        return raw
+    
+    def hp_odu_pwr_w(self) -> Optional[float]:
+        """Returns the latest Heat Pump outdoor unit power in Watts, or None
+        if it does not exist"""
+        raw = self.data.latest_channel_values.get(H0CN.hp_odu_pwr)
+        if raw is None:
+            return None
+        return raw
+
+    def total_hp_pwr_w(self) -> Optional[float]:
+        """Returns the latest Heat Pump total power in Watts, or None
+        if it does not exist"""
+        idu_pwr = self.hp_idu_pwr_w()
+        odu_pwr = self.hp_odu_pwr_w()
+        if idu_pwr is None or odu_pwr is None:
+            return None
+        return idu_pwr + odu_pwr
 
     def lwt_f(self) -> Optional[float]:
         """Returns the latest Heat pump leaving water temp in deg F, or None

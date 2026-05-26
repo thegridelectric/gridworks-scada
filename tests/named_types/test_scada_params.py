@@ -30,7 +30,7 @@ def test_scada_params_generated() -> None:
             "Version": "006",
         },
         "TypeName": "scada.params",
-        "Version": "004",
+        "Version": "005",
     }
 
     d2 = ScadaParams.model_validate(d).model_dump(exclude_none=True)

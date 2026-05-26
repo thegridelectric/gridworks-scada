@@ -219,7 +219,7 @@ class Dacs(Widget):
             dac_config_change_callback=self.dac_config_change_callback,
             # disable these as defense against memroy leaks
             mqtt_message_received_callback=None,
-            layout_callback=None,
+            ctrl_capabilities_callback=None,
             snapshot_callback=None,
         )
 

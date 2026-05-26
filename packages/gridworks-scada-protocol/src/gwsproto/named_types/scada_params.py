@@ -19,6 +19,6 @@ class ScadaParams(BaseModel):
     NewParams: Optional[Ha1Params] = None
     OldParams: Optional[Ha1Params] = None
     TypeName: Literal["scada.params"] = "scada.params"
-    Version: Literal["004"] = "004"
+    Version: Literal["005"] = "005"
 
     model_config = ConfigDict(extra="allow")

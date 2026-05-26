@@ -1,14 +1,28 @@
-"""Local pytest configuration"""
+"""Pytest bootstrap for the entire ``tests/`` tree.
 
+In this repository, this file provides repo-wide test bootstraps that determine the .env
+variables and the hardware layout. This means in particular that the testing DOES NOT use your existing
+local `.env` settings. It does this by
+
+- setting the default pytest dotenv path for local runs
+- selecting the hardware layout used by the upstream ``gwproactor_test``
+  autouse fixture
+- pointing test certificate lookup at the repo's test certificate cache
+
+The actual per-test environment setup is performed by the imported
+``gwproactor_test`` fixtures, which create an isolated XDG config area for each
+test and copy the selected hardware layout into that temp config location.
+"""
+
+import os
 from pathlib import Path
 
 import pytest
 
 from gwproactor_test import (
-    restore_loggers, # noqa: F401
     clean_test_env,  # noqa: F401
     default_test_env,  # noqa: F401
-    restore_loggers,  # noqa: F401
+    restore_loggers, # noqa: F401
 )
 from gwproactor_test import set_hardware_layout_test_path
 from gwproactor_test.pytest_options import add_live_test_options
