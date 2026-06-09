@@ -99,22 +99,27 @@ class StandbyLocalControl(ShNodeActor):
             self.the_boss_of(relay) == self.normal_node
         }
 
-        relays_to_energize = {
+        excluded_relays = {
             self.hp_failsafe_relay,
-            self.hp_scada_ops_relay, 
+            self.hp_scada_ops_relay,
             self.aquastat_control_relay,
             self.hp_loop_on_off,
         }
 
-        target_relays: List[ShNode] = list(h_normal_relays - relays_to_energize)
+        target_relays: List[ShNode] = list(h_normal_relays - excluded_relays)
         target_relays.sort(key=lambda x: x.Name)
         self.log("de-energizing most relays")
         for relay in target_relays:
             self.de_energize(relay, from_node=self.normal_node)
 
         self.log("energizing key relays for keeping things off")
-        for relay in relays_to_energize:
-            self.energize(relay, from_node=self.normal_node)
+        self.hp_failsafe_switch_to_scada(from_node=self.normal_node)
+        self.aquastat_ctrl_switch_to_scada(from_node=self.normal_node)
+        if self.layout.use_sieg_loop:
+            self.turn_off_HP(from_node=self.normal_node)
+        else:
+            self.energize(self.hp_scada_ops_relay, from_node=self.normal_node)
+            self.energize(self.hp_loop_on_off, from_node=self.normal_node)
         
     def start(self) -> None:
         self.services.add_task(
