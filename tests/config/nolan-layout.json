@@ -547,7 +547,7 @@
           "StateType": "relay.closed.or.open",
           "TypeName": "relay.actor.config",
           "Unit": "Unitless",
-          "Version": "002",
+          "Version": "003",
           "WiringConfig": "NormallyClosed"
         }
       ],
@@ -758,7 +758,7 @@
           "ThermistorBeta": 3977,
           "TypeName": "i2c.thermistor.channel.config",
           "Unit": "Celcius",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AdcChannel": "P0",
@@ -772,14 +772,14 @@
           "ThermistorBeta": 3977,
           "TypeName": "i2c.thermistor.channel.config",
           "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "001"
         }
       ],
       "DisplayName": "GW108 Thermistor Reader",
       "SeriesResistanceKOhms": 5.6,
       "TempCalcMethod": "SimpleBeta",
       "TypeName": "i2c.thermistor.reader.component.gt",
-      "Version": "000"
+      "Version": "001"
     }
   ],
   "ShNodes": [
