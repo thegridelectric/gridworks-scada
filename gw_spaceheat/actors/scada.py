@@ -28,6 +28,9 @@ from gwproactor.actors.actor import PrimeActor
 from transitions import Machine
 from gwproto.message import Header, Message
 from gwproto.messages import EventBase
+from gwproto.messages import PingMessage
+
+from sim_time import SimTimeListener
 
 from gwsproto.enums import ActorClass
 
@@ -113,8 +116,18 @@ class Scada(PrimeActor, ScadaInterface):
             raise Exception("Make sure to pass House0Layout object as hardware_layout!")
         self.got_first_buffer_reading = False
         self.is_simulated = self.settings.is_simulated
+        self._sim_time_listener: typing.Optional[SimTimeListener] = None
         if self.settings.is_simulated:
             self.log("SIMULATED")
+            # Sim-time bridge (sim-time spoke, OPS-40): listen for the time
+            # coordinator's timesteps on the same broker as gridworks_mqtt;
+            # each timestep pings upstream so harness pacing keeps the link
+            # active. See sim_time.py's OFI docstring — interim by design.
+            self._sim_time_listener = SimTimeListener(
+                config=self.settings.gridworks_mqtt,
+                on_timestep=self._on_sim_timestep,
+            )
+            self._sim_time_listener.start()
         self._layout: House0Layout = typing.cast(House0Layout, services.hardware_layout)
         self._data = ScadaData(self.settings, self._layout)
         # super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
@@ -208,6 +221,21 @@ class Scada(PrimeActor, ScadaInterface):
 
     def stop(self):
         self._stop_requested = True
+        if self._sim_time_listener is not None:
+            self._sim_time_listener.stop()
+
+    def _on_sim_timestep(self, time_unix_s: int) -> None:
+        """Bridge keepalive: ping upstream on each received timestep so the
+        link stays active under harness pacing. Runs on the paho thread;
+        paho's publish is thread-safe. The LTN's own keepalive covers the
+        other direction."""
+        try:
+            self.services.publish_message(
+                self.services.upstream_client,
+                PingMessage(Src=self.services.publication_name),
+            )
+        except Exception as e:  # noqa: BLE001
+            self.logger.warning(f"sim-time ping failed: {e}")
 
     @property
     def logger(self) -> ProactorLogger:
