@@ -29,9 +29,21 @@ from gwproactor_test.pytest_options import add_live_test_options
 from gwproactor_test.certs import set_test_certificate_cache_dir
 
 
-TEST_DOTENV_PATH = "tests/.env-gw-spaceheat-test"
+TEST_DOTENV_PATH = Path(__file__).parent / ".env-gw-spaceheat-test"
 TEST_DOTENV_PATH_VAR = "GW_SPACEHEAT_TEST_DOTENV_PATH"
 TEST_HARDWARE_LAYOUT_PATH = Path(__file__).parent / "config" / "nolan-layout.json"
+
+# Bridge the scada-specific test dotenv to gwproactor_test, whose autouse
+# default_test_env fixture reads GWPROACTOR_TEST_DOTENV_PATH (defaulting to a
+# name this repo does not use). Without this, tests/.env-gw-spaceheat-test —
+# which turns TLS off for the plain local broker — never loads, and the LTN
+# broker's TLS-on default hangs against the local mosquitto, timing out every
+# scada<->LTN link test. An explicitly-set GWPROACTOR_TEST_DOTENV_PATH (or the
+# scada-specific GW_SPACEHEAT_TEST_DOTENV_PATH override) still wins.
+os.environ.setdefault(
+    "GWPROACTOR_TEST_DOTENV_PATH",
+    os.environ.get(TEST_DOTENV_PATH_VAR, str(TEST_DOTENV_PATH)),
+)
 
 set_test_certificate_cache_dir(Path(__file__).parent / ".certificate_cache")
 set_hardware_layout_test_path(TEST_HARDWARE_LAYOUT_PATH)

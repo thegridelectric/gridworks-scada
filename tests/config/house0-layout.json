@@ -814,6 +814,7 @@
         {
           "ActorName": "relay1",
           "AsyncCapture": true,
+          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "vdc-relay1",
           "DeEnergizedState": "RelayClosed",
@@ -833,6 +834,7 @@
         {
           "ActorName": "relay2",
           "AsyncCapture": true,
+          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "tstat-common-relay2",
           "DeEnergizedState": "RelayClosed",
@@ -852,6 +854,7 @@
         {
           "ActorName": "relay3",
           "AsyncCapture": true,
+          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "charge-discharge-relay3",
           "DeEnergizedState": "DischargingStore",
@@ -871,6 +874,7 @@
         {
           "ActorName": "relay5",
           "AsyncCapture": true,
+          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "hp-failsafe-relay5",
           "DeEnergizedState": "BufferTankAquastat",
@@ -890,6 +894,7 @@
         {
           "ActorName": "relay6",
           "AsyncCapture": true,
+          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "hp-scada-ops-relay6",
           "DeEnergizedState": "RelayClosed",
@@ -909,6 +914,7 @@
         {
           "ActorName": "relay7",
           "AsyncCapture": true,
+          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "thermistor-common-relay7",
           "DeEnergizedState": "RelayClosed",
@@ -928,6 +934,7 @@
         {
           "ActorName": "relay8",
           "AsyncCapture": true,
+          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "aquastat-ctrl-relay8",
           "DeEnergizedState": "Boiler",
@@ -947,6 +954,7 @@
         {
           "ActorName": "relay9",
           "AsyncCapture": true,
+          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "store-pump-failsafe-relay9",
           "DeEnergizedState": "RelayOpen",
@@ -966,6 +974,7 @@
         {
           "ActorName": "relay12",
           "AsyncCapture": true,
+          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "primary-pump-failsafe-relay12",
           "DeEnergizedState": "HeatPump",
@@ -985,6 +994,7 @@
         {
           "ActorName": "relay11",
           "AsyncCapture": true,
+          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "primary-pump-scada-ops-relay11",
           "DeEnergizedState": "RelayOpen",
@@ -1004,6 +1014,7 @@
         {
           "ActorName": "relay14",
           "AsyncCapture": true,
+          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "hp-loop-on-off-relay14",
           "DeEnergizedState": "RelayClosed",
@@ -1023,6 +1034,7 @@
         {
           "ActorName": "relay15",
           "AsyncCapture": true,
+          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "hp-loop-keep-send-relay15",
           "DeEnergizedState": "SendMore",
@@ -1042,6 +1054,7 @@
         {
           "ActorName": "relay17",
           "AsyncCapture": true,
+          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "zone1-main-failsafe-relay17",
           "DeEnergizedState": "WallThermostat",
@@ -1061,6 +1074,7 @@
         {
           "ActorName": "relay18",
           "AsyncCapture": true,
+          "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "zone1-main-ops-relay18",
           "DeEnergizedState": "RelayOpen",
