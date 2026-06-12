@@ -14,6 +14,7 @@ from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums.gw_str_enum import GwStrEnum
 from actors.hp_boss import SiegLoopReady
 from gwsproto.enums.hp_boss_state import HpBossState
+from gwsproto.enums import SystemMode
 from actors.sh_node_actor import ShNodeActor
 from gwsproto.named_types import ActuatorsReady, SingleMachineState, SetTargetLwt
 
@@ -301,7 +302,7 @@ class SiegLoopFallback(ShNodeActor):
         if self.control_state == SiegControlState.Blind:
             self.moving_to_full_send(event)
         elif self.control_state == SiegControlState.HpOff:
-            self.moving_to_full_keep(event)
+            self.moving_to_hp_off_valve_position(event)
         elif self.control_state == SiegControlState.HpStartingUp:
             self.moving_to_just_keep(event)
         elif self.control_state == SiegControlState.HpHasLift:
@@ -318,6 +319,12 @@ class SiegLoopFallback(ShNodeActor):
             )
         )
     
+    def moving_to_hp_off_valve_position(self, event: SiegControlEvent) -> None:
+        if self.settings.system_mode == SystemMode.Standby:
+            self.moving_to_full_send(event)
+        else:
+            self.moving_to_full_keep(event)
+
     def moving_to_full_send(self, event: SiegControlEvent) -> None:
         if self.valve_state == SiegValveState.FullySend and self.keep_seconds <= 0:
             self.log("Already at full send")
