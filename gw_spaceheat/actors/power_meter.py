@@ -22,7 +22,6 @@ from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
     GridworksSimPm1_PowerMeterDriver,
 )
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
-from drivers.power_meter.unknown_power_meter_driver import UnknownPowerMeterDriver
 from gwproactor.message import InternalShutdownMessage
 from gwproactor.sync_thread import SyncAsyncInteractionThread
 from gwproactor import Problems
@@ -92,9 +91,7 @@ class DriverThreadSetupHelper:
 
     def make_power_meter_driver(self) -> PowerMeterDriver:
         cac = self.component.cac
-        if cac.MakeModel == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
-            driver = UnknownPowerMeterDriver(component=self.component, settings=self.settings)
-        elif cac.MakeModel == MakeModel.GRIDWORKS__SIMPM1:
+        if cac.MakeModel == MakeModel.GRIDWORKS__SIMPM1:
             driver = GridworksSimPm1_PowerMeterDriver(component=self.component, settings=self.settings)
         elif cac.MakeModel == MakeModel.EGAUGE__4030:
             driver = EGuage4030_PowerMeterDriver(

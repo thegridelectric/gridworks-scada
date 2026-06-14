@@ -6,7 +6,6 @@ from gwsproto.named_types.hubitat_gt import HubitatGt
 
 from layout_gen import add_hubitat
 from layout_gen import add_thermostat
-from layout_gen.simulated_tanks import add_simulated_tanks
 from layout_gen import HubitatThermostatGenCfg
 from layout_gen import LayoutDb
 from layout_gen import StubConfig
@@ -19,30 +18,6 @@ def _dummy_sn() -> str:
     global _sn
     _sn += 1
     return str(_sn)
-
-@pytest.mark.skip(reason="layout_gen is under active rework on jm/layout-augmments")
-def test_tank_device_capture_period(tmp_path):
-
-    db = LayoutDb(
-        # existing_layout=LayoutIDMap.from_path(Path(__file__).parent.parent.joinpath("config/hardware-layout.json")),
-        add_stubs=True,
-        stub_config=StubConfig(),
-    )
-
-    add_simulated_tanks(db) 
-
-    # TODO: add more tank tests, including testing that they load as SimPicoTankModuleComponents
-
-
-    layout_path = tmp_path / "hardware-layout.json"
-    db.write(layout_path)
-
-    load_errors = []
-    HardwareLayout.load(
-        layout_path,
-        raise_errors=True,
-        errors=load_errors,
-    )
 
 @pytest.mark.skip(reason="layout_gen is under active rework on jm/layout-augmments")
 def test_hubitat():

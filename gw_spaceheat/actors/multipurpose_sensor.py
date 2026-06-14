@@ -28,12 +28,6 @@ from gwsproto.data_classes.hardware_layout import HardwareLayout
 from actors.config import ScadaSettings
 from scada_app_interface import ScadaAppInterface
 
-UNKNOWNMAKE__UNKNOWNMODEL__MODULE_NAME = (
-    "drivers.multipurpose_sensor.unknown_multipurpose_sensor_driver"
-)
-UNKNOWNMAKE__UNKNOWNMODEL__CLASS_NAME = "UnknownMultipurposeSensorDriver"
-
-
 class MpDriverThreadSetupHelper:
     """A helper class to isolate code only used in construction of MultipurposeSensorDriverThread"""
 
@@ -62,10 +56,7 @@ class MpDriverThreadSetupHelper:
         driver_module_name = ""
         driver_class_name = ""
         cac = self.component.cac
-        if cac.MakeModel == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
-            driver_module_name = UNKNOWNMAKE__UNKNOWNMODEL__MODULE_NAME
-            driver_class_name = UNKNOWNMAKE__UNKNOWNMODEL__CLASS_NAME
-        elif cac.MakeModel == MakeModel.GRIDWORKS__TSNAP1:
+        if cac.MakeModel == MakeModel.GRIDWORKS__TSNAP1:
             driver_module_name = "drivers.multipurpose_sensor.gridworks_tsnap1__multipurpose_sensor_driver"
             driver_class_name = "GridworksTsnap1_MultipurposeSensorDriver"
             for module_name in [
@@ -77,9 +68,9 @@ class MpDriverThreadSetupHelper:
             ]:
                 found = importlib.util.find_spec(module_name)
                 if found is None:
-                    driver_module_name = UNKNOWNMAKE__UNKNOWNMODEL__MODULE_NAME
-                    driver_class_name = UNKNOWNMAKE__UNKNOWNMODEL__CLASS_NAME
-                    break
+                    raise NotImplementedError(
+                        f"MultipurposeSensor {cac.MakeModel} needs i2c/adafruit libs not available here"
+                    )
         if not driver_module_name or not driver_class_name:
             raise NotImplementedError(
                 f"No MultipurposeSensor driver yet for {cac.MakeModel}"
