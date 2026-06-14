@@ -9,6 +9,17 @@ from gwsproto.named_types.rest_poller_gt import URLConfig
 
 
 class HubitatComponentGt(ComponentGt):
+    """
+    A Hubitat hub component instance.
+
+    Sema word: ``hubitat.component.gt`` (flat shell carrying ``DeviceType`` + ``Hubitat``).
+    The MakerAPI URL helpers below (``url_config`` / ``maker_api_url_config`` / ``urls`` /
+    ``refresh_url`` …) are NOT part of the sema contract and will NOT be generated from
+    sema in the proactor port — they delegate to HubitatGt and must remain in app code.
+    See HubitatGt; this serves the five legacy House0 production homes with no forward
+    expansion.
+    """
+
     Hubitat: HubitatGt
     TypeName: Literal["hubitat.component.gt"] = "hubitat.component.gt"
 

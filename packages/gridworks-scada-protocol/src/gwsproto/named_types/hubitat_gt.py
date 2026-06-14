@@ -26,6 +26,20 @@ class URLConfigForMakerAPI(URLConfigWithUrlArgs):
 
 
 class HubitatGt(BaseModel):
+    """
+    Connection settings for one Hubitat hub reached through its MakerAPI.
+
+    Sema word: ``hubitat.gt``. Only the serialized fields below are part of the sema
+    contract. The MakerAPI URL machinery (``url_config`` / ``maker_api_url_config`` /
+    ``devices_url_config`` / ``refresh_url`` and friends) is NOT in the sema schema and
+    will NOT be generated when this type is regenerated from sema in the proactor port —
+    those are derived helpers that must continue to live in app code, computed from Host,
+    MakerApiId, AccessToken, and MacAddress.
+
+    This serves the five legacy House0 production homes (beech, elm, oak, fir, maple) and
+    is not expected to expand going forward.
+    """
+
     Host: str
     MakerApiId: int
     AccessToken: str
