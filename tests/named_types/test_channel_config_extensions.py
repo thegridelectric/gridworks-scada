@@ -41,7 +41,7 @@ def test_ads_channel_config_axiom_1() -> None:
         "PollPeriodMs": 700,
         "CapturePeriodS": 2,
         "TerminalBlockIdx": 1,
-        "ThermistorMakeModel": "EcosensorTempProbe10k",
+        "ThermistorDeviceType": "EcosensorTempProbe10k",
         "TypeName": "ads.channel.config",
         "Version": "000",
     }

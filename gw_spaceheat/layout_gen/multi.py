@@ -5,7 +5,6 @@ from typing import Optional
 from gwsproto.enums import ActorClass
 from gwsproto.enums import GwQuantity
 from gwsproto.enums import Gw1DeviceType
-from gwsproto.enums import MakeModel
 from gwsproto.enums import TelemetryName
 from gwsproto.enums import Unit
 from gwsproto.named_types import ComponentAttributeClassGt
@@ -26,7 +25,7 @@ class SensorNodeGenCfg(BaseModel):
     TerminalBlockIdx: int
     AsyncCapture: bool = True
     CapturePeriodS: int = 300
-    ThermistorMakeModel: MakeModel = MakeModel.TEWA__TT0P10KC3T1051500
+    ThermistorDeviceType: str = Gw1DeviceType.TewaThermistor
     # Using a forward reference here resolves a pydantic exception generated when this field
     # is actually set, as in tlayouts/gen_oak.py. I don't know why we should need a forward
     # reference, since TelemetryName is imported above. The generated error is:
@@ -89,7 +88,7 @@ def add_tsnap_multipurpose(
                             Exponent=3,
                             Unit=Unit.Celcius,
                             TerminalBlockIdx=sensor_cfg.TerminalBlockIdx,
-                            ThermistorMakeModel=sensor_cfg.ThermistorMakeModel,
+                            ThermistorDeviceType=sensor_cfg.ThermistorDeviceType,
                             DataProcessingMethod=ThermistorDataMethod.BetaWithExponentialAveraging,
                         )
                         for sensor_cfg in tsnap.SensorCfgs

@@ -56,7 +56,6 @@ from gwsproto.enums.gw1_device_type import Gw1DeviceType
 from gwsproto.enums.log_level import LogLevel
 from gwsproto.enums.main_auto_event import MainAutoEvent
 from gwsproto.enums.main_auto_state import MainAutoState
-from gwsproto.enums.make_model import MakeModel
 from gwsproto.enums.market_price_unit import MarketPriceUnit
 from gwsproto.enums.market_quantity_unit import MarketQuantityUnit
 from gwsproto.enums.market_type_name import MarketTypeName
@@ -123,7 +122,6 @@ __all__ = [
     "Gw1DeviceType",
     "MainAutoEvent",
     "MainAutoState",
-    "MakeModel",
     "MarketPriceUnit",
     "MarketQuantityUnit",
     "MarketTypeName",

@@ -2,7 +2,7 @@ from typing import Optional, Any
 from pydantic import BaseModel
 from gwsproto.property_format import SpaceheatName
 
-from gwsproto.enums import ActorClass, Gw1DeviceType, GwQuantity, MakeModel, TelemetryName, Unit
+from gwsproto.enums import ActorClass, Gw1DeviceType, GwQuantity, TelemetryName, Unit
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import GpmFromHzMethod, HzCalcMethod
 from gwsproto.named_types import (
@@ -21,7 +21,7 @@ class HallCfg(BaseModel):
     HwUid: Optional[str] = None
     ActorNodeName: SpaceheatName = H0N.dist_flow
     FlowNodeName: Optional[SpaceheatName] = None
-    FlowMeterType: MakeModel = MakeModel.SAIER__SENHZG1WA
+    FlowMeterType: str = Gw1DeviceType.SaierFlowSensor
     HzMethod: HzCalcMethod = HzCalcMethod.BasicExpWeightedAvg
     GpmMethod: GpmFromHzMethod = GpmFromHzMethod.Constant
     CapturePeriodS: int = 300
@@ -45,7 +45,7 @@ class ReedCfg(BaseModel):
     HwUid: Optional[str] = None
     ActorNodeName: SpaceheatName = H0N.dist_flow
     FlowNodeName: Optional[SpaceheatName] = None
-    FlowMeterType: MakeModel = MakeModel.EKM__HOTSPWM075HD
+    FlowMeterType: str = Gw1DeviceType.EkmFlowMeter
     HzMethod: HzCalcMethod = HzCalcMethod.BasicExpWeightedAvg
     GpmMethod: GpmFromHzMethod = GpmFromHzMethod.Constant
     CapturePeriodS: int = 300

@@ -3,7 +3,7 @@ from typing import Literal, Optional
 from pydantic import ConfigDict, PositiveInt, model_validator
 from typing_extensions import Self
 
-from gwsproto.enums import MakeModel, ThermistorDataMethod
+from gwsproto.enums import ThermistorDataMethod
 from gwsproto.property_format import (
     SpaceheatName,
 )
@@ -16,7 +16,7 @@ from gwsproto.type_helpers.channel_config_base import (
 class AdsChannelConfig(ChannelConfigBase):
     ChannelName: SpaceheatName
     TerminalBlockIdx: PositiveInt
-    ThermistorMakeModel: MakeModel
+    ThermistorDeviceType: str
     DataProcessingMethod: Optional[ThermistorDataMethod] = None
     DataProcessingDescription: Optional[str] = None
     TypeName: Literal["ads.channel.config"] = "ads.channel.config"

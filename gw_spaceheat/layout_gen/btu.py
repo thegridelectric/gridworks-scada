@@ -6,7 +6,7 @@ from gwsproto.property_format import SpaceheatName
 from layout_gen import LayoutDb
 from gwsproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
 from gwsproto.named_types.data_channel_gt import DataChannelGt
-from gwsproto.enums import Gw1DeviceType, MakeModel, Unit, ActorClass, TelemetryName
+from gwsproto.enums import Gw1DeviceType, Unit, ActorClass, TelemetryName
 from gwsproto.enums import  TempCalcMethod as EnumTempCalcMethod
 from gwsproto.named_types.channel_config import ChannelConfig
 from gwsproto.named_types import SpaceheatNodeGt
@@ -27,7 +27,7 @@ class BtuCfg(BaseModel):
     ColdChannelName: SpaceheatName
     ReadCtVoltage: bool
     CtChannelName: Optional[SpaceheatName] = None
-    FlowMeterType: MakeModel = MakeModel.SAIER__SENHZG1WA
+    FlowMeterType: str = Gw1DeviceType.SaierFlowSensor
     HzMethod: HzCalcMethod = HzCalcMethod.UniformWindow
     GpmMethod: GpmFromHzMethod = GpmFromHzMethod.Constant
     TempCalcMethod: EnumTempCalcMethod = EnumTempCalcMethod.SimpleBeta
@@ -57,7 +57,7 @@ def add_btu(
         db: LayoutDb,
         cfg: BtuCfg
 ) -> None:
-    if not cfg.FlowMeterType == MakeModel.SAIER__SENHZG1WA:
+    if not cfg.FlowMeterType == Gw1DeviceType.SaierFlowSensor:
         raise Exception("Only designed for SAIER SEN RIGHT NOW")
 
     if not db.has_device_type_record(Gw1DeviceType.GridworksGw101):
