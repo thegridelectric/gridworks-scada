@@ -125,19 +125,16 @@ def add_gw108_nolan_zones(
             f"zones (one ADS1115 at 0x49); got zone {max(zone_idxs)}"
         )
 
-    if not db.cac_id_by_alias(MakeModel.GRIDWORKS__SCADA_GW108):
+    if not db.has_device_type_record(db.device_type_for(MakeModel.GRIDWORKS__SCADA_GW108)):
         db.add_cacs(
             [
                 ComponentAttributeClassGt(
-                    ComponentAttributeClassId=db.make_cac_id(
-                        make_model=MakeModel.GRIDWORKS__SCADA_GW108,
-                    ),
+                    DeviceType=db.device_type_for(MakeModel.GRIDWORKS__SCADA_GW108),
                     DisplayName="GridWorks SCADA Gw108",
                     MakeModel=MakeModel.GRIDWORKS__SCADA_GW108,
                 ),
             ]
         )
-    gw108_cac_id = db.cac_id_by_alias(MakeModel.GRIDWORKS__SCADA_GW108)
 
     nodes_to_add: list[SpaceheatNodeGt] = []
     data_channels: list[DataChannelGt] = []
@@ -174,7 +171,7 @@ def add_gw108_nolan_zones(
                 [
                     Gw108GpioSensorComponentGt(
                         ComponentId=db.make_component_id(opto_component_name),
-                        ComponentAttributeClassId=gw108_cac_id,
+                        DeviceType=db.device_type_for(MakeModel.GRIDWORKS__SCADA_GW108),
                         DisplayName=opto_component_name,
                         GpioPin=_OPTO_GPIO_PINS[zone_idx - 1],
                         SenseMode=GpioSenseMode.Polling,
@@ -261,7 +258,7 @@ def add_gw108_nolan_zones(
             [
                 I2cThermistorReaderComponentGt(
                     ComponentId=db.make_component_id(reader_component_name),
-                    ComponentAttributeClassId=gw108_cac_id,
+                    DeviceType=db.device_type_for(MakeModel.GRIDWORKS__SCADA_GW108),
                     DisplayName=reader_component_name,
                     Bus="i2c-1",
                     AdcAddress=adc_addresses.pop(),

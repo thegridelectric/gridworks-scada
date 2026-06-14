@@ -50,13 +50,11 @@ def add_house0_relays(
     db: LayoutDb,
     cfg: RelayCfg,
 ) -> None:
-    if not db.cac_id_by_alias(MakeModel.KRIDA__DOUBLEEMR16I2CV3):
+    if not db.has_device_type_record(db.device_type_for(MakeModel.KRIDA__DOUBLEEMR16I2CV3)):
         db.add_cacs(
             [
                 ComponentAttributeClassGt(
-                    ComponentAttributeClassId=db.make_cac_id(
-                        make_model=MakeModel.KRIDA__DOUBLEEMR16I2CV3
-                    ),
+                    DeviceType=db.device_type_for(MakeModel.KRIDA__DOUBLEEMR16I2CV3),
                     DisplayName="16-channel i2c krida relay",
                     MakeModel=MakeModel.KRIDA__DOUBLEEMR16I2CV3,
                 ),
@@ -317,9 +315,7 @@ def add_house0_relays(
         db.add_components(
             [I2cMultichannelDtRelayComponentGt(
                     ComponentId=db.make_component_id(component_display_name),
-                    ComponentAttributeClassId=db.cac_id_by_alias(
-                        MakeModel.KRIDA__DOUBLEEMR16I2CV3
-                    ),
+                    DeviceType=db.device_type_for(MakeModel.KRIDA__DOUBLEEMR16I2CV3),
                     DisplayName=component_display_name,
                     ConfigList=config_list,
                     I2cBus="default",
@@ -649,13 +645,11 @@ def add_nolan_relays(
     vdc_node_name = NolanNodeNames.vdc_relay
     vdc_channel_name = HCN.vdc_relay_state
 
-    if not db.cac_id_by_alias(MakeModel.GRIDWORKS__SCADA_GW108):
+    if not db.has_device_type_record(db.device_type_for(MakeModel.GRIDWORKS__SCADA_GW108)):
         db.add_cacs(
             [
                 ComponentAttributeClassGt(
-                    ComponentAttributeClassId=db.make_cac_id(
-                        make_model=MakeModel.GRIDWORKS__SCADA_GW108,
-                    ),
+                    DeviceType=db.device_type_for(MakeModel.GRIDWORKS__SCADA_GW108),
                     DisplayName="GridWorks SCADA Gw108",
                     MakeModel=MakeModel.GRIDWORKS__SCADA_GW108,
                 ),
@@ -667,9 +661,7 @@ def add_nolan_relays(
             [
                 Gw108GpioRelayComponentGt(
                     ComponentId=db.make_component_id(_NOLAN_VDC_COMPONENT_DISPLAY_NAME),
-                    ComponentAttributeClassId=db.cac_id_by_alias(
-                        MakeModel.GRIDWORKS__SCADA_GW108
-                    ),
+                    DeviceType=db.device_type_for(MakeModel.GRIDWORKS__SCADA_GW108),
                     DisplayName=_NOLAN_VDC_COMPONENT_DISPLAY_NAME,
                     GpioPin=_NOLAN_VDC_RELAY_GPIO_PIN,
                     ConfigList=[

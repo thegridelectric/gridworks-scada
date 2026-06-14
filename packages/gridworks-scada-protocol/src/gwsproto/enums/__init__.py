@@ -52,6 +52,7 @@ from gwsproto.enums.gw_unit import GwUnit
 from gwsproto.enums.gw_quantity import GwQuantity
 from gwsproto.enums.hp_model import HpModel
 from gwsproto.enums.hp_loop_keep_send import HpLoopKeepSend
+from gwsproto.enums.gw1_device_type import Gw1DeviceType
 from gwsproto.enums.log_level import LogLevel
 from gwsproto.enums.main_auto_event import MainAutoEvent
 from gwsproto.enums.main_auto_state import MainAutoState
@@ -119,6 +120,7 @@ __all__ = [
     "LocalControlAllTanksState",
     "LogLevel",
     "LocalControlTopEvent",  
+    "Gw1DeviceType",
     "MainAutoEvent",
     "MainAutoState",
     "MakeModel",

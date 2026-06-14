@@ -31,7 +31,7 @@ class HubitatComponentGt(ComponentGt):
     def make_stub(cls, component_id: str) -> "HubitatComponentGt":
         return HubitatComponentGt(
             ComponentId=component_id,
-            ComponentAttributeClassId="00000000-0000-4000-8000-000000000000",
+            DeviceType="HubitatC7Hub",
             Hubitat=HubitatGt(
                 Host="",
                 MakerApiId=-1,

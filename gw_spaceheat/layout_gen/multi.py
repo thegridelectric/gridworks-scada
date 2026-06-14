@@ -7,7 +7,6 @@ from gwsproto.enums import GwQuantity
 from gwsproto.enums import MakeModel
 from gwsproto.enums import TelemetryName
 from gwsproto.enums import Unit
-from gwsproto.type_helpers import CACS_BY_MAKE_MODEL
 from gwsproto.named_types import ComponentAttributeClassGt
 from gwsproto.named_types import ComponentGt
 from gwsproto.named_types import Ads111xBasedCacGt
@@ -56,13 +55,13 @@ def add_tsnap_multipurpose(
     tsnap: TSnapMultipurposeGenCfg,
 ) -> None:
     make_model = MakeModel.GRIDWORKS__TSNAP1
-    if not db.cac_id_by_alias(make_model):
+    if not db.has_device_type_record(db.device_type_for(make_model)):
         db.add_cacs(
             [
                 cast(
                     ComponentAttributeClassGt,
                     Ads111xBasedCacGt(
-                        ComponentAttributeClassId=CACS_BY_MAKE_MODEL[make_model],
+                        DeviceType=db.device_type_for(make_model),
                         MakeModel=make_model,
                         AdsI2cAddressList= [0x4b, 0x49, 0x48],
                         TelemetryNameList=[TelemetryName.WaterTempCTimes1000, TelemetryName.AirTempCTimes1000],
@@ -81,7 +80,7 @@ def add_tsnap_multipurpose(
                 ComponentGt,
                 Ads111xBasedComponentGt(
                     ComponentId=db.make_component_id(tsnap.component_alias()),
-                    ComponentAttributeClassId=db.cac_id_by_alias(make_model),
+                    DeviceType=db.device_type_for(make_model),
                     ConfigList=[
                         AdsChannelConfig(
                             ChannelName=sensor_cfg.ChannelName,

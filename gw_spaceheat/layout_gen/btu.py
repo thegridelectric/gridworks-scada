@@ -60,11 +60,11 @@ def add_btu(
     if not cfg.FlowMeterType == MakeModel.SAIER__SENHZG1WA:
         raise Exception("Only designed for SAIER SEN RIGHT NOW")
 
-    if not db.cac_id_by_alias(MakeModel.GRIDWORKS__GW101):
+    if not db.has_device_type_record(db.device_type_for(MakeModel.GRIDWORKS__GW101)):
         db.add_cacs(
             [
                 ComponentAttributeClassGt(
-                    ComponentAttributeClassId=db.make_cac_id(make_model=MakeModel.GRIDWORKS__GW101),
+                    DeviceType=db.device_type_for(MakeModel.GRIDWORKS__GW101),
                     DisplayName="Pico BtuMeter1 Gw101",
                     MakeModel=MakeModel.GRIDWORKS__GW101,
                 ),
@@ -110,15 +110,11 @@ def add_btu(
                 )
             )
 
-        cac_id = db.cac_id_by_alias(MakeModel.GRIDWORKS__GW101)
-        if not cac_id:
-            raise Exception("NOPE THAT DOES NOT MAKE SENSE")
-        
         db.add_components(
             [
                 PicoBtuMeterComponentGt(
                     ComponentId=db.make_component_id(cfg.component_display_name()),
-                    ComponentAttributeClassId=cac_id,
+                    DeviceType=db.device_type_for(MakeModel.GRIDWORKS__GW101),
                     HwUid=cfg.HwUid,
                     DisplayName=cfg.component_display_name(),
                     ConfigList=config_list,

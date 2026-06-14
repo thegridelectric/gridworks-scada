@@ -9,7 +9,7 @@ import uuid
 
 from gwsproto.errors import DcError
 
-from gwsproto.type_helpers import CACS_BY_MAKE_MODEL
+from gwsproto.type_helpers import DEVICE_TYPE_BY_MAKE_MODEL
 from gwsproto.named_types import ComponentAttributeClassGt
 from gwsproto.named_types import ComponentGt
 from gwsproto.named_types import ElectricMeterCacGt
@@ -53,7 +53,7 @@ class StubConfig:
 class LayoutIDMap:
     REMOTE_HARDWARE_LAYOUT_PATH: str = "/home/pi/.config/gridworks/scada/hardware-layout.json"
 
-    cacs_by_alias: dict[str, str]
+    device_type_records: set[str]
     components_by_alias: dict[str, str]
     nodes_by_name: dict[str, str]
     channels_by_name: dict[str, str]
@@ -64,7 +64,7 @@ class LayoutIDMap:
     total_store_tanks: int
 
     def __init__(self, d: Optional[dict] = None):
-        self.cacs_by_alias = {}
+        self.device_type_records = set()
         self.components_by_alias = {}
         self.nodes_by_name = {}
         self.channels_by_name = {}
@@ -127,11 +127,7 @@ class LayoutIDMap:
                 elif k.lower().endswith("cacs"):
                         for cac in v:
                             try:
-                                self.add_cacs_by_alias(
-                                    cac["ComponentAttributeClassId"],
-                                    cac["MakeModel"],
-                                    cac["DisplayName"],
-                                )
+                                self.add_device_type_record(cac["DeviceType"])
                             except Exception as e:
                                 raise Exception(
                                     f"ERROR in LayoutIDMap() for {k}:{cac}. Error: {type(e)}, <{e}>"
@@ -149,13 +145,8 @@ class LayoutIDMap:
                                     f"ERROR in LayoutIDMap() for {k}:{component}. Error: {type(e)}, <{e}>"
                                 )
 
-    def add_cacs_by_alias(self, id_: str, make_model_: str, display_name_: str):
-        if make_model_ == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL.value:
-            self.cacs_by_alias[display_name_] = id_
-        else:
-            if CACS_BY_MAKE_MODEL[make_model_] != id_:
-                raise DcError(f"MakeModel {make_model_} does not go with {id_}")
-            self.cacs_by_alias[make_model_] = id_
+    def add_device_type_record(self, device_type: str):
+        self.device_type_records.add(device_type)
 
     def add_component(self, id_: str, alias: str):
         self.components_by_alias[alias] = id_
@@ -248,8 +239,13 @@ class LayoutDb:
             zone_list=list(self.loaded.zone_list),
         )
 
-    def cac_id_by_alias(self, make_model: str) -> Optional[str]:
-        return self.maps.cacs_by_alias.get(make_model, None)
+    def has_device_type_record(self, device_type: str) -> bool:
+        return device_type in self.maps.device_type_records
+
+    @staticmethod
+    def device_type_for(make_model: MakeModel) -> str:
+        """The single, obvious new DeviceType for a legacy MakeModel."""
+        return DEVICE_TYPE_BY_MAKE_MODEL[make_model]
 
     def component_id_by_alias(self, component_alias: str) -> Optional[str]:
         return self.maps.components_by_alias.get(component_alias, None)
@@ -262,20 +258,6 @@ class LayoutDb:
     
     def derived_channel_id_by_name(self, name: str) -> Optional[str]:
         return self.maps.derived_channels_by_name.get(name, None)
-
-    def make_cac_id(
-            self,
-            *,
-            make_model: MakeModel,
-            cac_alias: str | None = None,
-        ) -> str:
-        if make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
-            if cac_alias is None:
-                raise Exception("For unknown MakeModel, MUST include cac_alias")
-            return self.loaded.cacs_by_alias.get(cac_alias, str(uuid.uuid4()))
-        elif make_model in CACS_BY_MAKE_MODEL:
-                return CACS_BY_MAKE_MODEL[make_model]
-        raise Exception(f"Unknown MakeModel {make_model}")
 
     def make_component_id(self, component_alias: str) -> str:
         return self.loaded.components_by_alias.get(component_alias, str(uuid.uuid4()))
@@ -291,21 +273,12 @@ class LayoutDb:
 
     def add_cacs(self, cacs:list[ComponentAttributeClassGt], layout_list_name: str = "OtherCacs"):
         for cac in cacs:
-            if cac.ComponentAttributeClassId in self.cacs_by_id:
+            if cac.DeviceType in self.cacs_by_id:
                 raise ValueError(
-                    f"ERROR: cac with id <{cac.ComponentAttributeClassId}> "
-                    "already present"
+                    f"ERROR: device-type record <{cac.DeviceType}> already present"
                 )
-            self.cacs_by_id[cac.ComponentAttributeClassId] = cac
-            if cac.DisplayName is None:
-                display_name = ""
-            else:
-                display_name = cac.DisplayName
-            self.maps.add_cacs_by_alias(
-                    cac.ComponentAttributeClassId,
-                    cac.MakeModel,
-                    display_name,
-                )
+            self.cacs_by_id[cac.DeviceType] = cac
+            self.maps.add_device_type_record(cac.DeviceType)
 
             if layout_list_name not in self.lists:
                 self.lists[layout_list_name] = []
@@ -388,13 +361,13 @@ class LayoutDb:
     def add_stub_power_meter(self, cfg: Optional[StubConfig] = None):
         if cfg is None:
             cfg = StubConfig()
-        if MakeModel.GRIDWORKS__SIMPM1 not in self.maps.cacs_by_alias:
+        if not self.has_device_type_record("GridworksSimPowerMeter"):
             self.add_cacs(
                 [
                     typing.cast(
                         ComponentAttributeClassGt,
                         ElectricMeterCacGt(
-                            ComponentAttributeClassId=CACS_BY_MAKE_MODEL[MakeModel.GRIDWORKS__SIMPM1],
+                            DeviceType="GridworksSimPowerMeter",
                             MakeModel=MakeModel.GRIDWORKS__SIMPM1,
                             DisplayName=cfg.power_meter_cac_alias,
                             TelemetryNameList=[TelemetryName.PowerW],
@@ -404,14 +377,14 @@ class LayoutDb:
                 ],
                 "ElectricMeterCacs"
             )
-        
+
         self.add_components(
             [
                 typing.cast(
                     ComponentGt,
                     ElectricMeterComponentGt(
                         ComponentId=self.make_component_id(cfg.power_meter_component_alias),
-                        ComponentAttributeClassId=self.cac_id_by_alias(MakeModel.GRIDWORKS__SIMPM1),
+                        DeviceType="GridworksSimPowerMeter",
                         DisplayName=cfg.power_meter_component_alias,
                         ConfigList=[
                             ElectricMeterChannelConfig(

@@ -8,11 +8,9 @@ from gwsproto.named_types.scada_device_type_gt import (
     NativeGpioConfig,
     I2cDacConfig
 )
-from gwsproto.type_helpers.cacs_by_make_model import CACS_BY_MAKE_MODEL
-
 gw108_device_type = ScadaDeviceTypeGt(
+    DeviceType="GridworksScadaGw108",
     MakeModel=MakeModel.GRIDWORKS__SCADA_GW108,
-    ComponentAttributeClassId=CACS_BY_MAKE_MODEL[MakeModel.GRIDWORKS__SCADA_GW108],
     NativeGpio=NativeGpioConfig(
         Inputs={
             "Zone1Whitewire": 17,

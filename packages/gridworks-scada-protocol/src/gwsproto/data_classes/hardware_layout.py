@@ -113,7 +113,7 @@ class HardwareLayout:
             for cac_dict in layout.get(type_name, ()):
                 try:
                     cac = cac_decoder.decode(cac_dict)
-                    cacs[cac.ComponentAttributeClassId] = cac
+                    cacs[cac.DeviceType] = cac
                 except Exception as e:  # noqa: PERF203
                     if raise_errors:
                         raise
@@ -145,7 +145,7 @@ class HardwareLayout:
 
     @classmethod
     def make_component(
-        cls, component_gt: ComponentGt, cac: ComponentAttributeClassGt
+        cls, component_gt: ComponentGt, cac: Optional[ComponentAttributeClassGt] = None
     ) -> Component[Any, Any]:
         return cls.get_data_class_class(component_gt)(gt=component_gt, cac=cac)
 
@@ -173,12 +173,12 @@ class HardwareLayout:
             for component_dict in layout.get(type_name, ()):
                 try:
                     component_gt = component_decoder.decode(component_dict)
-                    cac_gt = cacs.get(component_gt.ComponentAttributeClassId, None)
-                    if cac_gt is None:
-                        raise DcError(  # noqa: TRY301
-                            f"cac {component_gt.ComponentAttributeClassId} not loaded for component "
-                            f"<{component_gt.ComponentId}/<{component_gt.DisplayName}>\n"
-                        )
+                    # Join by the readable DeviceType. The specialized device-type record is
+                    # OPTIONAL — only device categories carrying category-level data open one
+                    # (electric.meter / ads111x / gw1.scada). A record-less category (web
+                    # server, hubitat, sim) resolves to None. The layout's DeviceTypeMembership
+                    # axiom is what guarantees a record IS present when a category needs it.
+                    cac_gt = cacs.get(component_gt.DeviceType, None)
                     components[component_gt.ComponentId] = cls.make_component(
                         component_gt,
                         cac_gt,

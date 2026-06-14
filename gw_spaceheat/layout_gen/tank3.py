@@ -32,11 +32,11 @@ def add_tank3(
         db: LayoutDb,
         tank_cfg: Tank3Cfg
 ) -> None:
-    if not db.cac_id_by_alias(MakeModel.GRIDWORKS__TANKMODULE3):
+    if not db.has_device_type_record(db.device_type_for(MakeModel.GRIDWORKS__TANKMODULE3)):
         db.add_cacs(
             [
                 ComponentAttributeClassGt(
-                    ComponentAttributeClassId=db.make_cac_id(make_model=MakeModel.GRIDWORKS__TANKMODULE3),
+                    DeviceType=db.device_type_for(MakeModel.GRIDWORKS__TANKMODULE3),
                     DisplayName="GridWorks TankModule3 (Uses 1 pico)",
                     MakeModel=MakeModel.GRIDWORKS__TANKMODULE3,
                 ),
@@ -69,14 +69,11 @@ def add_tank3(
                     )
                 )
 
-        cac_id = db.cac_id_by_alias(MakeModel.GRIDWORKS__TANKMODULE3)
-        if not cac_id:
-                raise Exception("NOPE THAT DOES NOT MAKE SENSE")
         db.add_components(
             [
                 PicoTankModuleComponentGt(
                     ComponentId=db.make_component_id(tank_cfg.component_display_name()),
-                    ComponentAttributeClassId=cac_id,
+                    DeviceType=db.device_type_for(MakeModel.GRIDWORKS__TANKMODULE3),
                     DisplayName=tank_cfg.component_display_name(),
                     SerialNumber=tank_cfg.SerialNumber,
                     ConfigList=config_list,

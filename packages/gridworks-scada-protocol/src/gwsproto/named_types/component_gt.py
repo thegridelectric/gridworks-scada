@@ -9,12 +9,12 @@ from gwsproto.property_format import UUID4Str
 
 class ComponentGt(BaseModel):
     ComponentId: UUID4Str
-    ComponentAttributeClassId: UUID4Str
+    DeviceType: str
     ConfigList: Sequence[ChannelConfig]
     DisplayName: Optional[str] = None
     HwUid: Optional[str] = None
     TypeName: str = "component.gt"
-    Version: str = "001"
+    Version: str = "002"
 
     @field_validator("ConfigList")
     @classmethod

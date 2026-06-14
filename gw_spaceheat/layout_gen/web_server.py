@@ -10,29 +10,22 @@ def add_web_server(
     web_server: WebServerGt
 ) -> WebServerComponentGt:
     cac_display_name = "Web Server CAC"
-    if not db.cac_id_by_alias(cac_display_name):
+    if not db.has_device_type_record("AbstractWebServer"):
         db.add_cacs(
             [
                 ComponentAttributeClassGt(
-                    ComponentAttributeClassId=db.make_cac_id(
-                        make_model=MakeModel.UNKNOWNMAKE__UNKNOWNMODEL,
-                        cac_alias=cac_display_name
-                    ),
+                    DeviceType="AbstractWebServer",
                     DisplayName=cac_display_name,
-                    MakeModel=MakeModel.UNKNOWNMAKE__UNKNOWNMODEL,
                 ),
             ]
         )
-    cac_id = db.cac_id_by_alias(cac_display_name)
-    if cac_id is None:
-        raise Exception("That's strange, should have made a cac id")
     component_alias = f"Web Server {web_server.Name}"
     if not db.component_id_by_alias(component_alias):
         db.add_components(
             [
                 WebServerComponentGt(
                     ComponentId=db.make_component_id(component_alias),
-                    ComponentAttributeClassId=cac_id,
+                    DeviceType="AbstractWebServer",
                     DisplayName=component_alias,
                     WebServer=web_server,
                     ConfigList=[]

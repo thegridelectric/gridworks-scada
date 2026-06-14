@@ -79,11 +79,11 @@ def add_flow(
         is_hall = False
         make_model = MakeModel.GRIDWORKS__PICOFLOWREED
         cac_display_name = "Pico Flow Reed"
-    if not db.cac_id_by_alias(make_model):
+    if not db.has_device_type_record(db.device_type_for(make_model)):
         db.add_cacs(
             [
                 ComponentAttributeClassGt(
-                    ComponentAttributeClassId=db.make_cac_id(make_model=make_model),
+                    DeviceType=db.device_type_for(make_model),
                     DisplayName=cac_display_name,
                     MakeModel=make_model,
                 ),
@@ -116,7 +116,7 @@ def add_flow(
                 [
                     PicoFlowModuleComponentGt(
                         ComponentId=db.make_component_id(flow_hall_cfg.component_display_name),
-                        ComponentAttributeClassId=db.cac_id_by_alias(make_model),
+                        DeviceType=db.device_type_for(make_model),
                         DisplayName=flow_hall_cfg.component_display_name(),
                         ConfigList=config_list,
                         HwUid=flow_hall_cfg.HwUid,
@@ -142,7 +142,7 @@ def add_flow(
                 [
                     PicoFlowModuleComponentGt(
                         ComponentId=db.make_component_id(flow_reed_cfg.component_display_name),
-                        ComponentAttributeClassId=db.cac_id_by_alias(make_model),
+                        DeviceType=db.device_type_for(make_model),
                         DisplayName=flow_reed_cfg.component_display_name(),
                         ConfigList=config_list,
                         Enabled = flow_reed_cfg.Enabled,

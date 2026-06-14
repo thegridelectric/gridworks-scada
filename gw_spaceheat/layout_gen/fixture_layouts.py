@@ -116,13 +116,13 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
     POWER_METER_COMPONENT_DISPLAY_NAME = "Power Meter for Simulated Test system"
 
 
-    if not db.cac_id_by_alias(MakeModel.GRIDWORKS__SIMPM1):
+    if not db.has_device_type_record(db.device_type_for(MakeModel.GRIDWORKS__SIMPM1)):
         db.add_cacs(
             [
                 typing.cast(
                     ComponentAttributeClassGt,
                     ElectricMeterCacGt(
-                        ComponentAttributeClassId=db.make_cac_id(make_model=MakeModel.GRIDWORKS__SIMPM1),
+                        DeviceType=db.device_type_for(MakeModel.GRIDWORKS__SIMPM1),
                         MakeModel=MakeModel.GRIDWORKS__SIMPM1,
                         DisplayName="Gridworks Pm1 Simulated Power Meter",
                         TelemetryNameList=[TelemetryName.PowerW],
@@ -139,7 +139,7 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
                 ComponentGt,
                 ElectricMeterComponentGt(
                     ComponentId=db.make_component_id(POWER_METER_COMPONENT_DISPLAY_NAME),
-                    ComponentAttributeClassId=db.cac_id_by_alias(MakeModel.GRIDWORKS__SIMPM1),
+                    DeviceType=db.device_type_for(MakeModel.GRIDWORKS__SIMPM1),
                     DisplayName=POWER_METER_COMPONENT_DISPLAY_NAME,
                     ConfigList=[
                         ElectricMeterChannelConfig(

@@ -18,13 +18,11 @@ class DfrConf(BaseModel):
     StorePumpDefault: int = 50
 
 def add_dfrs(db: LayoutDb, dfr_config: DfrConf) -> None:
-    if not db.cac_id_by_alias(MakeModel.DFROBOT__DFR0971_TIMES2):
+    if not db.has_device_type_record(db.device_type_for(MakeModel.DFROBOT__DFR0971_TIMES2)):
         db.add_cacs(
             [
                 ComponentAttributeClassGt(
-                    ComponentAttributeClassId=db.make_cac_id(
-                        make_model=MakeModel.DFROBOT__DFR0971_TIMES2
-                    ),
+                    DeviceType=db.device_type_for(MakeModel.DFROBOT__DFR0971_TIMES2),
                     DisplayName="DFRobot DFR0971 X 2",
                     MakeModel=MakeModel.DFROBOT__DFR0971_TIMES2
                 ),
@@ -69,9 +67,7 @@ def add_dfrs(db: LayoutDb, dfr_config: DfrConf) -> None:
             [
                 DfrComponentGt(
                     ComponentId=db.make_component_id(component_display_name),
-                    ComponentAttributeClassId=db.cac_id_by_alias(
-                        MakeModel.DFROBOT__DFR0971_TIMES2
-                    ),
+                    DeviceType=db.device_type_for(MakeModel.DFROBOT__DFR0971_TIMES2),
                     DisplayName=component_display_name,
                     ConfigList=config_list,
                     I2cAddressList=[94, 95],  # 0x5e, 0x5f
