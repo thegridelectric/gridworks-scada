@@ -3,7 +3,7 @@ from typing import Literal, Optional
 
 from pydantic import field_validator
 
-from gwsproto.enums import GpmFromHzMethod, HzCalcMethod, MakeModel
+from gwsproto.enums import GpmFromHzMethod, HzCalcMethod
 from gwsproto.named_types.component_gt import ComponentGt
 from gwsproto.property_format import SpaceheatName
 
@@ -12,7 +12,7 @@ class PicoFlowModuleComponentGt(ComponentGt):
     Enabled: bool
     SerialNumber: str
     FlowNodeName: SpaceheatName
-    FlowMeterType: MakeModel = MakeModel.SAIER__SENHZG1WA
+    FlowMeterType: str = "SaierFlowSensor"
     HzCalcMethod: HzCalcMethod
     GpmFromHzMethod: GpmFromHzMethod
     ConstantGallonsPerTick: float

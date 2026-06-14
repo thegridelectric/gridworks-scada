@@ -1,7 +1,7 @@
 from actors.config import ScadaSettings
 from drivers.driver_result import DriverResult
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
-from gwsproto.enums import MakeModel
+from gwsproto.enums import Gw1DeviceType
 from gwsproto.data_classes.components.electric_meter_component import (
     ElectricMeterComponent,
 )
@@ -14,9 +14,9 @@ class GridworksSimPm1_PowerMeterDriver(PowerMeterDriver):
         super(GridworksSimPm1_PowerMeterDriver, self).__init__(
             component=component, settings=settings
         )
-        if component.cac.MakeModel != MakeModel.GRIDWORKS__SIMPM1:
+        if component.cac.DeviceType != Gw1DeviceType.GridworksSimPowerMeter:
             raise Exception(
-                f"Expected {MakeModel.GRIDWORKS__SIMPM1}, got {component.cac}"
+                f"Expected {Gw1DeviceType.GridworksSimPowerMeter}, got {component.cac}"
             )
         self.component = component
         self.fake_current_rms_micro_amps = 18000

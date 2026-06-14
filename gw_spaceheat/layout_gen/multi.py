@@ -4,6 +4,7 @@ from typing import Optional
 
 from gwsproto.enums import ActorClass
 from gwsproto.enums import GwQuantity
+from gwsproto.enums import Gw1DeviceType
 from gwsproto.enums import MakeModel
 from gwsproto.enums import TelemetryName
 from gwsproto.enums import Unit
@@ -54,15 +55,13 @@ def add_tsnap_multipurpose(
     db: LayoutDb,
     tsnap: TSnapMultipurposeGenCfg,
 ) -> None:
-    make_model = MakeModel.GRIDWORKS__TSNAP1
-    if not db.has_device_type_record(db.device_type_for(make_model)):
+    if not db.has_device_type_record(Gw1DeviceType.GridworksTsnap1ScadaBoard):
         db.add_cacs(
             [
                 cast(
                     ComponentAttributeClassGt,
                     Ads111xBasedCacGt(
-                        DeviceType=db.device_type_for(make_model),
-                        MakeModel=make_model,
+                        DeviceType=Gw1DeviceType.GridworksTsnap1ScadaBoard,
                         AdsI2cAddressList= [0x4b, 0x49, 0x48],
                         TelemetryNameList=[TelemetryName.WaterTempCTimes1000, TelemetryName.AirTempCTimes1000],
                         TotalTerminalBlocks=12,
@@ -80,7 +79,7 @@ def add_tsnap_multipurpose(
                 ComponentGt,
                 Ads111xBasedComponentGt(
                     ComponentId=db.make_component_id(tsnap.component_alias()),
-                    DeviceType=db.device_type_for(make_model),
+                    DeviceType=Gw1DeviceType.GridworksTsnap1ScadaBoard,
                     ConfigList=[
                         AdsChannelConfig(
                             ChannelName=sensor_cfg.ChannelName,

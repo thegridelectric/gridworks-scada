@@ -6,7 +6,7 @@ from gwsproto.property_format import SpaceheatName
 from layout_gen import LayoutDb
 from gwsproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
 from gwsproto.named_types.data_channel_gt import DataChannelGt
-from gwsproto.enums import MakeModel, Unit, ActorClass, TelemetryName
+from gwsproto.enums import Gw1DeviceType, MakeModel, Unit, ActorClass, TelemetryName
 from gwsproto.enums import  TempCalcMethod as EnumTempCalcMethod
 from gwsproto.named_types.channel_config import ChannelConfig
 from gwsproto.named_types import SpaceheatNodeGt
@@ -60,13 +60,12 @@ def add_btu(
     if not cfg.FlowMeterType == MakeModel.SAIER__SENHZG1WA:
         raise Exception("Only designed for SAIER SEN RIGHT NOW")
 
-    if not db.has_device_type_record(db.device_type_for(MakeModel.GRIDWORKS__GW101)):
+    if not db.has_device_type_record(Gw1DeviceType.GridworksGw101):
         db.add_cacs(
             [
                 ComponentAttributeClassGt(
-                    DeviceType=db.device_type_for(MakeModel.GRIDWORKS__GW101),
+                    DeviceType=Gw1DeviceType.GridworksGw101,
                     DisplayName="Pico BtuMeter1 Gw101",
-                    MakeModel=MakeModel.GRIDWORKS__GW101,
                 ),
             ]
         )
@@ -114,7 +113,7 @@ def add_btu(
             [
                 PicoBtuMeterComponentGt(
                     ComponentId=db.make_component_id(cfg.component_display_name()),
-                    DeviceType=db.device_type_for(MakeModel.GRIDWORKS__GW101),
+                    DeviceType=Gw1DeviceType.GridworksGw101,
                     HwUid=cfg.HwUid,
                     DisplayName=cfg.component_display_name(),
                     ConfigList=config_list,

@@ -12,7 +12,7 @@ from gwproactor import MonitoredName, Problems
 from gwproactor.message import InternalShutdownMessage, PatInternalWatchdogMessage
 from gwproto import Message
 from gwsproto.data_classes.components import PicoFlowModuleComponent
-from gwsproto.enums import GpmFromHzMethod, HzCalcMethod, MakeModel, TelemetryName
+from gwsproto.enums import GpmFromHzMethod, Gw1DeviceType, HzCalcMethod, TelemetryName
 from gwsproto.named_types import (
     ChannelReadings,
     SyncedReadings,
@@ -103,7 +103,7 @@ class ApiFlowModule(ShNodeActor):
         self.validate_config_params()
 
         if self._component.gt.Enabled:
-            if self._component.cac.MakeModel == MakeModel.GRIDWORKS__PICOFLOWHALL:
+            if self._component.cac.DeviceType == Gw1DeviceType.GridworksPicoFlowHall:
                 self._services.add_web_route(
                     server_name=ScadaWeb.DEFAULT_SERVER_NAME,
                     method="POST",
@@ -116,7 +116,7 @@ class ApiFlowModule(ShNodeActor):
                     path="/" + self.ticklist_hall_path,
                     handler=self._handle_ticklist_hall_post,
                 )
-            elif self._component.cac.MakeModel == MakeModel.GRIDWORKS__PICOFLOWREED:
+            elif self._component.cac.DeviceType == Gw1DeviceType.GridworksPicoFlowReed:
                 self._services.add_web_route(
                     server_name=ScadaWeb.DEFAULT_SERVER_NAME,
                     method="POST",
@@ -131,7 +131,7 @@ class ApiFlowModule(ShNodeActor):
                 )
             else:
                 raise Exception(
-                    f"ApiFlowMeter actor does not recognize {self._component.cac.MakeModel}"
+                    f"ApiFlowMeter actor does not recognize {self._component.cac.DeviceType}"
                 )
 
     def validate_config_params(self) -> None:
@@ -187,9 +187,9 @@ class ApiFlowModule(ShNodeActor):
                 self._send_to(self.derived_generator, msg)
 
     def flatline_seconds(self) -> int:
-        if self._component.cac.MakeModel == MakeModel.GRIDWORKS__PICOFLOWHALL:
+        if self._component.cac.DeviceType == Gw1DeviceType.GridworksPicoFlowHall:
             return self._component.gt.PublishEmptyTicklistAfterS * 2.5
-        if self._component.cac.MakeModel == MakeModel.GRIDWORKS__PICOFLOWREED:
+        if self._component.cac.DeviceType == Gw1DeviceType.GridworksPicoFlowReed:
             return self._component.gt.PublishAnyTicklistAfterS * 2.5
 
     # This registers ApiFlowModule with the watchdog.
@@ -324,9 +324,9 @@ class ApiFlowModule(ShNodeActor):
         if params.FlowNodeName != self._component.gt.FlowNodeName:
             self.log("FlowNodeName is not correct")
             return Response()
-        if self._component.cac.MakeModel != MakeModel.GRIDWORKS__PICOFLOWHALL:
+        if self._component.cac.DeviceType != Gw1DeviceType.GridworksPicoFlowHall:
             raise Exception(
-                f"{self.name} has {self._component.cac.MakeModel} but got FlowHallParams!"
+                f"{self.name} has {self._component.cac.DeviceType} but got FlowHallParams!"
             )
         self.pico_state_log(f"{params.HwUid} PARAMS")
         # Temporary hack prior to installerapp
@@ -361,9 +361,9 @@ class ApiFlowModule(ShNodeActor):
         if params.FlowNodeName != self._component.gt.FlowNodeName:
             self.log("FlowNodeName is not correct")
             return Response()
-        if self._component.cac.MakeModel != MakeModel.GRIDWORKS__PICOFLOWREED:
+        if self._component.cac.DeviceType != Gw1DeviceType.GridworksPicoFlowReed:
             raise Exception(
-                f"{self.name} has {self._component.cac.MakeModel} but got FlowReedParams!"
+                f"{self.name} has {self._component.cac.DeviceType} but got FlowReedParams!"
             )
         self.pico_state_log(f"{params.HwUid} PARAMS")
         # Temporary hack prior to installerapp
@@ -390,9 +390,9 @@ class ApiFlowModule(ShNodeActor):
 
     async def _handle_ticklist_hall_post(self, request: Request) -> Response:
         '''Sends a TicklistHall message to self, which will trigger _process_ticklist_hall()'''
-        if self._component.cac.MakeModel != MakeModel.GRIDWORKS__PICOFLOWHALL:
+        if self._component.cac.DeviceType != Gw1DeviceType.GridworksPicoFlowHall:
             raise Exception(
-                f"{self.name} has {self._component.cac.MakeModel} but got TicklistHall!"
+                f"{self.name} has {self._component.cac.DeviceType} but got TicklistHall!"
             )
         text = await self._get_text(request)
         self.readings_text = text
@@ -411,9 +411,9 @@ class ApiFlowModule(ShNodeActor):
 
     async def _handle_ticklist_reed_post(self, request: Request) -> Response:
         '''Sends a TicklistReed message to self, which will trigger _process_ticklist_reed()'''
-        if self._component.cac.MakeModel != MakeModel.GRIDWORKS__PICOFLOWREED:
+        if self._component.cac.DeviceType != Gw1DeviceType.GridworksPicoFlowReed:
             raise Exception(
-                f"{self.name} has {self._component.cac.MakeModel} but got TicklistReed!"
+                f"{self.name} has {self._component.cac.DeviceType} but got TicklistReed!"
             )
         text = await self._get_text(request)
         self.readings_text = text

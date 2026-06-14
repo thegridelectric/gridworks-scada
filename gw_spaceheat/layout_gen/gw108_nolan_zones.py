@@ -11,8 +11,8 @@ from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import (
     ActorClass,
     GpioSenseMode,
+    Gw1DeviceType,
     GwQuantity,
-    MakeModel,
     TelemetryName,
     TempCalcMethod,
     Unit,
@@ -125,13 +125,12 @@ def add_gw108_nolan_zones(
             f"zones (one ADS1115 at 0x49); got zone {max(zone_idxs)}"
         )
 
-    if not db.has_device_type_record(db.device_type_for(MakeModel.GRIDWORKS__SCADA_GW108)):
+    if not db.has_device_type_record(Gw1DeviceType.GridworksScadaGw108):
         db.add_cacs(
             [
                 ComponentAttributeClassGt(
-                    DeviceType=db.device_type_for(MakeModel.GRIDWORKS__SCADA_GW108),
+                    DeviceType=Gw1DeviceType.GridworksScadaGw108,
                     DisplayName="GridWorks SCADA Gw108",
-                    MakeModel=MakeModel.GRIDWORKS__SCADA_GW108,
                 ),
             ]
         )
@@ -171,7 +170,7 @@ def add_gw108_nolan_zones(
                 [
                     Gw108GpioSensorComponentGt(
                         ComponentId=db.make_component_id(opto_component_name),
-                        DeviceType=db.device_type_for(MakeModel.GRIDWORKS__SCADA_GW108),
+                        DeviceType=Gw1DeviceType.GridworksScadaGw108,
                         DisplayName=opto_component_name,
                         GpioPin=_OPTO_GPIO_PINS[zone_idx - 1],
                         SenseMode=GpioSenseMode.Polling,
@@ -258,7 +257,7 @@ def add_gw108_nolan_zones(
             [
                 I2cThermistorReaderComponentGt(
                     ComponentId=db.make_component_id(reader_component_name),
-                    DeviceType=db.device_type_for(MakeModel.GRIDWORKS__SCADA_GW108),
+                    DeviceType=Gw1DeviceType.GridworksScadaGw108,
                     DisplayName=reader_component_name,
                     Bus="i2c-1",
                     AdcAddress=adc_addresses.pop(),

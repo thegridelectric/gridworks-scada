@@ -2,7 +2,7 @@ from typing import cast, Optional
 from pydantic import BaseModel
 
 from gwsproto.enums import ActorClass
-from gwsproto.enums import MakeModel
+from gwsproto.enums import Gw1DeviceType
 from gwsproto.enums import TelemetryName
 from gwsproto.enums import Unit, GwQuantity
 from gwsproto.named_types import ComponentAttributeClassGt
@@ -91,15 +91,13 @@ def add_egauge(
     db: LayoutDb,
     egauge: PowerMeterGenConfig,
 ) -> None:
-    make_model = MakeModel.EGAUGE__4030
-    if not db.has_device_type_record(db.device_type_for(make_model)):
+    if not db.has_device_type_record(Gw1DeviceType.EgaugePowerMeter):
         db.add_cacs(
             [
                 cast(
                     ComponentAttributeClassGt,
                     ElectricMeterCacGt(
-                        DeviceType=db.device_type_for(make_model),
-                        MakeModel=make_model,
+                        DeviceType=Gw1DeviceType.EgaugePowerMeter,
                         MinPollPeriodMs=1000,
                         DisplayName="EGauge 4030",
                         TelemetryNameList=[TelemetryName.PowerW],
@@ -114,7 +112,7 @@ def add_egauge(
                 ComponentGt,
                 ElectricMeterComponentGt(
                     ComponentId=db.make_component_id(egauge.ComponentDisplayName),
-                    DeviceType=db.device_type_for(make_model),
+                    DeviceType=Gw1DeviceType.EgaugePowerMeter,
                     DisplayName=egauge.ComponentDisplayName,
                     ConfigList=egauge.channel_configs(),
                     HwUid=egauge.HwUid,

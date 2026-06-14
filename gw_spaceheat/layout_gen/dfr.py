@@ -1,5 +1,5 @@
 from gwsproto.data_classes.house_0_names import H0CN, H0N
-from gwsproto.enums import ActorClass, GwQuantity, MakeModel, TelemetryName, Unit
+from gwsproto.enums import ActorClass, Gw1DeviceType, GwQuantity, TelemetryName, Unit
 from gwsproto.named_types import (
     DataChannelGt,
     DfrComponentGt,
@@ -18,13 +18,12 @@ class DfrConf(BaseModel):
     StorePumpDefault: int = 50
 
 def add_dfrs(db: LayoutDb, dfr_config: DfrConf) -> None:
-    if not db.has_device_type_record(db.device_type_for(MakeModel.DFROBOT__DFR0971_TIMES2)):
+    if not db.has_device_type_record(Gw1DeviceType.DfrobotDualAnalogOut):
         db.add_cacs(
             [
                 ComponentAttributeClassGt(
-                    DeviceType=db.device_type_for(MakeModel.DFROBOT__DFR0971_TIMES2),
+                    DeviceType=Gw1DeviceType.DfrobotDualAnalogOut,
                     DisplayName="DFRobot DFR0971 X 2",
-                    MakeModel=MakeModel.DFROBOT__DFR0971_TIMES2
                 ),
             ]
         )
@@ -67,7 +66,7 @@ def add_dfrs(db: LayoutDb, dfr_config: DfrConf) -> None:
             [
                 DfrComponentGt(
                     ComponentId=db.make_component_id(component_display_name),
-                    DeviceType=db.device_type_for(MakeModel.DFROBOT__DFR0971_TIMES2),
+                    DeviceType=Gw1DeviceType.DfrobotDualAnalogOut,
                     DisplayName=component_display_name,
                     ConfigList=config_list,
                     I2cAddressList=[94, 95],  # 0x5e, 0x5f

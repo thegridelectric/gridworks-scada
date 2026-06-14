@@ -9,7 +9,6 @@ import uuid
 
 from gwsproto.errors import DcError
 
-from gwsproto.type_helpers import DEVICE_TYPE_BY_MAKE_MODEL
 from gwsproto.named_types import ComponentAttributeClassGt
 from gwsproto.named_types import ComponentGt
 from gwsproto.named_types import ElectricMeterCacGt
@@ -19,7 +18,7 @@ from gwsproto.named_types import ElectricMeterChannelConfig
 from gwsproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwsproto.data_classes.house_0_names import H0N, H0CN
 from gwsproto.enums import (
-    ActorClass, EmissionMethod, FlowManifoldVariant, GwUnit, GwQuantity, MakeModel,
+    ActorClass, EmissionMethod, FlowManifoldVariant, Gw1DeviceType, GwUnit, GwQuantity,
     TelemetryName, Unit,
 )
 from gwsproto.named_types import (
@@ -126,12 +125,12 @@ class LayoutIDMap:
 
                 elif k.lower().endswith("cacs"):
                         for cac in v:
-                            try:
-                                self.add_device_type_record(cac["DeviceType"])
-                            except Exception as e:
-                                raise Exception(
-                                    f"ERROR in LayoutIDMap() for {k}:{cac}. Error: {type(e)}, <{e}>"
-                                )
+                            # Tolerant of pre-migration src (cacs keyed by the old
+                            # ComponentAttributeClassId with no DeviceType): only device-type
+                            # records are tracked now; skip records that predate DeviceType.
+                            dt = cac.get("DeviceType")
+                            if dt is not None:
+                                self.add_device_type_record(dt)
 
                 elif k.lower().endswith("components"):
                         for component in v:
@@ -241,11 +240,6 @@ class LayoutDb:
 
     def has_device_type_record(self, device_type: str) -> bool:
         return device_type in self.maps.device_type_records
-
-    @staticmethod
-    def device_type_for(make_model: MakeModel) -> str:
-        """The single, obvious new DeviceType for a legacy MakeModel."""
-        return DEVICE_TYPE_BY_MAKE_MODEL[make_model]
 
     def component_id_by_alias(self, component_alias: str) -> Optional[str]:
         return self.maps.components_by_alias.get(component_alias, None)
@@ -361,14 +355,13 @@ class LayoutDb:
     def add_stub_power_meter(self, cfg: Optional[StubConfig] = None):
         if cfg is None:
             cfg = StubConfig()
-        if not self.has_device_type_record("GridworksSimPowerMeter"):
+        if not self.has_device_type_record(Gw1DeviceType.GridworksSimPowerMeter):
             self.add_cacs(
                 [
                     typing.cast(
                         ComponentAttributeClassGt,
                         ElectricMeterCacGt(
-                            DeviceType="GridworksSimPowerMeter",
-                            MakeModel=MakeModel.GRIDWORKS__SIMPM1,
+                            DeviceType=Gw1DeviceType.GridworksSimPowerMeter,
                             DisplayName=cfg.power_meter_cac_alias,
                             TelemetryNameList=[TelemetryName.PowerW],
                             MinPollPeriodMs=1000,
@@ -384,7 +377,7 @@ class LayoutDb:
                     ComponentGt,
                     ElectricMeterComponentGt(
                         ComponentId=self.make_component_id(cfg.power_meter_component_alias),
-                        DeviceType="GridworksSimPowerMeter",
+                        DeviceType=Gw1DeviceType.GridworksSimPowerMeter,
                         DisplayName=cfg.power_meter_component_alias,
                         ConfigList=[
                             ElectricMeterChannelConfig(

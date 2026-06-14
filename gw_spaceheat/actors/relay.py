@@ -26,7 +26,6 @@ from gwsproto.enums import (
     ChangeHeatcallSource,
     FsmReportType,
     HeatPumpControl,
-    MakeModel,
     PrimaryPumpControl,
     RelayClosedOrOpen,
     RelayPinState,

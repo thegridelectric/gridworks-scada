@@ -1,4 +1,4 @@
-from gwsproto.enums import MakeModel, RelayWiringConfig
+from gwsproto.enums import Gw1DeviceType, RelayWiringConfig
 from gwsproto.named_types.scada_device_type_gt import (
     ScadaDeviceTypeGt, 
     I2cBitAddress,
@@ -9,8 +9,7 @@ from gwsproto.named_types.scada_device_type_gt import (
     I2cDacConfig
 )
 gw108_device_type = ScadaDeviceTypeGt(
-    DeviceType="GridworksScadaGw108",
-    MakeModel=MakeModel.GRIDWORKS__SCADA_GW108,
+    DeviceType=Gw1DeviceType.GridworksScadaGw108,
     NativeGpio=NativeGpioConfig(
         Inputs={
             "Zone1Whitewire": 17,

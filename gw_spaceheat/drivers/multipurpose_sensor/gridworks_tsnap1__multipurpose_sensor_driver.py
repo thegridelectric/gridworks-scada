@@ -18,7 +18,7 @@ from gwsproto.enums import LogLevel
 from gwsproto.data_classes.components.ads111x_based_component import \
     Ads111xBasedComponent
 from gwsproto.data_classes.data_channel import DataChannel
-from gwsproto.enums import MakeModel, TelemetryName
+from gwsproto.enums import Gw1DeviceType, TelemetryName
 from gwsproto.enums import ThermistorDataMethod
 from result import Err, Ok, Result
 
@@ -71,12 +71,12 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
         super(GridworksTsnap1_MultipurposeSensorDriver, self).__init__(
             component=component, settings=settings
         )
-        models: List[MakeModel] = [
-            MakeModel.GRIDWORKS__TSNAP1,
+        models: List[Gw1DeviceType] = [
+            Gw1DeviceType.GridworksTsnap1ScadaBoard,
         ]
-        if component.cac.MakeModel not in models:
+        if component.cac.DeviceType not in models:
             raise Exception(
-                f"Expected make model in {models}, got {component.cac.MakeModel}"
+                f"Expected device type in {models}, got {component.cac.DeviceType}"
             )
         self.my_telemetry_names = component.cac.TelemetryNameList
         if set(self.my_telemetry_names) != {

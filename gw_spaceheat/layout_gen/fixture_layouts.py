@@ -3,8 +3,8 @@ from pathlib import Path
 from gwproto.named_types.web_server_gt import WebServerGt
 
 from gwsproto.enums import ActorClass
+from gwsproto.enums import Gw1DeviceType
 from gwsproto.enums import GwQuantity
-from gwsproto.enums import MakeModel
 from gwsproto.enums import TelemetryName
 from gwsproto.enums import Unit
 from gwsproto.type_helpers import HubitatGt
@@ -116,14 +116,13 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
     POWER_METER_COMPONENT_DISPLAY_NAME = "Power Meter for Simulated Test system"
 
 
-    if not db.has_device_type_record(db.device_type_for(MakeModel.GRIDWORKS__SIMPM1)):
+    if not db.has_device_type_record(Gw1DeviceType.GridworksSimPowerMeter):
         db.add_cacs(
             [
                 typing.cast(
                     ComponentAttributeClassGt,
                     ElectricMeterCacGt(
-                        DeviceType=db.device_type_for(MakeModel.GRIDWORKS__SIMPM1),
-                        MakeModel=MakeModel.GRIDWORKS__SIMPM1,
+                        DeviceType=Gw1DeviceType.GridworksSimPowerMeter,
                         DisplayName="Gridworks Pm1 Simulated Power Meter",
                         TelemetryNameList=[TelemetryName.PowerW],
                         MinPollPeriodMs=1000,
@@ -139,7 +138,7 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
                 ComponentGt,
                 ElectricMeterComponentGt(
                     ComponentId=db.make_component_id(POWER_METER_COMPONENT_DISPLAY_NAME),
-                    DeviceType=db.device_type_for(MakeModel.GRIDWORKS__SIMPM1),
+                    DeviceType=Gw1DeviceType.GridworksSimPowerMeter,
                     DisplayName=POWER_METER_COMPONENT_DISPLAY_NAME,
                     ConfigList=[
                         ElectricMeterChannelConfig(

@@ -2,7 +2,7 @@
 
 from gwsproto.enums import ActorClass
 from gwsproto.enums import GwQuantity
-from gwsproto.enums import MakeModel
+from gwsproto.enums import Gw1DeviceType
 from gwsproto.enums import TelemetryName
 from gwsproto.enums import Unit
 from gwsproto.named_types import ComponentAttributeClassGt
@@ -42,14 +42,12 @@ def add_thermostat(
     stat_cfg: HubitatThermostatGenCfg,
 ) -> None:
     hubitat_alias = add_hubitat(db, stat_cfg.hubitat)
-    make_model = MakeModel.HONEYWELL__T6ZWAVETHERMOSTAT
-    if not db.has_device_type_record(db.device_type_for(make_model)):
+    if not db.has_device_type_record(Gw1DeviceType.HoneywellT6Thermostat):
         db.add_cacs(
             [
                 ComponentAttributeClassGt(
-                    DeviceType=db.device_type_for(make_model),
+                    DeviceType=Gw1DeviceType.HoneywellT6Thermostat,
                     DisplayName="Honeywell T6 Thermostat",
-                    MakeModel=make_model,
                     MinPollPeriodMs=HUBITAT_MIN_POLL_S * 1000,
                 ),
             ]
@@ -64,7 +62,7 @@ def add_thermostat(
         [
             HubitatPollerComponentGt(
                 ComponentId=db.make_component_id(stat_component_display_name),
-                DeviceType=db.device_type_for(make_model),
+                DeviceType=Gw1DeviceType.HoneywellT6Thermostat,
                 DisplayName=stat_component_display_name, 
                 Poller=HubitatPollerGt(
                     hubitat_component_id=db.component_id_by_alias(hubitat_alias),

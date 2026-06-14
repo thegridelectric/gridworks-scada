@@ -1,4 +1,4 @@
-from gwsproto.enums import MakeModel
+from gwsproto.enums import Gw1DeviceType
 from gwproto.type_helpers import WebServerGt
 from gwsproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
 from gwsproto.named_types.web_server_component_gt import WebServerComponentGt
@@ -10,11 +10,11 @@ def add_web_server(
     web_server: WebServerGt
 ) -> WebServerComponentGt:
     cac_display_name = "Web Server CAC"
-    if not db.has_device_type_record("AbstractWebServer"):
+    if not db.has_device_type_record(Gw1DeviceType.AbstractWebServer):
         db.add_cacs(
             [
                 ComponentAttributeClassGt(
-                    DeviceType="AbstractWebServer",
+                    DeviceType=Gw1DeviceType.AbstractWebServer,
                     DisplayName=cac_display_name,
                 ),
             ]
@@ -25,7 +25,7 @@ def add_web_server(
             [
                 WebServerComponentGt(
                     ComponentId=db.make_component_id(component_alias),
-                    DeviceType="AbstractWebServer",
+                    DeviceType=Gw1DeviceType.AbstractWebServer,
                     DisplayName=component_alias,
                     WebServer=web_server,
                     ConfigList=[]

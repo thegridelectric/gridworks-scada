@@ -15,7 +15,7 @@ from gwsproto.data_classes.data_channel import DataChannel
 from gwsproto.data_classes.house_0_layout import House0Layout
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (ActorClass, ChangeRelayPin,
-                           FsmReportType, MakeModel,
+                           FsmReportType, Gw1DeviceType,
                            RelayEnergizationState, RelayWiringConfig,
                            TelemetryName)
 
@@ -72,9 +72,9 @@ class I2cRelayMultiplexer(ShNodeActor):
             level=self.settings.relay_multiplexer_logging_level,
         )
         self.component = cast(I2cMultichannelDtRelayComponent, self.node.component)
-        if self.component.cac.MakeModel != MakeModel.KRIDA__DOUBLEEMR16I2CV3:
+        if self.component.cac.DeviceType != Gw1DeviceType.KridaDoubleRelayBoard16:
             raise Exception(
-                f"Expected {MakeModel.KRIDA__DOUBLEEMR16I2CV3}, got {self.component.cac}"
+                f"Expected {Gw1DeviceType.KridaDoubleRelayBoard16}, got {self.component.cac}"
             )
         # Move into driver code if/when we get a second i2c relay component
         self.i2c_bus = None

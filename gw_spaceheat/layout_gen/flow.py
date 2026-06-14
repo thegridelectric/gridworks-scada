@@ -2,7 +2,7 @@ from typing import Optional, Any
 from pydantic import BaseModel
 from gwsproto.property_format import SpaceheatName
 
-from gwsproto.enums import ActorClass, GwQuantity, MakeModel, TelemetryName, Unit
+from gwsproto.enums import ActorClass, Gw1DeviceType, GwQuantity, MakeModel, TelemetryName, Unit
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import GpmFromHzMethod, HzCalcMethod
 from gwsproto.named_types import (
@@ -73,19 +73,18 @@ def add_flow(
     flow_hall_cfg: HallCfg = flow_cfg
     if type(flow_cfg) is HallCfg:
         is_hall = True
-        make_model = MakeModel.GRIDWORKS__PICOFLOWHALL
+        device_type = Gw1DeviceType.GridworksPicoFlowHall
         cac_display_name = "Pico Flow Hall"
     else:
         is_hall = False
-        make_model = MakeModel.GRIDWORKS__PICOFLOWREED
+        device_type = Gw1DeviceType.GridworksPicoFlowReed
         cac_display_name = "Pico Flow Reed"
-    if not db.has_device_type_record(db.device_type_for(make_model)):
+    if not db.has_device_type_record(device_type):
         db.add_cacs(
             [
                 ComponentAttributeClassGt(
-                    DeviceType=db.device_type_for(make_model),
+                    DeviceType=device_type,
                     DisplayName=cac_display_name,
-                    MakeModel=make_model,
                 ),
             ]
         )
@@ -116,7 +115,7 @@ def add_flow(
                 [
                     PicoFlowModuleComponentGt(
                         ComponentId=db.make_component_id(flow_hall_cfg.component_display_name),
-                        DeviceType=db.device_type_for(make_model),
+                        DeviceType=device_type,
                         DisplayName=flow_hall_cfg.component_display_name(),
                         ConfigList=config_list,
                         HwUid=flow_hall_cfg.HwUid,
@@ -142,7 +141,7 @@ def add_flow(
                 [
                     PicoFlowModuleComponentGt(
                         ComponentId=db.make_component_id(flow_reed_cfg.component_display_name),
-                        DeviceType=db.device_type_for(make_model),
+                        DeviceType=device_type,
                         DisplayName=flow_reed_cfg.component_display_name(),
                         ConfigList=config_list,
                         Enabled = flow_reed_cfg.Enabled,

@@ -6,7 +6,6 @@ from typing_extensions import Self
 from gwsproto.enums import (
     GpmFromHzMethod,
     HzCalcMethod,
-    MakeModel,
     TempCalcMethod,
 )
 from gwsproto.named_types.component_gt import ComponentGt
@@ -24,7 +23,7 @@ class PicoBtuMeterComponentGt(ComponentGt):
     ReadCtVoltage: bool
     SendHz: bool
     CtChannelName: Optional[SpaceheatName] = None
-    FlowMeterType: MakeModel
+    FlowMeterType: str
     HzCalcMethod: HzCalcMethod
     TempCalcMethod: TempCalcMethod
     ThermistorBeta: StrictInt

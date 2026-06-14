@@ -25,7 +25,7 @@ from drivers.power_meter.power_meter_driver import PowerMeterDriver
 from gwproactor.message import InternalShutdownMessage
 from gwproactor.sync_thread import SyncAsyncInteractionThread
 from gwproactor import Problems
-from gwsproto.enums import MakeModel
+from gwsproto.enums import Gw1DeviceType
 from gwsproto.named_types import ElectricMeterChannelConfig, PowerWatts, SyncedReadings
 
 from gwsproto.data_classes.hardware_layout import HardwareLayout
@@ -91,9 +91,9 @@ class DriverThreadSetupHelper:
 
     def make_power_meter_driver(self) -> PowerMeterDriver:
         cac = self.component.cac
-        if cac.MakeModel == MakeModel.GRIDWORKS__SIMPM1:
+        if cac.DeviceType == Gw1DeviceType.GridworksSimPowerMeter:
             driver = GridworksSimPm1_PowerMeterDriver(component=self.component, settings=self.settings)
-        elif cac.MakeModel == MakeModel.EGAUGE__4030:
+        elif cac.DeviceType == Gw1DeviceType.EgaugePowerMeter:
             driver = EGuage4030_PowerMeterDriver(
                 component=self.component,
                 settings=self.settings,
@@ -101,7 +101,7 @@ class DriverThreadSetupHelper:
             )
         else:
             raise NotImplementedError(
-                f"No ElectricMeter driver yet for {cac.MakeModel}"
+                f"No ElectricMeter driver yet for {cac.DeviceType}"
             )
         return driver
 

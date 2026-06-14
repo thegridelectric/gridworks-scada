@@ -10,13 +10,9 @@ from gwsproto.named_types.rest_poller_gt import (
     URLConfig,
 )
 from gwsproto.type_helpers.type_name_literal import type_name_literal
-from gwsproto.type_helpers.cacs_by_make_model import CACS_BY_MAKE_MODEL
-from gwsproto.type_helpers.device_type_by_make_model import DEVICE_TYPE_BY_MAKE_MODEL
 
 __all__ = [
     "type_name_literal",
-    "CACS_BY_MAKE_MODEL",
-    "DEVICE_TYPE_BY_MAKE_MODEL",
     "AioHttpClientTimeout",
     "HubitatGt",
     "HubitatPollerGt",

@@ -279,7 +279,7 @@ def print_layout_table(layout: House0Layout):
     table.add_column("Node", header_style="bold green", style="green")
     table.add_column("Component", header_style="bold dark_orange", style="dark_orange")
     table.add_column("Cac", header_style="bold dark_orange", style="dark_orange")
-    table.add_column("Make/Model", header_style="bold dark_orange", style="dark_orange")
+    table.add_column("DeviceType", header_style="bold dark_orange", style="dark_orange")
     table.add_column("Actor", header_style="bold green1", style="green1")
     none_text = Text("None", style="cyan")
     for node in layout.nodes.values():
@@ -294,10 +294,10 @@ def print_layout_table(layout: House0Layout):
             component_txt = str(component.gt.DisplayName)
         cac = layout.cac(node.Name)
         if cac is None:
-            make_model_text = none_text
-            if component is not None and component.gt.ComponentAttributeClassId:
+            device_type_text = none_text
+            if component is not None and component.gt.DeviceType:
                 cac_txt = Text("MISSING", style="red") + \
-                    Text(f" Cac {component.gt.ComponentAttributeClassId[:8]}", style=none_text.style)
+                    Text(f" record for {component.gt.DeviceType}", style=none_text.style)
             else:
                 cac_txt = none_text
 
@@ -305,17 +305,17 @@ def print_layout_table(layout: House0Layout):
             if cac.DisplayName:
                 cac_txt = Text(cac.DisplayName, style=table.columns[2].style)
             else:
-                cac_txt = Text("Cac id: ") + Text(cac.ComponentAttributeClassId, style="light_coral")
-            if hasattr(cac, "MakeModel"):
-                make_model_text = Text(str(cac.MakeModel), style=table.columns[3].style)
+                cac_txt = Text("DeviceType: ") + Text(cac.DeviceType, style="light_coral")
+            if hasattr(cac, "DeviceType"):
+                device_type_text = Text(str(cac.DeviceType), style=table.columns[3].style)
             else:
-                make_model_text = none_text
+                device_type_text = none_text
         node = layout.node(node.Name)
         if node.actor_class and node.actor_class != ActorClass.NoActor:
             actor_text = Text(str(node.actor_class))
         else:
             actor_text = none_text
-        table.add_row(node.Name, component_txt, cac_txt, make_model_text, actor_text)
+        table.add_row(node.Name, component_txt, cac_txt, device_type_text, actor_text)
     print(table)
 
 def try_scada_load(settings: ScadaSettings, raise_errors: bool = False) -> Optional[ScadaApp]:

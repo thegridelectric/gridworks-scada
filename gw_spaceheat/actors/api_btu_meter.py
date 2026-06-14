@@ -11,7 +11,7 @@ from gwproactor import MonitoredName, Problems
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwsproto.data_classes.components import PicoBtuMeterComponent
-from gwsproto.enums import MakeModel
+from gwsproto.enums import Gw1DeviceType
 from gwsproto.data_classes.house_0_names import ScadaWeb
 from gwsproto.named_types import (
     AsyncBtuParams, ChannelFlatlined, 
@@ -47,9 +47,9 @@ class ApiBtuMeter(PicoActorBase):
             )
         self._component = comp
         self.device_type = self._component.cac
-        if self.device_type.MakeModel not in [MakeModel.GRIDWORKS__GW101]:
+        if self.device_type.DeviceType not in [Gw1DeviceType.GridworksGw101]:
             raise ValueError(
-                f"Expect Gw101 (BtuMeter).. not {self.device_type.MakeModel}"
+                f"Expect Gw101 (BtuMeter).. not {self.device_type.DeviceType}"
             )
         self._stop_requested: bool = False
 
@@ -191,7 +191,7 @@ class ApiBtuMeter(PicoActorBase):
 
             # If this is a new pico, log the HwUid for layout update
             if self.need_to_update_layout(params):
-                if self.device_type.MakeModel == MakeModel.GRIDWORKS__GW101:
+                if self.device_type.DeviceType == Gw1DeviceType.GridworksGw101:
                     self.pico_uid = params.HwUid
                     self.log(
                         f"UPDATE LAYOUT!!: In layout_gen, go to ### {self.name} "
@@ -302,7 +302,7 @@ class ApiBtuMeter(PicoActorBase):
                 time.time() - self.last_heard > self.flatline_seconds()
                 and time.time() - self.last_error_report > FLATLINE_REPORT_S
             ):
-                if self.device_type.MakeModel == MakeModel.GRIDWORKS__GW101:
+                if self.device_type.DeviceType == Gw1DeviceType.GridworksGw101:
                     if self.missing() and self.pico_uid:
                         self._send_to(
                             self.pico_cycler,

@@ -11,7 +11,7 @@ from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 
 from gwsproto.enums import (
-    MakeModel,
+    Gw1DeviceType,
     ChangeRelayPin,
     FsmReportType,
     RelayEnergizationState,
@@ -62,12 +62,12 @@ class I2cRelayBoard(ShNodeActor):
         # RelayIdx -> current energization state
         self.relay_state: Dict[int, RelayEnergizationState] = {}
 
-        # ---- MakeModel dispatch ----
-        if self.cac.MakeModel == MakeModel.GRIDWORKS__SCADA_GW108:
+        # ---- DeviceType dispatch ----
+        if self.cac.DeviceType == Gw1DeviceType.GridworksScadaGw108:
             self._initialize_gw108()
         else:
             raise ValueError(
-                f"I2cRelayBoardActor does not support MakeModel {self.cac.MakeModel}"
+                f"I2cRelayBoardActor does not support DeviceType {self.cac.DeviceType}"
             )
 
     def _initialize_gw108(self) -> None:

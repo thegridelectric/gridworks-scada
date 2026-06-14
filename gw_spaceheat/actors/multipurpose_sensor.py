@@ -20,7 +20,7 @@ from gwsproto.data_classes.components.ads111x_based_component import \
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.data_classes.data_channel import DataChannel
 from gwsproto.data_classes.sh_node import ShNode
-from gwsproto.enums import MakeModel
+from gwsproto.enums import Gw1DeviceType
 from gwsproto.named_types import AdsChannelConfig, SyncedReadings
 from gwsproto.named_types import Glitch
 from gwsproto.data_classes.hardware_layout import HardwareLayout
@@ -56,7 +56,7 @@ class MpDriverThreadSetupHelper:
         driver_module_name = ""
         driver_class_name = ""
         cac = self.component.cac
-        if cac.MakeModel == MakeModel.GRIDWORKS__TSNAP1:
+        if cac.DeviceType == Gw1DeviceType.GridworksTsnap1ScadaBoard:
             driver_module_name = "drivers.multipurpose_sensor.gridworks_tsnap1__multipurpose_sensor_driver"
             driver_class_name = "GridworksTsnap1_MultipurposeSensorDriver"
             for module_name in [
@@ -69,11 +69,11 @@ class MpDriverThreadSetupHelper:
                 found = importlib.util.find_spec(module_name)
                 if found is None:
                     raise NotImplementedError(
-                        f"MultipurposeSensor {cac.MakeModel} needs i2c/adafruit libs not available here"
+                        f"MultipurposeSensor {cac.DeviceType} needs i2c/adafruit libs not available here"
                     )
         if not driver_module_name or not driver_class_name:
             raise NotImplementedError(
-                f"No MultipurposeSensor driver yet for {cac.MakeModel}"
+                f"No MultipurposeSensor driver yet for {cac.DeviceType}"
             )
         if driver_module_name not in sys.modules:
             importlib.import_module(driver_module_name)
