@@ -22,6 +22,7 @@ class HubitatComponentGt(ComponentGt):
 
     Hubitat: HubitatGt
     TypeName: Literal["hubitat.component.gt"] = "hubitat.component.gt"
+    Version: Literal["000"] = "000"
 
     def url_config(self) -> URLConfig:
         return self.Hubitat.url_config()
