@@ -93,6 +93,7 @@ class DerivedGenerator(ShNodeActor):
         self.strategy_handlers: dict[str, DerivedHandler] = {
             "identity": self.handle_identity,
             "affine": self.handle_affine,
+            "sum": self.handle_sum,
             "heat-call": self.handle_heat_call,
             "simple-falling-edge-setpoint": self.handle_simple_falling_edge_setpoint,
             "system-model": self.handle_system_model,
@@ -157,6 +158,24 @@ class DerivedGenerator(ShNodeActor):
                 if dc.OutputUnit != GwUnit.FahrenheitX100:
                     raise RuntimeError(f"DerivedGenerator only handles affine conversions with output unit"
                                     f" FahrenheitX100, not {dc.OutputUnit}")
+            elif dc.Strategy == "sum":
+                if not dc.InputChannelNames:
+                    raise RuntimeError(
+                        f"Sum DerivedChannel '{dc.Name}' requires InputChannelNames"
+                    )
+                in_units = {
+                    self.layout.channel_registry.unit(ch) for ch in dc.InputChannelNames
+                }
+                if None in in_units:
+                    raise RuntimeError(
+                        f"Sum DerivedChannel '{dc.Name}' has an input channel with no "
+                        f"registered unit"
+                    )
+                if len(in_units) != 1:
+                    raise RuntimeError(
+                        f"Sum DerivedChannel '{dc.Name}' requires its inputs to share one "
+                        f"unit (got {in_units}); summing differing units is undefined"
+                    )
             elif dc.Strategy == "simple-falling-edge-setpoint":
                 self.init_simple_falling_edge_setpoint_channel(dc)
 
@@ -280,6 +299,37 @@ class DerivedGenerator(ShNodeActor):
                 Value=temp_x100,
                 ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs
             )
+        )
+
+    def handle_sum(self, dc: DerivedChannel, payload: SingleReading | None = None) -> None:
+        """Emit dc.Name = sum of the latest values of dc.InputChannelNames.
+
+        Used for the derived primary-flow on a Siegenthaler-loop house (e.g. maple):
+        primary-flow = sieg-send + sieg-flow. The handler fires when ANY input arrives
+        (the channel is registered under each InputChannelName); it reads the fresh
+        payload value plus the cached latest of the other inputs, and waits — emitting
+        nothing — until every input has been seen at least once. Inputs and OutputUnit
+        share one unit (enforced in init_derived_channels), so the sum is a straight
+        integer add in that unit.
+        """
+        if payload is None:
+            return
+        total = 0
+        for ch_name in dc.InputChannelNames:
+            if ch_name == payload.ChannelName:
+                value = payload.Value
+            else:
+                value = self.data.latest_channel_values.get(ch_name)
+            if value is None:
+                return  # not every input available yet
+            total += value
+        self._send_to(
+            self.primary_scada,
+            SingleReading(
+                ChannelName=dc.Name,
+                Value=total,
+                ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs,
+            ),
         )
 
     @staticmethod
