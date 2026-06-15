@@ -467,24 +467,35 @@
   "FlowManifoldVariant": "House0",
   "MyLeafTransactiveNodeGNode": {
     "Alias": "d1.isone.ct.newhaven.orange1",
-    "DisplayName": "Little Orange House Garage Heating System AtomicTNode",
-    "GNodeClass": "AtomicTNode",
+    "BaseClass": "LeafTransactiveNode",
+    "DisplayName": "Little Orange House Garage Heating System LeafTransactiveNode",
+    "GNodeClass": "LeafTransactiveNode",
     "GNodeId": "c4c9a280-453f-4c36-a081-970a3774b3ed",
-    "GNodeStatus": "Active"
+    "PositionPointId": "96403482-5fe2-47b0-be0d-b89dd0d4a926",
+    "Status": "Active",
+    "TypeName": "g.node.gt",
+    "Version": "004"
   },
   "MyScadaGNode": {
     "Alias": "d1.isone.ct.newhaven.orange1.scada",
+    "BaseClass": "Logical",
     "DisplayName": "Little Orange House Garage Heating System SCADA",
     "GNodeClass": "Scada",
     "GNodeId": "c9794c6d-e013-4d74-9570-f9ba4b0f0b0d",
-    "GNodeStatus": "Active"
+    "Status": "Active",
+    "TypeName": "g.node.gt",
+    "Version": "004"
   },
   "MyTerminalAssetGNode": {
     "Alias": "d1.isone.ct.newhaven.orange1.ta",
+    "BaseClass": "TerminalAsset",
     "DisplayName": "Little Orange House Garage Heating System TerminalAsset",
     "GNodeClass": "TerminalAsset",
     "GNodeId": "e250a99c-7b7f-469a-8f54-96ea83e95112",
-    "GNodeStatus": "Active"
+    "PositionPointId": "3ff8f6af-9e02-4177-983c-ff8cb82e81b0",
+    "Status": "Active",
+    "TypeName": "g.node.gt",
+    "Version": "004"
   },
   "OtherCacs": [
     {

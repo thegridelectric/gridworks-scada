@@ -491,16 +491,23 @@ class LayoutDb:
             self.misc["MyLeafTransactiveNodeGNode"] = {
                 "GNodeId": str(uuid.uuid4()),
                 "Alias": cfg.ltn_gnode_alias,
+                "BaseClass": "LeafTransactiveNode",
+                "GNodeClass": "LeafTransactiveNode",
+                "Status": "Active",
+                "PositionPointId": str(uuid.uuid4()),
                 "DisplayName": "LeafTransactiveNode",
-                "GNodeStatus": "Active",
-                "GNodeClass": "LeafTransactiveNode"
+                "TypeName": "g.node.gt",
+                "Version": "004",
             }
             self.misc["MyScadaGNode"] = {
                 "GNodeId": str(uuid.uuid4()),
                 "Alias": f"{cfg.ltn_gnode_alias}.scada",
+                "BaseClass": "Logical",
+                "GNodeClass": "Scada",
+                "Status": "Active",
                 "DisplayName": "Scada GNode",
-                "GNodeStatus": "Active",
-                "GNodeClass": "Scada"
+                "TypeName": "g.node.gt",
+                "Version": "004",
             }
             ta_alias = f"{cfg.ltn_gnode_alias}.ta"
             if cfg.terminal_asset_alias:
@@ -508,10 +515,14 @@ class LayoutDb:
             self.misc["MyTerminalAssetGNode"] = {
                 "GNodeId": str(uuid.uuid4()),
                 "Alias": ta_alias,
+                "BaseClass": "TerminalAsset",
+                "GNodeClass": "TerminalAsset",
+                "Status": "Active",
+                "PositionPointId": str(uuid.uuid4()),
                 "DisplayName": "TerminalAsset GNode",
-                "GNodeStatus": "Active",
-                "GNodeClass": "TerminalAsset"
-              }
+                "TypeName": "g.node.gt",
+                "Version": "004",
+            }
         if self.loaded.zone_list:
             self.misc["ZoneList"] = self.loaded.zone_list
         else:
