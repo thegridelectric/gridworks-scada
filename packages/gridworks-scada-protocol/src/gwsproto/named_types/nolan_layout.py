@@ -37,7 +37,7 @@ NolanComponent = (
 )
 
 
-class GwNolanLayout(BaseModel):
+class NolanLayout(BaseModel):
     """
     Sema draft: https://schemas.electricity.works/draft/types/gw.nolan.layout/000
 
