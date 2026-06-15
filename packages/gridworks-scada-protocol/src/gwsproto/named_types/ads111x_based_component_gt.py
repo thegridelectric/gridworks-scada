@@ -3,15 +3,13 @@
 from collections.abc import Sequence
 from typing import Literal
 
-from pydantic import ConfigDict, field_validator
+from pydantic import ConfigDict, field_validator, model_validator
+from typing_extensions import Self
 
 from gwsproto.named_types.ads_channel_config import (
     AdsChannelConfig,
 )
 from gwsproto.named_types.component_gt import ComponentGt
-from gwsproto.property_format import (
-    check_is_near5,
-)
 
 
 class Ads111xBasedComponentGt(ComponentGt):
@@ -22,27 +20,29 @@ class Ads111xBasedComponentGt(ComponentGt):
 
     model_config = ConfigDict(use_enum_values=True)
 
-    @field_validator("OpenVoltageByAds")
-    @classmethod
-    def _check_open_voltage_by_ads(cls, v: list[float]) -> list[float]:
-        try:
-            for elt in v:
-                check_is_near5(elt)
-        except ValueError as e:
-            raise ValueError(
-                f"OpenVoltageByAds element failed Near5 format validation: {e}",
-            ) from e
-        return v
+    @model_validator(mode="after")
+    def check_axiom_1(self) -> Self:
+        """
+        Axiom 1: OpenVoltageByAdsRange (mirrors sema ads111x.based.component.gt/000).
+        Every element of OpenVoltageByAds SHALL be between 4.5 and 5.5 inclusive
+        (the "near 5V" Raspberry-Pi-supply open-circuit range). Replaces the old
+        Near5 property format with a sema axiom.
+        """
+        for v in self.OpenVoltageByAds:
+            if not 4.5 <= v <= 5.5:
+                raise ValueError(
+                    f"Axiom 1 (OpenVoltageByAdsRange): OpenVoltageByAds element {v} "
+                    "is not between 4.5 and 5.5."
+                )
+        return self
 
     @field_validator("ConfigList")
     @classmethod
-    def check_ads_channel_config_list(
+    def check_config_list(
         cls, v: Sequence[AdsChannelConfig]
     ) -> Sequence[AdsChannelConfig]:
         """
-            Axiom 1: Terminal Block consistency and Channel Name uniqueness.
-            Terminal Block consistency and Channel Name uniqueness. - Each TerminalBlockIdx occurs at
-        most once in the ConfigList .Each data channel occurs at most once in the ConfigList
+        gwsproto-local ConfigList check (not a sema axiom): TerminalBlockIdx and
+        ChannelName SHALL each be unique across the ConfigList. (TODO: implement.)
         """
-        # Implement Axiom(s)
         return v

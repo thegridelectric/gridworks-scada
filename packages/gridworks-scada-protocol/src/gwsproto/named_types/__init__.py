@@ -36,6 +36,7 @@ from gwsproto.named_types.flo_params_house0 import FloParamsHouse0
 from gwsproto.named_types.fsm_atomic_report import FsmAtomicReport
 from gwsproto.named_types.fsm_event import FsmEvent
 from gwsproto.named_types.fsm_full_report import FsmFullReport
+from gwsproto.named_types.g_node_gt import GNodeGt
 from gwsproto.named_types.gw108_gpio_relay_component_gt import Gw108GpioRelayComponentGt
 from gwsproto.named_types.gw108_gpio_sensor_component_gt import Gw108GpioSensorComponentGt
 from gwsproto.named_types.hubitat_component_gt import HubitatComponentGt
@@ -158,6 +159,7 @@ __all__ = [
     "FsmFullReport",
     "Glitch",
     "GoDormant",
+    "GNodeGt",
     "Gw108GpioRelayComponentGt",
     "Gw108GpioSensorComponentGt",
     "Ha1Params",
