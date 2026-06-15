@@ -14,6 +14,7 @@ from gwsproto.named_types.hubitat_poller_component_gt import HubitatPollerCompon
 from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
     I2cMultichannelDtRelayComponentGt,
 )
+from gwsproto.named_types.pico_btu_meter_component_gt import PicoBtuMeterComponentGt
 from gwsproto.named_types.pico_flow_module_component_gt import PicoFlowModuleComponentGt
 from gwsproto.named_types.pico_tank_module_component_gt import PicoTankModuleComponentGt
 from gwsproto.named_types.sim_pico_tank_module_component_gt import (
@@ -28,6 +29,7 @@ House0Component = (
     | Ads111xBasedComponentGt
     | I2cMultichannelDtRelayComponentGt
     | DfrComponentGt
+    | PicoBtuMeterComponentGt
     | PicoFlowModuleComponentGt
     | PicoTankModuleComponentGt
     | SimPicoTankModuleComponentGt
