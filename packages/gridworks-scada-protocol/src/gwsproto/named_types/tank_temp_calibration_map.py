@@ -9,7 +9,7 @@ class TankTempCalibrationMap(BaseModel):
     Tank: dict[PositiveInt, TankTempCalibration]
 
     TypeName: Literal["gw1.tank.temp.calibration.map"] = "gw1.tank.temp.calibration.map"
-    Version: Literal["000"] = "000"
+    Version: Literal["001"] = "001"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

@@ -1105,10 +1105,10 @@
       "OutputUnit": "FahrenheitX100",
       "Parameters": {
         "Calibration": {
-          "B": -430.0,
+          "B": -430,
           "M": 1.069,
           "TypeName": "linear.one.dimensional.calibration",
-          "Version": "000"
+          "Version": "001"
         }
       },
       "Strategy": "affine",
@@ -1143,10 +1143,10 @@
       "OutputUnit": "FahrenheitX100",
       "Parameters": {
         "Calibration": {
-          "B": -430.0,
+          "B": -430,
           "M": 1.069,
           "TypeName": "linear.one.dimensional.calibration",
-          "Version": "000"
+          "Version": "001"
         }
       },
       "Strategy": "affine",
@@ -1166,10 +1166,10 @@
       "OutputUnit": "FahrenheitX100",
       "Parameters": {
         "Calibration": {
-          "B": -543.0,
+          "B": -543,
           "M": 1.045,
           "TypeName": "linear.one.dimensional.calibration",
-          "Version": "000"
+          "Version": "001"
         }
       },
       "Strategy": "affine",
@@ -1204,10 +1204,10 @@
       "OutputUnit": "FahrenheitX100",
       "Parameters": {
         "Calibration": {
-          "B": -543.0,
+          "B": -543,
           "M": 1.045,
           "TypeName": "linear.one.dimensional.calibration",
-          "Version": "000"
+          "Version": "001"
         }
       },
       "Strategy": "affine",
@@ -1227,10 +1227,10 @@
       "OutputUnit": "FahrenheitX100",
       "Parameters": {
         "Calibration": {
-          "B": -339.0,
+          "B": -339,
           "M": 1.047,
           "TypeName": "linear.one.dimensional.calibration",
-          "Version": "000"
+          "Version": "001"
         }
       },
       "Strategy": "affine",
@@ -1265,10 +1265,10 @@
       "OutputUnit": "FahrenheitX100",
       "Parameters": {
         "Calibration": {
-          "B": -339.0,
+          "B": -339,
           "M": 1.047,
           "TypeName": "linear.one.dimensional.calibration",
-          "Version": "000"
+          "Version": "001"
         }
       },
       "Strategy": "affine",
@@ -1288,10 +1288,10 @@
       "OutputUnit": "FahrenheitX100",
       "Parameters": {
         "Calibration": {
-          "B": -481.0,
+          "B": -108,
           "M": 1.085,
           "TypeName": "linear.one.dimensional.calibration",
-          "Version": "000"
+          "Version": "001"
         }
       },
       "Strategy": "affine",
@@ -1326,10 +1326,10 @@
       "OutputUnit": "FahrenheitX100",
       "Parameters": {
         "Calibration": {
-          "B": -481.0,
+          "B": -481,
           "M": 1.085,
           "TypeName": "linear.one.dimensional.calibration",
-          "Version": "000"
+          "Version": "001"
         }
       },
       "Strategy": "affine",
@@ -2133,7 +2133,7 @@
     },
     {
       "AsyncCaptureThresholdGpmTimes100": 10,
-      "ComponentId": "00f90bdb-3726-40fe-aeb2-7e06d4a266b9",
+      "ComponentId": "ba6d3502-eec5-494b-a3b3-0fbf6acdc486",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -2176,7 +2176,7 @@
     },
     {
       "AsyncCaptureThresholdGpmTimes100": 20,
-      "ComponentId": "f7182f02-68d5-4693-a596-ad560687b4b5",
+      "ComponentId": "89280e34-6b0d-4424-bdbe-15e51cadb9eb",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -2219,7 +2219,7 @@
     },
     {
       "AsyncCaptureThresholdGpmTimes100": 5,
-      "ComponentId": "231a1d55-f36a-482c-a89c-efa78e8bd748",
+      "ComponentId": "31e869df-a474-49b9-aeb4-322b87af8311",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -3217,7 +3217,7 @@
     {
       "ActorClass": "ApiFlowModule",
       "ActorHierarchyName": "s.sieg-flow",
-      "ComponentId": "00f90bdb-3726-40fe-aeb2-7e06d4a266b9",
+      "ComponentId": "ba6d3502-eec5-494b-a3b3-0fbf6acdc486",
       "DisplayName": "Sieg Flow",
       "Name": "sieg-flow",
       "ShNodeId": "d2abd082-8596-4be5-a694-27ef15fdadcd",
@@ -3227,7 +3227,7 @@
     {
       "ActorClass": "ApiFlowModule",
       "ActorHierarchyName": "s.store-flow",
-      "ComponentId": "f7182f02-68d5-4693-a596-ad560687b4b5",
+      "ComponentId": "89280e34-6b0d-4424-bdbe-15e51cadb9eb",
       "DisplayName": "Store Flow",
       "Name": "store-flow",
       "ShNodeId": "87f000ba-4233-4981-a138-fa2b9765d29a",
@@ -3237,7 +3237,7 @@
     {
       "ActorClass": "ApiFlowModule",
       "ActorHierarchyName": "s.dist-flow2",
-      "ComponentId": "231a1d55-f36a-482c-a89c-efa78e8bd748",
+      "ComponentId": "31e869df-a474-49b9-aeb4-322b87af8311",
       "DisplayName": "Dist Flow2",
       "Name": "dist-flow2",
       "ShNodeId": "fe060911-113d-4dd2-b985-5b985de22078",
@@ -3585,52 +3585,6 @@
   ],
   "Strategy": "House0",
   "SynthChannels": [],
-  "TankTempCalibrationMap": {
-    "Buffer": {
-      "Depth1B": -430.0,
-      "Depth1M": 1.069,
-      "Depth2B": 0.0,
-      "Depth2M": 1.0,
-      "Depth3B": -430.0,
-      "Depth3M": 1.069,
-      "TypeName": "gw1.tank.temp.calibration",
-      "Version": "000"
-    },
-    "Tank": {
-      "1": {
-        "Depth1B": -543.0,
-        "Depth1M": 1.045,
-        "Depth2B": 0.0,
-        "Depth2M": 1.0,
-        "Depth3B": -543.0,
-        "Depth3M": 1.045,
-        "TypeName": "gw1.tank.temp.calibration",
-        "Version": "000"
-      },
-      "2": {
-        "Depth1B": -339.0,
-        "Depth1M": 1.047,
-        "Depth2B": 0.0,
-        "Depth2M": 1.0,
-        "Depth3B": -339.0,
-        "Depth3M": 1.047,
-        "TypeName": "gw1.tank.temp.calibration",
-        "Version": "000"
-      },
-      "3": {
-        "Depth1B": -481.0,
-        "Depth1M": 1.085,
-        "Depth2B": 0.0,
-        "Depth2M": 1.0,
-        "Depth3B": -481.0,
-        "Depth3M": 1.085,
-        "TypeName": "gw1.tank.temp.calibration",
-        "Version": "000"
-      }
-    },
-    "TypeName": "gw1.tank.temp.calibration.map",
-    "Version": "000"
-  },
   "TotalStoreTanks": 3,
   "UseSiegLoop": false,
   "ZoneKwhPerDegFList": [

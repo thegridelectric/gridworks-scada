@@ -541,7 +541,9 @@ class LayoutDb:
             self.misc["TotalStoreTanks"] = self.loaded.total_store_tanks
         else:
             self.misc["TotalStoreTanks"] =  self.loaded.total_store_tanks
-        self.misc["TankTempCalibrationMap"] = tmap.model_dump()
+        # tmap is a generation-time input only: it populates the per-depth
+        # calibrated derived channels (add_house0_derived_channels). The map is no
+        # longer stored in the layout — the derived channels are the source of truth.
         self.misc["Strategy"] = self.loaded.strategy
         self.misc["FlowManifoldVariant"] = cfg.flow_manifold_variant
         self.misc["UseSiegLoop"] = cfg.use_sieg_loop

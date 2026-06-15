@@ -29,7 +29,7 @@ from gwsproto.named_types import (
     Ha1Params, HeatingForecast, LinearOneDimensionalCalibration,
     RequiredEnergyLayered, ScadaParams,
     SingleReading, SyncedReadings,
-    UsableEnergyLayered, WeatherForecast, TankTempCalibration
+    UsableEnergyLayered, WeatherForecast
 )
 from scada_app_interface import ScadaAppInterface
 
@@ -269,9 +269,10 @@ class DerivedGenerator(ShNodeActor):
         if x is None:
             return
 
-        y = calib.M * x + calib.B
+        # v001 calibration: B is an integer in the OutputUnit (FahrenheitX100)
+        # scaling, so apply M to the FahrenheitX100-scaled input and add B there.
         assert dc.OutputUnit == GwUnit.FahrenheitX100
-        temp_x100 = int(y * 100)
+        temp_x100 = int(calib.M * (x * 100) + calib.B)
         self._send_to(
             self.primary_scada,
             SingleReading(
@@ -667,93 +668,6 @@ class DerivedGenerator(ShNodeActor):
                     )
         return Ok(True)
 
-    def hack_maple_primary_flow(self, from_node: ShNode, payload: SyncedReadings) -> None:
-        """
-        Compute primary-flow = sieg-send + sieg-flow using one fresh value
-        from payload and one cached value from latest_channel_values.
-        """
-        if from_node.name == "sieg-send":
-            sieg_send = payload.get_value("sieg-send")
-            sieg_flow = self.data.latest_channel_values.get("sieg-flow")
-        elif from_node.name == "sieg-btu":
-            sieg_flow = payload.get_value("sieg-flow")
-            sieg_send = self.data.latest_channel_values.get("sieg-send")
-        else:
-            self.log("hack_maple_primary_flow only expects sieg-send and seig-flow")
-            return
-        if sieg_flow is None or sieg_send is None:
-            # self.log(f"Not calculating primary-flow: sieg_send {sieg_send}, sieg_flow: {sieg_flow}")
-            return
-        primary_flow = sieg_send + sieg_flow
-        msg = SingleReading(
-            ChannelName="primary-flow",
-            Value=primary_flow,
-            ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs
-        )
-        
-        self._send_to(self.primary_scada, msg)
-
-    def process_synced_readings(self, from_node: ShNode, payload: SyncedReadings) -> None:
-        if from_node.name == "sieg-send" or from_node.name == "sieg-btu":
-            self.hack_maple_primary_flow(from_node, payload)
-            return
-        elif from_node.name == H0N.buffer.reader:
-            calibration = self.tmap.Buffer
-            tank= H0CN.buffer
-        else:
-            tank_index = self.layout.h0n.tank_index(from_node.name)
-            if tank_index is None:
-                self.send_info(f"derived-generator got SyncedReadings from {from_node.name}"
-                               " and only expects from tanks!")
-                return
-            calibration = self.tmap.Tank[tank_index]
-            tank = self.h0cn.tank[tank_index]
-
-        channel_names = []
-        values = []
-        for device_ch, raw_value,  in zip(payload.ChannelNameList, payload.ValueList):
-            if device_ch not in tank.devices:
-                continue # i.e. don't process micro-volts
-
-            device_unit = self.layout.channel_registry.unit(device_ch)
-            assert device_unit is not None
-            device_temp_f = convert_temp_to_f(raw_value, device_unit)
-            if device_temp_f is None:
-                continue
-
-            depth = tank.device_depth(device_ch)
-            m, b = self._depth_calibration(calibration, depth)
-
-            # Use linear approximation from TankTempCalibrationMap
-            temp_f =  m * device_temp_f + b
-            ch = tank.device_to_effective(device_ch)
-            #self.log(f"Got {round(device_temp_f,1)} F for {device_ch}")
-            #self.log(f"{ch}: {round(temp_f, 1)}  = {m} * {round(device_temp_f,1)} + {b} ")
-
-            # Derived tank temp channels have gw1.unit FahrenheitX100
-            channel_names.append(ch)
-            values.append(int(temp_f * 100))
-
-        msg = SyncedReadings(
-            ChannelNameList=channel_names,
-            ValueList=values, # in FahrenheitX100
-            ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs
-        )
-        self._send_to(self.primary_scada, msg)
-
-    def _depth_calibration(
-        self,
-        calibration: TankTempCalibration,
-        depth: int,
-    ) -> tuple[float, float]:
-        if depth == 1:
-            return calibration.Depth1M, calibration.Depth1B
-        if depth == 2:
-            return calibration.Depth2M, calibration.Depth2B
-        if depth == 3:
-            return calibration.Depth3M, calibration.Depth3B
-        raise ValueError(f"Unsupported depth {depth}")
-    
     def _dispatch_derived_input(self, payload: SingleReading) -> None:
         derived_channels = self.derived_by_input.get(payload.ChannelName)
         if not derived_channels:

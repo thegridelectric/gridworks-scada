@@ -1205,10 +1205,10 @@
       "OutputUnit": "FahrenheitX100",
       "Parameters": {
         "Calibration": {
-          "B": -18.44,
+          "B": -1844,
           "M": 1.28,
           "TypeName": "linear.one.dimensional.calibration",
-          "Version": "000"
+          "Version": "001"
         }
       },
       "Strategy": "affine",
@@ -1243,10 +1243,10 @@
       "OutputUnit": "FahrenheitX100",
       "Parameters": {
         "Calibration": {
-          "B": -18.44,
+          "B": -1844,
           "M": 1.28,
           "TypeName": "linear.one.dimensional.calibration",
-          "Version": "000"
+          "Version": "001"
         }
       },
       "Strategy": "affine",
@@ -2185,7 +2185,7 @@
     },
     {
       "AsyncCaptureThresholdGpmTimes100": 20,
-      "ComponentId": "4f5314c2-6609-48e6-ae98-af86d5b21f2e",
+      "ComponentId": "e446235c-b5a6-41b2-b5ad-3f3b9d04affe",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -2228,7 +2228,7 @@
     },
     {
       "AsyncCaptureThresholdGpmTimes100": 20,
-      "ComponentId": "b0a3cc68-b671-4f7f-8c11-03a3be5e4f97",
+      "ComponentId": "97f00ba7-dfee-46c3-8c31-931bdc7a4f1f",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -2271,7 +2271,7 @@
     },
     {
       "AsyncCaptureThresholdGpmTimes100": 20,
-      "ComponentId": "099895d2-4f6b-44c3-825f-f9063b738832",
+      "ComponentId": "bfd5bf1b-0462-45e6-8d14-9da7cc8e07d7",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -3545,7 +3545,7 @@
     {
       "ActorClass": "ApiFlowModule",
       "ActorHierarchyName": "s.dist-flow",
-      "ComponentId": "4f5314c2-6609-48e6-ae98-af86d5b21f2e",
+      "ComponentId": "e446235c-b5a6-41b2-b5ad-3f3b9d04affe",
       "DisplayName": "Dist Flow",
       "Name": "dist-flow",
       "ShNodeId": "5bf14719-879a-46a5-9bd4-cb5f55f15245",
@@ -3555,7 +3555,7 @@
     {
       "ActorClass": "ApiFlowModule",
       "ActorHierarchyName": "s.store-flow",
-      "ComponentId": "b0a3cc68-b671-4f7f-8c11-03a3be5e4f97",
+      "ComponentId": "97f00ba7-dfee-46c3-8c31-931bdc7a4f1f",
       "DisplayName": "Store Flow",
       "Name": "store-flow",
       "ShNodeId": "d45dbff8-aa55-403b-a827-f62203fa5bdc",
@@ -3565,7 +3565,7 @@
     {
       "ActorClass": "ApiFlowModule",
       "ActorHierarchyName": "s.primary-flow",
-      "ComponentId": "099895d2-4f6b-44c3-825f-f9063b738832",
+      "ComponentId": "bfd5bf1b-0462-45e6-8d14-9da7cc8e07d7",
       "DisplayName": "Primary Flow",
       "Name": "primary-flow",
       "ShNodeId": "cae849fd-e54a-4fc7-ba94-478708793e9c",
@@ -3867,52 +3867,6 @@
   ],
   "Strategy": "House0",
   "SynthChannels": [],
-  "TankTempCalibrationMap": {
-    "Buffer": {
-      "Depth1B": -18.44,
-      "Depth1M": 1.28,
-      "Depth2B": 0.0,
-      "Depth2M": 1.0,
-      "Depth3B": -18.44,
-      "Depth3M": 1.28,
-      "TypeName": "gw1.tank.temp.calibration",
-      "Version": "000"
-    },
-    "Tank": {
-      "1": {
-        "Depth1B": 0.0,
-        "Depth1M": 1.0,
-        "Depth2B": 0.0,
-        "Depth2M": 1.0,
-        "Depth3B": 0.0,
-        "Depth3M": 1.0,
-        "TypeName": "gw1.tank.temp.calibration",
-        "Version": "000"
-      },
-      "2": {
-        "Depth1B": 0.0,
-        "Depth1M": 1.0,
-        "Depth2B": 0.0,
-        "Depth2M": 1.0,
-        "Depth3B": 0.0,
-        "Depth3M": 1.0,
-        "TypeName": "gw1.tank.temp.calibration",
-        "Version": "000"
-      },
-      "3": {
-        "Depth1B": 0.0,
-        "Depth1M": 1.0,
-        "Depth2B": 0.0,
-        "Depth2M": 1.0,
-        "Depth3B": 0.0,
-        "Depth3M": 1.0,
-        "TypeName": "gw1.tank.temp.calibration",
-        "Version": "000"
-      }
-    },
-    "TypeName": "gw1.tank.temp.calibration.map",
-    "Version": "000"
-  },
   "TotalStoreTanks": 3,
   "UseSiegLoop": false,
   "ZoneKwhPerDegFList": [

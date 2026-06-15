@@ -1064,32 +1064,6 @@
   ],
   "Strategy": "Nolan",
   "SynthChannels": [],
-  "TankTempCalibrationMap": {
-    "Buffer": {
-      "Depth1B": 0.0,
-      "Depth1M": 1.0,
-      "Depth2B": 0.0,
-      "Depth2M": 1.0,
-      "Depth3B": 0.0,
-      "Depth3M": 1.0,
-      "TypeName": "gw1.tank.temp.calibration",
-      "Version": "000"
-    },
-    "Tank": {
-      "1": {
-        "Depth1B": 0.0,
-        "Depth1M": 1.0,
-        "Depth2B": 0.0,
-        "Depth2M": 1.0,
-        "Depth3B": 0.0,
-        "Depth3M": 1.0,
-        "TypeName": "gw1.tank.temp.calibration",
-        "Version": "000"
-      }
-    },
-    "TypeName": "gw1.tank.temp.calibration.map",
-    "Version": "000"
-  },
   "TotalStoreTanks": 1,
   "UseSiegLoop": false,
   "ZoneKwhPerDegFList": [
