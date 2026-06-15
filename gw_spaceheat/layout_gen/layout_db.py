@@ -35,6 +35,7 @@ from gwsproto.named_types import (
 class StubConfig:
     flow_manifold_variant: FlowManifoldVariant = FlowManifoldVariant.House0
     use_sieg_loop: bool = False
+    primary_flow_source: str = "Measured"  # "Measured" | "DerivedSiegSum"
     ltn_gnode_alias: str = "ltn.orange"
     terminal_asset_alias: Optional[str] = None
     zone_list: typing.Sequence[str] = field(default_factory=tuple)
@@ -523,11 +524,12 @@ class LayoutDb:
                 "TypeName": "g.node.gt",
                 "Version": "004",
             }
+        # Flat hydronic keys the per-device builders read during generation; the
+        # output (db.dict) folds them into the typed nested "Hydronic" block.
         if self.loaded.zone_list:
             self.misc["ZoneList"] = self.loaded.zone_list
         else:
             self.misc["ZoneList"] = cfg.zone_list
-
         if self.loaded.critical_zone_list:
             self.misc["CriticalZoneList"] = self.loaded.critical_zone_list
         else:
@@ -536,17 +538,14 @@ class LayoutDb:
             self.misc["ZoneKwhPerDegFList"] = self.loaded.zone_kwh_per_deg_f_list
         else:
             self.misc["ZoneKwhPerDegFList"] = cfg.zone_kwh_per_deg_f_list
-
-        if self.loaded.total_store_tanks:
-            self.misc["TotalStoreTanks"] = self.loaded.total_store_tanks
-        else:
-            self.misc["TotalStoreTanks"] =  self.loaded.total_store_tanks
-        # tmap is a generation-time input only: it populates the per-depth
-        # calibrated derived channels (add_house0_derived_channels). The map is no
-        # longer stored in the layout — the derived channels are the source of truth.
+        self.misc["TotalStoreTanks"] = self.loaded.total_store_tanks
+        # tmap is a generation-time input only: it populates the per-depth calibrated
+        # derived channels (add_house0_derived_channels). The map is no longer stored in
+        # the layout — the derived channels are the source of truth.
         self.misc["Strategy"] = self.loaded.strategy
         self.misc["FlowManifoldVariant"] = cfg.flow_manifold_variant
         self.misc["UseSiegLoop"] = cfg.use_sieg_loop
+        self.misc["PrimaryFlowSource"] = cfg.primary_flow_source
         self.add_nodes(
             [
                 SpaceheatNodeGt(
@@ -772,6 +771,37 @@ class LayoutDb:
                 for list_name, entries in self.lists.items()
             }
         )
+        return self._nest_hydronic(d)
+
+    @staticmethod
+    def _nest_hydronic(d: dict) -> dict:
+        """Fold the flat hydronic keys (which the builders write) into the typed
+        nested gw.house0.hydronic 'Hydronic' block the layout carries."""
+        if "ZoneList" not in d:
+            return d
+        critical = set(d.pop("CriticalZoneList", []))
+        zone_list = d.pop("ZoneList")
+        zone_kwh = d.pop("ZoneKwhPerDegFList", [])
+        fmv = d.pop("FlowManifoldVariant", FlowManifoldVariant.House0)
+        d["Hydronic"] = {
+            "Zones": [
+                {
+                    "Name": name,
+                    "Critical": name in critical,
+                    "KwhPerDegF": kwh,
+                    "TypeName": "gw1.hvac.zone",
+                    "Version": "000",
+                }
+                for name, kwh in zip(zone_list, zone_kwh)
+            ],
+            "TotalStoreTanks": d.pop("TotalStoreTanks", 0),
+            "UseSiegLoop": d.pop("UseSiegLoop", False),
+            "SiegLoopPlumbed": fmv == FlowManifoldVariant.House0Sieg,
+            "PrimaryFlowSource": d.pop("PrimaryFlowSource", "Measured"),
+            "Strategy": d.pop("Strategy", "House0"),
+            "TypeName": "gw.house0.hydronic",
+            "Version": "000",
+        }
         return d
 
     def write(self, path: str | Path) -> None:
