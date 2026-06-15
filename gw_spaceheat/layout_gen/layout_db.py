@@ -664,7 +664,9 @@ class LayoutDb:
                 Name = H0CN.hp_keep_seconds_x_10,
                 CreatedByNodeName = H0N.sieg_loop,
                 TerminalAssetAlias = self.terminal_asset_alias,
-                Strategy = "Integrate relay motion",
+                # Produced by the SiegLoop actor (not derived-generator, which skips it).
+                Strategy = "integrate-relay-motion",
+                EmissionMethod = EmissionMethod.OnTrigger,
                 DisplayName = "Percent keep in the Siegenthaler loop",
                 )
             ]

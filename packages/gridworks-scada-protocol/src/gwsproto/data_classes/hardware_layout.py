@@ -740,6 +740,24 @@ class HardwareLayout:
                             "but must use EmissionMethod.Periodic"
                         )
 
+                case "sum":
+                    # e.g. maple's derived primary-flow = sieg-send + sieg-flow.
+                    if len(dc.InputChannelNames) < 2:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy 'sum' but must "
+                            "declare at least two InputChannelNames"
+                        )
+                    if dc.EmissionMethod != EmissionMethod.OnTrigger:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy 'sum' but must "
+                            "use EmissionMethod.OnTrigger"
+                        )
+
+                case "integrate-relay-motion":
+                    # Produced by the SiegLoop actor (not derived-generator); no
+                    # derived-generator-side validation here.
+                    pass
+
                 case _:
                     errors.append(
                         f"DerivedChannel '{dc.Name}' uses unsupported strategy "
