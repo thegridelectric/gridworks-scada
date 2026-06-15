@@ -28,7 +28,7 @@ class PicoFlowModuleComponentGt(ComponentGt):
     ExpAlpha: Optional[float] = None
     CutoffFrequency: Optional[float] = None
     TypeName: Literal["pico.flow.module.component.gt"] = "pico.flow.module.component.gt"
-    Version: Literal["000"] = "000"
+    Version: Literal["001"] = "001"
 
     @field_validator("HwUid")
     @classmethod

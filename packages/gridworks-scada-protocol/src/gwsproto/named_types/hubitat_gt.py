@@ -1,5 +1,5 @@
 import typing
-from typing import Optional
+from typing import Literal, Optional
 
 import yarl
 from pydantic import BaseModel, ConfigDict
@@ -45,6 +45,8 @@ class HubitatGt(BaseModel):
     AccessToken: str
     MacAddress: MacAddress
     WebListenEnabled: bool = True
+    TypeName: Literal["hubitat.gt"] = "hubitat.gt"
+    Version: Literal["000"] = "000"
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
     @property

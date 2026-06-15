@@ -12,7 +12,7 @@ class Gw108GpioSensorComponentGt(ComponentGt):
     SendToDerived: bool = False
 
     TypeName: Literal["gw108.gpio.sensor.component.gt"] = "gw108.gpio.sensor.component.gt"
-    Version: Literal["001"] = "001"
+    Version: Literal["002"] = "002"
 
     @field_validator("ConfigList")
     @classmethod

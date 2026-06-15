@@ -39,7 +39,11 @@ from gwsproto.named_types.fsm_full_report import FsmFullReport
 from gwsproto.named_types.gw108_gpio_relay_component_gt import Gw108GpioRelayComponentGt
 from gwsproto.named_types.gw108_gpio_sensor_component_gt import Gw108GpioSensorComponentGt
 from gwsproto.named_types.hubitat_component_gt import HubitatComponentGt
+from gwsproto.named_types.hubitat_gt import HubitatGt
 from gwsproto.named_types.hubitat_poller_component_gt import HubitatPollerComponentGt
+from gwsproto.named_types.hubitat_poller_gt import HubitatPollerGt, MakerAPIAttributeGt
+from gwsproto.named_types.sim_relay_component_gt import SimRelayComponentGt
+from gwsproto.named_types.sim_sensor_component_gt import SimSensorComponentGt
 from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
     I2cMultichannelDtRelayComponentGt,
 )
@@ -161,7 +165,12 @@ __all__ = [
     "HackOilOn",
     "HeatingForecast",
     "HubitatComponentGt",
+    "HubitatGt",
     "HubitatPollerComponentGt",
+    "HubitatPollerGt",
+    "MakerAPIAttributeGt",
+    "SimRelayComponentGt",
+    "SimSensorComponentGt",
     "I2cMultichannelDtRelayComponentGt",
     "I2cReadBit",
     "I2cResult",

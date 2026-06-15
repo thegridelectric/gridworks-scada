@@ -22,7 +22,7 @@ class PicoTankModuleComponentGt(ComponentGt):
     AsyncCaptureDeltaMicroVolts: int
     SensorOrder: list[int] | None = None
     TypeName: Literal["pico.tank.module.component.gt"] = "pico.tank.module.component.gt"
-    Version: Literal["011"] = "011"
+    Version: Literal["012"] = "012"
 
     model_config = ConfigDict(extra="allow")
 

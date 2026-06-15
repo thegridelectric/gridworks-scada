@@ -33,7 +33,7 @@ class PicoBtuMeterComponentGt(ComponentGt):
     AsyncCaptureDeltaCelsiusX100: StrictInt
     AsyncCaptureDeltaCtVoltsX100: Optional[StrictInt] = None
     TypeName: Literal["pico.btu.meter.component.gt"] = "pico.btu.meter.component.gt"
-    Version: Literal["000"] = "000"
+    Version: Literal["001"] = "001"
 
     model_config = ConfigDict(use_enum_values=True)
 

@@ -11,7 +11,7 @@ class Gw108GpioRelayComponentGt(ComponentGt):
     GpioPin: PositiveInt
     ConfigList: list[RelayActorConfig]
     TypeName: Literal["gw108.vdc.relay.component.gt"] = "gw108.vdc.relay.component.gt"
-    Version: Literal["001"] = "001"
+    Version: Literal["002"] = "002"
 
     @field_validator("ConfigList")
     @classmethod

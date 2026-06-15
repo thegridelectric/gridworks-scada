@@ -17,7 +17,7 @@ class I2cThermistorReaderComponentGt(ComponentGt):
     ConfigList: Sequence[I2cThermistorChannelConfig]
 
     TypeName: Literal["i2c.thermistor.reader.component.gt"] = "i2c.thermistor.reader.component.gt"
-    Version: Literal["001"] = "001"
+    Version: Literal["002"] = "002"
 
 
     @model_validator(mode="after")

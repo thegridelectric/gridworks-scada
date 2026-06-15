@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict
 
 from gwsproto.enums import TelemetryName, Unit
@@ -17,6 +19,8 @@ class MakerAPIAttributeGt(BaseModel):
     web_listen_enabled: bool = True
     report_missing: bool = True
     report_parse_error: bool = True
+    type_name: Literal["maker.api.attribute.gt"] = "maker.api.attribute.gt"
+    version: Literal["000"] = "000"
 
     model_config = ConfigDict(
         extra="allow",
@@ -33,6 +37,8 @@ class HubitatPollerGt(BaseModel):
     enabled: bool = True
     web_listen_enabled: bool = True
     poll_period_seconds: float = 60
+    type_name: Literal["hubitat.poller.gt"] = "hubitat.poller.gt"
+    version: Literal["000"] = "000"
     model_config = ConfigDict(
         extra="allow", alias_generator=snake_to_camel, populate_by_name=True
     )

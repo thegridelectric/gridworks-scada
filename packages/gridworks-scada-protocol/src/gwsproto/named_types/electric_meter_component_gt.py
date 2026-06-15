@@ -12,7 +12,7 @@ class ElectricMeterComponentGt(ComponentGt):
     ModbusPort: PositiveInt | None = None
     ConfigList: Sequence[ElectricMeterChannelConfig]
     TypeName: Literal["electric.meter.component.gt"] = "electric.meter.component.gt"
-    Version: Literal["001"] = "001"
+    Version: Literal["002"] = "002"
 
     @field_validator("ConfigList")
     @classmethod

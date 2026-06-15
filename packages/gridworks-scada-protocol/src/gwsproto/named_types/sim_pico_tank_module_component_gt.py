@@ -23,9 +23,9 @@ class SimPicoTankModuleComponentGt(ComponentGt):
     AsyncCaptureDeltaMicroVolts: int
     SensorOrder: list[int] | None = None
     SimulatesTypeName: Literal["pico.tank.module.component.gt"] = "pico.tank.module.component.gt"
-    SimulatesVersion: Literal["011"] = "011"
+    SimulatesVersion: Literal["012"] = "012"
     TypeName: Literal["sim.pico.tank.module.component.gt"] = "sim.pico.tank.module.component.gt"
-    Version: Literal["000"] = "000"
+    Version: Literal["001"] = "001"
 
     model_config = ConfigDict(extra="allow")
 
