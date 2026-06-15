@@ -14,6 +14,8 @@ from gwsproto.names.nolan.node_names import NolanNodeNames
 
 from gwsproto.data_classes.house_0_names import H0CN, H0N, ScadaWeb
 from gwsproto.enums import FlowManifoldVariant
+from gwsproto.named_types.gw1_hvac_zone import Gw1HvacZone
+from gwsproto.named_types.gw_house0_hydronic import GwHouse0Hydronic
 
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.decoders import (
@@ -78,49 +80,28 @@ class House0Layout(HardwareLayout):
             derived_channels=derived_channels,
         )
         self.derived_channels = self.load_derived_channels(layout, self.nodes)
-        self.flow_manifold_variant = flow_manifold_variant
-        self.use_sieg_loop = use_sieg_loop
 
-        # ---- Required House0 layout keys ----
-        required_keys = [
-            "ZoneList",
-            "CriticalZoneList",
-            "TotalStoreTanks",
-            "ZoneKwhPerDegFList",
-        ]
-        for key in required_keys:
-            if key not in layout:
-                raise DcError(f"House0 requires {key}!")
-
-        # ---- Simple field extraction ----
-        self.zone_list = layout["ZoneList"]
-        self.critical_zone_list = layout["CriticalZoneList"]
-        self.zone_kwh_per_deg_f_list = layout["ZoneKwhPerDegFList"]
-        self.total_store_tanks = layout["TotalStoreTanks"]
-
-        # Tank-temp calibration is no longer a layout-level map: each tank depth's
-        # calibration lives in its (identity/affine) derived channel. See
-        # validate_tank_temp_calibration_consistency below.
-
-        if not isinstance(self.total_store_tanks, int):
-            raise TypeError("TotalStoreTanks must be an integer")
+        # ---- Hydronic block (the gw.house0.hydronic type lives on the dataclass) ----
+        # Accept the typed nested "Hydronic" if present; else build it from the legacy
+        # flat top-level keys (transitional, while layout_gen + fixtures migrate).
+        self.hydronic = self._build_hydronic(
+            layout, self.derived_channels, flow_manifold_variant, use_sieg_loop
+        )
+        # Flat accessors derived from the typed hydronic (actor code reads these).
+        self.zone_list = [z.Name for z in self.hydronic.Zones]
+        self.critical_zone_list = [z.Name for z in self.hydronic.Zones if z.Critical]
+        self.zone_kwh_per_deg_f_list = [z.KwhPerDegF for z in self.hydronic.Zones]
+        self.total_store_tanks = self.hydronic.TotalStoreTanks
+        self.use_sieg_loop = self.hydronic.UseSiegLoop
+        self.flow_manifold_variant = (
+            FlowManifoldVariant.House0Sieg
+            if self.hydronic.SiegLoopPlumbed
+            else FlowManifoldVariant.House0
+        )
         if not 1 <= self.total_store_tanks <= 6:
             raise ValueError("Must have between 1 and 6 store tanks")
-        if not isinstance(self.zone_list, List):
-            raise TypeError("ZoneList must be a list")
         if not 1 <= len(self.zone_list) <= 6:
             raise ValueError("Must have between 1 and 6 store zones")
-        if not isinstance(self.critical_zone_list, List):
-            raise TypeError("CriticalZoneList must be a list")
-        if not len(self.critical_zone_list) <= len(self.zone_list):
-            raise ValueError("CriticalZoneList must be a subset of ZoneList")
-        for zone in self.critical_zone_list:
-            if zone not in self.zone_list:
-                raise ValueError(f"{zone} is in CriticalZoneList but not in ZoneList")
-        if not isinstance(self.zone_kwh_per_deg_f_list, List):
-            raise TypeError("ZoneKwhPerDegFList must be a list")
-        if not len(self.zone_kwh_per_deg_f_list) == len(self.zone_list):
-            raise ValueError("ZoneKwhPerDegFList must have the same number of elements as ZoneList")
         self.h0n = H0N(self.total_store_tanks, self.zone_list)
         self.h0cn = H0CN(self.total_store_tanks, self.zone_list)
         web_servers = {
@@ -370,6 +351,41 @@ class House0Layout(HardwareLayout):
                     raise
                 errors_caught.append(LoadError("hardware.layout", nodes, e))
 
+    @staticmethod
+    def _build_hydronic(
+        layout: dict,
+        derived_channels: dict,
+        flow_manifold_variant: FlowManifoldVariant,
+        use_sieg_loop: bool,
+    ) -> GwHouse0Hydronic:
+        """The typed gw.house0.hydronic for this layout: read the nested 'Hydronic'
+        block if present, else build it from the legacy flat top-level keys
+        (transitional, while layout_gen + fixtures migrate to the nested block)."""
+        h = layout.get("Hydronic")
+        if isinstance(h, dict) and "Zones" in h:
+            return GwHouse0Hydronic.model_validate(h)
+        for key in ("ZoneList", "CriticalZoneList", "TotalStoreTanks", "ZoneKwhPerDegFList"):
+            if key not in layout:
+                raise DcError(f"House0 requires {key} (or a typed Hydronic block)!")
+        critical = set(layout["CriticalZoneList"])
+        # PrimaryFlowSource follows the actual primary-flow channel: a `sum`
+        # DerivedChannel => DerivedSiegSum; otherwise Measured (a DataChannel).
+        primary_derived = any(
+            d.Name == "primary-flow" and d.Strategy == "sum"
+            for d in derived_channels.values()
+        )
+        return GwHouse0Hydronic(
+            Zones=[
+                Gw1HvacZone(Name=name, Critical=name in critical, KwhPerDegF=float(kwh))
+                for name, kwh in zip(layout["ZoneList"], layout["ZoneKwhPerDegFList"])
+            ],
+            TotalStoreTanks=layout["TotalStoreTanks"],
+            UseSiegLoop=use_sieg_loop,
+            SiegLoopPlumbed=flow_manifold_variant == FlowManifoldVariant.House0Sieg,
+            PrimaryFlowSource="DerivedSiegSum" if primary_derived else "Measured",
+            Strategy=layout.get("Strategy", "House0"),
+        )
+
     @classmethod
     def check_house0_sieg_manifold(cls, channels: dict[str, DataChannel]) -> None:
         # if H0CN.sieg_cold not in channels.keys():
@@ -486,14 +502,27 @@ class House0Layout(HardwareLayout):
             raise_errors=raise_errors,
             errors=errors,
         )
+        # Read the sieg topology from the typed Hydronic block if present, else
+        # from the legacy flat top-level keys (transitional).
+        _hyd = layout.get("Hydronic")
+        if isinstance(_hyd, dict) and "Zones" in _hyd:
+            _fmv = (
+                FlowManifoldVariant.House0Sieg
+                if _hyd.get("SiegLoopPlumbed")
+                else FlowManifoldVariant.House0
+            )
+            _usl = bool(_hyd.get("UseSiegLoop", False))
+        else:
+            _fmv = FlowManifoldVariant(layout.get("FlowManifoldVariant", "House0"))
+            _usl = bool(layout.get("UseSiegLoop", False))
         load_args: House0LoadArgs = {
             "cacs": cacs,
             "components": components,
             "nodes": nodes,
             "data_channels": data_channels,
             "derived_channels": derived_channels,
-            "flow_manifold_variant": FlowManifoldVariant(layout.get("FlowManifoldVariant", "House0")),
-            "use_sieg_loop": bool(layout.get("UseSiegLoop", False))
+            "flow_manifold_variant": _fmv,
+            "use_sieg_loop": _usl,
         }
         cls.resolve_links(
             load_args["nodes"],

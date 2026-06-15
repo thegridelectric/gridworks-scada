@@ -76,6 +76,7 @@ class HydronicSpaceheatNodeNames:
     sieg_flow = "sieg-flow"
     sieg_cold = "sieg-cold"
     sieg_loop = "sieg-loop"
+    sieg_send = "sieg-send"
     
     oat = "oat"
 

@@ -121,8 +121,9 @@ class HydronicSpaceheatChannelNames:
     buffer_bottom_relay_state = "buffer-bottom-relay"
 
     store_top_relay_state= "store-top-relay"
-    store_bottom_relay_state = "store-bottom-relay"
+    store_bottom_relay_state = "storesie-bottom-relay"
     sieg_cold = HNN.sieg_cold
+    sieg_send = HNN.sieg_send
 
     
     hp_keep_seconds_x_10 = "hp-keep-seconds-x-10"

@@ -17,10 +17,13 @@ from pathlib import Path
 from typing import Any
 
 from gwsproto.data_classes.house_0_layout import House0Layout as House0Dc
+from gwsproto.enums import FlowManifoldVariant
 from gwsproto.named_types import (
     DataChannelGt,
     DerivedChannelGt,
     GNodeGt,
+    Gw1HvacZone,
+    GwHouse0Hydronic,
     House0Layout as House0Sema,
     SpaceheatNodeGt,
 )
@@ -63,7 +66,7 @@ def dc_to_sema(dc: House0Dc) -> tuple[House0Sema, list[str]]:
         DerivedChannels=[as_base(c, DerivedChannelGt) for c in dc.derived_channels.values()],
         Components=[c.gt for c in dc.components.values()],
         DeviceTypes=list(dc.cacs.values()),
-        Hydronic={k: dc.layout[k] for k in HYDRONIC_KEYS if k in dc.layout},
+        Hydronic=dc.hydronic,
     )
     return sema, gaps
 
@@ -82,7 +85,10 @@ def sema_to_layout_dict(sema: House0Sema, *, gnode_src: dict[str, Any]) -> dict[
     for gn in (sema.GNodes or []):
         key = by_class.get(gn.GNodeClass, "MyLeafTransactiveNodeGNode")
         layout[key] = gn.model_dump(by_alias=True, exclude_none=True, mode="json")
-    layout.update({k: v for k, v in (sema.Hydronic or {}).items()})
+    if sema.Hydronic is not None:
+        layout["Hydronic"] = sema.Hydronic.model_dump(
+            by_alias=True, exclude_none=True, mode="json"
+        )
     layout["ShNodes"] = [n.model_dump(by_alias=True, exclude_none=True, mode="json") for n in (sema.ShNodes or [])]
     layout["DataChannels"] = [c.model_dump(by_alias=True, exclude_none=True, mode="json") for c in (sema.DataChannels or [])]
     layout["DerivedChannels"] = [c.model_dump(by_alias=True, exclude_none=True, mode="json") for c in (sema.DerivedChannels or [])]
@@ -118,7 +124,12 @@ def main() -> int:
     print(f"  DerivedChannels: {len(sema.DerivedChannels or [])}")
     print(f"  Components:      {len(sema.Components or [])}")
     print(f"  DeviceTypes:     {len(sema.DeviceTypes or [])}")
-    print(f"  Hydronic keys:   {sorted((sema.Hydronic or {}).keys())}")
+    if sema.Hydronic is not None:
+        print(
+            f"  Hydronic:        zones={len(sema.Hydronic.Zones)} "
+            f"sieg_plumbed={sema.Hydronic.SiegLoopPlumbed} "
+            f"primary_flow_source={sema.Hydronic.PrimaryFlowSource}"
+        )
     if gaps:
         print("  GAPS:")
         for g in gaps:
