@@ -81,15 +81,15 @@ def sema_to_layout_dict(sema: House0Sema, *, gnode_src: dict[str, Any]) -> dict[
     }
     for gn in (sema.GNodes or []):
         key = by_class.get(gn.GNodeClass, "MyLeafTransactiveNodeGNode")
-        layout[key] = gn.model_dump(exclude_none=True, mode="json")
+        layout[key] = gn.model_dump(by_alias=True, exclude_none=True, mode="json")
     layout.update({k: v for k, v in (sema.Hydronic or {}).items()})
-    layout["ShNodes"] = [n.model_dump(exclude_none=True, mode="json") for n in (sema.ShNodes or [])]
-    layout["DataChannels"] = [c.model_dump(exclude_none=True, mode="json") for c in (sema.DataChannels or [])]
-    layout["DerivedChannels"] = [c.model_dump(exclude_none=True, mode="json") for c in (sema.DerivedChannels or [])]
+    layout["ShNodes"] = [n.model_dump(by_alias=True, exclude_none=True, mode="json") for n in (sema.ShNodes or [])]
+    layout["DataChannels"] = [c.model_dump(by_alias=True, exclude_none=True, mode="json") for c in (sema.DataChannels or [])]
+    layout["DerivedChannels"] = [c.model_dump(by_alias=True, exclude_none=True, mode="json") for c in (sema.DerivedChannels or [])]
 
     em, ads, other = [], [], []
     for c in (sema.Components or []):
-        d = c.model_dump(exclude_none=True, mode="json")
+        d = c.model_dump(by_alias=True, exclude_none=True, mode="json")
         if c.TypeName == "electric.meter.component.gt":
             em.append(d)
         elif c.TypeName == "ads111x.based.component.gt":
@@ -100,7 +100,7 @@ def sema_to_layout_dict(sema: House0Sema, *, gnode_src: dict[str, Any]) -> dict[
 
     em_c, other_c = [], []
     for c in (sema.DeviceTypes or []):
-        d = c.model_dump(exclude_none=True, mode="json")
+        d = c.model_dump(by_alias=True, exclude_none=True, mode="json")
         (em_c if c.TypeName == "electric.meter.cac.gt" else other_c).append(d)
     layout["ElectricMeterCacs"], layout["OtherCacs"] = em_c, other_c
     return layout

@@ -30,7 +30,7 @@ def main() -> int:
 
     cls = class_for(data["TypeName"])
     obj = cls.model_validate(data)
-    returned = obj.model_dump(exclude_none=True, mode="json")
+    returned = obj.model_dump(by_alias=True, exclude_none=True, mode="json")
 
     with open(outfile, "w") as f:
         json.dump(returned, f, indent=2)
