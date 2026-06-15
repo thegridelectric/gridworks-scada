@@ -41,7 +41,7 @@ def test_layout_lite_generated() -> None:
                 "Name": "s",
                 "ShNodeId": "da9a0427-d6c0-44c0-b51c-492c1e580dc5",
                 "TypeName": "spaceheat.node.gt",
-                "Version": "301",
+                "Version": "302",
             },
             {
                 "ActorClass": "PowerMeter",
@@ -51,7 +51,7 @@ def test_layout_lite_generated() -> None:
                 "Name": "power-meter",
                 "ShNodeId": "6c0563b7-5171-4b1c-bba3-de156bea4b95",
                 "TypeName": "spaceheat.node.gt",
-                "Version": "301",
+                "Version": "302",
             },
             {
                 "ActorClass": "NoActor",
@@ -61,7 +61,7 @@ def test_layout_lite_generated() -> None:
                 "NameplatePowerW": 4000,
                 "ShNodeId": "07b8ca98-12c4-4510-8d0f-14fda2331215",
                 "TypeName": "spaceheat.node.gt",
-                "Version": "301",
+                "Version": "302",
             },
         ],
         "DerivedChannels": [
@@ -84,7 +84,7 @@ def test_layout_lite_generated() -> None:
         ],
         "TankModuleComponents": [
             {
-                "ComponentAttributeClassId": "f88fbf89-5b74-46d6-84a3-8e7494d08435",
+                "DeviceType": "GridworksTankModule3",
                 "ComponentId": "8aef0b11-5a1c-415e-b40e-d277e0ff4403",
                 "ConfigList": [
                         {
@@ -159,13 +159,13 @@ def test_layout_lite_generated() -> None:
                 "ThermistorBeta": 3977,
                 "AsyncCaptureDeltaMicroVolts": 2000,
                 "TypeName": "pico.tank.module.component.gt",
-                "Version": "011",
+                "Version": "012",
             }
         ],
         "FlowModuleComponents": [
             {
                 "AsyncCaptureThresholdGpmTimes100": 5,
-                "ComponentAttributeClassId": "aa4ad342-883a-4f89-bf86-9eb430aeb308",
+                "DeviceType": "GridworksPicoFlowReed",
                 "ComponentId": "b505a781-1671-467f-af8f-6d0ad7aca172",
                 "ConfigList": [
                         {
@@ -206,11 +206,11 @@ def test_layout_lite_generated() -> None:
                 "SendTickLists": False,
                 "SerialNumber": "NA",
                 "TypeName": "pico.flow.module.component.gt",
-                "Version": "000",
+                "Version": "001",
             }
         ],
         "I2cRelayComponent": {
-            "ComponentAttributeClassId": "29eab8b1-100f-4230-bb44-3a2fcba33cc3",
+            "DeviceType": "KridaDoubleRelayBoard16",
             "ComponentId": "b95e75a3-1483-484f-954f-65d202d50e6d",
             "ConfigList": [
                     {
@@ -278,7 +278,7 @@ def test_layout_lite_generated() -> None:
             "DisplayName": "i2c krida relay boards",
             "I2cAddressList": [32, 33],
             "TypeName": "i2c.multichannel.dt.relay.component.gt",
-            "Version": "004",
+            "Version": "005",
             },
             "TypeName": "layout.lite",
             "Version": "013",

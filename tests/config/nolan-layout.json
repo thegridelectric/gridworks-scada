@@ -410,9 +410,8 @@
   ],
   "ElectricMeterCacs": [
     {
-      "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
+      "DeviceType": "GridworksSimPowerMeter",
       "DisplayName": "Gridworks Pm1 Simulated Power Meter",
-      "MakeModel": "GRIDWORKS__SIMPM1",
       "MinPollPeriodMs": 1000,
       "TelemetryNameList": [
         "PowerW"
@@ -423,7 +422,6 @@
   ],
   "ElectricMeterComponents": [
     {
-      "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
       "ComponentId": "2bfd0036-0b0e-4732-8790-bc7d0536a85e",
       "ConfigList": [
         {
@@ -460,9 +458,10 @@
           "Version": "000"
         }
       ],
+      "DeviceType": "GridworksSimPowerMeter",
       "DisplayName": "Power Meter for Simulated Test system",
       "TypeName": "electric.meter.component.gt",
-      "Version": "001"
+      "Version": "002"
     }
   ],
   "FlowManifoldVariant": "House0",
@@ -489,35 +488,32 @@
   },
   "OtherCacs": [
     {
-      "ComponentAttributeClassId": "b81960f2-37a7-4d82-8269-425f3ed98b39",
+      "DeviceType": "AbstractWebServer",
       "DisplayName": "Web Server CAC",
-      "MakeModel": "UNKNOWNMAKE__UNKNOWNMODEL",
       "TypeName": "component.attribute.class.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
-      "ComponentAttributeClassId": "8ad2f6fe-e834-4334-80c8-4a0d4ef4b04f",
+      "DeviceType": "GridworksScadaGw108",
       "DisplayName": "GridWorks SCADA Gw108",
-      "MakeModel": "GRIDWORKS__SCADA_GW108",
       "TypeName": "component.attribute.class.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
-      "ComponentAttributeClassId": "627ac482-24fe-46b2-ba8c-3d6f1e1ee069",
+      "DeviceType": "GridworksSimSensor",
       "DisplayName": "GridWorks Simulated MultiTemp sensor",
-      "MakeModel": "GRIDWORKS__SIMMULTITEMP",
       "TypeName": "component.attribute.class.gt",
-      "Version": "001"
+      "Version": "002"
     }
   ],
   "OtherComponents": [
     {
-      "ComponentAttributeClassId": "b81960f2-37a7-4d82-8269-425f3ed98b39",
       "ComponentId": "7ee3ea86-5c59-48ef-a371-728e4de21d3b",
       "ConfigList": [],
+      "DeviceType": "AbstractWebServer",
       "DisplayName": "Web Server default",
       "TypeName": "web.server.component.gt",
-      "Version": "001",
+      "Version": "002",
       "WebServer": {
         "Enabled": true,
         "Host": "0.0.0.0",
@@ -527,7 +523,6 @@
       }
     },
     {
-      "ComponentAttributeClassId": "8ad2f6fe-e834-4334-80c8-4a0d4ef4b04f",
       "ComponentId": "514e4f8c-6ca0-4bc1-97a7-b737de76e4f4",
       "ConfigList": [
         {
@@ -551,14 +546,14 @@
           "WiringConfig": "NormallyClosed"
         }
       ],
+      "DeviceType": "GridworksScadaGw108",
       "DisplayName": "5VDC Relay Gw108 GPIO",
       "GpioPin": 23,
       "TypeName": "gw108.vdc.relay.component.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "AsyncCaptureDeltaMicroVolts": 2000,
-      "ComponentAttributeClassId": "627ac482-24fe-46b2-ba8c-3d6f1e1ee069",
       "ComponentId": "00593fba-9975-49ad-bce0-7f7e1dfb26b1",
       "ConfigList": [
         {
@@ -622,6 +617,7 @@
           "Version": "000"
         }
       ],
+      "DeviceType": "GridworksSimSensor",
       "DisplayName": "Buffer",
       "Enabled": true,
       "NumSampleAverages": 30,
@@ -630,15 +626,14 @@
       "SendMicroVolts": true,
       "SerialNumber": "NA",
       "SimulatesTypeName": "pico.tank.module.component.gt",
-      "SimulatesVersion": "011",
+      "SimulatesVersion": "012",
       "TempCalcMethod": "SimpleBeta",
       "ThermistorBeta": 3977,
       "TypeName": "sim.pico.tank.module.component.gt",
-      "Version": "000"
+      "Version": "001"
     },
     {
       "AsyncCaptureDeltaMicroVolts": 2000,
-      "ComponentAttributeClassId": "627ac482-24fe-46b2-ba8c-3d6f1e1ee069",
       "ComponentId": "bd65556c-2ca4-499d-ad25-57767a785685",
       "ConfigList": [
         {
@@ -702,6 +697,7 @@
           "Version": "000"
         }
       ],
+      "DeviceType": "GridworksSimSensor",
       "DisplayName": "Tank1",
       "Enabled": true,
       "NumSampleAverages": 30,
@@ -710,14 +706,13 @@
       "SendMicroVolts": true,
       "SerialNumber": "NA",
       "SimulatesTypeName": "pico.tank.module.component.gt",
-      "SimulatesVersion": "011",
+      "SimulatesVersion": "012",
       "TempCalcMethod": "SimpleBeta",
       "ThermistorBeta": 3977,
       "TypeName": "sim.pico.tank.module.component.gt",
-      "Version": "000"
+      "Version": "001"
     },
     {
-      "ComponentAttributeClassId": "8ad2f6fe-e834-4334-80c8-4a0d4ef4b04f",
       "ComponentId": "6415ae92-d345-4003-bb8d-5ad13142f9d0",
       "ConfigList": [
         {
@@ -732,18 +727,18 @@
           "Version": "000"
         }
       ],
+      "DeviceType": "GridworksScadaGw108",
       "DisplayName": "Zone 1 Main Opto Component",
       "GpioPin": 17,
       "SendToDerived": true,
       "SenseMode": "Polling",
       "TypeName": "gw108.gpio.sensor.component.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "AdcAddress": 73,
       "AdcReferenceVolts": 3.3,
       "Bus": "i2c-1",
-      "ComponentAttributeClassId": "8ad2f6fe-e834-4334-80c8-4a0d4ef4b04f",
       "ComponentId": "1ce64678-ce36-4001-abd9-454ea6a306b4",
       "ConfigList": [
         {
@@ -775,11 +770,12 @@
           "Version": "001"
         }
       ],
+      "DeviceType": "GridworksScadaGw108",
       "DisplayName": "GW108 Thermistor Reader",
       "SeriesResistanceKOhms": 5.6,
       "TempCalcMethod": "SimpleBeta",
       "TypeName": "i2c.thermistor.reader.component.gt",
-      "Version": "001"
+      "Version": "002"
     }
   ],
   "ShNodes": [
@@ -789,7 +785,7 @@
       "Name": "s",
       "ShNodeId": "259f9431-c6a1-4170-8766-04cbf65cff4a",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "SecondaryScada",
@@ -797,7 +793,7 @@
       "Name": "s2",
       "ShNodeId": "a7842e1d-05d6-4111-b7fc-1f240ed0d0b7",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -806,7 +802,7 @@
       "Name": "admin",
       "ShNodeId": "cf6bcccc-ef66-4088-82ef-5953953f448a",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -815,7 +811,7 @@
       "Name": "auto",
       "ShNodeId": "7249aee4-6bcb-4f1c-b6d4-0e0dbe7792f6",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -823,7 +819,7 @@
       "Name": "ltn",
       "ShNodeId": "ed56817a-cd46-4f33-bb4d-525d01718f2c",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "LeafAlly",
@@ -833,7 +829,7 @@
       "Name": "la",
       "ShNodeId": "6a5ba7db-4f21-4deb-93b4-f462c584fb27",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "PicoCycler",
@@ -843,7 +839,7 @@
       "Name": "pico-cycler",
       "ShNodeId": "67eac5fe-72e3-49fd-a606-ec3363f73501",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "DerivedGenerator",
@@ -852,7 +848,7 @@
       "Name": "derived-generator",
       "ShNodeId": "5ca6a864-169e-4bf8-a1a9-c4ea1066b0ea",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "LocalControl",
@@ -862,7 +858,7 @@
       "Name": "lc",
       "ShNodeId": "f2d1897d-e3df-493f-8137-35b5f9b71f47",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -871,7 +867,7 @@
       "Name": "n",
       "ShNodeId": "5d01b433-8731-483f-b8e8-641f725a1760",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -880,7 +876,7 @@
       "Name": "backup",
       "ShNodeId": "95dc63f0-bd76-4e6e-b95f-c2f5d395ba5c",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -889,7 +885,7 @@
       "Name": "scada-blind",
       "ShNodeId": "1bc33f7e-29cc-4702-9f9e-e7eac37500a2",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "HpBoss",
@@ -899,7 +895,7 @@
       "Name": "hp-boss",
       "ShNodeId": "203a4a00-70d4-4b20-878d-310342a83db8",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "PowerMeter",
@@ -909,7 +905,7 @@
       "Name": "power-meter",
       "ShNodeId": "0dd8a803-4724-4f49-b845-14ff57bdb3e6",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -919,7 +915,7 @@
       "NameplatePowerW": 6000,
       "ShNodeId": "f1692ea8-9866-423c-b260-93d2affc9881",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -929,7 +925,7 @@
       "NameplatePowerW": 4000,
       "ShNodeId": "7da56e55-3cf0-4a2f-9c06-0c6c176b795c",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -937,7 +933,7 @@
       "Name": "store-pump",
       "ShNodeId": "c35d9c77-1ebb-4822-b01e-00ff189092f7",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "Relay",
@@ -948,7 +944,7 @@
       "Name": "vdc-relay-gpio-23",
       "ShNodeId": "0af888b2-e1f1-4f74-a003-1e425e87b559",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "ApiTankModule",
@@ -958,7 +954,7 @@
       "Name": "buffer",
       "ShNodeId": "68596845-2e66-4f9d-a876-90da381ddc37",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -966,7 +962,7 @@
       "Name": "buffer-depth1",
       "ShNodeId": "575642e0-2c83-49b5-b682-8032d6a63f7e",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -974,7 +970,7 @@
       "Name": "buffer-depth2",
       "ShNodeId": "04eb01a7-af6c-40fd-a5bd-f0ca1e3919f4",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -982,7 +978,7 @@
       "Name": "buffer-depth3",
       "ShNodeId": "4f78d07e-3ddc-4cc9-8955-5a1796d7b740",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "ApiTankModule",
@@ -992,7 +988,7 @@
       "Name": "tank1",
       "ShNodeId": "72c08f97-4466-414a-8fac-88847d704a88",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -1000,7 +996,7 @@
       "Name": "tank1-depth1",
       "ShNodeId": "30fb84c2-cf33-4a26-a023-e8b80a90b543",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -1008,7 +1004,7 @@
       "Name": "tank1-depth2",
       "ShNodeId": "b226043b-9c49-4c37-8748-178e1162d292",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -1016,7 +1012,7 @@
       "Name": "tank1-depth3",
       "ShNodeId": "b08f8764-6f26-444c-bf21-e69959f59817",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -1024,7 +1020,7 @@
       "Name": "zone1-main",
       "ShNodeId": "9d1067d3-4d20-4bad-a7f7-a14e277c6cb2",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -1032,7 +1028,7 @@
       "Name": "zone1-main-whitewire",
       "ShNodeId": "5c963e12-a634-4a85-8345-7f3e6589e7a9",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "GpioSensor",
@@ -1042,7 +1038,7 @@
       "Name": "zone1-main-opto",
       "ShNodeId": "561004d9-40cb-494c-a1c9-ca969e4e2667",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "I2cThermistorReader",
@@ -1052,7 +1048,7 @@
       "Name": "gw108-thermistor-reader",
       "ShNodeId": "f7d7a2e2-a2b2-4954-a368-09df969a4b65",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     }
   ],
   "Strategy": "Nolan",

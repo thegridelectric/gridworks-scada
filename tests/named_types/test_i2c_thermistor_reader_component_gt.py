@@ -25,7 +25,7 @@ def base_config(channel_name: str, adc_channel: str, unit: str) -> dict:
 def base_component() -> dict:
     return {
         "ComponentId": "bd65556c-2ca4-499d-ad25-57767a785685",
-        "ComponentAttributeClassId": "627ac482-24fe-46b2-ba8c-3d6f1e1ee069",
+        "DeviceType": "GridworksScadaGw108",
         "ConfigList": [
             base_config("tank1-depth1-device", "P0", "Celcius"),
             base_config("tank1-depth1-micro-v", "P0", "VoltsRms"),
@@ -36,7 +36,7 @@ def base_component() -> dict:
         "SeriesResistanceKOhms": 10.0,
         "TempCalcMethod": TempCalcMethod.SimpleBeta,
         "TypeName": "i2c.thermistor.reader.component.gt",
-        "Version": "001",
+        "Version": "002",
     }
 
 

@@ -84,7 +84,7 @@ def print_component_dicts(layout: House0Layout):
     })
     print("All Cacs:")
     print({
-        cac.ComponentAttributeClassId: cac.DisplayName
+        cac.DeviceType: cac.DisplayName
         for cac in layout.cacs.values()
     })
     print("Nodes:")
@@ -115,7 +115,7 @@ def print_component_dicts(layout: House0Layout):
     # unused cacs
     unused_cacs = dict(layout.cacs)
     for component in layout.components.values():
-        unused_cacs.pop(component.gt.ComponentAttributeClassId, None)
+        unused_cacs.pop(component.gt.DeviceType, None)
     print(f"Unused Cacs: {len(unused_cacs)}")
     if unused_cacs:
         print(unused_cacs)
@@ -130,9 +130,9 @@ def print_component_dicts(layout: House0Layout):
     # dangling cacs
     dangling_cac_components = set()
     for component in layout.components.values():
-        if component.gt.ComponentAttributeClassId and component.gt.ComponentAttributeClassId not in layout.cacs:
+        if component.gt.DeviceType and component.gt.DeviceType not in layout.cacs:
             dangling_cac_components.add(component.gt.DisplayName)
-    print(f"Components with cac_id but no cac: {len(dangling_cac_components)}")
+    print(f"Components with DeviceType but no device-type record: {len(dangling_cac_components)}")
     if dangling_cac_components:
         print(sorted(dangling_cac_components))
 

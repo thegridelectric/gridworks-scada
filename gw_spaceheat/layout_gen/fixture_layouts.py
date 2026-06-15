@@ -28,6 +28,7 @@ from layout_gen.dfr import DfrConf
 from layout_gen.relay import add_house0_relays, add_nolan_relays
 from layout_gen.relay import RelayCfg
 from layout_gen.web_server import add_web_server
+from layout_gen.simulated_tanks import add_sim_tank, add_simulated_tanks
 from layout_gen.gw108_nolan_zones import add_gw108_nolan_zones
 from layout_gen.derived_channels import (
     add_zone_heat_call_channels,
@@ -72,6 +73,9 @@ def make_house0_fixture_layout(src_path: Path) -> LayoutDb:
 
     add_house0_relays(db, RelayCfg(PollPeriodMs=200, CapturePeriodS=300))
 
+    add_simulated_tanks(db)
+    for tank_idx in range(1, db.misc["TotalStoreTanks"] + 1):
+        add_sim_tank(db, f"tank{tank_idx}")
 
     add_dfrs(
         db,
@@ -105,6 +109,9 @@ def make_nolan_fixture_layout(src_path: Path) -> LayoutDb:
     _add_power_meter(db)
     add_web_server(db, WebServerGt(Host="0.0.0.0"))
     add_nolan_relays(db, RelayCfg(PollPeriodMs=200, CapturePeriodS=300))
+    add_simulated_tanks(db)
+    for tank_idx in range(1, db.misc["TotalStoreTanks"] + 1):
+        add_sim_tank(db, f"tank{tank_idx}")
     add_gw108_nolan_zones(db)
     add_zone_heat_call_channels(db)
     add_zone_predicted_setpoint_channels(db)

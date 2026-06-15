@@ -31,7 +31,7 @@ def base_relay_config(actor_name: str, relay_idx: int, channel_name: str) -> dic
 def base_component() -> dict:
     return {
         "ComponentId": "b95e75a3-1483-484f-954f-65d202d50e6d",
-        "ComponentAttributeClassId": "29eab8b1-100f-4230-bb44-3a2fcba33cc3",
+        "DeviceType": "KridaDoubleRelayBoard16",
         "ConfigList": [
             base_relay_config("relay1", 1, "vdc-relay1"),
             base_relay_config("relay2", 2, "tstat-common-relay2"),
@@ -40,7 +40,7 @@ def base_component() -> dict:
         "I2cBus": "bus-1",
         "I2cAddressList": [32, 33],
         "TypeName": "i2c.multichannel.dt.relay.component.gt",
-        "Version": "004",
+        "Version": "005",
     }
 
 

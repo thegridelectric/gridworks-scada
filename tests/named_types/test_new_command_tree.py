@@ -11,7 +11,7 @@ def test_new_command_tree_generated() -> None:
                 "Name": "s",
                 "ShNodeId": "bae076c2-05cb-40c8-996a-b1a7f642ccf7",
                 "TypeName": "spaceheat.node.gt",
-                "Version": "301",
+                "Version": "302",
             },
             {
                 "ActorClass": "SecondaryScada",
@@ -19,7 +19,7 @@ def test_new_command_tree_generated() -> None:
                 "Name": "s2",
                 "ShNodeId": "57b027a6-f446-4403-bc69-26f56a1176bb",
                 "TypeName": "spaceheat.node.gt",
-                "Version": "301",
+                "Version": "302",
             },
         ],
         "UnixMs": 1735861984823,

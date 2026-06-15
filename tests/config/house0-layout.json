@@ -561,9 +561,8 @@
   ],
   "ElectricMeterCacs": [
     {
-      "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
+      "DeviceType": "GridworksSimPowerMeter",
       "DisplayName": "Gridworks Pm1 Simulated Power Meter",
-      "MakeModel": "GRIDWORKS__SIMPM1",
       "MinPollPeriodMs": 1000,
       "TelemetryNameList": [
         "PowerW"
@@ -574,7 +573,6 @@
   ],
   "ElectricMeterComponents": [
     {
-      "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
       "ComponentId": "2bfd0036-0b0e-4732-8790-bc7d0536a85e",
       "ConfigList": [
         {
@@ -611,9 +609,10 @@
           "Version": "000"
         }
       ],
+      "DeviceType": "GridworksSimPowerMeter",
       "DisplayName": "Power Meter for Simulated Test system",
       "TypeName": "electric.meter.component.gt",
-      "Version": "001"
+      "Version": "002"
     }
   ],
   "FlowManifoldVariant": "House0",
@@ -640,57 +639,51 @@
   },
   "OtherCacs": [
     {
-      "ComponentAttributeClassId": "b81960f2-37a7-4d82-8269-425f3ed98b39",
+      "DeviceType": "AbstractWebServer",
       "DisplayName": "Web Server CAC",
-      "MakeModel": "UNKNOWNMAKE__UNKNOWNMODEL",
       "TypeName": "component.attribute.class.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
-      "ComponentAttributeClassId": "62528da5-b510-4ac2-82c1-3782842eae07",
+      "DeviceType": "HubitatC7Hub",
       "DisplayName": "Hubitat Elevation C-7",
-      "MakeModel": "HUBITAT__C7__LAN1",
       "TypeName": "component.attribute.class.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
-      "ComponentAttributeClassId": "03533a1f-3cb9-4a1f-8d57-690c0ad0475b",
+      "DeviceType": "HoneywellT6Thermostat",
       "DisplayName": "Honeywell T6 Thermostat",
-      "MakeModel": "HONEYWELL__T6ZWAVETHERMOSTAT",
       "MinPollPeriodMs": 5000,
       "TypeName": "component.attribute.class.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
-      "ComponentAttributeClassId": "29eab8b1-100f-4230-bb44-3a2fcba33cc3",
+      "DeviceType": "KridaDoubleRelayBoard16",
       "DisplayName": "16-channel i2c krida relay",
-      "MakeModel": "KRIDA__DOUBLEEMR16I2CV3",
       "TypeName": "component.attribute.class.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
-      "ComponentAttributeClassId": "627ac482-24fe-46b2-ba8c-3d6f1e1ee069",
+      "DeviceType": "GridworksSimSensor",
       "DisplayName": "GridWorks Simulated MultiTemp sensor",
-      "MakeModel": "GRIDWORKS__SIMMULTITEMP",
       "TypeName": "component.attribute.class.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
-      "ComponentAttributeClassId": "69a0e36e-9c15-4d50-8a7b-ae63649ecc36",
+      "DeviceType": "DfrobotDualAnalogOut",
       "DisplayName": "DFRobot DFR0971 X 2",
-      "MakeModel": "DFROBOT__DFR0971_TIMES2",
       "TypeName": "component.attribute.class.gt",
-      "Version": "001"
+      "Version": "002"
     }
   ],
   "OtherComponents": [
     {
-      "ComponentAttributeClassId": "b81960f2-37a7-4d82-8269-425f3ed98b39",
       "ComponentId": "7ee3ea86-5c59-48ef-a371-728e4de21d3b",
       "ConfigList": [],
+      "DeviceType": "AbstractWebServer",
       "DisplayName": "Web Server default",
       "TypeName": "web.server.component.gt",
-      "Version": "001",
+      "Version": "002",
       "WebServer": {
         "Enabled": true,
         "Host": "0.0.0.0",
@@ -700,23 +693,24 @@
       }
     },
     {
-      "ComponentAttributeClassId": "62528da5-b510-4ac2-82c1-3782842eae07",
       "ComponentId": "4a5e3fca-2b8e-4321-bd61-b43401535cc2",
       "ConfigList": [],
+      "DeviceType": "HubitatC7Hub",
       "DisplayName": "Hubitat 82:22:22",
       "Hubitat": {
         "AccessToken": "64a43fa4-0eb9-478f-ad2e-374bc9b7e51f",
         "Host": "192.168.0.1",
         "MacAddress": "34:e1:d1:82:22:22",
         "MakerApiId": 1,
+        "TypeName": "hubitat.gt",
+        "Version": "000",
         "WebListenEnabled": true
       },
       "HwUid": "822222",
       "TypeName": "hubitat.component.gt",
-      "Version": "001"
+      "Version": "000"
     },
     {
-      "ComponentAttributeClassId": "03533a1f-3cb9-4a1f-8d57-690c0ad0475b",
       "ComponentId": "e5e2fb2c-3f96-4079-907f-f96db22d1568",
       "ConfigList": [
         {
@@ -752,6 +746,7 @@
           "Version": "000"
         }
       ],
+      "DeviceType": "HoneywellT6Thermostat",
       "DisplayName": "Thermostat 1 for main",
       "Poller": {
         "Attributes": [
@@ -765,7 +760,9 @@
             "ReportMissing": true,
             "ReportParseError": true,
             "TelemetryName": "AirTempFTimes1000",
+            "TypeName": "maker.api.attribute.gt",
             "Unit": "Fahrenheit",
+            "Version": "000",
             "WebListenEnabled": true,
             "WebPollEnabled": true
           },
@@ -779,7 +776,9 @@
             "ReportMissing": true,
             "ReportParseError": true,
             "TelemetryName": "AirTempFTimes1000",
+            "TypeName": "maker.api.attribute.gt",
             "Unit": "Fahrenheit",
+            "Version": "000",
             "WebListenEnabled": true,
             "WebPollEnabled": true
           },
@@ -793,7 +792,9 @@
             "ReportMissing": true,
             "ReportParseError": true,
             "TelemetryName": "ThermostatState",
+            "TypeName": "maker.api.attribute.gt",
             "Unit": "Unitless",
+            "Version": "000",
             "WebListenEnabled": true,
             "WebPollEnabled": true
           }
@@ -802,13 +803,14 @@
         "Enabled": true,
         "HubitatComponentId": "4a5e3fca-2b8e-4321-bd61-b43401535cc2",
         "PollPeriodSeconds": 300.0,
+        "TypeName": "hubitat.poller.gt",
+        "Version": "000",
         "WebListenEnabled": true
       },
       "TypeName": "hubitat.poller.component.gt",
-      "Version": "001"
+      "Version": "000"
     },
     {
-      "ComponentAttributeClassId": "29eab8b1-100f-4230-bb44-3a2fcba33cc3",
       "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
       "ConfigList": [
         {
@@ -1092,6 +1094,7 @@
           "WiringConfig": "NormallyOpen"
         }
       ],
+      "DeviceType": "KridaDoubleRelayBoard16",
       "DisplayName": "i2c krida relay boards",
       "I2cAddressList": [
         32,
@@ -1099,11 +1102,10 @@
       ],
       "I2cBus": "default",
       "TypeName": "i2c.multichannel.dt.relay.component.gt",
-      "Version": "004"
+      "Version": "005"
     },
     {
       "AsyncCaptureDeltaMicroVolts": 2000,
-      "ComponentAttributeClassId": "627ac482-24fe-46b2-ba8c-3d6f1e1ee069",
       "ComponentId": "00593fba-9975-49ad-bce0-7f7e1dfb26b1",
       "ConfigList": [
         {
@@ -1167,6 +1169,7 @@
           "Version": "000"
         }
       ],
+      "DeviceType": "GridworksSimSensor",
       "DisplayName": "Buffer",
       "Enabled": true,
       "NumSampleAverages": 30,
@@ -1175,15 +1178,14 @@
       "SendMicroVolts": true,
       "SerialNumber": "NA",
       "SimulatesTypeName": "pico.tank.module.component.gt",
-      "SimulatesVersion": "011",
+      "SimulatesVersion": "012",
       "TempCalcMethod": "SimpleBeta",
       "ThermistorBeta": 3977,
       "TypeName": "sim.pico.tank.module.component.gt",
-      "Version": "000"
+      "Version": "001"
     },
     {
       "AsyncCaptureDeltaMicroVolts": 2000,
-      "ComponentAttributeClassId": "627ac482-24fe-46b2-ba8c-3d6f1e1ee069",
       "ComponentId": "bd65556c-2ca4-499d-ad25-57767a785685",
       "ConfigList": [
         {
@@ -1247,6 +1249,7 @@
           "Version": "000"
         }
       ],
+      "DeviceType": "GridworksSimSensor",
       "DisplayName": "Tank1",
       "Enabled": true,
       "NumSampleAverages": 30,
@@ -1255,14 +1258,13 @@
       "SendMicroVolts": true,
       "SerialNumber": "NA",
       "SimulatesTypeName": "pico.tank.module.component.gt",
-      "SimulatesVersion": "011",
+      "SimulatesVersion": "012",
       "TempCalcMethod": "SimpleBeta",
       "ThermistorBeta": 3977,
       "TypeName": "sim.pico.tank.module.component.gt",
-      "Version": "000"
+      "Version": "001"
     },
     {
-      "ComponentAttributeClassId": "69a0e36e-9c15-4d50-8a7b-ae63649ecc36",
       "ComponentId": "3b437278-d34a-4c20-be2e-756b06bffc9a",
       "ConfigList": [
         {
@@ -1302,6 +1304,7 @@
           "Version": "000"
         }
       ],
+      "DeviceType": "DfrobotDualAnalogOut",
       "DisplayName": "DFRobot 010V output X 2",
       "I2cAddressList": [
         94,
@@ -1318,7 +1321,7 @@
       "Name": "s",
       "ShNodeId": "259f9431-c6a1-4170-8766-04cbf65cff4a",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "SecondaryScada",
@@ -1326,7 +1329,7 @@
       "Name": "s2",
       "ShNodeId": "a7842e1d-05d6-4111-b7fc-1f240ed0d0b7",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -1335,7 +1338,7 @@
       "Name": "admin",
       "ShNodeId": "cf6bcccc-ef66-4088-82ef-5953953f448a",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -1344,7 +1347,7 @@
       "Name": "auto",
       "ShNodeId": "7249aee4-6bcb-4f1c-b6d4-0e0dbe7792f6",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -1352,7 +1355,7 @@
       "Name": "ltn",
       "ShNodeId": "ed56817a-cd46-4f33-bb4d-525d01718f2c",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "LeafAlly",
@@ -1362,7 +1365,7 @@
       "Name": "la",
       "ShNodeId": "6a5ba7db-4f21-4deb-93b4-f462c584fb27",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "PicoCycler",
@@ -1372,7 +1375,7 @@
       "Name": "pico-cycler",
       "ShNodeId": "67eac5fe-72e3-49fd-a606-ec3363f73501",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "DerivedGenerator",
@@ -1381,7 +1384,7 @@
       "Name": "derived-generator",
       "ShNodeId": "5ca6a864-169e-4bf8-a1a9-c4ea1066b0ea",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "LocalControl",
@@ -1391,7 +1394,7 @@
       "Name": "lc",
       "ShNodeId": "f2d1897d-e3df-493f-8137-35b5f9b71f47",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -1400,7 +1403,7 @@
       "Name": "n",
       "ShNodeId": "5d01b433-8731-483f-b8e8-641f725a1760",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -1409,7 +1412,7 @@
       "Name": "backup",
       "ShNodeId": "95dc63f0-bd76-4e6e-b95f-c2f5d395ba5c",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -1418,7 +1421,7 @@
       "Name": "scada-blind",
       "ShNodeId": "1bc33f7e-29cc-4702-9f9e-e7eac37500a2",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "HpBoss",
@@ -1428,7 +1431,7 @@
       "Name": "hp-boss",
       "ShNodeId": "203a4a00-70d4-4b20-878d-310342a83db8",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "PowerMeter",
@@ -1438,7 +1441,7 @@
       "Name": "power-meter",
       "ShNodeId": "0dd8a803-4724-4f49-b845-14ff57bdb3e6",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -1448,7 +1451,7 @@
       "NameplatePowerW": 6000,
       "ShNodeId": "f1692ea8-9866-423c-b260-93d2affc9881",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -1458,7 +1461,7 @@
       "NameplatePowerW": 4000,
       "ShNodeId": "7da56e55-3cf0-4a2f-9c06-0c6c176b795c",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -1466,7 +1469,7 @@
       "Name": "store-pump",
       "ShNodeId": "c35d9c77-1ebb-4822-b01e-00ff189092f7",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "Hubitat",
@@ -1476,7 +1479,7 @@
       "Name": "hubitat",
       "ShNodeId": "9c486fe7-370d-4eba-b6d2-26e1059f66aa",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "HoneywellThermostat",
@@ -1486,7 +1489,7 @@
       "Name": "zone1-main-stat",
       "ShNodeId": "24212380-515b-4842-9541-ad680919de19",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -1494,7 +1497,7 @@
       "Name": "zone1-main",
       "ShNodeId": "9d1067d3-4d20-4bad-a7f7-a14e277c6cb2",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "I2cRelayMultiplexer",
@@ -1504,7 +1507,7 @@
       "Name": "relay-multiplexer",
       "ShNodeId": "fc81c64e-b04a-4b87-9861-0c9348b56f5b",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "Relay",
@@ -1515,7 +1518,7 @@
       "Name": "relay1",
       "ShNodeId": "a56bd427-f505-43c7-9160-ebb98b7d366b",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "Relay",
@@ -1526,7 +1529,7 @@
       "Name": "relay2",
       "ShNodeId": "ef3df088-0286-4464-b220-cf0ce0040636",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "Relay",
@@ -1537,7 +1540,7 @@
       "Name": "relay3",
       "ShNodeId": "ccd5ea42-96b7-4090-9031-f0c09d5eacd1",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "Relay",
@@ -1548,7 +1551,7 @@
       "Name": "relay5",
       "ShNodeId": "b1b64c06-5961-4d3d-90ef-1803db79f861",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "Relay",
@@ -1559,7 +1562,7 @@
       "Name": "relay6",
       "ShNodeId": "c3e242be-de11-466c-accd-e9f78e6c4beb",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "Relay",
@@ -1570,7 +1573,7 @@
       "Name": "relay7",
       "ShNodeId": "6c734dbb-9950-485d-a83b-55456d914576",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "Relay",
@@ -1581,7 +1584,7 @@
       "Name": "relay8",
       "ShNodeId": "8daa42b9-33bd-4edf-bb25-5dac5c168af5",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "Relay",
@@ -1592,7 +1595,7 @@
       "Name": "relay9",
       "ShNodeId": "c4d9a75f-21fe-46b5-bf6c-1f21895fc882",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "Relay",
@@ -1603,7 +1606,7 @@
       "Name": "relay12",
       "ShNodeId": "483a4d08-1e04-432b-9554-3ba27b923b79",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "Relay",
@@ -1614,7 +1617,7 @@
       "Name": "relay11",
       "ShNodeId": "12edba71-fb65-493e-95e7-4d9812f428bf",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "Relay",
@@ -1625,7 +1628,7 @@
       "Name": "relay14",
       "ShNodeId": "90da9be9-4430-47c8-9770-c7922340335b",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "Relay",
@@ -1636,7 +1639,7 @@
       "Name": "relay15",
       "ShNodeId": "7854f5c6-2a55-4742-aa1f-86444d46692c",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "Relay",
@@ -1647,7 +1650,7 @@
       "Name": "relay17",
       "ShNodeId": "087eb4d0-ab67-4146-8925-b07fedef42e8",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "Relay",
@@ -1658,7 +1661,7 @@
       "Name": "relay18",
       "ShNodeId": "06eb3786-9cf6-4d7c-b1ce-35246215ddbf",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "ApiTankModule",
@@ -1668,7 +1671,7 @@
       "Name": "buffer",
       "ShNodeId": "68596845-2e66-4f9d-a876-90da381ddc37",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -1676,7 +1679,7 @@
       "Name": "buffer-depth1",
       "ShNodeId": "575642e0-2c83-49b5-b682-8032d6a63f7e",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -1684,7 +1687,7 @@
       "Name": "buffer-depth2",
       "ShNodeId": "04eb01a7-af6c-40fd-a5bd-f0ca1e3919f4",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -1692,7 +1695,7 @@
       "Name": "buffer-depth3",
       "ShNodeId": "4f78d07e-3ddc-4cc9-8955-5a1796d7b740",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "ApiTankModule",
@@ -1702,7 +1705,7 @@
       "Name": "tank1",
       "ShNodeId": "72c08f97-4466-414a-8fac-88847d704a88",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -1710,7 +1713,7 @@
       "Name": "tank1-depth1",
       "ShNodeId": "30fb84c2-cf33-4a26-a023-e8b80a90b543",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -1718,7 +1721,7 @@
       "Name": "tank1-depth2",
       "ShNodeId": "b226043b-9c49-4c37-8748-178e1162d292",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "NoActor",
@@ -1726,7 +1729,7 @@
       "Name": "tank1-depth3",
       "ShNodeId": "b08f8764-6f26-444c-bf21-e69959f59817",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "I2cZeroTenMultiplexer",
@@ -1736,7 +1739,7 @@
       "Name": "zero-ten-multiplexer",
       "ShNodeId": "2e7f4c75-47fb-4a0b-bd56-9fc694c69134",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "ZeroTenOutputer",
@@ -1746,7 +1749,7 @@
       "Name": "dist-010v",
       "ShNodeId": "f137f4a2-3fb9-423d-ab83-dc2f60525c09",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "ZeroTenOutputer",
@@ -1756,7 +1759,7 @@
       "Name": "primary-010v",
       "ShNodeId": "30a2b01a-6b00-49bf-8fa1-9450f27289b8",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     },
     {
       "ActorClass": "ZeroTenOutputer",
@@ -1766,7 +1769,7 @@
       "Name": "store-010v",
       "ShNodeId": "8e631dc8-2049-4e15-b73c-1b281520595b",
       "TypeName": "spaceheat.node.gt",
-      "Version": "301"
+      "Version": "302"
     }
   ],
   "Strategy": "House0",
