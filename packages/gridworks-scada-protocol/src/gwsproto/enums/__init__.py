@@ -30,6 +30,7 @@ from gwsproto.enums.change_relay_state import ChangeRelayState
 from gwsproto.enums.change_store_flow_relay import ChangeStoreFlowRelay
 from gwsproto.enums.emission_method import EmissionMethod
 from gwsproto.enums.flow_manifold_variant import FlowManifoldVariant
+from gwsproto.enums.gw_house0_primary_flow_source import GwHouse0PrimaryFlowSource
 from gwsproto.enums.fsm_report_type import FsmReportType
 from gwsproto.enums.gpm_from_hz_method import GpmFromHzMethod
 from gwsproto.enums.heat_call_interpretation import HeatCallInterpretation
@@ -98,6 +99,7 @@ __all__ = [
     "ChangeStoreFlowRelay",
     "EmissionMethod",
     "FlowManifoldVariant",
+    "GwHouse0PrimaryFlowSource",
     "FsmReportType",
     "GpioSenseMode",
     "GpmFromHzMethod",

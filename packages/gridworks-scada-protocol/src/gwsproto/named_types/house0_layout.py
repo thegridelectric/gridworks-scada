@@ -9,6 +9,7 @@ from gwsproto.named_types.derived_channel_gt import DerivedChannelGt
 from gwsproto.named_types.dfr_component_gt import DfrComponentGt
 from gwsproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwsproto.named_types.g_node_gt import GNodeGt
+from gwsproto.named_types.gw_house0_hydronic import GwHouse0Hydronic
 from gwsproto.named_types.hubitat_component_gt import HubitatComponentGt
 from gwsproto.named_types.hubitat_poller_component_gt import HubitatPollerComponentGt
 from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
@@ -61,6 +62,6 @@ class House0Layout(BaseModel):
     DerivedChannels: Optional[List[DerivedChannelGt]] = None
     Components: Optional[List[House0Component]] = None
     DeviceTypes: Optional[List[ComponentAttributeClassGt]] = None
-    Hydronic: Optional[dict] = None
+    Hydronic: Optional[GwHouse0Hydronic] = None
     TypeName: Literal["gw.house0.layout"] = "gw.house0.layout"
     Version: Literal["000"] = "000"
