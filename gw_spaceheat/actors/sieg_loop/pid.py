@@ -1,6 +1,7 @@
 import time
 import uuid
 import asyncio
+from datetime import datetime
 from enum import auto
 from collections import deque
 from result import Ok, Result
@@ -131,6 +132,7 @@ class SiegLoopPid(ShNodeActor):
 
         self._movement_task = None
         self._main_task: asyncio.Task | None = None
+        self._startup_hover_monitor_task: asyncio.Task | None = None
         self._background_tasks: set[asyncio.Task] = set()
 
         self.hp_boss_state = HpBossState.HpOn
@@ -138,8 +140,6 @@ class SiegLoopPid(ShNodeActor):
         self.target_lwt_time_received: Optional[float] = None
 
         self.control_interval_seconds = 30
-        self.time_since_last_control_loop = 30
-        self.time_since_last_report = 5*60
         self.hp_turned_off_time = None
         self.moving_to_calculated_target = False
 
@@ -179,33 +179,30 @@ class SiegLoopPid(ShNodeActor):
 
     async def main(self):
         while not self._stop_requested:
+            now = datetime.now()
 
-            # In startup hover, run LWT tracking on a faster loop (every MAIN_LOOP_SLEEP_S)
             if self.control_state == SiegControlState.StartupHover:
+                if self.time_to_leave_startup_hover():
+                    self.trigger_control_event(SiegControlEvent.LeaveStartupHover)
+
+            seconds_into_control_loop = now.second % self.control_interval_seconds
+            milliseconds = now.microsecond / 1000
+            if seconds_into_control_loop == 0 and milliseconds < 100:
+                self.log(f"Moving to calculated target: {self.moving_to_calculated_target}")
                 self.update_lwt_readings()
-                self.engage_brain(called_from_main=True)
-            
-            # Otherwise run the pid on a slower loop (every control_interval_seconds)
-            elif self.time_since_last_control_loop >= self.control_interval_seconds:
-                self.time_since_last_control_loop = 0
-
                 if self.control_state == SiegControlState.Pid:
-                    self.update_lwt_readings()
-                self.engage_brain(called_from_main=True)
+                    self.engage_brain(called_from_main=True)
+                    self._send_to(
+                        self.primary_scada,
+                        SingleMachineState(
+                            MachineHandle=self.node.handle,
+                            StateEnum=SiegControlState.enum_name(),
+                            State=self.control_state,
+                            UnixMs=int(time.time() * 1000),
+                        ),
+                    )
 
-                self._send_to(
-                    self.primary_scada,
-                    SingleMachineState(
-                        MachineHandle=self.node.handle,
-                        StateEnum=SiegControlState.enum_name(),
-                        State=self.control_state,
-                        UnixMs=int(time.time() * 1000),
-                    ),
-                )
-
-            # Pat watchdog every 5 minutes
-            if self.time_since_last_report >= 5*60:
-                self.time_since_last_report = 0
+            if now.second == 0 and now.minute % 5 == 0:
                 self._send(PatInternalWatchdogMessage(src=self.name))
                 # TODO: Create a channel for this
                 # self._send_to(
@@ -217,9 +214,8 @@ class SiegLoopPid(ShNodeActor):
                 #     )
                 # )
 
-            self.time_since_last_control_loop += self.MAIN_LOOP_SLEEP_S
-            self.time_since_last_report += self.MAIN_LOOP_SLEEP_S
-            await asyncio.sleep(self.MAIN_LOOP_SLEEP_S)
+            nap_time = self.MAIN_LOOP_SLEEP_S - (now.microsecond / 1_000_000)
+            await asyncio.sleep(nap_time)
 
     def engage_brain(self, called_from_main=False):
         self.log(f"Engaging brain, control state is {self.control_state}, hp boss state is {self.hp_boss_state}")
@@ -242,12 +238,6 @@ class SiegLoopPid(ShNodeActor):
                 self.enter_startup_hover()
             if active_movement:
                 return
-            if (
-                called_from_main
-                and self.hp_boss_state == HpBossState.HpOn
-                and self.time_to_leave_startup_hover()
-            ):
-                self.trigger_control_event(SiegControlEvent.LeaveStartupHover)
             return
 
         if self.control_state == SiegControlState.Pid:
@@ -269,6 +259,37 @@ class SiegLoopPid(ShNodeActor):
         self.lwt_readings.clear()
         self.lwt_slope = 0
         self.moving_to_just_keep(SiegControlEvent.HpTurnsOn)
+        self._cancel_startup_hover_monitor()
+        self._startup_hover_monitor_task = self._create_task(
+            self._monitor_startup_hover(),
+            name="startup_hover_monitor",
+        )
+
+    def _cancel_startup_hover_monitor(self) -> None:
+        if (
+            self._startup_hover_monitor_task is not None
+            and not self._startup_hover_monitor_task.done()
+        ):
+            self._startup_hover_monitor_task.cancel()
+        self._startup_hover_monitor_task = None
+
+    async def _monitor_startup_hover(self) -> None:
+        """Update LWT slope at 1 Hz and leave hover when timing math says to."""
+        try:
+            while self.control_state == SiegControlState.StartupHover:
+                self.update_lwt_readings()
+                if self.time_to_leave_startup_hover():
+                    self.log("Leaving startup hover based on LWT rate of change")
+                    self.trigger_control_event(SiegControlEvent.LeaveStartupHover)
+                    break
+                await asyncio.sleep(1.0)
+        except asyncio.CancelledError:
+            self.log("Startup hover monitoring cancelled")
+            raise
+        except Exception as e:
+            self.log(f"Error in startup hover monitoring: {e}")
+        finally:
+            self.log("Startup hover monitoring complete")
 
     def time_to_leave_startup_hover(self) -> bool:
         if self.target_lwt is None:
@@ -512,18 +533,21 @@ class SiegLoopPid(ShNodeActor):
             self.log(f"Warning: event {event} did not cause a change in control state")
             return
 
+        if (
+            orig_state == SiegControlState.StartupHover
+            and self.control_state != SiegControlState.StartupHover
+        ):
+            self._cancel_startup_hover_monitor()
+
         if self.control_state == SiegControlState.HpOff:
             self._startup_hover_initialized = False
             self.moving_to_calculated_target = False
-            self.time_since_last_control_loop = 0
             self.moving_to_full_keep(event)
         elif self.control_state == SiegControlState.StartupHover:
             self.moving_to_calculated_target = False
-            self.time_since_last_control_loop = 0
             self.enter_startup_hover()
         elif self.control_state == SiegControlState.Pid:
             self._startup_hover_initialized = False
-            self.time_since_last_control_loop = 0
             self.log("Startup hover complete, entering PID loop")
             self._create_task(self.move_to_pid_target())
 
@@ -580,7 +604,6 @@ class SiegLoopPid(ShNodeActor):
             raise
         finally:
             self.moving_to_calculated_target = False
-            self.time_since_last_control_loop = 0
 
     # --------------------------------------
     # Valve State Machine
@@ -883,6 +906,7 @@ class SiegLoopPid(ShNodeActor):
 
     def stop(self) -> None:
         self._stop_requested = True
+        self._cancel_startup_hover_monitor()
         if self._movement_task and not self._movement_task.done():
             self._movement_task.cancel()
             try:
