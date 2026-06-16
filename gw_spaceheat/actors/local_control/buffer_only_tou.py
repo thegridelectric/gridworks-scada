@@ -112,6 +112,7 @@ class BufferOnlyTouLocalControl(LocalControlTouBase):
         except Exception as e:
             self.log(f"Could not send SiegLoop target LWT: {e}")
             return
+        target_lwt_f = 120 # HACK TODO REMOVE THIS
         self._send_to(
             self.sieg_loop,
             SetTargetLwt(
