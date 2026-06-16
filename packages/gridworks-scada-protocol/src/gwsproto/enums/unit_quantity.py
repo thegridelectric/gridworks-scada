@@ -27,7 +27,10 @@ UNIT_TO_QUANTITY: dict[GwUnit | TelemetryName, GwQuantity] = {
     GwUnit.WattHours: GwQuantity.Energy,
     GwUnit.Gallons: GwQuantity.Volume,
     GwUnit.GpmX100: GwQuantity.FlowRate,
-    
+    GwUnit.Seconds: GwQuantity.Time,
+    GwUnit.SecondsX10: GwQuantity.Time,
+    GwUnit.Milliseconds: GwQuantity.Time,
+
     TelemetryName.Unknown: GwQuantity.Unknown,
 
     TelemetryName.PowerW: GwQuantity.Power,

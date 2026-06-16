@@ -1,12 +1,12 @@
 from enum import auto
 from typing import List
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class TurnHpOnOff(AslEnum):
-    """
-    
+class TurnHpOnOff(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/turn.hp.on.off/000
+
     Values:
       - TurnOn
       - TurnOff

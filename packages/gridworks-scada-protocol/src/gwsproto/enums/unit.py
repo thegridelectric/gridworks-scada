@@ -1,9 +1,9 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class Unit(AslEnum):
+class Unit(SemaEnum):
     """Sema: https://schemas.electricity.works/enums/spaceheat.unit/001"""
 
     Unknown = auto()

@@ -1,10 +1,10 @@
 from enum import auto
 from typing import List
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class GwHouse0PrimaryFlowSource(AslEnum):
+class GwHouse0PrimaryFlowSource(SemaEnum):
     """ASL: https://schemas.electricity.works/enums/gw.house0.primary.flow.source/000
 
     How a House0 layout's primary-loop flow ("primary-flow") is obtained:

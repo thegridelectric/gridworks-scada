@@ -1,10 +1,11 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class ThermistorDataMethod(AslEnum):
-    """
+class ThermistorDataMethod(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/thermistor.data.method/000
+
     What method is used to go from raw voltage readings to captured temperature readings.
     Values:
       - SimpleBeta: Using the beta formula with a calibrated open voltage reading, transmitting

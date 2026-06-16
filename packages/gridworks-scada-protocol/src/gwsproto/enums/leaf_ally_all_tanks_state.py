@@ -1,10 +1,10 @@
 from enum import auto
 from typing import List
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class LeafAllyAllTanksState(AslEnum):
+class LeafAllyAllTanksState(SemaEnum):
     """ASL: https://schemas.electricity.works/enums/gw1.leaf.ally.all.tanks.state/000"""
 
     Dormant = auto()

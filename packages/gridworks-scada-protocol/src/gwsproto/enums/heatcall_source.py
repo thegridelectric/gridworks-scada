@@ -1,10 +1,11 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class HeatcallSource(AslEnum):
-    """
+class HeatcallSource(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/heatcall.source/000
+
     Used for reflecting the state of a double-throw relay that can toggle between a failsafe
     for providing a 24V heat call to a zone controller (aka Wall Thermostat) and the SCADA providing
     that heat call

@@ -1,10 +1,10 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class GwQuantity(AslEnum):
-    """Sema: https://schemas.electricity.works/enums/gw1.quantity/000"""
+class GwQuantity(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/gw1.quantity/001"""
 
     Unknown = auto()
     Unitless = auto()
@@ -17,7 +17,8 @@ class GwQuantity(AslEnum):
     Current = auto()
     Percent = auto()
     Frequency = auto()
-    
+    Time = auto()
+
     @classmethod
     def default(cls) -> "GwQuantity":
         return cls.Unknown
@@ -32,4 +33,4 @@ class GwQuantity(AslEnum):
 
     @classmethod
     def enum_version(cls) -> str:
-        return "000"
+        return "001"

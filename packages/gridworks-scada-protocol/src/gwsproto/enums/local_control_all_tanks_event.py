@@ -1,9 +1,9 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class LocalControlAllTanksEvent(AslEnum):
+class LocalControlAllTanksEvent(SemaEnum):
     """ASL: https://schemas.electricity.works/enums/gw1.local.control.all.tanks.event/001"""
 
     WakeUp = auto()
@@ -28,6 +28,10 @@ class LocalControlAllTanksEvent(AslEnum):
     @classmethod
     def enum_name(cls) -> str:
         return "gw1.local.control.all.tanks.event"
+
+    @classmethod
+    def enum_version(cls) -> str:
+        return "001"
     
     @classmethod
     def values(cls) -> list[str]:

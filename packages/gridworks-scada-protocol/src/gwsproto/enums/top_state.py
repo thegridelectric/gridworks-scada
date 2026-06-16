@@ -1,12 +1,12 @@
 from enum import auto
 from typing import List
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class TopState(AslEnum):
-    """
-    
+class TopState(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/top.state/000
+
     Values:
       - Auto
       - Admin

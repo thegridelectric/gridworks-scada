@@ -1,9 +1,9 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class TempCalcMethod(AslEnum):
+class TempCalcMethod(SemaEnum):
     """Sema: https://schemas.electricity.works/enums/temp.calc.method/000"""
 
     SimpleBetaForPico = auto()

@@ -1,9 +1,11 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class HpBossState(AslEnum):
+class HpBossState(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/gw1.hp.boss.state/000"""
+
     PreparingToTurnOn = auto()
     HpOn = auto()
     HpOff = auto()
@@ -19,6 +21,10 @@ class HpBossState(AslEnum):
     @classmethod
     def enum_name(cls) -> str:
         return "gw1.hp.boss.state"
+
+    @classmethod
+    def enum_version(cls) -> str:
+        return "000"
 
     @classmethod
     def version(cls) -> str:

@@ -1,9 +1,9 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class EmissionMethod(AslEnum):
+class EmissionMethod(SemaEnum):
     """Sema: https://schemas.electricity.works/enums/gw1.emission.method/000"""
 
     OnTrigger = auto()
@@ -17,6 +17,10 @@ class EmissionMethod(AslEnum):
     @classmethod
     def enum_name(cls) -> str:
         return "gw1.emission.method"
+
+    @classmethod
+    def enum_version(cls) -> str:
+        return "000"
 
     @classmethod
     def values(cls) -> list[str]:

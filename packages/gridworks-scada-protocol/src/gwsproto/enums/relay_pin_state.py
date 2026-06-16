@@ -1,10 +1,13 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class RelayPinState(AslEnum):
-    """ASL: https://schemas.electricity.works/enums/relay.pin.state/000"""
+class RelayPinState(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/relay.pin.state/000
+
+    ASL: https://schemas.electricity.works/enums/relay.pin.state/000
+    """
 
     Energized = auto()
     DeEnergized = auto()
@@ -17,6 +20,10 @@ class RelayPinState(AslEnum):
     @classmethod
     def enum_name(cls) -> str:
         return "relay.pin.state"
+
+    @classmethod
+    def enum_version(cls) -> str:
+        return "000"
     
     @classmethod
     def values(cls) -> list[str]:

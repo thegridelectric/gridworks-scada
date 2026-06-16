@@ -1,10 +1,11 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class StoreFlowRelay(AslEnum):
-    """
+class StoreFlowRelay(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/store.flow.relay/000
+
     Used for a double-throw relay that can toggle between a thermal store heating up (flow is
     in the charging direction) or cooling down (flow is in the discharging direction). Events
     in the StoreFlowDirection finite state machine

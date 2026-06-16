@@ -3,17 +3,17 @@ from enum import auto
 from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class GNodeStatus(SemaEnum):
-    """ASL: https://schemas.electricity.works/enums/g.node.status/000"""
+class I2cAdcChannel(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/i2c.adc.channel/000"""
 
-    Pending = auto()
-    Active = auto()
-    Suspended = auto()
-    PermanentlyDeactivated = auto()
+    P0 = auto()
+    P1 = auto()
+    P2 = auto()
+    P3 = auto()
 
     @classmethod
-    def default(cls) -> "GNodeStatus":
-        return cls.Pending
+    def default(cls) -> "I2cAdcChannel":
+        return cls.P0
 
     @classmethod
     def values(cls) -> list[str]:
@@ -21,7 +21,7 @@ class GNodeStatus(SemaEnum):
 
     @classmethod
     def enum_name(cls) -> str:
-        return "g.node.status"
+        return "i2c.adc.channel"
 
     @classmethod
     def enum_version(cls) -> str:

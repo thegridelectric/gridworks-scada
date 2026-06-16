@@ -1,9 +1,9 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class Gw1DeviceType(AslEnum):
+class Gw1DeviceType(SemaEnum):
     """The kind of device a component is built on — a device *category*, not a make/model.
 
     Scada-side mirror of the `gw1.device.type` registry enum. Used by the scada APPLICATION

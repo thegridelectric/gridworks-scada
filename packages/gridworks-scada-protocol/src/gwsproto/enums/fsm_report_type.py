@@ -1,10 +1,10 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class FsmReportType(AslEnum):
-    """
+class FsmReportType(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/fsm.report.type/000
 
     Values:
       - Other

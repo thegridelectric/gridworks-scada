@@ -1037,6 +1037,8 @@
       "Id": "c754769f-9604-483c-b4c5-802f97087c50",
       "InputChannelNames": [],
       "Name": "hp-keep-seconds-x-10",
+      "OutputQuantity": "Time",
+      "OutputUnit": "SecondsX10",
       "Strategy": "integrate-relay-motion",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.beech.ta",
       "TypeName": "derived.channel.gt",
@@ -2120,7 +2122,7 @@
     },
     {
       "AsyncCaptureThresholdGpmTimes100": 10,
-      "ComponentId": "f2f520cc-f6b8-49ff-b68b-0f97e3caba1a",
+      "ComponentId": "3e929dd8-0ec0-496e-b26b-6d491722ba02",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -2163,7 +2165,7 @@
     },
     {
       "AsyncCaptureThresholdGpmTimes100": 20,
-      "ComponentId": "ada2cd03-fdd5-4b35-8870-23949d2a4b6b",
+      "ComponentId": "09894834-e34c-45a4-a9f3-4b180c4e6e07",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -2206,7 +2208,7 @@
     },
     {
       "AsyncCaptureThresholdGpmTimes100": 5,
-      "ComponentId": "beda4c5b-1a01-4e0e-890e-c815138997c3",
+      "ComponentId": "520a6948-b95a-4811-a412-b8481e4e69df",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -3214,7 +3216,7 @@
     {
       "ActorClass": "ApiFlowModule",
       "ActorHierarchyName": "s.sieg-flow",
-      "ComponentId": "f2f520cc-f6b8-49ff-b68b-0f97e3caba1a",
+      "ComponentId": "3e929dd8-0ec0-496e-b26b-6d491722ba02",
       "DisplayName": "Sieg Flow",
       "Name": "sieg-flow",
       "ShNodeId": "d2abd082-8596-4be5-a694-27ef15fdadcd",
@@ -3224,7 +3226,7 @@
     {
       "ActorClass": "ApiFlowModule",
       "ActorHierarchyName": "s.store-flow",
-      "ComponentId": "ada2cd03-fdd5-4b35-8870-23949d2a4b6b",
+      "ComponentId": "09894834-e34c-45a4-a9f3-4b180c4e6e07",
       "DisplayName": "Store Flow",
       "Name": "store-flow",
       "ShNodeId": "87f000ba-4233-4981-a138-fa2b9765d29a",
@@ -3234,7 +3236,7 @@
     {
       "ActorClass": "ApiFlowModule",
       "ActorHierarchyName": "s.dist-flow2",
-      "ComponentId": "beda4c5b-1a01-4e0e-890e-c815138997c3",
+      "ComponentId": "520a6948-b95a-4811-a412-b8481e4e69df",
       "DisplayName": "Dist Flow2",
       "Name": "dist-flow2",
       "ShNodeId": "fe060911-113d-4dd2-b985-5b985de22078",

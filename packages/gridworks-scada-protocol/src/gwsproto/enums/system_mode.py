@@ -1,10 +1,10 @@
 from enum import auto
 from typing import List
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class SystemMode(AslEnum):
+class SystemMode(SemaEnum):
     """Sema: https://schemas.electricity.works/enums/gw1.system.mode/000"""
 
     Heating = auto() # Actively managing heating operations

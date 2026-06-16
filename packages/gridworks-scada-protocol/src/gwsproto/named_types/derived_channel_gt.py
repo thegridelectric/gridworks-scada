@@ -1,5 +1,5 @@
 from typing import Any, Literal
-from typing_extensions import Self
+
 from pydantic import BaseModel, PositiveInt, model_validator
 
 from gwsproto.property_format import (
@@ -9,7 +9,7 @@ from gwsproto.property_format import (
 )
 
 from gwsproto.enums import GwUnit, GwQuantity, EmissionMethod
-from gwsproto.enums.unit_quantity import UNIT_TO_QUANTITY
+from gwsproto.named_types.unit_quantity_projection import UnitQuantityProjection
 
 
 class DerivedChannelGt(BaseModel):
@@ -17,12 +17,9 @@ class DerivedChannelGt(BaseModel):
     Name: SpaceheatName
     CreatedByNodeName: SpaceheatName
     Strategy: SpaceheatName
-    InputChannelNames: list[SpaceheatName] = []
-    OutputUnit: GwUnit | None = None
-    # OutputQuantity mirrors the gwta derived.channel.gt/002 field. It is the canonical
-    # quantity for OutputUnit (see gwsproto.enums.unit_quantity.UNIT_TO_QUANTITY). Kept
-    # Optional because gwsproto carries trigger-only derived channels with no OutputUnit.
-    OutputQuantity: GwQuantity | None = None
+    InputChannelNames: list[SpaceheatName]
+    OutputUnit: GwUnit
+    OutputQuantity: GwQuantity
     EmissionMethod: EmissionMethod
     AsyncEmitDelta: PositiveInt | None = None
     EmitPeriodS: PositiveInt | None = None
@@ -33,59 +30,88 @@ class DerivedChannelGt(BaseModel):
     Version: Literal["002"] = "002"
 
     @model_validator(mode="after")
-    def derive_output_quantity(self) -> Self:
-        """Mirror gwta's OutputUnitQuantityConsistency axiom: OutputQuantity is the
-        canonical quantity for OutputUnit. Auto-fill when OutputUnit is set and the
-        quantity was not supplied (so builders need only set the unit)."""
-        if self.OutputUnit is not None and self.OutputQuantity is None:
-            self.OutputQuantity = UNIT_TO_QUANTITY.get(self.OutputUnit)
+    def check_axiom_1(self) -> "DerivedChannelGt":
+        """
+        Axiom 1: EmissionSemanticsConsistency
+        EmissionMethod SHALL determine the presence of EmitPeriodS and
+        AsyncEmitDelta as follows:
+
+          OnTrigger → neither EmitPeriodS nor AsyncEmitDelta present
+          Periodic → EmitPeriodS present, AsyncEmitDelta absent
+          AsyncAndPeriodic → both EmitPeriodS and AsyncEmitDelta present
+        """
+        if self.EmissionMethod == EmissionMethod.OnTrigger:
+            if self.EmitPeriodS is not None or self.AsyncEmitDelta is not None:
+                raise ValueError(
+                    "Axiom 1 failed: OnTrigger must not include emit_period_s or async_emit_delta."
+                )
+        elif self.EmissionMethod == EmissionMethod.Periodic:
+            if self.EmitPeriodS is None or self.AsyncEmitDelta is not None:
+                raise ValueError(
+                    "Axiom 1 failed: Periodic requires emit_period_s and forbids async_emit_delta."
+                )
+        elif self.EmissionMethod == EmissionMethod.AsyncAndPeriodic:
+            if self.EmitPeriodS is None or self.AsyncEmitDelta is None:
+                raise ValueError(
+                    "Axiom 1 failed: AsyncAndPeriodic requires both emit_period_s and async_emit_delta."
+                )
         return self
 
     @model_validator(mode="after")
-    def check_axiom_1(self) -> Self:
+    def check_axiom_2(self) -> "DerivedChannelGt":
         """
-        Axiom 1: Emission semantics consistency.
-
-        - OnTrigger => no EmitPeriodS, no AsyncEmitDelta
-        - Periodic => EmitPeriodS exists, no AsyncEmitDelta
-        - AsyncAndPeriodic => EmitPeriodS exists, AsyncEmitDelta exists
+        Axiom 2: OutputUnitQuantityConsistency
+        OutputQuantity SHALL equal the Quantity defined by the canonical
+        gw1.unit.quantity.projection:000 instance for the specified OutputUnit.
         """
-        method = self.EmissionMethod
+        expected = UnitQuantityProjection.project(GwUnit(self.OutputUnit))
+        if self.OutputQuantity != expected:
+            raise ValueError(
+                "Axiom 2 failed: output_quantity must match the canonical quantity "
+                "for output_unit."
+            )
+        return self
 
-        match method:
-            case EmissionMethod.OnTrigger:
-                if self.EmitPeriodS is not None:
-                    raise ValueError(
-                        "EmissionMethod.OnTrigger must not define EmitPeriodS"
-                    )
-                if self.AsyncEmitDelta is not None:
-                    raise ValueError(
-                        "EmissionMethod.OnTrigger must not define AsyncEmitDelta"
-                    )
+    @model_validator(mode="after")
+    def check_axiom_3(self) -> "DerivedChannelGt":
+        """
+        Axiom 3: AffineStrategyRequiresCalibration
+        If Strategy equals "affine", then:
 
-            case EmissionMethod.Periodic:
-                if self.EmitPeriodS is None:
-                    raise ValueError(
-                        "EmissionMethod.Periodic requires EmitPeriodS"
-                    )
-                if self.AsyncEmitDelta is not None:
-                    raise ValueError(
-                        "EmissionMethod.Periodic must not define AsyncEmitDelta"
-                    )
-
-            case EmissionMethod.AsyncAndPeriodic:
-                if self.EmitPeriodS is None:
-                    raise ValueError(
-                        "EmissionMethod.AsyncAndPeriodic requires EmitPeriodS"
-                    )
-                if self.AsyncEmitDelta is None:
-                    raise ValueError(
-                        "EmissionMethod.AsyncAndPeriodic requires AsyncEmitDelta"
-                    )
-
-            case _:
+          - Parameters SHALL contain a key "Calibration".
+          - Parameters.Calibration SHALL be a valid
+            linear.one.dimensional.calibration instance.
+        """
+        if self.Strategy == "affine":
+            if self.Parameters is None or "Calibration" not in self.Parameters:
                 raise ValueError(
-                    f"Unknown EmissionMethod {method}"
+                    "Axiom 3 failed: affine strategy requires Parameters.Calibration."
                 )
+        return self
 
+    @model_validator(mode="after")
+    def check_axiom_4(self) -> "DerivedChannelGt":
+        """
+        Axiom 4: SystemModelRequiresParameters
+        If Strategy equals "system-model", then:
+          - Parameters SHALL be present.
+          - Parameters SHALL contain a key "EnergyModel".
+          - Parameters.EnergyModel SHALL include:
+              - TypeName
+              - Version
+        """
+        if self.Strategy == "system-model":
+            if self.Parameters is None:
+                raise ValueError(
+                    "Axiom 4 failed: system-model strategy requires Parameters."
+                )
+            energy_model = self.Parameters.get("EnergyModel")
+            if not isinstance(energy_model, dict):
+                raise ValueError(
+                    "Axiom 4 failed: system-model strategy requires Parameters.EnergyModel."
+                )
+            if "TypeName" not in energy_model or "Version" not in energy_model:
+                raise ValueError(
+                    "Axiom 4 failed: Parameters.EnergyModel must include TypeName and Version."
+                )
         return self

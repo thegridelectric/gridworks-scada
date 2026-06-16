@@ -1,9 +1,9 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class BaseGNodeClass(AslEnum):
+class BaseGNodeClass(SemaEnum):
     """ASL: https://schemas.electricity.works/enums/base.g.node.class/000"""
 
     TerminalAsset = auto()

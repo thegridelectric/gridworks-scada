@@ -1,11 +1,11 @@
 from enum import auto
 from typing import List, Optional
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class LogLevel(AslEnum):
-    """
-    
+class LogLevel(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/log.level/000
+
     Values:
       - Critical
       - Error

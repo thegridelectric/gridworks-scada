@@ -1,7 +1,7 @@
 from enum import auto
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
-class LocalControlTopEvent(AslEnum):
+class LocalControlTopEvent(SemaEnum):
     """ASL: https://schemas.electricity.works/enums/gw1.local.control.top.event/000"""
 
     SystemCold = auto()

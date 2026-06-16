@@ -5,7 +5,7 @@ from gwsproto.names.hydronic_spaceheat.channel_names import (
 )
 from gwsproto.names.nolan.channel_names import NolanZoneChannelNames
 from layout_gen.layout_db import LayoutDb
-from gwsproto.named_types import DerivedChannelGt
+from gwsproto.named_types import DerivedChannelGt, UnitQuantityProjection
 
 NOLAN_LAYOUT_STRATEGY = "Nolan"
 
@@ -63,6 +63,7 @@ def _add_zone_heat_call_channel(
                 Strategy="heat-call",
                 InputChannelNames=[nolan_channels.opto_input],
                 OutputUnit=GwUnit.Unitless,
+                OutputQuantity=UnitQuantityProjection.project(GwUnit.Unitless),
                 EmissionMethod=EmissionMethod.AsyncAndPeriodic,
                 AsyncEmitDelta=1,
                 EmitPeriodS=emit_period_s,
@@ -127,6 +128,7 @@ def _add_zone_predicted_setpoint_channel(
                 Strategy="simple-falling-edge-setpoint",
                 InputChannelNames=[nolan_channels.gw_temp, zone_channels.heat_call],
                 OutputUnit=GwUnit.FahrenheitX100,
+                OutputQuantity=UnitQuantityProjection.project(GwUnit.FahrenheitX100),
                 EmissionMethod=EmissionMethod.AsyncAndPeriodic,
                 AsyncEmitDelta=async_emit_delta_x100,
                 EmitPeriodS=emit_period_s,

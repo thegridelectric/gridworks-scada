@@ -15,7 +15,7 @@ on these ideas:
   - [ASLs](https://gridwork-type-registry.readthedocs.io/en/latest/asls.html)
  """
 
-from gwsproto.enums.gw_str_enum import GwStrEnum, AslEnum
+from gwsproto.enums.gw_str_enum import GwStrEnum, SemaEnum
 from gwsproto.enums.actor_class import ActorClass
 from gwsproto.enums.aquastat_control import AquastatControl
 from gwsproto.enums.base_g_node_class import BaseGNodeClass
@@ -33,6 +33,7 @@ from gwsproto.enums.flow_manifold_variant import FlowManifoldVariant
 from gwsproto.enums.gw_house0_primary_flow_source import GwHouse0PrimaryFlowSource
 from gwsproto.enums.fsm_report_type import FsmReportType
 from gwsproto.enums.gpm_from_hz_method import GpmFromHzMethod
+from gwsproto.enums.i2c_adc_channel import I2cAdcChannel
 from gwsproto.enums.heat_call_interpretation import HeatCallInterpretation
 from gwsproto.enums.heatcall_source import HeatcallSource
 from gwsproto.enums.heat_pump_control import HeatPumpControl
@@ -83,7 +84,7 @@ from gwsproto.enums.unit import Unit
 
 
 __all__ = [
-    "AslEnum",
+    "SemaEnum",
     "GwStrEnum",
     "BaseGNodeClass",
     "GNodeStatus",
@@ -103,6 +104,7 @@ __all__ = [
     "FsmReportType",
     "GpioSenseMode",
     "GpmFromHzMethod",
+    "I2cAdcChannel",
     "GwUnit",
     "GwQuantity",
     "HeatCallInterpretation",

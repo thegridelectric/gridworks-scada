@@ -3,7 +3,7 @@ import time
 from enum import Enum
 from typing import Any, Dict, List, Optional, Sequence, cast
 
-from gwsproto.enums import AslEnum
+from gwsproto.enums import SemaEnum
 from gwproto.message import Message
 
 from gwproactor import MonitoredName
@@ -52,7 +52,7 @@ class I2cRelayMultiplexer(ShNodeActor):
     node: ShNode
     component: I2cMultichannelDtRelayComponent
     wiring_config: RelayWiringConfig
-    event_enum: AslEnum
+    event_enum: SemaEnum
     layout: House0Layout
     _stop_requested: bool
     i2c_bus: Optional[Any]  # board.I2C()

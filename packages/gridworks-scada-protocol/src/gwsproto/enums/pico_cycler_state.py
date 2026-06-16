@@ -1,12 +1,12 @@
 from enum import auto
 from typing import List
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class PicoCyclerState(AslEnum):
-    """
-    
+class PicoCyclerState(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/pico.cycler.state/000
+
     Values:
       - Dormant
       - PicosLive

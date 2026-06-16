@@ -26,3 +26,7 @@ class ChangeRelayState(RelayEventBase):
     @classmethod
     def enum_name(cls) -> str:
         return "change.relay.state"
+
+    @classmethod
+    def enum_version(cls) -> str:
+        return "000"

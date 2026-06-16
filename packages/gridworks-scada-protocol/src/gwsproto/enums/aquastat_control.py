@@ -1,10 +1,10 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class AquastatControl(AslEnum):
-    """
+class AquastatControl(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/aquastat.control.state/000
 
     Values:
       - Boiler

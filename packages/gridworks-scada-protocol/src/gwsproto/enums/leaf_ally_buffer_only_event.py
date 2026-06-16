@@ -1,9 +1,9 @@
 from enum import auto
 from typing import List
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
-class LeafAllyBufferOnlyEvent(AslEnum):
+class LeafAllyBufferOnlyEvent(SemaEnum):
     """ASL: https://schemas.electricity.works/enums/gw1.leaf.ally.buffer.only.event/000"""
 
     GoDormant = auto()

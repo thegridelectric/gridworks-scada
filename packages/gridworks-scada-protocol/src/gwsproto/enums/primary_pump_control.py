@@ -1,10 +1,10 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class PrimaryPumpControl(AslEnum):
-    """
+class PrimaryPumpControl(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/primary.pump.control/000
 
     Values:
       - HeatPump

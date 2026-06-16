@@ -26,6 +26,7 @@ from gwsproto.named_types import (
     RequiredEnergyLayered,
     TankTempCalibration,
     TankTempCalibrationMap,
+    UnitQuantityProjection,
     UsableEnergyLayered,
 )
 
@@ -657,6 +658,9 @@ class LayoutDb:
                 TerminalAssetAlias = self.terminal_asset_alias,
                 # Produced by the SiegLoop actor (not derived-generator, which skips it).
                 Strategy = "integrate-relay-motion",
+                InputChannelNames = [],
+                OutputUnit = GwUnit.SecondsX10,
+                OutputQuantity = UnitQuantityProjection.project(GwUnit.SecondsX10),
                 EmissionMethod = EmissionMethod.OnTrigger,
                 DisplayName = "Percent keep in the Siegenthaler loop",
                 )
@@ -681,6 +685,7 @@ class LayoutDb:
                 Name = H0CN.usable_energy,
                 CreatedByNodeName = H0N.derived_generator,
                 OutputUnit=GwUnit.WattHours,
+                OutputQuantity=UnitQuantityProjection.project(GwUnit.WattHours),
                 TerminalAssetAlias = self.terminal_asset_alias,
                 Strategy = "system-model",
                 EmissionMethod=EmissionMethod.Periodic,
@@ -694,6 +699,7 @@ class LayoutDb:
                 Name = H0CN.required_energy,
                 CreatedByNodeName = H0N.derived_generator,
                 OutputUnit=GwUnit.WattHours,
+                OutputQuantity=UnitQuantityProjection.project(GwUnit.WattHours),
                 TerminalAssetAlias = self.terminal_asset_alias,
                 Strategy = "system-model",
                 EmissionMethod=EmissionMethod.Periodic,
@@ -730,6 +736,7 @@ class LayoutDb:
                 "CreatedByNodeName": H0N.derived_generator,
                 "InputChannelNames": [input_cn],
                 "OutputUnit": GwUnit.FahrenheitX100,
+                "OutputQuantity": UnitQuantityProjection.project(GwUnit.FahrenheitX100),
                 "TerminalAssetAlias": self.terminal_asset_alias,
                 "EmissionMethod": EmissionMethod.OnTrigger,
                 "DisplayName": f"{cn.replace('-', ' ').title()} Effective Temperature",

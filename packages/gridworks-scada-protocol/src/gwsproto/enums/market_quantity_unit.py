@@ -1,11 +1,12 @@
 from enum import auto
 from typing import List
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class MarketQuantityUnit(AslEnum):
-    """
+class MarketQuantityUnit(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/market.quantity.unit/000
+
     Quantity unit assigned to MarketMaker MarketType
     Values:
       - AvgMW

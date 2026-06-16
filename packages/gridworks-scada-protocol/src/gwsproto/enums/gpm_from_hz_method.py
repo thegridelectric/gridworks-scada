@@ -1,9 +1,9 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class GpmFromHzMethod(AslEnum):
+class GpmFromHzMethod(SemaEnum):
     """Sema: https://schemas.electricity.works/enums/gpm.from.hz.method/000"""
 
     Constant = auto()

@@ -1038,6 +1038,8 @@
       "Id": "54fd1977-abad-43df-b6b3-c6492510265d",
       "InputChannelNames": [],
       "Name": "hp-keep-seconds-x-10",
+      "OutputQuantity": "Time",
+      "OutputUnit": "SecondsX10",
       "Strategy": "integrate-relay-motion",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.maple.ta",
       "TypeName": "derived.channel.gt",
@@ -2340,7 +2342,7 @@
     },
     {
       "AsyncCaptureThresholdGpmTimes100": 20,
-      "ComponentId": "22638788-f9f7-4148-bdc8-056dc8cf4074",
+      "ComponentId": "395e2c8f-93e6-439e-9f72-9bec98a84565",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -2383,7 +2385,7 @@
     },
     {
       "AsyncCaptureThresholdGpmTimes100": 4,
-      "ComponentId": "9388467d-d394-4660-bc85-32a2f3e9791b",
+      "ComponentId": "903d6cd5-48d9-4c32-a279-772a3151b07c",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -3337,7 +3339,7 @@
     {
       "ActorClass": "ApiFlowModule",
       "ActorHierarchyName": "s.dist-flow",
-      "ComponentId": "22638788-f9f7-4148-bdc8-056dc8cf4074",
+      "ComponentId": "395e2c8f-93e6-439e-9f72-9bec98a84565",
       "DisplayName": "Dist Flow",
       "Name": "dist-flow",
       "ShNodeId": "adf25545-5158-4db5-bdc0-85c992710913",
@@ -3347,7 +3349,7 @@
     {
       "ActorClass": "ApiFlowModule",
       "ActorHierarchyName": "s.sieg-send",
-      "ComponentId": "9388467d-d394-4660-bc85-32a2f3e9791b",
+      "ComponentId": "903d6cd5-48d9-4c32-a279-772a3151b07c",
       "DisplayName": "Sieg Send",
       "Name": "sieg-send",
       "ShNodeId": "42b80d6b-6d21-4ac6-aef5-b81ff2596348",

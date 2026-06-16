@@ -105,6 +105,7 @@ from gwsproto.named_types.single_reading import SingleReading
 from gwsproto.named_types.spaceheat_telemetry_quantity_projection import (
     SpaceheatTelemetryQuantityProjection,
 )
+from gwsproto.named_types.unit_quantity_projection import UnitQuantityProjection
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwsproto.named_types.snapshot_spaceheat import SnapshotSpaceheat
 from gwsproto.named_types.suit_up import SuitUp
@@ -227,6 +228,7 @@ __all__ = [
     "SingleMachineState",
     "SingleReading",
     "SpaceheatTelemetryQuantityProjection",
+    "UnitQuantityProjection",
     "SnapshotSpaceheat",
     "SpaceheatNodeGt",
     "SuitUp",
