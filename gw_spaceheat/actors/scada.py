@@ -404,6 +404,7 @@ class Scada(PrimeActor, ScadaInterface):
     ) -> None:
         if from_node != self.admin:
             self.log(f"Ignoring AdminDispatch from {from_node.name}. Expected admin!")
+            return
 
         if not self.top_state == TopState.Admin:
             self.admin_wakes_up()
@@ -413,27 +414,6 @@ class Scada(PrimeActor, ScadaInterface):
         self.log(f"AdminDispatch event is {event.EventName}")
 
         to_name = event.ToHandle.split(".")[-1]
-        if to_name == "hp-boss":
-            if payload.DispatchTrigger.EventName == "TurnOn":
-                event = FsmEvent(
-                    FromHandle="admin",
-                    ToHandle="admin.relay6",
-                    EventType=ChangeRelayState.enum_name(),
-                    EventName=ChangeRelayState.CloseRelay,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=str(uuid.uuid4()),
-                )
-            else:
-                event = FsmEvent(
-                    FromHandle="admin",
-                    ToHandle="admin.relay6",
-                    EventType=ChangeRelayState.enum_name(),
-                    EventName=ChangeRelayState.OpenRelay,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=str(uuid.uuid4()),
-                )
-
-            to_name = "relay6"
 
         # TODO: change this to work if relays etc are NOT on primary scada
         if communicator := self.get_communicator(to_name):
