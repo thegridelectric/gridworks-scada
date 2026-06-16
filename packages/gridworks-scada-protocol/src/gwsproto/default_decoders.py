@@ -1,17 +1,17 @@
-from gwsproto.decoders import CacDecoder, ComponentDecoder
+from gwsproto.decoders import ComponentDecoder, DeviceTypeDecoder
 
 __all__ = [
-    "default_cac_decoder",
     "default_component_decoder",
+    "default_device_type_decoder",
 ]
 
 
-def _get_default_cac_decoder() -> CacDecoder:
-    import gwsproto.named_types.cacs
+def _get_default_device_type_decoder() -> DeviceTypeDecoder:
+    import gwsproto.named_types.device_types
 
-    return CacDecoder(
-        model_name="DefaultCacDecoder",
-        modules=[gwsproto.named_types.cacs],
+    return DeviceTypeDecoder(
+        model_name="DefaultDeviceTypeDecoder",
+        modules=[gwsproto.named_types.device_types],
     )
 
 
@@ -24,5 +24,5 @@ def _get_default_component_decoder() -> ComponentDecoder:
     )
 
 
-default_cac_decoder = _get_default_cac_decoder()
+default_device_type_decoder = _get_default_device_type_decoder()
 default_component_decoder = _get_default_component_decoder()

@@ -19,10 +19,9 @@ from gwsproto.named_types.gw_house0_hydronic import GwHouse0Hydronic
 
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.decoders import (
-    CacDecoder,
     ComponentDecoder,
+    DeviceTypeDecoder,
 )
-from gwsproto.named_types import ComponentAttributeClassGt
 from gwsproto.data_classes.derived_channel import DerivedChannel
 from gwsproto.named_types import (
     RequiredEnergyLayered,
@@ -41,8 +40,8 @@ class LayoutBucket(str, Enum):
 
     @property
     def device_type_list_name(self) -> str:
-        """e.g. OtherCacs"""
-        return f"{self.value}Cacs"
+        """The single device-type record bucket."""
+        return "DeviceTypes"
 
     @property
     def component_list_name(self) -> str:
@@ -63,7 +62,7 @@ class House0Layout(HardwareLayout):
         self,
         layout: dict[Any, Any],
         *,
-        cacs: dict[str, ComponentAttributeClassGt],  # by id
+        device_types: dict[str, Any],  # by DeviceType
         components: dict[str, Component],  # by id
         nodes: dict[str, ShNode],  # by name
         data_channels: dict[str, DataChannel],  # by name
@@ -73,7 +72,7 @@ class House0Layout(HardwareLayout):
     ) -> None:
         super().__init__(
             layout=layout,
-            cacs=cacs,
+            device_types=device_types,
             components=components,
             nodes=nodes,
             data_channels=data_channels,
@@ -120,7 +119,12 @@ class House0Layout(HardwareLayout):
 
     @property
     def vdc_relay_name(self) -> str:
-        if self.layout.get("Strategy", HouseStrategy.House0.value) == HouseStrategy.Nolan.value:
+        # Strategy now lives on the typed Hydronic block; fall back to the legacy
+        # top-level key for pre-nesting layouts.
+        strategy = self.hydronic.Strategy or self.layout.get(
+            "Strategy", HouseStrategy.House0.value
+        )
+        if strategy == HouseStrategy.Nolan.value:
             return NolanNodeNames.vdc_relay
         return House0NodeNames.vdc_relay
 
@@ -442,7 +446,7 @@ class House0Layout(HardwareLayout):
         included_node_names: Optional[set[str]] = None,
         raise_errors: bool = True,
         errors: Optional[list[LoadError]] = None,
-        cac_decoder: Optional[CacDecoder] = None,
+        device_type_decoder: Optional[DeviceTypeDecoder] = None,
         component_decoder: Optional[ComponentDecoder] = None,
     ) -> "House0Layout":
         with Path(layout_path).open() as f:
@@ -452,7 +456,7 @@ class House0Layout(HardwareLayout):
             included_node_names=included_node_names,
             raise_errors=raise_errors,
             errors=errors,
-            cac_decoder=cac_decoder,
+            device_type_decoder=device_type_decoder,
             component_decoder=component_decoder,
         )
 
@@ -465,20 +469,20 @@ class House0Layout(HardwareLayout):
         included_node_names: Optional[set[str]] = None,
         raise_errors: bool = True,
         errors: Optional[list[LoadError]] = None,
-        cac_decoder: Optional[CacDecoder] = None,
+        device_type_decoder: Optional[DeviceTypeDecoder] = None,
         component_decoder: Optional[ComponentDecoder] = None,
     ) -> "House0Layout":
         if errors is None:
             errors = []
-        cacs = cls.load_cacs(
+        device_types = cls.load_device_types(
             layout=layout,
             raise_errors=raise_errors,
             errors=errors,
-            cac_decoder=cac_decoder,
+            device_type_decoder=device_type_decoder,
         )
         components = cls.load_components(
             layout=layout,
-            cacs=cacs,
+            device_types=device_types,
             raise_errors=raise_errors,
             errors=errors,
             component_decoder=component_decoder,
@@ -516,7 +520,7 @@ class House0Layout(HardwareLayout):
             _fmv = FlowManifoldVariant(layout.get("FlowManifoldVariant", "House0"))
             _usl = bool(layout.get("UseSiegLoop", False))
         load_args: House0LoadArgs = {
-            "cacs": cacs,
+            "device_types": device_types,
             "components": components,
             "nodes": nodes,
             "data_channels": data_channels,

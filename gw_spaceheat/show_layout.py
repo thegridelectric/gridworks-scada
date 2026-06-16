@@ -85,7 +85,7 @@ def print_component_dicts(layout: House0Layout):
     print("All Cacs:")
     print({
         cac.DeviceType: cac.DisplayName
-        for cac in layout.cacs.values()
+        for cac in layout.device_types.values()
     })
     print("Nodes:")
     print(layout.nodes)
@@ -102,7 +102,7 @@ def print_component_dicts(layout: House0Layout):
     })
     print("Node Cacs:")
     print({
-        node.Name: layout.cac(node.Name)
+        node.Name: layout.device_type(node.Name)
         for node in layout.nodes.values()
     })
     # unused components
@@ -113,7 +113,7 @@ def print_component_dicts(layout: House0Layout):
     if unused_components:
         print(unused_components)
     # unused cacs
-    unused_cacs = dict(layout.cacs)
+    unused_cacs = dict(layout.device_types)
     for component in layout.components.values():
         unused_cacs.pop(component.gt.DeviceType, None)
     print(f"Unused Cacs: {len(unused_cacs)}")
@@ -130,7 +130,7 @@ def print_component_dicts(layout: House0Layout):
     # dangling cacs
     dangling_cac_components = set()
     for component in layout.components.values():
-        if component.gt.DeviceType and component.gt.DeviceType not in layout.cacs:
+        if component.gt.DeviceType and component.gt.DeviceType not in layout.device_types:
             dangling_cac_components.add(component.gt.DisplayName)
     print(f"Components with DeviceType but no device-type record: {len(dangling_cac_components)}")
     if dangling_cac_components:
@@ -169,7 +169,7 @@ def print_layout_members(
         errors.append(LoadError(attr, {}, e))
 
     try:
-        attr = "power_meter_cac"
+        attr = "power_meter_device_type"
         item = getattr(layout, attr)
         display = None if item is None else item.DisplayName
         print(f"  {attr}: <{display}>")
@@ -292,7 +292,7 @@ def print_layout_table(layout: House0Layout):
                 component_txt = none_text
         else:
             component_txt = str(component.gt.DisplayName)
-        cac = layout.cac(node.Name)
+        cac = layout.device_type(node.Name)
         if cac is None:
             device_type_text = none_text
             if component is not None and component.gt.DeviceType:

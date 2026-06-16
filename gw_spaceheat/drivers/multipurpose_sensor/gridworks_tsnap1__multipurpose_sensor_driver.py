@@ -74,11 +74,11 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
         models: List[Gw1DeviceType] = [
             Gw1DeviceType.GridworksTsnap1ScadaBoard,
         ]
-        if component.cac.DeviceType not in models:
+        if component.device_type.DeviceType not in models:
             raise Exception(
-                f"Expected device type in {models}, got {component.cac.DeviceType}"
+                f"Expected device type in {models}, got {component.device_type.DeviceType}"
             )
-        self.my_telemetry_names = component.cac.TelemetryNameList
+        self.my_telemetry_names = component.device_type.TelemetryNameList
         if set(self.my_telemetry_names) != {
             TelemetryName.WaterTempCTimes1000,
             TelemetryName.AirTempCTimes1000,
@@ -89,10 +89,10 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
             )
         c = component.gt
         self.terminal_block_idx_list = [tc.TerminalBlockIdx for tc in c.ConfigList]
-        self.telemetry_name_list = component.cac.TelemetryNameList
+        self.telemetry_name_list = component.device_type.TelemetryNameList
 
         self.ads_address = {
-            i: address for i, address in enumerate(component.cac.AdsI2cAddressList)
+            i: address for i, address in enumerate(component.device_type.AdsI2cAddressList)
         }
         self.ads = {}
         self.initialization_failed = {}

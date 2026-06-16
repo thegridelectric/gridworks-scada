@@ -6,22 +6,21 @@ from gwsproto.data_classes.components import HubitatComponent
 from gwsproto.data_classes.components.component import Component
 from gwsproto.data_classes.resolver import ComponentResolver
 from gwsproto.data_classes.sh_node import ShNode
-from gwsproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
 from gwsproto.named_types.hubitat_component_gt import HubitatComponentGt
 from gwsproto.named_types.hubitat_poller_component_gt import HubitatPollerComponentGt
 from gwsproto.named_types.rest_poller_gt import RequestArgs, RESTPollerSettings
 
 
 class HubitatPollerComponent(
-    Component[HubitatPollerComponentGt, ComponentAttributeClassGt], ComponentResolver
+    Component[HubitatPollerComponentGt, Any], ComponentResolver
 ):
     hubitat_gt: HubitatComponentGt
     _rest: Optional[RESTPollerSettings] = None
 
     def __init__(
-        self, gt: HubitatPollerComponentGt, cac: ComponentAttributeClassGt
+        self, gt: HubitatPollerComponentGt, device_type: Optional[Any] = None
     ) -> None:
-        super().__init__(gt, cac)
+        super().__init__(gt, device_type)
         self.hubitat_gt = HubitatComponentGt.make_stub(gt.Poller.hubitat_component_id)
 
     @property

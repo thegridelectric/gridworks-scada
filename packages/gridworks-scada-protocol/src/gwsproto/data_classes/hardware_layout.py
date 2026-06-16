@@ -9,12 +9,12 @@ from typing import Any, Optional, TypeVar
 
 from gwsproto.errors import DcError
 from gwsproto.decoders import (
-    CacDecoder,
     ComponentDecoder,
+    DeviceTypeDecoder,
 )
 from gwsproto.default_decoders import (
-    default_cac_decoder,
     default_component_decoder,
+    default_device_type_decoder,
 )
 
 import gwsproto.data_classes.components
@@ -31,10 +31,9 @@ from gwsproto.data_classes.telemetry_tuple import TelemetryTuple
 
 from gwsproto.enums import ActorClass, TelemetryName, GwUnit, EmissionMethod
 from gwsproto.named_types import (
-    ComponentAttributeClassGt,
     ComponentGt,
     DataChannelGt,
-    ElectricMeterCacGt,
+    ElectricMeterDeviceTypeGt,
     SpaceheatNodeGt,
 )
 
@@ -49,7 +48,7 @@ class LoadError:
 
 
 class LoadArgs(typing.TypedDict):
-    cacs: dict[str, ComponentAttributeClassGt]
+    device_types: dict[str, Any]
     components: dict[str, Component[Any, Any]]
     nodes: dict[str, ShNode]
     data_channels: dict[str, DataChannel]
@@ -82,7 +81,7 @@ class ChannelRegistry:
 
 class HardwareLayout:
     layout: dict[Any, Any]
-    cacs: dict[str, ComponentAttributeClassGt]
+    device_types: dict[str, Any]
     components: dict[str, Component[Any, Any]]
     components_by_type: dict[type[Any], list[Component[Any, Any]]]
     nodes: dict[str, ShNode]
@@ -91,34 +90,28 @@ class HardwareLayout:
     GT_SUFFIX = "Gt"
 
     @classmethod
-    def load_cacs(
+    def load_device_types(
         cls,
         layout: dict[str, Any],
         *,
         raise_errors: bool = True,
         errors: Optional[list[LoadError]] = None,
-        cac_decoder: Optional[CacDecoder] = None,
-    ) -> dict[str, ComponentAttributeClassGt]:
+        device_type_decoder: Optional[DeviceTypeDecoder] = None,
+    ) -> dict[str, Any]:
         if errors is None:
             errors = []
-        if cac_decoder is None:
-            cac_decoder = default_cac_decoder
-        cacs: dict[str, ComponentAttributeClassGt] = {}
-        for type_name in [
-            "Ads111xBasedCacs",
-            "ResistiveHeaterCacs",
-            "ElectricMeterCacs",
-            "OtherCacs",
-        ]:
-            for cac_dict in layout.get(type_name, ()):
-                try:
-                    cac = cac_decoder.decode(cac_dict)
-                    cacs[cac.DeviceType] = cac
-                except Exception as e:  # noqa: PERF203
-                    if raise_errors:
-                        raise
-                    errors.append(LoadError(type_name, cac_dict, e))
-        return cacs
+        if device_type_decoder is None:
+            device_type_decoder = default_device_type_decoder
+        device_types: dict[str, Any] = {}
+        for dt_dict in layout.get("DeviceTypes", ()):
+            try:
+                dt = device_type_decoder.decode(dt_dict)
+                device_types[dt.DeviceType] = dt
+            except Exception as e:  # noqa: PERF203
+                if raise_errors:
+                    raise
+                errors.append(LoadError("DeviceTypes", dt_dict, e))
+        return device_types
 
     @classmethod
     def get_data_class_name(cls, component_gt: ComponentGt) -> str:
@@ -145,15 +138,17 @@ class HardwareLayout:
 
     @classmethod
     def make_component(
-        cls, component_gt: ComponentGt, cac: Optional[ComponentAttributeClassGt] = None
+        cls, component_gt: ComponentGt, device_type: Optional[Any] = None
     ) -> Component[Any, Any]:
-        return cls.get_data_class_class(component_gt)(gt=component_gt, cac=cac)
+        return cls.get_data_class_class(component_gt)(
+            gt=component_gt, device_type=device_type
+        )
 
     @classmethod
     def load_components(
         cls,
         layout: dict[Any, Any],
-        cacs: dict[str, ComponentAttributeClassGt],
+        device_types: dict[str, Any],
         *,
         raise_errors: bool = True,
         errors: Optional[list[LoadError]] = None,
@@ -178,10 +173,10 @@ class HardwareLayout:
                     # (electric.meter / ads111x / gw1.scada). A record-less category (web
                     # server, hubitat, sim) resolves to None. The layout's DeviceTypeMembership
                     # axiom is what guarantees a record IS present when a category needs it.
-                    cac_gt = cacs.get(component_gt.DeviceType, None)
+                    device_type_gt = device_types.get(component_gt.DeviceType, None)
                     components[component_gt.ComponentId] = cls.make_component(
                         component_gt,
-                        cac_gt,
+                        device_type_gt,
                     )
                 except Exception as e:  # noqa: PERF203
                     if raise_errors:
@@ -436,13 +431,13 @@ class HardwareLayout:
     @classmethod
     def check_ads_terminal_block_consistency(cls, c: Ads111xBasedComponent) -> None:
         possible_indices = set(
-            range(1, c.cac.TotalTerminalBlocks + 1)
+            range(1, c.device_type.TotalTerminalBlocks + 1)
         )  # e,g {1, .., 12}
         actual_indices = {tc.TerminalBlockIdx for tc in c.gt.ConfigList}
         if not actual_indices.issubset(possible_indices):
             raise DcError(
                 f"Terminal Block indices {actual_indices}"
-                f"When Ads only has {c.cac.TotalTerminalBlocks} terminal blocks!"
+                f"When Ads only has {c.device_type.TotalTerminalBlocks} terminal blocks!"
             )
 
     @classmethod
@@ -548,14 +543,14 @@ class HardwareLayout:
         self,
         layout: dict[Any, Any],
         *,
-        cacs: dict[str, ComponentAttributeClassGt],
+        device_types: dict[str, Any],
         components: dict[str, Component[Any, Any]],
         nodes: dict[str, ShNode],
         data_channels: dict[str, DataChannel],
         derived_channels: dict[str, DerivedChannel],
     ) -> None:
         self.layout = copy.deepcopy(layout)
-        self.cacs = dict(cacs)
+        self.device_types = dict(device_types)
         self.components = dict(components)
         self.components_by_type = defaultdict(list)
         for component in self.components.values():
@@ -794,7 +789,7 @@ class HardwareLayout:
         included_node_names: Optional[set[str]] = None,
         raise_errors: bool = True,
         errors: Optional[list[LoadError]] = None,
-        cac_decoder: Optional[CacDecoder] = None,
+        device_type_decoder: Optional[DeviceTypeDecoder] = None,
         component_decoder: Optional[ComponentDecoder] = None,
     ) -> "HardwareLayout":
         with Path(layout_path).open() as f:
@@ -804,7 +799,7 @@ class HardwareLayout:
             included_node_names=included_node_names,
             raise_errors=raise_errors,
             errors=errors,
-            cac_decoder=cac_decoder,
+            device_type_decoder=device_type_decoder,
             component_decoder=component_decoder,
         )
 
@@ -875,20 +870,20 @@ class HardwareLayout:
         included_node_names: Optional[set[str]] = None,
         raise_errors: bool = True,
         errors: Optional[list[LoadError]] = None,
-        cac_decoder: Optional[CacDecoder] = None,
+        device_type_decoder: Optional[DeviceTypeDecoder] = None,
         component_decoder: Optional[ComponentDecoder] = None,
     ) -> "HardwareLayout":
         if errors is None:
             errors = []
-        cacs = cls.load_cacs(
+        device_types = cls.load_device_types(
             layout=layout,
             raise_errors=raise_errors,
             errors=errors,
-            cac_decoder=cac_decoder,
+            device_type_decoder=device_type_decoder,
         )
         components = cls.load_components(
             layout=layout,
-            cacs=cacs,
+            device_types=device_types,
             raise_errors=raise_errors,
             errors=errors,
             component_decoder=component_decoder,
@@ -913,7 +908,7 @@ class HardwareLayout:
             errors=errors,
         )
         load_args: LoadArgs = {
-            "cacs": cacs,
+            "device_types": device_types,
             "components": components,
             "nodes": nodes,
             "data_channels": data_channels,
@@ -964,11 +959,11 @@ class HardwareLayout:
     def component(self, node_name: str) -> Optional[Component[Any, Any]]:
         return self.component_from_node(self.node(node_name, None))
 
-    def cac(self, node_name: str) -> Optional[ComponentAttributeClassGt]:
+    def device_type(self, node_name: str) -> Optional[Any]:
         component = self.component(node_name)
         if component is None:
             return None
-        return typing.cast(ComponentAttributeClassGt, component.cac)
+        return component.device_type
 
     def get_component_as_type(self, component_id: str, type_: type[T]) -> Optional[T]:
         component = self.components.get(component_id, None)
@@ -1122,12 +1117,12 @@ class HardwareLayout:
         return typing.cast(ElectricMeterComponent, self.power_meter_node.component)
 
     @cached_property
-    def power_meter_cac(self) -> ElectricMeterCacGt:
-        if isinstance(self.power_meter_component.cac, ElectricMeterCacGt):
-            return self.power_meter_component.cac
+    def power_meter_device_type(self) -> ElectricMeterDeviceTypeGt:
+        if isinstance(self.power_meter_component.device_type, ElectricMeterDeviceTypeGt):
+            return self.power_meter_component.device_type
         raise TypeError(
-            f"ERROR. power_meter_component cac {self.power_meter_component.cac}"
-            f" / {type(self.power_meter_component.cac)} is not an ElectricMeterCac"
+            f"ERROR. power_meter_component device_type {self.power_meter_component.device_type}"
+            f" / {type(self.power_meter_component.device_type)} is not an ElectricMeterDeviceType"
         )
 
     @cached_property

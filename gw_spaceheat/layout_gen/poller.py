@@ -5,7 +5,6 @@ from gwsproto.enums import GwQuantity
 from gwsproto.enums import Gw1DeviceType
 from gwsproto.enums import TelemetryName
 from gwsproto.enums import Unit
-from gwsproto.named_types import ComponentAttributeClassGt
 from gwsproto.named_types import HubitatPollerComponentGt
 from gwsproto.type_helpers import HubitatPollerGt
 from gwsproto.type_helpers import MakerAPIAttributeGt
@@ -42,16 +41,6 @@ def add_thermostat(
     stat_cfg: HubitatThermostatGenCfg,
 ) -> None:
     hubitat_alias = add_hubitat(db, stat_cfg.hubitat)
-    if not db.has_device_type_record(Gw1DeviceType.HoneywellT6Thermostat):
-        db.add_cacs(
-            [
-                ComponentAttributeClassGt(
-                    DeviceType=Gw1DeviceType.HoneywellT6Thermostat,
-                    DisplayName="Honeywell T6 Thermostat",
-                    MinPollPeriodMs=HUBITAT_MIN_POLL_S * 1000,
-                ),
-            ]
-        )
     stat_component_display_name = f"Thermostat {stat_cfg.zone_idx} for {stat_cfg.zone_name}"
     temp_channel_name = f"zone{stat_cfg.zone_idx}-{stat_cfg.zone_name}-{TEMP_CHANNEL_SUFFIX}"
     setpt_channel_name = f"zone{stat_cfg.zone_idx}-{stat_cfg.zone_name}-{SETPT_CHANNEL_SUFFIX}"

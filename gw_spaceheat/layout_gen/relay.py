@@ -29,7 +29,7 @@ from gwsproto.named_types import (
     SpaceheatNodeGt,
 )
 from gwsproto.enums import ChangeKeepSend, HpLoopKeepSend
-from gwsproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
+from gwsproto.named_types import Gw1ScadaDeviceTypeGt
 from gwsproto.names.hydronic_spaceheat.channel_names import (
     HydronicSpaceheatChannelNames as HCN,
 )
@@ -50,15 +50,8 @@ def add_house0_relays(
     db: LayoutDb,
     cfg: RelayCfg,
 ) -> None:
-    if not db.has_device_type_record(Gw1DeviceType.KridaDoubleRelayBoard16):
-        db.add_cacs(
-            [
-                ComponentAttributeClassGt(
-                    DeviceType=Gw1DeviceType.KridaDoubleRelayBoard16,
-                    DisplayName="16-channel i2c krida relay",
-                ),
-            ]
-        )
+    # The Krida relay board is a record-less device category (its identity lives on the
+    # component's DeviceType); no specialized device-type record is emitted.
     if not db.component_id_by_alias(component_display_name):
         config_list = [
             RelayActorConfig(
@@ -659,9 +652,9 @@ def add_nolan_relays(
     vdc_channel_name = HCN.vdc_relay_state
 
     if not db.has_device_type_record(Gw1DeviceType.GridworksScadaGw108):
-        db.add_cacs(
+        db.add_device_types(
             [
-                ComponentAttributeClassGt(
+                Gw1ScadaDeviceTypeGt(
                     DeviceType=Gw1DeviceType.GridworksScadaGw108,
                     DisplayName="GridWorks SCADA Gw108",
                 ),

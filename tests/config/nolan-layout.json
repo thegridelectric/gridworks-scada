@@ -1,7 +1,4 @@
 {
-  "CriticalZoneList": [
-    "main"
-  ],
   "DataChannels": [
     {
       "AboutNodeName": "hp-odu",
@@ -244,6 +241,7 @@
       "Id": "23bf86b8-266a-4244-9b72-914179ab85aa",
       "InputChannelNames": [],
       "Name": "usable-energy",
+      "OutputQuantity": "Energy",
       "OutputUnit": "WattHours",
       "Parameters": {
         "EnergyModel": {
@@ -254,7 +252,7 @@
       "Strategy": "system-model",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "CreatedByNodeName": "derived-generator",
@@ -264,6 +262,7 @@
       "Id": "26c5f643-96cc-4ede-b958-75d626790c01",
       "InputChannelNames": [],
       "Name": "required-energy",
+      "OutputQuantity": "Energy",
       "OutputUnit": "WattHours",
       "Parameters": {
         "EnergyModel": {
@@ -274,7 +273,7 @@
       "Strategy": "system-model",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "CreatedByNodeName": "derived-generator",
@@ -285,11 +284,12 @@
         "buffer-depth1-device"
       ],
       "Name": "buffer-depth1",
+      "OutputQuantity": "Temperature",
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "CreatedByNodeName": "derived-generator",
@@ -300,11 +300,12 @@
         "buffer-depth2-device"
       ],
       "Name": "buffer-depth2",
+      "OutputQuantity": "Temperature",
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "CreatedByNodeName": "derived-generator",
@@ -315,11 +316,12 @@
         "buffer-depth3-device"
       ],
       "Name": "buffer-depth3",
+      "OutputQuantity": "Temperature",
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "CreatedByNodeName": "derived-generator",
@@ -330,11 +332,12 @@
         "tank1-depth1-device"
       ],
       "Name": "tank1-depth1",
+      "OutputQuantity": "Temperature",
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "CreatedByNodeName": "derived-generator",
@@ -345,11 +348,12 @@
         "tank1-depth2-device"
       ],
       "Name": "tank1-depth2",
+      "OutputQuantity": "Temperature",
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "CreatedByNodeName": "derived-generator",
@@ -360,11 +364,12 @@
         "tank1-depth3-device"
       ],
       "Name": "tank1-depth3",
+      "OutputQuantity": "Temperature",
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "AsyncEmitDelta": 1,
@@ -377,6 +382,7 @@
         "zone1-main-opto-input"
       ],
       "Name": "zone1-main-heat-call",
+      "OutputQuantity": "Unitless",
       "OutputUnit": "Unitless",
       "Parameters": {
         "Interpretation": "DigitalZeroIsActive"
@@ -384,7 +390,7 @@
       "Strategy": "heat-call",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "AsyncEmitDelta": 20,
@@ -398,6 +404,7 @@
         "zone1-main-heat-call"
       ],
       "Name": "zone1-main-set",
+      "OutputQuantity": "Temperature",
       "OutputUnit": "FahrenheitX100",
       "Parameters": {
         "SetpointThresholdFX100": 200
@@ -405,10 +412,10 @@
       "Strategy": "simple-falling-edge-setpoint",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     }
   ],
-  "ElectricMeterCacs": [
+  "DeviceTypes": [
     {
       "DeviceType": "GridworksSimPowerMeter",
       "DisplayName": "Gridworks Pm1 Simulated Power Meter",
@@ -416,8 +423,14 @@
       "TelemetryNameList": [
         "PowerW"
       ],
-      "TypeName": "electric.meter.cac.gt",
-      "Version": "001"
+      "TypeName": "electric.meter.device.type.gt",
+      "Version": "000"
+    },
+    {
+      "DeviceType": "GridworksScadaGw108",
+      "DisplayName": "GridWorks SCADA Gw108",
+      "TypeName": "gw1.scada.device.type.gt",
+      "Version": "000"
     }
   ],
   "ElectricMeterComponents": [
@@ -464,7 +477,24 @@
       "Version": "002"
     }
   ],
-  "FlowManifoldVariant": "House0",
+  "Hydronic": {
+    "PrimaryFlowSource": "Measured",
+    "SiegLoopPlumbed": false,
+    "Strategy": "Nolan",
+    "TotalStoreTanks": 1,
+    "TypeName": "gw.house0.hydronic",
+    "UseSiegLoop": false,
+    "Version": "000",
+    "Zones": [
+      {
+        "Critical": true,
+        "KwhPerDegF": 1,
+        "Name": "main",
+        "TypeName": "gw1.hvac.zone",
+        "Version": "000"
+      }
+    ]
+  },
   "MyLeafTransactiveNodeGNode": {
     "Alias": "d1.isone.ct.newhaven.orange1",
     "BaseClass": "LeafTransactiveNode",
@@ -497,26 +527,6 @@
     "TypeName": "g.node.gt",
     "Version": "004"
   },
-  "OtherCacs": [
-    {
-      "DeviceType": "AbstractWebServer",
-      "DisplayName": "Web Server CAC",
-      "TypeName": "component.attribute.class.gt",
-      "Version": "002"
-    },
-    {
-      "DeviceType": "GridworksScadaGw108",
-      "DisplayName": "GridWorks SCADA Gw108",
-      "TypeName": "component.attribute.class.gt",
-      "Version": "002"
-    },
-    {
-      "DeviceType": "GridworksSimSensor",
-      "DisplayName": "GridWorks Simulated MultiTemp sensor",
-      "TypeName": "component.attribute.class.gt",
-      "Version": "002"
-    }
-  ],
   "OtherComponents": [
     {
       "ComponentId": "7ee3ea86-5c59-48ef-a371-728e4de21d3b",
@@ -1062,14 +1072,5 @@
       "Version": "302"
     }
   ],
-  "Strategy": "Nolan",
-  "SynthChannels": [],
-  "TotalStoreTanks": 1,
-  "UseSiegLoop": false,
-  "ZoneKwhPerDegFList": [
-    1
-  ],
-  "ZoneList": [
-    "main"
-  ]
+  "SynthChannels": []
 }

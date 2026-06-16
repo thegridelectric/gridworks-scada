@@ -14,9 +14,9 @@ class GridworksSimPm1_PowerMeterDriver(PowerMeterDriver):
         super(GridworksSimPm1_PowerMeterDriver, self).__init__(
             component=component, settings=settings
         )
-        if component.cac.DeviceType != Gw1DeviceType.GridworksSimPowerMeter:
+        if component.gt.DeviceType != Gw1DeviceType.GridworksSimPowerMeter:
             raise Exception(
-                f"Expected {Gw1DeviceType.GridworksSimPowerMeter}, got {component.cac}"
+                f"Expected {Gw1DeviceType.GridworksSimPowerMeter}, got {component.gt.DeviceType}"
             )
         self.component = component
         self.fake_current_rms_micro_amps = 18000

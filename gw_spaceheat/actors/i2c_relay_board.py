@@ -50,7 +50,7 @@ class I2cRelayBoard(ShNodeActor):
             )
 
         self.component = component
-        self.cac = component.cac
+        self.device_type = component.device_type
         self.gt = component.gt
 
         # ---- Bus routing ----
@@ -63,11 +63,11 @@ class I2cRelayBoard(ShNodeActor):
         self.relay_state: Dict[int, RelayEnergizationState] = {}
 
         # ---- DeviceType dispatch ----
-        if self.cac.DeviceType == Gw1DeviceType.GridworksScadaGw108:
+        if self.gt.DeviceType == Gw1DeviceType.GridworksScadaGw108:
             self._initialize_gw108()
         else:
             raise ValueError(
-                f"I2cRelayBoardActor does not support DeviceType {self.cac.DeviceType}"
+                f"I2cRelayBoardActor does not support DeviceType {self.gt.DeviceType}"
             )
 
     def _initialize_gw108(self) -> None:

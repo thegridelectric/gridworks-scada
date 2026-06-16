@@ -72,9 +72,9 @@ class I2cRelayMultiplexer(ShNodeActor):
             level=self.settings.relay_multiplexer_logging_level,
         )
         self.component = cast(I2cMultichannelDtRelayComponent, self.node.component)
-        if self.component.cac.DeviceType != Gw1DeviceType.KridaDoubleRelayBoard16:
+        if self.component.gt.DeviceType != Gw1DeviceType.KridaDoubleRelayBoard16:
             raise Exception(
-                f"Expected {Gw1DeviceType.KridaDoubleRelayBoard16}, got {self.component.cac}"
+                f"Expected {Gw1DeviceType.KridaDoubleRelayBoard16}, got {self.component.gt.DeviceType}"
             )
         # Move into driver code if/when we get a second i2c relay component
         self.i2c_bus = None

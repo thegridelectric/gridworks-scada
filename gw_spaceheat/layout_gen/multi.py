@@ -7,9 +7,8 @@ from gwsproto.enums import GwQuantity
 from gwsproto.enums import Gw1DeviceType
 from gwsproto.enums import TelemetryName
 from gwsproto.enums import Unit
-from gwsproto.named_types import ComponentAttributeClassGt
 from gwsproto.named_types import ComponentGt
-from gwsproto.named_types import Ads111xBasedCacGt
+from gwsproto.named_types import Ads111xBasedDeviceTypeGt
 from gwsproto.named_types import SpaceheatNodeGt
 from gwsproto.named_types import  AdsChannelConfig
 from gwsproto.named_types import DataChannelGt
@@ -55,21 +54,17 @@ def add_tsnap_multipurpose(
     tsnap: TSnapMultipurposeGenCfg,
 ) -> None:
     if not db.has_device_type_record(Gw1DeviceType.GridworksTsnap1ScadaBoard):
-        db.add_cacs(
+        db.add_device_types(
             [
-                cast(
-                    ComponentAttributeClassGt,
-                    Ads111xBasedCacGt(
-                        DeviceType=Gw1DeviceType.GridworksTsnap1ScadaBoard,
-                        AdsI2cAddressList= [0x4b, 0x49, 0x48],
-                        TelemetryNameList=[TelemetryName.WaterTempCTimes1000, TelemetryName.AirTempCTimes1000],
-                        TotalTerminalBlocks=12,
-                        MinPollPeriodMs=200,
-                        DisplayName="GridWorks TSnap1.0 as 12-channel analog temp sensor",
-                    )
+                Ads111xBasedDeviceTypeGt(
+                    DeviceType=Gw1DeviceType.GridworksTsnap1ScadaBoard,
+                    AdsI2cAddressList=[0x4b, 0x49, 0x48],
+                    TelemetryNameList=[TelemetryName.WaterTempCTimes1000, TelemetryName.AirTempCTimes1000],
+                    TotalTerminalBlocks=12,
+                    MinPollPeriodMs=200,
+                    DisplayName="GridWorks TSnap1.0 as 12-channel analog temp sensor",
                 )
-            ],
-            "Ads111xBasedCacs",
+            ]
         )
     
     db.add_components(

@@ -6,7 +6,6 @@ from gwsproto.named_types import (
     DfrConfig,
     SpaceheatNodeGt,
 )
-from gwsproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
 from pydantic import BaseModel
 from layout_gen import LayoutDb
 
@@ -18,15 +17,6 @@ class DfrConf(BaseModel):
     StorePumpDefault: int = 50
 
 def add_dfrs(db: LayoutDb, dfr_config: DfrConf) -> None:
-    if not db.has_device_type_record(Gw1DeviceType.DfrobotDualAnalogOut):
-        db.add_cacs(
-            [
-                ComponentAttributeClassGt(
-                    DeviceType=Gw1DeviceType.DfrobotDualAnalogOut,
-                    DisplayName="DFRobot DFR0971 X 2",
-                ),
-            ]
-        )
 
     if not db.component_id_by_alias(component_display_name):
         config_list = [

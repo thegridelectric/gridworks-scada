@@ -8,9 +8,8 @@ from gwsproto.enums import GwQuantity
 from gwsproto.enums import TelemetryName
 from gwsproto.enums import Unit
 from gwsproto.type_helpers import HubitatGt
-from gwsproto.named_types import ComponentAttributeClassGt
 from gwsproto.named_types import ComponentGt
-from gwsproto.named_types import ElectricMeterCacGt
+from gwsproto.named_types import ElectricMeterDeviceTypeGt
 from gwsproto.named_types import SpaceheatNodeGt
 from gwsproto.named_types import ElectricMeterChannelConfig
 from gwsproto.named_types import DataChannelGt
@@ -124,19 +123,15 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
 
 
     if not db.has_device_type_record(Gw1DeviceType.GridworksSimPowerMeter):
-        db.add_cacs(
+        db.add_device_types(
             [
-                typing.cast(
-                    ComponentAttributeClassGt,
-                    ElectricMeterCacGt(
-                        DeviceType=Gw1DeviceType.GridworksSimPowerMeter,
-                        DisplayName="Gridworks Pm1 Simulated Power Meter",
-                        TelemetryNameList=[TelemetryName.PowerW],
-                        MinPollPeriodMs=1000,
-                    )
+                ElectricMeterDeviceTypeGt(
+                    DeviceType=Gw1DeviceType.GridworksSimPowerMeter,
+                    DisplayName="Gridworks Pm1 Simulated Power Meter",
+                    TelemetryNameList=[TelemetryName.PowerW],
+                    MinPollPeriodMs=1000,
                 ),
-            ],
-            "ElectricMeterCacs"
+            ]
         )
 
     db.add_components(

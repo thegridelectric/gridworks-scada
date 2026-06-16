@@ -1,6 +1,6 @@
 from gwsproto.named_types.actuators_ready import ActuatorsReady
 from gwsproto.named_types.admin_analog_dispatch import AdminAnalogDispatch
-from gwsproto.named_types.ads111x_based_cac_gt import Ads111xBasedCacGt
+from gwsproto.named_types.ads111x_based_device_type_gt import Ads111xBasedDeviceTypeGt
 from gwsproto.named_types.ads111x_based_component_gt import Ads111xBasedComponentGt
 from gwsproto.named_types.ads_channel_config import AdsChannelConfig
 from gwsproto.named_types.admin_dispatch import AdminDispatch
@@ -15,7 +15,6 @@ from gwsproto.named_types.bid_recommendation import BidRecommendation
 from gwsproto.named_types.channel_config import ChannelConfig
 from gwsproto.named_types.channel_flatlined import ChannelFlatlined
 from gwsproto.named_types.channel_readings import ChannelReadings
-from gwsproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
 from gwsproto.named_types.component_gt import ComponentGt
 from gwsproto.named_types.data_channel_gt import DataChannelGt
 from gwsproto.named_types.derived_channel_gt import DerivedChannelGt
@@ -24,7 +23,7 @@ from gwsproto.named_types.dfr_config import DfrConfig
 from gwsproto.named_types.dispatch_contract_go_dormant import DispatchContractGoDormant
 from gwsproto.named_types.dispatch_contract_go_live import DispatchContractGoLive
 from gwsproto.named_types.egauge_register_config import EgaugeRegisterConfig
-from gwsproto.named_types.electric_meter_cac_gt import ElectricMeterCacGt
+from gwsproto.named_types.electric_meter_device_type_gt import ElectricMeterDeviceTypeGt
 from gwsproto.named_types.electric_meter_channel_config import ElectricMeterChannelConfig
 from gwsproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwsproto.named_types.energy_instruction import EnergyInstruction
@@ -37,6 +36,7 @@ from gwsproto.named_types.fsm_atomic_report import FsmAtomicReport
 from gwsproto.named_types.fsm_event import FsmEvent
 from gwsproto.named_types.fsm_full_report import FsmFullReport
 from gwsproto.named_types.g_node_gt import GNodeGt
+from gwsproto.named_types.gw1_scada_device_type_gt import Gw1ScadaDeviceTypeGt
 from gwsproto.named_types.gw1_hvac_zone import Gw1HvacZone
 from gwsproto.named_types.gw_house0_hydronic import GwHouse0Hydronic
 from gwsproto.named_types.house0_layout import House0Layout
@@ -86,7 +86,6 @@ from gwsproto.named_types.events import RemainingElecEvent, ReportEvent
 from gwsproto.named_types.report import Report
 from gwsproto.named_types.required_energy_layered import RequiredEnergyLayered
 from gwsproto.named_types.reset_hp_keep_value import ResetHpKeepValue
-from gwsproto.named_types.resistive_heater_cac_gt import ResistiveHeaterCacGt
 from gwsproto.named_types.resistive_heater_component_gt import ResistiveHeaterComponentGt
 from gwsproto.named_types.rest_poller_component_gt import RESTPollerComponentGt
 from gwsproto.named_types.slow_dispatch_contract import SlowDispatchContract
@@ -126,7 +125,7 @@ from gwsproto.named_types.weather_forecast import WeatherForecast
 __all__ = [
     "RemainingElecEvent",
     "ActuatorsReady",
-    "Ads111xBasedCacGt",
+    "Ads111xBasedDeviceTypeGt",
     "Ads111xBasedComponentGt",
     "AdsChannelConfig",
     "AdminAnalogDispatch",
@@ -142,7 +141,6 @@ __all__ = [
     "ChannelConfig",
     "ChannelFlatlined",
     "ChannelReadings",
-    "ComponentAttributeClassGt",
     "ComponentGt",
     "DataChannelGt",
     "DerivedChannelGt",
@@ -151,7 +149,7 @@ __all__ = [
     "DispatchContractGoDormant",
     "DispatchContractGoLive",
     "EgaugeRegisterConfig",
-    "ElectricMeterCacGt",
+    "ElectricMeterDeviceTypeGt",
     "ElectricMeterChannelConfig",
     "ElectricMeterComponentGt",
     "FibaroSmartImplantComponentGt",
@@ -164,6 +162,7 @@ __all__ = [
     "Glitch",
     "GoDormant",
     "GNodeGt",
+    "Gw1ScadaDeviceTypeGt",
     "Gw1HvacZone",
     "GwHouse0Hydronic",
     "House0Layout",
@@ -211,7 +210,6 @@ __all__ = [
     "ReportEvent",
     "RequiredEnergyLayered",
     "ResetHpKeepValue",
-    "ResistiveHeaterCacGt",
     "ResistiveHeaterComponentGt",
     "RESTPollerComponentGt",
     "SlowContractHeartbeat",

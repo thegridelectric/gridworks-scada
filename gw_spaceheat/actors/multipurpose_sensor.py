@@ -55,7 +55,7 @@ class MpDriverThreadSetupHelper:
     def make_driver(self) -> MultipurposeSensorDriver:
         driver_module_name = ""
         driver_class_name = ""
-        cac = self.component.cac
+        cac = self.component.device_type
         if cac.DeviceType == Gw1DeviceType.GridworksTsnap1ScadaBoard:
             driver_module_name = "drivers.multipurpose_sensor.gridworks_tsnap1__multipurpose_sensor_driver"
             driver_class_name = "GridworksTsnap1_MultipurposeSensorDriver"
@@ -111,7 +111,7 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
         self.component = typing.cast(Ads111xBasedComponent, node.component)
         self.poll_period_ms = max(
             self.FASTEST_POLL_PERIOD_MS,
-            self.component.cac.MinPollPeriodMs,
+            self.component.device_type.MinPollPeriodMs,
         )
         self._telemetry_destination = telemetry_destination
         my_channel_names = {x.ChannelName for x in self.component.gt.ConfigList}

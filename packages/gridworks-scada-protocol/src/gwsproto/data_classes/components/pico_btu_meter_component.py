@@ -1,7 +1,8 @@
+from typing import Any
 from gwsproto.data_classes.components.component import Component
-from gwsproto.named_types import ComponentAttributeClassGt, PicoBtuMeterComponentGt
+from gwsproto.named_types import PicoBtuMeterComponentGt
 
 
 class PicoBtuMeterComponent(
-    Component[PicoBtuMeterComponentGt, ComponentAttributeClassGt]
+    Component[PicoBtuMeterComponentGt, Any]
 ): ...

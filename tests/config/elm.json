@@ -1,23 +1,4 @@
 {
-  "Ads111xBasedCacs": [
-    {
-      "AdsI2cAddressList": [
-        75,
-        73,
-        72
-      ],
-      "DeviceType": "GridworksTsnap1ScadaBoard",
-      "DisplayName": "GridWorks TSnap1.0 as 12-channel analog temp sensor",
-      "MinPollPeriodMs": 200,
-      "TelemetryNameList": [
-        "WaterTempCTimes1000",
-        "AirTempCTimes1000"
-      ],
-      "TotalTerminalBlocks": 12,
-      "TypeName": "ads111x.based.cac.gt",
-      "Version": "000"
-    }
-  ],
   "Ads111xBasedComponents": [
     {
       "ComponentId": "117fda0c-9b3d-44a3-ab7b-f4066d1b40a3",
@@ -138,11 +119,6 @@
       "TypeName": "ads111x.based.component.gt",
       "Version": "000"
     }
-  ],
-  "CriticalZoneList": [
-    "living-kitchen",
-    "bedrooms",
-    "master-bedrm"
   ],
   "DataChannels": [
     {
@@ -1161,6 +1137,7 @@
       "Id": "759eec6b-d6a7-42f1-a731-e96c54ba4c26",
       "InputChannelNames": [],
       "Name": "usable-energy",
+      "OutputQuantity": "Energy",
       "OutputUnit": "WattHours",
       "Parameters": {
         "EnergyModel": {
@@ -1171,7 +1148,7 @@
       "Strategy": "system-model",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "CreatedByNodeName": "derived-generator",
@@ -1181,6 +1158,7 @@
       "Id": "4fae861f-2c80-42d1-a3d9-9d68c8dd6743",
       "InputChannelNames": [],
       "Name": "required-energy",
+      "OutputQuantity": "Energy",
       "OutputUnit": "WattHours",
       "Parameters": {
         "EnergyModel": {
@@ -1191,7 +1169,7 @@
       "Strategy": "system-model",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "CreatedByNodeName": "derived-generator",
@@ -1202,6 +1180,7 @@
         "buffer-depth1-device"
       ],
       "Name": "buffer-depth1",
+      "OutputQuantity": "Temperature",
       "OutputUnit": "FahrenheitX100",
       "Parameters": {
         "Calibration": {
@@ -1214,7 +1193,7 @@
       "Strategy": "affine",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "CreatedByNodeName": "derived-generator",
@@ -1225,11 +1204,12 @@
         "buffer-depth2-device"
       ],
       "Name": "buffer-depth2",
+      "OutputQuantity": "Temperature",
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "CreatedByNodeName": "derived-generator",
@@ -1240,6 +1220,7 @@
         "buffer-depth3-device"
       ],
       "Name": "buffer-depth3",
+      "OutputQuantity": "Temperature",
       "OutputUnit": "FahrenheitX100",
       "Parameters": {
         "Calibration": {
@@ -1252,7 +1233,7 @@
       "Strategy": "affine",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "CreatedByNodeName": "derived-generator",
@@ -1263,11 +1244,12 @@
         "tank1-depth1-device"
       ],
       "Name": "tank1-depth1",
+      "OutputQuantity": "Temperature",
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "CreatedByNodeName": "derived-generator",
@@ -1278,11 +1260,12 @@
         "tank1-depth2-device"
       ],
       "Name": "tank1-depth2",
+      "OutputQuantity": "Temperature",
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "CreatedByNodeName": "derived-generator",
@@ -1293,11 +1276,12 @@
         "tank1-depth3-device"
       ],
       "Name": "tank1-depth3",
+      "OutputQuantity": "Temperature",
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "CreatedByNodeName": "derived-generator",
@@ -1308,11 +1292,12 @@
         "tank2-depth1-device"
       ],
       "Name": "tank2-depth1",
+      "OutputQuantity": "Temperature",
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "CreatedByNodeName": "derived-generator",
@@ -1323,11 +1308,12 @@
         "tank2-depth2-device"
       ],
       "Name": "tank2-depth2",
+      "OutputQuantity": "Temperature",
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "CreatedByNodeName": "derived-generator",
@@ -1338,11 +1324,12 @@
         "tank2-depth3-device"
       ],
       "Name": "tank2-depth3",
+      "OutputQuantity": "Temperature",
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "CreatedByNodeName": "derived-generator",
@@ -1353,11 +1340,12 @@
         "tank3-depth1-device"
       ],
       "Name": "tank3-depth1",
+      "OutputQuantity": "Temperature",
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "CreatedByNodeName": "derived-generator",
@@ -1368,11 +1356,12 @@
         "tank3-depth2-device"
       ],
       "Name": "tank3-depth2",
+      "OutputQuantity": "Temperature",
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "CreatedByNodeName": "derived-generator",
@@ -1383,14 +1372,15 @@
         "tank3-depth3-device"
       ],
       "Name": "tank3-depth3",
+      "OutputQuantity": "Temperature",
       "OutputUnit": "FahrenheitX100",
       "Strategy": "identity",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "derived.channel.gt",
-      "Version": "001"
+      "Version": "002"
     }
   ],
-  "ElectricMeterCacs": [
+  "DeviceTypes": [
     {
       "DeviceType": "EgaugePowerMeter",
       "DisplayName": "EGauge 4030",
@@ -1398,8 +1388,25 @@
       "TelemetryNameList": [
         "PowerW"
       ],
-      "TypeName": "electric.meter.cac.gt",
-      "Version": "001"
+      "TypeName": "electric.meter.device.type.gt",
+      "Version": "000"
+    },
+    {
+      "AdsI2cAddressList": [
+        75,
+        73,
+        72
+      ],
+      "DeviceType": "GridworksTsnap1ScadaBoard",
+      "DisplayName": "GridWorks TSnap1.0 as 12-channel analog temp sensor",
+      "MinPollPeriodMs": 200,
+      "TelemetryNameList": [
+        "WaterTempCTimes1000",
+        "AirTempCTimes1000"
+      ],
+      "TotalTerminalBlocks": 12,
+      "TypeName": "ads111x.based.device.type.gt",
+      "Version": "000"
     }
   ],
   "ElectricMeterComponents": [
@@ -1626,7 +1633,45 @@
       "Version": "002"
     }
   ],
-  "FlowManifoldVariant": "House0",
+  "Hydronic": {
+    "PrimaryFlowSource": "Measured",
+    "SiegLoopPlumbed": false,
+    "Strategy": "House0",
+    "TotalStoreTanks": 3,
+    "TypeName": "gw.house0.hydronic",
+    "UseSiegLoop": false,
+    "Version": "000",
+    "Zones": [
+      {
+        "Critical": true,
+        "KwhPerDegF": 1,
+        "Name": "living-kitchen",
+        "TypeName": "gw1.hvac.zone",
+        "Version": "000"
+      },
+      {
+        "Critical": true,
+        "KwhPerDegF": 1,
+        "Name": "bedrooms",
+        "TypeName": "gw1.hvac.zone",
+        "Version": "000"
+      },
+      {
+        "Critical": false,
+        "KwhPerDegF": 0,
+        "Name": "garage",
+        "TypeName": "gw1.hvac.zone",
+        "Version": "000"
+      },
+      {
+        "Critical": true,
+        "KwhPerDegF": 1,
+        "Name": "master-bedrm",
+        "TypeName": "gw1.hvac.zone",
+        "Version": "000"
+      }
+    ]
+  },
   "MyLeafTransactiveNodeGNode": {
     "Alias": "hw1.isone.me.versant.keene.elm",
     "BaseClass": "LeafTransactiveNode",
@@ -1659,51 +1704,6 @@
     "TypeName": "g.node.gt",
     "Version": "004"
   },
-  "OtherCacs": [
-    {
-      "DeviceType": "KridaDoubleRelayBoard16",
-      "DisplayName": "16-channel i2c krida relay",
-      "TypeName": "component.attribute.class.gt",
-      "Version": "002"
-    },
-    {
-      "DeviceType": "AbstractWebServer",
-      "DisplayName": "Web Server CAC",
-      "TypeName": "component.attribute.class.gt",
-      "Version": "002"
-    },
-    {
-      "DeviceType": "DfrobotDualAnalogOut",
-      "DisplayName": "DFRobot DFR0971 X 2",
-      "TypeName": "component.attribute.class.gt",
-      "Version": "002"
-    },
-    {
-      "DeviceType": "GridworksPicoFlowHall",
-      "DisplayName": "Pico Flow Hall",
-      "TypeName": "component.attribute.class.gt",
-      "Version": "002"
-    },
-    {
-      "DeviceType": "GridworksTankModule3",
-      "DisplayName": "GridWorks TankModule3 (Uses 1 pico)",
-      "TypeName": "component.attribute.class.gt",
-      "Version": "002"
-    },
-    {
-      "DeviceType": "HubitatC7Hub",
-      "DisplayName": "Hubitat Elevation C-7",
-      "TypeName": "component.attribute.class.gt",
-      "Version": "002"
-    },
-    {
-      "DeviceType": "HoneywellT6Thermostat",
-      "DisplayName": "Honeywell T6 Thermostat",
-      "MinPollPeriodMs": 5000,
-      "TypeName": "component.attribute.class.gt",
-      "Version": "002"
-    }
-  ],
   "OtherComponents": [
     {
       "ComponentId": "4f0bc964-36a7-45d4-9dcc-c8c873a79409",
@@ -2185,7 +2185,7 @@
     },
     {
       "AsyncCaptureThresholdGpmTimes100": 20,
-      "ComponentId": "e446235c-b5a6-41b2-b5ad-3f3b9d04affe",
+      "ComponentId": "e8ef0e10-6257-401e-90f4-1f465c2896d6",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -2228,7 +2228,7 @@
     },
     {
       "AsyncCaptureThresholdGpmTimes100": 20,
-      "ComponentId": "97f00ba7-dfee-46c3-8c31-931bdc7a4f1f",
+      "ComponentId": "29a80f71-5bb8-4f8c-b0dd-5a65ef6c9845",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -2271,7 +2271,7 @@
     },
     {
       "AsyncCaptureThresholdGpmTimes100": 20,
-      "ComponentId": "bfd5bf1b-0462-45e6-8d14-9da7cc8e07d7",
+      "ComponentId": "e55f91c1-b25a-454f-a73d-79223c2a3ce5",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -3545,7 +3545,7 @@
     {
       "ActorClass": "ApiFlowModule",
       "ActorHierarchyName": "s.dist-flow",
-      "ComponentId": "e446235c-b5a6-41b2-b5ad-3f3b9d04affe",
+      "ComponentId": "e8ef0e10-6257-401e-90f4-1f465c2896d6",
       "DisplayName": "Dist Flow",
       "Name": "dist-flow",
       "ShNodeId": "5bf14719-879a-46a5-9bd4-cb5f55f15245",
@@ -3555,7 +3555,7 @@
     {
       "ActorClass": "ApiFlowModule",
       "ActorHierarchyName": "s.store-flow",
-      "ComponentId": "97f00ba7-dfee-46c3-8c31-931bdc7a4f1f",
+      "ComponentId": "29a80f71-5bb8-4f8c-b0dd-5a65ef6c9845",
       "DisplayName": "Store Flow",
       "Name": "store-flow",
       "ShNodeId": "d45dbff8-aa55-403b-a827-f62203fa5bdc",
@@ -3565,7 +3565,7 @@
     {
       "ActorClass": "ApiFlowModule",
       "ActorHierarchyName": "s.primary-flow",
-      "ComponentId": "bfd5bf1b-0462-45e6-8d14-9da7cc8e07d7",
+      "ComponentId": "e55f91c1-b25a-454f-a73d-79223c2a3ce5",
       "DisplayName": "Primary Flow",
       "Name": "primary-flow",
       "ShNodeId": "cae849fd-e54a-4fc7-ba94-478708793e9c",
@@ -3865,20 +3865,5 @@
       "Version": "302"
     }
   ],
-  "Strategy": "House0",
-  "SynthChannels": [],
-  "TotalStoreTanks": 3,
-  "UseSiegLoop": false,
-  "ZoneKwhPerDegFList": [
-    1,
-    1,
-    0,
-    1
-  ],
-  "ZoneList": [
-    "living-kitchen",
-    "bedrooms",
-    "garage",
-    "master-bedrm"
-  ]
+  "SynthChannels": []
 }

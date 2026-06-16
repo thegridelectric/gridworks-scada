@@ -1,5 +1,6 @@
+from typing import Any
 from gwsproto.data_classes.components.component import Component
-from gwsproto.named_types import ComponentAttributeClassGt, DfrComponentGt
+from gwsproto.named_types import DfrComponentGt
 
 
-class DfrComponent(Component[DfrComponentGt, ComponentAttributeClassGt]): ...
+class DfrComponent(Component[DfrComponentGt, Any]): ...

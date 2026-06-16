@@ -2,7 +2,6 @@ from gwsproto.named_types import PicoTankModuleComponentGt
 from pydantic import BaseModel
 from gwsproto.property_format import SpaceheatName
 from layout_gen import LayoutDb
-from gwsproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
 from gwsproto.named_types.data_channel_gt import DataChannelGt
 from gwsproto.enums import ActorClass, Gw1DeviceType, GwQuantity, Unit, TelemetryName
 from gwsproto.named_types.channel_config import ChannelConfig
@@ -32,15 +31,6 @@ def add_tank3(
         db: LayoutDb,
         tank_cfg: Tank3Cfg
 ) -> None:
-    if not db.has_device_type_record(Gw1DeviceType.GridworksTankModule3):
-        db.add_cacs(
-            [
-                ComponentAttributeClassGt(
-                    DeviceType=Gw1DeviceType.GridworksTankModule3,
-                    DisplayName="GridWorks TankModule3 (Uses 1 pico)",
-                ),
-            ]
-        )
     
     if not db.component_id_by_alias(tank_cfg.component_display_name()):
         config_list = []

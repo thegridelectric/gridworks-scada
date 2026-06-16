@@ -8,7 +8,6 @@ from gwsproto.enums import (
 )
 from gwsproto.named_types import (
     ChannelConfig,
-    ComponentAttributeClassGt,
     DataChannelGt,
     SimPicoTankModuleComponentGt,
     SpaceheatNodeGt,
@@ -31,15 +30,6 @@ def add_simulated_tanks(db: LayoutDb) -> None:
 
 
 def add_sim_tank(db: LayoutDb, reader: str) -> None:
-    if not db.has_device_type_record(SIM_TANK_DEVICE_TYPE):
-        db.add_cacs(
-            [
-                ComponentAttributeClassGt(
-                    DeviceType=SIM_TANK_DEVICE_TYPE,
-                    DisplayName="GridWorks Simulated MultiTemp sensor",
-                ),
-            ]
-        )
 
     cfg = Tank3Cfg(
         SerialNumber="NA",

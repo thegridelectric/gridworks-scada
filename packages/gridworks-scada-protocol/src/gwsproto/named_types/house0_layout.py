@@ -3,7 +3,9 @@ from typing import List, Literal, Optional
 from pydantic import BaseModel
 
 from gwsproto.named_types.ads111x_based_component_gt import Ads111xBasedComponentGt
-from gwsproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
+from gwsproto.named_types.ads111x_based_device_type_gt import Ads111xBasedDeviceTypeGt
+from gwsproto.named_types.electric_meter_device_type_gt import ElectricMeterDeviceTypeGt
+from gwsproto.named_types.gw1_scada_device_type_gt import Gw1ScadaDeviceTypeGt
 from gwsproto.named_types.data_channel_gt import DataChannelGt
 from gwsproto.named_types.derived_channel_gt import DerivedChannelGt
 from gwsproto.named_types.dfr_component_gt import DfrComponentGt
@@ -39,6 +41,13 @@ House0Component = (
     | WebServerComponentGt
 )
 
+# The specialized device-type records a House0 layout may carry (mirrors the sema oneOf).
+House0DeviceType = (
+    Ads111xBasedDeviceTypeGt
+    | ElectricMeterDeviceTypeGt
+    | Gw1ScadaDeviceTypeGt
+)
+
 
 class House0Layout(BaseModel):
     """
@@ -51,9 +60,8 @@ class House0Layout(BaseModel):
 
     Shape laid out, content built up bit by bit: only TypeName + Version are
     required at v000; the collections are optional while they are populated and
-    the structural axioms are added. DeviceTypes uses the ComponentAttributeClassGt
-    base as a stand-in until the specialized <family>.device.type.gt records are
-    gwsproto classes (carried debt, mirrors the Nolan scaffold).
+    the structural axioms are added. DeviceTypes is the oneOf of the specialized
+    <family>.device.type.gt records (matching the gwta snapshot).
     """
 
     GNodes: Optional[List[GNodeGt]] = None
@@ -61,7 +69,7 @@ class House0Layout(BaseModel):
     DataChannels: Optional[List[DataChannelGt]] = None
     DerivedChannels: Optional[List[DerivedChannelGt]] = None
     Components: Optional[List[House0Component]] = None
-    DeviceTypes: Optional[List[ComponentAttributeClassGt]] = None
+    DeviceTypes: Optional[List[House0DeviceType]] = None
     Hydronic: Optional[GwHouse0Hydronic] = None
     TypeName: Literal["gw.house0.layout"] = "gw.house0.layout"
     Version: Literal["000"] = "000"

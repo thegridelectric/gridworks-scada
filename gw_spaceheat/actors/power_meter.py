@@ -90,7 +90,7 @@ class DriverThreadSetupHelper:
         self.logger = logger
 
     def make_power_meter_driver(self) -> PowerMeterDriver:
-        cac = self.component.cac
+        cac = self.component.device_type
         if cac.DeviceType == Gw1DeviceType.GridworksSimPowerMeter:
             driver = GridworksSimPm1_PowerMeterDriver(component=self.component, settings=self.settings)
         elif cac.DeviceType == Gw1DeviceType.EgaugePowerMeter:
@@ -247,7 +247,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         ]
         if channel_report_list:
             self.report_sampled_telemetry_values(channel_report_list)
-        sleep_time_ms = self.driver.component.cac.MinPollPeriodMs
+        sleep_time_ms = self.driver.component.device_type.MinPollPeriodMs
         delta_ms = 1000 * (time.time() - start_s)
         if delta_ms < sleep_time_ms:
             sleep_time_ms -= delta_ms

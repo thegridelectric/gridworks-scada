@@ -8,7 +8,8 @@ from gwsproto.property_format import (
     UUID4Str,
 )
 
-from gwsproto.enums import GwUnit, EmissionMethod
+from gwsproto.enums import GwUnit, GwQuantity, EmissionMethod
+from gwsproto.enums.unit_quantity import UNIT_TO_QUANTITY
 
 
 class DerivedChannelGt(BaseModel):
@@ -18,6 +19,10 @@ class DerivedChannelGt(BaseModel):
     Strategy: SpaceheatName
     InputChannelNames: list[SpaceheatName] = []
     OutputUnit: GwUnit | None = None
+    # OutputQuantity mirrors the gwta derived.channel.gt/002 field. It is the canonical
+    # quantity for OutputUnit (see gwsproto.enums.unit_quantity.UNIT_TO_QUANTITY). Kept
+    # Optional because gwsproto carries trigger-only derived channels with no OutputUnit.
+    OutputQuantity: GwQuantity | None = None
     EmissionMethod: EmissionMethod
     AsyncEmitDelta: PositiveInt | None = None
     EmitPeriodS: PositiveInt | None = None
@@ -25,8 +30,16 @@ class DerivedChannelGt(BaseModel):
     DisplayName: str
     TerminalAssetAlias: LeftRightDotStr
     TypeName: Literal["derived.channel.gt"] = "derived.channel.gt"
-    Version: Literal["001"] = "001"
+    Version: Literal["002"] = "002"
 
+    @model_validator(mode="after")
+    def derive_output_quantity(self) -> Self:
+        """Mirror gwta's OutputUnitQuantityConsistency axiom: OutputQuantity is the
+        canonical quantity for OutputUnit. Auto-fill when OutputUnit is set and the
+        quantity was not supplied (so builders need only set the unit)."""
+        if self.OutputUnit is not None and self.OutputQuantity is None:
+            self.OutputQuantity = UNIT_TO_QUANTITY.get(self.OutputUnit)
+        return self
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

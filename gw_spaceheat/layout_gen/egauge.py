@@ -5,10 +5,9 @@ from gwsproto.enums import ActorClass
 from gwsproto.enums import Gw1DeviceType
 from gwsproto.enums import TelemetryName
 from gwsproto.enums import Unit, GwQuantity
-from gwsproto.named_types import ComponentAttributeClassGt
 from gwsproto.named_types import ComponentGt
 from gwsproto.named_types import EgaugeRegisterConfig
-from gwsproto.named_types import ElectricMeterCacGt
+from gwsproto.named_types import ElectricMeterDeviceTypeGt
 from gwsproto.named_types import SpaceheatNodeGt
 from gwsproto.named_types import ElectricMeterChannelConfig
 from gwsproto.named_types import DataChannelGt
@@ -92,19 +91,15 @@ def add_egauge(
     egauge: PowerMeterGenConfig,
 ) -> None:
     if not db.has_device_type_record(Gw1DeviceType.EgaugePowerMeter):
-        db.add_cacs(
+        db.add_device_types(
             [
-                cast(
-                    ComponentAttributeClassGt,
-                    ElectricMeterCacGt(
-                        DeviceType=Gw1DeviceType.EgaugePowerMeter,
-                        MinPollPeriodMs=1000,
-                        DisplayName="EGauge 4030",
-                        TelemetryNameList=[TelemetryName.PowerW],
-                    )
+                ElectricMeterDeviceTypeGt(
+                    DeviceType=Gw1DeviceType.EgaugePowerMeter,
+                    MinPollPeriodMs=1000,
+                    DisplayName="EGauge 4030",
+                    TelemetryNameList=[TelemetryName.PowerW],
                 )
-            ],
-            "ElectricMeterCacs",
+            ]
         )
     db.add_components(
         [

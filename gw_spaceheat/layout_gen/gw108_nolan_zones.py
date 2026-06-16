@@ -19,7 +19,7 @@ from gwsproto.enums import (
 )
 from gwsproto.named_types import (
     ChannelConfig,
-    ComponentAttributeClassGt,
+    Gw1ScadaDeviceTypeGt,
     DataChannelGt,
     Gw108GpioSensorComponentGt,
     I2cThermistorChannelConfig,
@@ -126,9 +126,9 @@ def add_gw108_nolan_zones(
         )
 
     if not db.has_device_type_record(Gw1DeviceType.GridworksScadaGw108):
-        db.add_cacs(
+        db.add_device_types(
             [
-                ComponentAttributeClassGt(
+                Gw1ScadaDeviceTypeGt(
                     DeviceType=Gw1DeviceType.GridworksScadaGw108,
                     DisplayName="GridWorks SCADA Gw108",
                 ),

@@ -1,13 +1,21 @@
 import re
 from typing import Any, Optional
-from pydantic import ValidationError
+from pydantic import ValidationError  # noqa: F401  (kept for ComponentDecoder below)
 
 from gwproto.decoders import UnionDecoder, UnionWrapper
 
-from gwsproto.named_types import ComponentAttributeClassGt, ComponentGt
+from gwsproto.named_types import ComponentGt
 
-class CacDecoder(UnionDecoder):
-    TYPE_NAME_REGEX = re.compile(r".*\.cac\.gt")
+# The decoded device-type record union (the per-family *.device.type.gt types).
+DeviceTypeGt = Any
+
+
+class DeviceTypeDecoder(UnionDecoder):
+    """Decodes the per-family specialized device-type records (the successors to the
+    legacy *.cac.gt machinery): ads111x.based.device.type.gt,
+    electric.meter.device.type.gt, gw1.scada.device.type.gt."""
+
+    TYPE_NAME_REGEX = re.compile(r".*\.device\.type\.gt")
     loader: type[UnionWrapper[Any]]
 
     def __init__(
@@ -18,25 +26,8 @@ class CacDecoder(UnionDecoder):
     ) -> None:
         super().__init__(model_name, type_name_regex=type_name_regex, **kwargs)
 
-    def decode(
-        self, cac_dict: dict[str, Any], *, allow_missing: bool = True
-    ) -> ComponentAttributeClassGt:
-        decoded: ComponentAttributeClassGt
-        try:
-            decoded = self.loader.model_validate({"Wrapped": cac_dict}).Wrapped
-            if not isinstance(decoded, ComponentAttributeClassGt):
-                raise TypeError(
-                    f"ERROR. CacDecoder decoded type {type(decoded)}, "
-                    "not ComponentAttributeClassGt"
-                )
-        except ValidationError as e:
-            if allow_missing and any(
-                error.get("type") == "union_tag_invalid" for error in e.errors()
-            ):
-                decoded = ComponentAttributeClassGt(**cac_dict)
-            else:
-                raise
-        return decoded
+    def decode(self, dt_dict: dict[str, Any], *, allow_missing: bool = True) -> Any:
+        return self.loader.model_validate({"Wrapped": dt_dict}).Wrapped
 
 
 class ComponentDecoder(UnionDecoder):

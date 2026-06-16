@@ -1,6 +1,5 @@
 from gwsproto.enums import ActorClass
 from gwsproto.enums import Gw1DeviceType
-from gwsproto.named_types import ComponentAttributeClassGt
 from gwsproto.named_types import HubitatComponentGt
 from gwsproto.named_types import SpaceheatNodeGt
 from gwsproto.named_types.hubitat_gt import HubitatGt
@@ -12,15 +11,6 @@ def add_hubitat(
     db: LayoutDb,
     hubitat: HubitatGt,
 ) -> str:
-    if not db.has_device_type_record(Gw1DeviceType.HubitatC7Hub):
-        db.add_cacs(
-            [
-                ComponentAttributeClassGt(
-                    DeviceType=Gw1DeviceType.HubitatC7Hub,
-                    DisplayName="Hubitat Elevation C-7",
-                ),
-            ]
-        )
     hubitat_component_alias = f"Hubitat {hubitat.MacAddress[-8:]}"
     if not db.component_id_by_alias(hubitat_component_alias):
         db.add_components(

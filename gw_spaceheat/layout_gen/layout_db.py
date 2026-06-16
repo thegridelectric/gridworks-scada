@@ -9,9 +9,8 @@ import uuid
 
 from gwsproto.errors import DcError
 
-from gwsproto.named_types import ComponentAttributeClassGt
 from gwsproto.named_types import ComponentGt
-from gwsproto.named_types import ElectricMeterCacGt
+from gwsproto.named_types import ElectricMeterDeviceTypeGt
 from gwsproto.named_types import SpaceheatNodeGt
 from gwsproto.named_types import DataChannelGt
 from gwsproto.named_types import ElectricMeterChannelConfig
@@ -124,12 +123,13 @@ class LayoutIDMap:
                                     f"ERROR in LayoutIDMap() for {k}:{channel}. Error: {type(e)}, <{e}>"
                                 )
 
-                elif k.lower().endswith("cacs"):
-                        for cac in v:
-                            # Tolerant of pre-migration src (cacs keyed by the old
-                            # ComponentAttributeClassId with no DeviceType): only device-type
-                            # records are tracked now; skip records that predate DeviceType.
-                            dt = cac.get("DeviceType")
+                elif k.lower().endswith("cacs") or k.lower() == "devicetypes":
+                        for record in v:
+                            # New layouts carry a single "DeviceTypes" list; legacy deployed
+                            # layouts carry the old "*Cacs" buckets. Both are tolerated here so a
+                            # regen off an existing upload keeps device-type continuity. Records
+                            # are keyed by DeviceType; skip any that predate it.
+                            dt = record.get("DeviceType")
                             if dt is not None:
                                 self.add_device_type_record(dt)
 
@@ -201,13 +201,7 @@ class LayoutDb:
     ):
         self.lists: dict[
             str,
-            list[
-                ComponentAttributeClassGt
-                | ComponentGt
-                | SpaceheatNodeGt
-                | DataChannelGt
-                | DerivedChannelGt
-            ]] = {}
+            list[Any]] = {}
         self.misc: dict[str, Any] = {}
 
         # TEMPORARY: gwproto HardwareLayout still expects SynthChannels.
@@ -215,7 +209,7 @@ class LayoutDb:
         self.lists["SynthChannels"] = []
 
         self.lists["OtherComponents"] = []
-        self.cacs_by_id: dict[str, ComponentAttributeClassGt] = {}
+        self.device_types_by_id: dict[str, Any] = {}
         self.components_by_id: dict[str, ComponentGt] = {}
         self.component_lists = {}
         self.nodes_by_id: dict[str, SpaceheatNodeGt] = {}
@@ -266,18 +260,19 @@ class LayoutDb:
     def make_derived_channel_id(self, name: str) -> str:
         return self.loaded.derived_channels_by_name.get(name, str(uuid.uuid4()))
 
-    def add_cacs(self, cacs:list[ComponentAttributeClassGt], layout_list_name: str = "OtherCacs"):
-        for cac in cacs:
-            if cac.DeviceType in self.cacs_by_id:
+    def add_device_types(self, device_types: Sequence[Any]):
+        layout_list_name = "DeviceTypes"
+        for dt in device_types:
+            if dt.DeviceType in self.device_types_by_id:
                 raise ValueError(
-                    f"ERROR: device-type record <{cac.DeviceType}> already present"
+                    f"ERROR: device-type record <{dt.DeviceType}> already present"
                 )
-            self.cacs_by_id[cac.DeviceType] = cac
-            self.maps.add_device_type_record(cac.DeviceType)
+            self.device_types_by_id[dt.DeviceType] = dt
+            self.maps.add_device_type_record(dt.DeviceType)
 
             if layout_list_name not in self.lists:
                 self.lists[layout_list_name] = []
-            self.lists[layout_list_name].append(cac)
+            self.lists[layout_list_name].append(dt)
 
     def add_components(self, components: Sequence[ComponentGt], layout_list_name: str = "OtherComponents"):
         for component in components:
@@ -357,19 +352,15 @@ class LayoutDb:
         if cfg is None:
             cfg = StubConfig()
         if not self.has_device_type_record(Gw1DeviceType.GridworksSimPowerMeter):
-            self.add_cacs(
+            self.add_device_types(
                 [
-                    typing.cast(
-                        ComponentAttributeClassGt,
-                        ElectricMeterCacGt(
-                            DeviceType=Gw1DeviceType.GridworksSimPowerMeter,
-                            DisplayName=cfg.power_meter_cac_alias,
-                            TelemetryNameList=[TelemetryName.PowerW],
-                            MinPollPeriodMs=1000,
-                        )
+                    ElectricMeterDeviceTypeGt(
+                        DeviceType=Gw1DeviceType.GridworksSimPowerMeter,
+                        DisplayName=cfg.power_meter_cac_alias,
+                        TelemetryNameList=[TelemetryName.PowerW],
+                        MinPollPeriodMs=1000,
                     ),
-                ],
-                "ElectricMeterCacs"
+                ]
             )
 
         self.add_components(

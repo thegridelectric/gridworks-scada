@@ -65,7 +65,7 @@ def dc_to_sema(dc: House0Dc) -> tuple[House0Sema, list[str]]:
         DataChannels=[as_base(c, DataChannelGt) for c in dc.data_channels.values()],
         DerivedChannels=[as_base(c, DerivedChannelGt) for c in dc.derived_channels.values()],
         Components=[c.gt for c in dc.components.values()],
-        DeviceTypes=list(dc.cacs.values()),
+        DeviceTypes=list(dc.device_types.values()),
         Hydronic=dc.hydronic,
     )
     return sema, gaps
@@ -104,11 +104,10 @@ def sema_to_layout_dict(sema: House0Sema, *, gnode_src: dict[str, Any]) -> dict[
             other.append(d)
     layout["ElectricMeterComponents"], layout["Ads111xBasedComponents"], layout["OtherComponents"] = em, ads, other
 
-    em_c, other_c = [], []
-    for c in (sema.DeviceTypes or []):
-        d = c.model_dump(by_alias=True, exclude_none=True, mode="json")
-        (em_c if c.TypeName == "electric.meter.cac.gt" else other_c).append(d)
-    layout["ElectricMeterCacs"], layout["OtherCacs"] = em_c, other_c
+    layout["DeviceTypes"] = [
+        c.model_dump(by_alias=True, exclude_none=True, mode="json")
+        for c in (sema.DeviceTypes or [])
+    ]
     return layout
 
 

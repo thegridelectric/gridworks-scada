@@ -2,7 +2,9 @@ from typing import List, Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from gwsproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
+from gwsproto.named_types.ads111x_based_device_type_gt import Ads111xBasedDeviceTypeGt
+from gwsproto.named_types.electric_meter_device_type_gt import ElectricMeterDeviceTypeGt
+from gwsproto.named_types.gw1_scada_device_type_gt import Gw1ScadaDeviceTypeGt
 from gwsproto.named_types.data_channel_gt import DataChannelGt
 from gwsproto.named_types.g_node_gt import GNodeGt
 from gwsproto.named_types.derived_channel_gt import DerivedChannelGt
@@ -36,6 +38,13 @@ NolanComponent = (
     | WebServerComponentGt
 )
 
+# The specialized device-type records a Nolan layout may carry (mirrors the sema oneOf).
+NolanDeviceType = (
+    Ads111xBasedDeviceTypeGt
+    | ElectricMeterDeviceTypeGt
+    | Gw1ScadaDeviceTypeGt
+)
+
 
 class NolanLayout(BaseModel):
     """
@@ -59,9 +68,7 @@ class NolanLayout(BaseModel):
     DataChannels: List[DataChannelGt]
     DerivedChannels: List[DerivedChannelGt]
     Components: List[NolanComponent]
-    # TODO: specialized <family>.device.type.gt records are not yet gwsproto classes;
-    # the ComponentAttributeClassGt base stands in (records inherit it — carried debt).
-    DeviceTypes: List[ComponentAttributeClassGt]
+    DeviceTypes: List[NolanDeviceType]
     Hydronic: dict
     TypeName: Literal["gw.nolan.layout"] = "gw.nolan.layout"
     Version: Literal["000"] = "000"

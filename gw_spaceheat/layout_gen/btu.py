@@ -1,10 +1,9 @@
 from gwsproto.named_types import PicoBtuMeterComponentGt
-from typing import Optional, Any
+from typing import Optional
 from typing_extensions import Self
 from pydantic import BaseModel, model_validator
 from gwsproto.property_format import SpaceheatName
 from layout_gen import LayoutDb
-from gwsproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
 from gwsproto.named_types.data_channel_gt import DataChannelGt
 from gwsproto.enums import Gw1DeviceType, Unit, ActorClass, TelemetryName
 from gwsproto.enums import  TempCalcMethod as EnumTempCalcMethod
@@ -60,15 +59,6 @@ def add_btu(
     if not cfg.FlowMeterType == Gw1DeviceType.SaierFlowSensor:
         raise Exception("Only designed for SAIER SEN RIGHT NOW")
 
-    if not db.has_device_type_record(Gw1DeviceType.GridworksGw101):
-        db.add_cacs(
-            [
-                ComponentAttributeClassGt(
-                    DeviceType=Gw1DeviceType.GridworksGw101,
-                    DisplayName="Pico BtuMeter1 Gw101",
-                ),
-            ]
-        )
 
     if not db.component_id_by_alias(cfg.component_display_name()):
         config_list = [

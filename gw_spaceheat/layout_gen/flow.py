@@ -6,7 +6,7 @@ from gwsproto.enums import ActorClass, Gw1DeviceType, GwQuantity, TelemetryName,
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import GpmFromHzMethod, HzCalcMethod
 from gwsproto.named_types import (
-    ChannelConfig, ComponentAttributeClassGt, DataChannelGt, 
+    ChannelConfig, DataChannelGt, 
     PicoFlowModuleComponentGt, SpaceheatNodeGt,
 )
 from layout_gen import LayoutDb
@@ -74,20 +74,9 @@ def add_flow(
     if type(flow_cfg) is HallCfg:
         is_hall = True
         device_type = Gw1DeviceType.GridworksPicoFlowHall
-        cac_display_name = "Pico Flow Hall"
     else:
         is_hall = False
         device_type = Gw1DeviceType.GridworksPicoFlowReed
-        cac_display_name = "Pico Flow Reed"
-    if not db.has_device_type_record(device_type):
-        db.add_cacs(
-            [
-                ComponentAttributeClassGt(
-                    DeviceType=device_type,
-                    DisplayName=cac_display_name,
-                ),
-            ]
-        )
 
     
     if not db.component_id_by_alias(flow_cfg.component_display_name):
