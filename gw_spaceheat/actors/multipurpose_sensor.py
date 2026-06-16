@@ -20,7 +20,7 @@ from gwsproto.data_classes.components.ads111x_based_component import \
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.data_classes.data_channel import DataChannel
 from gwsproto.data_classes.sh_node import ShNode
-from gwsproto.enums import Gw1DeviceType
+from gwsproto.enums import DeviceType
 from gwsproto.named_types import AdsChannelConfig, SyncedReadings
 from gwsproto.named_types import Glitch
 from gwsproto.data_classes.hardware_layout import HardwareLayout
@@ -56,7 +56,7 @@ class MpDriverThreadSetupHelper:
         driver_module_name = ""
         driver_class_name = ""
         cac = self.component.device_type
-        if cac.DeviceType == Gw1DeviceType.GridworksTsnap1ScadaBoard:
+        if cac.DeviceType == DeviceType.GridworksTsnap1ScadaBoard:
             driver_module_name = "drivers.multipurpose_sensor.gridworks_tsnap1__multipurpose_sensor_driver"
             driver_class_name = "GridworksTsnap1_MultipurposeSensorDriver"
             for module_name in [

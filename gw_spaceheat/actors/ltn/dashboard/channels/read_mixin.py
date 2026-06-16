@@ -5,7 +5,7 @@ from typing import Optional
 from typing import Sequence
 
 from gwsproto.data_classes.hardware_layout import ChannelRegistry
-from gwsproto.enums import GwUnit, TelemetryName
+from gwsproto.enums import Unit, TelemetryName
 from gwsproto.named_types import SingleReading
 from gwsproto.named_types import SnapshotSpaceheat
 
@@ -14,7 +14,7 @@ from actors.ltn.dashboard.channels.reading import Reading
 
 
 class UnboundReading(SingleReading):
-    Unit: TelemetryName | GwUnit | None
+    Unit: TelemetryName | Unit | None
 
 class ReadMixin:
     _registry: ChannelRegistry

@@ -3,7 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, model_validator
 from typing_extensions import Self
 
-from gwsproto.enums import TelemetryName, GwQuantity
+from gwsproto.enums import TelemetryName, Quantity
 from gwsproto.property_format import (
     LeftRightDotStr,
     SpaceheatName,
@@ -24,7 +24,7 @@ class DataChannelGt(BaseModel):
     AboutNodeName: SpaceheatName
     CapturedByNodeName: SpaceheatName
     TelemetryName: TelemetryName
-    Quantity: GwQuantity
+    Quantity: Quantity
     TerminalAssetAlias: LeftRightDotStr
     InPowerMetering: bool | None = None
     StartS: UTCSeconds | None = None

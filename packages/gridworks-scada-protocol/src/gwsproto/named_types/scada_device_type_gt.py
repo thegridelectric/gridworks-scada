@@ -1,8 +1,8 @@
 from typing import Literal, Optional
-from typing_extensions import Self
-from pydantic import BaseModel, PositiveInt, model_validator
+
+from gwsproto.enums import TelemetryName
+from pydantic import BaseModel, PositiveInt
 from gwsproto.enums import RelayWiringConfig
-from gwsproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
 
 
 class I2cBitAddress(BaseModel):
@@ -37,17 +37,15 @@ class NativeGpioConfig(BaseModel):
     Outputs: dict[str, int]   # name → BCM pin
 
 
-class ScadaDeviceTypeGt(ComponentAttributeClassGt):
+class ScadaDeviceTypeGt(BaseModel):
     """
-    GridWorks SCADA board device type.
-
-    Transitional type:
-    - Extends ComponentAttributeClassGt
-    - Will eventually replace CAC entirely
+    GridWorks SCADA board device type
     """
 
-    TypeName: Literal["gw1.scada.device.type.gt"] = "gw1.scada.device.type.gt"
-    Version: Literal["001"] = "001"
+    DeviceType: str
+    DisplayName: Optional[str] = None
+    MinPollPeriodMs: Optional[PositiveInt] = None
+    TelemetryNameList: list[TelemetryName]
 
     # --- Native GPIO (BCM pins) ---
     NativeGpio: NativeGpioConfig | None = None
@@ -62,3 +60,5 @@ class ScadaDeviceTypeGt(ComponentAttributeClassGt):
     # --- DACs ---
     Dacs: dict[str, I2cDacConfig] = {}
 
+    TypeName: Literal["gw1.scada.device.type.gt"] = "gw1.scada.device.type.gt"
+    Version: Literal["001"] = "001"

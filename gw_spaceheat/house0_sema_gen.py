@@ -40,9 +40,9 @@ from gwsproto.enums import (
     ChangeStoreFlowRelay,
     EmissionMethod,
     GpmFromHzMethod,
-    Gw1DeviceType,
-    GwQuantity,
-    GwUnit,
+    DeviceType,
+    Quantity,
+    Unit,
     HzCalcMethod,
     HeatcallSource,
     HeatPumpControl,
@@ -71,7 +71,7 @@ from gwsproto.named_types import (
     ElectricMeterDeviceTypeGt,
     GNodeGt,
     Gw1HvacZone,
-    GwHouse0Hydronic,
+    House0Hydronic,
     House0Layout as House0Sema,
     HubitatComponentGt,
     HubitatPollerComponentGt,
@@ -310,7 +310,7 @@ class House0SemaGen:
             if gn is not None:
                 self.gnodes.append(GNodeGt.model_validate(gn))
 
-    def emit_hydronic(self) -> GwHouse0Hydronic:
+    def emit_hydronic(self) -> House0Hydronic:
         critical = set(self.config.critical_zone_list)
         kwh = list(self.config.zone_kwh_per_deg_f_list)
         zones = [
@@ -321,7 +321,7 @@ class House0SemaGen:
             )
             for i, name in enumerate(self.config.zone_list)
         ]
-        return GwHouse0Hydronic(
+        return House0Hydronic(
             Zones=zones,
             TotalStoreTanks=self.config.total_store_tanks,
             UseSiegLoop=self.config.use_sieg_loop,
@@ -395,13 +395,13 @@ class House0SemaGen:
 
         self.device_types.append(
             ElectricMeterDeviceTypeGt(
-                DeviceType=Gw1DeviceType.EgaugePowerMeter, DisplayName="EGauge 4030",
+                DeviceType=DeviceType.EgaugePowerMeter, DisplayName="EGauge 4030",
                 TelemetryNameList=[TelemetryName.PowerW], MinPollPeriodMs=1000,
             )
         )
         self.components.append(
             ElectricMeterComponentGt(
-                ComponentId=cid, DeviceType=Gw1DeviceType.EgaugePowerMeter, DisplayName=alias,
+                ComponentId=cid, DeviceType=DeviceType.EgaugePowerMeter, DisplayName=alias,
                 ModbusHost=self.config.egauge_modbus_host, ModbusPort=self.config.egauge_modbus_port,
                 HwUid=self.config.egauge_hwuid,
                 ConfigList=[
@@ -439,7 +439,7 @@ class House0SemaGen:
                 DataChannelGt(
                     Name=s.channel, DisplayName=s.channel.replace("-", " ").upper(),
                     AboutNodeName=s.about_node, CapturedByNodeName=Core.asset_power_meter,
-                    TelemetryName=TelemetryName.PowerW, Quantity=GwQuantity.Power,
+                    TelemetryName=TelemetryName.PowerW, Quantity=Quantity.Power,
                     InPowerMetering=s.in_power_metering, Id=self.channel_id(s.channel),
                     TerminalAssetAlias=self.terminal_asset_alias,
                 )
@@ -454,7 +454,7 @@ class House0SemaGen:
 
         self.device_types.append(
             ElectricMeterDeviceTypeGt(
-                DeviceType=Gw1DeviceType.GridworksSimPowerMeter,
+                DeviceType=DeviceType.GridworksSimPowerMeter,
                 DisplayName="Gridworks Pm1 Simulated Power Meter",
                 TelemetryNameList=[TelemetryName.PowerW],
                 MinPollPeriodMs=1000,
@@ -475,7 +475,7 @@ class House0SemaGen:
         self.components.append(
             ElectricMeterComponentGt(
                 ComponentId=self.component_id(alias),
-                DeviceType=Gw1DeviceType.GridworksSimPowerMeter,
+                DeviceType=DeviceType.GridworksSimPowerMeter,
                 DisplayName=alias,
                 ConfigList=[
                     em_cfg(HydC.hp_odu_pwr, 200),
@@ -515,7 +515,7 @@ class House0SemaGen:
                 AboutNodeName=about,
                 CapturedByNodeName=Core.asset_power_meter,
                 TelemetryName=TelemetryName.PowerW,
-                Quantity=GwQuantity.Power,
+                Quantity=Quantity.Power,
                 InPowerMetering=in_metering,
                 Id=self.channel_id(name),
                 TerminalAssetAlias=self.terminal_asset_alias,
@@ -580,7 +580,7 @@ class House0SemaGen:
                 DataChannelGt(
                     Name=channel, DisplayName=chan_display,
                     AboutNodeName=node, CapturedByNodeName=mux,
-                    TelemetryName=TelemetryName.RelayState, Quantity=GwQuantity.Unitless,
+                    TelemetryName=TelemetryName.RelayState, Quantity=Quantity.Unitless,
                     Id=self.channel_id(channel), TerminalAssetAlias=self.terminal_asset_alias,
                 )
             )
@@ -607,7 +607,7 @@ class House0SemaGen:
         self.components.append(
             I2cMultichannelDtRelayComponentGt(
                 ComponentId=rid,
-                DeviceType=Gw1DeviceType.KridaDoubleRelayBoard16,
+                DeviceType=DeviceType.KridaDoubleRelayBoard16,
                 DisplayName=alias,
                 ConfigList=cfgs,
                 I2cBus="default",
@@ -629,7 +629,7 @@ class House0SemaGen:
         self.components.append(
             WebServerComponentGt(
                 ComponentId=self.component_id("Web Server default"),
-                DeviceType=Gw1DeviceType.AbstractWebServer,
+                DeviceType=DeviceType.AbstractWebServer,
                 DisplayName="Web Server default",
                 WebServer=WebServerGt(Host=self.config.web_server_host, Port=self.config.web_server_port),
                 ConfigList=[],
@@ -650,7 +650,7 @@ class House0SemaGen:
         )
         self.components.append(
             HubitatComponentGt(
-                ComponentId=hub_id, DeviceType=Gw1DeviceType.HubitatC7Hub,
+                ComponentId=hub_id, DeviceType=DeviceType.HubitatC7Hub,
                 DisplayName=hub_alias, Hubitat=hub,
                 HwUid=self.config.hubitat_mac[-8:].replace(":", "").lower(), ConfigList=[],
             )
@@ -685,7 +685,7 @@ class House0SemaGen:
 
             self.components.append(
                 HubitatPollerComponentGt(
-                    ComponentId=poller_id, DeviceType=Gw1DeviceType.HoneywellT6Thermostat,
+                    ComponentId=poller_id, DeviceType=DeviceType.HoneywellT6Thermostat,
                     DisplayName=poller_alias,
                     ConfigList=[
                         ChannelConfig(ChannelName=temp, PollPeriodMs=5000, CapturePeriodS=300,
@@ -721,15 +721,15 @@ class House0SemaGen:
             zone_chans += [
                 DataChannelGt(Name=temp, DisplayName=f"{chan_label} Temp", AboutNodeName=znode,
                               CapturedByNodeName=stat, TelemetryName=TelemetryName.AirTempFTimes1000,
-                              Quantity=GwQuantity.Temperature, Id=self.channel_id(temp),
+                              Quantity=Quantity.Temperature, Id=self.channel_id(temp),
                               TerminalAssetAlias=self.terminal_asset_alias),
                 DataChannelGt(Name=setp, DisplayName=f"{chan_label} Set", AboutNodeName=stat,
                               CapturedByNodeName=stat, TelemetryName=TelemetryName.AirTempFTimes1000,
-                              Quantity=GwQuantity.Temperature, Id=self.channel_id(setp),
+                              Quantity=Quantity.Temperature, Id=self.channel_id(setp),
                               TerminalAssetAlias=self.terminal_asset_alias),
                 DataChannelGt(Name=state, DisplayName=f"{chan_label} State", AboutNodeName=stat,
                               CapturedByNodeName=stat, TelemetryName=TelemetryName.ThermostatState,
-                              Quantity=GwQuantity.Unitless, Id=self.channel_id(state),
+                              Quantity=Quantity.Unitless, Id=self.channel_id(state),
                               TerminalAssetAlias=self.terminal_asset_alias),
             ]
 
@@ -772,7 +772,7 @@ class House0SemaGen:
                 cid = self.component_id(alias)
                 self.components.append(
                     PicoTankModuleComponentGt(
-                        ComponentId=cid, DeviceType=Gw1DeviceType.GridworksTankModule3, DisplayName=alias,
+                        ComponentId=cid, DeviceType=DeviceType.GridworksTankModule3, DisplayName=alias,
                         PicoHwUid=spec.hwuid, **common,
                     )
                 )
@@ -782,7 +782,7 @@ class House0SemaGen:
                 cid = self.component_id(alias)
                 self.components.append(
                     SimPicoTankModuleComponentGt(
-                        ComponentId=cid, DeviceType=Gw1DeviceType.GridworksSimSensor, DisplayName=disp,
+                        ComponentId=cid, DeviceType=DeviceType.GridworksSimSensor, DisplayName=disp,
                         PicoHwUid=f"sim-{reader}-pico", SimulatesTypeName="pico.tank.module.component.gt",
                         SimulatesVersion="012", **common,
                     )
@@ -801,8 +801,8 @@ class House0SemaGen:
                     SpaceheatNodeGt(ShNodeId=self.node_id(dn), Name=dn, ActorClass=ActorClass.NoActor, DisplayName=dn)
                 )
             for kind, telemetry, quantity, suffix, unit_word in (
-                ("Device Temp", TelemetryName.WaterTempCTimes1000, GwQuantity.Temperature, "device", None),
-                ("MicroVolts", TelemetryName.MicroVolts, GwQuantity.Voltage, "micro-v", None),
+                ("Device Temp", TelemetryName.WaterTempCTimes1000, Quantity.Temperature, "device", None),
+                ("MicroVolts", TelemetryName.MicroVolts, Quantity.Voltage, "micro-v", None),
             ):
                 for depth in (1, 2, 3):
                     name = f"{reader}-depth{depth}-{suffix}"
@@ -826,7 +826,7 @@ class House0SemaGen:
         volts = list(self.config.dfr_initial_volts_times_100)
         self.components.append(
             DfrComponentGt(
-                ComponentId=cid, DeviceType=Gw1DeviceType.DfrobotDualAnalogOut, DisplayName=alias,
+                ComponentId=cid, DeviceType=DeviceType.DfrobotDualAnalogOut, DisplayName=alias,
                 I2cAddressList=[0x5E, 0x5F],
                 ConfigList=[
                     DfrConfig(ChannelName=chan, CapturePeriodS=300, AsyncCapture=True, AsyncCaptureDelta=1,
@@ -856,7 +856,7 @@ class House0SemaGen:
                 DataChannelGt(
                     Name=chan, DisplayName=f"{label} 010V", AboutNodeName=node,
                     CapturedByNodeName=n.zero_ten_out_multiplexer, TelemetryName=TelemetryName.VoltsTimesTen,
-                    Quantity=GwQuantity.Voltage, Id=self.channel_id(chan),
+                    Quantity=Quantity.Voltage, Id=self.channel_id(chan),
                     TerminalAssetAlias=self.terminal_asset_alias,
                 )
             )
@@ -872,7 +872,7 @@ class House0SemaGen:
 
         self.device_types.append(
             Ads111xBasedDeviceTypeGt(
-                DeviceType=Gw1DeviceType.GridworksTsnap1ScadaBoard,
+                DeviceType=DeviceType.GridworksTsnap1ScadaBoard,
                 DisplayName="GridWorks TSnap1.0 as 12-channel analog temp sensor",
                 MinPollPeriodMs=200, TotalTerminalBlocks=12,
                 TelemetryNameList=[TelemetryName.WaterTempCTimes1000, TelemetryName.AirTempCTimes1000],
@@ -881,13 +881,13 @@ class House0SemaGen:
         )
         self.components.append(
             Ads111xBasedComponentGt(
-                ComponentId=cid, DeviceType=Gw1DeviceType.GridworksTsnap1ScadaBoard, DisplayName=alias,
+                ComponentId=cid, DeviceType=DeviceType.GridworksTsnap1ScadaBoard, DisplayName=alias,
                 HwUid=self.config.ads_hwuid, OpenVoltageByAds=list(self.config.ads_open_voltage_by_ads),
                 ConfigList=[
                     AdsChannelConfig(
                         ChannelName=s.channel, AsyncCapture=True, AsyncCaptureDelta=500, CapturePeriodS=300,
                         DataProcessingMethod=ThermistorDataMethod.BetaWithExponentialAveraging, Exponent=3,
-                        TerminalBlockIdx=s.terminal_block_idx, ThermistorDeviceType=Gw1DeviceType.TewaThermistor,
+                        TerminalBlockIdx=s.terminal_block_idx, ThermistorDeviceType=DeviceType.TewaThermistor,
                         Unit=Unit.Celcius,
                     )
                     for s in self.config.ads_channels
@@ -912,7 +912,7 @@ class House0SemaGen:
                 DataChannelGt(
                     Name=s.channel, DisplayName=s.channel.replace("-", " ").upper(),
                     AboutNodeName=s.channel, CapturedByNodeName=n.analog_temp,
-                    TelemetryName=TelemetryName(s.telemetry), Quantity=GwQuantity.Temperature,
+                    TelemetryName=TelemetryName(s.telemetry), Quantity=Quantity.Temperature,
                     Id=self.channel_id(s.channel), TerminalAssetAlias=self.terminal_asset_alias,
                 )
             )
@@ -927,10 +927,10 @@ class House0SemaGen:
             cid = self.component_id(f"{label} ReedFlowModule")
             self.components.append(
                 PicoFlowModuleComponentGt(
-                    ComponentId=cid, DeviceType=Gw1DeviceType.GridworksPicoFlowReed,
+                    ComponentId=cid, DeviceType=DeviceType.GridworksPicoFlowReed,
                     DisplayName=f"{label} ReedFlowModule", FlowNodeName=node,
                     HwUid=f.hwuid, SerialNumber=f.serial, Enabled=True,
-                    FlowMeterType=Gw1DeviceType.EkmFlowMeter,
+                    FlowMeterType=DeviceType.EkmFlowMeter,
                     HzCalcMethod=HzCalcMethod.BasicExpWeightedAvg,
                     GpmFromHzMethod=GpmFromHzMethod.Constant, ConstantGallonsPerTick=0.0748,
                     SendHz=True, SendGallons=False, SendTickLists=False, NoFlowMs=5000,
@@ -953,11 +953,11 @@ class House0SemaGen:
             self.data_channels += [
                 DataChannelGt(Name=node, DisplayName=f"{label} Gpm X 100", AboutNodeName=node,
                               CapturedByNodeName=node, TelemetryName=TelemetryName.GpmTimes100,
-                              Quantity=GwQuantity.FlowRate, Id=self.channel_id(node),
+                              Quantity=Quantity.FlowRate, Id=self.channel_id(node),
                               TerminalAssetAlias=self.terminal_asset_alias),
                 DataChannelGt(Name=f"{node}-hz", DisplayName=f"{label} MicroHz", AboutNodeName=node,
                               CapturedByNodeName=node, TelemetryName=TelemetryName.MicroHz,
-                              Quantity=GwQuantity.Frequency, Id=self.channel_id(f"{node}-hz"),
+                              Quantity=Quantity.Frequency, Id=self.channel_id(f"{node}-hz"),
                               TerminalAssetAlias=self.terminal_asset_alias),
             ]
 
@@ -969,7 +969,7 @@ class House0SemaGen:
             return DerivedChannelGt(
                 Name=name, DisplayName=display, CreatedByNodeName=Core.derived_generator,
                 EmissionMethod=EmissionMethod.Periodic, EmitPeriodS=60, InputChannelNames=[],
-                OutputQuantity=GwQuantity.Energy, OutputUnit=GwUnit.WattHours, Strategy="system-model",
+                OutputQuantity=Quantity.Energy, OutputUnit=Unit.WattHours, Strategy="system-model",
                 Parameters={"EnergyModel": {"TypeName": model_type, "Version": "000"}},
                 Id=self.derived_channel_id(name), TerminalAssetAlias=self.terminal_asset_alias,
             )
@@ -997,8 +997,8 @@ class House0SemaGen:
                     DerivedChannelGt(
                         Name=name, DisplayName=f"{reader.capitalize()} Depth{depth} Effective Temperature",
                         CreatedByNodeName=Core.derived_generator, EmissionMethod=EmissionMethod.OnTrigger,
-                        InputChannelNames=[f"{name}-device"], OutputQuantity=GwQuantity.Temperature,
-                        OutputUnit=GwUnit.FahrenheitX100, Strategy="affine" if affine else "identity",
+                        InputChannelNames=[f"{name}-device"], OutputQuantity=Quantity.Temperature,
+                        OutputUnit=Unit.FahrenheitX100, Strategy="affine" if affine else "identity",
                         Parameters=params,
                         Id=self.derived_channel_id(name), TerminalAssetAlias=self.terminal_asset_alias,
                     )

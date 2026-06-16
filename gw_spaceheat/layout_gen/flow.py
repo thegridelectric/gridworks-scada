@@ -2,7 +2,7 @@ from typing import Optional, Any
 from pydantic import BaseModel
 from gwsproto.property_format import SpaceheatName
 
-from gwsproto.enums import ActorClass, Gw1DeviceType, GwQuantity, TelemetryName, Unit
+from gwsproto.enums import ActorClass, DeviceType, Quantity, TelemetryName, Unit
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import GpmFromHzMethod, HzCalcMethod
 from gwsproto.named_types import (
@@ -21,7 +21,7 @@ class HallCfg(BaseModel):
     HwUid: Optional[str] = None
     ActorNodeName: SpaceheatName = H0N.dist_flow
     FlowNodeName: Optional[SpaceheatName] = None
-    FlowMeterType: str = Gw1DeviceType.SaierFlowSensor
+    FlowMeterType: str = DeviceType.SaierFlowSensor
     HzMethod: HzCalcMethod = HzCalcMethod.BasicExpWeightedAvg
     GpmMethod: GpmFromHzMethod = GpmFromHzMethod.Constant
     CapturePeriodS: int = 300
@@ -45,7 +45,7 @@ class ReedCfg(BaseModel):
     HwUid: Optional[str] = None
     ActorNodeName: SpaceheatName = H0N.dist_flow
     FlowNodeName: Optional[SpaceheatName] = None
-    FlowMeterType: str = Gw1DeviceType.EkmFlowMeter
+    FlowMeterType: str = DeviceType.EkmFlowMeter
     HzMethod: HzCalcMethod = HzCalcMethod.BasicExpWeightedAvg
     GpmMethod: GpmFromHzMethod = GpmFromHzMethod.Constant
     CapturePeriodS: int = 300
@@ -73,10 +73,10 @@ def add_flow(
     flow_hall_cfg: HallCfg = flow_cfg
     if type(flow_cfg) is HallCfg:
         is_hall = True
-        device_type = Gw1DeviceType.GridworksPicoFlowHall
+        device_type = DeviceType.GridworksPicoFlowHall
     else:
         is_hall = False
-        device_type = Gw1DeviceType.GridworksPicoFlowReed
+        device_type = DeviceType.GridworksPicoFlowReed
 
     
     if not db.component_id_by_alias(flow_cfg.component_display_name):
@@ -172,7 +172,7 @@ def add_flow(
                AboutNodeName=flow_cfg.FlowNodeName,
                CapturedByNodeName=flow_cfg.ActorNodeName,
                TelemetryName=TelemetryName.GpmTimes100,
-               Quantity=GwQuantity.FlowRate,
+               Quantity=Quantity.FlowRate,
                TerminalAssetAlias=db.terminal_asset_alias,
                Id=db.make_channel_id(flow_cfg.ActorNodeName)
             )
@@ -187,7 +187,7 @@ def add_flow(
                     AboutNodeName=flow_cfg.ActorNodeName,
                     CapturedByNodeName=flow_cfg.ActorNodeName,
                     TelemetryName=TelemetryName.MicroHz,
-                    Quantity=GwQuantity.Frequency,
+                    Quantity=Quantity.Frequency,
                     TerminalAssetAlias=db.terminal_asset_alias,
                     Id=db.make_channel_id(f"{flow_cfg.ActorNodeName}-hz")
                 )

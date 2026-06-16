@@ -17,7 +17,7 @@ from gwsproto.named_types import ElectricMeterChannelConfig
 from gwsproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwsproto.data_classes.house_0_names import H0N, H0CN
 from gwsproto.enums import (
-    ActorClass, EmissionMethod, FlowManifoldVariant, Gw1DeviceType, GwUnit, GwQuantity,
+    ActorClass, EmissionMethod, FlowManifoldVariant, DeviceType, Unit, Quantity,
     TelemetryName, Unit,
 )
 from gwsproto.named_types import (
@@ -352,11 +352,11 @@ class LayoutDb:
     def add_stub_power_meter(self, cfg: Optional[StubConfig] = None):
         if cfg is None:
             cfg = StubConfig()
-        if not self.has_device_type_record(Gw1DeviceType.GridworksSimPowerMeter):
+        if not self.has_device_type_record(DeviceType.GridworksSimPowerMeter):
             self.add_device_types(
                 [
                     ElectricMeterDeviceTypeGt(
-                        DeviceType=Gw1DeviceType.GridworksSimPowerMeter,
+                        DeviceType=DeviceType.GridworksSimPowerMeter,
                         DisplayName=cfg.power_meter_cac_alias,
                         TelemetryNameList=[TelemetryName.PowerW],
                         MinPollPeriodMs=1000,
@@ -370,7 +370,7 @@ class LayoutDb:
                     ComponentGt,
                     ElectricMeterComponentGt(
                         ComponentId=self.make_component_id(cfg.power_meter_component_alias),
-                        DeviceType=Gw1DeviceType.GridworksSimPowerMeter,
+                        DeviceType=DeviceType.GridworksSimPowerMeter,
                         DisplayName=cfg.power_meter_component_alias,
                         ConfigList=[
                             ElectricMeterChannelConfig(
@@ -433,7 +433,7 @@ class LayoutDb:
                     AboutNodeName=H0N.hp_odu,
                     CapturedByNodeName=H0N.primary_power_meter,
                     TelemetryName=TelemetryName.PowerW,
-                    Quantity=GwQuantity.Power,
+                    Quantity=Quantity.Power,
                     InPowerMetering=True,
                     TerminalAssetAlias=self.terminal_asset_alias
                 ),
@@ -444,7 +444,7 @@ class LayoutDb:
                     AboutNodeName=H0N.hp_idu,
                     CapturedByNodeName=H0N.primary_power_meter,
                     TelemetryName=TelemetryName.PowerW,
-                    Quantity=GwQuantity.Power,
+                    Quantity=Quantity.Power,
                     InPowerMetering=True,
                     TerminalAssetAlias=self.terminal_asset_alias
                 )
@@ -659,8 +659,8 @@ class LayoutDb:
                 # Produced by the SiegLoop actor (not derived-generator, which skips it).
                 Strategy = "integrate-relay-motion",
                 InputChannelNames = [],
-                OutputUnit = GwUnit.SecondsX10,
-                OutputQuantity = UnitQuantityProjection.project(GwUnit.SecondsX10),
+                OutputUnit = Unit.SecondsX10,
+                OutputQuantity = UnitQuantityProjection.project(Unit.SecondsX10),
                 EmissionMethod = EmissionMethod.OnTrigger,
                 DisplayName = "Percent keep in the Siegenthaler loop",
                 )
@@ -684,8 +684,8 @@ class LayoutDb:
                 Id = self.make_derived_channel_id(H0CN.usable_energy),
                 Name = H0CN.usable_energy,
                 CreatedByNodeName = H0N.derived_generator,
-                OutputUnit=GwUnit.WattHours,
-                OutputQuantity=UnitQuantityProjection.project(GwUnit.WattHours),
+                OutputUnit=Unit.WattHours,
+                OutputQuantity=UnitQuantityProjection.project(Unit.WattHours),
                 TerminalAssetAlias = self.terminal_asset_alias,
                 Strategy = "system-model",
                 EmissionMethod=EmissionMethod.Periodic,
@@ -698,8 +698,8 @@ class LayoutDb:
                 Id = self.make_derived_channel_id(H0CN.required_energy),
                 Name = H0CN.required_energy,
                 CreatedByNodeName = H0N.derived_generator,
-                OutputUnit=GwUnit.WattHours,
-                OutputQuantity=UnitQuantityProjection.project(GwUnit.WattHours),
+                OutputUnit=Unit.WattHours,
+                OutputQuantity=UnitQuantityProjection.project(Unit.WattHours),
                 TerminalAssetAlias = self.terminal_asset_alias,
                 Strategy = "system-model",
                 EmissionMethod=EmissionMethod.Periodic,
@@ -735,8 +735,8 @@ class LayoutDb:
                 "Name": cn,
                 "CreatedByNodeName": H0N.derived_generator,
                 "InputChannelNames": [input_cn],
-                "OutputUnit": GwUnit.FahrenheitX100,
-                "OutputQuantity": UnitQuantityProjection.project(GwUnit.FahrenheitX100),
+                "OutputUnit": Unit.FahrenheitX100,
+                "OutputQuantity": UnitQuantityProjection.project(Unit.FahrenheitX100),
                 "TerminalAssetAlias": self.terminal_asset_alias,
                 "EmissionMethod": EmissionMethod.OnTrigger,
                 "DisplayName": f"{cn.replace('-', ' ').title()} Effective Temperature",

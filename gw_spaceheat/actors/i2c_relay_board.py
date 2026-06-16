@@ -11,7 +11,7 @@ from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 
 from gwsproto.enums import (
-    Gw1DeviceType,
+    DeviceType,
     ChangeRelayPin,
     FsmReportType,
     RelayEnergizationState,
@@ -63,7 +63,7 @@ class I2cRelayBoard(ShNodeActor):
         self.relay_state: Dict[int, RelayEnergizationState] = {}
 
         # ---- DeviceType dispatch ----
-        if self.gt.DeviceType == Gw1DeviceType.GridworksScadaGw108:
+        if self.gt.DeviceType == DeviceType.GridworksScadaGw108:
             self._initialize_gw108()
         else:
             raise ValueError(

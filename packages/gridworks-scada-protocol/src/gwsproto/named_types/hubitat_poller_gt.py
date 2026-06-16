@@ -2,7 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from gwsproto.enums import TelemetryName, Unit
+from gwsproto.enums import TelemetryName, SpaceheatUnit
 from gwproto.utils import snake_to_camel
 
 
@@ -11,7 +11,7 @@ class MakerAPIAttributeGt(BaseModel):
     channel_name: str
     node_name: str
     telemetry_name: TelemetryName = TelemetryName.WaterTempCTimes1000
-    unit: Unit = Unit.Celcius
+    unit: SpaceheatUnit = SpaceheatUnit.Celcius
     exponent: int = 3
     interpret_as_number: bool = True
     enabled: bool = True

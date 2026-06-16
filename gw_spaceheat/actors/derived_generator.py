@@ -21,7 +21,7 @@ from actors.sh_node_actor import ShNodeActor
 from gwsproto.data_classes.derived_channel import DerivedChannel
 from gwsproto.conversions.temperature import convert_temp_to_f
 from gwsproto.enums import (
-    GwUnit, HeatCallInterpretation, 
+    Unit, HeatCallInterpretation, 
     SystemMode, SeasonalStorageMode, TelemetryName
 )
 from gwsproto.data_classes.house_0_names import H0CN, H0N
@@ -149,13 +149,13 @@ class DerivedGenerator(ShNodeActor):
                     f"No unit registered for input channel '{dc.InputChannelNames[0]}' "
                     f"(required by affine DerivedChannel '{dc.Name}')"
                 )
-                if in_unit not in [GwUnit.FahrenheitX100, 
+                if in_unit not in [Unit.FahrenheitX100, 
                             TelemetryName.AirTempCTimes1000,
                             TelemetryName.WaterTempCTimes1000,
                             TelemetryName.AirTempFTimes1000,
                             TelemetryName.AirTempCTimes1000]:
                     raise RuntimeError("DerivedGenerator only handles temp-based affine conversions now")
-                if dc.OutputUnit != GwUnit.FahrenheitX100:
+                if dc.OutputUnit != Unit.FahrenheitX100:
                     raise RuntimeError(f"DerivedGenerator only handles affine conversions with output unit"
                                     f" FahrenheitX100, not {dc.OutputUnit}")
             elif dc.Strategy == "sum":
@@ -200,7 +200,7 @@ class DerivedGenerator(ShNodeActor):
             )
 
     def init_simple_falling_edge_setpoint_channel(self, dc: DerivedChannel) -> None:
-        if dc.OutputUnit != GwUnit.FahrenheitX100:
+        if dc.OutputUnit != Unit.FahrenheitX100:
             raise RuntimeError(
                 f"Simple falling-edge setpoint channel '{dc.Name}' must use "
                 f"OutputUnit FahrenheitX100, not {dc.OutputUnit}"
@@ -290,7 +290,7 @@ class DerivedGenerator(ShNodeActor):
 
         # v001 calibration: B is an integer in the OutputUnit (FahrenheitX100)
         # scaling, so apply M to the FahrenheitX100-scaled input and add B there.
-        assert dc.OutputUnit == GwUnit.FahrenheitX100
+        assert dc.OutputUnit == Unit.FahrenheitX100
         temp_x100 = int(calib.M * (x * 100) + calib.B)
         self._send_to(
             self.primary_scada,

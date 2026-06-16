@@ -8,7 +8,7 @@ from gwsproto.property_format import (
     UUID4Str,
 )
 
-from gwsproto.enums import GwUnit, GwQuantity, EmissionMethod
+from gwsproto.enums import Unit, Quantity, EmissionMethod
 from gwsproto.named_types.unit_quantity_projection import UnitQuantityProjection
 
 
@@ -18,8 +18,8 @@ class DerivedChannelGt(BaseModel):
     CreatedByNodeName: SpaceheatName
     Strategy: SpaceheatName
     InputChannelNames: list[SpaceheatName]
-    OutputUnit: GwUnit
-    OutputQuantity: GwQuantity
+    OutputUnit: Unit
+    OutputQuantity: Quantity
     EmissionMethod: EmissionMethod
     AsyncEmitDelta: PositiveInt | None = None
     EmitPeriodS: PositiveInt | None = None
@@ -64,7 +64,7 @@ class DerivedChannelGt(BaseModel):
         OutputQuantity SHALL equal the Quantity defined by the canonical
         gw1.unit.quantity.projection:000 instance for the specified OutputUnit.
         """
-        expected = UnitQuantityProjection.project(GwUnit(self.OutputUnit))
+        expected = UnitQuantityProjection.project(Unit(self.OutputUnit))
         if self.OutputQuantity != expected:
             raise ValueError(
                 "Axiom 2 failed: output_quantity must match the canonical quantity "

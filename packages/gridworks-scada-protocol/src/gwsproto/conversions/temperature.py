@@ -1,9 +1,9 @@
 from gwsproto.enums import TelemetryName
-from gwsproto.enums import GwUnit
+from gwsproto.enums import Unit
 
 
-def convert_temp_to_f(raw: int, encoding: TelemetryName | GwUnit) -> float:
-    if encoding == GwUnit.FahrenheitX100:
+def convert_temp_to_f(raw: int, encoding: TelemetryName | Unit) -> float:
+    if encoding == Unit.FahrenheitX100:
         return raw / 100
 
     if encoding in (

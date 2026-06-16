@@ -1,5 +1,5 @@
 from gwsproto.enums import ActorClass
-from gwsproto.enums import Gw1DeviceType
+from gwsproto.enums import DeviceType
 from gwsproto.named_types import HubitatComponentGt
 from gwsproto.named_types import SpaceheatNodeGt
 from gwsproto.named_types.hubitat_gt import HubitatGt
@@ -17,7 +17,7 @@ def add_hubitat(
             [
                 HubitatComponentGt(
                     ComponentId=db.make_component_id(hubitat_component_alias),
-                    DeviceType=Gw1DeviceType.HubitatC7Hub,
+                    DeviceType=DeviceType.HubitatC7Hub,
                     DisplayName=hubitat_component_alias,
                     Hubitat=hubitat,
                     HwUid=hubitat.MacAddress[-8:].replace(":", "").lower(),

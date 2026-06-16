@@ -1,4 +1,4 @@
-from gwsproto.enums import Gw1DeviceType
+from gwsproto.enums import DeviceType
 from gwproto.type_helpers import WebServerGt
 from gwsproto.named_types.web_server_component_gt import WebServerComponentGt
 
@@ -14,7 +14,7 @@ def add_web_server(
             [
                 WebServerComponentGt(
                     ComponentId=db.make_component_id(component_alias),
-                    DeviceType=Gw1DeviceType.AbstractWebServer,
+                    DeviceType=DeviceType.AbstractWebServer,
                     DisplayName=component_alias,
                     WebServer=web_server,
                     ConfigList=[]

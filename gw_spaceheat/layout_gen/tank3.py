@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from gwsproto.property_format import SpaceheatName
 from layout_gen import LayoutDb
 from gwsproto.named_types.data_channel_gt import DataChannelGt
-from gwsproto.enums import ActorClass, Gw1DeviceType, GwQuantity, Unit, TelemetryName
+from gwsproto.enums import ActorClass, DeviceType, Quantity, Unit, TelemetryName
 from gwsproto.named_types.channel_config import ChannelConfig
 from gwsproto.named_types import SpaceheatNodeGt
 from gwsproto.data_classes.house_0_names import H0N
@@ -62,7 +62,7 @@ def add_tank3(
             [
                 PicoTankModuleComponentGt(
                     ComponentId=db.make_component_id(tank_cfg.component_display_name()),
-                    DeviceType=Gw1DeviceType.GridworksTankModule3,
+                    DeviceType=DeviceType.GridworksTankModule3,
                     DisplayName=tank_cfg.component_display_name(),
                     SerialNumber=tank_cfg.SerialNumber,
                     ConfigList=config_list,
@@ -107,7 +107,7 @@ def add_tank3(
                AboutNodeName=f"{tank_cfg.ActorNodeName}-depth{i}",
                CapturedByNodeName=tank_cfg.ActorNodeName,
                TelemetryName=TelemetryName.WaterTempCTimes1000,
-               Quantity=GwQuantity.Temperature,
+               Quantity=Quantity.Temperature,
                TerminalAssetAlias=db.terminal_asset_alias,
                Id=db.make_channel_id(f"{tank_cfg.ActorNodeName}-depth{i}-device")
                ) for i in range(1,4)
@@ -122,7 +122,7 @@ def add_tank3(
                     AboutNodeName=f"{tank_cfg.ActorNodeName}-depth{i}",
                     CapturedByNodeName=tank_cfg.ActorNodeName,
                     TelemetryName=TelemetryName.MicroVolts,
-                    Quantity=GwQuantity.Voltage,
+                    Quantity=Quantity.Voltage,
                     TerminalAssetAlias=db.terminal_asset_alias,
                     Id=db.make_channel_id(f"{tank_cfg.ActorNodeName}-depth{i}-micro-v")
                 ) for i in range(1,4)

@@ -1,5 +1,5 @@
 from gwsproto.data_classes.house_0_names import H0N
-from gwsproto.enums import EmissionMethod, GwUnit, HeatCallInterpretation
+from gwsproto.enums import EmissionMethod, Unit, HeatCallInterpretation
 from gwsproto.names.hydronic_spaceheat.channel_names import (
     HydronicSpaceheatZoneChannelNames as HSZoneChannelNames,
 )
@@ -62,8 +62,8 @@ def _add_zone_heat_call_channel(
                 CreatedByNodeName=H0N.derived_generator,
                 Strategy="heat-call",
                 InputChannelNames=[nolan_channels.opto_input],
-                OutputUnit=GwUnit.Unitless,
-                OutputQuantity=UnitQuantityProjection.project(GwUnit.Unitless),
+                OutputUnit=Unit.Unitless,
+                OutputQuantity=UnitQuantityProjection.project(Unit.Unitless),
                 EmissionMethod=EmissionMethod.AsyncAndPeriodic,
                 AsyncEmitDelta=1,
                 EmitPeriodS=emit_period_s,
@@ -127,8 +127,8 @@ def _add_zone_predicted_setpoint_channel(
                 CreatedByNodeName=H0N.derived_generator,
                 Strategy="simple-falling-edge-setpoint",
                 InputChannelNames=[nolan_channels.gw_temp, zone_channels.heat_call],
-                OutputUnit=GwUnit.FahrenheitX100,
-                OutputQuantity=UnitQuantityProjection.project(GwUnit.FahrenheitX100),
+                OutputUnit=Unit.FahrenheitX100,
+                OutputQuantity=UnitQuantityProjection.project(Unit.FahrenheitX100),
                 EmissionMethod=EmissionMethod.AsyncAndPeriodic,
                 AsyncEmitDelta=async_emit_delta_x100,
                 EmitPeriodS=emit_period_s,

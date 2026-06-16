@@ -1,5 +1,5 @@
 from gwsproto.data_classes.house_0_names import H0CN, H0N
-from gwsproto.enums import ActorClass, Gw1DeviceType, GwQuantity, TelemetryName, Unit
+from gwsproto.enums import ActorClass, DeviceType, Quantity, TelemetryName, Unit
 from gwsproto.named_types import (
     DataChannelGt,
     DfrComponentGt,
@@ -56,7 +56,7 @@ def add_dfrs(db: LayoutDb, dfr_config: DfrConf) -> None:
             [
                 DfrComponentGt(
                     ComponentId=db.make_component_id(component_display_name),
-                    DeviceType=Gw1DeviceType.DfrobotDualAnalogOut,
+                    DeviceType=DeviceType.DfrobotDualAnalogOut,
                     DisplayName=component_display_name,
                     ConfigList=config_list,
                     I2cAddressList=[94, 95],  # 0x5e, 0x5f
@@ -108,7 +108,7 @@ def add_dfrs(db: LayoutDb, dfr_config: DfrConf) -> None:
             AboutNodeName=H0N.dist_010v,
             CapturedByNodeName=H0N.zero_ten_out_multiplexer,
             TelemetryName=TelemetryName.VoltsTimesTen,
-            Quantity=GwQuantity.Voltage,
+            Quantity=Quantity.Voltage,
             TerminalAssetAlias=db.terminal_asset_alias,
             Id=db.make_channel_id(H0CN.dist_010v),
         ),
@@ -118,7 +118,7 @@ def add_dfrs(db: LayoutDb, dfr_config: DfrConf) -> None:
             AboutNodeName=H0N.primary_010v,
             CapturedByNodeName=H0N.zero_ten_out_multiplexer,
             TelemetryName=TelemetryName.VoltsTimesTen,
-            Quantity=GwQuantity.Voltage,
+            Quantity=Quantity.Voltage,
             TerminalAssetAlias=db.terminal_asset_alias,
             Id=db.make_channel_id(H0CN.primary_010v),
         ),
@@ -128,7 +128,7 @@ def add_dfrs(db: LayoutDb, dfr_config: DfrConf) -> None:
             AboutNodeName=H0N.store_010v,
             CapturedByNodeName=H0N.zero_ten_out_multiplexer,
             TelemetryName=TelemetryName.VoltsTimesTen,
-            Quantity=GwQuantity.Voltage,
+            Quantity=Quantity.Voltage,
             TerminalAssetAlias=db.terminal_asset_alias,
             Id=db.make_channel_id(H0CN.store_010v),
         ),

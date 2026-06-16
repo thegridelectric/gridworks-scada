@@ -1,6 +1,6 @@
 from typing import Self
 
-from gwsproto.enums import GwUnit, TelemetryName
+from gwsproto.enums import Unit, TelemetryName
 from gwsproto.conversions.temperature import convert_temp_to_f
 from rich.console import Console
 from rich.console import ConsoleOptions
@@ -48,7 +48,7 @@ class OddsAndEnds:
             TelemetryName.WaterTempCTimes1000,
             TelemetryName.AirTempFTimes1000,
             TelemetryName.WaterTempFTimes1000,
-            GwUnit.FahrenheitX100
+            Unit.FahrenheitX100
         ):
             assert unit
             temp_f = convert_temp_to_f(raw=raw, encoding=unit)

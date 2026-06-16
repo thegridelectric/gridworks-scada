@@ -30,7 +30,7 @@ from gwsproto.enums.change_relay_state import ChangeRelayState
 from gwsproto.enums.change_store_flow_relay import ChangeStoreFlowRelay
 from gwsproto.enums.emission_method import EmissionMethod
 from gwsproto.enums.flow_manifold_variant import FlowManifoldVariant
-from gwsproto.enums.gw_house0_primary_flow_source import GwHouse0PrimaryFlowSource
+from gwsproto.enums.house0_primary_flow_source import House0PrimaryFlowSource
 from gwsproto.enums.fsm_report_type import FsmReportType
 from gwsproto.enums.gpm_from_hz_method import GpmFromHzMethod
 from gwsproto.enums.i2c_adc_channel import I2cAdcChannel
@@ -52,11 +52,11 @@ from gwsproto.enums.local_control_standby_top_state import LocalControlStandbyTo
 from gwsproto.enums.local_control_top_state import LocalControlTopState
 from gwsproto.enums.local_control_top_event import LocalControlTopEvent
 from gwsproto.enums.gpio_sense_mode import GpioSenseMode
-from gwsproto.enums.gw_unit import GwUnit
-from gwsproto.enums.gw_quantity import GwQuantity
+from gwsproto.enums.unit import Unit
+from gwsproto.enums.quantity import Quantity
 from gwsproto.enums.hp_model import HpModel
 from gwsproto.enums.hp_loop_keep_send import HpLoopKeepSend
-from gwsproto.enums.gw1_device_type import Gw1DeviceType
+from gwsproto.enums.device_type import DeviceType
 from gwsproto.enums.log_level import LogLevel
 from gwsproto.enums.main_auto_event import MainAutoEvent
 from gwsproto.enums.main_auto_state import MainAutoState
@@ -80,7 +80,7 @@ from gwsproto.enums.thermistor_data_method import ThermistorDataMethod
 from gwsproto.enums.top_event import TopEvent
 from gwsproto.enums.top_state import TopState
 from gwsproto.enums.turn_hp_on_off import TurnHpOnOff
-from gwsproto.enums.unit import Unit
+from gwsproto.enums.spaceheat_unit import SpaceheatUnit
 
 
 __all__ = [
@@ -100,13 +100,13 @@ __all__ = [
     "ChangeStoreFlowRelay",
     "EmissionMethod",
     "FlowManifoldVariant",
-    "GwHouse0PrimaryFlowSource",
+    "House0PrimaryFlowSource",
     "FsmReportType",
     "GpioSenseMode",
     "GpmFromHzMethod",
     "I2cAdcChannel",
-    "GwUnit",
-    "GwQuantity",
+    "Unit",
+    "Quantity",
     "HeatCallInterpretation",
     "HeatcallSource",
     "HeatPumpControl",
@@ -127,7 +127,7 @@ __all__ = [
     "LocalControlAllTanksState",
     "LogLevel",
     "LocalControlTopEvent",  
-    "Gw1DeviceType",
+    "DeviceType",
     "MainAutoEvent",
     "MainAutoState",
     "MarketPriceUnit",
@@ -150,5 +150,5 @@ __all__ = [
     "TopEvent",
     "TopState",
     "TurnHpOnOff",
-    "Unit",
+    "SpaceheatUnit",
 ]

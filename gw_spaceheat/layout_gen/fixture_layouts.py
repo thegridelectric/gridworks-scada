@@ -3,8 +3,8 @@ from pathlib import Path
 from gwproto.named_types.web_server_gt import WebServerGt
 
 from gwsproto.enums import ActorClass
-from gwsproto.enums import Gw1DeviceType
-from gwsproto.enums import GwQuantity
+from gwsproto.enums import DeviceType
+from gwsproto.enums import Quantity
 from gwsproto.enums import TelemetryName
 from gwsproto.enums import Unit
 from gwsproto.type_helpers import HubitatGt
@@ -122,11 +122,11 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
     POWER_METER_COMPONENT_DISPLAY_NAME = "Power Meter for Simulated Test system"
 
 
-    if not db.has_device_type_record(Gw1DeviceType.GridworksSimPowerMeter):
+    if not db.has_device_type_record(DeviceType.GridworksSimPowerMeter):
         db.add_device_types(
             [
                 ElectricMeterDeviceTypeGt(
-                    DeviceType=Gw1DeviceType.GridworksSimPowerMeter,
+                    DeviceType=DeviceType.GridworksSimPowerMeter,
                     DisplayName="Gridworks Pm1 Simulated Power Meter",
                     TelemetryNameList=[TelemetryName.PowerW],
                     MinPollPeriodMs=1000,
@@ -140,7 +140,7 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
                 ComponentGt,
                 ElectricMeterComponentGt(
                     ComponentId=db.make_component_id(POWER_METER_COMPONENT_DISPLAY_NAME),
-                    DeviceType=Gw1DeviceType.GridworksSimPowerMeter,
+                    DeviceType=DeviceType.GridworksSimPowerMeter,
                     DisplayName=POWER_METER_COMPONENT_DISPLAY_NAME,
                     ConfigList=[
                         ElectricMeterChannelConfig(
@@ -234,7 +234,7 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
                 AboutNodeName=H0N.hp_odu,
                 CapturedByNodeName=H0N.primary_power_meter,
                 TelemetryName=TelemetryName.PowerW,
-                Quantity=GwQuantity.Power,
+                Quantity=Quantity.Power,
                 InPowerMetering=True,
                 Id=db.make_channel_id(H0CN.hp_odu_pwr),
                 TerminalAssetAlias=db.terminal_asset_alias,
@@ -245,7 +245,7 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
                 AboutNodeName=H0N.hp_idu,
                 CapturedByNodeName=H0N.primary_power_meter,
                 TelemetryName=TelemetryName.PowerW,
-                Quantity=GwQuantity.Power,
+                Quantity=Quantity.Power,
                 InPowerMetering=True,
                 Id=db.make_channel_id(H0CN.hp_idu_pwr),
                 TerminalAssetAlias=db.terminal_asset_alias,
@@ -256,7 +256,7 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
                 AboutNodeName=H0N.store_pump,
                 CapturedByNodeName=H0N.primary_power_meter,
                 TelemetryName=TelemetryName.PowerW,
-                Quantity=GwQuantity.Power,
+                Quantity=Quantity.Power,
                 InPowerMetering=False,
                 Id=db.make_channel_id(H0CN.store_pump_pwr),
                 TerminalAssetAlias=db.terminal_asset_alias,

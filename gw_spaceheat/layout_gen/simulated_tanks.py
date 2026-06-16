@@ -1,8 +1,8 @@
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import (
     ActorClass,
-    Gw1DeviceType,
-    GwQuantity,
+    DeviceType,
+    Quantity,
     TelemetryName,
     Unit,
 )
@@ -20,7 +20,7 @@ from layout_gen.tank3 import Tank3Cfg
 # (see tank3.py), but its DeviceType marks it as a GridWorks sim sensor so the
 # scada drives it through the simulated-test-environment path rather than a real
 # pico. DeviceType value pending Jessica's review (see fixture_layouts wiring).
-SIM_TANK_DEVICE_TYPE = Gw1DeviceType.GridworksSimSensor
+SIM_TANK_DEVICE_TYPE = DeviceType.GridworksSimSensor
 
 
 def add_simulated_tanks(db: LayoutDb) -> None:
@@ -113,7 +113,7 @@ def add_sim_tank(db: LayoutDb, reader: str) -> None:
                 AboutNodeName=f"{reader}-depth{i}",
                 CapturedByNodeName=reader,
                 TelemetryName=TelemetryName.WaterTempCTimes1000,
-                Quantity=GwQuantity.Temperature,
+                Quantity=Quantity.Temperature,
                 TerminalAssetAlias=db.terminal_asset_alias,
                 Id=db.make_channel_id(f"{reader}-depth{i}-device"),
             )
@@ -130,7 +130,7 @@ def add_sim_tank(db: LayoutDb, reader: str) -> None:
                     AboutNodeName=f"{reader}-depth{i}",
                     CapturedByNodeName=reader,
                     TelemetryName=TelemetryName.MicroVolts,
-                    Quantity=GwQuantity.Voltage,
+                    Quantity=Quantity.Voltage,
                     TerminalAssetAlias=db.terminal_asset_alias,
                     Id=db.make_channel_id(f"{reader}-depth{i}-micro-v"),
                 )

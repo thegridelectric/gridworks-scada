@@ -3,7 +3,7 @@ from enum import auto
 from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class GwQuantity(SemaEnum):
+class Quantity(SemaEnum):
     """Sema: https://schemas.electricity.works/enums/gw1.quantity/001"""
 
     Unknown = auto()
@@ -20,7 +20,7 @@ class GwQuantity(SemaEnum):
     Time = auto()
 
     @classmethod
-    def default(cls) -> "GwQuantity":
+    def default(cls) -> "Quantity":
         return cls.Unknown
 
     @classmethod

@@ -5,12 +5,12 @@ from pydantic import BaseModel, model_validator
 from gwsproto.property_format import SpaceheatName
 from layout_gen import LayoutDb
 from gwsproto.named_types.data_channel_gt import DataChannelGt
-from gwsproto.enums import Gw1DeviceType, Unit, ActorClass, TelemetryName
+from gwsproto.enums import DeviceType, Unit, ActorClass, TelemetryName
 from gwsproto.enums import  TempCalcMethod as EnumTempCalcMethod
 from gwsproto.named_types.channel_config import ChannelConfig
 from gwsproto.named_types import SpaceheatNodeGt
 from gwsproto.data_classes.house_0_names import H0N
-from gwsproto.enums import GpmFromHzMethod, HzCalcMethod, GwQuantity
+from gwsproto.enums import GpmFromHzMethod, HzCalcMethod, Quantity
 
 
 SAIER_CONSTANT_GALLONS_PER_TICK = 0.0009
@@ -26,7 +26,7 @@ class BtuCfg(BaseModel):
     ColdChannelName: SpaceheatName
     ReadCtVoltage: bool
     CtChannelName: Optional[SpaceheatName] = None
-    FlowMeterType: str = Gw1DeviceType.SaierFlowSensor
+    FlowMeterType: str = DeviceType.SaierFlowSensor
     HzMethod: HzCalcMethod = HzCalcMethod.UniformWindow
     GpmMethod: GpmFromHzMethod = GpmFromHzMethod.Constant
     TempCalcMethod: EnumTempCalcMethod = EnumTempCalcMethod.SimpleBeta
@@ -56,7 +56,7 @@ def add_btu(
         db: LayoutDb,
         cfg: BtuCfg
 ) -> None:
-    if not cfg.FlowMeterType == Gw1DeviceType.SaierFlowSensor:
+    if not cfg.FlowMeterType == DeviceType.SaierFlowSensor:
         raise Exception("Only designed for SAIER SEN RIGHT NOW")
 
 
@@ -103,7 +103,7 @@ def add_btu(
             [
                 PicoBtuMeterComponentGt(
                     ComponentId=db.make_component_id(cfg.component_display_name()),
-                    DeviceType=Gw1DeviceType.GridworksGw101,
+                    DeviceType=DeviceType.GridworksGw101,
                     HwUid=cfg.HwUid,
                     DisplayName=cfg.component_display_name(),
                     ConfigList=config_list,
@@ -174,7 +174,7 @@ def add_btu(
                     AboutNodeName=cfg.FlowChannelName,
                     CapturedByNodeName=cfg.ActorNodeName,
                     TelemetryName=TelemetryName.GpmTimes100,
-                    Quantity=GwQuantity.FlowRate,
+                    Quantity=Quantity.FlowRate,
                     TerminalAssetAlias=db.terminal_asset_alias,
                     Id=db.make_channel_id(cfg.FlowChannelName)
                 ),
@@ -184,7 +184,7 @@ def add_btu(
                     AboutNodeName=cfg.HotChannelName,
                     CapturedByNodeName=cfg.ActorNodeName,
                     TelemetryName=TelemetryName.WaterTempCTimes1000,
-                    Quantity=GwQuantity.Temperature,
+                    Quantity=Quantity.Temperature,
                     TerminalAssetAlias=db.terminal_asset_alias,
                     Id=db.make_channel_id(cfg.HotChannelName)
                 ),
@@ -194,7 +194,7 @@ def add_btu(
                     AboutNodeName=cfg.ColdChannelName,
                     CapturedByNodeName=cfg.ActorNodeName,
                     TelemetryName=TelemetryName.WaterTempCTimes1000,
-                    Quantity=GwQuantity.Temperature,
+                    Quantity=Quantity.Temperature,
                     TerminalAssetAlias=db.terminal_asset_alias,
                     Id=db.make_channel_id(cfg.ColdChannelName)
                 ),
@@ -209,7 +209,7 @@ def add_btu(
                         AboutNodeName=cfg.CtChannelName,
                         CapturedByNodeName=cfg.ActorNodeName,
                         TelemetryName=TelemetryName.VoltsTimes100,
-                        Quantity=GwQuantity.Voltage,
+                        Quantity=Quantity.Voltage,
                         TerminalAssetAlias=db.terminal_asset_alias,
                         Id=db.make_channel_id(cfg.CtChannelName)
                     ),

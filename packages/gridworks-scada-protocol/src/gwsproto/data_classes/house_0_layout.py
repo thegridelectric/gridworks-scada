@@ -15,7 +15,7 @@ from gwsproto.names.nolan.node_names import NolanNodeNames
 from gwsproto.data_classes.house_0_names import H0CN, H0N, ScadaWeb
 from gwsproto.enums import FlowManifoldVariant
 from gwsproto.named_types.gw1_hvac_zone import Gw1HvacZone
-from gwsproto.named_types.gw_house0_hydronic import GwHouse0Hydronic
+from gwsproto.named_types.gw_house0_hydronic import House0Hydronic
 
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.decoders import (
@@ -361,13 +361,13 @@ class House0Layout(HardwareLayout):
         derived_channels: dict,
         flow_manifold_variant: FlowManifoldVariant,
         use_sieg_loop: bool,
-    ) -> GwHouse0Hydronic:
+    ) -> House0Hydronic:
         """The typed gw.house0.hydronic for this layout: read the nested 'Hydronic'
         block if present, else build it from the legacy flat top-level keys
         (transitional, while layout_gen + fixtures migrate to the nested block)."""
         h = layout.get("Hydronic")
         if isinstance(h, dict) and "Zones" in h:
-            return GwHouse0Hydronic.model_validate(h)
+            return House0Hydronic.model_validate(h)
         for key in ("ZoneList", "CriticalZoneList", "TotalStoreTanks", "ZoneKwhPerDegFList"):
             if key not in layout:
                 raise DcError(f"House0 requires {key} (or a typed Hydronic block)!")
@@ -378,7 +378,7 @@ class House0Layout(HardwareLayout):
             d.Name == "primary-flow" and d.Strategy == "sum"
             for d in derived_channels.values()
         )
-        return GwHouse0Hydronic(
+        return House0Hydronic(
             Zones=[
                 Gw1HvacZone(Name=name, Critical=name in critical, KwhPerDegF=float(kwh))
                 for name, kwh in zip(layout["ZoneList"], layout["ZoneKwhPerDegFList"])

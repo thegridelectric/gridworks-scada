@@ -11,8 +11,8 @@ from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import (
     ActorClass,
     GpioSenseMode,
-    Gw1DeviceType,
-    GwQuantity,
+    DeviceType,
+    Quantity,
     TelemetryName,
     TempCalcMethod,
     Unit,
@@ -125,11 +125,11 @@ def add_gw108_nolan_zones(
             f"zones (one ADS1115 at 0x49); got zone {max(zone_idxs)}"
         )
 
-    if not db.has_device_type_record(Gw1DeviceType.GridworksScadaGw108):
+    if not db.has_device_type_record(DeviceType.GridworksScadaGw108):
         db.add_device_types(
             [
                 Gw1ScadaDeviceTypeGt(
-                    DeviceType=Gw1DeviceType.GridworksScadaGw108,
+                    DeviceType=DeviceType.GridworksScadaGw108,
                     DisplayName="GridWorks SCADA Gw108",
                 ),
             ]
@@ -170,7 +170,7 @@ def add_gw108_nolan_zones(
                 [
                     Gw108GpioSensorComponentGt(
                         ComponentId=db.make_component_id(opto_component_name),
-                        DeviceType=Gw1DeviceType.GridworksScadaGw108,
+                        DeviceType=DeviceType.GridworksScadaGw108,
                         DisplayName=opto_component_name,
                         GpioPin=_OPTO_GPIO_PINS[zone_idx - 1],
                         SenseMode=GpioSenseMode.Polling,
@@ -218,7 +218,7 @@ def add_gw108_nolan_zones(
                     AboutNodeName=zone_nodes.whitewire,
                     CapturedByNodeName=nolan_nodes.opto,
                     TelemetryName=TelemetryName.BinaryState,
-                    Quantity=GwQuantity.Unitless,
+                    Quantity=Quantity.Unitless,
                     TerminalAssetAlias=db.terminal_asset_alias,
                     Id=db.make_channel_id(zone_channels.opto_input),
                 ),
@@ -228,7 +228,7 @@ def add_gw108_nolan_zones(
                     AboutNodeName=zone_nodes.zone,
                     CapturedByNodeName=GW108_THERMISTOR_READER,
                     TelemetryName=TelemetryName.CelsiusTimes100,
-                    Quantity=GwQuantity.Temperature,
+                    Quantity=Quantity.Temperature,
                     TerminalAssetAlias=db.terminal_asset_alias,
                     Id=db.make_channel_id(zone_channels.gw_temp),
                 ),
@@ -238,7 +238,7 @@ def add_gw108_nolan_zones(
                     AboutNodeName=zone_nodes.zone,
                     CapturedByNodeName=GW108_THERMISTOR_READER,
                     TelemetryName=TelemetryName.MicroVolts,
-                    Quantity=GwQuantity.Voltage,
+                    Quantity=Quantity.Voltage,
                     TerminalAssetAlias=db.terminal_asset_alias,
                     Id=db.make_channel_id(hs_channels.gw_microvolts),
                 ),
@@ -257,7 +257,7 @@ def add_gw108_nolan_zones(
             [
                 I2cThermistorReaderComponentGt(
                     ComponentId=db.make_component_id(reader_component_name),
-                    DeviceType=Gw1DeviceType.GridworksScadaGw108,
+                    DeviceType=DeviceType.GridworksScadaGw108,
                     DisplayName=reader_component_name,
                     Bus="i2c-1",
                     AdcAddress=adc_addresses.pop(),

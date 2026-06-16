@@ -4,19 +4,15 @@ from typing import List
 from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class GwHouse0PrimaryFlowSource(SemaEnum):
-    """ASL: https://schemas.electricity.works/enums/gw.house0.primary.flow.source/000
-
-    How a House0 layout's primary-loop flow ("primary-flow") is obtained:
-    Measured (a flow meter at the primary pump) or DerivedSiegSum (reconstructed
-    from the Siegenthaler loop sensors, sieg-send + sieg-flow).
+class House0PrimaryFlowSource(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/gw.house0.primary.flow.source/000
     """
 
     Measured = auto()
     DerivedSiegSum = auto()
 
     @classmethod
-    def default(cls) -> "GwHouse0PrimaryFlowSource":
+    def default(cls) -> "House0PrimaryFlowSource":
         return cls.Measured
 
     @classmethod

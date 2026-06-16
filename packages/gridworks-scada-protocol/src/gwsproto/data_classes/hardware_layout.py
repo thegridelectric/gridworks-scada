@@ -29,7 +29,7 @@ from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.data_classes.derived_channel import DerivedChannel
 from gwsproto.data_classes.telemetry_tuple import TelemetryTuple
 
-from gwsproto.enums import ActorClass, TelemetryName, GwUnit, EmissionMethod
+from gwsproto.enums import ActorClass, TelemetryName, Unit, EmissionMethod
 from gwsproto.named_types import (
     ComponentGt,
     DataChannelGt,
@@ -68,7 +68,7 @@ class ChannelRegistry:
     def get(self, name: str) -> DataChannel | DerivedChannel | None:
         return self.data.get(name) or self.derived.get(name)
 
-    def unit(self, name: str) -> GwUnit | TelemetryName | None:
+    def unit(self, name: str) -> Unit | TelemetryName | None:
         ch = self.get(name)
         if ch is None:
             return None
@@ -692,7 +692,7 @@ class HardwareLayout:
                                 f"InputChannelName '{heat_call_name}' must reference "
                                 "a DerivedChannel with strategy 'heat-call'"
                             )
-                    if dc.OutputUnit != GwUnit.FahrenheitX100:
+                    if dc.OutputUnit != Unit.FahrenheitX100:
                         errors.append(
                             f"DerivedChannel '{dc.Name}' uses strategy "
                             "'simple-falling-edge-setpoint' but must use OutputUnit "

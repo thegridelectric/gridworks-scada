@@ -3,8 +3,8 @@ from typing import cast
 from typing import Optional
 
 from gwsproto.enums import ActorClass
-from gwsproto.enums import GwQuantity
-from gwsproto.enums import Gw1DeviceType
+from gwsproto.enums import Quantity
+from gwsproto.enums import DeviceType
 from gwsproto.enums import TelemetryName
 from gwsproto.enums import Unit
 from gwsproto.named_types import ComponentGt
@@ -24,7 +24,7 @@ class SensorNodeGenCfg(BaseModel):
     TerminalBlockIdx: int
     AsyncCapture: bool = True
     CapturePeriodS: int = 300
-    ThermistorDeviceType: str = Gw1DeviceType.TewaThermistor
+    ThermistorDeviceType: str = DeviceType.TewaThermistor
     # Using a forward reference here resolves a pydantic exception generated when this field
     # is actually set, as in tlayouts/gen_oak.py. I don't know why we should need a forward
     # reference, since TelemetryName is imported above. The generated error is:
@@ -53,11 +53,11 @@ def add_tsnap_multipurpose(
     db: LayoutDb,
     tsnap: TSnapMultipurposeGenCfg,
 ) -> None:
-    if not db.has_device_type_record(Gw1DeviceType.GridworksTsnap1ScadaBoard):
+    if not db.has_device_type_record(DeviceType.GridworksTsnap1ScadaBoard):
         db.add_device_types(
             [
                 Ads111xBasedDeviceTypeGt(
-                    DeviceType=Gw1DeviceType.GridworksTsnap1ScadaBoard,
+                    DeviceType=DeviceType.GridworksTsnap1ScadaBoard,
                     AdsI2cAddressList=[0x4b, 0x49, 0x48],
                     TelemetryNameList=[TelemetryName.WaterTempCTimes1000, TelemetryName.AirTempCTimes1000],
                     TotalTerminalBlocks=12,
@@ -73,7 +73,7 @@ def add_tsnap_multipurpose(
                 ComponentGt,
                 Ads111xBasedComponentGt(
                     ComponentId=db.make_component_id(tsnap.component_alias()),
-                    DeviceType=Gw1DeviceType.GridworksTsnap1ScadaBoard,
+                    DeviceType=DeviceType.GridworksTsnap1ScadaBoard,
                     ConfigList=[
                         AdsChannelConfig(
                             ChannelName=sensor_cfg.ChannelName,
@@ -125,7 +125,7 @@ def add_tsnap_multipurpose(
                 AboutNodeName=cfg.about_node_name(),
                 CapturedByNodeName=H0N.analog_temp,
                 TelemetryName=cfg.MyTelemetryName,
-                Quantity=GwQuantity.Temperature,
+                Quantity=Quantity.Temperature,
                 TerminalAssetAlias=db.terminal_asset_alias,
             )
 

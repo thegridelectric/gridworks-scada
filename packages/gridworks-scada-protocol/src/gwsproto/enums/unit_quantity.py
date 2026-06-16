@@ -13,54 +13,54 @@ Rules:
 """
 
 
-from gwsproto.enums.gw_quantity import GwQuantity
-from gwsproto.enums.gw_unit import GwUnit
+from gwsproto.enums.quantity import Quantity
+from gwsproto.enums.unit import Unit
 from gwsproto.enums.telemetry_name import TelemetryName
 
 
-UNIT_TO_QUANTITY: dict[GwUnit | TelemetryName, GwQuantity] = {
+UNIT_TO_QUANTITY: dict[Unit | TelemetryName, Quantity] = {
 
-    GwUnit.Unknown: GwQuantity.Unknown,
-    GwUnit.Unitless: GwQuantity.Unitless,
-    GwUnit.FahrenheitX100: GwQuantity.Temperature,
-    GwUnit.Watts: GwQuantity.Power,
-    GwUnit.WattHours: GwQuantity.Energy,
-    GwUnit.Gallons: GwQuantity.Volume,
-    GwUnit.GpmX100: GwQuantity.FlowRate,
-    GwUnit.Seconds: GwQuantity.Time,
-    GwUnit.SecondsX10: GwQuantity.Time,
-    GwUnit.Milliseconds: GwQuantity.Time,
+    Unit.Unknown: Quantity.Unknown,
+    Unit.Unitless: Quantity.Unitless,
+    Unit.FahrenheitX100: Quantity.Temperature,
+    Unit.Watts: Quantity.Power,
+    Unit.WattHours: Quantity.Energy,
+    Unit.Gallons: Quantity.Volume,
+    Unit.GpmX100: Quantity.FlowRate,
+    Unit.Seconds: Quantity.Time,
+    Unit.SecondsX10: Quantity.Time,
+    Unit.Milliseconds: Quantity.Time,
 
-    TelemetryName.Unknown: GwQuantity.Unknown,
+    TelemetryName.Unknown: Quantity.Unknown,
 
-    TelemetryName.PowerW: GwQuantity.Power,
-    TelemetryName.WattHours: GwQuantity.Energy,
-    TelemetryName.MilliWattHours: GwQuantity.Energy,
+    TelemetryName.PowerW: Quantity.Power,
+    TelemetryName.WattHours: Quantity.Energy,
+    TelemetryName.MilliWattHours: Quantity.Energy,
 
-    TelemetryName.WaterTempCTimes1000: GwQuantity.Temperature,
-    TelemetryName.WaterTempFTimes1000: GwQuantity.Temperature,
-    TelemetryName.AirTempCTimes1000: GwQuantity.Temperature,
-    TelemetryName.AirTempFTimes1000: GwQuantity.Temperature,
-    TelemetryName.CelsiusTimes100: GwQuantity.Temperature,
+    TelemetryName.WaterTempCTimes1000: Quantity.Temperature,
+    TelemetryName.WaterTempFTimes1000: Quantity.Temperature,
+    TelemetryName.AirTempCTimes1000: Quantity.Temperature,
+    TelemetryName.AirTempFTimes1000: Quantity.Temperature,
+    TelemetryName.CelsiusTimes100: Quantity.Temperature,
 
-    TelemetryName.GpmTimes100: GwQuantity.FlowRate,
-    TelemetryName.GallonsTimes100: GwQuantity.Volume,
+    TelemetryName.GpmTimes100: Quantity.FlowRate,
+    TelemetryName.GallonsTimes100: Quantity.Volume,
 
-    TelemetryName.VoltageRmsMilliVolts: GwQuantity.Voltage,
-    TelemetryName.VoltsTimesTen: GwQuantity.Voltage,
-    TelemetryName.VoltsTimes100: GwQuantity.Voltage,
-    TelemetryName.MicroVolts: GwQuantity.Voltage,
+    TelemetryName.VoltageRmsMilliVolts: Quantity.Voltage,
+    TelemetryName.VoltsTimesTen: Quantity.Voltage,
+    TelemetryName.VoltsTimes100: Quantity.Voltage,
+    TelemetryName.MicroVolts: Quantity.Voltage,
 
-    TelemetryName.CurrentRmsMicroAmps: GwQuantity.Current,
+    TelemetryName.CurrentRmsMicroAmps: Quantity.Current,
 
-    TelemetryName.HzTimes100: GwQuantity.Frequency,
-    TelemetryName.MicroHz: GwQuantity.Frequency,
+    TelemetryName.HzTimes100: Quantity.Frequency,
+    TelemetryName.MicroHz: Quantity.Frequency,
 
-    TelemetryName.RelayState: GwQuantity.Unitless,
-    TelemetryName.ThermostatState: GwQuantity.Unitless,
-    TelemetryName.BinaryState: GwQuantity.Unitless,
+    TelemetryName.RelayState: Quantity.Unitless,
+    TelemetryName.ThermostatState: Quantity.Unitless,
+    TelemetryName.BinaryState: Quantity.Unitless,
 
-    TelemetryName.PercentKeep: GwQuantity.Percent,
-    TelemetryName.StorageLayer: GwQuantity.Unitless,
+    TelemetryName.PercentKeep: Quantity.Percent,
+    TelemetryName.StorageLayer: Quantity.Unitless,
     
 }

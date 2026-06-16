@@ -3,7 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, model_validator
 from typing_extensions import Self
 
-from gwsproto.enums import GwQuantity, TelemetryName as TelemetryNameEnum
+from gwsproto.enums import Quantity, TelemetryName as TelemetryNameEnum
 from gwsproto.enums.unit_quantity import UNIT_TO_QUANTITY
 
 
@@ -13,7 +13,7 @@ class SpaceheatTelemetryQuantityProjection(BaseModel):
     """
 
     TelemetryName: TelemetryNameEnum
-    Quantity: GwQuantity
+    Quantity: Quantity
     TypeName: Literal[
         "spaceheat.telemetry.quantity.projection"
     ] = "spaceheat.telemetry.quantity.projection"

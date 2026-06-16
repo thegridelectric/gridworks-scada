@@ -10,7 +10,7 @@ from gwproactor.message import PatInternalWatchdogMessage
 from gwsproto.data_classes.components.dfr_component import DfrComponent
 from gwsproto.data_classes.house_0_layout import House0Layout
 from gwsproto.data_classes.sh_node import ShNode
-from gwsproto.enums import ActorClass, Gw1DeviceType
+from gwsproto.enums import ActorClass, DeviceType
 from gwsproto.named_types import AnalogDispatch, SingleReading
 
 from result import Err, Result
@@ -42,12 +42,12 @@ class I2cZeroTenMultiplexer(ShNodeActor):
         super().__init__(name, services)
         self.is_simulated = self.settings.is_simulated
         self.component = cast(DfrComponent, self.node.component)
-        if self.component.gt.DeviceType == Gw1DeviceType.DfrobotDualAnalogOut:
+        if self.component.gt.DeviceType == DeviceType.DfrobotDualAnalogOut:
             if self.component.gt.I2cAddressList != [94, 95]:
                 raise Exception("Expect i2c addresses 0x5e, 0x5f for dfr 010V")
         else:
             raise Exception(
-                f"Expected {Gw1DeviceType.DfrobotDualAnalogOut}, got {self.component.gt.DeviceType}"
+                f"Expected {DeviceType.DfrobotDualAnalogOut}, got {self.component.gt.DeviceType}"
             )
         
         # Make/model specific

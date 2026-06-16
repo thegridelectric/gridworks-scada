@@ -3,7 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, model_validator
 from typing_extensions import Self
 
-from gwsproto.enums import GwQuantity, GwUnit
+from gwsproto.enums import Quantity, Unit
 from gwsproto.enums.unit_quantity import UNIT_TO_QUANTITY
 
 
@@ -17,8 +17,8 @@ class UnitQuantityProjection(BaseModel):
     `derived.channel.gt` axiom 2 reads when binding OutputQuantity to OutputUnit.
     """
 
-    Unit: GwUnit
-    Quantity: GwQuantity
+    Unit: Unit
+    Quantity: Quantity
     TypeName: Literal[
         "gw1.unit.quantity.projection"
     ] = "gw1.unit.quantity.projection"
@@ -27,14 +27,14 @@ class UnitQuantityProjection(BaseModel):
     model_config = ConfigDict(use_enum_values=True)
 
     @classmethod
-    def project(cls, unit: GwUnit) -> GwQuantity:
+    def project(cls, unit: Unit) -> Quantity:
         expected = UNIT_TO_QUANTITY.get(unit)
         if expected is None:
             raise ValueError(f"No projection defined for unit {unit!r}.")
         return expected
 
     @classmethod
-    def canonical(cls, unit: GwUnit) -> "UnitQuantityProjection":
+    def canonical(cls, unit: Unit) -> "UnitQuantityProjection":
         return cls(Unit=unit, Quantity=cls.project(unit))
 
     @model_validator(mode="after")

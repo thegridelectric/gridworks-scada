@@ -2,9 +2,9 @@ from typing import cast, Optional
 from pydantic import BaseModel
 
 from gwsproto.enums import ActorClass
-from gwsproto.enums import Gw1DeviceType
+from gwsproto.enums import DeviceType
 from gwsproto.enums import TelemetryName
-from gwsproto.enums import Unit, GwQuantity
+from gwsproto.enums import Unit, Quantity
 from gwsproto.named_types import ComponentGt
 from gwsproto.named_types import EgaugeRegisterConfig
 from gwsproto.named_types import ElectricMeterDeviceTypeGt
@@ -90,11 +90,11 @@ def add_egauge(
     db: LayoutDb,
     egauge: PowerMeterGenConfig,
 ) -> None:
-    if not db.has_device_type_record(Gw1DeviceType.EgaugePowerMeter):
+    if not db.has_device_type_record(DeviceType.EgaugePowerMeter):
         db.add_device_types(
             [
                 ElectricMeterDeviceTypeGt(
-                    DeviceType=Gw1DeviceType.EgaugePowerMeter,
+                    DeviceType=DeviceType.EgaugePowerMeter,
                     MinPollPeriodMs=1000,
                     DisplayName="EGauge 4030",
                     TelemetryNameList=[TelemetryName.PowerW],
@@ -107,7 +107,7 @@ def add_egauge(
                 ComponentGt,
                 ElectricMeterComponentGt(
                     ComponentId=db.make_component_id(egauge.ComponentDisplayName),
-                    DeviceType=Gw1DeviceType.EgaugePowerMeter,
+                    DeviceType=DeviceType.EgaugePowerMeter,
                     DisplayName=egauge.ComponentDisplayName,
                     ConfigList=egauge.channel_configs(),
                     HwUid=egauge.HwUid,
@@ -148,7 +148,7 @@ def add_egauge(
                 AboutNodeName=cfg.AboutNodeName,
                 CapturedByNodeName=H0N.primary_power_meter,
                 TelemetryName=TelemetryName.PowerW,
-                Quantity=GwQuantity.Power,
+                Quantity=Quantity.Power,
                 InPowerMetering=cfg.InPowerMetering,
                 TerminalAssetAlias=db.terminal_asset_alias,
             )

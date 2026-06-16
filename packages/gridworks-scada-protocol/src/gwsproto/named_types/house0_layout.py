@@ -5,13 +5,13 @@ from pydantic import BaseModel
 from gwsproto.named_types.ads111x_based_component_gt import Ads111xBasedComponentGt
 from gwsproto.named_types.ads111x_based_device_type_gt import Ads111xBasedDeviceTypeGt
 from gwsproto.named_types.electric_meter_device_type_gt import ElectricMeterDeviceTypeGt
-from gwsproto.named_types.gw1_scada_device_type_gt import Gw1ScadaDeviceTypeGt
+from gwsproto.named_types.scada_device_type_gt import ScadaDeviceTypeGt
 from gwsproto.named_types.data_channel_gt import DataChannelGt
 from gwsproto.named_types.derived_channel_gt import DerivedChannelGt
 from gwsproto.named_types.dfr_component_gt import DfrComponentGt
 from gwsproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwsproto.named_types.g_node_gt import GNodeGt
-from gwsproto.named_types.gw_house0_hydronic import GwHouse0Hydronic
+from gwsproto.named_types.house0_hydronic import House0Hydronic
 from gwsproto.named_types.hubitat_component_gt import HubitatComponentGt
 from gwsproto.named_types.hubitat_poller_component_gt import HubitatPollerComponentGt
 from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
@@ -45,23 +45,13 @@ House0Component = (
 House0DeviceType = (
     Ads111xBasedDeviceTypeGt
     | ElectricMeterDeviceTypeGt
-    | Gw1ScadaDeviceTypeGt
+    | ScadaDeviceTypeGt
 )
 
 
 class House0Layout(BaseModel):
     """
     Sema: https://schemas.electricity.works/types/gw.house0.layout/000
-
-    A complete, self-contained config + topology snapshot for a House0-fleet
-    hydronic system (beech, elm, oak, fir, maple). Sema is the source of truth;
-    this gwsproto class is hand-ported to match, then tested via the layout
-    round-trip script.
-
-    Shape laid out, content built up bit by bit: only TypeName + Version are
-    required at v000; the collections are optional while they are populated and
-    the structural axioms are added. DeviceTypes is the oneOf of the specialized
-    <family>.device.type.gt records (matching the gwta snapshot).
     """
 
     GNodes: Optional[List[GNodeGt]] = None
@@ -70,6 +60,6 @@ class House0Layout(BaseModel):
     DerivedChannels: Optional[List[DerivedChannelGt]] = None
     Components: Optional[List[House0Component]] = None
     DeviceTypes: Optional[List[House0DeviceType]] = None
-    Hydronic: Optional[GwHouse0Hydronic] = None
+    Hydronic: Optional[House0Hydronic] = None
     TypeName: Literal["gw.house0.layout"] = "gw.house0.layout"
     Version: Literal["000"] = "000"

@@ -3,31 +3,32 @@ from enum import auto
 from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class GwUnit(SemaEnum):
-    """Sema: https://schemas.electricity.works/enums/gw1.unit/001"""
+class SpaceheatUnit(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/spaceheat.unit/001"""
 
     Unknown = auto()
     Unitless = auto()
-    FahrenheitX100 = auto()
-    Watts = auto()
+    W = auto()
+    Celcius = auto()
+    Fahrenheit = auto()
+    Gpm = auto()
     WattHours = auto()
+    AmpsRms = auto()
+    VoltsRms = auto()
     Gallons = auto()
-    GpmX100 = auto()
-    Seconds = auto()
-    SecondsX10 = auto()
-    Milliseconds = auto()
+    ThermostatStateEnum = auto()
 
     @classmethod
-    def default(cls) -> "GwUnit":
+    def default(cls) -> "SpaceheatUnit":
         return cls.Unknown
 
     @classmethod
     def values(cls) -> list[str]:
         return [elt.value for elt in cls]
-    
+
     @classmethod
     def enum_name(cls) -> str:
-        return "gw1.unit"
+        return "spaceheat.unit"
 
     @classmethod
     def enum_version(cls) -> str:

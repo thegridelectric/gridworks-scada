@@ -12,7 +12,7 @@ from gwproactor import MonitoredName, Problems
 from gwproactor.message import InternalShutdownMessage, PatInternalWatchdogMessage
 from gwproto import Message
 from gwsproto.data_classes.components import PicoFlowModuleComponent
-from gwsproto.enums import GpmFromHzMethod, Gw1DeviceType, HzCalcMethod, TelemetryName
+from gwsproto.enums import GpmFromHzMethod, DeviceType, HzCalcMethod, TelemetryName
 from gwsproto.named_types import (
     ChannelReadings,
     SyncedReadings,
@@ -103,7 +103,7 @@ class ApiFlowModule(ShNodeActor):
         self.validate_config_params()
 
         if self._component.gt.Enabled:
-            if self._component.gt.DeviceType == Gw1DeviceType.GridworksPicoFlowHall:
+            if self._component.gt.DeviceType == DeviceType.GridworksPicoFlowHall:
                 self._services.add_web_route(
                     server_name=ScadaWeb.DEFAULT_SERVER_NAME,
                     method="POST",
@@ -116,7 +116,7 @@ class ApiFlowModule(ShNodeActor):
                     path="/" + self.ticklist_hall_path,
                     handler=self._handle_ticklist_hall_post,
                 )
-            elif self._component.gt.DeviceType == Gw1DeviceType.GridworksPicoFlowReed:
+            elif self._component.gt.DeviceType == DeviceType.GridworksPicoFlowReed:
                 self._services.add_web_route(
                     server_name=ScadaWeb.DEFAULT_SERVER_NAME,
                     method="POST",
@@ -187,9 +187,9 @@ class ApiFlowModule(ShNodeActor):
                 self._send_to(self.derived_generator, msg)
 
     def flatline_seconds(self) -> int:
-        if self._component.gt.DeviceType == Gw1DeviceType.GridworksPicoFlowHall:
+        if self._component.gt.DeviceType == DeviceType.GridworksPicoFlowHall:
             return self._component.gt.PublishEmptyTicklistAfterS * 2.5
-        if self._component.gt.DeviceType == Gw1DeviceType.GridworksPicoFlowReed:
+        if self._component.gt.DeviceType == DeviceType.GridworksPicoFlowReed:
             return self._component.gt.PublishAnyTicklistAfterS * 2.5
 
     # This registers ApiFlowModule with the watchdog.
@@ -324,7 +324,7 @@ class ApiFlowModule(ShNodeActor):
         if params.FlowNodeName != self._component.gt.FlowNodeName:
             self.log("FlowNodeName is not correct")
             return Response()
-        if self._component.gt.DeviceType != Gw1DeviceType.GridworksPicoFlowHall:
+        if self._component.gt.DeviceType != DeviceType.GridworksPicoFlowHall:
             raise Exception(
                 f"{self.name} has {self._component.gt.DeviceType} but got FlowHallParams!"
             )
@@ -361,7 +361,7 @@ class ApiFlowModule(ShNodeActor):
         if params.FlowNodeName != self._component.gt.FlowNodeName:
             self.log("FlowNodeName is not correct")
             return Response()
-        if self._component.gt.DeviceType != Gw1DeviceType.GridworksPicoFlowReed:
+        if self._component.gt.DeviceType != DeviceType.GridworksPicoFlowReed:
             raise Exception(
                 f"{self.name} has {self._component.gt.DeviceType} but got FlowReedParams!"
             )
@@ -390,7 +390,7 @@ class ApiFlowModule(ShNodeActor):
 
     async def _handle_ticklist_hall_post(self, request: Request) -> Response:
         '''Sends a TicklistHall message to self, which will trigger _process_ticklist_hall()'''
-        if self._component.gt.DeviceType != Gw1DeviceType.GridworksPicoFlowHall:
+        if self._component.gt.DeviceType != DeviceType.GridworksPicoFlowHall:
             raise Exception(
                 f"{self.name} has {self._component.gt.DeviceType} but got TicklistHall!"
             )
@@ -411,7 +411,7 @@ class ApiFlowModule(ShNodeActor):
 
     async def _handle_ticklist_reed_post(self, request: Request) -> Response:
         '''Sends a TicklistReed message to self, which will trigger _process_ticklist_reed()'''
-        if self._component.gt.DeviceType != Gw1DeviceType.GridworksPicoFlowReed:
+        if self._component.gt.DeviceType != DeviceType.GridworksPicoFlowReed:
             raise Exception(
                 f"{self.name} has {self._component.gt.DeviceType} but got TicklistReed!"
             )

@@ -3,16 +3,8 @@ from enum import auto
 from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class Gw1DeviceType(SemaEnum):
-    """The kind of device a component is built on — a device *category*, not a make/model.
-
-    Scada-side mirror of the `gw1.device.type` registry enum. Used by the scada APPLICATION
-    code (generators, actors, drivers) for typo-proof constants and dispatch. The gwsproto
-    sema types do NOT use this enum: a component / device-type record carries `DeviceType`
-    as an open `pascal.case` string so those types stay version-stable as new device types
-    are added. Because `GwStrEnum` is a `str` subclass, `Gw1DeviceType.X` is itself the
-    string value — it sets the open field and compares equal to it directly.
-    """
+class DeviceType(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/gpio.sense.mode/000"""
 
     EgaugePowerMeter = auto()
     GridworksTsnap1ScadaBoard = auto()
@@ -35,6 +27,19 @@ class Gw1DeviceType(SemaEnum):
     GridworksSimRelayBank = auto()
     AbstractWebServer = auto()
 
+
+    @classmethod
+    def default(cls) -> "DeviceType":
+        return cls.EgaugePowerMeter
+
+    @classmethod
+    def values(cls) -> list[str]:
+        return [elt.value for elt in cls]
+
     @classmethod
     def enum_name(cls) -> str:
         return "gw1.device.type"
+
+    @classmethod
+    def enum_version(cls) -> str:
+        return "000"
