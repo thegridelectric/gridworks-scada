@@ -141,6 +141,7 @@ class SiegLoopPid(ShNodeActor):
         self.time_since_last_control_loop = 30
         self.time_since_last_report = 5*60
         self.hp_turned_off_time = None
+        self.moving_to_calculated_target = False
 
         # PID parameters
         self.lwt_readings = deque(maxlen=40)
@@ -252,6 +253,9 @@ class SiegLoopPid(ShNodeActor):
         if self.control_state == SiegControlState.Pid:
             if active_movement:
                 self.log("Not running PID loop while valve movement is active")
+                return
+            if self.moving_to_calculated_target:
+                self.log("Not running PID loop ... still moving to calculated target")
                 return
             if called_from_main:
                 self._create_task(self.run_pid())
@@ -510,9 +514,11 @@ class SiegLoopPid(ShNodeActor):
 
         if self.control_state == SiegControlState.HpOff:
             self._startup_hover_initialized = False
+            self.moving_to_calculated_target = False
             self.time_since_last_control_loop = 0
             self.moving_to_full_keep(event)
         elif self.control_state == SiegControlState.StartupHover:
+            self.moving_to_calculated_target = False
             self.time_since_last_control_loop = 0
             self.enter_startup_hover()
         elif self.control_state == SiegControlState.Pid:
@@ -551,18 +557,30 @@ class SiegLoopPid(ShNodeActor):
         self._create_task(self._prepare_new_movement_task(-self.keep_seconds + self.t2))
 
     async def move_to_pid_target(self) -> None:
-        lift_f = self.lift_f()
-        if lift_f is None:
-            self.log("Missing lift reading while moving to PID target")
-            return
-        flow_target_percent = self.calc_eq_flow_percent(lift_f + 3)
-        if flow_target_percent is None:
-            return
-        keep_seconds_target = self.time_from_flow(flow_target_percent)
-        delta_s = keep_seconds_target - self.keep_seconds
-        self.log(f"Calculated PID target: {round(keep_seconds_target, 1)} seconds")
-        if abs(delta_s) >= 0.5:
-            await self._prepare_new_movement_task(delta_s)
+        """Move to equilibrium keep position, then wait before closed-loop PID."""
+        self.moving_to_calculated_target = True
+        delta_s = 0.0
+        try:
+            lift_f = self.lift_f()
+            if lift_f is None:
+                self.log("Missing lift reading while moving to PID target")
+                return
+            flow_target_percent = self.calc_eq_flow_percent(lift_f + 3)
+            if flow_target_percent is None:
+                return
+            keep_seconds_target = self.time_from_flow(flow_target_percent)
+            delta_s = keep_seconds_target - self.keep_seconds
+            self.log(f"Calculated PID target: {round(keep_seconds_target, 1)} seconds")
+            if abs(delta_s) >= 0.5:
+                await self._prepare_new_movement_task(delta_s)
+            self.log("Waiting 1 minute to see how this level works")
+            await asyncio.sleep(delta_s + 60)
+        except asyncio.CancelledError:
+            self.log("Post-hover settle cancelled")
+            raise
+        finally:
+            self.moving_to_calculated_target = False
+            self.time_since_last_control_loop = 0
 
     # --------------------------------------
     # Valve State Machine
