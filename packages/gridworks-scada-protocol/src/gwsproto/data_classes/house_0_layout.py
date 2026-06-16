@@ -540,6 +540,11 @@ class House0Layout(HardwareLayout):
 
     @property
     def required_topology_nodes(self) -> set[str]:
+        """DESIGN BRAINSTORM — NOT USED YET. A first-guess spec of the topology
+        nodes the five production homes need; enforced nowhere. Written in old
+        `H0N` terms and already known too strict (e.g. it lists `H0N.hp_idu`, but
+        maple now runs `hp_odu`-only and is still House0). To be reworked into real
+        per-layout axioms in hardware-layout-pass-2, after `H0N` is dropped."""
         node_names =  (
                 {
                 H0N.hp_odu,
@@ -592,6 +597,10 @@ class House0Layout(HardwareLayout):
 
     @property
     def required_system_actor_nodes(self) -> set[str]:
+        """DESIGN BRAINSTORM — NOT USED YET. A first-guess spec of the system actor
+        nodes the production homes need; enforced nowhere. Written in old `H0N`
+        terms; to be reworked into real per-layout axioms in
+        hardware-layout-pass-2, after `H0N` is dropped."""
         return {
             H0N.primary_scada,
             H0N.primary_power_meter,
