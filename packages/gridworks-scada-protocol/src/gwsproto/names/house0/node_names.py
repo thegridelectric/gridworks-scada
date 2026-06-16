@@ -94,7 +94,7 @@ class House0NodeNames:
 
         self.tanks = Tanks(total_store_tanks).nodes
         self.zones = {
-            zone: House0ZoneNodeNames(zone, idx + 1)
+            zone: House0ZoneNodeNames(idx + 1)
             for idx, zone in enumerate(zone_list)
         }
 

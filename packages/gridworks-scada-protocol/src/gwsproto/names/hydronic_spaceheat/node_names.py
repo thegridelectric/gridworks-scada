@@ -35,7 +35,7 @@ class HydronicSpaceheatNodeNames:
     # transactive asset nodes
     heat_pump = "heat-pump" # Allow for this when monoblock??
     hp_odu = "hp-odu"
-    hp_idu = "hp_idu"
+    hp_idu = "hp-idu"
     buffer_top_elt = "buffer-top-elt"
     buffer_bottom_elt = "buffer-bottom-elt"
     store_top_elt = "store-top-elt"
@@ -61,7 +61,7 @@ class HydronicSpaceheatNodeNames:
     # flows
     dist_flow = "dist-flow"
     store_flow = "store-flow"
-    primary_flow = "primary_flow"
+    primary_flow = "primary-flow"
 
     dist_010v = "dist-010v"
     primary_010v = "primary-010v"
