@@ -142,6 +142,7 @@ class SiegLoopPid(ShNodeActor):
         self.control_interval_seconds = 30
         self.hp_turned_off_time = None
         self.moving_to_calculated_target = False
+        self._seconds_since_watchdog_pat = 0.0
 
         # PID parameters
         self.lwt_readings = deque(maxlen=40)
@@ -202,7 +203,13 @@ class SiegLoopPid(ShNodeActor):
                         ),
                     )
 
-            if now.second == 0 and now.minute % 5 == 0:
+            nap_time = self.MAIN_LOOP_SLEEP_S - (now.microsecond / 1_000_000)
+            if nap_time < 0:
+                nap_time = 0
+
+            self._seconds_since_watchdog_pat += nap_time
+            if self._seconds_since_watchdog_pat >= 5 * 60:
+                self._seconds_since_watchdog_pat = 0
                 self._send(PatInternalWatchdogMessage(src=self.name))
                 # TODO: Create a channel for this
                 # self._send_to(
@@ -214,7 +221,6 @@ class SiegLoopPid(ShNodeActor):
                 #     )
                 # )
 
-            nap_time = self.MAIN_LOOP_SLEEP_S - (now.microsecond / 1_000_000)
             await asyncio.sleep(nap_time)
 
     def engage_brain(self, called_from_main=False):
