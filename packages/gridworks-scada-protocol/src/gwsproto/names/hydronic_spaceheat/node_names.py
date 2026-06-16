@@ -68,7 +68,7 @@ class HydronicSpaceheatNodeNames:
     store_010v = "store-010v"
 
     # relays
-    vdc_relay = "vdc_relay"
+    vdc_relay = "vdc-relay"
 
     # buffer tank
     buffer = BufferNodeNames()  # set below

@@ -19,8 +19,22 @@ from pathlib import Path
 
 from gwsproto.data_classes.house_0_layout import House0Layout as House0Dc
 from house0_bijection import dc_to_sema
-from house0_sema_gen import House0SemaGenConfig, sema_gen
+from house0_sema_gen import House0SemaGenConfig, sema_gen, strip_relay_idx
 from layout_roundtrip import _DUMP, _report_diff
+
+
+def _to_new_convention(layout: dict) -> dict:
+    """Rename a frozen (old-named) target to the new convention in place: drop
+    the trailing relay-index on relay-state channel names, wherever they appear
+    (DataChannels[].Name and component ConfigList[].ChannelName). UUIDs untouched
+    — this is the names migration the gen targets, applied to the comparison set."""
+    for ch in layout.get("DataChannels") or []:
+        ch["Name"] = strip_relay_idx(ch["Name"])
+    for comp in layout.get("Components") or []:
+        for cfg in comp.get("ConfigList") or []:
+            if "ChannelName" in cfg:
+                cfg["ChannelName"] = strip_relay_idx(cfg["ChannelName"])
+    return layout
 
 SCADA_DIR = Path(__file__).resolve().parent
 CONFIG_DIR = SCADA_DIR.parent / "tests" / "config"
@@ -51,7 +65,7 @@ def check(name: str) -> int:
     target, gaps = dc_to_sema(dc)
     if gaps:
         print(f"dc -> sema gaps in reference: {gaps}")
-    target_d = target.model_dump(**_DUMP)
+    target_d = _to_new_convention(target.model_dump(**_DUMP))
     got_d = sema_gen(config, reference).model_dump(**_DUMP)
 
     if got_d == target_d:

@@ -29,7 +29,7 @@ class House0ChannelNames:
 
     dist_flow = HCN.dist_flow
     primary_flow = HCN.primary_flow
-    store_flow = HCN.primary_flow
+    store_flow = HCN.store_flow
 
     dist_flow_hz = HCN.dist_flow_hz
     primary_flow_hz = HCN.primary_flow_hz
@@ -75,3 +75,8 @@ class House0ZoneChannelNames:
         # raw measurements
         self.whitewire_pwr = f"{base}-whitewire-pwr"
         self.stat_temp = f"{base}-stat-temp"
+
+        # relay-state channels (new convention: no trailing relay-index suffix —
+        # the base is already unique; cf. the non-zone relay-state channels)
+        self.failsafe_relay_state = f"{base}-failsafe-relay"
+        self.ops_relay_state = f"{base}-ops-relay"
