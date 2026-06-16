@@ -1341,7 +1341,7 @@ class ShNodeActor(Actor, ABC):
         return self.data.buffer_temps_available
 
     def is_buffer_empty(self, all_tanks_leaf_ally=False) -> bool:
-        # return True # HACK TODO REMOVE THIS
+        return True # HACK TODO REMOVE THIS
         """
         Returns True if the buffer does not contain enough usable heat
         to meet the near-term required return-water temperature.
@@ -1392,7 +1392,7 @@ class ShNodeActor(Actor, ABC):
             return False
 
     def is_buffer_full(self) -> bool:
-        # return False # HACK TODO REMOVE THIS
+        return False # HACK TODO REMOVE THIS
         """
         Returns True if the buffer is considered thermally full relative to
         near-term heating requirements.
