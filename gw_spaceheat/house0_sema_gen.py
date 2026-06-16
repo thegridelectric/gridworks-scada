@@ -38,8 +38,12 @@ from gwsproto.enums import (
     ChangePrimaryPumpControl,
     ChangeRelayState,
     ChangeStoreFlowRelay,
+    EmissionMethod,
+    GpmFromHzMethod,
     Gw1DeviceType,
     GwQuantity,
+    GwUnit,
+    HzCalcMethod,
     HeatcallSource,
     HeatPumpControl,
     HpLoopKeepSend,
@@ -48,11 +52,20 @@ from gwsproto.enums import (
     RelayWiringConfig,
     StoreFlowRelay,
     TelemetryName,
+    ThermistorDataMethod,
     Unit,
 )
+from gwproto.type_helpers import WebServerGt
 from gwsproto.named_types import (
+    Ads111xBasedComponentGt,
+    Ads111xBasedDeviceTypeGt,
+    AdsChannelConfig,
+    ChannelConfig,
     DataChannelGt,
     DerivedChannelGt,
+    DfrComponentGt,
+    DfrConfig,
+    EgaugeRegisterConfig,
     ElectricMeterChannelConfig,
     ElectricMeterComponentGt,
     ElectricMeterDeviceTypeGt,
@@ -60,10 +73,19 @@ from gwsproto.named_types import (
     Gw1HvacZone,
     GwHouse0Hydronic,
     House0Layout as House0Sema,
+    HubitatComponentGt,
+    HubitatPollerComponentGt,
+    HubitatPollerGt,
     I2cMultichannelDtRelayComponentGt,
+    MakerAPIAttributeGt,
+    PicoFlowModuleComponentGt,
+    PicoTankModuleComponentGt,
     RelayActorConfig,
+    SimPicoTankModuleComponentGt,
     SpaceheatNodeGt,
+    WebServerComponentGt,
 )
+from gwsproto.named_types.hubitat_gt import HubitatGt
 
 
 # New-convention channel-name transform: drop the trailing relay-index suffix
@@ -138,8 +160,18 @@ _NONZONE_RELAYS = [
     (15, "hp_loop_keep_send_relay_state", "Hp Loop Valve SendMore/SendLess Relay", "Hp Loop Keep/Send Relay State", "keep_send"),
 ]
 
+from gwsproto.names.core.channel_names import CoreChannelNames as CoreC
+from gwsproto.names.core.node_names import CoreNodeNames as Core
 from gwsproto.names.house0.channel_names import House0ChannelNames
 from gwsproto.names.house0.node_names import House0NodeNames
+from gwsproto.names.hydronic_spaceheat.channel_names import (
+    HydronicSpaceheatChannelNames as HydC,
+    HydronicSpaceheatZoneChannelNames,
+)
+from gwsproto.names.hydronic_spaceheat.node_names import (
+    HydronicSpaceheatNodeNames as Hyd,
+    HydronicSpaceheatZoneNodeNames,
+)
 from layout_gen.layout_db import LayoutIDMap
 
 
@@ -147,6 +179,45 @@ from layout_gen.layout_db import LayoutIDMap
 # Config — the four config axes plus identity/zone/tank inputs. Mirrors the dc
 # StubConfig + the Hydronic axes, but is the sema gen's own first-class input.
 # --------------------------------------------------------------------------- #
+@dataclass
+class PwrChannelSpec:
+    """One metered power channel on the (eGauge) electric meter: the channel, its
+    about-node, the modbus register address, and the about-node's nameplate."""
+    channel: str
+    about_node: str
+    address: int
+    async_capture_delta: int
+    nameplate_w: int | None
+    in_power_metering: bool
+
+
+@dataclass
+class AdsChannelSpec:
+    """One pipe-temp on the ADS analog-temp board: the channel (== about-node),
+    its terminal-block index, and its telemetry (water vs air temp)."""
+    channel: str
+    terminal_block_idx: int
+    telemetry: str = "WaterTempCTimes1000"
+
+
+@dataclass
+class TankSpec:
+    """A real pico tank module (buffer or tankN, in reader order): its pico HwUid
+    and the affine depth-calibration (depths 1 & 3 affine M·x+B, depth 2 identity)."""
+    hwuid: str
+    affine_m: float
+    affine_b: int
+
+
+@dataclass
+class FlowSpec:
+    """One Reed flow meter at a position (dist/primary/store). The hardware ids
+    are per-home; the rest of the pico config is constant across the fleet."""
+    position: str
+    hwuid: str
+    serial: str
+
+
 @dataclass
 class House0SemaGenConfig:
     scada_display_name: str
@@ -158,6 +229,30 @@ class House0SemaGenConfig:
     use_sieg_loop: bool = False
     sieg_loop_plumbed: bool = False
     primary_flow_source: str = "Measured"
+    # peripheral inputs (per-zone thermostat device ids align to zone_list)
+    web_server_host: str = "0.0.0.0"
+    web_server_port: int = 8080
+    relay_i2c_address_list: Sequence[int] = (0x20, 0x21)
+    tank_kind: str = "sim"  # "sim" (GridworksSimSensor) or "real" (GridworksTankModule3)
+    tanks: Sequence[TankSpec] = ()  # buffer first, then tank1..N (real tanks only)
+    hubitat_host: str = "192.168.0.1"
+    hubitat_maker_api_id: int = 1
+    hubitat_access_token: str = ""
+    hubitat_mac: str = ""
+    zone_device_ids: Sequence[int] = ()
+    dfr_initial_volts_times_100: Sequence[int] = (20, 40, 0)  # dist / primary / store
+    # power meter: "sim" (GridworksSimPowerMeter) or "egauge" (real EgaugePowerMeter)
+    power_meter_kind: str = "sim"
+    egauge_modbus_host: str = ""
+    egauge_modbus_port: int = 502
+    egauge_hwuid: str = ""
+    power_meter_channels: Sequence[PwrChannelSpec] = ()
+    # ADS analog-temp board (absent on the sim stub)
+    ads_hwuid: str = ""
+    ads_open_voltage_by_ads: Sequence[float] = ()
+    ads_channels: Sequence[AdsChannelSpec] = ()
+    # Reed flow meters (in layout/component order; empty on the sim stub)
+    flow_meters: Sequence[FlowSpec] = ()
 
     @property
     def n(self) -> House0NodeNames:
@@ -249,43 +344,109 @@ class House0SemaGen:
             )
 
         self.sh_nodes += [
-            node(n.primary_scada, ActorClass.PrimaryScada, self.config.scada_display_name),
-            node(n.secondary_scada, ActorClass.SecondaryScada, "Secondary Scada"),
-            node(n.admin, ActorClass.NoActor, "Local Admin", Handle="admin"),
-            node(n.auto, ActorClass.NoActor, "Auto - FSM for dispatch contract", Handle="auto"),
-            node(n.ltn, ActorClass.NoActor, "LeafTransactiveNode"),
+            node(Core.primary_scada, ActorClass.PrimaryScada, self.config.scada_display_name),
+            node(Core.secondary_scada, ActorClass.SecondaryScada, "Secondary Scada"),
+            node(Core.admin, ActorClass.NoActor, "Local Admin", Handle="admin"),
+            node(Core.auto, ActorClass.NoActor, "Auto - FSM for dispatch contract", Handle="auto"),
+            node(Core.ltn, ActorClass.NoActor, "LeafTransactiveNode"),
             node(
-                n.leaf_ally, ActorClass.LeafAlly, "Leaf Ally",
-                ActorHierarchyName=f"{n.primary_scada}.{n.leaf_ally}", Handle="ltn.la",
+                Core.leaf_ally, ActorClass.LeafAlly, "Leaf Ally",
+                ActorHierarchyName=f"{Core.primary_scada}.{Core.leaf_ally}", Handle="ltn.la",
             ),
             node(
-                n.pico_cycler, ActorClass.PicoCycler,
+                Hyd.pico_cycler, ActorClass.PicoCycler,
                 "Pico Cycler - responsible for power cycling the 5VDC bus",
-                ActorHierarchyName=f"{n.primary_scada}.{n.pico_cycler}",
+                ActorHierarchyName=f"{Core.primary_scada}.{Hyd.pico_cycler}",
                 Handle="auto.pico-cycler",
             ),
             node(
-                n.derived_generator, ActorClass.DerivedGenerator, "Derived Generator",
-                ActorHierarchyName=f"{n.primary_scada}.{n.derived_generator}",
+                Core.derived_generator, ActorClass.DerivedGenerator, "Derived Generator",
+                ActorHierarchyName=f"{Core.primary_scada}.{Core.derived_generator}",
             ),
             node(
-                n.local_control, ActorClass.LocalControl, "LocalControl",
-                ActorHierarchyName=f"{n.primary_scada}.{n.local_control}", Handle="auto.lc",
+                Core.local_control, ActorClass.LocalControl, "LocalControl",
+                ActorHierarchyName=f"{Core.primary_scada}.{Core.local_control}", Handle="auto.lc",
             ),
-            node(n.local_control_normal, ActorClass.NoActor, "LocalControl Normal", Handle="auto.lc.n"),
-            node(n.local_control_backup, ActorClass.NoActor, "LocalControl Backup", Handle="auto.lc.backup"),
+            node(Hyd.local_control_normal, ActorClass.NoActor, "LocalControl Normal", Handle="auto.lc.n"),
+            node(Hyd.local_control_backup, ActorClass.NoActor, "LocalControl Backup", Handle="auto.lc.backup"),
             node(
-                n.local_control_scada_blind, ActorClass.NoActor, "LocalControl Scada Blind",
+                Hyd.local_control_scada_blind, ActorClass.NoActor, "LocalControl Scada Blind",
                 Handle="auto.lc.scada-blind",
             ),
             node(
-                n.hp_boss, ActorClass.HpBoss, "HeatpumpBoss",
-                ActorHierarchyName=f"{n.primary_scada}.{n.hp_boss}", Handle="auto.lc.n.hp-boss",
+                Hyd.hp_boss, ActorClass.HpBoss, "HeatpumpBoss",
+                ActorHierarchyName=f"{Core.primary_scada}.{Hyd.hp_boss}", Handle="auto.lc.n.hp-boss",
             ),
         ]
 
     def emit_power_meter(self) -> None:
-        """eGauge/sim power meter: device-type record, component, its 3 nodes
+        if self.config.power_meter_kind == "egauge":
+            self.emit_egauge_power_meter()
+        else:
+            self.emit_sim_power_meter()
+
+    def emit_egauge_power_meter(self) -> None:
+        """Real eGauge meter: EgaugePowerMeter device-type, the electric-meter
+        component (modbus + per-channel register config), the power-meter node,
+        and each metered channel's about-node + uppercase-named *-pwr DataChannel."""
+        n = self.config.n
+        alias = "EGauge Power Meter"
+        cid = self.component_id(alias)
+
+        self.device_types.append(
+            ElectricMeterDeviceTypeGt(
+                DeviceType=Gw1DeviceType.EgaugePowerMeter, DisplayName="EGauge 4030",
+                TelemetryNameList=[TelemetryName.PowerW], MinPollPeriodMs=1000,
+            )
+        )
+        self.components.append(
+            ElectricMeterComponentGt(
+                ComponentId=cid, DeviceType=Gw1DeviceType.EgaugePowerMeter, DisplayName=alias,
+                ModbusHost=self.config.egauge_modbus_host, ModbusPort=self.config.egauge_modbus_port,
+                HwUid=self.config.egauge_hwuid,
+                ConfigList=[
+                    ElectricMeterChannelConfig(
+                        ChannelName=s.channel, PollPeriodMs=1000, CapturePeriodS=300,
+                        AsyncCapture=True, AsyncCaptureDelta=s.async_capture_delta, Exponent=0, Unit=Unit.W,
+                        EgaugeRegisterConfig=EgaugeRegisterConfig(
+                            Address=s.address, Name=s.about_node, Denominator=1,
+                            Description="change in value", Type="f32", Unit="W",
+                        ),
+                    )
+                    for s in self.config.power_meter_channels
+                ],
+            )
+        )
+        self.sh_nodes.append(
+            SpaceheatNodeGt(
+                ShNodeId=self.node_id(Core.asset_power_meter), Name=Core.asset_power_meter,
+                ActorClass=ActorClass.PowerMeter, ActorHierarchyName=f"{Core.primary_scada}.{Core.asset_power_meter}",
+                DisplayName="Primary Power Meter", ComponentId=cid,
+            )
+        )
+        for s in self.config.power_meter_channels:
+            kw = {"InPowerMetering": s.in_power_metering}
+            if s.nameplate_w is not None:
+                kw["NameplatePowerW"] = s.nameplate_w
+            self.sh_nodes.append(
+                SpaceheatNodeGt(
+                    ShNodeId=self.node_id(s.about_node), Name=s.about_node, ActorClass=ActorClass.NoActor,
+                    DisplayName=s.about_node.replace("-", " ").title(), **kw,
+                )
+            )
+        for s in self.config.power_meter_channels:
+            self.data_channels.append(
+                DataChannelGt(
+                    Name=s.channel, DisplayName=s.channel.replace("-", " ").upper(),
+                    AboutNodeName=s.about_node, CapturedByNodeName=Core.asset_power_meter,
+                    TelemetryName=TelemetryName.PowerW, Quantity=GwQuantity.Power,
+                    InPowerMetering=s.in_power_metering, Id=self.channel_id(s.channel),
+                    TerminalAssetAlias=self.terminal_asset_alias,
+                )
+            )
+
+    def emit_sim_power_meter(self) -> None:
+        """Sim power meter: device-type record, component, its 3 nodes
         (hp-odu, hp-idu, store-pump), and the three *-pwr DataChannels."""
         n = self.config.n
         cn = self.config.cn
@@ -317,32 +478,32 @@ class House0SemaGen:
                 DeviceType=Gw1DeviceType.GridworksSimPowerMeter,
                 DisplayName=alias,
                 ConfigList=[
-                    em_cfg(cn.hp_odu_pwr, 200),
-                    em_cfg(cn.hp_idu_pwr, 200),
-                    em_cfg(cn.store_pump_pwr, 5),
+                    em_cfg(HydC.hp_odu_pwr, 200),
+                    em_cfg(HydC.hp_idu_pwr, 200),
+                    em_cfg(HydC.store_pump_pwr, 5),
                 ],
             )
         )
 
         self.sh_nodes += [
             SpaceheatNodeGt(
-                ShNodeId=self.node_id(n.asset_power_meter),
-                Name=n.asset_power_meter,
+                ShNodeId=self.node_id(Core.asset_power_meter),
+                Name=Core.asset_power_meter,
                 ActorClass=ActorClass.PowerMeter,
-                ActorHierarchyName=f"{n.primary_scada}.{n.asset_power_meter}",
+                ActorHierarchyName=f"{Core.primary_scada}.{Core.asset_power_meter}",
                 DisplayName="Main Power Meter Little Orange House Test System",
                 ComponentId=self.component_id(alias),
             ),
             SpaceheatNodeGt(
-                ShNodeId=self.node_id(n.hp_odu), Name=n.hp_odu, ActorClass=ActorClass.NoActor,
+                ShNodeId=self.node_id(Hyd.hp_odu), Name=Hyd.hp_odu, ActorClass=ActorClass.NoActor,
                 DisplayName="HP ODU", NameplatePowerW=6000, InPowerMetering=True,
             ),
             SpaceheatNodeGt(
-                ShNodeId=self.node_id(n.hp_idu), Name=n.hp_idu, ActorClass=ActorClass.NoActor,
+                ShNodeId=self.node_id(Hyd.hp_idu), Name=Hyd.hp_idu, ActorClass=ActorClass.NoActor,
                 DisplayName="HP IDU", NameplatePowerW=4000, InPowerMetering=True,
             ),
             SpaceheatNodeGt(
-                ShNodeId=self.node_id(n.store_pump), Name=n.store_pump,
+                ShNodeId=self.node_id(Hyd.store_pump), Name=Hyd.store_pump,
                 ActorClass=ActorClass.NoActor, DisplayName="Store Pump",
             ),
         ]
@@ -352,7 +513,7 @@ class House0SemaGen:
                 Name=name,
                 DisplayName=" ".join(p.upper() for p in name.split("-")),
                 AboutNodeName=about,
-                CapturedByNodeName=n.asset_power_meter,
+                CapturedByNodeName=Core.asset_power_meter,
                 TelemetryName=TelemetryName.PowerW,
                 Quantity=GwQuantity.Power,
                 InPowerMetering=in_metering,
@@ -361,9 +522,9 @@ class House0SemaGen:
             )
 
         self.data_channels += [
-            pwr_channel(cn.hp_odu_pwr, n.hp_odu, True),
-            pwr_channel(cn.hp_idu_pwr, n.hp_idu, True),
-            pwr_channel(cn.store_pump_pwr, n.store_pump, False),
+            pwr_channel(HydC.hp_odu_pwr, Hyd.hp_odu, True),
+            pwr_channel(HydC.hp_idu_pwr, Hyd.hp_idu, True),
+            pwr_channel(HydC.store_pump_pwr, Hyd.store_pump, False),
         ]
 
     def emit_relays(self) -> None:
@@ -405,13 +566,13 @@ class House0SemaGen:
                 )
             )
             handle = (
-                f"auto.{n.pico_cycler}.{node}" if idx == 1
-                else f"auto.{n.local_control}.{n.local_control_normal}.{node}"
+                f"auto.{Hyd.pico_cycler}.{node}" if idx == 1
+                else f"auto.{Core.local_control}.{Hyd.local_control_normal}.{node}"
             )
             nodes.append(
                 SpaceheatNodeGt(
                     ShNodeId=self.node_id(node), Name=node,
-                    ActorHierarchyName=f"{n.primary_scada}.{node}", Handle=handle,
+                    ActorHierarchyName=f"{Core.primary_scada}.{node}", Handle=handle,
                     ActorClass=ActorClass.Relay, DisplayName=node_display, ComponentId=rid,
                 )
             )
@@ -425,18 +586,21 @@ class House0SemaGen:
             )
 
         for idx, state_attr, node_disp, chan_disp, kind in _NONZONE_RELAYS:
-            add_relay(idx, getattr(cn, state_attr), node_disp, chan_disp, kind)
+            # most relay-state channels are House0-specific (krida board); `vdc-relay`
+            # is a hydronic-shared name, so fall back to the hydronic class.
+            channel = getattr(cn, state_attr, None) or getattr(HydC, state_attr)
+            add_relay(idx, channel, node_disp, chan_disp, kind)
 
         # Per-zone failsafe + scada-ops relays (krida idx 17/18, 19/20, …).
         for i, zone in enumerate(self.config.zone_list):
-            zcn = cn.zones[zone]
-            label = zone.title()
+            zc = HydronicSpaceheatZoneChannelNames(zone, i + 1)  # relay-state is a hydronic-shared name
+            label = zone.capitalize()
             add_relay(
-                17 + 2 * i, zcn.failsafe_relay_state,
+                17 + 2 * i, zc.failsafe_relay_state,
                 f"{label} Zone {i + 1} Failsf", f"{label} Zone {i + 1} Failsf Relay State", "heatcall",
             )
             add_relay(
-                18 + 2 * i, zcn.ops_relay_state,
+                18 + 2 * i, zc.ops_relay_state,
                 f"{label} Zone Scada Ops", f"{label} Zone {i + 1} Scada Ops Relay State", "no_close",
             )
 
@@ -447,13 +611,13 @@ class House0SemaGen:
                 DisplayName=alias,
                 ConfigList=cfgs,
                 I2cBus="default",
-                I2cAddressList=[0x20, 0x21],
+                I2cAddressList=list(self.config.relay_i2c_address_list),
             )
         )
         self.sh_nodes.append(
             SpaceheatNodeGt(
                 ShNodeId=self.node_id(mux), Name=mux,
-                ActorHierarchyName=f"{n.primary_scada}.{mux}",
+                ActorHierarchyName=f"{Core.primary_scada}.{mux}",
                 ActorClass=ActorClass.I2cRelayMultiplexer,
                 DisplayName="I2c Relay Multiplexer", ComponentId=rid,
             )
@@ -461,13 +625,399 @@ class House0SemaGen:
         self.sh_nodes += nodes
         self.data_channels += chans
 
+    def emit_web_server(self) -> None:
+        self.components.append(
+            WebServerComponentGt(
+                ComponentId=self.component_id("Web Server default"),
+                DeviceType=Gw1DeviceType.AbstractWebServer,
+                DisplayName="Web Server default",
+                WebServer=WebServerGt(Host=self.config.web_server_host, Port=self.config.web_server_port),
+                ConfigList=[],
+            )
+        )
+
+    def emit_thermostat(self) -> None:
+        """Hubitat hub component + per-zone Honeywell thermostat poller, the
+        hubitat node, and per-zone stat/zone nodes + temp/set/state channels."""
+        n = self.config.n
+        hub_alias = f"Hubitat {self.config.hubitat_mac[-8:]}"
+        hub_id = self.component_id(hub_alias)
+        hub = HubitatGt(
+            Host=self.config.hubitat_host,
+            MakerApiId=self.config.hubitat_maker_api_id,
+            AccessToken=self.config.hubitat_access_token,
+            MacAddress=self.config.hubitat_mac,
+        )
+        self.components.append(
+            HubitatComponentGt(
+                ComponentId=hub_id, DeviceType=Gw1DeviceType.HubitatC7Hub,
+                DisplayName=hub_alias, Hubitat=hub,
+                HwUid=self.config.hubitat_mac[-8:].replace(":", "").lower(), ConfigList=[],
+            )
+        )
+
+        device_ids = list(self.config.zone_device_ids)
+        zone_nodes: list[SpaceheatNodeGt] = []
+        zone_chans: list[DataChannelGt] = []
+        for i, zone in enumerate(self.config.zone_list):
+            idx = i + 1
+            # hydronic-shared zone names come from the hydronic classes; only the
+            # House0-specific / retiring names are built here.
+            zn = HydronicSpaceheatZoneNodeNames(zone, idx)
+            zc = HydronicSpaceheatZoneChannelNames(zone, idx)
+            base = zc.base
+            label = zone.capitalize()              # "living-rm" -> "Living-rm" (node/relay displays)
+            chan_label = base.replace("-", " ").title()  # -> "Zone1 Living Rm" (channel displays)
+            stat, znode = zn.stat, zn.zone
+            temp, setp = zc.temp, zc.set
+            state = f"{base}-state"                # sick Hubitat channel; not in the names hierarchy
+            device_id = device_ids[i] if i < len(device_ids) else idx
+            poller_alias = f"Thermostat {idx} for {zone}"
+            poller_id = self.component_id(poller_alias)
+
+            def attr(name, channel, node, telemetry, unit, interpret) -> MakerAPIAttributeGt:
+                return MakerAPIAttributeGt(
+                    AttributeName=name, ChannelName=channel, NodeName=node,
+                    TelemetryName=telemetry, Unit=unit, Exponent=3,
+                    InterpretAsNumber=interpret, Enabled=True, WebPollEnabled=True,
+                    WebListenEnabled=True, ReportMissing=True, ReportParseError=True,
+                )
+
+            self.components.append(
+                HubitatPollerComponentGt(
+                    ComponentId=poller_id, DeviceType=Gw1DeviceType.HoneywellT6Thermostat,
+                    DisplayName=poller_alias,
+                    ConfigList=[
+                        ChannelConfig(ChannelName=temp, PollPeriodMs=5000, CapturePeriodS=300,
+                                      AsyncCapture=True, AsyncCaptureDelta=1, Exponent=3, Unit=Unit.Fahrenheit),
+                        ChannelConfig(ChannelName=setp, PollPeriodMs=5000, CapturePeriodS=300,
+                                      AsyncCapture=False, Exponent=3, Unit=Unit.Fahrenheit),
+                        ChannelConfig(ChannelName=state, PollPeriodMs=5000, CapturePeriodS=300,
+                                      AsyncCapture=True, AsyncCaptureDelta=1, Exponent=0, Unit=Unit.ThermostatStateEnum),
+                    ],
+                    Poller=HubitatPollerGt(
+                        HubitatComponentId=hub_id, DeviceId=device_id,
+                        Attributes=[
+                            attr("temperature", temp, znode, TelemetryName.AirTempFTimes1000, Unit.Fahrenheit, True),
+                            attr("heatingSetpoint", setp, stat, TelemetryName.AirTempFTimes1000, Unit.Fahrenheit, True),
+                            attr("thermostatOperatingState", state, znode, TelemetryName.ThermostatState, Unit.Unitless, False),
+                        ],
+                        Enabled=True, WebListenEnabled=True, PollPeriodSeconds=300.0,
+                    ),
+                )
+            )
+
+            zone_nodes += [
+                SpaceheatNodeGt(
+                    ShNodeId=self.node_id(stat), Name=stat, ActorClass=ActorClass.HoneywellThermostat,
+                    ActorHierarchyName=f"{Core.secondary_scada}.{stat}",
+                    DisplayName=f"Zone {idx} {label} Thermostat", ComponentId=poller_id,
+                ),
+                SpaceheatNodeGt(
+                    ShNodeId=self.node_id(znode), Name=znode, ActorClass=ActorClass.NoActor,
+                    DisplayName=f"Zone {idx} {label}",
+                ),
+            ]
+            zone_chans += [
+                DataChannelGt(Name=temp, DisplayName=f"{chan_label} Temp", AboutNodeName=znode,
+                              CapturedByNodeName=stat, TelemetryName=TelemetryName.AirTempFTimes1000,
+                              Quantity=GwQuantity.Temperature, Id=self.channel_id(temp),
+                              TerminalAssetAlias=self.terminal_asset_alias),
+                DataChannelGt(Name=setp, DisplayName=f"{chan_label} Set", AboutNodeName=stat,
+                              CapturedByNodeName=stat, TelemetryName=TelemetryName.AirTempFTimes1000,
+                              Quantity=GwQuantity.Temperature, Id=self.channel_id(setp),
+                              TerminalAssetAlias=self.terminal_asset_alias),
+                DataChannelGt(Name=state, DisplayName=f"{chan_label} State", AboutNodeName=stat,
+                              CapturedByNodeName=stat, TelemetryName=TelemetryName.ThermostatState,
+                              Quantity=GwQuantity.Unitless, Id=self.channel_id(state),
+                              TerminalAssetAlias=self.terminal_asset_alias),
+            ]
+
+        self.sh_nodes.append(
+            SpaceheatNodeGt(
+                ShNodeId=self.node_id(n.hubitat), Name=n.hubitat, ActorClass=ActorClass.Hubitat,
+                ActorHierarchyName=f"{Core.primary_scada}.{n.hubitat}", DisplayName=hub_alias, ComponentId=hub_id,
+            )
+        )
+        self.sh_nodes += zone_nodes
+        self.data_channels += zone_chans
+
+    def emit_tanks(self) -> None:
+        """The buffer + each storage tank as a pico tank module (sim or real):
+        component (6 channel configs), the reader node, three depth nodes, and the
+        device/micro-v DataChannels (all devices, then all micro-v, per tank)."""
+        readers = ["buffer"] + [f"tank{i}" for i in range(1, self.config.total_store_tanks + 1)]
+        real = self.config.tank_kind == "real"
+        for ri, reader in enumerate(readers):
+            disp = reader.capitalize()
+            device = [ChannelConfig(ChannelName=f"{reader}-depth{d}-device", CapturePeriodS=60,
+                                    AsyncCapture=True, AsyncCaptureDelta=2000, Exponent=3, Unit=Unit.Celcius)
+                      for d in (1, 2, 3)]
+            microv = [ChannelConfig(ChannelName=f"{reader}-depth{d}-micro-v", CapturePeriodS=60,
+                                    AsyncCapture=True, AsyncCaptureDelta=2000, Exponent=6, Unit=Unit.VoltsRms)
+                      for d in (1, 2, 3)]
+            # real tank: all devices then all micro-v; sim tank: interleaved per depth
+            if real:
+                cfgs = device + microv
+            else:
+                cfgs = [c for pair in zip(device, microv) for c in pair]
+            common = dict(
+                ConfigList=cfgs, AsyncCaptureDeltaMicroVolts=2000, Enabled=True, NumSampleAverages=30,
+                Samples=1000, SendMicroVolts=True, SerialNumber="NA", TempCalcMethod="SimpleBeta",
+                ThermistorBeta=3977,
+            )
+            if real:
+                spec = self.config.tanks[ri]
+                alias = f"{reader} PicoTankModule"
+                cid = self.component_id(alias)
+                self.components.append(
+                    PicoTankModuleComponentGt(
+                        ComponentId=cid, DeviceType=Gw1DeviceType.GridworksTankModule3, DisplayName=alias,
+                        PicoHwUid=spec.hwuid, **common,
+                    )
+                )
+                reader_display = f"{disp} Tank"
+            else:
+                alias = disp
+                cid = self.component_id(alias)
+                self.components.append(
+                    SimPicoTankModuleComponentGt(
+                        ComponentId=cid, DeviceType=Gw1DeviceType.GridworksSimSensor, DisplayName=disp,
+                        PicoHwUid=f"sim-{reader}-pico", SimulatesTypeName="pico.tank.module.component.gt",
+                        SimulatesVersion="012", **common,
+                    )
+                )
+                reader_display = f"{disp} SIMULATED ApiTankModule actor"
+            self.sh_nodes.append(
+                SpaceheatNodeGt(
+                    ShNodeId=self.node_id(reader), Name=reader, ActorClass=ActorClass.ApiTankModule,
+                    ActorHierarchyName=f"{Core.primary_scada}.{reader}",
+                    DisplayName=reader_display, ComponentId=cid,
+                )
+            )
+            for depth in (1, 2, 3):
+                dn = f"{reader}-depth{depth}"
+                self.sh_nodes.append(
+                    SpaceheatNodeGt(ShNodeId=self.node_id(dn), Name=dn, ActorClass=ActorClass.NoActor, DisplayName=dn)
+                )
+            for kind, telemetry, quantity, suffix, unit_word in (
+                ("Device Temp", TelemetryName.WaterTempCTimes1000, GwQuantity.Temperature, "device", None),
+                ("MicroVolts", TelemetryName.MicroVolts, GwQuantity.Voltage, "micro-v", None),
+            ):
+                for depth in (1, 2, 3):
+                    name = f"{reader}-depth{depth}-{suffix}"
+                    self.data_channels.append(
+                        DataChannelGt(
+                            Name=name, DisplayName=f"{disp} Depth {depth} {kind}",
+                            AboutNodeName=f"{reader}-depth{depth}", CapturedByNodeName=reader,
+                            TelemetryName=telemetry, Quantity=quantity,
+                            Id=self.channel_id(name), TerminalAssetAlias=self.terminal_asset_alias,
+                        )
+                    )
+
+    def emit_dfr(self) -> None:
+        """The DFRobot dual 0-10V outputer: component, the multiplexer node, the
+        three 010V outputer nodes, and their DataChannels."""
+        n = self.config.n
+        alias = "DFRobot 010V output X 2"
+        cid = self.component_id(alias)
+        outs = [("dist-010v", "Dist", Hyd.dist_010v), ("primary-010v", "Primary", Hyd.primary_010v),
+                ("store-010v", "Store", Hyd.store_010v)]
+        volts = list(self.config.dfr_initial_volts_times_100)
+        self.components.append(
+            DfrComponentGt(
+                ComponentId=cid, DeviceType=Gw1DeviceType.DfrobotDualAnalogOut, DisplayName=alias,
+                I2cAddressList=[0x5E, 0x5F],
+                ConfigList=[
+                    DfrConfig(ChannelName=chan, CapturePeriodS=300, AsyncCapture=True, AsyncCaptureDelta=1,
+                              Exponent=1, Unit=Unit.VoltsRms, OutputIdx=i + 1, InitialVoltsTimes100=volts[i])
+                    for i, (chan, _, _) in enumerate(outs)
+                ],
+            )
+        )
+        self.sh_nodes.append(
+            SpaceheatNodeGt(
+                ShNodeId=self.node_id(n.zero_ten_out_multiplexer), Name=n.zero_ten_out_multiplexer,
+                ActorClass=ActorClass.I2cZeroTenMultiplexer,
+                ActorHierarchyName=f"{Core.primary_scada}.{n.zero_ten_out_multiplexer}",
+                DisplayName="I2c Zero Ten Out Multiplexer", ComponentId=cid,
+            )
+        )
+        for chan, label, node in outs:
+            self.sh_nodes.append(
+                SpaceheatNodeGt(
+                    ShNodeId=self.node_id(node), Name=node, ActorClass=ActorClass.ZeroTenOutputer,
+                    ActorHierarchyName=f"{Core.primary_scada}.{node}", Handle=f"auto.{node}",
+                    DisplayName=f"{label} DFR",
+                )
+            )
+        for chan, label, node in outs:
+            self.data_channels.append(
+                DataChannelGt(
+                    Name=chan, DisplayName=f"{label} 010V", AboutNodeName=node,
+                    CapturedByNodeName=n.zero_ten_out_multiplexer, TelemetryName=TelemetryName.VoltsTimesTen,
+                    Quantity=GwQuantity.Voltage, Id=self.channel_id(chan),
+                    TerminalAssetAlias=self.terminal_asset_alias,
+                )
+            )
+
+    def emit_ads(self) -> None:
+        """The ADS111x analog-temp board (TSnap): device-type, component, the
+        analog-temp node, and each pipe-temp's about-node + DataChannel."""
+        if not self.config.ads_channels:
+            return
+        n = self.config.n
+        alias = f"Multipurpose Temp Sensor <{self.config.ads_hwuid}>"
+        cid = self.component_id(alias)
+
+        self.device_types.append(
+            Ads111xBasedDeviceTypeGt(
+                DeviceType=Gw1DeviceType.GridworksTsnap1ScadaBoard,
+                DisplayName="GridWorks TSnap1.0 as 12-channel analog temp sensor",
+                MinPollPeriodMs=200, TotalTerminalBlocks=12,
+                TelemetryNameList=[TelemetryName.WaterTempCTimes1000, TelemetryName.AirTempCTimes1000],
+                AdsI2cAddressList=[0x4B, 0x49, 0x48],
+            )
+        )
+        self.components.append(
+            Ads111xBasedComponentGt(
+                ComponentId=cid, DeviceType=Gw1DeviceType.GridworksTsnap1ScadaBoard, DisplayName=alias,
+                HwUid=self.config.ads_hwuid, OpenVoltageByAds=list(self.config.ads_open_voltage_by_ads),
+                ConfigList=[
+                    AdsChannelConfig(
+                        ChannelName=s.channel, AsyncCapture=True, AsyncCaptureDelta=500, CapturePeriodS=300,
+                        DataProcessingMethod=ThermistorDataMethod.BetaWithExponentialAveraging, Exponent=3,
+                        TerminalBlockIdx=s.terminal_block_idx, ThermistorDeviceType=Gw1DeviceType.TewaThermistor,
+                        Unit=Unit.Celcius,
+                    )
+                    for s in self.config.ads_channels
+                ],
+            )
+        )
+        self.sh_nodes.append(
+            SpaceheatNodeGt(
+                ShNodeId=self.node_id(n.analog_temp), Name=n.analog_temp,
+                ActorClass=ActorClass.MultipurposeSensor,
+                ActorHierarchyName=f"{Core.secondary_scada}.{n.analog_temp}",
+                DisplayName="ANALOG TEMP", ComponentId=cid,
+            )
+        )
+        for s in self.config.ads_channels:
+            self.sh_nodes.append(
+                SpaceheatNodeGt(ShNodeId=self.node_id(s.channel), Name=s.channel,
+                                ActorClass=ActorClass.NoActor, DisplayName=s.channel.replace("-", " ").upper())
+            )
+        for s in self.config.ads_channels:
+            self.data_channels.append(
+                DataChannelGt(
+                    Name=s.channel, DisplayName=s.channel.replace("-", " ").upper(),
+                    AboutNodeName=s.channel, CapturedByNodeName=n.analog_temp,
+                    TelemetryName=TelemetryName(s.telemetry), Quantity=GwQuantity.Temperature,
+                    Id=self.channel_id(s.channel), TerminalAssetAlias=self.terminal_asset_alias,
+                )
+            )
+
+    def emit_flow(self) -> None:
+        """Reed flow meters: per position a `pico.flow.module` component, the
+        ApiFlowModule node, and the `*-flow` (Gpm) + `*-flow-hz` (MicroHz) channels."""
+        n = self.config.n
+        for f in self.config.flow_meters:
+            node = f"{f.position}-flow"
+            label = node.replace("-", " ").title()
+            cid = self.component_id(f"{label} ReedFlowModule")
+            self.components.append(
+                PicoFlowModuleComponentGt(
+                    ComponentId=cid, DeviceType=Gw1DeviceType.GridworksPicoFlowReed,
+                    DisplayName=f"{label} ReedFlowModule", FlowNodeName=node,
+                    HwUid=f.hwuid, SerialNumber=f.serial, Enabled=True,
+                    FlowMeterType=Gw1DeviceType.EkmFlowMeter,
+                    HzCalcMethod=HzCalcMethod.BasicExpWeightedAvg,
+                    GpmFromHzMethod=GpmFromHzMethod.Constant, ConstantGallonsPerTick=0.0748,
+                    SendHz=True, SendGallons=False, SendTickLists=False, NoFlowMs=5000,
+                    PublishAnyTicklistAfterS=10, AsyncCaptureThresholdGpmTimes100=5,
+                    PublishTicklistLength=10, ExpAlpha=0.5,
+                    ConfigList=[
+                        ChannelConfig(ChannelName=node, CapturePeriodS=300, AsyncCapture=True,
+                                      Exponent=2, Unit=Unit.Gpm),
+                        ChannelConfig(ChannelName=f"{node}-hz", CapturePeriodS=300, AsyncCapture=True,
+                                      Exponent=6, Unit=Unit.VoltsRms),
+                    ],
+                )
+            )
+            self.sh_nodes.append(
+                SpaceheatNodeGt(
+                    ShNodeId=self.node_id(node), Name=node, ActorClass=ActorClass.ApiFlowModule,
+                    ActorHierarchyName=f"{Core.primary_scada}.{node}", DisplayName=label, ComponentId=cid,
+                )
+            )
+            self.data_channels += [
+                DataChannelGt(Name=node, DisplayName=f"{label} Gpm X 100", AboutNodeName=node,
+                              CapturedByNodeName=node, TelemetryName=TelemetryName.GpmTimes100,
+                              Quantity=GwQuantity.FlowRate, Id=self.channel_id(node),
+                              TerminalAssetAlias=self.terminal_asset_alias),
+                DataChannelGt(Name=f"{node}-hz", DisplayName=f"{label} MicroHz", AboutNodeName=node,
+                              CapturedByNodeName=node, TelemetryName=TelemetryName.MicroHz,
+                              Quantity=GwQuantity.Frequency, Id=self.channel_id(f"{node}-hz"),
+                              TerminalAssetAlias=self.terminal_asset_alias),
+            ]
+
+    def emit_derived_channels(self) -> None:
+        """System-model energy channels + per-depth tank/buffer calibration."""
+        n = self.config.n
+
+        def energy(name, display, model_type) -> DerivedChannelGt:
+            return DerivedChannelGt(
+                Name=name, DisplayName=display, CreatedByNodeName=Core.derived_generator,
+                EmissionMethod=EmissionMethod.Periodic, EmitPeriodS=60, InputChannelNames=[],
+                OutputQuantity=GwQuantity.Energy, OutputUnit=GwUnit.WattHours, Strategy="system-model",
+                Parameters={"EnergyModel": {"TypeName": model_type, "Version": "000"}},
+                Id=self.derived_channel_id(name), TerminalAssetAlias=self.terminal_asset_alias,
+            )
+
+        self.derived_channels += [
+            energy("usable-energy", "Usable Energy Wh", "gw0.usable.energy.layered"),
+            energy("required-energy", "Required Energy Wh", "gw0.required.energy.layered"),
+        ]
+        readers = ["buffer"] + [f"tank{i}" for i in range(1, self.config.total_store_tanks + 1)]
+        tanks = list(self.config.tanks)
+        for ri, reader in enumerate(readers):
+            # real tanks calibrate depths 1 & 3 affine (M·x + B), depth 2 identity;
+            # sim tanks are identity throughout.
+            spec = tanks[ri] if (self.config.tank_kind == "real" and ri < len(tanks)) else None
+            for depth in (1, 2, 3):
+                name = f"{reader}-depth{depth}"
+                affine = spec is not None and depth in (1, 3)
+                params = None
+                if affine:
+                    params = {"Calibration": {
+                        "M": spec.affine_m, "B": spec.affine_b,
+                        "TypeName": "linear.one.dimensional.calibration", "Version": "001",
+                    }}
+                self.derived_channels.append(
+                    DerivedChannelGt(
+                        Name=name, DisplayName=f"{reader.capitalize()} Depth{depth} Effective Temperature",
+                        CreatedByNodeName=Core.derived_generator, EmissionMethod=EmissionMethod.OnTrigger,
+                        InputChannelNames=[f"{name}-device"], OutputQuantity=GwQuantity.Temperature,
+                        OutputUnit=GwUnit.FahrenheitX100, Strategy="affine" if affine else "identity",
+                        Parameters=params,
+                        Id=self.derived_channel_id(name), TerminalAssetAlias=self.terminal_asset_alias,
+                    )
+                )
+
     # -- assembly ----------------------------------------------------------- #
     def build(self) -> House0Sema:
         self.emit_gnodes()
         hydronic = self.emit_hydronic()
         self.emit_system_actor_nodes()
         self.emit_power_meter()
+        self.emit_web_server()
+        self.emit_thermostat()
         self.emit_relays()
+        self.emit_tanks()
+        self.emit_dfr()
+        self.emit_flow()
+        self.emit_ads()
+        self.emit_derived_channels()
         return House0Sema(
             GNodes=self.gnodes or None,
             ShNodes=self.sh_nodes,

@@ -1,49 +1,17 @@
 from typing import Literal, Sequence
-from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from gwsproto.names.hydronic_spaceheat.helpers import Tanks
-from gwsproto.names.core.channel_names import CoreChannelNames as CCN
 from gwsproto.names.hydronic_spaceheat.helpers import HydronicSpaceheatZoneChannelNames as HSZoneChannelNames
 
 
 
 class House0ChannelNames:
-    asset_electric_power = CCN.asset_electric_power
-    hp_odu_pwr = HCN.hp_odu_pwr
-    hp_idu_pwr = HCN.hp_idu_pwr
-    dist_pump_pwr = HCN.dist_pump_pwr
-    primary_pump_pwr =  HCN.primary_pump_pwr
-    store_pump_pwr = HCN.store_pump_pwr
+    """House0-SPECIFIC channel names only — the krida relay-state channels keyed to
+    the House0 relay board. Names shared with core / hydronic_spaceheat (the power,
+    pipe-temp, flow, 010V, energy, and `vdc-relay` channels) are NOT duplicated here;
+    a consumer uses CoreChannelNames / HydronicSpaceheatChannelNames directly.
+    """
 
-    # Temperature Channels
-    dist_swt = HCN.dist_swt
-    dist_rwt = HCN.dist_rwt
-    hp_lwt = HCN.hp_lwt
-    hp_ewt = HCN.hp_ewt
-    store_hot_pipe = HCN.store_hot_pipe
-    store_cold_pipe = HCN.store_cold_pipe
-    buffer_hot_pipe = HCN.buffer_hot_pipe
-    buffer_cold_pipe = HCN.buffer_cold_pipe
-    oat = HCN.oat
-    buffer = HCN.buffer
-
-
-    dist_flow = HCN.dist_flow
-    primary_flow = HCN.primary_flow
-    store_flow = HCN.store_flow
-
-    dist_flow_hz = HCN.dist_flow_hz
-    primary_flow_hz = HCN.primary_flow_hz
-    store_flow_hz = HCN.store_flow_hz
-
-    required_energy = HCN.required_energy
-    usable_energy = HCN.usable_energy
-
-    dist_010v = HCN.dist_010v
-    primary_010v = HCN.primary_010v
-    store_010v = HCN.store_010v
-
-    # relay state channels
-    vdc_relay_state: Literal["vdc-relay"] = HCN.vdc_relay_state
+    # relay state channels (House0 krida board)
     tstat_common_relay_state: Literal["tstat-common-relay"] = "tstat-common-relay"
     charge_discharge_relay_state: Literal["charge-discharge-relay"] = "charge-discharge-relay"
     hp_failsafe_relay_state: Literal["hp-failsafe-relay"] = "hp-failsafe-relay"
@@ -66,17 +34,14 @@ class House0ChannelNames:
 
 
 class House0ZoneChannelNames:
-    """
-    zone1-living-rm-whitewire-pwr, zone1-living-rm-stat-temp
+    """House0-SPECIFIC zone channels only. The hydronic-shared zone channels
+    (temp/set/heat_call/gw_microvolts/failsafe_relay_state/ops_relay_state) live on
+    HydronicSpaceheatZoneChannelNames — a consumer uses that class directly when those
+    are the appropriate names; this class does NOT compose from or duplicate them.
+
+    e.g. zone1-living-rm-whitewire-pwr, zone1-living-rm-stat-temp
     """
     def __init__(self, zone: str, idx: int) -> None:
         base = HSZoneChannelNames(zone, idx).base
-
-        # raw measurements
         self.whitewire_pwr = f"{base}-whitewire-pwr"
         self.stat_temp = f"{base}-stat-temp"
-
-        # relay-state channels (new convention: no trailing relay-index suffix —
-        # the base is already unique; cf. the non-zone relay-state channels)
-        self.failsafe_relay_state = f"{base}-failsafe-relay"
-        self.ops_relay_state = f"{base}-ops-relay"
