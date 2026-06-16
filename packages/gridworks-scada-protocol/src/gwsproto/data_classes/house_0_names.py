@@ -255,6 +255,14 @@ class ZoneChannelNames:
         self.stat_name = f"{self.zone_name}-stat"
         self.temp = f"{self.zone_name}-temp"
         self.set = f"{self.zone_name}-set"
+        # SICK / UNSTABLE values — do not trust for heat-call or control. This is
+        # the Hubitat's `thermostatOperatingState` report, which has been very
+        # inaccurate; the trustworthy heat-call signal is the `-heat-call`
+        # DerivedChannel computed from whitewire power (see
+        # derived_generator.handle_heat_call). NOTE: it is still listed in `.all`
+        # below, so right now it is REQUIRED (back-compat for the dashboard
+        # consumers); the direction is to demote it to known-optional once
+        # whitewire-derived heat-call is the relied-on signal everywhere.
         self.state = f"{self.zone_name}-state"
         self.whitewire_pwr=f"{self.zone_name}-whitewire-pwr"
 
