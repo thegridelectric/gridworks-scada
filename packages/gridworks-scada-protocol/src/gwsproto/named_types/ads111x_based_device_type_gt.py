@@ -8,11 +8,6 @@ from gwsproto.enums import TelemetryName
 class Ads111xBasedDeviceTypeGt(BaseModel):
     """
     Sema: https://schemas.electricity.works/types/ads111x.based.device.type.gt/000
-
-    The specialized device-type record for an ADS111x-based analog temperature sensor
-    category (the per-family successor to ads111x.based.cac.gt). Carries the
-    category-level data: I2C addresses, terminal-block count, telemetry names.
-    Hand-ported from the gwta sema snapshot runtime.
     """
 
     DeviceType: str

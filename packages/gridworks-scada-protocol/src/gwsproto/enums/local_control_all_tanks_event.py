@@ -4,7 +4,7 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class LocalControlAllTanksEvent(SemaEnum):
-    """ASL: https://schemas.electricity.works/enums/gw1.local.control.all.tanks.event/001"""
+    """Sema: https://schemas.electricity.works/enums/gw1.local.control.all.tanks.event/001"""
 
     WakeUp = auto()
     OnPeakStart = auto()

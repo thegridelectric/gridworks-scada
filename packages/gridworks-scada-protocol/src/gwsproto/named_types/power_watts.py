@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 
 class PowerWatts(BaseModel):
-    """ASL: https://schemas.electricity.works/types/power.watts/000"""
+    """Sema: https://schemas.electricity.works/types/power.watts/000"""
 
     Watts: int
     TypeName: Literal["power.watts"] = "power.watts"

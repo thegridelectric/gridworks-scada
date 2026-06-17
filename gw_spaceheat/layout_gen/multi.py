@@ -6,7 +6,7 @@ from gwsproto.enums import ActorClass
 from gwsproto.enums import Quantity
 from gwsproto.enums import DeviceType
 from gwsproto.enums import TelemetryName
-from gwsproto.enums import Unit
+from gwsproto.enums import SpaceheatUnit
 from gwsproto.named_types import ComponentGt
 from gwsproto.named_types import Ads111xBasedDeviceTypeGt
 from gwsproto.named_types import SpaceheatNodeGt
@@ -81,7 +81,7 @@ def add_tsnap_multipurpose(
                             AsyncCapture=sensor_cfg.AsyncCapture,
                             AsyncCaptureDelta=sensor_cfg.AsyncCaptureDelta,
                             Exponent=3,
-                            Unit=Unit.Celcius,
+                            Unit=SpaceheatUnit.Celcius,
                             TerminalBlockIdx=sensor_cfg.TerminalBlockIdx,
                             ThermistorDeviceType=sensor_cfg.ThermistorDeviceType,
                             DataProcessingMethod=ThermistorDataMethod.BetaWithExponentialAveraging,

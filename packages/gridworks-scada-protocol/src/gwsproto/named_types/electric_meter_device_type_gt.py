@@ -8,10 +8,6 @@ from gwsproto.enums import TelemetryName
 class ElectricMeterDeviceTypeGt(BaseModel):
     """
     Sema: https://schemas.electricity.works/types/electric.meter.device.type.gt/000
-
-    The specialized device-type record for an electric-meter category (the per-family
-    successor to electric.meter.cac.gt): the telemetry names it reports, its shortest
-    poll period, and its default serial baud. Hand-ported from the gwta snapshot.
     """
 
     DeviceType: str

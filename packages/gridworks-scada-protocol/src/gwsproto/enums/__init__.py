@@ -72,6 +72,7 @@ from gwsproto.enums.relay_energization_state import RelayEnergizationState
 from gwsproto.enums.relay_wiring_config import RelayWiringConfig
 from gwsproto.enums.seasonal_storage_mode import SeasonalStorageMode
 from gwsproto.enums.slow_dispatch_contract_status import SlowDispatchContractStatus
+from gwsproto.enums.spaceheat_unit import SpaceheatUnit
 from gwsproto.enums.store_flow_relay import StoreFlowRelay
 from gwsproto.enums.system_mode import SystemMode
 from gwsproto.enums.telemetry_name import TelemetryName
@@ -80,7 +81,6 @@ from gwsproto.enums.thermistor_data_method import ThermistorDataMethod
 from gwsproto.enums.top_event import TopEvent
 from gwsproto.enums.top_state import TopState
 from gwsproto.enums.turn_hp_on_off import TurnHpOnOff
-from gwsproto.enums.spaceheat_unit import SpaceheatUnit
 
 
 __all__ = [

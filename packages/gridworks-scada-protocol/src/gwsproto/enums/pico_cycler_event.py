@@ -6,21 +6,6 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 class PicoCyclerEvent(SemaEnum):
     """Sema: https://schemas.electricity.works/enums/pico.cycler.event/000
-
-    Values:
-      - WakeUp
-      - GoDormant
-      - PicoMissing
-      - ConfirmOpened
-      - StartClosing
-      - ConfirmClosed
-      - ConfirmRebooted
-      - ShakeZombies
-      - RebootDud
-
-    For more information:
-      - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#picocyclerevent)
     """
 
     WakeUp = auto()

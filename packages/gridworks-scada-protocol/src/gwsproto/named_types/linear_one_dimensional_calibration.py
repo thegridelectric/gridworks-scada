@@ -3,7 +3,7 @@ import math
 from pydantic import BaseModel, field_validator
 
 class LinearOneDimensionalCalibration(BaseModel):
-    """ASL: https://schemas.electricity.works/types/linear.one.dimensional.calibration/001
+    """Sema: https://schemas.electricity.works/types/linear.one.dimensional.calibration/001
 
     Linear calibration applied to a measurement expressed in the consuming
     derived channel's OutputUnit scaling domain.

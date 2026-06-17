@@ -7,9 +7,7 @@ from gwsproto.enums.relay_event_base import RelayEventBase
 
 
 class ChangeAquastatControl(RelayEventBase):
-    """
-    A Finite State Machine action changing the function of an Aquastat Control
-    """
+    """Sema: https://schemas.electricity.works/enums/change.aquastat.control/000"""
 
     SwitchToBoiler = auto()
     SwitchToScada = auto()

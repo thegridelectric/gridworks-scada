@@ -6,7 +6,7 @@ from gwsproto.enums import ActorClass
 from gwsproto.enums import DeviceType
 from gwsproto.enums import Quantity
 from gwsproto.enums import TelemetryName
-from gwsproto.enums import Unit
+from gwsproto.enums import SpaceheatUnit
 from gwsproto.type_helpers import HubitatGt
 from gwsproto.named_types import ComponentGt
 from gwsproto.named_types import ElectricMeterDeviceTypeGt
@@ -150,7 +150,7 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
                                 AsyncCapture=True,
                                 AsyncCaptureDelta=200,
                                 Exponent=0,
-                                Unit=Unit.W,
+                                Unit=SpaceheatUnit.W,
                             ),
                         ElectricMeterChannelConfig(
                                 ChannelName=H0CN.hp_idu_pwr,
@@ -159,7 +159,7 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
                                 AsyncCapture=True,
                                 AsyncCaptureDelta=200,
                                 Exponent=0,
-                                Unit=Unit.W,
+                                Unit=SpaceheatUnit.W,
                             ),
                         ElectricMeterChannelConfig(
                                 ChannelName=H0CN.store_pump_pwr,
@@ -168,7 +168,7 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
                                 AsyncCapture=True,
                                 AsyncCaptureDelta=5,
                                 Exponent=0,
-                                Unit=Unit.W,
+                                Unit=SpaceheatUnit.W,
                             )
                     ],
                 )

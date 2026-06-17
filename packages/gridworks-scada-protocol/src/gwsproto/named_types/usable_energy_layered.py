@@ -3,7 +3,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 class UsableEnergyLayered(BaseModel):
-    """ASL: https://schemas.electricity.works/types/gw0.usable.energy.layered/000
+    """Sema: https://schemas.electricity.works/types/gw0.usable.energy.layered/000
     
     Executable specification for computing usable thermal energy
     using a layered storage model.

@@ -6,14 +6,6 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 class TurnHpOnOff(SemaEnum):
     """Sema: https://schemas.electricity.works/enums/turn.hp.on.off/000
-
-    Values:
-      - TurnOn
-      - TurnOff
-
-    For more information:
-      - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#turnhponoff)
     """
 
     TurnOn = auto()

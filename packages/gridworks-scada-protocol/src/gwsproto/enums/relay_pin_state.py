@@ -5,8 +5,6 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 class RelayPinState(SemaEnum):
     """Sema: https://schemas.electricity.works/enums/relay.pin.state/000
-
-    ASL: https://schemas.electricity.works/enums/relay.pin.state/000
     """
 
     Energized = auto()

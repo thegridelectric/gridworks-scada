@@ -5,7 +5,7 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class LocalControlBufferOnlyState(SemaEnum):
-    """ASL: https://schemas.electricity.works/enums/gw1.local.control.buffer.only.state/000"""
+    """Sema: https://schemas.electricity.works/enums/gw1.local.control.buffer.only.state/000"""
 
     Initializing = auto()
     HpOn = auto()

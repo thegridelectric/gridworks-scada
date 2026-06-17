@@ -5,7 +5,7 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class HeatCallInterpretation(SemaEnum):
-    """ASL: https://schemas.electricity.works/enums/gw1.heat.call.interpretation/000"""
+    """Sema: https://schemas.electricity.works/enums/gw1.heat.call.interpretation/000"""
 
     DigitalZeroIsActive = auto()
     DigitalOneIsActive = auto()

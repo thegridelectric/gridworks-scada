@@ -4,7 +4,7 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class GNodeStatus(SemaEnum):
-    """ASL: https://schemas.electricity.works/enums/g.node.status/000"""
+    """Sema: https://schemas.electricity.works/enums/g.node.status/000"""
 
     Pending = auto()
     Active = auto()

@@ -4,7 +4,7 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class BaseGNodeClass(SemaEnum):
-    """ASL: https://schemas.electricity.works/enums/base.g.node.class/000"""
+    """Sema: https://schemas.electricity.works/enums/base.g.node.class/000"""
 
     TerminalAsset = auto()
     LeafTransactiveNode = auto()

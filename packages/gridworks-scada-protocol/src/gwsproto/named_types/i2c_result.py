@@ -11,7 +11,7 @@ from gwsproto.property_format import (
 
 
 class I2cResult(BaseModel):
-    """ASL: https://schemas.electricity.works/types/i2c.result/000"""
+    """Sema: https://schemas.electricity.works/types/i2c.result/000"""
 
     Bus: SpaceheatName
     Operation: Literal["read.bit", "write.bit"]

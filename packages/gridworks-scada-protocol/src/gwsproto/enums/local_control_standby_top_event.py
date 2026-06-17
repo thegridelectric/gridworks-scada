@@ -4,7 +4,7 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class LocalControlStandbyTopEvent(SemaEnum):
-    """ASL: https://schemas.electricity.works/enums/gw1.local.control.standby.top.event/000"""
+    """Sema: https://schemas.electricity.works/enums/gw1.local.control.standby.top.event/000"""
 
     TopWakeUp = auto()
     TopGoDormant = auto()

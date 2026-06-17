@@ -5,7 +5,7 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class LeafAllyBufferOnlyState(SemaEnum):
-    """ASL: https://schemas.electricity.works/enums/gw1.leaf.ally.buffer.only.state/000"""
+    """Sema: https://schemas.electricity.works/enums/gw1.leaf.ally.buffer.only.state/000"""
 
     Dormant = auto()
     Initializing = auto()

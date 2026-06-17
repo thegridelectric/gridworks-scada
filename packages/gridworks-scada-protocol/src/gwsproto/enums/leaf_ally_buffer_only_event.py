@@ -4,7 +4,7 @@ from typing import List
 from gwsproto.enums.gw_str_enum import SemaEnum
 
 class LeafAllyBufferOnlyEvent(SemaEnum):
-    """ASL: https://schemas.electricity.works/enums/gw1.leaf.ally.buffer.only.event/000"""
+    """Sema: https://schemas.electricity.works/enums/gw1.leaf.ally.buffer.only.event/000"""
 
     GoDormant = auto()
     WakeUp = auto()

@@ -6,14 +6,6 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 class TopState(SemaEnum):
     """Sema: https://schemas.electricity.works/enums/top.state/000
-
-    Values:
-      - Auto
-      - Admin
-
-    For more information:
-      - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#topstate)
     """
 
     Auto = auto()

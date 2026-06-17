@@ -4,7 +4,7 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class GpioSenseMode(SemaEnum):
-    """ASL: https://schemas.electricity.works/enums/gpio.sense.mode/000"""
+    """Sema: https://schemas.electricity.works/enums/gpio.sense.mode/000"""
 
     Polling = auto()
     EdgeDetect = auto()

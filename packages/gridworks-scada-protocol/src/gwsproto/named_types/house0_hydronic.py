@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict, model_validator
 from typing_extensions import Self
 
 from gwsproto.enums import House0PrimaryFlowSource
-from gwsproto.named_types.gw1_hvac_zone import Gw1HvacZone
+from gwsproto.named_types.hvac_zone import HvacZone
 
 
 class House0Hydronic(BaseModel):
@@ -12,7 +12,7 @@ class House0Hydronic(BaseModel):
     Sema: https://schemas.electricity.works/types/gw.house0.hydronic/000
     """
 
-    Zones: List[Gw1HvacZone]
+    Zones: List[HvacZone]
     TotalStoreTanks: int
     UseSiegLoop: bool
     SiegLoopPlumbed: bool

@@ -4,7 +4,7 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class LocalControlAllTanksState(SemaEnum):
-    """ASL: https://schemas.electricity.works/enums/gw1.local.control.all.tanks.state/000"""
+    """Sema: https://schemas.electricity.works/enums/gw1.local.control.all.tanks.state/000"""
 
     Initializing = auto()
     HpOnStoreOff = auto()

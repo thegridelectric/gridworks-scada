@@ -5,7 +5,7 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class FlowManifoldVariant(SemaEnum):
-    """ASL: https://schemas.electricity.works/enums/flow.manifold.variant/001"""
+    """Sema: https://schemas.electricity.works/enums/flow.manifold.variant/001"""
     House0 = auto()
     House0Sieg = auto()
     NolanHouse = auto()

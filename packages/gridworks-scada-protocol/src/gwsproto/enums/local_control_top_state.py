@@ -5,7 +5,7 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class LocalControlTopState(SemaEnum):
-    """ASL: https://schemas.electricity.works/enums/gw1.lc.top.state/000"""
+    """Sema: https://schemas.electricity.works/enums/gw1.lc.top.state/000"""
 
     Dormant = auto()
     UsingNonElectricBackup = auto()

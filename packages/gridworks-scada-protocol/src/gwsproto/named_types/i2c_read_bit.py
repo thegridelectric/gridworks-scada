@@ -10,7 +10,7 @@ from gwsproto.property_format import (
 
 
 class I2cReadBit(BaseModel):
-    """ASL: https://schemas.electricity.works/types/i2c.write.bit/000"""
+    """Sema: https://schemas.electricity.works/types/i2c.write.bit/000"""
 
     Bus: SpaceheatName
     I2cAddress: StrictInt        # 0–127 (7-bit I2C addresses)

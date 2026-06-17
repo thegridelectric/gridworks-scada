@@ -6,15 +6,6 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 class MarketQuantityUnit(SemaEnum):
     """Sema: https://schemas.electricity.works/enums/market.quantity.unit/000
-
-    Quantity unit assigned to MarketMaker MarketType
-    Values:
-      - AvgMW
-      - AvgkW
-
-    For more information:
-      - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#marketquantityunit)
     """
 
     AvgMW = auto()

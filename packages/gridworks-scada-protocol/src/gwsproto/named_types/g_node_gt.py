@@ -10,9 +10,6 @@ from gwsproto.property_format import LeftRightDotStr, UUID4Str
 class GNodeGt(BaseModel):
     """
     Sema: https://schemas.electricity.works/types/g.node.gt/004
-
-    A GNode ("Grid Node") is the fundamental identity object in the GridWorks ecosystem.
-    Hand-ported from the gwta sema snapshot runtime (g.node.gt/004), with axioms.
     """
 
     GNodeId: UUID4Str

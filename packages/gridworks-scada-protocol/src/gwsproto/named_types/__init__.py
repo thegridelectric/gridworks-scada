@@ -36,8 +36,8 @@ from gwsproto.named_types.fsm_atomic_report import FsmAtomicReport
 from gwsproto.named_types.fsm_event import FsmEvent
 from gwsproto.named_types.fsm_full_report import FsmFullReport
 from gwsproto.named_types.g_node_gt import GNodeGt
-from gwsproto.named_types.gw1_hvac_zone import Gw1HvacZone
-from gwsproto.named_types.gw_house0_hydronic import House0Hydronic
+from gwsproto.named_types.hvac_zone import HvacZone
+from gwsproto.named_types.house0_hydronic import House0Hydronic
 from gwsproto.named_types.house0_layout import House0Layout
 from gwsproto.named_types.simple_sim_layout import SimpleSimLayout
 from gwsproto.named_types.gw108_gpio_relay_component_gt import Gw108GpioRelayComponentGt
@@ -162,7 +162,7 @@ __all__ = [
     "Glitch",
     "GoDormant",
     "GNodeGt",
-    "Gw1HvacZone",
+    "HvacZone",
     "House0Hydronic",
     "House0Layout",
     "SimpleSimLayout",

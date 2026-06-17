@@ -3,10 +3,7 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 from typing import List
 
 class SlowDispatchContractStatus(SemaEnum):
-    """Lifecycle status for dispatch contracts between LeafTransactiveNode 
-    and SCADA, tracking creation through completion or termination.
-    
-    ASL: https://schemas.electricity.works/enums/gw1.slow.dispatch.contract.status/000
+    """Sema: https://schemas.electricity.works/enums/gw1.slow.dispatch.contract.status/000
     """
 
     Created = auto()

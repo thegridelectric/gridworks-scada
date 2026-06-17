@@ -54,12 +54,12 @@ class House0Layout(BaseModel):
     Sema: https://schemas.electricity.works/types/gw.house0.layout/000
     """
 
-    GNodes: Optional[List[GNodeGt]] = None
-    ShNodes: Optional[List[SpaceheatNodeGt]] = None
-    DataChannels: Optional[List[DataChannelGt]] = None
-    DerivedChannels: Optional[List[DerivedChannelGt]] = None
-    Components: Optional[List[House0Component]] = None
-    DeviceTypes: Optional[List[House0DeviceType]] = None
-    Hydronic: Optional[House0Hydronic] = None
+    GNodes: list[GNodeGt]
+    ShNodes: list[SpaceheatNodeGt]
+    DataChannels: list[DataChannelGt]
+    DerivedChannels: list[DerivedChannelGt]
+    Components: list[House0Component]
+    DeviceTypes: list[House0DeviceType]
+    Hydronic: House0Hydronic
     TypeName: Literal["gw.house0.layout"] = "gw.house0.layout"
     Version: Literal["000"] = "000"

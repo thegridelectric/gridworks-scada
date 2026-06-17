@@ -14,8 +14,8 @@ from gwsproto.names.nolan.node_names import NolanNodeNames
 
 from gwsproto.data_classes.house_0_names import H0CN, H0N, ScadaWeb
 from gwsproto.enums import FlowManifoldVariant
-from gwsproto.named_types.gw1_hvac_zone import Gw1HvacZone
-from gwsproto.named_types.gw_house0_hydronic import House0Hydronic
+from gwsproto.named_types.hvac_zone import HvacZone
+from gwsproto.named_types.house0_hydronic import House0Hydronic
 
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.decoders import (
@@ -380,7 +380,7 @@ class House0Layout(HardwareLayout):
         )
         return House0Hydronic(
             Zones=[
-                Gw1HvacZone(Name=name, Critical=name in critical, KwhPerDegF=float(kwh))
+                HvacZone(Name=name, Critical=name in critical, KwhPerDegF=float(kwh))
                 for name, kwh in zip(layout["ZoneList"], layout["ZoneKwhPerDegFList"])
             ],
             TotalStoreTanks=layout["TotalStoreTanks"],

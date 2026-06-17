@@ -70,7 +70,7 @@ from gwsproto.named_types import (
     ElectricMeterComponentGt,
     ElectricMeterDeviceTypeGt,
     GNodeGt,
-    Gw1HvacZone,
+    HvacZone,
     House0Hydronic,
     House0Layout as House0Sema,
     HubitatComponentGt,
@@ -314,7 +314,7 @@ class House0SemaGen:
         critical = set(self.config.critical_zone_list)
         kwh = list(self.config.zone_kwh_per_deg_f_list)
         zones = [
-            Gw1HvacZone(
+            HvacZone(
                 Name=name,
                 Critical=name in critical,
                 KwhPerDegF=kwh[i] if i < len(kwh) else 1,

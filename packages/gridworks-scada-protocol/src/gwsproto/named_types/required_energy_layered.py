@@ -3,7 +3,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 class RequiredEnergyLayered(BaseModel):
-    """ASL: https://schemas.electricity.works/types/gw0.required.energy.layered/000
+    """Sema: https://schemas.electricity.works/types/gw0.required.energy.layered/000
     
     Executable specification for computing required thermal energy
     using a layered storage model.

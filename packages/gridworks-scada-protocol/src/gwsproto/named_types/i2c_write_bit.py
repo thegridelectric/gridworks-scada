@@ -7,7 +7,7 @@ from gwsproto.property_format import UUID4Str, SpaceheatName
 
 
 class I2cWriteBit(BaseModel):
-    """ASL: https://schemas.electricity.works/types/i2c.write.bit/000"""
+    """Sema: https://schemas.electricity.works/types/i2c.write.bit/000"""
 
     Bus: SpaceheatName
     I2cAddress: StrictInt

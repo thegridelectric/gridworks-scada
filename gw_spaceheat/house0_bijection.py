@@ -22,7 +22,7 @@ from gwsproto.named_types import (
     DataChannelGt,
     DerivedChannelGt,
     GNodeGt,
-    Gw1HvacZone,
+    HvacZone,
     House0Hydronic,
     House0Layout as House0Sema,
     SpaceheatNodeGt,

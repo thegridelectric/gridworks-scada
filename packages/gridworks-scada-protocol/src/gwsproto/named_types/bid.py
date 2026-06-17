@@ -8,7 +8,7 @@ from gwsproto.named_types.price_quantity_unitless import PriceQuantityUnitless
 
 
 class Bid(BaseModel):
-    """ASL: https://schemas.electricity.works/types/bid/000"""
+    """Sema: https://schemas.electricity.works/types/bid/000"""
 
     BidderAlias: LeftRightDotStr
     MarketSlotName: MarketSlotName

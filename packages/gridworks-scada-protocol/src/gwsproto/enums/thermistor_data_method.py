@@ -5,17 +5,6 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 class ThermistorDataMethod(SemaEnum):
     """Sema: https://schemas.electricity.works/enums/thermistor.data.method/000
-
-    What method is used to go from raw voltage readings to captured temperature readings.
-    Values:
-      - SimpleBeta: Using the beta formula with a calibrated open voltage reading, transmitting
-        raw polled data.
-      - BetaWithExponentialAveraging: Using the beta formula with a calibrated open voltage
-        reading, and then some sort of exponential weighted averaging on polled data.
-
-    For more information:
-      - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#thermistordatamethod)
     """
 
     SimpleBeta = auto()

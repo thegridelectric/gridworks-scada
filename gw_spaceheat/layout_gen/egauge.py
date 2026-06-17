@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from gwsproto.enums import ActorClass
 from gwsproto.enums import DeviceType
 from gwsproto.enums import TelemetryName
-from gwsproto.enums import Unit, Quantity
+from gwsproto.enums import SpaceheatUnit, Quantity
 from gwsproto.named_types import ComponentGt
 from gwsproto.named_types import EgaugeRegisterConfig
 from gwsproto.named_types import ElectricMeterDeviceTypeGt
@@ -48,14 +48,14 @@ class EgaugeChannelConfig(BaseModel):
             AsyncCapture=self.AsyncCapture,
             AsyncCaptureDelta=self.AsyncCaptureDelta,
             Exponent=0,
-            Unit=Unit.W,
+            Unit=SpaceheatUnit.W,
             EgaugeRegisterConfig=EgaugeRegisterConfig(
                                     Address=self.EGaugeAddress,
                                     Name=self.AboutNodeName,
                                     Description="change in value",
                                     Type="f32",
                                     Denominator=1,
-                                    Unit=Unit.W
+                                    Unit=SpaceheatUnit.W
                 )
         )
         kwargs_used.update(kwargs)
