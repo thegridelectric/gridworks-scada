@@ -3,7 +3,7 @@ from typing import Literal
 from pydantic import PositiveInt, field_validator
 
 from gwsproto.enums import GpioSenseMode
-from gwsproto.named_types import ChannelConfig
+from gwsproto.named_types.channel_config import ChannelConfig
 from gwsproto.type_helpers.component_base import ComponentBase
 
 

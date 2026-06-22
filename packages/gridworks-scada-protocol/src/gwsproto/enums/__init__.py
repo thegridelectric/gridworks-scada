@@ -34,6 +34,7 @@ from gwsproto.enums.house0_primary_flow_source import House0PrimaryFlowSource
 from gwsproto.enums.fsm_report_type import FsmReportType
 from gwsproto.enums.gpm_from_hz_method import GpmFromHzMethod
 from gwsproto.enums.i2c_adc_channel import I2cAdcChannel
+from gwsproto.enums.i2c_operation import I2cOperation
 from gwsproto.enums.heat_call_interpretation import HeatCallInterpretation
 from gwsproto.enums.heatcall_source import HeatcallSource
 from gwsproto.enums.heat_pump_control import HeatPumpControl
@@ -105,6 +106,7 @@ __all__ = [
     "GpioSenseMode",
     "GpmFromHzMethod",
     "I2cAdcChannel",
+    "I2cOperation",
     "Unit",
     "Quantity",
     "HeatCallInterpretation",

@@ -2,13 +2,13 @@ from typing import List, Literal
 
 from pydantic import BaseModel
 
+from gwsproto.named_types.single_machine_state import SingleMachineState
 from gwsproto.named_types.single_reading import SingleReading
 from gwsproto.property_format import (
     LeftRightDotStr,
     UTCMilliseconds,
     UUID4Str,
 )
-from gwsproto.named_types import SingleMachineState
 
 
 class SnapshotSpaceheat(BaseModel):

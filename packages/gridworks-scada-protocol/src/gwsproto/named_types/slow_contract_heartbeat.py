@@ -2,7 +2,7 @@ from typing import Optional, Literal
 from gwsproto.property_format import  UTCMilliseconds, SpaceheatName
 from pydantic import BaseModel, field_validator, model_validator
 from gwsproto.enums import SlowDispatchContractStatus
-from gwsproto.named_types import SlowDispatchContract
+from gwsproto.named_types.slow_dispatch_contract import SlowDispatchContract
 from typing_extensions import Self
 
 SCADA_SH_NODE_NAME = "s"

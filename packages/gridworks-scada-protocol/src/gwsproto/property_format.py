@@ -261,6 +261,16 @@ def is_bit(candidate: int) -> int:
     return candidate
 
 
+def is_non_negative_int(candidate: int) -> int:
+    # Non-coercive, mirroring the Sema `non.negative.int` format: the value must
+    # already be an int (not a bool, float, or string) and >= 0.
+    if isinstance(candidate, bool) or not isinstance(candidate, int):
+        raise ValueError(f"Must be an integer, got {candidate!r}")
+    if candidate < 0:
+        raise ValueError(f"Must be non-negative, got {candidate}")
+    return candidate
+
+
 def is_market_name(v: str) -> str:
     try:
         x = v.split(".")
@@ -333,6 +343,7 @@ HexChar = Annotated[str, BeforeValidator(is_hex_char)]
 LeftRightDotStr = Annotated[str, BeforeValidator(is_left_right_dot)]
 MarketName = Annotated[str, BeforeValidator(is_market_name)]
 MarketSlotName = Annotated[str, BeforeValidator(is_market_slot_name)]
+NonNegativeInt = Annotated[int, BeforeValidator(is_non_negative_int)]
 SpaceheatName = Annotated[str, BeforeValidator(is_spaceheat_name)]
 UUID4Str = Annotated[str, BeforeValidator(is_uuid4_str)]
 UTCSeconds = Annotated[
