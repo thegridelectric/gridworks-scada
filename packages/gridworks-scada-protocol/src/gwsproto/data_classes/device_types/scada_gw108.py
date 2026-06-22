@@ -10,10 +10,8 @@ from gwsproto.named_types.i2c_thermistor_interface_config import (
 from gwsproto.named_types.native_gpio_pin import NativeGpioPin
 from gwsproto.named_types.scada_device_type_gt import ScadaDeviceTypeGt
 
-# QUESTION FOR JESSICA: the gw108's I²C peripherals (GPIO expanders 0x20/0x21,
-# ADCs 0x48/0x49, DAC 0x60) are all placed on one bus "DefaultBus" -> /dev/i2c-1
-# here. If the board actually splits these across more than one physical bus,
-# add the extra I2cBus entries and repoint each config's I2cBus name.
+# All gw108 I²C peripherals (GPIO expanders 0x20/0x21, ADCs 0x48/0x49, DAC 0x60)
+# share one bus -> /dev/i2c-1.
 DEFAULT_BUS = "DefaultBus"
 
 
@@ -173,9 +171,8 @@ gw108_device_type = ScadaDeviceTypeGt(
             I2cBus=DEFAULT_BUS,
             I2cAddress=0x49,
             AdcType=I2cAdcType.Ads1115,
-            # QUESTION FOR JESSICA: AdcReferenceVolts is the divider's pull-up
-            # supply voltage — 3.3 assumed; confirm the gw108 value. The old
-            # PullupResistorKOhms=5.65 maps to SeriesResistanceKOhms here.
+            # Divider pull-up supply (the old PullupResistorKOhms=5.65 is now
+            # SeriesResistanceKOhms).
             AdcReferenceVolts=3.3,
             SeriesResistanceKOhms=5.65,
         )

@@ -1,4 +1,5 @@
 [tool.pytest.ini_options]
+pythonpath = ["gw_spaceheat"]
 log_format = "%(asctime)s %(message)s"
 addopts = """\
 --show-capture=no \
