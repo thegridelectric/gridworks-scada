@@ -271,6 +271,16 @@ def is_non_negative_int(candidate: int) -> int:
     return candidate
 
 
+def is_pascal_case(candidate: str) -> str:
+    # Mirrors the Sema `pascal.case` format: a non-empty PascalCase identifier of
+    # ASCII alphanumerics whose first character is an uppercase letter.
+    if not isinstance(candidate, str):
+        raise ValueError(f"PascalCase must be a string, got {candidate!r}")
+    if not re.fullmatch(r"[A-Z][A-Za-z0-9]*", candidate):
+        raise ValueError(f"<{candidate}>: must be PascalCase (^[A-Z][A-Za-z0-9]*$)")
+    return candidate
+
+
 def is_market_name(v: str) -> str:
     try:
         x = v.split(".")
@@ -344,6 +354,7 @@ LeftRightDotStr = Annotated[str, BeforeValidator(is_left_right_dot)]
 MarketName = Annotated[str, BeforeValidator(is_market_name)]
 MarketSlotName = Annotated[str, BeforeValidator(is_market_slot_name)]
 NonNegativeInt = Annotated[int, BeforeValidator(is_non_negative_int)]
+PascalCase = Annotated[str, BeforeValidator(is_pascal_case)]
 SpaceheatName = Annotated[str, BeforeValidator(is_spaceheat_name)]
 UUID4Str = Annotated[str, BeforeValidator(is_uuid4_str)]
 UTCSeconds = Annotated[

@@ -43,6 +43,8 @@ from gwsproto.enums.hp_loop_keep_send import HpLoopKeepSend
 from gwsproto.enums.hp_model import HpModel
 from gwsproto.enums.hz_calc_method import HzCalcMethod
 from gwsproto.enums.i2c_adc_channel import I2cAdcChannel
+from gwsproto.enums.i2c_adc_type import I2cAdcType
+from gwsproto.enums.i2c_dac_type import I2cDacType
 from gwsproto.enums.i2c_operation import I2cOperation
 from gwsproto.enums.leaf_ally_all_tanks_event import LeafAllyAllTanksEvent
 from gwsproto.enums.leaf_ally_all_tanks_state import LeafAllyAllTanksState
@@ -112,6 +114,8 @@ __all__ = [
     "HpModel",
     "HzCalcMethod",
     "I2cAdcChannel",
+    "I2cAdcType",
+    "I2cDacType",
     "I2cOperation",
     "LeafAllyAllTanksEvent",
     "LeafAllyAllTanksState",
