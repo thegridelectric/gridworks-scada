@@ -1,0 +1,14 @@
+from typing import Literal
+
+from pydantic import BaseModel
+
+from gwsproto.property_format import NonNegativeInt, PascalCase
+
+
+class NativeGpioPin(BaseModel):
+    """Sema: https://schemas.electricity.works/types/gw.native.gpio.pin/000"""
+
+    Name: PascalCase
+    BcmPin: NonNegativeInt
+    TypeName: Literal["gw.native.gpio.pin"] = "gw.native.gpio.pin"
+    Version: Literal["000"] = "000"

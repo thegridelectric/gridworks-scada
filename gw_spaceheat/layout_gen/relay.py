@@ -29,7 +29,7 @@ from gwsproto.named_types import (
     SpaceheatNodeGt,
 )
 from gwsproto.enums import ChangeKeepSend, HpLoopKeepSend
-from gwsproto.named_types import Gw1ScadaDeviceTypeGt
+from gwsproto.named_types import ScadaDeviceTypeGt
 from gwsproto.names.hydronic_spaceheat.channel_names import (
     HydronicSpaceheatChannelNames as HCN,
 )
@@ -654,7 +654,7 @@ def add_nolan_relays(
     if not db.has_device_type_record(DeviceType.GridworksScadaGw108):
         db.add_device_types(
             [
-                Gw1ScadaDeviceTypeGt(
+                ScadaDeviceTypeGt(
                     DeviceType=DeviceType.GridworksScadaGw108,
                     DisplayName="GridWorks SCADA Gw108",
                 ),

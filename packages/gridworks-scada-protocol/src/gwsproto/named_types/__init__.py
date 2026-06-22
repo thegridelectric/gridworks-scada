@@ -56,6 +56,7 @@ from gwsproto.named_types.hubitat_poller_gt import HubitatPollerGt, MakerAPIAttr
 from gwsproto.named_types.hvac_zone import HvacZone
 from gwsproto.named_types.i2c_adc_config import I2cAdcConfig
 from gwsproto.named_types.i2c_bit_address import I2cBitAddress
+from gwsproto.named_types.i2c_bus import I2cBus
 from gwsproto.named_types.i2c_dac_config import I2cDacConfig
 from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
     I2cMultichannelDtRelayComponentGt,
@@ -85,6 +86,7 @@ from gwsproto.named_types.machine_states import MachineStates
 from gwsproto.named_types.market_maker_ack import MarketMakerAck
 from gwsproto.named_types.micro_volts import MicroVolts
 from gwsproto.named_types.multichannel_snapshot import MultichannelSnapshot
+from gwsproto.named_types.native_gpio_pin import NativeGpioPin
 from gwsproto.named_types.new_command_tree import NewCommandTree
 from gwsproto.named_types.no_new_contract_warning import NoNewContractWarning
 from gwsproto.named_types.pico_btu_meter_component_gt import PicoBtuMeterComponentGt
@@ -101,6 +103,7 @@ from gwsproto.named_types.required_energy_layered import RequiredEnergyLayered
 from gwsproto.named_types.reset_hp_keep_value import ResetHpKeepValue
 from gwsproto.named_types.rest_poller_component_gt import RESTPollerComponentGt
 from gwsproto.named_types.scada_control_capabilities import ScadaControlCapabilities
+from gwsproto.named_types.scada_device_type_gt import ScadaDeviceTypeGt
 from gwsproto.named_types.scada_params import ScadaParams
 from gwsproto.named_types.send_control_capabilities import SendControlCapabilities
 from gwsproto.named_types.send_layout import SendLayout
@@ -196,6 +199,7 @@ __all__ = [
     "HvacZone",
     "I2cAdcConfig",
     "I2cBitAddress",
+    "I2cBus",
     "I2cDacConfig",
     "I2cMultichannelDtRelayComponentGt",
     "I2cReadBit",
@@ -216,6 +220,7 @@ __all__ = [
     "MarketMakerAck",
     "MicroVolts",
     "MultichannelSnapshot",
+    "NativeGpioPin",
     "NewCommandTree",
     "NoNewContractWarning",
     "PicoBtuMeterComponentGt",
@@ -235,6 +240,7 @@ __all__ = [
     "RequiredEnergyLayered",
     "ResetHpKeepValue",
     "ScadaControlCapabilities",
+    "ScadaDeviceTypeGt",
     "ScadaParams",
     "SendControlCapabilities",
     "SendLayout",

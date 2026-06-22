@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict
 
 from gwsproto.named_types.ads111x_based_device_type_gt import Ads111xBasedDeviceTypeGt
 from gwsproto.named_types.electric_meter_device_type_gt import ElectricMeterDeviceTypeGt
-from gwsproto.named_types.gw1_scada_device_type_gt import Gw1ScadaDeviceTypeGt
+from gwsproto.named_types.scada_device_type_gt import ScadaDeviceTypeGt
 from gwsproto.named_types.data_channel_gt import DataChannelGt
 from gwsproto.named_types.g_node_gt import GNodeGt
 from gwsproto.named_types.derived_channel_gt import DerivedChannelGt
@@ -42,7 +42,7 @@ NolanComponent = (
 NolanDeviceType = (
     Ads111xBasedDeviceTypeGt
     | ElectricMeterDeviceTypeGt
-    | Gw1ScadaDeviceTypeGt
+    | ScadaDeviceTypeGt
 )
 
 
