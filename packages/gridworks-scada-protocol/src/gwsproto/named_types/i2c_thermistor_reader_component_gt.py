@@ -1,14 +1,14 @@
 from collections import Counter
 from collections.abc import Sequence
 from typing import Literal, Self
-from pydantic import model_validator, PositiveFloat
+from pydantic import field_validator, model_validator, PositiveFloat
 
 from gwsproto.property_format import SpaceheatName
 from gwsproto.named_types.i2c_thermistor_channel_config import I2cThermistorChannelConfig
-from gwsproto.named_types import ComponentGt
+from gwsproto.type_helpers.component_base import ComponentBase
 from gwsproto.enums import TempCalcMethod
 
-class I2cThermistorReaderComponentGt(ComponentGt):
+class I2cThermistorReaderComponentGt(ComponentBase):
     Bus: SpaceheatName
     AdcAddress: int  # e.g. 0x49
     AdcReferenceVolts: PositiveFloat = 3.3
@@ -20,10 +20,24 @@ class I2cThermistorReaderComponentGt(ComponentGt):
     Version: Literal["002"] = "002"
 
 
+    @field_validator("ConfigList")
+    @classmethod
+    def check_axiom_1(
+        cls, v: Sequence[I2cThermistorChannelConfig]
+    ) -> Sequence[I2cThermistorChannelConfig]:
+        """Axiom 1: Channel Name uniqueness. Data Channel names are unique in the ConfigList."""
+        channel_names = [config.ChannelName for config in v]
+        if len(channel_names) != len(set(channel_names)):
+            duplicates = sorted({n for n in channel_names if channel_names.count(n) > 1})
+            raise ValueError(
+                f"Axiom 1 violated! Channel names must be unique in the ConfigList; duplicates: {duplicates}"
+            )
+        return v
+
     @model_validator(mode="after")
-    def check_axiom_1(self) -> Self:
+    def check_axiom_2(self) -> Self:
         """
-        Axiom 1: ConfigUniqueness.
+        Axiom 2: ConfigUniqueness.
         - Each ChannelName SHALL appear at most once in ConfigList.
         - Each AdcChannel SHALL have at most one config whose Unit is Celcius.
         """
@@ -51,9 +65,9 @@ class I2cThermistorReaderComponentGt(ComponentGt):
         return self
 
     @model_validator(mode="after")
-    def check_axiom_2(self) -> Self:
+    def check_axiom_3(self) -> Self:
         """
-        Axiom 2: AddressValidity.
+        Axiom 3: AddressValidity.
         AdcAddress SHALL be a valid 7-bit I2C address (0–127).
         """
         if not (0 <= self.AdcAddress <= 127):

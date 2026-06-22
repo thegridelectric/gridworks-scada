@@ -31,11 +31,11 @@ from gwsproto.data_classes.telemetry_tuple import TelemetryTuple
 
 from gwsproto.enums import ActorClass, TelemetryName, Unit, EmissionMethod
 from gwsproto.named_types import (
-    ComponentGt,
     DataChannelGt,
     ElectricMeterDeviceTypeGt,
     SpaceheatNodeGt,
 )
+from gwsproto.type_helpers.component_base import ComponentBase
 
 T = TypeVar("T")
 
@@ -114,7 +114,7 @@ class HardwareLayout:
         return device_types
 
     @classmethod
-    def get_data_class_name(cls, component_gt: ComponentGt) -> str:
+    def get_data_class_name(cls, component_gt: ComponentBase) -> str:
         gt_class_name = component_gt.__class__.__name__
         if not gt_class_name.endswith(cls.GT_SUFFIX) or len(gt_class_name) <= len(
             cls.GT_SUFFIX
@@ -128,7 +128,7 @@ class HardwareLayout:
 
     @classmethod
     def get_data_class_class(
-        cls, component_gt: ComponentGt
+        cls, component_gt: ComponentBase
     ) -> type[Component[Any, Any]]:
         return getattr(
             gwsproto.data_classes.components,
@@ -138,7 +138,7 @@ class HardwareLayout:
 
     @classmethod
     def make_component(
-        cls, component_gt: ComponentGt, device_type: Optional[Any] = None
+        cls, component_gt: ComponentBase, device_type: Optional[Any] = None
     ) -> Component[Any, Any]:
         return cls.get_data_class_class(component_gt)(
             gt=component_gt, device_type=device_type
@@ -161,7 +161,6 @@ class HardwareLayout:
         components = {}
         for type_name in [
             "Ads111xBasedComponents",
-            "ResistiveHeaterComponents",
             "ElectricMeterComponents",
             "OtherComponents",
         ]:

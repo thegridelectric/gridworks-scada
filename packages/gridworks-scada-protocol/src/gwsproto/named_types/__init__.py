@@ -27,9 +27,6 @@ from gwsproto.named_types.electric_meter_device_type_gt import ElectricMeterDevi
 from gwsproto.named_types.electric_meter_channel_config import ElectricMeterChannelConfig
 from gwsproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwsproto.named_types.energy_instruction import EnergyInstruction
-from gwsproto.named_types.fibaro_smart_implant_component_gt import (
-    FibaroSmartImplantComponentGt,
-)
 from gwsproto.named_types.flo_params import FloParams
 from gwsproto.named_types.flo_params_house0 import FloParamsHouse0
 from gwsproto.named_types.fsm_atomic_report import FsmAtomicReport
@@ -85,7 +82,6 @@ from gwsproto.named_types.events import RemainingElecEvent, ReportEvent
 from gwsproto.named_types.report import Report
 from gwsproto.named_types.required_energy_layered import RequiredEnergyLayered
 from gwsproto.named_types.reset_hp_keep_value import ResetHpKeepValue
-from gwsproto.named_types.resistive_heater_component_gt import ResistiveHeaterComponentGt
 from gwsproto.named_types.rest_poller_component_gt import RESTPollerComponentGt
 from gwsproto.named_types.slow_dispatch_contract import SlowDispatchContract
 from gwsproto.named_types.scada_control_capabilities import ScadaControlCapabilities
@@ -152,7 +148,6 @@ __all__ = [
     "ElectricMeterDeviceTypeGt",
     "ElectricMeterChannelConfig",
     "ElectricMeterComponentGt",
-    "FibaroSmartImplantComponentGt",
     "EnergyInstruction",
     "FloParams",
     "FloParamsHouse0",
@@ -209,7 +204,6 @@ __all__ = [
     "ReportEvent",
     "RequiredEnergyLayered",
     "ResetHpKeepValue",
-    "ResistiveHeaterComponentGt",
     "RESTPollerComponentGt",
     "SlowContractHeartbeat",
     "SlowDispatchContract",

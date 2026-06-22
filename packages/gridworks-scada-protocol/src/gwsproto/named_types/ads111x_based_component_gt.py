@@ -9,10 +9,10 @@ from typing_extensions import Self
 from gwsproto.named_types.ads_channel_config import (
     AdsChannelConfig,
 )
-from gwsproto.named_types.component_gt import ComponentGt
+from gwsproto.type_helpers.component_base import ComponentBase
 
 
-class Ads111xBasedComponentGt(ComponentGt):
+class Ads111xBasedComponentGt(ComponentBase):
     OpenVoltageByAds: list[float]
     ConfigList: Sequence[AdsChannelConfig]
     TypeName: Literal["ads111x.based.component.gt"] = "ads111x.based.component.gt"
@@ -20,10 +20,24 @@ class Ads111xBasedComponentGt(ComponentGt):
 
     model_config = ConfigDict(use_enum_values=True)
 
+    @field_validator("ConfigList")
+    @classmethod
+    def check_axiom_1(
+        cls, v: Sequence[AdsChannelConfig]
+    ) -> Sequence[AdsChannelConfig]:
+        """Axiom 1: Channel Name uniqueness. Data Channel names are unique in the ConfigList."""
+        channel_names = [config.ChannelName for config in v]
+        if len(channel_names) != len(set(channel_names)):
+            duplicates = sorted({n for n in channel_names if channel_names.count(n) > 1})
+            raise ValueError(
+                f"Axiom 1 violated! Channel names must be unique in the ConfigList; duplicates: {duplicates}"
+            )
+        return v
+
     @model_validator(mode="after")
-    def check_axiom_1(self) -> Self:
+    def check_axiom_2(self) -> Self:
         """
-        Axiom 1: OpenVoltageByAdsRange (mirrors sema ads111x.based.component.gt/000).
+        Axiom 2: OpenVoltageByAdsRange (mirrors sema ads111x.based.component.gt/000).
         Every element of OpenVoltageByAds SHALL be between 4.5 and 5.5 inclusive
         (the "near 5V" Raspberry-Pi-supply open-circuit range). Replaces the old
         Near5 property format with a sema axiom.
@@ -31,7 +45,7 @@ class Ads111xBasedComponentGt(ComponentGt):
         for v in self.OpenVoltageByAds:
             if not 4.5 <= v <= 5.5:
                 raise ValueError(
-                    f"Axiom 1 (OpenVoltageByAdsRange): OpenVoltageByAds element {v} "
+                    f"Axiom 2 (OpenVoltageByAdsRange): OpenVoltageByAds element {v} "
                     "is not between 4.5 and 5.5."
                 )
         return self

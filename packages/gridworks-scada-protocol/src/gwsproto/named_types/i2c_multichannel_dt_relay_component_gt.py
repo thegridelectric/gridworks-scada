@@ -1,14 +1,14 @@
 from typing import Literal
 
-from pydantic import ConfigDict, StrictInt, model_validator
+from pydantic import ConfigDict, StrictInt, field_validator, model_validator
 from typing_extensions import Self
 
 from gwsproto.property_format import SpaceheatName
-from gwsproto.named_types.component_gt import ComponentGt
+from gwsproto.type_helpers.component_base import ComponentBase
 from gwsproto.named_types.relay_actor_config import RelayActorConfig
 
 
-class I2cMultichannelDtRelayComponentGt(ComponentGt):
+class I2cMultichannelDtRelayComponentGt(ComponentBase):
     I2cBus: SpaceheatName
     I2cAddressList: list[StrictInt]
     ConfigList: list[RelayActorConfig]
@@ -19,10 +19,22 @@ class I2cMultichannelDtRelayComponentGt(ComponentGt):
 
     model_config = ConfigDict(extra="allow", use_enum_values=True)
 
+    @field_validator("ConfigList")
+    @classmethod
+    def check_axiom_1(cls, v: list[RelayActorConfig]) -> list[RelayActorConfig]:
+        """Axiom 1: Channel Name uniqueness. Data Channel names are unique in the ConfigList."""
+        channel_names = [config.ChannelName for config in v]
+        if len(channel_names) != len(set(channel_names)):
+            duplicates = sorted({n for n in channel_names if channel_names.count(n) > 1})
+            raise ValueError(
+                f"Axiom 1 violated! Channel names must be unique in the ConfigList; duplicates: {duplicates}"
+            )
+        return v
+
     @model_validator(mode="after")
-    def check_axiom_1(self) -> Self:
+    def check_axiom_2(self) -> Self:
         """
-        Axiom 1: ActorIdxConsistency.
+        Axiom 2: ActorIdxConsistency.
         There are no duplicates of ActorName or RelayIdx in the RelayConfigList
         """
         actor_names = [cfg.ActorName for cfg in self.ConfigList]

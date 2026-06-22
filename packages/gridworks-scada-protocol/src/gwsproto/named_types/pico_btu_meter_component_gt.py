@@ -1,6 +1,7 @@
+from collections.abc import Sequence
 from typing import Literal, Optional
 
-from pydantic import ConfigDict, StrictInt, model_validator
+from pydantic import ConfigDict, StrictInt, field_validator, model_validator
 from typing_extensions import Self
 
 from gwsproto.enums import (
@@ -8,13 +9,14 @@ from gwsproto.enums import (
     HzCalcMethod,
     TempCalcMethod,
 )
-from gwsproto.named_types.component_gt import ComponentGt
+from gwsproto.named_types.channel_config import ChannelConfig
+from gwsproto.type_helpers.component_base import ComponentBase
 from gwsproto.property_format import (
     SpaceheatName,
 )
 
 
-class PicoBtuMeterComponentGt(ComponentGt):
+class PicoBtuMeterComponentGt(ComponentBase):
     Enabled: bool
     SerialNumber: str
     FlowChannelName: SpaceheatName
@@ -37,17 +39,29 @@ class PicoBtuMeterComponentGt(ComponentGt):
 
     model_config = ConfigDict(use_enum_values=True)
 
+    @field_validator("ConfigList")
+    @classmethod
+    def check_axiom_1(cls, v: Sequence[ChannelConfig]) -> Sequence[ChannelConfig]:
+        """Axiom 1: Channel Name uniqueness. Data Channel names are unique in the ConfigList."""
+        channel_names = [config.ChannelName for config in v]
+        if len(channel_names) != len(set(channel_names)):
+            duplicates = sorted({n for n in channel_names if channel_names.count(n) > 1})
+            raise ValueError(
+                f"Axiom 1 violated! Channel names must be unique in the ConfigList; duplicates: {duplicates}"
+            )
+        return v
+
     @model_validator(mode="after")
-    def check_axiom_1(self) -> Self:
+    def check_axiom_2(self) -> Self:
         """
-        Axiom 1: ReadCtVoltage is True iff AsyncCaptureDeltaCtVoltsX100 exists
+        Axiom 2: ReadCtVoltage is True iff AsyncCaptureDeltaCtVoltsX100 exists
         """
         if self.ReadCtVoltage and not self.AsyncCaptureDeltaCtVoltsX100:
             raise ValueError(
-                f"Axiom 1 violated! ReadCtVoltage {self.ReadCtVoltage} requires AsyncCaptureDeltaCtVoltsX100!"
+                f"Axiom 2 violated! ReadCtVoltage {self.ReadCtVoltage} requires AsyncCaptureDeltaCtVoltsX100!"
             )
         if not self.ReadCtVoltage and self.AsyncCaptureDeltaCtVoltsX100:
             raise ValueError(
-                f"Axiom 1 violated: ReadCtVoltage {self.ReadCtVoltage} means NOAsyncCaptureDeltaCtVoltsX100"
+                f"Axiom 2 violated: ReadCtVoltage {self.ReadCtVoltage} means NOAsyncCaptureDeltaCtVoltsX100"
             )
         return self

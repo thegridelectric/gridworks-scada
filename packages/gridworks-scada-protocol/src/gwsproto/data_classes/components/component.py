@@ -1,8 +1,8 @@
 from typing import Any, Generic, Optional, TypeVar
 
-from gwsproto.named_types import ComponentGt
+from gwsproto.type_helpers.component_base import ComponentBase
 
-ComponentT = TypeVar("ComponentT", bound=ComponentGt)
+ComponentT = TypeVar("ComponentT", bound=ComponentBase)
 # The specialized device-type record (a *.device.type.gt). Records are flat per family,
 # so the bound is open (Any) rather than a shared base class.
 DeviceTypeT = TypeVar("DeviceTypeT")
@@ -22,4 +22,4 @@ class Component(Generic[ComponentT, DeviceTypeT]):
         return f"<{self.gt.DisplayName}>  ({self.gt.DeviceType})"
 
 
-class ComponentOnly(Component[ComponentGt, Any]): ...
+class ComponentOnly(Component[ComponentBase, Any]): ...

@@ -6,9 +6,7 @@ from gwsproto.data_classes.components.dfr_component import DfrComponent
 from gwsproto.data_classes.components.electric_meter_component import (
     ElectricMeterComponent,
 )
-from gwsproto.data_classes.components.fibaro_smart_implant_component import (
-    FibaroSmartImplantComponent,
-)
+
 from gwsproto.data_classes.components.gw108_gpio_relay_component import (
     Gw108GpioRelayComponent,
 )
@@ -34,9 +32,6 @@ from gwsproto.data_classes.components.pico_flow_module_component import (
 from gwsproto.data_classes.components.pico_tank_module_component import (
     PicoTankModuleComponent,
 )
-from gwsproto.data_classes.components.resistive_heater_component import (
-    ResistiveHeaterComponent,
-)
 from gwsproto.data_classes.components.rest_poller_component import RESTPollerComponent
 from gwsproto.data_classes.components.sim_pico_tank_module_component import SimPicoTankModuleComponent
 from gwsproto.data_classes.components.web_server_component import WebServerComponent
@@ -46,7 +41,6 @@ __all__ = [
     "Component",
     "DfrComponent",
     "ElectricMeterComponent",
-    "FibaroSmartImplantComponent",
     "Gw108GpioRelayComponent",
     "Gw108GpioSensorComponent",
     "HubitatComponent",
@@ -57,7 +51,6 @@ __all__ = [
     "PicoFlowModuleComponent",
     "PicoTankModuleComponent",
     "RESTPollerComponent",
-    "ResistiveHeaterComponent",
     "SimPicoTankModuleComponent",
     "WebServerComponent",
 ]

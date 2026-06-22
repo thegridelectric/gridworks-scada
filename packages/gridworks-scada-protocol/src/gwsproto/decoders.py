@@ -4,6 +4,7 @@ from pydantic import ValidationError  # noqa: F401  (kept for ComponentDecoder b
 
 from gwproto.decoders import UnionDecoder, UnionWrapper
 
+from gwsproto.type_helpers.component_base import ComponentBase
 from gwsproto.named_types import ComponentGt
 
 # The decoded device-type record union (the per-family *.device.type.gt types).
@@ -43,16 +44,16 @@ class ComponentDecoder(UnionDecoder):
 
     def decode(
         self, component_dict: dict[str, Any], *, allow_missing: bool = True
-    ) -> ComponentGt:
-        decoded: ComponentGt
+    ) -> ComponentBase:
+        decoded: ComponentBase
         try:
             # Pydantic requires that our union of types (components here) be in
             # a named field, which by convention we call "Wrapped".
             decoded = self.loader.model_validate({"Wrapped": component_dict}).Wrapped
-            if not isinstance(decoded, ComponentGt):
+            if not isinstance(decoded, ComponentBase):
                 raise TypeError(
                     f"ERROR. ComponentDecoder decoded type {type(decoded)}, "
-                    "not ComponentGt"
+                    "not a ComponentBase"
                 )
         except ValidationError as e:
             if allow_missing and any(
