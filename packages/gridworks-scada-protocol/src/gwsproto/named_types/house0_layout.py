@@ -112,20 +112,36 @@ class House0Layout(BaseModel):
     @model_validator(mode="after")
     def check_axiom_3(self) -> Self:
         """
-        Axiom 3: ZoneWhitewirePwrChannel
-        For each zone at 1-based index i in Hydronic.Zones, a channel named
-        "zone{i}-{Zone.Name}-whitewire-pwr" (lowercased) SHALL exist in the union
-        of DataChannels and DerivedChannels.
+        Axiom 3: ZoneHeatCallChannel
+        For each zone at 1-based index i in Hydronic.Zones, a DerivedChannel named
+        "zone{i}-{Zone.Name}-heat-call" (lowercased) with Strategy "heat-call" SHALL exist,
+        and a source DataChannel SHALL exist for that zone — either
+        "zone{i}-{Zone.Name}-whitewire-pwr" (power-sourced) or "zone{i}-{Zone.Name}-opto-input"
+        (opto-sourced). The choice of source is per-zone.
         """
         if self.Hydronic is None:
             return self
-        channels = {d.Name for d in (self.DataChannels or [])}
-        channels |= {d.Name for d in (self.DerivedChannels or [])}
+        derived_by_name = {d.Name: d for d in (self.DerivedChannels or [])}
+        data_names = {d.Name for d in (self.DataChannels or [])}
         for i, zone in enumerate(self.Hydronic.Zones or [], start=1):
-            name = f"zone{i}-{zone.Name}".lower() + "-whitewire-pwr"
-            if name not in channels:
+            base = f"zone{i}-{zone.Name}".lower()
+            heat_call = f"{base}-heat-call"
+            dc = derived_by_name.get(heat_call)
+            if dc is None:
                 raise ValueError(
-                    f"Axiom 3 (ZoneWhitewirePwrChannel) failed: missing channel '{name}'."
+                    f"Axiom 3 (ZoneHeatCallChannel) failed: missing DerivedChannel '{heat_call}'."
+                )
+            if dc.Strategy != "heat-call":
+                raise ValueError(
+                    f"Axiom 3 (ZoneHeatCallChannel) failed: DerivedChannel '{heat_call}' must have "
+                    f"Strategy 'heat-call', got '{dc.Strategy}'."
+                )
+            whitewire = f"{base}-whitewire-pwr"
+            opto = f"{base}-opto-input"
+            if whitewire not in data_names and opto not in data_names:
+                raise ValueError(
+                    f"Axiom 3 (ZoneHeatCallChannel) failed: heat-call for zone {i} needs a source "
+                    f"DataChannel — '{whitewire}' (power) or '{opto}' (opto)."
                 )
         return self
 

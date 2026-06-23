@@ -220,6 +220,14 @@ class HydronicSpaceheatZoneChannelNames:
         self.set = f"{self.base}-set"
         self.heat_call = f"{self.base}-heat-call"
 
+        # heat-call source (known-optional, per-zone): the raw input the heat-call
+        # derived channel is computed from. A zone is opto-sourced (a gw108 reads the
+        # thermostat opto-coupler) OR power-sourced (a power meter reads the whitewire).
+        # gw108 opto sensing is cross-family (nolan, sim, house0 going forward), so both
+        # sources live here on the shared hydronic zone, not per family.
+        self.opto_input = f"{self.base}-opto-input"
+        self.whitewire_pwr = f"{self.base}-whitewire-pwr"
+
         # raw thermistor microvolts (optional; emitted by hardware
         # implementations that report the raw ADC reading alongside temp)
         self.gw_microvolts = f"{self.base}-gw-microvolts"

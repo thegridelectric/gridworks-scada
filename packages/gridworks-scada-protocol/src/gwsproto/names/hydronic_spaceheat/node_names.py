@@ -36,6 +36,7 @@ class HydronicSpaceheatNodeNames:
     heat_pump = "heat-pump" # Allow for this when monoblock??
     hp_odu = "hp-odu"
     hp_idu = "hp-idu"
+    idu = "idu" # for indoor units that are NOT heat pumps
     buffer_top_elt = "buffer-top-elt"
     buffer_bottom_elt = "buffer-bottom-elt"
     store_top_elt = "store-top-elt"
