@@ -53,7 +53,7 @@ from gwsproto.enums import (
     StoreFlowRelay,
     TelemetryName,
     ThermistorDataMethod,
-    Unit,
+    SpaceheatUnit,
 )
 from gwproto.type_helpers import WebServerGt
 from gwsproto.named_types import (
@@ -407,7 +407,7 @@ class House0SemaGen:
                 ConfigList=[
                     ElectricMeterChannelConfig(
                         ChannelName=s.channel, PollPeriodMs=1000, CapturePeriodS=300,
-                        AsyncCapture=True, AsyncCaptureDelta=s.async_capture_delta, Exponent=0, Unit=Unit.W,
+                        AsyncCapture=True, AsyncCaptureDelta=s.async_capture_delta, Exponent=0, Unit=SpaceheatUnit.W,
                         EgaugeRegisterConfig=EgaugeRegisterConfig(
                             Address=s.address, Name=s.about_node, Denominator=1,
                             Description="change in value", Type="f32", Unit="W",
@@ -469,7 +469,7 @@ class House0SemaGen:
                 AsyncCapture=True,
                 AsyncCaptureDelta=delta,
                 Exponent=0,
-                Unit=Unit.W,
+                Unit=SpaceheatUnit.W,
             )
 
         self.components.append(
@@ -562,7 +562,7 @@ class House0SemaGen:
                     AsyncCapture=True,
                     AsyncCaptureDelta=1,
                     Exponent=0,
-                    Unit=Unit.Unitless,
+                    Unit=SpaceheatUnit.Unitless,
                 )
             )
             handle = (
@@ -689,18 +689,18 @@ class House0SemaGen:
                     DisplayName=poller_alias,
                     ConfigList=[
                         ChannelConfig(ChannelName=temp, PollPeriodMs=5000, CapturePeriodS=300,
-                                      AsyncCapture=True, AsyncCaptureDelta=1, Exponent=3, Unit=Unit.Fahrenheit),
+                                      AsyncCapture=True, AsyncCaptureDelta=1, Exponent=3, Unit=SpaceheatUnit.Fahrenheit),
                         ChannelConfig(ChannelName=setp, PollPeriodMs=5000, CapturePeriodS=300,
-                                      AsyncCapture=False, Exponent=3, Unit=Unit.Fahrenheit),
+                                      AsyncCapture=False, Exponent=3, Unit=SpaceheatUnit.Fahrenheit),
                         ChannelConfig(ChannelName=state, PollPeriodMs=5000, CapturePeriodS=300,
-                                      AsyncCapture=True, AsyncCaptureDelta=1, Exponent=0, Unit=Unit.ThermostatStateEnum),
+                                      AsyncCapture=True, AsyncCaptureDelta=1, Exponent=0, Unit=SpaceheatUnit.ThermostatStateEnum),
                     ],
                     Poller=HubitatPollerGt(
                         HubitatComponentId=hub_id, DeviceId=device_id,
                         Attributes=[
-                            attr("temperature", temp, znode, TelemetryName.AirTempFTimes1000, Unit.Fahrenheit, True),
-                            attr("heatingSetpoint", setp, stat, TelemetryName.AirTempFTimes1000, Unit.Fahrenheit, True),
-                            attr("thermostatOperatingState", state, znode, TelemetryName.ThermostatState, Unit.Unitless, False),
+                            attr("temperature", temp, znode, TelemetryName.AirTempFTimes1000, SpaceheatUnit.Fahrenheit, True),
+                            attr("heatingSetpoint", setp, stat, TelemetryName.AirTempFTimes1000, SpaceheatUnit.Fahrenheit, True),
+                            attr("thermostatOperatingState", state, znode, TelemetryName.ThermostatState, SpaceheatUnit.Unitless, False),
                         ],
                         Enabled=True, WebListenEnabled=True, PollPeriodSeconds=300.0,
                     ),
@@ -751,10 +751,10 @@ class House0SemaGen:
         for ri, reader in enumerate(readers):
             disp = reader.capitalize()
             device = [ChannelConfig(ChannelName=f"{reader}-depth{d}-device", CapturePeriodS=60,
-                                    AsyncCapture=True, AsyncCaptureDelta=2000, Exponent=3, Unit=Unit.Celcius)
+                                    AsyncCapture=True, AsyncCaptureDelta=2000, Exponent=3, Unit=SpaceheatUnit.Celcius)
                       for d in (1, 2, 3)]
             microv = [ChannelConfig(ChannelName=f"{reader}-depth{d}-micro-v", CapturePeriodS=60,
-                                    AsyncCapture=True, AsyncCaptureDelta=2000, Exponent=6, Unit=Unit.VoltsRms)
+                                    AsyncCapture=True, AsyncCaptureDelta=2000, Exponent=6, Unit=SpaceheatUnit.VoltsRms)
                       for d in (1, 2, 3)]
             # real tank: all devices then all micro-v; sim tank: interleaved per depth
             if real:
@@ -830,7 +830,7 @@ class House0SemaGen:
                 I2cAddressList=[0x5E, 0x5F],
                 ConfigList=[
                     DfrConfig(ChannelName=chan, CapturePeriodS=300, AsyncCapture=True, AsyncCaptureDelta=1,
-                              Exponent=1, Unit=Unit.VoltsRms, OutputIdx=i + 1, InitialVoltsTimes100=volts[i])
+                              Exponent=1, Unit=SpaceheatUnit.VoltsRms, OutputIdx=i + 1, InitialVoltsTimes100=volts[i])
                     for i, (chan, _, _) in enumerate(outs)
                 ],
             )
@@ -888,7 +888,7 @@ class House0SemaGen:
                         ChannelName=s.channel, AsyncCapture=True, AsyncCaptureDelta=500, CapturePeriodS=300,
                         DataProcessingMethod=ThermistorDataMethod.BetaWithExponentialAveraging, Exponent=3,
                         TerminalBlockIdx=s.terminal_block_idx, ThermistorDeviceType=DeviceType.TewaThermistor,
-                        Unit=Unit.Celcius,
+                        Unit=SpaceheatUnit.Celcius,
                     )
                     for s in self.config.ads_channels
                 ],
@@ -938,9 +938,9 @@ class House0SemaGen:
                     PublishTicklistLength=10, ExpAlpha=0.5,
                     ConfigList=[
                         ChannelConfig(ChannelName=node, CapturePeriodS=300, AsyncCapture=True,
-                                      Exponent=2, Unit=Unit.Gpm),
+                                      Exponent=2, Unit=SpaceheatUnit.Gpm),
                         ChannelConfig(ChannelName=f"{node}-hz", CapturePeriodS=300, AsyncCapture=True,
-                                      Exponent=6, Unit=Unit.VoltsRms),
+                                      Exponent=6, Unit=SpaceheatUnit.VoltsRms),
                     ],
                 )
             )
