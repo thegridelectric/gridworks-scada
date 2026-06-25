@@ -229,6 +229,10 @@ class House0SemaGenConfig:
     use_sieg_loop: bool = False
     sieg_loop_plumbed: bool = False
     primary_flow_source: str = "Measured"
+    # heat-call source: "power" (whitewire power via the meter, GreaterThanThreshold) or
+    # "opto" (gw108 opto-coupler, DigitalZeroIsActive). Layout-level for now; the axiom is
+    # per-zone, so this can become a per-zone list when a home is mixed.
+    heat_call_source: str = "power"
     # peripheral inputs (per-zone thermostat device ids align to zone_list)
     web_server_host: str = "0.0.0.0"
     web_server_port: int = 8080
@@ -472,6 +476,21 @@ class House0SemaGen:
                 Unit=SpaceheatUnit.W,
             )
 
+        # per-zone whitewire-pwr: the heat-call POWER source (axiom 3). The sim meter
+        # stands in for an eGauge here. Only emitted when heat-call is power-sourced;
+        # an opto-sourced home gets opto-input from a gw108 instead (beech-gw108 chunk).
+        zone_whitewires = (
+            [
+                (
+                    HydronicSpaceheatZoneNodeNames(zone, i + 1).whitewire,
+                    HydronicSpaceheatZoneChannelNames(zone, i + 1).whitewire_pwr,
+                )
+                for i, zone in enumerate(self.config.zone_list)
+            ]
+            if self.config.heat_call_source == "power"
+            else []
+        )
+
         self.components.append(
             ElectricMeterComponentGt(
                 ComponentId=self.component_id(alias),
@@ -481,7 +500,8 @@ class House0SemaGen:
                     em_cfg(HydC.hp_odu_pwr, 200),
                     em_cfg(HydC.hp_idu_pwr, 200),
                     em_cfg(HydC.store_pump_pwr, 5),
-                ],
+                ]
+                + [em_cfg(ww_chan, 10) for _, ww_chan in zone_whitewires],
             )
         )
 
@@ -506,6 +526,12 @@ class House0SemaGen:
                 ShNodeId=self.node_id(Hyd.store_pump), Name=Hyd.store_pump,
                 ActorClass=ActorClass.NoActor, DisplayName="Store Pump",
             ),
+        ] + [
+            SpaceheatNodeGt(
+                ShNodeId=self.node_id(ww_node), Name=ww_node, ActorClass=ActorClass.NoActor,
+                DisplayName=ww_node.replace("-", " ").title(), NameplatePowerW=10,
+            )
+            for ww_node, _ in zone_whitewires
         ]
 
         def pwr_channel(name: str, about: str, in_metering: bool) -> DataChannelGt:
@@ -525,6 +551,8 @@ class House0SemaGen:
             pwr_channel(HydC.hp_odu_pwr, Hyd.hp_odu, True),
             pwr_channel(HydC.hp_idu_pwr, Hyd.hp_idu, True),
             pwr_channel(HydC.store_pump_pwr, Hyd.store_pump, False),
+        ] + [
+            pwr_channel(ww_chan, ww_node, False) for ww_node, ww_chan in zone_whitewires
         ]
 
     def emit_relays(self) -> None:
@@ -961,6 +989,31 @@ class House0SemaGen:
                               TerminalAssetAlias=self.terminal_asset_alias),
             ]
 
+    def emit_primary_flow(self) -> None:
+        """Axiom 4: PrimaryFlowSourceChannelAgreement. When PrimaryFlowSource is
+        "Measured" and no flow meter already provides it, emit a bare "primary-flow"
+        node + DataChannel. (DerivedSiegSum emits a 'sum' DerivedChannel instead — that
+        path lands with the sieg-loop emitters.)"""
+        name = Hyd.primary_flow
+        if self.config.primary_flow_source != "Measured":
+            return
+        if any(c.Name == name for c in self.data_channels):
+            return
+        self.sh_nodes.append(
+            SpaceheatNodeGt(
+                ShNodeId=self.node_id(name), Name=name, ActorClass=ActorClass.NoActor,
+                DisplayName="Primary Flow",
+            )
+        )
+        self.data_channels.append(
+            DataChannelGt(
+                Name=name, DisplayName="Primary Flow Gpm X 100",
+                AboutNodeName=name, CapturedByNodeName=name,
+                TelemetryName=TelemetryName.GpmTimes100, Quantity=Quantity.FlowRate,
+                Id=self.channel_id(name), TerminalAssetAlias=self.terminal_asset_alias,
+            )
+        )
+
     def emit_derived_channels(self) -> None:
         """System-model energy channels + per-depth tank/buffer calibration."""
         n = self.config.n
@@ -978,6 +1031,35 @@ class House0SemaGen:
             energy("usable-energy", "Usable Energy Wh", "gw0.usable.energy.layered"),
             energy("required-energy", "Required Energy Wh", "gw0.required.energy.layered"),
         ]
+
+        # per-zone heat-call (axiom 3: ZoneHeatCallChannel) derived from the zone's
+        # configured source: power (whitewire-pwr, GreaterThanThreshold) or opto
+        # (opto-input from a gw108, DigitalZeroIsActive). Layout-level for now.
+        if self.config.heat_call_source == "power":
+            source_name, params = (lambda zc: zc.whitewire_pwr), {
+                "Interpretation": "GreaterThanThreshold", "Threshold": 10,
+            }
+        elif self.config.heat_call_source == "opto":
+            source_name, params = (lambda zc: zc.opto_input), {
+                "Interpretation": "DigitalZeroIsActive",
+            }
+        else:
+            raise ValueError(f"Unknown heat_call_source {self.config.heat_call_source!r}")
+        for i, zone in enumerate(self.config.zone_list):
+            zc = HydronicSpaceheatZoneChannelNames(zone, i + 1)
+            self.derived_channels.append(
+                DerivedChannelGt(
+                    Name=zc.heat_call,
+                    DisplayName=f"{zc.base.replace('-', ' ').title()} Heat Call",
+                    CreatedByNodeName=Core.derived_generator,
+                    EmissionMethod=EmissionMethod.AsyncAndPeriodic, AsyncEmitDelta=1, EmitPeriodS=300,
+                    InputChannelNames=[source_name(zc)],
+                    OutputQuantity=Quantity.Unitless, OutputUnit=Unit.Unitless, Strategy="heat-call",
+                    Parameters=params,
+                    Id=self.derived_channel_id(zc.heat_call),
+                    TerminalAssetAlias=self.terminal_asset_alias,
+                )
+            )
         readers = ["buffer"] + [f"tank{i}" for i in range(1, self.config.total_store_tanks + 1)]
         tanks = list(self.config.tanks)
         for ri, reader in enumerate(readers):
@@ -1017,6 +1099,7 @@ class House0SemaGen:
         self.emit_dfr()
         self.emit_flow()
         self.emit_ads()
+        self.emit_primary_flow()
         self.emit_derived_channels()
         return House0Sema(
             GNodes=self.gnodes or None,
