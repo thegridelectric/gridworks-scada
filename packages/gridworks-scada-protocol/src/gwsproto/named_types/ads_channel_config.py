@@ -14,13 +14,15 @@ from gwsproto.type_helpers.channel_config_base import (
 
 
 class AdsChannelConfig(ChannelConfigBase):
+    """Sema: https://schemas.electricity.works/types/ads.channel.config/001"""
+
     ChannelName: SpaceheatName
     TerminalBlockIdx: PositiveInt
     ThermistorDeviceType: str
     DataProcessingMethod: Optional[ThermistorDataMethod] = None
     DataProcessingDescription: Optional[str] = None
     TypeName: Literal["ads.channel.config"] = "ads.channel.config"
-    Version: Literal["000"] = "000"
+    Version: Literal["001"] = "001"
 
     model_config = ConfigDict(extra="allow", use_enum_values=True)
 

@@ -10,10 +10,12 @@ from gwsproto.type_helpers.channel_config_base import (
 
 
 class DfrConfig(ChannelConfigBase):
+    """Sema: https://schemas.electricity.works/types/dfr.config/001"""
+
     OutputIdx: PositiveInt
     InitialVoltsTimes100: StrictInt
     TypeName: Literal["dfr.config"] = "dfr.config"
-    Version: Literal["000"] = "000"
+    Version: Literal["001"] = "001"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

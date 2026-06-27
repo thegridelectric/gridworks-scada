@@ -21,7 +21,7 @@ from layout_gen.layout_db import LayoutDb
 class EgaugeChannelConfig(BaseModel):
     AboutNodeName: str
     EGaugeAddress: int
-    NameplatePowerW: int = 10
+    NameplatePowerW: int  # no default — the tlayout MUST declare it
     AsyncCaptureDelta: int = 2
     AsyncCapture: bool = True
     InPowerMetering: bool = False
@@ -36,7 +36,6 @@ class EgaugeChannelConfig(BaseModel):
             Name=self.AboutNodeName,
             ActorClass=ActorClass.NoActor,
             DisplayName=' '.join(word.capitalize() for word in self.AboutNodeName.split('-')),
-            InPowerMetering=self.InPowerMetering,
             NameplatePowerW=self.NameplatePowerW
         )
 
@@ -47,8 +46,6 @@ class EgaugeChannelConfig(BaseModel):
             CapturePeriodS=300,
             AsyncCapture=self.AsyncCapture,
             AsyncCaptureDelta=self.AsyncCaptureDelta,
-            Exponent=0,
-            Unit=SpaceheatUnit.W,
             EgaugeRegisterConfig=EgaugeRegisterConfig(
                                     Address=self.EGaugeAddress,
                                     Name=self.AboutNodeName,
@@ -134,7 +131,6 @@ def add_egauge(
             Name=cfg.AboutNodeName,
             ActorClass=ActorClass.NoActor,
             DisplayName=' '.join(word.capitalize() for word in cfg.AboutNodeName.split('-')),
-            InPowerMetering=cfg.InPowerMetering,
             NameplatePowerW=cfg.NameplatePowerW
         )
             for cfg in egauge.ChannelConfigs if not db.node_id_by_name(cfg.AboutNodeName)]
@@ -149,7 +145,6 @@ def add_egauge(
                 CapturedByNodeName=H0N.primary_power_meter,
                 TelemetryName=TelemetryName.PowerW,
                 Quantity=Quantity.Power,
-                InPowerMetering=cfg.InPowerMetering,
                 TerminalAssetAlias=db.terminal_asset_alias,
             )
             for cfg in egauge.ChannelConfigs

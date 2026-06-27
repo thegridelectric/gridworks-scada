@@ -130,6 +130,26 @@ class HydronicSpaceheatChannelNames:
 
 
 
+class FlowChannelNames:
+    """
+    Constructs SpaceheatName names for a flow meter at a position
+    (dist/primary/store/sieg): the Gpm channel (which equals the flow node name)
+    and the raw `-hz` channel.
+
+    self.flow == f"{position}-flow", self.flow_hz == f"{position}-flow-hz" — the
+    same values as the fixed HydronicSpaceheatChannelNames.dist_flow / dist_flow_hz
+    (etc.) attributes, in parametric form for a config-supplied position.
+    """
+
+    def __init__(self, position: str) -> None:
+        self.position = position
+        self.flow = f"{position}-flow"
+        self.flow_hz = f"{self.flow}-hz"
+
+    def __repr__(self) -> str:
+        return f"Flow channels {self.flow}, {self.flow_hz}"
+
+
 class TankChannelNames:
     """
     Constructs expected SpaceheatName names for a store tank's channels

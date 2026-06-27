@@ -104,7 +104,7 @@ EVENT_TO_STATE = {
 
 class RelayActorConfig(ChannelConfigBase):
     """
-    Sema: https://schemas.electricity.works/types/relay.actor.config/003
+    Sema: https://schemas.electricity.works/types/relay.actor.config/004
     """
 
     RelayIdx: PositiveInt
@@ -117,7 +117,7 @@ class RelayActorConfig(ChannelConfigBase):
     DeEnergizedState: str
     EnergizedState: str
     TypeName: Literal["relay.actor.config"] = "relay.actor.config"
-    Version: Literal["003"] = "003"
+    Version: Literal["004"] = "004"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

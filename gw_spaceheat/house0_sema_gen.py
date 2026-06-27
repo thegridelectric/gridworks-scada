@@ -165,10 +165,12 @@ from gwsproto.names.core.node_names import CoreNodeNames as Core
 from gwsproto.names.house0.channel_names import House0ChannelNames
 from gwsproto.names.house0.node_names import House0NodeNames
 from gwsproto.names.hydronic_spaceheat.channel_names import (
+    FlowChannelNames,
     HydronicSpaceheatChannelNames as HydC,
     HydronicSpaceheatZoneChannelNames,
 )
 from gwsproto.names.hydronic_spaceheat.node_names import (
+    FlowNodeNames,
     HydronicSpaceheatNodeNames as Hyd,
     HydronicSpaceheatZoneNodeNames,
 )
@@ -245,6 +247,12 @@ class House0SemaGenConfig:
     hubitat_mac: str = ""
     zone_device_ids: Sequence[int] = ()
     dfr_initial_volts_times_100: Sequence[int] = (20, 40, 0)  # dist / primary / store
+    # the transactive boundary (sim meter): the about-nodes whose PowerW channels
+    # are metered for transactive power. Each MUST carry a NameplatePowerW. No
+    # default — the layout must DECLARE its metered set (use gwsproto/names
+    # constants, e.g. [Hyd.hp_odu, Hyd.hp_idu]). The egauge meter declares the
+    # same set per-channel via PwrChannelSpec.in_power_metering instead.
+    transactive_about_nodes: Sequence[str] = ()
     # power meter: "sim" (GridworksSimPowerMeter) or "egauge" (real EgaugePowerMeter)
     power_meter_kind: str = "sim"
     egauge_modbus_host: str = ""
@@ -411,7 +419,7 @@ class House0SemaGen:
                 ConfigList=[
                     ElectricMeterChannelConfig(
                         ChannelName=s.channel, PollPeriodMs=1000, CapturePeriodS=300,
-                        AsyncCapture=True, AsyncCaptureDelta=s.async_capture_delta, Exponent=0, Unit=SpaceheatUnit.W,
+                        AsyncCapture=True, AsyncCaptureDelta=s.async_capture_delta,
                         EgaugeRegisterConfig=EgaugeRegisterConfig(
                             Address=s.address, Name=s.about_node, Denominator=1,
                             Description="change in value", Type="f32", Unit="W",
@@ -429,7 +437,7 @@ class House0SemaGen:
             )
         )
         for s in self.config.power_meter_channels:
-            kw = {"InPowerMetering": s.in_power_metering}
+            kw = {}
             if s.nameplate_w is not None:
                 kw["NameplatePowerW"] = s.nameplate_w
             self.sh_nodes.append(
@@ -444,10 +452,13 @@ class House0SemaGen:
                     Name=s.channel, DisplayName=s.channel.replace("-", " ").upper(),
                     AboutNodeName=s.about_node, CapturedByNodeName=Core.asset_power_meter,
                     TelemetryName=TelemetryName.PowerW, Quantity=Quantity.Power,
-                    InPowerMetering=s.in_power_metering, Id=self.channel_id(s.channel),
+                    Id=self.channel_id(s.channel),
                     TerminalAssetAlias=self.terminal_asset_alias,
                 )
             )
+        self.emit_transactive_power(
+            [s.channel for s in self.config.power_meter_channels if s.in_power_metering]
+        )
 
     def emit_sim_power_meter(self) -> None:
         """Sim power meter: device-type record, component, its 3 nodes
@@ -472,8 +483,6 @@ class House0SemaGen:
                 CapturePeriodS=300,
                 AsyncCapture=True,
                 AsyncCaptureDelta=delta,
-                Exponent=0,
-                Unit=SpaceheatUnit.W,
             )
 
         # per-zone whitewire-pwr: the heat-call POWER source (axiom 3). The sim meter
@@ -516,11 +525,11 @@ class House0SemaGen:
             ),
             SpaceheatNodeGt(
                 ShNodeId=self.node_id(Hyd.hp_odu), Name=Hyd.hp_odu, ActorClass=ActorClass.NoActor,
-                DisplayName="HP ODU", NameplatePowerW=6000, InPowerMetering=True,
+                DisplayName="HP ODU", NameplatePowerW=6000,
             ),
             SpaceheatNodeGt(
                 ShNodeId=self.node_id(Hyd.hp_idu), Name=Hyd.hp_idu, ActorClass=ActorClass.NoActor,
-                DisplayName="HP IDU", NameplatePowerW=4000, InPowerMetering=True,
+                DisplayName="HP IDU", NameplatePowerW=4000,
             ),
             SpaceheatNodeGt(
                 ShNodeId=self.node_id(Hyd.store_pump), Name=Hyd.store_pump,
@@ -534,7 +543,7 @@ class House0SemaGen:
             for ww_node, _ in zone_whitewires
         ]
 
-        def pwr_channel(name: str, about: str, in_metering: bool) -> DataChannelGt:
+        def pwr_channel(name: str, about: str) -> DataChannelGt:
             return DataChannelGt(
                 Name=name,
                 DisplayName=" ".join(p.upper() for p in name.split("-")),
@@ -542,18 +551,53 @@ class House0SemaGen:
                 CapturedByNodeName=Core.asset_power_meter,
                 TelemetryName=TelemetryName.PowerW,
                 Quantity=Quantity.Power,
-                InPowerMetering=in_metering,
                 Id=self.channel_id(name),
                 TerminalAssetAlias=self.terminal_asset_alias,
             )
 
         self.data_channels += [
-            pwr_channel(HydC.hp_odu_pwr, Hyd.hp_odu, True),
-            pwr_channel(HydC.hp_idu_pwr, Hyd.hp_idu, True),
-            pwr_channel(HydC.store_pump_pwr, Hyd.store_pump, False),
+            pwr_channel(HydC.hp_odu_pwr, Hyd.hp_odu),
+            pwr_channel(HydC.hp_idu_pwr, Hyd.hp_idu),
+            pwr_channel(HydC.store_pump_pwr, Hyd.store_pump),
         ] + [
-            pwr_channel(ww_chan, ww_node, False) for ww_node, ww_chan in zone_whitewires
+            pwr_channel(ww_chan, ww_node) for ww_node, ww_chan in zone_whitewires
         ]
+        # the metered set (the transactive boundary) is config-declared by
+        # about-node; emit_transactive_power requires each one carry NameplatePowerW.
+        transactive = set(self.config.transactive_about_nodes)
+        self.emit_transactive_power(
+            [c.Name for c in self.data_channels
+             if c.CapturedByNodeName == Core.asset_power_meter
+             and c.AboutNodeName in transactive]
+        )
+
+    def emit_transactive_power(self, input_channel_names: list[str]) -> None:
+        """Emit the layout's single transactive-power DerivedChannel — the metered
+        PowerW channels (the transactive boundary), computed by the power-meter
+        actor. The metered set is *declared* (egauge: per-channel InPowerMetering;
+        sim: config.transactive_about_nodes); here we REQUIRE each input's
+        about-node to carry a NameplatePowerW — a missing one is a layout-gen
+        error, mirroring the layout axiom."""
+        nameplate_by_node = {node.Name: node.NameplatePowerW for node in self.sh_nodes}
+        about_by_channel = {ch.Name: ch.AboutNodeName for ch in self.data_channels}
+        for name in input_channel_names:
+            about = about_by_channel.get(name)
+            if nameplate_by_node.get(about) is None:
+                raise ValueError(
+                    f"transactive-power input '{name}' about-node '{about}' "
+                    "has no NameplatePowerW (transactive nodes require a nameplate)"
+                )
+        self.derived_channels.append(
+            DerivedChannelGt(
+                Name=CoreC.transactive_power, DisplayName="Transactive Power W",
+                CreatedByNodeName=Core.asset_power_meter, Strategy="transactive-power",
+                InputChannelNames=list(input_channel_names),
+                OutputQuantity=Quantity.Power, OutputUnit=Unit.Watts,
+                EmissionMethod=EmissionMethod.OnTrigger,
+                Id=self.derived_channel_id(CoreC.transactive_power),
+                TerminalAssetAlias=self.terminal_asset_alias,
+            )
+        )
 
     def emit_relays(self) -> None:
         """The i2c Krida relay bank: the multichannel component, the
@@ -589,8 +633,6 @@ class House0SemaGen:
                     EnergizedState=k["energized"],
                     AsyncCapture=True,
                     AsyncCaptureDelta=1,
-                    Exponent=0,
-                    Unit=SpaceheatUnit.Unitless,
                 )
             )
             handle = (
@@ -717,11 +759,11 @@ class House0SemaGen:
                     DisplayName=poller_alias,
                     ConfigList=[
                         ChannelConfig(ChannelName=temp, PollPeriodMs=5000, CapturePeriodS=300,
-                                      AsyncCapture=True, AsyncCaptureDelta=1, Exponent=3, Unit=SpaceheatUnit.Fahrenheit),
+                                      AsyncCapture=True, AsyncCaptureDelta=1),
                         ChannelConfig(ChannelName=setp, PollPeriodMs=5000, CapturePeriodS=300,
-                                      AsyncCapture=False, Exponent=3, Unit=SpaceheatUnit.Fahrenheit),
+                                      AsyncCapture=False),
                         ChannelConfig(ChannelName=state, PollPeriodMs=5000, CapturePeriodS=300,
-                                      AsyncCapture=True, AsyncCaptureDelta=1, Exponent=0, Unit=SpaceheatUnit.ThermostatStateEnum),
+                                      AsyncCapture=True, AsyncCaptureDelta=1),
                     ],
                     Poller=HubitatPollerGt(
                         HubitatComponentId=hub_id, DeviceId=device_id,
@@ -774,15 +816,20 @@ class House0SemaGen:
         """The buffer + each storage tank as a pico tank module (sim or real):
         component (6 channel configs), the reader node, three depth nodes, and the
         device/micro-v DataChannels (all devices, then all micro-v, per tank)."""
-        readers = ["buffer"] + [f"tank{i}" for i in range(1, self.config.total_store_tanks + 1)]
+        n = self.config.n
+        cn = self.config.cn
+        # node/channel name helpers, buffer first then tank1..N (the reader order)
+        node_helpers = [Hyd.buffer] + [n.tanks[i] for i in range(1, self.config.total_store_tanks + 1)]
+        chan_helpers = [HydC.buffer] + [cn.tanks[i] for i in range(1, self.config.total_store_tanks + 1)]
         real = self.config.tank_kind == "real"
-        for ri, reader in enumerate(readers):
+        for ri, (nh, ch) in enumerate(zip(node_helpers, chan_helpers)):
+            reader = nh.reader
             disp = reader.capitalize()
-            device = [ChannelConfig(ChannelName=f"{reader}-depth{d}-device", CapturePeriodS=60,
-                                    AsyncCapture=True, AsyncCaptureDelta=2000, Exponent=3, Unit=SpaceheatUnit.Celcius)
+            device = [ChannelConfig(ChannelName=getattr(ch, f"depth{d}_device"), CapturePeriodS=60,
+                                    AsyncCapture=True, AsyncCaptureDelta=2000)
                       for d in (1, 2, 3)]
-            microv = [ChannelConfig(ChannelName=f"{reader}-depth{d}-micro-v", CapturePeriodS=60,
-                                    AsyncCapture=True, AsyncCaptureDelta=2000, Exponent=6, Unit=SpaceheatUnit.VoltsRms)
+            microv = [ChannelConfig(ChannelName=getattr(ch, f"depth{d}_micro_v"), CapturePeriodS=60,
+                                    AsyncCapture=True, AsyncCaptureDelta=2000)
                       for d in (1, 2, 3)]
             # real tank: all devices then all micro-v; sim tank: interleaved per depth
             if real:
@@ -824,20 +871,20 @@ class House0SemaGen:
                 )
             )
             for depth in (1, 2, 3):
-                dn = f"{reader}-depth{depth}"
+                dn = getattr(nh, f"depth{depth}")
                 self.sh_nodes.append(
                     SpaceheatNodeGt(ShNodeId=self.node_id(dn), Name=dn, ActorClass=ActorClass.NoActor, DisplayName=dn)
                 )
-            for kind, telemetry, quantity, suffix, unit_word in (
-                ("Device Temp", TelemetryName.WaterTempCTimes1000, Quantity.Temperature, "device", None),
-                ("MicroVolts", TelemetryName.MicroVolts, Quantity.Voltage, "micro-v", None),
+            for kind, telemetry, quantity, attr in (
+                ("Device Temp", TelemetryName.WaterTempCTimes1000, Quantity.Temperature, "device"),
+                ("MicroVolts", TelemetryName.MicroVolts, Quantity.Voltage, "micro_v"),
             ):
                 for depth in (1, 2, 3):
-                    name = f"{reader}-depth{depth}-{suffix}"
+                    name = getattr(ch, f"depth{depth}_{attr}")
                     self.data_channels.append(
                         DataChannelGt(
                             Name=name, DisplayName=f"{disp} Depth {depth} {kind}",
-                            AboutNodeName=f"{reader}-depth{depth}", CapturedByNodeName=reader,
+                            AboutNodeName=getattr(nh, f"depth{depth}"), CapturedByNodeName=reader,
                             TelemetryName=telemetry, Quantity=quantity,
                             Id=self.channel_id(name), TerminalAssetAlias=self.terminal_asset_alias,
                         )
@@ -849,8 +896,8 @@ class House0SemaGen:
         n = self.config.n
         alias = "DFRobot 010V output X 2"
         cid = self.component_id(alias)
-        outs = [("dist-010v", "Dist", Hyd.dist_010v), ("primary-010v", "Primary", Hyd.primary_010v),
-                ("store-010v", "Store", Hyd.store_010v)]
+        outs = [(HydC.dist_010v, "Dist", Hyd.dist_010v), (HydC.primary_010v, "Primary", Hyd.primary_010v),
+                (HydC.store_010v, "Store", Hyd.store_010v)]
         volts = list(self.config.dfr_initial_volts_times_100)
         self.components.append(
             DfrComponentGt(
@@ -858,7 +905,7 @@ class House0SemaGen:
                 I2cAddressList=[0x5E, 0x5F],
                 ConfigList=[
                     DfrConfig(ChannelName=chan, CapturePeriodS=300, AsyncCapture=True, AsyncCaptureDelta=1,
-                              Exponent=1, Unit=SpaceheatUnit.VoltsRms, OutputIdx=i + 1, InitialVoltsTimes100=volts[i])
+                              OutputIdx=i + 1, InitialVoltsTimes100=volts[i])
                     for i, (chan, _, _) in enumerate(outs)
                 ],
             )
@@ -914,9 +961,8 @@ class House0SemaGen:
                 ConfigList=[
                     AdsChannelConfig(
                         ChannelName=s.channel, AsyncCapture=True, AsyncCaptureDelta=500, CapturePeriodS=300,
-                        DataProcessingMethod=ThermistorDataMethod.BetaWithExponentialAveraging, Exponent=3,
+                        DataProcessingMethod=ThermistorDataMethod.BetaWithExponentialAveraging,
                         TerminalBlockIdx=s.terminal_block_idx, ThermistorDeviceType=DeviceType.TewaThermistor,
-                        Unit=SpaceheatUnit.Celcius,
                     )
                     for s in self.config.ads_channels
                 ],
@@ -950,7 +996,9 @@ class House0SemaGen:
         ApiFlowModule node, and the `*-flow` (Gpm) + `*-flow-hz` (MicroHz) channels."""
         n = self.config.n
         for f in self.config.flow_meters:
-            node = f"{f.position}-flow"
+            fc = FlowChannelNames(f.position)
+            node = FlowNodeNames(f.position).flow
+            hz = fc.flow_hz
             label = node.replace("-", " ").title()
             cid = self.component_id(f"{label} ReedFlowModule")
             self.components.append(
@@ -965,10 +1013,8 @@ class House0SemaGen:
                     PublishAnyTicklistAfterS=10, AsyncCaptureThresholdGpmTimes100=5,
                     PublishTicklistLength=10, ExpAlpha=0.5,
                     ConfigList=[
-                        ChannelConfig(ChannelName=node, CapturePeriodS=300, AsyncCapture=True,
-                                      Exponent=2, Unit=SpaceheatUnit.Gpm),
-                        ChannelConfig(ChannelName=f"{node}-hz", CapturePeriodS=300, AsyncCapture=True,
-                                      Exponent=6, Unit=SpaceheatUnit.VoltsRms),
+                        ChannelConfig(ChannelName=node, CapturePeriodS=300, AsyncCapture=True),
+                        ChannelConfig(ChannelName=hz, CapturePeriodS=300, AsyncCapture=True),
                     ],
                 )
             )
@@ -983,9 +1029,9 @@ class House0SemaGen:
                               CapturedByNodeName=node, TelemetryName=TelemetryName.GpmTimes100,
                               Quantity=Quantity.FlowRate, Id=self.channel_id(node),
                               TerminalAssetAlias=self.terminal_asset_alias),
-                DataChannelGt(Name=f"{node}-hz", DisplayName=f"{label} MicroHz", AboutNodeName=node,
+                DataChannelGt(Name=hz, DisplayName=f"{label} MicroHz", AboutNodeName=node,
                               CapturedByNodeName=node, TelemetryName=TelemetryName.MicroHz,
-                              Quantity=Quantity.Frequency, Id=self.channel_id(f"{node}-hz"),
+                              Quantity=Quantity.Frequency, Id=self.channel_id(hz),
                               TerminalAssetAlias=self.terminal_asset_alias),
             ]
 
@@ -1060,14 +1106,17 @@ class House0SemaGen:
                     TerminalAssetAlias=self.terminal_asset_alias,
                 )
             )
-        readers = ["buffer"] + [f"tank{i}" for i in range(1, self.config.total_store_tanks + 1)]
+        cn = self.config.cn
+        # channel-name helpers, buffer first then tank1..N (the reader order)
+        chan_helpers = [HydC.buffer] + [cn.tanks[i] for i in range(1, self.config.total_store_tanks + 1)]
         tanks = list(self.config.tanks)
-        for ri, reader in enumerate(readers):
+        for ri, ch in enumerate(chan_helpers):
+            reader = ch.reader
             # real tanks calibrate depths 1 & 3 affine (M·x + B), depth 2 identity;
             # sim tanks are identity throughout.
             spec = tanks[ri] if (self.config.tank_kind == "real" and ri < len(tanks)) else None
             for depth in (1, 2, 3):
-                name = f"{reader}-depth{depth}"
+                name = getattr(ch, f"depth{depth}")
                 affine = spec is not None and depth in (1, 3)
                 params = None
                 if affine:
@@ -1079,7 +1128,7 @@ class House0SemaGen:
                     DerivedChannelGt(
                         Name=name, DisplayName=f"{reader.capitalize()} Depth{depth} Effective Temperature",
                         CreatedByNodeName=Core.derived_generator, EmissionMethod=EmissionMethod.OnTrigger,
-                        InputChannelNames=[f"{name}-device"], OutputQuantity=Quantity.Temperature,
+                        InputChannelNames=[getattr(ch, f"depth{depth}_device")], OutputQuantity=Quantity.Temperature,
                         OutputUnit=Unit.FahrenheitX100, Strategy="affine" if affine else "identity",
                         Parameters=params,
                         Id=self.derived_channel_id(name), TerminalAssetAlias=self.terminal_asset_alias,

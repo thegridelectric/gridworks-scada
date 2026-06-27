@@ -94,7 +94,24 @@ class HydronicSpaceheatZoneNodeNames:
         self.whitewire=f"{self.zone}-whitewire"
 
 
-class TankNodeNames: 
+class FlowNodeNames:
+    """
+    Spaceheat Node name for a flow meter at a position (dist/primary/store/sieg).
+
+    self.flow == f"{position}-flow" (e.g. dist-flow), the same value as the fixed
+    HydronicSpaceheatNodeNames.dist_flow/primary_flow/store_flow attributes — this
+    is the parametric form for a config-supplied position.
+    """
+
+    def __init__(self, position: str) -> None:
+        self.position = position
+        self.flow = f"{position}-flow"
+
+    def __repr__(self) -> str:
+        return f"Flow node {self.flow}"
+
+
+class TankNodeNames:
     """
     Spaceheat Node names associated to the buffer"
 

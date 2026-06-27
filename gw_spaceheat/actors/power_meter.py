@@ -33,6 +33,17 @@ from gwsproto.data_classes.hardware_layout import HardwareLayout
 from scada_app_interface import ScadaAppInterface
 
 
+def transactive_power_input_names(hardware_layout: HardwareLayout) -> List[str]:
+    """The metered channel names declared by the layout's single
+    transactive-power DerivedChannel. The load-layout axiom guarantees exactly
+    one such channel, so the metered set is read from it (not from per-channel
+    flags)."""
+    for dc in hardware_layout.derived_channels.values():
+        if dc.Strategy == "transactive-power":
+            return list(dc.InputChannelNames)
+    raise ValueError("No transactive-power DerivedChannel in the layout")
+
+
 class HWUidMismatch(DriverWarning):
     expected: str
     got: str
@@ -113,11 +124,14 @@ class DriverThreadSetupHelper:
         return response_dict
 
     def get_transactive_nameplate_watts(self) -> Dict[DataChannel, int]:
+        """The transactive boundary's per-channel nameplate, read from the
+        layout's single transactive-power DerivedChannel: its InputChannelNames
+        are the metered channels, and each input's about_node carries the
+        NameplatePowerW (the load-layout axiom guarantees both)."""
         response_dict: Dict[DataChannel, int] = {}
-        for config in self.component.gt.ConfigList:
-            ch = self.hardware_layout.data_channels[config.ChannelName]
-            if ch.InPowerMetering:
-                response_dict[ch] = ch.about_node.NameplatePowerW
+        for name in transactive_power_input_names(self.hardware_layout):
+            ch = self.hardware_layout.data_channels[name]
+            response_dict[ch] = ch.about_node.NameplatePowerW
         return response_dict
 
 
@@ -162,6 +176,9 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         component: ElectricMeterComponent = typing.cast(ElectricMeterComponent, node.component)
         my_channel_names = [cfg.ChannelName for cfg in component.gt.ConfigList]
         self.my_channels = [hardware_layout.data_channels[name] for name in my_channel_names]
+        self.transactive_channel_names = set(
+            transactive_power_input_names(hardware_layout)
+        )
         self._validate_channels_with_component(component)
         self.last_reported_telemetry_value = {
             ch: None for ch in self.my_channels
@@ -344,7 +361,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         latest_power_list = [
             v
             for k, v in self.latest_telemetry_value.items()
-            if k in self.my_channels and k.InPowerMetering
+            if k in self.my_channels and k.Name in self.transactive_channel_names
         ]
         if None in latest_power_list:
             return None

@@ -8,10 +8,10 @@ from gwsproto.type_helpers.channel_config_base import (
 
 
 class ChannelConfig(ChannelConfigBase):
-    """Sema: https://schemas.electricity.works/types/channel.config/000"""
+    """Sema: https://schemas.electricity.works/types/channel.config/001"""
 
     TypeName: str = "channel.config"
-    Version: str = "000"
+    Version: str = "001"
 
 
     @model_validator(mode="after")

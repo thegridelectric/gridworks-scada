@@ -189,9 +189,14 @@ async def test_async_power_update(request: pytest.FixtureRequest):
                 "Scada wait for PowerWatts"
                 )
 
-        in_power_metering = set(filter(lambda x: x.InPowerMetering, data.layout.data_channels.values()))
+        transactive_channels = {
+            data.layout.data_channels[name]
+            for dc in data.layout.derived_channels.values()
+            if dc.Strategy == "transactive-power"
+            for name in dc.InputChannelNames
+        }
 
-        assert in_power_metering == {
+        assert transactive_channels == {
             data.layout.data_channels[H0CN.hp_idu_pwr],
             data.layout.data_channels[H0CN.hp_odu_pwr]
         }

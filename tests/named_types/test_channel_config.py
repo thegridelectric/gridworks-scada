@@ -1,4 +1,4 @@
-"""Tests channel.config type, version 000"""
+"""Tests channel.config type, version 001"""
 
 import pytest
 
@@ -12,10 +12,8 @@ def base_config() -> dict:
         "CapturePeriodS": 300,
         "AsyncCapture": True,
         "AsyncCaptureDelta": 1,
-        "Exponent": 0,
-        "Unit": "Unitless",
         "TypeName": "channel.config",
-        "Version": "000",
+        "Version": "001",
     }
 
 
@@ -56,10 +54,8 @@ def test_channel_config_no_async_capture_delta_axiom() -> None:
         "PollPeriodMs": 200,
         "CapturePeriodS": 300,
         "AsyncCapture": True,
-        "Exponent": 0,
-        "Unit": "Unitless",
         "TypeName": "channel.config",
-        "Version": "000",
+        "Version": "001",
     }
 
 
@@ -75,8 +71,6 @@ def test_channel_config_axiom_1_no_poll_period() -> None:
         "CapturePeriodS": 1,
         "AsyncCapture": True,
         "AsyncCaptureDelta": 1,
-        "Exponent": 0,
-        "Unit": "Unitless",
         "TypeName": "channel.config",
-        "Version": "000",
+        "Version": "001",
     }

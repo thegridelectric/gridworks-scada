@@ -10,12 +10,14 @@ from gwsproto.type_helpers.channel_config_base import (
 
 
 class I2cThermistorChannelConfig(ChannelConfigBase):
+    """Sema: https://schemas.electricity.works/types/i2c.thermistor.channel.config/002"""
+
     AdcChannel: Literal["P0", "P1", "P2", "P3"]
     SendToDerived: bool = False
     ThermistorBeta: PositiveInt
 
     TypeName: Literal["i2c.thermistor.channel.config"] = "i2c.thermistor.channel.config"
-    Version: Literal["001"] = "001"
+    Version: Literal["002"] = "002"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

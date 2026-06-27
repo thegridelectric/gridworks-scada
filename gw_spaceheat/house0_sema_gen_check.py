@@ -29,6 +29,7 @@ from house0_sema_gen import (
     strip_relay_idx,
 )
 from layout_roundtrip import _DUMP, _report_diff
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as Hyd
 
 
 def _to_new_convention(layout: dict) -> dict:
@@ -81,6 +82,7 @@ CONFIGS: dict[str, tuple[House0SemaGenConfig, Path]] = {
             use_sieg_loop=False,
             sieg_loop_plumbed=False,
             primary_flow_source="Measured",
+            transactive_about_nodes=[Hyd.hp_odu, Hyd.hp_idu],
             hubitat_host="192.168.0.1",
             hubitat_maker_api_id=1,
             hubitat_access_token="64a43fa4-0eb9-478f-ad2e-374bc9b7e51f",

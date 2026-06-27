@@ -27,7 +27,6 @@ from gwsproto.data_classes.data_channel import DataChannel
 from gwsproto.data_classes.resolver import ComponentResolver
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.data_classes.derived_channel import DerivedChannel
-from gwsproto.data_classes.telemetry_tuple import TelemetryTuple
 
 from gwsproto.enums import ActorClass, TelemetryName, Unit, EmissionMethod
 from gwsproto.named_types import (
@@ -408,23 +407,40 @@ class HardwareLayout:
 
     @classmethod
     def check_transactive_metering_consistency(
-        cls, nodes: dict[str, ShNode], data_channels: dict[str, DataChannel]
+        cls,
+        data_channels: dict[str, DataChannel],
+        derived_channels: dict[str, DerivedChannel],
     ) -> None:
-        transactive_nodes = {node for node in nodes.values() if node.InPowerMetering}
-        transactive_channels = {
-            dc for dc in data_channels.values() if dc.InPowerMetering
-        }
-        # Part 1: If a data channel is in transactive_channels, its about_node must be in transactive_nodes
-        for tc in transactive_channels:
-            if tc.about_node not in transactive_nodes:
+        """Transactive-power singularity + boundary binding.
+
+        The layout SHALL carry exactly one DerivedChannel with
+        Strategy "transactive-power". Its InputChannelNames are the metered
+        channels (the transactive boundary): each SHALL resolve to an existing
+        DataChannel whose about_node carries a NameplatePowerW. This replaces
+        the old per-node/per-channel InPowerMetering flags — the metered set is
+        now declared once, by the transactive-power DerivedChannel's inputs.
+        """
+        transactive = [
+            d for d in derived_channels.values()
+            if d.Strategy == "transactive-power"
+        ]
+        if len(transactive) != 1:
+            raise DcError(
+                "Layout SHALL have exactly one transactive-power DerivedChannel; "
+                f"found {len(transactive)}"
+            )
+        dc = transactive[0]
+        for name in dc.InputChannelNames:
+            ch = data_channels.get(name)
+            if ch is None:
                 raise DcError(
-                    f"Data channel {tc} has about_node {tc.about_node}, which does not have InPowerMetering!"
+                    f"transactive-power DerivedChannel '{dc.Name}' input '{name}' "
+                    "is not a known DataChannel"
                 )
-        # Check condition 2: If a node is in transactive_nodes, there must be a data channel with that node as about_node
-        for node in transactive_nodes:
-            if not any(tc for tc in transactive_channels if tc.about_node == node):
+            if ch.about_node.NameplatePowerW is None:
                 raise DcError(
-                    f"Node {node} is in transactive_nodes but no data channel with InPowerMetering has this node as about_node"
+                    f"transactive-power input '{name}' has about_node "
+                    f"'{ch.about_node.Name}' with no NameplatePowerW"
                 )
 
     @classmethod
@@ -747,6 +763,27 @@ class HardwareLayout:
                             "use EmissionMethod.OnTrigger"
                         )
 
+                case "transactive-power":
+                    # Produced by the power-meter actor (not derived-generator).
+                    # Its inputs are the metered PowerW channels (the transactive
+                    # boundary); layout-level singularity + nameplate binding is
+                    # enforced by check_transactive_metering_consistency.
+                    if not dc.InputChannelNames:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy "
+                            "'transactive-power' but declares no InputChannelNames"
+                        )
+                    if dc.OutputUnit != Unit.Watts:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy "
+                            "'transactive-power' but must use OutputUnit Watts"
+                        )
+                    if dc.EmissionMethod != EmissionMethod.OnTrigger:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy "
+                            "'transactive-power' but must use EmissionMethod.OnTrigger"
+                        )
+
                 case "integrate-relay-motion":
                     # Produced by the SiegLoop actor (not derived-generator); no
                     # derived-generator-side validation here.
@@ -813,6 +850,7 @@ class HardwareLayout:
         nodes = load_args["nodes"]
         components = load_args["components"]
         data_channels = load_args["data_channels"]
+        derived_channels = load_args["derived_channels"]
         errors_caught = []
         try:
             cls.check_node_unique_ids(nodes)
@@ -835,8 +873,8 @@ class HardwareLayout:
                 data_channels,
             )
             cls.check_transactive_metering_consistency(
-                nodes,
                 data_channels,
+                derived_channels,
             )
         except Exception as e:  # noqa: BLE001
             errors_caught.append(LoadError("data.channel.gt", data_channels, e))
@@ -1070,36 +1108,18 @@ class HardwareLayout:
         return my_scada_as_dict["GNodeId"]  # type: ignore[no-any-return]
 
     @cached_property
-    def all_telemetry_tuples_for_agg_power_metering(self) -> list[TelemetryTuple]:
-        telemetry_tuples = []
-        for node in self.all_nodes_in_agg_power_metering:
-            telemetry_tuples += [
-                TelemetryTuple(
-                    AboutNode=node,
-                    SensorNode=self.power_meter_node,
-                    TelemetryName=TelemetryName.PowerW,
-                )
-            ]
-        return telemetry_tuples
-
-    @cached_property
     def all_nodes_in_agg_power_metering(self) -> list[ShNode]:
-        """All nodes whose power level is metered and included in power reporting by the Scada"""
-        all_nodes = list(self.nodes.values())
-        return list(filter(lambda x: x.in_power_metering, all_nodes))
-
-    @cached_property
-    def all_power_meter_telemetry_tuples(self) -> list[TelemetryTuple]:
-        return [
-            TelemetryTuple(
-                AboutNode=self.nodes[
-                    self.data_channels[config.ChannelName].AboutNodeName
-                ],
-                SensorNode=self.power_meter_node,
-                TelemetryName=self.data_channels[config.ChannelName].TelemetryName,
-            )
-            for config in self.power_meter_component.gt.ConfigList
-        ]
+        """All nodes whose power is metered and included in power reporting by the
+        Scada — the about-nodes of the transactive-power DerivedChannel's inputs
+        (the metered set is declared once, by that channel)."""
+        metered_nodes = []
+        for dc in self.derived_channels.values():
+            if dc.Strategy == "transactive-power":
+                metered_nodes += [
+                    self.data_channels[name].about_node
+                    for name in dc.InputChannelNames
+                ]
+        return metered_nodes
 
     @cached_property
     def power_meter_node(self) -> ShNode:
@@ -1124,45 +1144,3 @@ class HardwareLayout:
             f" / {type(self.power_meter_component.device_type)} is not an ElectricMeterDeviceType"
         )
 
-    @cached_property
-    def all_multipurpose_telemetry_tuples(self) -> list[TelemetryTuple]:
-        multi_nodes = list(
-            filter(
-                lambda x: (
-                    x.actor_class
-                    in {
-                        ActorClass.MultipurposeSensor,
-                        ActorClass.HubitatTankModule,
-                        ActorClass.HubitatPoller,
-                        ActorClass.HoneywellThermostat,
-                    }
-                ),
-                self.nodes.values(),
-            )
-        )
-        telemetry_tuples: list[TelemetryTuple] = []
-        for node in multi_nodes:
-            if node.component is not None and (
-                channels := [
-                    self.data_channels[cfg.ChannelName]
-                    for cfg in node.component.gt.ConfigList
-                ]
-            ):
-                telemetry_tuples.extend(
-                    TelemetryTuple(
-                        AboutNode=ch.about_node,
-                        SensorNode=ch.captured_by_node,
-                        TelemetryName=ch.TelemetryName,
-                    )
-                    for ch in channels
-                )
-        return telemetry_tuples
-
-    @cached_property
-    def my_telemetry_tuples(self) -> list[TelemetryTuple]:
-        """This will include telemetry tuples from all the multipurpose sensors, the most
-        important of which is the power meter."""
-        return (
-            self.all_power_meter_telemetry_tuples
-            + self.all_multipurpose_telemetry_tuples
-        )

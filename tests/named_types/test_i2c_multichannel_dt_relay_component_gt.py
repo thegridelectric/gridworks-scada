@@ -17,13 +17,11 @@ def base_relay_config(actor_name: str, relay_idx: int, channel_name: str) -> dic
         "EnergizedState": "RelayOpen",
         "EnergizingEvent": "OpenRelay",
         "EventType": "change.relay.state",
-        "Exponent": 0,
         "PollPeriodMs": 200,
         "RelayIdx": relay_idx,
         "StateType": "relay.closed.or.open",
         "TypeName": "relay.actor.config",
-        "Unit": "Unitless",
-        "Version": "003",
+        "Version": "004",
         "WiringConfig": "NormallyClosed",
     }
 

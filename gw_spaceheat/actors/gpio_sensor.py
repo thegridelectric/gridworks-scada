@@ -10,7 +10,7 @@ from gwproactor.message import PatInternalWatchdogMessage
 
 from actors.sh_node_actor import ShNodeActor
 
-from gwsproto.enums import GpioSenseMode, Unit
+from gwsproto.enums import GpioSenseMode
 from gwsproto.data_classes.components import (
     Gw108GpioSensorComponent
 )
@@ -46,8 +46,6 @@ class GpioSensor(ShNodeActor):
         self.gpio_pin = self.component.gt.GpioPin
         self.send_to_derived = self.component.gt.SendToDerived
         self.cfg = self.component.gt.ConfigList[0] # must have exacty 1
-        if self.cfg.Unit != Unit.Unitless:
-            raise ValueError(f"unit for GpioSensor is unitless, not {self.cfg.Unit}")
         self.channel_name = self.cfg.ChannelName
         self.prev_value: int = 0
         self.latest_value: int = 0

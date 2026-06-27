@@ -252,15 +252,21 @@ def print_channels(layout: House0Layout, *, raise_errors: bool = False) -> None:
         table.add_column("About", header_style="bold dark_orange", style="dark_orange")
         table.add_column("Capturer", header_style="bold dark_orange", style="dark_orange")
         table.add_column("Telemetry", header_style="bold green1", style="green1")
-        table.add_column("Power", header_style="bold red", style="red")
+        table.add_column("Transactive", header_style="bold red", style="red")
 
+        transactive_names = {
+            name
+            for dc in layout.derived_channels.values()
+            if dc.Strategy == "transactive-power"
+            for name in dc.InputChannelNames
+        }
         for channel in layout.data_channels.values():
             table.add_row(
                 Text(channel.Name),
                 Text(channel.AboutNodeName),
                 Text(channel.CapturedByNodeName),
                 Text(channel.TelemetryName),
-                Text("✔" if channel.InPowerMetering else ""),
+                Text("✔" if channel.Name in transactive_names else ""),
             )
         print(table)
     except Exception as e: # noqa

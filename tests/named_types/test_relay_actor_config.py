@@ -1,4 +1,4 @@
-"""Tests relay.actor.config type, version 003"""
+"""Tests relay.actor.config type, version 004"""
 
 import pytest
 
@@ -12,8 +12,6 @@ def base_config() -> dict:
         "CapturePeriodS": 300,
         "AsyncCapture": True,
         "AsyncCaptureDelta": 1,
-        "Exponent": 0,
-        "Unit": "Unitless",
         "RelayIdx": 6,
         "ActorName": "relay6",
         "WiringConfig": "NormallyClosed",
@@ -24,7 +22,7 @@ def base_config() -> dict:
         "DeEnergizedState": "RelayClosed",
         "EnergizedState": "RelayOpen",
         "TypeName": "relay.actor.config",
-        "Version": "003",
+        "Version": "004",
     }
 
 

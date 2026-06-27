@@ -6,19 +6,17 @@ from gwsproto.enums import TempCalcMethod
 from gwsproto.named_types import I2cThermistorReaderComponentGt
 
 
-def base_config(channel_name: str, adc_channel: str, unit: str) -> dict:
+def base_config(channel_name: str, adc_channel: str) -> dict:
     return {
         "ChannelName": channel_name,
         "CapturePeriodS": 60,
         "AsyncCapture": True,
         "AsyncCaptureDelta": 2000,
-        "Exponent": 3 if unit == "Celcius" else 6,
-        "Unit": unit,
         "AdcChannel": adc_channel,
         "SendToDerived": False,
         "ThermistorBeta": 3977,
         "TypeName": "i2c.thermistor.channel.config",
-        "Version": "001",
+        "Version": "002",
     }
 
 
@@ -27,8 +25,8 @@ def base_component() -> dict:
         "ComponentId": "bd65556c-2ca4-499d-ad25-57767a785685",
         "DeviceType": "GridworksScadaGw108",
         "ConfigList": [
-            base_config("tank1-depth1-device", "P0", "Celcius"),
-            base_config("tank1-depth1-micro-v", "P0", "VoltsRms"),
+            base_config("tank1-depth1-device", "P0"),
+            base_config("tank1-depth1-micro-v", "P0"),
         ],
         "Bus": "primary-scada-i2c",
         "AdcAddress": 73,
@@ -52,16 +50,7 @@ def test_i2c_thermistor_reader_component_gt_channel_name_uniqueness() -> None:
     d = base_component()
     d["ConfigList"][1]["ChannelName"] = "tank1-depth1-device"
 
-    with pytest.raises(ValueError, match="Duplicate ChannelName"):
-        I2cThermistorReaderComponentGt.model_validate(d)
-
-
-def test_i2c_thermistor_reader_component_gt_single_celcius_per_adc() -> None:
-    d = base_component()
-    d["ConfigList"][1]["Unit"] = "Celcius"
-    d["ConfigList"][1]["Exponent"] = 3
-
-    with pytest.raises(ValueError, match="Multiple Celcius configs"):
+    with pytest.raises(ValueError, match="Channel names must be unique"):
         I2cThermistorReaderComponentGt.model_validate(d)
 
 

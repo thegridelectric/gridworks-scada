@@ -1,8 +1,7 @@
 from typing import TypeVar
 
-from pydantic import BaseModel, ConfigDict, PositiveInt, StrictInt
+from pydantic import BaseModel, ConfigDict, PositiveInt
 
-from gwsproto.enums import SpaceheatUnit
 from gwsproto.property_format import SpaceheatName
 
 
@@ -12,8 +11,6 @@ class ChannelConfigBase(BaseModel):
     CapturePeriodS: PositiveInt
     AsyncCapture: bool
     AsyncCaptureDelta: PositiveInt | None = None
-    Exponent: StrictInt
-    Unit: SpaceheatUnit
 
     model_config = ConfigDict(use_enum_values=True)
 

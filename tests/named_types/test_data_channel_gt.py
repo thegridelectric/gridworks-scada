@@ -1,4 +1,4 @@
-"""Tests data.channel.gt type, version 002"""
+"""Tests data.channel.gt type, version 003"""
 
 import pytest
 
@@ -16,7 +16,7 @@ def test_data_channel_gt_generated() -> None:
         "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
         "Id": "b0ab5bc7-7b9f-4ed2-8e93-1f8ca5f5f2d0",
         "TypeName": "data.channel.gt",
-        "Version": "002",
+        "Version": "003",
     }
 
     d2 = DataChannelGt.model_validate(d).model_dump(exclude_none=True)
@@ -25,25 +25,8 @@ def test_data_channel_gt_generated() -> None:
 
 
 def test_data_channel_gt_axiom_1() -> None:
-    d = {
-        "Name": "dist-pump-pwr",
-        "DisplayName": "Dist Pump Pwr",
-        "AboutNodeName": "dist-pump",
-        "CapturedByNodeName": "power-meter",
-        "TelemetryName": "GpmTimes100",
-        "Quantity": "FlowRate",
-        "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
-        "InPowerMetering": True,
-        "Id": "b0ab5bc7-7b9f-4ed2-8e93-1f8ca5f5f2d0",
-        "TypeName": "data.channel.gt",
-        "Version": "002",
-    }
-
-    with pytest.raises(ValueError, match="Axiom 1 violated!"):
-        DataChannelGt.model_validate(d)
-
-
-def test_data_channel_gt_axiom_2() -> None:
+    """Axiom 1: TelemetryQuantityConsistency (Quantity must match the
+    canonical projection for TelemetryName)."""
     d = {
         "Name": "dist-pump-pwr",
         "DisplayName": "Dist Pump Pwr",
@@ -54,8 +37,8 @@ def test_data_channel_gt_axiom_2() -> None:
         "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
         "Id": "b0ab5bc7-7b9f-4ed2-8e93-1f8ca5f5f2d0",
         "TypeName": "data.channel.gt",
-        "Version": "002",
+        "Version": "003",
     }
 
-    with pytest.raises(ValueError, match="Axiom 2 violated!"):
+    with pytest.raises(ValueError, match="Axiom 1 violated!"):
         DataChannelGt.model_validate(d)

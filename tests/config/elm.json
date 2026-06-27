@@ -9,12 +9,10 @@
           "CapturePeriodS": 300,
           "ChannelName": "dist-swt",
           "DataProcessingMethod": "BetaWithExponentialAveraging",
-          "Exponent": 3,
           "TerminalBlockIdx": 1,
           "ThermistorDeviceType": "TewaThermistor",
           "TypeName": "ads.channel.config",
-          "Unit": "Celcius",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
@@ -22,12 +20,10 @@
           "CapturePeriodS": 300,
           "ChannelName": "dist-rwt",
           "DataProcessingMethod": "BetaWithExponentialAveraging",
-          "Exponent": 3,
           "TerminalBlockIdx": 2,
           "ThermistorDeviceType": "TewaThermistor",
           "TypeName": "ads.channel.config",
-          "Unit": "Celcius",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
@@ -35,12 +31,10 @@
           "CapturePeriodS": 300,
           "ChannelName": "hp-lwt",
           "DataProcessingMethod": "BetaWithExponentialAveraging",
-          "Exponent": 3,
           "TerminalBlockIdx": 3,
           "ThermistorDeviceType": "TewaThermistor",
           "TypeName": "ads.channel.config",
-          "Unit": "Celcius",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
@@ -48,12 +42,10 @@
           "CapturePeriodS": 300,
           "ChannelName": "hp-ewt",
           "DataProcessingMethod": "BetaWithExponentialAveraging",
-          "Exponent": 3,
           "TerminalBlockIdx": 4,
           "ThermistorDeviceType": "TewaThermistor",
           "TypeName": "ads.channel.config",
-          "Unit": "Celcius",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
@@ -61,12 +53,10 @@
           "CapturePeriodS": 300,
           "ChannelName": "store-hot-pipe",
           "DataProcessingMethod": "BetaWithExponentialAveraging",
-          "Exponent": 3,
           "TerminalBlockIdx": 5,
           "ThermistorDeviceType": "TewaThermistor",
           "TypeName": "ads.channel.config",
-          "Unit": "Celcius",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
@@ -74,12 +64,10 @@
           "CapturePeriodS": 300,
           "ChannelName": "store-cold-pipe",
           "DataProcessingMethod": "BetaWithExponentialAveraging",
-          "Exponent": 3,
           "TerminalBlockIdx": 6,
           "ThermistorDeviceType": "TewaThermistor",
           "TypeName": "ads.channel.config",
-          "Unit": "Celcius",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
@@ -87,12 +75,10 @@
           "CapturePeriodS": 300,
           "ChannelName": "buffer-hot-pipe",
           "DataProcessingMethod": "BetaWithExponentialAveraging",
-          "Exponent": 3,
           "TerminalBlockIdx": 7,
           "ThermistorDeviceType": "TewaThermistor",
           "TypeName": "ads.channel.config",
-          "Unit": "Celcius",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
@@ -100,12 +86,10 @@
           "CapturePeriodS": 300,
           "ChannelName": "buffer-cold-pipe",
           "DataProcessingMethod": "BetaWithExponentialAveraging",
-          "Exponent": 3,
           "TerminalBlockIdx": 8,
           "ThermistorDeviceType": "TewaThermistor",
           "TypeName": "ads.channel.config",
-          "Unit": "Celcius",
-          "Version": "000"
+          "Version": "001"
         }
       ],
       "DeviceType": "GridworksTsnap1ScadaBoard",
@@ -131,7 +115,7 @@
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "relay2",
@@ -143,7 +127,7 @@
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "relay3",
@@ -155,7 +139,7 @@
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "relay5",
@@ -167,7 +151,7 @@
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "relay6",
@@ -179,7 +163,7 @@
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "relay7",
@@ -191,7 +175,7 @@
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "relay8",
@@ -203,7 +187,7 @@
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "relay9",
@@ -215,7 +199,7 @@
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "relay12",
@@ -227,7 +211,7 @@
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "relay11",
@@ -239,7 +223,7 @@
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "relay14",
@@ -251,7 +235,7 @@
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "relay15",
@@ -263,7 +247,7 @@
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "relay17",
@@ -275,7 +259,7 @@
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "relay18",
@@ -287,7 +271,7 @@
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "relay19",
@@ -299,7 +283,7 @@
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "relay20",
@@ -311,7 +295,7 @@
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "relay21",
@@ -323,7 +307,7 @@
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "relay22",
@@ -335,7 +319,7 @@
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "relay23",
@@ -347,7 +331,7 @@
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "relay24",
@@ -359,7 +343,7 @@
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "dist-010v",
@@ -371,7 +355,7 @@
       "TelemetryName": "VoltsTimesTen",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "primary-010v",
@@ -383,7 +367,7 @@
       "TelemetryName": "VoltsTimesTen",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "store-010v",
@@ -395,137 +379,127 @@
       "TelemetryName": "VoltsTimesTen",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "hp-odu",
       "CapturedByNodeName": "power-meter",
       "DisplayName": "HP ODU PWR",
       "Id": "8bc11768-c974-410d-8e58-7cc7b5f3adab",
-      "InPowerMetering": true,
       "Name": "hp-odu-pwr",
       "Quantity": "Power",
       "TelemetryName": "PowerW",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "hp-idu",
       "CapturedByNodeName": "power-meter",
       "DisplayName": "HP IDU PWR",
       "Id": "b9e7972c-a60f-404b-8ea7-1a8a2ebf2e68",
-      "InPowerMetering": true,
       "Name": "hp-idu-pwr",
       "Quantity": "Power",
       "TelemetryName": "PowerW",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "oil-boiler",
       "CapturedByNodeName": "power-meter",
       "DisplayName": "OIL BOILER PWR",
       "Id": "2551a8c4-ba5d-4354-b329-0dbe193548e8",
-      "InPowerMetering": false,
       "Name": "oil-boiler-pwr",
       "Quantity": "Power",
       "TelemetryName": "PowerW",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "dist-pump",
       "CapturedByNodeName": "power-meter",
       "DisplayName": "DIST PUMP PWR",
       "Id": "8b1fbd53-7203-45b9-b485-f837a81bd430",
-      "InPowerMetering": false,
       "Name": "dist-pump-pwr",
       "Quantity": "Power",
       "TelemetryName": "PowerW",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "primary-pump",
       "CapturedByNodeName": "power-meter",
       "DisplayName": "PRIMARY PUMP PWR",
       "Id": "8d065ed3-4fbe-4782-a9ef-0b48dc0cca03",
-      "InPowerMetering": false,
       "Name": "primary-pump-pwr",
       "Quantity": "Power",
       "TelemetryName": "PowerW",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "store-pump",
       "CapturedByNodeName": "power-meter",
       "DisplayName": "STORE PUMP PWR",
       "Id": "41474905-a530-4db8-ae1f-8fc736cd8fd3",
-      "InPowerMetering": false,
       "Name": "store-pump-pwr",
       "Quantity": "Power",
       "TelemetryName": "PowerW",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "zone1-living-kitchen-whitewire",
       "CapturedByNodeName": "power-meter",
       "DisplayName": "ZONE1 LIVING KITCHEN WHITEWIRE PWR",
       "Id": "8cfeb062-2052-44d9-afee-bf316ee9ac97",
-      "InPowerMetering": false,
       "Name": "zone1-living-kitchen-whitewire-pwr",
       "Quantity": "Power",
       "TelemetryName": "PowerW",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "zone2-bedrooms-whitewire",
       "CapturedByNodeName": "power-meter",
       "DisplayName": "ZONE2 BEDROOMS WHITEWIRE PWR",
       "Id": "53e1c176-2f79-4792-b792-b85e8dfaf454",
-      "InPowerMetering": false,
       "Name": "zone2-bedrooms-whitewire-pwr",
       "Quantity": "Power",
       "TelemetryName": "PowerW",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "zone3-garage-whitewire",
       "CapturedByNodeName": "power-meter",
       "DisplayName": "ZONE3 GARAGE WHITEWIRE PWR",
       "Id": "bad41d02-ff5e-4d18-9333-50bfd5795305",
-      "InPowerMetering": false,
       "Name": "zone3-garage-whitewire-pwr",
       "Quantity": "Power",
       "TelemetryName": "PowerW",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "zone4-master-bedrm-whitewire",
       "CapturedByNodeName": "power-meter",
       "DisplayName": "ZONE4 MASTER BEDRM WHITEWIRE PWR",
       "Id": "773c7221-cb0b-4bca-9866-3d5946a7ab29",
-      "InPowerMetering": false,
       "Name": "zone4-master-bedrm-whitewire-pwr",
       "Quantity": "Power",
       "TelemetryName": "PowerW",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "dist-flow",
@@ -537,7 +511,7 @@
       "TelemetryName": "GpmTimes100",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "dist-flow",
@@ -549,7 +523,7 @@
       "TelemetryName": "MicroHz",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "store-flow",
@@ -561,7 +535,7 @@
       "TelemetryName": "GpmTimes100",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "store-flow",
@@ -573,7 +547,7 @@
       "TelemetryName": "MicroHz",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "primary-flow",
@@ -585,7 +559,7 @@
       "TelemetryName": "GpmTimes100",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "primary-flow",
@@ -597,7 +571,7 @@
       "TelemetryName": "MicroHz",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "buffer-depth1",
@@ -609,7 +583,7 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "buffer-depth2",
@@ -621,7 +595,7 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "buffer-depth3",
@@ -633,7 +607,7 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "buffer-depth1",
@@ -645,7 +619,7 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "buffer-depth2",
@@ -657,7 +631,7 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "buffer-depth3",
@@ -669,7 +643,7 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "tank1-depth1",
@@ -681,7 +655,7 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "tank1-depth2",
@@ -693,7 +667,7 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "tank1-depth3",
@@ -705,7 +679,7 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "tank1-depth1",
@@ -717,7 +691,7 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "tank1-depth2",
@@ -729,7 +703,7 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "tank1-depth3",
@@ -741,7 +715,7 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "tank2-depth1",
@@ -753,7 +727,7 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "tank2-depth2",
@@ -765,7 +739,7 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "tank2-depth3",
@@ -777,7 +751,7 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "tank2-depth1",
@@ -789,7 +763,7 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "tank2-depth2",
@@ -801,7 +775,7 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "tank2-depth3",
@@ -813,7 +787,7 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "tank3-depth1",
@@ -825,7 +799,7 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "tank3-depth2",
@@ -837,7 +811,7 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "tank3-depth3",
@@ -849,7 +823,7 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "tank3-depth1",
@@ -861,7 +835,7 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "tank3-depth2",
@@ -873,7 +847,7 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "tank3-depth3",
@@ -885,7 +859,7 @@
       "TelemetryName": "MicroVolts",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "zone1-living-kitchen",
@@ -897,7 +871,7 @@
       "TelemetryName": "AirTempFTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "zone1-living-kitchen-stat",
@@ -909,7 +883,7 @@
       "TelemetryName": "AirTempFTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "zone1-living-kitchen-stat",
@@ -921,7 +895,7 @@
       "TelemetryName": "ThermostatState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "zone2-bedrooms",
@@ -933,7 +907,7 @@
       "TelemetryName": "AirTempFTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "zone2-bedrooms-stat",
@@ -945,7 +919,7 @@
       "TelemetryName": "AirTempFTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "zone2-bedrooms-stat",
@@ -957,7 +931,7 @@
       "TelemetryName": "ThermostatState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "zone3-garage",
@@ -969,7 +943,7 @@
       "TelemetryName": "AirTempFTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "zone3-garage-stat",
@@ -981,7 +955,7 @@
       "TelemetryName": "AirTempFTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "zone3-garage-stat",
@@ -993,7 +967,7 @@
       "TelemetryName": "ThermostatState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "zone4-master-bedrm",
@@ -1005,7 +979,7 @@
       "TelemetryName": "AirTempFTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "zone4-master-bedrm-stat",
@@ -1017,7 +991,7 @@
       "TelemetryName": "AirTempFTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "zone4-master-bedrm-stat",
@@ -1029,7 +1003,7 @@
       "TelemetryName": "ThermostatState",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "dist-swt",
@@ -1041,7 +1015,7 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "dist-rwt",
@@ -1053,7 +1027,7 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "hp-lwt",
@@ -1065,7 +1039,7 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "hp-ewt",
@@ -1077,7 +1051,7 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "store-hot-pipe",
@@ -1089,7 +1063,7 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "store-cold-pipe",
@@ -1101,7 +1075,7 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "buffer-hot-pipe",
@@ -1113,7 +1087,7 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     },
     {
       "AboutNodeName": "buffer-cold-pipe",
@@ -1125,7 +1099,7 @@
       "TelemetryName": "WaterTempCTimes1000",
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "data.channel.gt",
-      "Version": "002"
+      "Version": "003"
     }
   ],
   "DerivedChannels": [
@@ -1378,6 +1352,23 @@
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
       "TypeName": "derived.channel.gt",
       "Version": "002"
+    },
+    {
+      "Id": "e52ca8ce-4632-4253-b6b6-432c88a3c0f1",
+      "Name": "transactive-power",
+      "CreatedByNodeName": "power-meter",
+      "Strategy": "transactive-power",
+      "InputChannelNames": [
+        "hp-odu-pwr",
+        "hp-idu-pwr"
+      ],
+      "OutputUnit": "Watts",
+      "OutputQuantity": "Power",
+      "EmissionMethod": "OnTrigger",
+      "DisplayName": "Transactive Power W",
+      "TerminalAssetAlias": "hw1.isone.me.versant.keene.elm.ta",
+      "TypeName": "derived.channel.gt",
+      "Version": "002"
     }
   ],
   "DeviceTypes": [
@@ -1428,11 +1419,9 @@
             "Unit": "W",
             "Version": "000"
           },
-          "Exponent": 0,
           "PollPeriodMs": 1000,
           "TypeName": "electric.meter.channel.config",
-          "Unit": "W",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
@@ -1449,11 +1438,9 @@
             "Unit": "W",
             "Version": "000"
           },
-          "Exponent": 0,
           "PollPeriodMs": 1000,
           "TypeName": "electric.meter.channel.config",
-          "Unit": "W",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
@@ -1470,11 +1457,9 @@
             "Unit": "W",
             "Version": "000"
           },
-          "Exponent": 0,
           "PollPeriodMs": 1000,
           "TypeName": "electric.meter.channel.config",
-          "Unit": "W",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
@@ -1491,11 +1476,9 @@
             "Unit": "W",
             "Version": "000"
           },
-          "Exponent": 0,
           "PollPeriodMs": 1000,
           "TypeName": "electric.meter.channel.config",
-          "Unit": "W",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
@@ -1512,11 +1495,9 @@
             "Unit": "W",
             "Version": "000"
           },
-          "Exponent": 0,
           "PollPeriodMs": 1000,
           "TypeName": "electric.meter.channel.config",
-          "Unit": "W",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
@@ -1533,11 +1514,9 @@
             "Unit": "W",
             "Version": "000"
           },
-          "Exponent": 0,
           "PollPeriodMs": 1000,
           "TypeName": "electric.meter.channel.config",
-          "Unit": "W",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
@@ -1554,11 +1533,9 @@
             "Unit": "W",
             "Version": "000"
           },
-          "Exponent": 0,
           "PollPeriodMs": 1000,
           "TypeName": "electric.meter.channel.config",
-          "Unit": "W",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
@@ -1575,11 +1552,9 @@
             "Unit": "W",
             "Version": "000"
           },
-          "Exponent": 0,
           "PollPeriodMs": 1000,
           "TypeName": "electric.meter.channel.config",
-          "Unit": "W",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
@@ -1596,11 +1571,9 @@
             "Unit": "W",
             "Version": "000"
           },
-          "Exponent": 0,
           "PollPeriodMs": 1000,
           "TypeName": "electric.meter.channel.config",
-          "Unit": "W",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
@@ -1617,11 +1590,9 @@
             "Unit": "W",
             "Version": "000"
           },
-          "Exponent": 0,
           "PollPeriodMs": 1000,
           "TypeName": "electric.meter.channel.config",
-          "Unit": "W",
-          "Version": "000"
+          "Version": "001"
         }
       ],
       "DeviceType": "EgaugePowerMeter",
@@ -1719,13 +1690,11 @@
           "EnergizedState": "RelayOpen",
           "EnergizingEvent": "OpenRelay",
           "EventType": "change.relay.state",
-          "Exponent": 0,
           "PollPeriodMs": 200,
           "RelayIdx": 1,
           "StateType": "relay.closed.or.open",
           "TypeName": "relay.actor.config",
-          "Unit": "Unitless",
-          "Version": "003",
+          "Version": "004",
           "WiringConfig": "NormallyClosed"
         },
         {
@@ -1739,13 +1708,11 @@
           "EnergizedState": "RelayOpen",
           "EnergizingEvent": "OpenRelay",
           "EventType": "change.relay.state",
-          "Exponent": 0,
           "PollPeriodMs": 200,
           "RelayIdx": 2,
           "StateType": "relay.closed.or.open",
           "TypeName": "relay.actor.config",
-          "Unit": "Unitless",
-          "Version": "003",
+          "Version": "004",
           "WiringConfig": "NormallyClosed"
         },
         {
@@ -1759,13 +1726,11 @@
           "EnergizedState": "ChargingStore",
           "EnergizingEvent": "ChargeStore",
           "EventType": "change.store.flow.relay",
-          "Exponent": 0,
           "PollPeriodMs": 200,
           "RelayIdx": 3,
           "StateType": "store.flow.relay",
           "TypeName": "relay.actor.config",
-          "Unit": "Unitless",
-          "Version": "003",
+          "Version": "004",
           "WiringConfig": "NormallyOpen"
         },
         {
@@ -1779,13 +1744,11 @@
           "EnergizedState": "Scada",
           "EnergizingEvent": "SwitchToScada",
           "EventType": "change.heat.pump.control",
-          "Exponent": 0,
           "PollPeriodMs": 200,
           "RelayIdx": 5,
           "StateType": "heat.pump.control",
           "TypeName": "relay.actor.config",
-          "Unit": "Unitless",
-          "Version": "003",
+          "Version": "004",
           "WiringConfig": "DoubleThrow"
         },
         {
@@ -1799,13 +1762,11 @@
           "EnergizedState": "RelayOpen",
           "EnergizingEvent": "OpenRelay",
           "EventType": "change.relay.state",
-          "Exponent": 0,
           "PollPeriodMs": 200,
           "RelayIdx": 6,
           "StateType": "relay.closed.or.open",
           "TypeName": "relay.actor.config",
-          "Unit": "Unitless",
-          "Version": "003",
+          "Version": "004",
           "WiringConfig": "NormallyClosed"
         },
         {
@@ -1819,13 +1780,11 @@
           "EnergizedState": "RelayOpen",
           "EnergizingEvent": "OpenRelay",
           "EventType": "change.relay.state",
-          "Exponent": 0,
           "PollPeriodMs": 200,
           "RelayIdx": 7,
           "StateType": "relay.closed.or.open",
           "TypeName": "relay.actor.config",
-          "Unit": "Unitless",
-          "Version": "003",
+          "Version": "004",
           "WiringConfig": "NormallyClosed"
         },
         {
@@ -1839,13 +1798,11 @@
           "EnergizedState": "Scada",
           "EnergizingEvent": "SwitchToScada",
           "EventType": "change.aquastat.control",
-          "Exponent": 0,
           "PollPeriodMs": 200,
           "RelayIdx": 8,
           "StateType": "aquastat.control.state",
           "TypeName": "relay.actor.config",
-          "Unit": "Unitless",
-          "Version": "003",
+          "Version": "004",
           "WiringConfig": "DoubleThrow"
         },
         {
@@ -1859,13 +1816,11 @@
           "EnergizedState": "RelayClosed",
           "EnergizingEvent": "CloseRelay",
           "EventType": "change.relay.state",
-          "Exponent": 0,
           "PollPeriodMs": 200,
           "RelayIdx": 9,
           "StateType": "relay.closed.or.open",
           "TypeName": "relay.actor.config",
-          "Unit": "Unitless",
-          "Version": "003",
+          "Version": "004",
           "WiringConfig": "NormallyOpen"
         },
         {
@@ -1879,13 +1834,11 @@
           "EnergizedState": "Scada",
           "EnergizingEvent": "SwitchToScada",
           "EventType": "change.primary.pump.control",
-          "Exponent": 0,
           "PollPeriodMs": 200,
           "RelayIdx": 12,
           "StateType": "primary.pump.control",
           "TypeName": "relay.actor.config",
-          "Unit": "Unitless",
-          "Version": "003",
+          "Version": "004",
           "WiringConfig": "DoubleThrow"
         },
         {
@@ -1899,13 +1852,11 @@
           "EnergizedState": "RelayClosed",
           "EnergizingEvent": "CloseRelay",
           "EventType": "change.relay.state",
-          "Exponent": 0,
           "PollPeriodMs": 200,
           "RelayIdx": 11,
           "StateType": "relay.closed.or.open",
           "TypeName": "relay.actor.config",
-          "Unit": "Unitless",
-          "Version": "003",
+          "Version": "004",
           "WiringConfig": "NormallyOpen"
         },
         {
@@ -1919,13 +1870,11 @@
           "EnergizedState": "RelayOpen",
           "EnergizingEvent": "OpenRelay",
           "EventType": "change.relay.state",
-          "Exponent": 0,
           "PollPeriodMs": 200,
           "RelayIdx": 14,
           "StateType": "relay.closed.or.open",
           "TypeName": "relay.actor.config",
-          "Unit": "Unitless",
-          "Version": "003",
+          "Version": "004",
           "WiringConfig": "NormallyClosed"
         },
         {
@@ -1939,13 +1888,11 @@
           "EnergizedState": "SendLess",
           "EnergizingEvent": "ChangeToKeepMore",
           "EventType": "change.keep.send",
-          "Exponent": 0,
           "PollPeriodMs": 200,
           "RelayIdx": 15,
           "StateType": "hp.loop.keep.send",
           "TypeName": "relay.actor.config",
-          "Unit": "Unitless",
-          "Version": "003",
+          "Version": "004",
           "WiringConfig": "DoubleThrow"
         },
         {
@@ -1959,13 +1906,11 @@
           "EnergizedState": "Scada",
           "EnergizingEvent": "SwitchToScada",
           "EventType": "change.heatcall.source",
-          "Exponent": 0,
           "PollPeriodMs": 200,
           "RelayIdx": 17,
           "StateType": "heatcall.source",
           "TypeName": "relay.actor.config",
-          "Unit": "Unitless",
-          "Version": "003",
+          "Version": "004",
           "WiringConfig": "DoubleThrow"
         },
         {
@@ -1979,13 +1924,11 @@
           "EnergizedState": "RelayClosed",
           "EnergizingEvent": "CloseRelay",
           "EventType": "change.relay.state",
-          "Exponent": 0,
           "PollPeriodMs": 200,
           "RelayIdx": 18,
           "StateType": "relay.closed.or.open",
           "TypeName": "relay.actor.config",
-          "Unit": "Unitless",
-          "Version": "003",
+          "Version": "004",
           "WiringConfig": "NormallyOpen"
         },
         {
@@ -1999,13 +1942,11 @@
           "EnergizedState": "Scada",
           "EnergizingEvent": "SwitchToScada",
           "EventType": "change.heatcall.source",
-          "Exponent": 0,
           "PollPeriodMs": 200,
           "RelayIdx": 19,
           "StateType": "heatcall.source",
           "TypeName": "relay.actor.config",
-          "Unit": "Unitless",
-          "Version": "003",
+          "Version": "004",
           "WiringConfig": "DoubleThrow"
         },
         {
@@ -2019,13 +1960,11 @@
           "EnergizedState": "RelayClosed",
           "EnergizingEvent": "CloseRelay",
           "EventType": "change.relay.state",
-          "Exponent": 0,
           "PollPeriodMs": 200,
           "RelayIdx": 20,
           "StateType": "relay.closed.or.open",
           "TypeName": "relay.actor.config",
-          "Unit": "Unitless",
-          "Version": "003",
+          "Version": "004",
           "WiringConfig": "NormallyOpen"
         },
         {
@@ -2039,13 +1978,11 @@
           "EnergizedState": "Scada",
           "EnergizingEvent": "SwitchToScada",
           "EventType": "change.heatcall.source",
-          "Exponent": 0,
           "PollPeriodMs": 200,
           "RelayIdx": 21,
           "StateType": "heatcall.source",
           "TypeName": "relay.actor.config",
-          "Unit": "Unitless",
-          "Version": "003",
+          "Version": "004",
           "WiringConfig": "DoubleThrow"
         },
         {
@@ -2059,13 +1996,11 @@
           "EnergizedState": "RelayClosed",
           "EnergizingEvent": "CloseRelay",
           "EventType": "change.relay.state",
-          "Exponent": 0,
           "PollPeriodMs": 200,
           "RelayIdx": 22,
           "StateType": "relay.closed.or.open",
           "TypeName": "relay.actor.config",
-          "Unit": "Unitless",
-          "Version": "003",
+          "Version": "004",
           "WiringConfig": "NormallyOpen"
         },
         {
@@ -2079,13 +2014,11 @@
           "EnergizedState": "Scada",
           "EnergizingEvent": "SwitchToScada",
           "EventType": "change.heatcall.source",
-          "Exponent": 0,
           "PollPeriodMs": 200,
           "RelayIdx": 23,
           "StateType": "heatcall.source",
           "TypeName": "relay.actor.config",
-          "Unit": "Unitless",
-          "Version": "003",
+          "Version": "004",
           "WiringConfig": "DoubleThrow"
         },
         {
@@ -2099,13 +2032,11 @@
           "EnergizedState": "RelayClosed",
           "EnergizingEvent": "CloseRelay",
           "EventType": "change.relay.state",
-          "Exponent": 0,
           "PollPeriodMs": 200,
           "RelayIdx": 24,
           "StateType": "relay.closed.or.open",
           "TypeName": "relay.actor.config",
-          "Unit": "Unitless",
-          "Version": "003",
+          "Version": "004",
           "WiringConfig": "NormallyOpen"
         }
       ],
@@ -2142,36 +2073,30 @@
           "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "dist-010v",
-          "Exponent": 1,
           "InitialVoltsTimes100": 35,
           "OutputIdx": 1,
           "TypeName": "dfr.config",
-          "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "primary-010v",
-          "Exponent": 1,
           "InitialVoltsTimes100": 35,
           "OutputIdx": 2,
           "TypeName": "dfr.config",
-          "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "store-010v",
-          "Exponent": 1,
           "InitialVoltsTimes100": 35,
           "OutputIdx": 3,
           "TypeName": "dfr.config",
-          "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "001"
         }
       ],
       "DeviceType": "DfrobotDualAnalogOut",
@@ -2191,19 +2116,15 @@
           "AsyncCapture": true,
           "CapturePeriodS": 300,
           "ChannelName": "dist-flow",
-          "Exponent": 2,
           "TypeName": "channel.config",
-          "Unit": "Gpm",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "CapturePeriodS": 300,
           "ChannelName": "dist-flow-hz",
-          "Exponent": 6,
           "TypeName": "channel.config",
-          "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "001"
         }
       ],
       "ConstantGallonsPerTick": 0.0009,
@@ -2234,19 +2155,15 @@
           "AsyncCapture": true,
           "CapturePeriodS": 300,
           "ChannelName": "store-flow",
-          "Exponent": 2,
           "TypeName": "channel.config",
-          "Unit": "Gpm",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "CapturePeriodS": 300,
           "ChannelName": "store-flow-hz",
-          "Exponent": 6,
           "TypeName": "channel.config",
-          "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "001"
         }
       ],
       "ConstantGallonsPerTick": 0.0009,
@@ -2277,19 +2194,15 @@
           "AsyncCapture": true,
           "CapturePeriodS": 300,
           "ChannelName": "primary-flow",
-          "Exponent": 2,
           "TypeName": "channel.config",
-          "Unit": "Gpm",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "CapturePeriodS": 300,
           "ChannelName": "primary-flow-hz",
-          "Exponent": 6,
           "TypeName": "channel.config",
-          "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "001"
         }
       ],
       "ConstantGallonsPerTick": 0.0009,
@@ -2321,60 +2234,48 @@
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "buffer-depth1-device",
-          "Exponent": 3,
           "TypeName": "channel.config",
-          "Unit": "Celcius",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "buffer-depth2-device",
-          "Exponent": 3,
           "TypeName": "channel.config",
-          "Unit": "Celcius",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "buffer-depth3-device",
-          "Exponent": 3,
           "TypeName": "channel.config",
-          "Unit": "Celcius",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "buffer-depth1-micro-v",
-          "Exponent": 6,
           "TypeName": "channel.config",
-          "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "buffer-depth2-micro-v",
-          "Exponent": 6,
           "TypeName": "channel.config",
-          "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "buffer-depth3-micro-v",
-          "Exponent": 6,
           "TypeName": "channel.config",
-          "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "001"
         }
       ],
       "DeviceType": "GridworksTankModule3",
@@ -2399,60 +2300,48 @@
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank1-depth1-device",
-          "Exponent": 3,
           "TypeName": "channel.config",
-          "Unit": "Celcius",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank1-depth2-device",
-          "Exponent": 3,
           "TypeName": "channel.config",
-          "Unit": "Celcius",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank1-depth3-device",
-          "Exponent": 3,
           "TypeName": "channel.config",
-          "Unit": "Celcius",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank1-depth1-micro-v",
-          "Exponent": 6,
           "TypeName": "channel.config",
-          "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank1-depth2-micro-v",
-          "Exponent": 6,
           "TypeName": "channel.config",
-          "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank1-depth3-micro-v",
-          "Exponent": 6,
           "TypeName": "channel.config",
-          "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "001"
         }
       ],
       "DeviceType": "GridworksTankModule3",
@@ -2477,60 +2366,48 @@
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank2-depth1-device",
-          "Exponent": 3,
           "TypeName": "channel.config",
-          "Unit": "Celcius",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank2-depth2-device",
-          "Exponent": 3,
           "TypeName": "channel.config",
-          "Unit": "Celcius",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank2-depth3-device",
-          "Exponent": 3,
           "TypeName": "channel.config",
-          "Unit": "Celcius",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank2-depth1-micro-v",
-          "Exponent": 6,
           "TypeName": "channel.config",
-          "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank2-depth2-micro-v",
-          "Exponent": 6,
           "TypeName": "channel.config",
-          "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank2-depth3-micro-v",
-          "Exponent": 6,
           "TypeName": "channel.config",
-          "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "001"
         }
       ],
       "DeviceType": "GridworksTankModule3",
@@ -2555,60 +2432,48 @@
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank3-depth1-device",
-          "Exponent": 3,
           "TypeName": "channel.config",
-          "Unit": "Celcius",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank3-depth2-device",
-          "Exponent": 3,
           "TypeName": "channel.config",
-          "Unit": "Celcius",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank3-depth3-device",
-          "Exponent": 3,
           "TypeName": "channel.config",
-          "Unit": "Celcius",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank3-depth1-micro-v",
-          "Exponent": 6,
           "TypeName": "channel.config",
-          "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank3-depth2-micro-v",
-          "Exponent": 6,
           "TypeName": "channel.config",
-          "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank3-depth3-micro-v",
-          "Exponent": 6,
           "TypeName": "channel.config",
-          "Unit": "VoltsRms",
-          "Version": "000"
+          "Version": "001"
         }
       ],
       "DeviceType": "GridworksTankModule3",
@@ -2650,32 +2515,26 @@
           "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "zone1-living-kitchen-temp",
-          "Exponent": 3,
           "PollPeriodMs": 5000,
           "TypeName": "channel.config",
-          "Unit": "Fahrenheit",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": false,
           "CapturePeriodS": 300,
           "ChannelName": "zone1-living-kitchen-set",
-          "Exponent": 3,
           "PollPeriodMs": 5000,
           "TypeName": "channel.config",
-          "Unit": "Fahrenheit",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "zone1-living-kitchen-state",
-          "Exponent": 0,
           "PollPeriodMs": 5000,
           "TypeName": "channel.config",
-          "Unit": "ThermostatStateEnum",
-          "Version": "000"
+          "Version": "001"
         }
       ],
       "DeviceType": "HoneywellT6Thermostat",
@@ -2750,32 +2609,26 @@
           "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "zone2-bedrooms-temp",
-          "Exponent": 3,
           "PollPeriodMs": 5000,
           "TypeName": "channel.config",
-          "Unit": "Fahrenheit",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": false,
           "CapturePeriodS": 300,
           "ChannelName": "zone2-bedrooms-set",
-          "Exponent": 3,
           "PollPeriodMs": 5000,
           "TypeName": "channel.config",
-          "Unit": "Fahrenheit",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "zone2-bedrooms-state",
-          "Exponent": 0,
           "PollPeriodMs": 5000,
           "TypeName": "channel.config",
-          "Unit": "ThermostatStateEnum",
-          "Version": "000"
+          "Version": "001"
         }
       ],
       "DeviceType": "HoneywellT6Thermostat",
@@ -2850,32 +2703,26 @@
           "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "zone3-garage-temp",
-          "Exponent": 3,
           "PollPeriodMs": 5000,
           "TypeName": "channel.config",
-          "Unit": "Fahrenheit",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": false,
           "CapturePeriodS": 300,
           "ChannelName": "zone3-garage-set",
-          "Exponent": 3,
           "PollPeriodMs": 5000,
           "TypeName": "channel.config",
-          "Unit": "Fahrenheit",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "zone3-garage-state",
-          "Exponent": 0,
           "PollPeriodMs": 5000,
           "TypeName": "channel.config",
-          "Unit": "ThermostatStateEnum",
-          "Version": "000"
+          "Version": "001"
         }
       ],
       "DeviceType": "HoneywellT6Thermostat",
@@ -2950,32 +2797,26 @@
           "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "zone4-master-bedrm-temp",
-          "Exponent": 3,
           "PollPeriodMs": 5000,
           "TypeName": "channel.config",
-          "Unit": "Fahrenheit",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": false,
           "CapturePeriodS": 300,
           "ChannelName": "zone4-master-bedrm-set",
-          "Exponent": 3,
           "PollPeriodMs": 5000,
           "TypeName": "channel.config",
-          "Unit": "Fahrenheit",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 1,
           "CapturePeriodS": 300,
           "ChannelName": "zone4-master-bedrm-state",
-          "Exponent": 0,
           "PollPeriodMs": 5000,
           "TypeName": "channel.config",
-          "Unit": "ThermostatStateEnum",
-          "Version": "000"
+          "Version": "001"
         }
       ],
       "DeviceType": "HoneywellT6Thermostat",
@@ -3050,7 +2891,7 @@
       "Name": "s",
       "ShNodeId": "6be1b2dc-fc0c-4119-b6c8-38264ce0b960",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "SecondaryScada",
@@ -3058,7 +2899,7 @@
       "Name": "s2",
       "ShNodeId": "1fe2406a-4410-4d6c-a9e8-d19ee4c61562",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3067,7 +2908,7 @@
       "Name": "admin",
       "ShNodeId": "e7e025f1-8344-416b-9ffb-61d4e88f1e03",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3076,7 +2917,7 @@
       "Name": "auto",
       "ShNodeId": "18707206-3675-4427-96ab-386eaaefe329",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3084,7 +2925,7 @@
       "Name": "ltn",
       "ShNodeId": "017ba2ed-1f67-4356-a64b-00e0c558523b",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "LeafAlly",
@@ -3094,7 +2935,7 @@
       "Name": "la",
       "ShNodeId": "5d53de39-2b7f-4bdd-98f9-c67a824e7fde",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "PicoCycler",
@@ -3104,7 +2945,7 @@
       "Name": "pico-cycler",
       "ShNodeId": "ea04ffe5-c81c-41aa-8ec8-88116839620e",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "DerivedGenerator",
@@ -3113,7 +2954,7 @@
       "Name": "derived-generator",
       "ShNodeId": "3d4e1195-cd17-4ee9-9169-03c9f31b0182",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "LocalControl",
@@ -3123,7 +2964,7 @@
       "Name": "lc",
       "ShNodeId": "0e5c8ae8-a2a0-4d91-8f73-e4092dc26fb0",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3132,7 +2973,7 @@
       "Name": "n",
       "ShNodeId": "800ef75e-cc01-4b65-9228-19af0f080be6",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3141,7 +2982,7 @@
       "Name": "backup",
       "ShNodeId": "0e48854a-b2c8-41e2-a5c4-1364bd68f1cd",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3150,7 +2991,7 @@
       "Name": "scada-blind",
       "ShNodeId": "9610c4b6-c32a-4acf-8357-1ec7ee4a7390",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "HpBoss",
@@ -3160,7 +3001,7 @@
       "Name": "hp-boss",
       "ShNodeId": "2f8d0349-ff8c-4927-9ebc-8884018b1333",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "I2cRelayMultiplexer",
@@ -3170,7 +3011,7 @@
       "Name": "relay-multiplexer",
       "ShNodeId": "2e50b312-e2a8-4e2e-bc4a-cc2b60d32dea",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "Relay",
@@ -3181,7 +3022,7 @@
       "Name": "relay1",
       "ShNodeId": "419e6658-9c62-4bb9-8806-fa797ba9c7d2",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "Relay",
@@ -3192,7 +3033,7 @@
       "Name": "relay2",
       "ShNodeId": "478c7dba-3cf3-4035-b61c-c3b31607bf26",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "Relay",
@@ -3203,7 +3044,7 @@
       "Name": "relay3",
       "ShNodeId": "bd10e4db-df0f-46da-bd05-9523e319d9ac",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "Relay",
@@ -3214,7 +3055,7 @@
       "Name": "relay5",
       "ShNodeId": "9f664c92-a529-4c19-bb97-90edf4445d44",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "Relay",
@@ -3225,7 +3066,7 @@
       "Name": "relay6",
       "ShNodeId": "ee4909ea-221e-4476-a00e-35d26bbac4f0",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "Relay",
@@ -3236,7 +3077,7 @@
       "Name": "relay7",
       "ShNodeId": "f7436e97-a589-41b4-b42f-5111202c78a9",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "Relay",
@@ -3247,7 +3088,7 @@
       "Name": "relay8",
       "ShNodeId": "a569a4c3-fc14-4429-9ab5-1f835da47dcf",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "Relay",
@@ -3258,7 +3099,7 @@
       "Name": "relay9",
       "ShNodeId": "0d4608cb-fe6b-424e-b229-0c30c26461d9",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "Relay",
@@ -3269,7 +3110,7 @@
       "Name": "relay12",
       "ShNodeId": "2d8769ef-f80c-4bff-988e-8143f962e929",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "Relay",
@@ -3280,7 +3121,7 @@
       "Name": "relay11",
       "ShNodeId": "186ecf29-a511-4964-a28f-f00a91235c7d",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "Relay",
@@ -3291,7 +3132,7 @@
       "Name": "relay14",
       "ShNodeId": "c1c97adc-8579-48f0-89c4-3875d1d445e2",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "Relay",
@@ -3302,7 +3143,7 @@
       "Name": "relay15",
       "ShNodeId": "9c45ef0b-ce81-49a2-b8e0-1fac235836a4",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "Relay",
@@ -3313,7 +3154,7 @@
       "Name": "relay17",
       "ShNodeId": "98428e3b-60cc-46e5-8d49-38c81e38af45",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "Relay",
@@ -3324,7 +3165,7 @@
       "Name": "relay18",
       "ShNodeId": "f9a7f920-ba85-4431-bf84-e8aa7a3268d4",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "Relay",
@@ -3335,7 +3176,7 @@
       "Name": "relay19",
       "ShNodeId": "4034de31-0e62-4e45-8624-1f4d27e0b285",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "Relay",
@@ -3346,7 +3187,7 @@
       "Name": "relay20",
       "ShNodeId": "4436129b-de90-403c-8444-3f95801eeada",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "Relay",
@@ -3357,7 +3198,7 @@
       "Name": "relay21",
       "ShNodeId": "039af0c5-b32b-4246-8e06-c01b4c8da464",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "Relay",
@@ -3368,7 +3209,7 @@
       "Name": "relay22",
       "ShNodeId": "8cb58662-fe1f-470d-ade2-abd83859e5e5",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "Relay",
@@ -3379,7 +3220,7 @@
       "Name": "relay23",
       "ShNodeId": "5f08c6a1-b521-4911-8414-14a9615d694a",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "Relay",
@@ -3390,7 +3231,7 @@
       "Name": "relay24",
       "ShNodeId": "14db6747-e4ae-4cd5-8836-666f79c11b54",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "I2cZeroTenMultiplexer",
@@ -3400,7 +3241,7 @@
       "Name": "zero-ten-multiplexer",
       "ShNodeId": "d61726e1-16e6-4a5d-82b8-1f5edc306d8e",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "ZeroTenOutputer",
@@ -3410,7 +3251,7 @@
       "Name": "dist-010v",
       "ShNodeId": "77900736-042a-4cf3-a4dc-900096afa4c9",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "ZeroTenOutputer",
@@ -3420,7 +3261,7 @@
       "Name": "primary-010v",
       "ShNodeId": "a33bd3ba-6052-4672-8900-ffce7033c839",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "ZeroTenOutputer",
@@ -3430,7 +3271,7 @@
       "Name": "store-010v",
       "ShNodeId": "9bbc6f1a-6154-4ad6-a6df-f95c42db9be1",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "PowerMeter",
@@ -3440,107 +3281,97 @@
       "Name": "power-meter",
       "ShNodeId": "bc48c79c-bf20-46c9-9e31-91568c0e82db",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
       "DisplayName": "Hp Odu",
-      "InPowerMetering": true,
       "Name": "hp-odu",
       "NameplatePowerW": 6000,
       "ShNodeId": "fd9b3a34-f7c5-442a-a499-9e0e18901168",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
       "DisplayName": "Hp Idu",
-      "InPowerMetering": true,
       "Name": "hp-idu",
       "NameplatePowerW": 4000,
       "ShNodeId": "5bf92758-6a9e-4d54-b7e6-2e91edeace6b",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
       "DisplayName": "Oil Boiler",
-      "InPowerMetering": false,
       "Name": "oil-boiler",
       "NameplatePowerW": 10,
       "ShNodeId": "ed07a81c-8d50-4919-bbc5-7db63078105e",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
       "DisplayName": "Dist Pump",
-      "InPowerMetering": false,
       "Name": "dist-pump",
       "NameplatePowerW": 10,
       "ShNodeId": "2f2c7141-35bc-4b71-bde6-ef17011b629b",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
       "DisplayName": "Primary Pump",
-      "InPowerMetering": false,
       "Name": "primary-pump",
       "NameplatePowerW": 10,
       "ShNodeId": "980cab0f-33f2-40c9-b2eb-4401d5db8a29",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
       "DisplayName": "Store Pump",
-      "InPowerMetering": false,
       "Name": "store-pump",
       "NameplatePowerW": 10,
       "ShNodeId": "18eb60c8-2b04-4f09-baa6-d675460a1a9e",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
       "DisplayName": "Zone1 Living Kitchen Whitewire",
-      "InPowerMetering": false,
       "Name": "zone1-living-kitchen-whitewire",
       "NameplatePowerW": 10,
       "ShNodeId": "17ade1c3-e5e8-4999-8e51-363e0e681678",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
       "DisplayName": "Zone2 Bedrooms Whitewire",
-      "InPowerMetering": false,
       "Name": "zone2-bedrooms-whitewire",
       "NameplatePowerW": 10,
       "ShNodeId": "2f865757-9e0b-4c1c-9a97-fd0e966c0c9f",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
       "DisplayName": "Zone3 Garage Whitewire",
-      "InPowerMetering": false,
       "Name": "zone3-garage-whitewire",
       "NameplatePowerW": 10,
       "ShNodeId": "3509d18a-fe5a-4620-8fc2-54ae9c2d164e",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
       "DisplayName": "Zone4 Master Bedrm Whitewire",
-      "InPowerMetering": false,
       "Name": "zone4-master-bedrm-whitewire",
       "NameplatePowerW": 10,
       "ShNodeId": "0bcccd91-0e8f-4fc8-ac02-70e762dca1c1",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "ApiFlowModule",
@@ -3550,7 +3381,7 @@
       "Name": "dist-flow",
       "ShNodeId": "5bf14719-879a-46a5-9bd4-cb5f55f15245",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "ApiFlowModule",
@@ -3560,7 +3391,7 @@
       "Name": "store-flow",
       "ShNodeId": "d45dbff8-aa55-403b-a827-f62203fa5bdc",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "ApiFlowModule",
@@ -3570,7 +3401,7 @@
       "Name": "primary-flow",
       "ShNodeId": "cae849fd-e54a-4fc7-ba94-478708793e9c",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "ApiTankModule",
@@ -3580,7 +3411,7 @@
       "Name": "buffer",
       "ShNodeId": "c7273526-3dba-44ea-bd4f-c3cc3f10f134",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3588,7 +3419,7 @@
       "Name": "buffer-depth1",
       "ShNodeId": "a7236332-c1d0-402e-8c33-31488369fab0",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3596,7 +3427,7 @@
       "Name": "buffer-depth2",
       "ShNodeId": "786e68d0-3275-4694-b413-62865cbf3e5a",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3604,7 +3435,7 @@
       "Name": "buffer-depth3",
       "ShNodeId": "1dbacbd2-239b-4ade-b304-e718c17c0773",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "ApiTankModule",
@@ -3614,7 +3445,7 @@
       "Name": "tank1",
       "ShNodeId": "41b05f40-27ee-4cbc-ba61-5dff662c3c4b",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3622,7 +3453,7 @@
       "Name": "tank1-depth1",
       "ShNodeId": "a6588ca6-f136-4ebd-a215-94ec4609ecb2",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3630,7 +3461,7 @@
       "Name": "tank1-depth2",
       "ShNodeId": "47a1aa37-cb69-4a42-b705-457335992de8",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3638,7 +3469,7 @@
       "Name": "tank1-depth3",
       "ShNodeId": "876f48ab-30a5-49dc-84f5-f3504242e40e",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "ApiTankModule",
@@ -3648,7 +3479,7 @@
       "Name": "tank2",
       "ShNodeId": "07daa4d0-2f8f-4ca1-a07a-f95add037175",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3656,7 +3487,7 @@
       "Name": "tank2-depth1",
       "ShNodeId": "00e3fa5c-3108-4c67-8bac-8cd48ebf7f88",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3664,7 +3495,7 @@
       "Name": "tank2-depth2",
       "ShNodeId": "a765dcb9-f217-438b-bd0b-e73880e18a70",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3672,7 +3503,7 @@
       "Name": "tank2-depth3",
       "ShNodeId": "8ed34fbc-9461-4924-a28a-6723ab064437",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "ApiTankModule",
@@ -3682,7 +3513,7 @@
       "Name": "tank3",
       "ShNodeId": "c0191e9d-ae40-4edb-920b-c5cb7e247c12",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3690,7 +3521,7 @@
       "Name": "tank3-depth1",
       "ShNodeId": "b5083d03-ec67-4762-97a4-8bdeb78957c2",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3698,7 +3529,7 @@
       "Name": "tank3-depth2",
       "ShNodeId": "692cbf21-6ebc-4254-96d0-5db52de914e9",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3706,7 +3537,7 @@
       "Name": "tank3-depth3",
       "ShNodeId": "699266f0-ca04-4c2c-9e9f-72be960d0ec5",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "Hubitat",
@@ -3716,7 +3547,7 @@
       "Name": "hubitat",
       "ShNodeId": "fce7ecb7-0318-45db-98d6-6b4801b31852",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "HoneywellThermostat",
@@ -3726,7 +3557,7 @@
       "Name": "zone1-living-kitchen-stat",
       "ShNodeId": "ac0a9770-98e8-4df1-a49b-f79581562514",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3734,7 +3565,7 @@
       "Name": "zone1-living-kitchen",
       "ShNodeId": "9e349dd9-0608-494e-a1d4-cbcb9cb8eb03",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "HoneywellThermostat",
@@ -3744,7 +3575,7 @@
       "Name": "zone2-bedrooms-stat",
       "ShNodeId": "aaa4e726-e14c-4b12-b3b9-1bb6fc0536fc",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3752,7 +3583,7 @@
       "Name": "zone2-bedrooms",
       "ShNodeId": "27791cd7-3a0e-4989-82f0-4c12015c1073",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "HoneywellThermostat",
@@ -3762,7 +3593,7 @@
       "Name": "zone3-garage-stat",
       "ShNodeId": "8bc3d280-59ab-401a-8cf5-f22ecfc136ef",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3770,7 +3601,7 @@
       "Name": "zone3-garage",
       "ShNodeId": "41084ea8-91e4-431a-aafc-cc28003b440f",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "HoneywellThermostat",
@@ -3780,7 +3611,7 @@
       "Name": "zone4-master-bedrm-stat",
       "ShNodeId": "35746928-cbf1-4d28-ba02-fb7dade909b4",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3788,7 +3619,7 @@
       "Name": "zone4-master-bedrm",
       "ShNodeId": "8aa9282c-4a31-4235-add6-9f69bd50d49e",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "MultipurposeSensor",
@@ -3798,7 +3629,7 @@
       "Name": "analog-temp",
       "ShNodeId": "dc040b89-6676-4a96-a65b-2f92e4b8abea",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3806,7 +3637,7 @@
       "Name": "dist-swt",
       "ShNodeId": "b72c4fb1-419c-437b-86bb-c5e38647f1d2",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3814,7 +3645,7 @@
       "Name": "dist-rwt",
       "ShNodeId": "898735a6-1b27-4659-a187-f28d60587f1e",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3822,7 +3653,7 @@
       "Name": "hp-lwt",
       "ShNodeId": "00edd2fe-b29f-49f8-8614-bd6b749622a6",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3830,7 +3661,7 @@
       "Name": "hp-ewt",
       "ShNodeId": "37f8fc1f-9df9-47ba-be3e-30ef3090d376",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3838,7 +3669,7 @@
       "Name": "store-hot-pipe",
       "ShNodeId": "6f7c6719-b0ea-4a8d-a12a-55a66a1171f1",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3846,7 +3677,7 @@
       "Name": "store-cold-pipe",
       "ShNodeId": "88fa55f0-8f65-4d17-9e11-ca3e02ba9af5",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3854,7 +3685,7 @@
       "Name": "buffer-hot-pipe",
       "ShNodeId": "d071932e-75c2-4360-9689-a517b3856b70",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -3862,7 +3693,7 @@
       "Name": "buffer-cold-pipe",
       "ShNodeId": "7a07127d-1de4-433a-8e62-17e9cd9dbf6f",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "303"
     }
   ],
   "SynthChannels": []

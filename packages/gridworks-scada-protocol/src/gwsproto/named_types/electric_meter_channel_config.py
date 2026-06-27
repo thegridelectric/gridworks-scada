@@ -13,9 +13,11 @@ from gwsproto.type_helpers.channel_config_base import (
 
 
 class ElectricMeterChannelConfig(ChannelConfigBase):
+    """Sema: https://schemas.electricity.works/types/electric.meter.channel.config/001"""
+
     EgaugeRegisterConfig: EgaugeConfig | None = None
     TypeName: Literal["electric.meter.channel.config"] = "electric.meter.channel.config"
-    Version: Literal["000"] = "000"
+    Version: Literal["001"] = "001"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

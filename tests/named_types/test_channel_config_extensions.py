@@ -15,8 +15,6 @@ def base_channel_fields() -> dict:
         "CapturePeriodS": 300,
         "AsyncCapture": True,
         "AsyncCaptureDelta": 1,
-        "Exponent": 0,
-        "Unit": "Unitless",
     }
 
 
@@ -28,7 +26,7 @@ def test_dfr_config_axiom_1() -> None:
         "OutputIdx": 1,
         "InitialVoltsTimes100": 0,
         "TypeName": "dfr.config",
-        "Version": "000",
+        "Version": "001",
     }
 
     with pytest.raises(ValueError, match="Axiom 1 violated!"):
@@ -43,7 +41,7 @@ def test_ads_channel_config_axiom_1() -> None:
         "TerminalBlockIdx": 1,
         "ThermistorDeviceType": "EcosensorTempProbe10k",
         "TypeName": "ads.channel.config",
-        "Version": "000",
+        "Version": "001",
     }
 
     with pytest.raises(ValueError, match="Axiom 1 violated!"):
@@ -57,7 +55,7 @@ def test_i2c_thermistor_channel_config_axiom_1() -> None:
         "AdcChannel": "P1",
         "ThermistorBeta": 3977,
         "TypeName": "i2c.thermistor.channel.config",
-        "Version": "001",
+        "Version": "002",
     }
 
     with pytest.raises(ValueError, match="Axiom 1 violated!"):
@@ -72,7 +70,7 @@ def test_i2c_thermistor_channel_config_axiom_2() -> None:
         "AdcChannel": "P1",
         "ThermistorBeta": 3977,
         "TypeName": "i2c.thermistor.channel.config",
-        "Version": "001",
+        "Version": "002",
     }
 
     with pytest.raises(ValueError, match="Axiom 2 violated!"):
@@ -85,7 +83,7 @@ def test_electric_meter_channel_config_axiom_1() -> None:
         "PollPeriodMs": 700,
         "CapturePeriodS": 2,
         "TypeName": "electric.meter.channel.config",
-        "Version": "000",
+        "Version": "001",
     }
 
     with pytest.raises(ValueError, match="Axiom 1 violated!"):

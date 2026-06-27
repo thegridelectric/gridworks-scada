@@ -39,7 +39,6 @@ class I2cThermistorReaderComponentGt(ComponentBase):
         """
         Axiom 2: ConfigUniqueness.
         - Each ChannelName SHALL appear at most once in ConfigList.
-        - Each AdcChannel SHALL have at most one config whose Unit is Celcius.
         """
         channel_name_counts = Counter(cfg.ChannelName for cfg in self.ConfigList)
         duplicate_channel_names = [
@@ -51,17 +50,6 @@ class I2cThermistorReaderComponentGt(ComponentBase):
             raise ValueError(
                 f"Duplicate ChannelName(s) {sorted(duplicate_channel_names)}"
             )
-
-        celcius_counts_by_adc = Counter(
-            cfg.AdcChannel
-            for cfg in self.ConfigList
-            if cfg.Unit == "Celcius"
-        )
-        for cfg in self.ConfigList:
-            if celcius_counts_by_adc[cfg.AdcChannel] > 1:
-                raise ValueError(
-                    f"Multiple Celcius configs for AdcChannel {cfg.AdcChannel}"
-                )
         return self
 
     @model_validator(mode="after")
