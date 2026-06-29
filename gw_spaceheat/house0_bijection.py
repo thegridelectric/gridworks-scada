@@ -12,21 +12,19 @@ not yet encode.
 """
 
 import copy
-import json
 from pathlib import Path
 from typing import Any
 
 from gwsproto.data_classes.house_0_layout import House0Layout as House0Dc
-from gwsproto.enums import FlowManifoldVariant
 from gwsproto.named_types import (
     DataChannelGt,
     DerivedChannelGt,
     GNodeGt,
-    HvacZone,
-    House0Hydronic,
     House0Layout as House0Sema,
     SpaceheatNodeGt,
 )
+
+from sema_to_dc import sema_to_layout_dict
 
 
 def as_base(obj: Any, base_cls: type) -> Any:
@@ -71,46 +69,6 @@ def dc_to_sema(dc: House0Dc) -> tuple[House0Sema, list[str]]:
     return sema, gaps
 
 
-def sema_to_layout_dict(sema: House0Sema, *, gnode_src: dict[str, Any]) -> dict[str, Any]:
-    """Inverse: build a layout dict the data class can load. Components/cacs are
-    regrouped into the typed keys load_dict expects."""
-    layout: dict[str, Any] = {}
-    # GNodes back to the three named entries, reconstructed FROM the sema GNodes
-    # (keyed by GNodeClass) — a true dc -> sema -> dc round-trip.
-    by_class = {
-        "Scada": "MyScadaGNode",
-        "TerminalAsset": "MyTerminalAssetGNode",
-        "LeafTransactiveNode": "MyLeafTransactiveNodeGNode",
-    }
-    for gn in (sema.GNodes or []):
-        key = by_class.get(gn.GNodeClass, "MyLeafTransactiveNodeGNode")
-        layout[key] = gn.model_dump(by_alias=True, exclude_none=True, mode="json")
-    if sema.Hydronic is not None:
-        layout["Hydronic"] = sema.Hydronic.model_dump(
-            by_alias=True, exclude_none=True, mode="json"
-        )
-    layout["ShNodes"] = [n.model_dump(by_alias=True, exclude_none=True, mode="json") for n in (sema.ShNodes or [])]
-    layout["DataChannels"] = [c.model_dump(by_alias=True, exclude_none=True, mode="json") for c in (sema.DataChannels or [])]
-    layout["DerivedChannels"] = [c.model_dump(by_alias=True, exclude_none=True, mode="json") for c in (sema.DerivedChannels or [])]
-
-    em, ads, other = [], [], []
-    for c in (sema.Components or []):
-        d = c.model_dump(by_alias=True, exclude_none=True, mode="json")
-        if c.TypeName == "electric.meter.component.gt":
-            em.append(d)
-        elif c.TypeName == "ads111x.based.component.gt":
-            ads.append(d)
-        else:
-            other.append(d)
-    layout["ElectricMeterComponents"], layout["Ads111xBasedComponents"], layout["OtherComponents"] = em, ads, other
-
-    layout["DeviceTypes"] = [
-        c.model_dump(by_alias=True, exclude_none=True, mode="json")
-        for c in (sema.DeviceTypes or [])
-    ]
-    return layout
-
-
 def main() -> int:
     dc0 = House0Dc.load(str(LAYOUT))
     orig = copy.deepcopy(dc0.layout)
@@ -135,7 +93,7 @@ def main() -> int:
             print(f"    - {g}")
 
     print("== inverse sema -> layout dict -> load_dict ==")
-    rebuilt = sema_to_layout_dict(sema, gnode_src=orig)
+    rebuilt = sema_to_layout_dict(sema)
     try:
         House0Dc.load_dict(rebuilt)
         print("  load_dict(rebuilt): OK")
