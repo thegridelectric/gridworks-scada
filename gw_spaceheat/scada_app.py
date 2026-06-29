@@ -23,6 +23,7 @@ from gwsproto.data_classes import house_0_names
 from gwsproto.data_classes.house_0_layout import House0Layout
 from gwsproto.data_classes.house_0_names import H0N
 from scada_app_interface import ScadaAppInterface
+from universe import assert_universe_coherence
 
 
 class ScadaApp(App, ScadaAppInterface):
@@ -99,7 +100,7 @@ class ScadaApp(App, ScadaAppInterface):
         dry_run: bool = False,
         add_screen_handler: bool = True,
     ) -> "ScadaApp":
-        return typing.cast(
+        app = typing.cast(
             ScadaApp,
             super().make_app_for_cli(
                 app_settings=app_settings,
@@ -110,6 +111,25 @@ class ScadaApp(App, ScadaAppInterface):
                 dry_run=dry_run,
                 add_screen_handler=add_screen_handler,
             )
+        )
+        app.assert_universe_coherence()
+        return app
+
+    def assert_universe_coherence(self) -> None:
+        """Refuse to run if the layout's GNode universe disagrees with the broker.
+
+        The universe-guardrail (universe-guardrail spoke): a GNode may only talk
+        on a broker in its own universe. Checked at the real boot path (here, via
+        `cli.py run`/`main`), not in generic construction, so tests that load a
+        layout from one universe against a localhost broker are unaffected."""
+        layout = self.hardware_layout
+        assert_universe_coherence(
+            {
+                "scada": layout.scada_g_node_alias,
+                "ltn": layout.ltn_g_node_alias,
+                "terminal_asset": layout.terminal_asset_g_node_alias,
+            },
+            self.settings.gridworks_mqtt.host,
         )
 
     def _load_hardware_layout(self, layout_path: str | Path) -> House0Layout:

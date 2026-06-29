@@ -17,12 +17,14 @@ Requires the `gw-dev-rabbit` container up (creds in `gridworks-scada/.env`).
 """
 
 import asyncio
+import json
 import sys
 from pathlib import Path
 
 from gwsproto.data_classes.house_0_layout import House0Layout
 
 from scada_app import ScadaApp
+from sim_layout import simulate_sensors
 
 REPO = Path(__file__).resolve().parent.parent
 DEFAULT_ENV = str(REPO / ".env")
@@ -31,11 +33,17 @@ DEFAULT_SECONDS = 8
 
 
 def build_app(layout_path: str, env_file: str = DEFAULT_ENV) -> ScadaApp:
-    """Construct + instantiate a standalone simulated ScadaApp on the given layout."""
+    """Construct + instantiate a standalone simulated ScadaApp from a real layout.
+
+    The real layout is transformed in-memory (`simulate_sensors`: pico-fed sensors
+    → SimSensorActor, aliases dev-ified) so it self-generates on the dev broker and
+    is universe-coherent with it — no on-disk sim fixture needed."""
     settings = ScadaApp.get_settings(env_file=env_file)
     settings.is_simulated = True
-    app = ScadaApp(app_settings=settings, layout=House0Layout.load(layout_path))
+    sim = simulate_sensors(json.loads(Path(layout_path).read_text()))
+    app = ScadaApp(app_settings=settings, layout=House0Layout.load_dict(sim))
     app.instantiate()
+    app.assert_universe_coherence()  # the simulated layout is dev-universe; must match localhost (d1)
     return app
 
 

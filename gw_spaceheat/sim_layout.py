@@ -27,6 +27,32 @@ COMPONENT_LIST_KEYS = (
     "Ads111xBasedComponents",
     "ElectricMeterComponents",
 )
+GNODE_KEYS = ("MyScadaGNode", "MyTerminalAssetGNode", "MyLeafTransactiveNodeGNode")
+DEV_UNIVERSE = "d1"
+
+
+def _rewrite_universe(alias: str, universe: str) -> str:
+    parts = alias.split(".")
+    parts[0] = universe
+    return ".".join(parts)
+
+
+def devify_aliases(layout: dict[str, Any], universe: str = DEV_UNIVERSE) -> dict[str, Any]:
+    """Rewrite every GNodeAlias into the dev universe so a simulated layout is
+    coherent with the dev broker (the universe guardrail rejects a `hw1.*` sim
+    layout on the `d1` dev broker). Touches the three GNode aliases plus the
+    `TerminalAssetAlias` carried on each data/derived channel."""
+    for key in GNODE_KEYS:
+        gnode = layout.get(key)
+        if isinstance(gnode, dict) and gnode.get("Alias"):
+            gnode["Alias"] = _rewrite_universe(gnode["Alias"], universe)
+    for channel_key in ("DataChannels", "DerivedChannels"):
+        for channel in layout.get(channel_key, []):
+            if channel.get("TerminalAssetAlias"):
+                channel["TerminalAssetAlias"] = _rewrite_universe(
+                    channel["TerminalAssetAlias"], universe
+                )
+    return layout
 
 
 def simulate_sensors(layout: dict[str, Any]) -> dict[str, Any]:
@@ -63,6 +89,10 @@ def simulate_sensors(layout: dict[str, Any]) -> dict[str, Any]:
                 kept.append(comp)
         layout[key] = kept
     layout["OtherComponents"] = layout.get("OtherComponents", []) + sim_components
+
+    # A simulated layout must live in a dev (or hybrid) universe, never production
+    # — dev-ify the aliases so it's coherent with the dev broker it boots on.
+    devify_aliases(layout)
     return layout
 
 
