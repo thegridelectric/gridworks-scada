@@ -16,6 +16,7 @@ from actors.local_control_loader import LocalControl
 from actors.multipurpose_sensor import MultipurposeSensor
 from actors.secondary_scada import SecondaryScada
 from actors.pico_cycler import PicoCycler
+from actors.sim_sensor import SimSensorActor
 from actors.power_meter import PowerMeter
 from actors.relay import Relay
 from actors.scada import Scada
@@ -47,5 +48,6 @@ __all__ = [
     "Scada",
     "ScadaInterface",
     "SiegLoop",
+    "SimSensorActor",
     "ZeroTenOutputer",
 ]

@@ -34,6 +34,7 @@ from gwsproto.data_classes.components.pico_tank_module_component import (
 )
 from gwsproto.data_classes.components.rest_poller_component import RESTPollerComponent
 from gwsproto.data_classes.components.sim_pico_tank_module_component import SimPicoTankModuleComponent
+from gwsproto.data_classes.components.sim_sensor_component import SimSensorComponent
 from gwsproto.data_classes.components.web_server_component import WebServerComponent
 
 __all__ = [
@@ -52,5 +53,6 @@ __all__ = [
     "PicoTankModuleComponent",
     "RESTPollerComponent",
     "SimPicoTankModuleComponent",
+    "SimSensorComponent",
     "WebServerComponent",
 ]
