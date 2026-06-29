@@ -108,9 +108,6 @@ class Scada(PrimeActor, ScadaInterface):
     ]
 
     def __init__(self, name: str, services: ScadaAppInterface) -> None:
-        print("PrimeActor slots:", getattr(PrimeActor, "__slots__", None))
-        print("Scada slots:", getattr(Scada, "__slots__", None))
-        print("MRO:", Scada.__mro__)
         super().__init__(name, services)
         if not isinstance(services.hardware_layout, House0Layout):
             raise Exception("Make sure to pass House0Layout object as hardware_layout!")
