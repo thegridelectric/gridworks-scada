@@ -1,6 +1,19 @@
+from typing import Literal
+
 from gwsproto.names.hydronic_spaceheat.helpers import (
     HydronicSpaceheatZoneNodeNames as HSZoneNodeNames,
 )
+
+
+class SimpleSimNodeNames:
+    """Top-level simple-sim node names. The sim's SINGLE heat-pump relay: one relay
+    ShNode (ActorClass "Relay") that turns the heat pump on/off — the minimal control
+    surface for the sim-run (hardware-layout-pass-one). LocalControl (via hp-boss)
+    actuates it; in the sim, a documented LocalControl fake does little/nothing at
+    first and grows by iteration. Zones come from SimpleSimZoneNodeNames.
+    """
+
+    hp_relay: Literal["hp-relay"] = "hp-relay"
 
 
 class SimpleSimZoneNodeNames:
