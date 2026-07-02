@@ -18,7 +18,7 @@ from gwsproto.enums import (
     Unit,
 )
 from gwsproto.named_types import (
-    ChannelConfig,
+    CaptureTuning,
     ScadaDeviceTypeGt,
     DataChannelGt,
     Gw108GpioSensorComponentGt,
@@ -176,7 +176,7 @@ def add_gw108_nolan_zones(
                         SenseMode=GpioSenseMode.Polling,
                         SendToDerived=True,
                         ConfigList=[
-                            ChannelConfig(
+                            CaptureTuning(
                                 ChannelName=zone_channels.opto_input,
                                 PollPeriodMs=1000,
                                 CapturePeriodS=300,

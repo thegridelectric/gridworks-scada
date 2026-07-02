@@ -8,7 +8,7 @@ from gwsproto.enums import Quantity
 from gwsproto.enums import TelemetryName
 from gwsproto.enums import SpaceheatUnit
 from gwsproto.type_helpers import HubitatGt
-from gwsproto.named_types import ComponentGt
+from gwsproto.type_helpers.component_base import ComponentBase
 from gwsproto.named_types import ElectricMeterDeviceTypeGt
 from gwsproto.named_types import SpaceheatNodeGt
 from gwsproto.named_types import ElectricMeterChannelConfig
@@ -137,7 +137,7 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
     db.add_components(
         [
             typing.cast(
-                ComponentGt,
+                ComponentBase,
                 ElectricMeterComponentGt(
                     ComponentId=db.make_component_id(POWER_METER_COMPONENT_DISPLAY_NAME),
                     DeviceType=DeviceType.GridworksSimPowerMeter,

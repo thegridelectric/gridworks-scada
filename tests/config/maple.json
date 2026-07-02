@@ -1976,48 +1976,48 @@
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "buffer-depth1-device",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "buffer-depth2-device",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "buffer-depth3-device",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "buffer-depth1-micro-v",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "buffer-depth2-micro-v",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "buffer-depth3-micro-v",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         }
       ],
       "DeviceType": "GridworksTankModule3",
@@ -2042,48 +2042,48 @@
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank1-depth1-device",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank1-depth2-device",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank1-depth3-device",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank1-depth1-micro-v",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank1-depth2-micro-v",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank1-depth3-micro-v",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         }
       ],
       "DeviceType": "GridworksTankModule3",
@@ -2108,48 +2108,48 @@
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank2-depth1-device",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank2-depth2-device",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank2-depth3-device",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank2-depth1-micro-v",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank2-depth2-micro-v",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank2-depth3-micro-v",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         }
       ],
       "DeviceType": "GridworksTankModule3",
@@ -2174,48 +2174,48 @@
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank3-depth1-device",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank3-depth2-device",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank3-depth3-device",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank3-depth1-micro-v",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank3-depth2-micro-v",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank3-depth3-micro-v",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         }
       ],
       "DeviceType": "GridworksTankModule3",
@@ -2239,15 +2239,15 @@
           "AsyncCapture": true,
           "CapturePeriodS": 300,
           "ChannelName": "dist-flow",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "CapturePeriodS": 300,
           "ChannelName": "dist-flow-hz",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         }
       ],
       "ConstantGallonsPerTick": 0.0009,
@@ -2278,15 +2278,15 @@
           "AsyncCapture": true,
           "CapturePeriodS": 300,
           "ChannelName": "sieg-send",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "CapturePeriodS": 300,
           "ChannelName": "sieg-send-hz",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         }
       ],
       "ConstantGallonsPerTick": 0.0009,
@@ -2320,24 +2320,24 @@
           "AsyncCaptureDelta": 4,
           "CapturePeriodS": 300,
           "ChannelName": "sieg-flow",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 20,
           "CapturePeriodS": 300,
           "ChannelName": "sieg-hot",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 20,
           "CapturePeriodS": 300,
           "ChannelName": "sieg-cold",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         }
       ],
       "DeviceType": "GridworksGw101",
@@ -2369,24 +2369,24 @@
           "AsyncCaptureDelta": 10,
           "CapturePeriodS": 300,
           "ChannelName": "store-flow",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 20,
           "CapturePeriodS": 300,
           "ChannelName": "store-hot-pipe",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 20,
           "CapturePeriodS": 300,
           "ChannelName": "store-cold-pipe",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         }
       ],
       "DeviceType": "GridworksGw101",
@@ -2434,16 +2434,16 @@
           "CapturePeriodS": 300,
           "ChannelName": "zone1-living-rm-temp",
           "PollPeriodMs": 5000,
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": false,
           "CapturePeriodS": 300,
           "ChannelName": "zone1-living-rm-set",
           "PollPeriodMs": 5000,
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
@@ -2451,8 +2451,8 @@
           "CapturePeriodS": 300,
           "ChannelName": "zone1-living-rm-state",
           "PollPeriodMs": 5000,
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         }
       ],
       "DeviceType": "HoneywellT6Thermostat",
@@ -2528,16 +2528,16 @@
           "CapturePeriodS": 300,
           "ChannelName": "zone2-bedroom-temp",
           "PollPeriodMs": 5000,
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": false,
           "CapturePeriodS": 300,
           "ChannelName": "zone2-bedroom-set",
           "PollPeriodMs": 5000,
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
@@ -2545,8 +2545,8 @@
           "CapturePeriodS": 300,
           "ChannelName": "zone2-bedroom-state",
           "PollPeriodMs": 5000,
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         }
       ],
       "DeviceType": "HoneywellT6Thermostat",

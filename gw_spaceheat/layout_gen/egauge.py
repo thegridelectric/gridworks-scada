@@ -5,7 +5,7 @@ from gwsproto.enums import ActorClass
 from gwsproto.enums import DeviceType
 from gwsproto.enums import TelemetryName
 from gwsproto.enums import SpaceheatUnit, Quantity
-from gwsproto.named_types import ComponentGt
+from gwsproto.type_helpers.component_base import ComponentBase
 from gwsproto.named_types import EgaugeRegisterConfig
 from gwsproto.named_types import ElectricMeterDeviceTypeGt
 from gwsproto.named_types import SpaceheatNodeGt
@@ -101,7 +101,7 @@ def add_egauge(
     db.add_components(
         [
             cast(
-                ComponentGt,
+                ComponentBase,
                 ElectricMeterComponentGt(
                     ComponentId=db.make_component_id(egauge.ComponentDisplayName),
                     DeviceType=DeviceType.EgaugePowerMeter,

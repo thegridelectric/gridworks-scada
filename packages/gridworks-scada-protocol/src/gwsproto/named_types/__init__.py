@@ -12,10 +12,9 @@ from gwsproto.named_types.async_btu_params import AsyncBtuParams
 from gwsproto.named_types.baseurl_failure_alert import BaseurlFailureAlert
 from gwsproto.named_types.bid import Bid
 from gwsproto.named_types.bid_recommendation import BidRecommendation
-from gwsproto.named_types.channel_config import ChannelConfig
+from gwsproto.named_types.capture_tuning import CaptureTuning
 from gwsproto.named_types.channel_flatlined import ChannelFlatlined
 from gwsproto.named_types.channel_readings import ChannelReadings
-from gwsproto.named_types.component_gt import ComponentGt
 from gwsproto.named_types.data_channel_gt import DataChannelGt
 from gwsproto.named_types.derived_channel_gt import DerivedChannelGt
 from gwsproto.named_types.dfr_component_gt import DfrComponentGt
@@ -37,6 +36,9 @@ from gwsproto.named_types.fsm_atomic_report import FsmAtomicReport
 from gwsproto.named_types.fsm_event import FsmEvent
 from gwsproto.named_types.fsm_full_report import FsmFullReport
 from gwsproto.named_types.g_node_gt import GNodeGt
+from gwsproto.named_types.gw_house0_operational_params import (
+    GwHouse0OperationalParams,
+)
 from gwsproto.named_types.glitch import Glitch
 from gwsproto.named_types.go_dormant import GoDormant
 from gwsproto.named_types.gw108_gpio_relay_component_gt import Gw108GpioRelayComponentGt
@@ -101,7 +103,6 @@ from gwsproto.named_types.remaining_elec import RemainingElec
 from gwsproto.named_types.report import Report
 from gwsproto.named_types.required_energy_layered import RequiredEnergyLayered
 from gwsproto.named_types.reset_hp_keep_value import ResetHpKeepValue
-from gwsproto.named_types.rest_poller_component_gt import RESTPollerComponentGt
 from gwsproto.named_types.scada_control_capabilities import ScadaControlCapabilities
 from gwsproto.named_types.scada_device_type_gt import ScadaDeviceTypeGt
 from gwsproto.named_types.scada_params import ScadaParams
@@ -160,10 +161,9 @@ __all__ = [
     "BaseurlFailureAlert",
     "Bid",
     "BidRecommendation",
-    "ChannelConfig",
+    "CaptureTuning",
     "ChannelFlatlined",
     "ChannelReadings",
-    "ComponentGt",
     "DataChannelGt",
     "DerivedChannelGt",
     "DfrComponentGt",
@@ -186,6 +186,7 @@ __all__ = [
     "GoDormant",
     "Gw108GpioRelayComponentGt",
     "Gw108GpioSensorComponentGt",
+    "GwHouse0OperationalParams",
     "Ha1Params",
     "HackOilOff",
     "HackOilOn",
@@ -230,7 +231,6 @@ __all__ = [
     "PicoTankModuleComponentGt",
     "PowerWatts",
     "PriceQuantityUnitless",
-    "RESTPollerComponentGt",
     "RelayActorConfig",
     "RemainingElec",
     "RemainingElecEvent",

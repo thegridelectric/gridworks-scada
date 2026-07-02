@@ -5,7 +5,7 @@ from pydantic import ConfigDict, PositiveInt, field_validator, model_validator
 from typing_extensions import Self
 
 from gwsproto.enums import TempCalcMethod
-from gwsproto.named_types.channel_config import ChannelConfig
+from gwsproto.named_types.capture_tuning import CaptureTuning
 from gwsproto.type_helpers.component_base import ComponentBase
 
 
@@ -33,7 +33,7 @@ class SimPicoTankModuleComponentGt(ComponentBase):
 
     @field_validator("ConfigList")
     @classmethod
-    def check_axiom_1(cls, v: Sequence[ChannelConfig]) -> Sequence[ChannelConfig]:
+    def check_axiom_1(cls, v: Sequence[CaptureTuning]) -> Sequence[CaptureTuning]:
         """Axiom 1: Channel Name uniqueness. Data Channel names are unique in the ConfigList."""
         channel_names = [config.ChannelName for config in v]
         if len(channel_names) != len(set(channel_names)):

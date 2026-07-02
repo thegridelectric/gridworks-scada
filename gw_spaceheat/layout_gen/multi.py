@@ -7,7 +7,7 @@ from gwsproto.enums import Quantity
 from gwsproto.enums import DeviceType
 from gwsproto.enums import TelemetryName
 from gwsproto.enums import SpaceheatUnit
-from gwsproto.named_types import ComponentGt
+from gwsproto.type_helpers.component_base import ComponentBase
 from gwsproto.named_types import Ads111xBasedDeviceTypeGt
 from gwsproto.named_types import SpaceheatNodeGt
 from gwsproto.named_types import  AdsChannelConfig
@@ -70,7 +70,7 @@ def add_tsnap_multipurpose(
     db.add_components(
         [
             cast(
-                ComponentGt,
+                ComponentBase,
                 Ads111xBasedComponentGt(
                     ComponentId=db.make_component_id(tsnap.component_alias()),
                     DeviceType=DeviceType.GridworksTsnap1ScadaBoard,

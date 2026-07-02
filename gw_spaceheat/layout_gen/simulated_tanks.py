@@ -7,7 +7,7 @@ from gwsproto.enums import (
     Unit,
 )
 from gwsproto.named_types import (
-    ChannelConfig,
+    CaptureTuning,
     DataChannelGt,
     SimPicoTankModuleComponentGt,
     SpaceheatNodeGt,
@@ -63,7 +63,7 @@ def add_sim_tank(db: LayoutDb, reader: str) -> None:
     config_list = []
     for i in range(1, 4):
         config_list.append(
-            ChannelConfig(
+            CaptureTuning(
                 ChannelName=f"{reader}-depth{i}-device",
                 CapturePeriodS=cfg.CapturePeriodS,
                 AsyncCapture=True,
@@ -74,7 +74,7 @@ def add_sim_tank(db: LayoutDb, reader: str) -> None:
         )
         if cfg.SendMicroVolts:
             config_list.append(
-                ChannelConfig(
+                CaptureTuning(
                     ChannelName=f"{reader}-depth{i}-micro-v",
                     CapturePeriodS=cfg.CapturePeriodS,
                     AsyncCapture=True,

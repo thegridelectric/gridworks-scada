@@ -588,48 +588,48 @@
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "buffer-depth1-device",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "buffer-depth1-micro-v",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "buffer-depth2-device",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "buffer-depth2-micro-v",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "buffer-depth3-device",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "buffer-depth3-micro-v",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         }
       ],
       "DeviceType": "GridworksSimSensor",
@@ -656,48 +656,48 @@
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank1-depth1-device",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank1-depth1-micro-v",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank1-depth2-device",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank1-depth2-micro-v",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank1-depth3-device",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         },
         {
           "AsyncCapture": true,
           "AsyncCaptureDelta": 2000,
           "CapturePeriodS": 60,
           "ChannelName": "tank1-depth3-micro-v",
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         }
       ],
       "DeviceType": "GridworksSimSensor",
@@ -724,8 +724,8 @@
           "CapturePeriodS": 300,
           "ChannelName": "zone1-main-opto-input",
           "PollPeriodMs": 1000,
-          "TypeName": "channel.config",
-          "Version": "001"
+          "TypeName": "capture.tuning",
+          "Version": "000"
         }
       ],
       "DeviceType": "GridworksScadaGw108",

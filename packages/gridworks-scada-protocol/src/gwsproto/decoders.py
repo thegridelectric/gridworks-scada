@@ -5,7 +5,6 @@ from pydantic import ValidationError  # noqa: F401  (kept for ComponentDecoder b
 from gwproto.decoders import UnionDecoder, UnionWrapper
 
 from gwsproto.type_helpers.component_base import ComponentBase
-from gwsproto.named_types import ComponentGt
 
 # The decoded device-type record union (the per-family *.device.type.gt types).
 DeviceTypeGt = Any
@@ -59,7 +58,7 @@ class ComponentDecoder(UnionDecoder):
             if allow_missing and any(
                 error.get("type") == "union_tag_invalid" for error in e.errors()
             ):
-                decoded = ComponentGt(**component_dict)
+                decoded = ComponentBase(**component_dict)
             else:
                 raise
         return decoded

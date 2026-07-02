@@ -6,7 +6,7 @@ from gwsproto.enums import ActorClass, DeviceType, Quantity, TelemetryName, Unit
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import GpmFromHzMethod, HzCalcMethod
 from gwsproto.named_types import (
-    ChannelConfig, DataChannelGt, 
+    CaptureTuning, DataChannelGt, 
     PicoFlowModuleComponentGt, SpaceheatNodeGt,
 )
 from layout_gen import LayoutDb
@@ -81,7 +81,7 @@ def add_flow(
     
     if not db.component_id_by_alias(flow_cfg.component_display_name):
         config_list = [
-                ChannelConfig(
+                CaptureTuning(
                     ChannelName=f"{flow_cfg.FlowNodeName}",
                     CapturePeriodS=flow_cfg.CapturePeriodS,
                     AsyncCapture=True,
@@ -91,7 +91,7 @@ def add_flow(
         ]
         if flow_cfg.SendHz:
             config_list.append(
-                ChannelConfig(
+                CaptureTuning(
                     ChannelName=f"{flow_cfg.FlowNodeName}-hz",
                     CapturePeriodS=flow_cfg.CapturePeriodS,
                     AsyncCapture=True,

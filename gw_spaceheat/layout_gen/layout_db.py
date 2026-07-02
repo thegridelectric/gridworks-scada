@@ -9,7 +9,7 @@ import uuid
 
 from gwsproto.errors import DcError
 
-from gwsproto.named_types import ComponentGt
+from gwsproto.type_helpers.component_base import ComponentBase
 from gwsproto.named_types import ElectricMeterDeviceTypeGt
 from gwsproto.named_types import SpaceheatNodeGt
 from gwsproto.named_types import DataChannelGt
@@ -211,7 +211,7 @@ class LayoutDb:
 
         self.lists["OtherComponents"] = []
         self.device_types_by_id: dict[str, Any] = {}
-        self.components_by_id: dict[str, ComponentGt] = {}
+        self.components_by_id: dict[str, ComponentBase] = {}
         self.component_lists = {}
         self.nodes_by_id: dict[str, SpaceheatNodeGt] = {}
         self.channels_by_id: dict[str, DataChannelGt] = {}
@@ -275,7 +275,7 @@ class LayoutDb:
                 self.lists[layout_list_name] = []
             self.lists[layout_list_name].append(dt)
 
-    def add_components(self, components: Sequence[ComponentGt], layout_list_name: str = "OtherComponents"):
+    def add_components(self, components: Sequence[ComponentBase], layout_list_name: str = "OtherComponents"):
         for component in components:
             if not component.DisplayName:
                 raise DcError(f"component {component.ComponentId} missing display name! need that for layout gen ...")
@@ -367,7 +367,7 @@ class LayoutDb:
         self.add_components(
             [
                 typing.cast(
-                    ComponentGt,
+                    ComponentBase,
                     ElectricMeterComponentGt(
                         ComponentId=self.make_component_id(cfg.power_meter_component_alias),
                         DeviceType=DeviceType.GridworksSimPowerMeter,

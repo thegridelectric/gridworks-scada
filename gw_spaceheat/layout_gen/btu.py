@@ -7,7 +7,7 @@ from layout_gen import LayoutDb
 from gwsproto.named_types.data_channel_gt import DataChannelGt
 from gwsproto.enums import DeviceType, Unit, ActorClass, TelemetryName
 from gwsproto.enums import  TempCalcMethod as EnumTempCalcMethod
-from gwsproto.named_types.channel_config import ChannelConfig
+from gwsproto.named_types.capture_tuning import CaptureTuning
 from gwsproto.named_types import SpaceheatNodeGt
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import GpmFromHzMethod, HzCalcMethod, Quantity
@@ -62,7 +62,7 @@ def add_btu(
 
     if not db.component_id_by_alias(cfg.component_display_name()):
         config_list = [
-                ChannelConfig(
+                CaptureTuning(
                     ChannelName=f"{cfg.FlowChannelName}",
                     CapturePeriodS=cfg.CapturePeriodS,
                     AsyncCapture=True,
@@ -70,7 +70,7 @@ def add_btu(
                     Exponent=2,
                     Unit=Unit.Gpm
                 ),
-                ChannelConfig(
+                CaptureTuning(
                     ChannelName=f"{cfg.HotChannelName}",
                     CapturePeriodS=cfg.CapturePeriodS,
                     AsyncCapture=True,
@@ -78,7 +78,7 @@ def add_btu(
                     Exponent=2,
                     Unit=Unit.Celcius
                 ),
-                ChannelConfig(
+                CaptureTuning(
                     ChannelName=f"{cfg.ColdChannelName}",
                     CapturePeriodS=cfg.CapturePeriodS,
                     AsyncCapture=True,
@@ -89,7 +89,7 @@ def add_btu(
         ]
         if cfg.ReadCtVoltage:
             config_list.append(
-                ChannelConfig(
+                CaptureTuning(
                     ChannelName=f"{cfg.CtChannelName}",
                     CapturePeriodS=cfg.CapturePeriodS,
                     AsyncCapture=True,

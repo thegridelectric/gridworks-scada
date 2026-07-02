@@ -60,7 +60,7 @@ from gwsproto.named_types import (
     Ads111xBasedComponentGt,
     Ads111xBasedDeviceTypeGt,
     AdsChannelConfig,
-    ChannelConfig,
+    CaptureTuning,
     DataChannelGt,
     DerivedChannelGt,
     DfrComponentGt,
@@ -758,11 +758,11 @@ class House0SemaGen:
                     ComponentId=poller_id, DeviceType=DeviceType.HoneywellT6Thermostat,
                     DisplayName=poller_alias,
                     ConfigList=[
-                        ChannelConfig(ChannelName=temp, PollPeriodMs=5000, CapturePeriodS=300,
+                        CaptureTuning(ChannelName=temp, PollPeriodMs=5000, CapturePeriodS=300,
                                       AsyncCapture=True, AsyncCaptureDelta=1),
-                        ChannelConfig(ChannelName=setp, PollPeriodMs=5000, CapturePeriodS=300,
+                        CaptureTuning(ChannelName=setp, PollPeriodMs=5000, CapturePeriodS=300,
                                       AsyncCapture=False),
-                        ChannelConfig(ChannelName=state, PollPeriodMs=5000, CapturePeriodS=300,
+                        CaptureTuning(ChannelName=state, PollPeriodMs=5000, CapturePeriodS=300,
                                       AsyncCapture=True, AsyncCaptureDelta=1),
                     ],
                     Poller=HubitatPollerGt(
@@ -825,10 +825,10 @@ class House0SemaGen:
         for ri, (nh, ch) in enumerate(zip(node_helpers, chan_helpers)):
             reader = nh.reader
             disp = reader.capitalize()
-            device = [ChannelConfig(ChannelName=getattr(ch, f"depth{d}_device"), CapturePeriodS=60,
+            device = [CaptureTuning(ChannelName=getattr(ch, f"depth{d}_device"), CapturePeriodS=60,
                                     AsyncCapture=True, AsyncCaptureDelta=2000)
                       for d in (1, 2, 3)]
-            microv = [ChannelConfig(ChannelName=getattr(ch, f"depth{d}_micro_v"), CapturePeriodS=60,
+            microv = [CaptureTuning(ChannelName=getattr(ch, f"depth{d}_micro_v"), CapturePeriodS=60,
                                     AsyncCapture=True, AsyncCaptureDelta=2000)
                       for d in (1, 2, 3)]
             # real tank: all devices then all micro-v; sim tank: interleaved per depth
@@ -1013,8 +1013,8 @@ class House0SemaGen:
                     PublishAnyTicklistAfterS=10, AsyncCaptureThresholdGpmTimes100=5,
                     PublishTicklistLength=10, ExpAlpha=0.5,
                     ConfigList=[
-                        ChannelConfig(ChannelName=node, CapturePeriodS=300, AsyncCapture=True),
-                        ChannelConfig(ChannelName=hz, CapturePeriodS=300, AsyncCapture=True),
+                        CaptureTuning(ChannelName=node, CapturePeriodS=300, AsyncCapture=True),
+                        CaptureTuning(ChannelName=hz, CapturePeriodS=300, AsyncCapture=True),
                     ],
                 )
             )

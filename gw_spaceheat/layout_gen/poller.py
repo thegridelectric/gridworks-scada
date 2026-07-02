@@ -11,7 +11,7 @@ from gwsproto.type_helpers import MakerAPIAttributeGt
 from gwsproto.named_types import SpaceheatNodeGt
 from gwsproto.named_types import DataChannelGt
 from gwsproto.named_types.hubitat_gt import HubitatGt
-from gwsproto.named_types import ChannelConfig
+from gwsproto.named_types import CaptureTuning
 from pydantic import BaseModel
 from gwsproto.data_classes.house_0_names import H0N
 from layout_gen import LayoutDb
@@ -90,7 +90,7 @@ def add_thermostat(
                     poll_period_seconds=stat_cfg.capture_period_seconds,
                 ),
                 ConfigList=[
-                    ChannelConfig(
+                    CaptureTuning(
                         ChannelName=temp_channel_name,
                         PollPeriodMs=HUBITAT_MIN_POLL_S * 1000,
                         CapturePeriodS=stat_cfg.capture_period_seconds,
@@ -99,7 +99,7 @@ def add_thermostat(
                         Exponent=3,
                         Unit=Unit.Fahrenheit
                     ),
-                    ChannelConfig(
+                    CaptureTuning(
                         ChannelName=setpt_channel_name,
                         PollPeriodMs=HUBITAT_MIN_POLL_S * 1000,
                         CapturePeriodS=stat_cfg.capture_period_seconds,
@@ -107,7 +107,7 @@ def add_thermostat(
                         Exponent=3,
                         Unit=Unit.Fahrenheit
                     ),
-                    ChannelConfig(
+                    CaptureTuning(
                         ChannelName=state_channel_name,
                         PollPeriodMs=HUBITAT_MIN_POLL_S * 1000,
                         CapturePeriodS=stat_cfg.capture_period_seconds,

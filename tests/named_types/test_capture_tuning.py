@@ -1,8 +1,8 @@
-"""Tests channel.config type, version 001"""
+"""Tests capture.tuning type, version 000"""
 
 import pytest
 
-from gwsproto.named_types import ChannelConfig
+from gwsproto.named_types import CaptureTuning
 
 
 def base_config() -> dict:
@@ -12,65 +12,65 @@ def base_config() -> dict:
         "CapturePeriodS": 300,
         "AsyncCapture": True,
         "AsyncCaptureDelta": 1,
-        "TypeName": "channel.config",
-        "Version": "001",
+        "TypeName": "capture.tuning",
+        "Version": "000",
     }
 
 
-def test_channel_config_generated() -> None:
+def test_capture_tuning_generated() -> None:
     d = base_config()
 
-    d2 = ChannelConfig.model_validate(d).model_dump(exclude_none=True)
+    d2 = CaptureTuning.model_validate(d).model_dump(exclude_none=True)
 
     assert d2 == d
 
 
-def test_channel_config_axiom_1() -> None:
+def test_capture_tuning_axiom_1() -> None:
     d = base_config()
     d["PollPeriodMs"] = 1000
     d["CapturePeriodS"] = 1
 
     with pytest.raises(ValueError, match="Axiom 1 violated!"):
-        ChannelConfig.model_validate(d)
+        CaptureTuning.model_validate(d)
 
 
-def test_channel_config_axiom_1_multiple_when_close() -> None:
+def test_capture_tuning_axiom_1_multiple_when_close() -> None:
     d = base_config()
     d["PollPeriodMs"] = 700
     d["CapturePeriodS"] = 2
 
     with pytest.raises(ValueError, match="Axiom 1 violated!"):
-        ChannelConfig.model_validate(d)
+        CaptureTuning.model_validate(d)
 
 
-def test_channel_config_no_async_capture_delta_axiom() -> None:
+def test_capture_tuning_no_async_capture_delta_axiom() -> None:
     d = base_config()
     d["AsyncCaptureDelta"] = None
 
-    d2 = ChannelConfig.model_validate(d).model_dump(exclude_none=True)
+    d2 = CaptureTuning.model_validate(d).model_dump(exclude_none=True)
 
     assert d2 == {
         "ChannelName": "buffer-depth1-device",
         "PollPeriodMs": 200,
         "CapturePeriodS": 300,
         "AsyncCapture": True,
-        "TypeName": "channel.config",
-        "Version": "001",
+        "TypeName": "capture.tuning",
+        "Version": "000",
     }
 
 
-def test_channel_config_axiom_1_no_poll_period() -> None:
+def test_capture_tuning_axiom_1_no_poll_period() -> None:
     d = base_config()
     d["PollPeriodMs"] = None
     d["CapturePeriodS"] = 1
 
-    d2 = ChannelConfig.model_validate(d).model_dump(exclude_none=True)
+    d2 = CaptureTuning.model_validate(d).model_dump(exclude_none=True)
 
     assert d2 == {
         "ChannelName": "buffer-depth1-device",
         "CapturePeriodS": 1,
         "AsyncCapture": True,
         "AsyncCaptureDelta": 1,
-        "TypeName": "channel.config",
-        "Version": "001",
+        "TypeName": "capture.tuning",
+        "Version": "000",
     }

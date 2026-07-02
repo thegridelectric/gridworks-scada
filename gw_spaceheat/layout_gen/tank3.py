@@ -4,7 +4,7 @@ from gwsproto.property_format import SpaceheatName
 from layout_gen import LayoutDb
 from gwsproto.named_types.data_channel_gt import DataChannelGt
 from gwsproto.enums import ActorClass, DeviceType, Quantity, Unit, TelemetryName
-from gwsproto.named_types.channel_config import ChannelConfig
+from gwsproto.named_types.capture_tuning import CaptureTuning
 from gwsproto.named_types import SpaceheatNodeGt
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import TempCalcMethod
@@ -36,7 +36,7 @@ def add_tank3(
         config_list = []
         for i in range(1,4):
             config_list.append(
-                ChannelConfig(
+                CaptureTuning(
                     ChannelName=f"{tank_cfg.ActorNodeName}-depth{i}-device",
                     CapturePeriodS=tank_cfg.CapturePeriodS,
                     AsyncCapture=True,
@@ -48,7 +48,7 @@ def add_tank3(
         if tank_cfg.SendMicroVolts:
             for i in range(1,4):
                 config_list.append(
-                    ChannelConfig(
+                    CaptureTuning(
                         ChannelName=f"{tank_cfg.ActorNodeName}-depth{i}-micro-v",
                         CapturePeriodS=tank_cfg.CapturePeriodS,
                         AsyncCapture=True,

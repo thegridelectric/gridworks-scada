@@ -9,7 +9,7 @@ from gwsproto.enums import (
     HzCalcMethod,
     TempCalcMethod,
 )
-from gwsproto.named_types.channel_config import ChannelConfig
+from gwsproto.named_types.capture_tuning import CaptureTuning
 from gwsproto.type_helpers.component_base import ComponentBase
 from gwsproto.property_format import (
     SpaceheatName,
@@ -41,7 +41,7 @@ class PicoBtuMeterComponentGt(ComponentBase):
 
     @field_validator("ConfigList")
     @classmethod
-    def check_axiom_1(cls, v: Sequence[ChannelConfig]) -> Sequence[ChannelConfig]:
+    def check_axiom_1(cls, v: Sequence[CaptureTuning]) -> Sequence[CaptureTuning]:
         """Axiom 1: Channel Name uniqueness. Data Channel names are unique in the ConfigList."""
         channel_names = [config.ChannelName for config in v]
         if len(channel_names) != len(set(channel_names)):

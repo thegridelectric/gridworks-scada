@@ -3,7 +3,7 @@ from typing import Literal
 from pydantic import PositiveInt, field_validator
 
 from gwsproto.enums import GpioSenseMode
-from gwsproto.named_types.channel_config import ChannelConfig
+from gwsproto.named_types.capture_tuning import CaptureTuning
 from gwsproto.type_helpers.component_base import ComponentBase
 
 
@@ -17,7 +17,7 @@ class Gw108GpioSensorComponentGt(ComponentBase):
 
     @field_validator("ConfigList")
     @classmethod
-    def check_axiom_1(cls, v: list[ChannelConfig]) -> list[ChannelConfig]:
+    def check_axiom_1(cls, v: list[CaptureTuning]) -> list[CaptureTuning]:
         """Axiom 1: Channel Name uniqueness. Data Channel names are unique in the ConfigList."""
         channel_names = [config.ChannelName for config in v]
         if len(channel_names) != len(set(channel_names)):
@@ -29,10 +29,10 @@ class Gw108GpioSensorComponentGt(ComponentBase):
 
     @field_validator("ConfigList")
     @classmethod
-    def check_axiom_2(cls, v: list[ChannelConfig]) -> list[ChannelConfig]:
-        """Axiom 2: exactly one ChannelConfig."""
+    def check_axiom_2(cls, v: list[CaptureTuning]) -> list[CaptureTuning]:
+        """Axiom 2: exactly one CaptureTuning."""
         if len(v) != 1:
             raise ValueError(
-                "Gw108GpioSensorComponentGt must define exactly one ChannelConfig"
+                "Gw108GpioSensorComponentGt must define exactly one CaptureTuning"
             )
         return v
