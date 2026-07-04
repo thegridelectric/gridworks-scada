@@ -9,7 +9,7 @@ from gwsproto.property_format import LeftRightDotStr, UUID4Str
 
 class GNodeGt(BaseModel):
     """
-    Sema: https://schemas.electricity.works/types/g.node.gt/004
+    Sema: https://schemas.electricity.works/types/g.node.gt/005
     """
 
     GNodeId: UUID4Str
@@ -21,7 +21,7 @@ class GNodeGt(BaseModel):
     PositionPointId: Optional[UUID4Str] = None
     DisplayName: Optional[str] = None
     TypeName: Literal["g.node.gt"] = "g.node.gt"
-    Version: Literal["004"] = "004"
+    Version: Literal["005"] = "005"
 
     model_config = ConfigDict(extra="allow")
 
@@ -100,5 +100,26 @@ class GNodeGt(BaseModel):
         if (self.GNodeClass == "Scada") != self.Alias.endswith(".scada"):
             raise ValueError(
                 'Axiom 5 failed: Alias must end with ".scada" iff GNodeClass is "Scada".'
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_6(self) -> Self:
+        """
+        Axiom 6: GNodeAliasHasBody
+        a. Alias SHALL have at least two dotted words (the universe segment is a
+           namespace, not a GNodeAlias, so the shortest valid GNodeAlias is like
+           "d1.isone").
+        b. If PrevAlias is present, it SHALL likewise have at least two dotted words.
+        """
+        if len(self.Alias.split(".")) < 2:
+            raise ValueError(
+                "Axiom 6 (GNodeAliasHasBody) failed: Alias must have at least two "
+                f"dotted words (the universe segment is a namespace); got '{self.Alias}'."
+            )
+        if self.PrevAlias is not None and len(self.PrevAlias.split(".")) < 2:
+            raise ValueError(
+                "Axiom 6 (GNodeAliasHasBody) failed: PrevAlias must have at least two "
+                f"dotted words (the universe segment is a namespace); got '{self.PrevAlias}'."
             )
         return self

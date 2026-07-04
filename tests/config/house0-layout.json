@@ -655,7 +655,7 @@
     "PositionPointId": "96403482-5fe2-47b0-be0d-b89dd0d4a926",
     "Status": "Active",
     "TypeName": "g.node.gt",
-    "Version": "004"
+    "Version": "005"
   },
   "MyScadaGNode": {
     "Alias": "d1.isone.ct.newhaven.orange1.scada",
@@ -665,7 +665,7 @@
     "GNodeId": "c9794c6d-e013-4d74-9570-f9ba4b0f0b0d",
     "Status": "Active",
     "TypeName": "g.node.gt",
-    "Version": "004"
+    "Version": "005"
   },
   "MyTerminalAssetGNode": {
     "Alias": "d1.isone.ct.newhaven.orange1.ta",
@@ -676,7 +676,7 @@
     "PositionPointId": "3ff8f6af-9e02-4177-983c-ff8cb82e81b0",
     "Status": "Active",
     "TypeName": "g.node.gt",
-    "Version": "004"
+    "Version": "005"
   },
   "OtherComponents": [
     {

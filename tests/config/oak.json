@@ -1677,7 +1677,7 @@
     "PositionPointId": "dacf15c2-06f1-4f28-ab4d-612092792d65",
     "Status": "Active",
     "TypeName": "g.node.gt",
-    "Version": "004"
+    "Version": "005"
   },
   "MyScadaGNode": {
     "Alias": "hw1.isone.me.versant.keene.oak.scada",
@@ -1687,7 +1687,7 @@
     "GNodeId": "fbbea6a1-0749-43d8-8136-ff795fe079a6",
     "Status": "Active",
     "TypeName": "g.node.gt",
-    "Version": "004"
+    "Version": "005"
   },
   "MyTerminalAssetGNode": {
     "Alias": "hw1.isone.me.versant.keene.oak.ta",
@@ -1698,7 +1698,7 @@
     "PositionPointId": "d944556b-497f-4f9b-8fdb-5e5bf3ba0045",
     "Status": "Active",
     "TypeName": "g.node.gt",
-    "Version": "004"
+    "Version": "005"
   },
   "OtherComponents": [
     {
