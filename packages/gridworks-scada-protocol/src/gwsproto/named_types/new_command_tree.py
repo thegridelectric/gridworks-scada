@@ -7,11 +7,13 @@ from gwsproto.property_format import LeftRightDotStr, UTCMilliseconds
 
 
 class NewCommandTree(BaseModel):
+    """Sema: https://schemas.electricity.works/types/new.command.tree/002"""
+
     FromGNodeAlias: LeftRightDotStr
     ShNodes: List[SpaceheatNodeGt]
     UnixMs: UTCMilliseconds
     TypeName: Literal["new.command.tree"] = "new.command.tree"
-    Version: Literal["001"] = "001"
+    Version: Literal["002"] = "002"
 
     @field_validator("ShNodes")
     @classmethod

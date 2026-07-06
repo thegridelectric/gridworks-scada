@@ -24,7 +24,7 @@ def test_new_command_tree_generated() -> None:
         ],
         "UnixMs": 1735861984823,
         "TypeName": "new.command.tree",
-        "Version": "001",
+        "Version": "002",
     }
 
     d2 = NewCommandTree.model_validate(d).model_dump(exclude_none=True)
