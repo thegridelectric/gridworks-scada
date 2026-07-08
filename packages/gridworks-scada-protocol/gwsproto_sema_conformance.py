@@ -21,7 +21,16 @@ Reads the sibling sema checkout's definitions directly (report which branch!).
 With --cli, each clean re-dump is additionally validated through the sema CLI
 (`uv run sema validate`, run in the sema repo) — slower, belt-and-suspenders.
 
-    venv/bin/python gwsproto_sema_conformance.py [--sema PATH] [--cli] [-v]
+With --release-gate, every gwsproto-pinned (TypeName, Version) must carry sema
+status `published` — staging and draft pins fail. Staging vocabulary runs on
+dev brokers only, so this gate is what a non-dev deploy must pass.
+
+Run from this package directory:
+
+    uv run python gwsproto_sema_conformance.py [--sema PATH] [--cli]
+        [--release-gate] [-v]
+
+(Any environment with gwsproto installed works, e.g. the scada venv.)
 """
 
 import argparse
@@ -32,7 +41,8 @@ from pathlib import Path
 
 import gwsproto.named_types as named_types
 
-DEFAULT_SEMA = Path(__file__).resolve().parent.parent.parent / "sema"
+# packages/gridworks-scada-protocol/ -> repo root -> umbrella dir -> sema
+DEFAULT_SEMA = Path(__file__).resolve().parents[3] / "sema"
 
 # The scada venv carries no YAML library; the sema checkout's uv env does. One
 # subprocess converts the registry + every needed schema file to JSON.
@@ -98,6 +108,14 @@ def main(argv: list[str] | None = None) -> int:
         "--cli", action="store_true", help="also run `sema validate` per re-dump"
     )
     parser.add_argument(
+        "--release-gate",
+        action="store_true",
+        help=(
+            "fail unless every gwsproto-pinned version is sema-published "
+            "(staging = dev brokers only); run before any non-dev deploy"
+        ),
+    )
+    parser.add_argument(
         "-v", "--verbose", action="store_true", help="show per-type OK lines"
     )
     args = parser.parse_args(argv)
@@ -132,6 +150,7 @@ def main(argv: list[str] | None = None) -> int:
     dump_drift: list[str] = []
     no_example: list[str] = []
     cli_reject: list[str] = []
+    unpublished: list[str] = []
     ok = 0
 
     for type_name in sorted(classes):
@@ -140,6 +159,17 @@ def main(argv: list[str] | None = None) -> int:
         if entry is None:
             no_word.append(f"{type_name}  ({cls.__name__})")
             continue
+
+        if args.release_gate:
+            if version is not None:
+                pin_status = (entry.get("versions") or {}).get(version, {}).get("status")
+            else:
+                pin_status = entry.get("status")
+            if pin_status != "published":
+                unpublished.append(
+                    f"{type_name}/{version or '-'}  "
+                    f"(sema status: {pin_status or 'NOT REGISTERED'})"
+                )
 
         latest = entry.get("latest_version")
         if version != latest:
@@ -205,14 +235,20 @@ def main(argv: list[str] | None = None) -> int:
     section("EXAMPLE REJECT — gwsproto rejects canonical sema data", example_reject)
     section("DUMP DRIFT — gwsproto re-serialization is not canonical", dump_drift)
     section("SEMA CLI REJECT", cli_reject)
+    section("UNPUBLISHED PIN — release gate: dev brokers only", unpublished)
     section("NO EXAMPLE — nothing to decode (informational)", no_example)
 
     print(
         f"\n{ok} type(s) fully conformant; "
         f"{len(no_word)} without a word; {len(version_drift)} version drift; "
         f"{len(example_reject) + len(dump_drift) + len(cli_reject)} conformance failure(s)."
+        + (f" {len(unpublished)} unpublished pin(s)." if args.release_gate else "")
     )
-    return 1 if (no_word or example_reject or dump_drift or cli_reject) else 0
+    return (
+        1
+        if (no_word or example_reject or dump_drift or cli_reject or unpublished)
+        else 0
+    )
 
 
 if __name__ == "__main__":
