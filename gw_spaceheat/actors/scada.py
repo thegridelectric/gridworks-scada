@@ -453,7 +453,7 @@ class Scada(PrimeActor, ScadaInterface):
             if payload.DispatchTrigger.EventName == "TurnOn":
                 event = FsmEvent(
                     FromHandle="admin",
-                    ToHandle="admin.relay6",
+                    ToHandle=f"admin.{H0N.hp_scada_ops_relay}",
                     EventType=ChangeRelayState.enum_name(),
                     EventName=ChangeRelayState.CloseRelay,
                     SendTimeUnixMs=int(time.time() * 1000),
@@ -462,14 +462,14 @@ class Scada(PrimeActor, ScadaInterface):
             else:
                 event = FsmEvent(
                     FromHandle="admin",
-                    ToHandle="admin.relay6",
+                    ToHandle=f"admin.{H0N.hp_scada_ops_relay}",
                     EventType=ChangeRelayState.enum_name(),
                     EventName=ChangeRelayState.OpenRelay,
                     SendTimeUnixMs=int(time.time() * 1000),
                     TriggerId=str(uuid.uuid4()),
                 )
 
-            to_name = "relay6"
+            to_name = H0N.hp_scada_ops_relay
 
         # TODO: change this to work if relays etc are NOT on primary scada
         if communicator := self.get_communicator(to_name):

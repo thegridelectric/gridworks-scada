@@ -1,34 +1,34 @@
-from gwsproto.enums import DeviceType, I2cAdcType, I2cDacType, RelayWiringConfig
-from gwsproto.named_types.i2c_adc_config import I2cAdcConfig
-from gwsproto.named_types.i2c_bit_address import I2cBitAddress
+from gwsproto.enums import DeviceType, I2cAdcType, I2cDacType, RelayWiringConfig, TelemetryName
+from gwsproto.named_types.i2c_adc_capability import I2cAdcCapability
 from gwsproto.named_types.i2c_bus import I2cBus
-from gwsproto.named_types.i2c_dac_config import I2cDacConfig
-from gwsproto.named_types.i2c_relay_config import I2cRelayConfig
-from gwsproto.named_types.i2c_thermistor_interface_config import (
-    I2cThermistorInterfaceConfig,
+from gwsproto.named_types.i2c_dac_capability import I2cDacCapability
+from gwsproto.named_types.i2c_expander import I2cExpander
+from gwsproto.named_types.i2c_relay_capability import I2cRelayCapability
+from gwsproto.named_types.i2c_thermistor_interface_capability import (
+    I2cThermistorInterfaceCapability,
 )
 from gwsproto.named_types.native_gpio_pin import NativeGpioPin
 from gwsproto.named_types.scada_device_type_gt import ScadaDeviceTypeGt
 
 # All gw108 I²C peripherals (GPIO expanders 0x20/0x21, ADCs 0x48/0x49, DAC 0x60)
-# share one bus -> /dev/i2c-1.
+# share one bus -> /dev/i2c-1. The two expanders are soldered at fixed addresses:
+# expander 1 = 0x20, expander 2 = 0x21.
 DEFAULT_BUS = "DefaultBus"
 
 
 def _relay(
-    i2c_address: int,
+    expander_idx: int,
     register: int,
     bit: int,
     *wiring: RelayWiringConfig,
     name: str,
     notes: str | None = None,
-) -> I2cRelayConfig:
-    return I2cRelayConfig(
+) -> I2cRelayCapability:
+    return I2cRelayCapability(
         RelayName=name,
-        I2cBus=DEFAULT_BUS,
-        Address=I2cBitAddress(
-            I2cAddress=i2c_address, RegisterIndex=register, BitIndex=bit
-        ),
+        ExpanderIdx=expander_idx,
+        RegisterIndex=register,
+        BitIndex=bit,
         SupportedWiringConfigs=list(wiring),
         Notes=notes,
     )
@@ -36,7 +36,7 @@ def _relay(
 
 gw108_device_type = ScadaDeviceTypeGt(
     DeviceType=DeviceType.GridworksScadaGw108.value,
-    TelemetryNameList=[],  # FIX
+    TelemetryNameList=[TelemetryName.RelayState],  # FIX: CT / thermistor telemetry names still to settle
     BusList=[
         I2cBus(Name=DEFAULT_BUS, BusNumber=1),
     ],
@@ -55,21 +55,25 @@ gw108_device_type = ScadaDeviceTypeGt(
         NativeGpioPin(Name="Watchdog", BcmPin=24),
         NativeGpioPin(Name="PowerOff", BcmPin=25),
     ],
+    Expanders=[
+        I2cExpander(ExpanderIdx=1, I2cBus=DEFAULT_BUS, I2cAddress=0x20),
+        I2cExpander(ExpanderIdx=2, I2cBus=DEFAULT_BUS, I2cAddress=0x21),
+    ],
     I2cRelays=[
-        _relay(0x20, 2, 0, RelayWiringConfig.DoubleThrow, name="Zone1Failsafe"),
-        _relay(0x20, 2, 1, RelayWiringConfig.DoubleThrow, name="Zone2Failsafe"),
-        _relay(0x20, 2, 2, RelayWiringConfig.DoubleThrow, name="Zone3Failsafe"),
-        _relay(0x20, 2, 3, RelayWiringConfig.DoubleThrow, name="Zone4Failsafe"),
-        _relay(0x20, 2, 4, RelayWiringConfig.DoubleThrow, name="Zone5Failsafe"),
-        _relay(0x20, 2, 5, RelayWiringConfig.DoubleThrow, name="Zone6Failsafe"),
-        _relay(0x20, 3, 0, RelayWiringConfig.NormallyOpen, name="Zone1Scada"),
-        _relay(0x20, 3, 1, RelayWiringConfig.NormallyOpen, name="Zone2Scada"),
-        _relay(0x20, 3, 2, RelayWiringConfig.NormallyOpen, name="Zone3Scada"),
-        _relay(0x20, 3, 3, RelayWiringConfig.NormallyOpen, name="Zone4Scada"),
-        _relay(0x20, 3, 4, RelayWiringConfig.NormallyOpen, name="Zone5Scada"),
-        _relay(0x20, 3, 5, RelayWiringConfig.NormallyOpen, name="Zone6Scada"),
+        _relay(1, 2, 0, RelayWiringConfig.DoubleThrow, name="Zone1Failsafe"),
+        _relay(1, 2, 1, RelayWiringConfig.DoubleThrow, name="Zone2Failsafe"),
+        _relay(1, 2, 2, RelayWiringConfig.DoubleThrow, name="Zone3Failsafe"),
+        _relay(1, 2, 3, RelayWiringConfig.DoubleThrow, name="Zone4Failsafe"),
+        _relay(1, 2, 4, RelayWiringConfig.DoubleThrow, name="Zone5Failsafe"),
+        _relay(1, 2, 5, RelayWiringConfig.DoubleThrow, name="Zone6Failsafe"),
+        _relay(1, 3, 0, RelayWiringConfig.NormallyOpen, name="Zone1Scada"),
+        _relay(1, 3, 1, RelayWiringConfig.NormallyOpen, name="Zone2Scada"),
+        _relay(1, 3, 2, RelayWiringConfig.NormallyOpen, name="Zone3Scada"),
+        _relay(1, 3, 3, RelayWiringConfig.NormallyOpen, name="Zone4Scada"),
+        _relay(1, 3, 4, RelayWiringConfig.NormallyOpen, name="Zone5Scada"),
+        _relay(1, 3, 5, RelayWiringConfig.NormallyOpen, name="Zone6Scada"),
         _relay(
-            0x21,
+            2,
             2,
             1,
             RelayWiringConfig.NormallyOpen,
@@ -77,7 +81,7 @@ gw108_device_type = ScadaDeviceTypeGt(
             notes="Upper buffer resistive heating element",
         ),
         _relay(
-            0x21,
+            2,
             2,
             2,
             RelayWiringConfig.NormallyOpen,
@@ -85,7 +89,7 @@ gw108_device_type = ScadaDeviceTypeGt(
             notes="Lower buffer resistive heating element",
         ),
         _relay(
-            0x21,
+            2,
             3,
             6,
             RelayWiringConfig.NormallyOpen,
@@ -93,7 +97,7 @@ gw108_device_type = ScadaDeviceTypeGt(
             notes="Upper buffer resistive heating element",
         ),
         _relay(
-            0x21,
+            2,
             3,
             7,
             RelayWiringConfig.NormallyOpen,
@@ -101,7 +105,7 @@ gw108_device_type = ScadaDeviceTypeGt(
             notes="Lower buffer resistive heating element",
         ),
         _relay(
-            0x21,
+            2,
             2,
             0,
             RelayWiringConfig.NormallyOpen,
@@ -109,7 +113,7 @@ gw108_device_type = ScadaDeviceTypeGt(
             notes="??",
         ),
         _relay(
-            0x21,
+            2,
             2,
             3,
             RelayWiringConfig.DoubleThrow,
@@ -117,21 +121,21 @@ gw108_device_type = ScadaDeviceTypeGt(
             notes="??",
         ),
         _relay(
-            0x21,
+            2,
             2,
             4,
             RelayWiringConfig.NormallyClosed,
             name="BoilerIntercept",
             notes="By default, signal goes to boiler. ",
         ),
-        _relay(0x21, 2, 7, RelayWiringConfig.NormallyOpen, name="PrimaryPump"),
-        _relay(0x21, 3, 5, RelayWiringConfig.NormallyOpen, name="SecondaryPump"),
-        _relay(0x21, 3, 4, RelayWiringConfig.NormallyOpen, name="StorePump"),
-        _relay(0x21, 3, 3, RelayWiringConfig.DoubleThrow, name="DischargeValve"),
-        _relay(0x21, 3, 2, RelayWiringConfig.DoubleThrow, name="IsoValve"),
-        _relay(0x21, 3, 1, RelayWiringConfig.DoubleThrow, name="IsoValveFailsafe"),
+        _relay(2, 2, 7, RelayWiringConfig.NormallyOpen, name="PrimaryPump"),
+        _relay(2, 3, 5, RelayWiringConfig.NormallyOpen, name="SecondaryPump"),
+        _relay(2, 3, 4, RelayWiringConfig.NormallyOpen, name="StorePump"),
+        _relay(2, 3, 3, RelayWiringConfig.DoubleThrow, name="DischargeValve"),
+        _relay(2, 3, 2, RelayWiringConfig.DoubleThrow, name="IsoValve"),
+        _relay(2, 3, 1, RelayWiringConfig.DoubleThrow, name="IsoValveFailsafe"),
         _relay(
-            0x21,
+            2,
             3,
             0,
             RelayWiringConfig.NormallyOpen,
@@ -140,7 +144,7 @@ gw108_device_type = ScadaDeviceTypeGt(
             name="FcmMisc",
         ),
         _relay(
-            0x21,
+            2,
             2,
             5,
             RelayWiringConfig.NormallyOpen,
@@ -149,7 +153,7 @@ gw108_device_type = ScadaDeviceTypeGt(
             name="Misc1",
         ),
         _relay(
-            0x21,
+            2,
             2,
             6,
             RelayWiringConfig.NormallyOpen,
@@ -158,7 +162,7 @@ gw108_device_type = ScadaDeviceTypeGt(
             name="Misc2",
         ),
     ],
-    CtAdc=I2cAdcConfig(
+    CtAdc=I2cAdcCapability(
         Name="Ct",
         I2cBus=DEFAULT_BUS,
         I2cAddress=0x48,
@@ -166,7 +170,7 @@ gw108_device_type = ScadaDeviceTypeGt(
         Channels=4,
     ),
     ThermistorAdcs=[
-        I2cThermistorInterfaceConfig(
+        I2cThermistorInterfaceCapability(
             Name="Thermistors",
             I2cBus=DEFAULT_BUS,
             I2cAddress=0x49,
@@ -178,7 +182,7 @@ gw108_device_type = ScadaDeviceTypeGt(
         )
     ],
     Dacs=[
-        I2cDacConfig(
+        I2cDacCapability(
             DacName="Zones",
             I2cBus=DEFAULT_BUS,
             I2cAddress=0x60,

@@ -60,7 +60,6 @@ from gwsproto.conversions.temperature import convert_temp_to_f
 from gwsproto.data_classes.house_0_layout import House0Layout
 from gwsproto.data_classes.house_0_names import H0CN, H0N
 
-from gwsproto.data_classes.house_0_names import House0RelayIdx
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
     LogLevel,
@@ -785,7 +784,7 @@ class Ltn(PrimeActor):
         # Check if HP is on or off by looking at relay 6
         for machine_state in report.StateList:
             ms : MachineStates = machine_state
-            if f"relay{House0RelayIdx.hp_scada_ops}" in ms.MachineHandle:
+            if H0N.hp_scada_ops_relay in ms.MachineHandle:
                 if ms.StateList[-1] == RelayClosedOrOpen.RelayOpen:
                     self.hp_is_off = True
                 else:

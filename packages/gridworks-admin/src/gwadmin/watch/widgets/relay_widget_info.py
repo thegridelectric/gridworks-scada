@@ -25,14 +25,23 @@ class RelayTableName(BaseModel):
     )
 
     @classmethod
-    def from_channel_name(cls, channel_name: str) -> "RelayTableName":
+    def from_channel_name(
+        cls, channel_name: str, relay_idx: Optional[int] = None
+    ) -> "RelayTableName":
+        # The board position (the device's physical marking, e.g. "Relay 18")
+        # comes from the relay config's RelayIdx; the suffix parse covers
+        # old-convention channel names (`vdc-relay1`) still in the field.
         relay_match = cls.relay_table_name_rgx.match(channel_name)
         if relay_match is None:
-            channel_part = channel_name
-            relay_number = None
+            channel_part = channel_name.removesuffix("-relay")
+            relay_number = relay_idx
         else:
             channel_part = relay_match.group("channel_part")
-            relay_number = int(relay_match.group("relay_number"))
+            relay_number = (
+                relay_idx
+                if relay_idx is not None
+                else int(relay_match.group("relay_number"))
+            )
         return RelayTableName(
             channel_name=channel_name,
             row_name=" ".join(
@@ -57,7 +66,7 @@ class RelayWidgetConfig(RelayConfig):
 
     @cached_property
     def table_name(self) -> RelayTableName:
-        return RelayTableName.from_channel_name(self.channel_name)
+        return RelayTableName.from_channel_name(self.channel_name, self.relay_idx)
 
     @classmethod
     def from_config(

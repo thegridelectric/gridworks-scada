@@ -77,10 +77,9 @@ def simulate_sensors(layout: dict[str, Any]) -> dict[str, Any]:
                         "ComponentId": comp["ComponentId"],
                         "DisplayName": comp.get("DisplayName", "Sim Sensor"),
                         "DeviceType": "GridworksSimSensor",
-                        # Preserve the original ConfigList so the dc
-                        # ComponentDataChannelBijection still holds (every captured
-                        # DataChannel stays referenced by its component).
-                        "ConfigList": comp.get("ConfigList", []),
+                        # No ConfigList: the sim sensor's channels bind via
+                        # DataChannel.CapturedByNodeName, the sole channel→node binding.
+                        "ConfigList": [],
                         "TypeName": "sim.sensor.component.gt",
                         "Version": "000",
                     }

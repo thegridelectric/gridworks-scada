@@ -36,6 +36,7 @@ module_logger = logging.getLogger(__name__)
 class RelayConfig(BaseModel):
     about_node_name: SpaceheatName
     channel_name: SpaceheatName
+    relay_idx: Optional[int] = None
     event_type: str
     energizing_event: str
     de_energizing_event: str
@@ -157,6 +158,7 @@ class RelayWatchClient(AdminSubClient):
             node_name : RelayConfig(
                 about_node_name=node_name,
                 channel_name=relay_channels[node_name].Name,
+                relay_idx=relay_actor_configs[node_name].RelayIdx,
                 event_type=relay_actor_configs[node_name].EventType,
                 energizing_event=relay_actor_configs[node_name].EnergizingEvent,
                 de_energizing_event=relay_actor_configs[node_name].DeEnergizingEvent,

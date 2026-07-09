@@ -13,7 +13,7 @@ from gwsproto.data_classes.components import (
     I2cMultichannelDtRelayComponent,
     Gw108GpioRelayComponent,
 )
-from gwsproto.data_classes.house_0_names import H0N
+from gwsproto.data_classes.house_0_names import H0N, ZoneNodes
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
     AquastatControl,
@@ -38,7 +38,6 @@ from gwsproto.enums import (
 from gwsproto.named_types import FsmAtomicReport, FsmFullReport
 from result import Err, Ok, Result
 from transitions import Machine
-from gwsproto.data_classes.house_0_names import House0RelayIdx
 from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 from gwsproto.enums import LogLevel, ChangeKeepSend, HpLoopKeepSend
@@ -376,11 +375,10 @@ class Relay(ShNodeActor):
         stat_failsafe_names = []
         stat_ops_names = []
         # TODO: move the below into House0 Hardware Layout validation
-        for i in range(len(zone_names)):
-            failsafe_idx = House0RelayIdx.base_stat + 2*i
-            ops_idx = House0RelayIdx.base_stat + 2*i + 1
-            stat_failsafe_names.append(f"relay{failsafe_idx}")
-            stat_ops_names.append( f"relay{ops_idx}")
+        for i, zone in enumerate(zone_names):
+            zone_nodes = ZoneNodes(zone=zone, idx=i)
+            stat_failsafe_names.append(zone_nodes.failsafe_relay)
+            stat_ops_names.append(zone_nodes.ops_relay)
         vdc_relay_name = self.layout.vdc_relay.name
     
         if self.name in {

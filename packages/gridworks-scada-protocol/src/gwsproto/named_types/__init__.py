@@ -56,23 +56,24 @@ from gwsproto.named_types.hubitat_gt import HubitatGt
 from gwsproto.named_types.hubitat_poller_component_gt import HubitatPollerComponentGt
 from gwsproto.named_types.hubitat_poller_gt import HubitatPollerGt, MakerAPIAttributeGt
 from gwsproto.named_types.hvac_zone import HvacZone
-from gwsproto.named_types.i2c_adc_config import I2cAdcConfig
+from gwsproto.named_types.i2c_adc_capability import I2cAdcCapability
 from gwsproto.named_types.i2c_bit_address import I2cBitAddress
 from gwsproto.named_types.i2c_bus import I2cBus
-from gwsproto.named_types.i2c_dac_config import I2cDacConfig
+from gwsproto.named_types.i2c_dac_capability import I2cDacCapability
 from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
     I2cMultichannelDtRelayComponentGt,
 )
 from gwsproto.named_types.i2c_read_bit import I2cReadBit
 from gwsproto.named_types.i2c_read_reg import I2cReadReg
 from gwsproto.named_types.i2c_reg_address import I2cRegAddress
-from gwsproto.named_types.i2c_relay_config import I2cRelayConfig
+from gwsproto.named_types.i2c_expander import I2cExpander
+from gwsproto.named_types.i2c_relay_capability import I2cRelayCapability
 from gwsproto.named_types.i2c_result import I2cResult
 from gwsproto.named_types.i2c_thermistor_channel_config import (
     I2cThermistorChannelConfig,
 )
-from gwsproto.named_types.i2c_thermistor_interface_config import (
-    I2cThermistorInterfaceConfig,
+from gwsproto.named_types.i2c_thermistor_interface_capability import (
+    I2cThermistorInterfaceCapability,
 )
 from gwsproto.named_types.i2c_thermistor_reader_component_gt import (
     I2cThermistorReaderComponentGt,
@@ -198,18 +199,19 @@ __all__ = [
     "HubitatPollerComponentGt",
     "HubitatPollerGt",
     "HvacZone",
-    "I2cAdcConfig",
+    "I2cAdcCapability",
     "I2cBitAddress",
     "I2cBus",
-    "I2cDacConfig",
+    "I2cDacCapability",
     "I2cMultichannelDtRelayComponentGt",
     "I2cReadBit",
     "I2cReadReg",
     "I2cRegAddress",
-    "I2cRelayConfig",
+    "I2cExpander",
+    "I2cRelayCapability",
     "I2cResult",
     "I2cThermistorChannelConfig",
-    "I2cThermistorInterfaceConfig",
+    "I2cThermistorInterfaceCapability",
     "I2cThermistorReaderComponentGt",
     "I2cWriteBit",
     "I2cWriteReg",

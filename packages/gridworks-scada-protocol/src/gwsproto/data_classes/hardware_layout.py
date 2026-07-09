@@ -328,30 +328,17 @@ class HardwareLayout:
                     f"Channel name overlap!: {dc_names_by_component & channel_names}"
                 )
             dc_names_by_component.update(channel_names)
+        # Component ConfigList references must be a SUBSET of the declared
+        # DataChannels. NOT a bijection: a declared channel with no ConfigList
+        # entry is fine (e.g. sim components carry no ConfigList; their channels
+        # bind via DataChannel.CapturedByNodeName, the sole channel→node binding).
         actual_dc_names = {dc.Name for dc in data_channels.values()}
-        if dc_names_by_component != actual_dc_names:
-            referenced_not_declared = sorted(
-                dc_names_by_component - actual_dc_names
+        referenced_not_declared = sorted(dc_names_by_component - actual_dc_names)
+        if referenced_not_declared:
+            raise DcError(
+                f"Referenced by components but missing from DataChannels: "
+                f"{referenced_not_declared}"
             )
-            declared_not_referenced = sorted(
-                actual_dc_names - dc_names_by_component
-            )
-
-            msg_lines = ["Channel inconsistency detected:"]
-
-            if referenced_not_declared:
-                msg_lines.append(
-                    f"  Referenced by components but missing from DataChannels: "
-                    f"{referenced_not_declared}"
-                )
-
-            if declared_not_referenced:
-                msg_lines.append(
-                    f"  Declared in DataChannels but not referenced by any component: "
-                    f"{declared_not_referenced}"
-                )
-
-            raise DcError("\n".join(msg_lines))
 
         cls.check_node_channel_consistency(nodes, data_channels)
 

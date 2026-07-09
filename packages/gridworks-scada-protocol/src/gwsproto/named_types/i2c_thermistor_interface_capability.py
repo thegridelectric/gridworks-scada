@@ -6,8 +6,8 @@ from gwsproto.enums import I2cAdcType
 from gwsproto.property_format import NonNegativeInt, PascalCase
 
 
-class I2cThermistorInterfaceConfig(BaseModel):
-    """Sema: https://schemas.electricity.works/types/i2c.thermistor.interface.config/000"""
+class I2cThermistorInterfaceCapability(BaseModel):
+    """Sema: https://schemas.electricity.works/types/i2c.thermistor.interface.capability/000"""
 
     Name: PascalCase
     I2cBus: PascalCase
@@ -15,5 +15,5 @@ class I2cThermistorInterfaceConfig(BaseModel):
     AdcType: I2cAdcType
     AdcReferenceVolts: PositiveFloat
     SeriesResistanceKOhms: PositiveFloat
-    TypeName: Literal["i2c.thermistor.interface.config"] = "i2c.thermistor.interface.config"
+    TypeName: Literal["i2c.thermistor.interface.capability"] = "i2c.thermistor.interface.capability"
     Version: Literal["000"] = "000"

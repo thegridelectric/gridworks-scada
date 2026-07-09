@@ -19,7 +19,7 @@ from actors.config import ScadaSettings
 from actors.scada_data import ScadaData
 from gwsproto.conversions.temperature import convert_temp_to_f
 from gwsproto.data_classes.house_0_layout import House0Layout
-from gwsproto.data_classes.house_0_names import H0N, H0CN, House0RelayIdx
+from gwsproto.data_classes.house_0_names import H0N, H0CN, ZoneNodes
 
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.data_classes.components.i2c_multichannel_dt_relay_component import (
@@ -364,9 +364,7 @@ class ShNodeActor(Actor, ABC):
             raise DcError(
                 f"Called stat_failsafe_relay for {zone} which does not exist!"
             ) from e
-        failsafe_idx = House0RelayIdx.base_stat + 2 * i
-        stat_failsafe_name = f"relay{failsafe_idx}"
-        return self.layout.node(stat_failsafe_name)
+        return self.layout.node(ZoneNodes(zone=zone, idx=i).failsafe_relay)
 
     def stat_ops_relay(self, zone: str) -> ShNode:
         """
@@ -379,9 +377,7 @@ class ShNodeActor(Actor, ABC):
             raise Exception(
                 f"Called stat_failsafe_relay for {zone} which does not exist!"
             ) from e
-        ops_idx = House0RelayIdx.base_stat + 2 * i + 1
-        stat_ops_name = f"relay{ops_idx}"
-        return self.layout.node(stat_ops_name)
+        return self.layout.node(ZoneNodes(zone=zone, idx=i).ops_relay)
 
     ###############################
     # Relay controls

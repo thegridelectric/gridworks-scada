@@ -4,7 +4,7 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class DeviceType(SemaEnum):
-    """Sema: https://schemas.electricity.works/enums/gpio.sense.mode/000"""
+    """Sema: https://schemas.electricity.works/enums/gw1.device.type/000"""
 
     EgaugePowerMeter = auto()
     GridworksTsnap1ScadaBoard = auto()

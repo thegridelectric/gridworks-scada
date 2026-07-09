@@ -9,20 +9,22 @@ class House0NodeNames:
     directly for those.
     """
 
-    # relay nodes (House0 krida board assignment)
-    vdc_relay: Literal["relay1"] = "relay1"
-    tstat_common_relay: Literal["relay2"] = "relay2"
-    store_charge_discharge_relay: Literal["relay3"] = "relay3"
-    hp_failsafe_relay: Literal["relay5"] = "relay5"
-    hp_scada_ops_relay: Literal["relay6"] = "relay6"
-    thermistor_common_relay: Literal["relay7"] = "relay7"
-    aquastat_ctrl_relay: Literal["relay8"] = "relay8"
-    store_pump_failsafe: Literal["relay9"] = "relay9"
-    boiler_scada_ops: Literal["relay10"] = "relay10"
-    primary_pump_scada_ops: Literal["relay11"] = "relay11"
-    primary_pump_failsafe: Literal["relay12"] = "relay12"
-    hp_loop_on_off: Literal["relay14"] = "relay14"
-    hp_loop_keep_send: Literal["relay15"] = "relay15"
+    # relay nodes (functional names; node name == relay-state channel name.
+    # The krida board position lives in House0RelayIdx / relay.actor.config
+    # RelayIdx, not the name.)
+    vdc_relay: Literal["vdc-relay"] = "vdc-relay"
+    tstat_common_relay: Literal["tstat-common-relay"] = "tstat-common-relay"
+    store_charge_discharge_relay: Literal["charge-discharge-relay"] = "charge-discharge-relay"
+    hp_failsafe_relay: Literal["hp-failsafe-relay"] = "hp-failsafe-relay"
+    hp_scada_ops_relay: Literal["hp-scada-ops-relay"] = "hp-scada-ops-relay"
+    thermistor_common_relay: Literal["thermistor-common-relay"] = "thermistor-common-relay"
+    aquastat_ctrl_relay: Literal["aquastat-ctrl-relay"] = "aquastat-ctrl-relay"
+    store_pump_failsafe: Literal["store-pump-failsafe-relay"] = "store-pump-failsafe-relay"
+    boiler_scada_ops: Literal["boiler-scada-ops-relay"] = "boiler-scada-ops-relay"
+    primary_pump_scada_ops: Literal["primary-pump-scada-ops-relay"] = "primary-pump-scada-ops-relay"
+    primary_pump_failsafe: Literal["primary-pump-failsafe-relay"] = "primary-pump-failsafe-relay"
+    hp_loop_on_off: Literal["hp-loop-on-off-relay"] = "hp-loop-on-off-relay"
+    hp_loop_keep_send: Literal["hp-loop-keep-send-relay"] = "hp-loop-keep-send-relay"
 
     # House0-specific instrumentation
     hubitat = "hubitat"
@@ -37,31 +39,16 @@ class House0NodeNames:
 
         self.tanks = Tanks(total_store_tanks).nodes
         self.zones = {
-            zone: House0ZoneNodeNames(idx + 1)
+            zone: House0ZoneNodeNames(zone, idx + 1)
             for idx, zone in enumerate(zone_list)
         }
 
 
-HOUSE_0_BASE_STAT_IDX = 17
-
-def krida_failsafe_relay_suffix(zone_idx: int) -> int:
-    """Returns krida relay idx for ops relay from zone_idx"""
-    i = zone_idx - 1
-    return HOUSE_0_BASE_STAT_IDX + 2 * i
-
-
-def krida_ops_relay_suffix(zone_idx: int) -> int:
-    """Returns krida relay idx for failsafe relay zone_idx"""
-    i = zone_idx - 1
-    return HOUSE_0_BASE_STAT_IDX + 2 * i + 1
-
 class House0ZoneNodeNames:
-    """
+    """Per-zone relay node names (functional; node name == relay-state channel
+    name, e.g. zone1-living-rm-failsafe-relay)."""
 
-    """
-    def __init__(self, idx: int) -> None:
-
-        failsafe_idx = krida_failsafe_relay_suffix(idx)
-        ops_idx = krida_ops_relay_suffix(idx)
-        self.failsafe_relay = f"relay{failsafe_idx}"
-        self.ops_relay= f"relay{ops_idx}"
+    def __init__(self, zone: str, idx: int) -> None:
+        base = f"zone{idx}-{zone}".lower()
+        self.failsafe_relay = f"{base}-failsafe-relay"
+        self.ops_relay = f"{base}-ops-relay"

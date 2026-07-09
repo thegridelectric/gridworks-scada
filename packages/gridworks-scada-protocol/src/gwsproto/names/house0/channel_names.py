@@ -19,7 +19,7 @@ class House0ChannelNames:
     hp_scada_ops_relay_state: Literal["hp-scada-ops-relay"] = "hp-scada-ops-relay"
     aquastat_ctrl_relay_state: Literal["aquastat-ctrl-relay"] = "aquastat-ctrl-relay"
     store_pump_failsafe_relay_state: Literal["store-pump-failsafe-relay"] = "store-pump-failsafe-relay"
-    boiler_scada_ops_relay_state: Literal["boiler-scada_ops-relay"] = "boiler-scada_ops-relay"
+    boiler_scada_ops_relay_state: Literal["boiler-scada-ops-relay"] = "boiler-scada-ops-relay"
     primary_pump_scada_ops_relay_state: Literal["primary-pump-scada-ops-relay"] = "primary-pump-scada-ops-relay"
     primary_pump_failsafe_relay_state: Literal["primary-pump-failsafe-relay"] = "primary-pump-failsafe-relay"
     hp_loop_on_off_relay_state: Literal["hp-loop-on-off-relay"] = "hp-loop-on-off-relay"
