@@ -106,15 +106,19 @@ class I2cRelayMultiplexer(ShNodeActor):
 
             self.i2c_bus = board.I2C()
             addresses = self.component.gt.I2cAddressList
+            pin_map = self.relay_pin_map()
 
-            num_boards = 2
+            num_boards = len(addresses)
             for i in range(num_boards):
+                board_idx = i + 1
+                address = addresses[i]
+                board_pins = {
+                    k: pin for k, (b, pin) in pin_map.items() if b == board_idx
+                }
                 setup_attempts = 0
                 setup_done = False
                 while setup_attempts < 3 and not setup_done:
                     wait_s = setup_attempts + 1
-                    board_idx = i + 1
-                    address = addresses[i]
                     try:
                         self.krida_board[board_idx] = adafruit_pcf8575.PCF8575(
                             i2c_bus=self.i2c_bus, address=address
@@ -130,19 +134,15 @@ class I2cRelayMultiplexer(ShNodeActor):
                     await asyncio.sleep(0.2)
                     self.logger.info(f"initializing board {board_idx} at {hex(address)}")
                     try:
-                        for j in range(1, 17):
+                        for k, pin_idx in board_pins.items():
                             # set relay to correct pin, and switch to output. This energizes all relays
-                            gw_idx = (board_idx - 1) * 16 + j
-                            pin_idx = gw_to_pin(gw_idx)
-                            self.krida_relay_pin[gw_idx] = self.krida_board[board_idx].get_pin(
+                            self.krida_relay_pin[k] = self.krida_board[board_idx].get_pin(
                                 pin_idx
                             )
-                            self.krida_relay_pin[gw_idx].switch_to_output()
-                        for j in range(1, 17):
+                            self.krida_relay_pin[k].switch_to_output()
+                        for k in board_pins:
                             # move all relays back to de-energized position
-                            self.krida_relay_pin[
-                                i * 16 + j
-                            ].value = ChangeKridaPin.DeEnergize.value
+                            self.krida_relay_pin[k].value = ChangeKridaPin.DeEnergize.value
                         # and record the de-energized state for all known relays
                         self.logger.info(f"Successfully initialized board {board_idx}")
                         setup_done = True
@@ -153,9 +153,8 @@ class I2cRelayMultiplexer(ShNodeActor):
                 # send up a Glitch if things took more than once
                 if setup_attempts > 0:
                     if not setup_done:
-                        for j in range(1,17):
-                            gw_idx = (board_idx - 1) * 16 + j
-                            self.krida_relay_pin[gw_idx] = SimulatedPin(
+                        for k in board_pins:
+                            self.krida_relay_pin[k] = SimulatedPin(
                                 value=KridaPinState.DeEnergized.value
                             )
                         log_level = LogLevel.Critical
@@ -188,6 +187,27 @@ class I2cRelayMultiplexer(ShNodeActor):
                 self.maintain_relay_states(), name="maintain_relay_states"
             )
         )
+
+    def relay_pin_map(self) -> Dict[int, tuple]:
+        """RelayIdx -> (board idx, PCF8575 pin). From the layout's
+        KridaDoubleRelayBoard16 device-type record when present (RelayName
+        `Relay{k}` = the panel marking; ExpanderIdx + RegisterIndex/BitIndex
+        carry the position, first-bank inversion included). Legacy arithmetic
+        covers layouts that don't carry the record yet — it retires with the
+        fleet regen."""
+        record = self.layout.device_types.get(DeviceType.KridaDoubleRelayBoard16)
+        if record is not None:
+            return {
+                int(r.RelayName.removeprefix("Relay")): (
+                    r.ExpanderIdx,
+                    r.RegisterIndex * 8 + r.BitIndex,
+                )
+                for r in record.I2cRelays
+            }
+        n_idx = 16 * len(self.component.gt.I2cAddressList)
+        return {
+            k: (board_from_gw_idx(k), gw_to_pin(k)) for k in range(1, n_idx + 1)
+        }
 
     def get_idx(self, relay: ShNode) -> int:
         if not relay.actor_class == ActorClass.Relay:
@@ -344,17 +364,6 @@ class I2cRelayMultiplexer(ShNodeActor):
 
     async def join(self) -> None:
         """IOLoop will take care of shutting down the associated task."""
-
-def krida_to_gw(krida_board: int, krida_idx: int) -> int:
-    if krida_idx < 9:
-        return krida_board * 16 + (9 - krida_idx)
-    else:
-        return krida_board * 16 + krida_idx
-
-
-def gw_to_board_idx(gw_idx: int) -> int:
-    return int((gw_idx - 1) / 16)
-
 
 def board_from_gw_idx(gw_idx: int) -> int:
     return int((gw_idx - 1) / 16) + 1
