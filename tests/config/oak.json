@@ -1496,6 +1496,480 @@
       "Version": "000"
     },
     {
+      "BusList": [
+        {
+          "BusNumber": 1,
+          "Name": "DefaultBus",
+          "TypeName": "i2c.bus",
+          "Version": "000"
+        }
+      ],
+      "Dacs": [],
+      "DeviceType": "KridaDoubleRelayBoard16",
+      "DisplayName": "GridWorks relay panel: two 16-channel Krida boards, markings Relay1-Relay32",
+      "Expanders": [
+        {
+          "AllowedI2cAddressList": [
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39
+          ],
+          "ExpanderIdx": 1,
+          "I2cBus": "DefaultBus",
+          "TypeName": "i2c.expander",
+          "Version": "000"
+        },
+        {
+          "AllowedI2cAddressList": [
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39
+          ],
+          "ExpanderIdx": 2,
+          "I2cBus": "DefaultBus",
+          "TypeName": "i2c.expander",
+          "Version": "000"
+        }
+      ],
+      "I2cRelays": [
+        {
+          "BitIndex": 7,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 0,
+          "RelayName": "Relay1",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 6,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 0,
+          "RelayName": "Relay2",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 5,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 0,
+          "RelayName": "Relay3",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 4,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 0,
+          "RelayName": "Relay4",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 3,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 0,
+          "RelayName": "Relay5",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 2,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 0,
+          "RelayName": "Relay6",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 1,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 0,
+          "RelayName": "Relay7",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 0,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 0,
+          "RelayName": "Relay8",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 0,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 1,
+          "RelayName": "Relay9",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 1,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 1,
+          "RelayName": "Relay10",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 2,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 1,
+          "RelayName": "Relay11",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 3,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 1,
+          "RelayName": "Relay12",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 4,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 1,
+          "RelayName": "Relay13",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 5,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 1,
+          "RelayName": "Relay14",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 6,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 1,
+          "RelayName": "Relay15",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 7,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 1,
+          "RelayName": "Relay16",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 7,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 0,
+          "RelayName": "Relay17",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 6,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 0,
+          "RelayName": "Relay18",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 5,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 0,
+          "RelayName": "Relay19",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 4,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 0,
+          "RelayName": "Relay20",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 3,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 0,
+          "RelayName": "Relay21",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 2,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 0,
+          "RelayName": "Relay22",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 1,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 0,
+          "RelayName": "Relay23",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 0,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 0,
+          "RelayName": "Relay24",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 0,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 1,
+          "RelayName": "Relay25",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 1,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 1,
+          "RelayName": "Relay26",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 2,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 1,
+          "RelayName": "Relay27",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 3,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 1,
+          "RelayName": "Relay28",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 4,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 1,
+          "RelayName": "Relay29",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 5,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 1,
+          "RelayName": "Relay30",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 6,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 1,
+          "RelayName": "Relay31",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 7,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 1,
+          "RelayName": "Relay32",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        }
+      ],
+      "MinPollPeriodMs": 200,
+      "NativeGpioInputs": [],
+      "NativeGpioOutputs": [],
+      "TelemetryNameList": [
+        "RelayState"
+      ],
+      "ThermistorAdcs": [],
+      "TypeName": "gw1.scada.device.type.gt",
+      "Version": "000"
+    },
+    {
       "AdsI2cAddressList": [
         75,
         73,
