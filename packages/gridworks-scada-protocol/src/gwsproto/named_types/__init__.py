@@ -13,6 +13,7 @@ from gwsproto.named_types.baseurl_failure_alert import BaseurlFailureAlert
 from gwsproto.named_types.bid import Bid
 from gwsproto.named_types.bid_recommendation import BidRecommendation
 from gwsproto.named_types.capture_tuning import CaptureTuning
+from gwsproto.named_types.cop_curve import CopCurve
 from gwsproto.named_types.channel_flatlined import ChannelFlatlined
 from gwsproto.named_types.channel_readings import ChannelReadings
 from gwsproto.named_types.data_channel_gt import DataChannelGt
@@ -48,6 +49,7 @@ from gwsproto.named_types.gw108_gpio_sensor_component_gt import (
 from gwsproto.named_types.ha1_params import Ha1Params
 from gwsproto.named_types.hack_oil_off import HackOilOff
 from gwsproto.named_types.hack_oil_on import HackOilOn
+from gwsproto.named_types.heating_curve import HeatingCurve
 from gwsproto.named_types.heating_forecast import HeatingForecast
 from gwsproto.named_types.house0_hydronic import House0Hydronic
 from gwsproto.named_types.house0_layout import House0Layout
@@ -163,6 +165,7 @@ __all__ = [
     "Bid",
     "BidRecommendation",
     "CaptureTuning",
+    "CopCurve",
     "ChannelFlatlined",
     "ChannelReadings",
     "DataChannelGt",
@@ -191,6 +194,7 @@ __all__ = [
     "Ha1Params",
     "HackOilOff",
     "HackOilOn",
+    "HeatingCurve",
     "HeatingForecast",
     "House0Hydronic",
     "House0Layout",

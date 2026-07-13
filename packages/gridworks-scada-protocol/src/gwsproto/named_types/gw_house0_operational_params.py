@@ -1,10 +1,13 @@
 from typing import List, Literal
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, NonNegativeInt, PositiveInt, model_validator
 from typing_extensions import Self
 
+from gwsproto.enums import SeasonalStorageMode, SystemMode
 from gwsproto.named_types.capture_tuning import CaptureTuning
+from gwsproto.named_types.cop_curve import CopCurve
 from gwsproto.named_types.g_node_gt import GNodeGt
+from gwsproto.named_types.heating_curve import HeatingCurve
 
 
 class GwHouse0OperationalParams(BaseModel):
@@ -12,6 +15,17 @@ class GwHouse0OperationalParams(BaseModel):
 
     GNodes: List[GNodeGt]
     CaptureTuningList: List[CaptureTuning]
+    SystemMode: SystemMode
+    SeasonalStorageMode: SeasonalStorageMode
+    CopCurve: CopCurve
+    HeatingCurve: HeatingCurve
+    HpTurnOnMinutes: PositiveInt
+    ShortCycleBuffer: bool
+    LoadOverestimationPercent: NonNegativeInt
+    OilBoilerBackup: bool
+    HorizonHours: PositiveInt
+    Latitude: float
+    Longitude: float
     TypeName: Literal["gw.house0.operational.params"] = "gw.house0.operational.params"
     Version: Literal["000"] = "000"
 

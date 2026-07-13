@@ -5,7 +5,7 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class SeasonalStorageMode(SemaEnum):
-    """Sema: https://schemas.electricity.works/enums/gw1.seasonal.stoarge.mode/000"""
+    """Sema: https://schemas.electricity.works/enums/gw1.seasonal.storage.mode/000"""
 
     AllTanks = auto()
     BufferOnly = auto()
