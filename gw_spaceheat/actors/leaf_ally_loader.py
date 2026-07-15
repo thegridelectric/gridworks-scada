@@ -13,17 +13,17 @@ class LeafAlly(ShNodeActor):
             raise Exception("Expects ActorClass LeafAlly!")
 
         # Dynamically load the implementation class based on LocalControl strategy
-        if self.settings.seasonal_storage_mode == SeasonalStorageMode.AllTanks:
+        if self.ops.SeasonalStorageMode == SeasonalStorageMode.AllTanks:
             module = importlib.import_module("actors.leaf_ally.all_tanks")
             impl_class = getattr(module, "AllTanksLeafAlly")
-        elif self.settings.seasonal_storage_mode == SeasonalStorageMode.BufferOnly:
+        elif self.ops.SeasonalStorageMode == SeasonalStorageMode.BufferOnly:
             module = importlib.import_module("actors.leaf_ally.buffer_only")
             impl_class = getattr(module, "BufferOnlyLeafAlly")
         else:
-            raise Exception(f"SeasonalStorageMode {self.settings.seasonal_storage_mode}")
+            raise Exception(f"SeasonalStorageMode {self.ops.SeasonalStorageMode}")
         # Create the implementation instance
         self._impl = impl_class(name, services)
-        services.logger.error(f"Creating LeafAlly with strategy {self.settings.seasonal_storage_mode}, "
+        services.logger.error(f"Creating LeafAlly with strategy {self.ops.SeasonalStorageMode}, "
                               f"using {impl_class.__module__}.{impl_class.__name__}")
 
     # Forward all properties and methods to the implementation

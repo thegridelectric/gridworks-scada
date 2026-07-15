@@ -55,8 +55,8 @@ class AllTanksTouLocalControl(LocalControlTouBase):
 
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
-        if self.settings.seasonal_storage_mode != SeasonalStorageMode.AllTanks:
-            raise Exception(f"Expect WinterTou LocalControl, got {self.settings.seasonal_storage_mode}")
+        if self.ops.SeasonalStorageMode != SeasonalStorageMode.AllTanks:
+            raise Exception(f"Expect WinterTou LocalControl, got {self.ops.SeasonalStorageMode}")
 
         self.storage_declared_ready = False
         self.time_hp_turned_on = None

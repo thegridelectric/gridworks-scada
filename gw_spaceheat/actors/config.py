@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from gwsproto.data_classes.house_0_names import H0N
 from gwproactor.config import MQTTClient
 from pydantic_settings import SettingsConfigDict
-from gwsproto.enums import HpModel, SystemMode, SeasonalStorageMode
+from gwsproto.enums import HpModel
 
 # gridworks-scada/tests/config/nolan-layout.json
 DEFAULT_TEST_LAYOUT = (
@@ -48,30 +48,12 @@ class ScadaSettings(AppSettings):
     persister: PersisterSettings = PersisterSettings()
     admin: AdminLinkSettings = AdminLinkSettings(tls=TLSInfo(use_tls=False))
     timezone_str: str = "America/New_York"
-    latitude: float = 45.6573 
-    longitude: float = -68.7098
-    alpha: float = 5.5
-    beta: float = -0.1
-    gamma: float = 0
-    hp_max_kw_el: float = 9.66
-    intermediate_power: float = 1.5
-    intermediate_rswt: float = 100
-    dd_power: float = 5.5
-    dd_rswt: float = 150
-    dd_delta_t: float = 20
+    # The control/optimization values (modes, curves, knobs, lat/lon) live in
+    # the authored gw.house0.operational.params artifact, loaded at startup —
+    # empty path means the per-home sibling dir of the hardware layout.
+    operational_params_path: str = ""
+    hp_max_kw_el: float = 9.66  # TODO: move to layout (nameplate)
     is_simulated: bool = False
-    max_ewt_f: int = 170
-    cop_intercept: float = 1.02
-    cop_oat_coeff: float = 0.0257
-    cop_lwt_coeff: float = 0
-    cop_min: float = 1.4
-    cop_min_oat_f: float = 15
-    hp_turn_on_minutes: int = 12
-    short_cycle_buffer: bool = False
-    load_overestimation_percent: int = 0
-    oil_boiler_backup: bool = True
-    system_mode: SystemMode = SystemMode.Heating
-    seasonal_storage_mode: SeasonalStorageMode = SeasonalStorageMode.AllTanks
     whitewire_threshold_watts: float = 20 # TODO: move to layout
     hp_model: HpModel = HpModel.SamsungFiveTonneHydroKit # TODO: move to layout
     airtable_pat: str = "bogus_pat"

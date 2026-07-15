@@ -78,7 +78,7 @@ class LocalControlTouBase(ShNodeActor):
             send_event=False,
             model_attribute="top_state",
         )  
-        if self.settings.system_mode == SystemMode.MonitorOnly:
+        if self.ops.SystemMode == SystemMode.MonitorOnly:
             self.top_state = LocalControlTopState.Monitor
         else: 
             self.top_state = LocalControlTopState.Normal
@@ -231,7 +231,7 @@ class LocalControlTouBase(ShNodeActor):
             self._send(PatInternalWatchdogMessage(src=self.name))
 
             self.log(f"Top state: {self.top_state}")
-            self.log(f"LocalControl: {self.settings.seasonal_storage_mode}  |  State: {self.normal_node_state()}")
+            self.log(f"LocalControl: {self.ops.SeasonalStorageMode}  |  State: {self.normal_node_state()}")
 
             if self.top_state == LocalControlTopState.Dormant:
                 await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
@@ -270,7 +270,7 @@ class LocalControlTouBase(ShNodeActor):
                     if self.heating_forecast and self.buffer_temps_available:
                         self.log("Forecasts and temperatures are both available again!")
                         self.trigger_data_available()
-                    elif self.is_onpeak() and self.settings.oil_boiler_backup:
+                    elif self.is_onpeak() and self.ops.OilBoilerBackup:
                         if not self.scadablind_boiler:
                             self.aquastat_ctrl_switch_to_boiler(from_node=self.scada_blind_node)
                             self.scadablind_boiler = True
@@ -361,7 +361,7 @@ class LocalControlTouBase(ShNodeActor):
             self.hp_loop_on_off,
         }
 
-        if self.settings.seasonal_storage_mode == SeasonalStorageMode.AllTanks:
+        if self.ops.SeasonalStorageMode == SeasonalStorageMode.AllTanks:
             excluded_relays.add(self.store_charge_discharge_relay)
 
         target_relays: List[ShNode] = list(h_normal_relays - excluded_relays)
@@ -453,7 +453,7 @@ class LocalControlTouBase(ShNodeActor):
         """
         self.turn_off_store_pump(command_node=self.backup_node)
         self.valved_to_discharge_store(from_node=self.backup_node)
-        if self.settings.oil_boiler_backup:
+        if self.ops.OilBoilerBackup:
             self.hp_failsafe_switch_to_aquastat(from_node=self.backup_node)
             self.aquastat_ctrl_switch_to_boiler(from_node=self.backup_node)
         else:
@@ -509,7 +509,7 @@ class LocalControlTouBase(ShNodeActor):
             return
 
         # Monitor-only mode: Dormant -> Monitor
-        if self.settings.system_mode == SystemMode.MonitorOnly:
+        if self.ops.SystemMode == SystemMode.MonitorOnly:
             # MonitorOnly: SCADA must not actuate anything
             self.trigger_top_event(LocalControlTopEvent.MonitorOnly)
             self.log("Monitor-only: WakeUp transitioned Dormant -> Monitor")

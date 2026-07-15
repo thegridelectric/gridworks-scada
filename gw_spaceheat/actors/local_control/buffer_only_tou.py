@@ -39,9 +39,9 @@ class BufferOnlyTouLocalControl(LocalControlTouBase):
 
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
-        if self.settings.seasonal_storage_mode != SeasonalStorageMode.BufferOnly:
+        if self.ops.SeasonalStorageMode != SeasonalStorageMode.BufferOnly:
             raise Exception(
-                f"Expect BufferOnly Local Control Strategy, got {self.settings.seasonal_storage_mode}"
+                f"Expect BufferOnly Local Control Strategy, got {self.ops.SeasonalStorageMode}"
             )
 
         self.buffer_declared_ready = False

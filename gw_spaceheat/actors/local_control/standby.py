@@ -28,9 +28,9 @@ class StandbyLocalControl(ShNodeActor):
 
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
-        if self.settings.system_mode != SystemMode.Standby:
+        if self.ops.SystemMode != SystemMode.Standby:
             raise Exception(
-                f"Expect system mode Standby, got {self.settings.system_mode}"
+                f"Expect system mode Standby, got {self.ops.SystemMode}"
             )
         self._stop_requested: bool = False
         self.buffer_declared_ready = False

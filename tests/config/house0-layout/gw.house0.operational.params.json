@@ -1,0 +1,370 @@
+{
+  "CaptureTuningList": [
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "CapturePeriodS": 300,
+      "ChannelName": "aquastat-ctrl-relay",
+      "PollPeriodMs": 200,
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000,
+      "CapturePeriodS": 60,
+      "ChannelName": "buffer-depth1-device",
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000,
+      "CapturePeriodS": 60,
+      "ChannelName": "buffer-depth1-micro-v",
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000,
+      "CapturePeriodS": 60,
+      "ChannelName": "buffer-depth2-device",
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000,
+      "CapturePeriodS": 60,
+      "ChannelName": "buffer-depth2-micro-v",
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000,
+      "CapturePeriodS": 60,
+      "ChannelName": "buffer-depth3-device",
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000,
+      "CapturePeriodS": 60,
+      "ChannelName": "buffer-depth3-micro-v",
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "CapturePeriodS": 300,
+      "ChannelName": "charge-discharge-relay",
+      "PollPeriodMs": 200,
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "CapturePeriodS": 300,
+      "ChannelName": "dist-010v",
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "CapturePeriodS": 300,
+      "ChannelName": "hp-failsafe-relay",
+      "PollPeriodMs": 200,
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 200,
+      "CapturePeriodS": 300,
+      "ChannelName": "hp-idu-pwr",
+      "PollPeriodMs": 1000,
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "CapturePeriodS": 300,
+      "ChannelName": "hp-loop-keep-send-relay",
+      "PollPeriodMs": 200,
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "CapturePeriodS": 300,
+      "ChannelName": "hp-loop-on-off-relay",
+      "PollPeriodMs": 200,
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 200,
+      "CapturePeriodS": 300,
+      "ChannelName": "hp-odu-pwr",
+      "PollPeriodMs": 1000,
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "CapturePeriodS": 300,
+      "ChannelName": "hp-scada-ops-relay",
+      "PollPeriodMs": 200,
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "CapturePeriodS": 300,
+      "ChannelName": "primary-010v",
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "CapturePeriodS": 300,
+      "ChannelName": "primary-pump-failsafe-relay",
+      "PollPeriodMs": 200,
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "CapturePeriodS": 300,
+      "ChannelName": "primary-pump-scada-ops-relay",
+      "PollPeriodMs": 200,
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "CapturePeriodS": 300,
+      "ChannelName": "store-010v",
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "CapturePeriodS": 300,
+      "ChannelName": "store-pump-failsafe-relay",
+      "PollPeriodMs": 200,
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 5,
+      "CapturePeriodS": 300,
+      "ChannelName": "store-pump-pwr",
+      "PollPeriodMs": 1000,
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000,
+      "CapturePeriodS": 60,
+      "ChannelName": "tank1-depth1-device",
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000,
+      "CapturePeriodS": 60,
+      "ChannelName": "tank1-depth1-micro-v",
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000,
+      "CapturePeriodS": 60,
+      "ChannelName": "tank1-depth2-device",
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000,
+      "CapturePeriodS": 60,
+      "ChannelName": "tank1-depth2-micro-v",
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000,
+      "CapturePeriodS": 60,
+      "ChannelName": "tank1-depth3-device",
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000,
+      "CapturePeriodS": 60,
+      "ChannelName": "tank1-depth3-micro-v",
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "CapturePeriodS": 300,
+      "ChannelName": "thermistor-common-relay",
+      "PollPeriodMs": 200,
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "CapturePeriodS": 300,
+      "ChannelName": "tstat-common-relay",
+      "PollPeriodMs": 200,
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "CapturePeriodS": 300,
+      "ChannelName": "vdc-relay",
+      "PollPeriodMs": 200,
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "CapturePeriodS": 300,
+      "ChannelName": "zone1-main-failsafe-relay",
+      "PollPeriodMs": 200,
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "CapturePeriodS": 300,
+      "ChannelName": "zone1-main-ops-relay",
+      "PollPeriodMs": 200,
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": false,
+      "CapturePeriodS": 300,
+      "ChannelName": "zone1-main-set",
+      "PollPeriodMs": 5000,
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "CapturePeriodS": 300,
+      "ChannelName": "zone1-main-state",
+      "PollPeriodMs": 5000,
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "CapturePeriodS": 300,
+      "ChannelName": "zone1-main-temp",
+      "PollPeriodMs": 5000,
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    }
+  ],
+  "CopCurve": {
+    "Intercept": 1.02,
+    "LwtCoeff": 0,
+    "Min": 1.4,
+    "MinOatF": 15,
+    "OatCoeff": 0.0257,
+    "TypeName": "cop.curve",
+    "Version": "000"
+  },
+  "GNodes": [
+    {
+      "Alias": "d1.isone.ct.newhaven.orange1",
+      "BaseClass": "LeafTransactiveNode",
+      "DisplayName": "Little Orange House Garage Heating System LeafTransactiveNode",
+      "GNodeClass": "LeafTransactiveNode",
+      "GNodeId": "c4c9a280-453f-4c36-a081-970a3774b3ed",
+      "PositionPointId": "96403482-5fe2-47b0-be0d-b89dd0d4a926",
+      "Status": "Active",
+      "TypeName": "g.node.gt",
+      "Version": "005"
+    },
+    {
+      "Alias": "d1.isone.ct.newhaven.orange1.ta",
+      "BaseClass": "TerminalAsset",
+      "DisplayName": "Little Orange House Garage Heating System TerminalAsset",
+      "GNodeClass": "TerminalAsset",
+      "GNodeId": "e250a99c-7b7f-469a-8f54-96ea83e95112",
+      "PositionPointId": "3ff8f6af-9e02-4177-983c-ff8cb82e81b0",
+      "Status": "Active",
+      "TypeName": "g.node.gt",
+      "Version": "005"
+    },
+    {
+      "Alias": "d1.isone.ct.newhaven.orange1.scada",
+      "BaseClass": "Logical",
+      "DisplayName": "Little Orange House Garage Heating System SCADA",
+      "GNodeClass": "Scada",
+      "GNodeId": "c9794c6d-e013-4d74-9570-f9ba4b0f0b0d",
+      "Status": "Active",
+      "TypeName": "g.node.gt",
+      "Version": "005"
+    }
+  ],
+  "HeatingCurve": {
+    "AlphaTimes10": 55,
+    "BetaTimes100": -10,
+    "DdDeltaTF": 20,
+    "DdPowerKw": 5.5,
+    "DdRswtF": 150,
+    "GammaEx6": 0,
+    "IntermediatePowerKw": 1.5,
+    "IntermediateRswtF": 100,
+    "MaxEwtF": 170,
+    "TypeName": "heating.curve",
+    "Version": "000"
+  },
+  "HorizonHours": 48,
+  "HpTurnOnMinutes": 12,
+  "Latitude": 45.6573,
+  "LoadOverestimationPercent": 0,
+  "Longitude": -68.7098,
+  "OilBoilerBackup": true,
+  "SeasonalStorageMode": "AllTanks",
+  "ShortCycleBuffer": false,
+  "SystemMode": "Heating",
+  "TypeName": "gw.house0.operational.params",
+  "Version": "000"
+}

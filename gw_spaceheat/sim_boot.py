@@ -40,6 +40,10 @@ def build_app(layout_path: str, env_file: str = DEFAULT_ENV) -> ScadaApp:
     is universe-coherent with it — no on-disk sim fixture needed."""
     settings = ScadaApp.get_settings(env_file=env_file)
     settings.is_simulated = True
+    # the ops artifact rides in the per-home dir beside the layout being booted
+    settings.operational_params_path = str(
+        Path(layout_path).with_suffix("") / "gw.house0.operational.params.json"
+    )
     sim = simulate_sensors(json.loads(Path(layout_path).read_text()))
     app = ScadaApp(app_settings=settings, layout=House0Layout.load_dict(sim))
     app.instantiate()

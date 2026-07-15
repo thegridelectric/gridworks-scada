@@ -32,6 +32,14 @@ from gwproactor_test.certs import set_test_certificate_cache_dir
 TEST_DOTENV_PATH = Path(__file__).parent / ".env-gw-spaceheat-test"
 TEST_DOTENV_PATH_VAR = "GW_SPACEHEAT_TEST_DOTENV_PATH"
 TEST_HARDWARE_LAYOUT_PATH = Path(__file__).parent / "config" / "nolan-layout.json"
+# The test env copies only the layout file into the per-test config dir; the
+# ops artifact is pinned by env var to the matching per-home fixture instead.
+TEST_OPS_PARAMS_PATH = (
+    Path(__file__).parent
+    / "config"
+    / "nolan-layout"
+    / "gw.house0.operational.params.json"
+)
 
 # Bridge the scada-specific test dotenv to gwproactor_test, whose autouse
 # default_test_env fixture reads GWPROACTOR_TEST_DOTENV_PATH (defaulting to a
@@ -47,6 +55,7 @@ os.environ.setdefault(
 
 set_test_certificate_cache_dir(Path(__file__).parent / ".certificate_cache")
 set_hardware_layout_test_path(TEST_HARDWARE_LAYOUT_PATH)
+os.environ.setdefault("SCADA_OPERATIONAL_PARAMS_PATH", str(TEST_OPS_PARAMS_PATH))
 
 @pytest.fixture(autouse=True)
 def always_restore_loggers(restore_loggers):

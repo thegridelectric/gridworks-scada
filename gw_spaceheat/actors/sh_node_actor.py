@@ -45,7 +45,7 @@ from gwsproto.enums import (
 )
 
 
-from gwsproto.named_types import AnalogDispatch, FsmEvent, Glitch, HeatingForecast, NewCommandTree, SingleMachineState
+from gwsproto.named_types import AnalogDispatch, FsmEvent, Glitch, GwHouse0OperationalParams, HeatingForecast, NewCommandTree, SingleMachineState
 
 from scada_app_interface import ScadaAppInterface
 
@@ -183,6 +183,11 @@ class ShNodeActor(Actor, ABC):
     @property
     def data(self) -> ScadaData:
         return self.services.prime_actor.data
+
+    @property
+    def ops(self) -> GwHouse0OperationalParams:
+        """The home's authored operational params (modes, curves, knobs)."""
+        return self.data.ops
 
     async def await_with_watchdog(
         self,
@@ -1348,7 +1353,7 @@ class ShNodeActor(Actor, ABC):
         """
 
         # Select the best available "top of buffer" temperature channel
-        if all_tanks_leaf_ally and self.settings.short_cycle_buffer and H0CN.buffer.depth3 in self.latest_temps_f:
+        if all_tanks_leaf_ally and self.ops.ShortCycleBuffer and H0CN.buffer.depth3 in self.latest_temps_f:
             buffer_empty_ch = H0CN.buffer.depth3
         elif H0CN.buffer.depth1 in self.latest_temps_f:
             buffer_empty_ch = H0CN.buffer.depth1
@@ -1367,7 +1372,7 @@ class ShNodeActor(Actor, ABC):
         # Conservative near-term requirement (next ~3 hours)
         max_rswt = max(self.heating_forecast.RswtF[:3])
         max_delta_t = max(self.heating_forecast.RswtDeltaTF[:3])
-        if all_tanks_leaf_ally and self.settings.short_cycle_buffer:
+        if all_tanks_leaf_ally and self.ops.ShortCycleBuffer:
             min_buffer_temp_f = round(max_rswt - max_delta_t, 1)
         else:
             min_buffer_temp_f = round(max_rswt, 1)
@@ -1528,7 +1533,7 @@ class ShNodeActor(Actor, ABC):
             buffer_top = H0CN.buffer.depth3
         elif H0CN.buffer_cold_pipe in self.latest_temps_f:
             buffer_top = H0CN.buffer_cold_pipe
-        elif not all_tanks_leaf_ally or not self.settings.short_cycle_buffer:
+        elif not all_tanks_leaf_ally or not self.ops.ShortCycleBuffer:
             return False
 
         # --- Determine storage top ---
@@ -1542,7 +1547,7 @@ class ShNodeActor(Actor, ABC):
             return False
 
         # --- Determine buffer bottom ---
-        if all_tanks_leaf_ally and self.settings.short_cycle_buffer:
+        if all_tanks_leaf_ally and self.ops.ShortCycleBuffer:
             if H0CN.buffer.depth3 in self.latest_temps_f:
                 buffer_bottom = H0CN.buffer.depth3
             elif H0CN.buffer.depth2 in self.latest_temps_f:

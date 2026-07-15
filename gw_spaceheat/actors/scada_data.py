@@ -1,8 +1,10 @@
 """Container for data Scada uses in building status and snapshot messages, separated from Scada for clarity,
 not necessarily re-use. """
 
+import json
 import time
 import uuid
+from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 from actors.config import ScadaSettings
@@ -10,6 +12,7 @@ from gwsproto.data_classes.data_channel import DataChannel
 from gwsproto.data_classes.house_0_names import H0CN
 from gwsproto.named_types import (
     ChannelReadings,
+    GwHouse0OperationalParams,
     Report,
     SingleReading,
     SingleMachineState,
@@ -21,35 +24,67 @@ from gwsproto.named_types import (
     SnapshotSpaceheat,
 )
 
+
+OPS_PARAMS_FILE_NAME = "gw.house0.operational.params.json"
+
+
+def load_operational_params(settings: ScadaSettings) -> GwHouse0OperationalParams:
+    """Load the home's authored operational-params artifact. The path is
+    settings.operational_params_path when set; otherwise the per-home sibling
+    dir of the hardware layout (tests/config/<home>/gw.house0.operational.params.json
+    for tests/config/<home>.json), mirroring the tlayouts output shape. The
+    artifact is REQUIRED — its values have no defaults anywhere else."""
+    if settings.operational_params_path:
+        path = Path(settings.operational_params_path)
+    else:
+        layout_path = Path(settings.paths.hardware_layout)
+        path = layout_path.with_suffix("") / OPS_PARAMS_FILE_NAME
+    if not path.exists():
+        raise FileNotFoundError(
+            f"Operational params artifact not found at {path}. Every home needs "
+            f"its authored {OPS_PARAMS_FILE_NAME} (set operational_params_path, "
+            "or place it in the per-home dir beside the hardware layout)."
+        )
+    return GwHouse0OperationalParams.model_validate(json.loads(path.read_text()))
+
 from gwsproto.data_classes.derived_channel import DerivedChannel
 from gwsproto.data_classes.house_0_layout import House0Layout
 class ScadaData:
 
-    def __init__(self, settings: ScadaSettings, hardware_layout: House0Layout):
+    def __init__(
+        self,
+        settings: ScadaSettings,
+        hardware_layout: House0Layout,
+        ops: GwHouse0OperationalParams,
+    ):
         self.reports_to_store: Dict[str, Report] = {}
         self.seconds_by_channel: Dict[str, int] = {}
 
         self.settings: ScadaSettings = settings
         self.layout: House0Layout = hardware_layout
-        # TODO: move into layout when better UI for it
+        # The authored operational params — the runtime source for the control/
+        # optimization values (OPS-408's live-update transport is the eventual
+        # writer). hp_max_kw_el stays on settings: it is layout-destined
+        # (nameplate), not operational.
+        self.ops: GwHouse0OperationalParams = ops
         self.ha1_params = Ha1Params(
-            AlphaTimes10=int(self.settings.alpha * 10),
-            BetaTimes100=int(self.settings.beta * 100),
-            GammaEx6=int(self.settings.gamma * 1e6),
-            IntermediatePowerKw=self.settings.intermediate_power,
-            IntermediateRswtF=int(self.settings.intermediate_rswt),
-            DdPowerKw=self.settings.dd_power,
-            DdRswtF=int(self.settings.dd_rswt),
-            DdDeltaTF=int(self.settings.dd_delta_t),
+            AlphaTimes10=ops.HeatingCurve.AlphaTimes10,
+            BetaTimes100=ops.HeatingCurve.BetaTimes100,
+            GammaEx6=ops.HeatingCurve.GammaEx6,
+            IntermediatePowerKw=ops.HeatingCurve.IntermediatePowerKw,
+            IntermediateRswtF=ops.HeatingCurve.IntermediateRswtF,
+            DdPowerKw=ops.HeatingCurve.DdPowerKw,
+            DdRswtF=ops.HeatingCurve.DdRswtF,
+            DdDeltaTF=ops.HeatingCurve.DdDeltaTF,
             HpMaxKwEl=self.settings.hp_max_kw_el,
-            MaxEwtF=self.settings.max_ewt_f,
-            LoadOverestimationPercent=self.settings.load_overestimation_percent,
-            CopIntercept=self.settings.cop_intercept,
-            CopOatCoeff=self.settings.cop_oat_coeff,
-            CopLwtCoeff=self.settings.cop_lwt_coeff,
-            CopMin=self.settings.cop_min,
-            CopMinOatF=self.settings.cop_min_oat_f,
-            HpTurnOnMinutes=self.settings.hp_turn_on_minutes,
+            MaxEwtF=ops.HeatingCurve.MaxEwtF,
+            LoadOverestimationPercent=ops.LoadOverestimationPercent,
+            CopIntercept=ops.CopCurve.Intercept,
+            CopOatCoeff=ops.CopCurve.OatCoeff,
+            CopLwtCoeff=ops.CopCurve.LwtCoeff,
+            CopMin=ops.CopCurve.Min,
+            CopMinOatF=ops.CopCurve.MinOatF,
+            HpTurnOnMinutes=ops.HpTurnOnMinutes,
         )
         self.my_data_channels = self.get_my_data_channels()
         self.my_derived_channels = self.get_my_derived_channels()

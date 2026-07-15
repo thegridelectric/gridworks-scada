@@ -314,14 +314,14 @@ class SiegLoop(ShNodeActor):
     
     def moving_to_hp_off_valve_position(self, event: SiegControlEvent) -> None:
         # OFI (sieg-semantic-harmonization, OPS-400): HpOff posture depends on
-        # the static startup config settings.system_mode, so control state
+        # the startup operational params SystemMode, so control state
         # HpOff no longer uniquely determines valve posture -- and telemetry
         # can't disambiguate (valve-state SingleMachineState is still the TODO
         # below). Also per-HP: Maple (Mitsubishi, always-on primary) needs
         # full_keep when off to protect stratification; Beech (LG, timed
         # primary) may want a different default-when-off at the same
         # LocalControl state. Harmonize + test on both houses.
-        if self.settings.system_mode == SystemMode.Standby:
+        if self.ops.SystemMode == SystemMode.Standby:
             self.moving_to_full_send(event)
         else:
             self.moving_to_full_keep(event)

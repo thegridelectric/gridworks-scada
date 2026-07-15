@@ -40,10 +40,11 @@ from gwsproto.named_types import FsmFullReport, PowerWatts, SendSnap, ReportEven
 
 
 from gwsproto.named_types import (
-    AnalogDispatch, ChannelReadings, MachineStates, SingleReading, SyncedReadings,
+    AnalogDispatch, ChannelReadings, GwHouse0OperationalParams, MachineStates,
+    SingleReading, SyncedReadings,
 )
 
-from actors.scada_data import ScadaData
+from actors.scada_data import ScadaData, load_operational_params
 from actors.config import ScadaSettings
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import ChangeRelayState
@@ -126,7 +127,9 @@ class Scada(PrimeActor, ScadaInterface):
             )
             self._sim_time_listener.start()
         self._layout: House0Layout = typing.cast(House0Layout, services.hardware_layout)
-        self._data = ScadaData(self.settings, self._layout)
+        self._data = ScadaData(
+            self.settings, self._layout, load_operational_params(self.settings)
+        )
         # super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
         now = int(time.time())
         self._channels_reported = False
@@ -245,6 +248,11 @@ class Scada(PrimeActor, ScadaInterface):
     @property
     def data(self) -> ScadaData:
         return self._data
+
+    @property
+    def ops(self) -> GwHouse0OperationalParams:
+        """The home's authored operational params (modes, curves, knobs)."""
+        return self._data.ops
 
     def start_tasks(self) -> typing.Sequence[asyncio.Task]:
         return [
@@ -912,14 +920,14 @@ class Scada(PrimeActor, ScadaInterface):
         
         # LeafAlly is Dormant
 
-        if self.settings.seasonal_storage_mode == SeasonalStorageMode.AllTanks:
+        if self.ops.SeasonalStorageMode == SeasonalStorageMode.AllTanks:
             self.data.latest_machine_state[self.leaf_ally.name] = SingleMachineState(
                     MachineHandle=self.leaf_ally.handle,
                     StateEnum=LeafAllyAllTanksState.enum_name(),
                     State=LeafAllyAllTanksState.Dormant,
                     UnixMs=now_ms,
                 )
-        elif self.settings.seasonal_storage_mode == SeasonalStorageMode.BufferOnly:
+        elif self.ops.SeasonalStorageMode == SeasonalStorageMode.BufferOnly:
             self.data.latest_machine_state[self.leaf_ally.name] = SingleMachineState(
                     MachineHandle=self.leaf_ally.handle,
                     StateEnum=LeafAllyBufferOnlyState.enum_name(),
@@ -927,7 +935,7 @@ class Scada(PrimeActor, ScadaInterface):
                     UnixMs=now_ms,
                 )
         else:
-            raise Exception(f"Does not handle seasonal stoarge mode {self.settings.seasonal_storage_mode}")
+            raise Exception(f"Does not handle seasonal stoarge mode {self.ops.SeasonalStorageMode}")
         
         # LocalControlTopState is Normal
         self.data.latest_machine_state[self.local_control.name] = SingleMachineState(
@@ -1309,7 +1317,7 @@ class Scada(PrimeActor, ScadaInterface):
         local_control_state = lc.top_state
         dormant_state = (
             LeafAllyAllTanksState.Dormant 
-            if self.settings.seasonal_storage_mode == SeasonalStorageMode.AllTanks 
+            if self.ops.SeasonalStorageMode == SeasonalStorageMode.AllTanks 
             else LeafAllyBufferOnlyState.Dormant
         )
 
@@ -1723,9 +1731,9 @@ class Scada(PrimeActor, ScadaInterface):
         return LayoutLite(
             FromGNodeAlias=self.layout.scada_g_node_alias,
             Strategy=self.layout.flow_manifold_variant,
-            SystemMode=self.settings.system_mode,
-            SeasonalStorageMode=self.settings.seasonal_storage_mode,
-            BufferShortCycling=self.settings.short_cycle_buffer,
+            SystemMode=self.ops.SystemMode,
+            SeasonalStorageMode=self.ops.SeasonalStorageMode,
+            BufferShortCycling=self.ops.ShortCycleBuffer,
             ZoneList=self.layout.zone_list,
             CriticalZoneList=self.layout.critical_zone_list,
             TotalStoreTanks=self.layout.total_store_tanks,

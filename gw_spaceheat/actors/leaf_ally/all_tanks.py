@@ -186,11 +186,11 @@ class AllTanksLeafAlly(ShNodeActor):
                     AllyGivesUp(Reason="System is cold, not entering DispatchContracts"))
                 return
             
-            if self.settings.system_mode != SystemMode.Heating:
+            if self.ops.SystemMode != SystemMode.Heating:
                 self.log("Cannot wake up - in standby mode")
                 self._send_to(
                     self.primary_scada,
-                    AllyGivesUp(Reason=f"In {self.settings.system_mode} Mode ... not entering DispatchContracts"))
+                    AllyGivesUp(Reason=f"In {self.ops.SystemMode} Mode ... not entering DispatchContracts"))
                 return
 
             if not self.heating_forecast:
@@ -551,7 +551,7 @@ class AllTanksLeafAlly(ShNodeActor):
                 elif self.contract_hb.Contract.DurationMinutes >= 30:  
                     c = self.contract_hb.Contract
                     # TODO: go to the end of the hour if the contract is the max power
-                    max_kw_with_turn_on = (1-self.settings.hp_turn_on_minutes/60) * self.settings.hp_max_kw_el
+                    max_kw_with_turn_on = (1-self.ops.HpTurnOnMinutes/60) * self.settings.hp_max_kw_el
                     if self.contract_hb.Contract.AvgPowerWatts >= (max_kw_with_turn_on-1)*1000:
                         return False
                     else:

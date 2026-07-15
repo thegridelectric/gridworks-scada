@@ -14,8 +14,8 @@ class LocalControl(ShNodeActor):
         if node.ActorClass != ActorClass.LocalControl:
             raise Exception("Expects ActorClass LocalControl!")
 
-        system_mode = self.settings.system_mode
-        seasonal_storage_mode = self.settings.seasonal_storage_mode
+        system_mode = self.ops.SystemMode
+        seasonal_storage_mode = self.ops.SeasonalStorageMode
 
         # Dynamically load the implementation class
         if system_mode == SystemMode.Standby:

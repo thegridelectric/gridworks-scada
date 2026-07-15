@@ -161,7 +161,7 @@ class BufferOnlyLeafAlly(ShNodeActor):
                 AllyGivesUp(Reason="System is cold, not entering DispatchContracts"))
             return
         
-        if self.settings.system_mode == SystemMode.Standby:
+        if self.ops.SystemMode == SystemMode.Standby:
             self.log("Cannot wake up - in standby mode")
             self._send_to(
                 self.primary_scada,

@@ -75,8 +75,8 @@ class DerivedGenerator(ShNodeActor):
         # House parameters in the .env file
         self.is_simulated = self.settings.is_simulated
         self.timezone = pytz.timezone(self.settings.timezone_str)
-        self.latitude = self.settings.latitude
-        self.longitude = self.settings.longitude
+        self.latitude = self.ops.Latitude
+        self.longitude = self.ops.Longitude
 
         # used by the rswt quad params calculator
         self._cached_params: Optional[Ha1Params] = None 
@@ -742,7 +742,7 @@ class DerivedGenerator(ShNodeActor):
         - Simulates layer-by-layer discharge of tanks or buffer
         - Assumes stratified storage
         """
-        if self.settings.system_mode != SystemMode.Heating:
+        if self.ops.SystemMode != SystemMode.Heating:
             return None
 
         if not self.buffer_temps_available:
@@ -755,7 +755,7 @@ class DerivedGenerator(ShNodeActor):
         latest_temps_f = self.latest_temps_f.copy()
 
         ordered_tank_layers = []
-        if self.settings.seasonal_storage_mode== SeasonalStorageMode.AllTanks:
+        if self.ops.SeasonalStorageMode== SeasonalStorageMode.AllTanks:
             for tank_idx in sorted(self.h0cn.tank):
                 tank = self.h0cn.tank[tank_idx]
                 ordered_tank_layers.extend([
@@ -763,14 +763,14 @@ class DerivedGenerator(ShNodeActor):
                     tank.depth2,
                     tank.depth3,
                 ])
-        elif self.settings.seasonal_storage_mode== SeasonalStorageMode.BufferOnly: 
+        elif self.ops.SeasonalStorageMode== SeasonalStorageMode.BufferOnly: 
             ordered_tank_layers = [
                     H0CN.buffer.depth1,
                     H0CN.buffer.depth2,
                     H0CN.buffer.depth3,
                 ]
         else:
-            raise ValueError(f"Unsupported SeasonalStorageMode {self.settings.seasonal_storage_mode}")
+            raise ValueError(f"Unsupported SeasonalStorageMode {self.ops.SeasonalStorageMode}")
 
         simulated_layers_f = [
             latest_temps_f[ch]
@@ -823,7 +823,7 @@ class DerivedGenerator(ShNodeActor):
         """
         Send an info Glitch if we think its time to change strategy
         """
-        if self.settings.seasonal_storage_mode != SeasonalStorageMode.BufferOnly:
+        if self.ops.SeasonalStorageMode != SeasonalStorageMode.BufferOnly:
             return
         if time.time() - self.last_evaluated_strategy > 3600:
             self.last_evaluated_strategy = time.time()
@@ -883,12 +883,12 @@ class DerivedGenerator(ShNodeActor):
              if 16<=t.hour<=19]
             )
         # Find the maximum storage
-        if self.settings.seasonal_storage_mode == SeasonalStorageMode.AllTanks:
+        if self.ops.SeasonalStorageMode == SeasonalStorageMode.AllTanks:
             num_layers = len(self.h0cn.tank) * self.NUM_LAYERS_PER_TANK
-        elif self.settings.seasonal_storage_mode == SeasonalStorageMode.BufferOnly:
+        elif self.ops.SeasonalStorageMode == SeasonalStorageMode.BufferOnly:
             num_layers = self.NUM_LAYERS_PER_TANK # just the buffer
         else:
-            raise Exception(f"not prepared for seasonal storage mode {self.settings.seasonal_storage_mode}")
+            raise Exception(f"not prepared for seasonal storage mode {self.ops.SeasonalStorageMode}")
 
         simulated_layers = [self.params.MaxEwtF + 10] * num_layers
         max_storage_kwh = 0
@@ -937,7 +937,7 @@ class DerivedGenerator(ShNodeActor):
         beta = self.params.BetaTimes100 / 100
         gamma = self.params.GammaEx6 / 1e6
         r = alpha + beta*oat + gamma*ws*(65-oat)
-        r = r * (1 + self.settings.load_overestimation_percent/100)
+        r = r * (1 + self.ops.LoadOverestimationPercent/100)
         return round(r,2) if r>0 else 0
 
     def required_swt(self, required_kw_thermal: float) -> float:

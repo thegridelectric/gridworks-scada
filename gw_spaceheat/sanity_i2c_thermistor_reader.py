@@ -26,7 +26,7 @@ from result import Ok
 
 from actors.config import ScadaSettings
 from actors.i2c_thermistor_reader import I2cThermistorReader
-from actors.scada_data import ScadaData
+from actors.scada_data import ScadaData, load_operational_params
 from actors.scada_interface import ScadaInterface
 from gwsproto.data_classes.house_0_layout import House0Layout
 from gwsproto.named_types import Glitch, SyncedReadings
@@ -95,7 +95,7 @@ class DummyServices(ScadaAppInterface):
     def __init__(self, layout: House0Layout, settings: ScadaSettings):
         self._layout = layout
         self._settings = settings
-        self._data = ScadaData(settings, layout)
+        self._data = ScadaData(settings, layout, load_operational_params(settings))
         self._prime_actor = DummyPrimeActor(self._data)
         self._logger = DummyLogger()
         self.sent_messages: list[Any] = []
