@@ -33,10 +33,19 @@ class HydronicSpaceheatNodeNames:
     hp_boss = "hp-boss"
 
     # transactive asset nodes
-    heat_pump = "heat-pump" # Allow for this when monoblock??
+    # The heat pump's outdoor unit — the compressor-bearing box. A monobloc IS
+    # its hp-odu (there is simply no hp-idu). A system with several outdoor
+    # compressor units (e.g. the two-compressor Arctic, both outside) indexes:
+    # hp-odu1, hp-odu2 — the tank/zone pattern. "The heat pump" as a system is
+    # identity, not plumbing position: it lives in the device-type record.
     hp_odu = "hp-odu"
+    # The heat pump's indoor unit when it carries its own refrigerant
+    # cycle/compressor stage (the cascade hydro kits). NOT a monobloc's indoor
+    # box — that is hp-ctrl-box.
     hp_idu = "hp-idu"
-    idu = "idu" # for indoor units that are NOT heat pumps
+    # A monobloc's indoor box: control electronics, the water-pump feed, and the
+    # backup heater — no compressor. Deliberately NOT hp-idu.
+    hp_ctrl_box = "hp-ctrl-box"
     buffer_top_elt = "buffer-top-elt"
     buffer_bottom_elt = "buffer-bottom-elt"
     store_top_elt = "store-top-elt"

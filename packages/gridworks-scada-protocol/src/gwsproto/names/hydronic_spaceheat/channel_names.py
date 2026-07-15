@@ -81,9 +81,11 @@ class BufferChannelNames:
 
 
 class HydronicSpaceheatChannelNames:
-    heat_pump_pwr = f"{HNN.heat_pump}-pwr"
     hp_odu_pwr = f"{HNN.hp_odu}-pwr"
     hp_idu_pwr = f"{HNN.hp_idu}-pwr"
+    # Metered circuit is the ctrl box's feed; that it ≈ primary-pump power on a
+    # monobloc is an interpretation, so the channel is NOT primary-pump-pwr.
+    hp_ctrl_box_pwr = f"{HNN.hp_ctrl_box}-pwr"
     dist_pump_pwr = f"{HNN.dist_pump}-pwr"
     primary_pump_pwr = f"{HNN.primary_pump}-pwr"
     store_pump_pwr = f"{HNN.store_pump}-pwr"
