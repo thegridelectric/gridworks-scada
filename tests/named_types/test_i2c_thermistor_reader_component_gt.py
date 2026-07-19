@@ -1,4 +1,4 @@
-"""Tests i2c.thermistor.reader.component.gt type, version 001"""
+"""Tests i2c.thermistor.reader.component.gt type, version 003"""
 
 import pytest
 
@@ -23,18 +23,15 @@ def base_config(channel_name: str, adc_channel: str) -> dict:
 def base_component() -> dict:
     return {
         "ComponentId": "bd65556c-2ca4-499d-ad25-57767a785685",
-        "DeviceType": "GridworksScadaGw108",
+        "DeviceType": "Gw108Adc",
         "ConfigList": [
             base_config("tank1-depth1-device", "P0"),
             base_config("tank1-depth1-micro-v", "P0"),
         ],
-        "Bus": "primary-scada-i2c",
-        "AdcAddress": 73,
-        "AdcReferenceVolts": 3.3,
-        "SeriesResistanceKOhms": 10.0,
+        "AdcName": "Thermistors",
         "TempCalcMethod": TempCalcMethod.SimpleBeta,
         "TypeName": "i2c.thermistor.reader.component.gt",
-        "Version": "002",
+        "Version": "003",
     }
 
 
@@ -50,13 +47,5 @@ def test_i2c_thermistor_reader_component_gt_channel_name_uniqueness() -> None:
     d = base_component()
     d["ConfigList"][1]["ChannelName"] = "tank1-depth1-device"
 
-    with pytest.raises(ValueError, match="Channel names must be unique"):
-        I2cThermistorReaderComponentGt.model_validate(d)
-
-
-def test_i2c_thermistor_reader_component_gt_address_validity() -> None:
-    d = base_component()
-    d["AdcAddress"] = 128
-
-    with pytest.raises(ValueError, match="Invalid I2C address"):
+    with pytest.raises(ValueError, match="Axiom 1 \\(ChannelNameUniqueness\\) failed"):
         I2cThermistorReaderComponentGt.model_validate(d)

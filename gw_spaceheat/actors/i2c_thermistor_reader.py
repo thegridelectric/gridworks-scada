@@ -17,7 +17,8 @@ from actors.sh_node_actor import ShNodeActor
 
 from gwsproto.named_types import (
     I2cThermistorChannelConfig,
-    SingleReading, 
+    I2cThermistorInterfaceCapability,
+    SingleReading,
     SyncedReadings,
 )
 from gwsproto.data_classes.components import I2cThermistorReaderComponent
@@ -42,6 +43,7 @@ class I2cThermistorReader(ShNodeActor):
 
         self.component: I2cThermistorReaderComponent = component
         self.cfgs = self.component.gt.ConfigList
+        self.adc_capability = self._resolve_adc_capability()
 
         self.device_configs: dict[SpaceheatName, I2cThermistorChannelConfig] = {}
         self.electrical_configs: dict[SpaceheatName, I2cThermistorChannelConfig] = {}
@@ -75,7 +77,7 @@ class I2cThermistorReader(ShNodeActor):
                 self.i2c = board.I2C()
                 self.adc = ADS1115.ADS1115(
                     self.i2c,
-                    address=self.component.gt.AdcAddress
+                    address=self.adc_capability.I2cAddress
                 )
 
                 for cfg in self.electrical_configs.values():
@@ -94,6 +96,20 @@ class I2cThermistorReader(ShNodeActor):
                     "i2c-thermistor-reader-init-failed",
                     str(e),
                 )
+
+    def _resolve_adc_capability(self) -> I2cThermistorInterfaceCapability:
+        """AdcName resolved against the ThermistorAdcs of the layout's board
+        device-type records — the board record carries the physical facts
+        (bus, address, reference volts, series resistance)."""
+        adc_name = self.component.gt.AdcName
+        for record in self.layout.device_types.values():
+            for adc in getattr(record, "ThermistorAdcs", []):
+                if adc.Name == adc_name:
+                    return adc
+        raise ValueError(
+            f"{self.name}: no board device-type record in the layout carries "
+            f"a thermistor ADC named {adc_name}"
+        )
 
     def _send_warning_once(self, key: str, summary: str, details: str = "") -> None:
         if key in self._active_warning_keys:
@@ -186,7 +202,7 @@ class I2cThermistorReader(ShNodeActor):
         self.services.add_task(
             asyncio.create_task(self.main(), name=f"{self.name}-main")
         )
-        self.log(f"I2cThermistorReader started at address {self.component.gt.AdcAddress}")
+        self.log(f"I2cThermistorReader started at address {self.adc_capability.I2cAddress}")
 
     def stop(self) -> None:
         self._stop_requested = True
@@ -249,8 +265,8 @@ class I2cThermistorReader(ShNodeActor):
                 return False, None, None
             self._clear_warning(read_warning_key)
 
-        r_fixed = self.component.gt.SeriesResistanceKOhms
-        v_ref = self.component.gt.AdcReferenceVolts
+        r_fixed = self.adc_capability.SeriesResistanceKOhms
+        v_ref = self.adc_capability.AdcReferenceVolts
 
         if volts <= 0.01:
             self._clear_latest_reading(device_name, electrical_name)

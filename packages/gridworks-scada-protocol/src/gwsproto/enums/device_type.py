@@ -4,7 +4,7 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class DeviceType(SemaEnum):
-    """Sema: https://schemas.electricity.works/enums/gw1.device.type/000"""
+    """Sema: https://schemas.electricity.works/enums/gw1.device.type/001"""
 
     EgaugePowerMeter = auto()
     GridworksTsnap1ScadaBoard = auto()
@@ -26,6 +26,11 @@ class DeviceType(SemaEnum):
     GridworksSimSensor = auto()
     GridworksSimRelayBank = auto()
     AbstractWebServer = auto()
+    Gw108I2cRelay = auto()
+    Gw108GpioRelay = auto()
+    SamsungAE055FCYDCG = auto()
+    SamsungAE055FEYMCG = auto()
+    Gw108Adc = auto()
 
 
     @classmethod
@@ -42,4 +47,4 @@ class DeviceType(SemaEnum):
 
     @classmethod
     def enum_version(cls) -> str:
-        return "000"
+        return "001"

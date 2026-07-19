@@ -443,6 +443,458 @@
     {
       "DeviceType": "GridworksScadaGw108",
       "DisplayName": "GridWorks SCADA Gw108",
+      "BusList": [
+        {
+          "Name": "DefaultBus",
+          "BusNumber": 1,
+          "TypeName": "i2c.bus",
+          "Version": "000"
+        }
+      ],
+      "TelemetryNameList": [
+        "RelayState"
+      ],
+      "NativeGpioInputs": [
+        {
+          "Name": "Zone1Whitewire",
+          "BcmPin": 17,
+          "TypeName": "gw.native.gpio.pin",
+          "Version": "000"
+        },
+        {
+          "Name": "Zone2Whitewire",
+          "BcmPin": 27,
+          "TypeName": "gw.native.gpio.pin",
+          "Version": "000"
+        },
+        {
+          "Name": "Zone3Whitewire",
+          "BcmPin": 22,
+          "TypeName": "gw.native.gpio.pin",
+          "Version": "000"
+        },
+        {
+          "Name": "Zone4Whitewire",
+          "BcmPin": 10,
+          "TypeName": "gw.native.gpio.pin",
+          "Version": "000"
+        },
+        {
+          "Name": "Zone5Whitewire",
+          "BcmPin": 9,
+          "TypeName": "gw.native.gpio.pin",
+          "Version": "000"
+        },
+        {
+          "Name": "Zone6Whitewire",
+          "BcmPin": 11,
+          "TypeName": "gw.native.gpio.pin",
+          "Version": "000"
+        },
+        {
+          "Name": "Shutdown",
+          "BcmPin": 18,
+          "TypeName": "gw.native.gpio.pin",
+          "Version": "000"
+        }
+      ],
+      "NativeGpioOutputs": [
+        {
+          "Name": "TstatPower",
+          "BcmPin": 4,
+          "TypeName": "gw.native.gpio.pin",
+          "Version": "000"
+        },
+        {
+          "Name": "Vdc",
+          "BcmPin": 23,
+          "TypeName": "gw.native.gpio.pin",
+          "Version": "000"
+        },
+        {
+          "Name": "Watchdog",
+          "BcmPin": 24,
+          "TypeName": "gw.native.gpio.pin",
+          "Version": "000"
+        },
+        {
+          "Name": "PowerOff",
+          "BcmPin": 25,
+          "TypeName": "gw.native.gpio.pin",
+          "Version": "000"
+        }
+      ],
+      "Expanders": [
+        {
+          "ExpanderIdx": 1,
+          "I2cBus": "DefaultBus",
+          "I2cAddress": 32,
+          "TypeName": "i2c.expander",
+          "Version": "000"
+        },
+        {
+          "ExpanderIdx": 2,
+          "I2cBus": "DefaultBus",
+          "I2cAddress": 33,
+          "TypeName": "i2c.expander",
+          "Version": "000"
+        }
+      ],
+      "I2cRelays": [
+        {
+          "RelayName": "Zone1Failsafe",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 2,
+          "BitIndex": 0,
+          "SupportedWiringConfigs": [
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "Zone2Failsafe",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 2,
+          "BitIndex": 1,
+          "SupportedWiringConfigs": [
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "Zone3Failsafe",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 2,
+          "BitIndex": 2,
+          "SupportedWiringConfigs": [
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "Zone4Failsafe",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 2,
+          "BitIndex": 3,
+          "SupportedWiringConfigs": [
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "Zone5Failsafe",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 2,
+          "BitIndex": 4,
+          "SupportedWiringConfigs": [
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "Zone6Failsafe",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 2,
+          "BitIndex": 5,
+          "SupportedWiringConfigs": [
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "Zone1Scada",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 3,
+          "BitIndex": 0,
+          "SupportedWiringConfigs": [
+            "NormallyOpen"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "Zone2Scada",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 3,
+          "BitIndex": 1,
+          "SupportedWiringConfigs": [
+            "NormallyOpen"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "Zone3Scada",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 3,
+          "BitIndex": 2,
+          "SupportedWiringConfigs": [
+            "NormallyOpen"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "Zone4Scada",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 3,
+          "BitIndex": 3,
+          "SupportedWiringConfigs": [
+            "NormallyOpen"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "Zone5Scada",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 3,
+          "BitIndex": 4,
+          "SupportedWiringConfigs": [
+            "NormallyOpen"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "Zone6Scada",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 3,
+          "BitIndex": 5,
+          "SupportedWiringConfigs": [
+            "NormallyOpen"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "BufferTop",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 2,
+          "BitIndex": 1,
+          "SupportedWiringConfigs": [
+            "NormallyOpen"
+          ],
+          "Notes": "Upper buffer resistive heating element",
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "BufferBottom",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 2,
+          "BitIndex": 2,
+          "SupportedWiringConfigs": [
+            "NormallyOpen"
+          ],
+          "Notes": "Lower buffer resistive heating element",
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "StoreTop",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 3,
+          "BitIndex": 6,
+          "SupportedWiringConfigs": [
+            "NormallyOpen"
+          ],
+          "Notes": "Upper buffer resistive heating element",
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "StoreBottom",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 3,
+          "BitIndex": 7,
+          "SupportedWiringConfigs": [
+            "NormallyOpen"
+          ],
+          "Notes": "Lower buffer resistive heating element",
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "HeatPumpEnable",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 2,
+          "BitIndex": 0,
+          "SupportedWiringConfigs": [
+            "NormallyOpen"
+          ],
+          "Notes": "??",
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "BoilerBufferValve",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 2,
+          "BitIndex": 3,
+          "SupportedWiringConfigs": [
+            "DoubleThrow"
+          ],
+          "Notes": "??",
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "BoilerIntercept",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 2,
+          "BitIndex": 4,
+          "SupportedWiringConfigs": [
+            "NormallyClosed"
+          ],
+          "Notes": "By default, signal goes to boiler. ",
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "PrimaryPump",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 2,
+          "BitIndex": 7,
+          "SupportedWiringConfigs": [
+            "NormallyOpen"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "SecondaryPump",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 3,
+          "BitIndex": 5,
+          "SupportedWiringConfigs": [
+            "NormallyOpen"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "StorePump",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 3,
+          "BitIndex": 4,
+          "SupportedWiringConfigs": [
+            "NormallyOpen"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "DischargeValve",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 3,
+          "BitIndex": 3,
+          "SupportedWiringConfigs": [
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "IsoValve",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 3,
+          "BitIndex": 2,
+          "SupportedWiringConfigs": [
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "IsoValveFailsafe",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 3,
+          "BitIndex": 1,
+          "SupportedWiringConfigs": [
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "FcmMisc",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 3,
+          "BitIndex": 0,
+          "SupportedWiringConfigs": [
+            "NormallyOpen",
+            "NormallyClosed",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "Misc1",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 2,
+          "BitIndex": 5,
+          "SupportedWiringConfigs": [
+            "NormallyOpen",
+            "NormallyClosed",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "Misc2",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 2,
+          "BitIndex": 6,
+          "SupportedWiringConfigs": [
+            "NormallyOpen",
+            "NormallyClosed",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        }
+      ],
+      "CtAdc": {
+        "Name": "Ct",
+        "I2cBus": "DefaultBus",
+        "I2cAddress": 72,
+        "AdcType": "Ads1115",
+        "Channels": 4,
+        "TypeName": "i2c.adc.capability",
+        "Version": "000"
+      },
+      "ThermistorAdcs": [
+        {
+          "Name": "Thermistors",
+          "I2cBus": "DefaultBus",
+          "I2cAddress": 73,
+          "AdcType": "Ads1115",
+          "AdcReferenceVolts": 3.3,
+          "SeriesResistanceKOhms": 5.65,
+          "TypeName": "i2c.thermistor.interface.capability",
+          "Version": "000"
+        }
+      ],
+      "Dacs": [
+        {
+          "DacName": "Zones",
+          "I2cBus": "DefaultBus",
+          "I2cAddress": 96,
+          "DacType": "Mcp4728",
+          "Channels": 4,
+          "TypeName": "i2c.dac.capability",
+          "Version": "000"
+        }
+      ],
       "TypeName": "gw1.scada.device.type.gt",
       "Version": "000"
     }
@@ -737,9 +1189,6 @@
       "Version": "002"
     },
     {
-      "AdcAddress": 73,
-      "AdcReferenceVolts": 3.3,
-      "Bus": "i2c-1",
       "ComponentId": "1ce64678-ce36-4001-abd9-454ea6a306b4",
       "ConfigList": [
         {
@@ -767,12 +1216,12 @@
           "Version": "002"
         }
       ],
-      "DeviceType": "GridworksScadaGw108",
+      "DeviceType": "Gw108Adc",
       "DisplayName": "GW108 Thermistor Reader",
-      "SeriesResistanceKOhms": 5.6,
       "TempCalcMethod": "SimpleBeta",
       "TypeName": "i2c.thermistor.reader.component.gt",
-      "Version": "002"
+      "Version": "003",
+      "AdcName": "Thermistors"
     }
   ],
   "ShNodes": [

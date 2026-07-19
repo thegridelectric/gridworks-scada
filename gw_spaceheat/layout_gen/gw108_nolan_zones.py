@@ -15,11 +15,10 @@ from gwsproto.enums import (
     Quantity,
     TelemetryName,
     TempCalcMethod,
-    Unit,
 )
+from gwsproto.data_classes.device_types.scada_gw108 import gw108_device_type
 from gwsproto.named_types import (
     CaptureTuning,
-    ScadaDeviceTypeGt,
     DataChannelGt,
     Gw108GpioSensorComponentGt,
     I2cThermistorChannelConfig,
@@ -85,8 +84,6 @@ def _zone_thermistor_configs(
             CapturePeriodS=60,
             AsyncCapture=True,
             AsyncCaptureDelta=50,
-            Exponent=2,
-            Unit=Unit.Celcius,
             SendToDerived=True,
         ),
         I2cThermistorChannelConfig(
@@ -97,8 +94,6 @@ def _zone_thermistor_configs(
             CapturePeriodS=60,
             AsyncCapture=True,
             AsyncCaptureDelta=5000,
-            Exponent=6,
-            Unit=Unit.VoltsRms,
         ),
     ]
 
@@ -126,14 +121,7 @@ def add_gw108_nolan_zones(
         )
 
     if not db.has_device_type_record(DeviceType.GridworksScadaGw108):
-        db.add_device_types(
-            [
-                ScadaDeviceTypeGt(
-                    DeviceType=DeviceType.GridworksScadaGw108,
-                    DisplayName="GridWorks SCADA Gw108",
-                ),
-            ]
-        )
+        db.add_device_types([gw108_device_type])
 
     nodes_to_add: list[SpaceheatNodeGt] = []
     data_channels: list[DataChannelGt] = []
@@ -182,8 +170,6 @@ def add_gw108_nolan_zones(
                                 CapturePeriodS=300,
                                 AsyncCapture=True,
                                 AsyncCaptureDelta=1,
-                                Exponent=0,
-                                Unit=Unit.Unitless,
                             ),
                         ],
                     )
@@ -257,12 +243,9 @@ def add_gw108_nolan_zones(
             [
                 I2cThermistorReaderComponentGt(
                     ComponentId=db.make_component_id(reader_component_name),
-                    DeviceType=DeviceType.GridworksScadaGw108,
+                    DeviceType=DeviceType.Gw108Adc,
                     DisplayName=reader_component_name,
-                    Bus="i2c-1",
-                    AdcAddress=adc_addresses.pop(),
-                    AdcReferenceVolts=3.3,
-                    SeriesResistanceKOhms=5.6,
+                    AdcName=gw108_device_type.ThermistorAdcs[0].Name,
                     TempCalcMethod=TempCalcMethod.SimpleBeta,
                     ConfigList=thermistor_configs,
                 )

@@ -36,6 +36,7 @@ def _relay(
 
 gw108_device_type = ScadaDeviceTypeGt(
     DeviceType=DeviceType.GridworksScadaGw108.value,
+    DisplayName="GridWorks SCADA Gw108",
     TelemetryNameList=[TelemetryName.RelayState],  # FIX: CT / thermistor telemetry names still to settle
     BusList=[
         I2cBus(Name=DEFAULT_BUS, BusNumber=1),

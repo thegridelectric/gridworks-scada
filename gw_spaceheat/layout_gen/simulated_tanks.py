@@ -4,7 +4,6 @@ from gwsproto.enums import (
     DeviceType,
     Quantity,
     TelemetryName,
-    Unit,
 )
 from gwsproto.named_types import (
     CaptureTuning,
@@ -68,8 +67,6 @@ def add_sim_tank(db: LayoutDb, reader: str) -> None:
                 CapturePeriodS=cfg.CapturePeriodS,
                 AsyncCapture=True,
                 AsyncCaptureDelta=cfg.AsyncCaptureDeltaMicroVolts,
-                Exponent=3,
-                Unit=Unit.Celcius,
             )
         )
         if cfg.SendMicroVolts:
@@ -79,8 +76,6 @@ def add_sim_tank(db: LayoutDb, reader: str) -> None:
                     CapturePeriodS=cfg.CapturePeriodS,
                     AsyncCapture=True,
                     AsyncCaptureDelta=cfg.AsyncCaptureDeltaMicroVolts,
-                    Exponent=6,
-                    Unit=Unit.VoltsRms,
                 )
             )
 
