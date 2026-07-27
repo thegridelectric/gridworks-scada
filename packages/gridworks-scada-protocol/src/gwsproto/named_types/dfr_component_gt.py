@@ -3,11 +3,11 @@ from typing import Literal
 
 from pydantic import PositiveInt, field_validator
 
-from gwsproto.type_helpers.component_base import ComponentBase
+from gwsproto.type_helpers.component_base import DeviceComponentBase
 from gwsproto.named_types.dfr_config import DfrConfig
 
 
-class DfrComponentGt(ComponentBase):
+class DfrComponentGt(DeviceComponentBase):
     ConfigList: Sequence[DfrConfig]
     I2cAddressList: list[PositiveInt]
     TypeName: Literal["dfr.component.gt"] = "dfr.component.gt"

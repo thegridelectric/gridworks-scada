@@ -12,7 +12,7 @@ from actors.sh_node_actor import ShNodeActor
 
 from gwsproto.enums import GpioSenseMode
 from gwsproto.data_classes.components import (
-    Gw108GpioSensorComponent
+    GpioSensorComponent
 )
 
 from gwsproto.named_types import SingleReading
@@ -31,11 +31,11 @@ class GpioSensor(ShNodeActor):
 
         self.component = self.node.component
 
-        if not isinstance(self.component, Gw108GpioSensorComponent):
+        if not isinstance(self.component, GpioSensorComponent):
             raise ValueError(f"Component for {self.name} has type "
                              f"{type(self.component)}. Expected "
                              "I2cMultichannelDtRelayComponent or "
-                             "Gw108GpioSensorComponent")
+                             "GpioSensorComponent")
 
         # TODO later: add an actor that has a GPIO callback running
         # in a different thread and then use GPIO.add_event_detect
@@ -43,10 +43,10 @@ class GpioSensor(ShNodeActor):
         if self.component.gt.SenseMode != GpioSenseMode.Polling:
             raise Exception("GpioSensor only works for Polling right now"
                             f", not {self.component.gt.SenseMode}")
-        self.gpio_pin = self.component.gt.GpioPin
-        self.send_to_derived = self.component.gt.SendToDerived
+        self.gpio_pin = self._resolve_gpio_pin()
         self.cfg = self.component.gt.ConfigList[0] # must have exacty 1
         self.channel_name = self.cfg.ChannelName
+        self.send_to_derived = self._feeds_derived(self.channel_name)
         self.prev_value: int = 0
         self.latest_value: int = 0
         self._stop_requested = False
@@ -56,6 +56,28 @@ class GpioSensor(ShNodeActor):
         else:
             import RPi.GPIO as GPIO
             self.GPIO = GPIO
+
+    def _feeds_derived(self, channel_name: str) -> bool:
+        """Derived routing is computed from the layout: send iff some
+        DerivedChannel lists this channel as an input."""
+        return any(
+            channel_name in (dc.InputChannelNames or [])
+            for dc in self.layout.derived_channels.values()
+        )
+
+    def _resolve_gpio_pin(self) -> int:
+        """GpioName resolved against the NativeGpioInputs of the layout's
+        board device-type records — the board record carries the physical
+        BCM pin."""
+        gpio_name = self.component.gt.GpioName
+        for record in self.layout.device_types.values():
+            for pin in getattr(record, "NativeGpioInputs", []):
+                if pin.Name == gpio_name:
+                    return pin.BcmPin
+        raise ValueError(
+            f"{self.name}: no board device-type record in the layout carries "
+            f"a native GPIO input named {gpio_name}"
+        )
 
     def start(self):
         if self.GPIO:

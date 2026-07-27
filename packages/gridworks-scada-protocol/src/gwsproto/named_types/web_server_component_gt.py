@@ -4,11 +4,11 @@ from typing import Literal
 from pydantic import field_validator
 
 from gwsproto.named_types.capture_tuning import CaptureTuning
-from gwsproto.type_helpers.component_base import ComponentBase
+from gwsproto.type_helpers.component_base import DeviceComponentBase
 from gwproto.named_types.web_server_gt import WebServerGt
 
 
-class WebServerComponentGt(ComponentBase):
+class WebServerComponentGt(DeviceComponentBase):
     WebServer: WebServerGt
     TypeName: Literal["web.server.component.gt"] = "web.server.component.gt"
     Version: Literal["002"] = "002"

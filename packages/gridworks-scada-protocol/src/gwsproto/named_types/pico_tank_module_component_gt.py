@@ -6,10 +6,10 @@ from typing_extensions import Self
 
 from gwsproto.enums import TempCalcMethod
 from gwsproto.named_types.capture_tuning import CaptureTuning
-from gwsproto.type_helpers.component_base import ComponentBase
+from gwsproto.type_helpers.component_base import DeviceComponentBase
 
 
-class PicoTankModuleComponentGt(ComponentBase):
+class PicoTankModuleComponentGt(DeviceComponentBase):
     Enabled: bool
     PicoHwUid: Optional[str] = None
     PicoAHwUid: Optional[str] = None

@@ -4,10 +4,10 @@ from typing import Literal
 from pydantic import ConfigDict, field_validator
 
 from gwsproto.named_types.capture_tuning import CaptureTuning
-from gwsproto.type_helpers.component_base import ComponentBase
+from gwsproto.type_helpers.component_base import DeviceComponentBase
 
 
-class SimSensorComponentGt(ComponentBase):
+class SimSensorComponentGt(DeviceComponentBase):
     """Sema: https://schemas.electricity.works/types/sim.sensor.component.gt/000"""
 
     TypeName: Literal["sim.sensor.component.gt"] = "sim.sensor.component.gt"

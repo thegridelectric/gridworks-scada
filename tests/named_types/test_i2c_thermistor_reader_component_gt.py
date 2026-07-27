@@ -13,7 +13,6 @@ def base_config(channel_name: str, adc_channel: str) -> dict:
         "AsyncCapture": True,
         "AsyncCaptureDelta": 2000,
         "AdcChannel": adc_channel,
-        "SendToDerived": False,
         "ThermistorBeta": 3977,
         "TypeName": "i2c.thermistor.channel.config",
         "Version": "002",
@@ -23,7 +22,7 @@ def base_config(channel_name: str, adc_channel: str) -> dict:
 def base_component() -> dict:
     return {
         "ComponentId": "bd65556c-2ca4-499d-ad25-57767a785685",
-        "DeviceType": "Gw108Adc",
+        "BoardComponentId": "3f6c1a92-8d4e-4b0a-9c77-21e5b8a4d310",
         "ConfigList": [
             base_config("tank1-depth1-device", "P0"),
             base_config("tank1-depth1-micro-v", "P0"),

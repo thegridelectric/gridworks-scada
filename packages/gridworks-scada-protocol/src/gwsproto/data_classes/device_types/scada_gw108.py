@@ -1,5 +1,5 @@
 from gwsproto.enums import DeviceType, I2cAdcType, I2cDacType, RelayWiringConfig, TelemetryName
-from gwsproto.named_types.i2c_adc_capability import I2cAdcCapability
+from gwsproto.named_types.i2c_ct_interface_capability import I2cCtInterfaceCapability
 from gwsproto.named_types.i2c_bus import I2cBus
 from gwsproto.named_types.i2c_dac_capability import I2cDacCapability
 from gwsproto.named_types.i2c_expander import I2cExpander
@@ -163,11 +163,12 @@ gw108_device_type = ScadaDeviceTypeGt(
             name="Misc2",
         ),
     ],
-    CtAdc=I2cAdcCapability(
+    CtAdc=I2cCtInterfaceCapability(
         Name="Ct",
         I2cBus=DEFAULT_BUS,
         I2cAddress=0x48,
         AdcType=I2cAdcType.Ads1115,
+        AdcReferenceVolts=3.3,
         Channels=4,
     ),
     ThermistorAdcs=[

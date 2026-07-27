@@ -13,7 +13,6 @@ class I2cThermistorChannelConfig(ChannelConfigBase):
     """Sema: https://schemas.electricity.works/types/i2c.thermistor.channel.config/002"""
 
     AdcChannel: Literal["P0", "P1", "P2", "P3"]
-    SendToDerived: bool = False
     ThermistorBeta: PositiveInt
 
     TypeName: Literal["i2c.thermistor.channel.config"] = "i2c.thermistor.channel.config"

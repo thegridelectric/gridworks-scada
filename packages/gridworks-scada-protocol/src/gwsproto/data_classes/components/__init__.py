@@ -7,11 +7,12 @@ from gwsproto.data_classes.components.electric_meter_component import (
     ElectricMeterComponent,
 )
 
-from gwsproto.data_classes.components.gw108_gpio_relay_component import (
-    Gw108GpioRelayComponent,
+from gwsproto.data_classes.components.gpio_relay_component import (
+    GpioRelayComponent,
 )
-from gwsproto.data_classes.components.gw108_gpio_sensor_component import (
-    Gw108GpioSensorComponent,
+from gwsproto.data_classes.components.scada_board_component import ScadaBoardComponent
+from gwsproto.data_classes.components.gpio_sensor_component import (
+    GpioSensorComponent,
 )
 from gwsproto.data_classes.components.hubitat_component import HubitatComponent
 from gwsproto.data_classes.components.hubitat_poller_component import (
@@ -41,8 +42,8 @@ __all__ = [
     "Component",
     "DfrComponent",
     "ElectricMeterComponent",
-    "Gw108GpioRelayComponent",
-    "Gw108GpioSensorComponent",
+    "GpioRelayComponent",
+    "GpioSensorComponent",
     "HubitatComponent",
     "HubitatPollerComponent",
     "I2cMultichannelDtRelayComponent",

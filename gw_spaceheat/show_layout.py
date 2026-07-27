@@ -115,7 +115,7 @@ def print_component_dicts(layout: House0Layout):
     # unused cacs
     unused_cacs = dict(layout.device_types)
     for component in layout.components.values():
-        unused_cacs.pop(component.gt.DeviceType, None)
+        unused_cacs.pop(getattr(component.gt, "DeviceType", None), None)
     print(f"Unused Cacs: {len(unused_cacs)}")
     if unused_cacs:
         print(unused_cacs)
@@ -130,7 +130,8 @@ def print_component_dicts(layout: House0Layout):
     # dangling cacs
     dangling_cac_components = set()
     for component in layout.components.values():
-        if component.gt.DeviceType and component.gt.DeviceType not in layout.device_types:
+        device_type = getattr(component.gt, "DeviceType", None)
+        if device_type and device_type not in layout.device_types:
             dangling_cac_components.add(component.gt.DisplayName)
     print(f"Components with DeviceType but no device-type record: {len(dangling_cac_components)}")
     if dangling_cac_components:
@@ -301,9 +302,10 @@ def print_layout_table(layout: House0Layout):
         cac = layout.device_type(node.Name)
         if cac is None:
             device_type_text = none_text
-            if component is not None and component.gt.DeviceType:
+            component_device_type = getattr(component.gt, "DeviceType", None) if component is not None else None
+            if component_device_type:
                 cac_txt = Text("MISSING", style="red") + \
-                    Text(f" record for {component.gt.DeviceType}", style=none_text.style)
+                    Text(f" record for {component_device_type}", style=none_text.style)
             else:
                 cac_txt = none_text
 

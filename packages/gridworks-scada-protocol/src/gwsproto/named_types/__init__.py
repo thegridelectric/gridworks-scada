@@ -42,9 +42,9 @@ from gwsproto.named_types.gw_house0_operational_params import (
 )
 from gwsproto.named_types.glitch import Glitch
 from gwsproto.named_types.go_dormant import GoDormant
-from gwsproto.named_types.gw108_gpio_relay_component_gt import Gw108GpioRelayComponentGt
-from gwsproto.named_types.gw108_gpio_sensor_component_gt import (
-    Gw108GpioSensorComponentGt,
+from gwsproto.named_types.gpio_relay_component_gt import GpioRelayComponentGt
+from gwsproto.named_types.gpio_sensor_component_gt import (
+    GpioSensorComponentGt,
 )
 from gwsproto.named_types.ha1_params import Ha1Params
 from gwsproto.named_types.hack_oil_off import HackOilOff
@@ -60,7 +60,7 @@ from gwsproto.named_types.hubitat_gt import HubitatGt
 from gwsproto.named_types.hubitat_poller_component_gt import HubitatPollerComponentGt
 from gwsproto.named_types.hubitat_poller_gt import HubitatPollerGt, MakerAPIAttributeGt
 from gwsproto.named_types.hvac_zone import HvacZone
-from gwsproto.named_types.i2c_adc_capability import I2cAdcCapability
+from gwsproto.named_types.i2c_ct_interface_capability import I2cCtInterfaceCapability
 from gwsproto.named_types.i2c_bit_address import I2cBitAddress
 from gwsproto.named_types.i2c_bus import I2cBus
 from gwsproto.named_types.i2c_dac_capability import I2cDacCapability
@@ -104,6 +104,8 @@ from gwsproto.named_types.pico_tank_module_component_gt import PicoTankModuleCom
 from gwsproto.named_types.power_watts import PowerWatts
 from gwsproto.named_types.price_quantity_unitless import PriceQuantityUnitless
 from gwsproto.named_types.relay_actor_config import RelayActorConfig
+from gwsproto.named_types.relay_control_config import RelayControlConfig
+from gwsproto.named_types.scada_board_component_gt import ScadaBoardComponentGt
 from gwsproto.named_types.remaining_elec import RemainingElec
 from gwsproto.named_types.report import Report
 from gwsproto.named_types.required_energy_layered import RequiredEnergyLayered
@@ -190,8 +192,8 @@ __all__ = [
     "GNodeGt",
     "Glitch",
     "GoDormant",
-    "Gw108GpioRelayComponentGt",
-    "Gw108GpioSensorComponentGt",
+    "GpioRelayComponentGt",
+    "GpioSensorComponentGt",
     "GwHouse0OperationalParams",
     "Ha1Params",
     "HackOilOff",
@@ -207,7 +209,7 @@ __all__ = [
     "HubitatPollerComponentGt",
     "HubitatPollerGt",
     "HvacZone",
-    "I2cAdcCapability",
+    "I2cCtInterfaceCapability",
     "I2cBitAddress",
     "I2cBus",
     "I2cDacCapability",
@@ -242,6 +244,8 @@ __all__ = [
     "PowerWatts",
     "PriceQuantityUnitless",
     "RelayActorConfig",
+    "RelayControlConfig",
+    "ScadaBoardComponentGt",
     "RemainingElec",
     "RemainingElecEvent",
     "RemainingElecEvent",

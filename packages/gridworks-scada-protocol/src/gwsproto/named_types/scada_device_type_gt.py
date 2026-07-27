@@ -4,7 +4,7 @@ from pydantic import BaseModel, PositiveInt, model_validator
 from typing_extensions import Self
 
 from gwsproto.enums import TelemetryName
-from gwsproto.named_types.i2c_adc_capability import I2cAdcCapability
+from gwsproto.named_types.i2c_ct_interface_capability import I2cCtInterfaceCapability
 from gwsproto.named_types.i2c_bus import I2cBus
 from gwsproto.named_types.i2c_dac_capability import I2cDacCapability
 from gwsproto.named_types.i2c_expander import I2cExpander
@@ -28,7 +28,7 @@ class ScadaDeviceTypeGt(BaseModel):
     NativeGpioOutputs: list[NativeGpioPin] = []
     Expanders: list[I2cExpander] = []
     I2cRelays: list[I2cRelayCapability] = []
-    CtAdc: Optional[I2cAdcCapability] = None
+    CtAdc: Optional[I2cCtInterfaceCapability] = None
     ThermistorAdcs: list[I2cThermistorInterfaceCapability] = []
     Dacs: list[I2cDacCapability] = []
     TypeName: Literal["gw1.scada.device.type.gt"] = "gw1.scada.device.type.gt"
@@ -72,5 +72,29 @@ class ScadaDeviceTypeGt(BaseModel):
             raise ValueError(
                 f"Axiom 2 (ExpanderMembership) failed: ExpanderIdx value(s) "
                 f"{missing} are not declared in Expanders."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_3(self) -> Self:
+        """
+        Axiom 3: BoardIdentifierUniqueness.
+        The board's silk-screen namespace is one namespace: the union of every
+        RelayName in I2cRelays, the CtAdc Name, every Name in ThermistorAdcs,
+        every DacName in Dacs, and every Name in NativeGpioInputs and
+        NativeGpioOutputs SHALL contain no duplicates within the record.
+        """
+        names = [r.RelayName for r in (self.I2cRelays or [])]
+        if self.CtAdc is not None:
+            names.append(self.CtAdc.Name)
+        names += [a.Name for a in (self.ThermistorAdcs or [])]
+        names += [d.DacName for d in (self.Dacs or [])]
+        names += [p.Name for p in (self.NativeGpioInputs or [])]
+        names += [p.Name for p in (self.NativeGpioOutputs or [])]
+        dupes = sorted({n for n in names if names.count(n) > 1})
+        if dupes:
+            raise ValueError(
+                "Axiom 3 (BoardIdentifierUniqueness) failed: duplicate board "
+                f"identifier name(s) {dupes}."
             )
         return self

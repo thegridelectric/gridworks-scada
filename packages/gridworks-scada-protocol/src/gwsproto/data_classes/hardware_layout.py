@@ -171,7 +171,11 @@ class HardwareLayout:
                     # (electric.meter / ads111x / gw1.scada). A record-less category (web
                     # server, hubitat, sim) resolves to None. The layout's DeviceTypeMembership
                     # axiom is what guarantees a record IS present when a category needs it.
-                    device_type_gt = device_types.get(component_gt.DeviceType, None)
+                    # Board-resident components carry no DeviceType (they anchor to a
+                    # board via BoardComponentId); their device_type resolves to None here.
+                    device_type_gt = device_types.get(
+                        getattr(component_gt, "DeviceType", None), None
+                    )
                     components[component_gt.ComponentId] = cls.make_component(
                         component_gt,
                         device_type_gt,

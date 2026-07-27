@@ -11,7 +11,7 @@ from gwproactor.message import PatInternalWatchdogMessage
 
 from gwsproto.data_classes.components import (
     I2cMultichannelDtRelayComponent,
-    Gw108GpioRelayComponent,
+    GpioRelayComponent,
 )
 from gwsproto.data_classes.house_0_names import H0N, ZoneNodes
 from gwsproto.data_classes.sh_node import ShNode
@@ -64,12 +64,12 @@ class Relay(ShNodeActor):
 
         if not isinstance(
             self._component,
-            (I2cMultichannelDtRelayComponent, Gw108GpioRelayComponent)
+            (I2cMultichannelDtRelayComponent, GpioRelayComponent)
         ):
             raise ValueError(f"Component for {self.name} has type "
                              f"{type(self._component)}. Expected "
                              "I2cMultichannelDtRelayComponent or "
-                             "Gw108GpioRelayComponent")
+                             "GpioRelayComponent")
 
         self.relay_actor_config = next(
             (x for x in self._component.gt.ConfigList if x.ActorName == self.node.name),
@@ -92,13 +92,32 @@ class Relay(ShNodeActor):
         self._stop_requested = False
         self.state = self.relay_actor_config.DeEnergizedState
 
+        self._gpio_pin: int | None = None
+        if isinstance(self._component, GpioRelayComponent):
+            self._gpio_pin = self._resolve_gpio_pin()
+
         if not self.settings.is_simulated:
             import RPi.GPIO as GPIO
             self.GPIO = GPIO
             self.GPIO.setmode(GPIO.BCM)
-            self.GPIO.setup(self._component.gt.GpioPin, GPIO.OUT)
+            if self._gpio_pin is not None:
+                self.GPIO.setup(self._gpio_pin, GPIO.OUT)
         else:
             self.GPIO = None
+
+    def _resolve_gpio_pin(self) -> int:
+        """GpioName resolved against the NativeGpioOutputs of the layout's
+        board device-type records — the board record carries the physical
+        BCM pin."""
+        gpio_name = self._component.gt.GpioName
+        for record in self.layout.device_types.values():
+            for pin in getattr(record, "NativeGpioOutputs", []):
+                if pin.Name == gpio_name:
+                    return pin.BcmPin
+        raise ValueError(
+            f"{self.name}: no board device-type record in the layout carries "
+            f"a native GPIO output named {gpio_name}"
+        )
 
 
     def my_channel(self) -> DataChannel:
@@ -193,7 +212,7 @@ class Relay(ShNodeActor):
         
 
         """Actuate relay and complete FSM reporting"""
-        if isinstance(self._component, Gw108GpioRelayComponent):
+        if isinstance(self._component, GpioRelayComponent):
             self._gpio_actuate_and_report(
                 relay_pin_event,
                 old_pin_state,
@@ -220,7 +239,7 @@ class Relay(ShNodeActor):
             self.log("Simulated relay actuation; skipping GPIO")
             return
 
-        pin = self._component.gt.GpioPin
+        pin = self._gpio_pin
         if relay_pin_event == ChangeRelayPin.Energize:
             self.GPIO.output(pin, self.GPIO.HIGH)
             self.log(f"Energizing: Setting pin {pin} to High")

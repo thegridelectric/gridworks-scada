@@ -9,10 +9,10 @@ from typing_extensions import Self
 from gwsproto.named_types.ads_channel_config import (
     AdsChannelConfig,
 )
-from gwsproto.type_helpers.component_base import ComponentBase
+from gwsproto.type_helpers.component_base import DeviceComponentBase
 
 
-class Ads111xBasedComponentGt(ComponentBase):
+class Ads111xBasedComponentGt(DeviceComponentBase):
     OpenVoltageByAds: list[float]
     ConfigList: Sequence[AdsChannelConfig]
     TypeName: Literal["ads111x.based.component.gt"] = "ads111x.based.component.gt"

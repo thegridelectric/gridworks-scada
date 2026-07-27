@@ -6,12 +6,12 @@ from pydantic import field_validator
 from pydantic_extra_types.mac_address import MacAddress
 
 from gwsproto.named_types.capture_tuning import CaptureTuning
-from gwsproto.type_helpers.component_base import ComponentBase
+from gwsproto.type_helpers.component_base import DeviceComponentBase
 from gwsproto.named_types.hubitat_gt import HubitatGt
 from gwsproto.named_types.rest_poller_gt import URLConfig
 
 
-class HubitatComponentGt(ComponentBase):
+class HubitatComponentGt(DeviceComponentBase):
     """Sema: https://schemas.electricity.works/types/hubitat.component.gt/000"""
 
     Hubitat: HubitatGt

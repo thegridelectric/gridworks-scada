@@ -6,11 +6,11 @@ from pydantic import field_validator
 
 from gwsproto.enums import GpmFromHzMethod, HzCalcMethod
 from gwsproto.named_types.capture_tuning import CaptureTuning
-from gwsproto.type_helpers.component_base import ComponentBase
+from gwsproto.type_helpers.component_base import DeviceComponentBase
 from gwsproto.property_format import SpaceheatName
 
 
-class PicoFlowModuleComponentGt(ComponentBase):
+class PicoFlowModuleComponentGt(DeviceComponentBase):
     Enabled: bool
     SerialNumber: str
     FlowNodeName: SpaceheatName

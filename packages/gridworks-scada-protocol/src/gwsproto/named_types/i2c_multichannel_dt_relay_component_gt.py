@@ -4,11 +4,11 @@ from pydantic import ConfigDict, StrictInt, field_validator, model_validator
 from typing_extensions import Self
 
 from gwsproto.property_format import SpaceheatName
-from gwsproto.type_helpers.component_base import ComponentBase
+from gwsproto.type_helpers.component_base import DeviceComponentBase
 from gwsproto.named_types.relay_actor_config import RelayActorConfig
 
 
-class I2cMultichannelDtRelayComponentGt(ComponentBase):
+class I2cMultichannelDtRelayComponentGt(DeviceComponentBase):
     I2cBus: SpaceheatName
     I2cAddressList: list[StrictInt]
     ConfigList: list[RelayActorConfig]

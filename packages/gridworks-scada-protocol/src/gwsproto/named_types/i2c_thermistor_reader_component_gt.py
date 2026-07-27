@@ -6,10 +6,10 @@ from pydantic import model_validator
 from gwsproto.enums import TempCalcMethod
 from gwsproto.named_types.i2c_thermistor_channel_config import I2cThermistorChannelConfig
 from gwsproto.property_format import PascalCase
-from gwsproto.type_helpers.component_base import ComponentBase
+from gwsproto.type_helpers.component_base import BoardResidentComponentBase
 
 
-class I2cThermistorReaderComponentGt(ComponentBase):
+class I2cThermistorReaderComponentGt(BoardResidentComponentBase):
     """
     Sema: https://schemas.electricity.works/types/i2c.thermistor.reader.component.gt/003
     """

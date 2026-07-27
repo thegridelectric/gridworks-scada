@@ -23,17 +23,12 @@ from gwsproto.enums import (
 )
 from gwsproto.named_types import (
     DataChannelGt,
-    Gw108GpioRelayComponentGt,
     I2cMultichannelDtRelayComponentGt,
     RelayActorConfig,
     SpaceheatNodeGt,
 )
 from gwsproto.enums import ChangeKeepSend, HpLoopKeepSend
 from gwsproto.named_types import ScadaDeviceTypeGt
-from gwsproto.names.hydronic_spaceheat.channel_names import (
-    HydronicSpaceheatChannelNames as HCN,
-)
-from gwsproto.names.nolan.node_names import NolanNodeNames
 from layout_gen import LayoutDb
 from pydantic import BaseModel
 
@@ -633,91 +628,3 @@ def add_house0_relays(
             ),
         ]
     db.add_data_channels(data_channels)
-
-
-_NOLAN_VDC_RELAY_GPIO_PIN = 23
-_NOLAN_VDC_COMPONENT_DISPLAY_NAME = "5VDC Relay Gw108 GPIO"
-
-
-def add_nolan_relays(
-    db: LayoutDb,
-    cfg: RelayCfg,
-) -> None:
-    """Add Nolan-strategy relays.
-
-    Nolan currently has actors only for the vdc relay (on Gw108 GPIO pin 23).
-    Other Nolan relays will be added when their i2c driver is written.
-    """
-    vdc_node_name = NolanNodeNames.vdc_relay
-    vdc_channel_name = HCN.vdc_relay_state
-
-    if not db.has_device_type_record(DeviceType.GridworksScadaGw108):
-        db.add_device_types(
-            [
-                ScadaDeviceTypeGt(
-                    DeviceType=DeviceType.GridworksScadaGw108,
-                    DisplayName="GridWorks SCADA Gw108",
-                ),
-            ]
-        )
-
-    if not db.component_id_by_alias(_NOLAN_VDC_COMPONENT_DISPLAY_NAME):
-        db.add_components(
-            [
-                Gw108GpioRelayComponentGt(
-                    ComponentId=db.make_component_id(_NOLAN_VDC_COMPONENT_DISPLAY_NAME),
-                    DeviceType=DeviceType.GridworksScadaGw108,
-                    DisplayName=_NOLAN_VDC_COMPONENT_DISPLAY_NAME,
-                    GpioPin=_NOLAN_VDC_RELAY_GPIO_PIN,
-                    ConfigList=[
-                        RelayActorConfig(
-                            ChannelName=vdc_channel_name,
-                            RelayIdx=1,
-                            ActorName=vdc_node_name,
-                            PollPeriodMs=cfg.PollPeriodMs,
-                            CapturePeriodS=cfg.CapturePeriodS,
-                            WiringConfig=RelayWiringConfig.NormallyClosed,
-                            EventType=ChangeRelayState.enum_name(),
-                            StateType=RelayClosedOrOpen.enum_name(),
-                            DeEnergizingEvent=ChangeRelayState.CloseRelay,
-                            EnergizingEvent=ChangeRelayState.OpenRelay,
-                            DeEnergizedState=RelayClosedOrOpen.RelayClosed,
-                            EnergizedState=RelayClosedOrOpen.RelayOpen,
-                            AsyncCapture=True,
-                            AsyncCaptureDelta=1,
-                            Exponent=0,
-                            Unit=Unit.Unitless,
-                        ),
-                    ],
-                )
-            ]
-        )
-
-    db.add_nodes(
-        [
-            SpaceheatNodeGt(
-                ShNodeId=db.make_node_id(vdc_node_name),
-                Name=vdc_node_name,
-                ActorHierarchyName=f"{H0N.primary_scada}.{vdc_node_name}",
-                Handle=f"auto.{H0N.pico_cycler}.{vdc_node_name}",
-                ActorClass=ActorClass.Relay,
-                DisplayName="5VDC Relay",
-                ComponentId=db.component_id_by_alias(_NOLAN_VDC_COMPONENT_DISPLAY_NAME),
-            ),
-        ]
-    )
-
-    db.add_data_channels(
-        [
-            DataChannelGt(
-                Name=vdc_channel_name,
-                DisplayName="5V DC Bus Relay State",
-                AboutNodeName=vdc_node_name,
-                CapturedByNodeName=vdc_node_name,
-                TelemetryName=TelemetryName.RelayState,
-                Quantity=Quantity.Unitless,
-                TerminalAssetAlias=db.terminal_asset_alias,
-                Id=db.make_channel_id(vdc_channel_name),
-            ),
-        ]
-    )

@@ -3,11 +3,11 @@ from typing import Literal
 
 from pydantic import ConfigDict, field_validator
 
-from gwsproto.type_helpers.component_base import ComponentBase
+from gwsproto.type_helpers.component_base import DeviceComponentBase
 from gwsproto.named_types.relay_actor_config import RelayActorConfig
 
 
-class SimRelayComponentGt(ComponentBase):
+class SimRelayComponentGt(DeviceComponentBase):
     """Sema: https://schemas.electricity.works/types/sim.relay.component.gt/000"""
 
     ConfigList: Sequence[RelayActorConfig]

@@ -3,11 +3,11 @@ from typing import Literal, Self
 
 from pydantic import PositiveInt, field_validator, model_validator
 
-from gwsproto.type_helpers.component_base import ComponentBase
+from gwsproto.type_helpers.component_base import DeviceComponentBase
 from gwsproto.named_types.electric_meter_channel_config import ElectricMeterChannelConfig
 
 
-class ElectricMeterComponentGt(ComponentBase):
+class ElectricMeterComponentGt(DeviceComponentBase):
     ModbusHost: str | None = None
     ModbusPort: PositiveInt | None = None
     ConfigList: Sequence[ElectricMeterChannelConfig]

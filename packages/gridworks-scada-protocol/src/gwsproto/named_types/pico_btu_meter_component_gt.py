@@ -10,13 +10,13 @@ from gwsproto.enums import (
     TempCalcMethod,
 )
 from gwsproto.named_types.capture_tuning import CaptureTuning
-from gwsproto.type_helpers.component_base import ComponentBase
+from gwsproto.type_helpers.component_base import DeviceComponentBase
 from gwsproto.property_format import (
     SpaceheatName,
 )
 
 
-class PicoBtuMeterComponentGt(ComponentBase):
+class PicoBtuMeterComponentGt(DeviceComponentBase):
     Enabled: bool
     SerialNumber: str
     FlowChannelName: SpaceheatName
