@@ -1680,7 +1680,7 @@
     "SiegLoopPlumbed": false,
     "Strategy": "House0",
     "TotalStoreTanks": 3,
-    "TypeName": "gw.house0.hydronic",
+    "TypeName": "gw.hydronic",
     "UseSiegLoop": false,
     "Version": "000",
     "Zones": [

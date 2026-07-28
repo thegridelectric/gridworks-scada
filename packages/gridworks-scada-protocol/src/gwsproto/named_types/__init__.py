@@ -51,7 +51,7 @@ from gwsproto.named_types.hack_oil_off import HackOilOff
 from gwsproto.named_types.hack_oil_on import HackOilOn
 from gwsproto.named_types.heating_curve import HeatingCurve
 from gwsproto.named_types.heating_forecast import HeatingForecast
-from gwsproto.named_types.house0_hydronic import House0Hydronic
+from gwsproto.named_types.gw_hydronic import GwHydronic
 from gwsproto.named_types.house0_layout import House0Layout
 from gwsproto.named_types.hp_control_box_device_type_gt import HpControlBoxDeviceTypeGt
 from gwsproto.named_types.hp_device_type_gt import HpDeviceTypeGt
@@ -200,7 +200,7 @@ __all__ = [
     "HackOilOn",
     "HeatingCurve",
     "HeatingForecast",
-    "House0Hydronic",
+    "GwHydronic",
     "House0Layout",
     "HpControlBoxDeviceTypeGt",
     "HpDeviceTypeGt",

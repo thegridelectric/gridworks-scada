@@ -15,7 +15,7 @@ from gwsproto.names.nolan.node_names import NolanNodeNames
 from gwsproto.data_classes.house_0_names import H0CN, H0N, ScadaWeb
 from gwsproto.enums import FlowManifoldVariant
 from gwsproto.named_types.hvac_zone import HvacZone
-from gwsproto.named_types.house0_hydronic import House0Hydronic
+from gwsproto.named_types.gw_hydronic import GwHydronic
 
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.decoders import (
@@ -80,7 +80,7 @@ class House0Layout(HardwareLayout):
         )
         self.derived_channels = self.load_derived_channels(layout, self.nodes)
 
-        # ---- Hydronic block (the gw.house0.hydronic type lives on the dataclass) ----
+        # ---- Hydronic block (the gw.hydronic type lives on the dataclass) ----
         # Accept the typed nested "Hydronic" if present; else build it from the legacy
         # flat top-level keys (transitional, while layout_gen + fixtures migrate).
         self.hydronic = self._build_hydronic(
@@ -361,13 +361,13 @@ class House0Layout(HardwareLayout):
         derived_channels: dict,
         flow_manifold_variant: FlowManifoldVariant,
         use_sieg_loop: bool,
-    ) -> House0Hydronic:
-        """The typed gw.house0.hydronic for this layout: read the nested 'Hydronic'
+    ) -> GwHydronic:
+        """The typed gw.hydronic for this layout: read the nested 'Hydronic'
         block if present, else build it from the legacy flat top-level keys
         (transitional, while layout_gen + fixtures migrate to the nested block)."""
         h = layout.get("Hydronic")
         if isinstance(h, dict) and "Zones" in h:
-            return House0Hydronic.model_validate(h)
+            return GwHydronic.model_validate(h)
         for key in ("ZoneList", "CriticalZoneList", "TotalStoreTanks", "ZoneKwhPerDegFList"):
             if key not in layout:
                 raise DcError(f"House0 requires {key} (or a typed Hydronic block)!")
@@ -378,7 +378,7 @@ class House0Layout(HardwareLayout):
             d.Name == "primary-flow" and d.Strategy == "sum"
             for d in derived_channels.values()
         )
-        return House0Hydronic(
+        return GwHydronic(
             Zones=[
                 HvacZone(Name=name, Critical=name in critical, KwhPerDegF=float(kwh))
                 for name, kwh in zip(layout["ZoneList"], layout["ZoneKwhPerDegFList"])

@@ -7,9 +7,9 @@ from gwsproto.enums import House0PrimaryFlowSource
 from gwsproto.named_types.hvac_zone import HvacZone
 
 
-class House0Hydronic(BaseModel):
+class GwHydronic(BaseModel):
     """
-    Sema: https://schemas.electricity.works/types/gw.house0.hydronic/000
+    Sema: https://schemas.electricity.works/types/gw.hydronic/000
     """
 
     Zones: List[HvacZone]
@@ -18,7 +18,7 @@ class House0Hydronic(BaseModel):
     SiegLoopPlumbed: bool
     PrimaryFlowSource: House0PrimaryFlowSource
     Strategy: str
-    TypeName: Literal["gw.house0.hydronic"] = "gw.house0.hydronic"
+    TypeName: Literal["gw.hydronic"] = "gw.hydronic"
     Version: Literal["000"] = "000"
     model_config = ConfigDict(extra="allow")
 

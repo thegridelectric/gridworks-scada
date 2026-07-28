@@ -943,7 +943,7 @@
     "SiegLoopPlumbed": false,
     "Strategy": "Nolan",
     "TotalStoreTanks": 1,
-    "TypeName": "gw.house0.hydronic",
+    "TypeName": "gw.hydronic",
     "UseSiegLoop": false,
     "Version": "000",
     "Zones": [

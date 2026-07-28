@@ -776,7 +776,7 @@ class LayoutDb:
     @staticmethod
     def _nest_hydronic(d: dict) -> dict:
         """Fold the flat hydronic keys (which the builders write) into the typed
-        nested gw.house0.hydronic 'Hydronic' block the layout carries."""
+        nested gw.hydronic 'Hydronic' block the layout carries."""
         if "ZoneList" not in d:
             return d
         critical = set(d.pop("CriticalZoneList", []))
@@ -799,7 +799,7 @@ class LayoutDb:
             "SiegLoopPlumbed": fmv == FlowManifoldVariant.House0Sieg,
             "PrimaryFlowSource": d.pop("PrimaryFlowSource", "Measured"),
             "Strategy": d.pop("Strategy", "House0"),
-            "TypeName": "gw.house0.hydronic",
+            "TypeName": "gw.hydronic",
             "Version": "000",
         }
         return d

@@ -7,6 +7,7 @@ from gwsproto.named_types.electric_meter_device_type_gt import ElectricMeterDevi
 from gwsproto.named_types.scada_device_type_gt import ScadaDeviceTypeGt
 from gwsproto.named_types.data_channel_gt import DataChannelGt
 from gwsproto.named_types.g_node_gt import GNodeGt
+from gwsproto.named_types.gw_hydronic import GwHydronic
 from gwsproto.named_types.derived_channel_gt import DerivedChannelGt
 from gwsproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwsproto.named_types.gpio_relay_component_gt import GpioRelayComponentGt
@@ -57,7 +58,7 @@ class NolanLayout(BaseModel):
     DerivedChannels: List[DerivedChannelGt]
     Components: List[NolanComponent]
     DeviceTypes: List[NolanDeviceType]
-    Hydronic: dict
+    Hydronic: GwHydronic
     TypeName: Literal["gw.nolan.layout"] = "gw.nolan.layout"
     Version: Literal["000"] = "000"
 
