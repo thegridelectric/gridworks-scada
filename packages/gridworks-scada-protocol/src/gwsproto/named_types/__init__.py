@@ -95,6 +95,7 @@ from gwsproto.named_types.micro_volts import MicroVolts
 from gwsproto.named_types.multichannel_snapshot import MultichannelSnapshot
 from gwsproto.named_types.native_gpio_pin import NativeGpioPin
 from gwsproto.named_types.new_command_tree import NewCommandTree
+from gwsproto.named_types.nolan_layout import NolanLayout
 from gwsproto.named_types.no_new_contract_warning import NoNewContractWarning
 from gwsproto.named_types.pico_btu_meter_component_gt import PicoBtuMeterComponentGt
 from gwsproto.named_types.pico_comms_params import PicoCommsParams
@@ -236,6 +237,7 @@ __all__ = [
     "NativeGpioPin",
     "NewCommandTree",
     "NoNewContractWarning",
+    "NolanLayout",
     "PicoBtuMeterComponentGt",
     "PicoCommsParams",
     "PicoFlowModuleComponentGt",

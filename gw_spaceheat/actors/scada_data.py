@@ -28,17 +28,21 @@ from gwsproto.named_types import (
 OPS_PARAMS_FILE_NAME = "gw.house0.operational.params.json"
 
 
-def load_operational_params(settings: ScadaSettings) -> GwHouse0OperationalParams:
-    """Load the home's authored operational-params artifact. The path is
+def operational_params_path(settings: ScadaSettings) -> Path:
+    """Resolve the home's authored operational-params artifact path:
     settings.operational_params_path when set; otherwise the per-home sibling
     dir of the hardware layout (tests/config/<home>/gw.house0.operational.params.json
-    for tests/config/<home>.json), mirroring the tlayouts output shape. The
-    artifact is REQUIRED — its values have no defaults anywhere else."""
+    for tests/config/<home>.json), mirroring the tlayouts output shape."""
     if settings.operational_params_path:
-        path = Path(settings.operational_params_path)
-    else:
-        layout_path = Path(settings.paths.hardware_layout)
-        path = layout_path.with_suffix("") / OPS_PARAMS_FILE_NAME
+        return Path(settings.operational_params_path)
+    layout_path = Path(settings.paths.hardware_layout)
+    return layout_path.with_suffix("") / OPS_PARAMS_FILE_NAME
+
+
+def load_operational_params(settings: ScadaSettings) -> GwHouse0OperationalParams:
+    """Load the home's authored operational-params artifact. The artifact is
+    REQUIRED — its values have no defaults anywhere else."""
+    path = operational_params_path(settings)
     if not path.exists():
         raise FileNotFoundError(
             f"Operational params artifact not found at {path}. Every home needs "

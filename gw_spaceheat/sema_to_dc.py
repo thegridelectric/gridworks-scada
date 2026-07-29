@@ -29,8 +29,15 @@ from typing import Any
 
 from gwsproto.data_classes.house_0_layout import House0Layout as House0Dc
 from gwsproto.named_types import House0Layout as House0Sema
+from gwsproto.named_types import NolanLayout
 
 CONFIG_DIR = Path(__file__).resolve().parent.parent / "tests" / "config"
+
+# The authored static artifact names its sema layout type; dispatch on it.
+SEMA_LAYOUT_BY_TYPENAME: dict[str, type[House0Sema] | type[NolanLayout]] = {
+    "gw.house0.layout": House0Sema,
+    "gw.nolan.layout": NolanLayout,
+}
 
 _CAPTURE_FIELDS = (
     "PollPeriodMs",
@@ -105,11 +112,12 @@ def ops_and_sema_to_dc(static_path: Path, ops_path: Path) -> House0Dc:
     """Assemble the two authored artifacts and load the dc House0Layout."""
     static = json.loads(Path(static_path).read_text())
     ops = json.loads(Path(ops_path).read_text())
-    sema = House0Sema.model_validate(assemble_runtime_layout(static, ops))
+    assembled = assemble_runtime_layout(static, ops)
+    sema = SEMA_LAYOUT_BY_TYPENAME[assembled["TypeName"]].model_validate(assembled)
     return House0Dc.load_dict(sema_to_layout_dict(sema))
 
 
-def sema_to_layout_dict(sema: House0Sema) -> dict[str, Any]:
+def sema_to_layout_dict(sema: House0Sema | NolanLayout) -> dict[str, Any]:
     """Build the layout dict the data class can load. Components/cacs are
     regrouped into the typed keys load_dict expects."""
     layout: dict[str, Any] = {}
@@ -194,12 +202,18 @@ def diff_against_fixture(name: str, authored_dir: Path) -> int:
     frozen tests/config/<name>.json fixture and print the per-collection diff.
     The diff is the adopt worklist (gen omissions vs stale-fixture gaps), not a
     strict gate."""
-    static_path = authored_dir / "gw.house0.layout.json"
+    layout_paths = sorted(p for p in authored_dir.glob("gw.*.layout.json"))
+    if len(layout_paths) != 1:
+        raise ValueError(
+            f"expected exactly one gw.*.layout.json in {authored_dir}; found {layout_paths}"
+        )
+    static_path = layout_paths[0]
     ops_path = authored_dir / "gw.house0.operational.params.json"
 
     static = json.loads(static_path.read_text())
     ops = json.loads(ops_path.read_text())
-    sema = House0Sema.model_validate(assemble_runtime_layout(static, ops))
+    assembled = assemble_runtime_layout(static, ops)
+    sema = SEMA_LAYOUT_BY_TYPENAME[assembled["TypeName"]].model_validate(assembled)
     gen_layout = sema_to_layout_dict(sema)
 
     print(f"== ops_and_sema_to_dc({name}) loads? ==")
