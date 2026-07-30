@@ -1,29 +1,32 @@
 import asyncio
 import math
 import time
-from typing import Sequence, TYPE_CHECKING
+import uuid
+from typing import Sequence
 
-
-if TYPE_CHECKING:
-    from adafruit_ads1x15.analog_in import AnalogIn
-
-from result import Result
+from result import Ok, Err, Result
 
 from gwproto.message import Message
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 
 from actors.sh_node_actor import ShNodeActor
+from drivers import ads1115
 
+from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.named_types import (
+    I2cReadReg,
+    I2cRegAddress,
+    I2cResult,
     I2cThermistorChannelConfig,
     I2cThermistorInterfaceCapability,
+    I2cWriteReg,
     SingleReading,
     SyncedReadings,
 )
 from gwsproto.data_classes.components import I2cThermistorReaderComponent
 from gwsproto.property_format import SpaceheatName
-from gwsproto.enums import TelemetryName, TempCalcMethod
+from gwsproto.enums import ActorClass, TelemetryName, TempCalcMethod
 
 from scada_app_interface import ScadaAppInterface
 THERMISTOR_T0 = 298.15  # i.e. 25 degrees
@@ -59,43 +62,26 @@ class I2cThermistorReader(ShNodeActor):
         self._active_warning_keys: set[str] = set()
 
         # Per-channel state
-        self.adc_by_channel: dict[SpaceheatName, "AnalogIn"] = {}
         self.latest_microvolts: dict[SpaceheatName, int] = {} # by electrical channel name
         self.latest_temp_c_x100: dict[SpaceheatName, int] = {} # by device channel name
         self.last_reported_temp_c_x100: dict[SpaceheatName, int] = {}
 
-        if self.settings.is_simulated:
-            self.i2c = None
-            self.adc = None
-            self.adc_by_channel = {}
-        else:
-            import adafruit_ads1x15.ads1115 as ADS1115
-            from adafruit_ads1x15.analog_in import AnalogIn
-            import board
+        self.is_simulated = self.settings.is_simulated
+        self.bus_op_timeout_s = 1.0
+        self._pending_results: dict[str, "asyncio.Future[I2cResult]"] = {}
 
-            try:
-                self.i2c = board.I2C()
-                self.adc = ADS1115.ADS1115(
-                    self.i2c,
-                    address=self.adc_capability.I2cAddress
-                )
-
-                for cfg in self.electrical_configs.values():
-                    try:
-                        pin = getattr(ADS1115, cfg.AdcChannel)
-                    except AttributeError:
-                        raise ValueError(f"{self.name}: invalid AdcChannel {cfg.AdcChannel}")
-
-                    self.adc_by_channel[cfg.ChannelName] = AnalogIn(self.adc, pin)
-            except Exception as e:
-                self.i2c = None
-                self.adc = None
-                self.adc_by_channel = {}
-                self._send_warning_once(
-                    "i2c-thermistor-reader-init-failed",
-                    "i2c-thermistor-reader-init-failed",
-                    str(e),
-                )
+        bus_nodes = [
+            n for n in self.layout.nodes.values()
+            if n.ActorClass == ActorClass.I2cBus
+        ]
+        self.bus_node: ShNode | None = bus_nodes[0] if len(bus_nodes) == 1 else None
+        if self.bus_node is None and not self.is_simulated:
+            self._send_warning_once(
+                "i2c-thermistor-reader-init-failed",
+                "i2c-thermistor-reader-init-failed",
+                f"expected exactly one I2cBus node in the layout; "
+                f"found {len(bus_nodes)}",
+            )
 
     def _feeds_derived(self, channel_name: str) -> bool:
         """Derived routing is computed from the layout: send iff some
@@ -106,18 +92,13 @@ class I2cThermistorReader(ShNodeActor):
         )
 
     def _resolve_adc_capability(self) -> I2cThermistorInterfaceCapability:
-        """AdcName resolved against the ThermistorAdcs of the layout's board
-        device-type records — the board record carries the physical facts
-        (bus, address, reference volts, series resistance)."""
+        """AdcName resolved against THIS component's board record — it carries
+        the physical facts (bus, address, reference volts, series resistance).
+        The layout's BoardResolution axiom (gw.nolan.layout axiom 2)
+        guarantees the name is present, at layout validation."""
+        record = self.component.board_component.device_type
         adc_name = self.component.gt.AdcName
-        for record in self.layout.device_types.values():
-            for adc in getattr(record, "ThermistorAdcs", []):
-                if adc.Name == adc_name:
-                    return adc
-        raise ValueError(
-            f"{self.name}: no board device-type record in the layout carries "
-            f"a thermistor ADC named {adc_name}"
-        )
+        return next(a for a in record.ThermistorAdcs if a.Name == adc_name)
 
     def _send_warning_once(self, key: str, summary: str, details: str = "") -> None:
         if key in self._active_warning_keys:
@@ -219,13 +200,110 @@ class I2cThermistorReader(ShNodeActor):
         ...
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
-        ...
+        payload = message.Payload
+        if isinstance(payload, I2cResult):
+            future = self._pending_results.pop(payload.TriggerId, None)
+            if future is not None and not future.done():
+                future.set_result(payload)
+            # a late reply after timeout is dropped; the timeout already warned
+            return Ok(True)
+        return Err(
+            ValueError(f"{self.name} received unexpected payload {type(payload)}")
+        )
 
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:
         return [MonitoredName(self.name, 120)]
 
-    def read_inputs(
+    async def _bus_op(
+        self, payload: I2cWriteReg | I2cReadReg
+    ) -> I2cResult | None:
+        """Send one op to the bus actor and await its I2cResult (None on timeout)."""
+        future: "asyncio.Future[I2cResult]" = (
+            asyncio.get_running_loop().create_future()
+        )
+        self._pending_results[payload.TriggerId] = future
+        self._send_to(self.bus_node, payload)
+        try:
+            return await asyncio.wait_for(future, timeout=self.bus_op_timeout_s)
+        except asyncio.TimeoutError:
+            self._pending_results.pop(payload.TriggerId, None)
+            return None
+
+    async def _read_volts(
+        self, electrical_cfg: I2cThermistorChannelConfig
+    ) -> tuple[float | None, str | None]:
+        """One ADS1115 single-shot conversion through the bus actor:
+        config write -> conversion wait -> config readback gate ->
+        conversion read.
+
+        The readback gate: the conversion register is only trusted after the
+        config register reads back equal to the written word — OS set
+        (conversion done) with MUX/PGA/DR unchanged. A garbled config write
+        or a mid-sequence chip reset otherwise attributes the PREVIOUS
+        conversion (previous channel's mux) to this channel with no error
+        anywhere."""
+        if self.bus_node is None:
+            return None, "no I2cBus node in the layout"
+        address = self.adc_capability.I2cAddress
+        config = ads1115.config_word(electrical_cfg.AdcChannel)
+        start = await self._bus_op(
+            I2cWriteReg(
+                Bus=self.bus_node.name,
+                Address=I2cRegAddress(
+                    I2cAddress=address, RegisterIndex=ads1115.CONFIG_REG
+                ),
+                NumBytes=2,
+                Value=config,
+                TriggerId=str(uuid.uuid4()),
+            )
+        )
+        if start is None:
+            return None, "bus op timeout starting conversion"
+        if not start.Success:
+            return None, start.Error
+        readback = None
+        for _attempt in range(2):
+            await asyncio.sleep(ads1115.CONVERSION_WAIT_S)
+            conf = await self._bus_op(
+                I2cReadReg(
+                    Bus=self.bus_node.name,
+                    Address=I2cRegAddress(
+                        I2cAddress=address, RegisterIndex=ads1115.CONFIG_REG
+                    ),
+                    NumBytes=2,
+                    TriggerId=str(uuid.uuid4()),
+                )
+            )
+            if conf is None:
+                return None, "bus op timeout on config readback"
+            if not conf.Success:
+                return None, conf.Error
+            readback = conf.Value
+            if readback == config:
+                break
+        else:
+            return None, (
+                f"ADS config readback mismatch: wrote 0x{config:04x}, "
+                f"read 0x{readback:04x}"
+            )
+        conv = await self._bus_op(
+            I2cReadReg(
+                Bus=self.bus_node.name,
+                Address=I2cRegAddress(
+                    I2cAddress=address, RegisterIndex=ads1115.CONVERSION_REG
+                ),
+                NumBytes=2,
+                TriggerId=str(uuid.uuid4()),
+            )
+        )
+        if conv is None:
+            return None, "bus op timeout reading conversion"
+        if not conv.Success:
+            return None, conv.Error
+        return ads1115.volts_from_raw(conv.Value), None
+
+    async def read_inputs(
         self, device_cfg: I2cThermistorChannelConfig
     ) -> tuple[bool, int | None, int | None]:
         """
@@ -249,26 +327,16 @@ class I2cThermistorReader(ShNodeActor):
         short_warning_key = f"i2c-thermistor-short-{device_name}"
         broken_warning_key = f"i2c-thermistor-broken-{device_name}"
 
-        if self.settings.is_simulated:
+        if self.is_simulated:
             volts = 0.2 # dummy
         else:
-            chan = self.adc_by_channel.get(electrical_cfg.ChannelName)
-            if chan is None:
+            volts, error = await self._read_volts(electrical_cfg)
+            if volts is None:
                 self._clear_latest_reading(device_name, electrical_name)
                 self._send_warning_once(
                     read_warning_key,
                     "i2c-thermistor-read-failed",
-                    f"{device_name}: ADC channel {electrical_cfg.ChannelName} unavailable",
-                )
-                return False, None, None
-            try:
-                volts = chan.voltage
-            except Exception as e:
-                self._clear_latest_reading(device_name, electrical_name)
-                self._send_warning_once(
-                    read_warning_key,
-                    "i2c-thermistor-read-failed",
-                    f"{device_name}: {e}",
+                    f"{device_name}: {error}",
                 )
                 return False, None, None
             self._clear_warning(read_warning_key)
@@ -381,7 +449,7 @@ class I2cThermistorReader(ShNodeActor):
 
             for device_cfg in self.device_configs.values():
                 try:
-                    changed, _, _ = self.read_inputs(device_cfg)
+                    changed, _, _ = await self.read_inputs(device_cfg)
                 except Exception as e:
                     self._send_warning_once(
                         f"i2c-thermistor-loop-{device_cfg.ChannelName}",

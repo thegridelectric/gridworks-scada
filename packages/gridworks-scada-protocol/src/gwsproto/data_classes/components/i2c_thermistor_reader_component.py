@@ -1,10 +1,9 @@
-from typing import Any
-from gwsproto.data_classes.components.component import Component
+from gwsproto.data_classes.components.component import BoardResidentComponent
 from gwsproto.named_types import (
     I2cThermistorReaderComponentGt,
 )
 
 
 class I2cThermistorReaderComponent(
-    Component[I2cThermistorReaderComponentGt, Any]
+    BoardResidentComponent[I2cThermistorReaderComponentGt]
 ): ...

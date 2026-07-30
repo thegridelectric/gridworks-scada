@@ -23,6 +23,9 @@ from gwsproto.data_classes.components.component import ComponentOnly
 from gwsproto.data_classes.components.electric_meter_component import (
     ElectricMeterComponent,
 )
+from gwsproto.data_classes.components.scada_board_component import (
+    ScadaBoardComponent,
+)
 from gwsproto.data_classes.data_channel import DataChannel
 from gwsproto.data_classes.resolver import ComponentResolver
 from gwsproto.data_classes.sh_node import ShNode
@@ -32,9 +35,14 @@ from gwsproto.enums import ActorClass, TelemetryName, Unit, EmissionMethod
 from gwsproto.named_types import (
     DataChannelGt,
     ElectricMeterDeviceTypeGt,
+    ScadaBoardComponentGt,
     SpaceheatNodeGt,
 )
-from gwsproto.type_helpers.component_base import ComponentBase
+from gwsproto.type_helpers.component_base import (
+    BoardResidentComponentBase,
+    ComponentBase,
+    DeviceComponentBase,
+)
 
 T = TypeVar("T")
 
@@ -137,10 +145,13 @@ class HardwareLayout:
 
     @classmethod
     def make_component(
-        cls, component_gt: ComponentBase, device_type: Optional[Any] = None
+        cls,
+        component_gt: ComponentBase,
+        device_type: Optional[Any] = None,
+        **kwargs: Any,
     ) -> Component[Any, Any]:
         return cls.get_data_class_class(component_gt)(
-            gt=component_gt, device_type=device_type
+            gt=component_gt, device_type=device_type, **kwargs
         )
 
     @classmethod
@@ -157,7 +168,7 @@ class HardwareLayout:
             errors = []
         if component_decoder is None:
             component_decoder = default_component_decoder
-        components = {}
+        decoded: list[tuple[str, dict[Any, Any], ComponentBase]] = []
         for type_name in [
             "Ads111xBasedComponents",
             "ElectricMeterComponents",
@@ -165,25 +176,55 @@ class HardwareLayout:
         ]:
             for component_dict in layout.get(type_name, ()):
                 try:
-                    component_gt = component_decoder.decode(component_dict)
-                    # Join by the readable DeviceType. The specialized device-type record is
-                    # OPTIONAL — only device categories carrying category-level data open one
-                    # (electric.meter / ads111x / gw1.scada). A record-less category (web
-                    # server, hubitat, sim) resolves to None. The layout's DeviceTypeMembership
-                    # axiom is what guarantees a record IS present when a category needs it.
-                    # Board-resident components carry no DeviceType (they anchor to a
-                    # board via BoardComponentId); their device_type resolves to None here.
-                    device_type_gt = device_types.get(
-                        getattr(component_gt, "DeviceType", None), None
-                    )
-                    components[component_gt.ComponentId] = cls.make_component(
-                        component_gt,
-                        device_type_gt,
+                    decoded.append(
+                        (type_name, component_dict, component_decoder.decode(component_dict))
                     )
                 except Exception as e:  # noqa: PERF203
                     if raise_errors:
                         raise
                     errors.append(LoadError(type_name, component_dict, e))
+
+        components: dict[str, Component[Any, Any]] = {}
+        # Boards first: a board-resident component is constructed WITH its
+        # resolved board, so board_component is never in a half-set state.
+        board_gts = [t for t in decoded if isinstance(t[2], ScadaBoardComponentGt)]
+        for type_name, component_dict, component_gt in board_gts + [
+            t for t in decoded if not isinstance(t[2], ScadaBoardComponentGt)
+        ]:
+            try:
+                # Join by the readable DeviceType. The specialized device-type record is
+                # OPTIONAL — only device categories carrying category-level data open one
+                # (electric.meter / ads111x / gw1.scada). A record-less category (web
+                # server, hubitat, sim) resolves to None. The layout's DeviceTypeMembership
+                # axiom is what guarantees a record IS present when a category needs it.
+                # Board-resident components carry no DeviceType (they anchor to a
+                # board via BoardComponentId); their device_type resolves to None here.
+                device_type_gt = None
+                if isinstance(component_gt, DeviceComponentBase):
+                    device_type_gt = device_types.get(component_gt.DeviceType)
+                kwargs: dict[str, Any] = {}
+                if isinstance(component_gt, BoardResidentComponentBase):
+                    board = components.get(component_gt.BoardComponentId)
+                    if not isinstance(board, ScadaBoardComponent):
+                        raise DcError(  # noqa: TRY301
+                            f"Component <{component_gt.ComponentId}> anchors to board "
+                            f"<{component_gt.BoardComponentId}>, which is "
+                            + (
+                                "not loaded"
+                                if board is None
+                                else "not a ScadaBoardComponent"
+                            )
+                        )
+                    kwargs["board_component"] = board
+                components[component_gt.ComponentId] = cls.make_component(
+                    component_gt,
+                    device_type_gt,
+                    **kwargs,
+                )
+            except Exception as e:  # noqa: PERF203
+                if raise_errors:
+                    raise
+                errors.append(LoadError(type_name, component_dict, e))
         return components
 
     @classmethod

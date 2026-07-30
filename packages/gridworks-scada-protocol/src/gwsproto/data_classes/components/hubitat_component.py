@@ -2,11 +2,11 @@ from typing import Any, Optional
 
 import yarl
 
-from gwsproto.data_classes.components.component import Component
+from gwsproto.data_classes.components.component import DeviceComponent
 from gwsproto.named_types.hubitat_component_gt import HubitatComponentGt
 
 
-class HubitatComponent(Component[HubitatComponentGt, Any]):
+class HubitatComponent(DeviceComponent[HubitatComponentGt, Any]):
     web_listener_nodes: set[str]
 
     def __init__(

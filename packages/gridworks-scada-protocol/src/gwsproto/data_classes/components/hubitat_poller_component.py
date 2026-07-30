@@ -3,7 +3,7 @@ from typing import Any, Optional
 import yarl
 
 from gwsproto.data_classes.components import HubitatComponent
-from gwsproto.data_classes.components.component import Component
+from gwsproto.data_classes.components.component import DeviceComponent
 from gwsproto.data_classes.resolver import ComponentResolver
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.named_types.hubitat_component_gt import HubitatComponentGt
@@ -12,7 +12,7 @@ from gwsproto.named_types.rest_poller_gt import RequestArgs, RESTPollerSettings
 
 
 class HubitatPollerComponent(
-    Component[HubitatPollerComponentGt, Any], ComponentResolver
+    DeviceComponent[HubitatPollerComponentGt, Any], ComponentResolver
 ):
     hubitat_gt: HubitatComponentGt
     _rest: Optional[RESTPollerSettings] = None
@@ -35,7 +35,7 @@ class HubitatPollerComponent(
         self,
         node_name: str,
         _nodes: dict[str, ShNode],
-        components: dict[str, Component[Any, Any]],
+        components: dict[str, DeviceComponent[Any, Any]],
     ) -> None:
         if self._rest is not None:
             raise ValueError(

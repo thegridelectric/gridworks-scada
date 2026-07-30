@@ -1,6 +1,5 @@
-from typing import Any
-from gwsproto.data_classes.components.component import Component
+from gwsproto.data_classes.components.component import BoardResidentComponent
 from gwsproto.named_types import GpioSensorComponentGt
 
 
-class GpioSensorComponent(Component[GpioSensorComponentGt, Any]): ...
+class GpioSensorComponent(BoardResidentComponent[GpioSensorComponentGt]): ...
