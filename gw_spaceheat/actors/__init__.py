@@ -9,6 +9,7 @@ from actors.honeywell_thermostat import HoneywellThermostat
 from actors.hubitat import Hubitat
 from actors.hubitat_poller import HubitatPoller
 from actors.i2c_bus import I2cBus
+from actors.i2c_dac_writer import I2cDacWriter
 from actors.i2c_zero_ten_multiplexer import I2cZeroTenMultiplexer
 from actors.i2c_relay_multiplexer import I2cRelayMultiplexer
 from actors.i2c_thermistor_reader import I2cThermistorReader
@@ -37,6 +38,7 @@ __all__ = [
     "HubitatPoller",
     "GpioSensor",
     "I2cBus",
+    "I2cDacWriter",
     "I2cZeroTenMultiplexer",
     "I2cRelayMultiplexer",
     "I2cThermistorReader",
