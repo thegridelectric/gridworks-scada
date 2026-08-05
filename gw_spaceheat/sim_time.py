@@ -5,14 +5,13 @@ MQTT-bridged form of the time coordinator's ``sim.timestep`` broadcast
 and parses the JSON by hand, BYPASSING the gwsproto codec on purpose:
 a proper named type would build sim-time machinery into the old stack
 that the uv/AllyLink rebuild replaces, where timesteps get a typed
-path and this module dies. Spec: the ``sim-time`` spoke of the
-simulated-test-environment design (wiki/gridworks-scada).
+path and this module dies.
 
 The bridge plan it serves (decided 2026-06-11): the existing scada/LTN
 stay on wall clock; the harness runs 1-minute snapshots and 1-minute
 timesteps, and each received timestep triggers the link keepalive so
 links stay active under harness pacing. The internal watchdogs are
-loop-driven and unaffected (verified pat map, sim-time spoke).
+loop-driven and unaffected.
 
 Reaching the MQTT side at all requires one broker-side binding the
 harness owns: ``timemic_tx -> amq.topic`` (the MQTT plugin's exchange),
