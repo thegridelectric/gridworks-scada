@@ -716,7 +716,7 @@
       "PositionPointId": "0c0135ee-b29a-45e7-86a2-a5ffa092ebd2",
       "Status": "Active",
       "TypeName": "g.node.gt",
-      "Version": "005"
+      "Version": "006"
     },
     {
       "Alias": "hw1.isone.me.versant.keene.elm.ta",
@@ -727,7 +727,7 @@
       "PositionPointId": "936d7e2a-51ee-4c1b-9b52-52a0d4806ab8",
       "Status": "Active",
       "TypeName": "g.node.gt",
-      "Version": "005"
+      "Version": "006"
     },
     {
       "Alias": "hw1.isone.me.versant.keene.elm.scada",
@@ -737,7 +737,7 @@
       "GNodeId": "5896d71d-3f6d-40c4-849a-127e7ffd2912",
       "Status": "Active",
       "TypeName": "g.node.gt",
-      "Version": "005"
+      "Version": "006"
     }
   ],
   "HeatingCurve": {

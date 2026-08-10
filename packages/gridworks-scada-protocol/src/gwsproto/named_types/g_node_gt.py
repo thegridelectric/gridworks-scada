@@ -9,7 +9,7 @@ from gwsproto.property_format import LeftRightDotStr, UUID4Str
 
 class GNodeGt(BaseModel):
     """
-    Sema: https://schemas.electricity.works/types/g.node.gt/005
+    Sema: https://schemas.electricity.works/types/g.node.gt/006
     """
 
     GNodeId: UUID4Str
@@ -21,7 +21,7 @@ class GNodeGt(BaseModel):
     PositionPointId: Optional[UUID4Str] = None
     DisplayName: Optional[str] = None
     TypeName: Literal["g.node.gt"] = "g.node.gt"
-    Version: Literal["005"] = "005"
+    Version: Literal["006"] = "006"
 
     model_config = ConfigDict(extra="allow")
 
@@ -53,12 +53,18 @@ class GNodeGt(BaseModel):
     def check_axiom_2(self) -> Self:
         """
         Axiom 2: PhysicalGNodeLocations
-        If BaseClass != Logical, PositionPointId SHALL NOT be null.
+        If BaseClass != Logical and Status is Active, PositionPointId SHALL
+        NOT be null — a Pending physical GNode may be locationless.
         """
-        if self.BaseClass != BaseGNodeClass.Logical and self.PositionPointId is None:
+        if (
+            self.BaseClass != BaseGNodeClass.Logical
+            and self.Status == GNodeStatus.Active
+            and self.PositionPointId is None
+        ):
             raise ValueError(
-                "Axiom 2 failed: Physical GNodes must have a PositionPointId. "
-                f"BaseClass='{self.BaseClass.value}' has no location."
+                "Axiom 2 failed: Active physical GNodes must have a "
+                f"PositionPointId. BaseClass='{self.BaseClass.value}' has no "
+                "location."
             )
         return self
 
