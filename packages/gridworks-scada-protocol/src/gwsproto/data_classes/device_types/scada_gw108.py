@@ -1,8 +1,16 @@
-from gwsproto.enums import DeviceType, I2cAdcType, I2cDacType, RelayWiringConfig, TelemetryName
+from gwsproto.enums import (
+    DeviceType,
+    I2cAdcType,
+    I2cDacType,
+    I2cMuxType,
+    RelayWiringConfig,
+    TelemetryName,
+)
 from gwsproto.named_types.i2c_ct_interface_capability import I2cCtInterfaceCapability
 from gwsproto.named_types.i2c_bus import I2cBus
 from gwsproto.named_types.i2c_dac_capability import I2cDacCapability
 from gwsproto.named_types.i2c_expander import I2cExpander
+from gwsproto.named_types.i2c_mux import I2cMux
 from gwsproto.named_types.i2c_relay_capability import I2cRelayCapability
 from gwsproto.named_types.i2c_thermistor_interface_capability import (
     I2cThermistorInterfaceCapability,
@@ -10,9 +18,13 @@ from gwsproto.named_types.i2c_thermistor_interface_capability import (
 from gwsproto.named_types.native_gpio_pin import NativeGpioPin
 from gwsproto.named_types.scada_device_type_gt import ScadaDeviceTypeGt
 
-# All gw108 I²C peripherals (GPIO expanders 0x20/0x21, ADCs 0x48/0x49, DAC 0x60)
-# share one bus -> /dev/i2c-1. The two expanders are soldered at fixed addresses:
-# expander 1 = 0x20, expander 2 = 0x21.
+# All gw108 I²C peripherals (GPIO expanders 0x20/0x21, ADCs 0x48/0x49, the
+# TCA9548A mux 0x70 and the three MCP4728 DACs behind it, all at 0x60) share
+# one bus -> /dev/i2c-1. The two expanders are soldered at fixed addresses:
+# expander 1 = 0x20, expander 2 = 0x21. The DACs share an address, which is
+# why they sit behind the mux: Dac1 (mux channel 1) drives zones 1-3 on its
+# channels A-C, Dac2 (channel 2) zones 4-6, Dac3 (channel 3) the plant
+# pumps (A=primary, B=store, C=secondary).
 DEFAULT_BUS = "DefaultBus"
 
 
@@ -177,17 +189,47 @@ gw108_device_type = ScadaDeviceTypeGt(
             I2cBus=DEFAULT_BUS,
             I2cAddress=0x49,
             AdcType=I2cAdcType.Ads1115,
+            SupportedDataRatesSps=[8, 16, 32, 64, 128, 250, 475, 860],
             # Divider pull-up supply (the old PullupResistorKOhms=5.65 is now
             # SeriesResistanceKOhms).
             AdcReferenceVolts=3.3,
             SeriesResistanceKOhms=5.65,
         )
     ],
+    Muxes=[
+        I2cMux(
+            MuxName="DacMux",
+            I2cBus=DEFAULT_BUS,
+            I2cAddress=0x70,
+            MuxType=I2cMuxType.Tca9548a,
+            Channels=8,
+        ),
+    ],
     Dacs=[
         I2cDacCapability(
-            DacName="Zones",
+            DacName="Dac1",
             I2cBus=DEFAULT_BUS,
             I2cAddress=0x60,
+            MuxName="DacMux",
+            MuxChannel=1,
+            DacType=I2cDacType.Mcp4728,
+            Channels=4,
+        ),
+        I2cDacCapability(
+            DacName="Dac2",
+            I2cBus=DEFAULT_BUS,
+            I2cAddress=0x60,
+            MuxName="DacMux",
+            MuxChannel=2,
+            DacType=I2cDacType.Mcp4728,
+            Channels=4,
+        ),
+        I2cDacCapability(
+            DacName="Dac3",
+            I2cBus=DEFAULT_BUS,
+            I2cAddress=0x60,
+            MuxName="DacMux",
+            MuxChannel=3,
             DacType=I2cDacType.Mcp4728,
             Channels=4,
         ),

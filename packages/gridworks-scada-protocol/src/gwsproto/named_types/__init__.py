@@ -64,9 +64,12 @@ from gwsproto.named_types.i2c_ct_interface_capability import I2cCtInterfaceCapab
 from gwsproto.named_types.i2c_bit_address import I2cBitAddress
 from gwsproto.named_types.i2c_bus import I2cBus
 from gwsproto.named_types.i2c_dac_capability import I2cDacCapability
+from gwsproto.named_types.i2c_dac_channel_config import I2cDacChannelConfig
+from gwsproto.named_types.i2c_dac_writer_component_gt import I2cDacWriterComponentGt
 from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
     I2cMultichannelDtRelayComponentGt,
 )
+from gwsproto.named_types.i2c_mux import I2cMux
 from gwsproto.named_types.i2c_read_bit import I2cReadBit
 from gwsproto.named_types.i2c_read_reg import I2cReadReg
 from gwsproto.named_types.i2c_reg_address import I2cRegAddress
@@ -214,7 +217,10 @@ __all__ = [
     "I2cBitAddress",
     "I2cBus",
     "I2cDacCapability",
+    "I2cDacChannelConfig",
+    "I2cDacWriterComponentGt",
     "I2cMultichannelDtRelayComponentGt",
+    "I2cMux",
     "I2cReadBit",
     "I2cReadReg",
     "I2cRegAddress",

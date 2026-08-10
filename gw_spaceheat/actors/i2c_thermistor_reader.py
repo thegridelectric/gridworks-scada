@@ -246,7 +246,9 @@ class I2cThermistorReader(ShNodeActor):
         if self.bus_node is None:
             return None, "no I2cBus node in the layout"
         address = self.adc_capability.I2cAddress
-        config = ads1115.config_word(electrical_cfg.AdcChannel)
+        config = ads1115.config_word(
+            electrical_cfg.AdcChannel, self.component.gt.DataRateSps
+        )
         start = await self._bus_op(
             I2cWriteReg(
                 Bus=self.bus_node.name,
@@ -264,7 +266,9 @@ class I2cThermistorReader(ShNodeActor):
             return None, start.Error
         readback = None
         for _attempt in range(2):
-            await asyncio.sleep(ads1115.CONVERSION_WAIT_S)
+            await asyncio.sleep(
+                ads1115.conversion_wait_s(self.component.gt.DataRateSps)
+            )
             conf = await self._bus_op(
                 I2cReadReg(
                     Bus=self.bus_node.name,

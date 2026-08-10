@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from typing import Literal, Self
 
-from pydantic import model_validator
+from pydantic import PositiveInt, model_validator
 
 from gwsproto.enums import TempCalcMethod
 from gwsproto.named_types.i2c_thermistor_channel_config import I2cThermistorChannelConfig
@@ -15,6 +15,7 @@ class I2cThermistorReaderComponentGt(BoardResidentComponentBase):
     """
 
     AdcName: PascalCase
+    DataRateSps: PositiveInt
     TempCalcMethod: TempCalcMethod
     ConfigList: Sequence[I2cThermistorChannelConfig]
 

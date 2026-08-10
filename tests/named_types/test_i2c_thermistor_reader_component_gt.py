@@ -28,6 +28,7 @@ def base_component() -> dict:
             base_config("tank1-depth1-micro-v", "P0"),
         ],
         "AdcName": "Thermistors",
+        "DataRateSps": 8,
         "TempCalcMethod": TempCalcMethod.SimpleBeta,
         "TypeName": "i2c.thermistor.reader.component.gt",
         "Version": "003",

@@ -462,10 +462,34 @@
       "Dacs": [
         {
           "Channels": 4,
-          "DacName": "Zones",
+          "DacName": "Dac1",
           "DacType": "Mcp4728",
           "I2cAddress": 96,
           "I2cBus": "DefaultBus",
+          "MuxChannel": 1,
+          "MuxName": "DacMux",
+          "TypeName": "i2c.dac.capability",
+          "Version": "000"
+        },
+        {
+          "Channels": 4,
+          "DacName": "Dac2",
+          "DacType": "Mcp4728",
+          "I2cAddress": 96,
+          "I2cBus": "DefaultBus",
+          "MuxChannel": 2,
+          "MuxName": "DacMux",
+          "TypeName": "i2c.dac.capability",
+          "Version": "000"
+        },
+        {
+          "Channels": 4,
+          "DacName": "Dac3",
+          "DacType": "Mcp4728",
+          "I2cAddress": 96,
+          "I2cBus": "DefaultBus",
+          "MuxChannel": 3,
+          "MuxName": "DacMux",
           "TypeName": "i2c.dac.capability",
           "Version": "000"
         }
@@ -811,6 +835,17 @@
           "Version": "000"
         }
       ],
+      "Muxes": [
+        {
+          "Channels": 8,
+          "I2cAddress": 112,
+          "I2cBus": "DefaultBus",
+          "MuxName": "DacMux",
+          "MuxType": "Tca9548a",
+          "TypeName": "i2c.mux",
+          "Version": "000"
+        }
+      ],
       "NativeGpioInputs": [
         {
           "BcmPin": 17,
@@ -892,6 +927,16 @@
           "I2cBus": "DefaultBus",
           "Name": "Thermistors",
           "SeriesResistanceKOhms": 5.65,
+          "SupportedDataRatesSps": [
+            8,
+            16,
+            32,
+            64,
+            128,
+            250,
+            475,
+            860
+          ],
           "TypeName": "i2c.thermistor.interface.capability",
           "Version": "000"
         }
@@ -1215,6 +1260,7 @@
           "Version": "002"
         }
       ],
+      "DataRateSps": 8,
       "DisplayName": "GW108 Thermistor Reader",
       "TempCalcMethod": "SimpleBeta",
       "TypeName": "i2c.thermistor.reader.component.gt",
