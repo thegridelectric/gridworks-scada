@@ -38,6 +38,7 @@ from gwsproto.named_types import (
     ScadaBoardComponentGt,
     SpaceheatNodeGt,
 )
+from gwsproto.type_helpers.channel_config_base import ChannelConfigBase
 from gwsproto.type_helpers.component_base import (
     BoardResidentComponentBase,
     ComponentBase,
@@ -367,7 +368,14 @@ class HardwareLayout:
         cls.check_dc_id_uniqueness(data_channels)
         dc_names_by_component: set[str] = set()
         for c in components.values():
-            channel_names = {config.ChannelName for config in c.gt.ConfigList}
+            # Only channel-shaped configs (ChannelConfigBase) reference data
+            # channels; e.g. i2c.dac.channel.config entries carry power-on
+            # defaults, not captures.
+            channel_names = {
+                config.ChannelName
+                for config in c.gt.ConfigList
+                if isinstance(config, ChannelConfigBase)
+            }
             if dc_names_by_component & channel_names:
                 raise DcError(
                     f"Channel name overlap!: {dc_names_by_component & channel_names}"

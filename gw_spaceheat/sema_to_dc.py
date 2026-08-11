@@ -93,8 +93,12 @@ def assemble_runtime_layout(
                     f"MinPollPeriodMs {floor} of device type {comp['DeviceType']}"
                 )
         if "ConfigList" in comp:
-            # specialty configs: merge the capture fields back onto each entry
+            # specialty configs: merge the capture fields back onto each entry.
+            # Entries with no ChannelName (e.g. i2c.dac.channel.config) are not
+            # capture configs and take no tuning.
             for cfg in comp["ConfigList"]:
+                if "ChannelName" not in cfg:
+                    continue
                 tuning = tuning_by_channel.get(cfg["ChannelName"])
                 if tuning is None:
                     continue  # coverage above guards declared channels

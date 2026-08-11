@@ -12,9 +12,11 @@ from gwsproto.named_types.derived_channel_gt import DerivedChannelGt
 from gwsproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwsproto.named_types.gpio_relay_component_gt import GpioRelayComponentGt
 from gwsproto.named_types.gpio_sensor_component_gt import GpioSensorComponentGt
+from gwsproto.named_types.i2c_dac_writer_component_gt import I2cDacWriterComponentGt
 from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
     I2cMultichannelDtRelayComponentGt,
 )
+from gwsproto.named_types.i2c_relay_component_gt import I2cRelayComponentGt
 from gwsproto.named_types.i2c_thermistor_reader_component_gt import (
     I2cThermistorReaderComponentGt,
 )
@@ -32,7 +34,9 @@ NolanComponent = (
     ElectricMeterComponentGt
     | GpioSensorComponentGt
     | GpioRelayComponentGt
+    | I2cDacWriterComponentGt
     | I2cMultichannelDtRelayComponentGt
+    | I2cRelayComponentGt
     | I2cThermistorReaderComponentGt
     | PicoBtuMeterComponentGt
     | PicoTankModuleComponentGt

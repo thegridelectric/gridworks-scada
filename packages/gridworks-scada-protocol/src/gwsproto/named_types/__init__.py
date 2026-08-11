@@ -75,6 +75,7 @@ from gwsproto.named_types.i2c_read_reg import I2cReadReg
 from gwsproto.named_types.i2c_reg_address import I2cRegAddress
 from gwsproto.named_types.i2c_expander import I2cExpander
 from gwsproto.named_types.i2c_relay_capability import I2cRelayCapability
+from gwsproto.named_types.i2c_relay_component_gt import I2cRelayComponentGt
 from gwsproto.named_types.i2c_result import I2cResult
 from gwsproto.named_types.i2c_thermistor_channel_config import (
     I2cThermistorChannelConfig,
@@ -230,6 +231,7 @@ __all__ = [
     "I2cRegAddress",
     "I2cExpander",
     "I2cRelayCapability",
+    "I2cRelayComponentGt",
     "I2cResult",
     "I2cThermistorChannelConfig",
     "I2cThermistorInterfaceCapability",

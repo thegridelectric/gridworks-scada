@@ -26,6 +26,8 @@ from gwsproto.enums.change_primary_pump_control import ChangePrimaryPumpControl
 from gwsproto.enums.change_relay_pin import ChangeRelayPin
 from gwsproto.enums.change_relay_state import ChangeRelayState
 from gwsproto.enums.change_store_flow_relay import ChangeStoreFlowRelay
+from gwsproto.enums.change_valve_state import ChangeValveState
+from gwsproto.enums.change_zone_call_source import ChangeZoneCallSource
 from gwsproto.enums.device_type import DeviceType
 from gwsproto.enums.emission_method import EmissionMethod
 from gwsproto.enums.flow_manifold_variant import FlowManifoldVariant
@@ -110,6 +112,8 @@ __all__ = [
     "ChangeRelayPin",
     "ChangeRelayState",
     "ChangeStoreFlowRelay",
+    "ChangeValveState",
+    "ChangeZoneCallSource",
     "DeviceType",
     "EmissionMethod",
     "FlowManifoldVariant",
