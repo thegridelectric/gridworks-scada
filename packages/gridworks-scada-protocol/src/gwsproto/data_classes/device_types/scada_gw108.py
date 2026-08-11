@@ -175,6 +175,7 @@ gw108_device_type = ScadaDeviceTypeGt(
             name="Misc2",
         ),
     ],
+    SupportsPinReadback=True,
     CtAdc=I2cCtInterfaceCapability(
         Name="Ct",
         I2cBus=DEFAULT_BUS,

@@ -30,6 +30,7 @@ class ScadaDeviceTypeGt(BaseModel):
     Expanders: list[I2cExpander] = []
     Muxes: list[I2cMux] = []
     I2cRelays: list[I2cRelayCapability] = []
+    SupportsPinReadback: bool
     CtAdc: Optional[I2cCtInterfaceCapability] = None
     ThermistorAdcs: list[I2cThermistorInterfaceCapability] = []
     Dacs: list[I2cDacCapability] = []

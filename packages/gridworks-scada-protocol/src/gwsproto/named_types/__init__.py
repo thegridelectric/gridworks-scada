@@ -122,6 +122,7 @@ from gwsproto.named_types.send_layout import SendLayout
 from gwsproto.named_types.send_snap import SendSnap
 from gwsproto.named_types.set_lwt_control_params import SetLwtControlParams
 from gwsproto.named_types.set_target_lwt import SetTargetLwt
+from gwsproto.named_types.setpoint_belief import SetpointBelief
 from gwsproto.named_types.sieg_loop_endpoint_valve_adjustment import (
     SiegLoopEndpointValveAdjustment,
 )
@@ -156,6 +157,9 @@ from gwsproto.named_types.usable_energy_layered import UsableEnergyLayered
 from gwsproto.named_types.wake_up import WakeUp
 from gwsproto.named_types.weather_forecast import WeatherForecast
 from gwsproto.named_types.web_server_component_gt import WebServerComponentGt
+from gwsproto.named_types.zone_call_circuit import ZoneCallCircuit
+from gwsproto.named_types.zone_circuit_governance_cmd import ZoneCircuitGovernanceCmd
+from gwsproto.named_types.zone_thermostat import ZoneThermostat
 
 __all__ = [
     "ActuatorsReady",
@@ -269,6 +273,7 @@ __all__ = [
     "SendSnap",
     "SetLwtControlParams",
     "SetTargetLwt",
+    "SetpointBelief",
     "SiegLoopEndpointValveAdjustment",
     "SiegTargetTooLow",
     "SimPicoTankModuleComponentGt",
@@ -297,4 +302,7 @@ __all__ = [
     "WakeUp",
     "WeatherForecast",
     "WebServerComponentGt",
+    "ZoneCallCircuit",
+    "ZoneCircuitGovernanceCmd",
+    "ZoneThermostat",
 ]

@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -13,6 +13,7 @@ class HvacZone(BaseModel):
     Name: SpaceheatName
     Critical: bool
     KwhPerDegF: float
+    TempChannelName: Optional[SpaceheatName] = None
     TypeName: Literal["gw1.hvac.zone"] = "gw1.hvac.zone"
     Version: Literal["000"] = "000"
     model_config = ConfigDict(extra="allow")

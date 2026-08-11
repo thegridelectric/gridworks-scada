@@ -76,6 +76,7 @@ from gwsproto.enums.relay_energization_state import RelayEnergizationState
 from gwsproto.enums.relay_pin_state import RelayPinState
 from gwsproto.enums.relay_wiring_config import RelayWiringConfig
 from gwsproto.enums.seasonal_storage_mode import SeasonalStorageMode
+from gwsproto.enums.setpoint_phase import SetpointPhase
 from gwsproto.enums.slow_dispatch_contract_status import SlowDispatchContractStatus
 from gwsproto.enums.spaceheat_unit import SpaceheatUnit
 from gwsproto.enums.store_flow_relay import StoreFlowRelay
@@ -83,10 +84,19 @@ from gwsproto.enums.system_mode import SystemMode
 from gwsproto.enums.telemetry_name import TelemetryName
 from gwsproto.enums.temp_calc_method import TempCalcMethod
 from gwsproto.enums.thermistor_data_method import ThermistorDataMethod
+from gwsproto.enums.thermostat_kind import ThermostatKind
 from gwsproto.enums.top_event import TopEvent
 from gwsproto.enums.top_state import TopState
 from gwsproto.enums.turn_hp_on_off import TurnHpOnOff
 from gwsproto.enums.unit import Unit
+from gwsproto.enums.zone_actuator_kind import ZoneActuatorKind
+from gwsproto.enums.zone_call_circuit_event import ZoneCallCircuitEvent
+from gwsproto.enums.zone_call_circuit_state import ZoneCallCircuitState
+from gwsproto.enums.zone_call_source import ZoneCallSource
+from gwsproto.enums.zone_circuit_governance_event import ZoneCircuitGovernanceEvent
+from gwsproto.enums.zone_circuit_governance_state import ZoneCircuitGovernanceState
+from gwsproto.enums.zone_circuit_role import ZoneCircuitRole
+from gwsproto.enums.zone_setpoint_source import ZoneSetpointSource
 
 __all__ = [
     "ActorClass",
@@ -151,6 +161,7 @@ __all__ = [
     "RelayWiringConfig",
     "SeasonalStorageMode",
     "SemaEnum",
+    "SetpointPhase",
     "SlowDispatchContractStatus",
     "SpaceheatUnit",
     "StoreFlowRelay",
@@ -158,8 +169,17 @@ __all__ = [
     "TelemetryName",
     "TempCalcMethod",
     "ThermistorDataMethod",
+    "ThermostatKind",
     "TopEvent",
     "TopState",
     "TurnHpOnOff",
     "Unit",
+    "ZoneActuatorKind",
+    "ZoneCallCircuitEvent",
+    "ZoneCallCircuitState",
+    "ZoneCallSource",
+    "ZoneCircuitGovernanceEvent",
+    "ZoneCircuitGovernanceState",
+    "ZoneCircuitRole",
+    "ZoneSetpointSource",
 ]

@@ -916,6 +916,7 @@
           "Version": "000"
         }
       ],
+      "SupportsPinReadback": true,
       "TelemetryNameList": [
         "RelayState"
       ],

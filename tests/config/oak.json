@@ -1962,6 +1962,7 @@
       "MinPollPeriodMs": 200,
       "NativeGpioInputs": [],
       "NativeGpioOutputs": [],
+      "SupportsPinReadback": false,
       "TelemetryNameList": [
         "RelayState"
       ],
