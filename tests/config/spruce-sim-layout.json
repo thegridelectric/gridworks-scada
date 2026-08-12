@@ -411,6 +411,16 @@
     {
       "TypeName": "spaceheat.node.gt",
       "Version": "303",
+      "Name": "gw108-dac2-writer",
+      "ActorHierarchyName": "s.gw108-dac2-writer",
+      "ActorClass": "I2cDacWriter",
+      "DisplayName": "GW108 Dac2 Writer",
+      "ComponentId": "48046b02-f9a4-487b-ad1a-c5f1d51d0243",
+      "ShNodeId": "86078254-fbbe-4043-9b8c-e8debf131bf1"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
       "Name": "zone1-bedrooms",
       "ActorClass": "NoActor",
       "DisplayName": "Zone 1 Bedrooms",

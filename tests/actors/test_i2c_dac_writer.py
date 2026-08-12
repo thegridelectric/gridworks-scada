@@ -5,15 +5,12 @@ untouched), the boot EEPROM verify (mismatch → reprogram → re-verify), and
 failure containment (a bus fault becomes a throttled Glitch, never a
 crash).
 
-The spruce artifact carries the Dac2 writer component but no writer node
-yet (the gen emits it when tlayouts reseeds on actor.class 013); the
-fixture appends the node, which also exercises actors/__init__
-registration by name.
+The spruce artifact carries the Dac2 writer component and its
+`gw108-dac2-writer` node natively (emitted since the tlayouts snapshot
+reseeded on actor.class 013).
 """
 
 import asyncio
-import json
-import uuid
 from pathlib import Path
 
 import pytest
@@ -30,8 +27,7 @@ SPRUCE_OPS = (
     / "spruce-sim-layout"
     / "gw.house0.operational.params.json"
 )
-DAC_NODE = "dac2-writer"
-DAC_COMPONENT_ID = "48046b02-f9a4-487b-ad1a-c5f1d51d0243"  # Gw108 Dac2 Writer
+DAC_NODE = "gw108-dac2-writer"
 BUS_NAME = "i2c-bus"
 MUX_ADDRESS = 0x70
 DAC_ADDRESS = 0x60
@@ -41,24 +37,10 @@ C_RAW = 3020  # the layout's PowerOnRawValue for channel C (7.55 V)
 
 
 @pytest.fixture
-def rig(tmp_path: Path) -> tuple[I2cDacWriter, I2cBus]:
+def rig() -> tuple[I2cDacWriter, I2cBus]:
     settings = ScadaApp.get_settings()
     settings.is_simulated = True
-    layout_dict = json.loads(SPRUCE_LAYOUT.read_text())
-    layout_dict["ShNodes"].append(
-        {
-            "Name": DAC_NODE,
-            "ActorClass": "I2cDacWriter",
-            "ActorHierarchyName": f"s.{DAC_NODE}",
-            "ComponentId": DAC_COMPONENT_ID,
-            "ShNodeId": str(uuid.uuid4()),
-            "TypeName": "spaceheat.node.gt",
-            "Version": "303",
-        }
-    )
-    layout_path = tmp_path / "layout-with-dac-node.json"
-    layout_path.write_text(json.dumps(layout_dict))
-    settings.paths.hardware_layout = layout_path
+    settings.paths.hardware_layout = SPRUCE_LAYOUT
     settings.operational_params_path = str(SPRUCE_OPS)
     settings.paths.mkdirs()
     app = ScadaApp(app_settings=settings)
