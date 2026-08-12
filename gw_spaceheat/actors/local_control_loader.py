@@ -6,6 +6,13 @@ from scada_app_interface import ScadaAppInterface
 
 
 class LocalControl(ShNodeActor):
+    """Selection facade: picks WHICH LocalControl implementation runs.
+
+    Two selection axes, in order: the LAYOUT FAMILY first (the layout says
+    what kind of house this is — a Nolan house needs Nolan control however
+    it is currently operating), then the ops-artifact mode within the
+    family (the ops file says how the house should operate right now)."""
+
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
         node = services.hardware_layout.node(name)
@@ -14,11 +21,18 @@ class LocalControl(ShNodeActor):
         if node.ActorClass != ActorClass.LocalControl:
             raise Exception("Expects ActorClass LocalControl!")
 
+        layout = services.hardware_layout
+        strategy = layout.hydronic.Strategy or layout.layout.get(
+            "Strategy", "House0"
+        )
         system_mode = self.ops.SystemMode
         seasonal_storage_mode = self.ops.SeasonalStorageMode
 
         # Dynamically load the implementation class
-        if system_mode == SystemMode.Standby:
+        if strategy == "Nolan":
+            module = importlib.import_module("actors.local_control.nolan")
+            impl_class = getattr(module, "NolanLocalControl")
+        elif system_mode == SystemMode.Standby:
             module = importlib.import_module("actors.local_control.standby")
             impl_class = getattr(module, "StandbyLocalControl")
         elif seasonal_storage_mode == SeasonalStorageMode.AllTanks:

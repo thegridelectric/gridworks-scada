@@ -1,10 +1,11 @@
-from typing import List, Literal
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, model_validator
 from typing_extensions import Self
 
 from gwsproto.enums import House0PrimaryFlowSource
 from gwsproto.named_types.hvac_zone import HvacZone
+from gwsproto.named_types.zone_call_circuit import ZoneCallCircuit
 
 
 class GwHydronic(BaseModel):
@@ -13,6 +14,7 @@ class GwHydronic(BaseModel):
     """
 
     Zones: List[HvacZone]
+    ZoneCallCircuits: Optional[List[ZoneCallCircuit]] = None
     TotalStoreTanks: int
     UseSiegLoop: bool
     SiegLoopPlumbed: bool
