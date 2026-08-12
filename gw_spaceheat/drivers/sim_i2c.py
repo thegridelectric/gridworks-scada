@@ -13,6 +13,7 @@ Fault injection is the chaos lever: EIO per address (transient count or
 permanent) and garbled reads (bit-flipped data for N reads).
 """
 
+import time
 from errno import EIO
 
 from drivers import mcp4728, tca9555
@@ -66,11 +67,25 @@ class SimMcp4728:
         # channel index -> [value 0-4095, vref 0|1, gain 0|1]
         self.eeprom: dict[int, list[int]] = {c: [0, 0, 0] for c in range(4)}
         self.register: dict[int, list[int]] = {c: [0, 0, 0] for c in range(4)}
+        # channel -> (pending eeprom entry, monotonic ready time): the
+        # chip's ~50 ms EEPROM write cycle, during which reads return the
+        # OLD data (the 2026-08-12 bench finding — an immediate re-verify
+        # after Single Write reads stale EEPROM)
+        self._pending_eeprom: dict[int, tuple[list[int], float]] = {}
+
+    def _settle_eeprom(self) -> None:
+        now = time.monotonic()
+        for channel in [
+            c for c, (_, ready) in self._pending_eeprom.items() if now >= ready
+        ]:
+            self.eeprom[channel] = self._pending_eeprom.pop(channel)[0]
 
     def power_on_reset(self) -> None:
+        self._settle_eeprom()
         self.register = {c: list(v) for c, v in self.eeprom.items()}
 
     def write(self, command: int, data: list[int]) -> None:
+        self._settle_eeprom()
         base = command & 0xF8
         channel = (command >> 1) & 0x03
         if base == mcp4728.MULTI_WRITE_BASE:
@@ -78,13 +93,17 @@ class SimMcp4728:
         elif base == mcp4728.SINGLE_WRITE_BASE:
             decoded = list(mcp4728.decode_data(data[0], data[1]))
             self.register[channel] = list(decoded)
-            self.eeprom[channel] = list(decoded)
+            self._pending_eeprom[channel] = (
+                list(decoded),
+                time.monotonic() + mcp4728.EEPROM_WRITE_TIME_S,
+            )
         # other command families are not modeled
 
     def read_bytes(self, length: int) -> list[int]:
         """The chip's sequential read: per channel, 3 bytes of input
         register then 3 bytes of EEPROM (status byte 0 — parsers use the
-        two data bytes)."""
+        two data bytes). A channel mid-EEPROM-write reports its old data."""
+        self._settle_eeprom()
         out: list[int] = []
         for channel in range(4):
             for entry in (self.register[channel], self.eeprom[channel]):

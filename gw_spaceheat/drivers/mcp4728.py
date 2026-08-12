@@ -13,6 +13,11 @@ input register then three bytes of EEPROM.
 MULTI_WRITE_BASE = 0x40  # input register only
 SINGLE_WRITE_BASE = 0x58  # input register AND EEPROM
 READ_LEN = 24  # 4 channels x (3 input-register bytes + 3 EEPROM bytes)
+# The chip is busy ~25-50 ms per EEPROM write; reads meanwhile return the
+# old EEPROM data. A writer must let this settle before re-reading
+# (witnessed on the bench 2026-08-12: an immediate re-verify after Single
+# Write reads stale data).
+EEPROM_WRITE_TIME_S = 0.05
 
 VREF_BIT = {"Internal": 1, "Vdd": 0}
 

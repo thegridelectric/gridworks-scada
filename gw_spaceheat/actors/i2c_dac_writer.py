@@ -255,6 +255,9 @@ class I2cDacWriter(ShNodeActor):
             return True
         for channel in mismatched:
             await self._write_channel(channel, mcp4728.SINGLE_WRITE_BASE)
+            # let the chip's EEPROM write cycle complete before the next
+            # command or the re-read sees stale data
+            await asyncio.sleep(mcp4728.EEPROM_WRITE_TIME_S + 0.01)
         still_mismatched, detail = await self._read_eeprom_mismatches()
         if still_mismatched == []:
             self.send_warning(
