@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Union
 from actors.config import ScadaSettings
 from gwsproto.data_classes.data_channel import DataChannel
 from gwsproto.data_classes.house_0_names import H0CN
+from gwsproto.type_helpers.channel_config_base import ChannelConfigBase
 from gwsproto.named_types import (
     ChannelReadings,
     GwHouse0OperationalParams,
@@ -191,8 +192,12 @@ class ScadaData:
             self.seconds_by_channel = {}
             components = [c.gt for c in self.layout.components.values()]
             for c in components:
+                # Only channel-shaped configs (ChannelConfigBase) reference
+                # data channels; e.g. i2c.dac.channel.config entries carry
+                # power-on defaults, not captures.
                 for config in c.ConfigList:
-                    self.seconds_by_channel[config.ChannelName] = config.CapturePeriodS
+                    if isinstance(config, ChannelConfigBase):
+                        self.seconds_by_channel[config.ChannelName] = config.CapturePeriodS
             for s in self.my_derived_channels:
                 self.seconds_by_channel[s.Name] = 60  # TODO: fix
         return self.seconds_by_channel[ch.Name]
