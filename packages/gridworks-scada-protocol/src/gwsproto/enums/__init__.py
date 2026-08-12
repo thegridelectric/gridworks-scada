@@ -92,6 +92,7 @@ from gwsproto.enums.top_state import TopState
 from gwsproto.enums.turn_hp_on_off import TurnHpOnOff
 from gwsproto.enums.unit import Unit
 from gwsproto.enums.zone_actuator_kind import ZoneActuatorKind
+from gwsproto.enums.valve_open_or_closed import ValveOpenOrClosed
 from gwsproto.enums.zone_call_circuit_event import ZoneCallCircuitEvent
 from gwsproto.enums.zone_call_circuit_state import ZoneCallCircuitState
 from gwsproto.enums.zone_call_source import ZoneCallSource
@@ -179,6 +180,7 @@ __all__ = [
     "TurnHpOnOff",
     "Unit",
     "ZoneActuatorKind",
+    "ValveOpenOrClosed",
     "ZoneCallCircuitEvent",
     "ZoneCallCircuitState",
     "ZoneCallSource",
