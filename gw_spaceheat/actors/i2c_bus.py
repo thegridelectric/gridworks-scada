@@ -1,10 +1,11 @@
 import asyncio
 import time
-from typing import Any, Optional, Sequence
+from typing import Any, Literal, Optional, Sequence
 
 from gwproto.message import Message
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
+from pydantic import BaseModel
 from result import Ok, Err, Result
 
 from actors.sh_node_actor import ShNodeActor
@@ -12,8 +13,10 @@ from drivers import tca9555
 from drivers.sim_i2c import SimI2c
 from scada_app_interface import ScadaAppInterface
 
+from gwsproto.data_classes.components import I2cRelayComponent
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import I2cOperation, LogLevel
+from gwsproto.property_format import NonNegativeInt
 from gwsproto.named_types import (
     Glitch,
     I2cReadBit,
@@ -23,6 +26,19 @@ from gwsproto.named_types import (
     I2cWriteReg,
     ScadaDeviceTypeGt,
 )
+
+
+class ExpanderReinitialized(BaseModel):
+    """Process-internal notice from the bus actor to the i2c relay actors:
+    the expander at I2cAddress lost and regained its configuration (the
+    OPS-452 reset, just repaired), so re-assert your target NOW rather than
+    at the next verify pass — 0x21 carries the critical cooling actuators.
+    Never crosses the broker: an intra-app signal (the
+    PatInternalWatchdogMessage family), not a sema word — the TypeName
+    exists only to satisfy the message envelope."""
+
+    I2cAddress: NonNegativeInt
+    TypeName: Literal["expander.reinitialized"] = "expander.reinitialized"
 
 
 class I2cBus(ShNodeActor):
@@ -56,6 +72,14 @@ class I2cBus(ShNodeActor):
             for expander in record.Expanders
         )
         self._guard_pending = False
+
+        # The relays to poke for immediate re-assert after a reset repair.
+        # Each filters by its own expander address.
+        self._i2c_relay_nodes = [
+            n
+            for n in self.layout.nodes.values()
+            if isinstance(n.component, I2cRelayComponent)
+        ]
 
         self.i2c: Optional[Any] = None
         self._stop_requested = False
@@ -358,6 +382,9 @@ class I2cBus(ShNodeActor):
                     f"0x{address:02x}: {e}",
                     LogLevel.Critical,
                 )
+                continue
+            for node in self._i2c_relay_nodes:
+                self._send_to(node, ExpanderReinitialized(I2cAddress=address))
 
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:

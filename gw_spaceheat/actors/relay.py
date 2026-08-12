@@ -56,6 +56,7 @@ from gwsproto.named_types import (
 from gwsproto.property_format import NonNegativeInt, UTCMilliseconds, UUID4Str
 from result import Err, Ok, Result
 from transitions import Machine
+from actors.i2c_bus import ExpanderReinitialized
 from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 from gwsproto.enums import LogLevel, ChangeKeepSend, HpLoopKeepSend
@@ -811,6 +812,18 @@ class Relay(ShNodeActor):
                 future.set_result(message.Payload)
             # a late reply after timeout is dropped; the timeout already
             # glitched
+            return Ok(True)
+        if isinstance(message.Payload, ExpanderReinitialized):
+            # The bus actor repaired a reset on this expander: re-assert
+            # immediately rather than at the next 5-minute verify pass.
+            a = self._i2c
+            if a is not None and message.Payload.I2cAddress == a.i2c_address:
+                self.services.add_task(
+                    asyncio.create_task(
+                        self._verify_and_report(),
+                        name=f"{self.name}-reset-reassert",
+                    )
+                )
             return Ok(True)
 
         return Err(

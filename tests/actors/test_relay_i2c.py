@@ -11,6 +11,7 @@ routing between the two actors is wired directly (bus replies feed
 relay.process_message), so the futures-based bus ops resolve synchronously.
 """
 
+import asyncio
 import json
 import time
 import uuid
@@ -18,7 +19,7 @@ from pathlib import Path
 
 import pytest
 
-from actors.i2c_bus import I2cBus
+from actors.i2c_bus import ExpanderReinitialized, I2cBus
 from actors.relay import I2cCommand, Relay, UNKNOWN_STATE
 from drivers import tca9555
 from gwsproto.enums import ChangeRelayPin, LogLevel
@@ -131,7 +132,10 @@ def rig(app: ScadaApp) -> tuple[Relay, I2cBus]:
             relay.sent.append((dst.name, payload))
 
     def bus_send(dst, payload, src=None):
-        if isinstance(payload, I2cResult) and dst.name == RELAY_NAME:
+        if (
+            isinstance(payload, (I2cResult, ExpanderReinitialized))
+            and dst.name == RELAY_NAME
+        ):
             relay.process_message(
                 Message(Src=BUS_NAME, Dst=RELAY_NAME, Payload=payload)
             )
@@ -285,6 +289,24 @@ async def test_reset_detected_repaired_reasserted(rig) -> None:
 
     await relay._verify_and_report()  # enforcement re-asserts
     assert pin(bus) == 1
+    assert relay.state == "Scada"
+    assert len(glitches(relay, "i2c-relay-drift")) == 1
+
+
+@pytest.mark.asyncio
+async def test_reset_repair_pokes_immediate_reassert(rig) -> None:
+    relay, bus = rig
+    await boot(relay, bus)
+    cmd = command(relay, energize=True)
+    relay._i2c_command = cmd
+    await relay._attempt_command(cmd)
+    assert pin(bus) == 1
+    relay.sent.clear()
+
+    bus.i2c.power_on_reset(EXPANDER)
+    await bus._check_expanders()  # detect + repair + poke
+    await asyncio.sleep(0.1)  # the poked re-assert task runs
+    assert pin(bus) == 1  # restored with NO manual verify call
     assert relay.state == "Scada"
     assert len(glitches(relay, "i2c-relay-drift")) == 1
 
