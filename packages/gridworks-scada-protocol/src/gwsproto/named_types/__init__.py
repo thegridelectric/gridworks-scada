@@ -71,6 +71,7 @@ from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
 )
 from gwsproto.named_types.i2c_mux import I2cMux
 from gwsproto.named_types.i2c_read_bit import I2cReadBit
+from gwsproto.named_types.i2c_read_bytes import I2cReadBytes
 from gwsproto.named_types.i2c_read_reg import I2cReadReg
 from gwsproto.named_types.i2c_reg_address import I2cRegAddress
 from gwsproto.named_types.i2c_expander import I2cExpander
@@ -87,6 +88,7 @@ from gwsproto.named_types.i2c_thermistor_reader_component_gt import (
     I2cThermistorReaderComponentGt,
 )
 from gwsproto.named_types.i2c_write_bit import I2cWriteBit
+from gwsproto.named_types.i2c_write_byte import I2cWriteByte
 from gwsproto.named_types.i2c_write_reg import I2cWriteReg
 from gwsproto.named_types.latest_price import LatestPrice
 from gwsproto.named_types.layout_lite import LayoutLite
@@ -227,6 +229,7 @@ __all__ = [
     "I2cMultichannelDtRelayComponentGt",
     "I2cMux",
     "I2cReadBit",
+    "I2cReadBytes",
     "I2cReadReg",
     "I2cRegAddress",
     "I2cExpander",
@@ -237,6 +240,7 @@ __all__ = [
     "I2cThermistorInterfaceCapability",
     "I2cThermistorReaderComponentGt",
     "I2cWriteBit",
+    "I2cWriteByte",
     "I2cWriteReg",
     "LatestPrice",
     "LayoutLite",

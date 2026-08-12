@@ -12,14 +12,18 @@ from pathlib import Path
 import pytest
 
 from actors.i2c_bus import I2cBus
+from drivers import mcp4728
+from drivers.sim_i2c import SimI2c
 from gwsproto.enums import I2cOperation
 from gwsproto.named_types import (
     I2cBitAddress,
     I2cReadBit,
+    I2cReadBytes,
     I2cReadReg,
     I2cRegAddress,
     I2cResult,
     I2cWriteBit,
+    I2cWriteByte,
     I2cWriteReg,
 )
 from gwproto.message import Message
@@ -34,7 +38,12 @@ class FakeSMBus:
 
     def __init__(self) -> None:
         self.bytes: dict[tuple[int, int], int] = {}
+        self.bare_bytes: dict[int, int] = {}
         self.raise_on: set[str] = set()
+
+    def write_byte(self, addr: int, value: int) -> None:
+        self._check("write_byte")
+        self.bare_bytes[addr] = value
 
     def _check(self, op: str) -> None:
         if op in self.raise_on:
@@ -193,6 +202,52 @@ def test_failure_reports_error_not_crash(bus: I2cBus) -> None:
     assert not reply.Success
     assert reply.Value is None
     assert "read_i2c_block_data" in reply.Error
+
+
+def test_write_byte_is_register_less(bus: I2cBus) -> None:
+    bus.process_message(
+        message(
+            I2cWriteByte(
+                Bus=BUS_NAME, I2cAddress=0x70, Value=0x04, TriggerId=trigger()
+            )
+        )
+    )
+    assert bus.i2c.bare_bytes[0x70] == 0x04
+    assert bus.i2c.bytes == {}  # no register write happened
+    _, reply = bus.sent[-1]
+    assert reply.Success and reply.Value == 0x04
+    assert reply.Operation == I2cOperation.WriteByte
+
+
+def test_read_bytes_via_sim_backend(bus: I2cBus) -> None:
+    # the bare sequential receive has a sim-native implementation; drive
+    # the mux + DAC model end to end through bus ops
+    bus.i2c = SimI2c(
+        mux_address=0x70, dac_address=0x60, dac_mux_channels=(2,)
+    )
+    bus.i2c.dacs[2].eeprom[0] = [123, 1, 0]
+    bus.process_message(
+        message(
+            I2cWriteByte(
+                Bus=BUS_NAME, I2cAddress=0x70, Value=1 << 2, TriggerId=trigger()
+            )
+        )
+    )
+    bus.process_message(
+        message(
+            I2cReadBytes(
+                Bus=BUS_NAME,
+                I2cAddress=0x60,
+                NumBytes=mcp4728.READ_LEN,
+                TriggerId=trigger(),
+            )
+        )
+    )
+    _, reply = bus.sent[-1]
+    assert reply.Success and reply.Operation == I2cOperation.ReadBytes
+    assert reply.Value is None and len(reply.Bytes) == mcp4728.READ_LEN
+    hi, lo = mcp4728.eeprom_data(reply.Bytes, 0)
+    assert mcp4728.decode_data(hi, lo) == (123, 1, 0)
 
 
 def test_wrong_bus_name_rejected(bus: I2cBus) -> None:

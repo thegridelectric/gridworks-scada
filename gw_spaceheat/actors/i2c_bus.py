@@ -20,9 +20,11 @@ from gwsproto.property_format import NonNegativeInt
 from gwsproto.named_types import (
     Glitch,
     I2cReadBit,
+    I2cReadBytes,
     I2cReadReg,
     I2cResult,
     I2cWriteBit,
+    I2cWriteByte,
     I2cWriteReg,
     ScadaDeviceTypeGt,
 )
@@ -89,7 +91,21 @@ class I2cBus(ShNodeActor):
         # DeviceType (the layout declaring the board fake) when the sema
         # word lands.
         if self.is_simulated:
-            self.i2c = SimI2c(expander_addresses=self._expander_addresses)
+            board_records = [
+                record
+                for record in self.layout.device_types.values()
+                if isinstance(record, ScadaDeviceTypeGt)
+            ]
+            muxes = [m for record in board_records for m in record.Muxes]
+            dacs = [d for record in board_records for d in record.Dacs]
+            self.i2c = SimI2c(
+                expander_addresses=self._expander_addresses,
+                mux_address=muxes[0].I2cAddress if muxes else None,
+                dac_address=dacs[0].I2cAddress if dacs else None,
+                dac_mux_channels=tuple(
+                    d.MuxChannel for d in dacs if d.MuxChannel is not None
+                ),
+            )
         else:
             try:
                 import smbus2
@@ -136,6 +152,12 @@ class I2cBus(ShNodeActor):
         if isinstance(payload, I2cReadReg):
             return self._handle_read_reg(payload, reply_to)
 
+        if isinstance(payload, I2cWriteByte):
+            return self._handle_write_byte(payload, reply_to)
+
+        if isinstance(payload, I2cReadBytes):
+            return self._handle_read_bytes(payload, reply_to)
+
         return Err(
             ValueError(
                 f"I2cBus {self.name} received unexpected payload {type(payload)}"
@@ -150,6 +172,7 @@ class I2cBus(ShNodeActor):
         operation: I2cOperation,
         value: int | None,
         error: str | None,
+        bytes_: list[int] | None = None,
     ) -> Result[bool, BaseException]:
         self._send_to(
             reply_to,
@@ -157,6 +180,7 @@ class I2cBus(ShNodeActor):
                 Bus=bus,
                 Operation=operation,
                 Value=value if error is None else None,
+                Bytes=bytes_ if error is None else None,
                 Success=error is None,
                 Error=error,
                 UnixTimeMs=int(time.time() * 1000),
@@ -252,6 +276,53 @@ class I2cBus(ShNodeActor):
                 error = str(e)
         return self._reply(
             reply_to, cmd.Bus, cmd.TriggerId, I2cOperation.ReadReg, value, error
+        )
+
+    def _handle_write_byte(
+        self, cmd: I2cWriteByte, reply_to: ShNode
+    ) -> Result[bool, BaseException]:
+        value: int | None = None
+        error = self._op_error(cmd.Bus)
+        if error is None:
+            try:
+                self.i2c.write_byte(cmd.I2cAddress, cmd.Value)
+                value = cmd.Value
+            except Exception as e:
+                error = str(e)
+        return self._reply(
+            reply_to, cmd.Bus, cmd.TriggerId, I2cOperation.WriteByte, value, error
+        )
+
+    def _receive_bytes(self, address: int, num_bytes: int) -> list[int]:
+        """Bare sequential receive — no register pointer. Two genuine
+        implementations: the sim backend reads its register model directly;
+        smbus2 needs an i2c_rdwr read message (read_i2c_block_data would
+        send a command byte first, which is a different wire protocol)."""
+        if isinstance(self.i2c, SimI2c):
+            return self.i2c.read_bytes(address, num_bytes)
+        import smbus2
+        msg = smbus2.i2c_msg.read(address, num_bytes)
+        self.i2c.i2c_rdwr(msg)
+        return list(msg)
+
+    def _handle_read_bytes(
+        self, cmd: I2cReadBytes, reply_to: ShNode
+    ) -> Result[bool, BaseException]:
+        bytes_: list[int] | None = None
+        error = self._op_error(cmd.Bus)
+        if error is None:
+            try:
+                bytes_ = self._receive_bytes(cmd.I2cAddress, cmd.NumBytes)
+            except Exception as e:
+                error = str(e)
+        return self._reply(
+            reply_to,
+            cmd.Bus,
+            cmd.TriggerId,
+            I2cOperation.ReadBytes,
+            None,
+            error,
+            bytes_=bytes_,
         )
 
     # ---- the OPS-452 expander guard ----

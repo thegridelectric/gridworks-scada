@@ -13,17 +13,18 @@ from gwsproto.property_format import (
 
 
 class I2cResult(BaseModel):
-    """Sema: https://schemas.electricity.works/types/i2c.result/000"""
+    """Sema: https://schemas.electricity.works/types/i2c.result/001"""
 
     Bus: SpaceheatName
     Operation: I2cOperation
     Value: NonNegativeInt | None = None
+    Bytes: list[NonNegativeInt] | None = None
     Success: bool
     Error: str | None = None
     UnixTimeMs: UTCMilliseconds
     TriggerId: UUID4Str
     TypeName: Literal["i2c.result"] = "i2c.result"
-    Version: Literal["000"] = "000"
+    Version: Literal["001"] = "001"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

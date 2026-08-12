@@ -4,7 +4,7 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class ActorClass(SemaEnum):
-    """Sema: https://schemas.electricity.works/enums/gw1.actor.class/012"""
+    """Sema: https://schemas.electricity.works/enums/gw1.actor.class/013"""
 
     NoActor = auto()
     PrimaryScada = auto()
@@ -32,6 +32,7 @@ class ActorClass(SemaEnum):
     I2cThermistorReader = auto()
     SimSensorActor = auto()
     SimRelayActor = auto()
+    I2cDacWriter = auto()
 
     @classmethod
     def default(cls) -> "ActorClass":
@@ -47,4 +48,4 @@ class ActorClass(SemaEnum):
 
     @classmethod
     def enum_version(cls) -> str:
-        return "012"
+        return "013"

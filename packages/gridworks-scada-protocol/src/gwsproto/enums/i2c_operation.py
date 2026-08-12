@@ -4,12 +4,14 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class I2cOperation(SemaEnum):
-    """Sema: https://schemas.electricity.works/enums/i2c.operation/000"""
+    """Sema: https://schemas.electricity.works/enums/i2c.operation/001"""
 
     ReadBit = auto()
     WriteBit = auto()
     ReadReg = auto()
     WriteReg = auto()
+    WriteByte = auto()
+    ReadBytes = auto()
 
     @classmethod
     def default(cls) -> "I2cOperation":
@@ -25,4 +27,4 @@ class I2cOperation(SemaEnum):
 
     @classmethod
     def enum_version(cls) -> str:
-        return "000"
+        return "001"
