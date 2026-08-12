@@ -8,6 +8,8 @@ from gwproactor.message import PatInternalWatchdogMessage
 from result import Ok, Err, Result
 
 from actors.sh_node_actor import ShNodeActor
+from drivers import tca9555
+from drivers.sim_i2c import SimI2c
 from scada_app_interface import ScadaAppInterface
 
 from gwsproto.data_classes.sh_node import ShNode
@@ -19,6 +21,7 @@ from gwsproto.named_types import (
     I2cResult,
     I2cWriteBit,
     I2cWriteReg,
+    ScadaDeviceTypeGt,
 )
 
 
@@ -28,6 +31,10 @@ class I2cBus(ShNodeActor):
 
     All I2C-backed components must route bus operations through this actor;
     each `I2cResult` returns to the requesting node (`Header.Src`).
+
+    Owns the OPS-452 expander guard: adopt-or-init at boot (ops error
+    "initializing" until it completes) and a config-register reset check
+    each heartbeat, with clear-then-configure repair.
 
     2-byte register operations are big-endian (register devices like the
     ADS1115 present their 16-bit registers high byte first), NOT SMBus
@@ -42,25 +49,44 @@ class I2cBus(ShNodeActor):
         self.bus_name = self.node.name
         self.is_simulated = self.settings.is_simulated
 
+        self._expander_addresses: tuple[int, ...] = tuple(
+            expander.I2cAddress
+            for record in self.layout.device_types.values()
+            if isinstance(record, ScadaDeviceTypeGt)
+            for expander in record.Expanders
+        )
+        self._guard_pending = False
+
         self.i2c: Optional[Any] = None
         self._stop_requested = False
 
-        if not self.is_simulated:
+        # Backend selection happens exactly once, here. Interim selector:
+        # sim-ness graduates from settings.is_simulated to a Sim* board
+        # DeviceType (the layout declaring the board fake) when the sema
+        # word lands.
+        if self.is_simulated:
+            self.i2c = SimI2c(expander_addresses=self._expander_addresses)
+        else:
             try:
                 import smbus2
                 self.i2c = smbus2.SMBus(1)
             except Exception as e:
                 self.i2c = None
-                self._send_to(
-                    self.ltn,
-                    Glitch(
-                        FromGNodeAlias=self.layout.scada_g_node_alias,
-                        Node=self.name,
-                        Type=LogLevel.Critical,
-                        Summary="i2c-bus-init-failed",
-                        Details=str(e),
-                    ),
+                self._send_glitch(
+                    "i2c-bus-init-failed", str(e), LogLevel.Critical
                 )
+
+    def _send_glitch(self, summary: str, details: str, level: LogLevel) -> None:
+        self._send_to(
+            self.ltn,
+            Glitch(
+                FromGNodeAlias=self.layout.scada_g_node_alias,
+                Node=self.name,
+                Type=level,
+                Summary=summary,
+                Details=details,
+            ),
+        )
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         payload = message.Payload
@@ -115,29 +141,30 @@ class I2cBus(ShNodeActor):
         )
         return Ok(True)
 
-    def _wrong_bus_error(self, bus: str) -> str | None:
+    def _op_error(self, bus: str) -> str | None:
         if bus != self.bus_name:
             return f"bus {bus} routed to bus actor {self.bus_name}"
+        if self.i2c is None:
+            return "no i2c backend"
+        if self._guard_pending:
+            return "bus initializing: expander guard has not completed"
         return None
 
     def _handle_write_bit(
         self, cmd: I2cWriteBit, reply_to: ShNode
     ) -> Result[bool, BaseException]:
         value: int | None = None
-        error = self._wrong_bus_error(cmd.Bus)
+        error = self._op_error(cmd.Bus)
         if error is None:
             a = cmd.Address
             try:
-                if self.is_simulated or self.i2c is None:
-                    value = cmd.Value
+                current = self.i2c.read_byte_data(a.I2cAddress, a.RegisterIndex)
+                if cmd.Value == 1:
+                    new = current | (1 << a.BitIndex)
                 else:
-                    current = self.i2c.read_byte_data(a.I2cAddress, a.RegisterIndex)
-                    if cmd.Value == 1:
-                        new = current | (1 << a.BitIndex)
-                    else:
-                        new = current & ~(1 << a.BitIndex)
-                    self.i2c.write_byte_data(a.I2cAddress, a.RegisterIndex, new)
-                    value = cmd.Value
+                    new = current & ~(1 << a.BitIndex)
+                self.i2c.write_byte_data(a.I2cAddress, a.RegisterIndex, new)
+                value = cmd.Value
             except Exception as e:
                 error = str(e)
         return self._reply(
@@ -148,15 +175,12 @@ class I2cBus(ShNodeActor):
         self, cmd: I2cReadBit, reply_to: ShNode
     ) -> Result[bool, BaseException]:
         value: int | None = None
-        error = self._wrong_bus_error(cmd.Bus)
+        error = self._op_error(cmd.Bus)
         if error is None:
             a = cmd.Address
             try:
-                if self.is_simulated or self.i2c is None:
-                    value = 0
-                else:
-                    current = self.i2c.read_byte_data(a.I2cAddress, a.RegisterIndex)
-                    value = (current >> a.BitIndex) & 0x01
+                current = self.i2c.read_byte_data(a.I2cAddress, a.RegisterIndex)
+                value = (current >> a.BitIndex) & 0x01
             except Exception as e:
                 error = str(e)
         return self._reply(
@@ -167,13 +191,11 @@ class I2cBus(ShNodeActor):
         self, cmd: I2cWriteReg, reply_to: ShNode
     ) -> Result[bool, BaseException]:
         value: int | None = None
-        error = self._wrong_bus_error(cmd.Bus)
+        error = self._op_error(cmd.Bus)
         if error is None:
             a = cmd.Address
             try:
-                if self.is_simulated or self.i2c is None:
-                    value = cmd.Value
-                elif cmd.NumBytes == 1:
+                if cmd.NumBytes == 1:
                     self.i2c.write_byte_data(a.I2cAddress, a.RegisterIndex, cmd.Value)
                     value = cmd.Value
                 else:
@@ -193,13 +215,11 @@ class I2cBus(ShNodeActor):
         self, cmd: I2cReadReg, reply_to: ShNode
     ) -> Result[bool, BaseException]:
         value: int | None = None
-        error = self._wrong_bus_error(cmd.Bus)
+        error = self._op_error(cmd.Bus)
         if error is None:
             a = cmd.Address
             try:
-                if self.is_simulated or self.i2c is None:
-                    value = 0
-                elif cmd.NumBytes == 1:
+                if cmd.NumBytes == 1:
                     value = self.i2c.read_byte_data(a.I2cAddress, a.RegisterIndex)
                 else:
                     b = self.i2c.read_i2c_block_data(a.I2cAddress, a.RegisterIndex, 2)
@@ -210,11 +230,147 @@ class I2cBus(ShNodeActor):
             reply_to, cmd.Bus, cmd.TriggerId, I2cOperation.ReadReg, value, error
         )
 
+    # ---- the OPS-452 expander guard ----
+
+    def _read_config_regs(self, address: int) -> tuple[int, int]:
+        return (
+            self.i2c.read_byte_data(address, tca9555.CONFIG_PORT_0),
+            self.i2c.read_byte_data(address, tca9555.CONFIG_PORT_1),
+        )
+
+    def _clear_then_configure(self, address: int) -> None:
+        """The mandatory init order (the 07-18 POR experiment): POR outputs
+        are all-1s, so configuring before clearing would drive every relay
+        ON."""
+        for register in (
+            tca9555.OUTPUT_PORT_0,
+            tca9555.OUTPUT_PORT_1,
+            tca9555.CONFIG_PORT_0,
+            tca9555.CONFIG_PORT_1,
+        ):
+            self.i2c.write_byte_data(address, register, 0x00)
+
+    def _register_snapshot(self) -> str:
+        """Full forensic dump of every expander — logged with a reset
+        Critical so the evidence lives in the glitch, not in ad-hoc reads."""
+        parts = []
+        for address in self._expander_addresses:
+            try:
+                parts.append(
+                    f"0x{address:02x}["
+                    f"in0={self.i2c.read_byte_data(address, tca9555.INPUT_PORT_0):08b}"
+                    f" in1={self.i2c.read_byte_data(address, tca9555.INPUT_PORT_1):08b}"
+                    f" out2={self.i2c.read_byte_data(address, tca9555.OUTPUT_PORT_0):08b}"
+                    f" out3={self.i2c.read_byte_data(address, tca9555.OUTPUT_PORT_1):08b}"
+                    f" cfg6={self.i2c.read_byte_data(address, tca9555.CONFIG_PORT_0):08b}"
+                    f" cfg7={self.i2c.read_byte_data(address, tca9555.CONFIG_PORT_1):08b}]"
+                )
+            except Exception as e:  # noqa: PERF203
+                parts.append(f"0x{address:02x}[read failed: {e}]")
+        return " ".join(parts)
+
+    async def _init_expanders(self) -> None:
+        """Adopt-or-init at boot: config regs already all-outputs is a warm
+        takeover (a running hack or a restart left the outputs driving —
+        leave them, so relay pin-adoption inherits latched holds); anything
+        else is POR or damage — clear-then-configure to safe-off."""
+        try:
+            for address in self._expander_addresses:
+                try:
+                    cfg0, cfg1 = self._read_config_regs(address)
+                except Exception as e:
+                    self._send_glitch(
+                        "i2c-expander-init-failed",
+                        f"0x{address:02x}: config-register read failed: {e}",
+                        LogLevel.Critical,
+                    )
+                    continue
+                if cfg0 == 0 and cfg1 == 0:
+                    self.log(
+                        f"expander 0x{address:02x}: already configured — "
+                        "warm takeover, outputs left driving"
+                    )
+                    continue
+                try:
+                    self._clear_then_configure(address)
+                    self._send_glitch(
+                        "i2c-expander-initialized",
+                        f"0x{address:02x} config regs were "
+                        f"0x{cfg0:02x}/0x{cfg1:02x} (POR or damage); cleared "
+                        "to safe-off and configured as outputs",
+                        LogLevel.Warning,
+                    )
+                except Exception as e:
+                    self._send_glitch(
+                        "i2c-expander-init-failed",
+                        f"0x{address:02x}: clear-then-configure failed: {e}",
+                        LogLevel.Critical,
+                    )
+        finally:
+            self._guard_pending = False
+
+    async def _check_expanders(self) -> None:
+        """The heartbeat reset guard: any nonzero config bit means our
+        outputs are not driving. Confirm with a second read 0.5 s later so a
+        single garbled read cannot fire a false Critical or a repair."""
+        for address in self._expander_addresses:
+            try:
+                cfg0, cfg1 = self._read_config_regs(address)
+            except Exception as e:
+                self._send_glitch(
+                    "i2c-expander-check-failed",
+                    f"0x{address:02x}: config-register read failed: {e}",
+                    LogLevel.Warning,
+                )
+                continue
+            if cfg0 == 0 and cfg1 == 0:
+                continue
+            await asyncio.sleep(0.5)
+            try:
+                cfg0, cfg1 = self._read_config_regs(address)
+            except Exception as e:
+                self._send_glitch(
+                    "i2c-expander-check-failed",
+                    f"0x{address:02x}: confirm re-read failed: {e}",
+                    LogLevel.Warning,
+                )
+                continue
+            if cfg0 == 0 and cfg1 == 0:
+                self.log(
+                    f"expander 0x{address:02x}: config-register read glitch "
+                    "— nonzero once, clean on confirm re-read (not a reset)"
+                )
+                continue
+            self._send_glitch(
+                "i2c-expander-reset",
+                f"0x{address:02x} config regs 0x{cfg0:02x}/0x{cfg1:02x} — "
+                "pins floating (the OPS-452 signature). Re-initializing; "
+                "relays re-assert on their verify loops. Registers at "
+                f"detection: {self._register_snapshot()}",
+                LogLevel.Critical,
+            )
+            try:
+                self._clear_then_configure(address)
+                self.log(f"expander 0x{address:02x} re-initialized")
+            except Exception as e:
+                self._send_glitch(
+                    "i2c-expander-reinit-failed",
+                    f"0x{address:02x}: {e}",
+                    LogLevel.Critical,
+                )
+
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:
         return [MonitoredName(self.name, self.BUS_LOOP_S * 2)]
 
     def start(self) -> None:
+        if self._expander_addresses and self.i2c is not None:
+            self._guard_pending = True
+            self.services.add_task(
+                asyncio.create_task(
+                    self._init_expanders(), name="i2c-bus-init-guard"
+                )
+            )
         self.services.add_task(
             asyncio.create_task(self._heartbeat(), name="i2c-bus-heartbeat")
         )
@@ -222,6 +378,12 @@ class I2cBus(ShNodeActor):
     async def _heartbeat(self) -> None:
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
+            if (
+                not self._guard_pending
+                and self.i2c is not None
+                and self._expander_addresses
+            ):
+                await self._check_expanders()
             await asyncio.sleep(self.BUS_LOOP_S)
 
     def stop(self) -> None:

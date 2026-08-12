@@ -607,7 +607,7 @@ class Relay(ShNodeActor):
         error = await self._write_pin(pin_value)
         if error is not None:
             return f"write failed: {error}"
-        if a.supports_readback and not self.settings.is_simulated:
+        if a.supports_readback:
             pin = await self._read_pin_confirmed(pin_value)
             if pin is None:
                 return "confirming readback failed"
@@ -717,7 +717,7 @@ class Relay(ShNodeActor):
         first command asserts a posture."""
         a = self._i2c
         assert a is not None
-        if self.settings.is_simulated or not a.supports_readback:
+        if not a.supports_readback:
             self._ready.set()
             return
         pin: int | None = None
@@ -770,9 +770,6 @@ class Relay(ShNodeActor):
             self._commit_command(command)
             return
         if self.state == UNKNOWN_STATE:
-            return
-        if self.settings.is_simulated:
-            self.send_state()
             return
         a = self._i2c
         assert a is not None
