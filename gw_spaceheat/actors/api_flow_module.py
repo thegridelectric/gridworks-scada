@@ -91,7 +91,9 @@ class ApiFlowModule(ShNodeActor):
         self.latest_hz = None
         self.latest_gpm = None
 
-        self.capture_s = self._component.gt.ConfigList[0].CapturePeriodS
+        self.capture_s = self.layout.capture_tuning_by_channel[
+            self.gpm_channel.Name
+        ].CapturePeriodS
         self.latest_sync_send_s = time.time()
         self.last_heard = time.time()
         self.last_error_report = time.time()

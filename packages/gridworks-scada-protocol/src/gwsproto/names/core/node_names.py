@@ -6,6 +6,7 @@ class CoreNodeNames:
     ltn = "ltn"
     leaf_ally = "la"
     local_control = "lc"
+    local_control_normal = "n"
     admin = "admin"
     auto = "auto"
     derived_generator = "derived-generator"

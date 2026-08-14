@@ -13,6 +13,13 @@ class NolanNodeNames:
     store_top_relay = "store-top-relay"
     store_bottom_relay = "store-bottom-relay"
 
+    # The plant relays gw.nolan.layout axiom 3 (LocalControlPlant) forces
+    # to exist — these constants mirror the sema contract, which is the
+    # authority on the names.
+    iso_valve_relay = "iso-valve-relay"
+    secondary_pump_relay = "secondary-pump-relay"
+    hp_scada_ops_relay = "hp-scada-ops-relay"
+
 
 class NolanZoneNodeNames:
     """

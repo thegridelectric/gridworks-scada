@@ -16,6 +16,7 @@ on these ideas:
  """
 
 from gwsproto.enums.actor_class import ActorClass
+from gwsproto.enums.actuation_authority import ActuationAuthority
 from gwsproto.enums.aquastat_control import AquastatControl
 from gwsproto.enums.base_g_node_class import BaseGNodeClass
 from gwsproto.enums.change_aquastat_control import ChangeAquastatControl
@@ -28,6 +29,7 @@ from gwsproto.enums.change_relay_state import ChangeRelayState
 from gwsproto.enums.change_store_flow_relay import ChangeStoreFlowRelay
 from gwsproto.enums.change_valve_state import ChangeValveState
 from gwsproto.enums.change_zone_call_source import ChangeZoneCallSource
+from gwsproto.enums.day_of_week import DayOfWeek
 from gwsproto.enums.device_type import DeviceType
 from gwsproto.enums.emission_method import EmissionMethod
 from gwsproto.enums.flow_manifold_variant import FlowManifoldVariant
@@ -78,11 +80,11 @@ from gwsproto.enums.relay_energization_state import RelayEnergizationState
 from gwsproto.enums.relay_pin_state import RelayPinState
 from gwsproto.enums.relay_wiring_config import RelayWiringConfig
 from gwsproto.enums.seasonal_storage_mode import SeasonalStorageMode
+from gwsproto.enums.service_mode import ServiceMode
 from gwsproto.enums.setpoint_phase import SetpointPhase
 from gwsproto.enums.slow_dispatch_contract_status import SlowDispatchContractStatus
 from gwsproto.enums.spaceheat_unit import SpaceheatUnit
 from gwsproto.enums.store_flow_relay import StoreFlowRelay
-from gwsproto.enums.system_mode import SystemMode
 from gwsproto.enums.telemetry_name import TelemetryName
 from gwsproto.enums.temp_calc_method import TempCalcMethod
 from gwsproto.enums.thermistor_data_method import ThermistorDataMethod
@@ -103,6 +105,7 @@ from gwsproto.enums.zone_setpoint_source import ZoneSetpointSource
 
 __all__ = [
     "ActorClass",
+    "ActuationAuthority",
     "AquastatControl",
     "BaseGNodeClass",
     "ChangeAquastatControl",
@@ -115,6 +118,7 @@ __all__ = [
     "ChangeStoreFlowRelay",
     "ChangeValveState",
     "ChangeZoneCallSource",
+    "DayOfWeek",
     "DeviceType",
     "EmissionMethod",
     "FlowManifoldVariant",
@@ -166,11 +170,11 @@ __all__ = [
     "RelayWiringConfig",
     "SeasonalStorageMode",
     "SemaEnum",
+    "ServiceMode",
     "SetpointPhase",
     "SlowDispatchContractStatus",
     "SpaceheatUnit",
     "StoreFlowRelay",
-    "SystemMode",
     "TelemetryName",
     "TempCalcMethod",
     "ThermistorDataMethod",

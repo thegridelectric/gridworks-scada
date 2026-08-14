@@ -12,7 +12,7 @@ from gwsproto.data_classes.components.dfr_component import DfrComponent
 
 from gwsproto.enums import (
     ActorClass, LeafAllyBufferOnlyEvent, LeafAllyBufferOnlyState, 
-    FsmReportType, RelayClosedOrOpen, SystemMode
+    FsmReportType, RelayClosedOrOpen, ActuationAuthority
 )
 
 from gwsproto.named_types import (
@@ -161,7 +161,7 @@ class BufferOnlyLeafAlly(ShNodeActor):
                 AllyGivesUp(Reason="System is cold, not entering DispatchContracts"))
             return
         
-        if self.ops.SystemMode == SystemMode.Standby:
+        if self.ops.ActuationAuthority == ActuationAuthority.Standby:
             self.log("Cannot wake up - in standby mode")
             self._send_to(
                 self.primary_scada,

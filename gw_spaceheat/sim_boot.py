@@ -24,11 +24,12 @@ from pathlib import Path
 from gwsproto.data_classes.house_0_layout import House0Layout
 
 from scada_app import ScadaApp
+from actors.config import DEFAULT_OPS_PARAMS_FILE
 from sim_layout import simulate_sensors
 
 REPO = Path(__file__).resolve().parent.parent
 DEFAULT_ENV = str(REPO / ".env")
-DEFAULT_LAYOUT = str(REPO / "tests" / "config" / "maple.json")
+DEFAULT_LAYOUT = str(REPO / "tests" / "config" / "gw.nolan.layout.json")
 DEFAULT_SECONDS = 8
 
 
@@ -40,9 +41,10 @@ def build_app(layout_path: str, env_file: str = DEFAULT_ENV) -> ScadaApp:
     is universe-coherent with it — no on-disk sim fixture needed."""
     settings = ScadaApp.get_settings(env_file=env_file)
     settings.is_simulated = True
-    # the ops artifact rides in the per-home dir beside the layout being booted
-    settings.operational_params_path = str(
-        Path(layout_path).with_suffix("") / "gw.house0.operational.params.json"
+    # the ops artifact sits beside the layout being booted, which is not
+    # settings.paths.hardware_layout here
+    settings.paths.operational_params = (
+        Path(layout_path).parent / DEFAULT_OPS_PARAMS_FILE
     )
     sim = simulate_sensors(json.loads(Path(layout_path).read_text()))
     app = ScadaApp(app_settings=settings, layout=House0Layout.load_dict(sim))

@@ -1,6 +1,6 @@
 # Modify actors/home_alone.py to be a loader module
 import importlib
-from gwsproto.enums import ActorClass, SeasonalStorageMode, SystemMode
+from gwsproto.enums import ActorClass, ActuationAuthority, SeasonalStorageMode
 from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 
@@ -25,14 +25,14 @@ class LocalControl(ShNodeActor):
         strategy = layout.hydronic.Strategy or layout.layout.get(
             "Strategy", "House0"
         )
-        system_mode = self.ops.SystemMode
+        authority = self.ops.ActuationAuthority
         seasonal_storage_mode = self.ops.SeasonalStorageMode
 
         # Dynamically load the implementation class
         if strategy == "Nolan":
             module = importlib.import_module("actors.local_control.nolan")
             impl_class = getattr(module, "NolanLocalControl")
-        elif system_mode == SystemMode.Standby:
+        elif authority == ActuationAuthority.Standby:
             module = importlib.import_module("actors.local_control.standby")
             impl_class = getattr(module, "StandbyLocalControl")
         elif seasonal_storage_mode == SeasonalStorageMode.AllTanks:
@@ -42,12 +42,12 @@ class LocalControl(ShNodeActor):
             module = importlib.import_module("actors.local_control.buffer_only_tou")
             impl_class = getattr(module, "BufferOnlyTouLocalControl")
         else:
-            raise Exception(f"Unknown setup SystemMode {system_mode}, "
+            raise Exception(f"Unknown setup ActuationAuthority {authority}, "
                             f"SeasonalStorageMode {seasonal_storage_mode}")
 
         # Create the implementation instance
         self._impl = impl_class(name, services)
-        services.logger.error(f"Creating LocalControl with system mode {system_mode} and seasonal "
+        services.logger.error(f"Creating LocalControl with actuation authority {authority} and seasonal "
                               f"storage mode {seasonal_storage_mode}, using {impl_class.__module__}.{impl_class.__name__}")
 
     # Forward all properties and methods to the implementation

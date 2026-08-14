@@ -37,9 +37,6 @@ from gwsproto.named_types.fsm_atomic_report import FsmAtomicReport
 from gwsproto.named_types.fsm_event import FsmEvent
 from gwsproto.named_types.fsm_full_report import FsmFullReport
 from gwsproto.named_types.g_node_gt import GNodeGt
-from gwsproto.named_types.gw_house0_operational_params import (
-    GwHouse0OperationalParams,
-)
 from gwsproto.named_types.glitch import Glitch
 from gwsproto.named_types.go_dormant import GoDormant
 from gwsproto.named_types.gpio_relay_component_gt import GpioRelayComponentGt
@@ -51,8 +48,11 @@ from gwsproto.named_types.hack_oil_off import HackOilOff
 from gwsproto.named_types.hack_oil_on import HackOilOn
 from gwsproto.named_types.heating_curve import HeatingCurve
 from gwsproto.named_types.heating_forecast import HeatingForecast
-from gwsproto.named_types.gw_hydronic import GwHydronic
 from gwsproto.named_types.house0_layout import House0Layout
+from gwsproto.named_types.house0_operational_params import (
+    House0OperationalParams,
+)
+from gwsproto.named_types.hydronic import Hydronic
 from gwsproto.named_types.hp_control_box_device_type_gt import HpControlBoxDeviceTypeGt
 from gwsproto.named_types.hp_device_type_gt import HpDeviceTypeGt
 from gwsproto.named_types.hubitat_component_gt import HubitatComponentGt
@@ -102,6 +102,9 @@ from gwsproto.named_types.multichannel_snapshot import MultichannelSnapshot
 from gwsproto.named_types.native_gpio_pin import NativeGpioPin
 from gwsproto.named_types.new_command_tree import NewCommandTree
 from gwsproto.named_types.nolan_layout import NolanLayout
+from gwsproto.named_types.nolan_operational_params import (
+    NolanOperationalParams,
+)
 from gwsproto.named_types.no_new_contract_warning import NoNewContractWarning
 from gwsproto.named_types.pico_btu_meter_component_gt import PicoBtuMeterComponentGt
 from gwsproto.named_types.pico_comms_params import PicoCommsParams
@@ -149,6 +152,7 @@ from gwsproto.named_types.suit_up import SuitUp
 from gwsproto.named_types.synced_readings import SyncedReadings
 from gwsproto.named_types.synth_channel_gt import SynthChannelGt
 from gwsproto.named_types.tank_module_params import TankModuleParams
+from gwsproto.named_types.tou_window import TouWindow
 from gwsproto.named_types.tank_temp_calibration import TankTempCalibration
 from gwsproto.named_types.tank_temp_calibration_map import TankTempCalibrationMap
 from gwsproto.named_types.ticklist_hall import TicklistHall
@@ -205,14 +209,13 @@ __all__ = [
     "GoDormant",
     "GpioRelayComponentGt",
     "GpioSensorComponentGt",
-    "GwHouse0OperationalParams",
     "Ha1Params",
     "HackOilOff",
     "HackOilOn",
     "HeatingCurve",
     "HeatingForecast",
-    "GwHydronic",
     "House0Layout",
+    "House0OperationalParams",
     "HpControlBoxDeviceTypeGt",
     "HpDeviceTypeGt",
     "HubitatComponentGt",
@@ -220,6 +223,7 @@ __all__ = [
     "HubitatPollerComponentGt",
     "HubitatPollerGt",
     "HvacZone",
+    "Hydronic",
     "I2cCtInterfaceCapability",
     "I2cBitAddress",
     "I2cBus",
@@ -254,6 +258,7 @@ __all__ = [
     "NewCommandTree",
     "NoNewContractWarning",
     "NolanLayout",
+    "NolanOperationalParams",
     "PicoBtuMeterComponentGt",
     "PicoCommsParams",
     "PicoFlowModuleComponentGt",
@@ -298,6 +303,7 @@ __all__ = [
     "SynthChannelGt",
     "TankModuleParams",
     "TankTempCalibration",
+    "TouWindow",
     "TankTempCalibrationMap",
     "TicklistHall",
     "TicklistHallReport",

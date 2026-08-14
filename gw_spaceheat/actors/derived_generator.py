@@ -21,8 +21,8 @@ from actors.sh_node_actor import ShNodeActor
 from gwsproto.data_classes.derived_channel import DerivedChannel
 from gwsproto.conversions.temperature import convert_temp_to_f
 from gwsproto.enums import (
-    Unit, HeatCallInterpretation, 
-    SystemMode, SeasonalStorageMode, TelemetryName
+    Unit, HeatCallInterpretation,
+    ActuationAuthority, SeasonalStorageMode, ServiceMode, TelemetryName
 )
 from gwsproto.data_classes.house_0_names import H0CN, H0N
 from gwsproto.named_types import (
@@ -75,8 +75,8 @@ class DerivedGenerator(ShNodeActor):
         # House parameters in the .env file
         self.is_simulated = self.settings.is_simulated
         self.timezone = pytz.timezone(self.settings.timezone_str)
-        self.latitude = self.ops.Latitude
-        self.longitude = self.ops.Longitude
+        self.latitude = self.settings.latitude
+        self.longitude = self.settings.longitude
 
         # used by the rswt quad params calculator
         self._cached_params: Optional[Ha1Params] = None 
@@ -742,7 +742,10 @@ class DerivedGenerator(ShNodeActor):
         - Simulates layer-by-layer discharge of tanks or buffer
         - Assumes stratified storage
         """
-        if self.ops.SystemMode != SystemMode.Heating:
+        if (
+            self.ops.ActuationAuthority != ActuationAuthority.Active
+            or self.ops.ServiceMode != ServiceMode.Heating
+        ):
             return None
 
         if not self.buffer_temps_available:

@@ -1,4 +1,4 @@
-"""Tests relay.actor.config type, version 004"""
+"""Tests relay.actor.config type, version 003"""
 
 import pytest
 
@@ -8,10 +8,6 @@ from gwsproto.named_types import RelayActorConfig
 def base_config() -> dict:
     return {
         "ChannelName": "hp-scada-ops-relay-state",
-        "PollPeriodMs": 200,
-        "CapturePeriodS": 300,
-        "AsyncCapture": True,
-        "AsyncCaptureDelta": 1,
         "RelayIdx": 6,
         "ActorName": "relay6",
         "WiringConfig": "NormallyClosed",
@@ -22,7 +18,7 @@ def base_config() -> dict:
         "DeEnergizedState": "RelayClosed",
         "EnergizedState": "RelayOpen",
         "TypeName": "relay.actor.config",
-        "Version": "004",
+        "Version": "003",
     }
 
 
@@ -36,40 +32,23 @@ def test_relay_actor_config_generated() -> None:
 
 def test_relay_actor_config_axiom_1() -> None:
     d = base_config()
-    d["AsyncCaptureDelta"] = None
+    d["EnergizingEvent"] = "NotARealRelayEvent"
 
-    with pytest.raises(ValueError, match="Axiom 1 violated!"):
+    with pytest.raises(ValueError, match="Axiom 1 \\(RelayEventEnumConsistency\\) failed"):
         RelayActorConfig.model_validate(d)
 
 
 def test_relay_actor_config_axiom_2() -> None:
     d = base_config()
-    d["PollPeriodMs"] = 1000
-    d["CapturePeriodS"] = 1
+    d["EnergizedState"] = "NotARealRelayState"
 
-    with pytest.raises(ValueError, match="Axiom 2 violated!"):
+    with pytest.raises(ValueError, match="Axiom 2 \\(RelayStateEnumConsistency\\) failed"):
         RelayActorConfig.model_validate(d)
 
 
 def test_relay_actor_config_axiom_3() -> None:
     d = base_config()
-    d["EnergizingEvent"] = "NotARealRelayEvent"
-
-    with pytest.raises(ValueError, match="Axiom 3 violated!"):
-        RelayActorConfig.model_validate(d)
-
-
-def test_relay_actor_config_axiom_4() -> None:
-    d = base_config()
-    d["EnergizedState"] = "NotARealRelayState"
-
-    with pytest.raises(ValueError, match="Axiom 4 violated!"):
-        RelayActorConfig.model_validate(d)
-
-
-def test_relay_actor_config_axiom_5() -> None:
-    d = base_config()
     d["EnergizedState"] = "RelayClosed"
 
-    with pytest.raises(ValueError, match="Axiom 5 violated!"):
+    with pytest.raises(ValueError, match="Axiom 3 \\(RelayEventStateMatch\\) failed"):
         RelayActorConfig.model_validate(d)

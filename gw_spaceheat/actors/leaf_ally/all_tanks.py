@@ -22,7 +22,7 @@ from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 from gwsproto.enums import  (
 LeafAllyAllTanksState, LeafAllyAllTanksEvent, LogLevel,
-SystemMode, HpModel,
+ActuationAuthority, ServiceMode, HpModel,
 )
 from gwsproto.named_types import (
     AllyGivesUp, GoDormant, Ha1Params,
@@ -186,11 +186,14 @@ class AllTanksLeafAlly(ShNodeActor):
                     AllyGivesUp(Reason="System is cold, not entering DispatchContracts"))
                 return
             
-            if self.ops.SystemMode != SystemMode.Heating:
+            if (
+                self.ops.ActuationAuthority != ActuationAuthority.Active
+                or self.ops.ServiceMode != ServiceMode.Heating
+            ):
                 self.log("Cannot wake up - in standby mode")
                 self._send_to(
                     self.primary_scada,
-                    AllyGivesUp(Reason=f"In {self.ops.SystemMode} Mode ... not entering DispatchContracts"))
+                    AllyGivesUp(Reason=f"In {self.ops.ActuationAuthority}/{self.ops.ServiceMode} Mode ... not entering DispatchContracts"))
                 return
 
             if not self.heating_forecast:
@@ -551,7 +554,7 @@ class AllTanksLeafAlly(ShNodeActor):
                 elif self.contract_hb.Contract.DurationMinutes >= 30:  
                     c = self.contract_hb.Contract
                     # TODO: go to the end of the hour if the contract is the max power
-                    max_kw_with_turn_on = (1-self.ops.HpTurnOnMinutes/60) * self.settings.hp_max_kw_el
+                    max_kw_with_turn_on = (1-self.ops.HpTurnOnMinutes/60) * self.ops.HpMaxKwEl
                     if self.contract_hb.Contract.AvgPowerWatts >= (max_kw_with_turn_on-1)*1000:
                         return False
                     else:

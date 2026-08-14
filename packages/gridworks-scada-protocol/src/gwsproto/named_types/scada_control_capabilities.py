@@ -1,155 +1,114 @@
 from typing import List, Literal
 
+from pydantic import BaseModel, model_validator
+from typing_extensions import Self
+
 from gwsproto.enums import ActorClass
+from gwsproto.named_types.data_channel_gt import DataChannelGt
 from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
     I2cMultichannelDtRelayComponentGt,
 )
-from gwsproto.property_format import LeftRightDotStr, UTCMilliseconds, SpaceheatName
-from pydantic import BaseModel,  model_validator
-from typing_extensions import Self
-
-
-class ControlNode(BaseModel):
-    Name: SpaceheatName
-    ActorClass: ActorClass
-    DisplayName: str | None = None
-
-
-class ControlChannel(BaseModel):
-    Name: str
-    AboutNodeName: SpaceheatName
+from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
+from gwsproto.property_format import LeftRightDotStr, UTCMilliseconds
 
 
 class ScadaControlCapabilities(BaseModel):
-    """Sema: https://schemas.electricity.works/types/scada.control.capabilities/000"""
+    """
+    Sema: https://schemas.electricity.works/types/scada.control.capabilities/001
+    """
 
     FromGNodeAlias: LeftRightDotStr
     MessageCreatedMs: UTCMilliseconds
-
-    RelayNodes: List[ControlNode]
-    DacNodes: List[ControlNode]
-    ControlChannels: List[ControlChannel]
-
+    RelayNodes: List[SpaceheatNodeGt]
+    DacNodes: List[SpaceheatNodeGt]
+    ControlChannels: List[DataChannelGt]
     I2cRelayComponent: I2cMultichannelDtRelayComponentGt
-
     TypeName: Literal["scada.control.capabilities"] = "scada.control.capabilities"
-    Version: Literal["000"] = "000"
+    Version: Literal["001"] = "001"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
         """
-        Axiom 1: RelayNodeClassConsistency
-        All nodes in RelayNodes SHALL have ActorClass equal to Relay.
+        Axiom 1: ActorClassConsistency.
+        a. All nodes in RelayNodes SHALL have ActorClass equal to Relay.
+        b. All nodes in DacNodes SHALL have ActorClass equal to ZeroTenOutputer.
         """
         for n in self.RelayNodes:
             if n.ActorClass != ActorClass.Relay:
                 raise ValueError(
-                    f"Axiom 1 violated: RelayNodes contains {n.Name} with ActorClass {n.ActorClass}!"
+                    f"Axiom 1 (ActorClassConsistency) failed: RelayNodes contains {n.Name} with ActorClass {n.ActorClass}!"
+                )
+        for n in self.DacNodes:
+            if n.ActorClass != ActorClass.ZeroTenOutputer:
+                raise ValueError(
+                    f"Axiom 1 (ActorClassConsistency) failed: DacNodes contains {n.Name} with ActorClass {n.ActorClass}!"
                 )
         return self
 
     @model_validator(mode="after")
     def check_axiom_2(self) -> Self:
         """
-        Axiom 2: DacNodeClassConsistency
-        All nodes in DacNodes SHALL have ActorClass equal to ZeroTenOutputer.
+        Axiom 2: HandleTerminalMatchesName.
+        For every node in RelayNodes and DacNodes, Handle SHALL be present and
+        its final dot-separated token SHALL equal Name.
         """
-        for n in self.DacNodes:
-            if n.ActorClass != ActorClass.ZeroTenOutputer:
+        for n in self.RelayNodes + self.DacNodes:
+            if not n.Handle or n.Handle.split(".")[-1] != n.Name:
                 raise ValueError(
-                    f"Axiom 2 violated: DacNodes contains {n.Name} with ActorClass {n.ActorClass}!"
+                    f"Axiom 2 (HandleTerminalMatchesName) failed: {n.Name} Handle {n.Handle!r} must be "
+                    f"present and end in {n.Name!r}!"
                 )
         return self
 
     @model_validator(mode="after")
     def check_axiom_3(self) -> Self:
         """
-        Axiom 3: UniqueRelayNodeNames
-        Name values in RelayNodes SHALL be unique.
+        Axiom 3: AboutNodesAreControlNodes.
+        The set of ControlChannels.AboutNodeName values SHALL equal the set of
+        RelayNodes.Name and DacNodes.Name values.
         """
-        names = [n.Name for n in self.RelayNodes]
-        if len(names) != len(set(names)):
+        node_names = {n.Name for n in self.RelayNodes + self.DacNodes}
+        about_names = {c.AboutNodeName for c in self.ControlChannels}
+        if node_names != about_names:
+            missing = sorted(node_names - about_names)
+            extra = sorted(about_names - node_names)
             raise ValueError(
-                f"Axiom 3 violated: duplicate relay node names in RelayNodes: {names}"
+                "Axiom 3 (AboutNodesAreControlNodes) failed: union(RelayNodes.Name, DacNodes.Name) must equal "
+                "set(ControlChannels.AboutNodeName). "
+                f"MissingAboutNames={missing} ExtraAboutNames={extra}"
             )
         return self
 
     @model_validator(mode="after")
     def check_axiom_4(self) -> Self:
         """
-        Axiom 4: UniqueDacNodeNames
-        Name values in DacNodes SHALL be unique.
+        Axiom 4: I2cRelayComponentChannelControlNodeConsistency.
+        a. The set of ActorName values in I2cRelayComponent.ConfigList SHALL equal
+        the set of RelayNodes.Name values.
+        b. For each relay actor config in I2cRelayComponent.ConfigList, ChannelName
+        SHALL equal the Name of the ControlChannels entry whose AboutNodeName is
+        that relay actor config's ActorName.
         """
-        names = [n.Name for n in self.DacNodes]
-        if len(names) != len(set(names)):
-            raise ValueError(
-                f"Axiom 4 violated: duplicate DAC node names in DacNodes: {names}"
-            )
-        return self
-
-    @model_validator(mode="after")
-    def check_axiom_5(self) -> Self:
-        """
-        Axiom 5: UniqueControlChannelAboutNames
-        AboutNodeName values in ControlChannels SHALL be unique.
-        """
-        about_names = [c.AboutNodeName for c in self.ControlChannels]
-        if len(about_names) != len(set(about_names)):
-            raise ValueError(
-                f"Axiom 5 violated: duplicate AboutNodeName values in ControlChannels: {about_names}"
-            )
-        return self
-
-    @model_validator(mode="after")
-    def check_axiom_6(self) -> Self:
-        """
-        Axiom 6: ControlNodeChannelBijection
-        The set of node names defined by the union of RelayNodes.Name and DacNodes.Name
-        SHALL equal exactly the set of ControlChannels.AboutNodeName values.
-        """
-        relay_names = [n.Name for n in self.RelayNodes]
-        dac_names = [n.Name for n in self.DacNodes]
-        all_node_names = relay_names + dac_names
-
-        # This also enforces no overlap between RelayNodes and DacNodes.
-        if len(all_node_names) != len(set(all_node_names)):
-            raise ValueError(
-                "Axiom 6 violated: RelayNodes.Name and DacNodes.Name overlap or contain duplicates!"
-                f" RelayNames={relay_names} DacNames={dac_names}"
-            )
-
-        node_set = set(all_node_names)
-        about_set = {c.AboutNodeName for c in self.ControlChannels}
-
-        if node_set != about_set:
-            missing = sorted(node_set - about_set)
-            extra = sorted(about_set - node_set)
-            raise ValueError(
-                "Axiom 6 violated: union(RelayNodes.Name, DacNodes.Name) must equal "
-                "set(ControlChannels.AboutNodeName). "
-                f"MissingAboutNames={missing} ExtraAboutNames={extra}"
-            )
-
-        return self
-
-    @model_validator(mode="after")
-    def check_axiom_7(self) -> Self:
-        """
-        Axiom 7: RelayConfigNodeBijection
-        The set of ActorName values in I2cRelayComponent.ConfigList
-        SHALL equal exactly the set of RelayNodes.Name values.
-        """
-        relay_node_set = {n.Name for n in self.RelayNodes}
-        config_actor_set = {
+        relay_node_names = {n.Name for n in self.RelayNodes}
+        config_actor_names = {
             config.ActorName for config in self.I2cRelayComponent.ConfigList
         }
-
-        if relay_node_set != config_actor_set:
-            missing_configs = sorted(relay_node_set - config_actor_set)
-            extra_configs = sorted(config_actor_set - relay_node_set)
+        if relay_node_names != config_actor_names:
+            missing = sorted(relay_node_names - config_actor_names)
+            extra = sorted(config_actor_names - relay_node_names)
             raise ValueError(
-                "Axiom 7 violated: RelayNodes and I2cRelayComponent.ConfigList mismatch. "
-                f"MissingConfigsFor={missing_configs} ExtraConfigsFor={extra_configs}"
+                "Axiom 4 (I2cRelayComponentChannelControlNodeConsistency) failed: "
+                "RelayNodes and I2cRelayComponent.ConfigList mismatch. "
+                f"MissingConfigsFor={missing} ExtraConfigsFor={extra}"
             )
-
+        channel_by_about_name = {c.AboutNodeName: c for c in self.ControlChannels}
+        for config in self.I2cRelayComponent.ConfigList:
+            channel = channel_by_about_name.get(config.ActorName)
+            if channel is None or config.ChannelName != channel.Name:
+                raise ValueError(
+                    f"Axiom 4 (I2cRelayComponentChannelControlNodeConsistency) failed: "
+                    f"I2cRelayComponent config for {config.ActorName} "
+                    f"has ChannelName {config.ChannelName!r}, expected the "
+                    f"ControlChannels entry named for AboutNodeName {config.ActorName!r}."
+                )
         return self

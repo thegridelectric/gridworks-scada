@@ -6,12 +6,12 @@ scada consumes its two authored artifacts per home:
     gw.house0.layout.json ⊕ gw.house0.operational.params.json
         ──ops_and_sema_to_dc──▶ runtime House0Sema ──sema_to_dc──▶ House0Dc
 
-`assemble_runtime_layout` splices each channel's capture.tuning back onto its
-component's ConfigList entry (bare components get their ConfigList rebuilt from
-the tunings of the channels they capture), carrying the two assembly checks:
-assembly coverage (the ops file covers every channel the static layout
-declares) and the poll floor (PollPeriodMs ≥ the device type's MinPollPeriodMs;
-the layout owns the floor, the ops file owns PollPeriodMs).
+`assemble_runtime_layout` validates the two assembly checks: assembly coverage
+(the ops file covers every channel the static layout declares) and the poll
+floor (PollPeriodMs ≥ the device type's MinPollPeriodMs; the layout owns the
+floor, the ops file owns PollPeriodMs). Capture tuning is never spliced onto
+components — it stays on the ops artifact's CaptureTuningList, threaded
+through to the runtime layout as HardwareLayout.capture_tuning_by_channel.
 
 The forward diff-and-adopt oracle (`diff_against_fixture` / `main`)
 canon-compares the assembled layout against its frozen `tests/config/<home>.json`
@@ -27,9 +27,14 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from actors.config import DEFAULT_OPS_PARAMS_FILE
 from gwsproto.data_classes.house_0_layout import House0Layout as House0Dc
 from gwsproto.named_types import House0Layout as House0Sema
-from gwsproto.named_types import NolanLayout
+from gwsproto.named_types import (
+    House0OperationalParams,
+    NolanLayout,
+    NolanOperationalParams,
+)
 
 CONFIG_DIR = Path(__file__).resolve().parent.parent / "tests" / "config"
 
@@ -39,21 +44,61 @@ SEMA_LAYOUT_BY_TYPENAME: dict[str, type[House0Sema] | type[NolanLayout]] = {
     "gw.nolan.layout": NolanLayout,
 }
 
-_CAPTURE_FIELDS = (
-    "PollPeriodMs",
-    "CapturePeriodS",
-    "AsyncCapture",
-    "AsyncCaptureDelta",
-)
+OperationalParams = House0OperationalParams | NolanOperationalParams
 
+# The ONLY layout ⊕ operational-params pairings a scada may boot. A home's
+# operational params are authored against its layout family: the House0 word
+# carries the store/optimization knobs (SeasonalStorageMode, HpTurnOnMinutes,
+# ShortCycleBuffer, LoadOverestimationPercent, OilBoilerBackup, HorizonHours)
+# that House0 control reads, and the Nolan word carries the cooling-season TOU
+# schedule (OnPeakWindows, HeldCircuitPositions) that Nolan control reads.
+# A crossed pair decodes but then starves whichever control path it feeds, so
+# the pairing is checked at load and a mismatch refuses the boot outright.
+APPROVED_PAIRS: dict[str, str] = {
+    "gw.house0.layout": "gw.house0.operational.params",
+    "gw.nolan.layout": "gw.nolan.operational.params",
+}
+
+SEMA_OPS_BY_TYPENAME: dict[str, type[OperationalParams]] = {
+    "gw.house0.operational.params": House0OperationalParams,
+    "gw.nolan.operational.params": NolanOperationalParams,
+}
+
+
+def check_approved_pair(layout_type_name: str, ops_type_name: str) -> None:
+    """Refuse any layout ⊕ operational-params pairing outside APPROVED_PAIRS.
+    Raises ValueError naming both words and the one partner that is allowed."""
+    expected = APPROVED_PAIRS.get(layout_type_name)
+    if expected is None:
+        raise ValueError(
+            f"Layout word {layout_type_name!r} has no approved operational-params "
+            f"partner. Approved pairs: {APPROVED_PAIRS}."
+        )
+    if ops_type_name != expected:
+        raise ValueError(
+            f"Mismatched artifact pair: layout {layout_type_name!r} SHALL be paired "
+            f"with {expected!r}, got operational params {ops_type_name!r}. "
+            f"Approved pairs: {APPROVED_PAIRS}. Scada will not start."
+        )
+
+
+def decode_operational_params(ops: dict[str, Any]) -> OperationalParams:
+    """Decode the operational-params artifact through its own family's word."""
+    type_name = ops.get("TypeName")
+    ops_cls = SEMA_OPS_BY_TYPENAME.get(str(type_name))
+    if ops_cls is None:
+        raise ValueError(
+            f"Operational params TypeName {type_name!r} is not a known "
+            f"operational-params word. Known: {sorted(SEMA_OPS_BY_TYPENAME)}."
+        )
+    return ops_cls.model_validate(ops)
 
 def assemble_runtime_layout(
     static: dict[str, Any], ops: dict[str, Any]
 ) -> dict[str, Any]:
-    """Splice the ops file's capture.tuning entries onto the static layout's
-    components, producing the runtime-shaped layout dict. Raises on the two
-    assembly-validity failures (coverage, poll floor)."""
-    static = copy.deepcopy(static)
+    """Validate the static layout against the ops file's capture.tuning
+    coverage and poll floor; return the static layout unchanged (capture
+    tuning is never spliced onto components — see module docstring)."""
     tuning_by_channel = {t["ChannelName"]: t for t in ops["CaptureTuningList"]}
 
     # assembly coverage: ops covers every channel the static layout declares
@@ -92,33 +137,45 @@ def assemble_runtime_layout(
                     f"poll floor failed: channel '{name}' PollPeriodMs {poll} < "
                     f"MinPollPeriodMs {floor} of device type {comp['DeviceType']}"
                 )
-        if "ConfigList" in comp:
-            # specialty configs: merge the capture fields back onto each entry.
-            # Entries with no ChannelName (e.g. i2c.dac.channel.config) are not
-            # capture configs and take no tuning.
-            for cfg in comp["ConfigList"]:
-                if "ChannelName" not in cfg:
-                    continue
-                tuning = tuning_by_channel.get(cfg["ChannelName"])
-                if tuning is None:
-                    continue  # coverage above guards declared channels
-                for field in _CAPTURE_FIELDS:
-                    if field in tuning:
-                        cfg[field] = tuning[field]
-        else:
-            # bare component: rebuild ConfigList from the tunings of the
-            # channels its node(s) capture
-            comp["ConfigList"] = [copy.deepcopy(tuning_by_channel[n]) for n in captured]
     return static
 
 
-def ops_and_sema_to_dc(static_path: Path, ops_path: Path) -> House0Dc:
-    """Assemble the two authored artifacts and load the dc House0Layout."""
+def ops_and_sema_to_dc(
+    static_path: Path, ops_path: Path, **load_kwargs: Any
+) -> House0Dc:
+    """Assemble the two authored artifacts and load the dc House0Layout. The
+    pair SHALL be approved (see APPROVED_PAIRS); a mismatch raises."""
     static = json.loads(Path(static_path).read_text())
     ops = json.loads(Path(ops_path).read_text())
+    check_approved_pair(str(static.get("TypeName")), str(ops.get("TypeName")))
     assembled = assemble_runtime_layout(static, ops)
     sema = SEMA_LAYOUT_BY_TYPENAME[assembled["TypeName"]].model_validate(assembled)
-    return House0Dc.load_dict(sema_to_layout_dict(sema))
+    layout_dict = sema_to_layout_dict(sema)
+    layout_dict["CaptureTuningList"] = ops.get("CaptureTuningList", [])
+    dc = House0Dc.load_dict(layout_dict, **load_kwargs)
+    dc.layout_type_name = sema.TypeName
+    return dc
+
+
+def load_layout(
+    layout_path: Path | str,
+    ops_path: Path | str,
+    **load_kwargs: Any,
+) -> House0Dc:
+    """Load a runtime layout from the home's two authored artifacts. BOTH paths
+    are passed in the same way — callers take them from settings.paths
+    (hardware_layout and operational_params); neither filename is constructed
+    here. The static artifact SHALL be sema-authored (its TypeName names a sema
+    layout word) and the pair SHALL be approved (see APPROVED_PAIRS). Every app
+    and tool loads through here."""
+    type_name = json.loads(Path(layout_path).read_text()).get("TypeName")
+    if type_name not in SEMA_LAYOUT_BY_TYPENAME:
+        raise ValueError(
+            f"{layout_path} has TypeName {type_name!r}; a layout must be "
+            f"sema-authored, naming one of {sorted(SEMA_LAYOUT_BY_TYPENAME)}. "
+            "Generate the layout ⊕ operational-params pair in tlayouts."
+        )
+    return ops_and_sema_to_dc(Path(layout_path), Path(ops_path), **load_kwargs)
 
 
 def sema_to_layout_dict(sema: House0Sema | NolanLayout) -> dict[str, Any]:
@@ -212,13 +269,14 @@ def diff_against_fixture(name: str, authored_dir: Path) -> int:
             f"expected exactly one gw.*.layout.json in {authored_dir}; found {layout_paths}"
         )
     static_path = layout_paths[0]
-    ops_path = authored_dir / "gw.house0.operational.params.json"
+    ops_path = authored_dir / DEFAULT_OPS_PARAMS_FILE
 
     static = json.loads(static_path.read_text())
     ops = json.loads(ops_path.read_text())
     assembled = assemble_runtime_layout(static, ops)
     sema = SEMA_LAYOUT_BY_TYPENAME[assembled["TypeName"]].model_validate(assembled)
     gen_layout = sema_to_layout_dict(sema)
+    gen_layout["CaptureTuningList"] = ops.get("CaptureTuningList", [])
 
     print(f"== ops_and_sema_to_dc({name}) loads? ==")
     try:

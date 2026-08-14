@@ -21,7 +21,7 @@ from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.data_classes.data_channel import DataChannel
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import DeviceType
-from gwsproto.named_types import AdsChannelConfig, SyncedReadings
+from gwsproto.named_types import CaptureTuning, SyncedReadings
 from gwsproto.named_types import Glitch
 from gwsproto.data_classes.hardware_layout import HardwareLayout
 
@@ -85,7 +85,7 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
 
     FASTEST_POLL_PERIOD_MS = 40
     driver: MultipurposeSensorDriver
-    cfg_by_ch: Dict[DataChannel, AdsChannelConfig]
+    tuning_by_ch: Dict[DataChannel, CaptureTuning]
     my_channels: List[DataChannel]
     last_reported_telemetry_value: Dict[str, Optional[int]]  # channel name to value
     latest_telemetry_value: Dict[str, Optional[int]]
@@ -121,8 +121,10 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
             if ch.AboutNodeName in my_channel_names
         ]
         setup_helper = MpDriverThreadSetupHelper(node, settings, hardware_layout)
-        self.cfg_by_ch = {
-            self._hardware_layout.data_channels[cfg.ChannelName]: cfg
+        self.tuning_by_ch = {
+            self._hardware_layout.data_channels[cfg.ChannelName]: (
+                self._hardware_layout.capture_tuning_by_channel[cfg.ChannelName]
+            )
             for cfg in self.component.gt.ConfigList
         }
         self.driver = setup_helper.make_driver()
@@ -224,7 +226,7 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
         the amount of change required (as a function of the absolute max value) determined
         in the Config.
         """
-        telemetry_config = self.cfg_by_ch[ch]
+        telemetry_config = self.tuning_by_ch[ch]
         if (
             telemetry_config.AsyncCapture
             and telemetry_config.AsyncCaptureDelta is not None
@@ -255,7 +257,7 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
             return True
         if (
             time.time() - self._last_sampled_s[ch.Name]
-            > self.cfg_by_ch[ch].CapturePeriodS
+            > self.tuning_by_ch[ch].CapturePeriodS
         ):
             return True
         if self.value_exceeds_async_threshold(ch):

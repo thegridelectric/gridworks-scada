@@ -1,11 +1,9 @@
-from collections.abc import Sequence
 from typing import Literal, Optional
 
-from pydantic import ConfigDict, PositiveInt, field_validator, model_validator
+from pydantic import ConfigDict, PositiveInt, model_validator
 from typing_extensions import Self
 
 from gwsproto.enums import TempCalcMethod
-from gwsproto.named_types.capture_tuning import CaptureTuning
 from gwsproto.type_helpers.component_base import DeviceComponentBase
 
 
@@ -28,22 +26,11 @@ class PicoTankModuleComponentGt(DeviceComponentBase):
 
     model_config = ConfigDict(extra="allow")
 
-    @field_validator("ConfigList")
-    @classmethod
-    def check_axiom_1(cls, v: Sequence[CaptureTuning]) -> Sequence[CaptureTuning]:
-        """Axiom 1: Channel Name uniqueness. Data Channel names are unique in the ConfigList."""
-        channel_names = [config.ChannelName for config in v]
-        if len(channel_names) != len(set(channel_names)):
-            duplicates = sorted({n for n in channel_names if channel_names.count(n) > 1})
-            raise ValueError(
-                f"Axiom 1 violated! Channel names must be unique in the ConfigList; duplicates: {duplicates}"
-            )
-        return v
-
     @model_validator(mode="after")
-    def check_axiom_2(self) -> Self:
+    def check_axiom_1(self) -> Self:
         """
-        Axiom 2: PicoHwUid exists  XOR (both PicoAHwUid and PicoBHwUid exist)
+        Axiom 1: PicoHardwareIdentityXor.
+        PicoHwUid exists XOR (both PicoAHwUid and PicoBHwUid exist)
         """
         if self.PicoHwUid is not None:
             if self.PicoAHwUid or self.PicoBHwUid:
@@ -58,9 +45,10 @@ class PicoTankModuleComponentGt(DeviceComponentBase):
         return self
 
     @model_validator(mode="after")
-    def check_axiom_3(self) -> Self:
+    def check_axiom_2(self) -> Self:
         """
-        Axiom 3: PicoKOhms exists iff TempCalcMethod is TempCalcMethod.SimpleBetaForPico
+        Axiom 2: PicoKOhmsConsistency.
+        PicoKOhms exists iff TempCalcMethod is TempCalcMethod.SimpleBetaForPico
         # note this is a known incorrect method, but there are a few in the field
         # that do this.
         """
@@ -74,9 +62,9 @@ class PicoTankModuleComponentGt(DeviceComponentBase):
 
         return self
 
-    def check_axiom_4(self) -> None:
+    def check_axiom_3(self) -> None:
         """
-        Axiom 4:
+        Axiom 3: SensorOrderPermutation.
         If SensorOrder is provided, it must be a permutation of [1, 2, 3].
         """
         if self.SensorOrder is None:

@@ -30,7 +30,7 @@ def test_capture_tuning_axiom_1() -> None:
     d["PollPeriodMs"] = 1000
     d["CapturePeriodS"] = 1
 
-    with pytest.raises(ValueError, match="Axiom 1 violated!"):
+    with pytest.raises(ValueError, match="Axiom 1 \\(CaptureAndPollingConsistency\\) failed"):
         CaptureTuning.model_validate(d)
 
 
@@ -39,7 +39,7 @@ def test_capture_tuning_axiom_1_multiple_when_close() -> None:
     d["PollPeriodMs"] = 700
     d["CapturePeriodS"] = 2
 
-    with pytest.raises(ValueError, match="Axiom 1 violated!"):
+    with pytest.raises(ValueError, match="Axiom 1 \\(CaptureAndPollingConsistency\\) failed"):
         CaptureTuning.model_validate(d)
 
 

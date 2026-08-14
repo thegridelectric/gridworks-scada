@@ -1,4 +1,3 @@
-import json
 import typing
 from typing import Optional
 from pathlib import Path
@@ -18,10 +17,9 @@ from gwsproto.data_classes.hardware_layout import HardwareLayout
 
 import actors
 from actors.scada import Scada
-from actors.scada_data import operational_params_path
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
-from sema_to_dc import SEMA_LAYOUT_BY_TYPENAME, ops_and_sema_to_dc
+from sema_to_dc import load_layout
 from gwsproto.data_classes import house_0_names
 from gwsproto.data_classes.house_0_layout import House0Layout
 from gwsproto.data_classes.house_0_names import H0N
@@ -139,12 +137,9 @@ class ScadaApp(App, ScadaAppInterface):
         """Load the runtime layout. A sema-authored static artifact (its TypeName
         names a sema layout type) is assembled with the home's operational-params
         artifact; a runtime-shaped layout file loads directly."""
-        type_name = json.loads(Path(layout_path).read_text()).get("TypeName")
-        if type_name in SEMA_LAYOUT_BY_TYPENAME:
-            return ops_and_sema_to_dc(
-                Path(layout_path), operational_params_path(self.settings)
-            )
-        return House0Layout.load(layout_path)
+        return load_layout(
+            layout_path, Path(self.settings.paths.operational_params)
+        )
 
     @property
     def hardware_layout(self) -> House0Layout:

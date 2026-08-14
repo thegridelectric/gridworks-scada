@@ -33,12 +33,13 @@ from gwsproto.data_classes.derived_channel import DerivedChannel
 
 from gwsproto.enums import ActorClass, TelemetryName, Unit, EmissionMethod
 from gwsproto.named_types import (
+    CaptureTuning,
     DataChannelGt,
     ElectricMeterDeviceTypeGt,
     ScadaBoardComponentGt,
     SpaceheatNodeGt,
 )
-from gwsproto.type_helpers.channel_config_base import ChannelConfigBase
+from gwsproto.type_helpers.channel_named import ChannelNamed
 from gwsproto.type_helpers.component_base import (
     BoardResidentComponentBase,
     ComponentBase,
@@ -368,13 +369,16 @@ class HardwareLayout:
         cls.check_dc_id_uniqueness(data_channels)
         dc_names_by_component: set[str] = set()
         for c in components.values():
-            # Only channel-shaped configs (ChannelConfigBase) reference data
-            # channels; e.g. i2c.dac.channel.config entries carry power-on
-            # defaults, not captures.
+            # Only channel-named configs reference data channels; e.g.
+            # i2c.dac.channel.config entries carry power-on defaults, not
+            # captures, and have no ChannelName at all. Bare components (no
+            # sema ConfigList at all, e.g. pico.btu.meter.component.gt) have
+            # no attribute here — their channels bind via
+            # DataChannel.CapturedByNodeName only.
             channel_names = {
                 config.ChannelName
-                for config in c.gt.ConfigList
-                if isinstance(config, ChannelConfigBase)
+                for config in getattr(c.gt, "ConfigList", None) or []
+                if isinstance(config, ChannelNamed)
             }
             if dc_names_by_component & channel_names:
                 raise DcError(
@@ -605,6 +609,10 @@ class HardwareLayout:
         derived_channels: dict[str, DerivedChannel],
     ) -> None:
         self.layout = copy.deepcopy(layout)
+        self.capture_tuning_by_channel: dict[str, CaptureTuning] = {
+            ct["ChannelName"]: CaptureTuning.model_validate(ct)
+            for ct in self.layout.get("CaptureTuningList", [])
+        }
         self.device_types = dict(device_types)
         self.components = dict(components)
         self.components_by_type = defaultdict(list)

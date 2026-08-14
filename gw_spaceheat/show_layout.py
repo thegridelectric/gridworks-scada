@@ -17,6 +17,8 @@ from gwsproto.errors import DcError
 from gwsproto.data_classes.hardware_layout import LoadError
 from gwsproto.data_classes.house_0_layout import House0Layout
 
+from sema_to_dc import load_layout
+
 from gwsproto.enums import ActorClass
 
 from scada_app import ScadaApp
@@ -45,6 +47,16 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
             "If path is relative it will be relative to settings.paths.config_dir. "
             "If path has no extension, .json will be assumed. "
             "If not specified default settings.paths.hardware_layout will be used."
+        ),
+    )
+    parser.add_argument(
+        "-o",
+        "--ops-file",
+        default=None,
+        help=(
+            "Name of the operational-params file. Same resolution rules as "
+            "--layout-file. If not specified default "
+            "settings.paths.operational_params will be used."
         ),
     )
     parser.add_argument(
@@ -384,11 +396,19 @@ def main(argv: Optional[Sequence[str]] = None) -> list[LoadError]:
         if not layout_path.suffix:
             layout_path = layout_path.with_suffix(".json")
         settings.paths.hardware_layout = layout_path
+    if args.ops_file:
+        ops_path = Path(args.ops_file)
+        if Path(ops_path.name) == ops_path:
+            ops_path = settings.paths.config_dir / ops_path
+        if not ops_path.suffix:
+            ops_path = ops_path.with_suffix(".json")
+        settings.paths.operational_params = ops_path
     requested_names = get_requested_names(args)
     print(f"Using layout file: <{settings.paths.hardware_layout}>, exists: {settings.paths.hardware_layout.exists()}")
     errors = []
-    layout = House0Layout.load(
+    layout = load_layout(
         settings.paths.hardware_layout,
+        Path(settings.paths.operational_params),
         included_node_names=requested_names,
         raise_errors=bool(args.raise_errors),
         errors=errors,

@@ -3,6 +3,8 @@ import logging
 import typing
 from gwsproto.data_classes.components import ElectricMeterComponent
 from actors.config import ScadaSettings
+from pathlib import Path
+from sema_to_dc import load_layout
 from gwsproto.data_classes.house_0_layout import House0Layout
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import GridworksSimPm1_PowerMeterDriver
 
@@ -65,7 +67,7 @@ def test_power_meter_small():
     driver_thread.last_reported_telemetry_value[ch_1] = driver_thread.latest_telemetry_value[ch_1]
 
     assert driver_thread.value_hits_async_threshold(ch_1) is False
-    store_pump_capture_delta = driver_thread.eq_reporting_config[ch_1].AsyncCaptureDelta
+    store_pump_capture_delta = driver_thread.tuning_by_ch[ch_1].AsyncCaptureDelta
     assert store_pump_capture_delta == 5
     driver_thread.latest_telemetry_value[ch_1] += 4
     assert driver_thread.value_hits_async_threshold(ch_1) is False
@@ -104,12 +106,15 @@ def test_power_meter_small():
     assert driver_thread.latest_agg_power_w == 300
 
 def meter_test_layout() -> House0Layout:
-    layout = House0Layout.load(ScadaSettings().paths.hardware_layout)
+    settings = ScadaSettings()
+    layout = load_layout(
+        settings.paths.hardware_layout, Path(settings.paths.operational_params)
+    )
     meter_component = layout.component_from_node(layout.node(H0N.primary_power_meter))
     if not isinstance(meter_component, ElectricMeterComponent):
         raise TypeError(f"ERROR. Got meter component with wrong type ({type(meter_component)})")
     for config in meter_component.gt.ConfigList:
-        config.CapturePeriodS = 1
+        layout.capture_tuning_by_channel[config.ChannelName].CapturePeriodS = 1
     return layout
 
 

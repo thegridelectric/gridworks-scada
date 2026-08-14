@@ -1,4 +1,4 @@
-"""Tests i2c.thermistor.reader.component.gt type, version 003"""
+"""Tests i2c.thermistor.reader.component.gt type, version 000"""
 
 import pytest
 
@@ -9,13 +9,10 @@ from gwsproto.named_types import I2cThermistorReaderComponentGt
 def base_config(channel_name: str, adc_channel: str) -> dict:
     return {
         "ChannelName": channel_name,
-        "CapturePeriodS": 60,
-        "AsyncCapture": True,
-        "AsyncCaptureDelta": 2000,
         "AdcChannel": adc_channel,
         "ThermistorBeta": 3977,
         "TypeName": "i2c.thermistor.channel.config",
-        "Version": "002",
+        "Version": "000",
     }
 
 
@@ -31,7 +28,7 @@ def base_component() -> dict:
         "DataRateSps": 8,
         "TempCalcMethod": TempCalcMethod.SimpleBeta,
         "TypeName": "i2c.thermistor.reader.component.gt",
-        "Version": "003",
+        "Version": "000",
     }
 
 

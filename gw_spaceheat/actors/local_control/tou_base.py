@@ -17,8 +17,8 @@ from gwsproto.data_classes.house_0_names import H0N, H0CN
 from gwsproto.data_classes.components.dfr_component import DfrComponent
 
 from gwsproto.enums import (
-    ActorClass, LocalControlTopEvent,  
-    LocalControlTopState, SystemMode,
+    ActorClass, ActuationAuthority, LocalControlTopEvent,
+    LocalControlTopState,
     SeasonalStorageMode,
 )
 from gwsproto.named_types import (ActuatorsReady,
@@ -78,7 +78,7 @@ class LocalControlTouBase(ShNodeActor):
             send_event=False,
             model_attribute="top_state",
         )  
-        if self.ops.SystemMode == SystemMode.MonitorOnly:
+        if self.ops.ActuationAuthority == ActuationAuthority.MonitorOnly:
             self.top_state = LocalControlTopState.Monitor
         else: 
             self.top_state = LocalControlTopState.Normal
@@ -509,7 +509,7 @@ class LocalControlTouBase(ShNodeActor):
             return
 
         # Monitor-only mode: Dormant -> Monitor
-        if self.ops.SystemMode == SystemMode.MonitorOnly:
+        if self.ops.ActuationAuthority == ActuationAuthority.MonitorOnly:
             # MonitorOnly: SCADA must not actuate anything
             self.trigger_top_event(LocalControlTopEvent.MonitorOnly)
             self.log("Monitor-only: WakeUp transitioned Dormant -> Monitor")

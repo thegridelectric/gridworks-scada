@@ -399,7 +399,9 @@ class I2cThermistorReader(ShNodeActor):
             return True, microvolts, temp_c_x100
 
         delta = abs(temp_c_x100 - prev_temp)
-        threshold = device_cfg.AsyncCaptureDelta
+        threshold = self.layout.capture_tuning_by_channel[
+            device_cfg.ChannelName
+        ].AsyncCaptureDelta
 
         if threshold is None: # not reporting asynchronously
             changed = False
@@ -437,15 +439,15 @@ class I2cThermistorReader(ShNodeActor):
             return
 
         # assume uniform timing for now (first cfg)
-        cfg0 = self.cfgs[0]
+        tuning0 = self.layout.capture_tuning_by_channel[self.cfgs[0].ChannelName]
 
         poll_period = (
-            cfg0.PollPeriodMs / 1000.0
-            if cfg0.PollPeriodMs
+            tuning0.PollPeriodMs / 1000.0
+            if tuning0.PollPeriodMs
             else 1
         )
 
-        period = cfg0.CapturePeriodS
+        period = tuning0.CapturePeriodS
         next_capture_ts = ((int(time.time()) // period) + 1) * period
 
         while not self._stop_requested:

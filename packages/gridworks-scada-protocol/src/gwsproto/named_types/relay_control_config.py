@@ -1,18 +1,18 @@
 from typing import Literal
 
-from pydantic import model_validator
+from pydantic import BaseModel, model_validator
 from typing_extensions import Self
 
 from gwsproto.enums import ChangeRelayState, RelayClosedOrOpen, RelayWiringConfig
 from gwsproto.property_format import LeftRightDotStr, SpaceheatName
-from gwsproto.type_helpers.channel_config_base import ChannelConfigBase
 
 
-class RelayControlConfig(ChannelConfigBase):
+class RelayControlConfig(BaseModel):
     """
     Sema: https://schemas.electricity.works/types/relay.control.config/000
     """
 
+    ChannelName: SpaceheatName
     ActorName: SpaceheatName
     WiringConfig: RelayWiringConfig
     EventType: LeftRightDotStr

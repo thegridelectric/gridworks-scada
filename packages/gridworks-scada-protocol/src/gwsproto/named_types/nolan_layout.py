@@ -2,12 +2,13 @@ from typing import List, Literal
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
+from gwsproto.enums import ActorClass
 from gwsproto.named_types.ads111x_based_device_type_gt import Ads111xBasedDeviceTypeGt
 from gwsproto.named_types.electric_meter_device_type_gt import ElectricMeterDeviceTypeGt
 from gwsproto.named_types.scada_device_type_gt import ScadaDeviceTypeGt
 from gwsproto.named_types.data_channel_gt import DataChannelGt
 from gwsproto.named_types.g_node_gt import GNodeGt
-from gwsproto.named_types.gw_hydronic import GwHydronic
+from gwsproto.named_types.hydronic import Hydronic
 from gwsproto.named_types.derived_channel_gt import DerivedChannelGt
 from gwsproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwsproto.named_types.gpio_relay_component_gt import GpioRelayComponentGt
@@ -62,11 +63,53 @@ class NolanLayout(BaseModel):
     DerivedChannels: List[DerivedChannelGt]
     Components: List[NolanComponent]
     DeviceTypes: List[NolanDeviceType]
-    Hydronic: GwHydronic
+    Hydronic: Hydronic
     TypeName: Literal["gw.nolan.layout"] = "gw.nolan.layout"
     Version: Literal["000"] = "000"
 
     model_config = ConfigDict(extra="allow")
+
+    @model_validator(mode="after")
+    def check_axiom_3(self) -> "NolanLayout":
+        """Axiom 3: LocalControlPlant.
+
+        a. ShNodes SHALL include nodes named "iso-valve-relay",
+        "secondary-pump-relay", and "hp-scada-ops-relay", each with
+        ActorClass "Relay".
+        b. Hydronic.ZoneCallCircuits SHALL be non-empty, and each circuit's
+        FailsafeRelayNode and OpsRelayNode SHALL name a ShNode in ShNodes
+        with ActorClass "Relay".
+        """
+        actor_class_by_name = {n.Name: n.ActorClass for n in self.ShNodes}
+
+        def relay_or_raise(node_name: str, role: str) -> None:
+            actor_class = actor_class_by_name.get(node_name)
+            if actor_class is None:
+                raise ValueError(
+                    f"Axiom 3 (LocalControlPlant) failed: no ShNode named "
+                    f"{node_name} ({role})."
+                )
+            if actor_class != ActorClass.Relay:
+                raise ValueError(
+                    f"Axiom 3 (LocalControlPlant) failed: {node_name} "
+                    f"({role}) has ActorClass {actor_class}, not Relay."
+                )
+
+        for required in (
+            "iso-valve-relay",
+            "secondary-pump-relay",
+            "hp-scada-ops-relay",
+        ):
+            relay_or_raise(required, "plant relay")
+        circuits = self.Hydronic.ZoneCallCircuits or []
+        if not circuits:
+            raise ValueError(
+                "Axiom 3 (LocalControlPlant) failed: Hydronic.ZoneCallCircuits is empty."
+            )
+        for circuit in circuits:
+            relay_or_raise(circuit.FailsafeRelayNode, "circuit failsafe relay")
+            relay_or_raise(circuit.OpsRelayNode, "circuit ops relay")
+        return self
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> "NolanLayout":

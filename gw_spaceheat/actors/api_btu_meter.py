@@ -162,16 +162,9 @@ class ApiBtuMeter(PicoActorBase):
             params.AsyncCaptureDeltaCtVoltsX100 = self._component.gt.AsyncCaptureDeltaCtVoltsX100
             # Set timing parameters
 
-            # Find the config for the flow channel. Must exist via layout axioms
-            flow_config = next(
-                (
-                    cfg
-                    for cfg in self._component.gt.ConfigList
-                    if cfg.ChannelName == self.flow_channel.Name
-                ),
-            )
-
-            period = flow_config.CapturePeriodS
+            period = self.layout.capture_tuning_by_channel[
+                self.flow_channel.Name
+            ].CapturePeriodS
 
 
             # Calculate seconds until next minute boundary
@@ -282,12 +275,8 @@ class ApiBtuMeter(PicoActorBase):
         """IOLoop will take care of shutting down the associated task."""
 
     def flatline_seconds(self) -> float:
-        cfg = next(
-            cfg
-            for cfg in self._component.gt.ConfigList
-            if cfg.ChannelName == f"{self.flow_channel.Name}"
-        )
-        return cfg.CapturePeriodS * 2.5
+        tuning = self.layout.capture_tuning_by_channel[self.flow_channel.Name]
+        return tuning.CapturePeriodS * 2.5
 
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:

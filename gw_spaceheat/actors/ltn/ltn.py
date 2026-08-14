@@ -64,8 +64,8 @@ from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
     LogLevel,
     MarketPriceUnit, MarketQuantityUnit, MarketTypeName,
-    TelemetryName, RelayClosedOrOpen, SeasonalStorageMode, 
-    SlowDispatchContractStatus, SystemMode
+    TelemetryName, RelayClosedOrOpen, SeasonalStorageMode,
+    SlowDispatchContractStatus, ActuationAuthority, ServiceMode
 )
 from gwsproto.named_types import PowerWatts, Report, ReportEvent
 from gwsproto.named_types import AnalogDispatch, SendSnap, MachineStates
@@ -520,7 +520,8 @@ class Ltn(PrimeActor):
         self.total_store_tanks = 3 # will also get updated when LayoutLite arrives
         # TODO: read strategy from hardware layout: node = hardware_layout.node(...)
         self.buffer_flo = False
-        self.system_mode: SystemMode = SystemMode.Heating # will get updated when LayoutLite arrives from Scada
+        self.actuation_authority: ActuationAuthority = ActuationAuthority.Active # will get updated when LayoutLite arrives from Scada
+        self.service_mode: ServiceMode = ServiceMode.Heating # will get updated when LayoutLite arrives from Scada
         self.seasonal_storage_mode: SeasonalStorageMode = SeasonalStorageMode.AllTanks # will get updated when LayoutLite arrives from Scada
         self.short_cycle_buffer: bool = False # will get updated when LayoutLite arrives from Scada
 
@@ -763,7 +764,8 @@ class Ltn(PrimeActor):
         self.log("Processing layout lite")
         self.logger.info(f"Processing layout lite: {layout}")
         self.layout_lite = layout
-        self.system_mode = layout.SystemMode
+        self.actuation_authority = layout.ActuationAuthority
+        self.service_mode = layout.ServiceMode
         self.ha1_params = layout.Ha1Params
         self.seasonal_storage_mode = layout.SeasonalStorageMode
         self.total_store_tanks = layout.TotalStoreTanks
@@ -870,7 +872,10 @@ class Ltn(PrimeActor):
                 await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
                 continue
 
-            if self.system_mode != SystemMode.Heating:
+            if (
+                self.actuation_authority != ActuationAuthority.Active
+                or self.service_mode != ServiceMode.Heating
+            ):
                 # SCADA-side: plant is not accepting heating intent
                 await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
                 continue
@@ -959,7 +964,10 @@ class Ltn(PrimeActor):
             self.log("Do not have layout lite from scada so not running dijkstra... must not be connected!!")
             return
 
-        if self.system_mode != SystemMode.Heating:
+        if (
+            self.actuation_authority != ActuationAuthority.Active
+            or self.service_mode != ServiceMode.Heating
+        ):
             self.log("Should not be running FLOs when Scada is in Summer!! Sent glitch")
             glitch = Glitch(
                 FromGNodeAlias=self.layout.ltn_g_node_alias,

@@ -2,7 +2,7 @@ import asyncio
 from typing import List, Optional, Sequence
 import time
 from gwsproto.data_classes.house_0_names import H0N
-from gwsproto.enums import SystemMode
+from gwsproto.enums import ActuationAuthority
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 
@@ -28,9 +28,9 @@ class StandbyLocalControl(ShNodeActor):
 
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
-        if self.ops.SystemMode != SystemMode.Standby:
+        if self.ops.ActuationAuthority != ActuationAuthority.Standby:
             raise Exception(
-                f"Expect system mode Standby, got {self.ops.SystemMode}"
+                f"Expect actuation authority Standby, got {self.ops.ActuationAuthority}"
             )
         self._stop_requested: bool = False
         self.buffer_declared_ready = False

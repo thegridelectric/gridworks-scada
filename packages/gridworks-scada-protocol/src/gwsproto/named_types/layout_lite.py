@@ -5,7 +5,7 @@ from gwsproto.named_types.data_channel_gt import DataChannelGt
 from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
     I2cMultichannelDtRelayComponentGt,
 )
-from gwsproto.enums import SystemMode, SeasonalStorageMode
+from gwsproto.enums import ActuationAuthority, ServiceMode, SeasonalStorageMode
 from gwsproto.named_types.pico_flow_module_component_gt import PicoFlowModuleComponentGt
 from gwsproto.named_types.pico_tank_module_component_gt import PicoTankModuleComponentGt
 from gwsproto.named_types.sim_pico_tank_module_component_gt import SimPicoTankModuleComponentGt
@@ -20,14 +20,15 @@ from typing_extensions import Self
 
 class LayoutLite(BaseModel):
     """
-    Sema: https://schemas.electricity.works/enums/layout.lite/013
+    Sema: https://schemas.electricity.works/types/layout.lite/013
     """
 
     FromGNodeAlias: LeftRightDotStr
     MessageCreatedMs: UTCMilliseconds
     MessageId: UUID4Str
     Strategy: str
-    SystemMode: SystemMode
+    ActuationAuthority: ActuationAuthority
+    ServiceMode: ServiceMode
     SeasonalStorageMode: SeasonalStorageMode
     BufferShortCycling: bool
     ZoneList: List[str]
@@ -54,18 +55,18 @@ class LayoutLite(BaseModel):
         for dc in self.DataChannels:
             if dc.AboutNodeName not in [n.Name for n in self.ShNodes]:
                 raise ValueError(
-                    f"Axiom 1 Viloated: dc {dc.Name} AboutNodeName {dc.AboutNodeName} not in ShNodes!"
+                    f"Axiom 1 (DcNodeConsistency) failed: dc {dc.Name} AboutNodeName {dc.AboutNodeName} not in ShNodes!"
                 )
             captured_by_node = next(
                 (n for n in self.ShNodes if n.Name == dc.CapturedByNodeName), None
             )
             if not captured_by_node:
                 raise ValueError(
-                    f"Axiom 1 Viloated: dc {dc.Name} CapturedByNodeName {dc.CapturedByNodeName} not in ShNodes!"
+                    f"Axiom 1 (DcNodeConsistency) failed: dc {dc.Name} CapturedByNodeName {dc.CapturedByNodeName} not in ShNodes!"
                 )
             if captured_by_node.ActorClass == ActorClass.NoActor:
                 raise ValueError(
-                    f"Axiom 1 Viloated: dc {dc.Name}'s CatpuredByNode cannot have ActorClass NoActor!"
+                    f"Axiom 1 (DcNodeConsistency) failed: dc {dc.Name}'s CapturedByNode cannot have ActorClass NoActor!"
                 )
         return self
 
@@ -83,7 +84,7 @@ class LayoutLite(BaseModel):
                 boss_handle = ".".join(handle.split(".")[:-1])
                 if boss_handle not in existing_handles:
                     raise ValueError(
-                        f"Axiom 2 violated: node {node.Name} with handle {handle} missing"
+                        f"Axiom 2 (NodeHandleHierarchyConsistency) failed: node {node.Name} with handle {handle} missing"
                         " its immediate boss!"
                     )
         return self
@@ -97,7 +98,7 @@ class LayoutLite(BaseModel):
         for z in self.CriticalZoneList:
             if z not in zone_set:
                 raise ValueError(
-                    f"Axiom 3 violated! Critical zone '{z}' is not present in ZoneList."
+                    f"Axiom 3 (CriticalZoneSubset) failed: Critical zone '{z}' is not present in ZoneList."
                 )
         return self
 
@@ -110,7 +111,7 @@ class LayoutLite(BaseModel):
         for dc in self.DerivedChannels:
             if dc.CreatedByNodeName not in [n.Name for n in self.ShNodes]:
                 raise ValueError(
-                    f"Axiom 4 Viloated: dc {dc.Name} AboutNodeName {dc.CreatedByNodeName} not in ShNodes!"
+                    f"Axiom 4 (DerivedNodeConsistency) failed: dc {dc.Name} CreatedByNodeName {dc.CreatedByNodeName} not in ShNodes!"
                 )
             created_by_node = next(
                 (n for n in self.ShNodes if n.Name == dc.CreatedByNodeName), None
@@ -119,7 +120,7 @@ class LayoutLite(BaseModel):
 
             if created_by_node.ActorClass == ActorClass.NoActor:
                 raise ValueError(
-                    f"Axiom 1 Viloated: dc {dc.Name}'s CatpuredByNode cannot have ActorClass NoActor!"
+                    f"Axiom 4 (DerivedNodeConsistency) failed: dc {dc.Name}'s CreatedByNode cannot have ActorClass NoActor!"
                 )
         return self
 

@@ -8,12 +8,24 @@ from gwsproto.property_format import UUID4Str
 
 
 class ComponentBase(BaseModel):
-    """The fields every Spaceheat component shares."""
+    """The fields every Spaceheat component shares. ConfigList is NOT here:
+    only components whose sema word declares it (per-channel identity/binding
+    configs, not just capture tuning) carry it — see ConfigListMixin. Bare
+    components' capture tuning lives on the operational-params artifact
+    (CaptureTuningList), looked up at runtime via
+    HardwareLayout.capture_tuning_by_channel."""
 
     ComponentId: UUID4Str
-    ConfigList: Sequence[CaptureTuning]
     DisplayName: Optional[str] = None
     HwUid: Optional[str] = None
+
+
+class ConfigListMixin(BaseModel):
+    """Mixin for components whose sema word declares ConfigList: per-channel
+    identity/binding configs (relay wiring, DAC channel assignment, etc.),
+    not merely capture tuning."""
+
+    ConfigList: Sequence[CaptureTuning]
 
 
 class DeviceComponentBase(ComponentBase):

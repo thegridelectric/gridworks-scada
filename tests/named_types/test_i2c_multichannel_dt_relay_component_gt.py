@@ -8,20 +8,16 @@ from gwsproto.named_types import I2cMultichannelDtRelayComponentGt
 def base_relay_config(actor_name: str, relay_idx: int, channel_name: str) -> dict:
     return {
         "ActorName": actor_name,
-        "AsyncCapture": True,
-        "AsyncCaptureDelta": 1,
-        "CapturePeriodS": 300,
         "ChannelName": channel_name,
         "DeEnergizedState": "RelayClosed",
         "DeEnergizingEvent": "CloseRelay",
         "EnergizedState": "RelayOpen",
         "EnergizingEvent": "OpenRelay",
         "EventType": "change.relay.state",
-        "PollPeriodMs": 200,
         "RelayIdx": relay_idx,
         "StateType": "relay.closed.or.open",
         "TypeName": "relay.actor.config",
-        "Version": "004",
+        "Version": "003",
         "WiringConfig": "NormallyClosed",
     }
 

@@ -20,12 +20,11 @@ from actors.i2c_dac_writer import I2cDacWriter
 from gwproto.message import Message
 from scada_app import ScadaApp
 
-SPRUCE_LAYOUT = Path(__file__).parent.parent / "config" / "spruce-sim-layout.json"
+SPRUCE_LAYOUT = Path(__file__).parent.parent / "config" / "gw.nolan.layout.json"
 SPRUCE_OPS = (
     Path(__file__).parent.parent
     / "config"
-    / "spruce-sim-layout"
-    / "gw.house0.operational.params.json"
+    / "gw.nolan.operational.params.json"
 )
 DAC_NODE = "gw108-dac2-writer"
 BUS_NAME = "i2c-bus"
@@ -41,7 +40,7 @@ def rig() -> tuple[I2cDacWriter, I2cBus]:
     settings = ScadaApp.get_settings()
     settings.is_simulated = True
     settings.paths.hardware_layout = SPRUCE_LAYOUT
-    settings.operational_params_path = str(SPRUCE_OPS)
+    settings.paths.operational_params = SPRUCE_OPS
     settings.paths.mkdirs()
     app = ScadaApp(app_settings=settings)
     app.instantiate()

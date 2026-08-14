@@ -21,9 +21,6 @@ def base_component() -> dict:
                 "StateType": "zone.call.source",
                 "DeEnergizedState": "WallThermostat",
                 "EnergizedState": "Scada",
-                "CapturePeriodS": 300,
-                "AsyncCapture": True,
-                "AsyncCaptureDelta": 1,
                 "TypeName": "relay.control.config",
                 "Version": "000",
             }

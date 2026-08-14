@@ -137,6 +137,18 @@ def is_int(v: int) -> int:
     return v
 
 
+def is_hh_mm(candidate: str) -> str:
+    """Wall-clock time of day at minute resolution: 24-hour zero-padded
+    "HH:MM" ("00:00" through "23:59"). Timezone-free.
+
+    Raises:
+        ValueError: if candidate is not of hh.mm format (e.g. "07:00")
+    """
+    if not re.fullmatch(r"([01][0-9]|2[0-3]):[0-5][0-9]", candidate):
+        raise ValueError(f"<{candidate}>: Fails hh.mm format.")
+    return candidate
+
+
 def is_left_right_dot(candidate: str) -> str:
     """Lowercase AlphanumericStrings separated by dots (i.e. periods), with most
     significant word to the left.  I.e. `d1.ne` is the child of `d1`.
@@ -350,6 +362,7 @@ def is_market_slot_name(v: str) -> str:
 Bit = Annotated[int, BeforeValidator(is_bit)]
 HandleName = Annotated[str, BeforeValidator(is_handle_name)]
 HexChar = Annotated[str, BeforeValidator(is_hex_char)]
+HhMm = Annotated[str, BeforeValidator(is_hh_mm)]
 LeftRightDotStr = Annotated[str, BeforeValidator(is_left_right_dot)]
 MarketName = Annotated[str, BeforeValidator(is_market_name)]
 MarketSlotName = Annotated[str, BeforeValidator(is_market_slot_name)]

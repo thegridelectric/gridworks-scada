@@ -8,7 +8,7 @@ from gwsproto.named_types.hvac_zone import HvacZone
 from gwsproto.named_types.zone_call_circuit import ZoneCallCircuit
 
 
-class GwHydronic(BaseModel):
+class Hydronic(BaseModel):
     """
     Sema: https://schemas.electricity.works/types/gw.hydronic/000
     """

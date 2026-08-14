@@ -189,6 +189,10 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         self._last_sampled_s = {
             ch: None for ch in self.my_channels
         }
+        self.tuning_by_ch = {
+            ch: hardware_layout.capture_tuning_by_channel[ch.Name]
+            for ch in self.my_channels
+        }
         self.async_power_reporting_threshold = settings.async_power_reporting_threshold
 
     def _validate_channels_with_component(self, component: ElectricMeterComponent) -> None:
@@ -318,13 +322,13 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         the amount of change required (as a function of the absolute max value) determined
         in the EqConfig.
         """
-        config = self.eq_reporting_config[ch]
-        if config.AsyncCaptureDelta is None:
+        tuning = self.tuning_by_ch[ch]
+        if tuning.AsyncCaptureDelta is None:
             return False
         last_reported_value = self.last_reported_telemetry_value[ch]
         latest_telemetry_value = self.latest_telemetry_value[ch]
         telemetry_delta = abs(latest_telemetry_value - last_reported_value)
-        if telemetry_delta >= config.AsyncCaptureDelta:
+        if telemetry_delta >= tuning.AsyncCaptureDelta:
             return True
         return False
 
@@ -348,7 +352,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
             return True
         if (
             time.time() - self._last_sampled_s[ch]
-            > self.eq_reporting_config[ch].CapturePeriodS
+            > self.tuning_by_ch[ch].CapturePeriodS
         ):
             return True
         if self.value_hits_async_threshold(ch):

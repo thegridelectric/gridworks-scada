@@ -12,8 +12,11 @@ class LeafAlly(ShNodeActor):
         if node.ActorClass != ActorClass.LeafAlly:
             raise Exception("Expects ActorClass LeafAlly!")
 
-        # Dynamically load the implementation class based on LocalControl strategy
-        if self.ops.SeasonalStorageMode == SeasonalStorageMode.AllTanks:
+        # Dynamically load the implementation. 
+        if self.layout.layout_type_name == "gw.nolan.layout":
+            module = importlib.import_module("actors.leaf_ally.nolan")
+            impl_class = getattr(module, "NolanLeafAlly")
+        elif self.ops.SeasonalStorageMode == SeasonalStorageMode.AllTanks:
             module = importlib.import_module("actors.leaf_ally.all_tanks")
             impl_class = getattr(module, "AllTanksLeafAlly")
         elif self.ops.SeasonalStorageMode == SeasonalStorageMode.BufferOnly:

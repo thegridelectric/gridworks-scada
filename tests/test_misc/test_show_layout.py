@@ -15,11 +15,14 @@ def test_show_layout_on_test_layout(tmp_path):
     settings = ScadaSettings()
     if uses_tls(settings):
         copy_keys("scada", settings)
-    layout_path = Path(__file__).parent.parent / "config" / "nolan-layout.json"
+    config = Path(__file__).parent.parent / "config"
+    layout_path = config / "gw.nolan.layout.json"
+    ops_path = config / "gw.nolan.operational.params.json"
     errors = show_layout.main(
         [
             "-e", str(env_path),
             "-l", str(layout_path),
+            "-o", str(ops_path),
             "-r"
          ]
     )

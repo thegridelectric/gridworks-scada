@@ -14,7 +14,7 @@ from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums.gw_str_enum import GwStrEnum
 from actors.hp_boss import SiegLoopReady
 from gwsproto.enums.hp_boss_state import HpBossState
-from gwsproto.enums import SystemMode
+from gwsproto.enums import ActuationAuthority
 from actors.sh_node_actor import ShNodeActor
 from gwsproto.named_types import ActuatorsReady, SingleMachineState
 
@@ -314,14 +314,14 @@ class SiegLoop(ShNodeActor):
     
     def moving_to_hp_off_valve_position(self, event: SiegControlEvent) -> None:
         # OFI (sieg-semantic-harmonization, OPS-400): HpOff posture depends on
-        # the startup operational params SystemMode, so control state
+        # the startup operational params ActuationAuthority, so control state
         # HpOff no longer uniquely determines valve posture -- and telemetry
         # can't disambiguate (valve-state SingleMachineState is still the TODO
         # below). Also per-HP: Maple (Mitsubishi, always-on primary) needs
         # full_keep when off to protect stratification; Beech (LG, timed
         # primary) may want a different default-when-off at the same
         # LocalControl state. Harmonize + test on both houses.
-        if self.ops.SystemMode == SystemMode.Standby:
+        if self.ops.ActuationAuthority == ActuationAuthority.Standby:
             self.moving_to_full_send(event)
         else:
             self.moving_to_full_keep(event)

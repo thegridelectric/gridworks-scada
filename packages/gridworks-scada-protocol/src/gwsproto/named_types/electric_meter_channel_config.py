@@ -1,31 +1,17 @@
-from typing import Literal
+from typing import Literal, Optional
 
-from pydantic import model_validator
-from typing_extensions import Self
+from pydantic import BaseModel
 
 from gwsproto.named_types.egauge_register_config import (
     EgaugeRegisterConfig as EgaugeConfig,
 )
-from gwsproto.type_helpers.channel_config_base import (
-    ChannelConfigBase,
-    check_channel_config_axiom_1,
-)
+from gwsproto.property_format import SpaceheatName
 
 
-class ElectricMeterChannelConfig(ChannelConfigBase):
-    """Sema: https://schemas.electricity.works/types/electric.meter.channel.config/001"""
+class ElectricMeterChannelConfig(BaseModel):
+    """Sema: https://schemas.electricity.works/types/electric.meter.channel.config/000"""
 
-    EgaugeRegisterConfig: EgaugeConfig | None = None
+    ChannelName: SpaceheatName
+    EgaugeRegisterConfig: Optional[EgaugeConfig] = None
     TypeName: Literal["electric.meter.channel.config"] = "electric.meter.channel.config"
-    Version: Literal["001"] = "001"
-
-    @model_validator(mode="after")
-    def check_axiom_1(self) -> Self:
-        """
-        Axiom 1: Capture and Polling Consistency.
-        If PollPeriodMs exists, then CapturePeriodMs (CapturePeriodS * 1000)
-        must be larger than PollPeriodMs. If CapturePeriodMs is less than
-        10 * PollPeriodMs, then CapturePeriodMs must be a multiple of
-        PollPeriodMs.
-        """
-        return check_channel_config_axiom_1(self)
+    Version: Literal["000"] = "000"

@@ -154,22 +154,15 @@ class ApiTankModule(ShNodeActor):
             return Response()
 
         if self.is_valid_pico_uid(params):
-            cfg = next(
-                (
-                    cfg
-                    for cfg in self._component.gt.ConfigList
-                    if cfg.ChannelName ==  self.device_channels[1]
-                ),
-                None,
-            )
+            tuning = self.layout.capture_tuning_by_channel[self.device_channels[1]]
 
-            period = cfg.CapturePeriodS
+            period = tuning.CapturePeriodS
             offset = round(period - time.time() % period, 3) - 2
             new_params = TankModuleParams(
                 HwUid=params.HwUid,
                 ActorNodeName=self.name,
                 PicoAB=params.PicoAB,
-                CapturePeriodS=cfg.CapturePeriodS,
+                CapturePeriodS=tuning.CapturePeriodS,
                 Samples=self._component.gt.Samples,
                 NumSampleAverages=self._component.gt.NumSampleAverages,
                 AsyncCaptureDeltaMicroVolts=self._component.gt.AsyncCaptureDeltaMicroVolts,
@@ -282,12 +275,9 @@ class ApiTankModule(ShNodeActor):
         """IOLoop will take care of shutting down the associated task."""
 
     def flatline_seconds(self) -> int:
-        cfg = next(
-            cfg
-            for cfg in self._component.gt.ConfigList
-            if cfg.ChannelName == self.device_channels[1]
-        )
-        return cfg.CapturePeriodS
+        return self.layout.capture_tuning_by_channel[
+            self.device_channels[1]
+        ].CapturePeriodS
 
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:

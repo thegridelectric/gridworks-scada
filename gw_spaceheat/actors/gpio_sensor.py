@@ -44,8 +44,12 @@ class GpioSensor(ShNodeActor):
             raise Exception("GpioSensor only works for Polling right now"
                             f", not {self.component.gt.SenseMode}")
         self.gpio_pin = self._resolve_gpio_pin()
-        self.cfg = self.component.gt.ConfigList[0] # must have exacty 1
-        self.channel_name = self.cfg.ChannelName
+        self.channel_name = next(
+            dc.Name
+            for dc in self.layout.data_channels.values()
+            if dc.CapturedByNodeName == self.name
+        )
+        self.tuning = self.layout.capture_tuning_by_channel[self.channel_name]
         self.send_to_derived = self._feeds_derived(self.channel_name)
         self.prev_value: int = 0
         self.latest_value: int = 0
@@ -91,7 +95,7 @@ class GpioSensor(ShNodeActor):
 
     def next_capture_time(self) -> float:
         now = time.time()
-        period = self.cfg.CapturePeriodS
+        period = self.tuning.CapturePeriodS
         return ((int(now) // period) + 1) * period
 
     def read_pin(self) -> bool:
@@ -129,12 +133,12 @@ class GpioSensor(ShNodeActor):
 
     async def main(self):
         poll_period = (
-            self.cfg.PollPeriodMs / 1000.0
-            if self.cfg.PollPeriodMs
+            self.tuning.PollPeriodMs / 1000.0
+            if self.tuning.PollPeriodMs
             else 1
         )
 
-        period = self.cfg.CapturePeriodS
+        period = self.tuning.CapturePeriodS
         next_capture_ts = ((int(time.time()) // period) + 1) * period
 
         while not self._stop_requested:
@@ -142,7 +146,7 @@ class GpioSensor(ShNodeActor):
             changed = self.read_pin()
 
             # Async capture on change
-            if self.cfg.AsyncCapture and changed:
+            if self.tuning.AsyncCapture and changed:
                         self._publish()
 
             # Synchronous capture at exact period boundary

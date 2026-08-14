@@ -16,6 +16,7 @@ import actors
 from actors import SecondaryScada
 from actors import ScadaInterface
 from actors.config import ScadaSettings
+from sema_to_dc import load_layout
 from actors.scada import ScadaCodecFactory
 from gwsproto.data_classes import house_0_names
 from gwsproto.data_classes.house_0_layout import House0Layout
@@ -49,7 +50,13 @@ class Scada2App(App, ScadaAppInterface):
         return Path(".env")
 
     def _load_hardware_layout(self, layout_path: str | Path) -> House0Layout:
-        return House0Layout.load(layout_path)
+        """Load the runtime layout. A sema-authored static artifact (its
+        TypeName names a sema layout type) is assembled with the home's
+        operational-params artifact; a runtime-shaped layout file loads
+        directly."""
+        return load_layout(
+            layout_path, Path(self.settings.paths.operational_params)
+        )
 
     def _get_name(self, layout: HardwareLayout) -> ProactorName:
         return ProactorName(

@@ -4,11 +4,10 @@ from typing import Any
 from pydantic import BaseModel, model_validator
 from pydantic_settings import SettingsConfigDict
 
-from gwproactor import AppSettings
-
 from gwproactor.config import MQTTClient
 
-from gwsproto.enums import HpModel, SystemMode, SeasonalStorageMode
+from actors.config import ScadaPathsSettings
+from gwsproto.enums import HpModel, SeasonalStorageMode
 
 
 class HackHpSettings(BaseModel):
@@ -37,7 +36,7 @@ class DashboardSettings(BaseModel):
                     thermostat_human_names.append(human_name)
         return thermostat_human_names
 
-class LtnSettings(AppSettings):
+class LtnSettings(ScadaPathsSettings):
     scada_mqtt: MQTTClient = MQTTClient()
     c_to_f: bool = True
     save_events: bool = False

@@ -14,6 +14,7 @@ from gwproactor import ProactorSettings
 
 from actors.config import AdminLinkSettings
 from actors.config import PersisterSettings
+from actors.config import ScadaPaths
 from gwproactor.config import LoggingSettings
 from gwproactor.config import MQTTClient
 from actors.config import ScadaSettings
@@ -49,8 +50,6 @@ def test_scada_settings_defaults(default_test_env, clean_test_env, clean_scada_e
         )
     )
     exp = dict(
-        hp_max_kw_el=9.66,
-        operational_params_path="",
         whitewire_threshold_watts=20,
         pico_cycler_state_logging=False,
         power_meter_logging_level=logging.WARNING,
@@ -67,7 +66,7 @@ def test_scada_settings_defaults(default_test_env, clean_test_env, clean_scada_e
         seconds_per_report=300,
         seconds_per_snapshot=30,
         async_power_reporting_threshold=0.02,
-        paths=Paths().model_dump(),
+        paths=ScadaPaths().model_dump(),
         logging=LoggingSettings().model_dump(),
         persister=PersisterSettings().model_dump(),
         admin=AdminLinkSettings(
@@ -77,6 +76,8 @@ def test_scada_settings_defaults(default_test_env, clean_test_env, clean_scada_e
             )
         ).model_dump(),
         timezone_str="America/New_York",
+        latitude=45.6573,
+        longitude=-68.7098,
         is_simulated=False,
         contract_rep_logging_level=20,
         hp_model=HpModel.SamsungFiveTonneHydroKit,

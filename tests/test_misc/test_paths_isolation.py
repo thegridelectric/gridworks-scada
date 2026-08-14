@@ -15,12 +15,11 @@ import pytest
 from gwproactor.app import App
 from scada_app import ScadaApp
 
-SPRUCE_LAYOUT = Path(__file__).parent.parent / "config" / "spruce-sim-layout.json"
+SPRUCE_LAYOUT = Path(__file__).parent.parent / "config" / "gw.nolan.layout.json"
 SPRUCE_OPS = (
     Path(__file__).parent.parent
     / "config"
-    / "spruce-sim-layout"
-    / "gw.house0.operational.params.json"
+    / "gw.nolan.operational.params.json"
 )
 
 
@@ -46,7 +45,7 @@ def _build(app_class: type[ScadaApp], env_file: Path) -> App:
     settings = app_class.get_settings(env_file=env_file)
     # conftest exports the Nolan fixture's ops path into the process env,
     # which beats the dotenv line; point at spruce's on the object
-    settings.operational_params_path = str(SPRUCE_OPS)
+    settings.paths.operational_params = SPRUCE_OPS
     return App.make_app_for_cli.__func__(
         app_class,
         app_settings=settings,
@@ -61,7 +60,7 @@ def test_paths_name_overrides_are_discarded(env_file: Path) -> None:
     app = _build(ScadaApp, env_file)
     assert str(app.settings.paths.name) == "scada"
     settings = ScadaApp.get_settings(env_file=env_file, paths_name="also-lost")
-    settings.operational_params_path = str(SPRUCE_OPS)
+    settings.paths.operational_params = SPRUCE_OPS
     rebuilt = App.make_app_for_cli.__func__(
         ScadaApp,
         app_settings=settings,

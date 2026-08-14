@@ -11,7 +11,7 @@ from gwsproto.type_helpers.component_base import BoardResidentComponentBase
 
 class I2cThermistorReaderComponentGt(BoardResidentComponentBase):
     """
-    Sema: https://schemas.electricity.works/types/i2c.thermistor.reader.component.gt/003
+    Sema: https://schemas.electricity.works/types/i2c.thermistor.reader.component.gt/000
     """
 
     AdcName: PascalCase
@@ -20,7 +20,7 @@ class I2cThermistorReaderComponentGt(BoardResidentComponentBase):
     ConfigList: Sequence[I2cThermistorChannelConfig]
 
     TypeName: Literal["i2c.thermistor.reader.component.gt"] = "i2c.thermistor.reader.component.gt"
-    Version: Literal["003"] = "003"
+    Version: Literal["000"] = "000"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

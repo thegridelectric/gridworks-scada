@@ -5,6 +5,7 @@ read, classification, publish.
 
 import asyncio
 import json
+import shutil
 import uuid
 from pathlib import Path
 
@@ -15,6 +16,7 @@ from actors.i2c_thermistor_reader import I2cThermistorReader
 from drivers import ads1115
 from gwsproto.named_types import SyncedReadings
 from gwproto.message import Message
+from actors.config import DEFAULT_OPS_PARAMS_FILE
 from scada_app import ScadaApp
 
 BUS_NAME = "i2c-bus"
@@ -108,6 +110,11 @@ def rig(tmp_path: Path) -> Rig:
     )
     layout_path = tmp_path / "layout-with-bus.json"
     layout_path.write_text(json.dumps(layout_dict))
+    # the pair travels together: ops params sit beside the layout under the
+    # fixed name the scada resolves to
+    shutil.copyfile(
+        Path(settings.paths.operational_params), tmp_path / DEFAULT_OPS_PARAMS_FILE
+    )
     settings.paths.hardware_layout = layout_path
     settings.paths.mkdirs()
     app = ScadaApp(app_settings=settings)
@@ -133,19 +140,29 @@ def test_adc_capability_resolves_via_own_board(rig: Rig) -> None:
     assert rig.reader.adc_capability.Name == rig.reader.component.gt.AdcName
 
 
-def test_dangling_board_component_id_fails_load(tmp_path: Path) -> None:
-    from gwsproto.data_classes.house_0_layout import House0Layout
+def test_dangling_board_component_id_fails_decode(tmp_path: Path) -> None:
+    """A dangling BoardComponentId is caught at the sema layer:
+    gw.nolan.layout axiom 2 (BoardResolution) rejects the artifact at
+    decode, before any dc load."""
+    from sema_to_dc import load_layout
 
     settings = ScadaApp.get_settings()
     layout_dict = json.loads(Path(settings.paths.hardware_layout).read_text())
     reader_gt = next(
         c
-        for c in layout_dict["OtherComponents"]
+        for c in layout_dict["Components"]
         if c["TypeName"] == "i2c.thermistor.reader.component.gt"
     )
     reader_gt["BoardComponentId"] = str(uuid.uuid4())
-    with pytest.raises(Exception, match="anchors to board"):
-        House0Layout.load_dict(layout_dict)
+    poisoned = tmp_path / "layout-dangling-board.json"
+    poisoned.write_text(json.dumps(layout_dict))
+    with pytest.raises(Exception, match="Axiom 2 \\(BoardResolution\\)"):
+        load_layout(
+            poisoned,
+            Path(__file__).parent.parent
+            / "config"
+            / "gw.nolan.operational.params.json",
+        )
 
 
 def test_reads_all_channels_through_bus(rig: Rig) -> None:

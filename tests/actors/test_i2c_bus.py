@@ -6,6 +6,7 @@ boot, which also exercises the actors/__init__ registration path.
 """
 
 import json
+import shutil
 import uuid
 from pathlib import Path
 
@@ -27,6 +28,7 @@ from gwsproto.named_types import (
     I2cWriteReg,
 )
 from gwproto.message import Message
+from actors.config import DEFAULT_OPS_PARAMS_FILE
 from scada_app import ScadaApp
 
 BUS_NAME = "i2c-bus"
@@ -84,6 +86,11 @@ def bus_app(tmp_path: Path) -> ScadaApp:
     )
     layout_path = tmp_path / "layout-with-bus.json"
     layout_path.write_text(json.dumps(layout_dict))
+    # the pair travels together: ops params sit beside the layout under the
+    # fixed name the scada resolves to
+    shutil.copyfile(
+        Path(settings.paths.operational_params), tmp_path / DEFAULT_OPS_PARAMS_FILE
+    )
     settings.paths.hardware_layout = layout_path
     settings.paths.mkdirs()
     app = ScadaApp(app_settings=settings)
