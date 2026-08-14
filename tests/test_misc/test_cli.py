@@ -59,7 +59,6 @@ def test_gws_cli_completes() -> None:
         ["ltn", "run", "--dry-run", "--env-file", str(env_path)],
         ["config", "--env-file", str(env_path)],
         ["layout"],
-        ["layout", "mktest", "--help"],
         ["layout", "show", "--env-file", str(env_path)],
         ["run", "--dry-run", "--env-file", str(env_path)],
         ["run", "--help", "--env-file", str(env_path)],

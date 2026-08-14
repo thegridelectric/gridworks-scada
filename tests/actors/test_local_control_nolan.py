@@ -27,6 +27,9 @@ from gwsproto.named_types import (
     SingleMachineState,
 )
 from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.names.hydronic_spaceheat.node_names import (
+    HydronicSpaceheatNodeNames as HSNN,
+)
 from gwsproto.names.nolan.node_names import NolanNodeNames
 from scada_app import ScadaApp
 from sema_to_dc import assemble_runtime_layout
@@ -133,7 +136,7 @@ def fsm_events(impl: NolanLocalControl) -> list[tuple[str, str]]:
 def test_resolves_spruce_plant_targets(spruce_impl: NolanLocalControl) -> None:
     assert spruce_impl.iso_valve.name == NolanNodeNames.iso_valve_relay
     assert spruce_impl.secondary_pump_relay.name == NolanNodeNames.secondary_pump_relay
-    assert spruce_impl.hp_scada_ops_relay.name == NolanNodeNames.hp_scada_ops_relay
+    assert spruce_impl.hp_scada_ops_relay.name == HSNN.hp_scada_ops_relay
     assert sorted(
         c.CircuitPosition for c, _, _ in spruce_impl._held_circuit_relays
     ) == [
@@ -152,13 +155,13 @@ def test_on_and_off_sequencing(
     assert on_targets == [
         NolanNodeNames.iso_valve_relay,
         NolanNodeNames.secondary_pump_relay,
-        NolanNodeNames.hp_scada_ops_relay,
+        HSNN.hp_scada_ops_relay,
     ]
     spruce_impl.sent.clear()
     asyncio.run(spruce_impl.turn_off_hp())
     off_targets = [dst for dst, _ in fsm_events(spruce_impl)]
     assert off_targets == [
-        NolanNodeNames.hp_scada_ops_relay,
+        HSNN.hp_scada_ops_relay,
         NolanNodeNames.secondary_pump_relay,
     ]
 

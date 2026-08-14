@@ -11,6 +11,9 @@ from actors.config import ScadaSettings
 from gwsproto.named_types import ChannelReadings, ReportEvent, SnapshotSpaceheat
 from gwsproto.data_classes.house_0_names import H0N, H0CN
 from tests.utils.scada_live_test_helper import ScadaLiveTest
+from gwsproto.names.hydronic_spaceheat.node_names import (
+    HydronicSpaceheatNodeNames as HSNN,
+)
 from gwsproto.names.nolan.node_names import NolanNodeNames
 
 
@@ -39,7 +42,7 @@ def test_scada_small():
     )
 
     
-    assert scada.layout.vdc_relay.name == NolanNodeNames.vdc_relay
+    assert scada.layout.vdc_relay.name == HSNN.vdc_relay
 
     ###########################################
     # Testing making report events

@@ -170,8 +170,8 @@ class ApiTankModule(ShNodeActor):
             )
             if self.need_to_update_layout(params):
                 self.pico_uid = params.HwUid
-                self.log(f"UPDATE LAYOUT!!: In layout_gen, go to add_tank3 {self.name} "
-                         f"and add PicoHwUid = '{params.HwUid}'")
+                self.log(f"UPDATE LAYOUT!!: set PicoHwUid = '{params.HwUid}' on "
+                         f"{self.name}'s tank component in the layout")
             return Response(text=new_params.model_dump_json())
         else:
             # A strange pico is identifying itself as our "a" tank

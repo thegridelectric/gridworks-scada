@@ -188,8 +188,8 @@ class ApiBtuMeter(PicoActorBase):
                 if self.device_type == DeviceType.GridworksGw101:
                     self.pico_uid = params.HwUid
                     self.log(
-                        f"UPDATE LAYOUT!!: In layout_gen, go to ### {self.name} "
-                        f"and add HwUid = '{params.HwUid}'"
+                        f"UPDATE LAYOUT!!: set HwUid = '{params.HwUid}' on "
+                        f"{self.name}'s component in the layout"
                     )
             txt=params.model_dump_json()
             # self.log(f"Valid pico id. returning {txt}")

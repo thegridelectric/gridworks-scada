@@ -8,8 +8,6 @@ from gwsproto.enums import ActorClass
 from gwsproto.data_classes.components import Component
 from gwsproto.data_classes.data_channel import DataChannel
 from gwsproto.data_classes.components.web_server_component import WebServerComponent
-from gwsproto.names.house0.node_names import House0NodeNames
-from gwsproto.names.nolan.node_names import NolanNodeNames
 
 
 from gwsproto.data_classes.house_0_names import H0CN, H0N, ScadaWeb
@@ -87,7 +85,7 @@ class House0Layout(HardwareLayout):
 
         # ---- Hydronic block (the gw.hydronic type lives on the dataclass) ----
         # Accept the typed nested "Hydronic" if present; else build it from the legacy
-        # flat top-level keys (transitional, while layout_gen + fixtures migrate).
+        # flat top-level keys (transitional, while the fixtures migrate).
         self.hydronic = self._build_hydronic(
             layout, self.derived_channels, flow_manifold_variant, use_sieg_loop
         )
@@ -121,17 +119,6 @@ class House0Layout(HardwareLayout):
 
         self.validate_tank_temp_calibration_consistency()
         self.validate_house0_system_models()
-
-    @property
-    def vdc_relay_name(self) -> str:
-        # Strategy now lives on the typed Hydronic block; fall back to the legacy
-        # top-level key for pre-nesting layouts.
-        strategy = self.hydronic.Strategy or self.layout.get(
-            "Strategy", HouseStrategy.House0.value
-        )
-        if strategy == HouseStrategy.Nolan.value:
-            return NolanNodeNames.vdc_relay
-        return House0NodeNames.vdc_relay
 
     def validate_tank_temp_calibration_consistency(self) -> None:
         """Each tank depth SHALL have a well-formed calibrated derived channel.
@@ -369,7 +356,7 @@ class House0Layout(HardwareLayout):
     ) -> Hydronic:
         """The typed gw.hydronic for this layout: read the nested 'Hydronic'
         block if present, else build it from the legacy flat top-level keys
-        (transitional, while layout_gen + fixtures migrate to the nested block)."""
+        (transitional, while the fixtures migrate to the nested block)."""
         h = layout.get("Hydronic")
         if isinstance(h, dict) and "Zones" in h:
             return Hydronic.model_validate(h)
@@ -734,32 +721,14 @@ class House0Layout(HardwareLayout):
 
     @property
     def vdc_relay(self) -> ShNode:
-        name = self.vdc_relay_name
-        n = self.node(name)
+        """Both families name this relay the same thing. The gw108 carries it
+        on a native GPIO and the Krida board on position 1, but where the wire
+        lands is the component's business, not the node's name."""
+        n = self.node(H0N.vdc_relay)
         if n is None:
-            if name == NolanNodeNames.vdc_relay:
-                raise Exception(
-                    f"VDC relay node {name!r} missing from hardware layout "
-                    "(expected for Strategy Nolan / Gw108 GPIO). Regenerate layout with "
-                    "add_nolan_relays(), or if this install uses Krida multiplexed relays "
-                    f"instead, set Strategy to House0 so the relay node resolves to "
-                    f"{House0NodeNames.vdc_relay!r}."
-                )
-            raise Exception(f"VDC relay node {name!r} missing from hardware layout.")
-        return n
-
-    @property
-    def tstat_common_relay(self) -> ShNode:
-        n = self.node(H0N.tstat_common_relay)
-        if n is None:
-            raise Exception(f"{H0N.tstat_common_relay} is known to exist")
-        return n
-
-    @property
-    def charge_discharge_relay(self) -> ShNode:
-        n = self.node(H0N.store_charge_discharge_relay)
-        if n is None:
-            raise Exception(f"{H0N.store_charge_discharge_relay} is known to exist")
+            raise Exception(
+                f"VDC relay node {H0N.vdc_relay!r} missing from hardware layout."
+            )
         return n
 
     def scada2_gnode_name(self) -> str:

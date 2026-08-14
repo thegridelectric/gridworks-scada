@@ -23,11 +23,12 @@ class BufferNodeNames:
 
 
 class HydronicSpaceheatNodeNames:
+    """Node names every hydronic spaceheat plant has, whatever its family.
 
-    # local control nodes
-    local_control_normal = "n"
-    local_control_backup = "backup"
-    local_control_scada_blind = "scada-blind"
+    Disjoint from CoreNodeNames (system actor nodes), House0NodeNames and
+    NolanNodeNames (family-specific): a name shared by two families lives
+    here, and is declared nowhere else.
+    """
 
     pico_cycler = "pico-cycler"
     hp_boss = "hp-boss"
@@ -79,6 +80,7 @@ class HydronicSpaceheatNodeNames:
 
     # relays
     vdc_relay = "vdc-relay"
+    hp_scada_ops_relay = "hp-scada-ops-relay"
 
     # buffer tank
     buffer = BufferNodeNames()  # set below
@@ -95,12 +97,20 @@ class HydronicSpaceheatZoneNodeNames:
 
     """
     Spaceheat Node names associated to a zone:
-    self.zone_name, self.stat, self.whitewire
+    self.zone, self.stat, self.whitewire, self.failsafe_relay, self.ops_relay
+
+    Every family names a zone's two relays the same way, so they are here
+    rather than in the per-family zone classes.
 """
     def __init__(self, zone_label: str, idx: int) -> None:
         self.zone =  f"zone{idx}-{zone_label}".lower()
         self.stat = f"{self.zone}-stat"
         self.whitewire=f"{self.zone}-whitewire"
+
+        # Hands the zone's heat call between wall thermostat and scada
+        self.failsafe_relay = f"{self.zone}-failsafe-relay"
+        # Sends the scada's heat call when failsafe is switched to scada
+        self.ops_relay = f"{self.zone}-ops-relay"
 
 
 class FlowNodeNames:

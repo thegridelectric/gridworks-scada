@@ -202,9 +202,9 @@
     {
       "TypeName": "spaceheat.node.gt",
       "Version": "303",
-      "Name": "vdc-relay-gpio-23",
-      "ActorHierarchyName": "s.vdc-relay-gpio-23",
-      "Handle": "auto.pico-cycler.vdc-relay-gpio-23",
+      "Name": "vdc-relay",
+      "ActorHierarchyName": "s.vdc-relay",
+      "Handle": "auto.pico-cycler.vdc-relay",
       "ActorClass": "Relay",
       "DisplayName": "5VDC Relay",
       "ComponentId": "514e4f8c-6ca0-4bc1-97a7-b737de76e4f4",
@@ -556,6 +556,50 @@
       "ActorClass": "NoActor",
       "DisplayName": "Hp Ewt",
       "ShNodeId": "e6b98aca-2241-4f84-8462-91ff1c1f1818"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "store-top-elt-relay",
+      "ActorHierarchyName": "s.store-top-elt-relay",
+      "Handle": "auto.lc.n.store-top-elt-relay",
+      "ActorClass": "Relay",
+      "DisplayName": "Store Top Element Relay",
+      "ComponentId": "c446787e-64e8-4c6c-af08-0ba9ed8c4940",
+      "ShNodeId": "6bcaed40-74f6-4f11-9002-797db627ed2a"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "store-bottom-elt-relay",
+      "ActorHierarchyName": "s.store-bottom-elt-relay",
+      "Handle": "auto.lc.n.store-bottom-elt-relay",
+      "ActorClass": "Relay",
+      "DisplayName": "Store Bottom Element Relay",
+      "ComponentId": "3914d013-df2c-4721-be99-b9a4472a1ce3",
+      "ShNodeId": "da2ca7f8-6310-4e1e-b473-e7c4dff68537"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "store-pump-relay",
+      "ActorHierarchyName": "s.store-pump-relay",
+      "Handle": "auto.lc.n.store-pump-relay",
+      "ActorClass": "Relay",
+      "DisplayName": "Store Pump Relay",
+      "ComponentId": "6c5fb194-d19e-4356-bc07-fbac09d706e1",
+      "ShNodeId": "df71a2e3-1808-4f30-9444-2211f6ab8fe7"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "discharge-valve-relay",
+      "ActorHierarchyName": "s.discharge-valve-relay",
+      "Handle": "auto.lc.n.discharge-valve-relay",
+      "ActorClass": "Relay",
+      "DisplayName": "Discharge Valve Relay",
+      "ComponentId": "4b513ab9-44c0-447c-9b92-b92ccab0de84",
+      "ShNodeId": "d9810c8b-7965-4517-9842-ea705df0aa11"
     }
   ],
   "DataChannels": [
@@ -600,8 +644,8 @@
       "Version": "003",
       "Name": "vdc-relay",
       "DisplayName": "5V DC Bus Relay State",
-      "AboutNodeName": "vdc-relay-gpio-23",
-      "CapturedByNodeName": "vdc-relay-gpio-23",
+      "AboutNodeName": "vdc-relay",
+      "CapturedByNodeName": "vdc-relay",
       "TelemetryName": "RelayState",
       "Quantity": "Unitless",
       "TerminalAssetAlias": "d1.bench.honeysuckle.ta",
@@ -1062,6 +1106,54 @@
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.bench.honeysuckle.ta",
       "Id": "16615ad1-c7c0-4df5-87b8-e69c47919734"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "003",
+      "Name": "store-top-elt-relay",
+      "DisplayName": "Store Top Element Relay State",
+      "AboutNodeName": "store-top-elt-relay",
+      "CapturedByNodeName": "store-top-elt-relay",
+      "TelemetryName": "RelayState",
+      "Quantity": "Unitless",
+      "TerminalAssetAlias": "d1.bench.honeysuckle.ta",
+      "Id": "4accb312-4fc6-447b-a048-b8e5d3d087e1"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "003",
+      "Name": "store-bottom-elt-relay",
+      "DisplayName": "Store Bottom Element Relay State",
+      "AboutNodeName": "store-bottom-elt-relay",
+      "CapturedByNodeName": "store-bottom-elt-relay",
+      "TelemetryName": "RelayState",
+      "Quantity": "Unitless",
+      "TerminalAssetAlias": "d1.bench.honeysuckle.ta",
+      "Id": "a702da23-f87e-4ed0-8929-579a5426aa57"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "003",
+      "Name": "store-pump-relay",
+      "DisplayName": "Store Pump Relay State",
+      "AboutNodeName": "store-pump-relay",
+      "CapturedByNodeName": "store-pump-relay",
+      "TelemetryName": "RelayState",
+      "Quantity": "Unitless",
+      "TerminalAssetAlias": "d1.bench.honeysuckle.ta",
+      "Id": "afe2251d-1738-4261-b1c3-6cc67b62a7fa"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "003",
+      "Name": "discharge-valve-relay",
+      "DisplayName": "Discharge Valve Relay State",
+      "AboutNodeName": "discharge-valve-relay",
+      "CapturedByNodeName": "discharge-valve-relay",
+      "TelemetryName": "RelayState",
+      "Quantity": "Unitless",
+      "TerminalAssetAlias": "d1.bench.honeysuckle.ta",
+      "Id": "3aa3d5e1-0874-42b7-8f9a-6df2bf9c57e1"
     }
   ],
   "DerivedChannels": [
@@ -1362,7 +1454,7 @@
           "TypeName": "relay.control.config",
           "Version": "000",
           "ChannelName": "vdc-relay",
-          "ActorName": "vdc-relay-gpio-23",
+          "ActorName": "vdc-relay",
           "WiringConfig": "NormallyClosed",
           "EventType": "change.relay.state",
           "DeEnergizingEvent": "CloseRelay",
@@ -1831,6 +1923,98 @@
       "AsyncCaptureDeltaCelsiusX100": 20,
       "DisplayName": "primary-btu BtuMeter",
       "HwUid": "sim-primary-btu"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "c446787e-64e8-4c6c-af08-0ba9ed8c4940",
+      "BoardComponentId": "3db3a9b1-11ef-469b-90b7-2cb4d417e7f3",
+      "RelayName": "StoreTop",
+      "ConfigList": [
+        {
+          "TypeName": "relay.control.config",
+          "Version": "000",
+          "ChannelName": "store-top-elt-relay",
+          "ActorName": "store-top-elt-relay",
+          "EventType": "change.relay.state",
+          "StateType": "relay.closed.or.open",
+          "EnergizingEvent": "CloseRelay",
+          "DeEnergizingEvent": "OpenRelay",
+          "EnergizedState": "RelayClosed",
+          "DeEnergizedState": "RelayOpen",
+          "WiringConfig": "NormallyOpen"
+        }
+      ],
+      "DisplayName": "Store Top Element Relay"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "3914d013-df2c-4721-be99-b9a4472a1ce3",
+      "BoardComponentId": "3db3a9b1-11ef-469b-90b7-2cb4d417e7f3",
+      "RelayName": "StoreBottom",
+      "ConfigList": [
+        {
+          "TypeName": "relay.control.config",
+          "Version": "000",
+          "ChannelName": "store-bottom-elt-relay",
+          "ActorName": "store-bottom-elt-relay",
+          "EventType": "change.relay.state",
+          "StateType": "relay.closed.or.open",
+          "EnergizingEvent": "CloseRelay",
+          "DeEnergizingEvent": "OpenRelay",
+          "EnergizedState": "RelayClosed",
+          "DeEnergizedState": "RelayOpen",
+          "WiringConfig": "NormallyOpen"
+        }
+      ],
+      "DisplayName": "Store Bottom Element Relay"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "6c5fb194-d19e-4356-bc07-fbac09d706e1",
+      "BoardComponentId": "3db3a9b1-11ef-469b-90b7-2cb4d417e7f3",
+      "RelayName": "StorePump",
+      "ConfigList": [
+        {
+          "TypeName": "relay.control.config",
+          "Version": "000",
+          "ChannelName": "store-pump-relay",
+          "ActorName": "store-pump-relay",
+          "EventType": "change.relay.state",
+          "StateType": "relay.closed.or.open",
+          "EnergizingEvent": "CloseRelay",
+          "DeEnergizingEvent": "OpenRelay",
+          "EnergizedState": "RelayClosed",
+          "DeEnergizedState": "RelayOpen",
+          "WiringConfig": "NormallyOpen"
+        }
+      ],
+      "DisplayName": "Store Pump Relay"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "4b513ab9-44c0-447c-9b92-b92ccab0de84",
+      "BoardComponentId": "3db3a9b1-11ef-469b-90b7-2cb4d417e7f3",
+      "RelayName": "DischargeValve",
+      "ConfigList": [
+        {
+          "TypeName": "relay.control.config",
+          "Version": "000",
+          "ChannelName": "discharge-valve-relay",
+          "ActorName": "discharge-valve-relay",
+          "EventType": "change.valve.state",
+          "StateType": "valve.open.or.closed",
+          "EnergizingEvent": "OpenValve",
+          "DeEnergizingEvent": "CloseValve",
+          "EnergizedState": "ValveOpen",
+          "DeEnergizedState": "ValveClosed",
+          "WiringConfig": "DoubleThrow"
+        }
+      ],
+      "DisplayName": "Discharge Valve Relay"
     }
   ],
   "DeviceTypes": [

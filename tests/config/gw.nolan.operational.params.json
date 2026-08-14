@@ -363,6 +363,42 @@
       "ChannelName": "hp-ewt",
       "TypeName": "capture.tuning",
       "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "CapturePeriodS": 300,
+      "ChannelName": "store-top-elt-relay",
+      "PollPeriodMs": 200,
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "CapturePeriodS": 300,
+      "ChannelName": "store-bottom-elt-relay",
+      "PollPeriodMs": 200,
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "CapturePeriodS": 300,
+      "ChannelName": "store-pump-relay",
+      "PollPeriodMs": 200,
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "CapturePeriodS": 300,
+      "ChannelName": "discharge-valve-relay",
+      "PollPeriodMs": 200,
+      "TypeName": "capture.tuning",
+      "Version": "000"
     }
   ],
   "CopCurve": {

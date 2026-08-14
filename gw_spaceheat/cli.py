@@ -12,7 +12,7 @@ from typer.main import get_group
 
 from actors.ltn.cli import app as ltn_cli
 from actors.config import ScadaSettings
-from layout_gen.genlayout import app as layout_cli
+from layout_cli import app as layout_cli
 from scada2_app import Scada2App
 from scada_app import ScadaApp
 
