@@ -1,13 +1,14 @@
 from typing import Optional, Literal
 from gwsproto.property_format import  UTCMilliseconds, SpaceheatName
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import field_validator, model_validator
 from gwsproto.enums import SlowDispatchContractStatus
 from gwsproto.named_types.slow_dispatch_contract import SlowDispatchContract
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 from typing_extensions import Self
 
 SCADA_SH_NODE_NAME = "s"
 LTN_SH_NODE_NAME = "ltn"
-class SlowContractHeartbeat(BaseModel):
+class SlowContractHeartbeat(GwsprotoSemaType):
     """Base class for contract lifecycle messages
     ASL: https://schemas.electricity.works/types/slow.contract.heartbeat/001
     """
@@ -24,7 +25,6 @@ class SlowContractHeartbeat(BaseModel):
     SignedProof: str = "signed_proof_stub"
     TypeName: Literal["slow.contract.heartbeat"] = "slow.contract.heartbeat"
     Version: Literal["001"] = "001"
-
 
     def contract_grace_period_minutes(self) -> Literal[5]:
         return 5
@@ -149,7 +149,4 @@ class SlowContractHeartbeat(BaseModel):
             if self.WattHoursUsed:
                 raise ValueError("Only Scada sends WattHoursUsed")
         return self
-
-
-
 

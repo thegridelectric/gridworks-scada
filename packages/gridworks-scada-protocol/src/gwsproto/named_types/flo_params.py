@@ -1,10 +1,11 @@
 from typing import Literal
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import ConfigDict, field_validator
 
 from gwsproto.property_format import LeftRightDotStr, UTCSeconds, UUID4Str
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class FloParams(BaseModel):
+class FloParams(GwsprotoSemaType):
     """
     Base class for Forward Looking Optimizer params.
 

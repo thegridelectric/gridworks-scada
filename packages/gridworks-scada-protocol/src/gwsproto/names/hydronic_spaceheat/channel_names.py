@@ -1,5 +1,4 @@
 from typing import Literal
-from gwsproto.names.core.channel_names import CoreChannelNames as CCN
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HNN
 
 

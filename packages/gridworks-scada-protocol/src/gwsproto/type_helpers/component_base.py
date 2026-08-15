@@ -5,15 +5,16 @@ from pydantic import BaseModel
 
 from gwsproto.named_types.capture_tuning import CaptureTuning
 from gwsproto.property_format import UUID4Str
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class ComponentBase(BaseModel):
+class ComponentBase(GwsprotoSemaType):
     """The fields every Spaceheat component shares. ConfigList is NOT here:
     only components whose sema word declares it (per-channel identity/binding
     configs, not just capture tuning) carry it — see ConfigListMixin. Bare
     components' capture tuning lives on the operational-params artifact
     (CaptureTuningList), looked up at runtime via
-    HardwareLayout.capture_tuning_by_channel."""
+    HydronicLayout.capture_tuning_by_channel."""
 
     ComponentId: UUID4Str
     DisplayName: Optional[str] = None

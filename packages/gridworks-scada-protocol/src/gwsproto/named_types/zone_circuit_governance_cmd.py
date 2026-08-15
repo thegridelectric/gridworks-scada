@@ -1,13 +1,14 @@
 from typing import Literal, Optional
 
-from pydantic import BaseModel, model_validator
+from pydantic import model_validator
 from typing_extensions import Self
 
 from gwsproto.enums import ZoneCircuitGovernanceEvent
 from gwsproto.property_format import HandleName, UTCMilliseconds, UUID4Str
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class ZoneCircuitGovernanceCmd(BaseModel):
+class ZoneCircuitGovernanceCmd(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/zone.circuit.governance.cmd/000"""
 
     FromHandle: HandleName

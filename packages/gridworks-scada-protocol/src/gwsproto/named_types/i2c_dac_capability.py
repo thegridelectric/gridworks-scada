@@ -1,12 +1,13 @@
 from typing import Literal, Optional, Self
 
-from pydantic import BaseModel, PositiveInt, model_validator
+from pydantic import PositiveInt, model_validator
 
 from gwsproto.enums import I2cDacType
 from gwsproto.property_format import NonNegativeInt, PascalCase
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class I2cDacCapability(BaseModel):
+class I2cDacCapability(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/i2c.dac.capability/000"""
 
     DacName: PascalCase

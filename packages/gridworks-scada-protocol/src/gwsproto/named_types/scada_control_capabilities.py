@@ -1,6 +1,6 @@
 from typing import List, Literal
 
-from pydantic import BaseModel, model_validator
+from pydantic import model_validator
 from typing_extensions import Self
 
 from gwsproto.enums import ActorClass
@@ -10,9 +10,10 @@ from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
 )
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwsproto.property_format import LeftRightDotStr, UTCMilliseconds
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class ScadaControlCapabilities(BaseModel):
+class ScadaControlCapabilities(GwsprotoSemaType):
     """
     Sema: https://schemas.electricity.works/types/scada.control.capabilities/001
     """

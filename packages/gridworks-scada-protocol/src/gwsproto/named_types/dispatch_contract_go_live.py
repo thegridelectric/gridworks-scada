@@ -1,10 +1,11 @@
 from typing import Literal
-from pydantic import BaseModel, field_validator
+from pydantic import field_validator
 
 from gwsproto.property_format import LeftRightDotStr
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class DispatchContractGoLive(BaseModel):
+class DispatchContractGoLive(GwsprotoSemaType):
     """
     Triggers DispatchContract GoLive.
 

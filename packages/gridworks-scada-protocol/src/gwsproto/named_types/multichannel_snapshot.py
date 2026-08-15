@@ -1,12 +1,14 @@
 from typing import Literal, Self
 
-from pydantic import BaseModel, StrictInt, ConfigDict, model_validator
+from pydantic import StrictInt, ConfigDict, model_validator
 
 from gwsproto.property_format import (
     SpaceheatName,
 )
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
-class MultichannelSnapshot(BaseModel):
+
+class MultichannelSnapshot(GwsprotoSemaType):
     HwUid: str
     ChannelNameList: list[SpaceheatName]
     MeasurementList: list[StrictInt]

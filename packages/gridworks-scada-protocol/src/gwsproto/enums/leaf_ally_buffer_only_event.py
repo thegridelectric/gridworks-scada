@@ -3,6 +3,7 @@ from typing import List
 
 from gwsproto.enums.gw_str_enum import SemaEnum
 
+
 class LeafAllyBufferOnlyEvent(SemaEnum):
     """Sema: https://schemas.electricity.works/enums/gw1.leaf.ally.buffer.only.event/000"""
 

@@ -1,9 +1,10 @@
+
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 from typing import Literal
 
-from pydantic import BaseModel
 
 
-class CopCurve(BaseModel):
+class CopCurve(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/cop.curve/000"""
 
     Intercept: float

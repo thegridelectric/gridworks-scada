@@ -1,12 +1,13 @@
 from typing import Literal
 
-from pydantic import BaseModel, model_validator
+from pydantic import model_validator
 from typing_extensions import Self
 
 from gwsproto.property_format import NonNegativeInt, SpaceheatName, UUID4Str
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class I2cWriteByte(BaseModel):
+class I2cWriteByte(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/i2c.write.byte/000"""
 
     Bus: SpaceheatName

@@ -1,6 +1,6 @@
 from typing import Literal, Optional
 
-from pydantic import BaseModel, PositiveInt, model_validator
+from pydantic import PositiveInt, model_validator
 from typing_extensions import Self
 
 from gwsproto.enums import TelemetryName
@@ -15,9 +15,10 @@ from gwsproto.named_types.i2c_thermistor_interface_capability import (
 )
 from gwsproto.named_types.native_gpio_pin import NativeGpioPin
 from gwsproto.property_format import PascalCase
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class ScadaDeviceTypeGt(BaseModel):
+class ScadaDeviceTypeGt(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/gw1.scada.device.type.gt/000"""
 
     DeviceType: PascalCase

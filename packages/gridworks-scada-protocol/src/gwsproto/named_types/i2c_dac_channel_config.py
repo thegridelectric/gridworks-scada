@@ -1,12 +1,13 @@
 from typing import Literal, Self
 
-from pydantic import BaseModel, PositiveInt, model_validator
+from pydantic import PositiveInt, model_validator
 
 from gwsproto.enums import I2cDacChannel, I2cDacVref
 from gwsproto.property_format import NonNegativeInt
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class I2cDacChannelConfig(BaseModel):
+class I2cDacChannelConfig(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/i2c.dac.channel.config/000"""
 
     DacChannel: I2cDacChannel

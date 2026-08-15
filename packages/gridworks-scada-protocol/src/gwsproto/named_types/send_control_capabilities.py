@@ -1,11 +1,10 @@
 from typing import Literal
 
-from pydantic import BaseModel
-
 from gwsproto.property_format import LeftRightDotStr, UTCMilliseconds
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class SendControlCapabilities(BaseModel):
+class SendControlCapabilities(GwsprotoSemaType):
     FromGNodeAlias: LeftRightDotStr
     MessageCreatedMs: UTCMilliseconds
     TypeName: Literal["send.control.capabilities"] = "send.control.capabilities"

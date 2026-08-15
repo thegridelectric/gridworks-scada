@@ -2,10 +2,11 @@ import typing
 from typing import Literal, Optional
 
 import yarl
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
 from pydantic_extra_types.mac_address import MacAddress
 
 from gwsproto.named_types.rest_poller_gt import URLArgs, URLConfig
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
 class URLConfigWithUrlArgs(URLConfig):
@@ -15,7 +16,6 @@ class URLConfigWithUrlArgs(URLConfig):
 
     url_args: URLArgs
 
-
 class URLConfigForMakerAPI(URLConfigWithUrlArgs):
     """
     A URLConfig with non-None url_args and url_path_args suitable for creating
@@ -24,8 +24,7 @@ class URLConfigForMakerAPI(URLConfigWithUrlArgs):
 
     url_path_args: dict[str, str | int | float]
 
-
-class HubitatGt(BaseModel):
+class HubitatGt(GwsprotoSemaType):
     """
     Connection settings for one Hubitat hub reached through its MakerAPI.
 

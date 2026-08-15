@@ -1,9 +1,12 @@
 from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, PositiveFloat
+from pydantic import ConfigDict, PositiveFloat
+
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class HpControlBoxDeviceTypeGt(BaseModel):
+
+class HpControlBoxDeviceTypeGt(GwsprotoSemaType):
     """
     Sema: https://schemas.electricity.works/types/hp.control.box.device.type.gt/000
     """

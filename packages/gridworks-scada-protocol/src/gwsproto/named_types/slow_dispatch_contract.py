@@ -1,11 +1,12 @@
 from typing import Literal
 
-
-from pydantic import BaseModel, field_validator, model_validator, PositiveInt, StrictInt
+from pydantic import field_validator, model_validator, PositiveInt, StrictInt
 from gwsproto.property_format import UUID4Str, UTCSeconds,  LeftRightDotStr
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 from typing_extensions import Self
 
-class SlowDispatchContract(BaseModel):
+
+class SlowDispatchContract(GwsprotoSemaType):
     """Represents a dispatch contract between Ltn and Scada"""
     ScadaAlias: LeftRightDotStr
     StartS: UTCSeconds

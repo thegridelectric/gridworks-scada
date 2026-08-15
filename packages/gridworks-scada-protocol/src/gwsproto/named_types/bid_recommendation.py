@@ -1,14 +1,15 @@
 from typing import Literal, Self
 
-from pydantic import BaseModel, model_validator
+from pydantic import model_validator
 
 from gwsproto.property_format import LeftRightDotStr, MarketSlotName
 
 from gwsproto.enums import MarketPriceUnit, MarketQuantityUnit
 from gwsproto.named_types.price_quantity_unitless import PriceQuantityUnitless
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class BidRecommendation(BaseModel):
+class BidRecommendation(GwsprotoSemaType):
     BidderAlias: LeftRightDotStr
     MarketSlotName: MarketSlotName
     PqPairs: list[PriceQuantityUnitless]

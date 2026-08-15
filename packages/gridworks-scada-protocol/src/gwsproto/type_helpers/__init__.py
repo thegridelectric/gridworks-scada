@@ -9,10 +9,8 @@ from gwsproto.named_types.rest_poller_gt import (
     URLArgs,
     URLConfig,
 )
-from gwsproto.type_helpers.type_name_literal import type_name_literal
 
 __all__ = [
-    "type_name_literal",
     "AioHttpClientTimeout",
     "HubitatGt",
     "HubitatPollerGt",

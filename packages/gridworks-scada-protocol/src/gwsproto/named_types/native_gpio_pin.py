@@ -1,11 +1,10 @@
 from typing import Literal
 
-from pydantic import BaseModel
-
 from gwsproto.property_format import NonNegativeInt, PascalCase
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class NativeGpioPin(BaseModel):
+class NativeGpioPin(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/gw.native.gpio.pin/000"""
 
     Name: PascalCase

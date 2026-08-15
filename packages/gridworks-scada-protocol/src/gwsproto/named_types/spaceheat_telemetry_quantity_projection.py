@@ -1,13 +1,14 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import ConfigDict, model_validator
 from typing_extensions import Self
 
 from gwsproto.enums import Quantity, TelemetryName as TelemetryNameEnum
 from gwsproto.enums.unit_quantity import UNIT_TO_QUANTITY
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class SpaceheatTelemetryQuantityProjection(BaseModel):
+class SpaceheatTelemetryQuantityProjection(GwsprotoSemaType):
     """
     Sema: https://schemas.electricity.works/types/spaceheat.telemetry.quantity.projection/000
     """

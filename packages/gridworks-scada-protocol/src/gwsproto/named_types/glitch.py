@@ -1,13 +1,14 @@
 import time
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from gwsproto.enums import LogLevel
 from gwsproto.property_format import LeftRightDotStr, SpaceheatName, UTCMilliseconds
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class Glitch(BaseModel):
+class Glitch(GwsprotoSemaType):
     FromGNodeAlias: LeftRightDotStr
     Node: SpaceheatName
     Type: LogLevel

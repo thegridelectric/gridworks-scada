@@ -1,12 +1,13 @@
 from typing import Literal
-from pydantic import BaseModel, ConfigDict, StrictInt, model_validator
+from pydantic import ConfigDict, StrictInt, model_validator
 from typing_extensions import Self
 
 from gwsproto.enums import ActorClass
 from gwsproto.property_format import HandleName, SpaceheatName, UUID4Str
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class SpaceheatNodeGt(BaseModel):
+class SpaceheatNodeGt(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/spaceheat.node.gt/303"""
 
     Name: SpaceheatName

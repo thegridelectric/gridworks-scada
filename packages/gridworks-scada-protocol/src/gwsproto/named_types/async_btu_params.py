@@ -1,11 +1,12 @@
 from typing import Literal, Optional
 from typing_extensions import Self
 
-from pydantic import BaseModel, PositiveInt, model_validator
+from pydantic import PositiveInt, model_validator
 from gwsproto.property_format import SpaceheatName
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class AsyncBtuParams(BaseModel):
+class AsyncBtuParams(GwsprotoSemaType):
     HwUid: str
     ActorNodeName: SpaceheatName
     FlowChannelName: SpaceheatName

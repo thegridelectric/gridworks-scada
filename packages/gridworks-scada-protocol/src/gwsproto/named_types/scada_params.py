@@ -7,10 +7,11 @@ from gwsproto.property_format import (
     UUID4Str,
 )
 from gwsproto.named_types.ha1_params import Ha1Params
-from pydantic import BaseModel, ConfigDict
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
+from pydantic import ConfigDict
 
 
-class ScadaParams(BaseModel):
+class ScadaParams(GwsprotoSemaType):
     FromGNodeAlias: LeftRightDotStr
     FromName: SpaceheatName
     ToName: SpaceheatName

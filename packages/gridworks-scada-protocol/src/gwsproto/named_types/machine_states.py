@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, model_validator
+from pydantic import model_validator
 from typing_extensions import Self
 
 from gwsproto.property_format import (
@@ -8,9 +8,10 @@ from gwsproto.property_format import (
     LeftRightDotStr,
     UTCMilliseconds,
 )
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class MachineStates(BaseModel):
+class MachineStates(GwsprotoSemaType):
     """
     Sema: https://schemas.electricity.works/types/machine.states/000
     """

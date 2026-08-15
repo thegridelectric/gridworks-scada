@@ -1,9 +1,12 @@
 from typing import Literal
 
-from pydantic import BaseModel, PositiveFloat, PositiveInt, StrictInt
+from pydantic import PositiveFloat, PositiveInt, StrictInt
+
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class HeatingCurve(BaseModel):
+
+class HeatingCurve(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/heating.curve/000"""
 
     AlphaTimes10: StrictInt

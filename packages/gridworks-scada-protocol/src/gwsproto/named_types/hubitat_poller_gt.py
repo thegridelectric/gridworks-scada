@@ -1,12 +1,13 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
 
 from gwsproto.enums import TelemetryName, SpaceheatUnit
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 from gwproto.utils import snake_to_camel
 
 
-class MakerAPIAttributeGt(BaseModel):
+class MakerAPIAttributeGt(GwsprotoSemaType):
     attribute_name: str
     channel_name: str
     node_name: str
@@ -29,8 +30,7 @@ class MakerAPIAttributeGt(BaseModel):
         populate_by_name=True,
     )
 
-
-class HubitatPollerGt(BaseModel):
+class HubitatPollerGt(GwsprotoSemaType):
     hubitat_component_id: str
     device_id: int
     attributes: list[MakerAPIAttributeGt] = []

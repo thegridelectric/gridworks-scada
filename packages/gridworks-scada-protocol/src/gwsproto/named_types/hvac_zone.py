@@ -1,11 +1,12 @@
 from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
 
 from gwsproto.property_format import SpaceheatName
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class HvacZone(BaseModel):
+class HvacZone(GwsprotoSemaType):
     """
     Sema: https://schemas.electricity.works/types/gw1.hvac.zone/000
     """

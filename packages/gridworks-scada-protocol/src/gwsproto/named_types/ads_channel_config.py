@@ -1,14 +1,15 @@
 from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, PositiveInt
+from pydantic import ConfigDict, PositiveInt
 
 from gwsproto.enums import ThermistorDataMethod
 from gwsproto.property_format import (
     SpaceheatName,
 )
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class AdsChannelConfig(BaseModel):
+class AdsChannelConfig(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/ads.channel.config/000"""
 
     ChannelName: SpaceheatName

@@ -1,13 +1,14 @@
 from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import ConfigDict, model_validator
 from typing_extensions import Self
 
 from gwsproto.enums import BaseGNodeClass, GNodeStatus
 from gwsproto.property_format import LeftRightDotStr, UUID4Str
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class GNodeGt(BaseModel):
+class GNodeGt(GwsprotoSemaType):
     """
     Sema: https://schemas.electricity.works/types/g.node.gt/006
     """

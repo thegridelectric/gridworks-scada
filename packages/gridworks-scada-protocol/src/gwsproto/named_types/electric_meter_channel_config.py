@@ -1,14 +1,13 @@
 from typing import Literal, Optional
 
-from pydantic import BaseModel
-
 from gwsproto.named_types.egauge_register_config import (
     EgaugeRegisterConfig as EgaugeConfig,
 )
 from gwsproto.property_format import SpaceheatName
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class ElectricMeterChannelConfig(BaseModel):
+class ElectricMeterChannelConfig(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/electric.meter.channel.config/000"""
 
     ChannelName: SpaceheatName

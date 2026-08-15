@@ -1,8 +1,10 @@
+
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 from typing import Literal
 
-from pydantic import BaseModel
 
-class RequiredEnergyLayered(BaseModel):
+
+class RequiredEnergyLayered(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/gw0.required.energy.layered/000
     
     Executable specification for computing required thermal energy

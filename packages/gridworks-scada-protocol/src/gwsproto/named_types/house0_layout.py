@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, model_validator
+from pydantic import model_validator
 from typing_extensions import Self
 
 from gwsproto.named_types.ads111x_based_component_gt import Ads111xBasedComponentGt
@@ -26,6 +26,7 @@ from gwsproto.named_types.sim_pico_tank_module_component_gt import (
 )
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwsproto.named_types.web_server_component_gt import WebServerComponentGt
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 # The component types a House0 (fleet) layout may contain (mirrors the sema oneOf).
 House0Component = (
@@ -50,7 +51,7 @@ House0DeviceType = (
 )
 
 
-class House0Layout(BaseModel):
+class House0Layout(GwsprotoSemaType):
     """
     Sema: https://schemas.electricity.works/types/gw.house0.layout/000
     """

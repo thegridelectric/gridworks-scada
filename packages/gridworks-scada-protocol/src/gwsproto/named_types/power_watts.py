@@ -1,9 +1,10 @@
+
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 from typing import Literal
 
-from pydantic import BaseModel
 
 
-class PowerWatts(BaseModel):
+class PowerWatts(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/power.watts/000"""
 
     Watts: int

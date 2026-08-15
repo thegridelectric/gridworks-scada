@@ -2,10 +2,11 @@ from typing import Literal
 
 from gwsproto.enums import MarketPriceUnit
 from gwsproto.property_format import LeftRightDotStr, MarketSlotName, UUID4Str
-from pydantic import BaseModel, StrictInt
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
+from pydantic import StrictInt
 
 
-class LatestPrice(BaseModel):
+class LatestPrice(GwsprotoSemaType):
     FromGNodeAlias: LeftRightDotStr
     PriceTimes1000: StrictInt
     PriceUnit: MarketPriceUnit

@@ -1,13 +1,14 @@
 from typing import Literal
 
-from pydantic import BaseModel, PositiveInt, model_validator
+from pydantic import PositiveInt, model_validator
 from typing_extensions import Self
 
 from gwsproto.named_types.i2c_reg_address import I2cRegAddress
 from gwsproto.property_format import SpaceheatName, UUID4Str
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class I2cReadReg(BaseModel):
+class I2cReadReg(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/i2c.read.reg/000"""
 
     Bus: SpaceheatName

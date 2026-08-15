@@ -1,15 +1,16 @@
 from typing import Literal
 
-from pydantic import BaseModel, StrictInt, model_validator  # Count:true
+from pydantic import StrictInt, model_validator  # Count:true
 from typing_extensions import Self
 
 from gwsproto.property_format import (
     SpaceheatName,
     UTCMilliseconds,
 )
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class ChannelReadings(BaseModel):
+class ChannelReadings(GwsprotoSemaType):
     """
     Sema: https://schemas.electricity.works/types/channel-readings/002
     """

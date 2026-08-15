@@ -2,13 +2,14 @@ import time
 import uuid
 from typing import List, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, PositiveInt, StrictInt
+from pydantic import ConfigDict, Field, PositiveInt, StrictInt
 
 from gwsproto.enums import MarketPriceUnit
 from gwsproto.property_format import LeftRightDotStr, UTCSeconds, UUID4Str
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class FloParamsHouse0(BaseModel):
+class FloParamsHouse0(GwsprotoSemaType):
     GNodeAlias: LeftRightDotStr
     FloParamsUid: UUID4Str = Field(default_factory=lambda: str(uuid.uuid4()))
     TimezoneStr: str = "America/New_York"

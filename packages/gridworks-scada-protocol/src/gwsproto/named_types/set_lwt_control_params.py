@@ -1,12 +1,13 @@
 import time
 from typing import Literal
 
-from pydantic import BaseModel, PositiveInt, Field
+from pydantic import PositiveInt, Field
 
 from gwsproto.property_format import HandleName, UTCMilliseconds
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class SetLwtControlParams(BaseModel):
+class SetLwtControlParams(GwsprotoSemaType):
     FromHandle: HandleName
     ToHandle: HandleName
     ProportionalGain: float

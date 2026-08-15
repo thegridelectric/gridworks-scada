@@ -1,11 +1,12 @@
 from typing import Literal, Optional
 
 from gwsproto.property_format import HandleName, LeftRightDotStr, UTCMilliseconds
-from pydantic import BaseModel, model_validator
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
+from pydantic import model_validator
 from typing_extensions import Self
 
 
-class SingleMachineState(BaseModel):
+class SingleMachineState(GwsprotoSemaType):
     """
     Sema: https://schemas.electricity.works/types/single.machine.state/000
     """

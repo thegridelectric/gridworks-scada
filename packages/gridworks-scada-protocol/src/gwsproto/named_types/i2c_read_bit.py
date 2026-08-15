@@ -1,12 +1,11 @@
 from typing import Literal
 
-from pydantic import BaseModel
-
 from gwsproto.named_types.i2c_bit_address import I2cBitAddress
 from gwsproto.property_format import SpaceheatName, UUID4Str
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class I2cReadBit(BaseModel):
+class I2cReadBit(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/i2c.read.bit/000"""
 
     Bus: SpaceheatName

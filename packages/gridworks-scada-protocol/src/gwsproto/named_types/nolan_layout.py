@@ -1,6 +1,6 @@
 from typing import List, Literal
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import ConfigDict, model_validator
 
 from gwsproto.enums import ActorClass
 from gwsproto.named_types.ads111x_based_device_type_gt import Ads111xBasedDeviceTypeGt
@@ -29,6 +29,7 @@ from gwsproto.named_types.sim_pico_tank_module_component_gt import (
 )
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwsproto.named_types.web_server_component_gt import WebServerComponentGt
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 # The component types a Nolan (gw108) layout may contain (mirrors the sema draft oneOf).
 NolanComponent = (
@@ -54,7 +55,7 @@ NolanDeviceType = (
 )
 
 
-class NolanLayout(BaseModel):
+class NolanLayout(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/gw.nolan.layout/000"""
 
     GNodes: List[GNodeGt]

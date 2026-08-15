@@ -1,6 +1,7 @@
 from gwsproto.names.hydronic_spaceheat.helpers import HydronicSpaceheatZoneChannelNames as HSZoneChannelNames
 from gwsproto.names.nolan.node_names import NolanNodeNames as NNN
 
+
 class NolanChannelNames:
     floor_swt = NNN.floor_swt
     floor_rwt = NNN.floor_rwt

@@ -1,12 +1,13 @@
 from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, PositiveInt, model_validator
+from pydantic import ConfigDict, PositiveInt, model_validator
 from typing_extensions import Self
 
 from gwsproto.property_format import SpaceheatName
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class CaptureTuning(BaseModel):
+class CaptureTuning(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/capture.tuning/000"""
 
     ChannelName: SpaceheatName

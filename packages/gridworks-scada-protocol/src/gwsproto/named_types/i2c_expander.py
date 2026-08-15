@@ -1,12 +1,13 @@
 from typing import Literal, Optional
 
-from pydantic import BaseModel, PositiveInt, model_validator
+from pydantic import PositiveInt, model_validator
 from typing_extensions import Self
 
 from gwsproto.property_format import NonNegativeInt, PascalCase
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class I2cExpander(BaseModel):
+class I2cExpander(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/i2c.expander/000"""
 
     ExpanderIdx: PositiveInt

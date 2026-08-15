@@ -1,11 +1,12 @@
 from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, PositiveInt, StrictInt
+from pydantic import ConfigDict, PositiveInt, StrictInt
 
 from gwsproto.enums import TelemetryName
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class ElectricMeterDeviceTypeGt(BaseModel):
+class ElectricMeterDeviceTypeGt(GwsprotoSemaType):
     """
     Sema: https://schemas.electricity.works/types/electric.meter.device.type.gt/000
     """

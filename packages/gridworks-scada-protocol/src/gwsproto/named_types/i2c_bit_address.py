@@ -1,11 +1,10 @@
 from typing import Literal
 
-from pydantic import BaseModel
-
 from gwsproto.property_format import NonNegativeInt
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class I2cBitAddress(BaseModel):
+class I2cBitAddress(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/i2c.bit.address/000"""
 
     I2cAddress: NonNegativeInt

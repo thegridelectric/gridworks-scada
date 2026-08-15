@@ -1,10 +1,10 @@
 from typing import Literal
 
 from gwsproto.property_format import SpaceheatName
-from pydantic import BaseModel
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class SuitUp(BaseModel):
+class SuitUp(GwsprotoSemaType):
     """ """
 
     ToNode: SpaceheatName

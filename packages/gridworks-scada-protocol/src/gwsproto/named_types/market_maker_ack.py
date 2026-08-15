@@ -1,10 +1,12 @@
 from typing import Literal
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import field_validator, model_validator
 from typing_extensions import Self
 from gwsproto.enums import MarketTypeName
 from gwsproto.property_format import UUID4Str, MarketName,MarketSlotName, LeftRightDotStr, UTCMilliseconds
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
-class MarketMakerAck(BaseModel):
+
+class MarketMakerAck(GwsprotoSemaType):
     """Acknowledgement of bid
     
     Note: While all necessary information is encoded in MarketSlotName,

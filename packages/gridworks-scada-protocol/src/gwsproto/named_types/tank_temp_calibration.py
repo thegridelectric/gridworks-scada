@@ -1,8 +1,10 @@
+
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 from typing import Literal
 
-from pydantic import BaseModel
 
-class TankTempCalibration(BaseModel):
+
+class TankTempCalibration(GwsprotoSemaType):
     Depth1M: float = 1.0
     Depth1B: int = 0
     Depth2M: float = 1.0

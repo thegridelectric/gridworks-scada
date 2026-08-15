@@ -2,6 +2,7 @@ from enum import auto
 from gwsproto.enums.gw_str_enum import SemaEnum
 from typing import List
 
+
 class SlowDispatchContractStatus(SemaEnum):
     """Sema: https://schemas.electricity.works/enums/gw1.slow.dispatch.contract.status/000
     """

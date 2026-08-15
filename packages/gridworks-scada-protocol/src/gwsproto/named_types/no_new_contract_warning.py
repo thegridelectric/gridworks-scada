@@ -1,9 +1,10 @@
 from typing import Literal
-from pydantic import BaseModel
 
 from gwsproto.property_format import LeftRightDotStr, UUID4Str, UTCSeconds
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
-class NoNewContractWarning(BaseModel):
+
+class NoNewContractWarning(GwsprotoSemaType):
     FromGNodeAlias: LeftRightDotStr
     ContractId: UUID4Str
     GraceEndTimeS: UTCSeconds

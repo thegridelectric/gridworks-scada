@@ -1,12 +1,13 @@
 from typing import Literal
 
-from pydantic import BaseModel, PositiveInt
+from pydantic import PositiveInt
 
 from gwsproto.enums import I2cMuxType
 from gwsproto.property_format import NonNegativeInt, PascalCase
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class I2cMux(BaseModel):
+class I2cMux(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/i2c.mux/000"""
 
     MuxName: PascalCase

@@ -1,12 +1,12 @@
 from typing import Literal
 
-from pydantic import BaseModel  # Count:true
 
 from gwsproto.named_types.ticklist_reed import TicklistReed
 from gwsproto.property_format import LeftRightDotStr, SpaceheatName, UTCMilliseconds
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class TicklistReedReport(BaseModel):
+class TicklistReedReport(GwsprotoSemaType):
     """
     Used by the SCADA to forward a ticklist.reed message received from a PicoFlowReed module.
     """

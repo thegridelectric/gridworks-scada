@@ -1,8 +1,10 @@
+
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 from typing import Literal
 
-from pydantic import BaseModel
 
-class UsableEnergyLayered(BaseModel):
+
+class UsableEnergyLayered(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/gw0.usable.energy.layered/000
     
     Executable specification for computing usable thermal energy

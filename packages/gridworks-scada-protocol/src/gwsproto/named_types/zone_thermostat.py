@@ -1,13 +1,14 @@
 from typing import Literal, Optional
 
-from pydantic import BaseModel, model_validator
+from pydantic import model_validator
 from typing_extensions import Self
 
 from gwsproto.enums import ThermostatKind
 from gwsproto.property_format import UUID4Str
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class ZoneThermostat(BaseModel):
+class ZoneThermostat(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/gw1.zone.thermostat/000"""
 
     Kind: ThermostatKind

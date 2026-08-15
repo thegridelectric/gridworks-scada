@@ -1,12 +1,13 @@
 from typing import Literal, Optional
 
-from pydantic import BaseModel, model_validator
+from pydantic import model_validator
 from typing_extensions import Self
 
 from gwsproto.enums import SetpointPhase
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class SetpointBelief(BaseModel):
+class SetpointBelief(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/setpoint.belief/000"""
 
     Phase: SetpointPhase

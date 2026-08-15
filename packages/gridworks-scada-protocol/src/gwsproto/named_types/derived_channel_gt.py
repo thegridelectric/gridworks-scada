@@ -1,6 +1,6 @@
 from typing import Any, Literal
 
-from pydantic import BaseModel, PositiveInt, model_validator
+from pydantic import PositiveInt, model_validator
 
 from gwsproto.property_format import (
     LeftRightDotStr,
@@ -10,9 +10,10 @@ from gwsproto.property_format import (
 
 from gwsproto.enums import Unit, Quantity, EmissionMethod
 from gwsproto.named_types.unit_quantity_projection import UnitQuantityProjection
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class DerivedChannelGt(BaseModel):
+class DerivedChannelGt(GwsprotoSemaType):
     Id: UUID4Str
     Name: SpaceheatName
     CreatedByNodeName: SpaceheatName

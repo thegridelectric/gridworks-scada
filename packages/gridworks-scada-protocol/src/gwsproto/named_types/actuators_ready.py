@@ -1,9 +1,10 @@
+
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 from typing import Literal
 
-from pydantic import BaseModel
 
 
-class ActuatorsReady(BaseModel):
+class ActuatorsReady(GwsprotoSemaType):
     """
     Used to sequence inbound messages to actuators
     """

@@ -1,13 +1,14 @@
 from typing import List, Literal
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import ConfigDict, model_validator
 from typing_extensions import Self
 
 from gwsproto.enums import DayOfWeek
 from gwsproto.property_format import HhMm
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class TouWindow(BaseModel):
+class TouWindow(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/gw.tou.window/000"""
 
     Start: HhMm

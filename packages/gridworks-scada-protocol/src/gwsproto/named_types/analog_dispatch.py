@@ -1,7 +1,7 @@
 from typing import Literal, Optional
 from typing_extensions import Self
 
-from pydantic import BaseModel, StrictInt, model_validator
+from pydantic import StrictInt, model_validator
 
 from gwsproto.property_format import (
     HandleName,
@@ -10,9 +10,10 @@ from gwsproto.property_format import (
     UTCMilliseconds,
     UUID4Str,
 )
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class AnalogDispatch(BaseModel):
+class AnalogDispatch(GwsprotoSemaType):
     FromGNodeAlias: Optional[LeftRightDotStr] = None
     FromHandle: HandleName
     ToHandle: HandleName

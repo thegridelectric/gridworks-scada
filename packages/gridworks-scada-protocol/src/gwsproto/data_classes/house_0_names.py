@@ -230,9 +230,9 @@ class H0N:
 class ChannelStub(BaseModel):
     """
     A ChannelStub defines the *semantic form* of a data channel that must exist
-    in a House0Layout, independent of which instrument captures it.
+    in a HydronicLayout, independent of which instrument captures it.
 
-    ChannelStubs are intended to be used by House0Layout to validate that a 
+    ChannelStubs are intended to be used by HydronicLayout to validate that a 
     layout contains the required channels with the correct meaning (units, and about-node),
     while allowing the capturing instrument (actor) to vary.
 

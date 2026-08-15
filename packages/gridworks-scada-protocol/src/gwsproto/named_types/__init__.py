@@ -150,7 +150,6 @@ from gwsproto.named_types.spaceheat_telemetry_quantity_projection import (
 )
 from gwsproto.named_types.suit_up import SuitUp
 from gwsproto.named_types.synced_readings import SyncedReadings
-from gwsproto.named_types.synth_channel_gt import SynthChannelGt
 from gwsproto.named_types.tank_module_params import TankModuleParams
 from gwsproto.named_types.tou_window import TouWindow
 from gwsproto.named_types.tank_temp_calibration import TankTempCalibration
@@ -300,7 +299,6 @@ __all__ = [
     "SpaceheatTelemetryQuantityProjection",
     "SuitUp",
     "SyncedReadings",
-    "SynthChannelGt",
     "TankModuleParams",
     "TankTempCalibration",
     "TouWindow",

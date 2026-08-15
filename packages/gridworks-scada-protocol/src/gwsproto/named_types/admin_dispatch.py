@@ -1,11 +1,12 @@
 from typing import Literal
 
-from pydantic import BaseModel, StrictInt
+from pydantic import StrictInt
 
 from gwsproto.named_types.fsm_event import FsmEvent
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class AdminDispatch(BaseModel):
+class AdminDispatch(GwsprotoSemaType):
     DispatchTrigger: FsmEvent
     TimeoutSeconds: StrictInt
     TypeName: Literal["admin.dispatch"] = "admin.dispatch"

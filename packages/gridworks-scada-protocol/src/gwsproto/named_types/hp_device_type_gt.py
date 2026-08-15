@@ -1,9 +1,12 @@
 from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, PositiveFloat, PositiveInt
+from pydantic import ConfigDict, PositiveFloat, PositiveInt
+
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class HpDeviceTypeGt(BaseModel):
+
+class HpDeviceTypeGt(GwsprotoSemaType):
     """
     Sema: https://schemas.electricity.works/types/hp.device.type.gt/000
     """

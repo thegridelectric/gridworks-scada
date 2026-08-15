@@ -23,7 +23,7 @@ from gwproto.messages import (
 from gwproactor import LinkSettings
 from gwproactor.codecs import CodecFactory
 
-from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.data_classes.house_0_names import H0N
 
 from actors.scada_interface import ScadaInterface
@@ -55,7 +55,7 @@ class GridworksMQTTCodec(MQTTCodec):
     exp_src: str
     exp_dst: str = H0N.primary_scada
 
-    def __init__(self, hardware_layout: House0Layout):
+    def __init__(self, hardware_layout: HydronicLayout):
         self.exp_src = hardware_layout.ltn_g_node_alias
         super().__init__(ScadaMessageDecoder)
 
@@ -132,10 +132,10 @@ class ScadaCodecFactory(CodecFactory):
         proactor_name: ProactorName,
         layout: HardwareLayout,
     ) -> MQTTCodec:
-        if not isinstance(layout, House0Layout):
+        if not isinstance(layout, HydronicLayout):
             raise ValueError(
                 "ERROR. ScadaCodecFactory requires hardware layout "
-                "to be an instance of House0Layout but received layout type "
+                "to be an instance of HydronicLayout but received layout type "
                 f"<{type(layout)}>"
             )
         if link_name == self.LTN_MQTT:
@@ -174,10 +174,10 @@ class Scada2CodecFactory(CodecFactory):
             proactor_name: ProactorName,
             layout: HardwareLayout,
     ) -> MQTTCodec:
-        if not isinstance(layout, House0Layout):
+        if not isinstance(layout, HydronicLayout):
             raise ValueError(
                 "ERROR. ScadaCodecFactory requires hardware layout "
-                "to be an instance of House0Layout but received layout type "
+                "to be an instance of HydronicLayout but received layout type "
                 f"<{type(layout)}>"
             )
         if link_name == self.LOCAL_MQTT:

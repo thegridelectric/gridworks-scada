@@ -4,7 +4,7 @@ from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.data_classes.data_channel import DataChannel
 from gwsproto.data_classes.derived_channel import DerivedChannel
 from gwsproto.data_classes.house_0_names import H0CN
-from gwsproto.data_classes.hardware_layout import ChannelRegistry
+from gwsproto.data_classes.hydronic_layout import ChannelRegistry
 from gwsproto.named_types import LayoutLite
 
 

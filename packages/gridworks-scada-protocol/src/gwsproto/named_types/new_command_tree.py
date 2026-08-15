@@ -1,12 +1,13 @@
 from typing import List, Literal
 
-from pydantic import BaseModel, field_validator
+from pydantic import field_validator
 
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwsproto.property_format import LeftRightDotStr, UTCMilliseconds
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class NewCommandTree(BaseModel):
+class NewCommandTree(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/new.command.tree/002"""
 
     FromGNodeAlias: LeftRightDotStr

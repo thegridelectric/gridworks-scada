@@ -2,11 +2,11 @@
 
 from typing import Literal
 
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
-from pydantic import BaseModel
 
 
-class PicoCommsParams(BaseModel):
+class PicoCommsParams(GwsprotoSemaType):
     HwUid: str
     BaseUrl: str
     BackupUrl: str

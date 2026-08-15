@@ -2,15 +2,16 @@
 
 from typing import Literal, Optional
 
-from pydantic import BaseModel, PositiveInt, model_validator
+from pydantic import PositiveInt, model_validator
 from typing_extensions import Self
 
 from gwsproto.property_format import (
     SpaceheatName,
 )
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class TankModuleParams(BaseModel):
+class TankModuleParams(GwsprotoSemaType):
     """
     Parameters for a  GRIDWORKS__TANKMODULE2 device or a GRIDWORKS__TANKMODULE3 device
     """

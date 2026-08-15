@@ -1,10 +1,12 @@
 from typing import Literal
 from typing_extensions import Self
 
-from pydantic import BaseModel, PositiveInt, model_validator
+from pydantic import PositiveInt, model_validator
 from gwsproto.named_types.tank_temp_calibration import TankTempCalibration
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
-class TankTempCalibrationMap(BaseModel):
+
+class TankTempCalibrationMap(GwsprotoSemaType):
     Buffer: TankTempCalibration
     Tank: dict[PositiveInt, TankTempCalibration]
 

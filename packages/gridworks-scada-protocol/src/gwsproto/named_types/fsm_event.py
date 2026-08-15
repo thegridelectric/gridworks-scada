@@ -6,11 +6,12 @@ from gwsproto.property_format import (
     UTCMilliseconds,
     UUID4Str,
 )
-from pydantic import BaseModel, ConfigDict, model_validator
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
+from pydantic import ConfigDict, model_validator
 from typing_extensions import Self
 
 
-class FsmEvent(BaseModel):
+class FsmEvent(GwsprotoSemaType):
     FromHandle: HandleName
     ToHandle: HandleName
     EventType: LeftRightDotStr

@@ -14,11 +14,12 @@ from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwsproto.named_types.derived_channel_gt import DerivedChannelGt
 from gwsproto.property_format import LeftRightDotStr, UTCMilliseconds, UUID4Str
 from gwsproto.named_types.ha1_params import Ha1Params
-from pydantic import BaseModel, PositiveInt, model_validator
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
+from pydantic import PositiveInt, model_validator
 from typing_extensions import Self
 
 
-class LayoutLite(BaseModel):
+class LayoutLite(GwsprotoSemaType):
     """
     Sema: https://schemas.electricity.works/types/layout.lite/013
     """

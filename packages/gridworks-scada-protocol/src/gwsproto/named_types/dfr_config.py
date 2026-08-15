@@ -1,11 +1,12 @@
 from typing import Literal
 
-from pydantic import BaseModel, PositiveInt, StrictInt
+from pydantic import PositiveInt, StrictInt
 
 from gwsproto.property_format import SpaceheatName
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class DfrConfig(BaseModel):
+class DfrConfig(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/dfr.config/000"""
 
     ChannelName: SpaceheatName

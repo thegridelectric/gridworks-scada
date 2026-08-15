@@ -1,9 +1,12 @@
 from typing import Literal
 
-from pydantic import BaseModel, StrictInt
+from pydantic import StrictInt
+
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class Ha1Params(BaseModel):
+
+class Ha1Params(GwsprotoSemaType):
     """
     Sema: https://schemas.electricity.works/types/ha1.params/006
     """

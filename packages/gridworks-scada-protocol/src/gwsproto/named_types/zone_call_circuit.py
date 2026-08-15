@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, PositiveInt, model_validator
+from pydantic import PositiveInt, model_validator
 from typing_extensions import Self
 
 from gwsproto.enums import (
@@ -11,9 +11,10 @@ from gwsproto.enums import (
 )
 from gwsproto.named_types.zone_thermostat import ZoneThermostat
 from gwsproto.property_format import SpaceheatName
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class ZoneCallCircuit(BaseModel):
+class ZoneCallCircuit(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/gw1.zone.call.circuit/000"""
 
     CircuitPosition: PositiveInt

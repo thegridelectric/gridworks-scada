@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, PositiveInt, model_validator
+from pydantic import PositiveInt, model_validator
 from typing_extensions import Self
 
 from gwsproto.enums import (
@@ -23,6 +23,7 @@ from gwsproto.enums import (
 from gwsproto.property_format import (
     SpaceheatName, LeftRightDotStr
 )
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 KNOWN_EVENT_ENUMS = {
     ChangeRelayState.enum_name(): ChangeRelayState,
@@ -96,8 +97,7 @@ EVENT_TO_STATE = {
     },
 }
 
-
-class RelayActorConfig(BaseModel):
+class RelayActorConfig(GwsprotoSemaType):
     """
     Sema: https://schemas.electricity.works/types/relay.actor.config/003
     """

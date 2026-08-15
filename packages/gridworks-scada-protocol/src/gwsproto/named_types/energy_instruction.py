@@ -1,11 +1,13 @@
 from typing import Literal
 from typing_extensions import Self
 
-from pydantic import BaseModel, PositiveInt, StrictInt, field_validator, model_validator
+from pydantic import PositiveInt, StrictInt, field_validator, model_validator
 
 from gwsproto.property_format import LeftRightDotStr, UTCMilliseconds, UTCSeconds
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
-class EnergyInstruction(BaseModel):
+
+class EnergyInstruction(GwsprotoSemaType):
     FromGNodeAlias: LeftRightDotStr
     SlotStartS: UTCSeconds
     SlotDurationMinutes: PositiveInt

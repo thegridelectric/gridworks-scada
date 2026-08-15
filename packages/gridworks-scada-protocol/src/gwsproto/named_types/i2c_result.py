@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, model_validator
+from pydantic import model_validator
 from typing_extensions import Self
 
 from gwsproto.enums.i2c_operation import I2cOperation
@@ -10,9 +10,10 @@ from gwsproto.property_format import (
     UTCMilliseconds,
     UUID4Str,
 )
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class I2cResult(BaseModel):
+class I2cResult(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/i2c.result/001"""
 
     Bus: SpaceheatName

@@ -3,11 +3,12 @@ import time
 from typing import List, Literal
 
 from gwsproto.property_format import LeftRightDotStr, UTCSeconds, UUID4Str
-from pydantic import BaseModel, Field, model_validator
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
+from pydantic import Field, model_validator
 from typing_extensions import Self
 
 
-class HeatingForecast(BaseModel):
+class HeatingForecast(GwsprotoSemaType):
     FromGNodeAlias: LeftRightDotStr
     Time: List[UTCSeconds]
     AvgPowerKw: List[float]

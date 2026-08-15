@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, model_validator
+from pydantic import model_validator
 from typing_extensions import Self
 
 from gwsproto.enums import TelemetryName, Quantity
@@ -13,8 +13,10 @@ from gwsproto.property_format import (
 from gwsproto.named_types.spaceheat_telemetry_quantity_projection import (
     SpaceheatTelemetryQuantityProjection,
 )
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
-class DataChannelGt(BaseModel):
+
+class DataChannelGt(GwsprotoSemaType):
     """
     Sema: https://schemas.electricity.works/types/data.channel.gt/003
     """

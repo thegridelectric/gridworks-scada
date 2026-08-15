@@ -1,7 +1,7 @@
 from typing import Literal, Optional, Union
 from typing_extensions import Self
 
-from pydantic import BaseModel, ConfigDict, StrictInt, model_validator
+from pydantic import ConfigDict, StrictInt, model_validator
 
 from gwsproto.enums import FsmReportType, RelayEnergizationState
 from gwsproto.property_format import (
@@ -11,21 +11,20 @@ from gwsproto.property_format import (
     UUID4Str,
     SpaceheatName
 )
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class RelayPinSetAction(BaseModel):
+class RelayPinSetAction(GwsprotoSemaType):
     Value: RelayEnergizationState
 
-
-class I2cWriteBitAction(BaseModel):
+class I2cWriteBitAction(GwsprotoSemaType):
     I2cBus: SpaceheatName
     Address: StrictInt
     Register: StrictInt
     Bit: StrictInt
     Value: StrictInt
 
-
-class FsmAtomicReport(BaseModel):
+class FsmAtomicReport(GwsprotoSemaType):
     MachineHandle: HandleName
     StateEnum: str
     ReportType: FsmReportType
@@ -54,7 +53,6 @@ class FsmAtomicReport(BaseModel):
         """
         # Implement check for axiom 1"
         return self
-
 
     @model_validator(mode="after")
     def check_axiom_2(self) -> Self:

@@ -1,6 +1,6 @@
 from typing import List, Literal
 
-from pydantic import BaseModel, NonNegativeInt, PositiveFloat, PositiveInt, model_validator
+from pydantic import NonNegativeInt, PositiveFloat, PositiveInt, model_validator
 from typing_extensions import Self
 
 from gwsproto.enums import ActuationAuthority, SeasonalStorageMode, ServiceMode
@@ -9,9 +9,10 @@ from gwsproto.named_types.cop_curve import CopCurve
 from gwsproto.named_types.heating_curve import HeatingCurve
 from gwsproto.named_types.tou_window import TouWindow
 from gwsproto.property_format import LeftRightDotStr
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class House0OperationalParams(BaseModel):
+class House0OperationalParams(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/gw.house0.operational.params/000"""
 
     ScadaAlias: LeftRightDotStr

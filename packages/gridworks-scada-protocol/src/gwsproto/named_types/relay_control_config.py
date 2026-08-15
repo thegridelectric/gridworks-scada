@@ -1,13 +1,14 @@
 from typing import Literal
 
-from pydantic import BaseModel, model_validator
+from pydantic import model_validator
 from typing_extensions import Self
 
 from gwsproto.enums import ChangeRelayState, RelayClosedOrOpen, RelayWiringConfig
 from gwsproto.property_format import LeftRightDotStr, SpaceheatName
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class RelayControlConfig(BaseModel):
+class RelayControlConfig(GwsprotoSemaType):
     """
     Sema: https://schemas.electricity.works/types/relay.control.config/000
     """

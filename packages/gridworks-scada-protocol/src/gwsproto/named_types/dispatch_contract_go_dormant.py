@@ -1,10 +1,11 @@
 from typing import Literal
 
 from gwsproto.property_format import LeftRightDotStr
-from pydantic import BaseModel, field_validator
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
+from pydantic import field_validator
 
 
-class DispatchContractGoDormant(BaseModel):
+class DispatchContractGoDormant(GwsprotoSemaType):
     FromGNodeAlias: LeftRightDotStr
     BlockchainSig: str
     TypeName: Literal["dispatch.contract.go.dormant"] = "dispatch.contract.go.dormant"

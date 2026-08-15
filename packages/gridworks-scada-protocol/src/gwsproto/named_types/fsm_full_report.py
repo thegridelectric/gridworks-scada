@@ -2,16 +2,17 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
 
 from gwsproto.named_types.fsm_atomic_report import FsmAtomicReport
 from gwsproto.property_format import (
     SpaceheatName,
     UUID4Str,
 )
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class FsmFullReport(BaseModel):
+class FsmFullReport(GwsprotoSemaType):
     FromName: SpaceheatName
     TriggerId: UUID4Str
     AtomicList: list[FsmAtomicReport]
