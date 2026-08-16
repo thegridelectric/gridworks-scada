@@ -1,21 +1,10 @@
-import copy
-import json
 import typing
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from functools import cached_property
-from pathlib import Path
 from typing import Any, List, Optional, TypeVar
 
 from gwsproto.errors import DcError
-from gwsproto.decoders import (
-    ComponentDecoder,
-    DeviceTypeDecoder,
-)
-from gwsproto.default_decoders import (
-    default_component_decoder,
-    default_device_type_decoder,
-)
 
 import gwsproto.data_classes.components
 from gwsproto.data_classes.components import Ads111xBasedComponent, Component
@@ -31,18 +20,21 @@ from gwsproto.data_classes.resolver import ComponentResolver
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.data_classes.derived_channel import DerivedChannel
 
-from gwsproto.enums import ActorClass, TelemetryName, Unit, EmissionMethod
+from gwsproto.enums import ActorClass, GNodeClass, TelemetryName, Unit, EmissionMethod
 from gwsproto.named_types import House0Layout as House0LayoutWord
 from gwsproto.named_types import NolanLayout as NolanLayoutWord
 from gwsproto.named_types import (
     CaptureTuning,
     DataChannelGt,
+    DerivedChannelGt,
     ElectricMeterDeviceTypeGt,
+    GNodeGt,
     RequiredEnergyLayered,
     ScadaBoardComponentGt,
     SpaceheatNodeGt,
     UsableEnergyLayered,
 )
+from gwsproto.property_format import LeftRightDotStr, UUID4Str
 from gwsproto.type_helpers.channel_named import ChannelNamed
 from gwsproto.type_helpers.component_base import (
     BoardResidentComponentBase,
@@ -51,8 +43,6 @@ from gwsproto.type_helpers.component_base import (
 )
 from gwsproto.data_classes.components.web_server_component import WebServerComponent
 from gwsproto.data_classes.house_0_names import H0CN, H0N, ScadaWeb
-from gwsproto.named_types.hvac_zone import HvacZone
-from gwsproto.named_types.hydronic import Hydronic
 from gwsproto.enums import FlowManifoldVariant
 from gwsproto.names.house0.node_names import House0NodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import (
@@ -147,25 +137,21 @@ class HydronicLayout:
     @classmethod
     def load_device_types(
         cls,
-        layout: dict[str, Any],
+        device_type_gts: list[Any],
         *,
         raise_errors: bool = True,
         errors: Optional[list[LoadError]] = None,
-        device_type_decoder: Optional[DeviceTypeDecoder] = None,
     ) -> dict[str, Any]:
         if errors is None:
             errors = []
-        if device_type_decoder is None:
-            device_type_decoder = default_device_type_decoder
         device_types: dict[str, Any] = {}
-        for dt_dict in layout.get("DeviceTypes", ()):
+        for dt in device_type_gts:
             try:
-                dt = device_type_decoder.decode(dt_dict)
                 device_types[dt.DeviceType] = dt
             except Exception as e:  # noqa: PERF203
                 if raise_errors:
                     raise
-                errors.append(LoadError("DeviceTypes", dt_dict, e))
+                errors.append(LoadError("DeviceTypes", {}, e))
         return device_types
 
     @classmethod
@@ -205,39 +191,21 @@ class HydronicLayout:
     @classmethod
     def load_components(
         cls,
-        layout: dict[Any, Any],
+        component_gts: list[ComponentBase],
         device_types: dict[str, Any],
         *,
         raise_errors: bool = True,
         errors: Optional[list[LoadError]] = None,
-        component_decoder: Optional[ComponentDecoder] = None,
     ) -> dict[str, Component[Any, Any]]:
         if errors is None:
             errors = []
-        if component_decoder is None:
-            component_decoder = default_component_decoder
-        decoded: list[tuple[str, dict[Any, Any], ComponentBase]] = []
-        for type_name in [
-            "Ads111xBasedComponents",
-            "ElectricMeterComponents",
-            "OtherComponents",
-        ]:
-            for component_dict in layout.get(type_name, ()):
-                try:
-                    decoded.append(
-                        (type_name, component_dict, component_decoder.decode(component_dict))
-                    )
-                except Exception as e:  # noqa: PERF203
-                    if raise_errors:
-                        raise
-                    errors.append(LoadError(type_name, component_dict, e))
 
         components: dict[str, Component[Any, Any]] = {}
         # Boards first: a board-resident component is constructed WITH its
         # resolved board, so board_component is never in a half-set state.
-        board_gts = [t for t in decoded if isinstance(t[2], ScadaBoardComponentGt)]
-        for type_name, component_dict, component_gt in board_gts + [
-            t for t in decoded if not isinstance(t[2], ScadaBoardComponentGt)
+        board_gts = [c for c in component_gts if isinstance(c, ScadaBoardComponentGt)]
+        for component_gt in board_gts + [
+            c for c in component_gts if not isinstance(c, ScadaBoardComponentGt)
         ]:
             try:
                 # Join by the readable DeviceType. The specialized device-type record is
@@ -272,7 +240,7 @@ class HydronicLayout:
             except Exception as e:  # noqa: PERF203
                 if raise_errors:
                     raise
-                errors.append(LoadError(type_name, component_dict, e))
+                errors.append(LoadError("Component", {}, e))
         return components
 
     @classmethod
@@ -287,7 +255,7 @@ class HydronicLayout:
             try:
                 node_gt = SpaceheatNodeGt.model_validate(node_dict)
             except Exception as e:
-                raise Exception(f"trouble wi {node_dict}: {e}")
+                raise DcError(f"trouble wi {node_dict}: {e}")
         if node_gt.ComponentId:
             component = components.get(node_gt.ComponentId)
             if component is None:
@@ -302,7 +270,7 @@ class HydronicLayout:
     @classmethod
     def load_nodes(
         cls,
-        layout: dict[Any, Any],
+        node_gts: list[SpaceheatNodeGt],
         components: dict[str, Component[Any, Any]],
         *,
         raise_errors: bool = True,
@@ -312,59 +280,58 @@ class HydronicLayout:
         nodes = {}
         if errors is None:
             errors = []
-        for node_dict in layout.get("ShNodes", []):
+        for node_gt in node_gts:
             try:
-                node_name = node_dict["Name"]
-                if included_node_names is None or node_name in included_node_names:
-                    nodes[node_name] = cls.make_node(node_dict, components)
+                if included_node_names is None or node_gt.Name in included_node_names:
+                    nodes[node_gt.Name] = cls.make_node(node_gt, components)
             except Exception as e:  # noqa: PERF203
                 if raise_errors:
                     raise
-                errors.append(LoadError("ShNode", node_dict, e))
+                errors.append(LoadError("ShNode", {}, e))
         return nodes
 
     @classmethod
     def make_channel(
-        cls, dc_dict: dict[str, Any], nodes: dict[str, ShNode]
+        cls, channel_gt: DataChannelGt, nodes: dict[str, ShNode]
     ) -> DataChannel:
-        data_channel_gt = DataChannelGt.model_validate(dc_dict)
-        about_node = nodes.get(data_channel_gt.AboutNodeName)
-        captured_by_node = nodes.get(data_channel_gt.CapturedByNodeName)
+        about_node = nodes.get(channel_gt.AboutNodeName)
+        captured_by_node = nodes.get(channel_gt.CapturedByNodeName)
         if about_node is None or captured_by_node is None:
             raise ValueError(
-                f"ERROR. DataChannel related nodes must exist for {dc_dict.get('Name')}!\n"
-                f"  For AboutNodeName <{data_channel_gt.AboutNodeName}> "
+                f"ERROR. DataChannel related nodes must exist for {channel_gt.Name}!\n"
+                f"  For AboutNodeName <{channel_gt.AboutNodeName}> "
                 f"got {about_node}\n"
-                f"  for CapturedByNodeName <{data_channel_gt.CapturedByNodeName}>"
+                f"  for CapturedByNodeName <{channel_gt.CapturedByNodeName}>"
                 f"got {captured_by_node}"
             )
         return DataChannel(
-            about_node=about_node, captured_by_node=captured_by_node, **dc_dict
+            about_node=about_node,
+            captured_by_node=captured_by_node,
+            **channel_gt.model_dump(by_alias=True, mode="json"),
         )
 
     @classmethod
     def make_derived_channel(
         cls,
-        derived_dict: dict[str, Any],
+        derived_gt: DerivedChannelGt,
         nodes: dict[str, ShNode],
     ) -> DerivedChannel:
-        created_by_node_name = derived_dict.get("CreatedByNodeName", "")
-        created_by_node = nodes.get(created_by_node_name)
+        created_by_node = nodes.get(derived_gt.CreatedByNodeName)
 
         if created_by_node is None:
             raise ValueError(
                 f"ERROR. DerivedChannel related nodes must exist for "
-                f"{derived_dict.get('Name')}!\n"
-                f"  For CreatedByNodeName<{created_by_node_name}> got None!\n"
+                f"{derived_gt.Name}!\n"
+                f"  For CreatedByNodeName<{derived_gt.CreatedByNodeName}> got None!\n"
             )
 
         try:
             d = DerivedChannel(
                 created_by_node=created_by_node,
-                **derived_dict,
+                **derived_gt.model_dump(by_alias=True, mode="json"),
             )
         except Exception as e:
-            raise Exception(f" trouble with {derived_dict}: {e}")
+            raise DcError(f" trouble with {derived_gt.Name}: {e}")
 
         return d
 
@@ -548,7 +515,7 @@ class HydronicLayout:
     @classmethod
     def load_data_channels(
         cls,
-        layout: dict[Any, Any],
+        channel_gts: list[DataChannelGt],
         nodes: dict[str, ShNode],
         *,
         raise_errors: bool = True,
@@ -557,20 +524,19 @@ class HydronicLayout:
         dcs = {}
         if errors is None:
             errors = []
-        for dc_dict in layout.get("DataChannels", []):
+        for channel_gt in channel_gts:
             try:
-                dc_name = dc_dict["Name"]
-                dcs[dc_name] = cls.make_channel(dc_dict, nodes)
+                dcs[channel_gt.Name] = cls.make_channel(channel_gt, nodes)
             except Exception as e:  # noqa: PERF203
                 if raise_errors:
                     raise
-                errors.append(LoadError("DataChannel", dc_dict, e))
+                errors.append(LoadError("DataChannel", {}, e))
         return dcs
 
     @classmethod
     def load_derived_channels(
         cls,
-        layout: dict[Any, Any],
+        derived_gts: list[DerivedChannelGt],
         nodes: dict[str, ShNode],
         *,
         raise_errors: bool = True,
@@ -581,14 +547,13 @@ class HydronicLayout:
         if errors is None:
             errors = []
 
-        for d in layout.get("DerivedChannels", []):
+        for derived_gt in derived_gts:
             try:
-                name = d["Name"]
-                derived[name] = cls.make_derived_channel(d, nodes)
+                derived[derived_gt.Name] = cls.make_derived_channel(derived_gt, nodes)
             except Exception as e:  # noqa: PERF203
                 if raise_errors:
                     raise
-                errors.append(LoadError("DerivedChannel", d, e))
+                errors.append(LoadError("DerivedChannel", {}, e))
 
         return derived
 
@@ -646,20 +611,29 @@ class HydronicLayout:
 
     def __init__(  # noqa: PLR0913
         self,
-        layout: dict[Any, Any],
+        word: "House0LayoutWord | NolanLayoutWord",
         *,
         device_types: dict[str, Any],  # by DeviceType
         components: dict[str, Component],  # by id
         nodes: dict[str, ShNode],  # by name
         data_channels: dict[str, DataChannel],  # by name
         derived_channels: dict[str, DerivedChannel],
-        flow_manifold_variant: FlowManifoldVariant = FlowManifoldVariant.House0,
-        use_sieg_loop: bool = False,
+        capture_tuning: Optional[List[CaptureTuning]] = None,
     ) -> None:
-        self.layout = copy.deepcopy(layout)
+        # The layout holds its authored sema word directly — no dict round-trip.
+        self.word = word
+        self.layout_type_name = word.TypeName
+        # GNodes indexed by GNodeClass, so the g-node accessors read the typed
+        # word. GNodeClass is scada's specialization of the open GNodeClass
+        # string (the gw.g.node.class enum, which g.node.gt invites each org to
+        # define); "Scada" lives here even though it is not a base.g.node.class.
+        self.g_node_by_class: dict[GNodeClass, GNodeGt] = {
+            GNodeClass(gn.GNodeClass): gn for gn in word.GNodes
+        }
+        # Capture tuning rides the operational-params artifact, not the layout;
+        # the loader threads it in (see sema_to_dc.ops_and_sema_to_dc).
         self.capture_tuning_by_channel: dict[str, CaptureTuning] = {
-            ct["ChannelName"]: CaptureTuning.model_validate(ct)
-            for ct in self.layout.get("CaptureTuningList", [])
+            ct.ChannelName: ct for ct in (capture_tuning or [])
         }
         self.device_types = dict(device_types)
         self.components = dict(components)
@@ -676,14 +650,8 @@ class HydronicLayout:
         self.derived_channels = dict(derived_channels)
         self.validate_derived_channels()
 
-        self.derived_channels = self.load_derived_channels(layout, self.nodes)
-
-        # ---- Hydronic block (the gw.hydronic type lives on the dataclass) ----
-        # Accept the typed nested "Hydronic" if present; else build it from the legacy
-        # flat top-level keys (transitional, while the fixtures migrate).
-        self.hydronic = self._build_hydronic(
-            layout, self.derived_channels, flow_manifold_variant, use_sieg_loop
-        )
+        # ---- Hydronic block (the gw.hydronic type) — taken from the word ----
+        self.hydronic = word.Hydronic
         # Flat accessors derived from the typed hydronic (actor code reads these).
         self.zone_list = [z.Name for z in self.hydronic.Zones]
         self.critical_zone_list = [z.Name for z in self.hydronic.Zones if z.Critical]
@@ -1127,37 +1095,42 @@ class HydronicLayout:
     def node_from_handle(self, handle: str) -> Optional[ShNode]:
         return next((n for n in self.nodes.values() if n.handle == handle), None)
 
-    @cached_property
-    def ltn_g_node_alias(self) -> str:
-        return self.layout["MyLeafTransactiveNodeGNode"]["Alias"]  # type: ignore[no-any-return]
+    def g_node(self, g_node_class: GNodeClass) -> GNodeGt:
+        gn = self.g_node_by_class.get(g_node_class)
+        if gn is None:
+            raise DcError(
+                f"layout has no {g_node_class.value} GNode "
+                f"(has {sorted(c.value for c in self.g_node_by_class)})"
+            )
+        return gn
 
     @cached_property
-    def ltn_g_node_instance_id(self) -> str:
-        return self.layout["MyLeafTransactiveNodeGNode"]["GNodeId"]  # type: ignore[no-any-return]
+    def ltn_g_node_alias(self) -> LeftRightDotStr:
+        return self.g_node(GNodeClass.LeafTransactiveNode).Alias
 
     @cached_property
-    def ltn_g_node_id(self) -> str:
-        return self.layout["MyLeafTransactiveNodeGNode"]["GNodeId"]  # type: ignore[no-any-return]
+    def ltn_g_node_instance_id(self) -> UUID4Str:
+        return self.g_node(GNodeClass.LeafTransactiveNode).GNodeId
 
     @cached_property
-    def terminal_asset_g_node_alias(self) -> str:
-        d = self.layout["MyTerminalAssetGNode"]
-        return d["Alias"]  # type: ignore[no-any-return]
+    def ltn_g_node_id(self) -> UUID4Str:
+        return self.g_node(GNodeClass.LeafTransactiveNode).GNodeId
 
     @cached_property
-    def terminal_asset_g_node_id(self) -> str:
-        d = self.layout["MyTerminalAssetGNode"]
-        return d["GNodeId"]  # type: ignore[no-any-return]
+    def terminal_asset_g_node_alias(self) -> LeftRightDotStr:
+        return self.g_node(GNodeClass.TerminalAsset).Alias
 
     @cached_property
-    def scada_g_node_alias(self) -> str:
-        my_scada_as_dict = self.layout["MyScadaGNode"]
-        return my_scada_as_dict["Alias"]  # type: ignore[no-any-return]
+    def terminal_asset_g_node_id(self) -> UUID4Str:
+        return self.g_node(GNodeClass.TerminalAsset).GNodeId
 
     @cached_property
-    def scada_g_node_id(self) -> str:
-        my_scada_as_dict = self.layout["MyScadaGNode"]
-        return my_scada_as_dict["GNodeId"]  # type: ignore[no-any-return]
+    def scada_g_node_alias(self) -> LeftRightDotStr:
+        return self.g_node(GNodeClass.Scada).Alias
+
+    @cached_property
+    def scada_g_node_id(self) -> UUID4Str:
+        return self.g_node(GNodeClass.Scada).GNodeId
 
     @cached_property
     def all_nodes_in_agg_power_metering(self) -> list[ShNode]:
@@ -1340,7 +1313,6 @@ class HydronicLayout:
         errors: Optional[list[LoadError]] = None,
     ) -> None:
         nodes = load_args["nodes"]
-        components = load_args["components"]
         data_channels = load_args["data_channels"]
         errors_caught = []
 
@@ -1422,41 +1394,6 @@ class HydronicLayout:
                     raise
                 errors_caught.append(LoadError("hardware.layout", nodes, e))
 
-    @staticmethod
-    def _build_hydronic(
-        layout: dict,
-        derived_channels: dict,
-        flow_manifold_variant: FlowManifoldVariant,
-        use_sieg_loop: bool,
-    ) -> Hydronic:
-        """The typed gw.hydronic for this layout: read the nested 'Hydronic'
-        block if present, else build it from the legacy flat top-level keys
-        (transitional, while the fixtures migrate to the nested block)."""
-        h = layout.get("Hydronic")
-        if isinstance(h, dict) and "Zones" in h:
-            return Hydronic.model_validate(h)
-        for key in ("ZoneList", "CriticalZoneList", "TotalStoreTanks", "ZoneKwhPerDegFList"):
-            if key not in layout:
-                raise DcError(f"House0 requires {key} (or a typed Hydronic block)!")
-        critical = set(layout["CriticalZoneList"])
-        # PrimaryFlowSource follows the actual primary-flow channel: a `sum`
-        # DerivedChannel => DerivedSiegSum; otherwise Measured (a DataChannel).
-        primary_derived = any(
-            d.Name == "primary-flow" and d.Strategy == "sum"
-            for d in derived_channels.values()
-        )
-        return Hydronic(
-            Zones=[
-                HvacZone(Name=name, Critical=name in critical, KwhPerDegF=float(kwh))
-                for name, kwh in zip(layout["ZoneList"], layout["ZoneKwhPerDegFList"])
-            ],
-            TotalStoreTanks=layout["TotalStoreTanks"],
-            UseSiegLoop=use_sieg_loop,
-            SiegLoopPlumbed=flow_manifold_variant == FlowManifoldVariant.House0Sieg,
-            PrimaryFlowSource="DerivedSiegSum" if primary_derived else "Measured",
-            Strategy=layout.get("Strategy", "House0"),
-        )
-
     @classmethod
     def check_house0_sieg_manifold(cls, channels: dict[str, DataChannel]) -> None:
         # if H0CN.sieg_cold not in channels.keys():
@@ -1504,96 +1441,65 @@ class HydronicLayout:
             if node.ActorClass == ActorClass.ZeroTenOutputer
         ]
 
-    # overwrites base class to return correct object
     @classmethod
-    def load(  # noqa: PLR0913
+    def from_word(  # noqa: PLR0913
         cls,
-        layout_path: Path | str,
+        word: "House0LayoutWord | NolanLayoutWord",
         *,
+        capture_tuning: Optional[List[CaptureTuning]] = None,
         included_node_names: Optional[set[str]] = None,
         raise_errors: bool = True,
         errors: Optional[list[LoadError]] = None,
-        device_type_decoder: Optional[DeviceTypeDecoder] = None,
-        component_decoder: Optional[ComponentDecoder] = None,
     ) -> "HydronicLayout":
-        with Path(layout_path).open() as f:
-            layout = json.loads(f.read())
-        return cls.load_dict(
-            layout,
-            included_node_names=included_node_names,
-            raise_errors=raise_errors,
-            errors=errors,
-            device_type_decoder=device_type_decoder,
-            component_decoder=component_decoder,
-        )
-
-    # overwrites base class to return correct object
-    @classmethod
-    def load_dict(  # noqa: PLR0913
-        cls,
-        layout: dict[Any, Any],
-        *,
-        included_node_names: Optional[set[str]] = None,
-        raise_errors: bool = True,
-        errors: Optional[list[LoadError]] = None,
-        device_type_decoder: Optional[DeviceTypeDecoder] = None,
-        component_decoder: Optional[ComponentDecoder] = None,
-    ) -> "HydronicLayout":
+        """Build the runtime layout from its authored sema word. The word's
+        sub-objects are already typed, so nothing is decoded from a dict —
+        the components, nodes and channels flow straight into the indexes.
+        Capture tuning rides the operational-params artifact and is threaded
+        in by the loader (see sema_to_dc.ops_and_sema_to_dc)."""
         if errors is None:
             errors = []
         device_types = cls.load_device_types(
-            layout=layout,
+            word.DeviceTypes,
             raise_errors=raise_errors,
             errors=errors,
-            device_type_decoder=device_type_decoder,
         )
         components = cls.load_components(
-            layout=layout,
+            word.Components,
             device_types=device_types,
             raise_errors=raise_errors,
             errors=errors,
-            component_decoder=component_decoder,
         )
         nodes = cls.load_nodes(
-            layout=layout,
+            word.ShNodes,
             components=components,
             raise_errors=raise_errors,
             errors=errors,
             included_node_names=included_node_names,
         )
         data_channels = cls.load_data_channels(
-            layout=layout,
+            word.DataChannels,
             nodes=nodes,
             raise_errors=raise_errors,
             errors=errors,
         )
         derived_channels = cls.load_derived_channels(
-            layout=layout,
+            word.DerivedChannels,
             nodes=nodes,
             raise_errors=raise_errors,
             errors=errors,
         )
-        # Read the sieg topology from the typed Hydronic block if present, else
-        # from the legacy flat top-level keys (transitional).
-        _hyd = layout.get("Hydronic")
-        if isinstance(_hyd, dict) and "Zones" in _hyd:
-            _fmv = (
-                FlowManifoldVariant.House0Sieg
-                if _hyd.get("SiegLoopPlumbed")
-                else FlowManifoldVariant.House0
-            )
-            _usl = bool(_hyd.get("UseSiegLoop", False))
-        else:
-            _fmv = FlowManifoldVariant(layout.get("FlowManifoldVariant", "House0"))
-            _usl = bool(layout.get("UseSiegLoop", False))
         load_args: House0LoadArgs = {
             "device_types": device_types,
             "components": components,
             "nodes": nodes,
             "data_channels": data_channels,
             "derived_channels": derived_channels,
-            "flow_manifold_variant": _fmv,
-            "use_sieg_loop": _usl,
+            "flow_manifold_variant": (
+                FlowManifoldVariant.House0Sieg
+                if word.Hydronic.SiegLoopPlumbed
+                else FlowManifoldVariant.House0
+            ),
+            "use_sieg_loop": word.Hydronic.UseSiegLoop,
         }
         cls.resolve_links(
             load_args["nodes"],
@@ -1603,105 +1509,113 @@ class HydronicLayout:
         )
         cls.validate_layout(load_args, raise_errors=raise_errors, errors=errors)
         cls.validate_house0(load_args, raise_errors=raise_errors, errors=errors)
-        return HydronicLayout(layout, **load_args)
+        return HydronicLayout(
+            word,
+            device_types=device_types,
+            components=components,
+            nodes=nodes,
+            data_channels=data_channels,
+            derived_channels=derived_channels,
+            capture_tuning=capture_tuning,
+        )
 
 
     @property
     def primary_scada(self) -> ShNode:
         n = self.node(H0N.primary_scada)
         if n is None:
-            raise Exception(f"{H0N.primary_scada} is known to exist")
+            raise DcError(f"{H0N.primary_scada} is known to exist")
         return n
 
     @property
     def derived_generator(self) -> ShNode:
         n = self.node(H0N.derived_generator)
         if n is None:
-            raise Exception(f"{H0N.derived_generator} is known to exist")
+            raise DcError(f"{H0N.derived_generator} is known to exist")
         return n
     
     @property
     def local_control(self) -> ShNode:
         n = self.node(H0N.local_control)
         if n is None:
-            raise Exception(f"{H0N.local_control} is known to exist")
+            raise DcError(f"{H0N.local_control} is known to exist")
         return n
     
     @property
     def auto_node(self) -> ShNode:
         n = self.node(H0N.auto)
         if n is None:
-            raise Exception(f"{H0N.auto} is known to exist")
+            raise DcError(f"{H0N.auto} is known to exist")
         return n
 
     @property
     def local_control_normal_node(self) -> ShNode:
         n = self.node(H0N.local_control_normal)
         if n is None:
-            raise Exception(f"{H0N.local_control_normal} is known to exist")
+            raise DcError(f"{H0N.local_control_normal} is known to exist")
         return n
 
     @property
     def local_control_backup_node(self) -> ShNode:
         n = self.node(H0N.local_control_backup)
         if n is None:
-            raise Exception(f"{H0N.local_control_backup} is known to exist")
+            raise DcError(f"{H0N.local_control_backup} is known to exist")
         return n
 
     @property
     def local_control_scada_blind_node(self) -> ShNode:
         n = self.node(H0N.local_control_scada_blind)
         if n is None:
-            raise Exception(f"{H0N.local_control_scada_blind} is known to exist")
+            raise DcError(f"{H0N.local_control_scada_blind} is known to exist")
         return n
     
     @property
     def hp_boss(self) -> ShNode:
         n = self.node(H0N.hp_boss)
         if n is None:
-            raise Exception(f"{H0N.hp_boss} is known to exist")
+            raise DcError(f"{H0N.hp_boss} is known to exist")
         return n
     
     @property
     def leaf_ally(self) -> ShNode:
         n = self.node(H0N.leaf_ally)
         if n is None:
-            raise Exception(f"{H0N.leaf_ally} is known to exist")
+            raise DcError(f"{H0N.leaf_ally} is known to exist")
         return n
     
     @property
     def ltn(self) -> ShNode:
         n = self.node(H0N.ltn)
         if n is None:
-            raise Exception(f"{H0N.ltn} is known to exist")
+            raise DcError(f"{H0N.ltn} is known to exist")
         return n
     
     @property
     def pico_cycler(self) -> ShNode:
         n = self.node(H0N.pico_cycler)
         if n is None:
-            raise Exception(f"{H0N.pico_cycler} is known to exist")
+            raise DcError(f"{H0N.pico_cycler} is known to exist")
         return n
 
     @property
     def dist_010v(self) -> ShNode:
         n = self.node(H0N.dist_010v)
         if n is None:
-            raise Exception(f"{H0N.dist_010v} is known to exist")
+            raise DcError(f"{H0N.dist_010v} is known to exist")
         return n
 
     @property
     def store_010v(self) -> ShNode:
         n = self.node(H0N.store_010v)
         if n is None:
-            raise Exception(f"{H0N.store_010v} is known to exist")
+            raise DcError(f"{H0N.store_010v} is known to exist")
         return n
 
     @property
     def primary_010v(self) -> ShNode:
         n = self.node(H0N.primary_010v)
         if n is None:
-            raise Exception(f"{H0N.primary_010v} is known to exist")
+            raise DcError(f"{H0N.primary_010v} is known to exist")
         return n
 
     ################################
@@ -1869,15 +1783,5 @@ class HydronicLayout:
         self._family_only("store bottom element", NOLAN_LAYOUT_TYPE_NAME)
         return self.required_node(NolanNodeNames.store_bottom_elt_relay)
 
-    def scada2_gnode_name(self) -> str:
+    def scada2_g_node_name(self) -> LeftRightDotStr:
         return f"{self.scada_g_node_alias}.{H0N.secondary_scada}"
-
-def deserialize_house0_load_args(data: dict) -> House0LoadArgs:
-    valid_keys = set(House0LoadArgs.__annotations__.keys())
-
-    # Validate the FlowManifoldVariant
-    data["FlowManifoldVariant"] = FlowManifoldVariant(data.get("FlowManifoldVariant", "House0"))
-    # Validate use_sieg_loop
-    data["UseSiegLoop"] = bool(data.get("UseSiegLoop", False))
-    # TypedDict expects a regular dictionary, so we just pass it in
-    return House0LoadArgs(**data)

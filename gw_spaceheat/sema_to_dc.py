@@ -1,68 +1,62 @@
-"""sema_to_dc — assemble the authored artifacts into the dc layout the scada loads.
+"""sema_to_dc — load the dc layout the scada runs from its authored artifacts.
 
 The gen machinery lives in tlayouts (the authoring home, on the sema snapshot);
 scada consumes its two authored artifacts per home:
 
     gw.house0.layout.json ⊕ gw.house0.operational.params.json
-        ──ops_and_sema_to_dc──▶ runtime House0Sema ──sema_to_dc──▶ House0Dc
+        ──load_layout──▶ HydronicLayout
 
-`assemble_runtime_layout` validates the two assembly checks: assembly coverage
-(the ops file covers every channel the static layout declares) and the poll
-floor (PollPeriodMs ≥ the device type's MinPollPeriodMs; the layout owns the
-floor, the ops file owns PollPeriodMs). Capture tuning is never spliced onto
-components — it stays on the ops artifact's CaptureTuningList, threaded
-through to the runtime layout as HardwareLayout.capture_tuning_by_channel.
-
-The forward diff-and-adopt oracle (`diff_against_fixture` / `main`)
-canon-compares the assembled layout against its frozen `tests/config/<home>.json`
-fixture — a review aid, not a strict gate (the strict gate is behavioral: the
-sim-run boot).
-
-    python sema_to_dc.py [home] [authored_dir]   # default: oak ../../tlayouts/output/oak
+The layout word decodes to its typed sema word and is handed straight to
+`HydronicLayout.from_word` — the runtime layout holds the word, so there is no
+dict round-trip. `assemble_runtime_layout` validates the two assembly checks
+against the raw artifacts before decode: assembly coverage (the ops file covers
+every channel the static layout declares) and the poll floor (PollPeriodMs ≥
+the device type's MinPollPeriodMs; the layout owns the floor, the ops file owns
+PollPeriodMs). Capture tuning stays on the ops artifact's CaptureTuningList and
+is threaded through (typed) to HydronicLayout.capture_tuning_by_channel.
 """
 
-import copy
 import json
-import sys
 from pathlib import Path
 from typing import Any
 
-from actors.config import DEFAULT_OPS_PARAMS_FILE
-from gwsproto.data_classes.house_0_layout import House0Layout as House0Dc
-from gwsproto.named_types import House0Layout as House0Sema
+from pydantic import TypeAdapter
+
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.named_types import (
+    House0Layout,
     House0OperationalParams,
     NolanLayout,
     NolanOperationalParams,
 )
-
-CONFIG_DIR = Path(__file__).resolve().parent.parent / "tests" / "config"
+from gwsproto.property_format import LeftRightDotStr
 
 # The authored static artifact names its sema layout type; dispatch on it.
-SEMA_LAYOUT_BY_TYPENAME: dict[str, type[House0Sema] | type[NolanLayout]] = {
-    "gw.house0.layout": House0Sema,
-    "gw.nolan.layout": NolanLayout,
+SEMA_LAYOUT_BY_TYPENAME: dict[LeftRightDotStr, type[House0Layout] | type[NolanLayout]] = {
+    word.type_name_value(): word for word in (House0Layout, NolanLayout)
 }
 
 OperationalParams = House0OperationalParams | NolanOperationalParams
 
-# The ONLY layout ⊕ operational-params pairings a scada may boot. A home's
-# operational params are authored against its layout family: the House0 word
-# carries the store/optimization knobs (SeasonalStorageMode, HpTurnOnMinutes,
-# ShortCycleBuffer, LoadOverestimationPercent, OilBoilerBackup, HorizonHours)
-# that House0 control reads, and the Nolan word carries the cooling-season TOU
-# schedule (OnPeakWindows, HeldCircuitPositions) that Nolan control reads.
-# A crossed pair decodes but then starves whichever control path it feeds, so
-# the pairing is checked at load and a mismatch refuses the boot outright.
-APPROVED_PAIRS: dict[str, str] = {
-    "gw.house0.layout": "gw.house0.operational.params",
-    "gw.nolan.layout": "gw.nolan.operational.params",
+SEMA_OPS_BY_TYPENAME: dict[LeftRightDotStr, type[OperationalParams]] = {
+    word.type_name_value(): word
+    for word in (House0OperationalParams, NolanOperationalParams)
 }
 
-SEMA_OPS_BY_TYPENAME: dict[str, type[OperationalParams]] = {
-    "gw.house0.operational.params": House0OperationalParams,
-    "gw.nolan.operational.params": NolanOperationalParams,
-}
+# The ONLY layout ⊕ operational-params pairings a scada may boot. The two
+# operational-params words carry the same field set, so a crossed pair decodes
+# cleanly and then describes the wrong plant — one family's relays, tanks and
+# zones tuned by the other family's numbers. Nothing downstream would notice.
+# The pairing is checked at load and a mismatch refuses the boot outright.
+# Keys and values are TypeNames (left.right.dot vocabulary), validated at load.
+APPROVED_PAIRS: dict[LeftRightDotStr, LeftRightDotStr] = TypeAdapter(
+    dict[LeftRightDotStr, LeftRightDotStr]
+).validate_python(
+    {
+        House0Layout.type_name_value(): House0OperationalParams.type_name_value(),
+        NolanLayout.type_name_value(): NolanOperationalParams.type_name_value(),
+    }
+)
 
 
 def check_approved_pair(layout_type_name: str, ops_type_name: str) -> None:
@@ -92,6 +86,7 @@ def decode_operational_params(ops: dict[str, Any]) -> OperationalParams:
             f"operational-params word. Known: {sorted(SEMA_OPS_BY_TYPENAME)}."
         )
     return ops_cls.model_validate(ops)
+
 
 def assemble_runtime_layout(
     static: dict[str, Any], ops: dict[str, Any]
@@ -142,26 +137,28 @@ def assemble_runtime_layout(
 
 def ops_and_sema_to_dc(
     static_path: Path, ops_path: Path, **load_kwargs: Any
-) -> House0Dc:
-    """Assemble the two authored artifacts and load the dc House0Layout. The
-    pair SHALL be approved (see APPROVED_PAIRS); a mismatch raises."""
+) -> HydronicLayout:
+    """Load the dc HydronicLayout from the two authored artifacts. The pair
+    SHALL be approved (see APPROVED_PAIRS); a mismatch raises. The layout word
+    is handed to HydronicLayout.from_word directly — no dict round-trip — and
+    the capture tuning is taken (typed) from the operational-params word."""
     static = json.loads(Path(static_path).read_text())
     ops = json.loads(Path(ops_path).read_text())
     check_approved_pair(str(static.get("TypeName")), str(ops.get("TypeName")))
-    assembled = assemble_runtime_layout(static, ops)
-    sema = SEMA_LAYOUT_BY_TYPENAME[assembled["TypeName"]].model_validate(assembled)
-    layout_dict = sema_to_layout_dict(sema)
-    layout_dict["CaptureTuningList"] = ops.get("CaptureTuningList", [])
-    dc = House0Dc.load_dict(layout_dict, **load_kwargs)
-    dc.layout_type_name = sema.TypeName
-    return dc
+    # Validates assembly coverage + poll floor against the raw artifacts; raises.
+    assemble_runtime_layout(static, ops)
+    word = SEMA_LAYOUT_BY_TYPENAME[str(static["TypeName"])].model_validate(static)
+    ops_word = decode_operational_params(ops)
+    return HydronicLayout.from_word(
+        word, capture_tuning=ops_word.CaptureTuningList, **load_kwargs
+    )
 
 
 def load_layout(
     layout_path: Path | str,
     ops_path: Path | str,
     **load_kwargs: Any,
-) -> House0Dc:
+) -> HydronicLayout:
     """Load a runtime layout from the home's two authored artifacts. BOTH paths
     are passed in the same way — callers take them from settings.paths
     (hardware_layout and operational_params); neither filename is constructed
@@ -177,142 +174,3 @@ def load_layout(
         )
     return ops_and_sema_to_dc(Path(layout_path), Path(ops_path), **load_kwargs)
 
-
-def sema_to_layout_dict(sema: House0Sema | NolanLayout) -> dict[str, Any]:
-    """Build the layout dict the data class can load. Components/cacs are
-    regrouped into the typed keys load_dict expects."""
-    layout: dict[str, Any] = {}
-    # GNodes back to the three named entries, reconstructed FROM the sema GNodes
-    # (keyed by GNodeClass).
-    by_class = {
-        "Scada": "MyScadaGNode",
-        "TerminalAsset": "MyTerminalAssetGNode",
-        "LeafTransactiveNode": "MyLeafTransactiveNodeGNode",
-    }
-    for gn in sema.GNodes or []:
-        key = by_class.get(gn.GNodeClass, "MyLeafTransactiveNodeGNode")
-        layout[key] = gn.model_dump(by_alias=True, exclude_none=True, mode="json")
-    if sema.Hydronic is not None:
-        layout["Hydronic"] = sema.Hydronic.model_dump(
-            by_alias=True, exclude_none=True, mode="json"
-        )
-    layout["ShNodes"] = [
-        n.model_dump(by_alias=True, exclude_none=True, mode="json")
-        for n in (sema.ShNodes or [])
-    ]
-    layout["DataChannels"] = [
-        c.model_dump(by_alias=True, exclude_none=True, mode="json")
-        for c in (sema.DataChannels or [])
-    ]
-    layout["DerivedChannels"] = [
-        c.model_dump(by_alias=True, exclude_none=True, mode="json")
-        for c in (sema.DerivedChannels or [])
-    ]
-
-    em, ads, other = [], [], []
-    for c in sema.Components or []:
-        d = c.model_dump(by_alias=True, exclude_none=True, mode="json")
-        if c.TypeName == "electric.meter.component.gt":
-            em.append(d)
-        elif c.TypeName == "ads111x.based.component.gt":
-            ads.append(d)
-        else:
-            other.append(d)
-    (
-        layout["ElectricMeterComponents"],
-        layout["Ads111xBasedComponents"],
-        layout["OtherComponents"],
-    ) = em, ads, other
-
-    layout["DeviceTypes"] = [
-        c.model_dump(by_alias=True, exclude_none=True, mode="json")
-        for c in (sema.DeviceTypes or [])
-    ]
-    return layout
-
-
-def sema_to_dc(sema: House0Sema) -> House0Dc:
-    """Project an axiom-valid runtime-shaped House0Layout to the dc the scada loads."""
-    return House0Dc.load_dict(sema_to_layout_dict(sema))
-
-
-def _canon(layout: dict) -> dict:
-    """Sort every collection by a stable key so the comparison is order-INSENSITIVE.
-    List order in a layout is just historical authoring/load order — not
-    semantically meaningful — so the gen is free to emit its own canonical order;
-    equivalence is content + id, not position. (A frozen fixture adopts the gen's
-    order on migration.)"""
-
-    def key(r: dict) -> str:
-        return str(
-            r.get("Name")
-            or r.get("Alias")
-            or r.get("GNodeId")
-            or r.get("DeviceType")
-            or f"{r.get('TypeName', '')}|{r.get('DisplayName', '')}|{r.get('ComponentId', '')}"
-        )
-
-    for k, v in layout.items():
-        if isinstance(v, list) and v and isinstance(v[0], dict):
-            layout[k] = sorted(v, key=key)
-    return layout
-
-
-def diff_against_fixture(name: str, authored_dir: Path) -> int:
-    """Review aid: canon-compare the assembled tlayouts artifacts against the
-    frozen tests/config/<name>.json fixture and print the per-collection diff.
-    The diff is the adopt worklist (gen omissions vs stale-fixture gaps), not a
-    strict gate."""
-    layout_paths = sorted(p for p in authored_dir.glob("gw.*.layout.json"))
-    if len(layout_paths) != 1:
-        raise ValueError(
-            f"expected exactly one gw.*.layout.json in {authored_dir}; found {layout_paths}"
-        )
-    static_path = layout_paths[0]
-    ops_path = authored_dir / DEFAULT_OPS_PARAMS_FILE
-
-    static = json.loads(static_path.read_text())
-    ops = json.loads(ops_path.read_text())
-    assembled = assemble_runtime_layout(static, ops)
-    sema = SEMA_LAYOUT_BY_TYPENAME[assembled["TypeName"]].model_validate(assembled)
-    gen_layout = sema_to_layout_dict(sema)
-    gen_layout["CaptureTuningList"] = ops.get("CaptureTuningList", [])
-
-    print(f"== ops_and_sema_to_dc({name}) loads? ==")
-    try:
-        House0Dc.load_dict(copy.deepcopy(gen_layout))
-        print("  assembled dc: LOADS OK")
-    except Exception as e:  # noqa: BLE001
-        print(f"  assembled dc: FAILS -> {type(e).__name__}: {str(e)[:200]}")
-        return 1
-
-    frozen = json.loads((CONFIG_DIR / f"{name}.json").read_text())
-    gen_c = _canon(copy.deepcopy(gen_layout))
-    fro_c = _canon(copy.deepcopy(frozen))
-    print(f"== assembled-dc vs frozen {name}.json (canon, order-insensitive) ==")
-    print(f"  {'KEY':38} {'gen':>6} {'frozen':>7}")
-    diffs = 0
-    for k in sorted(set(gen_c) | set(fro_c)):
-        gv, fv = gen_c.get(k), fro_c.get(k)
-        gn = len(gv) if isinstance(gv, list) else ("-" if gv is None else "obj")
-        fn = len(fv) if isinstance(fv, list) else ("-" if fv is None else "obj")
-        flag = "" if gn == fn else "  <-- DIFF"
-        if flag:
-            diffs += 1
-        print(f"  {k:38} {str(gn):>6} {str(fn):>7}{flag}")
-    print(f"== {diffs} collection-count diff(s) — review and adopt ==")
-    return 0
-
-
-def main(argv: list[str] | None = None) -> int:
-    argv = sys.argv[1:] if argv is None else argv
-    name = argv[0] if argv else "oak"
-    default_dir = (
-        Path(__file__).resolve().parent.parent.parent / "tlayouts" / "output" / name
-    )
-    authored_dir = Path(argv[1]) if len(argv) > 1 else default_dir
-    return diff_against_fixture(name, authored_dir)
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
