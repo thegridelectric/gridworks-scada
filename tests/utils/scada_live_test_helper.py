@@ -6,7 +6,7 @@ from pathlib import Path
 from gwproactor_test.instrumented_proactor import MinRangeTuple
 from gwproactor_test.tree_live_test_helper import TreeLiveTest
 
-from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from tests.conftest import TEST_HARDWARE_LAYOUT_PATH
 from ltn_app import LtnApp
 from scada2_app import Scada2App
@@ -50,11 +50,11 @@ class ScadaLiveTest(TreeLiveTest):
 
     def __init__(self,
         *,
-        layout: Optional[House0Layout] = None,
-        child_layout: Optional[House0Layout] = None,
-        child1_layout: Optional[House0Layout] = None,
-        child2_layout: Optional[House0Layout] = None,
-        parent_layout: Optional[House0Layout] = None,
+        layout: Optional[HydronicLayout] = None,
+        child_layout: Optional[HydronicLayout] = None,
+        child1_layout: Optional[HydronicLayout] = None,
+        child2_layout: Optional[HydronicLayout] = None,
+        parent_layout: Optional[HydronicLayout] = None,
         child1_simulated: bool = True,
         child2_simulated: bool = True,
         **kwargs: typing.Any

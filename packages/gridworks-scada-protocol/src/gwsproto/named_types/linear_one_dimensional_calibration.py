@@ -22,7 +22,7 @@ class LinearOneDimensionalCalibration(GwsprotoSemaType):
     M: float = 1.0
     B: int = 0
     TypeName: Literal["linear.one.dimensional.calibration"] = "linear.one.dimensional.calibration"
-    Version: Literal["001"] = "001"
+    Version: Literal["000"] = "000"
 
     @field_validator("M")
     @classmethod

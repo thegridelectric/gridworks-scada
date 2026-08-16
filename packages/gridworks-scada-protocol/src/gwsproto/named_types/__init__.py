@@ -133,6 +133,7 @@ from gwsproto.named_types.sieg_loop_endpoint_valve_adjustment import (
     SiegLoopEndpointValveAdjustment,
 )
 from gwsproto.named_types.sieg_target_too_low import SiegTargetTooLow
+from gwsproto.named_types.sim_dac_writer_component_gt import SimDacWriterComponentGt
 from gwsproto.named_types.sim_pico_tank_module_component_gt import (
     SimPicoTankModuleComponentGt,
 )
@@ -286,6 +287,7 @@ __all__ = [
     "SetpointBelief",
     "SiegLoopEndpointValveAdjustment",
     "SiegTargetTooLow",
+    "SimDacWriterComponentGt",
     "SimPicoTankModuleComponentGt",
     "SimRelayComponentGt",
     "SimSensorComponentGt",

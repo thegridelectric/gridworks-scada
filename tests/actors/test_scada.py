@@ -164,7 +164,7 @@ async def test_scada_snaphot_request_delivery(request: pytest.FixtureRequest):
 #     if uses_tls(settings):
 #         copy_keys("scada", settings)
 #     settings.paths.mkdirs(parents=True)
-#     layout = House0Layout.load(settings.paths.hardware_layout)
+#     layout = HydronicLayout.load(settings.paths.hardware_layout)
 #     actors = Actors(
 #         settings,
 #         layout=layout,

@@ -20,7 +20,7 @@ class SpaceheatNodeGt(GwsprotoSemaType):
     NameplatePowerW: StrictInt | None = None
     ShNodeId: UUID4Str
     TypeName: Literal["spaceheat.node.gt"] = "spaceheat.node.gt"
-    Version: Literal["303"] = "303"
+    Version: Literal["302"] = "302"
 
     model_config = ConfigDict(extra="allow", use_enum_values=True)
 

@@ -4,7 +4,7 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class LocalControlStandbyTopState(SemaEnum):
-    """Sema: https://schemas.electricity.works/enums/gw1.local.control.standby.top.state/000"""
+    """Sema: https://schemas.electricity.works/enums/gw1.local.control.standby.top.state/001"""
 
     EverythingOff = auto()
     Dormant = auto()
@@ -15,7 +15,7 @@ class LocalControlStandbyTopState(SemaEnum):
 
     @classmethod
     def enum_version(cls) -> str:
-        return "000"
+        return "001"
 
     @classmethod
     def values(cls) -> list[str]:

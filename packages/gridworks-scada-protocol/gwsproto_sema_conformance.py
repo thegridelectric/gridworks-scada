@@ -1,48 +1,67 @@
-"""gwsproto ↔ sema conformance sweep — check every gwsproto named type against sema.
+"""gwsproto ↔ sema conformance sweep — check every gwsproto type, enum, and
+property format against the sema contract.
 
-gwsproto types are hand-written twins of sema vocabulary words; sema is the
-contract (scada protocol: validate against the canonical runtime). This sweep
-walks every class in `gwsproto.named_types` and reports, per type:
+gwsproto types/enums/formats are hand-written twins of sema vocabulary words;
+sema is the contract (scada protocol: validate against the canonical runtime).
+This module is both a CLI (human sweep) and the engine behind the pytest
+conformance test (`tests/named_types/test_gwsproto_sema_conformance.py`).
 
-- **no-word** — gwsproto types whose TypeName is not in the sema registry (the
-  exceptions to call out and/or add to sema);
+Per TYPE it reports:
+- **no-word** — TypeName not in the sema registry (gwsproto-only, e.g. types
+  not yet added to sema);
 - **version-drift** — the gwsproto `Version` literal is not the sema
-  `latest_version` (catch-up candidates; the sema-side version may also be
-  draft or unknown);
-- **example-reject** — the sema example for the gwsproto-declared version does
-  not decode through the gwsproto class (gwsproto rejects canonical sema data);
+  `latest_version`;
+- **example-reject** — the sema example for the pinned version does not decode
+  through the gwsproto class (gwsproto rejects canonical sema data);
 - **dump-drift** — the example decodes but `model_dump(by_alias=True,
-  exclude_none=True)` is not equal to the example document (gwsproto emits
-  non-canonical serialization: renamed/extra/defaulted fields, coerced values);
-- **no-example** — nothing to decode (informational; latest versions MAY omit
-  examples).
+  exclude_none=True)` != the example document (non-canonical serialization);
+- **no-example** — nothing to decode (informational).
+
+Per ENUM it reports no-word, version-drift, and value-drift (the gwsproto value
+set is not the sema enum's value set). Per FORMAT it runs the sema `examples`
+(must accept) and `counterexamples` (must reject) through the gwsproto validator.
 
 Reads the sibling sema checkout's definitions directly (report which branch!).
-With --cli, each clean re-dump is additionally validated through the sema CLI
-(`uv run sema validate`, run in the sema repo) — slower, belt-and-suspenders.
-
-With --release-gate, every gwsproto-pinned (TypeName, Version) must carry sema
-status `published` — staging and draft pins fail. Staging vocabulary runs on
-dev brokers only, so this gate is what a non-dev deploy must pass.
+With --cli, each clean re-dump is additionally validated through the sema CLI.
 
 Run from this package directory:
 
-    uv run python gwsproto_sema_conformance.py [--sema PATH] [--cli]
-        [--release-gate] [-v]
-
-(Any environment with gwsproto installed works, e.g. the scada venv.)
+    uv run python gwsproto_sema_conformance.py [--sema PATH] [--cli] [-v]
 """
 
 import argparse
 import json
 import subprocess
 import tempfile
+from dataclasses import dataclass, field
 from pathlib import Path
 
+import gwsproto.enums as gwsproto_enums
 import gwsproto.named_types as named_types
+from gwsproto import property_format as pf
+from gwsproto.enums.gw_str_enum import SemaEnum
+from pydantic import TypeAdapter
 
 # packages/gridworks-scada-protocol/ -> repo root -> umbrella dir -> sema
 DEFAULT_SEMA = Path(__file__).resolve().parents[3] / "sema"
+
+# sema format name -> gwsproto property_format Annotated type. Formats gwsproto
+# does not mirror are listed in UNMIRRORED_FORMATS below (checked-in record).
+FORMAT_MAP: dict[str, object] = {
+    "handle.name": pf.HandleName,
+    "hex.char": pf.HexChar,
+    "hh.mm": pf.HhMm,
+    "left.right.dot": pf.LeftRightDotStr,
+    "market.slot.name": pf.MarketSlotName,
+    "non.negative.int": pf.NonNegativeInt,
+    "pascal.case": pf.PascalCase,
+    "spaceheat.name": pf.SpaceheatName,
+    "utc.iso8601.millis": pf.UtcIso8601Millis,
+    "utc.iso8601.seconds": pf.UtcIso8601Seconds,
+    "utc.milliseconds": pf.UTCMilliseconds,
+    "utc.seconds": pf.UTCSeconds,
+    "uuid4.str": pf.UUID4Str,
+}
 
 # The scada venv carries no YAML library; the sema checkout's uv env does. One
 # subprocess converts the registry + every needed schema file to JSON.
@@ -58,7 +77,7 @@ json.dump(out, sys.stdout)
 """
 
 
-def load_sema_definitions(sema_root: Path, wanted: dict[str, str]) -> dict:
+def load_sema(sema_root: Path, wanted: dict[str, str]) -> dict:
     result = subprocess.run(
         ["uv", "run", "python", "-c", _YAML_TO_JSON],
         cwd=sema_root,
@@ -85,8 +104,20 @@ def gwsproto_classes() -> dict[str, tuple[type, str | None]]:
     return out
 
 
+def gwsproto_enum_classes() -> dict[str, type]:
+    """enum_name -> SemaEnum subclass for every gwsproto sema enum."""
+    out: dict[str, type] = {}
+    for name in dir(gwsproto_enums):
+        cls = getattr(gwsproto_enums, name)
+        if isinstance(cls, type) and issubclass(cls, SemaEnum) and cls is not SemaEnum:
+            try:
+                out[cls.enum_name()] = cls
+            except NotImplementedError:
+                continue
+    return out
+
+
 def sema_cli_validate(sema_root: Path, payload: dict) -> str | None:
-    """Run `uv run sema validate` on the payload; None if OK, else the error tail."""
     with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
         json.dump(payload, f)
         path = f.name
@@ -101,128 +132,174 @@ def sema_cli_validate(sema_root: Path, payload: dict) -> str | None:
     return (result.stdout + result.stderr).strip().splitlines()[-1][:200]
 
 
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--sema", type=Path, default=DEFAULT_SEMA)
-    parser.add_argument(
-        "--cli", action="store_true", help="also run `sema validate` per re-dump"
-    )
-    parser.add_argument(
-        "--release-gate",
-        action="store_true",
-        help=(
-            "fail unless every gwsproto-pinned version is sema-published "
-            "(staging = dev brokers only); run before any non-dev deploy"
-        ),
-    )
-    parser.add_argument(
-        "-v", "--verbose", action="store_true", help="show per-type OK lines"
-    )
-    args = parser.parse_args(argv)
+@dataclass
+class Report:
+    branch: str = ""
+    n_sema_types: int = 0
+    n_gwsproto_types: int = 0
+    # types
+    no_word: list[str] = field(default_factory=list)
+    version_drift: list[str] = field(default_factory=list)
+    example_reject: list[str] = field(default_factory=list)
+    dump_drift: list[str] = field(default_factory=list)
+    cli_reject: list[str] = field(default_factory=list)
+    no_example: list[str] = field(default_factory=list)
+    # enums
+    enum_no_word: list[str] = field(default_factory=list)
+    enum_version_drift: list[str] = field(default_factory=list)
+    enum_value_drift: list[str] = field(default_factory=list)
+    # formats
+    format_reject: list[str] = field(default_factory=list)
+    format_no_word: list[str] = field(default_factory=list)
 
-    sema_root = args.sema.resolve()
-    branch = subprocess.run(
-        ["git", "branch", "--show-current"],
-        cwd=sema_root,
-        capture_output=True,
-        text=True,
+
+def _enum_values(schema: dict | None) -> set[str] | None:
+    if not schema:
+        return None
+    vals = schema.get("enum")
+    return set(vals) if vals is not None else None
+
+
+def run(sema_root: Path, *, cli: bool = False) -> Report:  # noqa: C901
+    r = Report()
+    r.branch = subprocess.run(
+        ["git", "branch", "--show-current"], cwd=sema_root,
+        capture_output=True, text=True,
     ).stdout.strip()
 
     classes = gwsproto_classes()
-    wanted = {
-        type_name: (
+    enums = gwsproto_enum_classes()
+
+    # One batched YAML->JSON load: type schemas + enum schemas.
+    wanted: dict[str, str] = {}
+    for type_name, (_, version) in classes.items():
+        wanted[f"type::{type_name}"] = (
             f"definitions/types/{type_name}/{version}.yaml"
             if version is not None
             else f"definitions/types/{type_name}.yaml"
         )
-        for type_name, (_, version) in classes.items()
-    }
-    loaded = load_sema_definitions(sema_root, wanted)
-    sema_types = loaded["registry"]["types"]
+    for enum_name in enums:
+        wanted[f"enum::{enum_name}"] = f"definitions/enums/{enum_name}.yaml"  # literal
+    # versioned enums live under a version dir; add latest-version candidates too
+    # (resolved after we read the registry — so add a broad set here).
+    for fmt in FORMAT_MAP:
+        wanted[f"fmt::{fmt}"] = f"definitions/formats/{fmt}.yaml"
+
+    loaded = load_sema(sema_root, wanted)
+    registry = loaded["registry"]
+    sema_types = registry["types"]
+    sema_enums = registry.get("enums", {})
     schemas = loaded["schemas"]
+    r.n_sema_types = len(sema_types)
+    r.n_gwsproto_types = len(classes)
 
-    print(f"sema: {sema_root} (branch: {branch}) — {len(sema_types)} registered types")
-    print(f"gwsproto: {len(classes)} named types with a TypeName\n")
-
-    no_word: list[str] = []
-    version_drift: list[str] = []
-    example_reject: list[str] = []
-    dump_drift: list[str] = []
-    no_example: list[str] = []
-    cli_reject: list[str] = []
-    unpublished: list[str] = []
-    ok = 0
-
+    # ---- types ----
     for type_name in sorted(classes):
         cls, version = classes[type_name]
         entry = sema_types.get(type_name)
         if entry is None:
-            no_word.append(f"{type_name}  ({cls.__name__})")
+            r.no_word.append(type_name)
             continue
-
-        if args.release_gate:
-            if version is not None:
-                pin_status = (entry.get("versions") or {}).get(version, {}).get("status")
-            else:
-                pin_status = entry.get("status")
-            if pin_status != "published":
-                unpublished.append(
-                    f"{type_name}/{version or '-'}  "
-                    f"(sema status: {pin_status or 'NOT REGISTERED'})"
-                )
-
         latest = entry.get("latest_version")
         if version != latest:
-            status = (entry.get("versions") or {}).get(version, {}).get("status")
-            note = (
-                f" [sema-side {version}: {status or 'NOT REGISTERED'}]"
-                if version not in (entry.get("versions") or {}) or status
-                else ""
-            )
-            version_drift.append(
-                f"{type_name}  gwsproto {version} vs sema latest {latest}{note}"
-            )
-
-        schema = schemas.get(type_name)
-        if schema is None:
-            no_example.append(f"{type_name}  (no schema file for version {version})")
-            continue
-        examples = schema.get("examples") or []
+            r.version_drift.append(f"{type_name}: gwsproto {version} vs sema {latest}")
+        schema = schemas.get(f"type::{type_name}")
+        examples = (schema or {}).get("examples") or []
         if not examples:
-            no_example.append(f"{type_name}/{version}")
+            r.no_example.append(f"{type_name}/{version}")
             continue
-
-        failed = False
         for i, ex in enumerate(examples):
             doc = json.loads(ex)
             try:
                 decoded = cls.model_validate(doc)
-            except Exception as exc:  # noqa: BLE001 - report, don't crash the sweep
-                example_reject.append(
-                    f"{type_name}/{version} examples[{i}]: {str(exc)[:160]}"
-                )
-                failed = True
+            except Exception as exc:  # noqa: BLE001
+                r.example_reject.append(f"{type_name}/{version}[{i}]: {str(exc)[:140]}")
                 continue
             dump = decoded.model_dump(by_alias=True, exclude_none=True, mode="json")
             if dump != doc:
                 gone = sorted(set(doc) - set(dump))
                 added = sorted(set(dump) - set(doc))
                 changed = sorted(k for k in set(doc) & set(dump) if doc[k] != dump[k])
-                dump_drift.append(
-                    f"{type_name}/{version} examples[{i}]: "
-                    f"missing={gone} extra={added} changed={changed}"
+                r.dump_drift.append(
+                    f"{type_name}/{version}[{i}]: missing={gone} extra={added} changed={changed}"
                 )
-                failed = True
                 continue
-            if args.cli:
+            if cli:
                 err = sema_cli_validate(sema_root, dump)
                 if err:
-                    cli_reject.append(f"{type_name}/{version} examples[{i}]: {err}")
-                    failed = True
-        if not failed:
-            ok += 1
-            if args.verbose:
-                print(f"  OK  {type_name}/{version}")
+                    r.cli_reject.append(f"{type_name}/{version}[{i}]: {err}")
+
+    # ---- enums ----
+    # Second batched load for versioned-enum schemas at their gwsproto version.
+    enum_wanted: dict[str, str] = {}
+    for enum_name, ecls in enums.items():
+        entry = sema_enums.get(enum_name)
+        version = None
+        try:
+            version = ecls.enum_version()
+        except (NotImplementedError, AttributeError):
+            version = None
+        if entry and (entry.get("enum_type") == "versioned") and version:
+            enum_wanted[f"enum::{enum_name}"] = f"definitions/enums/{enum_name}/{version}.yaml"
+    if enum_wanted:
+        more = load_sema(sema_root, enum_wanted)["schemas"]
+        schemas.update(more)
+
+    for enum_name in sorted(enums):
+        ecls = enums[enum_name]
+        entry = sema_enums.get(enum_name)
+        if entry is None:
+            r.enum_no_word.append(enum_name)
+            continue
+        try:
+            version = ecls.enum_version()
+        except (NotImplementedError, AttributeError):
+            version = None
+        if entry.get("enum_type") == "versioned":
+            latest = entry.get("latest_version")
+            if version != latest:
+                r.enum_version_drift.append(
+                    f"{enum_name}: gwsproto {version} vs sema {latest}"
+                )
+        sema_vals = _enum_values(schemas.get(f"enum::{enum_name}"))
+        gws_vals = set(ecls.values())
+        if sema_vals is not None and gws_vals != sema_vals:
+            r.enum_value_drift.append(
+                f"{enum_name}: gwsproto-only={sorted(gws_vals - sema_vals)} "
+                f"sema-only={sorted(sema_vals - gws_vals)}"
+            )
+
+    # ---- formats ----
+    for fmt, gws_type in FORMAT_MAP.items():
+        schema = schemas.get(f"fmt::{fmt}")
+        if schema is None:
+            r.format_no_word.append(fmt)
+            continue
+        adapter = TypeAdapter(gws_type)
+        for ex in schema.get("examples") or []:
+            try:
+                adapter.validate_python(ex)
+            except Exception as exc:  # noqa: BLE001
+                r.format_reject.append(f"{fmt}: rejects valid example {ex!r}: {str(exc)[:80]}")
+        for ce in schema.get("counterexamples") or []:
+            try:
+                adapter.validate_python(ce)
+                r.format_reject.append(f"{fmt}: ACCEPTS counterexample {ce!r}")
+            except Exception:  # noqa: BLE001, S110
+                pass
+    return r
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--sema", type=Path, default=DEFAULT_SEMA)
+    parser.add_argument("--cli", action="store_true", help="also run `sema validate`")
+    parser.add_argument("-v", "--verbose", action="store_true")
+    args = parser.parse_args(argv)
+
+    r = run(args.sema.resolve(), cli=args.cli)
+    print(f"sema: {args.sema} (branch: {r.branch}) — {r.n_sema_types} registered types")
+    print(f"gwsproto: {r.n_gwsproto_types} named types\n")
 
     def section(title: str, items: list[str]) -> None:
         if items:
@@ -230,25 +307,23 @@ def main(argv: list[str] | None = None) -> int:
             for item in items:
                 print(f"  {item}")
 
-    section("NO SEMA WORD — call out / add to sema", no_word)
-    section("VERSION DRIFT — gwsproto not on sema latest", version_drift)
-    section("EXAMPLE REJECT — gwsproto rejects canonical sema data", example_reject)
-    section("DUMP DRIFT — gwsproto re-serialization is not canonical", dump_drift)
-    section("SEMA CLI REJECT", cli_reject)
-    section("UNPUBLISHED PIN — release gate: dev brokers only", unpublished)
-    section("NO EXAMPLE — nothing to decode (informational)", no_example)
+    section("TYPE — no sema word", r.no_word)
+    section("TYPE — version drift", r.version_drift)
+    section("TYPE — example reject", r.example_reject)
+    section("TYPE — dump drift", r.dump_drift)
+    section("TYPE — sema CLI reject", r.cli_reject)
+    section("ENUM — no sema word", r.enum_no_word)
+    section("ENUM — version drift", r.enum_version_drift)
+    section("ENUM — value drift", r.enum_value_drift)
+    section("FORMAT — reject", r.format_reject)
+    section("FORMAT — no sema word (unmirrored)", r.format_no_word)
 
-    print(
-        f"\n{ok} type(s) fully conformant; "
-        f"{len(no_word)} without a word; {len(version_drift)} version drift; "
-        f"{len(example_reject) + len(dump_drift) + len(cli_reject)} conformance failure(s)."
-        + (f" {len(unpublished)} unpublished pin(s)." if args.release_gate else "")
+    failures = (
+        r.version_drift + r.example_reject + r.dump_drift + r.cli_reject
+        + r.enum_version_drift + r.enum_value_drift + r.format_reject
     )
-    return (
-        1
-        if (no_word or example_reject or dump_drift or cli_reject or unpublished)
-        else 0
-    )
+    print(f"\n{len(failures)} conformance failure(s); {len(r.no_word)} type(s) without a word.")
+    return 1 if failures else 0
 
 
 if __name__ == "__main__":

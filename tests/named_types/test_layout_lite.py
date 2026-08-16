@@ -42,7 +42,7 @@ def test_layout_lite_generated() -> None:
                 "Name": "s",
                 "ShNodeId": "da9a0427-d6c0-44c0-b51c-492c1e580dc5",
                 "TypeName": "spaceheat.node.gt",
-                "Version": "303",
+                "Version": "302",
             },
             {
                 "ActorClass": "PowerMeter",
@@ -52,7 +52,7 @@ def test_layout_lite_generated() -> None:
                 "Name": "power-meter",
                 "ShNodeId": "6c0563b7-5171-4b1c-bba3-de156bea4b95",
                 "TypeName": "spaceheat.node.gt",
-                "Version": "303",
+                "Version": "302",
             },
             {
                 "ActorClass": "NoActor",
@@ -61,7 +61,7 @@ def test_layout_lite_generated() -> None:
                 "NameplatePowerW": 4000,
                 "ShNodeId": "07b8ca98-12c4-4510-8d0f-14fda2331215",
                 "TypeName": "spaceheat.node.gt",
-                "Version": "303",
+                "Version": "302",
             },
         ],
         "DerivedChannels": [
@@ -175,7 +175,7 @@ def test_layout_lite_generated() -> None:
             "DisplayName": "i2c krida relay boards",
             "I2cAddressList": [32, 33],
             "TypeName": "i2c.multichannel.dt.relay.component.gt",
-            "Version": "005",
+            "Version": "004",
             },
             "TypeName": "layout.lite",
             "Version": "013",

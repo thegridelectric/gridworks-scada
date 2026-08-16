@@ -5,7 +5,7 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class LocalControlBufferOnlyState(SemaEnum):
-    """Sema: https://schemas.electricity.works/enums/gw1.local.control.buffer.only.state/000"""
+    """Sema: https://schemas.electricity.works/enums/gw1.local.control.buffer.only.state/001"""
 
     Initializing = auto()
     HpOn = auto()
@@ -18,7 +18,7 @@ class LocalControlBufferOnlyState(SemaEnum):
 
     @classmethod
     def enum_version(cls) -> str:
-        return "000"
+        return "001"
 
     @classmethod
     def values(cls) -> list[str]:

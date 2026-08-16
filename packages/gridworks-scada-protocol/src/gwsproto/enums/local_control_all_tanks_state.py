@@ -4,7 +4,7 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class LocalControlAllTanksState(SemaEnum):
-    """Sema: https://schemas.electricity.works/enums/gw1.local.control.all.tanks.state/000"""
+    """Sema: https://schemas.electricity.works/enums/gw1.local.control.all.tanks.state/001"""
 
     Initializing = auto()
     HpOnStoreOff = auto()
@@ -23,7 +23,7 @@ class LocalControlAllTanksState(SemaEnum):
 
     @classmethod
     def enum_version(cls) -> str:
-        return "000"
+        return "001"
 
     @classmethod
     def values(cls) -> list[str]:

@@ -154,13 +154,19 @@ def _make_scadas(short2long: dict[str, str]) -> dict[str, ScadaSettings]:
     for short_name, long_name in short2long.items():
         _gwa(["add-scada", short_name, "--long-name", long_name])
         layout = load_layout(Paths().hardware_layout, Path(Paths().operational_params))
-        layout.layout["MyScadaGNode"]["Alias"] = long_name
+        layout.g_node("Scada").Alias = long_name
         short2settings[short_name] = ScadaSettings(
             admin=AdminLinkSettings(enabled=True)
         ).with_paths_name(short_name)
         short2settings[short_name].paths.mkdirs()
         with short2settings[short_name].paths.hardware_layout.open("w") as f:
-            f.write(json.dumps(layout.layout, indent=2, sort_keys=True))
+            f.write(
+                json.dumps(
+                    layout.word.model_dump(by_alias=True, mode="json"),
+                    indent=2,
+                    sort_keys=True,
+                )
+            )
     return short2settings
 
 async def _await_scada_connected(

@@ -81,7 +81,7 @@ def bus_app(tmp_path: Path) -> ScadaApp:
             "ActorHierarchyName": f"s.{BUS_NAME}",
             "ShNodeId": str(uuid.uuid4()),
             "TypeName": "spaceheat.node.gt",
-            "Version": "303",
+            "Version": "302",
         }
     )
     layout_path = tmp_path / "layout-with-bus.json"

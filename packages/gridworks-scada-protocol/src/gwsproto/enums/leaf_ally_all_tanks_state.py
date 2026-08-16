@@ -5,7 +5,7 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class LeafAllyAllTanksState(SemaEnum):
-    """Sema: https://schemas.electricity.works/enums/gw1.leaf.ally.all.tanks.state/000"""
+    """Sema: https://schemas.electricity.works/enums/gw1.leaf.ally.all.tanks.state/001"""
 
     Dormant = auto()
     Initializing = auto()
@@ -29,4 +29,4 @@ class LeafAllyAllTanksState(SemaEnum):
 
     @classmethod
     def enum_version(cls) -> str:
-        return "000"
+        return "001"

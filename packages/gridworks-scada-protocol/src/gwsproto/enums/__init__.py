@@ -19,6 +19,7 @@ from gwsproto.enums.actor_class import ActorClass
 from gwsproto.enums.actuation_authority import ActuationAuthority
 from gwsproto.enums.aquastat_control import AquastatControl
 from gwsproto.enums.base_g_node_class import BaseGNodeClass
+from gwsproto.enums.g_node_class import GNodeClass
 from gwsproto.enums.change_aquastat_control import ChangeAquastatControl
 from gwsproto.enums.change_heat_pump_control import ChangeHeatPumpControl
 from gwsproto.enums.change_heatcall_source import ChangeHeatcallSource
@@ -108,6 +109,7 @@ __all__ = [
     "ActuationAuthority",
     "AquastatControl",
     "BaseGNodeClass",
+    "GNodeClass",
     "ChangeAquastatControl",
     "ChangeHeatPumpControl",
     "ChangeHeatcallSource",

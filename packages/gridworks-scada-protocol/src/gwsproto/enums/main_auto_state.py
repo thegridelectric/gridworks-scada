@@ -5,7 +5,7 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class MainAutoState(SemaEnum):
-    """Sema: https://schemas.electricity.works/enums/gw1.main.auto.state/000"""
+    """Sema: https://schemas.electricity.works/enums/gw1.main.auto.state/001"""
 
     LocalControl = auto()
     LeafTransactiveNode = auto()
@@ -25,4 +25,4 @@ class MainAutoState(SemaEnum):
 
     @classmethod
     def enum_version(cls) -> str:
-        return "000"
+        return "001"

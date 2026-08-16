@@ -34,7 +34,7 @@ def base_component() -> dict:
         "I2cBus": "bus-1",
         "I2cAddressList": [32, 33],
         "TypeName": "i2c.multichannel.dt.relay.component.gt",
-        "Version": "005",
+        "Version": "004",
     }
 
 

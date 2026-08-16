@@ -4,7 +4,7 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class Unit(SemaEnum):
-    """Sema: https://schemas.electricity.works/enums/gw1.unit/001"""
+    """Sema: https://schemas.electricity.works/enums/gw1.unit/002"""
 
     Unknown = auto()
     Unitless = auto()
@@ -17,6 +17,11 @@ class Unit(SemaEnum):
     SecondsX10 = auto()
     Milliseconds = auto()
 
+    DollarsX1000 = auto()
+
+    KilowattHoursX1000 = auto()
+
+    MilesPerHourX1000 = auto()
     @classmethod
     def default(cls) -> "Unit":
         return cls.Unknown
@@ -31,4 +36,4 @@ class Unit(SemaEnum):
 
     @classmethod
     def enum_version(cls) -> str:
-        return "001"
+        return "002"

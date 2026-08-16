@@ -124,8 +124,8 @@ def is_hex_char(v: str) -> str:
     """
     if not isinstance(v, str):
         raise ValueError(f"<{v}> must be string. Got type <{type(v)}")  # noqa: TRY004
-    if len(v) > 1:
-        raise ValueError(f"<{v}> must be a hex char, but not of len 1")
+    if len(v) != 1:
+        raise ValueError(f"<{v}> must be a hex char (exactly one character)")
     if v not in "0123456789abcdefABCDEF":
         raise ValueError(f"<{v}> must be one of '0123456789abcdefABCDEF'")
     return v
@@ -311,51 +311,23 @@ def is_market_name(v: str) -> str:
     return v
 
 
-MarketMinutes: dict[MarketTypeName, int] = {
-    MarketTypeName.da60: 60,
-    MarketTypeName.rt15gate5: 15,
-    MarketTypeName.rt30gate5: 30,
-    MarketTypeName.rt5gate5: 5,
-    MarketTypeName.rt60gate30: 60,
-    MarketTypeName.rt60gate30b: 60,
-    MarketTypeName.rt60gate5: 60,
-}
-
-
 def is_market_slot_name(v: str) -> str:
-    """
-    MaketSlotNameLrdFormat: the format of a MarketSlotName.
-      - First word must be e, r or d (energy, regulation, distribution)
-      - The second word must be a MarketTypeName
-      - The last word (unix time of market slot start) must
-      be a 10-digit integer divisible by 300 (i.e. all MarketSlots
-      start at the top of 5 minutes)
-      - More strictly, the last word must be the start of a
-      MarketSlot for that MarketType (i.e. divisible by 3600
-      for hourly markets)
-      - The middle words have LeftRightDot format (GNodeAlias
-      of the MarketMaker)
-    Example: e.rt60gate5.d1.isone.ver.keene.1673539200
+    r"""Checks market.slot.name format against the sema contract.
 
+    Sema pattern (maker-agnostic): a leading market kind (e/r/d), a product
+    token, the MarketMaker GNodeAlias words, and a 10-digit slot-start epoch:
+        ^[erd]\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*\.[a-z][a-z0-9]*(?:\.[a-z0-9]+)*\.[0-9]{10}$
+    Whether the product token names a real product, and whether the slot start
+    aligns to that product's duration, are the receiving market maker's concern
+    — not this format (sema formats/market.slot.name).
     """
-    try:
-        x = v.split(".")
-    except AttributeError:
-        raise ValueError(f"{v} failed to split on '.'")
-    slot_start_str = x[-1]
-    if len(slot_start_str) != 10:
-        raise ValueError(f"slot start {slot_start_str} not of length 10")
-    try:
-        slot_start = int(slot_start_str)
-    except ValueError:
-        raise ValueError(f"slot start {slot_start_str} not an int")
-    is_market_name(".".join(x[:-1]))
-    market_type_name = MarketTypeName(x[1])
-    market_duration_minutes = MarketMinutes[market_type_name]
-    if not slot_start % (market_duration_minutes * 60) == 0:
-        raise ValueError(
-            f"market_slot_start_s mod {market_duration_minutes * 60} must be 0"
-        )
+    if not isinstance(v, str):
+        raise ValueError(f"<{v}> must be a string. Got type <{type(v)}>")  # noqa: TRY004
+    if not re.match(
+        r"^[erd]\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*\.[a-z][a-z0-9]*(?:\.[a-z0-9]+)*\.[0-9]{10}$",
+        v,
+    ):
+        raise ValueError(f"<{v}> is not market.slot.name format")
     return v
 
 

@@ -5,7 +5,7 @@ from gwsproto.data_classes.components import ElectricMeterComponent
 from actors.config import ScadaSettings
 from pathlib import Path
 from sema_to_dc import load_layout
-from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import GridworksSimPm1_PowerMeterDriver
 
 from scada_app import ScadaApp
@@ -105,7 +105,7 @@ def test_power_meter_small():
     driver_thread.report_aggregated_power_w()
     assert driver_thread.latest_agg_power_w == 300
 
-def meter_test_layout() -> House0Layout:
+def meter_test_layout() -> HydronicLayout:
     settings = ScadaSettings()
     layout = load_layout(
         settings.paths.hardware_layout, Path(settings.paths.operational_params)

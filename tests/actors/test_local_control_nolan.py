@@ -134,9 +134,9 @@ def fsm_events(impl: NolanLocalControl) -> list[tuple[str, str]]:
 
 
 def test_resolves_spruce_plant_targets(spruce_impl: NolanLocalControl) -> None:
-    assert spruce_impl.iso_valve.name == NolanNodeNames.iso_valve_relay
-    assert spruce_impl.secondary_pump_relay.name == NolanNodeNames.secondary_pump_relay
-    assert spruce_impl.hp_scada_ops_relay.name == HSNN.hp_scada_ops_relay
+    assert spruce_impl.layout.iso_valve.name == NolanNodeNames.iso_valve_relay
+    assert spruce_impl.layout.secondary_pump_relay.name == NolanNodeNames.secondary_pump_relay
+    assert spruce_impl.layout.hp_scada_ops_relay.name == HSNN.hp_scada_ops_relay
     assert sorted(
         c.CircuitPosition for c, _, _ in spruce_impl._held_circuit_relays
     ) == [

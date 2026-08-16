@@ -24,9 +24,12 @@ from gwsproto.named_types.i2c_thermistor_reader_component_gt import (
 from gwsproto.named_types.pico_btu_meter_component_gt import PicoBtuMeterComponentGt
 from gwsproto.named_types.pico_tank_module_component_gt import PicoTankModuleComponentGt
 from gwsproto.named_types.scada_board_component_gt import ScadaBoardComponentGt
+from gwsproto.named_types.sim_dac_writer_component_gt import SimDacWriterComponentGt
 from gwsproto.named_types.sim_pico_tank_module_component_gt import (
     SimPicoTankModuleComponentGt,
 )
+from gwsproto.named_types.sim_relay_component_gt import SimRelayComponentGt
+from gwsproto.named_types.sim_sensor_component_gt import SimSensorComponentGt
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwsproto.named_types.web_server_component_gt import WebServerComponentGt
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
@@ -43,7 +46,10 @@ NolanComponent = (
     | PicoBtuMeterComponentGt
     | PicoTankModuleComponentGt
     | ScadaBoardComponentGt
+    | SimDacWriterComponentGt
     | SimPicoTankModuleComponentGt
+    | SimRelayComponentGt
+    | SimSensorComponentGt
     | WebServerComponentGt
 )
 
