@@ -72,7 +72,7 @@ class DerivedGenerator(ShNodeActor):
         self.first_required_energy_update_done: bool = False
 
         # House parameters in the .env file
-        self.is_simulated = self.settings.is_simulated
+        self.is_simulated = self.services.is_simulated
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.latitude = self.settings.latitude
         self.longitude = self.settings.longitude

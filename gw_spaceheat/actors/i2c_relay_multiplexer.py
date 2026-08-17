@@ -66,7 +66,7 @@ class I2cRelayMultiplexer(ShNodeActor):
         services: ScadaAppInterface,
     ):
         super().__init__(name, services)
-        self.is_simulated = self.settings.is_simulated
+        self.is_simulated = self.services.is_simulated
         self.logger = services.logger.add_category_logger(
             self.RELAY_MULTIPLEXER_LOGGER_NAME,
             level=self.settings.relay_multiplexer_logging_level,

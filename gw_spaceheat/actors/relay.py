@@ -179,7 +179,7 @@ class Relay(ShNodeActor):
         if isinstance(self._component, GpioRelayComponent):
             self._gpio_pin = self._resolve_gpio_pin()
 
-        if not self.settings.is_simulated:
+        if not self.services.is_simulated:
             import RPi.GPIO as GPIO
             self.GPIO = GPIO
             self.GPIO.setmode(GPIO.BCM)
@@ -433,7 +433,7 @@ class Relay(ShNodeActor):
         message: FsmEvent,
     ) -> None:
         now_ms = int(time.time() * 1000)
-        if self.settings.is_simulated:
+        if self.services.is_simulated:
             self.log("Simulated relay actuation; skipping GPIO")
             return
 

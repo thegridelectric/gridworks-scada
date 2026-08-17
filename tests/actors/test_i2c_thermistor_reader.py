@@ -96,7 +96,6 @@ class Rig:
 @pytest.fixture
 def rig(tmp_path: Path) -> Rig:
     settings = ScadaApp.get_settings()
-    settings.is_simulated = True
     layout_dict = json.loads(Path(settings.paths.hardware_layout).read_text())
     layout_dict["ShNodes"].append(
         {

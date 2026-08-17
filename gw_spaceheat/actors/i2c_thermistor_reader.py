@@ -66,7 +66,7 @@ class I2cThermistorReader(ShNodeActor):
         self.latest_temp_c_x100: dict[SpaceheatName, int] = {} # by device channel name
         self.last_reported_temp_c_x100: dict[SpaceheatName, int] = {}
 
-        self.is_simulated = self.settings.is_simulated
+        self.is_simulated = self.services.is_simulated
         self.bus_op_timeout_s = 1.0
         self._pending_results: dict[str, "asyncio.Future[I2cResult]"] = {}
 

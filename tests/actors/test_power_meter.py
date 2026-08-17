@@ -22,7 +22,6 @@ from tests.utils.scada_live_test_helper import ScadaLiveTest
 
 def test_power_meter_small():
     settings = ScadaApp.get_settings()
-    settings.is_simulated = True
     if uses_tls(settings):
         copy_keys("scada", settings)
     settings.paths.mkdirs()

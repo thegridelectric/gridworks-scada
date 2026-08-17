@@ -27,7 +27,6 @@ SPRUCE_OPS = (
 @pytest.fixture
 def app() -> ScadaApp:
     settings = ScadaApp.get_settings()
-    settings.is_simulated = True
     settings.paths.hardware_layout = SPRUCE_LAYOUT
     # conftest pins the Nolan fixture's ops file via env; point at spruce's
     settings.paths.operational_params = SPRUCE_OPS

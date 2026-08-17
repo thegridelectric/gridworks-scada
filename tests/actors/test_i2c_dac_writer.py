@@ -38,7 +38,6 @@ C_RAW = 3020  # the layout's PowerOnRawValue for channel C (7.55 V)
 @pytest.fixture
 def rig() -> tuple[I2cDacWriter, I2cBus]:
     settings = ScadaApp.get_settings()
-    settings.is_simulated = True
     settings.paths.hardware_layout = SPRUCE_LAYOUT
     settings.paths.operational_params = SPRUCE_OPS
     settings.paths.mkdirs()

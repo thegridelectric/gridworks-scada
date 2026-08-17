@@ -78,7 +78,6 @@ def test_scada_settings_defaults(default_test_env, clean_test_env, clean_scada_e
         timezone_str="America/New_York",
         latitude=45.6573,
         longitude=-68.7098,
-        is_simulated=False,
         contract_rep_logging_level=20,
         hp_model=HpModel.SamsungFiveTonneHydroKit,
         airtable_pat="bogus_pat"

@@ -72,7 +72,6 @@ class FakeSMBus:
 @pytest.fixture
 def bus_app(tmp_path: Path) -> ScadaApp:
     settings = ScadaApp.get_settings()
-    settings.is_simulated = True
     layout_dict = json.loads(Path(settings.paths.hardware_layout).read_text())
     layout_dict["ShNodes"].append(
         {

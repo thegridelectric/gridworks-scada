@@ -68,7 +68,6 @@ class ScadaLiveTest(TreeLiveTest):
                 self.child_app_type().paths_name()
             )
         )
-        kwargs["child_app_settings"].is_simulated = child1_simulated
         kwargs["child2_app_settings"] = kwargs.get(
             "child2_app_settings",
             self.child2_app_type()
@@ -77,7 +76,6 @@ class ScadaLiveTest(TreeLiveTest):
                 self.child2_app_type().paths_name()
             )
         )
-        kwargs["child2_app_settings"].is_simulated = child2_simulated
         super().__init__(
             layout=layout,
             child_layout=child_layout,

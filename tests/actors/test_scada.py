@@ -18,7 +18,7 @@ from gwsproto.names.nolan.node_names import NolanNodeNames
 
 
 def test_scada_small():
-    scada_app = ScadaApp(app_settings=ScadaSettings(is_simulated=True))
+    scada_app = ScadaApp(app_settings=ScadaSettings())
     settings = scada_app.settings
     if uses_tls(settings):
         copy_keys("scada", settings)

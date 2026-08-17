@@ -55,7 +55,7 @@ class GpioSensor(ShNodeActor):
         self.latest_value: int = 0
         self._stop_requested = False
 
-        if self.settings.is_simulated:
+        if self.services.is_simulated:
             self.GPIO = None
         else:
             import RPi.GPIO as GPIO

@@ -35,12 +35,12 @@ from sim_time import SimTimeListener
 from gwsproto.enums import ActorClass
 
 from actors.scada_interface import ScadaInterface
-from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.named_types import FsmFullReport, PowerWatts, SendSnap, ReportEvent
 
 
 from gwsproto.named_types import (
-    AnalogDispatch, ChannelReadings, GwHouse0OperationalParams, MachineStates,
+    AnalogDispatch, ChannelReadings, House0OperationalParams, MachineStates,
     SingleReading, SyncedReadings,
 )
 
@@ -64,7 +64,6 @@ from gwsproto.enums import (LeafAllyBufferOnlyState,  LeafAllyAllTanksState,
                             SlowDispatchContractStatus, LocalControlTopState,
                    MainAutoEvent, MainAutoState, SeasonalStorageMode,  TopState)
 
-from gwsproto.named_types.scada_control_capabilities import ControlNode, ControlChannel
 from gwsproto.named_types import ( ActuatorsReady, FsmEvent,
     AdminDispatch, AdminAnalogDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
     Glitch, GoDormant, LayoutLite, NewCommandTree, NoNewContractWarning, ResetHpKeepValue, ScadaControlCapabilities,
@@ -73,6 +72,7 @@ from gwsproto.named_types import ( ActuatorsReady, FsmEvent,
 )
 
 
+from sema_to_dc import OperationalParams
 from scada_app_interface import ScadaAppInterface
 
 class Scada(PrimeActor, ScadaInterface):
@@ -110,12 +110,12 @@ class Scada(PrimeActor, ScadaInterface):
 
     def __init__(self, name: str, services: ScadaAppInterface) -> None:
         super().__init__(name, services)
-        if not isinstance(services.hardware_layout, House0Layout):
-            raise Exception("Make sure to pass House0Layout object as hardware_layout!")
+        if not isinstance(services.hardware_layout, HydronicLayout):
+            raise Exception("Make sure to pass HydronicLayout object as hardware_layout!")
         self.got_first_buffer_reading = False
-        self.is_simulated = self.settings.is_simulated
+        self.is_simulated = self.services.is_simulated
         self._sim_time_listener: typing.Optional[SimTimeListener] = None
-        if self.settings.is_simulated:
+        if self.services.is_simulated:
             self.log("SIMULATED")
             # Sim-time bridge (sim-time spoke, OPS-40): listen for the time
             # coordinator's timesteps on the same broker as gridworks_mqtt;
@@ -126,7 +126,7 @@ class Scada(PrimeActor, ScadaInterface):
                 on_timestep=self._on_sim_timestep,
             )
             self._sim_time_listener.start()
-        self._layout: House0Layout = typing.cast(House0Layout, services.hardware_layout)
+        self._layout: HydronicLayout = typing.cast(HydronicLayout, services.hardware_layout)
         self._data = ScadaData(
             self.settings, self._layout, load_operational_params(self.settings)
         )
@@ -250,8 +250,9 @@ class Scada(PrimeActor, ScadaInterface):
         return self._data
 
     @property
-    def ops(self) -> GwHouse0OperationalParams:
-        """The home's authored operational params (modes, curves, knobs)."""
+    def ops(self) -> OperationalParams:
+        """The home's authored operational params, of this home's family
+        (House0 or Nolan — see sema_to_dc.APPROVED_PAIRS)."""
         return self._data.ops
 
     def start_tasks(self) -> typing.Sequence[asyncio.Task]:
@@ -1615,11 +1616,11 @@ class Scada(PrimeActor, ScadaInterface):
 
 
     @property
-    def hardware_layout(self) -> House0Layout:
+    def hardware_layout(self) -> HydronicLayout:
         return self._layout
 
     @property
-    def layout(self) -> House0Layout:
+    def layout(self) -> HydronicLayout:
         return self._layout
 
     @property
@@ -1672,34 +1673,21 @@ class Scada(PrimeActor, ScadaInterface):
 
     @property
     def control_capabilities(self) -> ScadaControlCapabilities:
-        relay_nodes = [ 
-            ControlNode(
-                Name=node.Name,
-                ActorClass=node.ActorClass,
-                DisplayName=node.DisplayName
-            )
+        relay_nodes = [
+            node.to_gt()
             for node in self.layout.nodes.values()
             if node.ActorClass == ActorClass.Relay
         ]
         dac_nodes = [
-            ControlNode(
-                Name=node.Name,
-                ActorClass=node.ActorClass,
-                DisplayName=node.DisplayName
-            )
+            node.to_gt()
             for node in self.layout.nodes.values()
             if node.ActorClass == ActorClass.ZeroTenOutputer
         ]
 
-        relay_node_names = {n.Name for n in relay_nodes}
-        dac_node_names = {n.Name for n in dac_nodes}
-        control_node_names = relay_node_names | dac_node_names
+        control_node_names = {n.Name for n in relay_nodes + dac_nodes}
 
         ctrl_channels = [
-            ControlChannel(
-                Name=channel.Name,
-                AboutNodeName=channel.AboutNodeName,
-            )
+            channel.to_gt()
             for channel in self.layout.data_channels.values()
             if channel.AboutNodeName in control_node_names
         ]

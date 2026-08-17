@@ -48,7 +48,6 @@ from sema_to_dc import assemble_runtime_layout
 @pytest.fixture
 def app() -> tuple[ScadaApp, NolanLayout]:
     settings = ScadaApp.get_settings()
-    settings.is_simulated = True
     ops = NolanOperationalParams.model_validate_json(
         Path(settings.paths.operational_params).read_text()
     )

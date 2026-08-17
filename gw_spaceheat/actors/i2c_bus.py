@@ -65,7 +65,7 @@ class I2cBus(ShNodeActor):
         super().__init__(name, services)
 
         self.bus_name = self.node.name
-        self.is_simulated = self.settings.is_simulated
+        self.is_simulated = self.services.is_simulated
 
         self._expander_addresses: tuple[int, ...] = tuple(
             expander.I2cAddress
@@ -87,9 +87,8 @@ class I2cBus(ShNodeActor):
         self._stop_requested = False
 
         # Backend selection happens exactly once, here. Interim selector:
-        # sim-ness graduates from settings.is_simulated to a Sim* board
-        # DeviceType (the layout declaring the board fake) when the sema
-        # word lands.
+        # sim-ness is the derived ScadaAppInterface.is_simulated (no flag):
+        # simulated until proven real (TaDeed + a fully-real layout).
         if self.is_simulated:
             board_records = [
                 record

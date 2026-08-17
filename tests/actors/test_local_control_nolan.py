@@ -47,7 +47,6 @@ ET = pytz.timezone("America/New_York")
 @pytest.fixture
 def app() -> ScadaApp:
     settings = ScadaApp.get_settings()
-    settings.is_simulated = True
     settings.paths.mkdirs()
     scada_app = ScadaApp(app_settings=settings)
     scada_app.instantiate()
@@ -73,7 +72,6 @@ def impl(app: ScadaApp) -> NolanLocalControl:
 @pytest.fixture
 def spruce_impl(tmp_path: Path) -> NolanLocalControl:
     settings = ScadaApp.get_settings()
-    settings.is_simulated = True
     settings.paths.hardware_layout = SPRUCE_LAYOUT
     settings.paths.operational_params = SPRUCE_OPS
     settings.paths.mkdirs()

@@ -21,7 +21,7 @@ def test_ha1(monkeypatch, tmp_path):
     print(dotenv_filepath.absolute())
     import os
     print(os.getcwd())
-    scada_app = ScadaApp(app_settings=ScadaSettings(is_simulated=True))
+    scada_app = ScadaApp(app_settings=ScadaSettings())
     settings = scada_app.settings
     if uses_tls(settings):
         copy_keys("scada", settings)

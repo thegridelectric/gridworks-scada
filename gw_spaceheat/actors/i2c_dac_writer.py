@@ -84,7 +84,7 @@ class I2cDacWriter(ShNodeActor):
             for cfg in component.gt.ConfigList
         }
 
-        self.is_simulated = self.settings.is_simulated
+        self.is_simulated = self.services.is_simulated
         self.bus_op_timeout_s = 1.0
         self._pending_results: dict[str, "asyncio.Future[I2cResult]"] = {}
         self._stop_requested = False

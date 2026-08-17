@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 from typing import Any, Self
 
-from pydantic import Field, ValidationInfo, field_validator, model_validator
+from pydantic import Field, ValidationInfo, field_validator
 from gwproactor import AppSettings
 from gwproactor.config.mqtt import TLSInfo
 from pydantic import BaseModel
@@ -42,12 +42,23 @@ class ScadaPaths(Paths):
     layout in the same folder."""
 
     operational_params: str | Path = Field(default="", validate_default=True)
+    # The scada's proof-of-real: a (currently fake) TaDeed file. Its presence is
+    # one of the two conditions for a non-simulated scada (see
+    # ScadaAppInterface.is_simulated). Defaults beside the hardware layout.
+    tadeed: str | Path = Field(default="", validate_default=True)
 
     @field_validator("operational_params")
     @classmethod
     def get_operational_params(cls, v: Any, info: ValidationInfo) -> Path:
         if not v:
             v = Path(info.data["hardware_layout"]).parent / DEFAULT_OPS_PARAMS_FILE
+        return Path(v)
+
+    @field_validator("tadeed")
+    @classmethod
+    def get_tadeed(cls, v: Any, info: ValidationInfo) -> Path:
+        if not v:
+            v = Path(info.data["hardware_layout"]).parent / "tadeed.json"
         return Path(v)
 
     def duplicate(
@@ -120,7 +131,6 @@ class ScadaSettings(ScadaPathsSettings):
     # site facts, here until the TaValidator owns them
     latitude: float = 45.6573
     longitude: float = -68.7098
-    is_simulated: bool = False
     # ⏳ Destined for operational-params, not the layout. A heat call is sensed
     # either by opto-coupler (Nolan: BinaryState, DigitalZeroIsActive) or by
     # metering the call wire (House0: PowerW, GreaterThanThreshold). WHICH of

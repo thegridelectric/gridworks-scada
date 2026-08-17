@@ -40,7 +40,7 @@ class I2cZeroTenMultiplexer(ShNodeActor):
         services: ScadaAppInterface,
     ):
         super().__init__(name, services)
-        self.is_simulated = self.settings.is_simulated
+        self.is_simulated = self.services.is_simulated
         self.component = cast(DfrComponent, self.node.component)
         if self.component.gt.DeviceType == DeviceType.DfrobotDualAnalogOut:
             if self.component.gt.I2cAddressList != [94, 95]:
@@ -54,7 +54,7 @@ class I2cZeroTenMultiplexer(ShNodeActor):
         # Move into driver code if/when we get a second make/model
         self.first_i2c_addr = self.component.gt.I2cAddressList[0]
         self.second_i2c_addr = self.component.gt.I2cAddressList[1]
-        self.is_simulated = self.services.settings.is_simulated
+        self.is_simulated = self.services.is_simulated
         if self.is_simulated:
             self.bus = None
         else:

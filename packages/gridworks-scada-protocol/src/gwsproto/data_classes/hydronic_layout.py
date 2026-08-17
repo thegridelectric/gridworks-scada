@@ -1633,6 +1633,25 @@ class HydronicLayout:
     def is_nolan(self) -> bool:
         return self.layout_type_name == NOLAN_LAYOUT_TYPE_NAME
 
+    def has_simulated_component(self) -> bool:
+        """True if any component or device type in the layout is simulated: a
+        `sim.*` component TypeName, or a `GridworksSim*` DeviceType value. This
+        is one half of the derived is_simulated gate (the other is the absence
+        of a TaDeed) — a layout carrying any sim device is simulated by
+        construction (simulated-actors design, "remove is_simulated — derive
+        it")."""
+        for component in self.components.values():
+            if component.gt.TypeName.startswith("sim."):
+                return True
+            device_type = getattr(component.gt, "DeviceType", None)
+            if isinstance(device_type, str) and device_type.startswith("GridworksSim"):
+                return True
+        for record in self.device_types.values():
+            device_type = getattr(record, "DeviceType", None)
+            if isinstance(device_type, str) and device_type.startswith("GridworksSim"):
+                return True
+        return False
+
     def required_node(self, name: str) -> ShNode:
         """A node the layout word's axioms force to exist. A miss means the
         contract was bypassed."""

@@ -82,7 +82,7 @@ class LocalControlTouBase(ShNodeActor):
             self.top_state = LocalControlTopState.Monitor
         else: 
             self.top_state = LocalControlTopState.Normal
-        self.is_simulated = self.settings.is_simulated
+        self.is_simulated = self.services.is_simulated
         self.log(f"Params: {self.params}")
         self.log(f"self.is_simulated: {self.is_simulated}")
         if H0N.local_control_normal not in self.layout.nodes:
