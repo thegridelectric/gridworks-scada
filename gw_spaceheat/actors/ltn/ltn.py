@@ -57,7 +57,7 @@ from gwproactor.logger import LoggerOrAdapter
 from gwproactor.message import DBGCommands, DBGPayload, MQTTReceiptPayload, PatInternalWatchdogMessage
 
 from gwsproto.conversions.temperature import convert_temp_to_f
-from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.data_classes.house_0_names import H0CN, H0N
 
 from gwsproto.data_classes.sh_node import ShNode
@@ -396,7 +396,7 @@ class LtnMQTTCodec(MQTTCodec):
     exp_src: str
     exp_dst: str = H0N.ltn
 
-    def __init__(self, hardware_layout: House0Layout):
+    def __init__(self, hardware_layout: HydronicLayout):
         self.exp_src = hardware_layout.scada_g_node_alias
         super().__init__(
             create_message_model(
@@ -436,10 +436,10 @@ class LtnCodecFactory(CodecFactory):
         proactor_name: ProactorName,
         layout: HardwareLayout,
     ) -> MQTTCodec:
-        if not isinstance(layout, House0Layout):
+        if not isinstance(layout, HydronicLayout):
             raise ValueError(
                 "ERROR. ScadaCodecFactory requires hardware layout "
-                "to be an instance of House0Layout but received layout type "
+                "to be an instance of HydronicLayout but received layout type "
                 f"<{type(layout)}>"
             )
         return LtnMQTTCodec(layout)
@@ -558,8 +558,8 @@ class Ltn(PrimeActor):
         return cast(LtnSettings, self.services.settings)
 
     @property
-    def layout(self) -> House0Layout:
-        return cast(House0Layout, self.services.hardware_layout)
+    def layout(self) -> HydronicLayout:
+        return cast(HydronicLayout, self.services.hardware_layout)
 
     def _publish_to_scada(self, payload, qos: QOS = QOS.AtMostOnce) -> MQTTMessageInfo:
         return self.services.publish_message(

@@ -28,12 +28,12 @@ from gwproactor import Problems
 from gwsproto.enums import DeviceType
 from gwsproto.named_types import ElectricMeterChannelConfig, PowerWatts, SyncedReadings
 
-from gwsproto.data_classes.hardware_layout import HardwareLayout
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
 
 from scada_app_interface import ScadaAppInterface
 
 
-def transactive_power_input_names(hardware_layout: HardwareLayout) -> List[str]:
+def transactive_power_input_names(hardware_layout: HydronicLayout) -> List[str]:
     """The metered channel names declared by the layout's single
     transactive-power DerivedChannel. The load-layout axiom guarantees exactly
     one such channel, so the metered set is read from it (not from per-channel
@@ -78,7 +78,7 @@ class DriverThreadSetupHelper:
 
     node: ShNode
     settings: ScadaSettings
-    hardware_layout: HardwareLayout
+    hardware_layout: HydronicLayout
     component: ElectricMeterComponent
     logger: LoggerOrAdapter
 
@@ -86,7 +86,7 @@ class DriverThreadSetupHelper:
         self,
         node: ShNode,
         settings: ScadaSettings,
-        hardware_layout: HardwareLayout,
+        hardware_layout: HydronicLayout,
         logger: LoggerOrAdapter,
     ):
         if not isinstance(node.component, ElectricMeterComponent):
@@ -144,14 +144,14 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
     latest_telemetry_value: Dict[DataChannel, Optional[int]]
     _last_sampled_s: Dict[DataChannel, Optional[int]]
     async_power_reporting_threshold: float
-    _hardware_layout: HardwareLayout
+    _hardware_layout: HydronicLayout
     _hw_uid: str = ""
 
     def __init__(
         self,
         node: ShNode,
         settings: ScadaSettings,
-        hardware_layout: HardwareLayout,
+        hardware_layout: HydronicLayout,
         responsive_sleep_step_seconds=0.01,
         daemon: bool = True,
         logger: Optional[LoggerOrAdapter] = None,

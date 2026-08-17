@@ -8,7 +8,7 @@ from gwproactor import  MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 
 from gwsproto.data_classes.components.dfr_component import DfrComponent
-from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import ActorClass, DeviceType
 from gwsproto.named_types import AnalogDispatch, SingleReading
@@ -27,7 +27,7 @@ class I2cZeroTenMultiplexer(ShNodeActor):
     LOOP_S = 300
     node: ShNode
     component: DfrComponent
-    layout: House0Layout
+    layout: HydronicLayout
     _stop_requested: bool
     is_simulated: bool
     bus: Optional[Any]  # smbus2.bus()

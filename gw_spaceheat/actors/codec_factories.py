@@ -149,7 +149,7 @@ class ScadaCodecFactory(CodecFactory):
                     and node != scada_node
                     and node.has_actor
                 )
-            } | {layout.scada2_gnode_name().replace(".", "-")}
+            } | {layout.scada2_g_node_name().replace(".", "-")}
             return LocalMQTTCodec(
                 primary_scada=True,
                 remote_node_names=remote_actor_node_names

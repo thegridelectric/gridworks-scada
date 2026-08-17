@@ -3,7 +3,7 @@
 from typing import Any, Protocol
 from gwsproto.data_classes.sh_node import ShNode
 from actors.scada_data import ScadaData
-from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.data_classes.house_0_names import H0CN
 from actors.config import ScadaSettings
 
@@ -56,16 +56,10 @@ class ProceduralHost(Protocol):
     def primary_010v(self) -> ShNode:
         ...
 
-    @property
-    def store_charge_discharge_relay(self) -> ShNode: ...
-
-    @property
-    def store_pump_failsafe(self) -> ShNode: ...
-
     def _send_to(self, dst: ShNode, payload: Any, src: ShNode | None = None) -> None: ...
 
     @property 
-    def layout(self) -> House0Layout: ...
+    def layout(self) -> HydronicLayout: ...
 
     async def await_with_watchdog(
             self, 

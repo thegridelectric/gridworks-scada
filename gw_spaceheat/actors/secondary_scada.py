@@ -9,7 +9,7 @@ from gwproto.message import Message
 
 from actors import ContractHandler
 from gwsproto.data_classes.house_0_names import H0N
-from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
 
 from gwsproto.data_classes.sh_node import ShNode
 
@@ -38,18 +38,18 @@ class SecondaryScada(PrimeActor, ScadaInterface):
     _publication_name: str
 
     def __init__(self, name: str, services: ScadaAppInterface) -> None:
-        if not isinstance(services.hardware_layout, House0Layout):
-            raise Exception("Make sure to pass House0Layout object as hardware_layout!")
+        if not isinstance(services.hardware_layout, HydronicLayout):
+            raise Exception("Make sure to pass HydronicLayout object as hardware_layout!")
         super().__init__(name, services)
         self._actor_node = services.hardware_layout.node(name)
         self._data = Scada2Data()
 
     @property
-    def hardware_layout(self) -> House0Layout:
-        return typing.cast(House0Layout, self.services.hardware_layout)
+    def hardware_layout(self) -> HydronicLayout:
+        return typing.cast(HydronicLayout, self.services.hardware_layout)
 
     @property
-    def layout(self) -> House0Layout:
+    def layout(self) -> HydronicLayout:
         return self.hardware_layout
 
     @property

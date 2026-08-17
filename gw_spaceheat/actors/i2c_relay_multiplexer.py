@@ -12,7 +12,7 @@ from gwsproto.data_classes.components.i2c_multichannel_dt_relay_component import
     I2cMultichannelDtRelayComponent
 
 from gwsproto.data_classes.data_channel import DataChannel
-from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (ActorClass, ChangeRelayPin,
                            FsmReportType, DeviceType,
@@ -53,7 +53,7 @@ class I2cRelayMultiplexer(ShNodeActor):
     component: I2cMultichannelDtRelayComponent
     wiring_config: RelayWiringConfig
     event_enum: SemaEnum
-    layout: House0Layout
+    layout: HydronicLayout
     _stop_requested: bool
     i2c_bus: Optional[Any]  # board.I2C()
     krida_board: Dict[int, Any]

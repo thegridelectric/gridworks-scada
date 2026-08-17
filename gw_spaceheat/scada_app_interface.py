@@ -5,7 +5,7 @@ from gwproactor import AppInterface
 
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
-from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
 
 
 class ScadaAppInterface(AppInterface, ABC):
@@ -27,5 +27,5 @@ class ScadaAppInterface(AppInterface, ABC):
 
     @property
     @abstractmethod
-    def hardware_layout(self) -> House0Layout:
+    def hardware_layout(self) -> HydronicLayout:
         raise NotImplementedError

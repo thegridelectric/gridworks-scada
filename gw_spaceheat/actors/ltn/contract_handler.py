@@ -11,7 +11,7 @@ from typing import Optional, Callable
 import pytz
 from gwproto import Message
 from gwsproto.data_classes.sh_node import ShNode
-from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.data_classes.house_0_names import H0N
 from gwproactor.logger import LoggerOrAdapter
 from gwsproto.enums import MarketPriceUnit
@@ -45,7 +45,7 @@ class LtnContractHandler:
         self,
         node: ShNode,
         settings: LtnSettings,
-        layout: House0Layout,
+        layout: HydronicLayout,
         logger: LoggerOrAdapter,
         send_threadsafe: Callable[[Message], None]
     ):

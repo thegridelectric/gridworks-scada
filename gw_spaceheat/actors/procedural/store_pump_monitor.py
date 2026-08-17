@@ -1,4 +1,3 @@
-# actors/procedural/dist_pump_monitor.py
 
 import time
 from typing import TYPE_CHECKING
@@ -15,7 +14,7 @@ class StorePumpMonitor:
     Diagnostic monitor for the store pump.
 
     Decides whether a recovery procedure should run based on:
-      - store pump failsafe relay state
+      - store pump relay state
       - store flow
       - pump startup delay
 
@@ -53,11 +52,11 @@ class StorePumpMonitor:
             return False
 
         # --------------------------------------------------------
-        # Is the store pump failsafe relay closed?
+        # Is the store pump relay closed?
         # --------------------------------------------------------
 
-        charge_discharge_relay_state = h.data.latest_machine_state.get(h.store_charge_discharge_relay.name)
-        pump_relay_state = h.data.latest_machine_state.get(h.store_pump_failsafe.name)
+        charge_discharge_relay_state = h.data.latest_machine_state.get(h.layout.store_charge_discharge_relay.name)
+        pump_relay_state = h.data.latest_machine_state.get(h.layout.store_pump_relay.name)
 
         if pump_relay_state:
             if charge_discharge_relay_state:

@@ -17,7 +17,8 @@ from pydantic import BaseModel
 from actors import SecondaryScada
 from actors.scada import Scada
 from actors.config import ScadaSettings
-from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
+from sema_to_dc import load_layout
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import ActorClass
 from pydantic_settings import BaseSettings
@@ -125,7 +126,7 @@ def get_requested_names(args: argparse.Namespace) -> Optional[set[str]]:
 
 def get_nodes_run_by_scada(
         requested_names: Optional[set[str]],
-        layout: House0Layout,
+        layout: HydronicLayout,
         actors_package_name: str,
         scada_actor_class: ActorClass = ActorClass.PrimaryScada,
 ) -> Tuple[ShNode, list[ShNode]]:
@@ -233,9 +234,10 @@ def get_scada(
         logger.info("Getting requested_names")
         requested_names = get_requested_names(args)
         logger.info("Loading layout")
-        layout = House0Layout.load(
-            settings.paths.hardware_layout, 
-            included_node_names=requested_names
+        layout = load_layout(
+            settings.paths.hardware_layout,
+            settings.paths.operational_params,
+            included_node_names=requested_names,
         )
         logger.info("Getting nodes run by scada")
         scada_node, actor_nodes = get_nodes_run_by_scada(
@@ -306,7 +308,11 @@ def get_scada2(
         rich.print(settings)
         check_tls_paths_present(settings)
         requested_names = get_requested_names(args)
-        layout = House0Layout.load(settings.paths.hardware_layout, included_node_names=requested_names)
+        layout = load_layout(
+            settings.paths.hardware_layout,
+            settings.paths.operational_params,
+            included_node_names=requested_names,
+        )
         print(f"type of layout is {type(layout)}")
         scada2 = SecondaryScada(name=H0N.secondary_scada, settings=settings, hardware_layout=layout, actors_package_name=actors_package_name)
         if run_in_thread:

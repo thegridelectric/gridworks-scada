@@ -479,11 +479,11 @@ class AllTanksLeafAlly(ShNodeActor):
         }
 
         target_relays: List[ShNode] = list(my_relays - {
-                self.store_charge_discharge_relay, # keep as it was
-                self.hp_failsafe_relay,
-                self.hp_scada_ops_relay, # keep as it was unless on peak
-                self.aquastat_control_relay, # de-energized turns on oil boiler - only go here if scada is dead!
-                self.hp_loop_on_off, # de-energized keeps telling hp loop valve to change - only go here if scada is dead!
+                self.layout.store_charge_discharge_relay, # keep as it was
+                self.layout.hp_failsafe_relay,
+                self.layout.hp_scada_ops_relay, # keep as it was unless on peak
+                self.layout.aquastat_control_relay, # de-energized turns on oil boiler - only go here if scada is dead!
+                self.layout.hp_loop_on_off, # de-energized keeps telling hp loop valve to change - only go here if scada is dead!
             }
         )
         target_relays.sort(key=lambda x: x.Name)
@@ -542,8 +542,8 @@ class AllTanksLeafAlly(ShNodeActor):
             if self.remaining_watthours > 0:
                 return False
         
-        if self.hp_scada_ops_relay.name in self.data.latest_machine_state.keys():
-            scada_relay_state = self.data.latest_machine_state[self.hp_scada_ops_relay.name].State
+        if self.layout.hp_scada_ops_relay.name in self.data.latest_machine_state.keys():
+            scada_relay_state = self.data.latest_machine_state[self.layout.hp_scada_ops_relay.name].State
             
             if scada_relay_state == RelayClosedOrOpen.RelayClosed:
                 # If the relay is closed and there is no contract, keep it closed

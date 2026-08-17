@@ -9,14 +9,14 @@ from gwproactor import Proactor
 from gwproactor import ProactorName
 from gwproactor.config import MQTTClient
 from gwproactor.config import Paths
-from gwsproto.data_classes.hardware_layout import HardwareLayout
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
 
 import actors
 from actors.ltn import Ltn
 from actors.ltn.config import LtnSettings
 from sema_to_dc import load_layout
 from gwsproto.data_classes import house_0_names
-from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.data_classes.house_0_names import H0N
 
 
@@ -77,7 +77,7 @@ class LtnApp(App):
             )
         )
 
-    def _load_hardware_layout(self, layout_path: str | Path) -> House0Layout:
+    def _load_hardware_layout(self, layout_path: str | Path) -> HydronicLayout:
         """Load the runtime layout. A sema-authored static artifact (its
         TypeName names a sema layout type) is assembled with the home's
         operational-params artifact; a runtime-shaped layout file loads
@@ -87,7 +87,7 @@ class LtnApp(App):
             Path(self.settings.paths.operational_params),
         )
 
-    def _get_name(self, layout: HardwareLayout) -> ProactorName:
+    def _get_name(self, layout: HydronicLayout) -> ProactorName:
         return ProactorName(
             long_name=layout.ltn_g_node_alias,
             short_name=house_0_names.H0N.ltn
@@ -96,7 +96,7 @@ class LtnApp(App):
     def _get_link_settings(
             self,
             name: ProactorName,
-            layout: HardwareLayout,
+            layout: HydronicLayout,
             brokers: dict[str, MQTTClient]
     ) -> dict[str, LinkSettings]:
         return {

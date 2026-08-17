@@ -22,9 +22,7 @@ class LocalControl(ShNodeActor):
             raise Exception("Expects ActorClass LocalControl!")
 
         layout = services.hardware_layout
-        strategy = layout.hydronic.Strategy or layout.layout.get(
-            "Strategy", "House0"
-        )
+        strategy = layout.hydronic.Strategy
         authority = self.ops.ActuationAuthority
         seasonal_storage_mode = self.ops.SeasonalStorageMode
 

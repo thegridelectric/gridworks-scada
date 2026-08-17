@@ -14,8 +14,8 @@ from rich.text import Text
 from actors.config import ScadaSettings
 from command_line_utils import get_requested_names
 from gwsproto.errors import DcError
-from gwsproto.data_classes.hardware_layout import LoadError
-from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.hydronic_layout import LoadError
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
 
 from sema_to_dc import load_layout
 
@@ -88,7 +88,7 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     return parser.parse_args(sys.argv[1:] if argv is None else argv)
 
 
-def print_component_dicts(layout: House0Layout):
+def print_component_dicts(layout: HydronicLayout):
     print("All Components:")
     print({
         component.gt.ComponentId: component.gt.DisplayName
@@ -102,7 +102,7 @@ def print_component_dicts(layout: House0Layout):
     print("Nodes:")
     print(layout.nodes)
     print("Raw nodes:")
-    print([n["Name"] for n in layout.layout["ShNodes"]])
+    print([n.Name for n in layout.word.ShNodes])
     print("Node Component ids:")
     print({
         node.Name: node.component_id for node in layout.nodes.values()
@@ -151,7 +151,7 @@ def print_component_dicts(layout: House0Layout):
 
 
 def print_layout_members(
-    layout: House0Layout,
+    layout: HydronicLayout,
     errors: Optional[list[LoadError]] = None,
 ) -> None:
     if errors is None:
@@ -212,7 +212,7 @@ def print_layout_members(
         except Exception as e:
             errors.append(LoadError(attr, {}, e))
 
-def print_layout_urls(layout: House0Layout) -> None:
+def print_layout_urls(layout: HydronicLayout) -> None:
     url_dicts = {
         component.gt.DisplayName: component.urls()
         for component in [
@@ -253,7 +253,7 @@ def print_web_server_info(
             for route in routes:
                 print(f"  {route}")
 
-def print_channels(layout: House0Layout, *, raise_errors: bool = False) -> None:
+def print_channels(layout: HydronicLayout, *, raise_errors: bool = False) -> None:
     print()
     try:
         table = Table(
@@ -288,7 +288,7 @@ def print_channels(layout: House0Layout, *, raise_errors: bool = False) -> None:
         if raise_errors:
             raise
 
-def print_layout_table(layout: House0Layout):
+def print_layout_table(layout: HydronicLayout):
     print()
     table = Table(
         title="Nodes, Components, Cacs, Actors",
@@ -363,7 +363,7 @@ def try_scada_load(settings: ScadaSettings, raise_errors: bool = False) -> Optio
     return scada_app
 
 def show_layout(
-        layout: House0Layout,
+        layout: HydronicLayout,
         settings: ScadaSettings,
         raise_errors: bool = False,
         errors: Optional[list[LoadError]] = None,

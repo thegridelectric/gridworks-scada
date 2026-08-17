@@ -100,10 +100,10 @@ class StandbyLocalControl(ShNodeActor):
         }
 
         excluded_relays = {
-            self.hp_failsafe_relay,
-            self.hp_scada_ops_relay,
-            self.aquastat_control_relay,
-            self.hp_loop_on_off,
+            self.layout.hp_failsafe_relay,
+            self.layout.hp_scada_ops_relay,
+            self.layout.aquastat_control_relay,
+            self.layout.hp_loop_on_off,
         }
 
         target_relays: List[ShNode] = list(h_normal_relays - excluded_relays)
@@ -118,8 +118,8 @@ class StandbyLocalControl(ShNodeActor):
         if self.layout.use_sieg_loop:
             self.turn_off_HP(from_node=self.normal_node)
         else:
-            self.energize(self.hp_scada_ops_relay, from_node=self.normal_node)
-            self.energize(self.hp_loop_on_off, from_node=self.normal_node)
+            self.energize(self.layout.hp_scada_ops_relay, from_node=self.normal_node)
+            self.energize(self.layout.hp_loop_on_off, from_node=self.normal_node)
         
     def start(self) -> None:
         self.services.add_task(

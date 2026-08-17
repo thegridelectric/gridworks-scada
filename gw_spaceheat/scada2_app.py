@@ -4,7 +4,7 @@ from pathlib import Path
 from types import ModuleType
 
 from gwproactor import ProactorSettings
-from gwproactor.app import App, ActorConfig
+from gwproactor.app import App
 from gwproactor.config import MQTTClient
 from gwproactor.config.links import LinkSettings
 from gwproactor.config.proactor_config import ProactorName
@@ -19,7 +19,7 @@ from actors.config import ScadaSettings
 from sema_to_dc import load_layout
 from actors.scada import ScadaCodecFactory
 from gwsproto.data_classes import house_0_names
-from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.data_classes.house_0_names import H0N
 from scada_app_interface import ScadaAppInterface
 
@@ -49,7 +49,7 @@ class Scada2App(App, ScadaAppInterface):
     def default_env_path(cls) -> Path:
         return Path(".env")
 
-    def _load_hardware_layout(self, layout_path: str | Path) -> House0Layout:
+    def _load_hardware_layout(self, layout_path: str | Path) -> HydronicLayout:
         """Load the runtime layout. A sema-authored static artifact (its
         TypeName names a sema layout type) is assembled with the home's
         operational-params artifact; a runtime-shaped layout file loads
@@ -60,7 +60,7 @@ class Scada2App(App, ScadaAppInterface):
 
     def _get_name(self, layout: HardwareLayout) -> ProactorName:
         return ProactorName(
-            long_name=typing.cast(House0Layout, layout).scada2_gnode_name(),
+            long_name=typing.cast(HydronicLayout, layout).scada2_g_node_name(),
             short_name=house_0_names.H0N.secondary_scada
         )
 
@@ -109,5 +109,5 @@ class Scada2App(App, ScadaAppInterface):
         return self.prime_actor
 
     @property
-    def hardware_layout(self) -> House0Layout:
-        return typing.cast(House0Layout, super().hardware_layout)
+    def hardware_layout(self) -> HydronicLayout:
+        return typing.cast(HydronicLayout, super().hardware_layout)

@@ -13,7 +13,7 @@ from gwproactor.config.links import LinkSettings
 from gwproactor.config.proactor_config import ProactorName
 from gwproactor.external_watchdog import SystemDWatchdogCommandBuilder
 from gwproactor.persister import TimedRollingFilePersister
-from gwsproto.data_classes.hardware_layout import HardwareLayout
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
 
 import actors
 from actors.scada import Scada
@@ -21,7 +21,6 @@ from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
 from sema_to_dc import load_layout
 from gwsproto.data_classes import house_0_names
-from gwsproto.data_classes.house_0_layout import House0Layout
 from gwsproto.data_classes.house_0_names import H0N
 from scada_app_interface import ScadaAppInterface
 from universe import assert_universe_coherence
@@ -96,7 +95,7 @@ class ScadaApp(App, ScadaAppInterface):
         app_settings: ScadaSettings,
         codec_factory: Optional[CodecFactory] = None,
         sub_types: Optional[SubTypes] = None,
-        layout: Optional[HardwareLayout] = None,
+        layout: Optional[HydronicLayout] = None,
         env_file: Optional[str | Path] = None,
         dry_run: bool = False,
         add_screen_handler: bool = True,
@@ -133,7 +132,7 @@ class ScadaApp(App, ScadaAppInterface):
             self.settings.gridworks_mqtt.host,
         )
 
-    def _load_hardware_layout(self, layout_path: str | Path) -> House0Layout:
+    def _load_hardware_layout(self, layout_path: str | Path) -> HydronicLayout:
         """Load the runtime layout. A sema-authored static artifact (its TypeName
         names a sema layout type) is assembled with the home's operational-params
         artifact; a runtime-shaped layout file loads directly."""
@@ -142,10 +141,10 @@ class ScadaApp(App, ScadaAppInterface):
         )
 
     @property
-    def hardware_layout(self) -> House0Layout:
-        return typing.cast(House0Layout, self.config.layout)
+    def hardware_layout(self) -> HydronicLayout:
+        return typing.cast(HydronicLayout, self.config.layout)
 
-    def _get_name(self, layout: HardwareLayout) -> ProactorName:
+    def _get_name(self, layout: HydronicLayout) -> ProactorName:
         return ProactorName(
             long_name=layout.scada_g_node_alias,
             short_name=house_0_names.H0N.primary_scada
@@ -154,7 +153,7 @@ class ScadaApp(App, ScadaAppInterface):
     def _get_link_settings(
             self,
             name: ProactorName,
-            layout: HardwareLayout,
+            layout: HydronicLayout,
             brokers: dict[str, MQTTClient]
     ) -> dict[str, LinkSettings]:
         return {
@@ -166,7 +165,7 @@ class ScadaApp(App, ScadaAppInterface):
             ),
             self.LOCAL_MQTT: LinkSettings(
                 broker_name=self.LOCAL_MQTT,
-                peer_long_name=typing.cast(House0Layout, layout).scada2_gnode_name(),
+                peer_long_name=typing.cast(HydronicLayout, layout).scada2_g_node_name(),
                 peer_short_name=H0N.secondary_scada,
                 downstream=True,
             ),

@@ -15,7 +15,7 @@ from rich.text import Text
 from actors.honeywell_thermostat import HoneywellThermostatOperatingState
 from gwsproto.conversions.temperature import convert_temp_to_f
 from gwsproto.named_types import SnapshotSpaceheat
-from gwsproto.data_classes.hardware_layout import ChannelRegistry
+from gwsproto.data_classes.hydronic_layout import ChannelRegistry
 from actors.ltn.dashboard.display.styles import fahrenheit_style
 from actors.ltn.dashboard.display.styles import tank_style
 from actors.ltn.dashboard.channels.reading import MissingReading

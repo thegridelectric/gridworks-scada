@@ -23,7 +23,7 @@ from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import DeviceType
 from gwsproto.named_types import CaptureTuning, SyncedReadings
 from gwsproto.named_types import Glitch
-from gwsproto.data_classes.hardware_layout import HardwareLayout
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
 
 from actors.config import ScadaSettings
 from scada_app_interface import ScadaAppInterface
@@ -33,14 +33,14 @@ class MpDriverThreadSetupHelper:
 
     node: ShNode
     settings: ScadaSettings
-    hardware_layout: HardwareLayout
+    hardware_layout: HydronicLayout
     component: Ads111xBasedComponent
 
     def __init__(
         self,
         node: ShNode,
         settings: ScadaSettings,
-        hardware_layout: HardwareLayout,
+        hardware_layout: HydronicLayout,
     ):
         if not isinstance(node.component, Ads111xBasedComponent):
             raise ValueError(
@@ -91,13 +91,13 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
     latest_telemetry_value: Dict[str, Optional[int]]
     _last_sampled_s: Dict[str, Optional[int]]
     _telemetry_destination: str
-    _hardware_layout: HardwareLayout
+    _hardware_layout: HydronicLayout
 
     def __init__(
         self,
         node: ShNode,
         settings: ScadaSettings,
-        hardware_layout: HardwareLayout,
+        hardware_layout: HydronicLayout,
         telemetry_destination: str,
         responsive_sleep_step_seconds=0.01,
         daemon: bool = True,

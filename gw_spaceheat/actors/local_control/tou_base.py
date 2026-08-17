@@ -12,7 +12,7 @@ from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.named_types import AnalogDispatch, SyncedReadings
 from result import Ok, Result
 from transitions import Machine
-from gwsproto.data_classes.house_0_layout import HouseStrategy
+from gwsproto.data_classes.hydronic_layout import HouseStrategy
 from gwsproto.data_classes.house_0_names import H0N, H0CN
 from gwsproto.data_classes.components.dfr_component import DfrComponent
 
@@ -355,14 +355,14 @@ class LocalControlTouBase(ShNodeActor):
         }
 
         excluded_relays = {
-            self.hp_failsafe_relay,
-            self.hp_scada_ops_relay, 
-            self.aquastat_control_relay,
-            self.hp_loop_on_off,
+            self.layout.hp_failsafe_relay,
+            self.layout.hp_scada_ops_relay, 
+            self.layout.aquastat_control_relay,
+            self.layout.hp_loop_on_off,
         }
 
         if self.ops.SeasonalStorageMode == SeasonalStorageMode.AllTanks:
-            excluded_relays.add(self.store_charge_discharge_relay)
+            excluded_relays.add(self.layout.store_charge_discharge_relay)
 
         target_relays: List[ShNode] = list(h_normal_relays - excluded_relays)
     

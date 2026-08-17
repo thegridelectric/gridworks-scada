@@ -169,14 +169,14 @@ class HpBoss(ShNodeActor):
         try:
             event = FsmEvent(
                 FromHandle=self.node.handle,
-                ToHandle=self.hp_scada_ops_relay.handle,
+                ToHandle=self.layout.hp_scada_ops_relay.handle,
                 EventType=ChangeRelayState.enum_name(),
                 EventName=ChangeRelayState.OpenRelay,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
-            self._send_to(self.hp_scada_ops_relay, event)
-            self.log(f"{self.node.handle} sending OpenRelay to {self.hp_scada_ops_relay.handle}")
+            self._send_to(self.layout.hp_scada_ops_relay, event)
+            self.log(f"{self.node.handle} sending OpenRelay to {self.layout.hp_scada_ops_relay.handle}")
         
         except Exception as e:
             self.log(f"Tried to turn off heat pump! {e}")
@@ -185,14 +185,14 @@ class HpBoss(ShNodeActor):
         try:
             event = FsmEvent(
                 FromHandle=self.node.handle,
-                ToHandle=self.hp_scada_ops_relay.handle,
+                ToHandle=self.layout.hp_scada_ops_relay.handle,
                 EventType=ChangeRelayState.enum_name(),
                 EventName=ChangeRelayState.CloseRelay,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
-            self._send_to(self.hp_scada_ops_relay, event)
-            self.log(f"{self.node.handle} sending CloseRelay to {self.hp_scada_ops_relay.handle}")
+            self._send_to(self.layout.hp_scada_ops_relay, event)
+            self.log(f"{self.node.handle} sending CloseRelay to {self.layout.hp_scada_ops_relay.handle}")
         
         except Exception as e:
             self.log(f"Tried to turn on heat pump! {e}")

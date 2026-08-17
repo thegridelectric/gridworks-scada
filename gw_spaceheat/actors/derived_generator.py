@@ -12,7 +12,6 @@ from result import Ok, Result
 from datetime import datetime,  timezone
 from gwproto import Message
 
-from gwsproto import type_name_literal
 from gwsproto.data_classes.sh_node import ShNode
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
@@ -606,10 +605,10 @@ class DerivedGenerator(ShNodeActor):
 
         model = params["EnergyModel"]
         type_name = model.get("TypeName")
-        if type_name == type_name_literal(UsableEnergyLayered):
+        if type_name == UsableEnergyLayered.type_name_value():
             value = self.compute_usable_energy_wh()
 
-        elif type_name == type_name_literal(RequiredEnergyLayered):
+        elif type_name == RequiredEnergyLayered.type_name_value():
             value = self.compute_required_energy_wh()
 
         else:

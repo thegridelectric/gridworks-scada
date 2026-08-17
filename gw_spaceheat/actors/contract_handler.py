@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 import pytz
-from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import SlowDispatchContractStatus
 from gwproactor.logger import LoggerOrAdapter
@@ -35,7 +35,7 @@ class ContractHandler:
     def __init__(
         self,
         settings: ScadaSettings,
-        layout: House0Layout,
+        layout: HydronicLayout,
         node: ShNode,  # intended to be H0N.primary_scada
         logger: LoggerOrAdapter,
     ):
