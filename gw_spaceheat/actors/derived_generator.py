@@ -5,28 +5,60 @@ import asyncio
 import aiohttp
 import math
 import numpy as np
-from typing import Optional, Sequence
+from dataclasses import dataclass
+from enum import StrEnum, auto
+from typing import Optional, Protocol, Sequence
 from result import Ok, Result
 from datetime import datetime,  timezone
 from gwproto import Message
 
+from gwsproto import type_name_literal
 from gwsproto.data_classes.sh_node import ShNode
-from gwsproto.named_types import SingleReading, SyncedReadings
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 
 from actors.sh_node_actor import ShNodeActor
+from gwsproto.data_classes.derived_channel import DerivedChannel
 from gwsproto.conversions.temperature import convert_temp_to_f
-from gwsproto.enums import SystemMode, SeasonalStorageMode
-from gwsproto.data_classes.house_0_names import H0N, H0CN
+from gwsproto.enums import (
+    GwUnit, HeatCallInterpretation, 
+    SystemMode, SeasonalStorageMode, TelemetryName
+)
+from gwsproto.data_classes.house_0_names import H0CN, H0N
 from gwsproto.named_types import (
-    Ha1Params, HeatingForecast, ScadaParams,
-    TankTempCalibration,
-    TankTempCalibrationMap,
-    WeatherForecast,
+    Ha1Params, HeatingForecast, LinearOneDimensionalCalibration,
+    RequiredEnergyLayered, ScadaParams,
+    SingleReading, SyncedReadings,
+    UsableEnergyLayered, WeatherForecast, TankTempCalibration
 )
 from scada_app_interface import ScadaAppInterface
 
+
+class SetpointPhase(StrEnum):
+    Unknown = auto()
+    LastHeatCallEndTemp = auto()
+    SuspectZoneBelowSetpoint = auto()
+    SuspectZoneAboveSetpoint = auto()
+
+
+@dataclass
+class SimpleFallingEdgeSetpointState:
+    gw_temp_name: str
+    heat_call_name: str
+    phase: SetpointPhase = SetpointPhase.Unknown
+    setpoint_f: float | None = None
+    latest_gw_temp_f: float | None = None
+    heat_call_active: bool | None = None
+    last_emitted_setpoint_f: float = 1e9
+    last_logged_phase: SetpointPhase | None = None
+
+
+class DerivedHandler(Protocol):
+    def __call__(
+        self,
+        dc: DerivedChannel,
+        payload: SingleReading | None = None,
+    ) -> None: ...
 
 class DerivedGenerator(ShNodeActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
@@ -34,14 +66,11 @@ class DerivedGenerator(ShNodeActor):
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
         self._stop_requested: bool = False
-        self.hardware_layout = self._services.hardware_layout
-
         self.elec_assigned_amount = None
         self.previous_time = None
         self.received_new_params: bool = False
         self.last_evaluated_strategy = 0
         self.first_required_energy_update_done: bool = False
-
 
         # House parameters in the .env file
         self.is_simulated = self.settings.is_simulated
@@ -60,8 +89,495 @@ class DerivedGenerator(ShNodeActor):
         self.log(f"self.is_simulated: {self.is_simulated}")
         self.weather_forecast: Optional[WeatherForecast] = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
-        self.tmap: TankTempCalibrationMap = TankTempCalibrationMap.model_validate(getattr(self.node, "TankTempCalibrationMap"))
+
+        self.strategy_handlers: dict[str, DerivedHandler] = {
+            "identity": self.handle_identity,
+            "affine": self.handle_affine,
+            "heat-call": self.handle_heat_call,
+            "simple-falling-edge-setpoint": self.handle_simple_falling_edge_setpoint,
+            "system-model": self.handle_system_model,
+        }
+
+        self.derived_by_input: dict[str, list[DerivedChannel]] = {}
+        self.system_models: list[DerivedChannel] = []
+        self.simple_falling_edge_setpoint_states: dict[str, SimpleFallingEdgeSetpointState] = {}
+        self.last_emitted: dict[str, int] = {}
+        self.next_period_boundary_ts: dict[str, float] = {} # channel name, unix seconds
+        self.next_phase_log_boundary_ts: dict[str, float] = {}
+        self.init_derived_channels()
+
+    def init_derived_channels(self) -> None:
+
+        for dc in self.layout.derived_channels.values():
+
+            if dc.CreatedByNodeName != self.name:
+                continue
     
+            handler = self.strategy_handlers.get(dc.Strategy)
+            if handler is None:
+                raise RuntimeError(
+                    f"DerivedGenerator does not support strategy '{dc.Strategy}' "
+                    f"(channel '{dc.Name}')"
+                )
+
+            if dc.InputChannelNames:
+                for ch in dc.InputChannelNames:
+                    self.derived_by_input.setdefault(ch, []).append(dc)
+            else:
+                self.system_models.append(dc)
+
+            if dc.Strategy == "affine":
+                params = dc.Parameters
+                if params is None:
+                    raise RuntimeError(
+                        f"Affine DerivedChannel '{dc.Name}' is missing Parameters"
+                    )
+                try:
+                    LinearOneDimensionalCalibration.model_validate(
+                        params["Calibration"]
+                    )
+                except Exception as e:
+                    raise RuntimeError(
+                        f"DerivedGenerator only supports "
+                        f"linear.one.dimensional.calibration for affine channels. "
+                        f"Channel '{dc.Name}' invalid: {e}"
+                    )
+                in_unit = self.layout.channel_registry.unit(dc.InputChannelNames[0])
+                if in_unit is None:
+                    raise RuntimeError(
+                    f"No unit registered for input channel '{dc.InputChannelNames[0]}' "
+                    f"(required by affine DerivedChannel '{dc.Name}')"
+                )
+                if in_unit not in [GwUnit.FahrenheitX100, 
+                            TelemetryName.AirTempCTimes1000,
+                            TelemetryName.WaterTempCTimes1000,
+                            TelemetryName.AirTempFTimes1000,
+                            TelemetryName.AirTempCTimes1000]:
+                    raise RuntimeError("DerivedGenerator only handles temp-based affine conversions now")
+                if dc.OutputUnit != GwUnit.FahrenheitX100:
+                    raise RuntimeError(f"DerivedGenerator only handles affine conversions with output unit"
+                                    f" FahrenheitX100, not {dc.OutputUnit}")
+            elif dc.Strategy == "simple-falling-edge-setpoint":
+                self.init_simple_falling_edge_setpoint_channel(dc)
+
+        # 4) Final sanity check: every DerivedChannel must be reachable
+        handled = set()
+        for dcs in self.derived_by_input.values():
+            handled.update(dcs)
+        
+        handled.update(self.system_models)
+        handled_names = {dc.Name for dc in handled}
+        expected = {
+            dc.Name
+            for dc in self.layout.derived_channels.values()
+            if dc.CreatedByNodeName == self.name
+        }
+
+        missing = expected - handled_names
+        if missing:
+            raise RuntimeError(
+                "DerivedGenerator has DerivedChannels it will never emit:\n"
+                + "\n".join(missing)
+            )
+
+    def init_simple_falling_edge_setpoint_channel(self, dc: DerivedChannel) -> None:
+        if dc.OutputUnit != GwUnit.FahrenheitX100:
+            raise RuntimeError(
+                f"Simple falling-edge setpoint channel '{dc.Name}' must use "
+                f"OutputUnit FahrenheitX100, not {dc.OutputUnit}"
+            )
+        if len(dc.InputChannelNames) != 2:
+            raise RuntimeError(
+                f"Simple falling-edge setpoint channel '{dc.Name}' must declare "
+                "exactly two InputChannelNames: [gw-temp, heat-call]"
+            )
+
+        gw_temp_name, heat_call_name = dc.InputChannelNames
+        in_unit = self.layout.channel_registry.unit(gw_temp_name)
+        if in_unit is None:
+            raise RuntimeError(
+                f"No unit registered for input channel '{gw_temp_name}' "
+                f"(required by simple falling-edge setpoint channel '{dc.Name}')"
+            )
+        try:
+            convert_temp_to_f(0, in_unit)
+        except ValueError as e:
+            raise RuntimeError(
+                f"Simple falling-edge setpoint channel '{dc.Name}' requires a "
+                f"temperature input, but '{gw_temp_name}' uses {in_unit}"
+            ) from e
+
+        heat_call_dc = self.layout.derived_channels.get(heat_call_name)
+        if heat_call_dc is None or heat_call_dc.Strategy != "heat-call":
+            raise RuntimeError(
+                f"Simple falling-edge setpoint channel '{dc.Name}' requires a "
+                f"heat-call DerivedChannel as its second input, not '{heat_call_name}'"
+            )
+
+        self.simple_falling_edge_setpoint_states[dc.Name] = SimpleFallingEdgeSetpointState(
+            gw_temp_name=gw_temp_name,
+            heat_call_name=heat_call_name,
+        )
+        self.log(f"Initialized simple falling-edge setpoint channel '{dc.Name}'")
+
+    def handle_identity(self, dc: DerivedChannel, payload: SingleReading | None = None) -> None:
+        """Returns the identical data, after unit transformation"""
+        if payload is None:
+            return
+
+        in_unit = self.layout.channel_registry.unit(payload.ChannelName)
+        assert in_unit
+
+        temp_f = convert_temp_to_f(payload.Value, in_unit)
+
+        if temp_f is None:
+            return None
+
+        self._send_to(
+            self.primary_scada,
+            SingleReading(
+                ChannelName=dc.Name,
+                Value=int(temp_f * 100),
+                ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs
+            )
+        )
+
+    def handle_affine(self, dc: DerivedChannel, payload: SingleReading | None = None) -> None:
+        """
+        Apply a one-dimensional affine transformation to a single input reading.
+
+        This handler:
+        - Converts the raw input value to a physical float (based on input unit)
+        - Applies y = M*x + B using LinearOneDimensionalCalibration
+        - Converts the result to the DerivedChannel's OutputUnit
+        - Emits a SingleReading for the derived channel
+
+        Emission semantics are governed by dc.EmissionMethod (typically OnTrigger).
+        """
+        if payload is None:
+            return
+
+        assert dc.Parameters # enforced in axioms for DerivedChannelGt
+
+        calib = LinearOneDimensionalCalibration.model_validate(
+                dc.Parameters["Calibration"]
+            )
+        in_unit = self.layout.channel_registry.unit(payload.ChannelName)
+        assert in_unit
+        x = convert_temp_to_f(payload.Value, in_unit)
+
+        if x is None:
+            return
+
+        y = calib.M * x + calib.B
+        assert dc.OutputUnit == GwUnit.FahrenheitX100
+        temp_x100 = int(y * 100)
+        self._send_to(
+            self.primary_scada,
+            SingleReading(
+                ChannelName=dc.Name,
+                Value=temp_x100,
+                ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs
+            )
+        )
+
+    @staticmethod
+    def _next_period_boundary(now: float, period: int) -> float:
+        return ((int(now) // period) + 1) * period
+
+    def _advance_period_boundary(
+        self,
+        dc_name: str,
+        now: float,
+        period: int,
+        boundaries: dict[str, float] | None = None,
+    ) -> None:
+        """Advance a channel's period boundary in whole `period` steps until it is
+        in the future, so a gap in input readings yields one emission rather than
+        a burst of catch-up emissions on subsequent readings."""
+        if boundaries is None:
+            boundaries = self.next_period_boundary_ts
+        while boundaries[dc_name] <= now:
+            boundaries[dc_name] += period
+
+    def handle_heat_call(self, dc: DerivedChannel, payload: SingleReading | None = None) -> None:
+        """
+        Derive and emit a binary heat-call signal from a single raw input reading.
+
+        The semantic interpretation of the raw value is determined by the
+        HeatCallInterpretation enum declared in dc.Parameters["Interpretation"].
+
+        Emits a SingleReading for the derived channel whenever an input reading
+        is received. Logs transitions when the heat-call state changes.
+        """
+        if payload is None:
+            return
+
+        assert dc.Parameters is not None
+        assert dc.EmitPeriodS is not None
+        interp = HeatCallInterpretation(dc.Parameters.get("Interpretation"))
+        threshold = dc.Parameters.get("Threshold")
+
+        value = self.heat_call_value(payload.Value, interp, threshold)
+        heat_call_reading = SingleReading(
+            ChannelName=dc.Name,
+            Value=value,
+            ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs,
+        )
+        
+        now = time.time()
+    
+        last = self.last_emitted.get(dc.Name)
+        changed = (last is None or value != last)
+
+        # Periodic emission (boundary-aligned)
+        period = dc.EmitPeriodS
+        next_ts = self.next_period_boundary_ts.get(dc.Name)
+
+        if next_ts is None:
+            # First time seeing this channel → align to next boundary
+            next_ts = self._next_period_boundary(now, period)
+            self.next_period_boundary_ts[dc.Name] = next_ts
+
+        periodic_due = now >= next_ts
+
+        should_emit = changed or periodic_due
+
+        if should_emit:
+            self._send_to(
+                self.primary_scada,
+                heat_call_reading,
+            )
+            self.last_emitted[dc.Name] = value
+
+            if periodic_due:
+                self.log(
+                    f"[HeatCall periodic] {dc.Name} "
+                    f"now={round(now,1)} "
+                    f"next={round(self.next_period_boundary_ts[dc.Name],1)} "
+                    f"period={dc.EmitPeriodS}"
+                )
+                self._advance_period_boundary(dc.Name, now, period)
+
+        self._dispatch_derived_input(heat_call_reading)
+
+    def heat_call_value(
+            self, 
+            in_val: int,
+            interpretation: HeatCallInterpretation,
+            threshold: int | None = None) -> int:
+        """
+        Compute the binary heat-call state from a raw input value using a
+        HeatCallInterpretation enum.
+
+        Returns:
+            1 → calling for heat
+            0 → not calling for heat
+        """
+        match interpretation:
+            case HeatCallInterpretation.DigitalZeroIsActive:
+                return 1 if in_val == 0 else 0
+
+            case HeatCallInterpretation.DigitalOneIsActive:
+                return 1 if in_val == 1 else 0
+
+            case HeatCallInterpretation.GreaterThanThreshold:
+                if threshold is None: # should be prevented by axiom, guard anyway
+                    return 0 
+                return 1 if abs(in_val) > threshold else 0
+
+            case _:
+                return 0
+
+    def _latest_gw_temp_f(self, gw_temp_name: str) -> float | None:
+        in_unit = self.layout.channel_registry.unit(gw_temp_name)
+        assert in_unit is not None
+        raw = self.data.latest_channel_values.get(gw_temp_name)
+        if raw is None:
+            return None
+        return convert_temp_to_f(raw, in_unit)
+
+    def handle_simple_falling_edge_setpoint(self, dc: DerivedChannel, payload: SingleReading | None = None) -> None:
+        """
+        Derive a zone thermostat setpoint estimate from gw-temp and heat-call.
+
+        The learned value is gw-temp at the falling edge of a heat call. Suspected
+        manual setpoint changes are tracked in SetpointPhase without overwriting
+        the last learned temperature on the wire.
+        """
+        if payload is None:
+            return
+
+        state = self.simple_falling_edge_setpoint_states[dc.Name]
+        gw_temp_name = state.gw_temp_name
+        heat_call_name = state.heat_call_name
+
+        if payload.ChannelName not in {gw_temp_name, heat_call_name}:
+            return
+
+        assert dc.Parameters is not None
+        setpoint_threshold_f = dc.Parameters["SetpointThresholdFX100"] / 100
+
+        if payload.ChannelName == gw_temp_name:
+            in_unit = self.layout.channel_registry.unit(payload.ChannelName)
+            assert in_unit
+            state.latest_gw_temp_f = convert_temp_to_f(payload.Value, in_unit)
+        else:
+            was_active = state.heat_call_active
+            now_active = payload.Value >= 1
+            state.heat_call_active = now_active
+            # Heat call has just ended -> update the setpoint
+            if was_active and not now_active:
+                if state.latest_gw_temp_f is None:
+                    state.latest_gw_temp_f = self._latest_gw_temp_f(gw_temp_name)
+                if state.latest_gw_temp_f is not None:
+                    state.setpoint_f = state.latest_gw_temp_f
+                    state.phase = SetpointPhase.LastHeatCallEndTemp
+                    self.log(f"Setpoint {dc.Name}: learned {state.setpoint_f} F at heat-call end")
+                else:
+                    self.log(f"Setpoint {dc.Name}: heat-call ended but no gw-temp available to learn setpoint")
+
+        if state.heat_call_active is None:
+            latest_heat_call = self.data.latest_channel_values.get(heat_call_name)
+            if latest_heat_call is not None:
+                state.heat_call_active = latest_heat_call >= 1
+
+        if state.latest_gw_temp_f is None:
+            state.latest_gw_temp_f = self._latest_gw_temp_f(gw_temp_name)
+
+        # Suspected setpoint change
+        if state.heat_call_active is not None and state.latest_gw_temp_f is not None:
+            if state.setpoint_f is not None and state.phase == SetpointPhase.LastHeatCallEndTemp:
+                if (
+                    state.heat_call_active
+                    and state.latest_gw_temp_f >= state.setpoint_f + setpoint_threshold_f
+                ):
+                    state.setpoint_f = None
+                    state.phase = SetpointPhase.SuspectZoneBelowSetpoint
+                elif (
+                    not state.heat_call_active
+                    and state.latest_gw_temp_f <= state.setpoint_f - setpoint_threshold_f
+                ):
+                    state.setpoint_f = None
+                    state.phase = SetpointPhase.SuspectZoneAboveSetpoint
+            
+            elif state.phase == SetpointPhase.Unknown:
+                if state.heat_call_active:
+                    state.phase = SetpointPhase.SuspectZoneBelowSetpoint
+                else:
+                    state.phase = SetpointPhase.SuspectZoneAboveSetpoint
+
+        phase_changed = state.phase != state.last_logged_phase
+
+        assert dc.EmitPeriodS is not None
+        period = dc.EmitPeriodS
+        now = time.time()
+
+        next_phase_log_ts = self.next_phase_log_boundary_ts.get(dc.Name)
+        if next_phase_log_ts is None:
+            next_phase_log_ts = self._next_period_boundary(now, period)
+            self.next_phase_log_boundary_ts[dc.Name] = next_phase_log_ts
+
+        phase_log_periodic_due = now >= next_phase_log_ts
+
+        if phase_changed or phase_log_periodic_due:
+            self.log(f"Setpoint {dc.Name}: phase={state.phase.name}")
+            state.last_logged_phase = state.phase
+            if phase_log_periodic_due:
+                self._advance_period_boundary(dc.Name, now, period, self.next_phase_log_boundary_ts)
+
+        if state.setpoint_f is None:
+            return
+
+        next_ts = self.next_period_boundary_ts.get(dc.Name)
+        if next_ts is None:
+            # First time seeing this channel → align to next boundary
+            next_ts = self._next_period_boundary(now, period)
+            self.next_period_boundary_ts[dc.Name] = next_ts
+
+        periodic_due = now >= next_ts
+        # AsyncEmitDelta is expressed in OutputUnit (FahrenheitX100); the
+        # setpoint state is in whole degrees F, so scale the threshold by 100.
+        async_emit_delta_f = dc.AsyncEmitDelta / 100
+        changed = (
+            abs(state.last_emitted_setpoint_f - state.setpoint_f)
+            > async_emit_delta_f
+        )
+        should_emit = changed or periodic_due
+
+        if should_emit:
+            self.log(f"Setpoint {dc.Name}: {state.setpoint_f} F phase={state.phase}")
+            self._send_to(
+                self.primary_scada,
+                SingleReading(
+                    ChannelName=dc.Name,
+                    Value=int(state.setpoint_f * 100),
+                    ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs,
+                )
+            )
+            state.last_emitted_setpoint_f = state.setpoint_f
+            if periodic_due:
+                self._advance_period_boundary(dc.Name, now, period)
+
+    def handle_system_model(
+        self,
+        dc: DerivedChannel,
+        payload: SingleReading | None = None,
+    ) -> None:
+        """
+        Evaluate and emit a DerivedChannel whose value is produced by a
+        system-level energy model rather than a direct input reading.
+        Currently supported models include:
+
+            - gw0.usable.energy.layered
+            - gw0.required.energy.layered
+
+        System-model derived channels:
+        - Have no InputChannelNames
+        - Are evaluated opportunistically during the main loop
+        - Depend on shared system state (e.g. temperatures, forecasts, settings)
+
+        The specific computation performed is determined by the model declared
+        in `dc.Parameters["Model"]`. This method:
+        - Verifies the model is supported
+        - Computes the value using the appropriate internal routine
+        - Emits a SingleReading only when the value is well-defined
+
+        If required inputs (e.g. buffer temperatures or heating forecast) are
+        unavailable, the method returns silently and no data point is emitted.
+
+        The DerivedGenerator will raise an exception at initialization time if
+        it encounters a system-model DerivedChannel whose model it does not
+        recognize or cannot handle.
+        """
+        params = dc.Parameters
+        assert params is not None
+
+        model = params["EnergyModel"]
+        type_name = model.get("TypeName")
+        if type_name == type_name_literal(UsableEnergyLayered):
+            value = self.compute_usable_energy_wh()
+
+        elif type_name == type_name_literal(RequiredEnergyLayered):
+            value = self.compute_required_energy_wh()
+
+        else:
+            raise RuntimeError(
+                f"Unsupported system model {type_name}"
+            )
+
+        if value is None:
+            return
+
+        self._send_to(
+            self.primary_scada,
+            SingleReading(
+                ChannelName=dc.Name,
+                Value=value,
+                ScadaReadTimeUnixMs=int(time.time() * 1000),
+            )
+        )
+
     @property
     def params(self) -> Ha1Params:
         return self.data.ha1_params
@@ -95,8 +611,14 @@ class DerivedGenerator(ShNodeActor):
 
     def start(self) -> None:
         self.services.add_task(
-            asyncio.create_task(self.main(), name="Synth Generator keepalive")
+            asyncio.create_task(self.main(), name="Derived Generator keepalive")
         )
+
+    def stop(self) -> None:
+        self._stop_requested = True
+        
+    async def join(self):
+        ...
 
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:
@@ -113,23 +635,10 @@ class DerivedGenerator(ShNodeActor):
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
 
-            if self.heating_forecast is None or time.time()>self.heating_forecast.Time[0] or self.received_new_params:
-                await self.get_forecasts(session)
-                self.received_new_params = False
+            for dc in self.system_models:
+                self.handle_system_model(dc)
 
-            self.get_temperatures()
-            if self.buffer_temps_available:
-                self.update_usable_energy()
-                if self.heating_forecast:
-                    self.update_required_energy(self.heating_forecast)
-                # self.evaluate_strategy()
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
-
-    def stop(self) -> None:
-        self._stop_requested = True
-        
-    async def join(self):
-        ...
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         from_node = self.layout.node(message.Header.Src)
@@ -139,8 +648,23 @@ class DerivedGenerator(ShNodeActor):
             case ScadaParams():
                 self.log("Received new parameters, time to recompute forecasts!")
                 self.received_new_params = True
+
+            case SingleReading():
+                self.handle_input_reading(from_node, message.Payload)
+
             case SyncedReadings():
-                self.process_synced_readings(from_node, message.Payload)
+                for ch, val in zip(
+                message.Payload.ChannelNameList,
+                        message.Payload.ValueList,
+                    ):
+                    self.handle_input_reading(
+                        from_node,
+                        SingleReading(
+                            ChannelName=ch,
+                            Value=val,
+                            ScadaReadTimeUnixMs=message.Payload.ScadaReadTimeUnixMs,
+                        ),
+                    )
         return Ok(True)
 
     def hack_maple_primary_flow(self, from_node: ShNode, payload: SyncedReadings) -> None:
@@ -229,24 +753,40 @@ class DerivedGenerator(ShNodeActor):
         if depth == 3:
             return calibration.Depth3M, calibration.Depth3B
         raise ValueError(f"Unsupported depth {depth}")
+    
+    def _dispatch_derived_input(self, payload: SingleReading) -> None:
+        derived_channels = self.derived_by_input.get(payload.ChannelName)
+        if not derived_channels:
+            return
+
+        for dc in derived_channels:
+            handler = self.strategy_handlers.get(dc.Strategy)
+            if handler is None:
+                raise RuntimeError(f"No handler for strategy {dc.Strategy} (dc={dc.Name})")
+            handler(dc, payload)
+
+    def handle_input_reading(self, from_node: ShNode, payload: SingleReading) -> None:
+        self._dispatch_derived_input(payload)
 
     # Compute usable and required energy
-    def update_usable_energy(self) -> None:
+    def compute_usable_energy_wh(self) -> int | None:
         """
-        Computes and publishes usable thermal energy (kWh) currently stored
+        Computes the usable thermal energy (kWh) currently stored
         above the forecast-constrained return-water temperature.
 
         This method:
         - Simulates layer-by-layer discharge of tanks or buffer
         - Assumes stratified storage
-        - Publishes usable energy as a SCADA reading
         """
         if self.settings.system_mode != SystemMode.Heating:
-            return
+            return None
+
+        if not self.buffer_temps_available:
+            return None
 
         if self.heating_forecast is None:
             self.log("Skipping energy update: heating_forecast not yet available")
-            return
+            return None
 
         latest_temps_f = self.latest_temps_f.copy()
 
@@ -276,7 +816,7 @@ class DerivedGenerator(ShNodeActor):
 
         if not simulated_layers_f:
             self.log("Usable energy not updated: no buffer/tank temperatures yet")
-            return
+            return None
 
         gallons_per_layer = (
             self.GALLONS_PER_TANK * len(self.h0cn.tank)
@@ -313,15 +853,7 @@ class DerivedGenerator(ShNodeActor):
             )
 
         # self.log(f"Usable energy: {round(usable_kwh,1)} kWh")
-
-        self._send_to(
-                self.primary_scada,
-                SingleReading(
-                    ChannelName = H0CN.usable_energy,
-                    Value=int(usable_kwh*1000),
-                    ScadaReadTimeUnixMs=int(time.time() * 1000),
-                ),
-            )
+        return int(usable_kwh * 1000)
 
     def evaluate_strategy(self):
         """
@@ -351,36 +883,39 @@ class DerivedGenerator(ShNodeActor):
             self.log(details)
             self.send_info(summary, details)
         
-    def update_required_energy(self, heating_forecast: HeatingForecast) -> None:
+    def compute_required_energy_wh(self) -> int | None:
         """
-        Computes and publishes the required thermal energy (kWh) needed to
+        Computes  the required thermal energy (kWh) needed to
         cover upcoming on-peak periods, based on forecasted load and
         maximum usable storage.
 
         This method:
         - Requires forecasts to be present
         - Does not store state locally
-        - Publishes required energy as a SCADA reading
 
-        If forecasts are unavailable, no update is sent.
+        If forecasts are unavailable, returns None
         """
         required_kwh = 0
         time_now = datetime.now(self.timezone)
-        if heating_forecast is None:
-            self.log("Not updating required energy until forecasts exist")
-            return
 
-        forecasts_times_tz = [datetime.fromtimestamp(x, tz=self.timezone) for x in heating_forecast.Time]
+        if not self.buffer_temps_available:
+            return None
+
+        if self.heating_forecast is None:
+            self.log("Not updating required energy until forecasts exist")
+            return None
+
+        forecasts_times_tz = [datetime.fromtimestamp(x, tz=self.timezone) for x in self.heating_forecast.Time]
         morning_kWh = sum(
-            [kwh for t, kwh in zip(forecasts_times_tz, heating_forecast.AvgPowerKw)
+            [kwh for t, kwh in zip(forecasts_times_tz, self.heating_forecast.AvgPowerKw)
              if 7<=t.hour<=11]
             )
         midday_kWh = sum(
-            [kwh for t, kwh in zip(forecasts_times_tz, heating_forecast.AvgPowerKw)
+            [kwh for t, kwh in zip(forecasts_times_tz, self.heating_forecast.AvgPowerKw)
              if 12<=t.hour<=15]
             )
         afternoon_kWh = sum(
-            [kwh for t, kwh in zip(forecasts_times_tz, heating_forecast.AvgPowerKw)
+            [kwh for t, kwh in zip(forecasts_times_tz, self.heating_forecast.AvgPowerKw)
              if 16<=t.hour<=19]
             )
         # Find the maximum storage
@@ -421,16 +956,8 @@ class DerivedGenerator(ShNodeActor):
             required_kwh = afternoon_kWh
         else:
             self.log("Currently in on-peak or no on-peak period coming up soon")
-            
-        # self.log(f"Required energy: {round(required_kwh,1)} kWh")
-        self._send_to(
-                self.primary_scada,
-                SingleReading(
-                    ChannelName=H0CN.required_energy,
-                    Value=int(required_kwh*1000),
-                    ScadaReadTimeUnixMs=int(time.time() * 1000),
-                ),
-            )
+        
+        return int(required_kwh * 1000)
 
     def delta_T(self, swt: float) -> float:
         a, b, c = self.rswt_quadratic_params
@@ -588,8 +1115,8 @@ class DerivedGenerator(ShNodeActor):
 
         if not self.first_required_energy_update_done:
             self.log("Updating usable and required energy")
-            self.update_usable_energy()
-            self.update_required_energy(hf)
+            self.compute_usable_energy_wh()
+            self.compute_required_energy_wh()
             self.first_required_energy_update_done = True
 
         forecast_start = datetime.fromtimestamp(self.weather_forecast.Time[0], tz=self.timezone)

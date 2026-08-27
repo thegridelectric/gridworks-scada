@@ -5,11 +5,7 @@ from gwsproto.enums.gw_str_enum import AslEnum
 
 
 class SystemMode(AslEnum):
-    """
-    System operational mode for HVAC control.
-
-    ASL: https://schemas.electricity.works/enums/gw1.system.mode/000
-    """
+    """Sema: https://schemas.electricity.works/enums/gw1.system.mode/000"""
 
     Heating = auto() # Actively managing heating operations
     Standby = auto() # Not heating, relays managed to prevent oil boiler, heat pump etc from coming on

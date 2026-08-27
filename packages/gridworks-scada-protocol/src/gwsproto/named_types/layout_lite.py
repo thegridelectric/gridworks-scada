@@ -19,7 +19,9 @@ from typing_extensions import Self
 
 
 class LayoutLite(BaseModel):
-    """Sema: https://schemas.electricity.works/types/layout.lite/011"""
+    """
+    Sema: https://schemas.electricity.works/enums/layout.lite/012
+    """
 
     FromGNodeAlias: LeftRightDotStr
     MessageCreatedMs: UTCMilliseconds
@@ -37,10 +39,10 @@ class LayoutLite(BaseModel):
     TankModuleComponents: List[PicoTankModuleComponentGt | SimPicoTankModuleComponentGt]
     FlowModuleComponents: List[PicoFlowModuleComponentGt]
     Ha1Params: Ha1Params
-    I2cRelayComponent: I2cMultichannelDtRelayComponentGt
+    I2cRelayComponent: I2cMultichannelDtRelayComponentGt | None = None
     TMap: TankTempCalibrationMap | None = None
     TypeName: Literal["layout.lite"] = "layout.lite"
-    Version: Literal["011"] = "011"
+    Version: Literal["012"] = "012"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

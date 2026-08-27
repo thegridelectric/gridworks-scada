@@ -35,8 +35,6 @@ def test_ha1(monkeypatch, tmp_path):
         'hp-ewt', 'hp-lwt', 'dist-swt', 'dist-rwt',
         'buffer-cold-pipe', 'buffer-hot-pipe', 'store-cold-pipe', 'store-hot-pipe',
         'tank1-depth1', 'tank1-depth2', 'tank1-depth3',
-        'tank2-depth1', 'tank2-depth2', 'tank2-depth3', 
-        'tank3-depth1', 'tank3-depth2', 'tank3-depth3',
     }
 
 
@@ -90,4 +88,3 @@ def test_ha1(monkeypatch, tmp_path):
     # Todo: test Scada entering/leaving LocalControl
 
    
-

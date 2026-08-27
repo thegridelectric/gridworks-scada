@@ -5,7 +5,7 @@ from gwsproto.enums.gw_str_enum import AslEnum
 
 
 class SeasonalStorageMode(AslEnum):
-    """ASL: https://schemas.electricity.works/enums/gw1.seasonal.stoarge.mode/000"""
+    """Sema: https://schemas.electricity.works/enums/gw1.seasonal.stoarge.mode/000"""
 
     AllTanks = auto()
     BufferOnly = auto()

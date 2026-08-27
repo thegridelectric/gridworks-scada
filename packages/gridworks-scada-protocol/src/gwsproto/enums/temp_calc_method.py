@@ -4,19 +4,7 @@ from gwsproto.enums.gw_str_enum import AslEnum
 
 
 class TempCalcMethod(AslEnum):
-    """
-    What method is used to calculate temperature as a function of voltage?
-    Values:
-      - SimpleBetaForPico: Use the Beta method for an NTC thermistor, with the (flawed)
-        assumption that the pico which the thermistor is attached to has a fixed resistance.
-        Requires parameters PicoResistance and ThermistorBeta.
-      - SimpleBeta: Use the Beta method for an NTC thermistor. Requires ThermistorBeta
-        as a parameter.
-
-    For more information:
-      - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#tempcalcmethod)
-    """
+    """Sema: https://schemas.electricity.works/enums/temp.calc.method/000"""
 
     SimpleBetaForPico = auto()
     SimpleBeta = auto()

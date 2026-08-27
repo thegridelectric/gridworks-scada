@@ -74,46 +74,24 @@ class ApiTankModule(ShNodeActor):
         # Use the following for generating pico offline reports for triggering the pico cycler
         self.last_heard = time.time()
         self.last_error_report = time.time()
-        tank_channel_names = (
-            self.h0cn.buffer
-            if self.name == self.h0n.buffer.reader
-            else next(
-                t for t in self.h0cn.tank.values()
-                if t.reader == self.name
-            )
-        )
 
-        if self.name == self.h0n.buffer.reader:
-            self.depth_about_nodes: dict[int, str] = {
-                1: self.h0n.buffer.depth1,
-                2: self.h0n.buffer.depth2,
-                3: self.h0n.buffer.depth3,
-            }
-        else:
-            tank = next(
-                t for t in self.h0n.tank.values()
-                if t.reader == self.name
-            )
-            self.depth_about_nodes = {
-                1: tank.depth1,
-                2: tank.depth2,
-                3: tank.depth3,
-            }
-        try:
-            self.device_channels = {
-                1: tank_channel_names.depth1_device,
-                2: tank_channel_names.depth2_device,
-                3: tank_channel_names.depth3_device,
-            }
-            if self._component.gt.SendMicroVolts:
-                self.electrical_channels =  {
-                    1: tank_channel_names.depth1_micro_v,
-                    2: tank_channel_names.depth2_micro_v,
-                    3: tank_channel_names.depth3_micro_v,
-                }
-        except KeyError as e:
-            raise Exception(f"Problem setting up ApiTankModule channels! {e}")
+        self.depth_about_nodes: dict[int, str] = {
+            1: f"{self.name}-depth1",
+            2: f"{self.name}-depth2",
+            3: f"{self.name}-depth3",
+        }
+        self.device_channels: dict[int, str] = {
+            1: f"{self.name}-depth1-device",
+            2: f"{self.name}-depth2-device",
+            3: f"{self.name}-depth3-device",
+        }
 
+        if self._component.gt.SendMicroVolts:
+            self.electrical_channels: dict[int, str] = {
+                1: f"{self.name}-depth1-micro-v",
+                2: f"{self.name}-depth2-micro-v",
+                3: f"{self.name}-depth3-micro-v",
+            }
 
     @cached_property
     def microvolts_path(self) -> str:
@@ -373,15 +351,6 @@ class ApiTankModule(ShNodeActor):
         temp_f = 32 + (temp_c * 9 / 5)
         return round(temp_f, 2) if fahrenheit else round(temp_c, 2)
 
-    def thermistor_resistance(self, volts):
-        r_fixed = R_FIXED_KOHMS
-        r_pico = self._component.gt.PicoKOhms
-        if r_pico is None:
-            raise DcError(f"{self.name} component missing PicoKOhms!")
-        r_therm = 1 / ((3.3 / volts - 1) / r_fixed - 1 / r_pico)
-        if r_therm <= 0:
-            raise ValueError("Disconnected thermistor!")
-        return r_therm
 
     def pico_state_log(self, note: str) -> None:
         log_str = f"[PicoRelated] {note}"

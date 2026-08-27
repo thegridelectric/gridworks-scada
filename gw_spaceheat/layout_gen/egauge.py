@@ -4,8 +4,8 @@ from pydantic import BaseModel
 from gwsproto.type_helpers import CACS_BY_MAKE_MODEL
 from gwsproto.enums import ActorClass
 from gwsproto.enums import MakeModel
-from gwsproto.enums import TelemetryName 
-from gwsproto.enums import Unit
+from gwsproto.enums import TelemetryName
+from gwsproto.enums import Unit, GwQuantity
 from gwsproto.named_types import ComponentAttributeClassGt
 from gwsproto.named_types import ComponentGt
 from gwsproto.named_types import EgaugeRegisterConfig
@@ -132,7 +132,7 @@ def add_egauge(
                 ShNodeId=db.make_node_id(egauge.NodeName),
                 Name=egauge.NodeName,
                 ActorClass=ActorClass.PowerMeter,
-                ActorHierarchyName=f"{H0N.secondary_scada}.{egauge.NodeName}",
+                ActorHierarchyName=f"{H0N.primary_scada}.{egauge.NodeName}",
                 DisplayName=egauge.NodeDisplayName,
                 ComponentId=db.component_id_by_alias(egauge.ComponentDisplayName),
             )
@@ -156,6 +156,7 @@ def add_egauge(
                 AboutNodeName=cfg.AboutNodeName,
                 CapturedByNodeName=H0N.primary_power_meter,
                 TelemetryName=TelemetryName.PowerW,
+                Quantity=GwQuantity.Power,
                 InPowerMetering=cfg.InPowerMetering,
                 TerminalAssetAlias=db.terminal_asset_alias,
             )

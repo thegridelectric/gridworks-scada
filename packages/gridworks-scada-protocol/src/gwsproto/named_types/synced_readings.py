@@ -10,6 +10,10 @@ from gwsproto.property_format import (
 
 
 class SyncedReadings(BaseModel):
+    """
+    Sema: https://schemas.electricity.works/types/synced.readings/000
+    """
+
     ChannelNameList: list[SpaceheatName]
     ValueList: list[StrictInt]
     ScadaReadTimeUnixMs: UTCMilliseconds

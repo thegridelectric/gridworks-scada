@@ -1,5 +1,5 @@
 from gwsproto.data_classes.house_0_names import H0CN, H0N
-from gwsproto.enums import ActorClass, MakeModel, TelemetryName, Unit
+from gwsproto.enums import ActorClass, GwQuantity, MakeModel, TelemetryName, Unit
 from gwsproto.named_types import (
     DataChannelGt,
     DfrComponentGt,
@@ -37,6 +37,7 @@ def add_dfrs(db: LayoutDb, dfr_config: DfrConf) -> None:
                 ChannelName=H0CN.dist_010v,
                 CapturePeriodS=300,
                 AsyncCapture=True,
+                AsyncCaptureDelta=1,
                 Exponent=1,
                 Unit=Unit.VoltsRms,
                 OutputIdx=1,
@@ -46,6 +47,7 @@ def add_dfrs(db: LayoutDb, dfr_config: DfrConf) -> None:
                 ChannelName=H0CN.primary_010v,
                 CapturePeriodS=300,
                 AsyncCapture=True,
+                AsyncCaptureDelta=1,
                 Exponent=1,
                 Unit=Unit.VoltsRms,
                 OutputIdx=2,
@@ -55,6 +57,7 @@ def add_dfrs(db: LayoutDb, dfr_config: DfrConf) -> None:
                 ChannelName=H0CN.store_010v,
                 CapturePeriodS=300,
                 AsyncCapture=True,
+                AsyncCaptureDelta=1,
                 Exponent=1,
                 Unit=Unit.VoltsRms,
                 OutputIdx=3,
@@ -120,6 +123,7 @@ def add_dfrs(db: LayoutDb, dfr_config: DfrConf) -> None:
             AboutNodeName=H0N.dist_010v,
             CapturedByNodeName=H0N.zero_ten_out_multiplexer,
             TelemetryName=TelemetryName.VoltsTimesTen,
+            Quantity=GwQuantity.Voltage,
             TerminalAssetAlias=db.terminal_asset_alias,
             Id=db.make_channel_id(H0CN.dist_010v),
         ),
@@ -129,6 +133,7 @@ def add_dfrs(db: LayoutDb, dfr_config: DfrConf) -> None:
             AboutNodeName=H0N.primary_010v,
             CapturedByNodeName=H0N.zero_ten_out_multiplexer,
             TelemetryName=TelemetryName.VoltsTimesTen,
+            Quantity=GwQuantity.Voltage,
             TerminalAssetAlias=db.terminal_asset_alias,
             Id=db.make_channel_id(H0CN.primary_010v),
         ),
@@ -138,6 +143,7 @@ def add_dfrs(db: LayoutDb, dfr_config: DfrConf) -> None:
             AboutNodeName=H0N.store_010v,
             CapturedByNodeName=H0N.zero_ten_out_multiplexer,
             TelemetryName=TelemetryName.VoltsTimesTen,
+            Quantity=GwQuantity.Voltage,
             TerminalAssetAlias=db.terminal_asset_alias,
             Id=db.make_channel_id(H0CN.store_010v),
         ),

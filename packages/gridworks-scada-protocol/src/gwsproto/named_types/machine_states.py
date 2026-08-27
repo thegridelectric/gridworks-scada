@@ -11,6 +11,10 @@ from gwsproto.property_format import (
 
 
 class MachineStates(BaseModel):
+    """
+    Sema: https://schemas.electricity.works/types/machine.states/000
+    """
+
     MachineHandle: HandleName
     StateEnum: LeftRightDotStr
     StateList: list[str]

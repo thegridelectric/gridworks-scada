@@ -11,13 +11,13 @@ from gwproactor.config import MQTTClient
 from pydantic_settings import SettingsConfigDict
 from gwsproto.enums import HpModel, SystemMode, SeasonalStorageMode
 
-# gridworks-scada/tests/config/hardware-layout.json
+# gridworks-scada/tests/config/nolan-layout.json
 DEFAULT_TEST_LAYOUT = (
     Path(__file__).resolve()
     .parents[2]   # adjust depth as needed
     / "tests"
     / "config"
-    / "hardware-layout.json"
+    / "nolan-layout.json"
 )
 
 

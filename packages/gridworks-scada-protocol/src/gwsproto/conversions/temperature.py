@@ -12,6 +12,9 @@ def convert_temp_to_f(raw: int, encoding: TelemetryName | GwUnit) -> float:
     ):
         return raw / 1000 * 9 / 5 + 32
 
+    if encoding == TelemetryName.CelsiusTimes100:
+        return raw / 100 * 9 / 5 + 32
+
     if encoding in (
         TelemetryName.WaterTempFTimes1000,
         TelemetryName.AirTempFTimes1000,

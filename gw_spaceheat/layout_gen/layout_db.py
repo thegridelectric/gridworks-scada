@@ -19,10 +19,17 @@ from gwsproto.named_types import ElectricMeterChannelConfig
 from gwsproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwsproto.data_classes.house_0_names import H0N, H0CN
 from gwsproto.enums import (
-    ActorClass, FlowManifoldVariant, GwUnit, MakeModel,
+    ActorClass, EmissionMethod, FlowManifoldVariant, GwUnit, GwQuantity, MakeModel,
     TelemetryName, Unit,
 )
-from gwsproto.named_types import DerivedChannelGt, TankTempCalibration, TankTempCalibrationMap
+from gwsproto.named_types import (
+    DerivedChannelGt,
+    LinearOneDimensionalCalibration,
+    RequiredEnergyLayered,
+    TankTempCalibration,
+    TankTempCalibrationMap,
+    UsableEnergyLayered,
+)
 
 
 @dataclass
@@ -81,6 +88,8 @@ class LayoutIDMap:
                     self.zone_kwh_per_deg_f_list = v
                 elif k == "TotalStoreTanks":
                     self.total_store_tanks = v
+                elif k == "Strategy":
+                    self.strategy = v
                 elif k == "ShNodes":
                         for node in v:
                             try:
@@ -456,7 +465,6 @@ class LayoutDb:
                 ),
             ]
         )
-        
         self.add_data_channels(
             [
                 DataChannelGt(
@@ -466,6 +474,7 @@ class LayoutDb:
                     AboutNodeName=H0N.hp_odu,
                     CapturedByNodeName=H0N.primary_power_meter,
                     TelemetryName=TelemetryName.PowerW,
+                    Quantity=GwQuantity.Power,
                     InPowerMetering=True,
                     TerminalAssetAlias=self.terminal_asset_alias
                 ),
@@ -476,6 +485,7 @@ class LayoutDb:
                     AboutNodeName=H0N.hp_idu,
                     CapturedByNodeName=H0N.primary_power_meter,
                     TelemetryName=TelemetryName.PowerW,
+                    Quantity=GwQuantity.Power,
                     InPowerMetering=True,
                     TerminalAssetAlias=self.terminal_asset_alias
                 )
@@ -554,7 +564,8 @@ class LayoutDb:
             self.misc["TotalStoreTanks"] = self.loaded.total_store_tanks
         else:
             self.misc["TotalStoreTanks"] =  self.loaded.total_store_tanks
-        self.misc["Strategy"] = "House0"
+        self.misc["TankTempCalibrationMap"] = tmap.model_dump()
+        self.misc["Strategy"] = self.loaded.strategy
         self.misc["FlowManifoldVariant"] = cfg.flow_manifold_variant
         self.misc["UseSiegLoop"] = cfg.use_sieg_loop
         self.add_nodes(
@@ -589,7 +600,7 @@ class LayoutDb:
                     ShNodeId=self.make_node_id(H0N.ltn),
                     Name=H0N.ltn,
                     ActorClass=ActorClass.NoActor,
-                    DisplayName="Atn",
+                    DisplayName="LeafTransactiveNode",
                 ),
                 SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.leaf_ally),
@@ -613,7 +624,6 @@ class LayoutDb:
                     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.derived_generator}",
                     ActorClass=ActorClass.DerivedGenerator,
                     DisplayName="Derived Generator",
-                    TankTempCalibrationMap=tmap
                 ),
                 SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.local_control),
@@ -682,9 +692,18 @@ class LayoutDb:
             ]
             )
 
-        self.add_house0_derived_channels()
+        self.add_house0_derived_channels(tmap)
 
-    def add_house0_derived_channels(self) -> None:
+    def add_house0_derived_channels(self, tmap: TankTempCalibrationMap | None = None) -> None:
+        if tmap is None:
+            tmap = TankTempCalibrationMap(
+                Buffer=TankTempCalibration(),
+                Tank={
+                    i: TankTempCalibration()
+                    for i in range(1, self.loaded.total_store_tanks + 1)
+                },
+            )
+
         channels = [
             DerivedChannelGt(
                 Id = self.make_derived_channel_id(H0CN.usable_energy),
@@ -692,7 +711,11 @@ class LayoutDb:
                 CreatedByNodeName = H0N.derived_generator,
                 OutputUnit=GwUnit.WattHours,
                 TerminalAssetAlias = self.terminal_asset_alias,
-                Strategy = "layer-by-layer",
+                Strategy = "system-model",
+                EmissionMethod=EmissionMethod.Periodic,
+                EmitPeriodS=60,
+                InputChannelNames=[],
+                Parameters={"EnergyModel": UsableEnergyLayered().model_dump()},
                 DisplayName = "Usable Energy Wh",
                 ),
             DerivedChannelGt(
@@ -701,25 +724,51 @@ class LayoutDb:
                 CreatedByNodeName = H0N.derived_generator,
                 OutputUnit=GwUnit.WattHours,
                 TerminalAssetAlias = self.terminal_asset_alias,
-                Strategy = "layer-by-layer",
+                Strategy = "system-model",
+                EmissionMethod=EmissionMethod.Periodic,
+                EmitPeriodS=60,
+                InputChannelNames=[],
+                Parameters={"EnergyModel": RequiredEnergyLayered().model_dump()},
                 DisplayName = "Required Energy Wh",
                 ),
             ]
 
-        effective_channels: list[str] = sorted(self.h0cn.buffer.effective)
-        for tank in self.h0cn.tank.values():
-            effective_channels.extend(sorted(tank.effective))
-        for cn in effective_channels:
-            channels.append(
-                DerivedChannelGt(Id = self.make_derived_channel_id(cn),
-                Name = cn,
-                CreatedByNodeName = H0N.derived_generator,
-                OutputUnit=GwUnit.FahrenheitX100,
-                TerminalAssetAlias = self.terminal_asset_alias,
-                Strategy = "linear-fit",
-                DisplayName = f"{cn.replace('-', ' ').title()} Effective Temperature",
-                )
+        temp_mappings: list[tuple[str, str, TankTempCalibration, int]] = [
+            (self.h0cn.buffer.depth1, self.h0cn.buffer.depth1_device, tmap.Buffer, 1),
+            (self.h0cn.buffer.depth2, self.h0cn.buffer.depth2_device, tmap.Buffer, 2),
+            (self.h0cn.buffer.depth3, self.h0cn.buffer.depth3_device, tmap.Buffer, 3),
+        ]
+        for tank_idx, tank in sorted(self.h0cn.tank.items()):
+            cal = tmap.Tank[tank_idx]
+            temp_mappings.extend(
+                [
+                    (tank.depth1, tank.depth1_device, cal, 1),
+                    (tank.depth2, tank.depth2_device, cal, 2),
+                    (tank.depth3, tank.depth3_device, cal, 3),
+                ]
             )
+
+        for cn, input_cn, cal, depth in temp_mappings:
+            calibration = LinearOneDimensionalCalibration(
+                M=getattr(cal, f"Depth{depth}M"),
+                B=getattr(cal, f"Depth{depth}B"),
+            )
+            kwargs = {
+                "Id": self.make_derived_channel_id(cn),
+                "Name": cn,
+                "CreatedByNodeName": H0N.derived_generator,
+                "InputChannelNames": [input_cn],
+                "OutputUnit": GwUnit.FahrenheitX100,
+                "TerminalAssetAlias": self.terminal_asset_alias,
+                "EmissionMethod": EmissionMethod.OnTrigger,
+                "DisplayName": f"{cn.replace('-', ' ').title()} Effective Temperature",
+            }
+            if calibration.M == 1.0 and calibration.B == 0.0:
+                kwargs["Strategy"] = "identity"
+            else:
+                kwargs["Strategy"] = "affine"
+                kwargs["Parameters"] = {"Calibration": calibration.model_dump()}
+            channels.append(DerivedChannelGt(**kwargs))
 
         self.add_derived_channels(channels)
 

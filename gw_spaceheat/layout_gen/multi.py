@@ -3,6 +3,7 @@ from typing import cast
 from typing import Optional
 
 from gwsproto.enums import ActorClass
+from gwsproto.enums import GwQuantity
 from gwsproto.enums import MakeModel
 from gwsproto.enums import TelemetryName
 from gwsproto.enums import Unit
@@ -132,6 +133,7 @@ def add_tsnap_multipurpose(
                 AboutNodeName=cfg.about_node_name(),
                 CapturedByNodeName=H0N.analog_temp,
                 TelemetryName=cfg.MyTelemetryName,
+                Quantity=GwQuantity.Temperature,
                 TerminalAssetAlias=db.terminal_asset_alias,
             )
 

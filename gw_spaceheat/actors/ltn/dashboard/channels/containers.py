@@ -85,10 +85,6 @@ class PowerChannels(ReadMixin):
     def __init__(self, channels: ChannelRegistry) -> None:
 
         self.hp_indoor = PowerChannel("hp-idu-pwr", channels)
-        print("hp-idu-pwr type:", type(self.hp_indoor))
-        print("hp-idu-pwr repr:", self.hp_indoor)
-        print("hp-idu-pwr TelemetryName:", getattr(self.hp_indoor, "TelemetryName", "NO_ATTR"))
-        print("hp-idu-pwr telemetry_name:", getattr(self.hp_indoor, "telemetry_name", "NO_ATTR"))
         self.hp_outdoor = PowerChannel("hp-odu-pwr", channels)
         self.hp_total = MissingReading()
         self.pumps = PumpPowerChannels(channels)

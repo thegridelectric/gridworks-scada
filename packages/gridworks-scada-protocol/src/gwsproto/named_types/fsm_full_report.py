@@ -16,6 +16,6 @@ class FsmFullReport(BaseModel):
     TriggerId: UUID4Str
     AtomicList: list[FsmAtomicReport]
     TypeName: Literal["fsm.full.report"] = "fsm.full.report"
-    Version: Literal["000"] = "000"
+    Version: Literal["001"] = "001"
 
     model_config = ConfigDict(extra="allow", use_enum_values=True)

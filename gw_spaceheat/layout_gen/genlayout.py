@@ -5,7 +5,7 @@ import typer
 from pathlib import Path
 
 import show_layout
-from layout_gen.tst import make_tst_layout
+from layout_gen.fixture_layouts import make_house0_fixture_layout, make_nolan_fixture_layout
 
 app = typer.Typer(
     no_args_is_help=True,
@@ -16,18 +16,36 @@ app = typer.Typer(
 
 @app.command()
 def mktest(
-    tag: str = "test",
+    layout: str = "nolan",
+    tag: str = "",
     write: bool = True,
-    src: Path = Path("tests/config/hardware-layout.json")
+    src: Path | None = None,
 ) -> None:
     """Generate the hardware layout file used by tests."""
+    if layout not in {"house0", "nolan"}:
+        raise typer.BadParameter("layout must be 'house0' or 'nolan'")
+
     working_output_dir = Path(__file__).parent.joinpath("output").resolve()
     working_output_dir.mkdir(exist_ok=True)
-    src_control_output_path = Path("tests/config/hardware-layout.json").resolve()
-    src_path = src.resolve()
-    db = make_tst_layout(src_path)
+    config_output_path = Path(f"tests/config/{layout}-layout.json").resolve()
+    if src is None:
+        src_path = config_output_path
+        if not src_path.exists():
+            raise typer.BadParameter(
+                f"{config_output_path} does not exist; pass --src to bootstrap from another layout file."
+            )
+    else:
+        src_path = src.resolve()
+
+    db = (
+        make_nolan_fixture_layout(src_path)
+        if layout == "nolan"
+        else make_house0_fixture_layout(src_path)
+    )
     if write:
-        db.write(src_control_output_path)
+        db.write(config_output_path)
+    if not tag:
+        tag = layout
     working_path = working_output_dir.joinpath(f"{tag}.generated.json")
     db.write(working_path)
     show_layout.main(["-l", str(working_path)])

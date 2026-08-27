@@ -4,7 +4,7 @@ from gwsproto.property_format import SpaceheatName
 from layout_gen import LayoutDb
 from gwsproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
 from gwsproto.named_types.data_channel_gt import DataChannelGt
-from gwsproto.enums import MakeModel, Unit, ActorClass, TelemetryName
+from gwsproto.enums import ActorClass, GwQuantity, MakeModel, Unit, TelemetryName
 from gwsproto.named_types.channel_config import ChannelConfig
 from gwsproto.named_types import SpaceheatNodeGt
 from gwsproto.data_classes.house_0_names import H0N
@@ -51,6 +51,7 @@ def add_tank3(
                     ChannelName=f"{tank_cfg.ActorNodeName}-depth{i}-device",
                     CapturePeriodS=tank_cfg.CapturePeriodS,
                     AsyncCapture=True,
+                    AsyncCaptureDelta=tank_cfg.AsyncCaptureDeltaMicroVolts,
                     Exponent=3,
                     Unit=Unit.Celcius
                 )
@@ -62,6 +63,7 @@ def add_tank3(
                         ChannelName=f"{tank_cfg.ActorNodeName}-depth{i}-micro-v",
                         CapturePeriodS=tank_cfg.CapturePeriodS,
                         AsyncCapture=True,
+                        AsyncCaptureDelta=tank_cfg.AsyncCaptureDeltaMicroVolts,
                         Exponent=6,
                         Unit=Unit.VoltsRms
                     )
@@ -119,6 +121,7 @@ def add_tank3(
                AboutNodeName=f"{tank_cfg.ActorNodeName}-depth{i}",
                CapturedByNodeName=tank_cfg.ActorNodeName,
                TelemetryName=TelemetryName.WaterTempCTimes1000,
+               Quantity=GwQuantity.Temperature,
                TerminalAssetAlias=db.terminal_asset_alias,
                Id=db.make_channel_id(f"{tank_cfg.ActorNodeName}-depth{i}-device")
                ) for i in range(1,4)
@@ -133,6 +136,7 @@ def add_tank3(
                     AboutNodeName=f"{tank_cfg.ActorNodeName}-depth{i}",
                     CapturedByNodeName=tank_cfg.ActorNodeName,
                     TelemetryName=TelemetryName.MicroVolts,
+                    Quantity=GwQuantity.Voltage,
                     TerminalAssetAlias=db.terminal_asset_alias,
                     Id=db.make_channel_id(f"{tank_cfg.ActorNodeName}-depth{i}-micro-v")
                 ) for i in range(1,4)

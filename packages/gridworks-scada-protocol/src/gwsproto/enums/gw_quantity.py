@@ -4,7 +4,7 @@ from gwsproto.enums.gw_str_enum import AslEnum
 
 
 class GwQuantity(AslEnum):
-    """ASL: https://schemas.electricity.works/enums/gw1.quantity/000"""
+    """Sema: https://schemas.electricity.works/enums/gw1.quantity/000"""
 
     Unknown = auto()
     Unitless = auto()

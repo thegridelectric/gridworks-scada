@@ -36,6 +36,8 @@ from gwsproto.named_types.flo_params_house0 import FloParamsHouse0
 from gwsproto.named_types.fsm_atomic_report import FsmAtomicReport
 from gwsproto.named_types.fsm_event import FsmEvent
 from gwsproto.named_types.fsm_full_report import FsmFullReport
+from gwsproto.named_types.gw108_gpio_relay_component_gt import Gw108GpioRelayComponentGt
+from gwsproto.named_types.gw108_gpio_sensor_component_gt import Gw108GpioSensorComponentGt
 from gwsproto.named_types.hubitat_component_gt import HubitatComponentGt
 from gwsproto.named_types.hubitat_poller_component_gt import HubitatPollerComponentGt
 from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
@@ -47,8 +49,14 @@ from gwsproto.named_types.ha1_params import Ha1Params
 from gwsproto.named_types.hack_oil_off import HackOilOff
 from gwsproto.named_types.hack_oil_on import HackOilOn
 from gwsproto.named_types.heating_forecast import HeatingForecast
+from gwsproto.named_types.i2c_read_bit import I2cReadBit
+from gwsproto.named_types.i2c_result import I2cResult
+from gwsproto.named_types.i2c_thermistor_channel_config import I2cThermistorChannelConfig
+from gwsproto.named_types.i2c_thermistor_reader_component_gt import I2cThermistorReaderComponentGt
+from gwsproto.named_types.i2c_write_bit import I2cWriteBit
 from gwsproto.named_types.latest_price import LatestPrice
 from gwsproto.named_types.layout_lite import LayoutLite
+from gwsproto.named_types.linear_one_dimensional_calibration import LinearOneDimensionalCalibration
 from gwsproto.named_types.machine_states import MachineStates
 from gwsproto.named_types.micro_volts import MicroVolts
 from gwsproto.named_types.market_maker_ack import MarketMakerAck
@@ -67,6 +75,7 @@ from gwsproto.named_types.relay_actor_config import RelayActorConfig
 from gwsproto.named_types.remaining_elec import RemainingElec
 from gwsproto.named_types.events import RemainingElecEvent, ReportEvent
 from gwsproto.named_types.report import Report
+from gwsproto.named_types.required_energy_layered import RequiredEnergyLayered
 from gwsproto.named_types.reset_hp_keep_value import ResetHpKeepValue
 from gwsproto.named_types.resistive_heater_cac_gt import ResistiveHeaterCacGt
 from gwsproto.named_types.resistive_heater_component_gt import ResistiveHeaterComponentGt
@@ -85,6 +94,9 @@ from gwsproto.named_types.sim_pico_tank_module_component_gt import SimPicoTankMo
 from gwsproto.named_types.single_machine_state import SingleMachineState
 from gwsproto.named_types.slow_contract_heartbeat import SlowContractHeartbeat
 from gwsproto.named_types.single_reading import SingleReading
+from gwsproto.named_types.spaceheat_telemetry_quantity_projection import (
+    SpaceheatTelemetryQuantityProjection,
+)
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwsproto.named_types.snapshot_spaceheat import SnapshotSpaceheat
 from gwsproto.named_types.suit_up import SuitUp
@@ -97,6 +109,7 @@ from gwsproto.named_types.ticklist_hall import TicklistHall
 from gwsproto.named_types.ticklist_hall_report import TicklistHallReport
 from gwsproto.named_types.ticklist_reed import TicklistReed
 from gwsproto.named_types.ticklist_reed_report import TicklistReedReport
+from gwsproto.named_types.usable_energy_layered import UsableEnergyLayered
 from gwsproto.named_types.wake_up import WakeUp
 from gwsproto.named_types.web_server_component_gt import WebServerComponentGt
 from gwsproto.named_types.weather_forecast import WeatherForecast
@@ -141,6 +154,8 @@ __all__ = [
     "FsmFullReport",
     "Glitch",
     "GoDormant",
+    "Gw108GpioRelayComponentGt",
+    "Gw108GpioSensorComponentGt",
     "Ha1Params",
     "HackOilOff",
     "HackOilOn",
@@ -148,8 +163,14 @@ __all__ = [
     "HubitatComponentGt",
     "HubitatPollerComponentGt",
     "I2cMultichannelDtRelayComponentGt",
+    "I2cReadBit",
+    "I2cResult",
+    "I2cThermistorChannelConfig",
+    "I2cThermistorReaderComponentGt",
+    "I2cWriteBit",
     "LatestPrice",
     "LayoutLite",
+    "LinearOneDimensionalCalibration",
     "MarketMakerAck",
     "MachineStates",
     "MicroVolts",
@@ -169,6 +190,7 @@ __all__ = [
     "RemainingElecEvent",
     "Report",
     "ReportEvent",
+    "RequiredEnergyLayered",
     "ResetHpKeepValue",
     "ResistiveHeaterCacGt",
     "ResistiveHeaterComponentGt",
@@ -187,6 +209,7 @@ __all__ = [
     "SimPicoTankModuleComponentGt",
     "SingleMachineState",
     "SingleReading",
+    "SpaceheatTelemetryQuantityProjection",
     "SnapshotSpaceheat",
     "SpaceheatNodeGt",
     "SuitUp",
@@ -199,6 +222,7 @@ __all__ = [
     "TicklistHallReport",
     "TicklistReed",
     "TicklistReedReport",
+    "UsableEnergyLayered",
     "WakeUp",
     "WeatherForecast",
     "WebServerComponentGt",

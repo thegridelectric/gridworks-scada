@@ -3,12 +3,14 @@ from actors.api_flow_module import ApiFlowModule
 from actors.api_tank_module import ApiTankModule
 from actors.contract_handler import ContractHandler
 from actors.derived_generator import DerivedGenerator
+from actors.gpio_sensor import GpioSensor
 from actors.hp_boss import HpBoss
 from actors.honeywell_thermostat import HoneywellThermostat
 from actors.hubitat import Hubitat
 from actors.hubitat_poller import HubitatPoller
 from actors.i2c_zero_ten_multiplexer import I2cZeroTenMultiplexer
 from actors.i2c_relay_multiplexer import I2cRelayMultiplexer
+from actors.i2c_thermistor_reader import I2cThermistorReader
 from actors.leaf_ally_loader import LeafAlly
 from actors.local_control_loader import LocalControl
 from actors.multipurpose_sensor import MultipurposeSensor
@@ -31,8 +33,10 @@ __all__ = [
     "HpBoss",
     "Hubitat",
     "HubitatPoller",
+    "GpioSensor",
     "I2cZeroTenMultiplexer",
     "I2cRelayMultiplexer",
+    "I2cThermistorReader",
     "LeafAlly",
     "LocalControl",
     "MultipurposeSensor",

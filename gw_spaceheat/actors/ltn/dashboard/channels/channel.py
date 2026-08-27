@@ -175,6 +175,7 @@ class TemperatureChannel(DisplayChannel):
                 TelemetryName.WaterTempCTimes1000,
                 TelemetryName.AirTempFTimes1000,
                 TelemetryName.WaterTempFTimes1000,
+                TelemetryName.CelsiusTimes100,
                 GwUnit.FahrenheitX100,
             ):
                 raise ValueError(
@@ -279,4 +280,3 @@ class HoneywellThermostatStateChannel(DisplayChannel):
             if self.raise_errors:
                 raise
         return Text(f"{converted} (?)", style=self.UNEXPECTED_STYLE)
-

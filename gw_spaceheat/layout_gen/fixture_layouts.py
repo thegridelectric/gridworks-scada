@@ -3,6 +3,7 @@ from pathlib import Path
 from gwproto.named_types.web_server_gt import WebServerGt
 
 from gwsproto.enums import ActorClass
+from gwsproto.enums import GwQuantity
 from gwsproto.enums import MakeModel
 from gwsproto.enums import TelemetryName
 from gwsproto.enums import Unit
@@ -24,13 +25,18 @@ from layout_gen import HubitatThermostatGenCfg
 from layout_gen import add_thermostat
 from layout_gen.dfr import add_dfrs
 from layout_gen.dfr import DfrConf
-from layout_gen.relay import add_relays
+from layout_gen.relay import add_house0_relays, add_nolan_relays
 from layout_gen.relay import RelayCfg
 from layout_gen.web_server import add_web_server
-from layout_gen.simulated_tanks import add_simulated_tanks
+from layout_gen.simulated_tanks import add_sim_tank, add_simulated_tanks
+from layout_gen.gw108_nolan_zones import add_gw108_nolan_zones
+from layout_gen.derived_channels import (
+    add_zone_heat_call_channels,
+    add_zone_predicted_setpoint_channels,
+)
 
 
-def make_tst_layout(src_path: Path) -> LayoutDb:
+def make_house0_fixture_layout(src_path: Path) -> LayoutDb:
     db = LayoutDb(
         existing_layout=LayoutIDMap.from_path(src_path),
         add_stubs=True,
@@ -65,9 +71,11 @@ def make_tst_layout(src_path: Path) -> LayoutDb:
         )
     )
 
-    add_relays(db, RelayCfg(PollPeriodMs=200, CapturePeriodS=300))
+    add_house0_relays(db, RelayCfg(PollPeriodMs=200, CapturePeriodS=300))
 
     add_simulated_tanks(db)
+    for tank_idx in range(1, db.misc["TotalStoreTanks"] + 1):
+        add_sim_tank(db, f"tank{tank_idx}")
 
     add_dfrs(
         db,
@@ -80,6 +88,36 @@ def make_tst_layout(src_path: Path) -> LayoutDb:
 
 
     return db
+
+
+def make_nolan_fixture_layout(src_path: Path) -> LayoutDb:
+    db = LayoutDb(
+        existing_layout=LayoutIDMap.from_path(src_path),
+        add_stubs=True,
+        stub_config=StubConfig(
+            ltn_gnode_alias="atn.orange",
+            scada_display_name="Little Orange House Main Scada",
+            zone_list=["main"],
+            critical_zone_list=[],
+            zone_kwh_per_deg_f_list=[1],
+            total_store_tanks=3,
+            add_stub_power_meter=False,
+        )
+    )
+    db.misc["Strategy"] = "Nolan"
+
+    _add_power_meter(db)
+    add_web_server(db, WebServerGt(Host="0.0.0.0"))
+    add_nolan_relays(db, RelayCfg(PollPeriodMs=200, CapturePeriodS=300))
+    add_simulated_tanks(db)
+    for tank_idx in range(1, db.misc["TotalStoreTanks"] + 1):
+        add_sim_tank(db, f"tank{tank_idx}")
+    add_gw108_nolan_zones(db)
+    add_zone_heat_call_channels(db)
+    add_zone_predicted_setpoint_channels(db)
+
+    return db
+
 
 def _add_power_meter(db: LayoutDb) -> LayoutDb:
     POWER_METER_COMPONENT_DISPLAY_NAME = "Power Meter for Simulated Test system"
@@ -202,6 +240,7 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
                 AboutNodeName=H0N.hp_odu,
                 CapturedByNodeName=H0N.primary_power_meter,
                 TelemetryName=TelemetryName.PowerW,
+                Quantity=GwQuantity.Power,
                 InPowerMetering=True,
                 Id=db.make_channel_id(H0CN.hp_odu_pwr),
                 TerminalAssetAlias=db.terminal_asset_alias,
@@ -212,6 +251,7 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
                 AboutNodeName=H0N.hp_idu,
                 CapturedByNodeName=H0N.primary_power_meter,
                 TelemetryName=TelemetryName.PowerW,
+                Quantity=GwQuantity.Power,
                 InPowerMetering=True,
                 Id=db.make_channel_id(H0CN.hp_idu_pwr),
                 TerminalAssetAlias=db.terminal_asset_alias,
@@ -222,6 +262,7 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
                 AboutNodeName=H0N.store_pump,
                 CapturedByNodeName=H0N.primary_power_meter,
                 TelemetryName=TelemetryName.PowerW,
+                Quantity=GwQuantity.Power,
                 InPowerMetering=False,
                 Id=db.make_channel_id(H0CN.store_pump_pwr),
                 TerminalAssetAlias=db.terminal_asset_alias,
@@ -233,5 +274,3 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
 
     )
     return db
-
-

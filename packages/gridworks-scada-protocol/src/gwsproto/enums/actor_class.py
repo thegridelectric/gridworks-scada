@@ -4,11 +4,7 @@ from gwsproto.enums.gw_str_enum import AslEnum
 
 
 class ActorClass(AslEnum):
-    """
-    Classification of actors in the GridWorks SCADA system.
-    
-    ASL: https://schemas.electricity.works/enums/gw1.actor.class/000
-    """
+    """Sema: https://schemas.electricity.works/enums/gw1.actor.class/011"""
 
     NoActor = auto()
     PrimaryScada = auto()
@@ -30,6 +26,10 @@ class ActorClass(AslEnum):
     ZeroTenOutputer = auto()
     ApiBtuMeter = auto()
     SiegLoop = auto()
+    GpioSensor = auto()
+    I2cBus = auto()
+    I2cRelayBoard = auto()
+    I2cThermistorReader = auto()
 
     @classmethod
     def default(cls) -> "ActorClass":
@@ -45,4 +45,4 @@ class ActorClass(AslEnum):
 
     @classmethod
     def enum_version(cls) -> str:
-        return "009"
+        return "011"

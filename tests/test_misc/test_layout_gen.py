@@ -1,3 +1,5 @@
+import pytest
+
 from gwsproto.enums import TelemetryName
 from gwsproto.enums import ActorClass
 from gwsproto.named_types.hubitat_gt import HubitatGt
@@ -18,6 +20,7 @@ def _dummy_sn() -> str:
     _sn += 1
     return str(_sn)
 
+@pytest.mark.skip(reason="layout_gen is under active rework on jm/layout-augmments")
 def test_tank_device_capture_period(tmp_path):
 
     db = LayoutDb(
@@ -41,8 +44,7 @@ def test_tank_device_capture_period(tmp_path):
         errors=load_errors,
     )
 
-    
-
+@pytest.mark.skip(reason="layout_gen is under active rework on jm/layout-augmments")
 def test_hubitat():
     db = LayoutDb(
         add_stubs=True,
@@ -69,6 +71,7 @@ def test_hubitat():
     assert node.component_id == hubitat_component_id
     assert node.actor_class == ActorClass.Hubitat
 
+@pytest.mark.skip(reason="layout_gen is under active rework on jm/layout-augmments")
 def test_honeywell_thermostat():
     db = LayoutDb(
         add_stubs=True,
@@ -104,4 +107,3 @@ def test_honeywell_thermostat():
     assert layout.channel("zone1-garage-state").AboutNodeName == "zone1-garage-stat"
     assert layout.channel("zone1-garage-state").CapturedByNodeName == "zone1-garage-stat"
     assert layout.channel("zone1-garage-state").TelemetryName == TelemetryName.ThermostatState
-

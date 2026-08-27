@@ -2,12 +2,14 @@ import json
 from enum import Enum
 from pathlib import Path
 from typing import Any, List, Optional
-
 from gwsproto.errors import DcError
+from gwsproto import type_name_literal
 from gwsproto.enums import ActorClass
 from gwsproto.data_classes.components import Component
 from gwsproto.data_classes.data_channel import DataChannel
 from gwsproto.data_classes.components.web_server_component import WebServerComponent
+from gwsproto.names.house0.node_names import House0NodeNames
+from gwsproto.names.nolan.node_names import NolanNodeNames
 
 
 from gwsproto.data_classes.house_0_names import H0CN, H0N, ScadaWeb
@@ -20,12 +22,17 @@ from gwsproto.decoders import (
 )
 from gwsproto.named_types import ComponentAttributeClassGt
 from gwsproto.data_classes.derived_channel import DerivedChannel
-from gwsproto.named_types import TankTempCalibrationMap
+from gwsproto.named_types import (
+    RequiredEnergyLayered,
+    TankTempCalibrationMap,
+    UsableEnergyLayered,
+)
 from gwsproto.data_classes.hardware_layout import (
     HardwareLayout,
     LoadArgs,
     LoadError,
 )
+
 class LayoutBucket(str, Enum): 
     ADS111X = "Ads111xBased"
     ELECTRIC_METER = "ElectricMeter"
@@ -45,11 +52,11 @@ class House0LoadArgs(LoadArgs):
     flow_manifold_variant: FlowManifoldVariant
     use_sieg_loop: bool
 
+class HouseStrategy(str, Enum):
+    House0 = "House0"
+    Nolan = "Nolan"
+
 class House0Layout(HardwareLayout):
-    zone_list: List[str]
-    critical_zone_list: List[str]
-    zone_kwh_per_deg_f_list: List[float]
-    total_store_tanks: int
 
     def __init__(  # noqa: PLR0913
         self,
@@ -75,19 +82,41 @@ class House0Layout(HardwareLayout):
         self.flow_manifold_variant = flow_manifold_variant
         self.use_sieg_loop = use_sieg_loop
 
-        # Bolted on right now
-        required_keys = ["ZoneList", "TotalStoreTanks"]
+        # ---- Required House0 layout keys ----
+        required_keys = [
+            "ZoneList", 
+            "CriticalZoneList",
+            "TotalStoreTanks",
+            "ZoneKwhPerDegFList",
+            "TankTempCalibrationMap",
+        ]
         for key in required_keys:
             if key not in layout:
                 raise DcError(f"House0 requires {key}!")
 
-
+        # ---- Simple field extraction ----
         self.zone_list = layout["ZoneList"]
         self.critical_zone_list = layout["CriticalZoneList"]
         self.zone_kwh_per_deg_f_list = layout["ZoneKwhPerDegFList"]
         self.total_store_tanks = layout["TotalStoreTanks"]
 
-        self.h0cn = H0CN(self.total_store_tanks, self.zone_list)
+        # ---- Tank temperature calibration map (layout-level authority) ----
+        try:
+            self.tank_temp_calibration_map = TankTempCalibrationMap(
+                **layout["TankTempCalibrationMap"]
+            )
+        except Exception as e:
+            raise DcError(
+                "Invalid TankTempCalibrationMap in House0 layout"
+            ) from e
+
+        if len(self.tank_temp_calibration_map.Tank) != self.total_store_tanks:
+            raise DcError(
+                f"TankTempCalibrationMap has "
+                f"{len(self.tank_temp_calibration_map.Tank)} tanks "
+                f"but TotalStoreTanks is {self.total_store_tanks}"
+            )
+
         if not isinstance(self.total_store_tanks, int):
             raise TypeError("TotalStoreTanks must be an integer")
         if not 1 <= self.total_store_tanks <= 6:
@@ -108,7 +137,7 @@ class House0Layout(HardwareLayout):
         if not len(self.zone_kwh_per_deg_f_list) == len(self.zone_list):
             raise ValueError("ZoneKwhPerDegFList must have the same number of elements as ZoneList")
         self.h0n = H0N(self.total_store_tanks, self.zone_list)
-
+        self.h0cn = H0CN(self.total_store_tanks, self.zone_list)
         web_servers = {
             ws.web_server_gt.Name
             for ws in self.get_components_by_type(WebServerComponent)
@@ -123,6 +152,152 @@ class House0Layout(HardwareLayout):
         if len(self.tank_temp_calibration_map.Tank) != self.total_store_tanks:
             raise DcError(f"Tank Temp Calibration Map has {len(self.tank_temp_calibration_map.Tank)} tanks"
                           f" but system has {self.total_store_tanks}")
+
+        self.validate_tank_temp_calibration_consistency()
+        self.validate_house0_system_models()
+
+    @property
+    def vdc_relay_name(self) -> str:
+        if self.layout.get("Strategy", HouseStrategy.House0.value) == HouseStrategy.Nolan.value:
+            return NolanNodeNames.vdc_relay
+        return House0NodeNames.vdc_relay
+
+    def validate_tank_temp_calibration_consistency(self) -> None:
+        tmap = self.tank_temp_calibration_map
+        errors: list[str] = []
+
+        # Local helper to validate a single depth's DerivedChannel vs TMap entry
+        def check(depth_name: str, m: float, b: float) -> None:
+            dc = self.derived_channels.get(depth_name)
+            if dc is None:
+                errors.append(f"Missing DerivedChannel '{depth_name}'")
+                return
+
+            if dc.Strategy == "identity":
+                if not (m == 1.0 and b == 0.0):
+                    errors.append(
+                        f"DerivedChannel '{depth_name}' uses identity but "
+                        f"TMap specifies M={m}, B={b}"
+                    )
+
+            elif dc.Strategy == "affine":
+                calib = dc.Parameters and dc.Parameters.get("Calibration")
+                if calib is None:
+                    errors.append(
+                        f"Affine DerivedChannel '{depth_name}' missing Calibration"
+                    )
+                    return
+                if calib["M"] != m or calib["B"] != b:
+                    errors.append(
+                        f"DerivedChannel '{depth_name}' calibration "
+                        f"(M={calib['M']}, B={calib['B']}) does not match TMap "
+                        f"(M={m}, B={b})"
+                    )
+
+            else:
+                errors.append(
+                    f"DerivedChannel '{depth_name}' must use identity or affine"
+                )
+
+        # Buffer
+        for depth in (1, 2, 3):
+            calib = tmap.Buffer
+            check(
+                f"buffer-depth{depth}",
+                getattr(calib, f"Depth{depth}M"),
+                getattr(calib, f"Depth{depth}B"),
+            )
+
+        # Tanks
+        for tank_idx, calib in tmap.Tank.items():
+            for depth in (1, 2, 3):
+                check(
+                    f"tank{tank_idx}-depth{depth}",
+                    getattr(calib, f"Depth{depth}M"),
+                    getattr(calib, f"Depth{depth}B"),
+                )
+
+        if errors:
+            raise DcError(
+                "Tank temperature calibration mismatch:\n"
+                + "\n".join(f"  - {e}" for e in errors)
+            )
+
+    def validate_house0_system_models(self) -> None:
+        """
+        Enforce that the House0 layout defines exactly two valid system-model
+        derived channels: usable energy and required energy.
+        """
+
+        required_channels = {
+            H0CN.usable_energy,
+            H0CN.required_energy,
+        }
+
+        # --- 1. Required channels exist ---
+        missing = [
+            name for name in required_channels
+            if name not in self.derived_channels
+        ]
+        if missing:
+            raise ValueError(
+                "House0 layout is missing required system-model derived channels:\n"
+                + "\n".join(missing)
+            )
+
+        allowed_models = {
+            type_name_literal(UsableEnergyLayered),
+            type_name_literal(RequiredEnergyLayered),
+        }
+
+        seen_models: set[str] = set()
+
+        # --- 2. Validate each required channel ---
+        for name in required_channels:
+            dc = self.derived_channels[name]
+
+            if dc.CreatedByNodeName != "derived-generator":
+                raise ValueError(
+                    f"{name} must be created by derived-generator "
+                    f"(got {dc.CreatedByNodeName})"
+                )
+
+            if dc.Strategy != "system-model":
+                raise ValueError(
+                    f"{name} must use Strategy 'system-model' "
+                    f"(got {dc.Strategy})"
+                )
+
+            if not dc.Parameters:
+                raise ValueError(
+                    f"{name} is missing Parameters"
+                )
+
+            model = dc.Parameters.get("EnergyModel")
+            if not model:
+                raise ValueError(
+                    f"{name} is missing Parameters.EnergyModel"
+                )
+
+            type_name = model.get("TypeName")
+            if not type_name:
+                raise ValueError(
+                    f"{name} EnergyModel is missing TypeName"
+                )
+
+            if type_name not in allowed_models:
+                raise ValueError(
+                    f"{name} has unsupported EnergyModel TypeName '{type_name}'"
+                )
+
+            seen_models.add(type_name)
+
+        # --- 3. Exactly one of each model ---
+        if seen_models != allowed_models:
+            raise ValueError(
+                "House0 layout must include exactly one usable-energy model "
+                "and one required-energy model"
+            )
 
 
     @property
@@ -152,28 +327,6 @@ class House0Layout(HardwareLayout):
             channels |= tank.devices
         return channels
 
-    @property
-    def tank_temp_calibration_map(self) -> TankTempCalibrationMap:
-        node = self.nodes.get(H0N.derived_generator)
-        if node is None:
-            raise ValueError(
-                "House0Layout invariant violated: "
-                "derived-generator node is missing"
-            )
-
-        raw = getattr(node, "TankTempCalibrationMap", None)
-        if raw is None:
-            raise ValueError(
-                "House0Layout invariant violated: "
-                "derived-generator node missing TankTempCalibrationMap"
-            )
-
-        try:
-            return TankTempCalibrationMap(**raw)
-        except Exception as e:
-            raise ValueError(
-                "Invalid TankTempCalibrationMap on derived-generator node"
-            ) from e
 
     @classmethod
     def validate_house0(  # noqa: C901
@@ -195,15 +348,15 @@ class House0Layout(HardwareLayout):
             H0N.leaf_ally,
             H0N.local_control,
             H0N.derived_generator,
-            H0N.relay_multiplexer,
-            H0N.vdc_relay,
-            H0N.tstat_common_relay,
-            H0N.store_charge_discharge_relay,
-            H0N.thermistor_common_relay,
-            H0N.aquastat_ctrl_relay,
-            H0N.store_pump_failsafe,
-            H0N.primary_pump_scada_ops,
-            H0N.primary_pump_failsafe
+            # H0N.relay_multiplexer,
+            # H0N.vdc_relay,
+            # H0N.tstat_common_relay,
+            # H0N.store_charge_discharge_relay,
+            # H0N.thermistor_common_relay,
+            # H0N.aquastat_ctrl_relay,
+            # H0N.store_pump_failsafe,
+            # H0N.primary_pump_scada_ops,
+            # H0N.primary_pump_failsafe
         ]
 
 
@@ -213,9 +366,9 @@ class House0Layout(HardwareLayout):
             node.actor_class in pico_actor_classes
             for node in nodes.values()
         )
-        if has_pico_actors:
-            essential_nodes.append(H0N.pico_cycler)
-            essential_nodes.append(H0N.vdc_relay)  # Also needed for pico cycling
+        # if has_pico_actors:
+        #     essential_nodes.append(H0N.pico_cycler)
+        #     essential_nodes.append(H0N.vdc_relay)  # Also needed for pico cycling
 
         # Check for missing essential nodes
         missing_nodes = []
@@ -583,9 +736,18 @@ class House0Layout(HardwareLayout):
 
     @property
     def vdc_relay(self) -> ShNode:
-        n = self.node(H0N.vdc_relay)
+        name = self.vdc_relay_name
+        n = self.node(name)
         if n is None:
-            raise Exception(f"{H0N.vdc_relay} is known to exist")
+            if name == NolanNodeNames.vdc_relay:
+                raise Exception(
+                    f"VDC relay node {name!r} missing from hardware layout "
+                    "(expected for Strategy Nolan / Gw108 GPIO). Regenerate layout with "
+                    "add_nolan_relays(), or if this install uses Krida multiplexed relays "
+                    f"instead, set Strategy to House0 so the relay node resolves to "
+                    f"{House0NodeNames.vdc_relay!r}."
+                )
+            raise Exception(f"VDC relay node {name!r} missing from hardware layout.")
         return n
 
     @property
@@ -614,4 +776,3 @@ def deserialize_house0_load_args(data: dict) -> House0LoadArgs:
     data["UseSiegLoop"] = bool(data.get("UseSiegLoop", False))
     # TypedDict expects a regular dictionary, so we just pass it in
     return House0LoadArgs(**data)
-

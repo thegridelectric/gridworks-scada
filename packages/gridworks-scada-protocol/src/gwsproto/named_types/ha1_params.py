@@ -1,11 +1,13 @@
-"""Type ha1.params, version 001"""
-
 from typing import Literal
 
 from pydantic import BaseModel, StrictInt
 
 
 class Ha1Params(BaseModel):
+    """
+    Sema: https://schemas.electricity.works/types/ha1.params/006
+    """
+
     AlphaTimes10: StrictInt
     BetaTimes100: StrictInt
     GammaEx6: StrictInt

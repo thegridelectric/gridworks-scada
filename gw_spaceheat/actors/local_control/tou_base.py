@@ -12,6 +12,7 @@ from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.named_types import AnalogDispatch, SyncedReadings
 from result import Ok, Result
 from transitions import Machine
+from gwsproto.data_classes.house_0_layout import HouseStrategy
 from gwsproto.data_classes.house_0_names import H0N, H0CN
 from gwsproto.data_classes.components.dfr_component import DfrComponent
 
@@ -97,6 +98,12 @@ class LocalControlTouBase(ShNodeActor):
         self.dist_pump_monitor = DistPumpMonitor(host=self,doctor=self.dist_pump_doctor)
         self.store_pump_doctor = StorePumpDoctor(host=self)
         self.store_pump_monitor = StorePumpMonitor(host=self,doctor=self.store_pump_doctor)
+        self.dist_pump_recovery_enabled = self._dist_pump_recovery_enabled()
+        self.store_pump_recovery_enabled = self._store_pump_recovery_enabled()
+        if not self.dist_pump_recovery_enabled:
+            self.log("Dist pump recovery disabled: required relay/010V nodes are not present in layout")
+        if not self.store_pump_recovery_enabled:
+            self.log("Store pump recovery disabled: required relay/010V nodes are not present in layout")
 
 
     @property
@@ -195,6 +202,29 @@ class LocalControlTouBase(ShNodeActor):
     def monitored_names(self) -> Sequence[MonitoredName]:
         return [MonitoredName(self.name, self.MAIN_LOOP_SLEEP_SECONDS * 2.1)]
 
+    def _has_layout_nodes(self, names: list[str]) -> bool:
+        return all(self.layout.node(name) is not None for name in names)
+
+    def _dist_pump_recovery_enabled(self) -> bool:
+        required = [H0N.dist_010v]
+        for zone in self.layout.zone_list:
+            required.extend(
+                [
+                    self.h0n.zone[zone].failsafe_relay,
+                    self.h0n.zone[zone].ops_relay,
+                ]
+            )
+        return self._has_layout_nodes(required)
+
+    def _store_pump_recovery_enabled(self) -> bool:
+        return self._has_layout_nodes(
+            [
+                H0N.store_010v,
+                H0N.store_charge_discharge_relay,
+                H0N.store_pump_failsafe,
+            ]
+        )
+
     async def main(self):
         await asyncio.sleep(5)
         while not self._stop_requested:
@@ -211,16 +241,16 @@ class LocalControlTouBase(ShNodeActor):
             if  self.just_before_onpeak() or self.zone_setpoints=={}:
                 self.get_zone_setpoints()
 
-            # Verify distribution pump health; initiate recovery if needed
-            if self.dist_pump_monitor.needs_recovery():
-                await self.dist_pump_doctor.run()
-
-            # Verify store pump health; initiate recovery if needed
-            if self.store_pump_monitor.needs_recovery():
-                await self.store_pump_doctor.run()
-
             # No control of actuators when in Monitor
             if not self.top_state == LocalControlTopState.Monitor:
+                # Verify distribution pump health; initiate recovery if needed
+                if self.dist_pump_recovery_enabled and self.dist_pump_monitor.needs_recovery():
+                    await self.dist_pump_doctor.run()
+
+                # Verify store pump health; initiate recovery if needed
+                if self.store_pump_recovery_enabled and self.store_pump_monitor.needs_recovery():
+                    await self.store_pump_doctor.run()
+
                 self.get_temperatures()
 
                 # Update top state
@@ -490,5 +520,4 @@ class LocalControlTouBase(ShNodeActor):
         self.set_command_tree(boss_node=self.normal_node)
         # let normal node know its waking up
         self.normal_node_wakes_up()
-
 

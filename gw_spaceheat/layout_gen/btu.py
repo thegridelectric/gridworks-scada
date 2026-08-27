@@ -11,7 +11,7 @@ from gwsproto.enums import  TempCalcMethod as EnumTempCalcMethod
 from gwsproto.named_types.channel_config import ChannelConfig
 from gwsproto.named_types import SpaceheatNodeGt
 from gwsproto.data_classes.house_0_names import H0N
-from gwsproto.enums import GpmFromHzMethod, HzCalcMethod
+from gwsproto.enums import GpmFromHzMethod, HzCalcMethod, GwQuantity
 
 
 SAIER_CONSTANT_GALLONS_PER_TICK = 0.0009
@@ -77,6 +77,7 @@ def add_btu(
                     ChannelName=f"{cfg.FlowChannelName}",
                     CapturePeriodS=cfg.CapturePeriodS,
                     AsyncCapture=True,
+                    AsyncCaptureDelta=cfg.AsyncCaptureDeltaGpmX100,
                     Exponent=2,
                     Unit=Unit.Gpm
                 ),
@@ -84,6 +85,7 @@ def add_btu(
                     ChannelName=f"{cfg.HotChannelName}",
                     CapturePeriodS=cfg.CapturePeriodS,
                     AsyncCapture=True,
+                    AsyncCaptureDelta=cfg.AsyncCaptureDeltaCelsiusX100,
                     Exponent=2,
                     Unit=Unit.Celcius
                 ),
@@ -91,6 +93,7 @@ def add_btu(
                     ChannelName=f"{cfg.ColdChannelName}",
                     CapturePeriodS=cfg.CapturePeriodS,
                     AsyncCapture=True,
+                    AsyncCaptureDelta=cfg.AsyncCaptureDeltaCelsiusX100,
                     Exponent=2,
                     Unit=Unit.Celcius
                 ),
@@ -101,6 +104,7 @@ def add_btu(
                     ChannelName=f"{cfg.CtChannelName}",
                     CapturePeriodS=cfg.CapturePeriodS,
                     AsyncCapture=True,
+                    AsyncCaptureDelta=cfg.AsyncCaptureDeltaCtVoltsX100,
                     Exponent=2,
                     Unit=Unit.VoltsRms
                 )
@@ -178,13 +182,14 @@ def add_btu(
         ### DATA CHANNELS
 
         db.add_data_channels(
-            [ 
+            [
                 DataChannelGt(
                     Name=cfg.FlowChannelName,
                     DisplayName=f"{cfg.FlowChannelName.replace('-', ' ').title()} Gpm X 100",
                     AboutNodeName=cfg.FlowChannelName,
                     CapturedByNodeName=cfg.ActorNodeName,
                     TelemetryName=TelemetryName.GpmTimes100,
+                    Quantity=GwQuantity.FlowRate,
                     TerminalAssetAlias=db.terminal_asset_alias,
                     Id=db.make_channel_id(cfg.FlowChannelName)
                 ),
@@ -194,6 +199,7 @@ def add_btu(
                     AboutNodeName=cfg.HotChannelName,
                     CapturedByNodeName=cfg.ActorNodeName,
                     TelemetryName=TelemetryName.WaterTempCTimes1000,
+                    Quantity=GwQuantity.Temperature,
                     TerminalAssetAlias=db.terminal_asset_alias,
                     Id=db.make_channel_id(cfg.HotChannelName)
                 ),
@@ -203,6 +209,7 @@ def add_btu(
                     AboutNodeName=cfg.ColdChannelName,
                     CapturedByNodeName=cfg.ActorNodeName,
                     TelemetryName=TelemetryName.WaterTempCTimes1000,
+                    Quantity=GwQuantity.Temperature,
                     TerminalAssetAlias=db.terminal_asset_alias,
                     Id=db.make_channel_id(cfg.ColdChannelName)
                 ),
@@ -212,14 +219,14 @@ def add_btu(
             db.add_data_channels(
                 [
                     DataChannelGt(
-                    Name=cfg.CtChannelName,
-                    DisplayName=f"{cfg.CtChannelName.replace('-', ' ').title()} Volts x 100",
-                    AboutNodeName=cfg.CtChannelName,
-                    CapturedByNodeName=cfg.ActorNodeName,
-                    TelemetryName=TelemetryName.VoltsTimes100,
-                    TerminalAssetAlias=db.terminal_asset_alias,
-                    Id=db.make_channel_id(cfg.CtChannelName)
-                ),
+                        Name=cfg.CtChannelName,
+                        DisplayName=f"{cfg.CtChannelName.replace('-', ' ').title()} Volts x 100",
+                        AboutNodeName=cfg.CtChannelName,
+                        CapturedByNodeName=cfg.ActorNodeName,
+                        TelemetryName=TelemetryName.VoltsTimes100,
+                        Quantity=GwQuantity.Voltage,
+                        TerminalAssetAlias=db.terminal_asset_alias,
+                        Id=db.make_channel_id(cfg.CtChannelName)
+                    ),
                 ]
             )
-

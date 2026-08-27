@@ -5,10 +5,15 @@ from gwsproto.named_types.electric_meter_component_gt import ElectricMeterCompon
 from gwsproto.named_types.fibaro_smart_implant_component_gt import (
     FibaroSmartImplantComponentGt,
 )
+from gwsproto.named_types.gw108_gpio_relay_component_gt import Gw108GpioRelayComponentGt
+from gwsproto.named_types.gw108_gpio_sensor_component_gt import Gw108GpioSensorComponentGt
 from gwsproto.named_types.hubitat_component_gt import HubitatComponentGt
 from gwsproto.named_types.hubitat_poller_component_gt import HubitatPollerComponentGt
 from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
     I2cMultichannelDtRelayComponentGt,
+)
+from gwsproto.named_types.i2c_thermistor_reader_component_gt import (
+    I2cThermistorReaderComponentGt
 )
 from gwsproto.named_types.pico_btu_meter_component_gt import PicoBtuMeterComponentGt
 from gwsproto.named_types.pico_flow_module_component_gt import PicoFlowModuleComponentGt
@@ -24,9 +29,12 @@ __all__ = [
     "DfrComponentGt",
     "ElectricMeterComponentGt",
     "FibaroSmartImplantComponentGt",
+    "Gw108GpioRelayComponentGt",
+    "Gw108GpioSensorComponentGt",
     "HubitatComponentGt",
     "HubitatPollerComponentGt",
     "I2cMultichannelDtRelayComponentGt",
+    "I2cThermistorReaderComponentGt",
     "PicoBtuMeterComponentGt",
     "PicoFlowModuleComponentGt",
     "PicoTankModuleComponentGt",

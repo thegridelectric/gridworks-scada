@@ -850,7 +850,7 @@ class Scada(PrimeActor, ScadaInterface):
                 self.log("First Buffer temps arrived! Sending to LeafAlly")
                 self._send_to(self.leaf_ally, payload)
             else:
-                self.log("First Buffer temps arrived! Sending to LeafTransactiveNode")
+                self.log("First Buffer temps arrived! Sending to LocalControl")
                 self._send_to(self.local_control, payload)
 
     
@@ -1218,7 +1218,7 @@ class Scada(PrimeActor, ScadaInterface):
             sieg_loop.Handle = f"{boss.handle}.{H0N.sieg_loop}"
 
             for node in self.layout.actuators:
-                if node.Name == H0N.vdc_relay and boss != self.admin:
+                if node.Name == self.layout.vdc_relay.name and boss != self.admin:
                     node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
                 elif node.Name == H0N.hp_scada_ops_relay:
                     node.Handle = f"{boss.handle}.{hp_boss.Name}.{node.Name}"
@@ -1229,7 +1229,7 @@ class Scada(PrimeActor, ScadaInterface):
         else:
             # For no sieg loop, everybody but the vdc relay reports directly to boss
             for node in self.layout.actuators:
-                if node.Name == H0N.vdc_relay and boss != self.admin:
+                if node.Name == self.layout.vdc_relay.name and boss != self.admin:
                     node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
                 else:
                     node.Handle = (f"{boss.handle}.{node.Name}")
@@ -1680,6 +1680,10 @@ class Scada(PrimeActor, ScadaInterface):
             for node in self.layout.nodes.values()
             if node.ActorClass == ActorClass.ApiFlowModule
         ]
+        if H0N.relay_multiplexer in self.layout.nodes:
+            i2c_relay_component = self.layout.node(H0N.relay_multiplexer).component.gt
+        else:
+            i2c_relay_component = None
         return LayoutLite(
             FromGNodeAlias=self.layout.scada_g_node_alias,
             Strategy=self.layout.flow_manifold_variant,
@@ -1695,7 +1699,7 @@ class Scada(PrimeActor, ScadaInterface):
             DataChannels=[ch.to_gt() for ch in self.layout.data_channels.values()],
             DerivedChannels=[ch.to_gt() for ch in self.layout.derived_channels.values()],
             Ha1Params=self.data.ha1_params,
-            I2cRelayComponent=self.layout.node(H0N.relay_multiplexer).component.gt,
+            I2cRelayComponent=i2c_relay_component,
             MessageCreatedMs=int(time.time() * 1000),
             MessageId=str(uuid.uuid4()),
             TMap=self.layout.tank_temp_calibration_map,
