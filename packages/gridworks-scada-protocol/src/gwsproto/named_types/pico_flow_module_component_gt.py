@@ -32,7 +32,7 @@ class PicoFlowModuleComponentGt(DeviceComponentBase):
 
     @field_validator("HwUid")
     @classmethod
-    def check_hw_uid(cls, v: str) -> str:
+    def check_axiom_1(cls, v: str) -> str:
         """
         Axiom 1: HwUidPattern.
         If HwUid is present, it SHALL match the pattern pico_xxxxxx where

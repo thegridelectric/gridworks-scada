@@ -8,7 +8,7 @@ from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
 class SpaceheatNodeGt(GwsprotoSemaType):
-    """Sema: https://schemas.electricity.works/types/spaceheat.node.gt/303"""
+    """Sema: https://schemas.electricity.works/types/spaceheat.node.gt/302"""
 
     Name: SpaceheatName
     ActorHierarchyName: HandleName | None = None

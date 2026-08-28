@@ -1391,7 +1391,14 @@ class Scada(PrimeActor, ScadaInterface):
     def send_report(self):
         report = self._data.make_report(self._last_report_second)
         self._data.reports_to_store[report.Id] = report
-        self.services.generate_event(ReportEvent(Report=report))  # noqa
+        self.services.generate_event(
+            ReportEvent(
+                MessageId=report.Id,
+                TimeCreatedMs=report.MessageCreatedMs,
+                Src=self.layout.scada_g_node_alias,
+                Report=report,
+            )
+        )
         self._data.flush_recent_readings()
 
     def send_snap(self):

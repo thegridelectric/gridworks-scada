@@ -112,6 +112,11 @@ NO_WORD_ENUMS = {
 }
 
 # --- KNOWN conformance debt to burn down (should shrink to empty) ---
+# report.event: gwsproto pins the authored-but-unpromoted sema draft 004 (the
+# identity/time axioms restored); sema's registry still names 003 as latest.
+# Promote 004 in sema (drop the /draft/ $id, add examples, latest_version),
+# then remove this entry.
+KNOWN_TYPE_VERSION_DRIFT: set[str] = {"report.event"}
 KNOWN_ENUM_VERSION_DRIFT: set[str] = set()
 
 KNOWN_FORMAT_ISSUES: set[str] = set()
@@ -128,9 +133,11 @@ def _names(items: list[str]) -> set[str]:
     return {i.split(":")[0].strip() for i in items}
 
 
-def test_no_type_version_drift(report: conformance.Report) -> None:
-    assert report.version_drift == [], (
-        "gwsproto type Version literal is not sema latest:\n"
+def test_type_version_drift_only_known(report: conformance.Report) -> None:
+    actual = _names(report.version_drift)
+    assert actual == KNOWN_TYPE_VERSION_DRIFT, (
+        f"new type version drift: {sorted(actual - KNOWN_TYPE_VERSION_DRIFT)}; "
+        f"fixed (remove from KNOWN list): {sorted(KNOWN_TYPE_VERSION_DRIFT - actual)}"
         + "\n".join(report.version_drift)
     )
 

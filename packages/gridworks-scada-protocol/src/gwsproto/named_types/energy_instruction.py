@@ -18,7 +18,7 @@ class EnergyInstruction(GwsprotoSemaType):
 
     @field_validator("SlotStartS")
     @classmethod
-    def check_slot_start_s(cls, v: int) -> int:
+    def check_axiom_1(cls, v: int) -> int:
         """
         Axiom 1: SlotStartS should fall on the top of 5 minutes
         """

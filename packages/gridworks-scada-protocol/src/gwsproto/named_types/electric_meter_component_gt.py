@@ -1,13 +1,15 @@
 from collections.abc import Sequence
-from typing import Literal, Self
+from typing import Literal
 
-from pydantic import PositiveInt, field_validator, model_validator
+from pydantic import PositiveInt, field_validator
 
 from gwsproto.type_helpers.component_base import DeviceComponentBase
 from gwsproto.named_types.electric_meter_channel_config import ElectricMeterChannelConfig
 
 
 class ElectricMeterComponentGt(DeviceComponentBase):
+    """Sema: https://schemas.electricity.works/types/electric.meter.component.gt/001"""
+
     ModbusHost: str | None = None
     ModbusPort: PositiveInt | None = None
     ConfigList: Sequence[ElectricMeterChannelConfig]
@@ -27,31 +29,3 @@ class ElectricMeterComponentGt(DeviceComponentBase):
                 f"Axiom 1 violated! Channel names must be unique in the ConfigList; duplicates: {duplicates}"
             )
         return v
-
-    @field_validator("ConfigList")
-    @classmethod
-    def check_electric_meter_config_list(
-        cls, v: list[ElectricMeterChannelConfig]
-    ) -> list[ElectricMeterChannelConfig]:
-        """Axiom 2: Egauge Config consistency. If one of the ElectricMeterChannelConfigs has an EgaugeRegisterConfig, then they all do."""
-        # Implement Axiom(s)
-        return v
-
-    @model_validator(mode="after")
-    def check_axiom_3(self) -> Self:
-        """
-        Axiom 3: Modbus consistency.
-        ModbusHost is None if and only if ModbusPort is None
-        """
-        # Implement check for axiom 1"
-        return self
-
-    @model_validator(mode="after")
-    def check_axiom_4(self) -> Self:
-        """
-        Axiom 4: Egauge4030 Means Modbus.
-        If any of the ElectricMeterChannelConfigs have EgaugeRegisterConfig, then the ModbusHost
-        is not None
-        """
-        # Implement check for axiom 2"
-        return self
