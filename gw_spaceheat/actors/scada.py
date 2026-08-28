@@ -40,7 +40,7 @@ from gwsproto.named_types import FsmFullReport, PowerWatts, SendSnap, ReportEven
 
 
 from gwsproto.named_types import (
-    AnalogDispatch, ChannelReadings, House0OperationalParams, MachineStates,
+    AnalogDispatch, ChannelReadings, MachineStates,
     SingleReading, SyncedReadings,
 )
 
@@ -907,10 +907,8 @@ class Scada(PrimeActor, ScadaInterface):
     # Top Events: AdminWakesUp, AdminTimesOut, AdminReleasesControl
 
     def initialize_hierarchical_state_data(self) -> None:
-        """ Scada TopState: Auto, Scada Auto: LeafTransactiveNode
-          LeafTransactiveNode: Normal, LeafAlly: Dormant
-
-        """
+        """Seed the scada's own TopState. Every other machine (LeafAlly,
+        LocalControl, relays) announces its own state when it starts."""
         now_ms = int(time.time() * 1000)
         self.data.latest_machine_state[self.name] = SingleMachineState(
                 MachineHandle=self.node.handle,
@@ -919,33 +917,6 @@ class Scada(PrimeActor, ScadaInterface):
                 UnixMs=now_ms,
             )
         
-        # LeafAlly is Dormant
-
-        if self.ops.SeasonalStorageMode == SeasonalStorageMode.AllTanks:
-            self.data.latest_machine_state[self.leaf_ally.name] = SingleMachineState(
-                    MachineHandle=self.leaf_ally.handle,
-                    StateEnum=LeafAllyAllTanksState.enum_name(),
-                    State=LeafAllyAllTanksState.Dormant,
-                    UnixMs=now_ms,
-                )
-        elif self.ops.SeasonalStorageMode == SeasonalStorageMode.BufferOnly:
-            self.data.latest_machine_state[self.leaf_ally.name] = SingleMachineState(
-                    MachineHandle=self.leaf_ally.handle,
-                    StateEnum=LeafAllyBufferOnlyState.enum_name(),
-                    State=LeafAllyBufferOnlyState.Dormant,
-                    UnixMs=now_ms,
-                )
-        else:
-            raise Exception(f"Does not handle seasonal stoarge mode {self.ops.SeasonalStorageMode}")
-        
-        # LocalControlTopState is Normal
-        self.data.latest_machine_state[self.local_control.name] = SingleMachineState(
-                MachineHandle=self.node.handle,
-                StateEnum=LocalControlTopState.enum_name(),
-                State=LocalControlTopState.Normal,
-                UnixMs=now_ms,
-            )
-
         # TODO: Add auto state and pico cylcer
 
 
@@ -1719,7 +1690,8 @@ class Scada(PrimeActor, ScadaInterface):
         return LayoutLite(
             FromGNodeAlias=self.layout.scada_g_node_alias,
             Strategy=self.layout.flow_manifold_variant,
-            SystemMode=self.ops.SystemMode,
+            ActuationAuthority=self.ops.ActuationAuthority,
+            ServiceMode=self.ops.ServiceMode,
             SeasonalStorageMode=self.ops.SeasonalStorageMode,
             BufferShortCycling=self.ops.ShortCycleBuffer,
             ZoneList=self.layout.zone_list,

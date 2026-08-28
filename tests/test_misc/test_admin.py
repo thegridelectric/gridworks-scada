@@ -162,7 +162,7 @@ def _make_scadas(short2long: dict[str, str]) -> dict[str, ScadaSettings]:
         with short2settings[short_name].paths.hardware_layout.open("w") as f:
             f.write(
                 json.dumps(
-                    layout.word.model_dump(by_alias=True, mode="json"),
+                    layout.sema_layout.model_dump(by_alias=True, mode="json"),
                     indent=2,
                     sort_keys=True,
                 )

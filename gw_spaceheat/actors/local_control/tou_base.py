@@ -460,6 +460,15 @@ class LocalControlTouBase(ShNodeActor):
             self.turn_on_HP(from_node=self.backup_node)
 
     def start(self) -> None:
+        self._send_to(
+            self.primary_scada,
+            SingleMachineState(
+                MachineHandle=self.node.handle,
+                StateEnum=LocalControlTopState.enum_name(),
+                State=self.top_state,
+                UnixMs=int(time.time() * 1000),
+            ),
+        )
         self.services.add_task(
             asyncio.create_task(self.main(), name="LocalControl keepalive")
         )

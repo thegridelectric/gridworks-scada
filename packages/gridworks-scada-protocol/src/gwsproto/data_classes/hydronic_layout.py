@@ -1327,7 +1327,6 @@ class HydronicLayout:
             # H0N.vdc_relay,
             # H0N.tstat_common_relay,
             # H0N.store_charge_discharge_relay,
-            # H0N.thermistor_common_relay,
             # H0N.aquastat_ctrl_relay,
             # H0N.store_pump_failsafe,
             # H0N.primary_pump_scada_ops,
@@ -1738,11 +1737,6 @@ class HydronicLayout:
         """Hands heat-pump control to the scada or back to the tank aquastat."""
         self._family_only("hp failsafe", HOUSE0_LAYOUT_TYPE_NAME)
         return self.required_node(House0NodeNames.hp_failsafe_relay)
-
-    @property
-    def thermistor_common_relay(self) -> ShNode:
-        self._family_only("thermistor common", HOUSE0_LAYOUT_TYPE_NAME)
-        return self.required_node(House0NodeNames.thermistor_common_relay)
 
     @property
     def aquastat_control_relay(self) -> ShNode:

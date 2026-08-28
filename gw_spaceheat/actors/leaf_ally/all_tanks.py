@@ -138,6 +138,15 @@ class AllTanksLeafAlly(ShNodeActor):
         return self.data.ha1_params
 
     def start(self) -> None:
+        self._send_to(
+            self.primary_scada,
+            SingleMachineState(
+                MachineHandle=self.node.handle,
+                StateEnum=LeafAllyAllTanksState.enum_name(),
+                State=self.state,
+                UnixMs=int(time.time() * 1000),
+            ),
+        )
         self.services.add_task(
             asyncio.create_task(self.main(), name="LeafAlly keepalive")
         )

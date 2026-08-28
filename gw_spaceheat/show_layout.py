@@ -102,7 +102,7 @@ def print_component_dicts(layout: HydronicLayout):
     print("Nodes:")
     print(layout.nodes)
     print("Raw nodes:")
-    print([n.Name for n in layout.word.ShNodes])
+    print([n.Name for n in layout.sema_layout.ShNodes])
     print("Node Component ids:")
     print({
         node.Name: node.component_id for node in layout.nodes.values()

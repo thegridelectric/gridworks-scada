@@ -696,48 +696,6 @@ class ShNodeActor(Actor, ABC):
             except ValidationError as e:
                 self.log(f"Tried to tell HpScadaOpsRelay to turn off HP but didn't have rights: {e}")
 
-    def close_thermistor_common_relay(self, from_node: Optional[ShNode] = None) -> None:
-        """
-        Close thermistor common relay (de-energizing relay 2).
-        Will log an error and do nothing if not the boss of this relay
-        """
-        if from_node is None:
-            from_node = self.node
-        try:
-            event = FsmEvent(
-                FromHandle=from_node.handle,
-                ToHandle=self.thermistor_common_relay.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.CloseRelay,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(self.thermistor_common_relay, event, from_node)
-            self.log(f"{from_node.handle} sending CloseRelay to {self.thermistor_common_relay.handle}")
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def open_thermistor_common_relay(self, from_node: Optional[ShNode] = None) -> None:
-        """
-        Open thermistor common relay (energizing relay 2).
-        Will log an error and do nothing if not the boss of this relay
-        """
-        if from_node is None:
-            from_node = self.node
-        try:
-            event = FsmEvent(
-                FromHandle=from_node.handle,
-                ToHandle=self.thermistor_common_relay.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.OpenRelay,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(self.thermistor_common_relay, event, from_node)
-            self.log(f"{from_node.handle} sending OpenRelay to {self.thermistor_common_relay.handle}")
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
     def aquastat_ctrl_switch_to_boiler(self, from_node: Optional[ShNode] = None) -> None:
         """
         Switch Aquastat ctrl from Scada to boiler by de-energizing aquastat_control_relay (8).

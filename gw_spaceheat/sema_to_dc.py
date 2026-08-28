@@ -7,7 +7,7 @@ scada consumes its two authored artifacts per home:
         ──load_layout──▶ HydronicLayout
 
 The layout word decodes to its typed sema word and is handed straight to
-`HydronicLayout.from_word` — the runtime layout holds the word, so there is no
+`HydronicLayout.from_sema` — the runtime layout holds the word, so there is no
 dict round-trip. `assemble_runtime_layout` validates the two assembly checks
 against the raw artifacts before decode: assembly coverage (the ops file covers
 every channel the static layout declares) and the poll floor (PollPeriodMs ≥
@@ -140,7 +140,7 @@ def ops_and_sema_to_dc(
 ) -> HydronicLayout:
     """Load the dc HydronicLayout from the two authored artifacts. The pair
     SHALL be approved (see APPROVED_PAIRS); a mismatch raises. The layout word
-    is handed to HydronicLayout.from_word directly — no dict round-trip — and
+    is handed to HydronicLayout.from_sema directly — no dict round-trip — and
     the capture tuning is taken (typed) from the operational-params word."""
     static = json.loads(Path(static_path).read_text())
     ops = json.loads(Path(ops_path).read_text())
@@ -149,7 +149,7 @@ def ops_and_sema_to_dc(
     assemble_runtime_layout(static, ops)
     word = SEMA_LAYOUT_BY_TYPENAME[str(static["TypeName"])].model_validate(static)
     ops_word = decode_operational_params(ops)
-    return HydronicLayout.from_word(
+    return HydronicLayout.from_sema(
         word, capture_tuning=ops_word.CaptureTuningList, **load_kwargs
     )
 

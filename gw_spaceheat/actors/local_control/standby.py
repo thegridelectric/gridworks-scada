@@ -122,6 +122,15 @@ class StandbyLocalControl(ShNodeActor):
             self.energize(self.layout.hp_loop_on_off, from_node=self.normal_node)
         
     def start(self) -> None:
+        self._send_to(
+            self.primary_scada,
+            SingleMachineState(
+                MachineHandle=self.node.handle,
+                StateEnum=LocalControlStandbyTopState.enum_name(),
+                State=self.top_state,
+                UnixMs=int(time.time() * 1000),
+            ),
+        )
         self.services.add_task(
             asyncio.create_task(self.main(), name="LocalControl keepalive")
         )
