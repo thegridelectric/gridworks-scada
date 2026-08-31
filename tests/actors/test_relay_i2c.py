@@ -59,7 +59,7 @@ def app() -> tuple[ScadaApp, NolanLayout]:
     )
     board = next(c for c in layout.Components if isinstance(c, ScadaBoardComponentGt))
     # a nolan layout does not imply a gw108 board; this rig requires both
-    assert board.DeviceType == DeviceType.GridworksScadaGw108.value
+    assert board.DeviceType == DeviceType.GridworksSimGw108.value
     settings.paths.mkdirs()
     scada_app = ScadaApp(app_settings=settings)
     scada_app.instantiate()
