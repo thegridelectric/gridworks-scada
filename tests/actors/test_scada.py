@@ -48,7 +48,7 @@ def test_scada_small():
     # Testing making report events
     ###########################################
 
-    ch = scada._layout.data_channels[H0CN.store_pump_pwr]
+    ch = scada._layout.data_channels[H0CN.dist_pump_pwr]
 
     scada._data.recent_channel_values[ch.Name] = [43]
     scada._data.recent_channel_unix_ms[ch.Name] = [

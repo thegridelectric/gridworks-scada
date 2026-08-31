@@ -1,13 +1,14 @@
-"""Sim-boots the ASSEMBLED spruce artifact — the whole-artifact regression
-test the first spruce window lacked: every actor instantiates (LocalControl
-resolves to NolanLocalControl, the i2c relays and bus register), and the
-snapshot path builds. The window #1 killer was scada_data.capture_seconds
+"""Instantiates a ScadaApp on the ASSEMBLED sim-spruce pair — the
+whole-artifact regression test the first spruce window lacked: every actor
+constructs through the ordinary boot path (LocalControl resolves to
+NolanLocalControl, the i2c relays and bus register), and the snapshot path
+builds. The window #1 killer was scada_data.capture_seconds
 walking the DAC writer's i2c.dac.channel.config — a config shape the pinned
 Nolan fixture never exercises, which is why 189 green tests missed it.
 
 The frozen fixtures are the VERBATIM tlayouts artifacts (static layout +
 ops params) so the boot exercises its real assembly path; refresh both from
-tlayouts output/spruce/ when the layout changes."""
+tlayouts output/spruce-sim/ when the layout changes."""
 
 from pathlib import Path
 
@@ -39,7 +40,7 @@ def app() -> ScadaApp:
 def test_spruce_artifact_boots(app: ScadaApp) -> None:
     names = app.raw_proactor.get_communicator_names()
     assert "i2c-bus" in names
-    assert "zone1-bench1-failsafe-relay" in names
+    assert "zone1-bedrooms-failsafe-relay" in names
     assert "secondary-pump-relay" in names
     lc = app.raw_proactor.get_communicator("lc")
     assert isinstance(lc._impl, NolanLocalControl)

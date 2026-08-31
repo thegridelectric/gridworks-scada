@@ -170,12 +170,12 @@ def test_zone_holds_command_failsafe_and_release_ops(
     spruce_impl.command_zone_holds()
     targets = [dst for dst, _ in fsm_events(spruce_impl)]
     assert targets == [
-        "zone1-bench1-failsafe-relay",
-        "zone1-bench1-ops-relay",
-        "zone2-bench2-failsafe-relay",
-        "zone2-bench2-ops-relay",
-        "zone4-bench4-failsafe-relay",
-        "zone4-bench4-ops-relay",
+        "zone1-bedrooms-failsafe-relay",
+        "zone1-bedrooms-ops-relay",
+        "zone2-living-rm-failsafe-relay",
+        "zone2-living-rm-ops-relay",
+        "zone4-garage-failsafe-relay",
+        "zone4-garage-ops-relay",
     ]
 
 

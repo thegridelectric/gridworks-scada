@@ -47,7 +47,7 @@ def test_power_meter_small():
     assert set(driver_thread._last_sampled_s.keys()) == pwr_meter_channels
 
 
-    ch_1 = layout.channel(H0CN.store_pump_pwr)
+    ch_1 = layout.channel(H0CN.dist_pump_pwr)
     assert driver_thread.last_reported_telemetry_value[ch_1] is None
     assert driver_thread.latest_telemetry_value[ch_1] is None
 
@@ -66,8 +66,8 @@ def test_power_meter_small():
     driver_thread.last_reported_telemetry_value[ch_1] = driver_thread.latest_telemetry_value[ch_1]
 
     assert driver_thread.value_hits_async_threshold(ch_1) is False
-    store_pump_capture_delta = driver_thread.tuning_by_ch[ch_1].AsyncCaptureDelta
-    assert store_pump_capture_delta == 5
+    dist_pump_capture_delta = driver_thread.tuning_by_ch[ch_1].AsyncCaptureDelta
+    assert dist_pump_capture_delta == 5
     driver_thread.latest_telemetry_value[ch_1] += 4
     assert driver_thread.value_hits_async_threshold(ch_1) is False
 
@@ -79,30 +79,31 @@ def test_power_meter_small():
     assert driver_thread.should_report_telemetry_reading(ch_1) is False
 
     assert driver_thread.last_reported_agg_power_w is None
-    assert driver_thread.latest_agg_power_w == 0
+    # dist-pump-pwr sits inside the transactive boundary, so the 6 W bumped
+    # onto ch_1 above already shows in the aggregate.
+    assert driver_thread.latest_agg_power_w == 6
     assert driver_thread.should_report_aggregated_power()
     driver_thread.report_aggregated_power_w()
     assert not driver_thread.should_report_aggregated_power()
 
     
+    # Sim-spruce transactive boundary: 4 elements @ 4500, dist-pump 80,
+    # hp-ctrl-box 50, hp-odu 4300 -> 22430 W aggregate nameplate.
     hp_odu = layout.node(H0N.hp_odu)
-    hp_idu = layout.node(H0N.hp_idu)
-
-    assert hp_odu.NameplatePowerW == 6000
-    assert hp_idu.NameplatePowerW == 4000
-    assert driver_thread.nameplate_agg_power_w == 10_000
+    assert hp_odu.NameplatePowerW == 4300
+    assert driver_thread.nameplate_agg_power_w == 22_430
     power_reporting_threshold_ratio = driver_thread.async_power_reporting_threshold
     assert power_reporting_threshold_ratio == 0.02
     power_reporting_threshold_w = power_reporting_threshold_ratio * driver_thread.nameplate_agg_power_w
-    assert power_reporting_threshold_w == 200
+    assert power_reporting_threshold_w == pytest.approx(448.6)
 
     tt = layout.channel(H0CN.hp_odu_pwr)
-    driver_thread.latest_telemetry_value[tt] += 100
+    driver_thread.latest_telemetry_value[tt] += 400
     assert not driver_thread.should_report_aggregated_power()
-    driver_thread.latest_telemetry_value[tt] += 200
+    driver_thread.latest_telemetry_value[tt] += 100
     assert driver_thread.should_report_aggregated_power()
     driver_thread.report_aggregated_power_w()
-    assert driver_thread.latest_agg_power_w == 300
+    assert driver_thread.latest_agg_power_w == 506
 
 def meter_test_layout() -> HydronicLayout:
     settings = ScadaSettings()
@@ -129,8 +130,8 @@ async def test_power_meter_periodic_update(request: pytest.FixtureRequest) -> No
     ) as h:
         expected_channels = [
             h.child1.hardware_layout.data_channels[H0CN.hp_odu_pwr],
-            h.child1.hardware_layout.data_channels[H0CN.hp_idu_pwr],
-            h.child1.hardware_layout.data_channels[H0CN.store_pump_pwr],
+            h.child1.hardware_layout.data_channels["hp-ctrl-box-pwr"],
+            h.child1.hardware_layout.data_channels[H0CN.dist_pump_pwr],
         ]
         h.child.delimit("Waiting for first readings", log_level=logging.WARNING)
         data = h.child1_app.scada.data
@@ -200,19 +201,27 @@ async def test_async_power_update(request: pytest.FixtureRequest):
             for name in dc.InputChannelNames
         }
 
+        # Sim-spruce transactive boundary: the four elements, dist-pump,
+        # hp-ctrl-box, hp-odu.
         assert transactive_channels == {
-            data.layout.data_channels[H0CN.hp_idu_pwr],
-            data.layout.data_channels[H0CN.hp_odu_pwr]
+            data.layout.data_channels[name]
+            for name in (
+                "elt-buffer-top-pwr", "elt-buffer-bottom-pwr",
+                "elt-store-top-pwr", "elt-store-bottom-pwr",
+                "dist-pump-pwr", "hp-ctrl-box-pwr", H0CN.hp_odu_pwr,
+            )
         }
 
-        assert data.latest_channel_values[H0CN.hp_idu_pwr] == delta_w
+        assert data.latest_channel_values["hp-ctrl-box-pwr"] == delta_w
         assert data.latest_channel_values[H0CN.hp_odu_pwr] == delta_w
 
-        assert data.latest_power_w == 2 * delta_w
+        # The sim driver applies fake_power_w to every metered channel, so
+        # the aggregate sees all seven transactive channels move.
+        assert data.latest_power_w == 7 * delta_w
 
         await h.await_for(
             lambda: ltn_received_counts['power.watts'] > initial,
             "Ltn wait for power.watts",
         )
         ltn = h.parent_app.ltn
-        assert ltn.data.latest_power_w == 2 * delta_w
+        assert ltn.data.latest_power_w == 7 * delta_w
