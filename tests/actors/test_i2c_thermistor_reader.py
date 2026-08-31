@@ -5,7 +5,6 @@ read, classification, publish.
 
 import asyncio
 import json
-import shutil
 import uuid
 from pathlib import Path
 
@@ -16,7 +15,6 @@ from actors.i2c_thermistor_reader import I2cThermistorReader
 from drivers import ads1115
 from gwsproto.named_types import SyncedReadings
 from gwproto.message import Message
-from actors.config import DEFAULT_OPS_PARAMS_FILE
 from scada_app import ScadaApp
 
 BUS_NAME = "i2c-bus"
@@ -96,25 +94,8 @@ class Rig:
 @pytest.fixture
 def rig(tmp_path: Path) -> Rig:
     settings = ScadaApp.get_settings()
-    layout_dict = json.loads(Path(settings.paths.hardware_layout).read_text())
-    layout_dict["ShNodes"].append(
-        {
-            "Name": BUS_NAME,
-            "ActorClass": "I2cBus",
-            "ActorHierarchyName": f"s.{BUS_NAME}",
-            "ShNodeId": str(uuid.uuid4()),
-            "TypeName": "spaceheat.node.gt",
-            "Version": "302",
-        }
-    )
-    layout_path = tmp_path / "layout-with-bus.json"
-    layout_path.write_text(json.dumps(layout_dict))
-    # the pair travels together: ops params sit beside the layout under the
-    # fixed name the scada resolves to
-    shutil.copyfile(
-        Path(settings.paths.operational_params), tmp_path / DEFAULT_OPS_PARAMS_FILE
-    )
-    settings.paths.hardware_layout = layout_path
+    # The pinned layout declares the i2c-bus node (gw.nolan.layout axiom 6
+    # forces exactly one); boot straight off the fixture pair.
     settings.paths.mkdirs()
     app = ScadaApp(app_settings=settings)
     app.instantiate()

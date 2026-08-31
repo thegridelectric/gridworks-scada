@@ -965,7 +965,6 @@ class Relay(ShNodeActor):
             vdc_relay_name,
             H0N.tstat_common_relay,
             H0N.hp_scada_ops_relay,
-            H0N.thermistor_common_relay,
             H0N.store_pump_failsafe,
             H0N.primary_pump_scada_ops,
             H0N.hp_loop_on_off,
@@ -975,7 +974,6 @@ class Relay(ShNodeActor):
                 vdc_relay_name,
                 H0N.tstat_common_relay,
                 H0N.hp_scada_ops_relay,
-                H0N.thermistor_common_relay,
                 H0N.hp_loop_on_off
             }:
                 if self.de_energizing_event != ChangeRelayState.CloseRelay:

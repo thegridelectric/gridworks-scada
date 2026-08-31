@@ -237,20 +237,6 @@
           "WiringConfig": "NormallyClosed"
         },
         {
-          "ActorName": "thermistor-common-relay",
-          "ChannelName": "thermistor-common-relay",
-          "DeEnergizedState": "RelayClosed",
-          "DeEnergizingEvent": "CloseRelay",
-          "EnergizedState": "RelayOpen",
-          "EnergizingEvent": "OpenRelay",
-          "EventType": "change.relay.state",
-          "RelayIdx": 7,
-          "StateType": "relay.closed.or.open",
-          "TypeName": "relay.actor.config",
-          "Version": "003",
-          "WiringConfig": "NormallyClosed"
-        },
-        {
           "ActorName": "aquastat-ctrl-relay",
           "ChannelName": "aquastat-ctrl-relay",
           "DeEnergizedState": "Boiler",
@@ -691,18 +677,6 @@
       "DisplayName": "Hp Scada Ops Relay State",
       "Id": "22db6c24-45ff-4e54-a8ce-c2de56814d8e",
       "Name": "hp-scada-ops-relay",
-      "Quantity": "Unitless",
-      "TelemetryName": "RelayState",
-      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
-      "TypeName": "data.channel.gt",
-      "Version": "003"
-    },
-    {
-      "AboutNodeName": "thermistor-common-relay",
-      "CapturedByNodeName": "relay-multiplexer",
-      "DisplayName": "Thermistor Common Relay State",
-      "Id": "d81acabc-ad72-48c7-bd81-94c3cf07fc51",
-      "Name": "thermistor-common-relay",
       "Quantity": "Unitless",
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
@@ -1490,17 +1464,6 @@
       "Handle": "auto.lc.n.hp-scada-ops-relay",
       "Name": "hp-scada-ops-relay",
       "ShNodeId": "c3e242be-de11-466c-accd-e9f78e6c4beb",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "302"
-    },
-    {
-      "ActorClass": "Relay",
-      "ActorHierarchyName": "s.thermistor-common-relay",
-      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
-      "DisplayName": "Thermistor Common Relay",
-      "Handle": "auto.lc.n.thermistor-common-relay",
-      "Name": "thermistor-common-relay",
-      "ShNodeId": "6c734dbb-9950-485d-a83b-55456d914576",
       "TypeName": "spaceheat.node.gt",
       "Version": "302"
     },

@@ -1,12 +1,9 @@
 """Actor-level tests for the I2cBus serialized executor.
 
-The pinned test layout does not declare an i2c-bus node yet (the layout gains
-it with the reader→bus move); the fixture here appends one in-memory before
-boot, which also exercises the actors/__init__ registration path.
+The pinned test layout declares the i2c-bus node (axiom 6 forces exactly
+one), so the fixture boots straight off the pair.
 """
 
-import json
-import shutil
 import uuid
 from pathlib import Path
 
@@ -28,7 +25,6 @@ from gwsproto.named_types import (
     I2cWriteReg,
 )
 from gwproto.message import Message
-from actors.config import DEFAULT_OPS_PARAMS_FILE
 from scada_app import ScadaApp
 
 BUS_NAME = "i2c-bus"
@@ -72,25 +68,8 @@ class FakeSMBus:
 @pytest.fixture
 def bus_app(tmp_path: Path) -> ScadaApp:
     settings = ScadaApp.get_settings()
-    layout_dict = json.loads(Path(settings.paths.hardware_layout).read_text())
-    layout_dict["ShNodes"].append(
-        {
-            "Name": BUS_NAME,
-            "ActorClass": "I2cBus",
-            "ActorHierarchyName": f"s.{BUS_NAME}",
-            "ShNodeId": str(uuid.uuid4()),
-            "TypeName": "spaceheat.node.gt",
-            "Version": "302",
-        }
-    )
-    layout_path = tmp_path / "layout-with-bus.json"
-    layout_path.write_text(json.dumps(layout_dict))
-    # the pair travels together: ops params sit beside the layout under the
-    # fixed name the scada resolves to
-    shutil.copyfile(
-        Path(settings.paths.operational_params), tmp_path / DEFAULT_OPS_PARAMS_FILE
-    )
-    settings.paths.hardware_layout = layout_path
+    # The pinned layout declares the i2c-bus node (gw.nolan.layout axiom 6
+    # forces exactly one); boot straight off the fixture pair.
     settings.paths.mkdirs()
     app = ScadaApp(app_settings=settings)
     app.instantiate()

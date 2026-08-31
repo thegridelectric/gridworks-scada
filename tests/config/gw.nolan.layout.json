@@ -129,34 +129,6 @@
     {
       "TypeName": "spaceheat.node.gt",
       "Version": "302",
-      "Name": "backup",
-      "Handle": "auto.lc.backup",
-      "ActorClass": "NoActor",
-      "DisplayName": "LocalControl Backup",
-      "ShNodeId": "fdb5bde8-ddc5-4f7b-b14b-19732d5237bc"
-    },
-    {
-      "TypeName": "spaceheat.node.gt",
-      "Version": "302",
-      "Name": "scada-blind",
-      "Handle": "auto.lc.scada-blind",
-      "ActorClass": "NoActor",
-      "DisplayName": "LocalControl Scada Blind",
-      "ShNodeId": "24982cc8-2c1f-4c55-8428-7a9f6fc75e37"
-    },
-    {
-      "TypeName": "spaceheat.node.gt",
-      "Version": "302",
-      "Name": "hp-boss",
-      "ActorHierarchyName": "s.hp-boss",
-      "Handle": "auto.lc.n.hp-boss",
-      "ActorClass": "HpBoss",
-      "DisplayName": "HeatpumpBoss",
-      "ShNodeId": "7659c567-4d43-44b6-bc99-821fdab489de"
-    },
-    {
-      "TypeName": "spaceheat.node.gt",
-      "Version": "302",
       "Name": "i2c-bus",
       "ActorHierarchyName": "s.i2c-bus",
       "ActorClass": "I2cBus",
@@ -224,6 +196,7 @@
       "Name": "hp-ctrl-box",
       "ActorClass": "NoActor",
       "DisplayName": "Hp Ctrl Box",
+      "ComponentId": "dcfb28ca-95e3-4223-bae8-7f76e674dd64",
       "NameplatePowerW": 50,
       "ShNodeId": "a929f1f0-1606-4641-8f68-4a77d87fb872"
     },
@@ -233,6 +206,7 @@
       "Name": "hp-odu",
       "ActorClass": "NoActor",
       "DisplayName": "Hp Odu",
+      "ComponentId": "075d5714-6b2e-48dc-bb30-73c48d17b901",
       "NameplatePowerW": 4300,
       "ShNodeId": "f719057f-1678-4cfd-b728-53215d6bd7bc"
     },
@@ -407,6 +381,72 @@
       "DisplayName": "Iso Valve Relay",
       "ComponentId": "4a1e18b6-9693-4b8e-b9d2-3b99ef440dd8",
       "ShNodeId": "5a55308f-7251-4be0-89ff-b839b2061de9"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "302",
+      "Name": "charge-valve-relay",
+      "ActorHierarchyName": "s.charge-valve-relay",
+      "Handle": "auto.lc.n.charge-valve-relay",
+      "ActorClass": "Relay",
+      "DisplayName": "Charge Valve Relay",
+      "ComponentId": "afbab28d-230c-4202-8cd1-888970569d87",
+      "ShNodeId": "070b9a98-73ef-48a7-a73e-74b6ae6aa1e8"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "302",
+      "Name": "store-pump-relay",
+      "ActorHierarchyName": "s.store-pump-relay",
+      "Handle": "auto.lc.n.store-pump-relay",
+      "ActorClass": "Relay",
+      "DisplayName": "Store Pump Relay",
+      "ComponentId": "21d409be-aa78-46e7-b3c9-c3fed0a73864",
+      "ShNodeId": "6a2e8123-60ac-4cdf-af51-d71fbff164e1"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "302",
+      "Name": "buffer-top-elt-relay",
+      "ActorHierarchyName": "s.buffer-top-elt-relay",
+      "Handle": "auto.lc.n.buffer-top-elt-relay",
+      "ActorClass": "Relay",
+      "DisplayName": "Buffer Top Elt Relay",
+      "ComponentId": "03bd30d0-2571-4986-ae2f-210658ea8949",
+      "ShNodeId": "37a02722-d598-4598-815d-b8d0dc7d2d21"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "302",
+      "Name": "buffer-bottom-elt-relay",
+      "ActorHierarchyName": "s.buffer-bottom-elt-relay",
+      "Handle": "auto.lc.n.buffer-bottom-elt-relay",
+      "ActorClass": "Relay",
+      "DisplayName": "Buffer Bottom Elt Relay",
+      "ComponentId": "4ce2a44f-4494-4941-abb3-f689ba128c0e",
+      "ShNodeId": "251e4bb4-51c6-49d2-a943-131e82a11bc3"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "302",
+      "Name": "store-top-elt-relay",
+      "ActorHierarchyName": "s.store-top-elt-relay",
+      "Handle": "auto.lc.n.store-top-elt-relay",
+      "ActorClass": "Relay",
+      "DisplayName": "Store Top Elt Relay",
+      "ComponentId": "8a545a7f-9170-4871-add3-a0a50edf6e95",
+      "ShNodeId": "117924ee-2808-45af-b0ec-c57247203f23"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "302",
+      "Name": "store-bottom-elt-relay",
+      "ActorHierarchyName": "s.store-bottom-elt-relay",
+      "Handle": "auto.lc.n.store-bottom-elt-relay",
+      "ActorClass": "Relay",
+      "DisplayName": "Store Bottom Elt Relay",
+      "ComponentId": "2848ffd2-9ef5-4cc7-87db-49df4652f1d3",
+      "ShNodeId": "ec488e4c-9e83-40eb-ae21-476c9d9cd040"
     },
     {
       "TypeName": "spaceheat.node.gt",
@@ -625,7 +665,7 @@
       "ActorHierarchyName": "s.primary-btu",
       "ActorClass": "SimSensorActor",
       "DisplayName": "Primary Btu",
-      "ComponentId": "65cab1fb-1746-43d7-ba27-22369e11704e",
+      "ComponentId": "c72bb472-9846-4690-87c4-2478a01ca1e5",
       "ShNodeId": "678e0ac5-e436-48ff-a15f-bef4c9f5519b"
     },
     {
@@ -659,7 +699,7 @@
       "ActorHierarchyName": "s.secondary-btu",
       "ActorClass": "SimSensorActor",
       "DisplayName": "Secondary Btu",
-      "ComponentId": "c3625fe8-2bbf-430d-9fe3-e5fedf555f1e",
+      "ComponentId": "2ee1e144-eb7c-4072-be3a-22e384398fc3",
       "ShNodeId": "c8450f5b-1b05-4066-9dd4-c739c358005b"
     },
     {
@@ -701,7 +741,7 @@
       "ActorHierarchyName": "s.store-btu",
       "ActorClass": "SimSensorActor",
       "DisplayName": "Store Btu",
-      "ComponentId": "4dd083e2-7314-4bdc-bff3-dab80e8a2f77",
+      "ComponentId": "7fa74196-1786-4945-a6b2-f0f185abae1b",
       "ShNodeId": "454801c5-f48f-4820-b794-cb6ea47112d6"
     },
     {
@@ -735,7 +775,7 @@
       "ActorHierarchyName": "s.dist-btu",
       "ActorClass": "SimSensorActor",
       "DisplayName": "Dist Btu",
-      "ComponentId": "3a37f4ea-a112-4151-9e1c-1c924dacc647",
+      "ComponentId": "e4741146-f6cb-4fbe-b302-aba437e5fab7",
       "ShNodeId": "0fd55bc3-4ed8-4faa-8306-2e16036c9565"
     },
     {
@@ -1039,6 +1079,78 @@
       "Quantity": "Unitless",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
       "Id": "7bf88416-7643-49c9-9c22-0fdffa93acd4"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "003",
+      "Name": "charge-valve-relay",
+      "DisplayName": "Charge Valve Relay State",
+      "AboutNodeName": "charge-valve-relay",
+      "CapturedByNodeName": "charge-valve-relay",
+      "TelemetryName": "RelayState",
+      "Quantity": "Unitless",
+      "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
+      "Id": "38de8787-3f70-4c3a-8542-371fe02dc314"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "003",
+      "Name": "store-pump-relay",
+      "DisplayName": "Store Pump Relay State",
+      "AboutNodeName": "store-pump-relay",
+      "CapturedByNodeName": "store-pump-relay",
+      "TelemetryName": "RelayState",
+      "Quantity": "Unitless",
+      "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
+      "Id": "fe125386-d1b2-4fd0-8f68-000762a2d8db"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "003",
+      "Name": "buffer-top-elt-relay",
+      "DisplayName": "Buffer Top Elt Relay State",
+      "AboutNodeName": "buffer-top-elt-relay",
+      "CapturedByNodeName": "buffer-top-elt-relay",
+      "TelemetryName": "RelayState",
+      "Quantity": "Unitless",
+      "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
+      "Id": "63a41524-491f-4ce5-a233-ff04fdf29f5a"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "003",
+      "Name": "buffer-bottom-elt-relay",
+      "DisplayName": "Buffer Bottom Elt Relay State",
+      "AboutNodeName": "buffer-bottom-elt-relay",
+      "CapturedByNodeName": "buffer-bottom-elt-relay",
+      "TelemetryName": "RelayState",
+      "Quantity": "Unitless",
+      "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
+      "Id": "cabb6cef-9f24-4bd5-b08f-6445ed787df8"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "003",
+      "Name": "store-top-elt-relay",
+      "DisplayName": "Store Top Elt Relay State",
+      "AboutNodeName": "store-top-elt-relay",
+      "CapturedByNodeName": "store-top-elt-relay",
+      "TelemetryName": "RelayState",
+      "Quantity": "Unitless",
+      "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
+      "Id": "fdd4cecd-be61-43d5-921e-db735bc81ccc"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "003",
+      "Name": "store-bottom-elt-relay",
+      "DisplayName": "Store Bottom Elt Relay State",
+      "AboutNodeName": "store-bottom-elt-relay",
+      "CapturedByNodeName": "store-bottom-elt-relay",
+      "TelemetryName": "RelayState",
+      "Quantity": "Unitless",
+      "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
+      "Id": "3cf14e83-28bc-488b-a376-6de986490910"
     },
     {
       "TypeName": "data.channel.gt",
@@ -1806,6 +1918,21 @@
       "DisplayName": "EGauge Power Meter"
     },
     {
+      "TypeName": "device.component.gt",
+      "Version": "000",
+      "ComponentId": "075d5714-6b2e-48dc-bb30-73c48d17b901",
+      "DeviceType": "SamsungAE055FCYDCG",
+      "DisplayName": "Spruce Samsung AE055 monobloc"
+    },
+    {
+      "TypeName": "device.component.gt",
+      "Version": "000",
+      "ComponentId": "dcfb28ca-95e3-4223-bae8-7f76e674dd64",
+      "DeviceType": "SamsungAE055FEYMCG",
+      "DisplayName": "Spruce Samsung AE055 control box",
+      "Description": "A Samsung MIM-B19N wired modbus module (ordered 2026-08, not yet installed) will bridge this box's EHS control line to RS-485; it becomes its own component when hp-boss drives it."
+    },
+    {
       "TypeName": "web.server.component.gt",
       "Version": "001",
       "ComponentId": "ae35a8e5-9258-43f6-a2d2-4755c07e8197",
@@ -2142,6 +2269,144 @@
       "DisplayName": "Iso Valve Relay"
     },
     {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "afbab28d-230c-4202-8cd1-888970569d87",
+      "BoardComponentId": "91ee52fd-7f82-422f-bfa2-fa744be35354",
+      "RelayName": "DischargeValve",
+      "ConfigList": [
+        {
+          "TypeName": "relay.control.config",
+          "Version": "000",
+          "ChannelName": "charge-valve-relay",
+          "ActorName": "charge-valve-relay",
+          "WiringConfig": "DoubleThrow",
+          "EventType": "change.valve.state",
+          "DeEnergizingEvent": "CloseValve",
+          "EnergizingEvent": "OpenValve",
+          "StateType": "valve.open.or.closed",
+          "DeEnergizedState": "ValveClosed",
+          "EnergizedState": "ValveOpen"
+        }
+      ],
+      "DisplayName": "Charge Valve Relay"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "21d409be-aa78-46e7-b3c9-c3fed0a73864",
+      "BoardComponentId": "91ee52fd-7f82-422f-bfa2-fa744be35354",
+      "RelayName": "StorePump",
+      "ConfigList": [
+        {
+          "TypeName": "relay.control.config",
+          "Version": "000",
+          "ChannelName": "store-pump-relay",
+          "ActorName": "store-pump-relay",
+          "WiringConfig": "NormallyOpen",
+          "EventType": "change.relay.state",
+          "DeEnergizingEvent": "OpenRelay",
+          "EnergizingEvent": "CloseRelay",
+          "StateType": "relay.closed.or.open",
+          "DeEnergizedState": "RelayOpen",
+          "EnergizedState": "RelayClosed"
+        }
+      ],
+      "DisplayName": "Store Pump Relay"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "03bd30d0-2571-4986-ae2f-210658ea8949",
+      "BoardComponentId": "91ee52fd-7f82-422f-bfa2-fa744be35354",
+      "RelayName": "BufferTop",
+      "ConfigList": [
+        {
+          "TypeName": "relay.control.config",
+          "Version": "000",
+          "ChannelName": "buffer-top-elt-relay",
+          "ActorName": "buffer-top-elt-relay",
+          "WiringConfig": "NormallyOpen",
+          "EventType": "change.relay.state",
+          "DeEnergizingEvent": "OpenRelay",
+          "EnergizingEvent": "CloseRelay",
+          "StateType": "relay.closed.or.open",
+          "DeEnergizedState": "RelayOpen",
+          "EnergizedState": "RelayClosed"
+        }
+      ],
+      "DisplayName": "Buffer Top Elt Relay"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "4ce2a44f-4494-4941-abb3-f689ba128c0e",
+      "BoardComponentId": "91ee52fd-7f82-422f-bfa2-fa744be35354",
+      "RelayName": "BufferBottom",
+      "ConfigList": [
+        {
+          "TypeName": "relay.control.config",
+          "Version": "000",
+          "ChannelName": "buffer-bottom-elt-relay",
+          "ActorName": "buffer-bottom-elt-relay",
+          "WiringConfig": "NormallyOpen",
+          "EventType": "change.relay.state",
+          "DeEnergizingEvent": "OpenRelay",
+          "EnergizingEvent": "CloseRelay",
+          "StateType": "relay.closed.or.open",
+          "DeEnergizedState": "RelayOpen",
+          "EnergizedState": "RelayClosed"
+        }
+      ],
+      "DisplayName": "Buffer Bottom Elt Relay"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "8a545a7f-9170-4871-add3-a0a50edf6e95",
+      "BoardComponentId": "91ee52fd-7f82-422f-bfa2-fa744be35354",
+      "RelayName": "StoreTop",
+      "ConfigList": [
+        {
+          "TypeName": "relay.control.config",
+          "Version": "000",
+          "ChannelName": "store-top-elt-relay",
+          "ActorName": "store-top-elt-relay",
+          "WiringConfig": "NormallyOpen",
+          "EventType": "change.relay.state",
+          "DeEnergizingEvent": "OpenRelay",
+          "EnergizingEvent": "CloseRelay",
+          "StateType": "relay.closed.or.open",
+          "DeEnergizedState": "RelayOpen",
+          "EnergizedState": "RelayClosed"
+        }
+      ],
+      "DisplayName": "Store Top Elt Relay"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "2848ffd2-9ef5-4cc7-87db-49df4652f1d3",
+      "BoardComponentId": "91ee52fd-7f82-422f-bfa2-fa744be35354",
+      "RelayName": "StoreBottom",
+      "ConfigList": [
+        {
+          "TypeName": "relay.control.config",
+          "Version": "000",
+          "ChannelName": "store-bottom-elt-relay",
+          "ActorName": "store-bottom-elt-relay",
+          "WiringConfig": "NormallyOpen",
+          "EventType": "change.relay.state",
+          "DeEnergizingEvent": "OpenRelay",
+          "EnergizingEvent": "CloseRelay",
+          "StateType": "relay.closed.or.open",
+          "DeEnergizedState": "RelayOpen",
+          "EnergizedState": "RelayClosed"
+        }
+      ],
+      "DisplayName": "Store Bottom Elt Relay"
+    },
+    {
       "TypeName": "i2c.dac.writer.component.gt",
       "Version": "000",
       "ComponentId": "a3f6f4c6-5958-4145-a35b-fe3292861786",
@@ -2335,28 +2600,28 @@
     {
       "TypeName": "sim.sensor.component.gt",
       "Version": "000",
-      "ComponentId": "65cab1fb-1746-43d7-ba27-22369e11704e",
+      "ComponentId": "c72bb472-9846-4690-87c4-2478a01ca1e5",
       "DeviceType": "GridworksSimSensor",
       "DisplayName": "Sim primary-btu BtuMeter"
     },
     {
       "TypeName": "sim.sensor.component.gt",
       "Version": "000",
-      "ComponentId": "c3625fe8-2bbf-430d-9fe3-e5fedf555f1e",
+      "ComponentId": "2ee1e144-eb7c-4072-be3a-22e384398fc3",
       "DeviceType": "GridworksSimSensor",
       "DisplayName": "Sim secondary-btu BtuMeter"
     },
     {
       "TypeName": "sim.sensor.component.gt",
       "Version": "000",
-      "ComponentId": "4dd083e2-7314-4bdc-bff3-dab80e8a2f77",
+      "ComponentId": "7fa74196-1786-4945-a6b2-f0f185abae1b",
       "DeviceType": "GridworksSimSensor",
       "DisplayName": "Sim store-btu BtuMeter"
     },
     {
       "TypeName": "sim.sensor.component.gt",
       "Version": "000",
-      "ComponentId": "3a37f4ea-a112-4151-9e1c-1c924dacc647",
+      "ComponentId": "e4741146-f6cb-4fbe-b302-aba437e5fab7",
       "DeviceType": "GridworksSimSensor",
       "DisplayName": "Sim dist-btu BtuMeter"
     }
@@ -2876,6 +3141,40 @@
       "TelemetryNameList": [
         "PowerW"
       ]
+    },
+    {
+      "TypeName": "hp.device.type.gt",
+      "Version": "000",
+      "DeviceType": "SamsungAE055FCYDCG",
+      "DisplayName": "Samsung AE055 EHS mono monobloc",
+      "MaxKwEl": 4.35,
+      "HeatingCapacityBtuHr": 54600,
+      "CoolingCapacityBtuHr": 54600,
+      "PrimaryPumpFactoryInstalled": false,
+      "PrimaryPumpOverridable": false,
+      "PrimaryPumpAlwaysOn": false,
+      "Refrigerant": "R32",
+      "CompressorRatedAmps": 18.9,
+      "Mca": 32.0,
+      "Mop": 40.0,
+      "ProductInfoUrl": "https://drive.google.com/drive/folders/1XV80QPgqpyYvMaoQIR9PpGWmu6dSY9kD"
+    },
+    {
+      "TypeName": "hp.control.box.device.type.gt",
+      "Version": "000",
+      "DeviceType": "SamsungAE055FEYMCG",
+      "DisplayName": "Samsung AE055 EHS mono control box",
+      "PrimaryPumpFactoryInstalled": true,
+      "PrimaryPumpOverridable": false,
+      "PrimaryPumpAlwaysOn": false,
+      "WaterPumpRatedAmps": 0.9,
+      "BackupHeaterKwList": [
+        2.0,
+        4.0
+      ],
+      "Mca": 22.9,
+      "Mop": 25.0,
+      "ProductInfoUrl": "https://drive.google.com/drive/folders/1XV80QPgqpyYvMaoQIR9PpGWmu6dSY9kD"
     }
   ],
   "Hydronic": {

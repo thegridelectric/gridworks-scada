@@ -232,15 +232,6 @@
       "AsyncCapture": true,
       "AsyncCaptureDelta": 1,
       "CapturePeriodS": 300,
-      "ChannelName": "thermistor-common-relay",
-      "PollPeriodMs": 200,
-      "TypeName": "capture.tuning",
-      "Version": "000"
-    },
-    {
-      "AsyncCapture": true,
-      "AsyncCaptureDelta": 1,
-      "CapturePeriodS": 300,
       "ChannelName": "tstat-common-relay",
       "PollPeriodMs": 200,
       "TypeName": "capture.tuning",

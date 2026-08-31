@@ -213,6 +213,60 @@
     {
       "TypeName": "capture.tuning",
       "Version": "000",
+      "ChannelName": "charge-valve-relay",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "store-pump-relay",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "buffer-top-elt-relay",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "buffer-bottom-elt-relay",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "store-top-elt-relay",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "store-bottom-elt-relay",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
       "ChannelName": "zone1-bedrooms-gw-temp",
       "CapturePeriodS": 60,
       "AsyncCapture": true,

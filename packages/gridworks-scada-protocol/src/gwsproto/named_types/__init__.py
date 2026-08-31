@@ -18,6 +18,7 @@ from gwsproto.named_types.channel_flatlined import ChannelFlatlined
 from gwsproto.named_types.channel_readings import ChannelReadings
 from gwsproto.named_types.data_channel_gt import DataChannelGt
 from gwsproto.named_types.derived_channel_gt import DerivedChannelGt
+from gwsproto.named_types.device_component_gt import DeviceComponentGt
 from gwsproto.named_types.dfr_component_gt import DfrComponentGt
 from gwsproto.named_types.dfr_config import DfrConfig
 from gwsproto.named_types.dispatch_contract_go_dormant import DispatchContractGoDormant
@@ -189,6 +190,8 @@ __all__ = [
     "ChannelReadings",
     "DataChannelGt",
     "DerivedChannelGt",
+
+    "DeviceComponentGt",
     "DfrComponentGt",
     "DfrConfig",
     "DispatchContractGoDormant",
