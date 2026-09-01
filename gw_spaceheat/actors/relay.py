@@ -965,7 +965,7 @@ class Relay(ShNodeActor):
             vdc_relay_name,
             H0N.tstat_common_relay,
             H0N.hp_scada_ops_relay,
-            H0N.store_pump_failsafe,
+            self.layout.store_pump_relay.name,
             H0N.primary_pump_scada_ops,
             H0N.hp_loop_on_off,
         } | set(stat_ops_names):

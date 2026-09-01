@@ -12,8 +12,10 @@ from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.named_types import AnalogDispatch, SyncedReadings
 from result import Ok, Result
 from transitions import Machine
-from gwsproto.data_classes.hydronic_layout import HouseStrategy
 from gwsproto.data_classes.house_0_names import H0N, H0CN
+from gwsproto.names.hydronic_spaceheat.node_names import (
+    HydronicSpaceheatNodeNames as HSNN,
+)
 from gwsproto.data_classes.components.dfr_component import DfrComponent
 
 from gwsproto.enums import (
@@ -30,11 +32,11 @@ from actors.procedural.dist_pump_monitor import DistPumpMonitor
 from actors.procedural.store_pump_doctor import StorePumpDoctor
 from actors.procedural.store_pump_monitor import StorePumpMonitor
 
-from actors.sh_node_actor import ShNodeActor
+from actors.hydronic.house0 import House0Hydronic
 from scada_app_interface import ScadaAppInterface
 
 
-class LocalControlTouBase(ShNodeActor):
+class LocalControlTouBase(House0Hydronic):
     """Manages the top level state machine for home alone in a time of use framework. Every home 
     alone node has a strategy. That strategy is in charge of how the "normal" home alone code works. Strategy-specific code
     should inherit from this base class."""
@@ -145,14 +147,7 @@ class LocalControlTouBase(ShNodeActor):
         
         for node in self.my_actuators():
             node.Handle = f"{boss.Handle}.{node.Name}"
-        self._send_to(
-            self.ltn,
-            NewCommandTree(
-                FromGNodeAlias=self.layout.scada_g_node_alias,
-                ShNodes=list(self.layout.nodes.values()),
-                UnixMs=int(time.time() * 1000),
-            ),
-        )
+        self.publish_command_tree()
         self.log(f"Set ha command tree w all actuators reporting to {boss.handle}")
 
     def trigger_top_event(self, cause: LocalControlTopEvent) -> None:
@@ -221,7 +216,7 @@ class LocalControlTouBase(ShNodeActor):
             [
                 H0N.store_010v,
                 H0N.store_charge_discharge_relay,
-                H0N.store_pump_failsafe,
+                HSNN.store_pump_relay,
             ]
         )
 

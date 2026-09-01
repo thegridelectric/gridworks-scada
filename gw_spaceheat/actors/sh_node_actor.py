@@ -1,54 +1,40 @@
 import asyncio
 import time
 import typing
-import uuid
 from abc import ABC
-from datetime import datetime, timedelta
-from typing import cast, Any, List, Optional
+from typing import Any, Optional
 import pytz
 
-from pydantic import ValidationError
 
 from gwproactor import QOS
 from gwproactor.message import PatInternalWatchdogMessage
-from gwsproto.errors import DcError
 from gwproactor import Actor
 from gwproto import Message
 
 from actors.config import ScadaSettings
 from actors.scada_data import ScadaData
 from gwsproto.conversions.temperature import convert_temp_to_f
-from gwsproto.data_classes.house_0_layout import House0Layout
-from gwsproto.data_classes.house_0_names import H0N, H0CN, ZoneNodes
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
+from gwsproto.data_classes.house_0_names import H0CN
+from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.names.house0.node_names import House0NodeNames
+from gwsproto.names.hydronic_spaceheat.node_names import (
+    HydronicSpaceheatNodeNames as HSNN,
+)
 
 from gwsproto.data_classes.sh_node import ShNode
-from gwsproto.data_classes.components.i2c_multichannel_dt_relay_component import (
-    I2cMultichannelDtRelayComponent,
-)
-from gwsproto.data_classes.components.dfr_component import DfrComponent
 
 from gwsproto.enums import (
-    ActorClass,
-    ChangeAquastatControl,
-    ChangeHeatcallSource,
-    ChangeHeatPumpControl,
-    ChangeKeepSend,
-    ChangePrimaryPumpControl,
-    ChangeRelayState,
-    ChangeStoreFlowRelay,
-    HpModel,
     LogLevel,
     RelayClosedOrOpen,
-    StoreFlowRelay,
-    TelemetryName,
-    TurnHpOnOff
+    StoreFlowRelay
 )
 
 
-from gwsproto.named_types import AnalogDispatch, FsmEvent, Glitch, GwHouse0OperationalParams, HeatingForecast, NewCommandTree, SingleMachineState
+from gwsproto.named_types import Glitch, HeatingForecast, SingleMachineState
 
+from sema_to_dc import OperationalParams
 from scada_app_interface import ScadaAppInterface
-
 
 
 class ShNodeActor(Actor, ABC):
@@ -91,75 +77,14 @@ class ShNodeActor(Actor, ABC):
 
         self.zone_setpoints: dict = {}
 
-    def get_zone_setpoints(self) -> None:
-        """Populate zone_setpoints from latest_channel_values.
-        Values are in millidegrees (F * 1000) per TelemetryName.AirTempFTimes1000."""
-        self.zone_setpoints = {}
-        if self.services.is_simulated:
-            return
-        for zone_setpoint in [x for x in self.data.latest_channel_values if 'zone' in x and 'set' in x]:
-            zone_name = zone_setpoint.replace('-set', '')
-            zone_name_no_prefix = zone_name[6:] if zone_name[:4] == 'zone' else zone_name
-            if zone_name_no_prefix not in self.layout.zone_list:
-                continue
-            if self.data.latest_channel_values[zone_setpoint] is not None:
-                self.zone_setpoints[zone_name] = self.data.latest_channel_values[zone_setpoint]
 
 
     # ------------------------------------------------------------------
     # tariff-related utilities
     # ------------------------------------------------------------------
 
-    def just_before_onpeak(self) -> bool:
-        time_now = datetime.now(self.timezone)
-        return ((time_now.hour==6 or time_now.hour==16) and time_now.minute>57)
 
-    def is_onpeak(self) -> bool:
-        time_now = datetime.now(self.timezone)
-        time_in_2min = time_now + timedelta(minutes=2)
-        peak_hours = [7, 8, 9, 10, 11] + [16, 17, 18, 19]
-        return (time_now.hour in peak_hours or time_in_2min.hour in peak_hours) and time_now.weekday() < 5
 
-    def is_system_cold(self) -> bool:
-        """Returns True if at least one critical zone is more than 1F below setpoint.
-        Setpoint used is the minimum of: (a) setpoint at start of on-peak, (b) current setpoint.
-        Using (a) avoids triggering when the user raises the thermostat during on-peak; using the
-        minimum with (b) avoids triggering when the user lowers the thermostat during on-peak."""
-        if not self.is_onpeak():  # TODO: bleed into the first half hour of offpeak
-            self.get_zone_setpoints()
-        if self.services.is_simulated:
-            return False
-        for zone in self.zone_setpoints:
-            zone_name_no_prefix = zone[6:] if zone[:4] == 'zone' else zone
-            if zone_name_no_prefix not in self.layout.critical_zone_list:
-                continue
-
-            # Use the lower of setpoint at start of on-peak vs current setpoint
-            setpoint_at_onpeak = self.zone_setpoints[zone]
-            current_setpoint = self.data.latest_channel_values.get(zone + '-set')
-            if setpoint_at_onpeak is not None and current_setpoint is not None:
-                setpoint = min(setpoint_at_onpeak, current_setpoint)
-            elif setpoint_at_onpeak is not None:
-                setpoint = setpoint_at_onpeak
-            elif current_setpoint is not None:
-                setpoint = current_setpoint
-            else:
-                self.log(f"Could not find setpoint for {zone}!")
-                continue
-
-            temperature = self.data.latest_channel_values.get(zone + '-temp')
-            if temperature is None:
-                self.log(f"Could not find latest temperature for {zone}!")
-                continue
-
-            if temperature < setpoint - 1000:  # 1F in millidegrees
-                self.log(
-                    f"{zone} temperature is at least 1F lower than the effective setpoint "
-                    "(min of on-peak start and current)"
-                )
-                return True
-        self.log("All critical zones are at or above their effective setpoint")
-        return False
 
     @property
     def services(self) -> ScadaAppInterface:
@@ -177,7 +102,7 @@ class ShNodeActor(Actor, ABC):
         return node
 
     @property
-    def layout(self) -> House0Layout:
+    def layout(self) -> HydronicLayout:
         return self.services.hardware_layout
 
     @property
@@ -185,8 +110,9 @@ class ShNodeActor(Actor, ABC):
         return self.services.prime_actor.data
 
     @property
-    def ops(self) -> GwHouse0OperationalParams:
-        """The home's authored operational params (modes, curves, knobs)."""
+    def ops(self) -> OperationalParams:
+        """The home's authored operational params, of this home's family
+        (House0 or Nolan — see sema_to_dc.APPROVED_PAIRS)."""
         return self.data.ops
 
     async def await_with_watchdog(
@@ -220,1000 +146,107 @@ class ShNodeActor(Actor, ABC):
         return self.layout.primary_scada
 
     @property
-    def atomic_ally(self) -> ShNode:
-        return self.layout.leaf_ally
-
-    @property
-    def home_alone(self) -> ShNode:
-        return self.layout.local_control
-    
-    @property
     def derived_generator(self) -> ShNode:
         return self.layout.derived_generator
 
-    @property
-    def hp_boss(self) -> ShNode:
-        if not self.layout.use_sieg_loop:
-            raise Exception("Should not be calling for hp_boss if not using sieg loop")
-        return self.layout.hp_boss
 
-    @property
-    def sieg_loop(self) -> ShNode:
-        if not self.layout.use_sieg_loop:
-            raise Exception("Should not be calling for sieg_loop if not using sieg loop")
-        return self.layout.node(H0N.sieg_loop)
 
     @property
     def pico_cycler(self) -> ShNode:
-        return self.layout.nodes[H0N.pico_cycler]
+        return self.layout.nodes[HSNN.pico_cycler]
 
-    def my_actuators(self) -> List[ShNode]:
-        """Get all actuator nodes that are descendants of this node in the handle hierarchy"""
-        my_handle_prefix = f"{self.node.handle}."
-        return [
-            node for node in self.layout.actuators
-            if node.handle.startswith(my_handle_prefix)
-        ]
 
-    @property
-    def dist_010v(self) -> ShNode:
-        return self.layout.dist_010v
 
-    @property
-    def store_010v(self) -> ShNode:
-        return self.layout.store_010v
 
-    @property
-    def primary_010v(self) -> ShNode:
-        return self.layout.primary_010v
 
-    ################################
-    # Relays
-    ################################
 
-    @property
-    def vdc_relay(self) -> ShNode:
-        return self.layout.vdc_relay
 
-    @property
-    def tstat_common_relay(self) -> ShNode:
-        return self.layout.node(H0N.tstat_common_relay)
 
-    @property
-    def store_charge_discharge_relay(self) -> ShNode:
-        return self.layout.node(H0N.store_charge_discharge_relay)
-
-    @property
-    def hp_failsafe_relay(self) -> ShNode:
-        return self.layout.node(H0N.hp_failsafe_relay)
-
-    @property
-    def hp_scada_ops_relay(self) -> ShNode:
-        return self.layout.node(H0N.hp_scada_ops_relay)
-
-    @property
-    def thermistor_common_relay(self) -> ShNode:
-        return self.layout.node(H0N.thermistor_common_relay)
-
-    @property
-    def aquastat_control_relay(self) -> ShNode:
-        return self.layout.node(H0N.aquastat_ctrl_relay)
-
-    @property
-    def store_pump_failsafe(self) -> ShNode:
-        return self.layout.node(H0N.store_pump_failsafe)
-
-    @property
-    def primary_pump_scada_ops(self) -> ShNode:
-        """relay 11"""
-        return self.layout.node(H0N.primary_pump_scada_ops)
-    
-    @property
-    def primary_pump_failsafe(self) -> ShNode:
-        """relay 12"""
-        return self.layout.node(H0N.primary_pump_failsafe)
-
-    @property
-    def hp_loop_on_off(self) -> ShNode:
-        """relay 14"""
-        return self.layout.node(H0N.hp_loop_on_off)
-    
-    @property
-    def hp_loop_keep_send(self) -> ShNode:
-        """relay 15"""
-        return self.layout.node(H0N.hp_loop_keep_send)
-
-    def discharging_store(self) -> bool:
-        """
-        Returns True if the system is actively discharging the store:
-        - the charge/discharge relay is set to DischargingStore
-        - and the store pump is moving water above threshold
-        """
-        relay_state: SingleMachineState = self.data.latest_machine_state.get(
-            self.store_charge_discharge_relay.name
-        )
-
-        if relay_state.State != StoreFlowRelay.DischargingStore:
-            return False
-
-        store_flow = self.data.latest_channel_values.get(H0CN.store_flow) or 0
-
-        return store_flow > self.PUMP_FLOW_GPM_THRESHOLD * 100
-
-    def flowing_from_hp_to_house(self) -> bool:
-        """
-        Returns True if the water is flowing from heat pump to buffer/dist
-
-        Conditions:
-        - charge/discharge relay is set to DischargingStore
-        - primary pump is moving water above threshold
-        - Store is not being charged
-        """
-        relay_state: SingleMachineState = self.data.latest_machine_state.get(
-            self.store_charge_discharge_relay.name
-        )
-        if relay_state.State != StoreFlowRelay.DischargingStore:
-            return False
-
-        primary_flow = self.data.latest_channel_values.get(H0CN.primary_flow) or 0
-        return primary_flow > self.PUMP_FLOW_GPM_THRESHOLD * 100
-
-    def stat_failsafe_relay(self, zone: str) -> ShNode:
-        """
-        Returns the failsafe relay for the zone.
-        Raises a DcError if zone is not in the layout's zone_list
-        """
-        try:
-            i = self.layout.zone_list.index(zone)
-        except ValueError as e:
-            raise DcError(
-                f"Called stat_failsafe_relay for {zone} which does not exist!"
-            ) from e
-        return self.layout.node(ZoneNodes(zone=zone, idx=i).failsafe_relay)
-
-    def stat_ops_relay(self, zone: str) -> ShNode:
-        """
-        Returns the scada thermostat ops relay for the zone
-        Raises a DcError if zone is not in the layout's zone_list
-        """
-        try:
-            i = self.layout.zone_list.index(zone)
-        except ValueError as e:
-            raise Exception(
-                f"Called stat_failsafe_relay for {zone} which does not exist!"
-            ) from e
-        return self.layout.node(ZoneNodes(zone=zone, idx=i).ops_relay)
 
     ###############################
     # Relay controls
     ################################
 
-    def de_energize(self, relay: ShNode, from_node: Optional[ShNode] = None):
-        if relay.ActorClass != ActorClass.Relay:
-            self.log(f"Can only de-energize relays! ignoring energize {relay}")
-            return
-        component = cast(I2cMultichannelDtRelayComponent, relay.component)
-        relay_config = next(
-            (x for x in component.gt.ConfigList if x.ActorName == relay.name),
-            None,
-        )
-        if relay_config is None:
-            self.log(f"Unrecognized relay {relay.name}. Not de-energizing")
-            return
-        try:
-            event = FsmEvent(
-                FromHandle=self.node.handle if from_node is None else from_node.handle,
-                ToHandle=relay.handle,
-                EventType=relay_config.EventType,
-                EventName=relay_config.DeEnergizingEvent,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(relay, event, from_node)
-            self.log(f"{relay_config.DeEnergizingEvent} to {relay.name} (de-energizing)")
-        except ValidationError as e:
-            self.log(f"Tried to de-energize {relay.name} but didn't have the rights: {e}")
-
-    def energize(self, relay: ShNode, from_node: Optional[ShNode] = None):
-        if relay.ActorClass != ActorClass.Relay:
-            self.log(f"Can only de-energize relays! ignoring energize {relay}")
-            return
-        component = cast(I2cMultichannelDtRelayComponent, relay.component)
-        relay_config = next(
-            (x for x in component.gt.ConfigList if x.ActorName == relay.name),
-            None,
-        )
-        if relay_config is None:
-            self.log(f"Unrecognized relay {relay.name}. Not de-energizing")
-            return
-        try:
-            event = FsmEvent(
-                FromHandle=self.node.handle if from_node is None else from_node.handle,
-                ToHandle=relay.handle,
-                EventType=relay_config.EventType,
-                EventName=relay_config.EnergizingEvent,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(relay, event, from_node)
-            self.log(f"{relay_config.EnergizingEvent} to {relay.name} (energizing)")
-        except ValidationError as e:
-            self.log(f"Tried to energize {relay.name} but didn't have the rights: {e}")
-
-
-    def close_vdc_relay(self, trigger_id: Optional[str] = None, from_node: Optional[ShNode] = None) -> None:
-        """
-        Close vdc relay (de-energizing relay 1).
-        Will log an error and do nothing if not the boss of this relay
-        """
-        if trigger_id is None:
-            trigger_id = str(uuid.uuid4())
-        try:
-            event = FsmEvent(
-                FromHandle=self.node.handle if from_node is None else from_node.handle,
-                ToHandle=self.vdc_relay.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.CloseRelay,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=trigger_id,
-            )
-            self._send_to(self.vdc_relay, event, from_node)
-            self.log(f"CloseRelay to {self.vdc_relay.name}")
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def open_vdc_relay(self, trigger_id: Optional[str] = None, from_node: Optional[ShNode] = None) -> None:
-        """
-        Open vdc relay (energizing relay 1).
-        Will log an error and do nothing if not the boss of this relay
-        """
-        if trigger_id is None:
-            trigger_id = str(uuid.uuid4())
-        try:
-
-            event = FsmEvent(
-                FromHandle=self.node.handle if from_node is None else from_node.handle,
-                ToHandle=self.vdc_relay.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.OpenRelay,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=trigger_id,
-            )
-            self._send_to(self.vdc_relay, event, from_node)
-            self.log(f"OpenRelay to {self.vdc_relay.name}")
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def close_tstat_common_relay(self, from_node: Optional[ShNode] = None) -> None:
-        """
-        Close tstat common relay (de-energizing relay 2).
-        Will log an error and do nothing if not the boss of this relay
-        """
-        if from_node is None:
-            from_node = self.node
-        try:
-            event = FsmEvent(
-                FromHandle=from_node.handle,
-                ToHandle=self.tstat_common_relay.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.CloseRelay,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(self.tstat_common_relay, event, from_node)
-            self.log(f"{from_node.handle} sending CloseRelay to {self.tstat_common_relay.handle}")
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def open_tstat_common_relay(self, from_node: Optional[ShNode] = None) -> None:
-        """
-        Open tstat common relay (energizing relay 2).
-        Will log an error and do nothing if not the boss of this relay
-        """
-        if from_node is None:
-            from_node = self.node
-        try:
-            event = FsmEvent(
-                FromHandle=from_node.handle,
-                ToHandle=self.tstat_common_relay.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.OpenRelay,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(self.tstat_common_relay, event, from_node)
-            self.log(f"{from_node.handle} sending OpenRelay to {self.tstat_common_relay.handle}")
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def valved_to_discharge_store(self, from_node: Optional[ShNode] = None) -> None:
-        """
-        Set valves to discharge store (de-energizing) store_charge_discharge_relay (3).
-        Will log an error and do nothing if not the boss of this relay
-        """
-        if from_node is None:
-            from_node = self.node
-        try:
-            event = FsmEvent(
-                FromHandle=from_node.handle,
-                ToHandle=self.store_charge_discharge_relay.handle,
-                EventType=ChangeStoreFlowRelay.enum_name(),
-                EventName=ChangeStoreFlowRelay.DischargeStore,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(self.store_charge_discharge_relay, event, from_node)
-            self.log(
-                f"{from_node.handle} sending DischargeStore to Store ChargeDischarge {self.store_charge_discharge_relay.handle}"
-            )
-        except ValidationError as e:
-            self.log(f"Tried to change the charge/discharge store relay but didn't have the rights: {e}")
-
-    def valved_to_charge_store(self, from_node: Optional[ShNode] = None) -> None:
-        """
-        Set valves to charge store (energizing) store_charge_discharge_relay (3).
-        Will log an error and do nothing if not the boss of this relay
-        """
-        if from_node is None:
-            from_node = self.node
-        try:
-            event = FsmEvent(
-                FromHandle=from_node.handle,
-                ToHandle=self.store_charge_discharge_relay.handle,
-                EventType=ChangeStoreFlowRelay.enum_name(),
-                EventName=ChangeStoreFlowRelay.ChargeStore,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(self.store_charge_discharge_relay, event, from_node)
-            self.log(
-                f"{from_node.handle} sending ChargeStore to Store ChargeDischarge {self.store_charge_discharge_relay.handle}"
-            )
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def hp_failsafe_switch_to_aquastat(self, from_node: Optional[ShNode] = None) -> None:
-        """
-        Set the hp control to Aquastat by de-energizing hp_failsafe_relay (5)
-        Will log an error and do nothing if not the boss of this relay
-        """
-        if from_node is None:
-            from_node = self.node
-        try:
-            event = FsmEvent(
-                FromHandle=from_node.handle,
-                ToHandle=self.hp_failsafe_relay.handle,
-                EventType=ChangeHeatPumpControl.enum_name(),
-                EventName=ChangeHeatPumpControl.SwitchToTankAquastat,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(self.hp_failsafe_relay, event, from_node)
-            self.log(
-                f"{from_node.handle} sending SwitchToTankAquastat to Hp Failsafe {self.hp_failsafe_relay.handle}"
-            )
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def hp_failsafe_switch_to_scada(self, from_node: Optional[ShNode] = None) -> None:
-        """
-        Set the hp control to Scada by energizing hp_failsafe_relay (5)
-        Will log an error and do nothing if not the boss of this relay
-        """
-        if from_node is None:
-            from_node = self.node
-        try:
-            event = FsmEvent(
-                FromHandle=from_node.handle,
-                ToHandle=self.hp_failsafe_relay.handle,
-                EventType=ChangeHeatPumpControl.enum_name(),
-                EventName=ChangeHeatPumpControl.SwitchToScada,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(self.hp_failsafe_relay, event, from_node)
-            self.log(
-                f"{from_node.handle} sending SwitchToScada to Hp Failsafe {self.hp_failsafe_relay.handle}"
-            )
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def turn_on_HP(self, from_node: Optional[ShNode] = None) -> None:
-        """ Turn on heat pump
-
-        """
-        if from_node is None:
-            from_node = self.node
-
-        if self.layout.use_sieg_loop:
-            try:
-                event = FsmEvent(
-                    FromHandle=from_node.handle,
-                    ToHandle=self.hp_boss.handle,
-                    EventType=TurnHpOnOff.enum_name(),
-                    EventName=TurnHpOnOff.TurnOn,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=str(uuid.uuid4()),
-                )
-                self._send_to(self.hp_boss, event, from_node)
-                self.log(f"{from_node.handle} sending TurnOn to HpBoss {self.hp_boss.handle}")
-            except ValidationError as e:
-                self.log(f"Tried to tell HpBoss to turn on HP but didn't have rights: {e}")
-
-        else:
-            try:
-                event = FsmEvent(
-                    FromHandle=from_node.handle,
-                    ToHandle=self.hp_scada_ops_relay.handle,
-                    EventType=ChangeRelayState.enum_name(),
-                    EventName=ChangeRelayState.CloseRelay,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=str(uuid.uuid4()),
-                )
-                self._send_to(self.hp_scada_ops_relay, event, from_node)
-                self.log(f"{from_node.handle} sending CloseRelay to HpScadaOpsRelay {self.hp_scada_ops_relay.handle}")
-            except ValidationError as e:
-                self.log(f"Tried to tell HpScadaOpsRelay to turn on HP but didn't have rights: {e}")
-
-
-    def turn_off_HP(self, from_node: Optional[ShNode] = None) -> None:
-        """  Turn off heat pump by sending trigger to HpRelayBoss
-        
-        from_node defaults to self.node if no from_node sent.
-        Will log an error and do nothing if from_node is not the boss of HpRelayBoss
-        """
-        if from_node is None:
-            from_node = self.node
-
-        if self.layout.use_sieg_loop:
-            try:
-                event = FsmEvent(
-                    FromHandle=from_node.handle,
-                    ToHandle=self.hp_boss.handle,
-                    EventType=TurnHpOnOff.enum_name(),
-                    EventName=TurnHpOnOff.TurnOff,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=str(uuid.uuid4()),
-                )
-                self._send_to(self.hp_boss, event, from_node)
-                self.log(f"{from_node.handle} sending TurnOff to HpBoss {self.hp_boss.handle}")
-            except ValidationError as e:
-                self.log(f"Tried to tell HpBoss to turn off HP but didn't have rights: {e}")
-        else:
-            try:
-                event = FsmEvent(
-                    FromHandle=from_node.handle,
-                    ToHandle=self.hp_scada_ops_relay.handle,
-                    EventType=ChangeRelayState.enum_name(),
-                    EventName=ChangeRelayState.OpenRelay,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=str(uuid.uuid4()),
-                )
-                self._send_to(self.hp_scada_ops_relay, event, from_node)
-                self.log(
-                    f"{from_node.handle} sending OpenRelay to HpScadaOpsRelay {self.hp_scada_ops_relay.handle}"
-                )
-            except ValidationError as e:
-                self.log(f"Tried to tell HpScadaOpsRelay to turn off HP but didn't have rights: {e}")
-
-    def aquastat_ctrl_switch_to_boiler(self, from_node: Optional[ShNode] = None) -> None:
-        """
-        Switch Aquastat ctrl from Scada to boiler by de-energizing aquastat_control_relay (8).
-        Will log an error and do nothing if not the boss of this relay
-        """
-        if from_node is None:
-            from_node = self.node
-        try:
-            event = FsmEvent(
-                FromHandle=from_node.handle,
-                ToHandle=self.aquastat_control_relay.handle,
-                EventType=ChangeAquastatControl.enum_name(),
-                EventName=ChangeAquastatControl.SwitchToBoiler,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(self.aquastat_control_relay, event, from_node)
-            self.log(
-                f"{from_node.handle} sending SwitchToBoiler to Boiler Ctrl {self.aquastat_control_relay.handle}"
-            )
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def aquastat_ctrl_switch_to_scada(self, from_node: Optional[ShNode] = None) -> None:
-        """
-        Switch Aquastat ctrl from boiler to Scada by energizing aquastat_control_relay (8).
-        Will log an error and do nothing if not the boss of this relay
-        """
-        if from_node is None:
-            from_node = self.node
-        try:
-            event = FsmEvent(
-                FromHandle=from_node.handle,
-                ToHandle=self.aquastat_control_relay.handle,
-                EventType=ChangeAquastatControl.enum_name(),
-                EventName=ChangeAquastatControl.SwitchToScada,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(self.aquastat_control_relay, event, from_node)
-            self.log(
-                f"{from_node.handle} sending SwitchToScada to Aquastat Ctrl {self.aquastat_control_relay.handle}"
-            )
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def turn_off_store_pump(self, command_node: ShNode | None = None) -> None:
-        """
-        Turn off the store pump by opening (de-energizing) store_pump_failsafe relay (9).
-        Will log an error and do nothing if not the boss of this relay
-        """
-        if command_node is None:
-            command_node = self.node
-        try:
-            event = FsmEvent(
-                FromHandle=self.node.handle if command_node is None else command_node.handle,
-                ToHandle=self.store_pump_failsafe.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.OpenRelay,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(self.store_pump_failsafe, event, command_node)
-            self.log(
-                f"{command_node.handle} sending OpenRelay to StorePump OnOff {self.store_pump_failsafe.handle}"
-            )
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def turn_on_store_pump(self, command_node:  ShNode | None = None) -> None:
-        """
-        Turn on the store pump by closing (energizing) store_pump_failsafe relay (9).
-        Will log an error and do nothing if not the boss of this relay
-        """
-        if command_node is None:
-            command_node = self.node
-        try:
-            event = FsmEvent(
-                FromHandle=command_node.handle,
-                ToHandle=self.store_pump_failsafe.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.CloseRelay,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(self.store_pump_failsafe, event, command_node)
-            self.log(
-                f"{self.node.handle if command_node is None else command_node.handle} sending CloseRelay to StorePump OnOff {self.store_pump_failsafe.handle}"
-            )
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def primary_pump_failsafe_to_hp(self, from_node: Optional[ShNode] = None) -> None:
-        """
-        Set heat pump to having direct control over primary pump by de-energizing
-        primary_pump_failsafe_relay (12).
-        Will log an error and do nothing if not the boss of this relay
-        """
-        if from_node is None:
-            from_node = self.node
-        try:
-            event = FsmEvent(
-                FromHandle=from_node.handle,
-                ToHandle=self.primary_pump_failsafe.handle,
-                EventType=ChangePrimaryPumpControl.enum_name(),
-                EventName=ChangePrimaryPumpControl.SwitchToHeatPump,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(self.primary_pump_failsafe, event, from_node)
-            self.log(
-                f"{from_node.handle} sending SwitchToHeatPump to {self.primary_pump_failsafe.handle}"
-            )
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def primary_pump_failsafe_to_scada(self, from_node: Optional[ShNode] = None) -> None:
-        """
-        Set Scada to having direct control over primary pump by energizing
-        primary_pump_failsafe_relay (12).
-        Will log an error and do nothing if not the boss of this relay.
-        """
-        if from_node is None:
-            from_node = self.node
-        try:
-            event = FsmEvent(
-                FromHandle=from_node.handle,
-                ToHandle=self.primary_pump_failsafe.handle,
-                EventType=ChangePrimaryPumpControl.enum_name(),
-                EventName=ChangePrimaryPumpControl.SwitchToScada,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(self.primary_pump_failsafe, event, from_node)
-            self.log(
-                f"{self.node.handle if from_node is None else from_node.handle} sending SwitchToHeatPump to {self.primary_pump_failsafe.handle}"
-            )
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def turn_off_primary_pump(self, from_node: Optional[ShNode] = None) -> None:
-        """
-        Turn off primary pump (if under Scada control) by de-energizing
-        primary_pump_scada_ops (11).
-        Will log an error and do nothing if not the boss of this relay.
-        """
-        if from_node is None:
-            from_node = self.node
-        try:
-            event = FsmEvent(
-                FromHandle=from_node.handle,
-                ToHandle=self.primary_pump_scada_ops.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.OpenRelay,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(self.primary_pump_scada_ops, event, from_node)
-            self.log(
-                f"{self.node.handle if from_node is None else from_node.handle} sending OpenRelay to {self.primary_pump_scada_ops.handle}"
-            )
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def turn_on_primary_pump(self, from_node: Optional[ShNode] = None) -> None:
-        """
-        Turn on primary pump (if under Scada control) by energizing
-        primary_pump_scada_ops (11).
-        Will log an error and do nothing if not the boss of this relay.
-        """
-        if from_node is None:
-            from_node = self.node
-        try:
-            event = FsmEvent(
-                FromHandle=from_node.handle,
-                ToHandle=self.primary_pump_scada_ops.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.CloseRelay,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(self.primary_pump_scada_ops, event, from_node)
-            self.log(
-                f"{self.node.handle if from_node is None else from_node.handle} sending CloseRelay to {self.primary_pump_scada_ops.handle}"
-            )
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def sieg_valve_active(self, from_node: Optional[ShNode] = None) -> None:
-        """
-        Activate the valve controlling how much water is flowing out of the
-        Siegenthaler loop. This will result in the flow out beginning to decrease
-        if relay 15 is in SendLess position, or beginning to increase if relay 15
-        is in the SendMore position. De-energized state
-        """
-        if from_node is None:
-            from_node = self.node
-        try:
-            event = FsmEvent(
-                FromHandle=from_node.handle,
-                ToHandle=self.hp_loop_on_off.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.CloseRelay,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(self.hp_loop_on_off, event, from_node)
-            self.log(
-                f"{from_node.handle} sending CloseRelay to HpLoopOnOff relay {self.hp_loop_on_off.handle}"
-            )
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def sieg_valve_dormant(self, from_node: Optional[ShNode] = None) -> None:
-        """
-        Stop sending a signal to move the valve controlling how much water is 
-        flowing out of the Siegenthaler loop.  Energized state.
-        """
-        if from_node is None:
-            from_node = self.node
-        try:
-            event = FsmEvent(
-                FromHandle=from_node.handle,
-                ToHandle=self.hp_loop_on_off.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.OpenRelay,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(self.hp_loop_on_off, event, from_node)
-            self.log(
-                f"{from_node.handle} sending OpenRelay to HpLoopOnOff relay {self.hp_loop_on_off.handle}"
-            )
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def change_to_hp_keep_less(self, from_node: Optional[ShNode] = None) -> None:
-        """
-        Sets the Keep/Send relay so that if relay 14 is On, the Siegenthaler
-        valve moves towards sending MORE water out of the Siegenthaler loop (SendMore)
-        """
-        if from_node is None:
-            from_node = self.node
-        try:
-            event = FsmEvent(
-                FromHandle=from_node.handle,
-                ToHandle=self.hp_loop_keep_send.handle,
-                EventType=ChangeKeepSend.enum_name(),
-                EventName=ChangeKeepSend.ChangeToKeepLess,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(self.hp_loop_keep_send, event, from_node)
-            self.log(
-                f"{from_node.handle} sending SendMore to HpLoopKeepSend relay {self.hp_loop_keep_send.handle}"
-            )
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def change_to_hp_keep_more(self, from_node: Optional[ShNode] = None) -> None:
-        """
-        Sets the Keep/Send relay so that if relay 15 is On, the Siegenthaler
-        valve moves towards sending LESS water out of the Siegenthaler loop (SendLess)
-        """
-        if from_node is None:
-            from_node = self.node
-        try:
-            event = FsmEvent(
-                FromHandle=from_node.handle,
-                ToHandle=self.hp_loop_keep_send.handle,
-                EventType=ChangeKeepSend.enum_name(),
-                EventName=ChangeKeepSend.ChangeToKeepMore,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(self.hp_loop_keep_send, event, from_node)
-            self.log(
-                f"{from_node.handle} sending SendLessto HpLoopKeepSend relay {self.hp_loop_keep_send.handle}"
-            )
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def heatcall_ctrl_to_scada(self, zone: str, command_node: ShNode | None = None) -> None:
-        """
-        Take over thermostatic control of the zone from the wall thermostat
-        by energizing appropriate relay.
-        Will log an error and do nothing if not the boss of this relay.
-        """
-        if command_node is None:
-            command_node = self.node
-        if zone not in self.layout.zone_list:
-            self.log(f"{zone} not a recongized zone!")
-            return
-        try:
-            event = FsmEvent(
-                FromHandle=self.node.handle if command_node is None else command_node.handle,
-                ToHandle=self.stat_failsafe_relay(zone).handle,
-                EventType=ChangeHeatcallSource.enum_name(),
-                EventName=ChangeHeatcallSource.SwitchToScada,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-
-            self._send_to(self.stat_failsafe_relay(zone), event, command_node)
-            self.log(
-                f"{command_node.handle} sending SwitchToScada to {self.stat_failsafe_relay(zone).handle} (zone {zone})"
-            )
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def heatcall_ctrl_to_stat(self, zone: str, command_node: ShNode| None = None) -> None:
-        """
-        Return control of the whitewire heatcall signal to the wall thermostat
-        by de-energizing appropriate relay.
-
-        If provided command_node is None, command_node defaults to self.node
-
-        Will log an error and do nothing if not the boss of this relay.
-        """
-        if command_node is None:
-            command_node = self.node
-        if zone not in self.layout.zone_list:
-            self.log(f"{zone} not a recongized zone!")
-            return
-        try:
-            event = FsmEvent(
-                FromHandle=command_node.handle,
-                ToHandle=self.stat_failsafe_relay(zone).handle,
-                EventType=ChangeHeatcallSource.enum_name(),
-                EventName=ChangeHeatcallSource.SwitchToWallThermostat,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(self.stat_failsafe_relay(zone), event, command_node)
-            self.log(
-                f"{command_node.handle} sending SwitchToWallThermostat to {self.stat_failsafe_relay(zone).handle} (zone {zone})"
-            )
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def stat_ops_close_relay(self, zone: str, command_node: ShNode | None = None) -> None:
-        """
-        Close (energize) the ScadaOps relay for associated zone. Will send a heatcall on the white
-        wire IF the associated failsafe relay is energized (switched to SCADA).
-        Will log an error and do nothing if not the boss of this relay.
-        """
-        if command_node is None:
-            command_node = self.node
-        if zone not in self.layout.zone_list:
-            self.log(f"{zone} not a recongized zone!")
-            return
-        try:
-            event = FsmEvent(
-                FromHandle=command_node.handle,
-                ToHandle=self.stat_ops_relay(zone).handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.CloseRelay,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(self.stat_ops_relay(zone), event, command_node)
-            self.log(
-                f"{command_node.handle} sending CloseRelay to {self.stat_ops_relay(zone).handle} (zone {zone})"
-            )
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def stat_ops_open_relay(self, zone: str, command_node: ShNode | None = None) -> None:
-        """
-        Open (de-energize) the ScadaOps relay for associated zone. Will send 0 on the white
-        wire IF the associated failsafe relay is energized (switched to SCADA).
-        Will log an error and do nothing if not the boss of this relay.
-        """
-        if command_node is None:
-            command_node = self.node
-        if zone not in self.layout.zone_list:
-            self.log(f"{zone} not a recongized zone!")
-            return
-        try:
-            event = FsmEvent(
-                FromHandle=command_node.handle,
-                ToHandle=self.stat_ops_relay(zone).handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.OpenRelay,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(self.stat_ops_relay(zone), event, command_node)
-            self.log(
-                f"{command_node.handle} sending OpenRelay to {self.stat_ops_relay(zone).handle} (zone {zone})"
-            )
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def set_010_defaults(self, command_node: ShNode | None = None) -> None:
-        """
-        Sets default 0-10V values for those actuators that are direct reports
-        of the h.n (home alone normal node).
-        """
-        if command_node is None:
-            command_node = self.node
-
-        dfr_component = cast(DfrComponent, self.layout.node(H0N.zero_ten_out_multiplexer).component)
-        commanded_010s = {
-            node
-            for node in self.my_actuators()
-            if node.ActorClass == ActorClass.ZeroTenOutputer and
-            self.the_boss_of(node) == command_node
-        }
-
-        for dfr_node in commanded_010s:
-            dfr_config = next(
-                    config
-                    for config in dfr_component.gt.ConfigList
-                    if config.ChannelName == dfr_node.name
-                )
-            self._send_to(
-                dst=dfr_node,
-                payload=AnalogDispatch(
-                    FromGNodeAlias=self.layout.scada_g_node_alias,
-                    FromHandle=command_node.handle,
-                    ToHandle=dfr_node.handle,
-                    AboutName=dfr_node.Name,
-                    Value=dfr_config.InitialVoltsTimes100,
-                    TriggerId=str(uuid.uuid4()),
-                    UnixTimeMs=int(time.time() * 1000),
-                ),
-                src=command_node
-            )
-            self.log(f"Just set {dfr_node.handle} to {dfr_config.InitialVoltsTimes100} from {command_node.handle} ")
-
     @property
-    def boss(self) -> ShNode:
-        if ".".join(self.node.handle.split(".")[:-1]) == "":
-            return self.node
+    def layout_type_name(self) -> str:
+        """The sema layout word this scada's layout was loaded from
+        ("gw.nolan.layout", "house0.layout") — stamped by the loader;
+        empty for a legacy runtime-shaped layout file."""
+        return self.layout.layout_type_name
 
-        boss_handle = ".".join(self.node.handle.split(".")[:-1])
-        return next(n for n in self.layout.nodes.values() if n.handle == boss_handle)
+    def check_required_nodes(self, names: typing.Sequence[str]) -> None:
+        """Fail-fast double-check of an actor's declared REQUIRED_NODES
+        list against the layout: every name must resolve, or construction
+        crashes (the layout word's axioms should have made this
+        impossible)."""
+        for name in names:
+            self.required_node(name)
 
-    def the_boss_of(self, node: ShNode) -> Optional[ShNode]:
-        if node.Handle == node.Name:
-            return None
-        if node.Handle is None:
-            return None
-        boss_name= node.Handle.split(".")[-2]
-        return self.layout.node(boss_name, None)
+    def required_node(self, name: str) -> ShNode:
+        """A node the layout contract forces to exist (the layout word's
+        axioms guarantee it). A miss means the contract was bypassed —
+        Glitch, then crash. Never run partially blind."""
+        node = self.layout.node(name)
+        if node is None:
+            contract = (
+                f"a {self.layout_type_name} axiom"
+                if self.layout_type_name
+                else "the layout contract"
+            )
+            try:
+                self._send_to(
+                    self.primary_scada,
+                    Glitch(
+                        FromGNodeAlias=self.layout.scada_g_node_alias,
+                        Node=self.name,
+                        Type=LogLevel.Critical,
+                        Summary="required-node-missing",
+                        Details=(
+                            f"{self.name}: required node {name} absent from "
+                            f"the layout — {contract} was bypassed"
+                        ),
+                    ),
+                )
+            except Exception:  # noqa: BLE001 — the glitch is best-effort;
+                pass  # a failed send must never mask the crash
+            raise ValueError(
+                f"{self.name}: required node {name} absent from layout "
+                f"({contract} was bypassed)"
+            )
+        return node
 
-    def direct_reports(self, boss: Optional[ShNode] = None) -> list[ShNode]:
-        if boss is None:
-            boss = self.node
-        return [n for n in self.layout.nodes.values() if self.the_boss_of(n) == boss]
 
-    def set_hierarchical_fsm_handles(self, boss_node: ShNode) -> None:
-        """
-        ```
-        boss
-        ├────────────────────── hp-boss
-        └─────sieg-loop         └── relay6 (hp_scada_ops_relay)
-                ├─ relay14 (hp_loop_on_off)
-                └─ relay15 (hp_loop_keep_send)
-        ```
-        """
-        if not self.layout.use_sieg_loop:
-            raise Exception("don't call this unless layout uses sieg loop")
-        self.log(f"Setting fsm handles under {boss_node.name}")
-        hp_boss = self.layout.node(H0N.hp_boss)
-        hp_boss.Handle = f"{boss_node.handle}.{hp_boss.Name}"
 
-        scada_ops_relay = self.layout.node(H0N.hp_scada_ops_relay)
-        scada_ops_relay.Handle = f"{hp_boss.Handle}.{scada_ops_relay.Name}"
 
-        sieg_loop = self.layout.node(H0N.sieg_loop)
-        sieg_loop.Handle = f"{boss_node.handle}.{sieg_loop.Name}"
 
-        sieg_keep_send =  self.layout.node(H0N.hp_loop_keep_send)
-        sieg_keep_send.Handle = f"{sieg_loop.Handle}.{sieg_keep_send.Name}"
 
-        sieg_on_off = self.layout.node(H0N.hp_loop_on_off)
-        sieg_on_off.Handle = f"{sieg_loop.Handle}.{sieg_on_off.Name}"
 
-    def set_command_tree(self, boss_node: ShNode) -> None:
-        """
-        If FlowManifoldVariant is House0Sieg:
-           ```
-            boss
-            ├─────────────────────────────────────────── hp-boss
-            ├───────────────────────────sieg-loop           └── relay6 (hp_scada_ops_relay)
-            ├                             ├─ relay14 (hp_loop_on_off)
-            ├── relay1 (vdc)              └─ relay15 (hp_loop_keep_send)
-            ├── relay2 (tstat_common)
-            └── all other relays and 0-10s
-        ```
-        If FlowManifoldVariant is House0, all actuators report directly to boss
-        Throws exception if boss_node is not in my chain of command
-        """
 
-        my_handle_prefix = f"{self.node.handle}."
-        if not boss_node.handle.startswith(my_handle_prefix) and boss_node != self.node:
-            raise Exception(f"{self.node.handle} cannot set command tree for boss_node {boss_node.handle}!")
 
-        if self.layout.use_sieg_loop:
-            self.set_hierarchical_fsm_handles(boss_node)
-            for node in self.my_actuators():
-                if node.Name not in [H0N.hp_scada_ops_relay, H0N.hp_loop_keep_send, H0N.hp_loop_on_off]:
-                    node.Handle =  f"{boss_node.handle}.{node.Name}"
-        else:
-            for node in self.my_actuators():
-                node.Handle =  f"{boss_node.handle}.{node.Name}"
 
-        self._send_to(
-            self.ltn,
-            NewCommandTree(
-                FromGNodeAlias=self.layout.scada_g_node_alias,
-                ShNodes=list(self.layout.nodes.values()),
-                UnixMs=int(time.time() * 1000),
-            ),
-        )
-        self.log(f"Set {boss_node.handle} command tree")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     def _send_to(self, dst: ShNode, payload: Any, src: Optional[ShNode] = None) -> None:
         if dst is None:
@@ -1222,7 +255,7 @@ class ShNodeActor(Actor, ABC):
             src = self.node
         # HACK FOR nodes whose 'actors' are handled by their parent's communicator
         communicator_by_name = {dst.Name: dst.Name}
-        communicator_by_name[H0N.local_control_normal] = H0N.local_control
+        communicator_by_name[CoreNodeNames.local_control_normal] = CoreNodeNames.local_control
         
         message = Message(Src=src.name, Dst=communicator_by_name[dst.Name], Payload=payload)
 
@@ -1230,7 +263,7 @@ class ShNodeActor(Actor, ABC):
             self.name
         }:  # noqa: SLF001
             self.services.send(message)
-        elif dst.Name == H0N.admin:
+        elif dst.Name == CoreNodeNames.admin:
             self.services.publish_message(
                 link_name=self.services.prime_actor.ADMIN_MQTT,
                 message=Message(
@@ -1238,7 +271,7 @@ class ShNodeActor(Actor, ABC):
                 ),
                 qos=QOS.AtMostOnce,
             ) # noqa: SLF001
-        elif dst.Name == H0N.ltn:
+        elif dst.Name == CoreNodeNames.ltn:
             self.services.publish_upstream(payload)  # noqa: SLF001
         else:
             self.services.publish_message(
@@ -1257,406 +290,31 @@ class ShNodeActor(Actor, ABC):
     def heating_forecast(self) -> HeatingForecast | None:
         return self.data.heating_forecast
 
-    def odu_pwr(self) -> Optional[float]:
-        """Returns the latest Heat Pump outdoor unit power in Watts, or None
-        if it does not exist"""
-        odu_pwr_channel = self.layout.channel(H0CN.hp_odu_pwr)
-        assert odu_pwr_channel.TelemetryName == TelemetryName.PowerW
-        return self.data.latest_channel_values.get(H0CN.hp_odu_pwr)
 
-    def idu_pwr(self) -> Optional[float]:
-        """Returns the latest Heat Pump indoor unit power in Watts, or None
-        if it does not exist"""
-        idu_pwr_channel = self.layout.channel(H0CN.hp_idu_pwr)
-        assert idu_pwr_channel.TelemetryName == TelemetryName.PowerW
-        return self.data.latest_channel_values.get(H0CN.hp_idu_pwr)
 
     #-----------------------------------------------------------------------
     # Defrost related
     #-----------------------------------------------------------------------
 
-    def hp_in_defrost(self) -> bool:
-        odu = self.odu_pwr()
-        idu = self.idu_pwr()
-        if odu is None or idu is None:
-            return False
-        hp_model = self.settings.hp_model
-        if hp_model in (HpModel.SamsungFourTonneHydroKit, HpModel.SamsungFiveTonneHydroKit):
-            return idu < 4000
-        elif hp_model == HpModel.LgHighTempHydroKitPlusMultiV:
-            return odu + idu < 8400
-        return False
 
     #-----------------------------------------------------------------------
     # Temperature related
     #-----------------------------------------------------------------------
 
-    @property
-    def latest_temps_f(self) -> dict[str, float]:
-        return self.data.latest_temperatures_f
 
-    @property
-    def buffer_temps_available(self):
-        return self.data.buffer_temps_available
 
-    def is_buffer_empty(self, all_tanks_leaf_ally=False) -> bool:
-        """
-        Returns True if the buffer does not contain enough usable heat
-        to meet the near-term required return-water temperature.
 
-        Uses the coldest available top-of-buffer measurement and the
-        maximum required RWT minus delta-T over the next few hours.
 
-        If forecasts are unavailable, returns False (cannot assert empty).
-        """
 
-        # Select the best available "top of buffer" temperature channel
-        if all_tanks_leaf_ally and self.ops.ShortCycleBuffer and H0CN.buffer.depth3 in self.latest_temps_f:
-            buffer_empty_ch = H0CN.buffer.depth3
-        elif H0CN.buffer.depth1 in self.latest_temps_f:
-            buffer_empty_ch = H0CN.buffer.depth1
-        elif H0CN.dist_swt in self.latest_temps_f:
-            buffer_empty_ch = H0CN.dist_swt
-        else:
-            # No meaningful buffer temperature available
-            self.log("is_buffer_empty: no buffer temperature channel available")
-            return False
 
-        if self.heating_forecast is None:
-            # Cannot reason about emptiness without forecast context
-            self.log("is_buffer_empty: no heating forecast available")
-            return False
 
-        # Conservative near-term requirement (next ~3 hours)
-        max_rswt = max(self.heating_forecast.RswtF[:3])
-        max_delta_t = max(self.heating_forecast.RswtDeltaTF[:3])
-        if all_tanks_leaf_ally and self.ops.ShortCycleBuffer:
-            min_buffer_temp_f = round(max_rswt - max_delta_t, 1)
-        else:
-            min_buffer_temp_f = round(max_rswt, 1)
 
-        min_buffer_temp_f = min(min_buffer_temp_f, self.data.ha1_params.MaxEwtF-10)
-        buffer_temp_f = self.latest_temps_f[buffer_empty_ch]
 
-        if buffer_temp_f < min_buffer_temp_f:
-            self.log(
-                f"Buffer empty ({buffer_empty_ch}: {buffer_temp_f} < {min_buffer_temp_f} F), RSWT is {max_rswt}F"
-            )
-            return True
-        else:
-            self.log(
-                f"Buffer not empty ({buffer_empty_ch}: {buffer_temp_f} >= {min_buffer_temp_f} F), RSWT is {max_rswt}F"
-            )
-            return False
 
-    def is_buffer_full(self) -> bool:
-        """
-        Returns True if the buffer is considered thermally full relative to
-        near-term heating requirements.
 
-        Prefers the coldest buffer layer (depth3) as the authoritative signal.
-        If unavailable, may infer buffer fullness from proxy temperatures
-        (e.g. buffer cold pipe or store cold pipe while discharging), emitting
-        an informational glitch when doing so.
-        """
-        used_proxy: bool = True
 
-        if H0CN.buffer.depth3 in self.latest_temps_f:
-            buffer_full_ch = H0CN.buffer.depth3
-            used_proxy = False
-        elif H0CN.buffer_cold_pipe in self.latest_temps_f: # Note: often not even installed
-            buffer_full_ch = H0CN.buffer_cold_pipe
-
-        elif (
-            self.discharging_store()
-            and H0CN.store_cold_pipe in self.latest_temps_f
-        ):
-            buffer_full_ch = H0CN.store_cold_pipe
-        elif (
-            self.flowing_from_hp_to_house()
-            and H0CN.hp_ewt in self.latest_temps_f
-        ):
-            buffer_full_ch = H0CN.hp_ewt
-        else:
-            return False
-
-        if used_proxy:
-            self.send_info(
-                summary="Buffer full inferred from proxy temperature",
-                details=(
-                    f"Depth3 unavailable; using {used_proxy} "
-                    f"({buffer_full_ch}) to infer buffer-full state."
-                ),
-            )
-
-        if self.heating_forecast is None:
-            max_buffer = self.data.ha1_params.MaxEwtF
-            max_rswt = 0
-        else:
-            max_rswt = round(max(self.heating_forecast.RswtF[:3]), 1)
-            max_buffer = min(max_rswt, self.data.ha1_params.MaxEwtF)
-
-        buffer_full_ch_temp = self.latest_temps_f[buffer_full_ch]
-        if buffer_full_ch_temp > max_buffer:
-            self.log(
-                f"Buffer full ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F), RSWT is {max_rswt} F"
-            )
-            return True
-        else:
-            self.log(
-                f"Buffer not full ({buffer_full_ch}: {buffer_full_ch_temp} <= {max_buffer} F), RSWT is {max_rswt} F"
-            )
-            return False
-
-    def is_buffer_full_alt(self) -> bool:
-        """
-        Reorganization of the default to hp_ewt IF there is water flowing from the hp to the house,
-        otherwise tank 3
-        """
-        if (
-            self.flowing_from_hp_to_house()
-            and H0CN.hp_ewt in self.latest_temps_f
-        ):
-            buffer_full_ch = H0CN.hp_ewt
-
-        elif H0CN.buffer.depth3 in self.latest_temps_f:
-            buffer_full_ch = H0CN.buffer.depth3
-
-        elif H0CN.buffer_cold_pipe in self.latest_temps_f:
-            buffer_full_ch = H0CN.buffer_cold_pipe
-        
-        elif ( 
-            self.discharging_store()
-            and H0CN.store_cold_pipe in self.latest_temps_f
-        ):
-            buffer_full_ch = H0CN.store_cold_pipe
-
-        else:
-            return False
-
-        if self.heating_forecast is None:
-            max_buffer = self.data.ha1_params.MaxEwtF
-        else:
-            max_buffer = round(max(self.heating_forecast.RswtF[:3]), 1)
-            max_buffer = min(max_buffer, self.data.ha1_params.MaxEwtF)
-
-        buffer_full_ch_temp = self.latest_temps_f[buffer_full_ch]
-        if buffer_full_ch_temp > max_buffer:
-            self.log(
-                f"Buffer full ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)"
-            )
-            return True
-        else:
-            self.log(
-                f"Buffer not full ({buffer_full_ch}: {buffer_full_ch_temp} <= {max_buffer} F)"
-            )
-            return False
-
-    def is_buffer_charge_limited(self) -> bool:
-        """
-        Returns True if the buffer cannot accept more heat without exceeding MaxEwtF.
-        This is a physical limit.
-        """
-        if H0CN.hp_ewt in self.latest_temps_f and self.flowing_from_hp_to_house():
-            channel_used = H0CN.hp_ewt
-        elif H0CN.buffer_cold_pipe in self.latest_temps_f:
-            channel_used = H0CN.buffer_cold_pipe
-        elif H0CN.buffer.depth3 in self.latest_temps_f:
-            channel_used = H0CN.buffer.depth3
-        else:
-            return False
-
-        if self.latest_temps_f[channel_used] >= self.data.ha1_params.MaxEwtF:
-            self.log(f"{channel_used}: {self.latest_temps_f[channel_used]} F >= {self.data.ha1_params.MaxEwtF} F")
-            return True
-        else:
-            self.log(f"{channel_used}: {self.latest_temps_f[channel_used]} F < {self.data.ha1_params.MaxEwtF} F")
-            return False
-
-    def is_storage_colder_than_buffer(self, min_delta_f: float = 5.4, all_tanks_leaf_ally: bool = False) -> bool:
-        """
-        Returns True if the top of the storage is at least `min_delta_f` colder
-        than the top of the buffer.
-        If all_tanks_leaf_ally is True, uses the depth3 layer of the buffer instead.
-
-        Pure physical predicate:
-        - Returns False if required temperatures are unavailable
-        """
-        # --- Determine buffer top ---
-        if H0CN.buffer.depth1 in self.latest_temps_f:
-            buffer_top = H0CN.buffer.depth1
-        elif H0CN.buffer.depth2 in self.latest_temps_f:
-            buffer_top = H0CN.buffer.depth2
-        elif H0CN.buffer.depth3 in self.latest_temps_f:
-            buffer_top = H0CN.buffer.depth3
-        elif H0CN.buffer_cold_pipe in self.latest_temps_f:
-            buffer_top = H0CN.buffer_cold_pipe
-        elif not all_tanks_leaf_ally or not self.ops.ShortCycleBuffer:
-            return False
-
-        # --- Determine storage top ---
-        if self.h0cn.tank and self.h0cn.tank[1].depth1 in self.latest_temps_f:
-            tank_top = self.h0cn.tank[1].depth1
-        elif H0CN.store_hot_pipe in self.latest_temps_f:
-            tank_top = H0CN.store_hot_pipe
-        elif H0CN.buffer_hot_pipe in self.latest_temps_f:
-            tank_top = H0CN.buffer_hot_pipe
-        else:
-            return False
-
-        # --- Determine buffer bottom ---
-        if all_tanks_leaf_ally and self.ops.ShortCycleBuffer:
-            if H0CN.buffer.depth3 in self.latest_temps_f:
-                buffer_bottom = H0CN.buffer.depth3
-            elif H0CN.buffer.depth2 in self.latest_temps_f:
-                buffer_bottom = H0CN.buffer.depth2
-            elif H0CN.buffer.depth1 in self.latest_temps_f:
-                buffer_bottom = H0CN.buffer.depth1
-            else:
-                return False
-            return self.latest_temps_f[buffer_bottom] > self.latest_temps_f[tank_top]
-
-        return self.latest_temps_f[buffer_top] > self.latest_temps_f[tank_top] + min_delta_f
-
-    def is_storage_empty(self):
-        if self.usable_kwh < 0.2:
-            return True
-        else:
-            return False
-
-    @property
-    def usable_kwh(self) -> float:
-        """
-        Latest usable thermal energy in kWh, derived from SCADA channel.
-        Returns 0 if not yet available.
-        """
-        val =  self.data.latest_channel_values.get(H0CN.usable_energy, 0)
-        if val is None:
-            val = 0
-        return val / 1000
-
-    @property
-    def required_kwh(self) -> float:
-        """
-        Latest required thermal energy in kWh, derived from SCADA channel.
-        Returns 0 if not yet available.
-        """
-        val = self.data.latest_channel_values.get(H0CN.required_energy, 0)
-        if val is None:
-            val = 0
-        return  val / 1000
-
-    def fill_missing_store_temps(self):
-        """
-        Assumes stratified tank; missing layers are filled from colder layers below,
-        using store_cold_pipe or a minimum plausible temperature as baseline.
-        """
-        all_store_layers = []
-        for tank_idx in sorted(self.h0cn.tank):
-            tank = self.h0cn.tank[tank_idx]
-            all_store_layers.extend([tank.depth1, tank.depth2, tank.depth3])
-
-        # TODO: raise WarningGlitch for temp > MAX_VALID_TANK_TEMP_F
-        for layer in all_store_layers:
-            value = self.data.latest_temperatures_f.get(layer)
-            if (
-                value is None
-                or value < self.MIN_USED_TANK_TEMP_F
-                or value > self.MAX_VALID_TANK_TEMP_F
-            ):
-                self.data.latest_temperatures_f.pop(layer, None)
-
-        value_below = self.data.latest_temperatures_f.get(
-            self.h0cn.store_cold_pipe,
-            self.MIN_USED_TANK_TEMP_F,
-        )
-
-        for layer in reversed(all_store_layers):
-            if layer not in self.data.latest_temperatures_f:
-                self.data.latest_temperatures_f[layer] = value_below
-            value_below = self.data.latest_temperatures_f[layer]
-
-    def get_temperatures(self) -> None:
-        """
-        1. Updates data.latest_temperatures_f with data from latest_channel_values
-        2. Updates buffer_available state
-        3. May fill tank temperatures (not buffer) if some are missing and can be
-           interpolated
-        """
-
-        if not self.settings.is_simulated:
-            temps: dict[str, float] = {}
-
-            for ch_name in self.temperature_channel_names:
-                raw = self.data.latest_channel_values.get(ch_name)
-                if raw is None:
-                    continue
-
-                try:
-                    unit = self.layout.channel_registry.unit(ch_name)
-                    if unit is None:
-                        raise Exception(
-                            f"temperature channels should have units! {ch_name}"
-                        )
-                    temp_f = convert_temp_to_f(
-                        raw=raw,
-                        encoding=unit
-                    )
-                except Exception as e:
-                    note = f"Temperature conversion failed for {ch_name}: {e}"
-                    self.log(note)
-                    self.send_warning(summary=note, details="")  
-                    continue
-                if temp_f is None:
-                    continue
-
-                temps[ch_name] = round(temp_f, 1)
-
-            self.data.latest_temperatures_f = temps
-        else:
-            self.log("IN SIMULATION - set all temperatures to 70 degF")
-            self.data.latest_temperatures_f = {
-                ch: self.SIMULATED_TANK_TEMP_F for ch in self.temperature_channel_names
-            }
-
-        # Update buffer_available
-        self.data.buffer_temps_available = (
-            self.h0cn.buffer.effective <= self.data.latest_temperatures_f.keys()
-        )
-
-        tank_temps = set().union(
-            *(tank.effective for tank in self.h0cn.tank.values())
-        )
-
-        if not (tank_temps <= self.data.latest_temperatures_f.keys()):
-            self.fill_missing_store_temps()
-
-        self.data.latest_temperatures_f = dict(sorted(self.data.latest_temperatures_f.items()))
-
-    def hp_idu_pwr_w(self) -> Optional[float]:
-        """Returns the latest Heat Pump indoor unit power in Watts, or None
-        if it does not exist"""
-        raw = self.data.latest_channel_values.get(H0CN.hp_idu_pwr)
-        if raw is None:
-            return None
-        return raw
     
-    def hp_odu_pwr_w(self) -> Optional[float]:
-        """Returns the latest Heat Pump outdoor unit power in Watts, or None
-        if it does not exist"""
-        raw = self.data.latest_channel_values.get(H0CN.hp_odu_pwr)
-        if raw is None:
-            return None
-        return raw
 
-    def total_hp_pwr_w(self) -> Optional[float]:
-        """Returns the latest Heat Pump total power in Watts, or None
-        if it does not exist"""
-        idu_pwr = self.hp_idu_pwr_w()
-        odu_pwr = self.hp_odu_pwr_w()
-        if idu_pwr is None or odu_pwr is None:
-            return None
-        return idu_pwr + odu_pwr
 
     def lwt_f(self) -> Optional[float]:
         """Returns the latest Heat pump leaving water temp in deg F, or None
@@ -1779,7 +437,7 @@ class ShNodeActor(Actor, ABC):
         """ Returns DischargingStore if relay 3 is de-energized (ISO Valve opened, charge/discharge
         valve in discharge position.) Returns Charging store if energized (ISO Valve closed, charge/discharge
         valve in charge position) """
-        sms: SingleMachineState = self.data.latest_machine_state.get(H0N.store_charge_discharge_relay)
+        sms: SingleMachineState = self.data.latest_machine_state.get(House0NodeNames.store_charge_discharge_relay)
         if sms is None:
             raise Exception("That's strange! Should have a relay state for the charge discharge relay!")
         if sms.StateEnum != StoreFlowRelay.enum_name():
@@ -1787,7 +445,7 @@ class ShNodeActor(Actor, ABC):
         return StoreFlowRelay(sms.State)
 
     def hp_relay_state(self) -> RelayClosedOrOpen:
-        sms: SingleMachineState = self.data.latest_machine_state[H0N.hp_scada_ops_relay]
+        sms: SingleMachineState = self.data.latest_machine_state[HSNN.hp_scada_ops_relay]
         if sms is None:
             raise Exception("That's strange! Should have a rela state for the Hp Scada Ops relay!")
         if sms.StateEnum != RelayClosedOrOpen.enum_name():

@@ -2,7 +2,7 @@ import time
 from datetime import datetime
 from typing import Optional
 
-from actors.local_control.tou_base import LocalControlTouBase
+from actors.local_control.house0.tou_base import LocalControlTouBase
 from gwsproto.data_classes.house_0_names import H0CN, H0N
 from gwsproto.enums import (
     LocalControlAllTanksEvent, LocalControlAllTanksState, LocalControlTopState, 

@@ -1,4 +1,3 @@
-from typing import Literal
 
 from gwsproto.names.hydronic_spaceheat.helpers import (
     HydronicSpaceheatZoneChannelNames as HSZoneChannelNames,
@@ -11,7 +10,7 @@ class SimpleSimChannelNames:
     convention the relay-state channel name equals the relay node name.
     """
 
-    hp_relay_state: Literal["hp-relay"] = "hp-relay"
+    hp_relay_state = "hp-relay"
 
 
 class SimpleSimZoneChannelNames:

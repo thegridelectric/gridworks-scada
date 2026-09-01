@@ -21,8 +21,8 @@ from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.data_classes.derived_channel import DerivedChannel
 
 from gwsproto.enums import ActorClass, GNodeClass, TelemetryName, Unit, EmissionMethod
-from gwsproto.named_types import House0Layout as House0LayoutWord
-from gwsproto.named_types import NolanLayout as NolanLayoutWord
+from gwsproto.named_types import House0Layout, NolanLayout
+
 from gwsproto.named_types import (
     CaptureTuning,
     DataChannelGt,
@@ -44,6 +44,7 @@ from gwsproto.type_helpers.component_base import (
 from gwsproto.data_classes.components.web_server_component import WebServerComponent
 from gwsproto.data_classes.house_0_names import H0CN, H0N, ScadaWeb
 from gwsproto.enums import FlowManifoldVariant
+from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.house0.node_names import House0NodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import (
     HydronicSpaceheatNodeNames as HSNN,
@@ -91,10 +92,9 @@ class ChannelRegistry:
         return None
 
 
-# A sema word carries its own TypeName; ask the class rather than keeping a
-# second copy of the string that can drift from it.
-HOUSE0_LAYOUT_TYPE_NAME = House0LayoutWord.type_name_value()
-NOLAN_LAYOUT_TYPE_NAME = NolanLayoutWord.type_name_value()
+
+HOUSE0_LAYOUT_TYPE_NAME = House0Layout.type_name_value()
+NOLAN_LAYOUT_TYPE_NAME = NolanLayout.type_name_value()
 
 
 class LayoutBucket(str, Enum): 
@@ -116,9 +116,6 @@ class House0LoadArgs(LoadArgs):
     flow_manifold_variant: FlowManifoldVariant
     use_sieg_loop: bool
 
-class HouseStrategy(str, Enum):
-    House0 = "House0"
-    Nolan = "Nolan"
 
 
 T = TypeVar("T")
@@ -611,7 +608,7 @@ class HydronicLayout:
 
     def __init__(  # noqa: PLR0913
         self,
-        word: "House0LayoutWord | NolanLayoutWord",
+        sema_layout: "House0Layout | NolanLayout",
         *,
         device_types: dict[str, Any],  # by DeviceType
         components: dict[str, Component],  # by id
@@ -620,15 +617,15 @@ class HydronicLayout:
         derived_channels: dict[str, DerivedChannel],
         capture_tuning: Optional[List[CaptureTuning]] = None,
     ) -> None:
-        # The layout holds its authored sema word directly — no dict round-trip.
-        self.word = word
-        self.layout_type_name = word.TypeName
+
+        self.sema_layout = sema_layout
+        self.layout_type_name = sema_layout.TypeName
         # GNodes indexed by GNodeClass, so the g-node accessors read the typed
         # word. GNodeClass is scada's specialization of the open GNodeClass
         # string (the gw.g.node.class enum, which g.node.gt invites each org to
         # define); "Scada" lives here even though it is not a base.g.node.class.
         self.g_node_by_class: dict[GNodeClass, GNodeGt] = {
-            GNodeClass(gn.GNodeClass): gn for gn in word.GNodes
+            GNodeClass(gn.GNodeClass): gn for gn in sema_layout.GNodes
         }
         # Capture tuning rides the operational-params artifact, not the layout;
         # the loader threads it in (see sema_to_dc.ops_and_sema_to_dc).
@@ -651,7 +648,7 @@ class HydronicLayout:
         self.validate_derived_channels()
 
         # ---- Hydronic block (the gw.hydronic type) — taken from the word ----
-        self.hydronic = word.Hydronic
+        self.hydronic = sema_layout.Hydronic
         # Flat accessors derived from the typed hydronic (actor code reads these).
         self.zone_list = [z.Name for z in self.hydronic.Zones]
         self.critical_zone_list = [z.Name for z in self.hydronic.Zones if z.Critical]
@@ -1089,8 +1086,6 @@ class HydronicLayout:
             raise DcError(f"{node} is missing boss {boss_handle}")
         return boss
 
-    def direct_reports(self, node: ShNode) -> list[ShNode]:
-        return [n for n in self.nodes.values() if self.boss_node(n) == node]
 
     def node_from_handle(self, handle: str) -> Optional[ShNode]:
         return next((n for n in self.nodes.values() if n.handle == handle), None)
@@ -1441,9 +1436,9 @@ class HydronicLayout:
         ]
 
     @classmethod
-    def from_word(  # noqa: PLR0913
+    def from_sema(  # noqa: PLR0913
         cls,
-        word: "House0LayoutWord | NolanLayoutWord",
+        layout_sema_type: "House0Layout | NolanLayout",
         *,
         capture_tuning: Optional[List[CaptureTuning]] = None,
         included_node_names: Optional[set[str]] = None,
@@ -1458,31 +1453,31 @@ class HydronicLayout:
         if errors is None:
             errors = []
         device_types = cls.load_device_types(
-            word.DeviceTypes,
+            layout_sema_type.DeviceTypes,
             raise_errors=raise_errors,
             errors=errors,
         )
         components = cls.load_components(
-            word.Components,
+            layout_sema_type.Components,
             device_types=device_types,
             raise_errors=raise_errors,
             errors=errors,
         )
         nodes = cls.load_nodes(
-            word.ShNodes,
+            layout_sema_type.ShNodes,
             components=components,
             raise_errors=raise_errors,
             errors=errors,
             included_node_names=included_node_names,
         )
         data_channels = cls.load_data_channels(
-            word.DataChannels,
+            layout_sema_type.DataChannels,
             nodes=nodes,
             raise_errors=raise_errors,
             errors=errors,
         )
         derived_channels = cls.load_derived_channels(
-            word.DerivedChannels,
+            layout_sema_type.DerivedChannels,
             nodes=nodes,
             raise_errors=raise_errors,
             errors=errors,
@@ -1495,10 +1490,10 @@ class HydronicLayout:
             "derived_channels": derived_channels,
             "flow_manifold_variant": (
                 FlowManifoldVariant.House0Sieg
-                if word.Hydronic.SiegLoopPlumbed
+                if layout_sema_type.Hydronic.SiegLoopPlumbed
                 else FlowManifoldVariant.House0
             ),
-            "use_sieg_loop": word.Hydronic.UseSiegLoop,
+            "use_sieg_loop": layout_sema_type.Hydronic.UseSiegLoop,
         }
         cls.resolve_links(
             load_args["nodes"],
@@ -1509,7 +1504,7 @@ class HydronicLayout:
         cls.validate_layout(load_args, raise_errors=raise_errors, errors=errors)
         cls.validate_house0(load_args, raise_errors=raise_errors, errors=errors)
         return HydronicLayout(
-            word,
+            layout_sema_type,
             device_types=device_types,
             components=components,
             nodes=nodes,
@@ -1518,47 +1513,65 @@ class HydronicLayout:
             capture_tuning=capture_tuning,
         )
 
-
+    # Core nodes - common to ALL layouts
     @property
     def primary_scada(self) -> ShNode:
-        n = self.node(H0N.primary_scada)
+        name = CoreNodeNames.primary_scada
+        n = self.node(name)
         if n is None:
-            raise DcError(f"{H0N.primary_scada} is known to exist")
+            raise DcError(f"Primary Scada node {name} must exist for all layouts."
+                          f"Check {self.layout_type_name}")
         return n
 
     @property
-    def derived_generator(self) -> ShNode:
-        n = self.node(H0N.derived_generator)
+    def derived_generator(self) -> ShNode: 
+        name = CoreNodeNames.derived_generator
+        n = self.node(name)
         if n is None:
-            raise DcError(f"{H0N.derived_generator} is known to exist")
+            raise DcError(f"Derived generator node {name} must exist for all layouts."
+                          f"Check {self.layout_type_name}")
         return n
     
     @property
     def local_control(self) -> ShNode:
-        n = self.node(H0N.local_control)
+        name = CoreNodeNames.local_control
+        n = self.node(name)
         if n is None:
-            raise DcError(f"{H0N.local_control} is known to exist")
+            if n is None:
+                raise DcError(f"Local control node {name} must exist for all layouts."
+                                f"Check {self.layout_type_name}")
         return n
     
     @property
     def auto_node(self) -> ShNode:
-        n = self.node(H0N.auto)
+        """Node used to disambiguate between admin control and automatic (local or ltn) control"""
+        name = CoreNodeNames.auto
+        n = self.node(name)
         if n is None:
-            raise DcError(f"{H0N.auto} is known to exist")
+            if n is None:
+                raise DcError(f"Auto node {name} must exist for all layouts."
+                                f"Check {self.layout_type_name}")
         return n
 
     @property
     def local_control_normal_node(self) -> ShNode:
-        n = self.node(H0N.local_control_normal)
+        name = CoreNodeNames.local_control_normal
+        n = self.node(name)
         if n is None:
-            raise DcError(f"{H0N.local_control_normal} is known to exist")
+            raise DcError(f"Local Control normal node {name} must exist for all layouts."
+                            f"Check {self.layout_type_name}")
         return n
 
     @property
     def local_control_backup_node(self) -> ShNode:
-        n = self.node(H0N.local_control_backup)
+        name = House0NodeNames.local_control_backup
+        if not self.is_house0:
+            raise DcError(f"Local Control backup node {name} "
+                          f"is only for gw.house0.layout ")
+        n = self.node(name)
         if n is None:
-            raise DcError(f"{H0N.local_control_backup} is known to exist")
+            raise DcError(f"Local control backup {H0N.local_control_backup} must exist"
+                          f" for gw.house0.layout")
         return n
 
     @property
@@ -1620,16 +1633,15 @@ class HydronicLayout:
     ################################
     # Relays
     ################################
-    #
-    # One property per relay CONCEPT — the thing control code commands — so a
-    # caller asks the layout for `iso_valve` and never learns which plant it is
-    # standing in. A concept both families name the same way reads the shared
-    # name class and does not branch at all; only the genuinely divergent ones
-    # do. A concept a family's plant lacks raises rather than returning None:
-    # control code reaching for an absent actuator is a bug, not a branch.
 
     @property
+    def is_house0(self) -> bool:
+            """Layout has sema type gw.house0.layout"""
+            return self.layout_type_name == HOUSE0_LAYOUT_TYPE_NAME
+    
+    @property
     def is_nolan(self) -> bool:
+        """Layout has sema type gw.nolan.layout"""
         return self.layout_type_name == NOLAN_LAYOUT_TYPE_NAME
 
     def has_simulated_component(self) -> bool:
@@ -1651,7 +1663,7 @@ class HydronicLayout:
                 return True
         return False
 
-    def required_node(self, name: str) -> ShNode:
+    def required_node(self, name: LeftRightDotStr) -> ShNode:
         """A node the layout word's axioms force to exist. A miss means the
         contract was bypassed."""
         node = self.node(name)
@@ -1666,23 +1678,17 @@ class HydronicLayout:
             )
         return node
 
-    def _family_only(self, concept: str, layout_type_name: str) -> ShNode | None:
-        """Refuse a relay concept the other family's plant does not have."""
-        if self.layout_type_name != layout_type_name:
-            raise DcError(
-                f"a {self.layout_type_name} plant has no {concept} relay"
-            )
-        return None
 
-    # --- shared, same name in both families ---
+    # --- Actuators ---
 
     @property
     def vdc_relay(self) -> ShNode:
-        """The 5V DC bus relay the pico cycler power-cycles. Both families name
-        it the same thing: the gw108 carries it on a native GPIO and the Krida
-        board on position 1, but where the wire lands is the component's
-        business, not the node's name."""
-        return self.required_node(HSNN.vdc_relay)
+        """Relay that power-cycles the 5VDC bus where all the pico's live"""
+        if self.is_nolan or self.is_house0:
+            return self.required_node(HSNN.vdc_relay)
+        raise NotImplementedError(f"Unknown if {self.layout_type_name}"
+                                  "has a vdc_relay")
+
 
     @property
     def hp_scada_ops_relay(self) -> ShNode:
@@ -1721,59 +1727,66 @@ class HydronicLayout:
     @property
     def store_pump_relay(self) -> ShNode:
         """Turns the store pump on and off."""
-        if self.is_nolan:
-            return self.required_node(NolanNodeNames.store_pump_relay)
-        return self.required_node(House0NodeNames.store_pump_failsafe)
+        if self.is_nolan or self.is_house0:
+            return self.required_node(HSNN.store_pump_relay)
 
     # --- House0 plant only ---
 
     @property
     def tstat_common_relay(self) -> ShNode:
-        self._family_only("tstat common", HOUSE0_LAYOUT_TYPE_NAME)
-        return self.required_node(House0NodeNames.tstat_common_relay)
+        if self.is_house0:
+            return self.required_node(House0NodeNames.tstat_common_relay)
+        raise DcError(f"a {self.layout_type_name} plant has no tstat common relay")
 
     @property
     def hp_failsafe_relay(self) -> ShNode:
         """Hands heat-pump control to the scada or back to the tank aquastat."""
-        self._family_only("hp failsafe", HOUSE0_LAYOUT_TYPE_NAME)
-        return self.required_node(House0NodeNames.hp_failsafe_relay)
+        if self.is_house0:
+            return self.required_node(House0NodeNames.hp_failsafe_relay)
+        raise DcError(f"a {self.layout_type_name} plant has no hp failsafe relay")
 
     @property
     def aquastat_control_relay(self) -> ShNode:
         """Hands the aquastat to the scada or back to the oil boiler."""
-        self._family_only("aquastat ctrl", HOUSE0_LAYOUT_TYPE_NAME)
-        return self.required_node(House0NodeNames.aquastat_ctrl_relay)
+        if self.is_house0:
+            return self.required_node(House0NodeNames.aquastat_ctrl_relay)
+        raise DcError(f"a {self.layout_type_name} plant has no aquastat ctrl relay")
 
     @property
     def boiler_scada_ops(self) -> ShNode:
         """Calls the oil boiler. Nolan has no boiler."""
-        self._family_only("boiler scada ops", HOUSE0_LAYOUT_TYPE_NAME)
-        return self.required_node(House0NodeNames.boiler_scada_ops)
+        if self.is_house0:
+            return self.required_node(House0NodeNames.boiler_scada_ops)
+        raise DcError(f"a {self.layout_type_name} plant has no boiler scada ops relay")
 
     @property
     def primary_pump_scada_ops(self) -> ShNode:
         """Nolan does not control its primary pump."""
-        self._family_only("primary pump scada ops", HOUSE0_LAYOUT_TYPE_NAME)
-        return self.required_node(House0NodeNames.primary_pump_scada_ops)
+        if self.is_house0:
+            return self.required_node(House0NodeNames.primary_pump_scada_ops)
+        raise DcError(f"a {self.layout_type_name} plant has no primary pump scada ops relay")
 
     @property
     def primary_pump_failsafe(self) -> ShNode:
         """Hands the primary pump to the scada or back to the heat pump."""
-        self._family_only("primary pump failsafe", HOUSE0_LAYOUT_TYPE_NAME)
-        return self.required_node(House0NodeNames.primary_pump_failsafe)
+        if self.is_house0:
+            return self.required_node(House0NodeNames.primary_pump_failsafe)
+        raise DcError(f"a {self.layout_type_name} plant has no primary pump failsafe relay")
 
     @property
     def hp_loop_on_off(self) -> ShNode:
         """Drives the Siegenthaler loop valve (with `hp_loop_keep_send`).
         Nolan has no Siegenthaler loop."""
-        self._family_only("hp loop on/off", HOUSE0_LAYOUT_TYPE_NAME)
-        return self.required_node(House0NodeNames.hp_loop_on_off)
+        if self.is_house0:
+            return self.required_node(House0NodeNames.hp_loop_on_off)
+        raise DcError(f"a {self.layout_type_name} plant has no hp loop on/off relay")
 
     @property
     def hp_loop_keep_send(self) -> ShNode:
         """Sets which way `hp_loop_on_off` moves the Siegenthaler valve."""
-        self._family_only("hp loop keep/send", HOUSE0_LAYOUT_TYPE_NAME)
-        return self.required_node(House0NodeNames.hp_loop_keep_send)
+        if self.is_house0:
+            return self.required_node(House0NodeNames.hp_loop_keep_send)
+        raise DcError(f"a {self.layout_type_name} plant has no hp loop keep/send relay")
 
     # --- Nolan plant only ---
 
@@ -1781,20 +1794,23 @@ class HydronicLayout:
     def secondary_pump_relay(self) -> ShNode:
         """Turns the secondary (heat-exchanger side) pump on and off. House0
         has no heat exchanger, so no such pump."""
-        self._family_only("secondary pump", NOLAN_LAYOUT_TYPE_NAME)
-        return self.required_node(NolanNodeNames.secondary_pump_relay)
+        if self.is_nolan:
+            return self.required_node(NolanNodeNames.secondary_pump_relay)
+        raise DcError(f"a {self.layout_type_name} plant has no secondary pump relay")
 
     @property
     def store_top_elt_relay(self) -> ShNode:
         """Switches the store tank's top electric element."""
-        self._family_only("store top element", NOLAN_LAYOUT_TYPE_NAME)
-        return self.required_node(NolanNodeNames.store_top_elt_relay)
+        if self.is_nolan:
+            return self.required_node(NolanNodeNames.store_top_elt_relay)
+        raise DcError(f"a {self.layout_type_name} plant has no store top element relay")
 
     @property
     def store_bottom_elt_relay(self) -> ShNode:
         """Switches the store tank's bottom electric element."""
-        self._family_only("store bottom element", NOLAN_LAYOUT_TYPE_NAME)
-        return self.required_node(NolanNodeNames.store_bottom_elt_relay)
+        if self.is_nolan:
+            return self.required_node(NolanNodeNames.store_bottom_elt_relay)
+        raise DcError(f"a {self.layout_type_name} plant has no store bottom element relay")
 
     def scada2_g_node_name(self) -> LeftRightDotStr:
         return f"{self.scada_g_node_alias}.{H0N.secondary_scada}"

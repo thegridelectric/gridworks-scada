@@ -1,4 +1,3 @@
-from typing import Literal
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HNN
 
 
@@ -117,12 +116,12 @@ class HydronicSpaceheatChannelNames:
     store_010v = "store-010v"
 
     # relay state channels
-    vdc_relay_state: Literal["vdc-relay"] = "vdc-relay"
-    buffer_top_relay_state = "buffer-top-relay"
-    buffer_bottom_relay_state = "buffer-bottom-relay"
+    vdc_relay_state = "vdc-relay"
+    buffer_top_elt_relay_state = "buffer-top-elt-relay"
+    buffer_bottom_elt_relay_state = "buffer-bottom-elt-relay"
 
-    store_top_relay_state= "store-top-relay"
-    store_bottom_relay_state = "storesie-bottom-relay"
+    store_top_elt_relay_state = "store-top-elt-relay"
+    store_bottom_elt_relay_state = "store-bottom-elt-relay"
     sieg_cold = HNN.sieg_cold
     sieg_send = HNN.sieg_send
 

@@ -14,8 +14,8 @@ class NolanNodeNames:
     floor_swt = "floor-swt"
     floor_rwt = "floor-rwt"
 
-    buffer_top_relay = "buffer-top-relay"
-    buffer_bottom_relay = "buffer-bottom-relay"
+    buffer_top_elt_relay = "buffer-top-elt-relay"
+    buffer_bottom_elt_relay = "buffer-bottom-elt-relay"
 
     # The relays switching the store tank's two electric elements. The
     # elements themselves are HydronicSpaceheatNodeNames.store_top_elt /
@@ -23,11 +23,7 @@ class NolanNodeNames:
     store_top_elt_relay = "store-top-elt-relay"
     store_bottom_elt_relay = "store-bottom-elt-relay"
 
-    store_pump_relay = "store-pump-relay"
-
-    # Nolan's discharge valve is an open/close valve (change.valve.state),
-    # not House0's two-way charge/discharge valve.
-    discharge_valve_relay = "discharge-valve-relay"
+    charge_valve_relay = "charge-valve-relay"
 
     # Plant relays gw.nolan.layout axiom 3 (LocalControlPlant) forces to
     # exist — these constants mirror the sema contract, which is the

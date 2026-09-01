@@ -17,10 +17,10 @@ class LeafAlly(ShNodeActor):
             module = importlib.import_module("actors.leaf_ally.nolan")
             impl_class = getattr(module, "NolanLeafAlly")
         elif self.ops.SeasonalStorageMode == SeasonalStorageMode.AllTanks:
-            module = importlib.import_module("actors.leaf_ally.all_tanks")
+            module = importlib.import_module("actors.leaf_ally.house0.all_tanks")
             impl_class = getattr(module, "AllTanksLeafAlly")
         elif self.ops.SeasonalStorageMode == SeasonalStorageMode.BufferOnly:
-            module = importlib.import_module("actors.leaf_ally.buffer_only")
+            module = importlib.import_module("actors.leaf_ally.house0.buffer_only")
             impl_class = getattr(module, "BufferOnlyLeafAlly")
         else:
             raise Exception(f"SeasonalStorageMode {self.ops.SeasonalStorageMode}")

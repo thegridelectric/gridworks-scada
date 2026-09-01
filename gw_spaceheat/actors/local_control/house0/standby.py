@@ -13,11 +13,11 @@ from gwsproto.enums import LocalControlStandbyTopState, LocalControlStandbyTopEv
 from gwsproto.named_types import SingleMachineState
 from gwsproto.data_classes.sh_node import ShNode
 from transitions import Machine
-from actors.sh_node_actor import ShNodeActor
+from actors.hydronic.house0 import House0Hydronic
 from gwsproto.named_types import ActuatorsReady, GoDormant, HeatingForecast, WakeUp
 from scada_app_interface import ScadaAppInterface
 
-class StandbyLocalControl(ShNodeActor):
+class StandbyLocalControl(House0Hydronic):
     MAIN_LOOP_SLEEP_SECONDS = 300
     top_states = LocalControlStandbyTopState.values()
 

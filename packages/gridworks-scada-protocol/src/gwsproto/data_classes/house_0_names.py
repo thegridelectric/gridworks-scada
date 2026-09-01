@@ -97,22 +97,6 @@ class TankNodeNames:
     def __repr__(self) -> str:
         return f"{self.reader} reads {sorted(self.depths)}"
 
-class House0RelayIdx:
-    vdc: Literal[1] = 1
-    tstat_common: Literal[2] = 2
-    store_charge_disharge: Literal[3] = 3
-    hp_failsafe: Literal[5] = 5
-    hp_scada_ops: Literal[6] = 6
-    thermistor_common: Literal[7] = 7
-    aquastat_ctrl: Literal[8] = 8
-    store_pump_failsafe: Literal[9] = 9
-    boiler_scada_ops: Literal[10] = 10
-    primary_pump_ops: Literal[11] = 11
-    primary_pump_failsafe: Literal[12] = 12
-    hp_loop_on_off: Literal[14] = 14
-    hp_loop_keep_send: Literal[15] = 15
-    # pattern: zone1 failsafe is 17, zone2 ops is 18 etc
-    base_stat: Literal[17] = 17
 
 class H0N:
     #system actor nodes
@@ -152,16 +136,14 @@ class H0N:
     buffer = BufferNodeNames()
 
     # relay nodes (functional names; node name == relay-state channel name.
-    # The krida board position lives in House0RelayIdx / relay.actor.config
+    # The krida board position lives in relay.actor.config
     # RelayIdx, not the name.)
     vdc_relay: Literal["vdc-relay"] = "vdc-relay"
     tstat_common_relay: Literal["tstat-common-relay"] = "tstat-common-relay"
     store_charge_discharge_relay: Literal["charge-discharge-relay"] = "charge-discharge-relay"
     hp_failsafe_relay: Literal["hp-failsafe-relay"] = "hp-failsafe-relay"
     hp_scada_ops_relay: Literal["hp-scada-ops-relay"] = "hp-scada-ops-relay"
-    thermistor_common_relay: Literal["thermistor-common-relay"] = "thermistor-common-relay"
     aquastat_ctrl_relay: Literal["aquastat-ctrl-relay"] = "aquastat-ctrl-relay"
-    store_pump_failsafe: Literal["store-pump-failsafe-relay"] = "store-pump-failsafe-relay"
 
     boiler_scada_ops: Literal["boiler-scada-ops-relay"] = "boiler-scada-ops-relay"
     primary_pump_scada_ops: Literal["primary-pump-scada-ops-relay"] = "primary-pump-scada-ops-relay"
@@ -456,10 +438,8 @@ class H0CN:
     tstat_common_relay_state = H0N.tstat_common_relay
     charge_discharge_relay_state = H0N.store_charge_discharge_relay
     hp_failsafe_relay_state = H0N.hp_failsafe_relay
-    thermistor_common_relay_state = H0N.thermistor_common_relay
     hp_scada_ops_relay_state = H0N.hp_scada_ops_relay
     aquastat_ctrl_relay_state = H0N.aquastat_ctrl_relay
-    store_pump_failsafe_relay_state = H0N.store_pump_failsafe
     boiler_scada_ops_relay_state = H0N.boiler_scada_ops
     primary_pump_scada_ops_relay_state = H0N.primary_pump_scada_ops
     primary_pump_failsafe_relay_state = H0N.primary_pump_failsafe

@@ -747,7 +747,7 @@ class DerivedGenerator(ShNodeActor):
         ):
             return None
 
-        if not self.buffer_temps_available:
+        if not self.data.buffer_temps_available:
             return None
 
         if self.heating_forecast is None:
@@ -864,7 +864,7 @@ class DerivedGenerator(ShNodeActor):
         required_kwh = 0
         time_now = datetime.now(self.timezone)
 
-        if not self.buffer_temps_available:
+        if not self.data.buffer_temps_available:
             return None
 
         if self.heating_forecast is None:

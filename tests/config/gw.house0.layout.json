@@ -251,8 +251,8 @@
           "WiringConfig": "DoubleThrow"
         },
         {
-          "ActorName": "store-pump-failsafe-relay",
-          "ChannelName": "store-pump-failsafe-relay",
+          "ActorName": "store-pump-relay",
+          "ChannelName": "store-pump-relay",
           "DeEnergizedState": "RelayOpen",
           "DeEnergizingEvent": "OpenRelay",
           "EnergizedState": "RelayClosed",
@@ -696,11 +696,11 @@
       "Version": "003"
     },
     {
-      "AboutNodeName": "store-pump-failsafe-relay",
+      "AboutNodeName": "store-pump-relay",
       "CapturedByNodeName": "relay-multiplexer",
       "DisplayName": "Store Pump Failsafe Relay State",
       "Id": "09b17d24-69fc-4b9e-89c2-7ddc0a48f9db",
-      "Name": "store-pump-failsafe-relay",
+      "Name": "store-pump-relay",
       "Quantity": "Unitless",
       "TelemetryName": "RelayState",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
@@ -1480,11 +1480,11 @@
     },
     {
       "ActorClass": "Relay",
-      "ActorHierarchyName": "s.store-pump-failsafe-relay",
+      "ActorHierarchyName": "s.store-pump-relay",
       "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
       "DisplayName": "Store Pump Failsafe",
-      "Handle": "auto.lc.n.store-pump-failsafe-relay",
-      "Name": "store-pump-failsafe-relay",
+      "Handle": "auto.lc.n.store-pump-relay",
+      "Name": "store-pump-relay",
       "ShNodeId": "c4d9a75f-21fe-46b5-bf6c-1f21895fc882",
       "TypeName": "spaceheat.node.gt",
       "Version": "302"

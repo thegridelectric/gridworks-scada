@@ -10,10 +10,9 @@ from typing import Dict, List, Optional, Union
 from actors.config import ScadaSettings
 from gwsproto.data_classes.data_channel import DataChannel
 from gwsproto.data_classes.house_0_names import H0CN
-from gwsproto.type_helpers.channel_config_base import ChannelConfigBase
 from gwsproto.named_types import (
     ChannelReadings,
-    GwHouse0OperationalParams,
+    House0OperationalParams,
     Report,
     SingleReading,
     SingleMachineState,
@@ -26,71 +25,44 @@ from gwsproto.named_types import (
 )
 
 
-OPS_PARAMS_FILE_NAME = "gw.house0.operational.params.json"
+from actors.config import DEFAULT_OPS_PARAMS_FILE
+from sema_to_dc import OperationalParams, decode_operational_params
 
 
-def operational_params_path(settings: ScadaSettings) -> Path:
-    """Resolve the home's authored operational-params artifact path:
-    settings.operational_params_path when set; otherwise the per-home sibling
-    dir of the hardware layout (tests/config/<home>/gw.house0.operational.params.json
-    for tests/config/<home>.json), mirroring the tlayouts output shape."""
-    if settings.operational_params_path:
-        return Path(settings.operational_params_path)
-    layout_path = Path(settings.paths.hardware_layout)
-    return layout_path.with_suffix("") / OPS_PARAMS_FILE_NAME
-
-
-def load_operational_params(settings: ScadaSettings) -> GwHouse0OperationalParams:
-    """Load the home's authored operational-params artifact. The artifact is
-    REQUIRED — its values have no defaults anywhere else."""
-    path = operational_params_path(settings)
+def load_operational_params(settings: ScadaSettings) -> OperationalParams:
+    """Load the home's authored operational-params artifact, decoded through
+    its own family's word. The artifact is REQUIRED — its values have no
+    defaults anywhere else. Pairing with the layout family is enforced at
+    layout load (sema_to_dc.check_approved_pair)."""
+    path = Path(settings.paths.operational_params)
     if not path.exists():
         raise FileNotFoundError(
             f"Operational params artifact not found at {path}. Every home needs "
-            f"its authored {OPS_PARAMS_FILE_NAME} (set operational_params_path, "
-            "or place it in the per-home dir beside the hardware layout)."
+            f"its authored {DEFAULT_OPS_PARAMS_FILE} (set paths.operational_params, "
+            "or place it beside the hardware layout in the same folder)."
         )
-    return GwHouse0OperationalParams.model_validate(json.loads(path.read_text()))
+    return decode_operational_params(json.loads(path.read_text()))
 
 from gwsproto.data_classes.derived_channel import DerivedChannel
-from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
 class ScadaData:
 
     def __init__(
         self,
         settings: ScadaSettings,
-        hardware_layout: House0Layout,
-        ops: GwHouse0OperationalParams,
+        hardware_layout: HydronicLayout,
+        ops: OperationalParams,
     ):
         self.reports_to_store: Dict[str, Report] = {}
         self.seconds_by_channel: Dict[str, int] = {}
 
         self.settings: ScadaSettings = settings
-        self.layout: House0Layout = hardware_layout
+        self.layout: HydronicLayout = hardware_layout
         # The authored operational params — the runtime source for the control/
         # optimization values (OPS-408's live-update transport is the eventual
-        # writer). hp_max_kw_el stays on settings: it is layout-destined
-        # (nameplate), not operational.
-        self.ops: GwHouse0OperationalParams = ops
-        self.ha1_params = Ha1Params(
-            AlphaTimes10=ops.HeatingCurve.AlphaTimes10,
-            BetaTimes100=ops.HeatingCurve.BetaTimes100,
-            GammaEx6=ops.HeatingCurve.GammaEx6,
-            IntermediatePowerKw=ops.HeatingCurve.IntermediatePowerKw,
-            IntermediateRswtF=ops.HeatingCurve.IntermediateRswtF,
-            DdPowerKw=ops.HeatingCurve.DdPowerKw,
-            DdRswtF=ops.HeatingCurve.DdRswtF,
-            DdDeltaTF=ops.HeatingCurve.DdDeltaTF,
-            HpMaxKwEl=self.settings.hp_max_kw_el,
-            MaxEwtF=ops.HeatingCurve.MaxEwtF,
-            LoadOverestimationPercent=ops.LoadOverestimationPercent,
-            CopIntercept=ops.CopCurve.Intercept,
-            CopOatCoeff=ops.CopCurve.OatCoeff,
-            CopLwtCoeff=ops.CopCurve.LwtCoeff,
-            CopMin=ops.CopCurve.Min,
-            CopMinOatF=ops.CopCurve.MinOatF,
-            HpTurnOnMinutes=ops.HpTurnOnMinutes,
-        )
+        # writer).
+        self.ops: OperationalParams = ops
+        self.ha1_params: Ha1Params = self.make_ha1_params(ops)
         self.my_data_channels = self.get_my_data_channels()
         self.my_derived_channels = self.get_my_derived_channels()
         self.my_channels: list[Union[DataChannel, DerivedChannel]] = self.my_data_channels + self.my_derived_channels
@@ -117,6 +89,27 @@ class ScadaData:
         self.heating_forecast: HeatingForecast | None = None
         self.recent_fsm_reports = {}
         self.flush_recent_readings()
+
+    def make_ha1_params(self, ops: OperationalParams) -> Ha1Params:
+        return Ha1Params(
+            AlphaTimes10=ops.HeatingCurve.AlphaTimes10,
+            BetaTimes100=ops.HeatingCurve.BetaTimes100,
+            GammaEx6=ops.HeatingCurve.GammaEx6,
+            IntermediatePowerKw=ops.HeatingCurve.IntermediatePowerKw,
+            IntermediateRswtF=ops.HeatingCurve.IntermediateRswtF,
+            DdPowerKw=ops.HeatingCurve.DdPowerKw,
+            DdRswtF=ops.HeatingCurve.DdRswtF,
+            DdDeltaTF=ops.HeatingCurve.DdDeltaTF,
+            HpMaxKwEl=ops.HpMaxKwEl,
+            MaxEwtF=ops.HeatingCurve.MaxEwtF,
+            LoadOverestimationPercent=ops.LoadOverestimationPercent,
+            CopIntercept=ops.CopCurve.Intercept,
+            CopOatCoeff=ops.CopCurve.OatCoeff,
+            CopLwtCoeff=ops.CopCurve.LwtCoeff,
+            CopMin=ops.CopCurve.Min,
+            CopMinOatF=ops.CopCurve.MinOatF,
+            HpTurnOnMinutes=ops.HpTurnOnMinutes,
+        )
 
     def get_my_data_channels(self) -> List[DataChannel]:
         return list(self.layout.data_channels.values())
@@ -189,15 +182,10 @@ class ScadaData:
 
     def capture_seconds(self, ch: Union[DataChannel, DerivedChannel]) -> int:
         if ch.Name not in self.seconds_by_channel:
-            self.seconds_by_channel = {}
-            components = [c.gt for c in self.layout.components.values()]
-            for c in components:
-                # Only channel-shaped configs (ChannelConfigBase) reference
-                # data channels; e.g. i2c.dac.channel.config entries carry
-                # power-on defaults, not captures.
-                for config in c.ConfigList:
-                    if isinstance(config, ChannelConfigBase):
-                        self.seconds_by_channel[config.ChannelName] = config.CapturePeriodS
+            self.seconds_by_channel = {
+                name: tuning.CapturePeriodS
+                for name, tuning in self.layout.capture_tuning_by_channel.items()
+            }
             for s in self.my_derived_channels:
                 self.seconds_by_channel[s.Name] = 60  # TODO: fix
         return self.seconds_by_channel[ch.Name]

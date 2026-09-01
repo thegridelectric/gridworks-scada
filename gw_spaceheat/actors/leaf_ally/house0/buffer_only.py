@@ -22,7 +22,7 @@ from gwsproto.named_types import (
 from result import Ok, Result
 from transitions import Machine
 
-from actors.sh_node_actor import ShNodeActor
+from actors.hydronic.house0 import House0Hydronic
 from scada_app_interface import ScadaAppInterface
 from gwsproto.named_types import (
     AllyGivesUp, GoDormant, Ha1Params,
@@ -33,7 +33,7 @@ from actors.procedural.dist_pump_monitor import DistPumpMonitor
 from actors.procedural.store_pump_doctor import StorePumpDoctor
 from actors.procedural.store_pump_monitor import StorePumpMonitor
 
-class BufferOnlyLeafAlly(ShNodeActor):
+class BufferOnlyLeafAlly(House0Hydronic):
     MAIN_LOOP_SLEEP_SECONDS = 60
     NO_TEMPS_BAIL_MINUTES = 5
     states = LeafAllyBufferOnlyState.values()

@@ -1,4 +1,3 @@
-from typing import Literal
 
 from gwsproto.names.hydronic_spaceheat.helpers import (
     HydronicSpaceheatZoneNodeNames as HSZoneNodeNames,
@@ -13,7 +12,7 @@ class SimpleSimNodeNames:
     first and grows by iteration. Zones come from SimpleSimZoneNodeNames.
     """
 
-    hp_relay: Literal["hp-relay"] = "hp-relay"
+    hp_relay = "hp-relay"
 
 
 class SimpleSimZoneNodeNames:

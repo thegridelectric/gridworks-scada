@@ -44,6 +44,7 @@ from gwsproto.named_types import (
     SingleReading, SyncedReadings,
 )
 
+from actors.command_node import build_command_tree
 from actors.scada_data import ScadaData, load_operational_params
 from actors.config import ScadaSettings
 from gwsproto.data_classes.sh_node import ShNode
@@ -1250,14 +1251,7 @@ class Scada(PrimeActor, ScadaInterface):
                 else:
                     node.Handle = (f"{boss.handle}.{node.Name}")
 
-        self._send_to(
-            self.ltn,
-            NewCommandTree(
-                FromGNodeAlias=self.layout.scada_g_node_alias,
-                ShNodes=list(self.layout.nodes.values()),
-                UnixMs=int(time.time() * 1000),
-            ),
-        )
+        self._send_to(self.ltn, build_command_tree(self.layout))
 
     #######################################
     # Contract management

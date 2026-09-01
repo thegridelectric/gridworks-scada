@@ -1,3 +1,6 @@
+# KEPT AS REFERENCE (2026-09-01): Jessica's original sieg loop work —
+# nothing imports this module. It stays as the worked reference while the
+# PID / process-control path comes up; do not delete.
 import time
 from datetime import datetime
 from typing import List, Optional, Sequence

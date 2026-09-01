@@ -1,4 +1,3 @@
-# Modify actors/home_alone.py to be a loader module
 import importlib
 from gwsproto.enums import ActorClass, ActuationAuthority, SeasonalStorageMode
 from actors.sh_node_actor import ShNodeActor
@@ -31,13 +30,13 @@ class LocalControl(ShNodeActor):
             module = importlib.import_module("actors.local_control.nolan")
             impl_class = getattr(module, "NolanLocalControl")
         elif authority == ActuationAuthority.Standby:
-            module = importlib.import_module("actors.local_control.standby")
+            module = importlib.import_module("actors.local_control.house0.standby")
             impl_class = getattr(module, "StandbyLocalControl")
         elif seasonal_storage_mode == SeasonalStorageMode.AllTanks:
-            module = importlib.import_module("actors.local_control.all_tanks_tou")
+            module = importlib.import_module("actors.local_control.house0.all_tanks_tou")
             impl_class = getattr(module, "AllTanksTouLocalControl")
         elif seasonal_storage_mode == SeasonalStorageMode.BufferOnly:
-            module = importlib.import_module("actors.local_control.buffer_only_tou")
+            module = importlib.import_module("actors.local_control.house0.buffer_only_tou")
             impl_class = getattr(module, "BufferOnlyTouLocalControl")
         else:
             raise Exception(f"Unknown setup ActuationAuthority {authority}, "

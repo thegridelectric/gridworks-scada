@@ -24,7 +24,7 @@ from gwsproto.named_types import (
 from result import Ok, Result
 from transitions import Machine
 import transitions
-from actors.sh_node_actor import ShNodeActor
+from actors.hydronic.shared import HydronicNode
 from gwsproto.enums import LogLevel, PicoCyclerEvent, PicoCyclerState
 from gwsproto.named_types import Glitch, GoDormant, PicoMissing, WakeUp
 from gwsproto.data_classes.components import PicoTankModuleComponent, PicoFlowModuleComponent, PicoBtuMeterComponent
@@ -50,7 +50,7 @@ class SinglePicoState(GwStrEnum):
     Flatlined = auto()
 
 
-class PicoCycler(ShNodeActor):
+class PicoCycler(HydronicNode):
     REBOOT_ATTEMPTS = 3
     RELAY_OPEN_S: float = 5
     PICO_REBOOT_S = 60

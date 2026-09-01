@@ -22,14 +22,14 @@ from gwproactor import MonitoredName
 from gwproto import Message
 from result import Ok, Result
 
-from actors.sh_node_actor import ShNodeActor
+from actors.hydronic.nolan import NolanHydronic
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import LeafAllyBufferOnlyState
 from gwsproto.named_types import GoDormant, SingleMachineState, SlowDispatchContract, SuitUp
 from scada_app_interface import ScadaAppInterface
 
 
-class NolanLeafAlly(ShNodeActor):
+class NolanLeafAlly(NolanHydronic):
     def __init__(self, name: str, services: ScadaAppInterface) -> None:
         super().__init__(name, services)
         # Nolan has no ally state machine of its own; it reports the shared

@@ -34,11 +34,8 @@ class HydronicSpaceheatNodeNames:
     hp_boss = "hp-boss"
 
     # transactive asset nodes
-    # The heat pump's outdoor unit — the compressor-bearing box. A monobloc IS
-    # its hp-odu (there is simply no hp-idu). A system with several outdoor
-    # compressor units (e.g. the two-compressor Arctic, both outside) indexes:
-    # hp-odu1, hp-odu2 — the tank/zone pattern. "The heat pump" as a system is
-    # identity, not plumbing position: it lives in the device-type record.
+    # For monoblocs, hp-odu IS the heat pump (there is no hp-idu, though
+    # there MAY be an hp-ctrl-box).
     hp_odu = "hp-odu"
     # The heat pump's indoor unit when it carries its own refrigerant
     # cycle/compressor stage (the cascade hydro kits). NOT a monobloc's indoor
@@ -69,11 +66,12 @@ class HydronicSpaceheatNodeNames:
     # sometimes 
     buffer_cold_pipe = "buffer-cold-pipe"
 
-    # flows
+    # Required flow
     dist_flow = "dist-flow"
     store_flow = "store-flow"
     primary_flow = "primary-flow"
 
+    # dac outputs
     dist_010v = "dist-010v"
     primary_010v = "primary-010v"
     store_010v = "store-010v"
@@ -81,6 +79,7 @@ class HydronicSpaceheatNodeNames:
     # relays
     vdc_relay = "vdc-relay"
     hp_scada_ops_relay = "hp-scada-ops-relay"
+    store_pump_relay = "store-pump-relay"
 
     # buffer tank
     buffer = BufferNodeNames()  # set below
@@ -92,6 +91,10 @@ class HydronicSpaceheatNodeNames:
     
     oat = "oat"
 
+    # instrumentation
+    dist_btu = "dist-btu"
+    primary_btu = "primary-btu"
+    store_btu = "store-btu"
 
 class HydronicSpaceheatZoneNodeNames:
 
@@ -101,7 +104,7 @@ class HydronicSpaceheatZoneNodeNames:
 
     Every family names a zone's two relays the same way, so they are here
     rather than in the per-family zone classes.
-"""
+    """
     def __init__(self, zone_label: str, idx: int) -> None:
         self.zone =  f"zone{idx}-{zone_label}".lower()
         self.stat = f"{self.zone}-stat"
