@@ -11,10 +11,12 @@ from gwsproto.named_types.electric_meter_device_type_gt import ElectricMeterDevi
 from gwsproto.named_types.scada_device_type_gt import ScadaDeviceTypeGt
 from gwsproto.named_types.data_channel_gt import DataChannelGt
 from gwsproto.named_types.derived_channel_gt import DerivedChannelGt
+from gwsproto.named_types.device_component_gt import DeviceComponentGt
 from gwsproto.named_types.dfr_component_gt import DfrComponentGt
 from gwsproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwsproto.named_types.g_node_gt import GNodeGt
 from gwsproto.named_types.hydronic import Hydronic
+from gwsproto.named_types.hp_device_type_gt import HpDeviceTypeGt
 from gwsproto.named_types.hubitat_component_gt import HubitatComponentGt
 from gwsproto.named_types.hubitat_poller_component_gt import HubitatPollerComponentGt
 from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
@@ -44,6 +46,7 @@ from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 # The component types a House0 (fleet) layout may contain (mirrors the sema oneOf).
 House0Component = (
     ElectricMeterComponentGt
+    | DeviceComponentGt
     | Ads111xBasedComponentGt
     | GpioRelayComponentGt
     | GpioSensorComponentGt
@@ -70,6 +73,7 @@ House0DeviceType = (
     Ads111xBasedDeviceTypeGt
     | ElectricMeterDeviceTypeGt
     | ScadaDeviceTypeGt
+    | HpDeviceTypeGt
 )
 
 
@@ -423,4 +427,81 @@ class House0Layout(GwsprotoSemaType):
                 "Axiom 9 (SystemModelEnergyChannels) failed: the two channels must "
                 f"name one of each model; got {sorted(seen)}."
             )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_10(self) -> Self:
+        """
+        Axiom 10: RequiredActuators
+        a. The eleven plant relays exist with ActorClass Relay and the three
+        *-010v outputs with ActorClass ZeroTenOutputer. b. ZoneCallCircuits is
+        non-empty and each circuit's relay pair names a Relay ShNode.
+        """
+        actor_class_by_name = {n.Name: n.ActorClass for n in self.ShNodes}
+
+        def class_or_raise(node_name: str, expected: ActorClass, role: str) -> None:
+            actor_class = actor_class_by_name.get(node_name)
+            if actor_class is None:
+                raise ValueError(
+                    f"Axiom 10 (RequiredActuators) failed: no ShNode named "
+                    f"{node_name} ({role})."
+                )
+            if actor_class != expected:
+                raise ValueError(
+                    f"Axiom 10 (RequiredActuators) failed: {node_name} ({role}) "
+                    f"has ActorClass {actor_class}, not {expected.value}."
+                )
+
+        for required in (
+            "vdc-relay",
+            "tstat-common-relay",
+            "charge-discharge-relay",
+            "hp-failsafe-relay",
+            "hp-scada-ops-relay",
+            "aquastat-ctrl-relay",
+            "store-pump-relay",
+            "primary-pump-failsafe-relay",
+            "primary-pump-scada-ops-relay",
+            "hp-loop-on-off-relay",
+            "hp-loop-keep-send-relay",
+        ):
+            class_or_raise(required, ActorClass.Relay, "plant relay")
+        for required in ("dist-010v", "primary-010v", "store-010v"):
+            class_or_raise(required, ActorClass.ZeroTenOutputer, "0-10V output")
+        circuits = self.Hydronic.ZoneCallCircuits or []
+        if not circuits:
+            raise ValueError(
+                "Axiom 10 (RequiredActuators) failed: Hydronic.ZoneCallCircuits is empty."
+            )
+        for circuit in circuits:
+            class_or_raise(
+                circuit.FailsafeRelayNode, ActorClass.Relay, "circuit failsafe relay"
+            )
+            class_or_raise(circuit.OpsRelayNode, ActorClass.Relay, "circuit ops relay")
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_11(self) -> Self:
+        """
+        Axiom 11: RequiredHeatpumpEquipment
+        hp-odu and hp-idu exist, each bound to a Component, each NoActor.
+        """
+        component_ids = {c.ComponentId for c in self.Components}
+        nodes = {n.Name: n for n in self.ShNodes}
+        for name in ("hp-odu", "hp-idu"):
+            node = nodes.get(name)
+            if node is None:
+                raise ValueError(
+                    f"Axiom 11 (RequiredHeatpumpEquipment) failed: no ShNode named {name!r}."
+                )
+            if node.ComponentId is None or node.ComponentId not in component_ids:
+                raise ValueError(
+                    f"Axiom 11 (RequiredHeatpumpEquipment) failed: {name!r} has no "
+                    "ComponentId resolving to a Component."
+                )
+            if node.ActorClass != ActorClass.NoActor:
+                raise ValueError(
+                    f"Axiom 11 (RequiredHeatpumpEquipment) failed: {name!r} has "
+                    f"ActorClass {node.ActorClass}, expected NoActor."
+                )
         return self

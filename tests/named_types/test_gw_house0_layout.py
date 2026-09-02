@@ -1,4 +1,4 @@
-"""Rejecting tests for gw.house0.layout/000's ported axioms (2, 3, 7, 8).
+"""Rejecting tests for gw.house0.layout/000's ported axioms (2, 3, 7, 8, 10, 11).
 
 Each counterexample is a typed mutation of the assembled fixture pair,
 re-validated at the boundary — chosen so the intended axiom fires. Axioms
@@ -130,3 +130,55 @@ def test_gw_house0_layout_component_binding(assembled: dict) -> None:
         if refs.get(c["ComponentId"], 0) != 1
     }
     assert not violations, violations
+
+
+def test_gw_house0_layout_axiom_10_relay(assembled: dict) -> None:
+    """The aquastat control relay is a required plant relay."""
+    reject(
+        assembled,
+        lambda d: d.update(
+            ShNodes=[n for n in d["ShNodes"] if n["Name"] != "aquastat-ctrl-relay"]
+        ),
+        "Axiom 10",
+    )
+
+
+def test_gw_house0_layout_axiom_10_output(assembled: dict) -> None:
+    """A 0-10V output with the wrong ActorClass fails clause a."""
+
+    def reclass(d: dict) -> None:
+        for n in d["ShNodes"]:
+            if n["Name"] == "store-010v":
+                n["ActorClass"] = "NoActor"
+                n.pop("ActorHierarchyName", None)
+
+    reject(assembled, reclass, "Axiom 10")
+
+
+def test_gw_house0_layout_axiom_10_circuits(assembled: dict) -> None:
+    reject(
+        assembled,
+        lambda d: d["Hydronic"].update(ZoneCallCircuits=[]),
+        "Axiom 10",
+    )
+
+
+def test_gw_house0_layout_axiom_11_component(assembled: dict) -> None:
+    """hp-idu is equipment: it carries a component."""
+
+    def unbind(d: dict) -> None:
+        for n in d["ShNodes"]:
+            if n["Name"] == "hp-idu":
+                n.pop("ComponentId")
+
+    reject(assembled, unbind, "Axiom 11")
+
+
+def test_gw_house0_layout_axiom_11_actor_class(assembled: dict) -> None:
+    def reclass(d: dict) -> None:
+        for n in d["ShNodes"]:
+            if n["Name"] == "hp-odu":
+                n["ActorClass"] = "Relay"
+                n["ActorHierarchyName"] = "s.hp-odu"
+
+    reject(assembled, reclass, "Axiom 11")

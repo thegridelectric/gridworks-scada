@@ -558,6 +558,20 @@
       ],
       "TypeName": "dfr.component.gt",
       "Version": "000"
+    },
+    {
+      "TypeName": "device.component.gt",
+      "Version": "000",
+      "ComponentId": "a6f0c2e4-8b3d-4e71-9c25-6d1f8e4b7a03",
+      "DeviceType": "LGARUM048GSS5",
+      "DisplayName": "LG Multi V ARUM048GSS5 outdoor unit"
+    },
+    {
+      "TypeName": "device.component.gt",
+      "Version": "000",
+      "ComponentId": "d3b7e1a9-2c64-4f58-8a1e-5b9c0d7f2e46",
+      "DeviceType": "LGARNH423K3A4",
+      "DisplayName": "LG Hydro Kit ARNH423K3A4 indoor unit"
     }
   ],
   "DataChannels": [
@@ -1283,7 +1297,29 @@
         "KwhPerDegF": 1.0,
         "Name": "main",
         "TypeName": "gw1.hvac.zone",
-        "Version": "000"
+        "Version": "000",
+        "TempChannelName": "zone1-main-temp"
+      }
+    ],
+    "ZoneCallCircuits": [
+      {
+        "TypeName": "gw1.zone.call.circuit",
+        "Version": "000",
+        "CircuitPosition": 1,
+        "ServesZone": "main",
+        "ActuatorKind": "FloorLoop",
+        "Role": "Baseload",
+        "CanCool": false,
+        "SetpointSource": "FromThermostat",
+        "Thermostat": {
+          "TypeName": "gw1.zone.thermostat",
+          "Version": "000",
+          "Kind": "HoneywellViaHubitat",
+          "ComponentId": "e5e2fb2c-3f96-4079-907f-f96db22d1568"
+        },
+        "WhitewireChannelName": "zone1-main-whitewire-pwr",
+        "FailsafeRelayNode": "zone1-main-failsafe-relay",
+        "OpsRelayNode": "zone1-main-ops-relay"
       }
     ]
   },
@@ -1424,7 +1460,19 @@
       "NameplatePowerW": 6000,
       "ShNodeId": "f1692ea8-9866-423c-b260-93d2affc9881",
       "TypeName": "spaceheat.node.gt",
-      "Version": "302"
+      "Version": "302",
+      "ComponentId": "a6f0c2e4-8b3d-4e71-9c25-6d1f8e4b7a03"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "HP IDU",
+      "InPowerMetering": true,
+      "Name": "hp-idu",
+      "NameplatePowerW": 6000,
+      "ShNodeId": "7c2e9a41-5d8b-4f36-b1a7-3e6d0c8f5a92",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "302",
+      "ComponentId": "d3b7e1a9-2c64-4f58-8a1e-5b9c0d7f2e46"
     },
     {
       "ActorClass": "NoActor",
