@@ -57,3 +57,48 @@ class Hydronic(GwsprotoSemaType):
                 f"({len(self.Zones)}) must be between 1 and 6 inclusive."
             )
         return self
+
+    @model_validator(mode="after")
+    def check_axiom_3(self) -> Self:
+        """
+        Axiom 3: CircuitResolution
+        a. Every circuit's ServesZone SHALL equal the Name of a zone in
+        Zones. b. No two circuits SHALL share a CircuitPosition.
+        """
+        circuits = self.ZoneCallCircuits or []
+        zone_names = {z.Name for z in self.Zones}
+        for c in circuits:
+            if c.ServesZone not in zone_names:
+                raise ValueError(
+                    "Axiom 3 (CircuitResolution) failed: ServesZone "
+                    f"{c.ServesZone!r} does not name a zone in Zones."
+                )
+        positions = [c.CircuitPosition for c in circuits]
+        if len(positions) != len(set(positions)):
+            raise ValueError(
+                "Axiom 3 (CircuitResolution) failed: CircuitPosition values "
+                f"{positions} are not distinct."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_4(self) -> Self:
+        """
+        Axiom 4: LearnedNeedsTempChannel
+        For every circuit whose SetpointSource is Learned, the zone named
+        by its ServesZone SHALL carry a TempChannelName.
+        """
+        zones_by_name = {z.Name: z for z in self.Zones}
+        for c in self.ZoneCallCircuits or []:
+            zone = zones_by_name.get(c.ServesZone)
+            if (
+                c.SetpointSource == "Learned"
+                and zone is not None
+                and zone.TempChannelName is None
+            ):
+                raise ValueError(
+                    "Axiom 4 (LearnedNeedsTempChannel) failed: circuit at "
+                    f"position {c.CircuitPosition} is Learned but zone "
+                    f"{c.ServesZone!r} has no TempChannelName."
+                )
+        return self

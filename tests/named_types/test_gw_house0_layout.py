@@ -1,0 +1,132 @@
+"""Rejecting tests for gw.house0.layout/000's ported axioms (2, 3, 7, 8).
+
+Each counterexample is a typed mutation of the assembled fixture pair,
+re-validated at the boundary — chosen so the intended axiom fires. Axioms
+1, 4, 5 predate this file; 6 and 9 are unported (see the axiom-coverage
+allowlists)."""
+
+import json
+from pathlib import Path
+
+import pytest
+
+from gwsproto.named_types import House0Layout, House0OperationalParams
+from sema_to_dc import assemble_runtime_layout
+
+CONFIG = Path(__file__).parent.parent / "config"
+
+
+@pytest.fixture(scope="module")
+def assembled() -> dict:
+    ops = House0OperationalParams.model_validate_json(
+        (CONFIG / "gw.house0.operational.params.json").read_text()
+    )
+    return assemble_runtime_layout(
+        json.loads((CONFIG / "gw.house0.layout.json").read_text()),
+        ops.model_dump(by_alias=True, exclude_none=True),
+    )
+
+
+def mutated(assembled: dict, mutate) -> dict:
+    d = json.loads(json.dumps(assembled))
+    mutate(d)
+    return d
+
+
+def reject(assembled: dict, mutate, axiom: str) -> None:
+    with pytest.raises(ValueError, match=axiom):
+        House0Layout.model_validate(mutated(assembled, mutate))
+
+
+def test_gw_house0_layout_generated(assembled: dict) -> None:
+    House0Layout.model_validate(assembled)
+
+
+def test_gw_house0_layout_axiom_2(assembled: dict) -> None:
+    """derived-generator with the wrong ActorClass fails the core pair check."""
+    def mutate(d: dict) -> None:
+        for n in d["ShNodes"]:
+            if n["Name"] == "derived-generator":
+                n["ActorClass"] = "NoActor"
+                n.pop("ActorHierarchyName", None)
+    reject(assembled, mutate, "Axiom 2")
+
+
+def test_gw_house0_layout_axiom_3(assembled: dict) -> None:
+    """sieg-loop is an unconditional command node — removing it fails."""
+    reject(
+        assembled,
+        lambda d: d.update(
+            ShNodes=[n for n in d["ShNodes"] if n["Name"] != "sieg-loop"]
+        ),
+        "Axiom 3",
+    )
+
+
+def test_gw_house0_layout_axiom_3_n_handle(assembled: dict) -> None:
+    """'n' must have effective handle auto.lc.n."""
+    def mutate(d: dict) -> None:
+        for n in d["ShNodes"]:
+            if n["Name"] == "n":
+                n["Handle"] = "auto.n"
+    reject(assembled, mutate, "Axiom 3")
+
+
+def test_gw_house0_layout_axiom_7(assembled: dict) -> None:
+    reject(
+        assembled,
+        lambda d: d.update(
+            DataChannels=[c for c in d["DataChannels"] if c["Name"] != "store-flow"]
+        ),
+        "Axiom 7",
+    )
+
+
+def test_gw_house0_layout_axiom_8(assembled: dict) -> None:
+    """The sieg manifold surface is unconditional for gw.house0.layout."""
+    reject(
+        assembled,
+        lambda d: d.update(
+            DataChannels=[c for c in d["DataChannels"] if c["Name"] != "sieg-cold"]
+        ),
+        "Axiom 8",
+    )
+
+
+def test_gw_house0_layout_axiom_6(assembled: dict) -> None:
+    """A transactive input whose about-node loses NameplatePowerW fails."""
+    def mutate(d: dict) -> None:
+        tx = [c for c in d["DerivedChannels"] if c.get("Strategy") == "transactive-power"][0]
+        about = {c["Name"]: c["AboutNodeName"] for c in d["DataChannels"]}[tx["InputChannelNames"][0]]
+        for n in d["ShNodes"]:
+            if n["Name"] == about:
+                n.pop("NameplatePowerW", None)
+    reject(assembled, mutate, "Axiom 6")
+
+
+def test_gw_house0_layout_axiom_9(assembled: dict) -> None:
+    reject(
+        assembled,
+        lambda d: d.update(
+            DerivedChannels=[c for c in d["DerivedChannels"] if c["Name"] != "usable-energy"]
+        ),
+        "Axiom 9",
+    )
+
+
+@pytest.mark.skip(
+    reason="krida multichannel relay component is many-to-one (14 relay "
+    "nodes) until the krida retirement; ComponentBinding lands there"
+)
+def test_gw_house0_layout_component_binding(assembled: dict) -> None:
+    from collections import Counter
+
+    refs = Counter(
+        n["ComponentId"] for n in assembled["ShNodes"] if n.get("ComponentId")
+    )
+    violations = {
+        c["ComponentId"]: refs.get(c["ComponentId"], 0)
+        for c in assembled["Components"]
+        if refs.get(c["ComponentId"], 0) != 1
+    }
+    assert not violations, violations

@@ -983,6 +983,66 @@
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
       "Version": "003"
+    },
+    {
+      "AboutNodeName": "sieg-cold",
+      "CapturedByNodeName": "sieg-cold",
+      "DisplayName": "Sieg Cold Water Temp",
+      "Id": "cd4aaee8-3e8a-4a34-87b9-bf2e5c0a7a64",
+      "Name": "sieg-cold",
+      "Quantity": "Temperature",
+      "TelemetryName": "WaterTempCTimes1000",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "003"
+    },
+    {
+      "AboutNodeName": "sieg-flow",
+      "CapturedByNodeName": "sieg-flow",
+      "DisplayName": "Sieg Flow Gpm X 100",
+      "Id": "f26a256d-02a7-472a-a598-fb432534fa0d",
+      "Name": "sieg-flow",
+      "Quantity": "FlowRate",
+      "TelemetryName": "GpmTimes100",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "003"
+    },
+    {
+      "AboutNodeName": "sieg-flow",
+      "CapturedByNodeName": "sieg-flow",
+      "DisplayName": "Sieg Flow Micro Hz",
+      "Id": "ed6ff697-8a8c-48da-b7c7-82292e9aecee",
+      "Name": "sieg-flow-hz",
+      "Quantity": "Frequency",
+      "TelemetryName": "MicroHz",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "003"
+    },
+    {
+      "AboutNodeName": "dist-flow",
+      "CapturedByNodeName": "dist-flow",
+      "DisplayName": "Dist Flow Gpm X 100",
+      "Id": "bc02d159-d8e6-4240-9159-bff2ad4899b1",
+      "Name": "dist-flow",
+      "Quantity": "FlowRate",
+      "TelemetryName": "GpmTimes100",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "003"
+    },
+    {
+      "AboutNodeName": "store-flow",
+      "CapturedByNodeName": "store-flow",
+      "DisplayName": "Store Flow Gpm X 100",
+      "Id": "8e771453-24ae-44f7-b4d3-e6ff159b0e13",
+      "Name": "store-flow",
+      "Quantity": "FlowRate",
+      "TelemetryName": "GpmTimes100",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "003"
     }
   ],
   "DerivedChannels": [
@@ -1211,11 +1271,11 @@
   ],
   "Hydronic": {
     "PrimaryFlowSource": "Measured",
-    "SiegLoopPlumbed": false,
+    "SiegLoopPlumbed": true,
     "Strategy": "House0",
     "TotalStoreTanks": 1,
     "TypeName": "gw.hydronic",
-    "UseSiegLoop": false,
+    "UseSiegLoop": true,
     "Version": "000",
     "Zones": [
       {
@@ -1678,6 +1738,48 @@
       "DisplayName": "Primary Flow",
       "Name": "primary-flow",
       "ShNodeId": "d66e4263-75f4-43fe-990c-fe08533b8dbb",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "302"
+    },
+    {
+      "ActorClass": "SiegLoop",
+      "DisplayName": "Sieg Loop",
+      "Name": "sieg-loop",
+      "ShNodeId": "4718081c-b052-42a7-bf30-dea259fa2c35",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "302",
+      "Handle": "auto.lc.n.sieg-loop",
+      "ActorHierarchyName": "s.sieg-loop"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "Sieg Cold",
+      "Name": "sieg-cold",
+      "ShNodeId": "3ecbacf6-f448-4155-a0f5-ccd404d1e2d2",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "302"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "Sieg Flow",
+      "Name": "sieg-flow",
+      "ShNodeId": "9156fde7-e2e6-4ce0-b462-4031a9758bfe",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "302"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "Dist Flow",
+      "Name": "dist-flow",
+      "ShNodeId": "a079c7a7-c1ca-43ae-b14d-0231ca3ae4e8",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "302"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "Store Flow",
+      "Name": "store-flow",
+      "ShNodeId": "3b320671-b2f5-4cdd-be00-4c3fcf5af482",
       "TypeName": "spaceheat.node.gt",
       "Version": "302"
     }

@@ -19,3 +19,6 @@ class CoreNodeNames:
     local_control = "lc"
     local_control_normal = "n"
 
+    # service equipment
+    web_server = "web-server"
+

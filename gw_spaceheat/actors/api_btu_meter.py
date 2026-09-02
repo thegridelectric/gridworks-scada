@@ -48,7 +48,7 @@ class ApiBtuMeter(PicoActorBase):
         self._component = comp
         # Btu meters carry no specialized device-type record; identity is on the gt.
         self.device_type = self._component.gt.DeviceType
-        if self.device_type not in [DeviceType.GridworksGw101]:
+        if self.device_type not in [DeviceType.Gw101]:
             raise ValueError(
                 f"Expect Gw101 (BtuMeter).. not {self.device_type}"
             )
@@ -185,7 +185,7 @@ class ApiBtuMeter(PicoActorBase):
 
             # If this is a new pico, log the HwUid for layout update
             if self.need_to_update_layout(params):
-                if self.device_type == DeviceType.GridworksGw101:
+                if self.device_type == DeviceType.Gw101:
                     self.pico_uid = params.HwUid
                     self.log(
                         f"UPDATE LAYOUT!!: set HwUid = '{params.HwUid}' on "
@@ -292,7 +292,7 @@ class ApiBtuMeter(PicoActorBase):
                 time.time() - self.last_heard > self.flatline_seconds()
                 and time.time() - self.last_error_report > FLATLINE_REPORT_S
             ):
-                if self.device_type == DeviceType.GridworksGw101:
+                if self.device_type == DeviceType.Gw101:
                     if self.missing() and self.pico_uid:
                         self._send_to(
                             self.pico_cycler,

@@ -110,6 +110,16 @@
     {
       "TypeName": "spaceheat.node.gt",
       "Version": "302",
+      "Name": "hp-boss",
+      "ActorHierarchyName": "s.hp-boss",
+      "Handle": "auto.lc.n.hp-boss",
+      "ActorClass": "HpBoss",
+      "DisplayName": "Hp Boss - the heat pump's interior command node (dormant until a commandable heat pump or engaged loop hangs under it)",
+      "ShNodeId": "2c915e66-7439-4074-9d56-a5160c582b5e"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "302",
       "Name": "lc",
       "ActorHierarchyName": "s.lc",
       "Handle": "auto.lc",
@@ -125,6 +135,15 @@
       "ActorClass": "NoActor",
       "DisplayName": "LocalControl Normal",
       "ShNodeId": "9e4adffd-df4b-4e09-b22e-e7aba0e462d2"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "302",
+      "Name": "gw108",
+      "ActorClass": "NoActor",
+      "DisplayName": "Sim Spruce GW108 board",
+      "ComponentId": "91ee52fd-7f82-422f-bfa2-fa744be35354",
+      "ShNodeId": "b9297736-3def-4d2e-90f7-2c111896b11d"
     },
     {
       "TypeName": "spaceheat.node.gt",
@@ -227,6 +246,15 @@
       "DisplayName": "Economy Energy L2",
       "NameplatePowerW": 4500,
       "ShNodeId": "04e20231-25c7-45cb-862a-6cb28cd76749"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "302",
+      "Name": "web-server",
+      "ActorClass": "NoActor",
+      "DisplayName": "Web Server",
+      "ComponentId": "623c6c56-8cf1-4869-90e5-3fd5787826ff",
+      "ShNodeId": "fa9f2cfe-4d79-4003-8e01-dbd87b0670f8"
     },
     {
       "TypeName": "spaceheat.node.gt",
@@ -665,7 +693,7 @@
       "ActorHierarchyName": "s.primary-btu",
       "ActorClass": "SimSensorActor",
       "DisplayName": "Primary Btu",
-      "ComponentId": "c72bb472-9846-4690-87c4-2478a01ca1e5",
+      "ComponentId": "0931545a-7c48-4e0b-8cbc-0197c84148c1",
       "ShNodeId": "678e0ac5-e436-48ff-a15f-bef4c9f5519b"
     },
     {
@@ -699,7 +727,7 @@
       "ActorHierarchyName": "s.secondary-btu",
       "ActorClass": "SimSensorActor",
       "DisplayName": "Secondary Btu",
-      "ComponentId": "2ee1e144-eb7c-4072-be3a-22e384398fc3",
+      "ComponentId": "0b98b6e3-8084-4fac-93a0-5d0dca72fd38",
       "ShNodeId": "c8450f5b-1b05-4066-9dd4-c739c358005b"
     },
     {
@@ -741,7 +769,7 @@
       "ActorHierarchyName": "s.store-btu",
       "ActorClass": "SimSensorActor",
       "DisplayName": "Store Btu",
-      "ComponentId": "7fa74196-1786-4945-a6b2-f0f185abae1b",
+      "ComponentId": "ab01a621-4c4d-49e5-bbcb-b9ef3dd5842a",
       "ShNodeId": "454801c5-f48f-4820-b794-cb6ea47112d6"
     },
     {
@@ -775,7 +803,7 @@
       "ActorHierarchyName": "s.dist-btu",
       "ActorClass": "SimSensorActor",
       "DisplayName": "Dist Btu",
-      "ComponentId": "e4741146-f6cb-4fbe-b302-aba437e5fab7",
+      "ComponentId": "a703ab3b-e8a4-4ea7-965a-6dad804fd6d1",
       "ShNodeId": "0fd55bc3-4ed8-4faa-8306-2e16036c9565"
     },
     {
@@ -1935,7 +1963,7 @@
     {
       "TypeName": "web.server.component.gt",
       "Version": "001",
-      "ComponentId": "ae35a8e5-9258-43f6-a2d2-4755c07e8197",
+      "ComponentId": "623c6c56-8cf1-4869-90e5-3fd5787826ff",
       "DeviceType": "AbstractWebServer",
       "WebServer": {
         "Enabled": true,
@@ -2600,28 +2628,28 @@
     {
       "TypeName": "sim.sensor.component.gt",
       "Version": "000",
-      "ComponentId": "c72bb472-9846-4690-87c4-2478a01ca1e5",
+      "ComponentId": "0931545a-7c48-4e0b-8cbc-0197c84148c1",
       "DeviceType": "GridworksSimSensor",
       "DisplayName": "Sim primary-btu BtuMeter"
     },
     {
       "TypeName": "sim.sensor.component.gt",
       "Version": "000",
-      "ComponentId": "2ee1e144-eb7c-4072-be3a-22e384398fc3",
+      "ComponentId": "0b98b6e3-8084-4fac-93a0-5d0dca72fd38",
       "DeviceType": "GridworksSimSensor",
       "DisplayName": "Sim secondary-btu BtuMeter"
     },
     {
       "TypeName": "sim.sensor.component.gt",
       "Version": "000",
-      "ComponentId": "7fa74196-1786-4945-a6b2-f0f185abae1b",
+      "ComponentId": "ab01a621-4c4d-49e5-bbcb-b9ef3dd5842a",
       "DeviceType": "GridworksSimSensor",
       "DisplayName": "Sim store-btu BtuMeter"
     },
     {
       "TypeName": "sim.sensor.component.gt",
       "Version": "000",
-      "ComponentId": "e4741146-f6cb-4fbe-b302-aba437e5fab7",
+      "ComponentId": "a703ab3b-e8a4-4ea7-965a-6dad804fd6d1",
       "DeviceType": "GridworksSimSensor",
       "DisplayName": "Sim dist-btu BtuMeter"
     }

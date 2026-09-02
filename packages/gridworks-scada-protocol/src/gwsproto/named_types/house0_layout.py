@@ -3,6 +3,8 @@ from typing import Literal
 from pydantic import model_validator
 from typing_extensions import Self
 
+from gwsproto.enums import ActorClass
+
 from gwsproto.named_types.ads111x_based_component_gt import Ads111xBasedComponentGt
 from gwsproto.named_types.ads111x_based_device_type_gt import Ads111xBasedDeviceTypeGt
 from gwsproto.named_types.electric_meter_device_type_gt import ElectricMeterDeviceTypeGt
@@ -115,25 +117,106 @@ class House0Layout(GwsprotoSemaType):
     @model_validator(mode="after")
     def check_axiom_2(self) -> Self:
         """
-        Axiom 2: EssentialNodesExistence
-        ShNodes SHALL include the primary-scada (s), ltn, leaf-ally (la),
-        local-control (lc) and derived-generator nodes.
+        Axiom 2: CoreShNodesExistenceAndActorClass
+        ShNodes SHALL contain a node with each of the following Name /
+        ActorClass pairs, and no additional ShNode with any of these Names
+        SHALL exist:
+          "s"                 → ActorClass "PrimaryScada"
+          "s2"                → ActorClass "SecondaryScada"
+          "power-meter"       → ActorClass "PowerMeter"
+          "ltn"               → ActorClass "NoActor"
+          "admin"             → ActorClass "NoActor"
+          "auto"              → ActorClass "NoActor"
+          "la"                → ActorClass "LeafAlly"
+          "lc"                → ActorClass "LocalControl"
+          "derived-generator" → ActorClass "DerivedGenerator"
+        The effective handle (Handle if present, otherwise Name) of "admin"
+        SHALL be "admin" and of "auto" SHALL be "auto".
         """
         if not self.ShNodes:
             return self
-        required = {"s", "ltn", "la", "lc", "derived-generator"}
-        names = {n.Name for n in (self.ShNodes or [])}
-        missing = sorted(required - names)
-        if missing:
-            raise ValueError(
-                f"Axiom 2 (EssentialNodesExistence) failed: missing essential nodes {missing}."
-            )
+        pairs = {
+            "s": ActorClass.PrimaryScada,
+            "s2": ActorClass.SecondaryScada,
+            "power-meter": ActorClass.PowerMeter,
+            "ltn": ActorClass.NoActor,
+            "admin": ActorClass.NoActor,
+            "auto": ActorClass.NoActor,
+            "la": ActorClass.LeafAlly,
+            "lc": ActorClass.LocalControl,
+            "derived-generator": ActorClass.DerivedGenerator,
+        }
+        nodes_by_name: dict[str, list] = {}
+        for n in self.ShNodes:
+            nodes_by_name.setdefault(n.Name, []).append(n)
+        for name, actor_class in pairs.items():
+            matches = nodes_by_name.get(name, [])
+            if len(matches) != 1 or matches[0].ActorClass != actor_class:
+                raise ValueError(
+                    f"Axiom 2 (CoreShNodesExistenceAndActorClass) failed: expected exactly one "
+                    f"ShNode {name!r} with ActorClass {actor_class}."
+                )
+        for name, handle in (("admin", "admin"), ("auto", "auto")):
+            node = nodes_by_name[name][0]
+            effective = node.Handle if node.Handle is not None else node.Name
+            if effective != handle:
+                raise ValueError(
+                    f"Axiom 2 (CoreShNodesExistenceAndActorClass) failed: {name!r} effective "
+                    f"handle is {effective!r}, expected {handle!r}."
+                )
         return self
 
     @model_validator(mode="after")
     def check_axiom_3(self) -> Self:
         """
-        Axiom 3: ZoneHeatCallChannel
+        Axiom 3: CommandNodesExistenceAndActorClass
+        ShNodes SHALL contain a node with each of the following Name /
+        ActorClass pairs, and no additional ShNode with any of these Names
+        SHALL exist:
+          "n"           → ActorClass "NoActor"
+          "backup"      → ActorClass "NoActor"
+          "scada-blind" → ActorClass "NoActor"
+          "pico-cycler" → ActorClass "PicoCycler"
+          "hp-boss"     → ActorClass "HpBoss"
+          "sieg-loop"   → ActorClass "SiegLoop"
+        The effective handle of "n" SHALL be "auto.lc.n". (A gw.house0.layout
+        plant has a siegenthaler loop; whether the loop is USED is
+        operational, so sieg-loop and hp-boss are unconditional command
+        nodes, dormant when unused.)
+        """
+        if not self.ShNodes:
+            return self
+        pairs = {
+            "n": ActorClass.NoActor,
+            "backup": ActorClass.NoActor,
+            "scada-blind": ActorClass.NoActor,
+            "pico-cycler": ActorClass.PicoCycler,
+            "hp-boss": ActorClass.HpBoss,
+            "sieg-loop": ActorClass.SiegLoop,
+        }
+        nodes_by_name: dict[str, list] = {}
+        for n in self.ShNodes:
+            nodes_by_name.setdefault(n.Name, []).append(n)
+        for name, actor_class in pairs.items():
+            matches = nodes_by_name.get(name, [])
+            if len(matches) != 1 or matches[0].ActorClass != actor_class:
+                raise ValueError(
+                    f"Axiom 3 (CommandNodesExistenceAndActorClass) failed: expected exactly one "
+                    f"ShNode {name!r} with ActorClass {actor_class}."
+                )
+        n_node = nodes_by_name["n"][0]
+        effective = n_node.Handle if n_node.Handle is not None else n_node.Name
+        if effective != "auto.lc.n":
+            raise ValueError(
+                f"Axiom 3 (CommandNodesExistenceAndActorClass) failed: 'n' effective handle is "
+                f"{effective!r}, expected 'auto.lc.n'."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_4(self) -> Self:
+        """
+        Axiom 4: ZoneHeatCallChannel
         For each zone at 1-based index i in Hydronic.Zones, a DerivedChannel named
         "zone{i}-{Zone.Name}-heat-call" (lowercased) with Strategy "heat-call" SHALL exist,
         and a source DataChannel SHALL exist for that zone — either
@@ -150,26 +233,26 @@ class House0Layout(GwsprotoSemaType):
             dc = derived_by_name.get(heat_call)
             if dc is None:
                 raise ValueError(
-                    f"Axiom 3 (ZoneHeatCallChannel) failed: missing DerivedChannel '{heat_call}'."
+                    f"Axiom 4 (ZoneHeatCallChannel) failed: missing DerivedChannel '{heat_call}'."
                 )
             if dc.Strategy != "heat-call":
                 raise ValueError(
-                    f"Axiom 3 (ZoneHeatCallChannel) failed: DerivedChannel '{heat_call}' must have "
+                    f"Axiom 4 (ZoneHeatCallChannel) failed: DerivedChannel '{heat_call}' must have "
                     f"Strategy 'heat-call', got '{dc.Strategy}'."
                 )
             whitewire = f"{base}-whitewire-pwr"
             opto = f"{base}-opto-input"
             if whitewire not in data_names and opto not in data_names:
                 raise ValueError(
-                    f"Axiom 3 (ZoneHeatCallChannel) failed: heat-call for zone {i} needs a source "
+                    f"Axiom 4 (ZoneHeatCallChannel) failed: heat-call for zone {i} needs a source "
                     f"DataChannel — '{whitewire}' (power) or '{opto}' (opto)."
                 )
         return self
 
     @model_validator(mode="after")
-    def check_axiom_4(self) -> Self:
+    def check_axiom_5(self) -> Self:
         """
-        Axiom 4: PrimaryFlowSourceChannelAgreement
+        Axiom 5: PrimaryFlowSourceChannelAgreement
         The "primary-flow" channel SHALL agree with Hydronic.PrimaryFlowSource. If
         PrimaryFlowSource is "Measured", a DataChannel named "primary-flow" SHALL exist
         and no DerivedChannel named "primary-flow" SHALL exist. If PrimaryFlowSource is
@@ -184,23 +267,160 @@ class House0Layout(GwsprotoSemaType):
         if source == "Measured":
             if not has_data:
                 raise ValueError(
-                    "Axiom 4 (PrimaryFlowSourceChannelAgreement) failed: Measured requires a "
+                    "Axiom 5 (PrimaryFlowSourceChannelAgreement) failed: Measured requires a "
                     "'primary-flow' DataChannel."
                 )
             if derived:
                 raise ValueError(
-                    "Axiom 4 (PrimaryFlowSourceChannelAgreement) failed: Measured forbids a "
+                    "Axiom 5 (PrimaryFlowSourceChannelAgreement) failed: Measured forbids a "
                     "'primary-flow' DerivedChannel."
                 )
         elif source == "DerivedSiegSum":
             if not any(d.Strategy == "sum" for d in derived):
                 raise ValueError(
-                    "Axiom 4 (PrimaryFlowSourceChannelAgreement) failed: DerivedSiegSum requires "
+                    "Axiom 5 (PrimaryFlowSourceChannelAgreement) failed: DerivedSiegSum requires "
                     "a 'primary-flow' DerivedChannel with Strategy 'sum'."
                 )
             if has_data:
                 raise ValueError(
-                    "Axiom 4 (PrimaryFlowSourceChannelAgreement) failed: DerivedSiegSum forbids a "
+                    "Axiom 5 (PrimaryFlowSourceChannelAgreement) failed: DerivedSiegSum forbids a "
                     "'primary-flow' DataChannel."
                 )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_7(self) -> Self:
+        """
+        Axiom 7: RequiredSensing
+        For each required sensing name, a channel with that Name SHALL exist
+        in DataChannels or in DerivedChannels (kind-agnostic).
+        """
+        if not self.ShNodes:
+            return self
+        names = {c.Name for c in (self.DataChannels or [])} | {
+            c.Name for c in (self.DerivedChannels or [])
+        }
+        missing = sorted({"dist-flow", "store-flow"} - names)
+        if missing:
+            raise ValueError(
+                f"Axiom 7 (RequiredSensing) failed: missing channel(s) {missing}."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_8(self) -> Self:
+        """
+        Axiom 8: SiegManifoldChannels
+        The sieg loop's sensing and valve-observation channels SHALL exist
+        (unconditional — a gw.house0.layout plant has a sieg loop).
+        """
+        if not self.ShNodes:
+            return self
+        names = {c.Name for c in (self.DataChannels or [])} | {
+            c.Name for c in (self.DerivedChannels or [])
+        }
+        required = {
+            "sieg-cold",
+            "sieg-flow",
+            "sieg-flow-hz",
+            "hp-loop-on-off-relay",
+            "hp-loop-keep-send-relay",
+        }
+        missing = sorted(required - names)
+        if missing:
+            raise ValueError(
+                f"Axiom 8 (SiegManifoldChannels) failed: missing channel(s) {missing}."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_6(self) -> Self:
+        """
+        Axiom 6: TransactivePowerChannel
+        Exactly one transactive-power DerivedChannel; each input resolves to
+        a PowerW DataChannel whose AboutNode carries a NameplatePowerW.
+        """
+        if not self.ShNodes:
+            return self
+        transactive = [
+            d for d in (self.DerivedChannels or [])
+            if d.Strategy == "transactive-power"
+        ]
+        if len(transactive) != 1:
+            raise ValueError(
+                "Axiom 6 (TransactivePowerChannel) failed: expected exactly one "
+                f"transactive-power DerivedChannel, found {len(transactive)}."
+            )
+        data_by_name = {d.Name: d for d in (self.DataChannels or [])}
+        node_by_name = {n.Name: n for n in (self.ShNodes or [])}
+        for name in transactive[0].InputChannelNames:
+            ch = data_by_name.get(name)
+            if ch is None:
+                raise ValueError(
+                    f"Axiom 6 (TransactivePowerChannel) failed: input '{name}' is not a DataChannel."
+                )
+            if ch.TelemetryName != "PowerW":
+                raise ValueError(
+                    f"Axiom 6 (TransactivePowerChannel) failed: input '{name}' must be PowerW, "
+                    f"got '{ch.TelemetryName}'."
+                )
+            node = node_by_name.get(ch.AboutNodeName)
+            if node is None or node.NameplatePowerW is None:
+                raise ValueError(
+                    f"Axiom 6 (TransactivePowerChannel) failed: about-node "
+                    f"'{ch.AboutNodeName}' of input '{name}' has no NameplatePowerW."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_9(self) -> Self:
+        """
+        Axiom 9: SystemModelEnergyChannels
+        usable-energy and required-energy DerivedChannels from the
+        derived-generator with Strategy system-model, naming exactly
+        gw0.usable.energy.layered and gw0.required.energy.layered.
+        """
+        if not self.ShNodes:
+            return self
+        expected_models = {
+            "gw0.usable.energy.layered",
+            "gw0.required.energy.layered",
+        }
+        derived_by_name = {d.Name: d for d in (self.DerivedChannels or [])}
+        seen: set = set()
+        for name in ("usable-energy", "required-energy"):
+            channel = derived_by_name.get(name)
+            if channel is None:
+                raise ValueError(
+                    "Axiom 9 (SystemModelEnergyChannels) failed: DerivedChannel "
+                    f"'{name}' is absent."
+                )
+            if channel.CreatedByNodeName != "derived-generator":
+                raise ValueError(
+                    f"Axiom 9 (SystemModelEnergyChannels) failed: '{name}' must be "
+                    f"created by 'derived-generator', got '{channel.CreatedByNodeName}'."
+                )
+            if channel.Strategy != "system-model":
+                raise ValueError(
+                    f"Axiom 9 (SystemModelEnergyChannels) failed: '{name}' must use "
+                    f"Strategy 'system-model', got '{channel.Strategy}'."
+                )
+            model = (channel.Parameters or {}).get("EnergyModel") or {}
+            type_name = model.get("TypeName")
+            if not type_name:
+                raise ValueError(
+                    f"Axiom 9 (SystemModelEnergyChannels) failed: '{name}' has no "
+                    "Parameters.EnergyModel.TypeName."
+                )
+            if type_name not in expected_models:
+                raise ValueError(
+                    f"Axiom 9 (SystemModelEnergyChannels) failed: '{name}' names "
+                    f"unsupported EnergyModel '{type_name}'."
+                )
+            seen.add(type_name)
+        if seen != expected_models:
+            raise ValueError(
+                "Axiom 9 (SystemModelEnergyChannels) failed: the two channels must "
+                f"name one of each model; got {sorted(seen)}."
+            )
         return self

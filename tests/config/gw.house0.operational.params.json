@@ -298,6 +298,46 @@
       "PollPeriodMs": 1000,
       "TypeName": "capture.tuning",
       "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000,
+      "CapturePeriodS": 60,
+      "ChannelName": "sieg-cold",
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 10,
+      "CapturePeriodS": 300,
+      "ChannelName": "sieg-flow",
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 100000,
+      "CapturePeriodS": 300,
+      "ChannelName": "sieg-flow-hz",
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 10,
+      "CapturePeriodS": 300,
+      "ChannelName": "dist-flow",
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    },
+    {
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 10,
+      "CapturePeriodS": 300,
+      "ChannelName": "store-flow",
+      "TypeName": "capture.tuning",
+      "Version": "000"
     }
   ],
   "CopCurve": {
