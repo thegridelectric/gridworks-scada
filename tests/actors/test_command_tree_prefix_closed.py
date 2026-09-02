@@ -17,6 +17,10 @@ CONFIG = Path(__file__).parent.parent / "config"
 PAIRS = {
     "nolan": ("gw.nolan.layout.json", "gw.nolan.operational.params.json"),
     "house0": ("gw.house0.layout.json", "gw.house0.operational.params.json"),
+    "house0-sim": (
+        "gw.house0.sim.layout.json",
+        "gw.house0.sim.operational.params.json",
+    ),
 }
 
 

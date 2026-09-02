@@ -16,13 +16,21 @@ from sema_to_dc import assemble_runtime_layout
 CONFIG = Path(__file__).parent.parent / "config"
 
 
-@pytest.fixture(scope="module")
-def assembled() -> dict:
-    ops = House0OperationalParams.model_validate_json(
-        (CONFIG / "gw.house0.operational.params.json").read_text()
-    )
+PAIRS = {
+    "house0": ("gw.house0.layout.json", "gw.house0.operational.params.json"),
+    "house0-sim": (
+        "gw.house0.sim.layout.json",
+        "gw.house0.sim.operational.params.json",
+    ),
+}
+
+
+@pytest.fixture(scope="module", params=sorted(PAIRS))
+def assembled(request: pytest.FixtureRequest) -> dict:
+    layout, ops_file = PAIRS[request.param]
+    ops = House0OperationalParams.model_validate_json((CONFIG / ops_file).read_text())
     return assemble_runtime_layout(
-        json.loads((CONFIG / "gw.house0.layout.json").read_text()),
+        json.loads((CONFIG / layout).read_text()),
         ops.model_dump(by_alias=True, exclude_none=True),
     )
 
