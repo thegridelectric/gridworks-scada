@@ -43,11 +43,12 @@ from gwsproto.type_helpers.component_base import (
 )
 from gwsproto.data_classes.components.web_server_component import WebServerComponent
 from gwsproto.data_classes.house_0_names import H0CN, H0N, ScadaWeb
-from gwsproto.enums import FlowManifoldVariant
+from gwsproto.enums import FlowManifoldVariant, SimDeviceType
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.house0.node_names import House0NodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import (
     HydronicSpaceheatNodeNames as HSNN,
+    TankNodeNames,
 )
 from gwsproto.names.nolan.node_names import NolanNodeNames
 from enum import Enum
@@ -1646,20 +1647,19 @@ class HydronicLayout:
 
     def has_simulated_component(self) -> bool:
         """True if any component or device type in the layout is simulated: a
-        `sim.*` component TypeName, or a `GridworksSim*` DeviceType value. This
-        is one half of the derived is_simulated gate (the other is the absence
-        of a TaDeed) — a layout carrying any sim device is simulated by
-        construction (simulated-actors design, "remove is_simulated — derive
-        it")."""
+        `sim.*` component TypeName, or a DeviceType value belonging to the
+        simulated-device vocabulary (gw1.sim.device.type, disjoint from
+        gw1.device.type). This is one half of the derived is_simulated gate
+        (the other is the absence of a TaDeed) — a layout carrying any sim
+        device is simulated by construction."""
+        sim_values = set(SimDeviceType.values())
         for component in self.components.values():
             if component.gt.TypeName.startswith("sim."):
                 return True
-            device_type = getattr(component.gt, "DeviceType", None)
-            if isinstance(device_type, str) and device_type.startswith("GridworksSim"):
+            if getattr(component.gt, "DeviceType", None) in sim_values:
                 return True
         for record in self.device_types.values():
-            device_type = getattr(record, "DeviceType", None)
-            if isinstance(device_type, str) and device_type.startswith("GridworksSim"):
+            if getattr(record, "DeviceType", None) in sim_values:
                 return True
         return False
 
@@ -1802,14 +1802,14 @@ class HydronicLayout:
     def store_top_elt_relay(self) -> ShNode:
         """Switches the store tank's top electric element."""
         if self.is_nolan:
-            return self.required_node(NolanNodeNames.store_top_elt_relay)
+            return self.required_node(TankNodeNames(1).top_elt_relay)
         raise DcError(f"a {self.layout_type_name} plant has no store top element relay")
 
     @property
     def store_bottom_elt_relay(self) -> ShNode:
         """Switches the store tank's bottom electric element."""
         if self.is_nolan:
-            return self.required_node(NolanNodeNames.store_bottom_elt_relay)
+            return self.required_node(TankNodeNames(1).bottom_elt_relay)
         raise DcError(f"a {self.layout_type_name} plant has no store bottom element relay")
 
     def scada2_g_node_name(self) -> LeftRightDotStr:

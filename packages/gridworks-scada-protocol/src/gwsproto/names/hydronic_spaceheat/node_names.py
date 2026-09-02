@@ -44,10 +44,10 @@ class HydronicSpaceheatNodeNames:
     # A monobloc's indoor box: control electronics, the water-pump feed, and the
     # backup heater — no compressor. Deliberately NOT hp-idu.
     hp_ctrl_box = "hp-ctrl-box"
+    # Buffer elements are flat (one buffer); store-tank elements are per
+    # tank, on TankNodeNames.
     buffer_top_elt = "buffer-top-elt"
     buffer_bottom_elt = "buffer-bottom-elt"
-    store_top_elt = "store-top-elt"
-    store_bottom_elt = "store-bottom-elt"
 
     # pumps
     dist_pump = "dist-pump"
@@ -135,9 +135,11 @@ class FlowNodeNames:
 
 class TankNodeNames:
     """
-    Spaceheat Node names associated to the buffer"
+    Spaceheat Node names associated to a store tank
 
-    self.reader, self.depth1, self.depth2, self.depth3
+    self.reader, self.depth1, self.depth2, self.depth3, and the tank's two
+    electric elements + the relays that switch them (top_elt, bottom_elt,
+    top_elt_relay, bottom_elt_relay)
     """
 
     def __init__(self, idx: int) -> None:
@@ -148,6 +150,10 @@ class TankNodeNames:
         self.depth1 = f"{self.reader}-depth1"
         self.depth2 = f"{self.reader}-depth2"
         self.depth3 = f"{self.reader}-depth3"
+        self.top_elt = f"{self.reader}-top-elt"
+        self.bottom_elt = f"{self.reader}-bottom-elt"
+        self.top_elt_relay = f"{self.top_elt}-relay"
+        self.bottom_elt_relay = f"{self.bottom_elt}-relay"
 
     @property
     def depths(self) -> set[str]:

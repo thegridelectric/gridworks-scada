@@ -120,8 +120,9 @@ class HydronicSpaceheatChannelNames:
     buffer_top_elt_relay_state = "buffer-top-elt-relay"
     buffer_bottom_elt_relay_state = "buffer-bottom-elt-relay"
 
-    store_top_elt_relay_state = "store-top-elt-relay"
-    store_bottom_elt_relay_state = "store-bottom-elt-relay"
+    # element power (buffer flat; store tanks per tank on TankChannelNames)
+    buffer_top_elt_pwr = "buffer-top-elt-pwr"
+    buffer_bottom_elt_pwr = "buffer-bottom-elt-pwr"
     sieg_cold = HNN.sieg_cold
     sieg_send = HNN.sieg_send
 
@@ -174,6 +175,12 @@ class TankChannelNames:
         self.depth1_micro_v = f"{self.reader}-depth1-micro-v"
         self.depth2_micro_v = f"{self.reader}-depth2-micro-v"
         self.depth3_micro_v = f"{self.reader}-depth3-micro-v"
+
+        # The tank's two electric elements: power draw and relay state
+        self.top_elt_pwr = f"{self.reader}-top-elt-pwr"
+        self.bottom_elt_pwr = f"{self.reader}-bottom-elt-pwr"
+        self.top_elt_relay_state = f"{self.reader}-top-elt-relay"
+        self.bottom_elt_relay_state = f"{self.reader}-bottom-elt-relay"
 
 
     @property

@@ -32,6 +32,7 @@ from gwsproto.enums.change_valve_state import ChangeValveState
 from gwsproto.enums.change_zone_call_source import ChangeZoneCallSource
 from gwsproto.enums.day_of_week import DayOfWeek
 from gwsproto.enums.device_type import DeviceType
+from gwsproto.enums.sim_device_type import SimDeviceType
 from gwsproto.enums.emission_method import EmissionMethod
 from gwsproto.enums.flow_manifold_variant import FlowManifoldVariant
 from gwsproto.enums.fsm_report_type import FsmReportType
@@ -122,6 +123,7 @@ __all__ = [
     "ChangeZoneCallSource",
     "DayOfWeek",
     "DeviceType",
+    "SimDeviceType",
     "EmissionMethod",
     "FlowManifoldVariant",
     "FsmReportType",

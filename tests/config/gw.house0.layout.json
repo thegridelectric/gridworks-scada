@@ -25,7 +25,7 @@
           "Version": "000"
         }
       ],
-      "DeviceType": "GridworksSimPowerMeter",
+      "DeviceType": "SimPowerMeter",
       "DisplayName": "Power Meter for Simulated Test system",
       "TypeName": "electric.meter.component.gt",
       "Version": "001"
@@ -424,7 +424,7 @@
           "Version": "000"
         }
       ],
-      "DeviceType": "GridworksSimSensor",
+      "DeviceType": "SimSensor",
       "DisplayName": "Buffer",
       "Enabled": true,
       "NumSampleAverages": 30,
@@ -504,7 +504,7 @@
           "Version": "000"
         }
       ],
-      "DeviceType": "GridworksSimSensor",
+      "DeviceType": "SimSensor",
       "DisplayName": "Tank1",
       "Enabled": true,
       "NumSampleAverages": 30,
@@ -1225,7 +1225,7 @@
   ],
   "DeviceTypes": [
     {
-      "DeviceType": "GridworksSimPowerMeter",
+      "DeviceType": "SimPowerMeter",
       "DisplayName": "Gridworks Pm1 Simulated Power Meter",
       "MinPollPeriodMs": 1000,
       "TelemetryNameList": [

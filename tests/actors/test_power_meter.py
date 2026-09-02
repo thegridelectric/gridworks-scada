@@ -206,8 +206,8 @@ async def test_async_power_update(request: pytest.FixtureRequest):
         assert transactive_channels == {
             data.layout.data_channels[name]
             for name in (
-                "elt-buffer-top-pwr", "elt-buffer-bottom-pwr",
-                "elt-store-top-pwr", "elt-store-bottom-pwr",
+                "buffer-top-elt-pwr", "buffer-bottom-elt-pwr",
+                "tank1-top-elt-pwr", "tank1-bottom-elt-pwr",
                 "dist-pump-pwr", "hp-ctrl-box-pwr", H0CN.hp_odu_pwr,
             )
         }

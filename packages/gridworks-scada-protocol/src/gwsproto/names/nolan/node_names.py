@@ -16,16 +16,11 @@ class NolanNodeNames:
 
     buffer_top_elt_relay = "buffer-top-elt-relay"
     buffer_bottom_elt_relay = "buffer-bottom-elt-relay"
-
-    # The relays switching the store tank's two electric elements. The
-    # elements themselves are HydronicSpaceheatNodeNames.store_top_elt /
-    # store_bottom_elt.
-    store_top_elt_relay = "store-top-elt-relay"
-    store_bottom_elt_relay = "store-bottom-elt-relay"
+    # The store tank's element relays are per tank: TankNodeNames(1).top_elt_relay.
 
     charge_valve_relay = "charge-valve-relay"
 
-    # Plant relays gw.nolan.layout axiom 3 (LocalControlPlant) forces to
+    # Plant relays gw.nolan.layout axiom 5 (RequiredActuators) forces to
     # exist — these constants mirror the sema contract, which is the
     # authority on the names. The third, hp-scada-ops-relay, is shared with
     # House0 and so lives in HydronicSpaceheatNodeNames.

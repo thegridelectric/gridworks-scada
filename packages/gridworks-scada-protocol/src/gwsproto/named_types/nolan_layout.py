@@ -1,3 +1,4 @@
+from collections import Counter
 from typing import List, Literal
 
 from pydantic import ConfigDict, model_validator
@@ -67,6 +68,44 @@ NolanDeviceType = (
 )
 
 
+def exact_match_pairs(
+    nodes: List[SpaceheatNodeGt],
+    pairs: tuple[tuple[str, ActorClass], ...],
+    axiom: str,
+) -> None:
+    """Exactly one ShNode per Name, carrying the paired ActorClass."""
+    for name, actor_class in pairs:
+        matches = [n for n in nodes if n.Name == name]
+        if len(matches) != 1:
+            raise ValueError(
+                f"{axiom} failed: expected exactly one ShNode named {name!r}, "
+                f"found {len(matches)}."
+            )
+        if matches[0].ActorClass != actor_class:
+            raise ValueError(
+                f"{axiom} failed: ShNode {name!r} has ActorClass "
+                f"{matches[0].ActorClass}, expected {actor_class}."
+            )
+
+
+def require_effective_handles(
+    nodes: List[SpaceheatNodeGt],
+    expected: tuple[tuple[str, str], ...],
+    axiom: str,
+) -> None:
+    """The effective handle (Handle if present, otherwise Name) of each named
+    node equals the expected value."""
+    by_name = {n.Name: n for n in nodes}
+    for name, handle in expected:
+        node = by_name[name]
+        effective = node.Handle if node.Handle is not None else node.Name
+        if effective != handle:
+            raise ValueError(
+                f"{axiom} failed: {name!r} effective handle is {effective!r}, "
+                f"expected {handle!r}."
+            )
+
+
 class NolanLayout(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/gw.nolan.layout/000"""
 
@@ -81,56 +120,6 @@ class NolanLayout(GwsprotoSemaType):
     Version: Literal["000"] = "000"
 
     model_config = ConfigDict(extra="allow")
-
-    @model_validator(mode="after")
-    def check_axiom_3(self) -> "NolanLayout":
-        """Axiom 3: RequiredRelays.
-
-        a. ShNodes SHALL include nodes named "iso-valve-relay",
-        "secondary-pump-relay", "hp-scada-ops-relay", "charge-valve-relay",
-        "store-pump-relay", "buffer-top-elt-relay", "buffer-bottom-elt-relay",
-        "store-top-elt-relay", and "store-bottom-elt-relay", each with
-        ActorClass "Relay".
-        b. Hydronic.ZoneCallCircuits SHALL be non-empty, and each circuit's
-        FailsafeRelayNode and OpsRelayNode SHALL name a ShNode in ShNodes
-        with ActorClass "Relay".
-        """
-        actor_class_by_name = {n.Name: n.ActorClass for n in self.ShNodes}
-
-        def relay_or_raise(node_name: str, role: str) -> None:
-            actor_class = actor_class_by_name.get(node_name)
-            if actor_class is None:
-                raise ValueError(
-                    f"Axiom 3 (RequiredRelays) failed: no ShNode named "
-                    f"{node_name} ({role})."
-                )
-            if actor_class != ActorClass.Relay:
-                raise ValueError(
-                    f"Axiom 3 (RequiredRelays) failed: {node_name} "
-                    f"({role}) has ActorClass {actor_class}, not Relay."
-                )
-
-        for required in (
-            "iso-valve-relay",
-            "charge-valve-relay",
-            "store-pump-relay",
-            "buffer-top-elt-relay",
-            "buffer-bottom-elt-relay",
-            "store-top-elt-relay",
-            "store-bottom-elt-relay",
-            "secondary-pump-relay",
-            "hp-scada-ops-relay",
-        ):
-            relay_or_raise(required, "plant relay")
-        circuits = self.Hydronic.ZoneCallCircuits or []
-        if not circuits:
-            raise ValueError(
-                "Axiom 3 (RequiredRelays) failed: Hydronic.ZoneCallCircuits is empty."
-            )
-        for circuit in circuits:
-            relay_or_raise(circuit.FailsafeRelayNode, "circuit failsafe relay")
-            relay_or_raise(circuit.OpsRelayNode, "circuit ops relay")
-        return self
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> "NolanLayout":
@@ -225,87 +214,159 @@ class NolanLayout(GwsprotoSemaType):
         return self
 
     @model_validator(mode="after")
-    def check_axiom_4(self) -> "NolanLayout":
-        """Axiom 4: RequiredActors.
+    def check_axiom_3(self) -> "NolanLayout":
+        """Axiom 3: CoreShNodesExistenceAndActorClass.
 
-        ShNodes SHALL include nodes with these Name / ActorClass pairs:
-          "s"                 → ActorClass "PrimaryScada"
-          "s2"                → ActorClass "SecondaryScada"
-          "lc"                → ActorClass "LocalControl"
-          "la"                → ActorClass "LeafAlly"
-          "derived-generator" → ActorClass "DerivedGenerator"
-          "power-meter"       → ActorClass "PowerMeter"
+        ShNodes SHALL contain a node with each of the core Name / ActorClass
+        pairs (s, s2, power-meter, ltn, admin, auto, la, lc,
+        derived-generator), and no additional ShNode with any of these Names
+        SHALL exist. The effective handle of "admin" SHALL be "admin" and of
+        "auto" SHALL be "auto".
         """
-        actor_class_by_name = {n.Name: n.ActorClass for n in self.ShNodes}
-        for name, actor_class in (
+        pairs = (
             ("s", ActorClass.PrimaryScada),
             ("s2", ActorClass.SecondaryScada),
-            ("lc", ActorClass.LocalControl),
-            ("la", ActorClass.LeafAlly),
-            ("derived-generator", ActorClass.DerivedGenerator),
             ("power-meter", ActorClass.PowerMeter),
-        ):
-            got = actor_class_by_name.get(name)
-            if got != actor_class:
-                raise ValueError(
-                    f"Axiom 4 (RequiredActors) failed: expected ShNode {name!r} "
-                    f"with ActorClass {actor_class}, got {got!r}."
-                )
+            ("ltn", ActorClass.NoActor),
+            ("admin", ActorClass.NoActor),
+            ("auto", ActorClass.NoActor),
+            ("la", ActorClass.LeafAlly),
+            ("lc", ActorClass.LocalControl),
+            ("derived-generator", ActorClass.DerivedGenerator),
+        )
+        exact_match_pairs(self.ShNodes, pairs, "Axiom 3 (CoreShNodesExistenceAndActorClass)")
+        require_effective_handles(
+            self.ShNodes, (("admin", "admin"), ("auto", "auto")),
+            "Axiom 3 (CoreShNodesExistenceAndActorClass)",
+        )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_4(self) -> "NolanLayout":
+        """Axiom 4: CommandNodesExistenceAndActorClass.
+
+        ShNodes SHALL contain "n" (NoActor), "pico-cycler" (PicoCycler) and
+        "hp-boss" (HpBoss), with no additional ShNode of those Names; the
+        effective handle of "n" SHALL be "auto.lc.n".
+        """
+        pairs = (
+            ("n", ActorClass.NoActor),
+            ("pico-cycler", ActorClass.PicoCycler),
+            ("hp-boss", ActorClass.HpBoss),
+        )
+        exact_match_pairs(self.ShNodes, pairs, "Axiom 4 (CommandNodesExistenceAndActorClass)")
+        require_effective_handles(
+            self.ShNodes, (("n", "auto.lc.n"),),
+            "Axiom 4 (CommandNodesExistenceAndActorClass)",
+        )
         return self
 
     @model_validator(mode="after")
     def check_axiom_5(self) -> "NolanLayout":
-        """Axiom 5: RequiredCommandNodes.
+        """Axiom 5: RequiredActuators.
 
-        ShNodes SHALL include nodes with these Name / ActorClass pairs:
-          "admin"       → ActorClass "NoActor"
-          "auto"        → ActorClass "NoActor"
-          "n"           → ActorClass "NoActor"
-          "ltn"         → ActorClass "NoActor"
-          "hp-odu"      → ActorClass "NoActor"
-          "hp-ctrl-box" → ActorClass "NoActor"
-          "pico-cycler" → ActorClass "PicoCycler"
-          "hp-boss"     → ActorClass "HpBoss"
-        The effective handle (Handle if present, otherwise Name) of "admin"
-        SHALL be "admin", of "auto" SHALL be "auto", and of "n" SHALL be
-        "auto.lc.n".
+        a. ShNodes SHALL include the plant relays "iso-valve-relay",
+        "secondary-pump-relay", "hp-scada-ops-relay", "charge-valve-relay",
+        "store-pump-relay", "buffer-top-elt-relay", "buffer-bottom-elt-relay",
+        "tank1-top-elt-relay", and "tank1-bottom-elt-relay", each with
+        ActorClass "Relay".
+        b. Hydronic.ZoneCallCircuits SHALL be non-empty, and each circuit's
+        FailsafeRelayNode and OpsRelayNode SHALL name a ShNode in ShNodes
+        with ActorClass "Relay".
         """
-        nodes = {n.Name: n for n in self.ShNodes}
-        pairs = (
-            ("admin", ActorClass.NoActor),
-            ("auto", ActorClass.NoActor),
-            ("n", ActorClass.NoActor),
-            ("ltn", ActorClass.NoActor),
-            ("hp-odu", ActorClass.NoActor),
-            ("hp-ctrl-box", ActorClass.NoActor),
-            ("pico-cycler", ActorClass.PicoCycler),
-            ("hp-boss", ActorClass.HpBoss),
-        )
-        for name, actor_class in pairs:
-            node = nodes.get(name)
-            if node is None or node.ActorClass != actor_class:
+        actor_class_by_name = {n.Name: n.ActorClass for n in self.ShNodes}
+
+        def relay_or_raise(node_name: str, role: str) -> None:
+            actor_class = actor_class_by_name.get(node_name)
+            if actor_class is None:
                 raise ValueError(
-                    f"Axiom 5 (RequiredCommandNodes) failed: expected ShNode "
-                    f"{name!r} with ActorClass {actor_class}."
+                    f"Axiom 5 (RequiredActuators) failed: no ShNode named "
+                    f"{node_name} ({role})."
                 )
-        for name, handle in (("admin", "admin"), ("auto", "auto"), ("n", "auto.lc.n")):
-            node = nodes[name]
-            effective = node.Handle if node.Handle is not None else node.Name
-            if effective != handle:
+            if actor_class != ActorClass.Relay:
                 raise ValueError(
-                    f"Axiom 5 (RequiredCommandNodes) failed: {name!r} "
-                    f"effective handle is {effective!r}, expected {handle!r}."
+                    f"Axiom 5 (RequiredActuators) failed: {node_name} "
+                    f"({role}) has ActorClass {actor_class}, not Relay."
                 )
+
+        for required in (
+            "iso-valve-relay",
+            "secondary-pump-relay",
+            "hp-scada-ops-relay",
+            "charge-valve-relay",
+            "store-pump-relay",
+            "buffer-top-elt-relay",
+            "buffer-bottom-elt-relay",
+            "tank1-top-elt-relay",
+            "tank1-bottom-elt-relay",
+        ):
+            relay_or_raise(required, "plant relay")
+        circuits = self.Hydronic.ZoneCallCircuits or []
+        if not circuits:
+            raise ValueError(
+                "Axiom 5 (RequiredActuators) failed: Hydronic.ZoneCallCircuits is empty."
+            )
+        for circuit in circuits:
+            relay_or_raise(circuit.FailsafeRelayNode, "circuit failsafe relay")
+            relay_or_raise(circuit.OpsRelayNode, "circuit ops relay")
         return self
 
     @model_validator(mode="after")
     def check_axiom_6(self) -> "NolanLayout":
-        """Axiom 6: RequiredSensing.
+        """Axiom 6: RequiredHeatpumpEquipment.
+
+        ShNodes SHALL include nodes named "hp-odu" and "hp-ctrl-box" (a Nolan
+        home is a monobloc), each with a ComponentId equal to the ComponentId
+        of a Component in Components, and each with ActorClass "NoActor".
+        """
+        component_ids = {c.ComponentId for c in self.Components}
+        nodes = {n.Name: n for n in self.ShNodes}
+        for name in ("hp-odu", "hp-ctrl-box"):
+            node = nodes.get(name)
+            if node is None:
+                raise ValueError(
+                    f"Axiom 6 (RequiredHeatpumpEquipment) failed: no ShNode named {name!r}."
+                )
+            if node.ComponentId is None or node.ComponentId not in component_ids:
+                raise ValueError(
+                    f"Axiom 6 (RequiredHeatpumpEquipment) failed: {name!r} has no "
+                    "ComponentId resolving to a Component."
+                )
+            if node.ActorClass != ActorClass.NoActor:
+                raise ValueError(
+                    f"Axiom 6 (RequiredHeatpumpEquipment) failed: {name!r} has "
+                    f"ActorClass {node.ActorClass}, expected NoActor."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_7(self) -> "NolanLayout":
+        """Axiom 7: ComponentBinding.
+
+        Every Component in Components SHALL have its ComponentId referenced by
+        exactly one ShNode in ShNodes.
+        """
+        refs = Counter(n.ComponentId for n in self.ShNodes if n.ComponentId)
+        violations = {
+            c.ComponentId: refs.get(c.ComponentId, 0)
+            for c in self.Components
+            if refs.get(c.ComponentId, 0) != 1
+        }
+        if violations:
+            raise ValueError(
+                "Axiom 7 (ComponentBinding) failed: components not referenced by "
+                f"exactly one ShNode (id: reference count) {violations}."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_8(self) -> "NolanLayout":
+        """Axiom 8: RequiredSensing.
 
         For each required sensing name: a channel with that Name SHALL exist
         in DataChannels or in DerivedChannels. (Kind-agnostic by design: a
-        name may migrate from raw DataChannel to same-name DerivedChannel —
-        as tank temperatures did — without touching this contract.)
+        name may migrate from raw DataChannel to same-name DerivedChannel
+        without touching this contract.)
         """
         channel_names = {c.Name for c in self.DataChannels} | {
             c.Name for c in self.DerivedChannels
@@ -320,27 +381,27 @@ class NolanLayout(GwsprotoSemaType):
                 "buffer-depth1-device", "buffer-depth2-device", "buffer-depth3-device",
                 "tank1-depth1-device", "tank1-depth2-device", "tank1-depth3-device",
                 "hp-odu-pwr", "hp-ctrl-box-pwr",
-                "elt-buffer-top-pwr", "elt-buffer-bottom-pwr",
-                "elt-store-top-pwr", "elt-store-bottom-pwr",
+                "buffer-top-elt-pwr", "buffer-bottom-elt-pwr",
+                "tank1-top-elt-pwr", "tank1-bottom-elt-pwr",
             )
             if name not in channel_names
         ]
         if missing:
             raise ValueError(
-                f"Axiom 6 (RequiredSensing) failed: missing channels {missing}."
+                f"Axiom 8 (RequiredSensing) failed: missing channels {missing}."
             )
         return self
 
     @model_validator(mode="after")
-    def check_axiom_7(self) -> "NolanLayout":
-        """Axiom 7: SingleStoreTank.
+    def check_axiom_9(self) -> "NolanLayout":
+        """Axiom 9: SingleStoreTank.
 
         Hydronic.TotalStoreTanks SHALL equal 1 — the Nolan plant carries
         exactly one store tank.
         """
         if self.Hydronic.TotalStoreTanks != 1:
             raise ValueError(
-                f"Axiom 7 (SingleStoreTank) failed: TotalStoreTanks is "
+                f"Axiom 9 (SingleStoreTank) failed: TotalStoreTanks is "
                 f"{self.Hydronic.TotalStoreTanks}, expected 1."
             )
         return self

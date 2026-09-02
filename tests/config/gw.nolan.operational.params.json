@@ -6,7 +6,7 @@
     {
       "TypeName": "capture.tuning",
       "Version": "000",
-      "ChannelName": "elt-buffer-top-pwr",
+      "ChannelName": "buffer-top-elt-pwr",
       "CapturePeriodS": 300,
       "AsyncCapture": true,
       "AsyncCaptureDelta": 100,
@@ -15,7 +15,7 @@
     {
       "TypeName": "capture.tuning",
       "Version": "000",
-      "ChannelName": "elt-buffer-bottom-pwr",
+      "ChannelName": "buffer-bottom-elt-pwr",
       "CapturePeriodS": 300,
       "AsyncCapture": true,
       "AsyncCaptureDelta": 100,
@@ -24,7 +24,7 @@
     {
       "TypeName": "capture.tuning",
       "Version": "000",
-      "ChannelName": "elt-store-top-pwr",
+      "ChannelName": "tank1-top-elt-pwr",
       "CapturePeriodS": 300,
       "AsyncCapture": true,
       "AsyncCaptureDelta": 100,
@@ -33,7 +33,7 @@
     {
       "TypeName": "capture.tuning",
       "Version": "000",
-      "ChannelName": "elt-store-bottom-pwr",
+      "ChannelName": "tank1-bottom-elt-pwr",
       "CapturePeriodS": 300,
       "AsyncCapture": true,
       "AsyncCaptureDelta": 100,
@@ -249,7 +249,7 @@
     {
       "TypeName": "capture.tuning",
       "Version": "000",
-      "ChannelName": "store-top-elt-relay",
+      "ChannelName": "tank1-top-elt-relay",
       "CapturePeriodS": 300,
       "AsyncCapture": true,
       "AsyncCaptureDelta": 1,
@@ -258,7 +258,7 @@
     {
       "TypeName": "capture.tuning",
       "Version": "000",
-      "ChannelName": "store-bottom-elt-relay",
+      "ChannelName": "tank1-bottom-elt-relay",
       "CapturePeriodS": 300,
       "AsyncCapture": true,
       "AsyncCaptureDelta": 1,

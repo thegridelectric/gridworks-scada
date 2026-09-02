@@ -167,38 +167,38 @@
     {
       "TypeName": "spaceheat.node.gt",
       "Version": "302",
-      "Name": "elt-buffer-top",
+      "Name": "buffer-top-elt",
       "ActorClass": "NoActor",
-      "DisplayName": "Elt Buffer Top",
+      "DisplayName": "Buffer Top Elt",
       "NameplatePowerW": 4500,
-      "ShNodeId": "ff4c25a5-d8da-4a76-9465-02314df0545b"
+      "ShNodeId": "0290827b-f09e-46c7-95f4-db74a9e96aa1"
     },
     {
       "TypeName": "spaceheat.node.gt",
       "Version": "302",
-      "Name": "elt-buffer-bottom",
+      "Name": "buffer-bottom-elt",
       "ActorClass": "NoActor",
-      "DisplayName": "Elt Buffer Bottom",
+      "DisplayName": "Buffer Bottom Elt",
       "NameplatePowerW": 4500,
-      "ShNodeId": "d78f0ce8-4d80-4088-b3ca-098067ef51ed"
+      "ShNodeId": "7b6accf5-9662-47a9-a4e1-2b6748597a66"
     },
     {
       "TypeName": "spaceheat.node.gt",
       "Version": "302",
-      "Name": "elt-store-top",
+      "Name": "tank1-top-elt",
       "ActorClass": "NoActor",
-      "DisplayName": "Elt Store Top",
+      "DisplayName": "Tank1 Top Elt",
       "NameplatePowerW": 4500,
-      "ShNodeId": "f9b2e4ac-5155-4e51-b68e-2a5ceb4e5741"
+      "ShNodeId": "67ff308b-ba8f-4e67-82df-6d4e306ac863"
     },
     {
       "TypeName": "spaceheat.node.gt",
       "Version": "302",
-      "Name": "elt-store-bottom",
+      "Name": "tank1-bottom-elt",
       "ActorClass": "NoActor",
-      "DisplayName": "Elt Store Bottom",
+      "DisplayName": "Tank1 Bottom Elt",
       "NameplatePowerW": 4500,
-      "ShNodeId": "fc998154-25f3-45d4-9383-8647adea4189"
+      "ShNodeId": "47ffaea8-8f15-45db-afc2-ba492a8c56ed"
     },
     {
       "TypeName": "spaceheat.node.gt",
@@ -457,24 +457,24 @@
     {
       "TypeName": "spaceheat.node.gt",
       "Version": "302",
-      "Name": "store-top-elt-relay",
-      "ActorHierarchyName": "s.store-top-elt-relay",
-      "Handle": "auto.lc.n.store-top-elt-relay",
+      "Name": "tank1-top-elt-relay",
+      "ActorHierarchyName": "s.tank1-top-elt-relay",
+      "Handle": "auto.lc.n.tank1-top-elt-relay",
       "ActorClass": "Relay",
-      "DisplayName": "Store Top Elt Relay",
-      "ComponentId": "8a545a7f-9170-4871-add3-a0a50edf6e95",
-      "ShNodeId": "117924ee-2808-45af-b0ec-c57247203f23"
+      "DisplayName": "Tank1 Top Elt Relay",
+      "ComponentId": "be4f4f7f-e33f-49ba-93c3-e56b530e7946",
+      "ShNodeId": "d6dc1819-aad8-4b81-a13c-b16a84ba7d30"
     },
     {
       "TypeName": "spaceheat.node.gt",
       "Version": "302",
-      "Name": "store-bottom-elt-relay",
-      "ActorHierarchyName": "s.store-bottom-elt-relay",
-      "Handle": "auto.lc.n.store-bottom-elt-relay",
+      "Name": "tank1-bottom-elt-relay",
+      "ActorHierarchyName": "s.tank1-bottom-elt-relay",
+      "Handle": "auto.lc.n.tank1-bottom-elt-relay",
       "ActorClass": "Relay",
-      "DisplayName": "Store Bottom Elt Relay",
-      "ComponentId": "2848ffd2-9ef5-4cc7-87db-49df4652f1d3",
-      "ShNodeId": "ec488e4c-9e83-40eb-ae21-476c9d9cd040"
+      "DisplayName": "Tank1 Bottom Elt Relay",
+      "ComponentId": "a9b797c4-2364-43ad-ac38-b328e02b461e",
+      "ShNodeId": "cde7ee32-1600-41ff-938a-97502691aa2d"
     },
     {
       "TypeName": "spaceheat.node.gt",
@@ -835,50 +835,50 @@
     {
       "TypeName": "data.channel.gt",
       "Version": "003",
-      "Name": "elt-buffer-top-pwr",
-      "DisplayName": "ELT BUFFER TOP PWR",
-      "AboutNodeName": "elt-buffer-top",
+      "Name": "buffer-top-elt-pwr",
+      "DisplayName": "BUFFER TOP ELT PWR",
+      "AboutNodeName": "buffer-top-elt",
       "CapturedByNodeName": "power-meter",
       "TelemetryName": "PowerW",
       "Quantity": "Power",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
-      "Id": "1b88b69d-30ca-4a07-9632-5b087b0e11cb"
+      "Id": "7da16b6a-fa1d-4637-92f3-fd4ca0ed34d0"
     },
     {
       "TypeName": "data.channel.gt",
       "Version": "003",
-      "Name": "elt-buffer-bottom-pwr",
-      "DisplayName": "ELT BUFFER BOTTOM PWR",
-      "AboutNodeName": "elt-buffer-bottom",
+      "Name": "buffer-bottom-elt-pwr",
+      "DisplayName": "BUFFER BOTTOM ELT PWR",
+      "AboutNodeName": "buffer-bottom-elt",
       "CapturedByNodeName": "power-meter",
       "TelemetryName": "PowerW",
       "Quantity": "Power",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
-      "Id": "ecbeaa38-8188-4f52-8b5e-78b7965251ae"
+      "Id": "6d5d9cd2-dc3f-4472-b3d4-c68c145e1544"
     },
     {
       "TypeName": "data.channel.gt",
       "Version": "003",
-      "Name": "elt-store-top-pwr",
-      "DisplayName": "ELT STORE TOP PWR",
-      "AboutNodeName": "elt-store-top",
+      "Name": "tank1-top-elt-pwr",
+      "DisplayName": "TANK1 TOP ELT PWR",
+      "AboutNodeName": "tank1-top-elt",
       "CapturedByNodeName": "power-meter",
       "TelemetryName": "PowerW",
       "Quantity": "Power",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
-      "Id": "9414bbce-0d31-4810-9040-4d66311d23bc"
+      "Id": "8f3aba32-8b53-448b-b334-0274a7b01b23"
     },
     {
       "TypeName": "data.channel.gt",
       "Version": "003",
-      "Name": "elt-store-bottom-pwr",
-      "DisplayName": "ELT STORE BOTTOM PWR",
-      "AboutNodeName": "elt-store-bottom",
+      "Name": "tank1-bottom-elt-pwr",
+      "DisplayName": "TANK1 BOTTOM ELT PWR",
+      "AboutNodeName": "tank1-bottom-elt",
       "CapturedByNodeName": "power-meter",
       "TelemetryName": "PowerW",
       "Quantity": "Power",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
-      "Id": "3bb12e35-529e-43d6-9da0-d23764f7ba44"
+      "Id": "8039d492-6c32-492f-ad17-a44b4803e7c6"
     },
     {
       "TypeName": "data.channel.gt",
@@ -1159,26 +1159,26 @@
     {
       "TypeName": "data.channel.gt",
       "Version": "003",
-      "Name": "store-top-elt-relay",
-      "DisplayName": "Store Top Elt Relay State",
-      "AboutNodeName": "store-top-elt-relay",
-      "CapturedByNodeName": "store-top-elt-relay",
+      "Name": "tank1-top-elt-relay",
+      "DisplayName": "Tank1 Top Elt Relay State",
+      "AboutNodeName": "tank1-top-elt-relay",
+      "CapturedByNodeName": "tank1-top-elt-relay",
       "TelemetryName": "RelayState",
       "Quantity": "Unitless",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
-      "Id": "fdd4cecd-be61-43d5-921e-db735bc81ccc"
+      "Id": "9c3d4d2f-e59b-473c-a328-563a8716d481"
     },
     {
       "TypeName": "data.channel.gt",
       "Version": "003",
-      "Name": "store-bottom-elt-relay",
-      "DisplayName": "Store Bottom Elt Relay State",
-      "AboutNodeName": "store-bottom-elt-relay",
-      "CapturedByNodeName": "store-bottom-elt-relay",
+      "Name": "tank1-bottom-elt-relay",
+      "DisplayName": "Tank1 Bottom Elt Relay State",
+      "AboutNodeName": "tank1-bottom-elt-relay",
+      "CapturedByNodeName": "tank1-bottom-elt-relay",
       "TelemetryName": "RelayState",
       "Quantity": "Unitless",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
-      "Id": "3cf14e83-28bc-488b-a376-6de986490910"
+      "Id": "cf909f95-0e02-45d8-beb9-708c902efd15"
     },
     {
       "TypeName": "data.channel.gt",
@@ -1646,10 +1646,10 @@
       "CreatedByNodeName": "power-meter",
       "Strategy": "transactive-power",
       "InputChannelNames": [
-        "elt-buffer-top-pwr",
-        "elt-buffer-bottom-pwr",
-        "elt-store-top-pwr",
-        "elt-store-bottom-pwr",
+        "buffer-top-elt-pwr",
+        "buffer-bottom-elt-pwr",
+        "tank1-top-elt-pwr",
+        "tank1-bottom-elt-pwr",
         "dist-pump-pwr",
         "hp-ctrl-box-pwr",
         "hp-odu-pwr"
@@ -1888,34 +1888,34 @@
       "TypeName": "scada.board.component.gt",
       "Version": "000",
       "ComponentId": "91ee52fd-7f82-422f-bfa2-fa744be35354",
-      "DeviceType": "GridworksSimGw108",
+      "DeviceType": "SimGw108",
       "DisplayName": "Sim Spruce GW108 board"
     },
     {
       "TypeName": "electric.meter.component.gt",
       "Version": "001",
       "ComponentId": "0834af2f-8c08-4a99-9915-a22e67ed5ea3",
-      "DeviceType": "GridworksSimPowerMeter",
+      "DeviceType": "SimPowerMeter",
       "ConfigList": [
         {
           "TypeName": "electric.meter.channel.config",
           "Version": "000",
-          "ChannelName": "elt-buffer-top-pwr"
+          "ChannelName": "buffer-top-elt-pwr"
         },
         {
           "TypeName": "electric.meter.channel.config",
           "Version": "000",
-          "ChannelName": "elt-buffer-bottom-pwr"
+          "ChannelName": "buffer-bottom-elt-pwr"
         },
         {
           "TypeName": "electric.meter.channel.config",
           "Version": "000",
-          "ChannelName": "elt-store-top-pwr"
+          "ChannelName": "tank1-top-elt-pwr"
         },
         {
           "TypeName": "electric.meter.channel.config",
           "Version": "000",
-          "ChannelName": "elt-store-bottom-pwr"
+          "ChannelName": "tank1-bottom-elt-pwr"
         },
         {
           "TypeName": "electric.meter.channel.config",
@@ -1949,16 +1949,15 @@
       "TypeName": "device.component.gt",
       "Version": "000",
       "ComponentId": "075d5714-6b2e-48dc-bb30-73c48d17b901",
-      "DeviceType": "SamsungAE055FCYDCG",
-      "DisplayName": "Spruce Samsung AE055 monobloc"
+      "DeviceType": "SimHpOdu",
+      "DisplayName": "Sim Spruce heat-pump outdoor unit"
     },
     {
       "TypeName": "device.component.gt",
       "Version": "000",
       "ComponentId": "dcfb28ca-95e3-4223-bae8-7f76e674dd64",
-      "DeviceType": "SamsungAE055FEYMCG",
-      "DisplayName": "Spruce Samsung AE055 control box",
-      "Description": "A Samsung MIM-B19N wired modbus module (ordered 2026-08, not yet installed) will bridge this box's EHS control line to RS-485; it becomes its own component when hp-boss drives it."
+      "DeviceType": "SimSamsungAE055FEYMCG",
+      "DisplayName": "Sim Spruce Samsung AE055 control box"
     },
     {
       "TypeName": "web.server.component.gt",
@@ -2391,15 +2390,15 @@
     {
       "TypeName": "i2c.relay.component.gt",
       "Version": "000",
-      "ComponentId": "8a545a7f-9170-4871-add3-a0a50edf6e95",
+      "ComponentId": "be4f4f7f-e33f-49ba-93c3-e56b530e7946",
       "BoardComponentId": "91ee52fd-7f82-422f-bfa2-fa744be35354",
       "RelayName": "StoreTop",
       "ConfigList": [
         {
           "TypeName": "relay.control.config",
           "Version": "000",
-          "ChannelName": "store-top-elt-relay",
-          "ActorName": "store-top-elt-relay",
+          "ChannelName": "tank1-top-elt-relay",
+          "ActorName": "tank1-top-elt-relay",
           "WiringConfig": "NormallyOpen",
           "EventType": "change.relay.state",
           "DeEnergizingEvent": "OpenRelay",
@@ -2409,20 +2408,20 @@
           "EnergizedState": "RelayClosed"
         }
       ],
-      "DisplayName": "Store Top Elt Relay"
+      "DisplayName": "Tank1 Top Elt Relay"
     },
     {
       "TypeName": "i2c.relay.component.gt",
       "Version": "000",
-      "ComponentId": "2848ffd2-9ef5-4cc7-87db-49df4652f1d3",
+      "ComponentId": "a9b797c4-2364-43ad-ac38-b328e02b461e",
       "BoardComponentId": "91ee52fd-7f82-422f-bfa2-fa744be35354",
       "RelayName": "StoreBottom",
       "ConfigList": [
         {
           "TypeName": "relay.control.config",
           "Version": "000",
-          "ChannelName": "store-bottom-elt-relay",
-          "ActorName": "store-bottom-elt-relay",
+          "ChannelName": "tank1-bottom-elt-relay",
+          "ActorName": "tank1-bottom-elt-relay",
           "WiringConfig": "NormallyOpen",
           "EventType": "change.relay.state",
           "DeEnergizingEvent": "OpenRelay",
@@ -2432,7 +2431,7 @@
           "EnergizedState": "RelayClosed"
         }
       ],
-      "DisplayName": "Store Bottom Elt Relay"
+      "DisplayName": "Tank1 Bottom Elt Relay"
     },
     {
       "TypeName": "i2c.dac.writer.component.gt",
@@ -2593,7 +2592,7 @@
       "TypeName": "sim.pico.tank.module.component.gt",
       "Version": "001",
       "ComponentId": "6b41e4cf-89ca-4ed4-ad18-eec049bc64ec",
-      "DeviceType": "GridworksSimSensor",
+      "DeviceType": "SimSensor",
       "DisplayName": "Buffer",
       "Enabled": true,
       "PicoHwUid": "sim-buffer-pico",
@@ -2611,7 +2610,7 @@
       "TypeName": "sim.pico.tank.module.component.gt",
       "Version": "001",
       "ComponentId": "48e9ef3c-a1eb-4fdc-946e-438f9d6b8282",
-      "DeviceType": "GridworksSimSensor",
+      "DeviceType": "SimSensor",
       "DisplayName": "Tank1",
       "Enabled": true,
       "PicoHwUid": "sim-tank1-pico",
@@ -2629,28 +2628,28 @@
       "TypeName": "sim.sensor.component.gt",
       "Version": "000",
       "ComponentId": "0931545a-7c48-4e0b-8cbc-0197c84148c1",
-      "DeviceType": "GridworksSimSensor",
+      "DeviceType": "SimSensor",
       "DisplayName": "Sim primary-btu BtuMeter"
     },
     {
       "TypeName": "sim.sensor.component.gt",
       "Version": "000",
       "ComponentId": "0b98b6e3-8084-4fac-93a0-5d0dca72fd38",
-      "DeviceType": "GridworksSimSensor",
+      "DeviceType": "SimSensor",
       "DisplayName": "Sim secondary-btu BtuMeter"
     },
     {
       "TypeName": "sim.sensor.component.gt",
       "Version": "000",
       "ComponentId": "ab01a621-4c4d-49e5-bbcb-b9ef3dd5842a",
-      "DeviceType": "GridworksSimSensor",
+      "DeviceType": "SimSensor",
       "DisplayName": "Sim store-btu BtuMeter"
     },
     {
       "TypeName": "sim.sensor.component.gt",
       "Version": "000",
       "ComponentId": "a703ab3b-e8a4-4ea7-965a-6dad804fd6d1",
-      "DeviceType": "GridworksSimSensor",
+      "DeviceType": "SimSensor",
       "DisplayName": "Sim dist-btu BtuMeter"
     }
   ],
@@ -2658,7 +2657,7 @@
     {
       "TypeName": "gw1.scada.device.type.gt",
       "Version": "000",
-      "DeviceType": "GridworksSimGw108",
+      "DeviceType": "SimGw108",
       "DisplayName": "GridWorks Simulated Gw108",
       "BusList": [
         {
@@ -3163,46 +3162,12 @@
     {
       "TypeName": "electric.meter.device.type.gt",
       "Version": "000",
-      "DeviceType": "GridworksSimPowerMeter",
+      "DeviceType": "SimPowerMeter",
       "DisplayName": "Gridworks Pm1 Simulated Power Meter",
       "MinPollPeriodMs": 1000,
       "TelemetryNameList": [
         "PowerW"
       ]
-    },
-    {
-      "TypeName": "hp.device.type.gt",
-      "Version": "000",
-      "DeviceType": "SamsungAE055FCYDCG",
-      "DisplayName": "Samsung AE055 EHS mono monobloc",
-      "MaxKwEl": 4.35,
-      "HeatingCapacityBtuHr": 54600,
-      "CoolingCapacityBtuHr": 54600,
-      "PrimaryPumpFactoryInstalled": false,
-      "PrimaryPumpOverridable": false,
-      "PrimaryPumpAlwaysOn": false,
-      "Refrigerant": "R32",
-      "CompressorRatedAmps": 18.9,
-      "Mca": 32.0,
-      "Mop": 40.0,
-      "ProductInfoUrl": "https://drive.google.com/drive/folders/1XV80QPgqpyYvMaoQIR9PpGWmu6dSY9kD"
-    },
-    {
-      "TypeName": "hp.control.box.device.type.gt",
-      "Version": "000",
-      "DeviceType": "SamsungAE055FEYMCG",
-      "DisplayName": "Samsung AE055 EHS mono control box",
-      "PrimaryPumpFactoryInstalled": true,
-      "PrimaryPumpOverridable": false,
-      "PrimaryPumpAlwaysOn": false,
-      "WaterPumpRatedAmps": 0.9,
-      "BackupHeaterKwList": [
-        2.0,
-        4.0
-      ],
-      "Mca": 22.9,
-      "Mop": 25.0,
-      "ProductInfoUrl": "https://drive.google.com/drive/folders/1XV80QPgqpyYvMaoQIR9PpGWmu6dSY9kD"
     }
   ],
   "Hydronic": {

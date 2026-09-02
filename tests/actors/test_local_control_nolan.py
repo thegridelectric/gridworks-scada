@@ -192,7 +192,7 @@ def test_missing_plant_node_is_a_crash_not_a_degrade(
 
 def test_layout_without_plant_nodes_fails_decode() -> None:
     """The prevention itself: a Nolan layout missing a plant relay node is
-    INVALID — axiom 3 (RequiredRelays) rejects it at decode, on the
+    INVALID — axiom 5 (RequiredActuators) rejects it at decode, on the
     same static+ops assembly path the boot uses. The counterexample is
     built by typed mutation of a valid decode, re-validated at the
     boundary."""
@@ -209,5 +209,5 @@ def test_layout_without_plant_nodes_fails_decode() -> None:
     layout.ShNodes = [
         n for n in layout.ShNodes if n.Name != NolanNodeNames.iso_valve_relay
     ]
-    with pytest.raises(ValueError, match="Axiom 3 \\(RequiredRelays\\)"):
+    with pytest.raises(ValueError, match="Axiom 5 \\(RequiredActuators\\)"):
         NolanLayout.model_validate(layout.model_dump(by_alias=True, exclude_none=True))
