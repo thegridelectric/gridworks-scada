@@ -115,7 +115,6 @@ class LayoutBucket(str, Enum):
 
 class House0LoadArgs(LoadArgs):
     flow_manifold_variant: FlowManifoldVariant
-    use_sieg_loop: bool
 
 
 
@@ -655,12 +654,9 @@ class HydronicLayout:
         self.critical_zone_list = [z.Name for z in self.hydronic.Zones if z.Critical]
         self.zone_kwh_per_deg_f_list = [z.KwhPerDegF for z in self.hydronic.Zones]
         self.total_store_tanks = self.hydronic.TotalStoreTanks
-        self.use_sieg_loop = self.hydronic.UseSiegLoop
-        self.flow_manifold_variant = (
-            FlowManifoldVariant.House0Sieg
-            if self.hydronic.SiegLoopPlumbed
-            else FlowManifoldVariant.House0
-        )
+        # has-sieg is what a SiegLoop-classed node means; whether the scada
+        # runs the loop is operational (House0OperationalParams.UseSiegLoop).
+        self.flow_manifold_variant = self.flow_manifold_variant_of(self.nodes)
         if not 1 <= self.total_store_tanks <= 6:
             raise ValueError("Must have between 1 and 6 store tanks")
         if not 1 <= len(self.zone_list) <= 6:
@@ -1358,11 +1354,6 @@ class HydronicLayout:
                 errors_caught.append(LoadError("HydronicLayout", {"missing_nodes": missing_nodes}, DcError(error_msg)))
                 
         flow_manifold_variant = load_args["flow_manifold_variant"]
-        use_sieg_loop = load_args["use_sieg_loop"]
-
-        # Can't use the siegenthaler loop in the code if it isn't in the plumbing
-        if use_sieg_loop and flow_manifold_variant != FlowManifoldVariant.House0Sieg:
-            raise DcError("Cannot use Sieg Loop when FlowManifoldVariant is not House0Sieg!")
 
         # Make sure sieg relays, sieg flow and sieg temp nodes and channels exist
         if flow_manifold_variant == FlowManifoldVariant.House0Sieg:
@@ -1373,21 +1364,12 @@ class HydronicLayout:
                     raise
                 errors_caught.append(LoadError("hardware.layout", nodes, e))
 
-
-        if use_sieg_loop: # HpBoss and SiegLoop need to be actors
-            try:
-                cls.check_actors_when_using_sieg_loop(nodes)
-            except Exception as e:
-                if raise_errors:
-                    raise
-                errors_caught.append(LoadError("hardware.layout", nodes, e))
-        else: # HpBoss and SiegLoop should NOT be actors
-            try:
-                cls.check_actors_when_not_using_sieg_loop(nodes)
-            except Exception as e:
-                if raise_errors:
-                    raise
-                errors_caught.append(LoadError("hardware.layout", nodes, e))
+    @classmethod
+    def flow_manifold_variant_of(cls, nodes: dict[str, ShNode]) -> FlowManifoldVariant:
+        """House0Sieg when the layout carries a SiegLoop-classed node."""
+        if any(n.actor_class == ActorClass.SiegLoop for n in nodes.values()):
+            return FlowManifoldVariant.House0Sieg
+        return FlowManifoldVariant.House0
 
     @classmethod
     def check_house0_sieg_manifold(cls, channels: dict[str, DataChannel]) -> None:
@@ -1399,24 +1381,6 @@ class HydronicLayout:
             raise DcError(f"Need {H0CN.hp_loop_on_off_relay_state} channel with House0Sieg flow manifold variant")
         if H0CN.hp_loop_keep_send_relay_state not in channels.keys():
             raise DcError(f"Need {H0CN.hp_loop_keep_send_relay_state} channel with House0Sieg flow manifold variant")
-
-    @classmethod
-    def check_actors_when_using_sieg_loop(cls, nodes: dict[str, ShNode]) -> None:
-        if H0N.sieg_loop not in nodes.keys():
-            raise DcError("Need a SiegLoop actor when using sieg loop!")
-        sieg_loop = nodes[H0N.sieg_loop]
-        if sieg_loop.actor_class != ActorClass.SiegLoop:
-            raise DcError(f"SiegLoop actor {sieg_loop.name} shoud have actor class SiegLoop, not {sieg_loop.actor_class}")
-        if H0N.hp_boss not in nodes.keys():
-            raise DcError("Need HpBoss actor when using sieg loop!")
-        hp_boss = nodes[H0N.hp_boss]
-        if hp_boss.actor_class != ActorClass.HpBoss:
-            raise DcError(f"HpBoss actor {hp_boss.name} shoud have actor class HpBoss, not {hp_boss.actor_class}")
-
-    @classmethod
-    def check_actors_when_not_using_sieg_loop(cls, nodes: dict[str, ShNode]) -> None:
-        if H0N.sieg_loop in nodes.keys():
-            raise DcError(f"If not using sieg loop, should not have node {H0N.sieg_loop}!")
 
     @property
     def actuators(self) -> List[ShNode]: 
@@ -1489,12 +1453,7 @@ class HydronicLayout:
             "nodes": nodes,
             "data_channels": data_channels,
             "derived_channels": derived_channels,
-            "flow_manifold_variant": (
-                FlowManifoldVariant.House0Sieg
-                if layout_sema_type.Hydronic.SiegLoopPlumbed
-                else FlowManifoldVariant.House0
-            ),
-            "use_sieg_loop": layout_sema_type.Hydronic.UseSiegLoop,
+            "flow_manifold_variant": cls.flow_manifold_variant_of(nodes),
         }
         cls.resolve_links(
             load_args["nodes"],

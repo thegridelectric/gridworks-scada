@@ -78,7 +78,6 @@ KNOWN_UNTESTED_AXIOMS: set[str] = {
     "gw.house0.operational.params/000:1",
     "gw.house0.operational.params/000:2",
     "gw.hydronic/000:1",
-    "gw.hydronic/000:2",
     "gw.nolan.operational.params/000:1",
     "gw.nolan.operational.params/000:2",
     "gw.tou.window/000:1",

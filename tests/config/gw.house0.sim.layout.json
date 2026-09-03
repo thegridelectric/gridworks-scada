@@ -2124,8 +2124,6 @@
       }
     ],
     "TotalStoreTanks": 1,
-    "UseSiegLoop": true,
-    "SiegLoopPlumbed": true,
     "PrimaryFlowSource": "Measured",
     "Strategy": "House0"
   }

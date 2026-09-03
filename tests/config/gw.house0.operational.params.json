@@ -400,5 +400,6 @@
   "ServiceMode": "Heating",
   "ShortCycleBuffer": false,
   "TypeName": "gw.house0.operational.params",
+  "UseSiegLoop": true,
   "Version": "000"
 }

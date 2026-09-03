@@ -115,7 +115,7 @@ class HpBoss(ShNodeActor):
                           ))
         elif self.state == HpBossState.HpOff:
             # HpOff -> PreparingToTurnOn
-            if self.layout.use_sieg_loop:
+            if self.data.use_sieg_loop:
                 self.state = HpBossState.PreparingToTurnOn
                 # self._send_to(self.primary_scada, dispatch)
                 self._send_to(self.primary_scada,

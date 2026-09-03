@@ -173,7 +173,7 @@ class Scada(PrimeActor, ScadaInterface):
         self.initialize_hierarchical_state_data()
 
         self.state_machine_subscriptions: List[StateMachineSubscription] = []
-        if self.layout.use_sieg_loop:
+        if self.data.use_sieg_loop:
             self.state_machine_subscriptions.append(StateMachineSubscription(
                 subscriber_name=self.sieg_loop.name,
                 publisher_name=self.hp_boss.name
@@ -194,7 +194,7 @@ class Scada(PrimeActor, ScadaInterface):
 
         # Define which actors depend on actuator readiness
         self.actuator_dependents = {self.local_control}
-        if self.layout.use_sieg_loop:
+        if self.data.use_sieg_loop:
             self.actuator_dependents |= {self.sieg_loop,self.hp_boss}
 
         # configure web APIs
@@ -1227,7 +1227,7 @@ class Scada(PrimeActor, ScadaInterface):
 
         """
 
-        if self.layout.use_sieg_loop:
+        if self.data.use_sieg_loop:
             hp_boss = self.layout.node(H0N.hp_boss)
             hp_boss.Handle = f"{boss.handle}.{hp_boss.Name}"
 
@@ -1625,13 +1625,13 @@ class Scada(PrimeActor, ScadaInterface):
 
     @property
     def hp_boss(self) -> ShNode:
-        if not self.layout.use_sieg_loop:
+        if not self.data.use_sieg_loop:
             raise Exception("Should not call for hp_boss unless layout uses sieg loop!")
         return self.layout.node(H0N.hp_boss)
 
     @property
     def sieg_loop(self) -> ShNode:
-        if not self.layout.use_sieg_loop:
+        if not self.data.use_sieg_loop:
             raise Exception("Should not call for sieg_loop unless layout uses sieg loop!")
         return self.layout.node(H0N.sieg_loop)
 

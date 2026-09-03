@@ -1285,11 +1285,9 @@
   ],
   "Hydronic": {
     "PrimaryFlowSource": "Measured",
-    "SiegLoopPlumbed": true,
     "Strategy": "House0",
     "TotalStoreTanks": 1,
     "TypeName": "gw.hydronic",
-    "UseSiegLoop": true,
     "Version": "000",
     "Zones": [
       {

@@ -200,16 +200,16 @@ def test_gw_nolan_layout_axiom_9(assembled: dict) -> None:
     )
 
 
-def test_gw_hydronic_axiom_3(assembled: dict) -> None:
+def test_gw_hydronic_axiom_2(assembled: dict) -> None:
     from gwsproto.named_types import Hydronic
 
     h = json.loads(json.dumps(assembled["Hydronic"]))
     h["ZoneCallCircuits"][0]["ServesZone"] = "no-such-zone"
-    with pytest.raises(ValueError, match="Axiom 3"):
+    with pytest.raises(ValueError, match="Axiom 2"):
         Hydronic.model_validate(h)
 
 
-def test_gw_hydronic_axiom_4(assembled: dict) -> None:
+def test_gw_hydronic_axiom_3(assembled: dict) -> None:
     from gwsproto.named_types import Hydronic
 
     h = json.loads(json.dumps(assembled["Hydronic"]))
@@ -218,5 +218,5 @@ def test_gw_hydronic_axiom_4(assembled: dict) -> None:
     for z in h["Zones"]:
         if z["Name"] == circ["ServesZone"]:
             z.pop("TempChannelName", None)
-    with pytest.raises(ValueError, match="Axiom 4"):
+    with pytest.raises(ValueError, match="Axiom 3"):
         Hydronic.model_validate(h)

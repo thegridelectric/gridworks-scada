@@ -360,6 +360,7 @@
   "ActuationAuthority": "Active",
   "ServiceMode": "Heating",
   "SeasonalStorageMode": "AllTanks",
+  "UseSiegLoop": true,
   "CopCurve": {
     "TypeName": "cop.curve",
     "Version": "000",

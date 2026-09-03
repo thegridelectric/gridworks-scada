@@ -23,6 +23,7 @@ from typing import Any
 from pydantic import TypeAdapter
 
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
+from gwsproto.enums import ActorClass
 from gwsproto.named_types import (
     House0Layout,
     House0OperationalParams,
@@ -73,6 +74,27 @@ def check_approved_pair(layout_type_name: str, ops_type_name: str) -> None:
             f"Mismatched artifact pair: layout {layout_type_name!r} SHALL be paired "
             f"with {expected!r}, got operational params {ops_type_name!r}. "
             f"Approved pairs: {APPROVED_PAIRS}. Scada will not start."
+        )
+
+
+def use_sieg_loop(ops: OperationalParams) -> bool:
+    """Whether the scada runs the Siegenthaler loop. Only the House0 word
+    carries the flag; a Nolan plant has no loop, so its word has none."""
+    return isinstance(ops, House0OperationalParams) and ops.UseSiegLoop
+
+
+def check_sieg_loop_assembly(
+    word: House0Layout | NolanLayout, ops_word: OperationalParams
+) -> None:
+    """Ops saying use the loop requires a SiegLoop-classed node in the layout.
+    The layout word says what is plumbed; the ops word says whether the scada
+    runs it. Raises on a pair that asks for a loop the plant does not have."""
+    if use_sieg_loop(ops_word) and not any(
+        n.ActorClass == ActorClass.SiegLoop for n in word.ShNodes
+    ):
+        raise ValueError(
+            f"{ops_word.TypeName} sets UseSiegLoop but {word.TypeName} carries "
+            "no SiegLoop-classed node."
         )
 
 
@@ -149,6 +171,7 @@ def ops_and_sema_to_dc(
     assemble_runtime_layout(static, ops)
     word = SEMA_LAYOUT_BY_TYPENAME[str(static["TypeName"])].model_validate(static)
     ops_word = decode_operational_params(ops)
+    check_sieg_loop_assembly(word, ops_word)
     return HydronicLayout.from_sema(
         word, capture_tuning=ops_word.CaptureTuningList, **load_kwargs
     )

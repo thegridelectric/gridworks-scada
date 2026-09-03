@@ -26,7 +26,7 @@ from gwsproto.named_types import (
 
 
 from actors.config import DEFAULT_OPS_PARAMS_FILE
-from sema_to_dc import OperationalParams, decode_operational_params
+from sema_to_dc import OperationalParams, decode_operational_params, use_sieg_loop
 
 
 def load_operational_params(settings: ScadaSettings) -> OperationalParams:
@@ -89,6 +89,11 @@ class ScadaData:
         self.heating_forecast: HeatingForecast | None = None
         self.recent_fsm_reports = {}
         self.flush_recent_readings()
+
+    @property
+    def use_sieg_loop(self) -> bool:
+        """Whether this scada runs the Siegenthaler loop (from the ops word)."""
+        return use_sieg_loop(self.ops)
 
     def make_ha1_params(self, ops: OperationalParams) -> Ha1Params:
         return Ha1Params(

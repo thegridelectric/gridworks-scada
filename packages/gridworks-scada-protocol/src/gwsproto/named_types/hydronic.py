@@ -17,8 +17,6 @@ class Hydronic(GwsprotoSemaType):
     Zones: List[HvacZone]
     ZoneCallCircuits: Optional[List[ZoneCallCircuit]] = None
     TotalStoreTanks: int
-    UseSiegLoop: bool
-    SiegLoopPlumbed: bool
     PrimaryFlowSource: House0PrimaryFlowSource
     Strategy: str
     TypeName: Literal["gw.hydronic"] = "gw.hydronic"
@@ -28,40 +26,26 @@ class Hydronic(GwsprotoSemaType):
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
         """
-        Axiom 1: SiegLoopControlImpliesPlumbed
-        If UseSiegLoop is true then SiegLoopPlumbed SHALL be true — the scada
-        cannot run the Siegenthaler loop unless it is plumbed.
+        Axiom 1: Cardinality
+        a. TotalStoreTanks SHALL be between 1 and 6 inclusive.
+        b. The number of Zones SHALL be between 1 and 6 inclusive.
         """
-        if self.UseSiegLoop and not self.SiegLoopPlumbed:
+        if not 1 <= self.TotalStoreTanks <= 6:
             raise ValueError(
-                "Axiom 1 (SiegLoopControlImpliesPlumbed) failed: UseSiegLoop requires "
-                "SiegLoopPlumbed to be true."
+                "Axiom 1 (Cardinality) failed: TotalStoreTanks "
+                f"({self.TotalStoreTanks}) must be between 1 and 6 inclusive."
+            )
+        if not 1 <= len(self.Zones) <= 6:
+            raise ValueError(
+                "Axiom 1 (Cardinality) failed: number of Zones "
+                f"({len(self.Zones)}) must be between 1 and 6 inclusive."
             )
         return self
 
     @model_validator(mode="after")
     def check_axiom_2(self) -> Self:
         """
-        Axiom 2: Cardinality
-        a. TotalStoreTanks SHALL be between 1 and 6 inclusive.
-        b. The number of Zones SHALL be between 1 and 6 inclusive.
-        """
-        if not 1 <= self.TotalStoreTanks <= 6:
-            raise ValueError(
-                "Axiom 2 (Cardinality) failed: TotalStoreTanks "
-                f"({self.TotalStoreTanks}) must be between 1 and 6 inclusive."
-            )
-        if not 1 <= len(self.Zones) <= 6:
-            raise ValueError(
-                "Axiom 2 (Cardinality) failed: number of Zones "
-                f"({len(self.Zones)}) must be between 1 and 6 inclusive."
-            )
-        return self
-
-    @model_validator(mode="after")
-    def check_axiom_3(self) -> Self:
-        """
-        Axiom 3: CircuitResolution
+        Axiom 2: CircuitResolution
         a. Every circuit's ServesZone SHALL equal the Name of a zone in
         Zones. b. No two circuits SHALL share a CircuitPosition.
         """
@@ -70,21 +54,21 @@ class Hydronic(GwsprotoSemaType):
         for c in circuits:
             if c.ServesZone not in zone_names:
                 raise ValueError(
-                    "Axiom 3 (CircuitResolution) failed: ServesZone "
+                    "Axiom 2 (CircuitResolution) failed: ServesZone "
                     f"{c.ServesZone!r} does not name a zone in Zones."
                 )
         positions = [c.CircuitPosition for c in circuits]
         if len(positions) != len(set(positions)):
             raise ValueError(
-                "Axiom 3 (CircuitResolution) failed: CircuitPosition values "
+                "Axiom 2 (CircuitResolution) failed: CircuitPosition values "
                 f"{positions} are not distinct."
             )
         return self
 
     @model_validator(mode="after")
-    def check_axiom_4(self) -> Self:
+    def check_axiom_3(self) -> Self:
         """
-        Axiom 4: LearnedNeedsTempChannel
+        Axiom 3: LearnedNeedsTempChannel
         For every circuit whose SetpointSource is Learned, the zone named
         by its ServesZone SHALL carry a TempChannelName.
         """
@@ -97,7 +81,7 @@ class Hydronic(GwsprotoSemaType):
                 and zone.TempChannelName is None
             ):
                 raise ValueError(
-                    "Axiom 4 (LearnedNeedsTempChannel) failed: circuit at "
+                    "Axiom 3 (LearnedNeedsTempChannel) failed: circuit at "
                     f"position {c.CircuitPosition} is Learned but zone "
                     f"{c.ServesZone!r} has no TempChannelName."
                 )

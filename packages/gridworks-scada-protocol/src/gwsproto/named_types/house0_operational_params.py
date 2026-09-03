@@ -20,6 +20,7 @@ class House0OperationalParams(GwsprotoSemaType):
     ActuationAuthority: ActuationAuthority
     ServiceMode: ServiceMode
     SeasonalStorageMode: SeasonalStorageMode
+    UseSiegLoop: bool
     CopCurve: CopCurve
     HeatingCurve: HeatingCurve
     HpTurnOnMinutes: PositiveInt

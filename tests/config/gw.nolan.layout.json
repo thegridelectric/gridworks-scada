@@ -3300,8 +3300,6 @@
       }
     ],
     "TotalStoreTanks": 1,
-    "UseSiegLoop": false,
-    "SiegLoopPlumbed": false,
     "PrimaryFlowSource": "Measured",
     "Strategy": "Nolan"
   }

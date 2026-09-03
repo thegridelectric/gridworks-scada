@@ -10,8 +10,8 @@ from pathlib import Path
 
 import pytest
 
-from gwsproto.named_types import House0Layout, House0OperationalParams
-from sema_to_dc import assemble_runtime_layout
+from gwsproto.named_types import House0Layout, House0OperationalParams, NolanLayout
+from sema_to_dc import assemble_runtime_layout, check_sieg_loop_assembly
 
 CONFIG = Path(__file__).parent.parent / "config"
 
@@ -190,3 +190,19 @@ def test_gw_house0_layout_axiom_11_actor_class(assembled: dict) -> None:
                 n["ActorHierarchyName"] = "s.hp-odu"
 
     reject(assembled, reclass, "Axiom 11")
+
+
+def test_sieg_loop_assembly_check(assembled: dict) -> None:
+    """Ops asking for the loop needs a SiegLoop-classed node in the layout:
+    the House0 pair passes; the same ops over the Nolan layout (no loop)
+    refuses at assembly, the check that replaced gw.hydronic's old axiom 1."""
+    layout = House0Layout.model_validate(assembled)
+    ops = House0OperationalParams.model_validate_json(
+        (CONFIG / "gw.house0.operational.params.json").read_text()
+    ).model_copy(update={"UseSiegLoop": True})
+    check_sieg_loop_assembly(layout, ops)
+    nolan = NolanLayout.model_validate_json(
+        (CONFIG / "gw.nolan.layout.json").read_text()
+    )
+    with pytest.raises(ValueError, match="SiegLoop"):
+        check_sieg_loop_assembly(nolan, ops)

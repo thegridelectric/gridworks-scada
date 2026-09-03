@@ -83,7 +83,7 @@ class CommandNode(ShNodeActor):
                 └─ relay15 (hp_loop_keep_send)
         ```
         """
-        if not self.layout.use_sieg_loop:
+        if not self.data.use_sieg_loop:
             raise Exception("don't call this unless layout uses sieg loop")
         self.log(f"Setting fsm handles under {boss_node.name}")
         hp_boss = self.layout.node(HSNN.hp_boss)
@@ -121,7 +121,7 @@ class CommandNode(ShNodeActor):
         if not boss_node.handle.startswith(my_handle_prefix) and boss_node != self.node:
             raise Exception(f"{self.node.handle} cannot set command tree for boss_node {boss_node.handle}!")
 
-        if self.layout.use_sieg_loop:
+        if self.data.use_sieg_loop:
             self.set_hierarchical_fsm_handles(boss_node)
             for node in self.my_actuators():
                 if node.Name not in [HSNN.hp_scada_ops_relay, House0NodeNames.hp_loop_keep_send, House0NodeNames.hp_loop_on_off]:

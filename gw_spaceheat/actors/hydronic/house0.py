@@ -176,7 +176,7 @@ class House0Hydronic(HydronicNode):
         if from_node is None:
             from_node = self.node
 
-        if self.layout.use_sieg_loop:
+        if self.data.use_sieg_loop:
             try:
                 event = FsmEvent(
                     FromHandle=from_node.handle,
@@ -215,7 +215,7 @@ class House0Hydronic(HydronicNode):
         if from_node is None:
             from_node = self.node
 
-        if self.layout.use_sieg_loop:
+        if self.data.use_sieg_loop:
             try:
                 event = FsmEvent(
                     FromHandle=from_node.handle,
@@ -567,13 +567,13 @@ class House0Hydronic(HydronicNode):
 
     @property
     def hp_boss(self) -> ShNode:
-        if not self.layout.use_sieg_loop:
+        if not self.data.use_sieg_loop:
             raise Exception("Should not be calling for hp_boss if not using sieg loop")
         return self.layout.hp_boss
 
     @property
     def sieg_loop(self) -> ShNode:
-        if not self.layout.use_sieg_loop:
+        if not self.data.use_sieg_loop:
             raise Exception("Should not be calling for sieg_loop if not using sieg loop")
         return self.layout.node(HSNN.sieg_loop)
 
