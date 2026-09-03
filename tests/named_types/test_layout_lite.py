@@ -6,7 +6,7 @@ def test_layout_lite_generated() -> None:
         "FromGNodeAlias": "hw1.isone.me.versant.keene.beech.scada",
         "MessageCreatedMs": 1728651445746,
         "MessageId": "1302c0f8-1983-43b2-90d2-61678d731db3",
-        "Strategy": "House0",
+        "HardwareLayoutTypeName": "gw.house0.layout",
         "ZoneList": ["Down", "Up"],
         "ActuationAuthority": "Active",
         "ServiceMode": "Heating",

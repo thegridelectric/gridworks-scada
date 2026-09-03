@@ -1690,7 +1690,7 @@ class Scada(PrimeActor, ScadaInterface):
             i2c_relay_component = None
         return LayoutLite(
             FromGNodeAlias=self.layout.scada_g_node_alias,
-            Strategy=self.layout.flow_manifold_variant,
+            HardwareLayoutTypeName=self.layout.layout_type_name,
             ActuationAuthority=self.ops.ActuationAuthority,
             ServiceMode=self.ops.ServiceMode,
             SeasonalStorageMode=self.ops.SeasonalStorageMode,

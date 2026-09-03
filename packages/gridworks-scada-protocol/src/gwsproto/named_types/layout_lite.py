@@ -27,7 +27,7 @@ class LayoutLite(GwsprotoSemaType):
     FromGNodeAlias: LeftRightDotStr
     MessageCreatedMs: UTCMilliseconds
     MessageId: UUID4Str
-    Strategy: str
+    HardwareLayoutTypeName: LeftRightDotStr
     ActuationAuthority: ActuationAuthority
     ServiceMode: ServiceMode
     SeasonalStorageMode: SeasonalStorageMode
