@@ -2124,7 +2124,6 @@
       }
     ],
     "TotalStoreTanks": 1,
-    "PrimaryFlowSource": "Measured",
-    "Strategy": "House0"
+    "PrimaryFlowSource": "Measured"
   }
 }

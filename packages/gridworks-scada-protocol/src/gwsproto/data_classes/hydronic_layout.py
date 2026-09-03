@@ -43,7 +43,7 @@ from gwsproto.type_helpers.component_base import (
 )
 from gwsproto.data_classes.components.web_server_component import WebServerComponent
 from gwsproto.data_classes.house_0_names import H0CN, H0N, ScadaWeb
-from gwsproto.enums import FlowManifoldVariant, SimDeviceType
+from gwsproto.enums import SimDeviceType
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.house0.node_names import House0NodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import (
@@ -112,9 +112,6 @@ class LayoutBucket(str, Enum):
     def component_list_name(self) -> str:
         """e.g. OtherComponents"""
         return f"{self.value}Components"
-
-class House0LoadArgs(LoadArgs):
-    flow_manifold_variant: FlowManifoldVariant
 
 
 
@@ -654,9 +651,6 @@ class HydronicLayout:
         self.critical_zone_list = [z.Name for z in self.hydronic.Zones if z.Critical]
         self.zone_kwh_per_deg_f_list = [z.KwhPerDegF for z in self.hydronic.Zones]
         self.total_store_tanks = self.hydronic.TotalStoreTanks
-        # has-sieg is what a SiegLoop-classed node means; whether the scada
-        # runs the loop is operational (House0OperationalParams.UseSiegLoop).
-        self.flow_manifold_variant = self.flow_manifold_variant_of(self.nodes)
         if not 1 <= self.total_store_tanks <= 6:
             raise ValueError("Must have between 1 and 6 store tanks")
         if not 1 <= len(self.zone_list) <= 6:
@@ -1299,13 +1293,12 @@ class HydronicLayout:
     @classmethod
     def validate_house0(  # noqa: C901
         cls,
-        load_args: House0LoadArgs,
+        load_args: LoadArgs,
         *,
         raise_errors: bool,
         errors: Optional[list[LoadError]] = None,
     ) -> None:
         nodes = load_args["nodes"]
-        data_channels = load_args["data_channels"]
         errors_caught = []
 
         # Check for essential nodes that must always exist
@@ -1353,34 +1346,6 @@ class HydronicLayout:
             if errors is not None:
                 errors_caught.append(LoadError("HydronicLayout", {"missing_nodes": missing_nodes}, DcError(error_msg)))
                 
-        flow_manifold_variant = load_args["flow_manifold_variant"]
-
-        # Make sure sieg relays, sieg flow and sieg temp nodes and channels exist
-        if flow_manifold_variant == FlowManifoldVariant.House0Sieg:
-            try:
-                cls.check_house0_sieg_manifold(data_channels)
-            except Exception as e:
-                if raise_errors:
-                    raise
-                errors_caught.append(LoadError("hardware.layout", nodes, e))
-
-    @classmethod
-    def flow_manifold_variant_of(cls, nodes: dict[str, ShNode]) -> FlowManifoldVariant:
-        """House0Sieg when the layout carries a SiegLoop-classed node."""
-        if any(n.actor_class == ActorClass.SiegLoop for n in nodes.values()):
-            return FlowManifoldVariant.House0Sieg
-        return FlowManifoldVariant.House0
-
-    @classmethod
-    def check_house0_sieg_manifold(cls, channels: dict[str, DataChannel]) -> None:
-        # if H0CN.sieg_cold not in channels.keys():
-        #     raise DcError(f"Need {H0CN.sieg_cold} channel with House0Sieg flow manifold variant")
-        # if H0CN.sieg_flow not in channels.keys():
-        #     raise DcError(f"Need {H0CN.sieg_flow} channel with House0Sieg flow manifold variant")
-        if H0CN.hp_loop_on_off_relay_state not in channels.keys():
-            raise DcError(f"Need {H0CN.hp_loop_on_off_relay_state} channel with House0Sieg flow manifold variant")
-        if H0CN.hp_loop_keep_send_relay_state not in channels.keys():
-            raise DcError(f"Need {H0CN.hp_loop_keep_send_relay_state} channel with House0Sieg flow manifold variant")
 
     @property
     def actuators(self) -> List[ShNode]: 
@@ -1447,13 +1412,12 @@ class HydronicLayout:
             raise_errors=raise_errors,
             errors=errors,
         )
-        load_args: House0LoadArgs = {
+        load_args: LoadArgs = {
             "device_types": device_types,
             "components": components,
             "nodes": nodes,
             "data_channels": data_channels,
             "derived_channels": derived_channels,
-            "flow_manifold_variant": cls.flow_manifold_variant_of(nodes),
         }
         cls.resolve_links(
             load_args["nodes"],

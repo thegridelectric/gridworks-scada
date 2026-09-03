@@ -34,7 +34,6 @@ from gwsproto.enums.day_of_week import DayOfWeek
 from gwsproto.enums.device_type import DeviceType
 from gwsproto.enums.sim_device_type import SimDeviceType
 from gwsproto.enums.emission_method import EmissionMethod
-from gwsproto.enums.flow_manifold_variant import FlowManifoldVariant
 from gwsproto.enums.fsm_report_type import FsmReportType
 from gwsproto.enums.g_node_status import GNodeStatus
 from gwsproto.enums.gpio_sense_mode import GpioSenseMode
@@ -125,7 +124,6 @@ __all__ = [
     "DeviceType",
     "SimDeviceType",
     "EmissionMethod",
-    "FlowManifoldVariant",
     "FsmReportType",
     "GNodeStatus",
     "GpioSenseMode",

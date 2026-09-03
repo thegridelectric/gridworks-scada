@@ -88,7 +88,6 @@ NO_WORD_ENUMS = {
     "change.keep.send",
     "change.primary.pump.control",
     "change.store.flow.relay",
-    "flow.manifold.variant",
     "gw1.contract.status",
     "gw1.hp.boss.state",
     "gw1.leaf.ally.all.tanks.event",

@@ -3300,7 +3300,6 @@
       }
     ],
     "TotalStoreTanks": 1,
-    "PrimaryFlowSource": "Measured",
-    "Strategy": "Nolan"
+    "PrimaryFlowSource": "Measured"
   }
 }

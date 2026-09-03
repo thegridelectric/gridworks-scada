@@ -1285,7 +1285,6 @@
   ],
   "Hydronic": {
     "PrimaryFlowSource": "Measured",
-    "Strategy": "House0",
     "TotalStoreTanks": 1,
     "TypeName": "gw.hydronic",
     "Version": "000",

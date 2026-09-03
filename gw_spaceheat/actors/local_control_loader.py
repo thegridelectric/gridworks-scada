@@ -1,5 +1,6 @@
 import importlib
 from gwsproto.enums import ActorClass, ActuationAuthority, SeasonalStorageMode
+from gwsproto.named_types import NolanLayout
 from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 
@@ -21,12 +22,11 @@ class LocalControl(ShNodeActor):
             raise Exception("Expects ActorClass LocalControl!")
 
         layout = services.hardware_layout
-        strategy = layout.hydronic.Strategy
         authority = self.ops.ActuationAuthority
         seasonal_storage_mode = self.ops.SeasonalStorageMode
 
         # Dynamically load the implementation class
-        if strategy == "Nolan":
+        if isinstance(layout.sema_layout, NolanLayout):
             module = importlib.import_module("actors.local_control.nolan")
             impl_class = getattr(module, "NolanLocalControl")
         elif authority == ActuationAuthority.Standby:
