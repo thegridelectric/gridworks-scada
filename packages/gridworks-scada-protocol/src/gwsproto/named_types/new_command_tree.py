@@ -4,6 +4,10 @@ from pydantic import model_validator
 
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwsproto.property_format import LeftRightDotStr, UTCMilliseconds
+from gwsproto.type_helpers.command_tree_axioms import (
+    check_actuator_leaves,
+    check_prefix_closed_handles,
+)
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
@@ -25,18 +29,17 @@ class NewCommandTree(GwsprotoSemaType):
         ShNode in ShNodes, each dot-separated prefix of its effective handle SHALL
         also be the effective handle of some ShNode in ShNodes.
         """
-        effective = {
-            node.Handle if node.Handle is not None else node.Name
-            for node in self.ShNodes
-        }
-        for handle in sorted(effective):
-            segments = handle.split(".")
-            for n in range(1, len(segments)):
-                prefix = ".".join(segments[:n])
-                if prefix not in effective:
-                    raise ValueError(
-                        f"Axiom 1 (PrefixClosedHandles) failed: effective handle "
-                        f"{handle!r} has prefix {prefix!r} that is not the "
-                        "effective handle of any ShNode"
-                    )
+        check_prefix_closed_handles(self.ShNodes, "Axiom 1 (PrefixClosedHandles)")
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_2(self) -> "NewCommandTree":
+        """
+        Axiom 2: ActuatorLeaves.
+        a. Every actuator (Relay, ZeroTenOutputer, HpTwin) SHALL have a dotted
+        effective handle and SHALL be a leaf. b. Every leaf SHALL be an actuator
+        or a command node (LocalControl, LeafAlly, PicoCycler, HpBoss, SiegLoop,
+        or a NoActor whose handle parent is the LocalControl node).
+        """
+        check_actuator_leaves(self.ShNodes, "Axiom 2 (ActuatorLeaves)")
         return self

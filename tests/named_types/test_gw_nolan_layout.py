@@ -220,3 +220,71 @@ def test_gw_hydronic_axiom_3(assembled: dict) -> None:
             z.pop("TempChannelName", None)
     with pytest.raises(ValueError, match="Axiom 3"):
         Hydronic.model_validate(h)
+
+
+def declare_twin(d: dict, handle: str | None = "auto.lc.n.hp-boss.hp-ctrl-box") -> None:
+    d["Hydronic"]["HpCommandNodeName"] = "hp-ctrl-box"
+    for n in d["ShNodes"]:
+        if n["Name"] == "hp-ctrl-box":
+            n["ActorClass"] = "HpTwin"
+            n["ActorHierarchyName"] = "s.hp-ctrl-box"
+            if handle is not None:
+                n["Handle"] = handle
+
+
+def test_gw_nolan_layout_axiom_10_declared_twin_accepted(assembled: dict) -> None:
+    """spruce with the MIM wired: hp-ctrl-box as HpTwin under hp-boss."""
+    NolanLayout.model_validate(mutated(assembled, declare_twin))
+
+
+def test_gw_nolan_layout_axiom_10_a_no_actor(assembled: dict) -> None:
+    def declare_only(d: dict) -> None:
+        d["Hydronic"]["HpCommandNodeName"] = "hp-ctrl-box"
+    reject(assembled, declare_only, "Axiom 10")
+
+
+def test_gw_nolan_layout_axiom_10_a_wrong_parent(assembled: dict) -> None:
+    reject(assembled, lambda d: declare_twin(d, handle="auto.lc.n.hp-ctrl-box"), "Axiom 10")
+
+
+def test_gw_nolan_layout_axiom_10_b_undeclared_twin(assembled: dict) -> None:
+    def stray_twin(d: dict) -> None:
+        d["ShNodes"].append(
+            {
+                "Name": "stray-twin",
+                "ActorClass": "HpTwin",
+                "ActorHierarchyName": "s.stray-twin",
+                "ShNodeId": "0f2b7c1e-5d3a-4b8e-9c6f-1a2b3c4d5e6f",
+                "TypeName": "spaceheat.node.gt",
+                "Version": "302",
+            }
+        )
+    reject(assembled, stray_twin, "Axiom 10")
+
+
+def test_gw_nolan_layout_axiom_11(assembled: dict) -> None:
+    """A relay handle whose parent names no ShNode is an orphan."""
+    def orphan(d: dict) -> None:
+        for n in d["ShNodes"]:
+            if n["Name"] == "vdc-relay":
+                n["Handle"] = "auto.nobody.vdc-relay"
+    reject(assembled, orphan, "Axiom 11")
+
+
+def test_gw_nolan_layout_axiom_12_a(assembled: dict) -> None:
+    """An actuator with a bare Name for a handle has no boss."""
+    def undotted(d: dict) -> None:
+        for n in d["ShNodes"]:
+            if n["Name"] == "vdc-relay":
+                n.pop("Handle", None)
+    reject(assembled, undotted, "Axiom 12")
+
+
+def test_gw_nolan_layout_axiom_12_b(assembled: dict) -> None:
+    """hp-odu (NoActor) given a handle under hp-boss is a leaf that is
+    neither actuator nor command node."""
+    def stray_leaf(d: dict) -> None:
+        for n in d["ShNodes"]:
+            if n["Name"] == "hp-odu":
+                n["Handle"] = "auto.lc.n.hp-boss.hp-odu"
+    reject(assembled, stray_leaf, "Axiom 12")

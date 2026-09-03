@@ -36,6 +36,10 @@ from gwsproto.named_types.sim_relay_component_gt import SimRelayComponentGt
 from gwsproto.named_types.sim_sensor_component_gt import SimSensorComponentGt
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwsproto.named_types.web_server_component_gt import WebServerComponentGt
+from gwsproto.type_helpers.command_tree_axioms import (
+    check_actuator_leaves,
+    check_prefix_closed_handles,
+)
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 # The component types a Nolan (gw108) layout may contain (mirrors the sema draft oneOf).
@@ -317,7 +321,8 @@ class NolanLayout(GwsprotoSemaType):
 
         ShNodes SHALL include nodes named "hp-odu" and "hp-ctrl-box" (a Nolan
         home is a monobloc), each with a ComponentId equal to the ComponentId
-        of a Component in Components, and each with ActorClass "NoActor".
+        of a Component in Components, and each with ActorClass "NoActor"
+        unless it is the declared HpCommandNodeName (CommandableHeatPump).
         """
         component_ids = {c.ComponentId for c in self.Components}
         nodes = {n.Name: n for n in self.ShNodes}
@@ -332,6 +337,8 @@ class NolanLayout(GwsprotoSemaType):
                     f"Axiom 6 (RequiredHeatpumpEquipment) failed: {name!r} has no "
                     "ComponentId resolving to a Component."
                 )
+            if name == self.Hydronic.HpCommandNodeName:
+                continue  # ActorClass governed by CommandableHeatPump
             if node.ActorClass != ActorClass.NoActor:
                 raise ValueError(
                     f"Axiom 6 (RequiredHeatpumpEquipment) failed: {name!r} has "
@@ -404,4 +411,69 @@ class NolanLayout(GwsprotoSemaType):
                 f"Axiom 9 (SingleStoreTank) failed: TotalStoreTanks is "
                 f"{self.Hydronic.TotalStoreTanks}, expected 1."
             )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_10(self) -> "NolanLayout":
+        """
+        Axiom 10: CommandableHeatPump.
+        a. If Hydronic.HpCommandNodeName is present, it names an ShNode called
+        hp-odu, hp-idu or hp-ctrl-box, bound to a Component, with ActorClass
+        HpTwin, whose effective handle sits directly under hp-boss's.
+        b. Every HpTwin-classed ShNode is the declared node; none when absent.
+        """
+        declared = self.Hydronic.HpCommandNodeName
+        nodes = {n.Name: n for n in self.ShNodes}
+        if declared is not None:
+            node = nodes.get(declared)
+            if node is None or declared not in ("hp-odu", "hp-idu", "hp-ctrl-box"):
+                raise ValueError(
+                    f"Axiom 10 (CommandableHeatPump) failed: HpCommandNodeName "
+                    f"{declared!r} is not an ShNode named hp-odu, hp-idu or hp-ctrl-box."
+                )
+            component_ids = {c.ComponentId for c in self.Components}
+            if node.ComponentId is None or node.ComponentId not in component_ids:
+                raise ValueError(
+                    f"Axiom 10 (CommandableHeatPump) failed: {declared!r} has no "
+                    "ComponentId resolving to a Component."
+                )
+            if node.ActorClass != ActorClass.HpTwin:
+                raise ValueError(
+                    f"Axiom 10 (CommandableHeatPump) failed: {declared!r} has "
+                    f"ActorClass {node.ActorClass}, expected HpTwin."
+                )
+            hp_boss = nodes.get("hp-boss")
+            boss_handle = (hp_boss.Handle or hp_boss.Name) if hp_boss is not None else None
+            handle = node.Handle or node.Name
+            if "." not in handle or handle.rsplit(".", 1)[0] != boss_handle:
+                raise ValueError(
+                    f"Axiom 10 (CommandableHeatPump) failed: {declared!r} handle "
+                    f"{handle!r} is not directly under hp-boss ({boss_handle!r})."
+                )
+        for n in self.ShNodes:
+            if n.ActorClass == ActorClass.HpTwin and n.Name != declared:
+                raise ValueError(
+                    f"Axiom 10 (CommandableHeatPump) failed: {n.Name!r} has "
+                    f"ActorClass HpTwin but HpCommandNodeName is {declared!r}."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_11(self) -> "NolanLayout":
+        """
+        Axiom 11: PrefixClosedHandles.
+        The authored handles are the initial command tree: every dot-separated
+        prefix of an effective handle is the effective handle of some ShNode.
+        """
+        check_prefix_closed_handles(self.ShNodes, "Axiom 11 (PrefixClosedHandles)")
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_12(self) -> "NolanLayout":
+        """
+        Axiom 12: ActuatorLeaves.
+        a. Every actuator SHALL have a dotted effective handle and SHALL be a
+        leaf. b. Every leaf SHALL be an actuator or a command node.
+        """
+        check_actuator_leaves(self.ShNodes, "Axiom 12 (ActuatorLeaves)")
         return self

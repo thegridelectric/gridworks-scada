@@ -206,3 +206,82 @@ def test_sieg_loop_assembly_check(assembled: dict) -> None:
     )
     with pytest.raises(ValueError, match="SiegLoop"):
         check_sieg_loop_assembly(nolan, ops)
+
+
+def declare_twin(d: dict, name: str = "hp-idu", handle: str | None = "auto.lc.n.hp-boss.hp-idu") -> None:
+    d["Hydronic"]["HpCommandNodeName"] = name
+    for n in d["ShNodes"]:
+        if n["Name"] == name:
+            n["ActorClass"] = "HpTwin"
+            n["ActorHierarchyName"] = f"s.{name}"
+            if handle is not None:
+                n["Handle"] = handle
+
+
+def test_gw_house0_layout_axiom_12_declared_twin_accepted(assembled: dict) -> None:
+    """A declared hp-idu twin under hp-boss satisfies both clauses."""
+    House0Layout.model_validate(mutated(assembled, declare_twin))
+
+
+def test_gw_house0_layout_axiom_12_a_no_actor(assembled: dict) -> None:
+    """Declared but left NoActor."""
+    def declare_only(d: dict) -> None:
+        d["Hydronic"]["HpCommandNodeName"] = "hp-idu"
+    reject(assembled, declare_only, "Axiom 12")
+
+
+def test_gw_house0_layout_axiom_12_a_wrong_parent(assembled: dict) -> None:
+    """The twin must hang directly under hp-boss."""
+    reject(assembled, lambda d: declare_twin(d, handle="auto.lc.n.hp-idu"), "Axiom 12")
+
+
+def test_gw_house0_layout_axiom_12_a_unknown_name(assembled: dict) -> None:
+    """hp-ctrl-box is a legal target name but a House0 layout has no such node."""
+    def declare_missing(d: dict) -> None:
+        d["Hydronic"]["HpCommandNodeName"] = "hp-ctrl-box"
+    reject(assembled, declare_missing, "Axiom 12")
+
+
+def test_gw_house0_layout_axiom_12_b_undeclared_twin(assembled: dict) -> None:
+    """An HpTwin node with no declaration. Exercised on a node no other
+    axiom pins, so clause b is the only guard."""
+    def stray_twin(d: dict) -> None:
+        d["ShNodes"].append(
+            {
+                "Name": "stray-twin",
+                "ActorClass": "HpTwin",
+                "ActorHierarchyName": "s.stray-twin",
+                "ShNodeId": "0f2b7c1e-5d3a-4b8e-9c6f-1a2b3c4d5e6f",
+                "TypeName": "spaceheat.node.gt",
+                "Version": "302",
+            }
+        )
+    reject(assembled, stray_twin, "Axiom 12")
+
+
+def test_gw_house0_layout_axiom_13(assembled: dict) -> None:
+    """A relay handle whose parent names no ShNode is an orphan."""
+    def orphan(d: dict) -> None:
+        for n in d["ShNodes"]:
+            if n["Name"] == "vdc-relay":
+                n["Handle"] = "auto.nobody.vdc-relay"
+    reject(assembled, orphan, "Axiom 13")
+
+
+def test_gw_house0_layout_axiom_14_a(assembled: dict) -> None:
+    """An actuator with a bare Name for a handle has no boss."""
+    def undotted(d: dict) -> None:
+        for n in d["ShNodes"]:
+            if n["Name"] == "vdc-relay":
+                n.pop("Handle", None)
+    reject(assembled, undotted, "Axiom 14")
+
+
+def test_gw_house0_layout_axiom_14_b(assembled: dict) -> None:
+    """hp-odu (NoActor) given a handle under hp-boss is a leaf that is
+    neither actuator nor command node."""
+    def stray_leaf(d: dict) -> None:
+        for n in d["ShNodes"]:
+            if n["Name"] == "hp-odu":
+                n["Handle"] = "auto.lc.n.hp-boss.hp-odu"
+    reject(assembled, stray_leaf, "Axiom 14")

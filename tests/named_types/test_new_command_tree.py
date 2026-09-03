@@ -94,3 +94,58 @@ def test_new_command_tree_axiom_1_handle_absent_root() -> None:
     d = tree([node("ltn", None), node("la", "ltn.x.la", "LeafAlly")])
     with pytest.raises(ValueError, match="Axiom 1"):
         NewCommandTree.model_validate(d)
+
+
+def test_new_command_tree_axiom_2_a_actuator_not_leaf() -> None:
+    """A relay with a child is not a leaf."""
+    d = tree(
+        [
+            node("auto", "auto"),
+            node("pico-cycler", "auto.pico-cycler", "PicoCycler"),
+            node("vdc-relay", "auto.pico-cycler.vdc-relay", "Relay"),
+            node("x", "auto.pico-cycler.vdc-relay.x", "Relay"),
+        ]
+    )
+    with pytest.raises(ValueError, match="Axiom 2"):
+        NewCommandTree.model_validate(d)
+
+
+def test_new_command_tree_axiom_2_a_actuator_undotted() -> None:
+    """An actuator with a bare Name for a handle has no boss."""
+    d = tree([node("auto", "auto"), node("vdc-relay", None, "Relay")])
+    with pytest.raises(ValueError, match="Axiom 2"):
+        NewCommandTree.model_validate(d)
+
+
+def test_new_command_tree_axiom_2_b_no_actor_leaf() -> None:
+    """A NoActor leaf is a command node only directly under LocalControl."""
+    ok = tree(
+        [
+            node("auto", "auto"),
+            node("lc", "auto.lc", "LocalControl"),
+            node("n", "auto.lc.n"),
+        ]
+    )
+    NewCommandTree.model_validate(ok)
+    d = tree(
+        [
+            node("auto", "auto"),
+            node("lc", "auto.lc", "LocalControl"),
+            node("hp-boss", "auto.lc.hp-boss", "HpBoss"),
+            node("hp-odu", "auto.lc.hp-boss.hp-odu"),
+        ]
+    )
+    with pytest.raises(ValueError, match="Axiom 2"):
+        NewCommandTree.model_validate(d)
+
+
+def test_new_command_tree_axiom_2_dormant_command_leaf_ok() -> None:
+    """hp-boss with no commandable heat pump is a leaf and a command node."""
+    d = tree(
+        [
+            node("auto", "auto"),
+            node("lc", "auto.lc", "LocalControl"),
+            node("hp-boss", "auto.lc.hp-boss", "HpBoss"),
+        ]
+    )
+    NewCommandTree.model_validate(d)

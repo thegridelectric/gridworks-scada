@@ -35,11 +35,7 @@ SEMA_ROOT = conformance.DEFAULT_SEMA
 TESTS_DIR = Path(__file__).parent
 
 # --- KNOWN debt: sema axioms with no check_axiom_<n> on the gwsproto class ---
-KNOWN_UNPORTED_AXIOMS: set[str] = {
-    "gw.house0.layout/000:12",
-    "gw.nolan.layout/000:10",
-    "new.command.tree/002:2",
-}
+KNOWN_UNPORTED_AXIOMS: set[str] = set()
 
 # --- KNOWN debt: check_axiom_<n> methods sema no longer declares ---
 KNOWN_STALE_VALIDATORS: set[str] = {
@@ -79,11 +75,9 @@ KNOWN_UNTESTED_AXIOMS: set[str] = {
     "gw.house0.layout/000:1",
     "gw.house0.layout/000:4",
     "gw.house0.layout/000:5",
-    "gw.house0.layout/000:12",
     "gw.house0.operational.params/000:1",
     "gw.house0.operational.params/000:2",
     "gw.hydronic/000:1",
-    "gw.nolan.layout/000:10",
     "gw.nolan.operational.params/000:1",
     "gw.nolan.operational.params/000:2",
     "gw.tou.window/000:1",
@@ -116,7 +110,6 @@ KNOWN_UNTESTED_AXIOMS: set[str] = {
     "layout.lite/013:4",
     "machine.states/000:1",
     "machine.states/000:2",
-    "new.command.tree/002:2",
     "pico.flow.module.component.gt/001:1",
     "pico.tank.module.component.gt/012:1",
     "pico.tank.module.component.gt/012:2",

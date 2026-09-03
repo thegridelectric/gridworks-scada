@@ -1348,8 +1348,12 @@ class HydronicLayout:
                 
 
     @property
-    def actuators(self) -> List[ShNode]: 
-        return self.relays + self.zero_tens
+    def actuators(self) -> List[ShNode]:
+        """The tree leaves: relays, 0-10V outputs, and the declared
+        commandable heat-pump node (Hydronic.HpCommandNodeName) if any."""
+        declared = self.hydronic.HpCommandNodeName
+        twin = [self.node(declared)] if declared is not None else []
+        return self.relays + self.zero_tens + twin
     
     @property
     def relays(self) -> List[ShNode]:
