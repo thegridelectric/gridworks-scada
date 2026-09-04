@@ -267,6 +267,14 @@
     {
       "TypeName": "capture.tuning",
       "Version": "000",
+      "ChannelName": "secondary-010v",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
       "ChannelName": "zone1-bedrooms-gw-temp",
       "CapturePeriodS": 60,
       "AsyncCapture": true,

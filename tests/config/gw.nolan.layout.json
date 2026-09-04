@@ -479,12 +479,13 @@
     {
       "TypeName": "spaceheat.node.gt",
       "Version": "302",
-      "Name": "gw108-dac2-writer",
-      "ActorHierarchyName": "s.gw108-dac2-writer",
-      "ActorClass": "I2cDacWriter",
-      "DisplayName": "GW108 Dac2 Writer",
-      "ComponentId": "a3f6f4c6-5958-4145-a35b-fe3292861786",
-      "ShNodeId": "6098977b-e8ee-4ba3-95b9-6565bd24d895"
+      "Name": "secondary-010v",
+      "ActorHierarchyName": "s.secondary-010v",
+      "Handle": "auto.lc.n.secondary-010v",
+      "ActorClass": "ZeroTenOutputer",
+      "DisplayName": "Secondary Pump 010V",
+      "ComponentId": "04ed669e-5f5b-44fc-8254-5939e47309f4",
+      "ShNodeId": "55fb5130-495d-4939-b436-f286026dd643"
     },
     {
       "TypeName": "spaceheat.node.gt",
@@ -1179,6 +1180,18 @@
       "Quantity": "Unitless",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
       "Id": "cf909f95-0e02-45d8-beb9-708c902efd15"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "003",
+      "Name": "secondary-010v",
+      "DisplayName": "Secondary Pump 010V Level",
+      "AboutNodeName": "secondary-010v",
+      "CapturedByNodeName": "secondary-010v",
+      "TelemetryName": "VoltsTimesTen",
+      "Quantity": "Voltage",
+      "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
+      "Id": "1732fb05-564e-4219-92d4-8cc90ac068ed"
     },
     {
       "TypeName": "data.channel.gt",
@@ -2434,46 +2447,24 @@
       "DisplayName": "Tank1 Bottom Elt Relay"
     },
     {
-      "TypeName": "i2c.dac.writer.component.gt",
+      "TypeName": "i2c.dac.output.component.gt",
       "Version": "000",
-      "ComponentId": "a3f6f4c6-5958-4145-a35b-fe3292861786",
+      "ComponentId": "04ed669e-5f5b-44fc-8254-5939e47309f4",
       "BoardComponentId": "91ee52fd-7f82-422f-bfa2-fa744be35354",
       "DacName": "Dac2",
       "ConfigList": [
         {
-          "TypeName": "i2c.dac.channel.config",
+          "TypeName": "dac.output.config",
           "Version": "000",
-          "DacChannel": "A",
-          "PowerOnRawValue": 0,
-          "PowerOnVref": "Internal",
-          "PowerOnGain": 1
-        },
-        {
-          "TypeName": "i2c.dac.channel.config",
-          "Version": "000",
-          "DacChannel": "B",
-          "PowerOnRawValue": 0,
-          "PowerOnVref": "Internal",
-          "PowerOnGain": 1
-        },
-        {
-          "TypeName": "i2c.dac.channel.config",
-          "Version": "000",
+          "ChannelName": "secondary-010v",
+          "ActorName": "secondary-010v",
           "DacChannel": "C",
           "PowerOnRawValue": 3020,
           "PowerOnVref": "Internal",
           "PowerOnGain": 1
-        },
-        {
-          "TypeName": "i2c.dac.channel.config",
-          "Version": "000",
-          "DacChannel": "D",
-          "PowerOnRawValue": 0,
-          "PowerOnVref": "Internal",
-          "PowerOnGain": 1
         }
       ],
-      "DisplayName": "Gw108 Dac2 Writer"
+      "DisplayName": "Secondary Pump 010V"
     },
     {
       "TypeName": "gpio.sensor.component.gt",

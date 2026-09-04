@@ -3,18 +3,20 @@ from typing import Literal, Self
 from pydantic import PositiveInt, model_validator
 
 from gwsproto.enums import I2cDacChannel, I2cDacVref
-from gwsproto.property_format import NonNegativeInt
+from gwsproto.property_format import NonNegativeInt, SpaceheatName
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class I2cDacChannelConfig(GwsprotoSemaType):
-    """Sema: https://schemas.electricity.works/types/i2c.dac.channel.config/000"""
+class DacOutputConfig(GwsprotoSemaType):
+    """Sema: https://schemas.electricity.works/types/dac.output.config/000"""
 
+    ChannelName: SpaceheatName
+    ActorName: SpaceheatName
     DacChannel: I2cDacChannel
     PowerOnRawValue: NonNegativeInt
     PowerOnVref: I2cDacVref
     PowerOnGain: PositiveInt
-    TypeName: Literal["i2c.dac.channel.config"] = "i2c.dac.channel.config"
+    TypeName: Literal["dac.output.config"] = "dac.output.config"
     Version: Literal["000"] = "000"
 
     @model_validator(mode="after")

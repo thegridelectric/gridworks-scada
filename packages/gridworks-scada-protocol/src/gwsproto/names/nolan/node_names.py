@@ -26,6 +26,9 @@ class NolanNodeNames:
     # House0 and so lives in HydronicSpaceheatNodeNames.
     iso_valve_relay = "iso-valve-relay"
     secondary_pump_relay = "secondary-pump-relay"
+    # The secondary pump's 0-10V speed input: a board DAC channel driven
+    # as an actuator (ZeroTenOutputer with an i2c.dac.output component).
+    secondary_010v = "secondary-010v"
 
 
 class NolanZoneNodeNames:

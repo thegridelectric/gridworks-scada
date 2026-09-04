@@ -16,6 +16,7 @@ from gwsproto.named_types.capture_tuning import CaptureTuning
 from gwsproto.named_types.cop_curve import CopCurve
 from gwsproto.named_types.channel_flatlined import ChannelFlatlined
 from gwsproto.named_types.channel_readings import ChannelReadings
+from gwsproto.named_types.dac_output_config import DacOutputConfig
 from gwsproto.named_types.data_channel_gt import DataChannelGt
 from gwsproto.named_types.derived_channel_gt import DerivedChannelGt
 from gwsproto.named_types.device_component_gt import DeviceComponentGt
@@ -65,8 +66,7 @@ from gwsproto.named_types.i2c_ct_interface_capability import I2cCtInterfaceCapab
 from gwsproto.named_types.i2c_bit_address import I2cBitAddress
 from gwsproto.named_types.i2c_bus import I2cBus
 from gwsproto.named_types.i2c_dac_capability import I2cDacCapability
-from gwsproto.named_types.i2c_dac_channel_config import I2cDacChannelConfig
-from gwsproto.named_types.i2c_dac_writer_component_gt import I2cDacWriterComponentGt
+from gwsproto.named_types.i2c_dac_output_component_gt import I2cDacOutputComponentGt
 from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
     I2cMultichannelDtRelayComponentGt,
 )
@@ -134,7 +134,6 @@ from gwsproto.named_types.sieg_loop_endpoint_valve_adjustment import (
     SiegLoopEndpointValveAdjustment,
 )
 from gwsproto.named_types.sieg_target_too_low import SiegTargetTooLow
-from gwsproto.named_types.sim_dac_writer_component_gt import SimDacWriterComponentGt
 from gwsproto.named_types.sim_pico_tank_module_component_gt import (
     SimPicoTankModuleComponentGt,
 )
@@ -188,6 +187,7 @@ __all__ = [
     "CopCurve",
     "ChannelFlatlined",
     "ChannelReadings",
+    "DacOutputConfig",
     "DataChannelGt",
     "DerivedChannelGt",
 
@@ -231,8 +231,7 @@ __all__ = [
     "I2cBitAddress",
     "I2cBus",
     "I2cDacCapability",
-    "I2cDacChannelConfig",
-    "I2cDacWriterComponentGt",
+    "I2cDacOutputComponentGt",
     "I2cMultichannelDtRelayComponentGt",
     "I2cMux",
     "I2cReadBit",
@@ -290,7 +289,6 @@ __all__ = [
     "SetpointBelief",
     "SiegLoopEndpointValveAdjustment",
     "SiegTargetTooLow",
-    "SimDacWriterComponentGt",
     "SimPicoTankModuleComponentGt",
     "SimRelayComponentGt",
     "SimSensorComponentGt",

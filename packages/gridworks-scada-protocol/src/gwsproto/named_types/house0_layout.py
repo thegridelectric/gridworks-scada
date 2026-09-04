@@ -25,13 +25,12 @@ from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
 from gwsproto.named_types.pico_btu_meter_component_gt import PicoBtuMeterComponentGt
 from gwsproto.named_types.pico_flow_module_component_gt import PicoFlowModuleComponentGt
 from gwsproto.named_types.pico_tank_module_component_gt import PicoTankModuleComponentGt
-from gwsproto.named_types.sim_dac_writer_component_gt import SimDacWriterComponentGt
 from gwsproto.named_types.sim_pico_tank_module_component_gt import (
     SimPicoTankModuleComponentGt,
 )
 from gwsproto.named_types.gpio_relay_component_gt import GpioRelayComponentGt
 from gwsproto.named_types.gpio_sensor_component_gt import GpioSensorComponentGt
-from gwsproto.named_types.i2c_dac_writer_component_gt import I2cDacWriterComponentGt
+from gwsproto.named_types.i2c_dac_output_component_gt import I2cDacOutputComponentGt
 from gwsproto.named_types.i2c_relay_component_gt import I2cRelayComponentGt
 from gwsproto.named_types.i2c_thermistor_reader_component_gt import (
     I2cThermistorReaderComponentGt,
@@ -54,7 +53,7 @@ House0Component = (
     | Ads111xBasedComponentGt
     | GpioRelayComponentGt
     | GpioSensorComponentGt
-    | I2cDacWriterComponentGt
+    | I2cDacOutputComponentGt
     | I2cMultichannelDtRelayComponentGt
     | I2cRelayComponentGt
     | I2cThermistorReaderComponentGt
@@ -63,7 +62,6 @@ House0Component = (
     | PicoFlowModuleComponentGt
     | PicoTankModuleComponentGt
     | ScadaBoardComponentGt
-    | SimDacWriterComponentGt
     | SimPicoTankModuleComponentGt
     | SimRelayComponentGt
     | SimSensorComponentGt

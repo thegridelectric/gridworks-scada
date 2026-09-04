@@ -376,12 +376,10 @@ class HydronicLayout:
         cls.check_dc_id_uniqueness(data_channels)
         dc_names_by_component: set[str] = set()
         for c in components.values():
-            # Only channel-named configs reference data channels; e.g.
-            # i2c.dac.channel.config entries carry power-on defaults, not
-            # captures, and have no ChannelName at all. Bare components (no
-            # sema ConfigList at all, e.g. pico.btu.meter.component.gt) have
-            # no attribute here — their channels bind via
-            # DataChannel.CapturedByNodeName only.
+            # Only channel-named configs reference data channels. Bare
+            # components (no sema ConfigList at all, e.g.
+            # pico.btu.meter.component.gt) have no attribute here — their
+            # channels bind via DataChannel.CapturedByNodeName only.
             channel_names = {
                 config.ChannelName
                 for config in getattr(c.gt, "ConfigList", None) or []
