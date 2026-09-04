@@ -2,6 +2,7 @@
 
 from typing import Literal, Optional
 
+from click import Option
 from pydantic import BaseModel, PositiveInt, model_validator
 from typing_extensions import Self
 
@@ -23,8 +24,9 @@ class TankModuleParams(BaseModel):
     NumSampleAverages: PositiveInt
     AsyncCaptureDeltaMicroVolts: PositiveInt
     CaptureOffsetS: Optional[float] = None
+    WifiOrEthernet: Optional[Literal["wifi", "ethernet"]] = None
     TypeName: Literal["tank.module.params"] = "tank.module.params"
-    Version: Literal["110"] = "110"
+    Version: Literal["110", "200"] = "200"
 
     @model_validator(mode="after")
     def check_pico_a_b(self) -> Self:
