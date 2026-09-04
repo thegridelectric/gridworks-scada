@@ -23,8 +23,9 @@ class TankModuleParams(BaseModel):
     NumSampleAverages: PositiveInt
     AsyncCaptureDeltaMicroVolts: PositiveInt
     CaptureOffsetS: Optional[float] = None
+    WifiOrEthernet: Optional[Literal["wifi", "ethernet"]] = None
     TypeName: Literal["tank.module.params"] = "tank.module.params"
-    Version: Literal["110"] = "110"
+    Version: Literal["110", "200"] = "200"
 
     @model_validator(mode="after")
     def check_pico_a_b(self) -> Self:
