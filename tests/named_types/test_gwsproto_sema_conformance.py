@@ -21,6 +21,20 @@ The allowlists below are the checked-in record of KNOWN gaps. Two kinds:
 The sets are matched EXACTLY, so the test fails both when a NEW gap appears and
 when a listed gap is fixed but not removed here — keeping the record honest.
 
+The REVERSE direction reads the package's vendored copy of the tlayouts
+snapshot registry (`sema_closure/registry.yaml`, the layout words' dependency
+closure): every word a layout artifact can carry must have a gwsproto twin at
+the closure's version. This is the check that catches a word added to sema and
+the layout closure with no scada mirror — the forward checks cannot see a word
+gwsproto never names. The copy must exist (no skip) and is refreshed whenever
+tlayouts regenerates its snapshot. Its allowlists:
+
+- SNAPSHOT_UNMIRRORED_* — closure words with no gwsproto twin: real gaps to
+  close by writing the mirror, then removing the entry here.
+- KNOWN_SNAPSHOT_VERSION_DRIFT — the closure's version of a word differs from
+  gwsproto's; today the closure reaches an older enum version through a word
+  that has not re-pinned (sema-side fix).
+
 Requires the sibling sema checkout (read as the contract). Skips if absent
 (e.g. a scada-only CI checkout); enforce it where both repos are present.
 """
@@ -120,6 +134,20 @@ KNOWN_ENUM_VERSION_DRIFT: set[str] = set()
 
 KNOWN_FORMAT_ISSUES: set[str] = set()
 
+# --- reverse: layout-closure words with no gwsproto twin (burn down) ---
+# The DAC output words landed in sema 912660c and the snapshot; their gwsproto
+# mirrors are the DAC actuator move's first commit. Remove on landing.
+SNAPSHOT_UNMIRRORED_TYPES: set[str] = {
+    "dac.output.config/000",
+    "i2c.dac.output.component.gt/000",
+}
+SNAPSHOT_UNMIRRORED_ENUMS: set[str] = set()
+# derived.channel.gt/002 and gw1.unit.quantity.projection/000 pin gw1.quantity
+# and gw1.unit at 001, so the closure's latest is 001 while gwsproto (and sema)
+# are at 002. Enums are additive, so gwsproto decodes every closure value; the
+# entries clear when those words re-pin in sema.
+KNOWN_SNAPSHOT_VERSION_DRIFT: set[str] = {"gw1.quantity", "gw1.unit"}
+
 
 @pytest.fixture(scope="module")
 def report() -> conformance.Report:
@@ -182,4 +210,40 @@ def test_format_issues_only_known(report: conformance.Report) -> None:
     assert actual == KNOWN_FORMAT_ISSUES, (
         f"new format issue: {sorted(actual - KNOWN_FORMAT_ISSUES)}; "
         f"fixed (remove from KNOWN list): {sorted(KNOWN_FORMAT_ISSUES - actual)}"
+    )
+
+
+def test_snapshot_types_all_mirrored(report: conformance.Report) -> None:
+    assert report.closure_registry, (
+        f"vendored layout-closure registry missing at {conformance.DEFAULT_CLOSURE_REGISTRY}"
+    )
+    actual = set(report.snapshot_unmirrored_types)
+    assert actual == SNAPSHOT_UNMIRRORED_TYPES, (
+        f"snapshot types with no gwsproto twin (write the mirror): "
+        f"{sorted(actual - SNAPSHOT_UNMIRRORED_TYPES)}; "
+        f"now mirrored (remove from allowlist): {sorted(SNAPSHOT_UNMIRRORED_TYPES - actual)}"
+    )
+
+
+def test_snapshot_enums_all_mirrored(report: conformance.Report) -> None:
+    assert report.closure_registry, (
+        f"vendored layout-closure registry missing at {conformance.DEFAULT_CLOSURE_REGISTRY}"
+    )
+    actual = set(report.snapshot_unmirrored_enums)
+    assert actual == SNAPSHOT_UNMIRRORED_ENUMS, (
+        f"snapshot enums with no gwsproto twin (write the mirror): "
+        f"{sorted(actual - SNAPSHOT_UNMIRRORED_ENUMS)}; "
+        f"now mirrored (remove from allowlist): {sorted(SNAPSHOT_UNMIRRORED_ENUMS - actual)}"
+    )
+
+
+def test_snapshot_version_drift_only_known(report: conformance.Report) -> None:
+    assert report.closure_registry, (
+        f"vendored layout-closure registry missing at {conformance.DEFAULT_CLOSURE_REGISTRY}"
+    )
+    actual = _names(report.snapshot_version_drift)
+    assert actual == KNOWN_SNAPSHOT_VERSION_DRIFT, (
+        f"new snapshot version drift: {sorted(actual - KNOWN_SNAPSHOT_VERSION_DRIFT)}; "
+        f"fixed (remove from KNOWN list): {sorted(KNOWN_SNAPSHOT_VERSION_DRIFT - actual)}\n"
+        + "\n".join(report.snapshot_version_drift)
     )

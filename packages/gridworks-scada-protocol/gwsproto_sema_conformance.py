@@ -21,6 +21,14 @@ Per ENUM it reports no-word, version-drift, and value-drift (the gwsproto value
 set is not the sema enum's value set). Per FORMAT it runs the sema `examples`
 (must accept) and `counterexamples` (must reject) through the gwsproto validator.
 
+The REVERSE direction runs against `sema_closure/registry.yaml` beside this
+file: a vendored copy of the tlayouts snapshot registry, the dependency closure
+of the layout words — every word a layout artifact can carry. Each type and
+enum there must have a gwsproto twin at the closure's version. This is the
+check that catches a word landing in sema and the layout closure with no scada
+mirror; the forward checks above cannot see a word gwsproto never names. The
+copy is refreshed whenever tlayouts regenerates its snapshot.
+
 Reads the sibling sema checkout's definitions directly (report which branch!).
 With --cli, each clean re-dump is additionally validated through the sema CLI.
 
@@ -44,6 +52,8 @@ from pydantic import TypeAdapter
 
 # packages/gridworks-scada-protocol/ -> repo root -> umbrella dir -> sema
 DEFAULT_SEMA = Path(__file__).resolve().parents[3] / "sema"
+# Vendored copy of the tlayouts snapshot registry: the layout-word closure.
+DEFAULT_CLOSURE_REGISTRY = Path(__file__).resolve().parent / "sema_closure" / "registry.yaml"
 
 # sema format name -> gwsproto property_format Annotated type. Formats gwsproto
 # does not mirror are listed in UNMIRRORED_FORMATS below (checked-in record).
@@ -68,8 +78,9 @@ FORMAT_MAP: dict[str, object] = {
 _YAML_TO_JSON = """
 import json, sys, yaml
 from pathlib import Path
-wanted = json.load(sys.stdin)
-out = {"registry": yaml.safe_load(Path("definitions/registry.yaml").read_text()), "schemas": {}}
+request = json.load(sys.stdin)
+wanted = request["schemas"]
+out = {"registry": yaml.safe_load(Path(request["registry"]).read_text()), "schemas": {}}
 for key, rel in wanted.items():
     p = Path(rel)
     out["schemas"][key] = yaml.safe_load(p.read_text()) if p.exists() else None
@@ -77,11 +88,17 @@ json.dump(out, sys.stdout)
 """
 
 
-def load_sema(sema_root: Path, wanted: dict[str, str]) -> dict:
+def load_sema(
+    sema_root: Path, wanted: dict[str, str], registry: Path | None = None
+) -> dict:
+    """Registry + schema files as JSON. `registry` defaults to the sema
+    checkout's own; pass the vendored closure registry to read it (the
+    subprocess still runs in the sema env, which has the YAML library)."""
+    registry_path = registry or sema_root / "definitions" / "registry.yaml"
     result = subprocess.run(
         ["uv", "run", "python", "-c", _YAML_TO_JSON],
         cwd=sema_root,
-        input=json.dumps(wanted),
+        input=json.dumps({"registry": str(registry_path), "schemas": wanted}),
         capture_output=True,
         text=True,
     )
@@ -96,10 +113,16 @@ def gwsproto_classes() -> dict[str, tuple[type, str | None]]:
     for name in named_types.__all__:
         cls = getattr(named_types, name)
         fields = getattr(cls, "model_fields", None)
-        if not fields or "TypeName" not in fields:
+        if not fields:
             continue
-        type_name = fields["TypeName"].default
-        version = fields["Version"].default if "Version" in fields else None
+        # snake-field types (alias_generator=snake_to_camel) declare
+        # `type_name` / `version`; the wire names are still TypeName / Version.
+        type_key = "TypeName" if "TypeName" in fields else "type_name"
+        version_key = "Version" if "Version" in fields else "version"
+        if type_key not in fields:
+            continue
+        type_name = fields[type_key].default
+        version = fields[version_key].default if version_key in fields else None
         out[type_name] = (cls, version)
     return out
 
@@ -151,6 +174,12 @@ class Report:
     # formats
     format_reject: list[str] = field(default_factory=list)
     format_no_word: list[str] = field(default_factory=list)
+    # reverse: layout-closure words with no gwsproto twin / off-version twin
+    closure_registry: str = ""
+    n_snapshot_types: int = 0
+    snapshot_unmirrored_types: list[str] = field(default_factory=list)
+    snapshot_unmirrored_enums: list[str] = field(default_factory=list)
+    snapshot_version_drift: list[str] = field(default_factory=list)
 
 
 def _enum_values(schema: dict | None) -> set[str] | None:
@@ -160,7 +189,51 @@ def _enum_values(schema: dict | None) -> set[str] | None:
     return set(vals) if vals is not None else None
 
 
-def run(sema_root: Path, *, cli: bool = False) -> Report:  # noqa: C901
+def check_snapshot(r: Report, sema_root: Path, registry_path: Path) -> None:
+    """Reverse direction: every type and enum in the vendored layout-closure
+    registry has a gwsproto twin pinned at the closure's latest version. A
+    miss means a layout artifact can carry a word the scada cannot decode."""
+    if not registry_path.exists():
+        return
+    r.closure_registry = str(registry_path)
+    snapshot = load_sema(sema_root, {}, registry=registry_path)["registry"]
+    classes = gwsproto_classes()
+    enums = gwsproto_enum_classes()
+    snapshot_types = snapshot.get("types", {})
+    r.n_snapshot_types = len(snapshot_types)
+    for type_name in sorted(snapshot_types):
+        latest = snapshot_types[type_name].get("latest_version")
+        if type_name not in classes:
+            r.snapshot_unmirrored_types.append(f"{type_name}/{latest}")
+            continue
+        version = classes[type_name][1]
+        if version != latest:
+            r.snapshot_version_drift.append(
+                f"{type_name}: gwsproto {version} vs snapshot {latest}"
+            )
+    for enum_name, entry in sorted(snapshot.get("enums", {}).items()):
+        versioned = entry.get("enum_type") == "versioned"
+        latest = entry.get("latest_version") if versioned else None
+        if enum_name not in enums:
+            r.snapshot_unmirrored_enums.append(
+                f"{enum_name}/{latest}" if versioned else enum_name
+            )
+            continue
+        if not versioned:
+            continue
+        try:
+            version = enums[enum_name].enum_version()
+        except (NotImplementedError, AttributeError):
+            version = None
+        if version != latest:
+            r.snapshot_version_drift.append(
+                f"{enum_name}: gwsproto {version} vs snapshot {latest}"
+            )
+
+
+def run(
+    sema_root: Path, *, cli: bool = False, closure_registry: Path | None = None
+) -> Report:  # noqa: C901
     r = Report()
     r.branch = subprocess.run(
         ["git", "branch", "--show-current"], cwd=sema_root,
@@ -287,6 +360,8 @@ def run(sema_root: Path, *, cli: bool = False) -> Report:  # noqa: C901
                 r.format_reject.append(f"{fmt}: ACCEPTS counterexample {ce!r}")
             except Exception:  # noqa: BLE001, S110
                 pass
+
+    check_snapshot(r, sema_root, closure_registry or DEFAULT_CLOSURE_REGISTRY)
     return r
 
 
@@ -294,12 +369,24 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sema", type=Path, default=DEFAULT_SEMA)
     parser.add_argument("--cli", action="store_true", help="also run `sema validate`")
+    parser.add_argument(
+        "--closure-registry",
+        type=Path,
+        default=DEFAULT_CLOSURE_REGISTRY,
+        help="vendored layout-closure registry (reverse check)",
+    )
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)
 
-    r = run(args.sema.resolve(), cli=args.cli)
+    r = run(
+        args.sema.resolve(), cli=args.cli, closure_registry=args.closure_registry.resolve()
+    )
     print(f"sema: {args.sema} (branch: {r.branch}) — {r.n_sema_types} registered types")
-    print(f"gwsproto: {r.n_gwsproto_types} named types\n")
+    print(f"gwsproto: {r.n_gwsproto_types} named types")
+    if r.closure_registry:
+        print(f"layout closure: {r.closure_registry} — {r.n_snapshot_types} types\n")
+    else:
+        print(f"layout closure: {args.closure_registry} missing (reverse check skipped)\n")
 
     def section(title: str, items: list[str]) -> None:
         if items:
@@ -317,10 +404,15 @@ def main(argv: list[str] | None = None) -> int:
     section("ENUM — value drift", r.enum_value_drift)
     section("FORMAT — reject", r.format_reject)
     section("FORMAT — no sema word (unmirrored)", r.format_no_word)
+    section("CLOSURE — type with no gwsproto twin", r.snapshot_unmirrored_types)
+    section("CLOSURE — enum with no gwsproto twin", r.snapshot_unmirrored_enums)
+    section("CLOSURE — version drift", r.snapshot_version_drift)
 
     failures = (
         r.version_drift + r.example_reject + r.dump_drift + r.cli_reject
         + r.enum_version_drift + r.enum_value_drift + r.format_reject
+        + r.snapshot_unmirrored_types + r.snapshot_unmirrored_enums
+        + r.snapshot_version_drift
     )
     print(f"\n{len(failures)} conformance failure(s); {len(r.no_word)} type(s) without a word.")
     return 1 if failures else 0

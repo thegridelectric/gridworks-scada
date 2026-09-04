@@ -22,6 +22,13 @@ re-serializations that are not byte-identical to the canonical example. It
 prints which sema branch it read, and exits non-zero on any real mismatch.
 Run it whenever types change on either side.
 
+The sweep also runs in reverse against `sema_closure/registry.yaml`, a
+vendored copy of the tlayouts snapshot registry (the layout words' dependency
+closure): every word a layout artifact can carry must have a twin here at the
+closure's version. Refresh the copy whenever tlayouts regenerates its snapshot;
+the pytest conformance test fails if the copy is missing or a closure word has
+no twin.
+
 Two additional modes:
 
 - `--cli` — also pushes each clean re-dump through `sema validate`, so the
