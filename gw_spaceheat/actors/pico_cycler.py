@@ -143,7 +143,6 @@ class PicoCycler(ShNodeActor):
         # This counts consecutive failed reboots per pico
         self.reboots = {pico: 0 for pico in self.picos}
         self.trigger_id = None
-        self.fsm_comment = None
         self.fsm_reports = []
         self.last_zombie_problem_report_s = time.time() - 24 * 3600
         self.last_zombie_shake = time.time()
@@ -181,10 +180,29 @@ class PicoCycler(ShNodeActor):
         return zombies
 
     @property
+    def alive(self) -> List[str]:
+        """
+        Picos that are currently alive
+        """
+        non_zombies = [pico for pico in self.picos if pico not in self.zombies]
+        alive = []
+        for pico in non_zombies:
+            if self.pico_states[pico] == SinglePicoState.Alive:
+                alive.append(pico)
+        return alive
+
+    @property
     def all_zombies(self) -> bool:
         if len(self.zombies) == len(self.picos):
             return True
         return False
+
+    @property
+    def pico_state_snapshot(self) -> str:
+        """
+        A string summarizing the current state of the picos
+        """
+        return f"alive: {self.alive}, flatlined: {self.flatlined}, zombies: {self.zombies}"
 
     def raise_zombie_pico_warning(self, pico: str) -> None:
         if pico not in self.actor_by_pico:
@@ -233,21 +251,18 @@ class PicoCycler(ShNodeActor):
         
         # move out of PicosLive if pico cycler in that state
         if self.state == PicoCyclerState.PicosLive:
-            # this kicks off an fsm report sequence, which requires a comment
             self.trigger_id = str(uuid.uuid4())
-            comment=f"triggered by {payload.ActorName} {payload.PicoHwUid}"
-            self.fsm_comment = comment
-            self.pico_missing()
+            self.pico_missing(cause=f"{self.pico_state_snapshot}, triggered: {payload.PicoHwUid}")
 
-    def pico_missing(self) -> None:
+    def pico_missing(self, *, cause: Optional[str] = None) -> None:
         """
         Called directly when rebooting picos does not bring back all the
         picos, or indirectly when state is PicosLive and we receive a
         PicoMissing message from an actor
         """
-        if not self.trigger_event(PicoCyclerEvent.PicoMissing):
+        if not self.trigger_event(PicoCyclerEvent.PicoMissing, cause=cause):
             return
-        self.log(f"TRIGGERING PICO REBOOT! {self.fsm_comment}")
+        self.log(f"TRIGGERING PICO REBOOT! {cause}")
         # increment reboot attempts for all flatlined picos
         for pico in self.pico_states:
             if self.pico_states[pico] == SinglePicoState.Flatlined:
@@ -306,7 +321,10 @@ class PicoCycler(ShNodeActor):
     def confirm_rebooted(self) -> None:
         if self.state == PicoCyclerState.PicosRebooting:
             # ConfirmRebooted: PicosRebooting -> PicosLive
-            if self.trigger_event(PicoCyclerEvent.ConfirmRebooted):
+            if self.trigger_event(
+                PicoCyclerEvent.ConfirmRebooted,
+                cause=self.pico_state_snapshot,
+            ):
                 self.send_fsm_report()
 
     def process_fsm_full_report(self, payload: FsmFullReport) -> None:
@@ -400,13 +418,14 @@ class PicoCycler(ShNodeActor):
         if self.all_zombies:
             self.reboot_dud()
         elif len(self.flatlined) > 0:
-            self.fsm_comment = f"Flatlined picos: {self.flatlined}"
-            self.pico_missing()
+            self.pico_missing(
+                cause=self.pico_state_snapshot,
+            )
         else:
             self.confirm_rebooted()
 
     def reboot_dud(self) -> None:
-        if self.trigger_event(PicoCyclerEvent.RebootDud):
+        if self.trigger_event(PicoCyclerEvent.RebootDud, cause=self.pico_state_snapshot):
             self.send_fsm_report()
 
     def shake_zombies(self) -> None:
@@ -421,7 +440,10 @@ class PicoCycler(ShNodeActor):
             self.log(f"Shaking these zombies: {self.zombies}")
             self.trigger_id = str(uuid.uuid4())
             # ShakeZombies: AllZombies/PicosLive -> RelayOpening
-            self.trigger_event(PicoCyclerEvent.ShakeZombies)
+            self.trigger_event(
+                PicoCyclerEvent.ShakeZombies,
+                cause=self.pico_state_snapshot,
+            )
             self.open_vdc_relay(self.trigger_id)
 
     def start_closing(self) -> None:
@@ -449,9 +471,10 @@ class PicoCycler(ShNodeActor):
         # )
         self.fsm_reports = []
         self.trigger_id = None
-        self.fsm_comment = None
 
-    def trigger_event(self, event: PicoCyclerEvent) -> bool:
+    def trigger_event(
+        self, event: PicoCyclerEvent, *, cause: Optional[str] = None
+    ) -> bool:
         now_ms = int(time.time() * 1000)
         orig_state = self.state
         try:
@@ -471,6 +494,7 @@ class PicoCycler(ShNodeActor):
                 Event=event,
                 FromState=orig_state,
                 ToState=self.state,
+                Cause=cause,
                 UnixTimeMs=now_ms,
                 TriggerId=self.trigger_id,
             )
@@ -517,7 +541,7 @@ class PicoCycler(ShNodeActor):
         """
         await asyncio.sleep(3)
         self.trigger_id = str(uuid.uuid4())
-        self.pico_missing()
+        self.pico_missing(cause=f"{self.pico_state_snapshot}, startup")
 
         while not self._stop_requested:
             self.pico_state_log(f"State is {self.state}")

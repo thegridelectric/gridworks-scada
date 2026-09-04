@@ -22,6 +22,7 @@ class FsmAtomicReport(BaseModel):
     Event: Optional[str] = None
     FromState: Optional[str] = None
     ToState: Optional[str] = None
+    Cause: Optional[str] = None
     UnixTimeMs: UTCMilliseconds
     TriggerId: UUID4Str
     TypeName: Literal["fsm.atomic.report"] = "fsm.atomic.report"
