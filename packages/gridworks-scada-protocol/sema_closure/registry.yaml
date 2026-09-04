@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-09-03T18:10:00Z"
+  last_updated: "2026-09-04T14:50:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -834,7 +834,6 @@ types:
             - "hubitat.component.gt:000"
             - "hubitat.poller.component.gt:000"
             - "i2c.dac.output.component.gt:000"
-            - "i2c.dac.writer.component.gt:000"
             - "i2c.multichannel.dt.relay.component.gt:004"
             - "i2c.relay.component.gt:000"
             - "i2c.thermistor.reader.component.gt:000"
@@ -842,7 +841,6 @@ types:
             - "pico.flow.module.component.gt:001"
             - "pico.tank.module.component.gt:012"
             - "scada.board.component.gt:000"
-            - "sim.dac.writer.component.gt:000"
             - "sim.pico.tank.module.component.gt:001"
             - "sim.relay.component.gt:000"
             - "sim.sensor.component.gt:000"
@@ -944,14 +942,12 @@ types:
             - "hp.control.box.device.type.gt:000"
             - "hp.device.type.gt:000"
             - "i2c.dac.output.component.gt:000"
-            - "i2c.dac.writer.component.gt:000"
             - "i2c.multichannel.dt.relay.component.gt:004"
             - "i2c.relay.component.gt:000"
             - "i2c.thermistor.reader.component.gt:000"
             - "pico.btu.meter.component.gt:000"
             - "pico.tank.module.component.gt:012"
             - "scada.board.component.gt:000"
-            - "sim.dac.writer.component.gt:000"
             - "sim.pico.tank.module.component.gt:001"
             - "sim.relay.component.gt:000"
             - "sim.sensor.component.gt:000"
@@ -1326,27 +1322,6 @@ types:
             - "pascal.case"
             - "positive.int"
 
-  i2c.dac.channel.config:
-    latest_version: "000"
-    owner: gridworks-energy
-    replaced_by:
-      - "dac.output.config"
-    versioning_strategy: "literal"
-    description: "EEPROM power-on defaults for one output channel of a board DAC."
-
-    versions:
-      "000":
-        schema_url: "https://schemas.electricity.works/types/i2c.dac.channel.config/000"
-        created: "2026-08-10T20:40:00Z"
-        status: "staging"
-        summary: "Initial version (DacChannel, PowerOnRawValue, PowerOnVref, PowerOnGain; EepromRanges axiom)."
-        direct_dependencies:
-          structural:
-            - "i2c.dac.channel:000"
-            - "i2c.dac.vref:000"
-            - "non.negative.int"
-            - "positive.int"
-
   i2c.dac.output.component.gt:
     latest_version: "000"
     owner: gridworks-energy
@@ -1362,26 +1337,6 @@ types:
         direct_dependencies:
           structural:
             - "dac.output.config:000"
-            - "pascal.case"
-            - "uuid4.str"
-
-  i2c.dac.writer.component.gt:
-    latest_version: "000"
-    owner: gridworks-energy
-    replaced_by:
-      - "i2c.dac.output.component.gt"
-    versioning_strategy: "literal"
-    description: "Configuration for an I2C DAC writer component that drives one board-resident DAC (named by DacName against the board record) and carries its per-channel EEPROM power-on defaults."
-
-    versions:
-      "000":
-        schema_url: "https://schemas.electricity.works/types/i2c.dac.writer.component.gt/000"
-        created: "2026-08-10T20:40:00Z"
-        status: "staging"
-        summary: "Initial version (ComponentId, BoardComponentId, DacName, ConfigList of i2c.dac.channel.config, DisplayName, HwUid; DacChannelUniqueness axiom). Context-dependent identity mirrors the thermistor reader: DacName and BoardComponentId resolve against the source layout."
-        direct_dependencies:
-          structural:
-            - "i2c.dac.channel.config:000"
             - "pascal.case"
             - "uuid4.str"
 
@@ -1680,26 +1635,6 @@ types:
         direct_dependencies:
           structural:
             - "non.negative.int"
-            - "pascal.case"
-            - "uuid4.str"
-
-  sim.dac.writer.component.gt:
-    latest_version: "000"
-    owner: gridworks-energy
-    replaced_by:
-      - "i2c.dac.output.component.gt"
-    versioning_strategy: "literal"
-    description: "A simulated DAC-writer component — the sim.* counterpart of i2c.dac.writer.component.gt, for a layer-1 standalone (non-board-resident) simulated DAC in a simulated layout."
-
-    versions:
-      "000":
-        schema_url: "https://schemas.electricity.works/types/sim.dac.writer.component.gt/000"
-        created: "2026-08-16T16:30:00Z"
-        status: "staging"
-        summary: "Initial Sema version (sim-marker DAC-writer component for simulated layouts; structurally i2c.dac.writer.component.gt minus board residency)."
-        direct_dependencies:
-          structural:
-            - "i2c.dac.channel.config:000"
             - "pascal.case"
             - "uuid4.str"
 

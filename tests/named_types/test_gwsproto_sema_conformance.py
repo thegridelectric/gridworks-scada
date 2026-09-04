@@ -135,16 +135,7 @@ KNOWN_ENUM_VERSION_DRIFT: set[str] = set()
 KNOWN_FORMAT_ISSUES: set[str] = set()
 
 # --- reverse: layout-closure words with no gwsproto twin (burn down) ---
-# The writer trio was orphaned in sema (replaced_by the DAC output words) and
-# its gwsproto mirrors deleted with the writer actor, but the layout words'
-# Components unions still admit the three words, so the closure still reaches
-# them. Clears when gw.nolan.layout / gw.house0.layout drop them from their
-# unions (staging, edit in place) and the snapshot rebuilds.
-SNAPSHOT_UNMIRRORED_TYPES: set[str] = {
-    "i2c.dac.channel.config/000",
-    "i2c.dac.writer.component.gt/000",
-    "sim.dac.writer.component.gt/000",
-}
+SNAPSHOT_UNMIRRORED_TYPES: set[str] = set()
 SNAPSHOT_UNMIRRORED_ENUMS: set[str] = set()
 # derived.channel.gt/002 and gw1.unit.quantity.projection/000 pin gw1.quantity
 # and gw1.unit at 001, so the closure's latest is 001 while gwsproto (and sema)

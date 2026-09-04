@@ -134,6 +134,27 @@ def test_gw_nolan_layout_axiom_5_circuits(assembled: dict) -> None:
     )
 
 
+def test_gw_nolan_layout_axiom_5_output_actor_class(assembled: dict) -> None:
+    """The 0-10V output is an actuator leaf: a secondary-010v node that is
+    not a ZeroTenOutputer is rejected."""
+    def reclass(d: dict) -> None:
+        for n in d["ShNodes"]:
+            if n["Name"] == "secondary-010v":
+                n["ActorClass"] = "Relay"
+    reject(assembled, reclass, "Axiom 5")
+
+
+def test_gw_nolan_layout_axiom_5_output_component(assembled: dict) -> None:
+    """secondary-010v must hold an i2c.dac.output.component.gt: pointing it
+    at the web server's component is rejected."""
+    def rebind(d: dict) -> None:
+        web = next(n for n in d["ShNodes"] if n["Name"] == "web-server")
+        for n in d["ShNodes"]:
+            if n["Name"] == "secondary-010v":
+                n["ComponentId"] = web["ComponentId"]
+    reject(assembled, rebind, "Axiom 5")
+
+
 def test_gw_nolan_layout_axiom_6_component(assembled: dict) -> None:
     """hp-ctrl-box is equipment: it carries a component."""
     def unbind(d: dict) -> None:

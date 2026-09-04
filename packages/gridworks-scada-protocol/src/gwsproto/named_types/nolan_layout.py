@@ -275,6 +275,9 @@ class NolanLayout(GwsprotoSemaType):
         b. Hydronic.ZoneCallCircuits SHALL be non-empty, and each circuit's
         FailsafeRelayNode and OpsRelayNode SHALL name a ShNode in ShNodes
         with ActorClass "Relay".
+        c. ShNodes SHALL include a node named "secondary-010v" with
+        ActorClass "ZeroTenOutputer" and a ComponentId equal to the
+        ComponentId of an i2c.dac.output.component.gt in Components.
         """
         actor_class_by_name = {n.Name: n.ActorClass for n in self.ShNodes}
 
@@ -311,6 +314,27 @@ class NolanLayout(GwsprotoSemaType):
         for circuit in circuits:
             relay_or_raise(circuit.FailsafeRelayNode, "circuit failsafe relay")
             relay_or_raise(circuit.OpsRelayNode, "circuit ops relay")
+        output_node = next((n for n in self.ShNodes if n.Name == "secondary-010v"), None)
+        if output_node is None:
+            raise ValueError(
+                "Axiom 5 (RequiredActuators) failed: no ShNode named secondary-010v."
+            )
+        if output_node.ActorClass != ActorClass.ZeroTenOutputer:
+            raise ValueError(
+                "Axiom 5 (RequiredActuators) failed: secondary-010v has ActorClass "
+                f"{output_node.ActorClass}, not ZeroTenOutputer."
+            )
+        dac_output_ids = {
+            c.ComponentId
+            for c in self.Components
+            if isinstance(c, I2cDacOutputComponentGt)
+        }
+        if output_node.ComponentId not in dac_output_ids:
+            raise ValueError(
+                "Axiom 5 (RequiredActuators) failed: secondary-010v ComponentId "
+                f"{output_node.ComponentId} is not an i2c.dac.output.component.gt "
+                "in Components."
+            )
         return self
 
     @model_validator(mode="after")
