@@ -2,7 +2,6 @@
 
 from typing import Literal, Optional
 
-from click import Option
 from pydantic import BaseModel, PositiveInt, model_validator
 from typing_extensions import Self
 
