@@ -178,6 +178,10 @@ class ZeroTenOutputer(ShNodeActor):
             return
         if self.dac is not None:
             self.target_code = code_from_volts_times_ten(dispatch.Value, self.config)
+            self.log(
+                f"Dispatch from {dispatch.FromHandle}: volts x10 {dispatch.Value} "
+                f"-> code {self.target_code}"
+            )
             self.wake.set()
             return
         assert self.dfr_multiplexer is not None
@@ -328,17 +332,20 @@ class ZeroTenOutputer(ShNodeActor):
         vref, gain = self.data_bits()
         hi, lo = mcp4728.eeprom_data(result.Bytes, self.channel)
         expected = (self.config.PowerOnRawValue, vref, gain)
-        return mcp4728.decode_data(hi, lo) != expected, ""
+        read = mcp4728.decode_data(hi, lo)
+        if read == expected:
+            return False, ""
+        return True, f"EEPROM (code, vref, gain) read {read}, layout {expected}"
 
     async def verify_eeprom(self) -> bool:
         """Read -> compare to the declared PowerOn values -> reprogram a
         mismatch (Single Write — the one EEPROM-touching path) -> re-verify."""
-        mismatch, detail = await self.read_eeprom_mismatch()
+        mismatch, mismatch_detail = await self.read_eeprom_mismatch()
         if mismatch is None:
             self.send_warning_once(
                 "i2c-dac-eeprom-read-failed",
                 "i2c-dac-eeprom-read-failed",
-                f"{self.name}: {detail}",
+                f"{self.name}: {mismatch_detail}",
             )
             return False
         self.clear_warning("i2c-dac-eeprom-read-failed")
@@ -354,8 +361,8 @@ class ZeroTenOutputer(ShNodeActor):
             self.send_warning(
                 summary="i2c-dac-eeprom-reprogrammed",
                 details=(
-                    f"{self.name}: channel {self.config.DacChannel.value} EEPROM did "
-                    "not match the layout PowerOn values; reprogrammed and re-verified"
+                    f"{self.name}: channel {self.config.DacChannel.value} "
+                    f"{mismatch_detail}; reprogrammed and re-verified"
                 ),
             )
             return True

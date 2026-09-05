@@ -70,7 +70,7 @@ gridworks-cert==0.4.6
     # via
     #   -r dev.in
     #   gridworks-proactor
-gridworks-proactor[tests] @ git+https://github.com/thegridelectric/gridworks-proactor.git@v4.1.13+jm1
+gridworks-proactor[tests] @ git+https://github.com/thegridelectric/gridworks-proactor.git@v4.1.13+jm2
     # via
     #   -r base.in
     #   -r dev.in

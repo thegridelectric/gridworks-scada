@@ -21,7 +21,8 @@ import pytest
 from actors.i2c_bus import I2cBus
 from actors.zero_ten_outputer import ZeroTenOutputer
 from gwproto.message import Message
-from gwsproto.named_types import AnalogDispatch, SingleReading
+from gwsproto.enums import I2cOperation
+from gwsproto.named_types import AnalogDispatch, I2cResult, SingleReading
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -122,10 +123,17 @@ def test_assert_target_is_multi_write_only_and_reports(rig) -> None:
 def test_boot_verify_reprograms_then_stays_clean(rig) -> None:
     out, bus, _ = rig
     dac = bus.i2c.dacs[DAC2_MUX_CHANNEL]
+    details: list[str] = []
+    out.send_warning = lambda summary, details_="", **kw: (
+        out.warnings.append(summary),
+        details.append(kw.get("details", details_)),
+    )
     assert asyncio.run(out.verify_eeprom())
     assert dac.eeprom[CHANNEL_C] == [C_RAW, 1, 0]
     assert dac.register[CHANNEL_C] == [C_RAW, 1, 0]
     assert out.warnings == ["i2c-dac-eeprom-reprogrammed"]
+    # the glitch names what the chip held and what the layout declares
+    assert f"read (0, 0, 0), layout ({C_RAW}, 1, 0)" in details[0]
     # a chip already carrying the declared defaults verifies silently
     out.warnings.clear()
     assert asyncio.run(out.verify_eeprom())
@@ -197,3 +205,33 @@ def test_house0_output_forwards_to_dfr_multiplexer() -> None:
     assert forwarded.FromHandle == out.node.handle
     assert forwarded.ToHandle == out.dfr_multiplexer.handle
     assert forwarded.Value == DISPATCH_VOLTS_TIMES_TEN
+
+
+# The 24-byte read i2ctransfer took on honeysuckle's Dac2 after the 2026-09-05
+# bench boot: channel C input register and EEPROM both 0x8b 0xcc (code 3020,
+# internal VREF, gain 1), the layout's PowerOn values for secondary-010v.
+BENCH_READ_2026_09_05 = [
+    0xC0, 0x80, 0x00, 0xC8, 0x80, 0x00,
+    0xD0, 0x80, 0x00, 0xD8, 0x80, 0x00,
+    0xE0, 0x8B, 0xCC, 0xE8, 0x8B, 0xCC,
+    0xF0, 0x80, 0x00, 0xF8, 0x80, 0x00,
+]
+
+
+def test_verify_accepts_the_bench_chip_read(rig) -> None:
+    """The comparison, fed the exact bytes a real MCP4728 returned with the
+    declared power-on values in EEPROM, reports no mismatch."""
+    out, _, _ = rig
+
+    async def chip_read(payload):
+        return I2cResult(
+            Bus=BUS_NAME,
+            Operation=I2cOperation.ReadBytes,
+            Bytes=BENCH_READ_2026_09_05,
+            Success=True,
+            UnixTimeMs=int(time.time() * 1000),
+            TriggerId=payload.TriggerId,
+        )
+
+    out.muxed_op = chip_read
+    assert asyncio.run(out.read_eeprom_mismatch()) == (False, "")
