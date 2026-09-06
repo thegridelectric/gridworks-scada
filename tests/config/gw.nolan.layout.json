@@ -1805,13 +1805,21 @@
       "Id": "396bbdb3-f376-4f07-90d1-bfa754dfa6e7",
       "Name": "buffer-depth1",
       "CreatedByNodeName": "derived-generator",
-      "Strategy": "identity",
+      "Strategy": "affine",
       "InputChannelNames": [
         "buffer-depth1-device"
       ],
       "OutputUnit": "FahrenheitX100",
       "OutputQuantity": "Temperature",
       "EmissionMethod": "OnTrigger",
+      "Parameters": {
+        "Calibration": {
+          "TypeName": "linear.one.dimensional.calibration",
+          "Version": "000",
+          "M": 1.0,
+          "B": 0
+        }
+      },
       "DisplayName": "Buffer Depth1 Effective Temperature",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta"
     },
@@ -1837,13 +1845,21 @@
       "Id": "01eb3f0c-e18b-46f0-85f0-e9839b2becee",
       "Name": "buffer-depth3",
       "CreatedByNodeName": "derived-generator",
-      "Strategy": "identity",
+      "Strategy": "affine",
       "InputChannelNames": [
         "buffer-depth3-device"
       ],
       "OutputUnit": "FahrenheitX100",
       "OutputQuantity": "Temperature",
       "EmissionMethod": "OnTrigger",
+      "Parameters": {
+        "Calibration": {
+          "TypeName": "linear.one.dimensional.calibration",
+          "Version": "000",
+          "M": 1.0,
+          "B": 0
+        }
+      },
       "DisplayName": "Buffer Depth3 Effective Temperature",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta"
     },
@@ -1853,13 +1869,21 @@
       "Id": "a3c75832-3045-4c19-bd85-a6f81374a3ba",
       "Name": "tank1-depth1",
       "CreatedByNodeName": "derived-generator",
-      "Strategy": "identity",
+      "Strategy": "affine",
       "InputChannelNames": [
         "tank1-depth1-device"
       ],
       "OutputUnit": "FahrenheitX100",
       "OutputQuantity": "Temperature",
       "EmissionMethod": "OnTrigger",
+      "Parameters": {
+        "Calibration": {
+          "TypeName": "linear.one.dimensional.calibration",
+          "Version": "000",
+          "M": 1.0,
+          "B": 0
+        }
+      },
       "DisplayName": "Tank1 Depth1 Effective Temperature",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta"
     },
@@ -1885,13 +1909,21 @@
       "Id": "483f826d-d15b-4f5b-a9fb-fcbce79d52d3",
       "Name": "tank1-depth3",
       "CreatedByNodeName": "derived-generator",
-      "Strategy": "identity",
+      "Strategy": "affine",
       "InputChannelNames": [
         "tank1-depth3-device"
       ],
       "OutputUnit": "FahrenheitX100",
       "OutputQuantity": "Temperature",
       "EmissionMethod": "OnTrigger",
+      "Parameters": {
+        "Calibration": {
+          "TypeName": "linear.one.dimensional.calibration",
+          "Version": "000",
+          "M": 1.0,
+          "B": 0
+        }
+      },
       "DisplayName": "Tank1 Depth3 Effective Temperature",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta"
     }

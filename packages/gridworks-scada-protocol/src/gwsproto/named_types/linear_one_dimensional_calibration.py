@@ -7,7 +7,7 @@ from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
 class LinearOneDimensionalCalibration(GwsprotoSemaType):
-    """Sema: https://schemas.electricity.works/types/linear.one.dimensional.calibration/001
+    """Sema: https://schemas.electricity.works/types/linear.one.dimensional.calibration/000
 
     Linear calibration applied to a measurement expressed in the consuming
     derived channel's OutputUnit scaling domain.

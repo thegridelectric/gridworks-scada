@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-09-04T14:50:00Z"
+  last_updated: "2026-09-06T12:25:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -1493,6 +1493,21 @@ types:
             - "positive.int"
             - "temp.calc.method:000"
             - "uuid4.str"
+
+  linear.one.dimensional.calibration:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Affine calibration mapping a scalar measurement to a corrected scalar value using a linear transformation (M * x + B), with semantics defined relative to the measurement domain of the referencing context."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/linear.one.dimensional.calibration/000"
+        created: "2026-02-06T17:06:00Z"
+        status: "staging"
+        summary: "Initial Sema version. B: number -> integer. Semantics: clarify OutputUnit scaling domain."
+        direct_dependencies:
+          structural: []
 
   maker.api.attribute.gt:
     latest_version: "000"
