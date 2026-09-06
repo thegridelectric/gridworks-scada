@@ -84,9 +84,7 @@ class LocalControlTouBase(House0Hydronic):
             self.top_state = LocalControlTopState.Monitor
         else: 
             self.top_state = LocalControlTopState.Normal
-        self.is_simulated = self.services.is_simulated
         self.log(f"Params: {self.params}")
-        self.log(f"self.is_simulated: {self.is_simulated}")
         if H0N.local_control_normal not in self.layout.nodes:
             raise Exception(f"LocalControl requires {H0N.local_control_normal} node!!")
         if H0N.local_control_scada_blind not in self.layout.nodes:

@@ -55,7 +55,8 @@ class GpioSensor(ShNodeActor):
         self.latest_value: int = 0
         self._stop_requested = False
 
-        if self.services.is_simulated:
+        # Real pin only on a real board; a SimGw108 board has no GPIO.
+        if self.component.board_component.simulated:
             self.GPIO = None
         else:
             import RPi.GPIO as GPIO

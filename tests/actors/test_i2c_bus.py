@@ -25,6 +25,8 @@ from gwsproto.named_types import (
     I2cWriteReg,
 )
 from gwproto.message import Message
+from gwsproto.data_classes.components import ScadaBoardComponent
+from gwsproto.named_types import ScadaDeviceTypeGt
 from scada_app import ScadaApp
 
 BUS_NAME = "i2c-bus"
@@ -79,7 +81,6 @@ def bus_app(tmp_path: Path) -> ScadaApp:
 @pytest.fixture
 def bus(bus_app: ScadaApp) -> I2cBus:
     actor = I2cBus(BUS_NAME, bus_app)
-    actor.is_simulated = False
     actor.i2c = FakeSMBus()
     actor.sent: list[tuple[str, I2cResult]] = []
     actor._send_to = lambda dst, payload, src=None: actor.sent.append(
@@ -94,6 +95,24 @@ def message(payload) -> Message:
 
 def trigger() -> str:
     return str(uuid.uuid4())
+
+
+def test_backend_follows_board_record(bus_app: ScadaApp) -> None:
+    """The fixture's board record is SimGw108, so the bus builds SimI2c with
+    the record's thermistor ADCs; the same record renamed Gw108RevB is a real
+    board. No runtime flag is consulted."""
+    layout = bus_app.hardware_layout
+    board = layout.scada_board()
+    assert board.simulated
+    actor = I2cBus(BUS_NAME, bus_app)
+    assert isinstance(actor.i2c, SimI2c)
+    assert set(actor.i2c.adcs) == {
+        a.I2cAddress for a in board.device_type.ThermistorAdcs
+    }
+    real_record = ScadaDeviceTypeGt.model_validate(
+        {**board.device_type.model_dump(by_alias=True), "DeviceType": "Gw108RevB"}
+    )
+    assert not ScadaBoardComponent(board.gt, real_record).simulated
 
 
 def test_registered_actor_instantiates(bus_app: ScadaApp) -> None:

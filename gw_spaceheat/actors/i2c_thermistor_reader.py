@@ -66,7 +66,6 @@ class I2cThermistorReader(ShNodeActor):
         self.latest_temp_c_x100: dict[SpaceheatName, int] = {} # by device channel name
         self.last_reported_temp_c_x100: dict[SpaceheatName, int] = {}
 
-        self.is_simulated = self.services.is_simulated
         self.bus_op_timeout_s = 1.0
         self._pending_results: dict[str, "asyncio.Future[I2cResult]"] = {}
 
@@ -75,7 +74,7 @@ class I2cThermistorReader(ShNodeActor):
             if n.ActorClass == ActorClass.I2cBus
         ]
         self.bus_node: ShNode | None = bus_nodes[0] if len(bus_nodes) == 1 else None
-        if self.bus_node is None and not self.is_simulated:
+        if self.bus_node is None:
             self._send_warning_once(
                 "i2c-thermistor-reader-init-failed",
                 "i2c-thermistor-reader-init-failed",
@@ -331,19 +330,16 @@ class I2cThermistorReader(ShNodeActor):
         short_warning_key = f"i2c-thermistor-short-{device_name}"
         broken_warning_key = f"i2c-thermistor-broken-{device_name}"
 
-        if self.is_simulated:
-            volts = 0.2 # dummy
-        else:
-            volts, error = await self._read_volts(electrical_cfg)
-            if volts is None:
-                self._clear_latest_reading(device_name, electrical_name)
-                self._send_warning_once(
-                    read_warning_key,
-                    "i2c-thermistor-read-failed",
-                    f"{device_name}: {error}",
-                )
-                return False, None, None
-            self._clear_warning(read_warning_key)
+        volts, error = await self._read_volts(electrical_cfg)
+        if volts is None:
+            self._clear_latest_reading(device_name, electrical_name)
+            self._send_warning_once(
+                read_warning_key,
+                "i2c-thermistor-read-failed",
+                f"{device_name}: {error}",
+            )
+            return False, None, None
+        self._clear_warning(read_warning_key)
 
         r_fixed = self.adc_capability.SeriesResistanceKOhms
         v_ref = self.adc_capability.AdcReferenceVolts

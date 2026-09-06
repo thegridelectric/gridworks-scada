@@ -892,40 +892,34 @@ class House0Hydronic(HydronicNode):
            interpolated
         """
 
-        if not self.services.is_simulated:
-            temps: dict[str, float] = {}
+        temps: dict[str, float] = {}
 
-            for ch_name in self.temperature_channel_names:
-                raw = self.data.latest_channel_values.get(ch_name)
-                if raw is None:
-                    continue
+        for ch_name in self.temperature_channel_names:
+            raw = self.data.latest_channel_values.get(ch_name)
+            if raw is None:
+                continue
 
-                try:
-                    unit = self.layout.channel_registry.unit(ch_name)
-                    if unit is None:
-                        raise Exception(
-                            f"temperature channels should have units! {ch_name}"
-                        )
-                    temp_f = convert_temp_to_f(
-                        raw=raw,
-                        encoding=unit
+            try:
+                unit = self.layout.channel_registry.unit(ch_name)
+                if unit is None:
+                    raise Exception(
+                        f"temperature channels should have units! {ch_name}"
                     )
-                except Exception as e:
-                    note = f"Temperature conversion failed for {ch_name}: {e}"
-                    self.log(note)
-                    self.send_warning(summary=note, details="")  
-                    continue
-                if temp_f is None:
-                    continue
+                temp_f = convert_temp_to_f(
+                    raw=raw,
+                    encoding=unit
+                )
+            except Exception as e:
+                note = f"Temperature conversion failed for {ch_name}: {e}"
+                self.log(note)
+                self.send_warning(summary=note, details="")  
+                continue
+            if temp_f is None:
+                continue
 
-                temps[ch_name] = round(temp_f, 1)
+            temps[ch_name] = round(temp_f, 1)
 
-            self.data.latest_temperatures_f = temps
-        else:
-            self.log("IN SIMULATION - set all temperatures to 70 degF")
-            self.data.latest_temperatures_f = {
-                ch: self.SIMULATED_TANK_TEMP_F for ch in self.temperature_channel_names
-            }
+        self.data.latest_temperatures_f = temps
 
         # Update buffer_available
         self.data.buffer_temps_available = (

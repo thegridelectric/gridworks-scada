@@ -179,12 +179,16 @@ class Relay(ShNodeActor):
         if isinstance(self._component, GpioRelayComponent):
             self._gpio_pin = self._resolve_gpio_pin()
 
-        if not self.services.is_simulated:
+        # A GPIO relay on a real board owns its pin; on a simulated board
+        # (SimGw108) and for every non-GPIO relay there is no GPIO at all.
+        if (
+            isinstance(self._component, GpioRelayComponent)
+            and not self._component.board_component.simulated
+        ):
             import RPi.GPIO as GPIO
             self.GPIO = GPIO
             self.GPIO.setmode(GPIO.BCM)
-            if self._gpio_pin is not None:
-                self.GPIO.setup(self._gpio_pin, GPIO.OUT)
+            self.GPIO.setup(self._gpio_pin, GPIO.OUT)
         else:
             self.GPIO = None
 
@@ -433,8 +437,8 @@ class Relay(ShNodeActor):
         message: FsmEvent,
     ) -> None:
         now_ms = int(time.time() * 1000)
-        if self.services.is_simulated:
-            self.log("Simulated relay actuation; skipping GPIO")
+        if self.GPIO is None:
+            self.log("Simulated board; skipping GPIO actuation")
             return
 
         pin = self._gpio_pin

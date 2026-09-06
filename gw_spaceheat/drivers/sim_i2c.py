@@ -16,7 +16,12 @@ permanent) and garbled reads (bit-flipped data for N reads).
 import time
 from errno import EIO
 
-from drivers import mcp4728, tca9555
+from drivers import ads1115, mcp4728, tca9555
+
+# What every simulated thermistor channel reads. The figure the reader's
+# former in-actor sim branch returned, kept so a sim boot classifies the
+# same way it always did.
+SIM_THERMISTOR_VOLTS = 0.2
 
 
 class SimTca9555:
@@ -112,10 +117,36 @@ class SimMcp4728:
         return out[:length]
 
 
+class SimAds1115:
+    """One ADS1115's single-shot dance over the big-endian block ops: a
+    config write starts a conversion, the config reads back as written
+    (conversion complete, OS set), and the conversion register holds
+    SIM_THERMISTOR_VOLTS whatever the mux."""
+
+    POR_DEFAULT_CONFIG = 0x8583
+
+    def __init__(self) -> None:
+        self.config = self.POR_DEFAULT_CONFIG
+
+    def write(self, register: int, data: list[int]) -> None:
+        if register == ads1115.CONFIG_REG and len(data) >= 2:
+            self.config = (data[0] << 8) | data[1]
+
+    def read(self, register: int, length: int) -> list[int]:
+        if register == ads1115.CONFIG_REG:
+            word = self.config
+        elif register == ads1115.CONVERSION_REG:
+            word = int(SIM_THERMISTOR_VOLTS * 32768 / ads1115.FULL_SCALE_VOLTS)
+        else:
+            word = 0
+        return [(word >> 8) & 0xFF, word & 0xFF][:length]
+
+
 class SimI2c:
     """smbus2-surface fake bus: SimTca9555 at expander addresses, optional
-    SimMcp4728s behind a TCA9548A-style mux, a plain register store
-    elsewhere. Not thread-safe; the I2cBus actor serializes."""
+    SimMcp4728s behind a TCA9548A-style mux, SimAds1115 at thermistor ADC
+    addresses, a plain register store elsewhere. Not thread-safe; the
+    I2cBus actor serializes."""
 
     def __init__(
         self,
@@ -123,9 +154,13 @@ class SimI2c:
         mux_address: int | None = None,
         dac_address: int | None = None,
         dac_mux_channels: tuple[int, ...] = (),
+        adc_addresses: tuple[int, ...] = (),
     ) -> None:
         self.expanders: dict[int, SimTca9555] = {
             addr: SimTca9555() for addr in expander_addresses
+        }
+        self.adcs: dict[int, SimAds1115] = {
+            addr: SimAds1115() for addr in adc_addresses
         }
         self.mux_address = mux_address
         self.dac_address = dac_address
@@ -231,6 +266,8 @@ class SimI2c:
                 self.expanders[address].read(register + i)
                 for i in range(length)
             ]
+        elif address in self.adcs:
+            values = self.adcs[address].read(register, length)
         else:
             values = [
                 self.registers.get((address, register + i), 0)
@@ -247,6 +284,8 @@ class SimI2c:
                 self.expanders[address].write(register + i, value)
         elif address == self.dac_address:
             self._routed_dac().write(register, data)
+        elif address in self.adcs:
+            self.adcs[address].write(register, data)
         else:
             for i, value in enumerate(data):
                 self.registers[(address, register + i)] = value & 0xFF

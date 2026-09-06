@@ -28,8 +28,6 @@ class HydronicNode(CommandNode):
         """Populate zone_setpoints from latest_channel_values.
         Values are in millidegrees (F * 1000) per TelemetryName.AirTempFTimes1000."""
         self.zone_setpoints = {}
-        if self.services.is_simulated:
-            return
         for zone_setpoint in [x for x in self.data.latest_channel_values if 'zone' in x and 'set' in x]:
             zone_name = zone_setpoint.replace('-set', '')
             zone_name_no_prefix = zone_name[6:] if zone_name[:4] == 'zone' else zone_name
@@ -55,8 +53,6 @@ class HydronicNode(CommandNode):
         minimum with (b) avoids triggering when the user lowers the thermostat during on-peak."""
         if not self.is_onpeak():  # TODO: bleed into the first half hour of offpeak
             self.get_zone_setpoints()
-        if self.services.is_simulated:
-            return False
         for zone in self.zone_setpoints:
             zone_name_no_prefix = zone[6:] if zone[:4] == 'zone' else zone
             if zone_name_no_prefix not in self.layout.critical_zone_list:

@@ -33,11 +33,12 @@ class ScadaAppInterface(AppInterface, ABC):
 
     @property
     def is_simulated(self) -> bool:
-        """Derived actuation gate — simulated until proven real. Real (False)
-        requires BOTH a TaDeed present AND a layout with no simulated device;
-        anything else is simulated. (simulated-actors design, "remove
-        is_simulated — derive it".) The TaDeed is currently a fake placeholder
-        file at settings.paths.tadeed.
+        """Is this scada NOT a real terminal asset? Simulated until proven
+        real: real (False) requires BOTH a TaDeed present AND a layout with no
+        simulated device. Gates system-level behavior only (the sim-time
+        bridge); which silicon an actor drives is the layout's call, per
+        device, via the board record (ScadaBoardComponent.simulated). The
+        TaDeed is currently a fake placeholder file at settings.paths.tadeed.
         """
         if not Path(self.settings.paths.tadeed).exists():
             return True

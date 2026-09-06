@@ -13,6 +13,7 @@ import pytest
 from actors.i2c_bus import I2cBus
 from actors.i2c_thermistor_reader import I2cThermistorReader
 from drivers import ads1115
+from drivers.sim_i2c import SIM_THERMISTOR_VOLTS, SimI2c
 from gwsproto.named_types import SyncedReadings
 from gwproto.message import Message
 from scada_app import ScadaApp
@@ -63,9 +64,10 @@ class Rig:
         self.bus = I2cBus(BUS_NAME, app)
         self.reader = I2cThermistorReader(READER_NAME, app)
         self.fake_adc = FakeAds1115(self.reader.adc_capability.I2cAddress)
-        self.bus.is_simulated = False
+        # What the bus built from the layout's board record, before the
+        # rig swaps in its scripted ADC.
+        self.board_i2c = self.bus.i2c
         self.bus.i2c = self.fake_adc
-        self.reader.is_simulated = False
         self.published: list[tuple[str, object]] = []
         self.warnings: list[str] = []
         self.drop_bus_messages = False
@@ -154,6 +156,22 @@ def test_reads_all_channels_through_bus(rig: Rig) -> None:
         )
         assert changed
         assert abs(microvolts - 1_500_000) < 500  # one LSB at ±4.096 V is 125 µV
+        assert temp_c_x100 is not None and temp_c_x100 > 0
+    assert not rig.warnings
+
+
+def test_sim_board_reads_through_sim_bus(rig: Rig) -> None:
+    """On a SimGw108 board the reader has no sim branch of its own: it runs
+    the real ADS1115 dance against the bus's SimAds1115 and classifies the
+    constant it returns as a live thermistor."""
+    rig.bus.i2c = rig.board_i2c
+    assert isinstance(rig.bus.i2c, SimI2c)
+    for device_cfg in rig.reader.device_configs.values():
+        changed, microvolts, temp_c_x100 = asyncio.run(
+            rig.reader.read_inputs(device_cfg)
+        )
+        assert changed
+        assert abs(microvolts - SIM_THERMISTOR_VOLTS * 1_000_000) < 500
         assert temp_c_x100 is not None and temp_c_x100 > 0
     assert not rig.warnings
 

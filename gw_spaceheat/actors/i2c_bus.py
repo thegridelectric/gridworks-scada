@@ -65,7 +65,6 @@ class I2cBus(ShNodeActor):
         super().__init__(name, services)
 
         self.bus_name = self.node.name
-        self.is_simulated = self.services.is_simulated
 
         self._expander_addresses: tuple[int, ...] = tuple(
             expander.I2cAddress
@@ -86,24 +85,20 @@ class I2cBus(ShNodeActor):
         self.i2c: Optional[Any] = None
         self._stop_requested = False
 
-        # Backend selection happens exactly once, here. Interim selector:
-        # sim-ness is the derived ScadaAppInterface.is_simulated (no flag):
-        # simulated until proven real (TaDeed + a fully-real layout).
-        if self.is_simulated:
-            board_records = [
-                record
-                for record in self.layout.device_types.values()
-                if isinstance(record, ScadaDeviceTypeGt)
-            ]
-            muxes = [m for record in board_records for m in record.Muxes]
-            dacs = [d for record in board_records for d in record.Dacs]
+        # Backend selection happens exactly once, here, from the layout:
+        # the board record's DeviceType says whether the silicon is real
+        # (Gw108RevB) or simulated (SimGw108). Never from a runtime flag.
+        board = self.layout.scada_board()
+        if board.simulated:
+            record = board.device_type
             self.i2c = SimI2c(
                 expander_addresses=self._expander_addresses,
-                mux_address=muxes[0].I2cAddress if muxes else None,
-                dac_address=dacs[0].I2cAddress if dacs else None,
+                mux_address=record.Muxes[0].I2cAddress if record.Muxes else None,
+                dac_address=record.Dacs[0].I2cAddress if record.Dacs else None,
                 dac_mux_channels=tuple(
-                    d.MuxChannel for d in dacs if d.MuxChannel is not None
+                    d.MuxChannel for d in record.Dacs if d.MuxChannel is not None
                 ),
+                adc_addresses=tuple(a.I2cAddress for a in record.ThermistorAdcs),
             )
         else:
             try:

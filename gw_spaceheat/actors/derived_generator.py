@@ -72,7 +72,6 @@ class DerivedGenerator(ShNodeActor):
         self.first_required_energy_update_done: bool = False
 
         # House parameters in the .env file
-        self.is_simulated = self.services.is_simulated
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.latitude = self.settings.latitude
         self.longitude = self.settings.longitude
@@ -85,7 +84,6 @@ class DerivedGenerator(ShNodeActor):
         self.log(f"self.latitude: {self.latitude}")
         self.log(f"self.longitude: {self.longitude}")
         self.log(f"Params: {self.params}")
-        self.log(f"self.is_simulated: {self.is_simulated}")
         self.weather_forecast: Optional[WeatherForecast] = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
 

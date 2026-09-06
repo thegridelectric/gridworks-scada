@@ -1570,6 +1570,20 @@ class HydronicLayout:
         """Layout has sema type gw.nolan.layout"""
         return self.layout_type_name == NOLAN_LAYOUT_TYPE_NAME
 
+    def scada_board(self) -> ScadaBoardComponent:
+        """The layout's one scada board component (the Nolan word's
+        BoardResolution axiom forces exactly one). The bus actor takes its
+        backend from this board's record."""
+        boards = [
+            c for c in self.components.values() if isinstance(c, ScadaBoardComponent)
+        ]
+        if len(boards) != 1:
+            raise DcError(
+                f"expected exactly one scada board component in the layout; "
+                f"found {len(boards)}"
+            )
+        return boards[0]
+
     def has_simulated_component(self) -> bool:
         """True if any component or device type in the layout is simulated: a
         `sim.*` component TypeName, or a DeviceType value belonging to the

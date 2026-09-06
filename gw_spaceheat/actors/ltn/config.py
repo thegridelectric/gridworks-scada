@@ -44,7 +44,6 @@ class LtnSettings(ScadaPathsSettings):
     timezone_str: str = "America/New_York"
     latitude: float = 45.6573 
     longitude: float = -68.7098
-    is_simulated: bool = False
     fuel_substitution: bool = False
     fuel_sub_usd_per_mwh: int = 490 # hack until we account for COP etc
     hp_model: HpModel = HpModel.SamsungFiveTonneHydroKit # TODO: move to layout

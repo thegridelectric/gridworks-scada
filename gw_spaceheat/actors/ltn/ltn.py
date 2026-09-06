@@ -466,7 +466,6 @@ class Ltn(PrimeActor):
         super().__init__(name, services)
         # self._web_manager.disable()
         self.data = LtnData()
-        self.is_simulated = self.settings.is_simulated
         self.latest_channel_values: Dict[str, int] = {}
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.latitude = self.settings.latitude
@@ -754,9 +753,6 @@ class Ltn(PrimeActor):
             self.logger.warning(self.snapshot_str(snapshot))
         for reading in snapshot.LatestReadingList:
             self.latest_channel_values[reading.ChannelName] = reading.Value
-        if self.is_simulated and self.tank_temp_channel_names is not None:
-            for channel in self.tank_temp_channel_names:
-                self.latest_channel_values[channel] = 60000
 
     def process_layout_lite(self, layout: LayoutLite) -> None:
         """ ContractState: Initializing -> Ready if needed
@@ -1258,34 +1254,28 @@ class Ltn(PrimeActor):
             self.temperatures_available = False
             self.log("Can't get latest temperatures, don't have temperature channel names!")
             return
-        if not self.settings.is_simulated:
-            temps = {}
-            for ch_name in self.tank_temp_channel_names:
-                raw = self.latest_channel_values.get(ch_name)
-                if raw is None:
-                    continue
-                try:
-                    unit = self.layout.channel_registry.unit(ch_name)
-                    if unit is None:
-                        raise Exception(
-                            f"temperature channels should have units! {ch_name}"
-                        )
-                    temp_f = convert_temp_to_f(
-                        raw=raw,
-                        encoding=unit
+        temps = {}
+        for ch_name in self.tank_temp_channel_names:
+            raw = self.latest_channel_values.get(ch_name)
+            if raw is None:
+                continue
+            try:
+                unit = self.layout.channel_registry.unit(ch_name)
+                if unit is None:
+                    raise Exception(
+                        f"temperature channels should have units! {ch_name}"
                     )
-                except Exception as e:
-                    note = f"Temperature conversion failed for {ch_name}: {e}"
-                    self.log(note)
-                    continue
-                temps[ch_name] = temp_f
+                temp_f = convert_temp_to_f(
+                    raw=raw,
+                    encoding=unit
+                )
+            except Exception as e:
+                note = f"Temperature conversion failed for {ch_name}: {e}"
+                self.log(note)
+                continue
+            temps[ch_name] = temp_f
 
-            self.latest_temps_f = temps.copy()
-        else:
-            self.log("IN SIMULATION - set all temperatures to 60 degC")
-            self.latest_temps_f = {}
-            for channel_name in self.tank_temp_channel_names:
-                self.latest_temps_f[channel_name] = 140.0
+        self.latest_temps_f = temps.copy()
         if list(self.latest_temps_f.keys()) == self.tank_temp_channel_names:
             self.temperatures_available = True
         else:
