@@ -33,12 +33,16 @@ class ScadaAppInterface(AppInterface, ABC):
 
     @property
     def is_simulated(self) -> bool:
-        """Is this scada NOT a real terminal asset? Simulated until proven
-        real: real (False) requires BOTH a TaDeed present AND a layout with no
-        simulated device. Gates system-level behavior only (the sim-time
-        bridge); which silicon an actor drives is the layout's call, per
-        device, via the board record (ScadaBoardComponent.simulated). The
-        TaDeed is currently a fake placeholder file at settings.paths.tadeed.
+        """Simulated until proven real: real (False) requires BOTH a TaDeed
+        present AND a layout with no simulated device.
+
+        One reader today, the sim-time bridge in Scada. That is this
+        property's future job: deciding whether the scada reads time.time()
+        or the time coordinator's simulated timestep. It is NOT the place to
+        ask about validation (the TaDeed's ValidationState, once the word
+        exists) or about which silicon to drive (the layout's board record,
+        ScadaBoardComponent.simulated). The TaDeed is currently a fake
+        placeholder file at settings.paths.tadeed.
         """
         if not Path(self.settings.paths.tadeed).exists():
             return True
