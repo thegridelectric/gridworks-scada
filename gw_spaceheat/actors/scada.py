@@ -1011,7 +1011,11 @@ class Scada(PrimeActor, ScadaInterface):
             self.set_command_tree(self.admin)
 
             # Let the active nodes know they've lost control of their actuators
-            for direct_report in [self.leaf_ally,self.local_control,self.layout.pico_cycler]:
+            # HACK (2026-09-06): the pico-cycler is NOT sent dormant; it keeps
+            # cycling picos while admin holds the tree, and keeps vdc-relay
+            # (see set_command_tree). Admin talks to neither until the cycler
+            # has a command interface. Remove with HACK_VDC_RELAY_NAME.
+            for direct_report in [self.leaf_ally, self.local_control]:
                 self._send_to(
                     direct_report, GoDormant(ToName=direct_report.Name)
                 )
@@ -1023,7 +1027,7 @@ class Scada(PrimeActor, ScadaInterface):
             self.log("AutoWakesUp: Dormant -> LocalControl")
             self.set_command_tree(self.local_control)
             self._send_to(self.local_control, WakeUp(ToName=H0N.local_control))
-            self._send_to(self.layout.pico_cycler, WakeUp(ToName=H0N.pico_cycler))
+            # HACK (2026-09-06): no WakeUp to the pico-cycler; it never slept.
             
     def auto_wakes_up(self) -> None:
         """
@@ -1210,6 +1214,13 @@ class Scada(PrimeActor, ScadaInterface):
     # where the line of direct report is required for following a command
     ##########################################################
 
+    # HACK (2026-09-06): while admin holds the tree, this relay stays under
+    # `auto.pico-cycler` so the cycler keeps rebooting flatlined picos through
+    # it; admin does not command it. Hard-coded by name on purpose: the
+    # design gives the cycler a boss command and reparents the interior node
+    # (`<boss>.pico-cycler.vdc-relay`), and this constant goes with it.
+    HACK_VDC_RELAY_NAME = "vdc-relay"
+
     def set_command_tree(self, boss: ShNode) -> None:
         """ Command Tree
         If FlowManifoldVariant is House0Sieg:
@@ -1235,7 +1246,7 @@ class Scada(PrimeActor, ScadaInterface):
             sieg_loop.Handle = f"{boss.handle}.{H0N.sieg_loop}"
 
             for node in self.layout.actuators:
-                if node.Name == self.layout.vdc_relay.name and boss != self.admin:
+                if node.Name == self.HACK_VDC_RELAY_NAME:
                     node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
                 elif node.Name == H0N.hp_scada_ops_relay:
                     node.Handle = f"{boss.handle}.{hp_boss.Name}.{node.Name}"
@@ -1246,7 +1257,7 @@ class Scada(PrimeActor, ScadaInterface):
         else:
             # For no sieg loop, everybody but the vdc relay reports directly to boss
             for node in self.layout.actuators:
-                if node.Name == self.layout.vdc_relay.name and boss != self.admin:
+                if node.Name == self.HACK_VDC_RELAY_NAME:
                     node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
                 else:
                     node.Handle = (f"{boss.handle}.{node.Name}")

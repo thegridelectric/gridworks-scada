@@ -10,7 +10,9 @@ from pathlib import Path
 
 import pytest
 
-from gwsproto.named_types import NewCommandTree
+from gwsproto.data_classes.house_0_names import H0N
+from gwsproto.enums import MainAutoEvent
+from gwsproto.named_types import GoDormant, NewCommandTree
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -51,3 +53,29 @@ def test_scada_command_tree_is_prefix_closed(app: ScadaApp, boss: str) -> None:
     assert len(trees) == 1
     # Construction already ran axiom 1; re-validate the wire form explicitly.
     NewCommandTree.model_validate(trees[0].model_dump(by_alias=True, exclude_none=True))
+
+
+def test_admin_tree_leaves_vdc_relay_under_pico_cycler(app: ScadaApp) -> None:
+    """HACK (2026-09-06): admin's tree does not take vdc-relay; it stays under
+    auto.pico-cycler so the cycler keeps rebooting flatlined picos during an
+    admin window. Goes with Scada.HACK_VDC_RELAY_NAME."""
+    scada = app.scada
+    capture(scada)
+    scada.set_command_tree(scada.admin)
+    vdc = scada.layout.vdc_relay
+    assert vdc.name == scada.HACK_VDC_RELAY_NAME
+    assert vdc.handle == f"{H0N.auto}.{H0N.pico_cycler}.{vdc.name}"
+    others = [n for n in scada.layout.actuators if n.Name != vdc.name]
+    assert others
+    assert all(n.handle.startswith(f"{H0N.admin}.") for n in others)
+
+
+def test_auto_goes_dormant_leaves_pico_cycler_awake(app: ScadaApp) -> None:
+    """HACK (2026-09-06): admin waking the scada sends GoDormant to leaf-ally
+    and local-control only; the pico-cycler runs in every top state."""
+    scada = app.scada
+    sent = capture(scada)
+    scada.auto_trigger(MainAutoEvent.AutoGoesDormant)
+    dormant_to = sorted(dst for dst, p in sent if isinstance(p, GoDormant))
+    assert dormant_to == sorted([scada.leaf_ally.name, scada.local_control.name])
+    assert H0N.pico_cycler not in dormant_to
