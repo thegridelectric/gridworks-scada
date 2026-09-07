@@ -378,7 +378,7 @@ class SiegLoop(ShNodeActor):
         self.sieg_valve_active()
 
     def before_keeping_steady(self, event: SiegValveEvent) -> None:
-        self.sieg_valve_dormant()
+        self.sieg_valve_hold()
 
     # --------------------------------------
     # Message processing

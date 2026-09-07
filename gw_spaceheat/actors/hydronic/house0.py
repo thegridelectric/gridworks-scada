@@ -459,7 +459,7 @@ class House0Hydronic(HydronicNode):
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
-    def sieg_valve_dormant(self, from_node: Optional[ShNode] = None) -> None:
+    def sieg_valve_hold(self, from_node: Optional[ShNode] = None) -> None:
         """
         Stop sending a signal to move the valve controlling how much water is 
         flowing out of the Siegenthaler loop.  Energized state.

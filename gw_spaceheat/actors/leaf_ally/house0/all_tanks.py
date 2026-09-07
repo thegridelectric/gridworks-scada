@@ -507,7 +507,7 @@ class AllTanksLeafAlly(House0Hydronic):
         self.log("Taking care of relays with default energized positions")
         self.hp_failsafe_switch_to_scada()
         self.aquastat_ctrl_switch_to_scada()
-        self.sieg_valve_dormant()
+        self.sieg_valve_hold()
         if self.hp_should_be_off():
             self.turn_off_HP()
         try:

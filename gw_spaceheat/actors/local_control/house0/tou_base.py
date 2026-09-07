@@ -366,7 +366,7 @@ class LocalControlTouBase(House0Hydronic):
         self.log("energizing certain critical relays")
         self.hp_failsafe_switch_to_scada(from_node=self.normal_node)
         self.aquastat_ctrl_switch_to_scada(from_node=self.normal_node)
-        self.sieg_valve_dormant(from_node=self.normal_node)
+        self.sieg_valve_hold(from_node=self.normal_node)
 
         if self.is_onpeak():
             self.log("Is on peak: turning off HP")
