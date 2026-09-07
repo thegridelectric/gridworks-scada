@@ -417,13 +417,20 @@ class PicoCycler(HydronicNode):
 
     async def _wait_and_close_relay(self) -> None:
         # Wait for RelayOpen_S seconds before closing the relay
+        cycle = self.trigger_id
         self.pico_state_log(
             f"Keeping VDC Relay 1 open for {self.RELAY_OPEN_S} seconds"
         )
         await asyncio.sleep(self.RELAY_OPEN_S)
+        if self.trigger_id != cycle:
+            self.pico_state_log(f"Relay-open wait from cycle {cycle} is stale; ignoring")
+            return
         self.start_closing()
 
     async def _wait_for_rebooting_picos(self) -> None:
+        # The wait belongs to the cycle that spawned it: a later cycle in
+        # PicosRebooting when this timer fires must not be confirmed by it.
+        cycle = self.trigger_id
         self.pico_state_log(
             f"Waiting {self.PICO_REBOOT_S} seconds for picos to come back"
         )
@@ -432,6 +439,9 @@ class PicoCycler(HydronicNode):
                 f"Wait and open relay should only happen for PicosRebooting, not {self.state}"
             )
         await asyncio.sleep(self.PICO_REBOOT_S)
+        if self.trigger_id != cycle:
+            self.pico_state_log(f"Reboot wait from cycle {cycle} is stale; ignoring")
+            return
         if self.all_zombies:
             self.reboot_dud()
         elif len(self.flatlined) > 0:

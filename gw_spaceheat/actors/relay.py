@@ -437,12 +437,12 @@ class Relay(ShNodeActor):
         message: FsmEvent,
     ) -> None:
         now_ms = int(time.time() * 1000)
-        if self.GPIO is None:
-            self.log("Simulated board; skipping GPIO actuation")
-            return
-
         pin = self._gpio_pin
-        if relay_pin_event == ChangeRelayPin.Energize:
+        if self.GPIO is None:
+            # A simulated board has no pin to write; the relay's word to its
+            # boss (the pin report and the full report) goes out regardless.
+            self.log("Simulated board; skipping GPIO actuation")
+        elif relay_pin_event == ChangeRelayPin.Energize:
             self.GPIO.output(pin, self.GPIO.HIGH)
             self.log(f"Energizing: Setting pin {pin} to High")
         else:

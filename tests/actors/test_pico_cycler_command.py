@@ -8,6 +8,7 @@ boot-time cycle enters through Startup, not PicoMissing.
 
 Runs over both sim fixtures with admin holding the tree."""
 
+import asyncio
 import time
 import uuid
 from pathlib import Path
@@ -180,3 +181,48 @@ def test_boot_cycle_enters_through_startup(app: ScadaApp) -> None:
     assert len(opens) == 1
     assert opens[0].EventName == ChangeRelayState.OpenRelay
     assert opens[0].TriggerId == cycler.trigger_id
+
+
+def test_reboot_wait_from_an_earlier_cycle_does_not_confirm_a_later_one(app: ScadaApp) -> None:
+    """Cycle A's PICO_REBOOT_S wait fires while cycle B sits in
+    PicosRebooting; B keeps waiting for its own picos. Seen on the
+    dev-broker rung: a commanded cycle confirmed 3 s after its close by
+    the self-provoked cycle's timer."""
+    cycler, sent = cycler_under_admin(app)
+    cycler.PICO_REBOOT_S = 0.05
+    cycler.state = PicoCyclerState.PicosRebooting
+    cycler.trigger_id = "cycle-a"
+
+    async def cycle_b_takes_over() -> None:
+        await asyncio.sleep(0.01)
+        cycler.trigger_id = "cycle-b"
+        cycler.fsm_reports = []
+
+    async def run() -> None:
+        await asyncio.gather(cycler._wait_for_rebooting_picos(), cycle_b_takes_over())
+
+    asyncio.run(run())
+
+    assert cycler.state == PicoCyclerState.PicosRebooting
+    assert cycler.trigger_id == "cycle-b"
+    assert cycler.fsm_reports == []
+    assert not any(isinstance(p, FsmEvent) for dst, p in sent)
+
+
+def test_relay_open_wait_from_an_earlier_cycle_does_not_close_for_a_later_one(app: ScadaApp) -> None:
+    cycler, sent = cycler_under_admin(app)
+    cycler.RELAY_OPEN_S = 0.05
+    cycler.state = PicoCyclerState.RelayOpen
+    cycler.trigger_id = "cycle-a"
+
+    async def cycle_b_takes_over() -> None:
+        await asyncio.sleep(0.01)
+        cycler.trigger_id = "cycle-b"
+
+    async def run() -> None:
+        await asyncio.gather(cycler._wait_and_close_relay(), cycle_b_takes_over())
+
+    asyncio.run(run())
+
+    assert cycler.state == PicoCyclerState.RelayOpen
+    assert not any(isinstance(p, FsmEvent) for dst, p in sent)
