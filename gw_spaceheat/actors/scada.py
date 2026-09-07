@@ -192,7 +192,7 @@ class Scada(PrimeActor, ScadaInterface):
         }
 
         # Define which actors depend on actuator readiness
-        self.actuator_dependents = {self.local_control, self.hp_boss}
+        self.actuator_dependents = {self.local_control}
         if self.data.use_sieg_loop:
             self.actuator_dependents.add(self.sieg_loop)
 

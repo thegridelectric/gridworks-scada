@@ -92,14 +92,14 @@ def test_top_machine_round_trip(impl: NolanLocalControl) -> None:
     impl.trigger_top_event(LocalControlTopEvent.TopGoDormant)
     assert impl.top_state == LocalControlTopState.Dormant
     impl.trigger_top_event(LocalControlTopEvent.TopWakeUp)
-    assert impl.top_state == LocalControlTopState.Monitor
+    assert impl.top_state == LocalControlTopState.Normal  # HACK: wake resumes control
 
     states = [p for _, p in impl.sent if isinstance(p, SingleMachineState)]
     assert [s.State for s in states] == [
         LocalControlTopState.Monitor,
         LocalControlTopState.Normal,
         LocalControlTopState.Dormant,
-        LocalControlTopState.Monitor,
+        LocalControlTopState.Normal,
     ]
     assert all(s.StateEnum == LocalControlTopState.enum_name() for s in states)
 

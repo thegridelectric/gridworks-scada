@@ -54,7 +54,6 @@ def capture(actor) -> list:
 def hp_boss_actor(app: ScadaApp) -> HpBoss:
     actor = app.get_communicator_as_type(H0N.hp_boss, HpBoss)
     assert actor is not None, "hp-boss actor is constructed in every layout"
-    actor.actuators_ready = True
     return actor
 
 
@@ -111,7 +110,6 @@ def test_hp_boss_in_every_tree(app: ScadaApp, boss: str) -> None:
         for name in (H0N.hp_loop_on_off, H0N.hp_loop_keep_send):
             assert scada.layout.node(name).handle == f"{sieg_loop.handle}.{name}"
     assert scada.hp_boss is hp_boss
-    assert hp_boss in scada.actuator_dependents
 
 
 def test_turn_off_opens_call_relay_from_hp_boss(app: ScadaApp) -> None:

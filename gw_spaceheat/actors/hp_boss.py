@@ -16,7 +16,7 @@ from result import Ok, Result
 from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 from gwsproto.enums import LogLevel, TurnHpOnOff
-from gwsproto.named_types import ActuatorsReady, FsmEvent, Glitch, SingleMachineState
+from gwsproto.named_types import FsmEvent, Glitch, SingleMachineState
 
 class SiegLoopReady(BaseModel):
     TypeName: Literal["sieg.loop.ready"] = "sieg.loop.ready"
@@ -34,7 +34,6 @@ class HpBoss(ShNodeActor):
         super().__init__(name, services)
         self.hp_model = self.settings.hp_model # TODO: will move to hardware layout
         self.last_cmd_time = 0
-        self.actuators_ready = False
         self.state = HpBossState.HpOn
 
     def start(self) -> None:
@@ -55,8 +54,6 @@ class HpBoss(ShNodeActor):
             return Ok(False)
         payload = message.Payload
         match payload:
-            case ActuatorsReady():
-                self.actuators_ready = True
             case FsmEvent():
                 try:
                     self.process_fsm_event(from_node, payload)
@@ -101,9 +98,11 @@ class HpBoss(ShNodeActor):
         if payload.EventType !=  TurnHpOnOff.enum_name():
             self.log(f"Only listens to {TurnHpOnOff.enum_name()}")
             return
-        if not self.actuators_ready:
-            self.log(f"Received command {payload.EventName} for heat pump but actuators not ready. Ignoring")
-            return
+        # No actuators-ready gate: the relay actor defers a command until
+        # its boot adoption completes and retries it through the verify
+        # loop, and the scada's ActuatorsReady only fires on layouts that
+        # carry the Krida multiplexers. Goes with the board-generic
+        # required-actuator set when the Krida assumption is removed.
         if payload.EventName == TurnHpOnOff.TurnOff:
             self.open_hp_scada_ops_relay()
             self.state = HpBossState.HpOff

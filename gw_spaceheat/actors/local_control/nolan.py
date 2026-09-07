@@ -91,7 +91,10 @@ class NolanLocalControl(NolanHydronic):
         {"trigger": "MonitorAndControl", "source": "Monitor", "dest": "Normal"},
         {"trigger": "TopGoDormant", "source": "Normal", "dest": "Dormant"},
         {"trigger": "TopGoDormant", "source": "Monitor", "dest": "Dormant"},
-        {"trigger": "TopWakeUp", "source": "Dormant", "dest": "Monitor"},
+        # HACK (2026-09-07): wake lands in Normal so the TOU loop resumes
+        # after every admin release; nothing sends MonitorAndControl yet.
+        # Goes when ops selects the control strategy.
+        {"trigger": "TopWakeUp", "source": "Dormant", "dest": "Normal"},
     ]
 
     def __init__(self, name: str, services: ScadaAppInterface):
