@@ -1,9 +1,7 @@
 import asyncio
 import time
 import uuid
-from enum import auto
 from typing import Dict, List, Optional, Sequence
-from gwsproto.enums.gw_str_enum import GwStrEnum
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
@@ -25,7 +23,7 @@ from result import Ok, Result
 from transitions import Machine
 import transitions
 from actors.hydronic.shared import HydronicNode
-from gwsproto.enums import LogLevel, PicoCyclerEvent, PicoCyclerState
+from gwsproto.enums import LogLevel, PicoCyclerEvent, PicoCyclerState, SinglePicoState
 from gwsproto.named_types import Glitch, GoDormant, PicoMissing, WakeUp
 from gwsproto.data_classes.components import (
     PicoBtuMeterComponent,
@@ -49,11 +47,6 @@ class ZombiePicoWarning(PicoWarning):
 
     def __str__(self):
         return f"ZombiePicoWarning: {self.pico_name}  <{super().__str__()}>"
-
-class SinglePicoState(GwStrEnum):
-    Alive = auto()
-    Flatlined = auto()
-
 
 class PicoCycler(HydronicNode):
     REBOOT_ATTEMPTS = 3
@@ -191,6 +184,34 @@ class PicoCycler(HydronicNode):
             return True
         return False
 
+    def pico_state(self, pico: str) -> SinglePicoState:
+        """The pico's state as reported: Zombie once its consecutive failed
+        reboots reach the threshold, else what its readings say."""
+        if pico in self.zombies:
+            return SinglePicoState.Zombie
+        return self.pico_states[pico]
+
+    def report_pico_state(self, pico: str, now_ms: Optional[int] = None) -> None:
+        """One machine.states row for this pico, keyed by its actor's handle,
+        so the journal carries the roster and a cycle reads against the pico
+        whose row flipped just before it."""
+        if now_ms is None:
+            now_ms = int(time.time() * 1000)
+        self._send_to(
+            self.primary_scada,
+            MachineStates(
+                MachineHandle=self.actor_by_pico[pico].handle,
+                StateEnum=SinglePicoState.enum_name(),
+                StateList=[self.pico_state(pico)],
+                UnixMsList=[now_ms],
+            ),
+        )
+
+    def report_pico_roster(self) -> None:
+        now_ms = int(time.time() * 1000)
+        for pico in self.picos:
+            self.report_pico_state(pico, now_ms)
+
     def raise_zombie_pico_warning(self, pico: str) -> None:
         if pico not in self.actor_by_pico:
             raise Exception(
@@ -235,6 +256,7 @@ class PicoCycler(HydronicNode):
             # this pico is now flatlined if it was not before
             self.pico_states[pico] = SinglePicoState.Flatlined
             self.log(f"{actor.name} {pico} flatlined")
+            self.report_pico_state(pico)
         
         # move out of PicosLive if pico cycler in that state
         if self.state == PicoCyclerState.PicosLive:
@@ -260,6 +282,7 @@ class PicoCycler(HydronicNode):
                 # If this is the first time a pico reaches the zombie threshold,
                 # raise that warning
                 if self.reboots[pico] == self.REBOOT_ATTEMPTS:
+                    self.report_pico_state(pico)
                     self.raise_zombie_pico_warning(pico)
         # Send action on to pico relay
         self.open_vdc_relay(trigger_id=self.trigger_id)
@@ -296,9 +319,12 @@ class PicoCycler(HydronicNode):
 
     def is_alive(self, pico: str) -> None:
         was_zombie = pico in self.zombies
+        was = self.pico_state(pico)
 
         self.pico_states[pico] = SinglePicoState.Alive
         self.reboots[pico] = 0
+        if was != SinglePicoState.Alive:
+            self.report_pico_state(pico)
 
         if was_zombie:
             note = f"Pico {pico} [{self.actor_by_pico[pico].name}] recovered from zombie state"
@@ -496,6 +522,7 @@ class PicoCycler(HydronicNode):
         return True
 
     def start(self) -> None:
+        self.report_pico_roster()
         self.services.add_task(
             asyncio.create_task(self.main(), name="picocycler keepalive")
         )
@@ -544,6 +571,7 @@ class PicoCycler(HydronicNode):
                         UnixMsList=[int(time.time() * 1000)],
                     ),
                 )
+                self.report_pico_roster()
 
             # if all picos are zombies, wifi is probably out.
             # power cycle on a semi-regular basis to get them

@@ -83,6 +83,7 @@ from gwsproto.enums.relay_wiring_config import RelayWiringConfig
 from gwsproto.enums.seasonal_storage_mode import SeasonalStorageMode
 from gwsproto.enums.service_mode import ServiceMode
 from gwsproto.enums.setpoint_phase import SetpointPhase
+from gwsproto.enums.single_pico_state import SinglePicoState
 from gwsproto.enums.slow_dispatch_contract_status import SlowDispatchContractStatus
 from gwsproto.enums.spaceheat_unit import SpaceheatUnit
 from gwsproto.enums.store_flow_relay import StoreFlowRelay
@@ -174,6 +175,7 @@ __all__ = [
     "SemaEnum",
     "ServiceMode",
     "SetpointPhase",
+    "SinglePicoState",
     "SlowDispatchContractStatus",
     "SpaceheatUnit",
     "StoreFlowRelay",
