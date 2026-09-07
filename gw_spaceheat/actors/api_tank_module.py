@@ -12,7 +12,8 @@ from gwproactor import MonitoredName, Problems
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwsproto.data_classes.components import PicoTankModuleComponent, SimPicoTankModuleComponent
-from gwsproto.enums import TempCalcMethod
+from gwsproto.enums import RelayClosedOrOpen, TempCalcMethod
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames
 from gwsproto.named_types import SyncedReadings, TankModuleParams
 from result import Ok, Result
 from actors.sh_node_actor import ShNodeActor
@@ -26,9 +27,94 @@ THERMISTOR_T0 = 298  # i.e. 25 degrees
 THERMISTOR_R0_KOHMS = 10  # The R0 of the NTC thermistor - an industry standard
 PICO_VOLTS = 3.3
 FLATLINE_REPORT_S = 60
+SIM_PICO_TICK_S = 1
+# A tank at rest, stratified: depth1 is the top. Fixed until the plant drives
+# tank temperatures.
+SIM_TANK_AT_REST_C: dict[int, float] = {1: 55.0, 2: 50.0, 3: 45.0}
+
+
+def microvolts_at_c(temp_c: float, beta: int) -> int:
+    """The divider voltage the pico reads for a thermistor at temp_c, in
+    microvolts: the inverse of simple_beta."""
+    r_therm_kohms = THERMISTOR_R0_KOHMS * math.exp(
+        beta * (1 / (temp_c + 273) - 1 / THERMISTOR_T0)
+    )
+    volts = PICO_VOLTS * r_therm_kohms / (R_FIXED_KOHMS + r_therm_kohms)
+    return int(round(volts * 1e6))
+
+
+class SimPicoSource:
+    """A simulated pico's liveness, scripted by the sim component's SimLifeS
+    and SimRebootS: it posts readings at the capture period, goes silent
+    SimLifeS after each boot, loses power when the vdc relay opens, and
+    boots again SimRebootS after the relay closes following an open. With
+    SimLifeS absent it never dies on a schedule; with SimRebootS absent a
+    dead pico stays dead (the zombie path). Pure: every method takes the
+    current time, so a test drives it with no clock tricks."""
+
+    def __init__(
+        self,
+        hw_uid: str,
+        about_node_names: list[str],
+        micro_volts: list[int],
+        capture_period_s: int,
+        life_s: Optional[int],
+        reboot_s: Optional[int],
+        booted_at: float,
+    ) -> None:
+        self.hw_uid = hw_uid
+        self.about_node_names = about_node_names
+        self.micro_volts = micro_volts
+        self.capture_period_s = capture_period_s
+        self.life_s = life_s
+        self.reboot_s = reboot_s
+        self.alive = True
+        self.booted_at = booted_at
+        self.last_post: Optional[float] = None
+        self.relay_open_seen = False
+        self.reboot_at: Optional[float] = None
+
+    def relay_state(self, state: RelayClosedOrOpen, now: float) -> None:
+        """Feed a vdc relay state change. Open cuts the pico's power; the
+        close that follows schedules a reboot if SimRebootS is set."""
+        if state == RelayClosedOrOpen.RelayOpen:
+            self.alive = False
+            self.reboot_at = None
+            self.relay_open_seen = True
+        elif self.relay_open_seen:
+            self.relay_open_seen = False
+            if self.reboot_s is not None:
+                self.reboot_at = now + self.reboot_s
+
+    def tick(self, now: float) -> Optional[MicroVolts]:
+        """Advance to now; the reading to post, if one is due."""
+        if not self.alive:
+            if self.reboot_at is None or now < self.reboot_at:
+                return None
+            self.alive = True
+            self.booted_at = now
+            self.last_post = None
+            self.reboot_at = None
+        if self.life_s is not None and now - self.booted_at >= self.life_s:
+            self.alive = False
+            return None
+        if self.last_post is not None and now - self.last_post < self.capture_period_s:
+            return None
+        self.last_post = now
+        return MicroVolts(
+            HwUid=self.hw_uid,
+            AboutNodeNameList=self.about_node_names,
+            MicroVoltsList=self.micro_volts,
+        )
 
 
 class ApiTankModule(ShNodeActor):
+    """Reads a pico tank module over HTTP. When the component is the sim
+    word the actor runs its own SimPicoSource, posting microvolts to itself
+    on the same path the web handler uses. The source lives in the actor
+    rather than as its own node or in the plant, a choice to re-evaluate: a
+    plant-side pico posting over HTTP would test the real ingress path."""
+
     _stop_requested: bool
 
     def __init__(
@@ -92,6 +178,21 @@ class ApiTankModule(ShNodeActor):
                 2: f"{self.name}-depth2-micro-v",
                 3: f"{self.name}-depth3-micro-v",
             }
+
+        self.sim_pico: Optional[SimPicoSource] = None
+        if isinstance(self._component, SimPicoTankModuleComponent):
+            assert self.pico_uid
+            beta = self._component.gt.ThermistorBeta
+            self.sim_pico = SimPicoSource(
+                hw_uid=self.pico_uid,
+                about_node_names=[self.depth_about_nodes[d] for d in (1, 2, 3)],
+                micro_volts=[microvolts_at_c(SIM_TANK_AT_REST_C[d], beta) for d in (1, 2, 3)],
+                capture_period_s=self.flatline_seconds(),
+                life_s=self._component.gt.SimLifeS,
+                reboot_s=self._component.gt.SimRebootS,
+                booted_at=time.time(),
+            )
+        self.sim_relay_seen: Optional[tuple[str, int]] = None
 
     @cached_property
     def microvolts_path(self) -> str:
@@ -266,6 +367,35 @@ class ApiTankModule(ShNodeActor):
         self.services.add_task(
             asyncio.create_task(self.main(), name="ApiTankModule keepalive")
         )
+        if self.sim_pico is not None:
+            self.services.add_task(
+                asyncio.create_task(self.sim_pico_main(), name="ApiTankModule sim pico")
+            )
+
+    def feed_sim_relay_state(self, now: float) -> None:
+        """Hand the source each new vdc relay state from the scada's latest
+        machine states."""
+        assert self.sim_pico is not None
+        sms = self.data.latest_machine_state.get(HydronicSpaceheatNodeNames.vdc_relay)
+        if sms is None:
+            return
+        seen = (sms.State, sms.UnixMs)
+        if seen == self.sim_relay_seen:
+            return
+        self.sim_relay_seen = seen
+        self.sim_pico.relay_state(RelayClosedOrOpen(sms.State), now)
+
+    async def sim_pico_main(self) -> None:
+        assert self.sim_pico is not None
+        while not self._stop_requested:
+            now = time.time()
+            self.feed_sim_relay_state(now)
+            reading = self.sim_pico.tick(now)
+            if reading is not None:
+                self.services.send_threadsafe(
+                    Message(Src=self.name, Dst=self.name, Payload=reading)
+                )
+            await asyncio.sleep(SIM_PICO_TICK_S)
 
     def stop(self) -> None:
         """IOLoop will take care of stop."""

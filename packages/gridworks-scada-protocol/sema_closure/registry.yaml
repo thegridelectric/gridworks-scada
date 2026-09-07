@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-09-06T12:25:00Z"
+  last_updated: "2026-09-07T18:05:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -1664,7 +1664,7 @@ types:
         schema_url: "https://schemas.electricity.works/types/sim.pico.tank.module.component.gt/001"
         created: "2026-06-26T03:40:00Z"
         status: "staging"
-        summary: "- ComponentAttributeClassId (cac UUID) -> DeviceType (gw1.device.type value, pascal.case); SimulatesVersion 011 -> 012. Context-dependent: the device type lived on the referenced cac, not the component."
+        summary: "- ComponentAttributeClassId (cac UUID) -> DeviceType (gw1.device.type value, pascal.case); SimulatesVersion 011 -> 012. Context-dependent: the device type lived on the referenced cac, not the component. Optional SimLifeS / SimRebootS (positive.int seconds) script the simulated pico's liveness."
         direct_dependencies:
           structural:
             - "pascal.case"

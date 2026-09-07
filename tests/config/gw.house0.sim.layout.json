@@ -1511,6 +1511,8 @@
       "NumSampleAverages": 30,
       "SerialNumber": "NA",
       "AsyncCaptureDeltaMicroVolts": 2000,
+      "SimLifeS": 120,
+      "SimRebootS": 20,
       "SimulatesTypeName": "pico.tank.module.component.gt",
       "SimulatesVersion": "012"
     },
@@ -1529,6 +1531,8 @@
       "NumSampleAverages": 30,
       "SerialNumber": "NA",
       "AsyncCaptureDeltaMicroVolts": 2000,
+      "SimLifeS": 120,
+      "SimRebootS": 20,
       "SimulatesTypeName": "pico.tank.module.component.gt",
       "SimulatesVersion": "012"
     },

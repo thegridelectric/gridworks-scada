@@ -21,6 +21,8 @@ class SimPicoTankModuleComponentGt(DeviceComponentBase):
     SerialNumber: str = "NA"
     AsyncCaptureDeltaMicroVolts: int
     SensorOrder: list[int] | None = None
+    SimLifeS: PositiveInt | None = None
+    SimRebootS: PositiveInt | None = None
     SimulatesTypeName: Literal["pico.tank.module.component.gt"] = "pico.tank.module.component.gt"
     SimulatesVersion: Literal["012"] = "012"
     TypeName: Literal["sim.pico.tank.module.component.gt"] = "sim.pico.tank.module.component.gt"
