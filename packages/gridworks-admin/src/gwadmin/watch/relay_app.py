@@ -20,6 +20,7 @@ from gwadmin.config import CurrentAdminConfig
 from gwadmin.config import MAX_ADMIN_TIMEOUT
 from gwadmin.watch.clients.admin_client import AdminClient
 from gwadmin.watch.clients.dac_client import DACWatchClient
+from gwadmin.watch.clients.dispatch_replies import DispatchReply
 from gwadmin.watch.clients.relay_client import RelayEnergized
 from gwadmin.watch.clients.relay_client import RelayWatchClient
 from gwadmin.watch.widgets.dacs import Dacs
@@ -240,6 +241,18 @@ class RelaysApp(App):
 
     def action_previous_theme(self) -> None:
         self._change_theme(-1)
+
+    def on_relays_dispatch_replied(self, message: Relays.DispatchReplied) -> None:
+        self.notify_dispatch_reply(message.reply)
+
+    def on_dacs_dispatch_replied(self, message: Dacs.DispatchReplied) -> None:
+        self.notify_dispatch_reply(message.reply)
+
+    def notify_dispatch_reply(self, reply: DispatchReply) -> None:
+        self.notify(
+            reply.describe(),
+            severity="information" if reply.taken else "warning",
+        )
 
     def on_reboot_picos_button_pressed(self, message: RebootPicosButton.Pressed):
         self.notify(f"Asking the pico-cycler to reboot the picos ({int(message.timeout_seconds/60)} min admin)")

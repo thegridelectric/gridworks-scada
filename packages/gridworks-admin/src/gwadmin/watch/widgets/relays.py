@@ -16,6 +16,7 @@ from textual.widgets._data_table import CellType  # noqa
 
 from gwadmin.config import DEFAULT_ADMIN_TIMEOUT
 from gwadmin.watch.clients.constrained_mqtt_client import ConstrainedMQTTClient
+from gwadmin.watch.clients.dispatch_replies import DispatchReply
 from gwadmin.watch.clients.relay_client import ObservedRelayStateChange
 from gwadmin.watch.clients.relay_client import RelayClientCallbacks
 from gwadmin.watch.clients.relay_client import RelayConfigChange
@@ -65,6 +66,11 @@ class Relays(Widget):
     class Layout(Message):
         def __init__(self, layout: LayoutLite) -> None:
             self.layout = layout
+            super().__init__()
+
+    class DispatchReplied(Message):
+        def __init__(self, reply: DispatchReply) -> None:
+            self.reply = reply
             super().__init__()
 
     def __init__(
@@ -249,6 +255,7 @@ class Relays(Widget):
             mqtt_state_change_callback=self.mqtt_state_change_callback,
             relay_state_change_callback=self.relay_state_change_callback,
             relay_config_change_callback=self.relay_config_change_callback,
+            dispatch_reply_callback=self.dispatch_reply_callback,
             # disable these as defense against memroy leaks
             mqtt_message_received_callback=None,
             ctrl_capabilities_callback=None,
@@ -260,6 +267,9 @@ class Relays(Widget):
 
     def relay_config_change_callback(self, changes: dict[str, RelayConfigChange]) -> None:
         self.post_message(Relays.ConfigChange(changes))
+
+    def dispatch_reply_callback(self, reply: DispatchReply) -> None:
+        self.post_message(Relays.DispatchReplied(reply))
 
     def layout_callback(self, layout: LayoutLite) -> None:
         self.post_message(Relays.Layout(layout))

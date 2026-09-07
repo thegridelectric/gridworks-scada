@@ -22,8 +22,10 @@ from gwsproto.named_types.derived_channel_gt import DerivedChannelGt
 from gwsproto.named_types.device_component_gt import DeviceComponentGt
 from gwsproto.named_types.dfr_component_gt import DfrComponentGt
 from gwsproto.named_types.dfr_config import DfrConfig
+from gwsproto.named_types.dispatch_ack import DispatchAck
 from gwsproto.named_types.dispatch_contract_go_dormant import DispatchContractGoDormant
 from gwsproto.named_types.dispatch_contract_go_live import DispatchContractGoLive
+from gwsproto.named_types.dispatch_nack import DispatchNack
 from gwsproto.named_types.egauge_register_config import EgaugeRegisterConfig
 from gwsproto.named_types.electric_meter_channel_config import (
     ElectricMeterChannelConfig,
@@ -194,8 +196,10 @@ __all__ = [
     "DeviceComponentGt",
     "DfrComponentGt",
     "DfrConfig",
+    "DispatchAck",
     "DispatchContractGoDormant",
     "DispatchContractGoLive",
+    "DispatchNack",
     "EgaugeRegisterConfig",
     "ElectricMeterChannelConfig",
     "ElectricMeterComponentGt",

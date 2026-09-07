@@ -14,6 +14,8 @@ from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
 class AnalogDispatch(GwsprotoSemaType):
+    """Sema: https://schemas.electricity.works/types/analog.dispatch/000"""
+
     FromGNodeAlias: Optional[LeftRightDotStr] = None
     FromHandle: HandleName
     ToHandle: HandleName
@@ -27,13 +29,15 @@ class AnalogDispatch(GwsprotoSemaType):
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
         """
-        Axiom 1: FromHandle must be the immediate boss of ToHandle, unless ToHandle contains 'multiplexer'.
-
+        Axiom 1: FromHandleIsBoss.
+        FromHandle SHALL be the immediate boss of ToHandle (ToHandle with its
+        last dot-segment removed), unless ToHandle contains "multiplexer".
         """
         if "multiplexer" in self.ToHandle:
             return self
         if ".".join(self.ToHandle.split(".")[:-1]) != self.FromHandle:
             raise ValueError(
-                f"FromHandle {self.FromHandle} must be direct boss of ToHandle {self.ToHandle}"
+                f"Axiom 1 (FromHandleIsBoss) failed: FromHandle {self.FromHandle} "
+                f"is not the immediate boss of ToHandle {self.ToHandle}"
             )
         return self

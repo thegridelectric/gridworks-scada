@@ -27,6 +27,8 @@ from gwadmin.watch.clients.admin_client import AdminClient
 from gwadmin.watch.clients.admin_client import AdminSubClient
 from gwadmin.watch.clients.constrained_mqtt_client import MessageReceivedCallback
 from gwadmin.watch.clients.constrained_mqtt_client import StateChangeCallback
+from gwadmin.watch.clients.dispatch_replies import DispatchReply
+from gwadmin.watch.clients.dispatch_replies import DispatchReplyTracker
 from gwsproto.named_types import (AdminDispatch,  AdminKeepAlive, AdminReleaseControl,
                         ScadaControlCapabilities, FsmEvent, SnapshotSpaceheat)
 from gwsproto.enums import RebootPicos, TurnHpOnOff
@@ -84,6 +86,7 @@ class RelayConfigChange(BaseModel):
         return self
 
 RelayConfigChangeCallback = Callable[[dict[str, RelayConfigChange]], None]
+DispatchReplyCallback = Callable[[DispatchReply], None]
 
 @dataclass
 class RelayClientCallbacks:
@@ -115,12 +118,17 @@ class RelayClientCallbacks:
     """Hook for user. Called when a snapshot received. Called from Paho thread. 
     Must be threadsafe."""
 
+    dispatch_reply_callback: Optional[DispatchReplyCallback] = None
+    """Hook for user. Called when the scada acks or nacks a dispatch. Called
+    from Paho thread. Must be threadsafe."""
+
 class RelayWatchClient(AdminSubClient):
     _lock: threading.RLock
     _relays: dict[SpaceheatName, RelayInfo]
     _channel2node: dict[SpaceheatName, SpaceheatName]
     _admin_client: AdminClient
     _callbacks: RelayClientCallbacks
+    _replies: DispatchReplyTracker
     _ctrl_capabilities: ScadaControlCapabilities | None = None
     _snap: Optional[SnapshotSpaceheat] = None
     _logger: Logger | logging.LoggerAdapter[Logger] = module_logger
@@ -137,6 +145,7 @@ class RelayWatchClient(AdminSubClient):
         self._logger = logger
         self._relays = {}
         self._channel2node = {}
+        self._replies = DispatchReplyTracker()
 
     def set_admin_client(self, client: AdminClient) -> None:
         self._admin_client = client
@@ -278,6 +287,9 @@ class RelayWatchClient(AdminSubClient):
         decoded_topic = MQTTTopic.decode(topic)
         if decoded_topic.message_type == type_name(SingleReading):
             self._process_single_reading(payload)
+        elif (reply := self._replies.match(topic, payload)) is not None:
+            if self._callbacks.dispatch_reply_callback is not None:
+                self._callbacks.dispatch_reply_callback(reply)
         if self._callbacks.mqtt_message_received_callback is not None:
             self._callbacks.mqtt_message_received_callback(topic, payload)
 
@@ -340,6 +352,7 @@ class RelayWatchClient(AdminSubClient):
             SendTimeUnixMs=int(set_time.timestamp() * 1000),
             TriggerId=str(uuid.uuid4()),
         )
+        self._replies.note(event.TriggerId, event.ToHandle, f"{relay_name} {event_name}")
         self._admin_client.publish(
             AdminDispatch(
                 DispatchTrigger=event,
@@ -360,6 +373,7 @@ class RelayWatchClient(AdminSubClient):
             SendTimeUnixMs=int(datetime.datetime.now().timestamp() * 1000),
             TriggerId=str(uuid.uuid4()),
         )
+        self._replies.note(event.TriggerId, event.ToHandle, "Reboot picos")
         self._admin_client.publish(
             AdminDispatch(
                 DispatchTrigger=event,

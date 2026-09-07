@@ -5,8 +5,7 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class PicoCyclerEvent(SemaEnum):
-    """Sema: https://schemas.electricity.works/enums/pico.cycler.event/000
-    """
+    """Sema: https://schemas.electricity.works/enums/pico.cycler.event/000"""
 
     WakeUp = auto()
     GoDormant = auto()

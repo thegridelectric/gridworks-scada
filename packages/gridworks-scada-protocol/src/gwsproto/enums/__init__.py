@@ -38,6 +38,7 @@ from gwsproto.enums.fsm_report_type import FsmReportType
 from gwsproto.enums.g_node_status import GNodeStatus
 from gwsproto.enums.gpio_sense_mode import GpioSenseMode
 from gwsproto.enums.gpm_from_hz_method import GpmFromHzMethod
+from gwsproto.enums.gw_scada_cmd_refusal_reason import GwScadaCmdRefusalReason
 from gwsproto.enums.gw_str_enum import GwStrEnum, SemaEnum
 from gwsproto.enums.heat_call_interpretation import HeatCallInterpretation
 from gwsproto.enums.heat_pump_control import HeatPumpControl
@@ -130,6 +131,7 @@ __all__ = [
     "GNodeStatus",
     "GpioSenseMode",
     "GpmFromHzMethod",
+    "GwScadaCmdRefusalReason",
     "GwStrEnum",
     "HeatCallInterpretation",
     "HeatPumpControl",
