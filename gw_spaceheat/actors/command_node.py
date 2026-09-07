@@ -19,9 +19,7 @@ from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.data_classes.components.i2c_multichannel_dt_relay_component import (
     I2cMultichannelDtRelayComponent,
 )
-from gwsproto.enums import (
-    ActorClass
-)
+from gwsproto.enums import ActorClass, TurnHpOnOff
 from gwsproto.named_types import FsmEvent, NewCommandTree
 
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
@@ -73,47 +71,19 @@ class CommandNode(ShNodeActor):
         return self.layout.node(boss_name, None)
 
 
-    def set_hierarchical_fsm_handles(self, boss_node: ShNode) -> None:
+    def set_command_tree(self, boss_node: ShNode) -> None:
         """
         ```
         boss
-        ├────────────────────── hp-boss
-        └─────sieg-loop         └── relay6 (hp_scada_ops_relay)
-                ├─ relay14 (hp_loop_on_off)
-                └─ relay15 (hp_loop_keep_send)
+        ├── hp-boss
+        │     └── hp-scada-ops-relay
+        ├── sieg-loop                 (only when the scada runs the loop)
+        │     ├── hp-loop-on-off
+        │     └── hp-loop-keep-send
+        └── every other actuator
         ```
-        """
-        if not self.data.use_sieg_loop:
-            raise Exception("don't call this unless layout uses sieg loop")
-        self.log(f"Setting fsm handles under {boss_node.name}")
-        hp_boss = self.layout.node(HSNN.hp_boss)
-        hp_boss.Handle = f"{boss_node.handle}.{hp_boss.Name}"
-
-        scada_ops_relay = self.layout.node(HSNN.hp_scada_ops_relay)
-        scada_ops_relay.Handle = f"{hp_boss.Handle}.{scada_ops_relay.Name}"
-
-        sieg_loop = self.layout.node(HSNN.sieg_loop)
-        sieg_loop.Handle = f"{boss_node.handle}.{sieg_loop.Name}"
-
-        sieg_keep_send =  self.layout.node(House0NodeNames.hp_loop_keep_send)
-        sieg_keep_send.Handle = f"{sieg_loop.Handle}.{sieg_keep_send.Name}"
-
-        sieg_on_off = self.layout.node(House0NodeNames.hp_loop_on_off)
-        sieg_on_off.Handle = f"{sieg_loop.Handle}.{sieg_on_off.Name}"
-
-    def set_command_tree(self, boss_node: ShNode) -> None:
-        """
-        If FlowManifoldVariant is House0Sieg:
-           ```
-            boss
-            ├─────────────────────────────────────────── hp-boss
-            ├───────────────────────────sieg-loop           └── relay6 (hp_scada_ops_relay)
-            ├                             ├─ relay14 (hp_loop_on_off)
-            ├── relay1 (vdc)              └─ relay15 (hp_loop_keep_send)
-            ├── relay2 (tstat_common)
-            └── all other relays and 0-10s
-        ```
-        If FlowManifoldVariant is House0, all actuators report directly to boss
+        hp-boss is the heat pump's command node in every layout; the loop
+        pair rides only when the ops word says the loop is used.
         Throws exception if boss_node is not in my chain of command
         """
 
@@ -121,14 +91,22 @@ class CommandNode(ShNodeActor):
         if not boss_node.handle.startswith(my_handle_prefix) and boss_node != self.node:
             raise Exception(f"{self.node.handle} cannot set command tree for boss_node {boss_node.handle}!")
 
+        mine = self.my_actuators()
+        hp_boss = self.layout.hp_boss
+        hp_boss.Handle = f"{boss_node.handle}.{hp_boss.Name}"
+        ops_relay = self.layout.hp_scada_ops_relay
+        ops_relay.Handle = f"{hp_boss.Handle}.{ops_relay.Name}"
+        under_fsm = {ops_relay.Name}
         if self.data.use_sieg_loop:
-            self.set_hierarchical_fsm_handles(boss_node)
-            for node in self.my_actuators():
-                if node.Name not in [HSNN.hp_scada_ops_relay, House0NodeNames.hp_loop_keep_send, House0NodeNames.hp_loop_on_off]:
-                    node.Handle =  f"{boss_node.handle}.{node.Name}"
-        else:
-            for node in self.my_actuators():
-                node.Handle =  f"{boss_node.handle}.{node.Name}"
+            sieg_loop = self.layout.node(HSNN.sieg_loop)
+            sieg_loop.Handle = f"{boss_node.handle}.{sieg_loop.Name}"
+            for name in (House0NodeNames.hp_loop_on_off, House0NodeNames.hp_loop_keep_send):
+                node = self.layout.node(name)
+                node.Handle = f"{sieg_loop.Handle}.{node.Name}"
+                under_fsm.add(node.Name)
+        for node in mine:
+            if node.Name not in under_fsm:
+                node.Handle = f"{boss_node.handle}.{node.Name}"
 
         self.publish_command_tree()
         self.log(f"Set {boss_node.handle} command tree")
@@ -153,25 +131,33 @@ class CommandNode(ShNodeActor):
         event_name: str,
         from_node: Optional[ShNode] = None,
     ) -> None:
-        """Command a state-machine transition on an actuator node, in the
-        node's own event vocabulary (change.relay.state,
-        change.valve.state, change.zone.call.source, ...). The event name
-        must be one the node's config declares."""
-        config = self.actuator_config(node)
-        if config is None:
-            self.log(f"{node.name} is not a commandable actuator; ignoring {event_name}")
-            return
-        if event_name not in (config.EnergizingEvent, config.DeEnergizingEvent):
-            self.log(
-                f"{node.name} ({config.EventType}) does not accept "
-                f"{event_name}; ignoring"
-            )
-            return
+        """Command a state-machine transition on a node under me, in the
+        node's own event vocabulary: an actuator's config declares its
+        events (change.relay.state, change.valve.state,
+        change.zone.call.source, ...); hp-boss, the heat pump's command
+        node, speaks turn.hp.on.off."""
+        if node.ActorClass == ActorClass.HpBoss:
+            event_type = TurnHpOnOff.enum_name()
+            if event_name not in TurnHpOnOff.values():
+                self.log(f"{node.name} ({event_type}) does not accept {event_name}; ignoring")
+                return
+        else:
+            config = self.actuator_config(node)
+            if config is None:
+                self.log(f"{node.name} is not a commandable actuator; ignoring {event_name}")
+                return
+            if event_name not in (config.EnergizingEvent, config.DeEnergizingEvent):
+                self.log(
+                    f"{node.name} ({config.EventType}) does not accept "
+                    f"{event_name}; ignoring"
+                )
+                return
+            event_type = config.EventType
         try:
             event = FsmEvent(
                 FromHandle=self.node.handle if from_node is None else from_node.handle,
                 ToHandle=node.handle,
-                EventType=config.EventType,
+                EventType=event_type,
                 EventName=event_name,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),

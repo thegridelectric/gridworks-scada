@@ -48,7 +48,6 @@ from actors.command_node import build_command_tree
 from actors.scada_data import ScadaData, load_operational_params
 from actors.config import ScadaSettings
 from gwsproto.data_classes.sh_node import ShNode
-from gwsproto.enums import ChangeRelayState
 from gwproactor import QOS
 
 from gwproactor.links import Transition
@@ -65,7 +64,7 @@ from gwsproto.enums import (LeafAllyBufferOnlyState,  LeafAllyAllTanksState,
                             SlowDispatchContractStatus, LocalControlTopState,
                    MainAutoEvent, MainAutoState, SeasonalStorageMode,  TopState)
 
-from gwsproto.named_types import ( ActuatorsReady, FsmEvent,
+from gwsproto.named_types import ( ActuatorsReady,
     AdminDispatch, AdminAnalogDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
     Glitch, GoDormant, LayoutLite, NewCommandTree, NoNewContractWarning, ResetHpKeepValue, ScadaControlCapabilities,
     ScadaParams, SendControlCapabilities, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment,
@@ -193,9 +192,9 @@ class Scada(PrimeActor, ScadaInterface):
         }
 
         # Define which actors depend on actuator readiness
-        self.actuator_dependents = {self.local_control}
+        self.actuator_dependents = {self.local_control, self.hp_boss}
         if self.data.use_sieg_loop:
-            self.actuator_dependents |= {self.sieg_loop,self.hp_boss}
+            self.actuator_dependents.add(self.sieg_loop)
 
         # configure web APIs
         for ws in self.layout.get_components_by_type(WebServerComponent):
@@ -459,28 +458,6 @@ class Scada(PrimeActor, ScadaInterface):
         self.log(f"AdminDispatch event is {event.EventName}")
 
         to_name = event.ToHandle.split(".")[-1]
-        if to_name == "hp-boss":
-            if payload.DispatchTrigger.EventName == "TurnOn":
-                event = FsmEvent(
-                    FromHandle="admin",
-                    ToHandle=f"admin.{H0N.hp_scada_ops_relay}",
-                    EventType=ChangeRelayState.enum_name(),
-                    EventName=ChangeRelayState.CloseRelay,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=str(uuid.uuid4()),
-                )
-            else:
-                event = FsmEvent(
-                    FromHandle="admin",
-                    ToHandle=f"admin.{H0N.hp_scada_ops_relay}",
-                    EventType=ChangeRelayState.enum_name(),
-                    EventName=ChangeRelayState.OpenRelay,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=str(uuid.uuid4()),
-                )
-
-            to_name = H0N.hp_scada_ops_relay
-
         # TODO: change this to work if relays etc are NOT on primary scada
         if communicator := self.get_communicator(to_name):
             communicator.process_message(
@@ -1223,44 +1200,35 @@ class Scada(PrimeActor, ScadaInterface):
 
     def set_command_tree(self, boss: ShNode) -> None:
         """ Command Tree
-        If FlowManifoldVariant is House0Sieg:
         ```
-        boss                                                 pico-flow
-        ├───────────────────────────────────────── hp-boss      └── relay1 (VDC)
-        ├──────────────────────────────sieg-loop     └── relay6 (hp_scada_ops_relay)
-        ├── relay2 (tstat_common)        ├─ relay14 (hp_loop_on_off)
-        └── all other relays and 0-10s   └─ relay15 (hp_loop_keep_send)
-
-
+        boss                                     pico-cycler
+        ├── hp-boss                                └── vdc-relay (HACK)
+        │     └── hp-scada-ops-relay
+        ├── sieg-loop        (only when the scada runs the loop)
+        │     ├── hp-loop-on-off
+        │     └── hp-loop-keep-send
+        └── every other relay and 0-10V output
         ```
-        If FlowManifoldVariant is House0, all actuators other than relay1 report
-        directly to boss.
-
+        hp-boss is the heat pump's command node in every layout; the loop
+        pair rides only when the ops word says the loop is used.
         """
-
+        hp_boss = self.layout.hp_boss
+        hp_boss.Handle = f"{boss.handle}.{hp_boss.Name}"
+        ops_relay = self.layout.hp_scada_ops_relay
+        ops_relay.Handle = f"{hp_boss.Handle}.{ops_relay.Name}"
+        under_fsm = {ops_relay.Name}
         if self.data.use_sieg_loop:
-            hp_boss = self.layout.node(H0N.hp_boss)
-            hp_boss.Handle = f"{boss.handle}.{hp_boss.Name}"
-
             sieg_loop = self.layout.node(H0N.sieg_loop)
-            sieg_loop.Handle = f"{boss.handle}.{H0N.sieg_loop}"
-
-            for node in self.layout.actuators:
-                if node.Name == self.HACK_VDC_RELAY_NAME:
-                    node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
-                elif node.Name == H0N.hp_scada_ops_relay:
-                    node.Handle = f"{boss.handle}.{hp_boss.Name}.{node.Name}"
-                elif node.Name in [H0N.hp_loop_keep_send, H0N.hp_loop_on_off]:
-                    node.Handle = f"{boss.handle}.{H0N.sieg_loop}.{node.Name}"
-                else:
-                    node.Handle = (f"{boss.handle}.{node.Name}")
-        else:
-            # For no sieg loop, everybody but the vdc relay reports directly to boss
-            for node in self.layout.actuators:
-                if node.Name == self.HACK_VDC_RELAY_NAME:
-                    node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
-                else:
-                    node.Handle = (f"{boss.handle}.{node.Name}")
+            sieg_loop.Handle = f"{boss.handle}.{sieg_loop.Name}"
+            for name in (H0N.hp_loop_on_off, H0N.hp_loop_keep_send):
+                node = self.layout.node(name)
+                node.Handle = f"{sieg_loop.Handle}.{node.Name}"
+                under_fsm.add(node.Name)
+        for node in self.layout.actuators:
+            if node.Name == self.HACK_VDC_RELAY_NAME:
+                node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
+            elif node.Name not in under_fsm:
+                node.Handle = f"{boss.handle}.{node.Name}"
 
         self._send_to(self.ltn, build_command_tree(self.layout))
 
@@ -1636,9 +1604,7 @@ class Scada(PrimeActor, ScadaInterface):
 
     @property
     def hp_boss(self) -> ShNode:
-        if not self.data.use_sieg_loop:
-            raise Exception("Should not call for hp_boss unless layout uses sieg loop!")
-        return self.layout.node(H0N.hp_boss)
+        return self.layout.hp_boss
 
     @property
     def sieg_loop(self) -> ShNode:

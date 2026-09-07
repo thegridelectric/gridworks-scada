@@ -1,7 +1,7 @@
 """NolanLocalControl: layout-family selection, the top machine, and TOU
 cooling — the schedule at its boundaries, the state-command sequencing
-(ON: iso valve OpenValve → pump CloseRelay → call CloseRelay; OFF: call →
-pump OpenRelay), the zone holds (SwitchToScada + ops OpenRelay on circuit
+(ON: iso valve OpenValve → pump CloseRelay → hp-boss TurnOn; OFF: hp-boss
+TurnOff → pump OpenRelay), the zone holds (SwitchToScada + ops OpenRelay on circuit
 positions 1/2/4), and the two prevention layers: gw.nolan.layout axiom 3
 rejects a plant-incomplete layout at decode, and construction crashes —
 never degrades — if the contract is somehow bypassed.
@@ -153,13 +153,13 @@ def test_on_and_off_sequencing(
     assert on_targets == [
         NolanNodeNames.iso_valve_relay,
         NolanNodeNames.secondary_pump_relay,
-        HSNN.hp_scada_ops_relay,
+        HSNN.hp_boss,
     ]
     spruce_impl.sent.clear()
     asyncio.run(spruce_impl.turn_off_hp())
     off_targets = [dst for dst, _ in fsm_events(spruce_impl)]
     assert off_targets == [
-        HSNN.hp_scada_ops_relay,
+        HSNN.hp_boss,
         NolanNodeNames.secondary_pump_relay,
     ]
 

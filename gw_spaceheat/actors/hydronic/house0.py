@@ -170,81 +170,14 @@ class House0Hydronic(HydronicNode):
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
     def turn_on_HP(self, from_node: Optional[ShNode] = None) -> None:
-        """ Turn on heat pump
-
-        """
-        if from_node is None:
-            from_node = self.node
-
-        if self.data.use_sieg_loop:
-            try:
-                event = FsmEvent(
-                    FromHandle=from_node.handle,
-                    ToHandle=self.hp_boss.handle,
-                    EventType=TurnHpOnOff.enum_name(),
-                    EventName=TurnHpOnOff.TurnOn,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=str(uuid.uuid4()),
-                )
-                self._send_to(self.hp_boss, event, from_node)
-                self.log(f"{from_node.handle} sending TurnOn to HpBoss {self.hp_boss.handle}")
-            except ValidationError as e:
-                self.log(f"Tried to tell HpBoss to turn on HP but didn't have rights: {e}")
-
-        else:
-            try:
-                event = FsmEvent(
-                    FromHandle=from_node.handle,
-                    ToHandle=self.layout.hp_scada_ops_relay.handle,
-                    EventType=ChangeRelayState.enum_name(),
-                    EventName=ChangeRelayState.CloseRelay,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=str(uuid.uuid4()),
-                )
-                self._send_to(self.layout.hp_scada_ops_relay, event, from_node)
-                self.log(f"{from_node.handle} sending CloseRelay to HpScadaOpsRelay {self.layout.hp_scada_ops_relay.handle}")
-            except ValidationError as e:
-                self.log(f"Tried to tell HpScadaOpsRelay to turn on HP but didn't have rights: {e}")
+        """Tell hp-boss, the heat pump's command node, to turn the heat
+        pump on. from_node defaults to self.node; the command is dropped
+        with a log line if from_node is not hp-boss's boss."""
+        self.send_state_command(self.hp_boss, TurnHpOnOff.TurnOn, from_node)
 
     def turn_off_HP(self, from_node: Optional[ShNode] = None) -> None:
-        """  Turn off heat pump by sending trigger to HpRelayBoss
-        
-        from_node defaults to self.node if no from_node sent.
-        Will log an error and do nothing if from_node is not the boss of HpRelayBoss
-        """
-        if from_node is None:
-            from_node = self.node
-
-        if self.data.use_sieg_loop:
-            try:
-                event = FsmEvent(
-                    FromHandle=from_node.handle,
-                    ToHandle=self.hp_boss.handle,
-                    EventType=TurnHpOnOff.enum_name(),
-                    EventName=TurnHpOnOff.TurnOff,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=str(uuid.uuid4()),
-                )
-                self._send_to(self.hp_boss, event, from_node)
-                self.log(f"{from_node.handle} sending TurnOff to HpBoss {self.hp_boss.handle}")
-            except ValidationError as e:
-                self.log(f"Tried to tell HpBoss to turn off HP but didn't have rights: {e}")
-        else:
-            try:
-                event = FsmEvent(
-                    FromHandle=from_node.handle,
-                    ToHandle=self.layout.hp_scada_ops_relay.handle,
-                    EventType=ChangeRelayState.enum_name(),
-                    EventName=ChangeRelayState.OpenRelay,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=str(uuid.uuid4()),
-                )
-                self._send_to(self.layout.hp_scada_ops_relay, event, from_node)
-                self.log(
-                    f"{from_node.handle} sending OpenRelay to HpScadaOpsRelay {self.layout.hp_scada_ops_relay.handle}"
-                )
-            except ValidationError as e:
-                self.log(f"Tried to tell HpScadaOpsRelay to turn off HP but didn't have rights: {e}")
+        """Tell hp-boss to turn the heat pump off (see turn_on_HP)."""
+        self.send_state_command(self.hp_boss, TurnHpOnOff.TurnOff, from_node)
 
     def aquastat_ctrl_switch_to_boiler(self, from_node: Optional[ShNode] = None) -> None:
         """
@@ -567,8 +500,6 @@ class House0Hydronic(HydronicNode):
 
     @property
     def hp_boss(self) -> ShNode:
-        if not self.data.use_sieg_loop:
-            raise Exception("Should not be calling for hp_boss if not using sieg loop")
         return self.layout.hp_boss
 
     @property

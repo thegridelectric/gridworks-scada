@@ -88,6 +88,7 @@ class HpBoss(ShNodeActor):
                               Details=f"{payload.FromHandle} tried to command {self.node.Handle}. Ignoring!"
                           ))
             self.log(f"Handle is {self.node.Handle}; ignoring {payload}")
+            return
         if from_node.handle != payload.FromHandle:
             self.log(
                 f"from_node {from_node.name} has handle {from_node.handle}, not {payload.FromHandle}!"
@@ -106,28 +107,30 @@ class HpBoss(ShNodeActor):
         if payload.EventName == TurnHpOnOff.TurnOff:
             self.open_hp_scada_ops_relay()
             self.state = HpBossState.HpOff
-            self._send_to(self.primary_scada,
-                          SingleMachineState(
-                              MachineHandle=self.node.handle,
-                              StateEnum=HpBossState.enum_name(),
-                              State=self.state,
-                              UnixMs=int(time.time() * 1000)
-                          ))
+            self.report_state()
         elif self.state == HpBossState.HpOff:
-            # HpOff -> PreparingToTurnOn
             if self.data.use_sieg_loop:
+                # Sieg strategy: HpOff -> PreparingToTurnOn; the relay
+                # closes when the loop reports ready.
                 self.state = HpBossState.PreparingToTurnOn
-                # self._send_to(self.primary_scada, dispatch)
-                self._send_to(self.primary_scada,
-                            SingleMachineState(
-                                MachineHandle=self.node.handle,
-                                StateEnum=HpBossState.enum_name(),
-                                State=self.state,
-                                UnixMs=int(time.time() * 1000)
-                            ))
+                self.report_state()
                 asyncio.create_task(self._waiting_to_turn_on())
             else:
+                # Sieg-less strategy: close the call relay now.
                 self.close_hp_scada_ops_relay()
+                self.state = HpBossState.HpOn
+                self.report_state()
+
+    def report_state(self) -> None:
+        self._send_to(
+            self.primary_scada,
+            SingleMachineState(
+                MachineHandle=self.node.handle,
+                StateEnum=HpBossState.enum_name(),
+                State=self.state,
+                UnixMs=int(time.time() * 1000),
+            ),
+        )
 
     def process_sieg_loop_ready(self, from_node: ShNode, payload: SiegLoopReady):
         self.log(f"Got SiegLoop ready, state is {self.state}")
@@ -135,13 +138,7 @@ class HpBoss(ShNodeActor):
             self.state = HpBossState.HpOn
             self.close_hp_scada_ops_relay()
             self.log(f"Got SiegLoop ready. Changing state to {self.state}")
-            self._send_to(self.primary_scada,
-                            SingleMachineState(
-                                MachineHandle=self.node.handle,
-                                StateEnum=HpBossState.enum_name(),
-                                State=self.state,
-                                UnixMs=int(time.time() * 1000)
-                            ))
+            self.report_state()
         # TODO: name/cancelany waiting_to_turn_on task
 
     async def _waiting_to_turn_on(self)-> None:
@@ -150,16 +147,8 @@ class HpBoss(ShNodeActor):
         if self.state == HpBossState.PreparingToTurnOn:
             self.state = HpBossState.HpOff
             self.open_hp_scada_ops_relay()
-            self.log(f"Did not hear from Sieg loop for 2 moinutes. Turning off!")
-            self._send_to(
-                self.primary_scada,
-                SingleMachineState(
-                    MachineHandle=self.node.handle,
-                    StateEnum=HpBossState.enum_name(),
-                    State=HpBossState.HpOff,
-                    UnixMs=int(time.time() * 1000)
-                ),
-            )
+            self.log(f"Did not hear from Sieg loop for 2 minutes. Turning off!")
+            self.report_state()
             self.alert(
                 "Sieg loop did not report ready within 2 minutes",
                 "Turning off the heat pump (opened HP scada ops relay).",
