@@ -27,7 +27,12 @@ import transitions
 from actors.hydronic.shared import HydronicNode
 from gwsproto.enums import LogLevel, PicoCyclerEvent, PicoCyclerState
 from gwsproto.named_types import Glitch, GoDormant, PicoMissing, WakeUp
-from gwsproto.data_classes.components import PicoTankModuleComponent, PicoFlowModuleComponent, PicoBtuMeterComponent
+from gwsproto.data_classes.components import (
+    PicoBtuMeterComponent,
+    PicoFlowModuleComponent,
+    PicoTankModuleComponent,
+    SimPicoTankModuleComponent,
+)
 
 from scada_app_interface import ScadaAppInterface
 class PicoWarning(ValueError):
@@ -116,7 +121,7 @@ class PicoCycler(HydronicNode):
                 hw_uid = component.gt.HwUid
             elif isinstance(component, PicoFlowModuleComponent):
                 hw_uid = component.gt.HwUid
-            elif isinstance(component, PicoTankModuleComponent):
+            elif isinstance(component, (PicoTankModuleComponent, SimPicoTankModuleComponent)):
                 hw_uid = component.gt.PicoHwUid
             else:
                 continue
