@@ -29,7 +29,7 @@ from gwadmin.watch.clients.constrained_mqtt_client import MessageReceivedCallbac
 from gwadmin.watch.clients.constrained_mqtt_client import StateChangeCallback
 from gwsproto.named_types import (AdminDispatch,  AdminKeepAlive, AdminReleaseControl,
                         ScadaControlCapabilities, FsmEvent, SnapshotSpaceheat)
-from gwsproto.enums import TurnHpOnOff
+from gwsproto.enums import RebootPicos, TurnHpOnOff
 
 module_logger = logging.getLogger(__name__)
 
@@ -347,6 +347,25 @@ class RelayWatchClient(AdminSubClient):
             )
         )
 
+
+    def send_reboot_picos(self, timeout_seconds: Optional[int] = None) -> None:
+        """Ask the pico-cycler, kept running under admin, to power-cycle the
+        picos. The cycler adopts this TriggerId, so its fsm.full.report is
+        the answer to this dispatch."""
+        event = FsmEvent(
+            FromHandle=H0N.admin,
+            ToHandle=f"{H0N.admin}.{H0N.pico_cycler}",
+            EventType=RebootPicos.enum_name(),
+            EventName=RebootPicos.RebootPicos,
+            SendTimeUnixMs=int(datetime.datetime.now().timestamp() * 1000),
+            TriggerId=str(uuid.uuid4()),
+        )
+        self._admin_client.publish(
+            AdminDispatch(
+                DispatchTrigger=event,
+                TimeoutSeconds=timeout_seconds
+            )
+        )
 
     def send_keepalive(self, timeout_seconds: Optional[int] = None) -> None:
         self._admin_client.publish(

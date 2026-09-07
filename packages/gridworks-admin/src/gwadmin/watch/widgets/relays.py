@@ -21,6 +21,7 @@ from gwadmin.watch.clients.relay_client import RelayClientCallbacks
 from gwadmin.watch.clients.relay_client import RelayConfigChange
 from gwadmin.watch.widgets.mqtt import Mqtt
 from gwadmin.watch.widgets.mqtt import MqttState
+from gwadmin.watch.widgets.reboot_picos import RebootPicosButton
 from gwadmin.watch.widgets.relay_toggle_button import RelayToggleButton
 from gwadmin.watch.widgets.relay_widget_info import RelayWidgetConfig
 from gwadmin.watch.widgets.relay_widget_info import RelayWidgetInfo
@@ -33,6 +34,7 @@ module_logger.addHandler(TextualHandler())
 class Relays(Widget):
     BINDINGS = [
         ("n", "toggle_relay", "Toggle selected relay"),
+        ("p", "reboot_picos", "Reboot picos"),
     ]
 
     mqtt_state: Reactive[str] = reactive(ConstrainedMQTTClient.States.stopped)
@@ -97,6 +99,11 @@ class Relays(Widget):
                     config=Relays.curr_config,
                 ),
                 id="relay_toggle_button_container",
+                classes="subsection",
+            ),
+            HorizontalGroup(
+                RebootPicosButton(default_timeout_seconds=self._default_timeout_seconds),
+                id="reboot_picos_container",
                 classes="subsection",
             ),
             id="relays_container"
@@ -233,6 +240,9 @@ class Relays(Widget):
             "#relay_toggle_button",
             RelayToggleButton
         ).action_toggle_relay()
+
+    def action_reboot_picos(self) -> None:
+        self.query_one("#reboot_picos_button", RebootPicosButton).action_reboot_picos()
 
     def relay_client_callbacks(self) -> RelayClientCallbacks:
         return RelayClientCallbacks(
