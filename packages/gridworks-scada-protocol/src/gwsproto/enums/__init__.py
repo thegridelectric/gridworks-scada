@@ -74,6 +74,7 @@ from gwsproto.enums.market_quantity_unit import MarketQuantityUnit
 from gwsproto.enums.market_type_name import MarketTypeName
 from gwsproto.enums.pico_cycler_event import PicoCyclerEvent
 from gwsproto.enums.pico_cycler_state import PicoCyclerState
+from gwsproto.enums.reboot_picos import RebootPicos
 from gwsproto.enums.primary_pump_control import PrimaryPumpControl
 from gwsproto.enums.quantity import Quantity
 from gwsproto.enums.relay_closed_or_open import RelayClosedOrOpen
@@ -165,6 +166,7 @@ __all__ = [
     "MarketTypeName",
     "PicoCyclerEvent",
     "PicoCyclerState",
+    "RebootPicos",
     "PrimaryPumpControl",
     "Quantity",
     "RelayClosedOrOpen",

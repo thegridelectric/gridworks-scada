@@ -16,6 +16,7 @@ def test_pico_cycler_event() -> None:
         "ConfirmRebooted",
         "ShakeZombies",
         "RebootDud",
+        "Startup",
     }
 
     assert PicoCyclerEvent.default() == PicoCyclerEvent.ConfirmRebooted

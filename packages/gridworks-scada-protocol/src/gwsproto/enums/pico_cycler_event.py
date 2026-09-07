@@ -17,6 +17,7 @@ class PicoCyclerEvent(SemaEnum):
     ConfirmRebooted = auto()
     ShakeZombies = auto()
     RebootDud = auto()
+    Startup = auto()
 
     @classmethod
     def default(cls) -> "PicoCyclerEvent":

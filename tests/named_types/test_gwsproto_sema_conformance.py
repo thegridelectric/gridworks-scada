@@ -117,6 +117,7 @@ NO_WORD_ENUMS = {
     "pico.cycler.event",
     "pico.cycler.state",
     "primary.pump.control",
+    "reboot.picos",
     "relay.pin.state",
     "store.flow.relay",
     "top.event",
