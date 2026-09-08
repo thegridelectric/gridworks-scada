@@ -16,6 +16,7 @@ from gwsproto.enums import RelayClosedOrOpen, TempCalcMethod
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames
 from gwsproto.named_types import SyncedReadings, TankModuleParams
 from result import Ok, Result
+from actors.pico_liveness import PicoLiveness
 from actors.sh_node_actor import ShNodeActor
 from gwsproto.data_classes.house_0_names import ScadaWeb
 from gwsproto.named_types import PicoMissing, ChannelFlatlined, MicroVolts
@@ -26,7 +27,6 @@ R_FIXED_KOHMS = 5.65  # The voltage divider resistors in the TankModule
 THERMISTOR_T0 = 298  # i.e. 25 degrees
 THERMISTOR_R0_KOHMS = 10  # The R0 of the NTC thermistor - an industry standard
 PICO_VOLTS = 3.3
-FLATLINE_REPORT_S = 60
 SIM_PICO_TICK_S = 1
 # A tank at rest, stratified: depth1 is the top. Fixed until the plant drives
 # tank temperatures.
@@ -157,9 +157,11 @@ class ApiTankModule(ShNodeActor):
 
         self.pico_uid = self._component.gt.PicoHwUid
 
-        # Use the following for generating pico offline reports for triggering the pico cycler
-        self.last_heard = time.time()
-        self.last_error_report = time.time()
+        self.liveness = PicoLiveness(
+            expected_post_s=self.layout.capture_tuning_by_channel[
+                f"{self.name}-depth1-device"
+            ].CapturePeriodS
+        )
 
         self.depth_about_nodes: dict[int, str] = {
             1: f"{self.name}-depth1",
@@ -187,7 +189,7 @@ class ApiTankModule(ShNodeActor):
                 hw_uid=self.pico_uid,
                 about_node_names=[self.depth_about_nodes[d] for d in (1, 2, 3)],
                 micro_volts=[microvolts_at_c(SIM_TANK_AT_REST_C[d], beta) for d in (1, 2, 3)],
-                capture_period_s=self.flatline_seconds(),
+                capture_period_s=self.liveness.expected_post_s,
                 life_s=self._component.gt.SimLifeS,
                 reboot_s=self._component.gt.SimRebootS,
                 booted_at=time.time(),
@@ -305,7 +307,7 @@ class ApiTankModule(ShNodeActor):
             )
             return
 
-        self.last_heard = time.time()
+        self.liveness.heard(time.time())
 
         # SensorOrder: physical sensor index (1-based) -> correct physical depth
         sensor_order = self._component.gt.SensorOrder or [1, 2, 3]
@@ -406,40 +408,39 @@ class ApiTankModule(ShNodeActor):
     async def join(self) -> None:
         """IOLoop will take care of shutting down the associated task."""
 
-    def flatline_seconds(self) -> int:
-        return self.layout.capture_tuning_by_channel[
-            self.device_channels[1]
-        ].CapturePeriodS
+    def flatline_seconds(self) -> float:
+        return self.liveness.flatline_seconds
 
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:
         return [MonitoredName(self.name, self.flatline_seconds() * 2.1)]
 
     def missing(self) -> bool:
-        return time.time() - self.last_heard > self.flatline_seconds()
+        return self.liveness.missing(time.time())
+
+    def flatlined_channel_names(self) -> list[str]:
+        names = list(self.device_channels.values())
+        if self._component.gt.SendMicroVolts:
+            names.extend(self.electrical_channels.values())
+        return names
+
+    def report_missing(self) -> None:
+        assert self.pico_uid
+        self._send_to(
+            self.pico_cycler,
+            PicoMissing(ActorName=self.name, PicoHwUid=self.pico_uid),
+        )
+        for ch in self.flatlined_channel_names():
+            self._send_to(
+                self.primary_scada,
+                ChannelFlatlined(FromName=self.name, Channel=self.layout.data_channels[ch]),
+            )
 
     async def main(self):
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
-            if self.last_error_report > FLATLINE_REPORT_S:
-                if self.missing():
-                    assert self.pico_uid
-                    self._send_to(
-                        self.pico_cycler,
-                        PicoMissing(ActorName=self.name, PicoHwUid=self.pico_uid),
-                    )
-                    for ch in self.device_channels.values():
-                        self._send_to(
-                            self.primary_scada,
-                            ChannelFlatlined(FromName=self.name, Channel=self.layout.data_channels[ch]),
-                        )
-                    for ch in self.electrical_channels.values():
-                        self._send_to(
-                            self.primary_scada,
-                            ChannelFlatlined(FromName=self.name, Channel=self.layout.data_channels[ch]),
-                        )
-
-                    self.last_error_report = time.time()
+            if self.liveness.report_due(time.time()):
+                self.report_missing()
             await asyncio.sleep(10)
 
     def simple_beta(self, volts: float, fahrenheit=False) -> float:

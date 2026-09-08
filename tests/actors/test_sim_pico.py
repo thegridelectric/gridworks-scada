@@ -152,7 +152,7 @@ def test_sim_tank_actors_carry_a_source(app: ScadaApp) -> None:
         assert isinstance(a._component, SimPicoTankModuleComponent)
         assert a.sim_pico is not None
         assert a.sim_pico.hw_uid == a._component.gt.PicoHwUid
-        assert a.sim_pico.capture_period_s == a.flatline_seconds()
+        assert a.sim_pico.capture_period_s == a.liveness.expected_post_s
         assert a.sim_pico.about_node_names == [a.depth_about_nodes[d] for d in (1, 2, 3)]
         assert a.sim_pico.micro_volts == [
             microvolts_at_c(SIM_TANK_AT_REST_C[d], a._component.gt.ThermistorBeta) for d in (1, 2, 3)

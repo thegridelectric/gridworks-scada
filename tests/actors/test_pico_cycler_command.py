@@ -24,8 +24,9 @@ from gwsproto.enums import (
     PicoCyclerEvent,
     PicoCyclerState,
     RebootPicos,
+    SinglePicoState,
 )
-from gwsproto.named_types import FsmEvent, Glitch, MachineStates
+from gwsproto.named_types import FsmEvent, Glitch, MachineStates, PicoMissing
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -226,3 +227,30 @@ def test_relay_open_wait_from_an_earlier_cycle_does_not_close_for_a_later_one(ap
 
     assert cycler.state == PicoCyclerState.RelayOpen
     assert not any(isinstance(p, FsmEvent) for dst, p in sent)
+
+
+@pytest.mark.asyncio
+async def test_pico_missing_during_a_commanded_cycle_is_expected(app: ScadaApp) -> None:
+    """A pico cut by the relay open is silent by design: a PicoMissing
+    inside the minute after the open leaves it Alive and reports no
+    roster row; a minute on, the same report marks it Flatlined."""
+    cycler, sent = cycler_under_admin(app)
+    actor = cycler.pico_actors[0]
+    pico = cycler.pico_by_actor[actor]
+    cycler.last_open_time = time.time() - 3600
+    command(cycler, reboot_command(cycler.node.handle))
+    cycler.confirm_opened()
+    assert cycler.state == PicoCyclerState.RelayOpen
+    sent.clear()
+
+    missing = PicoMissing(ActorName=actor.name, PicoHwUid=pico)
+    cycler.process_pico_missing(actor, missing)
+    assert cycler.pico_state(pico) == SinglePicoState.Alive
+    assert [p for _, p in sent if isinstance(p, MachineStates)] == []
+
+    cycler.last_open_time -= 61
+    cycler.process_pico_missing(actor, missing)
+    assert cycler.pico_state(pico) == SinglePicoState.Flatlined
+    for task in asyncio.all_tasks():
+        if task is not asyncio.current_task():
+            task.cancel()

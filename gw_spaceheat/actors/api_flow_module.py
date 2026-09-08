@@ -22,6 +22,7 @@ from gwsproto.named_types import (
     TicklistReedReport,
 )
 from gwsproto.data_classes.house_0_names import ScadaWeb
+from actors.pico_liveness import PicoLiveness
 from actors.sh_node_actor import ShNodeActor
 from gwsproto.enums import LogLevel
 from gwsproto.named_types import Glitch, PicoMissing
@@ -30,7 +31,6 @@ from result import Ok, Result
 from drivers.pipe_flow_sensor.signal_processing import butter_lowpass, filtering
 from scada_app_interface import ScadaAppInterface
 
-FLATLINE_REPORT_S = 60
 
 
 class FlowHallParams(BaseModel):
@@ -95,8 +95,7 @@ class ApiFlowModule(ShNodeActor):
             self.gpm_channel.Name
         ].CapturePeriodS
         self.latest_sync_send_s = time.time()
-        self.last_heard = time.time()
-        self.last_error_report = time.time()
+        self.liveness = PicoLiveness(expected_post_s=self.expected_post_s())
 
         self.slow_turner: bool = False
         if self._component.gt.ConstantGallonsPerTick > 0.5:
@@ -188,11 +187,31 @@ class ApiFlowModule(ShNodeActor):
             if self.data.use_sieg_loop and self.node.name == "sieg-flow":
                 self._send_to(self.derived_generator, msg)
 
-    def flatline_seconds(self) -> int:
+    def expected_post_s(self) -> float:
+        """The longest the pico stays silent by design: a hall pico posts
+        an empty ticklist after PublishEmptyTicklistAfterS, a reed pico
+        posts any ticklist after PublishAnyTicklistAfterS."""
         if self._component.gt.DeviceType == DeviceType.GridworksPicoFlowHall:
-            return self._component.gt.PublishEmptyTicklistAfterS * 2.5
+            return self._component.gt.PublishEmptyTicklistAfterS
         if self._component.gt.DeviceType == DeviceType.GridworksPicoFlowReed:
-            return self._component.gt.PublishAnyTicklistAfterS * 2.5
+            return self._component.gt.PublishAnyTicklistAfterS
+        raise ValueError(
+            f"{self.name}: no expected post period for DeviceType {self._component.gt.DeviceType}"
+        )
+
+    def flatline_seconds(self) -> float:
+        return self.liveness.flatline_seconds
+
+    def missing(self) -> bool:
+        return self.liveness.missing(time.time())
+
+    def report_missing(self) -> None:
+        self.latest_gpm = None
+        self.latest_hz = None
+        self._send_to(
+            self.pico_cycler,
+            PicoMissing(ActorName=self.name, PicoHwUid=self.hw_uid),
+        )
 
     # This registers ApiFlowModule with the watchdog.
     @property
@@ -219,21 +238,8 @@ class ApiFlowModule(ShNodeActor):
 
             self._send(PatInternalWatchdogMessage(src=self.name))
 
-            # Check if flatlined, if so send an error report every FLATLINE_REPORT_S
-            if (
-                time.time() - self.last_heard > self.flatline_seconds() and
-                time.time() - self.last_error_report > FLATLINE_REPORT_S
-                ):
-                self.latest_gpm = None
-                self.latest_hz = None
-                self._send_to(
-                    self.pico_cycler,
-                    PicoMissing(
-                        ActorName=self.name,
-                        PicoHwUid=self.hw_uid,
-                    ),
-                )
-                self.last_error_report = time.time()
+            if self.liveness.report_due(time.time()):
+                self.report_missing()
 
             try:
                 # Publish readings synchronously every capture_s
@@ -539,7 +545,7 @@ class ApiFlowModule(ShNodeActor):
         if data.HwUid != self.hw_uid:
             self.log(f"{self.name}: Ignoring data from pico {data.HwUid} - expect {self.hw_uid}!")
             return
-        self.last_heard = time.time()
+        self.liveness.heard(time.time())
 
         # Report ticklist if specified in hardware layout
         if self._component.gt.SendTickLists:
@@ -577,7 +583,7 @@ class ApiFlowModule(ShNodeActor):
         if data.HwUid != self.hw_uid:
             self.log(f"Ignoring data from pico {data.HwUid} - expect {self.hw_uid}!")
             return
-        self.last_heard = time.time()
+        self.liveness.heard(time.time())
 
         # Report ticklist if specified in hardware layout
         if self._component.gt.SendTickLists:

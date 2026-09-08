@@ -406,10 +406,12 @@ class PicoCycler(HydronicNode):
         if self.state == PicoCyclerState.RelayOpening:
             # ConfirmOpened: RelayOpening -> RelayOpen
             if self.trigger_event(PicoCyclerEvent.ConfirmOpened):
+                # The picos lose power here; PicoMissing is expected for
+                # the next minute, not a fault.
+                self.last_open_time = time.time()
                 asyncio.create_task(self._wait_and_close_relay())
 
     def confirm_closed(self) -> None:
-        self.last_open_time = time.time()
         if self.state == PicoCyclerState.RelayClosing:
             # ConfirmClosed: RelayClosing -> PicosRebooting
             if self.trigger_event(PicoCyclerEvent.ConfirmClosed):

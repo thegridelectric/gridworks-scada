@@ -5,6 +5,7 @@ from functools import cached_property
 from typing import Optional, Sequence
 
 from actors.pico_actor_base import PicoActorBase
+from actors.pico_liveness import PicoLiveness
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 from gwproactor import MonitoredName, Problems
@@ -19,7 +20,6 @@ from gwsproto.named_types import (
 )
 from result import Ok, Result
 from scada_app_interface import ScadaAppInterface
-FLATLINE_REPORT_S = 60
 
 
 class ApiBtuMeter(PicoActorBase):
@@ -68,10 +68,13 @@ class ApiBtuMeter(PicoActorBase):
                 handler=self._handle_multichannel_snapshot_post,
             )
         self.pico_uid = self._component.gt.HwUid
-        self.last_heard = time.time()  # used for monitoring flatlined pico
-        self.last_error_report = time.time()
         # Find channels by matching AboutNodeName to component's node names
         self.flow_channel = self.layout.channel(self._component.gt.FlowChannelName)
+        self.liveness = PicoLiveness(
+            expected_post_s=self.layout.capture_tuning_by_channel[
+                self.flow_channel.Name
+            ].CapturePeriodS
+        )
         self.hot_temp_channel = self.layout.channel(self._component.gt.HotChannelName)
         self.cold_temp_channel = self.layout.channel(self._component.gt.ColdChannelName)
         # CT channel is optional
@@ -225,7 +228,7 @@ class ApiBtuMeter(PicoActorBase):
 
     def _process_multichannel_snapshot(self, data: MultichannelSnapshot) -> None:
         if data.HwUid == self.pico_uid:
-            self.last_heard = time.time()
+            self.liveness.heard(time.time())
         else:
             self.log(
                 f"{self.name}: Ignoring data from pico {data.HwUid} - not recognized!"
@@ -275,54 +278,37 @@ class ApiBtuMeter(PicoActorBase):
         """IOLoop will take care of shutting down the associated task."""
 
     def flatline_seconds(self) -> float:
-        tuning = self.layout.capture_tuning_by_channel[self.flow_channel.Name]
-        return tuning.CapturePeriodS * 2.5
+        return self.liveness.flatline_seconds
 
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:
         return [MonitoredName(self.name, self.flatline_seconds() * 2.1)]
 
     def missing(self) -> bool:
-        return time.time() - self.last_heard > self.flatline_seconds()
+        return self.liveness.missing(time.time())
+
+    def flatlined_channels(self) -> list:
+        channels = [self.flow_channel, self.hot_temp_channel, self.cold_temp_channel]
+        if self.ct_channel:
+            channels.append(self.ct_channel)
+        return channels
+
+    def report_missing(self) -> None:
+        if not self.pico_uid:
+            return
+        self._send_to(
+            self.pico_cycler,
+            PicoMissing(ActorName=self.name, PicoHwUid=self.pico_uid),
+        )
+        for channel in self.flatlined_channels():
+            self._send_to(
+                self.primary_scada,
+                ChannelFlatlined(FromName=self.name, Channel=channel),
+            )
 
     async def main(self):
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
-            if (
-                time.time() - self.last_heard > self.flatline_seconds()
-                and time.time() - self.last_error_report > FLATLINE_REPORT_S
-            ):
-                if self.device_type == DeviceType.Gw101:
-                    if self.missing() and self.pico_uid:
-                        self._send_to(
-                            self.pico_cycler,
-                            PicoMissing(ActorName=self.name, PicoHwUid=self.pico_uid),
-                        )
-                        self._send_to(
-                            self.primary_scada,
-                            ChannelFlatlined(
-                                FromName=self.name, Channel=self.flow_channel
-                            ),
-                        )
-                        self._send_to(
-                            self.primary_scada,
-                            ChannelFlatlined(
-                                FromName=self.name, Channel=self.hot_temp_channel
-                            ),
-                        )
-                        self._send_to(
-                            self.primary_scada,
-                            ChannelFlatlined(
-                                FromName=self.name, Channel=self.cold_temp_channel
-                            ),
-                        )
-                        if self.ct_channel:
-                            self._send_to(
-                                self.primary_scada,
-                                ChannelFlatlined(
-                                    FromName=self.name, Channel=self.ct_channel
-                                ),
-                            )
-                        self.last_error_report = time.time()
-
+            if self.liveness.report_due(time.time()):
+                self.report_missing()
             await asyncio.sleep(10)
