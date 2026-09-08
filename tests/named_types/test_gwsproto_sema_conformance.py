@@ -119,11 +119,7 @@ NO_WORD_ENUMS = {
 }
 
 # --- KNOWN conformance debt to burn down (should shrink to empty) ---
-# report.event: gwsproto pins the authored-but-unpromoted sema draft 004 (the
-# identity/time axioms restored); sema's registry still names 003 as latest.
-# Promote 004 in sema (drop the /draft/ $id, add examples, latest_version),
-# then remove this entry.
-KNOWN_TYPE_VERSION_DRIFT: set[str] = {"report.event"}
+KNOWN_TYPE_VERSION_DRIFT: set[str] = set()
 KNOWN_ENUM_VERSION_DRIFT: set[str] = set()
 
 KNOWN_FORMAT_ISSUES: set[str] = set()
