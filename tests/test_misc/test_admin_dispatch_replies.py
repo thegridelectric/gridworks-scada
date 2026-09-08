@@ -105,9 +105,9 @@ def test_nack_is_paired_with_the_command_it_refuses() -> None:
     reply = replies[0]
     assert not reply.taken
     assert reply.pending is not None
-    assert reply.pending.label == f"{H0N.pico_cycler} {RebootPicos.RebootPicos}"
+    assert reply.pending.label == RebootPicos.RebootPicos
     assert reply.pending.to_handle == f"{H0N.admin}.{H0N.pico_cycler}"
-    assert f"refused {H0N.pico_cycler} {RebootPicos.RebootPicos}: Busy" in reply.describe()
+    assert reply.describe() == f"{reply.reply.FromHandle} refused {RebootPicos.RebootPicos}: Busy"
 
 
 def test_ack_is_taken_and_a_reply_is_delivered_once() -> None:
@@ -138,6 +138,7 @@ def test_reply_to_a_command_this_panel_did_not_send_is_still_surfaced() -> None:
     )
     client.process_mqtt_message(*scada_message(ack))
     assert len(replies) == 1 and replies[0].pending is None
+    assert replies[0].describe() is None
 
 
 def test_other_messages_are_not_replies() -> None:

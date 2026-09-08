@@ -341,7 +341,7 @@ class RelayWatchClient(AdminSubClient):
             SendTimeUnixMs=int(set_time.timestamp() * 1000),
             TriggerId=str(uuid.uuid4()),
         )
-        self._replies.note(event.TriggerId, event.ToHandle, f"{node_name} {event_name}")
+        self._replies.note(event.TriggerId, event.ToHandle, event_name)
         self._admin_client.publish(
             AdminDispatch(
                 DispatchTrigger=event,

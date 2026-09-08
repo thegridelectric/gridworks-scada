@@ -247,19 +247,17 @@ class RelaysApp(App):
         self.notify_dispatch_reply(message.reply)
 
     def notify_dispatch_reply(self, reply: DispatchReply) -> None:
-        self.notify(
-            reply.describe(),
-            severity="information" if reply.taken else "warning",
-        )
+        """One toast per reply to a command this panel sent; a reply to
+        someone else's command stays silent."""
+        line = reply.describe()
+        if line is None:
+            return
+        self.notify(line, severity="information" if reply.taken else "warning")
 
 
     def on_keep_alive_button_pressed(self, _: KeepAliveButton.Pressed):
-        if _.timeout_seconds is not None:
-            self.notify(f"Keeping admin alive for {int(_.timeout_seconds/60)} minutes")
-            self._relay_client.send_keepalive(_.timeout_seconds)
-        else:
-            self.notify(f"Keeping admin alive for maximum timeout ({int(MAX_ADMIN_TIMEOUT/60)} min)")
-            self._relay_client.send_keepalive(_.timeout_seconds)
+        self._relay_client.send_keepalive(_.timeout_seconds)
+        if _.timeout_seconds is None:
             timer_display = self.app.query_one(TimerDigits)
             timer_display.restart(MAX_ADMIN_TIMEOUT)
 

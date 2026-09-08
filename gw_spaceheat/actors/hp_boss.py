@@ -15,7 +15,8 @@ from result import Ok, Result
 
 from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
-from gwsproto.enums import LogLevel, TurnHpOnOff
+from actors import command_reply
+from gwsproto.enums import GwScadaCmdRefusalReason, LogLevel, TurnHpOnOff
 from gwsproto.named_types import FsmEvent, Glitch, SingleMachineState
 
 class SiegLoopReady(BaseModel):
@@ -95,9 +96,23 @@ class HpBoss(ShNodeActor):
         # adding the following
         # if time.time() - self.last_cmd_time < 0.5:
         #     self.log("IGNORING COMMAND ")
-        if payload.EventType !=  TurnHpOnOff.enum_name():
-            self.log(f"Only listens to {TurnHpOnOff.enum_name()}")
+        if (
+            payload.EventType != TurnHpOnOff.enum_name()
+            or payload.EventName not in TurnHpOnOff.values()
+        ):
+            self.log(f"Only listens to {TurnHpOnOff.enum_name()}; refusing {payload}")
+            self._send_to(
+                from_node,
+                command_reply.nack(
+                    self.node.handle, payload.FromHandle, payload.TriggerId,
+                    GwScadaCmdRefusalReason.UnknownEvent,
+                ),
+            )
             return
+        self._send_to(
+            from_node,
+            command_reply.ack(self.node.handle, payload.FromHandle, payload.TriggerId),
+        )
         # No actuators-ready gate: the relay actor defers a command until
         # its boot adoption completes and retries it through the verify
         # loop, and the scada's ActuatorsReady only fires on layouts that

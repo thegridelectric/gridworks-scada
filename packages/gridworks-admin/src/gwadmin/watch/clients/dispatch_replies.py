@@ -42,11 +42,15 @@ class DispatchReply(NamedTuple):
     def taken(self) -> bool:
         return isinstance(self.reply, DispatchAck)
 
-    def describe(self) -> str:
-        what = self.pending.label if self.pending else f"command {self.reply.TriggerId[:8]}"
+    def describe(self) -> Optional[str]:
+        """The one line the panel shows, e.g. "admin.buffer-bottom-elt-relay
+        took OpenRelay"; None for a reply to a command this panel did not
+        send, which the panel keeps silent."""
+        if self.pending is None:
+            return None
         if isinstance(self.reply, DispatchNack):
-            return f"{self.reply.FromHandle} refused {what}: {self.reply.Reason.value}"
-        return f"{self.reply.FromHandle} took {what}"
+            return f"{self.reply.FromHandle} refused {self.pending.label}: {self.reply.Reason.value}"
+        return f"{self.reply.FromHandle} took {self.pending.label}"
 
 
 class DispatchReplyTracker:

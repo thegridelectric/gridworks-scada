@@ -199,7 +199,7 @@ def test_house0_output_forwards_to_dfr_multiplexer() -> None:
     out.process_message(
         Message(Src="auto", Dst="dist-010v", Payload=dispatch(out, DISPATCH_VOLTS_TIMES_TEN))
     )
-    (dst, forwarded), = sent
+    (dst, forwarded), = [(d, p) for d, p in sent if isinstance(p, AnalogDispatch)]
     assert dst == out.dfr_multiplexer.name
     assert isinstance(forwarded, AnalogDispatch)
     assert forwarded.FromHandle == out.node.handle

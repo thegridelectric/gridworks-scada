@@ -61,6 +61,8 @@ from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 from gwsproto.enums import LogLevel, ChangeKeepSend, HpLoopKeepSend
 from gwsproto.named_types import FsmEvent, Glitch, SingleMachineState
+from actors import command_reply
+from gwsproto.enums import GwScadaCmdRefusalReason
 
 # Internal FSM state before the first pin adoption / confirmation. Never
 # published: the state vocabularies carry no Unknown value, and an
@@ -293,9 +295,24 @@ class Relay(ShNodeActor):
             self.log(f"Handle is {self.node.Handle}; ignoring {message}")
             return Ok(False)
 
-        if message.EventType != self.my_event_enum.enum_name():
-            print(f"Not a {self.my_event_enum} event type. Ignoring: {message}")
+        if (
+            message.EventType != self.my_event_enum.enum_name()
+            or message.EventName not in self.my_event_enum.values()
+        ):
+            self.log(f"Not a {self.my_event_enum.enum_name()} event. Refusing: {message}")
+            self._send_to(
+                from_node,
+                command_reply.nack(
+                    self.node.handle, message.FromHandle, message.TriggerId,
+                    GwScadaCmdRefusalReason.UnknownEvent,
+                ),
+            )
+            return Ok(False)
 
+        self._send_to(
+            from_node,
+            command_reply.ack(self.node.handle, message.FromHandle, message.TriggerId),
+        )
         if isinstance(self._component, I2cRelayComponent):
             return self._process_event_i2c(from_node, message)
 

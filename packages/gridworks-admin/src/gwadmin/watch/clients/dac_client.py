@@ -290,7 +290,7 @@ class DACWatchClient(AdminSubClient):
             TriggerId=str(uuid.uuid4()),
             UnixTimeMs=int(set_time.timestamp() * 1000),
         )
-        self._replies.note(dispatch.TriggerId, dispatch.ToHandle, f"{dac_node_name} -> {value}")
+        self._replies.note(dispatch.TriggerId, dispatch.ToHandle, f"set {value}")
         self._admin_client.publish(
             AdminAnalogDispatch(
                 Dispatch=dispatch,

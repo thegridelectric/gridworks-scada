@@ -457,7 +457,7 @@ class Scada(PrimeActor, ScadaInterface):
             self.log("Admin Wakes Up")
         self._renew_admin_timeout(timeout_seconds=payload.TimeoutSeconds)
         event = payload.DispatchTrigger
-        self.log(f"AdminDispatch event is {event.EventName}")
+        self.log(f"AdminDispatch {event.EventName} to {event.ToHandle}")
 
         to_name = event.ToHandle.split(".")[-1]
         # TODO: change this to work if relays etc are NOT on primary scada

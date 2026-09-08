@@ -20,13 +20,14 @@ from actors.pico_cycler import PicoCycler
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import (
     ChangeRelayState,
+    GwScadaCmdRefusalReason,
     MainAutoEvent,
     PicoCyclerEvent,
     PicoCyclerState,
     RebootPicos,
     SinglePicoState,
 )
-from gwsproto.named_types import FsmEvent, Glitch, MachineStates, PicoMissing
+from gwsproto.named_types import DispatchNack, FsmEvent, Glitch, MachineStates, PicoMissing
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -155,7 +156,10 @@ def test_other_event_types_are_refused(app: ScadaApp) -> None:
     command(cycler, event)
 
     assert cycler.state == PicoCyclerState.PicosLive
-    assert sent == []
+    assert relay_events(sent) == []
+    nacks = [p for _, p in sent if isinstance(p, DispatchNack)]
+    assert [n.Reason for n in nacks] == [GwScadaCmdRefusalReason.UnknownEvent]
+    assert nacks[0].TriggerId == event.TriggerId
 
 
 def test_command_while_cycling_is_ignored(app: ScadaApp) -> None:

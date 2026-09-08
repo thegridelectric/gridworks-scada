@@ -18,7 +18,8 @@ from scada_app_interface import ScadaAppInterface
 from gwsproto.data_classes.components import I2cDacOutputComponent
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.data_classes.sh_node import ShNode
-from gwsproto.enums import ActorClass, I2cDacChannel, I2cDacVref
+from actors import command_reply
+from gwsproto.enums import ActorClass, GwScadaCmdRefusalReason, I2cDacChannel, I2cDacVref
 from gwsproto.named_types import (
     AnalogDispatch,
     DacOutputConfig,
@@ -162,7 +163,11 @@ class ZeroTenOutputer(ShNodeActor):
     # ---- dispatch ----
 
     def process_analog_dispatch(self, dispatch: AnalogDispatch) -> None:
-        if not self.layout.node_by_handle(dispatch.FromHandle):
+        """The reply goes to the node at the dispatch's FromHandle, the
+        commander, rather than to the message's sender: the scada relays an
+        admin dispatch under its own name with FromHandle still admin's."""
+        from_node = self.layout.node_by_handle(dispatch.FromHandle)
+        if from_node is None:
             self.log(f"Ignoring dispatch from handle {dispatch.FromHandle} - not in layout!!")
             return
         if dispatch.ToHandle != self.node.handle:
@@ -172,10 +177,21 @@ class ZeroTenOutputer(ShNodeActor):
             self.log(f"Ignoring dispatch {dispatch} -- expect AboutName to be about me")
         if dispatch.Value not in range(VOLTS_TIMES_TEN_MAX + 1):
             self.log(
-                f"Ignoring dispatch {dispatch} - value out of range. "
+                f"Refusing dispatch {dispatch} - value out of range. "
                 f"Should be 0-{VOLTS_TIMES_TEN_MAX}"
             )
+            self._send_to(
+                from_node,
+                command_reply.nack(
+                    self.node.handle, dispatch.FromHandle, dispatch.TriggerId,
+                    GwScadaCmdRefusalReason.OutOfRange,
+                ),
+            )
             return
+        self._send_to(
+            from_node,
+            command_reply.ack(self.node.handle, dispatch.FromHandle, dispatch.TriggerId),
+        )
         if self.dac is not None:
             self.target_code = code_from_volts_times_ten(dispatch.Value, self.config)
             self.log(

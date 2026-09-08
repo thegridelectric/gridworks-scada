@@ -23,7 +23,14 @@ from result import Ok, Result
 from transitions import Machine
 import transitions
 from actors.hydronic.shared import HydronicNode
-from gwsproto.enums import LogLevel, PicoCyclerEvent, PicoCyclerState, SinglePicoState
+from actors import command_reply
+from gwsproto.enums import (
+    GwScadaCmdRefusalReason,
+    LogLevel,
+    PicoCyclerEvent,
+    PicoCyclerState,
+    SinglePicoState,
+)
 from gwsproto.named_types import Glitch, GoDormant, PicoMissing, WakeUp
 from gwsproto.data_classes.components import (
     PicoBtuMeterComponent,
@@ -479,18 +486,39 @@ class PicoCycler(HydronicNode):
             )
             self.log(f"Handle is {self.node.handle}; ignoring {message}")
             return
-        if message.EventType != RebootPicos.enum_name():
+        if (
+            message.EventType != RebootPicos.enum_name()
+            or message.EventName not in RebootPicos.values()
+        ):
             self.log(
-                f"Ignoring {message.EventType} event: the pico-cycler takes only {RebootPicos.enum_name()}"
+                f"Refusing {message.EventType} {message.EventName}: the pico-cycler takes only {RebootPicos.enum_name()}"
+            )
+            self._send_to(
+                from_node,
+                command_reply.nack(
+                    self.node.handle, message.FromHandle, message.TriggerId,
+                    GwScadaCmdRefusalReason.UnknownEvent,
+                ),
             )
             return
         if self.state not in {PicoCyclerState.PicosLive, PicoCyclerState.AllZombies}:
             self.log(f"State is {self.state} so not rebooting picos on command")
+            self._send_to(
+                from_node,
+                command_reply.nack(
+                    self.node.handle, message.FromHandle, message.TriggerId,
+                    GwScadaCmdRefusalReason.Busy,
+                ),
+            )
             return
         self.trigger_id = message.TriggerId
         self.fsm_comment = f"{message.EventName} commanded by {message.FromHandle}"
         # ShakeZombies: AllZombies/PicosLive -> RelayOpening
         if self.trigger_event(PicoCyclerEvent.ShakeZombies):
+            self._send_to(
+                from_node,
+                command_reply.ack(self.node.handle, message.FromHandle, message.TriggerId),
+            )
             self.log(f"TRIGGERING PICO REBOOT! {self.fsm_comment}")
             self.open_vdc_relay(self.trigger_id)
 
