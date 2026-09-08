@@ -58,17 +58,19 @@ def test_scada_command_tree_is_prefix_closed(app: ScadaApp, boss: str) -> None:
 
 @pytest.mark.parametrize("boss", ["admin", "local_control", "leaf_ally"])
 def test_pico_cycler_keeps_vdc_relay_under_every_boss(app: ScadaApp, boss: str) -> None:
-    """An interior node keeps its subtree: the pico-cycler hangs under the
-    tree's root (admin, or auto) with vdc-relay under it, whoever the boss
-    is; every other actuator reports to the boss."""
+    """An interior node keeps its subtree: five-v-boss hangs under the
+    tree's root (admin, or auto) with the pico-cycler and vdc-relay under
+    it, whoever the boss is; every other actuator reports to the boss."""
     scada = app.scada
     capture(scada)
     boss_node = getattr(scada, boss)
     scada.set_command_tree(boss_node)
     root = boss_node.handle.split(".")[0]
+    five_v_boss = scada.layout.five_v_boss
     cycler = scada.pico_cycler
     vdc = scada.layout.vdc_relay
-    assert cycler.handle == f"{root}.{H0N.pico_cycler}"
+    assert five_v_boss.handle == f"{root}.{H0N.five_v_boss}"
+    assert cycler.handle == f"{five_v_boss.handle}.{H0N.pico_cycler}"
     assert vdc.handle == f"{cycler.handle}.{vdc.name}"
     others = [n for n in scada.layout.actuators if n.Name != vdc.name]
     assert others
@@ -103,7 +105,7 @@ def test_flatlined_pico_is_cycled_while_admin_holds_tree(app: ScadaApp) -> None:
     assert len(events) == 1
     event = events[0]
     vdc = scada.layout.vdc_relay
-    assert vdc.handle == f"{H0N.admin}.{H0N.pico_cycler}.{vdc.name}"
+    assert vdc.handle == f"{H0N.admin}.{H0N.five_v_boss}.{H0N.pico_cycler}.{vdc.name}"
     assert event.ToHandle == vdc.handle
-    assert event.FromHandle == f"{H0N.admin}.{H0N.pico_cycler}"
+    assert event.FromHandle == f"{H0N.admin}.{H0N.five_v_boss}.{H0N.pico_cycler}"
     assert event.EventName == ChangeRelayState.OpenRelay

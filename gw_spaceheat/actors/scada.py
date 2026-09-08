@@ -45,6 +45,7 @@ from gwsproto.named_types import (
 )
 
 from actors.command_node import build_command_tree
+from actors.five_v_boss import shape_five_v_subtree
 from actors.scada_data import ScadaData, load_operational_params
 from actors.config import ScadaSettings
 from gwsproto.data_classes.sh_node import ShNode
@@ -60,8 +61,8 @@ from actors.codec_factories import ScadaCodecFactory
 from actors.contract_handler import ContractHandler
 from gwsproto.data_classes.house_0_names import H0N, ScadaWeb
 from gwsproto.data_classes.components.web_server_component import WebServerComponent
-from gwsproto.enums import (HpBossState, LeafAllyBufferOnlyState,  LeafAllyAllTanksState,
-                            PicoCyclerState, RebootPicos,
+from gwsproto.enums import (FiveVBossState, HpBossState, LeafAllyBufferOnlyState,  LeafAllyAllTanksState,
+                            RebootPicos, Turn5VOnOff,
                             SlowDispatchContractStatus, LocalControlTopState,
                    MainAutoEvent, MainAutoState, SeasonalStorageMode,  TopState, TurnHpOnOff)
 
@@ -1007,6 +1008,11 @@ class Scada(PrimeActor, ScadaInterface):
             self.log("AutoWakesUp: Dormant -> LocalControl")
             self.set_command_tree(self.local_control)
             self._send_to(self.local_control, WakeUp(ToName=H0N.local_control))
+            # LocalControl never inherits a dark fleet: five-v-boss restores
+            # the 5 V if admin left it held off.
+            five_v_boss = self.layout.node(H0N.five_v_boss)
+            if five_v_boss is not None:
+                self._send_to(five_v_boss, WakeUp(ToName=five_v_boss.Name))
 
     def auto_wakes_up(self) -> None:
         """
@@ -1197,8 +1203,9 @@ class Scada(PrimeActor, ScadaInterface):
         """ Command Tree
         ```
         root (admin | auto)
-        ├── pico-cycler
-        │     └── vdc-relay
+        ├── five-v-boss
+        │     └── pico-cycler          (PicoCycler: the cycler owns the relay)
+        │           └── vdc-relay
         └── boss (admin, or an auto node: local-control, leaf-ally)
               ├── hp-boss
               │     └── hp-scada-ops-relay
@@ -1208,10 +1215,13 @@ class Scada(PrimeActor, ScadaInterface):
               └── every other relay and 0-10V output
         ```
         An interior node keeps its subtree: a rewrite reparents hp-boss,
-        sieg-loop and pico-cycler and never reaches through them to their
-        relays. The pico-cycler hangs under the tree's root, not the boss:
-        no auto node commands it, and it runs in every top state, so admin
-        taking the tree moves it to `admin.pico-cycler` with its relay.
+        sieg-loop and five-v-boss and never reaches through them to their
+        relays. five-v-boss hangs under the tree's root, not the boss: no
+        auto node commands it, and it runs in every top state, so admin
+        taking the tree moves it to `admin.five-v-boss` with its subtree.
+        Its subtree's shape is its own (while it holds the 5 V off it owns
+        vdc-relay directly and the cycler is a leaf), read off its last
+        reported state.
         hp-boss is the heat pump's command node in every layout; the loop
         pair rides only when the ops word says the loop is used.
         """
@@ -1220,13 +1230,12 @@ class Scada(PrimeActor, ScadaInterface):
         ops_relay = self.layout.hp_scada_ops_relay
         ops_relay.Handle = f"{hp_boss.Handle}.{ops_relay.Name}"
         under_fsm = {ops_relay.Name}
-        pico_cycler = self.layout.node(H0N.pico_cycler)
-        if pico_cycler is not None:
+        five_v_boss = self.layout.node(H0N.five_v_boss)
+        if five_v_boss is not None:
             root = boss.handle.split(".")[0]
-            pico_cycler.Handle = f"{root}.{pico_cycler.Name}"
-            vdc_relay = self.layout.vdc_relay
-            vdc_relay.Handle = f"{pico_cycler.Handle}.{vdc_relay.Name}"
-            under_fsm.add(vdc_relay.Name)
+            five_v_boss.Handle = f"{root}.{five_v_boss.Name}"
+            shape_five_v_subtree(self.layout, self.five_v_boss_state)
+            under_fsm.add(self.layout.vdc_relay.Name)
         if self.data.use_sieg_loop:
             sieg_loop = self.layout.node(H0N.sieg_loop)
             sieg_loop.Handle = f"{boss.handle}.{sieg_loop.Name}"
@@ -1566,7 +1575,7 @@ class Scada(PrimeActor, ScadaInterface):
             and sms.MachineHandle.split(".")[-1] == from_node.Name
             and (
                 from_node.ActorClass == ActorClass.Relay
-                or from_node.ActorClass in self.COMMAND_NODE_INTERFACES
+                or from_node.ActorClass in self.COMMAND_NODE_CLASSES
             )
         ):
             self._send_to(self.admin, sms)
@@ -1646,54 +1655,82 @@ class Scada(PrimeActor, ScadaInterface):
     def data(self) -> ScadaData:
         return self._data
 
-    # The interior command nodes' vocabulary, by ActorClass. The layout word
-    # does not yet carry a per-node command interface, so the two nodes that
-    # take event commands without a relay config declare theirs here; the
-    # relays' come from their own config.
-    COMMAND_NODE_INTERFACES: dict[ActorClass, tuple[str, str, list[tuple[str, str]]]] = {
-        ActorClass.HpBoss: (
+    # The interior command nodes an operator sees as rows: their own state
+    # reaches the panel live and they are listed in the capabilities.
+    COMMAND_NODE_CLASSES = {ActorClass.FiveVBoss, ActorClass.PicoCycler, ActorClass.HpBoss}
+
+    # The interior command nodes' vocabularies, by ActorClass: one entry per
+    # vocabulary (event type, state type, the commands and the state each
+    # leads to). The layout word does not yet carry a per-node command
+    # interface, so the nodes that take event commands without a relay
+    # config declare theirs here; the relays' come from their own config.
+    # The pico-cycler has none: it is commanded through five-v-boss.
+    COMMAND_NODE_INTERFACES: dict[ActorClass, list[tuple[str, str, list[tuple[str, str]]]]] = {
+        ActorClass.HpBoss: [(
             TurnHpOnOff.enum_name(),
             HpBossState.enum_name(),
             [(TurnHpOnOff.TurnOn, HpBossState.HpOn), (TurnHpOnOff.TurnOff, HpBossState.HpOff)],
-        ),
-        ActorClass.PicoCycler: (
-            RebootPicos.enum_name(),
-            PicoCyclerState.enum_name(),
-            [(RebootPicos.RebootPicos, PicoCyclerState.RelayOpening)],
-        ),
+        )],
+        ActorClass.FiveVBoss: [
+            (
+                Turn5VOnOff.enum_name(),
+                FiveVBossState.enum_name(),
+                [(Turn5VOnOff.TurnOff, FiveVBossState.FiveVOff), (Turn5VOnOff.TurnOn, FiveVBossState.PicoCycler)],
+            ),
+            (
+                RebootPicos.enum_name(),
+                FiveVBossState.enum_name(),
+                [(RebootPicos.RebootPicos, FiveVBossState.PicoCycler)],
+            ),
+        ],
     }
 
-    def command_interface(self, node: ShNode) -> GwCommandInterface:
+    @property
+    def five_v_boss_state(self) -> FiveVBossState:
+        """five-v-boss's last reported state, PicoCycler until it reports."""
+        latest = self._data.latest_machine_state.get(H0N.five_v_boss)
+        if latest is None or latest.StateEnum != FiveVBossState.enum_name():
+            return FiveVBossState.PicoCycler
+        return FiveVBossState(latest.State)
+
+    def command_interfaces(self, node: ShNode) -> list[GwCommandInterface]:
         """What a boss may ask of this node and the state each command
         leads to: a relay's two events from its own config, an interior
-        command node's from COMMAND_NODE_INTERFACES."""
-        if node.ActorClass in self.COMMAND_NODE_INTERFACES:
-            event_type, state_type, commands = self.COMMAND_NODE_INTERFACES[node.ActorClass]
+        command node's vocabularies from COMMAND_NODE_INTERFACES."""
+        if node.ActorClass in self.COMMAND_NODE_CLASSES:
+            vocabularies = self.COMMAND_NODE_INTERFACES.get(node.ActorClass, [])
         else:
             config = next(
                 x for x in node.component.gt.ConfigList if x.ActorName == node.name
             )
-            event_type, state_type = config.EventType, config.StateType
-            commands = [
-                (config.EnergizingEvent, config.EnergizedState),
-                (config.DeEnergizingEvent, config.DeEnergizedState),
-            ]
-        return GwCommandInterface(
-            ActorName=node.name,
-            EventType=event_type,
-            StateType=state_type,
-            Commands=[
-                GwCommandTransition(Event=event, ToState=to_state)
-                for event, to_state in commands
-            ],
-        )
+            vocabularies = [(
+                config.EventType,
+                config.StateType,
+                [
+                    (config.EnergizingEvent, config.EnergizedState),
+                    (config.DeEnergizingEvent, config.DeEnergizedState),
+                ],
+            )]
+        return [
+            GwCommandInterface(
+                ActorName=node.name,
+                EventType=event_type,
+                StateType=state_type,
+                Commands=[
+                    GwCommandTransition(Event=event, ToState=to_state)
+                    for event, to_state in commands
+                ],
+            )
+            for event_type, state_type, commands in vocabularies
+        ]
 
     @property
     def control_capabilities(self) -> ScadaControlCapabilities:
         """The cover of the live command tree: the nodes an operator may
         address, their state channels, and an interface for every relay or
         command node not under an interior command node (a relay under
-        hp-boss or the pico-cycler is commanded through its owner)."""
+        hp-boss, or the cycler and its relay under five-v-boss, is
+        commanded through its owner)."""
         relay_nodes = [
             node for node in self.layout.nodes.values()
             if node.ActorClass == ActorClass.Relay
@@ -1704,7 +1741,7 @@ class Scada(PrimeActor, ScadaInterface):
         ]
         command_nodes = [
             node for node in self.layout.nodes.values()
-            if node.ActorClass in self.COMMAND_NODE_INTERFACES
+            if node.ActorClass in self.COMMAND_NODE_CLASSES
         ]
         control_node_names = {n.name for n in relay_nodes + dac_nodes}
         ctrl_channels = [
@@ -1714,9 +1751,10 @@ class Scada(PrimeActor, ScadaInterface):
         ]
         owner_prefixes = [f"{node.handle}." for node in command_nodes]
         interfaces = [
-            self.command_interface(node)
+            interface
             for node in relay_nodes + command_nodes
             if not any(node.handle.startswith(p) for p in owner_prefixes)
+            for interface in self.command_interfaces(node)
         ]
         return ScadaControlCapabilities(
             FromGNodeAlias=self.layout.scada_g_node_alias,

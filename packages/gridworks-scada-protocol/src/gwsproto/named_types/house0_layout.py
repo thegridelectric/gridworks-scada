@@ -182,6 +182,7 @@ class House0Layout(GwsprotoSemaType):
           "n"           → ActorClass "NoActor"
           "backup"      → ActorClass "NoActor"
           "scada-blind" → ActorClass "NoActor"
+          "five-v-boss" → ActorClass "FiveVBoss"
           "pico-cycler" → ActorClass "PicoCycler"
           "hp-boss"     → ActorClass "HpBoss"
           "sieg-loop"   → ActorClass "SiegLoop"
@@ -196,6 +197,7 @@ class House0Layout(GwsprotoSemaType):
             "n": ActorClass.NoActor,
             "backup": ActorClass.NoActor,
             "scada-blind": ActorClass.NoActor,
+            "five-v-boss": ActorClass.FiveVBoss,
             "pico-cycler": ActorClass.PicoCycler,
             "hp-boss": ActorClass.HpBoss,
             "sieg-loop": ActorClass.SiegLoop,

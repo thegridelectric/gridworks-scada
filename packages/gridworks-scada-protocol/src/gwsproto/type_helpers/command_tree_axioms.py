@@ -12,6 +12,7 @@ ACTUATOR_CLASSES = {ActorClass.Relay, ActorClass.ZeroTenOutputer, ActorClass.HpT
 COMMAND_CLASSES = {
     ActorClass.LocalControl,
     ActorClass.LeafAlly,
+    ActorClass.FiveVBoss,
     ActorClass.PicoCycler,
     ActorClass.HpBoss,
     ActorClass.SiegLoop,

@@ -1529,6 +1529,13 @@ class HydronicLayout:
         return n
     
     @property
+    def five_v_boss(self) -> ShNode:
+        n = self.node(H0N.five_v_boss)
+        if n is None:
+            raise DcError(f"{H0N.five_v_boss} is known to exist")
+        return n
+
+    @property
     def pico_cycler(self) -> ShNode:
         n = self.node(H0N.pico_cycler)
         if n is None:

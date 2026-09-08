@@ -55,9 +55,9 @@ def capture(actor) -> list:
     return sent
 
 
-def event(to_handle: str, event_type: str, name: str) -> FsmEvent:
+def event(to_handle: str, event_type: str, name: str, from_handle: str = H0N.admin) -> FsmEvent:
     return FsmEvent(
-        FromHandle=H0N.admin,
+        FromHandle=from_handle,
         ToHandle=to_handle,
         EventType=event_type,
         EventName=name,
@@ -66,10 +66,10 @@ def event(to_handle: str, event_type: str, name: str) -> FsmEvent:
     )
 
 
-def deliver(actor, payload) -> None:
+def deliver(actor, payload, src: str = H0N.admin) -> None:
     actor.process_message(
         Message(
-            header=Header(Src=H0N.admin, Dst=actor.name, MessageType=payload.TypeName),
+            header=Header(Src=src, Dst=actor.name, MessageType=payload.TypeName),
             Payload=payload,
         )
     )
@@ -83,77 +83,87 @@ def nacks(sent: list) -> list[tuple[str, DispatchNack]]:
     return [(dst, p) for dst, p in sent if isinstance(p, DispatchNack)]
 
 
-def assert_ack(sent: list, actor, command) -> None:
+def assert_ack(sent: list, actor, command, commander: str = H0N.admin) -> None:
     assert nacks(sent) == []
     replies = acks(sent)
     assert len(replies) == 1
     dst, ack = replies[0]
-    assert dst == H0N.admin
+    assert dst == commander
     assert ack.FromHandle == actor.node.handle
-    assert ack.ToHandle == H0N.admin
+    assert ack.ToHandle == command.FromHandle
     assert ack.TriggerId == command.TriggerId
 
 
-def assert_nack(sent: list, actor, command, reason: GwScadaCmdRefusalReason) -> None:
+def assert_nack(
+    sent: list, actor, command, reason: GwScadaCmdRefusalReason, commander: str = H0N.admin
+) -> None:
     assert acks(sent) == []
     replies = nacks(sent)
     assert len(replies) == 1
     dst, nack = replies[0]
-    assert dst == H0N.admin
+    assert dst == commander
     assert nack.FromHandle == actor.node.handle
-    assert nack.ToHandle == H0N.admin
+    assert nack.ToHandle == command.FromHandle
     assert nack.TriggerId == command.TriggerId
     assert nack.Reason == reason
 
 
 # ---------------------------------------------------------------- pico-cycler
+# The cycler's boss is five-v-boss in every tree; its replies go there.
+
+CYCLER_BOSS = f"{H0N.admin}.{H0N.five_v_boss}"
+
 
 def cycler(app: ScadaApp) -> PicoCycler:
     actor = app.scada.get_communicator(H0N.pico_cycler)
     assert isinstance(actor, PicoCycler)
-    assert actor.node.handle == f"{H0N.admin}.{H0N.pico_cycler}"
+    assert actor.node.handle == f"{CYCLER_BOSS}.{H0N.pico_cycler}"
     return actor
+
+
+def cycler_event(actor: PicoCycler, event_type: str, name: str) -> FsmEvent:
+    return event(actor.node.handle, event_type, name, from_handle=CYCLER_BOSS)
 
 
 def test_cycler_acks_a_reboot_it_takes(app: ScadaApp) -> None:
     actor = cycler(app)
     sent = capture(actor)
-    command = event(actor.node.handle, RebootPicos.enum_name(), RebootPicos.RebootPicos)
-    deliver(actor, command)
+    command = cycler_event(actor, RebootPicos.enum_name(), RebootPicos.RebootPicos)
+    deliver(actor, command, src=H0N.five_v_boss)
     assert actor.state == PicoCyclerState.RelayOpening
-    assert_ack(sent, actor, command)
+    assert_ack(sent, actor, command, commander=H0N.five_v_boss)
 
 
 def test_cycler_refuses_busy_while_cycling(app: ScadaApp) -> None:
     actor = cycler(app)
     sent = capture(actor)
-    deliver(actor, event(actor.node.handle, RebootPicos.enum_name(), RebootPicos.RebootPicos))
+    deliver(actor, cycler_event(actor, RebootPicos.enum_name(), RebootPicos.RebootPicos), src=H0N.five_v_boss)
     sent.clear()
-    second = event(actor.node.handle, RebootPicos.enum_name(), RebootPicos.RebootPicos)
-    deliver(actor, second)
-    assert_nack(sent, actor, second, GwScadaCmdRefusalReason.Busy)
+    second = cycler_event(actor, RebootPicos.enum_name(), RebootPicos.RebootPicos)
+    deliver(actor, second, src=H0N.five_v_boss)
+    assert_nack(sent, actor, second, GwScadaCmdRefusalReason.Busy, commander=H0N.five_v_boss)
 
 
 def test_cycler_refuses_an_event_it_does_not_take(app: ScadaApp) -> None:
     actor = cycler(app)
     sent = capture(actor)
-    command = event(actor.node.handle, ChangeRelayState.enum_name(), ChangeRelayState.OpenRelay)
-    deliver(actor, command)
+    command = cycler_event(actor, ChangeRelayState.enum_name(), ChangeRelayState.OpenRelay)
+    deliver(actor, command, src=H0N.five_v_boss)
     assert actor.state == PicoCyclerState.PicosLive
-    assert_nack(sent, actor, command, GwScadaCmdRefusalReason.UnknownEvent)
+    assert_nack(sent, actor, command, GwScadaCmdRefusalReason.UnknownEvent, commander=H0N.five_v_boss)
 
 
 def test_cycler_refuses_a_command_to_another_handle(app: ScadaApp) -> None:
-    """The command tree moved the node under auto after admin last looked;
-    admin's command to admin.<name> is well formed but not to the live
-    handle, and the refusal goes back to admin, who is not the boss."""
+    """The command tree moved the subtree under auto after the boss last
+    looked; the command to admin.five-v-boss.<name> is well formed but not
+    to the live handle, and the refusal goes back to the sender."""
     actor = cycler(app)
     sent = capture(actor)
-    command = event(actor.node.handle, RebootPicos.enum_name(), RebootPicos.RebootPicos)
-    actor.node.Handle = f"{H0N.auto}.{actor.name}"
-    deliver(actor, command)
+    command = cycler_event(actor, RebootPicos.enum_name(), RebootPicos.RebootPicos)
+    actor.node.Handle = f"{H0N.auto}.{H0N.five_v_boss}.{actor.name}"
+    deliver(actor, command, src=H0N.five_v_boss)
     assert actor.state == PicoCyclerState.PicosLive
-    assert_nack(sent, actor, command, GwScadaCmdRefusalReason.NotMyBoss)
+    assert_nack(sent, actor, command, GwScadaCmdRefusalReason.NotMyBoss, commander=H0N.five_v_boss)
 
 
 # ---------------------------------------------------------------- hp-boss

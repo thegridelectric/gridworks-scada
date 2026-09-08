@@ -30,6 +30,7 @@ class HydronicSpaceheatNodeNames:
     here, and is declared nowhere else.
     """
 
+    five_v_boss = "five-v-boss"
     pico_cycler = "pico-cycler"
     hp_boss = "hp-boss"
 

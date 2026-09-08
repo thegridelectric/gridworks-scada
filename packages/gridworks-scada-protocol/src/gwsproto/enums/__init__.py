@@ -44,6 +44,7 @@ from gwsproto.enums.heat_call_interpretation import HeatCallInterpretation
 from gwsproto.enums.heat_pump_control import HeatPumpControl
 from gwsproto.enums.heatcall_source import HeatcallSource
 from gwsproto.enums.house0_primary_flow_source import House0PrimaryFlowSource
+from gwsproto.enums.five_v_boss_state import FiveVBossState
 from gwsproto.enums.hp_boss_state import HpBossState
 from gwsproto.enums.hp_loop_keep_send import HpLoopKeepSend
 from gwsproto.enums.hp_model import HpModel
@@ -96,6 +97,7 @@ from gwsproto.enums.thermistor_data_method import ThermistorDataMethod
 from gwsproto.enums.thermostat_kind import ThermostatKind
 from gwsproto.enums.top_event import TopEvent
 from gwsproto.enums.top_state import TopState
+from gwsproto.enums.turn_5v_on_off import Turn5VOnOff
 from gwsproto.enums.turn_hp_on_off import TurnHpOnOff
 from gwsproto.enums.unit import Unit
 from gwsproto.enums.zone_actuator_kind import ZoneActuatorKind
@@ -138,6 +140,7 @@ __all__ = [
     "HeatPumpControl",
     "HeatcallSource",
     "House0PrimaryFlowSource",
+    "FiveVBossState",
     "HpBossState",
     "HpLoopKeepSend",
     "HpModel",
@@ -191,6 +194,7 @@ __all__ = [
     "ThermostatKind",
     "TopEvent",
     "TopState",
+    "Turn5VOnOff",
     "TurnHpOnOff",
     "Unit",
     "ZoneActuatorKind",

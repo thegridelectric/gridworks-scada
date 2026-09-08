@@ -38,7 +38,7 @@
   "ShNodes": [
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "s",
       "ActorClass": "PrimaryScada",
       "DisplayName": "Little Orange House Main Scada",
@@ -46,7 +46,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "s2",
       "ActorClass": "SecondaryScada",
       "DisplayName": "Secondary Scada",
@@ -54,7 +54,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "admin",
       "Handle": "admin",
       "ActorClass": "NoActor",
@@ -63,7 +63,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "auto",
       "Handle": "auto",
       "ActorClass": "NoActor",
@@ -72,7 +72,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "ltn",
       "ActorClass": "NoActor",
       "DisplayName": "LeafTransactiveNode",
@@ -80,7 +80,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "la",
       "ActorHierarchyName": "s.la",
       "Handle": "ltn.la",
@@ -90,17 +90,27 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
+      "Name": "five-v-boss",
+      "ActorHierarchyName": "s.five-v-boss",
+      "Handle": "auto.five-v-boss",
+      "ActorClass": "FiveVBoss",
+      "DisplayName": "Five V Boss - can hold the picos' 5VDC supply off",
+      "ShNodeId": "315c0b57-cdbf-4aae-92d7-8a85d7c15662"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
       "Name": "pico-cycler",
       "ActorHierarchyName": "s.pico-cycler",
-      "Handle": "auto.pico-cycler",
+      "Handle": "auto.five-v-boss.pico-cycler",
       "ActorClass": "PicoCycler",
       "DisplayName": "Pico Cycler - responsible for power cycling the 5VDC bus",
       "ShNodeId": "67eac5fe-72e3-49fd-a606-ec3363f73501"
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "derived-generator",
       "ActorHierarchyName": "s.derived-generator",
       "ActorClass": "DerivedGenerator",
@@ -109,7 +119,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "lc",
       "ActorHierarchyName": "s.lc",
       "Handle": "auto.lc",
@@ -119,7 +129,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "n",
       "Handle": "auto.lc.n",
       "ActorClass": "NoActor",
@@ -128,7 +138,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "backup",
       "Handle": "auto.lc.backup",
       "ActorClass": "NoActor",
@@ -137,7 +147,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "scada-blind",
       "Handle": "auto.lc.scada-blind",
       "ActorClass": "NoActor",
@@ -146,7 +156,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "hp-boss",
       "ActorHierarchyName": "s.hp-boss",
       "Handle": "auto.lc.n.hp-boss",
@@ -156,7 +166,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "sieg-loop",
       "ActorHierarchyName": "s.sieg-loop",
       "Handle": "auto.lc.n.sieg-loop",
@@ -166,7 +176,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "power-meter",
       "ActorHierarchyName": "s.power-meter",
       "ActorClass": "PowerMeter",
@@ -176,7 +186,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "hp-odu",
       "ActorClass": "NoActor",
       "DisplayName": "Hp Odu",
@@ -186,7 +196,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "hp-idu",
       "ActorClass": "NoActor",
       "DisplayName": "Hp Idu",
@@ -196,7 +206,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "store-pump",
       "ActorClass": "NoActor",
       "DisplayName": "Store Pump",
@@ -204,7 +214,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "zone1-main-whitewire",
       "ActorClass": "NoActor",
       "DisplayName": "Zone1 Main Whitewire",
@@ -213,7 +223,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "web-server",
       "ActorClass": "NoActor",
       "DisplayName": "Web Server",
@@ -222,7 +232,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "zone1-main",
       "ActorClass": "NoActor",
       "DisplayName": "Zone 1 Main",
@@ -230,7 +240,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "zone1-main-temp-sensor",
       "ActorHierarchyName": "s.zone1-main-temp-sensor",
       "ActorClass": "SimSensorActor",
@@ -240,7 +250,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "relay-multiplexer",
       "ActorHierarchyName": "s.relay-multiplexer",
       "ActorClass": "I2cRelayMultiplexer",
@@ -250,10 +260,10 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "vdc-relay",
       "ActorHierarchyName": "s.vdc-relay",
-      "Handle": "auto.pico-cycler.vdc-relay",
+      "Handle": "auto.five-v-boss.pico-cycler.vdc-relay",
       "ActorClass": "Relay",
       "DisplayName": "5VDC Relay",
       "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
@@ -261,7 +271,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "tstat-common-relay",
       "ActorHierarchyName": "s.tstat-common-relay",
       "Handle": "auto.lc.n.tstat-common-relay",
@@ -272,7 +282,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "charge-discharge-relay",
       "ActorHierarchyName": "s.charge-discharge-relay",
       "Handle": "auto.lc.n.charge-discharge-relay",
@@ -283,7 +293,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "hp-failsafe-relay",
       "ActorHierarchyName": "s.hp-failsafe-relay",
       "Handle": "auto.lc.n.hp-failsafe-relay",
@@ -294,7 +304,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "hp-scada-ops-relay",
       "ActorHierarchyName": "s.hp-scada-ops-relay",
       "Handle": "auto.lc.n.hp-scada-ops-relay",
@@ -305,7 +315,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "aquastat-ctrl-relay",
       "ActorHierarchyName": "s.aquastat-ctrl-relay",
       "Handle": "auto.lc.n.aquastat-ctrl-relay",
@@ -316,7 +326,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "store-pump-relay",
       "ActorHierarchyName": "s.store-pump-relay",
       "Handle": "auto.lc.n.store-pump-relay",
@@ -327,7 +337,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "primary-pump-failsafe-relay",
       "ActorHierarchyName": "s.primary-pump-failsafe-relay",
       "Handle": "auto.lc.n.primary-pump-failsafe-relay",
@@ -338,7 +348,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "primary-pump-scada-ops-relay",
       "ActorHierarchyName": "s.primary-pump-scada-ops-relay",
       "Handle": "auto.lc.n.primary-pump-scada-ops-relay",
@@ -349,7 +359,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "hp-loop-on-off-relay",
       "ActorHierarchyName": "s.hp-loop-on-off-relay",
       "Handle": "auto.lc.n.hp-loop-on-off-relay",
@@ -360,7 +370,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "hp-loop-keep-send-relay",
       "ActorHierarchyName": "s.hp-loop-keep-send-relay",
       "Handle": "auto.lc.n.hp-loop-keep-send-relay",
@@ -371,7 +381,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "zone1-main-failsafe-relay",
       "ActorHierarchyName": "s.zone1-main-failsafe-relay",
       "Handle": "auto.lc.n.zone1-main-failsafe-relay",
@@ -382,7 +392,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "zone1-main-ops-relay",
       "ActorHierarchyName": "s.zone1-main-ops-relay",
       "Handle": "auto.lc.n.zone1-main-ops-relay",
@@ -393,7 +403,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "buffer",
       "ActorHierarchyName": "s.buffer",
       "ActorClass": "ApiTankModule",
@@ -403,7 +413,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "buffer-depth1",
       "ActorClass": "NoActor",
       "DisplayName": "buffer-depth1",
@@ -411,7 +421,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "buffer-depth2",
       "ActorClass": "NoActor",
       "DisplayName": "buffer-depth2",
@@ -419,7 +429,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "buffer-depth3",
       "ActorClass": "NoActor",
       "DisplayName": "buffer-depth3",
@@ -427,7 +437,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "tank1",
       "ActorHierarchyName": "s.tank1",
       "ActorClass": "ApiTankModule",
@@ -437,7 +447,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "tank1-depth1",
       "ActorClass": "NoActor",
       "DisplayName": "tank1-depth1",
@@ -445,7 +455,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "tank1-depth2",
       "ActorClass": "NoActor",
       "DisplayName": "tank1-depth2",
@@ -453,7 +463,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "tank1-depth3",
       "ActorClass": "NoActor",
       "DisplayName": "tank1-depth3",
@@ -461,7 +471,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "zero-ten-multiplexer",
       "ActorHierarchyName": "s.zero-ten-multiplexer",
       "ActorClass": "I2cZeroTenMultiplexer",
@@ -471,7 +481,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "dist-010v",
       "ActorHierarchyName": "s.dist-010v",
       "Handle": "auto.dist-010v",
@@ -481,7 +491,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "primary-010v",
       "ActorHierarchyName": "s.primary-010v",
       "Handle": "auto.primary-010v",
@@ -491,7 +501,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "store-010v",
       "ActorHierarchyName": "s.store-010v",
       "Handle": "auto.store-010v",
@@ -501,7 +511,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "dist-flow",
       "ActorHierarchyName": "s.dist-flow",
       "ActorClass": "SimSensorActor",
@@ -511,7 +521,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "primary-flow",
       "ActorHierarchyName": "s.primary-flow",
       "ActorClass": "SimSensorActor",
@@ -521,7 +531,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "store-flow",
       "ActorHierarchyName": "s.store-flow",
       "ActorClass": "SimSensorActor",
@@ -531,7 +541,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "sieg-flow",
       "ActorHierarchyName": "s.sieg-flow",
       "ActorClass": "SimSensorActor",
@@ -541,7 +551,7 @@
     },
     {
       "TypeName": "spaceheat.node.gt",
-      "Version": "302",
+      "Version": "303",
       "Name": "sieg-cold",
       "ActorHierarchyName": "s.sieg-cold",
       "ActorClass": "SimSensorActor",

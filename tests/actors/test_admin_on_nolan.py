@@ -18,10 +18,12 @@ from actors.zero_ten_outputer import ZeroTenOutputer, code_from_volts_times_ten
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import (
     ActorClass,
+    FiveVBossState,
     HpBossState,
     PicoCyclerState,
     RebootPicos,
     SinglePicoState,
+    Turn5VOnOff,
     TurnHpOnOff,
 )
 from gwsproto.named_types import (
@@ -53,7 +55,8 @@ def app() -> ScadaApp:
 def test_control_capabilities_on_nolan(app: ScadaApp) -> None:
     """A Nolan scada answers SendControlCapabilities with the cover of its
     tree: every relay and the 0-10V output are in the projection, hp-boss
-    and the pico-cycler are command-node rows with their own vocabulary,
+    and five-v-boss are command-node rows with their own vocabulary
+    (five-v-boss with two: the hold and the forwarded reboot),
     and the two relays they own (hp-scada-ops-relay, vdc-relay) carry no
     interface of their own."""
     scada = app.scada
@@ -64,13 +67,13 @@ def test_control_capabilities_on_nolan(app: ScadaApp) -> None:
     }
     assert {n.Name for n in capabilities.RelayNodes} == relay_names
     assert {n.Name for n in capabilities.DacNodes} == {DAC_NODE}
-    assert {n.Name for n in capabilities.CommandNodes} == {H0N.hp_boss, H0N.pico_cycler}
+    assert {n.Name for n in capabilities.CommandNodes} == {H0N.hp_boss, H0N.five_v_boss, H0N.pico_cycler}
     assert {c.AboutNodeName for c in capabilities.ControlChannels} == relay_names | {
         DAC_NODE
     }
     interfaces = {i.ActorName: i for i in capabilities.CommandInterfaces}
     owned = {H0N.hp_scada_ops_relay, H0N.vdc_relay}
-    assert set(interfaces) == (relay_names - owned) | {H0N.hp_boss, H0N.pico_cycler}
+    assert set(interfaces) == (relay_names - owned) | {H0N.hp_boss, H0N.five_v_boss}
     hp_boss = interfaces[H0N.hp_boss]
     assert hp_boss.EventType == TurnHpOnOff.enum_name()
     assert hp_boss.StateType == HpBossState.enum_name()
@@ -78,10 +81,16 @@ def test_control_capabilities_on_nolan(app: ScadaApp) -> None:
         (TurnHpOnOff.TurnOn, HpBossState.HpOn),
         (TurnHpOnOff.TurnOff, HpBossState.HpOff),
     }
-    cycler = interfaces[H0N.pico_cycler]
-    assert cycler.EventType == RebootPicos.enum_name()
-    assert [(c.Event, c.ToState) for c in cycler.Commands] == [
-        (RebootPicos.RebootPicos, PicoCyclerState.RelayOpening)
+    five_v = {
+        i.EventType: i for i in capabilities.CommandInterfaces if i.ActorName == H0N.five_v_boss
+    }
+    assert set(five_v) == {Turn5VOnOff.enum_name(), RebootPicos.enum_name()}
+    assert [(c.Event, c.ToState) for c in five_v[Turn5VOnOff.enum_name()].Commands] == [
+        (Turn5VOnOff.TurnOff, FiveVBossState.FiveVOff),
+        (Turn5VOnOff.TurnOn, FiveVBossState.PicoCycler),
+    ]
+    assert [(c.Event, c.ToState) for c in five_v[RebootPicos.enum_name()].Commands] == [
+        (RebootPicos.RebootPicos, FiveVBossState.PicoCycler)
     ]
     for name in relay_names - owned:
         config = next(

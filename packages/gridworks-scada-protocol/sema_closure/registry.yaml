@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-09-07T18:05:00Z"
+  last_updated: "2026-09-08T21:20:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -166,19 +166,18 @@ enums:
         status: "staging"
 
   gw1.actor.class:
-    latest_version: "013"
+    latest_version: "014"
     owner: gridworks-energy
     enum_type: "versioned"
     description: "Classification of actors in the GridWorks SCADA system."
 
     versions:
-      "013":
-        schema_url: "https://schemas.electricity.works/enums/gw1.actor.class/013"
-        created: "2026-08-12T16:50:00Z"
+      "014":
+        schema_url: "https://schemas.electricity.works/enums/gw1.actor.class/014"
+        created: "2026-09-08T21:20:00Z"
         status: "staging"
         added_values:
-          - "I2cDacWriter"
-          - "HpTwin"
+          - "FiveVBoss"
 
   gw1.actuation.authority:
     latest_version: "000"
@@ -812,7 +811,7 @@ types:
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw.house0.layout/000"
-        created: "2026-09-02T21:15:00Z"
+        created: "2026-09-08T21:20:00Z"
         status: "staging"
         summary: "The complete deployable artifact for a House0-fleet home: every collection and Hydronic required, never a partial layout. The word MEANS has-a-siegenthaler-loop (beech, maple); sieg-less homes are the coming gw.house0.no.sieg. Component set is eGauge / ADS111x TSnap / Krida / DFRobot / pico flow / tank + sim-tank / Hubitat + poller / web-server over the DeviceType record model. Axioms cover id uniqueness, the core and command-node Name/ActorClass contracts (sieg-loop and hp-boss unconditional command nodes, dormant when unused), per-zone heat-call channels, primary-flow source agreement, the transactive-power boundary, required flow sensing, the unconditional sieg manifold surface, the system-model energy channels and the models that produce them, the unconditional actuators (plant relays, 0-10V outputs, zone-circuit relay pairs), and the split-system heat-pump parts (hp-odu, hp-idu) with their components. 12 CommandableHeatPump (biconditional: Hydronic.HpCommandNodeName ⇒ hp-odu/hp-idu/hp-ctrl-box with ComponentId, ActorClass HpTwin, handle under hp-boss; every HpTwin node is the declared one); 11's NoActor clause defers to it. 13 PrefixClosedHandles + 14 ActuatorLeaves: the layout's authored handles are the initial command tree, so the tree word's two axioms hold here too (identical wording)."
         direct_dependencies:
@@ -844,12 +843,12 @@ types:
             - "sim.pico.tank.module.component.gt:001"
             - "sim.relay.component.gt:000"
             - "sim.sensor.component.gt:000"
-            - "spaceheat.node.gt:302"
+            - "spaceheat.node.gt:303"
             - "web.server.component.gt:001"
           axiom:
             - "gw0.required.energy.layered:000"
             - "gw0.usable.energy.layered:000"
-            - "gw1.actor.class:013"
+            - "gw1.actor.class:014"
 
   gw.house0.operational.params:
     latest_version: "000"
@@ -923,9 +922,9 @@ types:
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw.nolan.layout/000"
-        created: "2026-09-02T21:15:00Z"
+        created: "2026-09-08T21:20:00Z"
         status: "staging"
-        summary: "Axioms mirror the names tiers: 1 TransactivePowerChannel, 2 BoardResolution, 3 CoreShNodesExistenceAndActorClass (identical wording across layout words), 4 CommandNodesExistenceAndActorClass (n, pico-cycler, hp-boss), 5 RequiredActuators (plant relays incl. the per-tank tank1 element relays + circuit relay binding), 6 RequiredHeatpumpEquipment (hp-odu, hp-ctrl-box with components; a Nolan home is a monobloc), 7 ComponentBinding (every component referenced by exactly one node), 8 RequiredSensing (kind-agnostic names incl. HP and resistive-element power channels), 9 SingleStoreTank. Components are the cac-free DeviceType versions; DeviceTypes holds the specialized <family>.device.type.gt records; relay and opto components are board-generic; nodes/channels ride spaceheat.node.gt/302 + data.channel.gt/003. 10 CommandableHeatPump (biconditional: Hydronic.HpCommandNodeName ⇒ hp-odu/hp-idu/hp-ctrl-box with ComponentId, ActorClass HpTwin, handle under hp-boss; every HpTwin node is the declared one); 6's NoActor clause defers to it. 11 PrefixClosedHandles + 12 ActuatorLeaves: the layout's authored handles are the initial command tree, so the tree word's two axioms hold here too (identical wording)."
+        summary: "Axioms mirror the names tiers: 1 TransactivePowerChannel, 2 BoardResolution, 3 CoreShNodesExistenceAndActorClass (identical wording across layout words), 4 CommandNodesExistenceAndActorClass (n, five-v-boss, pico-cycler, hp-boss), 5 RequiredActuators (plant relays incl. the per-tank tank1 element relays + circuit relay binding), 6 RequiredHeatpumpEquipment (hp-odu, hp-ctrl-box with components; a Nolan home is a monobloc), 7 ComponentBinding (every component referenced by exactly one node), 8 RequiredSensing (kind-agnostic names incl. HP and resistive-element power channels), 9 SingleStoreTank. Components are the cac-free DeviceType versions; DeviceTypes holds the specialized <family>.device.type.gt records; relay and opto components are board-generic; nodes/channels ride spaceheat.node.gt/303 + data.channel.gt/003. 10 CommandableHeatPump (biconditional: Hydronic.HpCommandNodeName ⇒ hp-odu/hp-idu/hp-ctrl-box with ComponentId, ActorClass HpTwin, handle under hp-boss; every HpTwin node is the declared one); 6's NoActor clause defers to it. 11 PrefixClosedHandles + 12 ActuatorLeaves: the layout's authored handles are the initial command tree, so the tree word's two axioms hold here too (identical wording)."
         direct_dependencies:
           structural:
             - "ads111x.based.device.type.gt:000"
@@ -951,10 +950,10 @@ types:
             - "sim.pico.tank.module.component.gt:001"
             - "sim.relay.component.gt:000"
             - "sim.sensor.component.gt:000"
-            - "spaceheat.node.gt:302"
+            - "spaceheat.node.gt:303"
             - "web.server.component.gt:001"
           axiom:
-            - "gw1.actor.class:013"
+            - "gw1.actor.class:014"
 
   gw.nolan.operational.params:
     latest_version: "000"
@@ -1708,20 +1707,20 @@ types:
             - "uuid4.str"
 
   spaceheat.node.gt:
-    latest_version: "302"
+    latest_version: "303"
     owner: gridworks-energy
     versioning_strategy: "literal"
     description: "A Spaceheat node representing a named element in the SCADA system."
 
     versions:
-      "302":
-        schema_url: "https://schemas.electricity.works/types/spaceheat.node.gt/302"
-        created: "2026-08-12T18:25:00Z"
+      "303":
+        schema_url: "https://schemas.electricity.works/types/spaceheat.node.gt/303"
+        created: "2026-09-08T21:20:00Z"
         status: "staging"
-        summary: "- ActorClass: gw1.actor.class:011 -> 013 (in-place while staging) - InPowerMetering: drop (routing is owned by the consuming transactive declaration, not the node) - InPowerMeteringRequiresNameplate axiom: drop"
+        summary: "- ActorClass: gw1.actor.class:013 -> 014 (adds FiveVBoss)"
         direct_dependencies:
           structural:
-            - "gw1.actor.class:013"
+            - "gw1.actor.class:014"
             - "handle.name"
             - "positive.int"
             - "spaceheat.name"

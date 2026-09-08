@@ -8,7 +8,7 @@ from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
 class SpaceheatNodeGt(GwsprotoSemaType):
-    """Sema: https://schemas.electricity.works/types/spaceheat.node.gt/302"""
+    """Sema: https://schemas.electricity.works/types/spaceheat.node.gt/303"""
 
     Name: SpaceheatName
     ActorHierarchyName: HandleName | None = None
@@ -20,7 +20,7 @@ class SpaceheatNodeGt(GwsprotoSemaType):
     NameplatePowerW: StrictInt | None = None
     ShNodeId: UUID4Str
     TypeName: Literal["spaceheat.node.gt"] = "spaceheat.node.gt"
-    Version: Literal["302"] = "302"
+    Version: Literal["303"] = "303"
 
     model_config = ConfigDict(extra="allow", use_enum_values=True)
 

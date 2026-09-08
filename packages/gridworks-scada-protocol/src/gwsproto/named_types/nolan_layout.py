@@ -247,12 +247,14 @@ class NolanLayout(GwsprotoSemaType):
     def check_axiom_4(self) -> "NolanLayout":
         """Axiom 4: CommandNodesExistenceAndActorClass.
 
-        ShNodes SHALL contain "n" (NoActor), "pico-cycler" (PicoCycler) and
+        ShNodes SHALL contain "n" (NoActor), "five-v-boss" (FiveVBoss),
+        "pico-cycler" (PicoCycler) and
         "hp-boss" (HpBoss), with no additional ShNode of those Names; the
         effective handle of "n" SHALL be "auto.lc.n".
         """
         pairs = (
             ("n", ActorClass.NoActor),
+            ("five-v-boss", ActorClass.FiveVBoss),
             ("pico-cycler", ActorClass.PicoCycler),
             ("hp-boss", ActorClass.HpBoss),
         )

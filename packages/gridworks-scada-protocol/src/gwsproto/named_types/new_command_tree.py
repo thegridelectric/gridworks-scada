@@ -12,13 +12,13 @@ from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
 class NewCommandTree(GwsprotoSemaType):
-    """Sema: https://schemas.electricity.works/types/new.command.tree/002"""
+    """Sema: https://schemas.electricity.works/types/new.command.tree/003"""
 
     FromGNodeAlias: LeftRightDotStr
     ShNodes: List[SpaceheatNodeGt]
     UnixMs: UTCMilliseconds
     TypeName: Literal["new.command.tree"] = "new.command.tree"
-    Version: Literal["002"] = "002"
+    Version: Literal["003"] = "003"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> "NewCommandTree":
@@ -38,7 +38,7 @@ class NewCommandTree(GwsprotoSemaType):
         Axiom 2: ActuatorLeaves.
         a. Every actuator (Relay, ZeroTenOutputer, HpTwin) SHALL have a dotted
         effective handle and SHALL be a leaf. b. Every leaf SHALL be an actuator
-        or a command node (LocalControl, LeafAlly, PicoCycler, HpBoss, SiegLoop,
+        or a command node (LocalControl, LeafAlly, FiveVBoss, PicoCycler, HpBoss, SiegLoop,
         or a NoActor whose handle parent is the LocalControl node).
         """
         check_actuator_leaves(self.ShNodes, "Axiom 2 (ActuatorLeaves)")

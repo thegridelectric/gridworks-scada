@@ -13,7 +13,7 @@ from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 class ScadaControlCapabilities(GwsprotoSemaType):
     """
-    Sema: https://schemas.electricity.works/types/scada.control.capabilities/001
+    Sema: https://schemas.electricity.works/types/scada.control.capabilities/002
     """
 
     FromGNodeAlias: LeftRightDotStr
@@ -24,7 +24,7 @@ class ScadaControlCapabilities(GwsprotoSemaType):
     ControlChannels: List[DataChannelGt]
     CommandInterfaces: List[GwCommandInterface]
     TypeName: Literal["scada.control.capabilities"] = "scada.control.capabilities"
-    Version: Literal["001"] = "001"
+    Version: Literal["002"] = "002"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
@@ -94,7 +94,9 @@ class ScadaControlCapabilities(GwsprotoSemaType):
         does not extend the Handle of any CommandNodes entry (a Handle extends
         another when it equals that Handle followed by a dot and further
         tokens).
-        b. No two CommandInterfaces entries SHALL share an ActorName.
+        b. No two CommandInterfaces entries SHALL share both an ActorName and
+        an EventType; a node with more than one command vocabulary carries
+        one entry per vocabulary.
         """
         owner_prefixes = [f"{n.Handle}." for n in self.CommandNodes if n.Handle]
         directly_commanded = {
@@ -111,9 +113,10 @@ class ScadaControlCapabilities(GwsprotoSemaType):
                 "cover exactly the relay and command nodes not under an interior command node. "
                 f"MissingInterfacesFor={missing} ExtraInterfacesFor={extra}"
             )
-        if len(interface_names) != len(set(interface_names)):
+        keys = [(i.ActorName, i.EventType) for i in self.CommandInterfaces]
+        if len(keys) != len(set(keys)):
             raise ValueError(
-                "Axiom 4 (CommandInterfacesCoverTheTree) failed: CommandInterfaces ActorName "
-                f"values must be unique: {sorted(interface_names)}"
+                "Axiom 4 (CommandInterfacesCoverTheTree) failed: CommandInterfaces "
+                f"(ActorName, EventType) pairs must be unique: {sorted(keys)}"
             )
         return self

@@ -4,6 +4,7 @@ from actors.api_tank_module import ApiTankModule
 from actors.contract_handler import ContractHandler
 from actors.derived_generator import DerivedGenerator
 from actors.gpio_sensor import GpioSensor
+from actors.five_v_boss import FiveVBoss
 from actors.hp_boss import HpBoss
 from actors.honeywell_thermostat import HoneywellThermostat
 from actors.hubitat import Hubitat
@@ -32,6 +33,7 @@ __all__ = [
     "ContractHandler",
     "DerivedGenerator",
     "HoneywellThermostat",
+    "FiveVBoss",
     "HpBoss",
     "Hubitat",
     "HubitatPoller",

@@ -61,11 +61,11 @@ def cycler_under_admin(app: ScadaApp) -> tuple[PicoCycler, list]:
     scada.auto_trigger(MainAutoEvent.AutoGoesDormant)
     cycler = scada.get_communicator(H0N.pico_cycler)
     assert isinstance(cycler, PicoCycler)
-    assert cycler.node.handle == f"{H0N.admin}.{H0N.pico_cycler}"
+    assert cycler.node.handle == f"{H0N.admin}.{H0N.five_v_boss}.{H0N.pico_cycler}"
     return cycler, capture(cycler)
 
 
-def command(cycler: PicoCycler, event: FsmEvent, src: str = H0N.admin) -> None:
+def command(cycler: PicoCycler, event: FsmEvent, src: str = H0N.five_v_boss) -> None:
     cycler.process_message(
         Message(
             header=Header(Src=src, Dst=cycler.name, MessageType=event.TypeName),
@@ -74,7 +74,7 @@ def command(cycler: PicoCycler, event: FsmEvent, src: str = H0N.admin) -> None:
     )
 
 
-def reboot_command(to_handle: str, from_handle: str = H0N.admin) -> FsmEvent:
+def reboot_command(to_handle: str, from_handle: str = f"{H0N.admin}.{H0N.five_v_boss}") -> FsmEvent:
     return FsmEvent(
         FromHandle=from_handle,
         ToHandle=to_handle,
@@ -113,14 +113,14 @@ def test_boss_reboot_command_opens_relay_with_adopted_trigger_id(app: ScadaApp) 
 
 
 def test_command_to_stale_handle_is_refused_as_bad_boss(app: ScadaApp) -> None:
-    """The auto node commanding the cycler by its auto-shape handle while
-    admin holds the tree: the handle is not the cycler's live one."""
+    """Admin commanding the cycler directly, by the handle it had before
+    five-v-boss stood above it: the handle is not the cycler's live one."""
     cycler, sent = cycler_under_admin(app)
 
     command(
         cycler,
-        reboot_command(f"{H0N.auto}.{H0N.pico_cycler}", from_handle=H0N.auto),
-        src=H0N.auto,
+        reboot_command(f"{H0N.admin}.{H0N.pico_cycler}", from_handle=H0N.admin),
+        src=H0N.admin,
     )
 
     assert cycler.state == PicoCyclerState.PicosLive
@@ -131,8 +131,8 @@ def test_command_to_stale_handle_is_refused_as_bad_boss(app: ScadaApp) -> None:
 
 def test_command_whose_from_handle_is_not_the_senders_is_refused(app: ScadaApp) -> None:
     cycler, sent = cycler_under_admin(app)
-    forged = reboot_command(cycler.node.handle, from_handle=H0N.admin)
-    forged = forged.model_copy(update={"FromHandle": H0N.auto})
+    forged = reboot_command(cycler.node.handle)
+    forged = forged.model_copy(update={"FromHandle": H0N.admin})
 
     command(cycler, forged)
 
@@ -145,7 +145,7 @@ def test_other_event_types_are_refused(app: ScadaApp) -> None:
     through it to its relay; the cycler takes only reboot.picos."""
     cycler, sent = cycler_under_admin(app)
     event = FsmEvent(
-        FromHandle=H0N.admin,
+        FromHandle=f"{H0N.admin}.{H0N.five_v_boss}",
         ToHandle=cycler.node.handle,
         EventType=ChangeRelayState.enum_name(),
         EventName=ChangeRelayState.OpenRelay,

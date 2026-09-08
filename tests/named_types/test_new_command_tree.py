@@ -1,4 +1,4 @@
-"""Tests new.command.tree type, version 002"""
+"""Tests new.command.tree type, version 003"""
 
 import pytest
 
@@ -11,7 +11,7 @@ def node(name: str, handle: str | None, actor_class: str = "NoActor") -> dict:
         "ActorClass": actor_class,
         "ShNodeId": "6c734dbb-9950-485d-a83b-55456d914576",
         "TypeName": "spaceheat.node.gt",
-        "Version": "302",
+        "Version": "303",
     }
     if handle is not None:
         d["Handle"] = handle
@@ -26,7 +26,7 @@ def tree(nodes: list[dict]) -> dict:
         "ShNodes": nodes,
         "UnixMs": 1731168353695,
         "TypeName": "new.command.tree",
-        "Version": "002",
+        "Version": "003",
     }
 
 
@@ -40,7 +40,7 @@ def test_new_command_tree_generated() -> None:
                 "Name": "s",
                 "ShNodeId": "bae076c2-05cb-40c8-996a-b1a7f642ccf7",
                 "TypeName": "spaceheat.node.gt",
-                "Version": "302",
+                "Version": "303",
             },
             {
                 "ActorClass": "SecondaryScada",
@@ -48,12 +48,12 @@ def test_new_command_tree_generated() -> None:
                 "Name": "s2",
                 "ShNodeId": "57b027a6-f446-4403-bc69-26f56a1176bb",
                 "TypeName": "spaceheat.node.gt",
-                "Version": "302",
+                "Version": "303",
             },
         ],
         "UnixMs": 1735861984823,
         "TypeName": "new.command.tree",
-        "Version": "002",
+        "Version": "003",
     }
 
     d2 = NewCommandTree.model_validate(d).model_dump(exclude_none=True)
@@ -65,8 +65,9 @@ def test_new_command_tree_generated_handles() -> None:
     d = tree(
         [
             node("auto", "auto"),
-            node("pico-cycler", "auto.pico-cycler", "PicoCycler"),
-            node("vdc-relay", "auto.pico-cycler.vdc-relay", "Relay"),
+            node("five-v-boss", "auto.five-v-boss", "FiveVBoss"),
+            node("pico-cycler", "auto.five-v-boss.pico-cycler", "PicoCycler"),
+            node("vdc-relay", "auto.five-v-boss.pico-cycler.vdc-relay", "Relay"),
         ]
     )
     d2 = NewCommandTree.model_validate(d).model_dump(exclude_none=True)
@@ -101,9 +102,10 @@ def test_new_command_tree_axiom_2_a_actuator_not_leaf() -> None:
     d = tree(
         [
             node("auto", "auto"),
-            node("pico-cycler", "auto.pico-cycler", "PicoCycler"),
-            node("vdc-relay", "auto.pico-cycler.vdc-relay", "Relay"),
-            node("x", "auto.pico-cycler.vdc-relay.x", "Relay"),
+            node("five-v-boss", "auto.five-v-boss", "FiveVBoss"),
+            node("pico-cycler", "auto.five-v-boss.pico-cycler", "PicoCycler"),
+            node("vdc-relay", "auto.five-v-boss.pico-cycler.vdc-relay", "Relay"),
+            node("x", "auto.five-v-boss.pico-cycler.vdc-relay.x", "Relay"),
         ]
     )
     with pytest.raises(ValueError, match="Axiom 2"):

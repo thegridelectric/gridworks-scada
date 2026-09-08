@@ -29,11 +29,13 @@ def test_owned_relays_sit_under_their_owner(app: ScadaApp) -> None:
     configs = RelayWatchClient._get_relay_configs(app.scada.control_capabilities)
     owners = {name: c.owner for name, c in configs.items() if c.owner is not None}
     assert owners == {
+        H0N.pico_cycler: H0N.five_v_boss,
         H0N.vdc_relay: H0N.pico_cycler,
         H0N.hp_scada_ops_relay: H0N.hp_boss,
     }
-    ordered = sorted(configs.values(), key=Relays.row_order_key)
+    ordered = sorted(configs.values(), key=lambda c: Relays.row_order_key(c, configs))
     names = [c.about_node_name for c in ordered]
+    assert names.index(H0N.pico_cycler) == names.index(H0N.five_v_boss) + 1
     assert names.index(H0N.vdc_relay) == names.index(H0N.pico_cycler) + 1
     assert names.index(H0N.hp_scada_ops_relay) == names.index(H0N.hp_boss) + 1
     unowned = [n for n in names if configs[n].owner is None]

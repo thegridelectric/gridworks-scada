@@ -253,7 +253,7 @@ def test_gw_house0_layout_axiom_12_b_undeclared_twin(assembled: dict) -> None:
                 "ActorHierarchyName": "s.stray-twin",
                 "ShNodeId": "0f2b7c1e-5d3a-4b8e-9c6f-1a2b3c4d5e6f",
                 "TypeName": "spaceheat.node.gt",
-                "Version": "302",
+                "Version": "303",
             }
         )
     reject(assembled, stray_twin, "Axiom 12")

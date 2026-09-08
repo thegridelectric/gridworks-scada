@@ -112,6 +112,7 @@ class H0N:
     admin = "admin" 
     auto = "auto"
     derived_generator = "derived-generator"
+    five_v_boss = "five-v-boss"
     pico_cycler = "pico-cycler"
     hp_boss = "hp-boss"
 

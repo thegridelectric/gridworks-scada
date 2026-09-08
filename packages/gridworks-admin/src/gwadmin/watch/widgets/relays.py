@@ -189,17 +189,24 @@ class Relays(Widget):
         self.logger.debug("--on_relays_config_change: selected row key: %s", selected_row_key.value if selected_row_key!="" else "")
 
     @staticmethod
-    def row_order_key(config: RelayConfig) -> tuple[str, int, str]:
-        """Rows sort by name, except that a relay owned by an interior
-        command node sits directly under its owner's row (vdc-relay under
-        pico-cycler, hp-scada-ops-relay under hp-boss)."""
-        if config.owner is None:
-            return (config.about_node_name, 0, config.about_node_name)
-        return (config.owner, 1, config.about_node_name)
+    def row_order_key(config: RelayConfig, configs: dict[str, RelayConfig]) -> tuple[str, ...]:
+        """Rows sort by name, except that a node owned by an interior
+        command node sits directly under its owner's row, however deep the
+        chain (vdc-relay under pico-cycler under five-v-boss,
+        hp-scada-ops-relay under hp-boss). The key is the owner chain from
+        the top, so a node sorts right after its owner."""
+        chain = [config.about_node_name]
+        owner = config.owner
+        while owner is not None and owner not in chain:
+            chain.append(owner)
+            above = configs.get(owner)
+            owner = above.owner if above is not None else None
+        return tuple(reversed(chain))
 
     def _sort_rows(self, table: DataTable) -> None:
+        configs = {info.config.about_node_name: info.config for info in self._relays.values()}
         keys = {
-            info.config.table_name.row_name: self.row_order_key(info.config)
+            info.config.table_name.row_name: self.row_order_key(info.config, configs)
             for info in self._relays.values()
         }
         table.sort("Name", key=lambda name: keys[name])

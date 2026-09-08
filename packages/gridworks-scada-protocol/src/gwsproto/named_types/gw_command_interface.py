@@ -5,10 +5,12 @@ from typing_extensions import Self
 
 from gwsproto.enums import (
     ChangeRelayState,
+    FiveVBossState,
     HpBossState,
     PicoCyclerState,
     RebootPicos,
     RelayClosedOrOpen,
+    Turn5VOnOff,
     TurnHpOnOff,
 )
 from gwsproto.named_types.gw_command_transition import GwCommandTransition
@@ -19,12 +21,14 @@ EVENT_VOCABULARY: dict[str, set[str]] = {
     ChangeRelayState.enum_name(): set(ChangeRelayState.values()),
     TurnHpOnOff.enum_name(): set(TurnHpOnOff.values()),
     RebootPicos.enum_name(): set(RebootPicos.values()),
+    Turn5VOnOff.enum_name(): set(Turn5VOnOff.values()),
 }
 
 STATE_VOCABULARY: dict[str, set[str]] = {
     RelayClosedOrOpen.enum_name(): set(RelayClosedOrOpen.values()),
     HpBossState.enum_name(): set(HpBossState.values()),
     PicoCyclerState.enum_name(): set(PicoCyclerState.values()),
+    FiveVBossState.enum_name(): set(FiveVBossState.values()),
 }
 
 
