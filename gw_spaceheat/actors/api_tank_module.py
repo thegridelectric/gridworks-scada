@@ -174,6 +174,8 @@ class ApiTankModule(ShNodeActor):
                 NumSampleAverages=self._component.gt.NumSampleAverages,
                 AsyncCaptureDeltaMicroVolts=self._component.gt.AsyncCaptureDeltaMicroVolts,
                 CaptureOffsetS=offset,
+                PicoBoardVariant=params.PicoBoardVariant,
+                MicropythonVersion=params.MicropythonVersion,
             )
             if self.need_to_update_layout(params):
                 self.pico_uid = params.HwUid
