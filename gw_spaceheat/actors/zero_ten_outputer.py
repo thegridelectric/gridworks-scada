@@ -172,6 +172,13 @@ class ZeroTenOutputer(ShNodeActor):
             return
         if dispatch.ToHandle != self.node.handle:
             self.log(f"Ignoring dispatch {dispatch} - ToHandle is not {self.node.handle}!")
+            self._send_to(
+                from_node,
+                command_reply.nack(
+                    self.node.handle, dispatch.FromHandle, dispatch.TriggerId,
+                    GwScadaCmdRefusalReason.NotMyBoss,
+                ),
+            )
             return
         if dispatch.AboutName != self.node.name:
             self.log(f"Ignoring dispatch {dispatch} -- expect AboutName to be about me")

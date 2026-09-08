@@ -485,6 +485,13 @@ class PicoCycler(HydronicNode):
                 ),
             )
             self.log(f"Handle is {self.node.handle}; ignoring {message}")
+            self._send_to(
+                from_node,
+                command_reply.nack(
+                    self.node.handle, message.FromHandle, message.TriggerId,
+                    GwScadaCmdRefusalReason.NotMyBoss,
+                ),
+            )
             return
         if (
             message.EventType != RebootPicos.enum_name()

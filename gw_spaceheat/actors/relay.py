@@ -293,6 +293,13 @@ class Relay(ShNodeActor):
                               Details=f"{message.FromHandle} tried to command {self.node.Handle}. Ignoring!"
                           ))
             self.log(f"Handle is {self.node.Handle}; ignoring {message}")
+            self._send_to(
+                from_node,
+                command_reply.nack(
+                    self.node.handle, message.FromHandle, message.TriggerId,
+                    GwScadaCmdRefusalReason.NotMyBoss,
+                ),
+            )
             return Ok(False)
 
         if (

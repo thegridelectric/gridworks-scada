@@ -86,6 +86,13 @@ class HpBoss(ShNodeActor):
                               Details=f"{payload.FromHandle} tried to command {self.node.Handle}. Ignoring!"
                           ))
             self.log(f"Handle is {self.node.Handle}; ignoring {payload}")
+            self._send_to(
+                from_node,
+                command_reply.nack(
+                    self.node.handle, payload.FromHandle, payload.TriggerId,
+                    GwScadaCmdRefusalReason.NotMyBoss,
+                ),
+            )
             return
         if from_node.handle != payload.FromHandle:
             self.log(

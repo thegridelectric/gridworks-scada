@@ -143,6 +143,19 @@ def test_cycler_refuses_an_event_it_does_not_take(app: ScadaApp) -> None:
     assert_nack(sent, actor, command, GwScadaCmdRefusalReason.UnknownEvent)
 
 
+def test_cycler_refuses_a_command_to_another_handle(app: ScadaApp) -> None:
+    """The command tree moved the node under auto after admin last looked;
+    admin's command to admin.<name> is well formed but not to the live
+    handle, and the refusal goes back to admin, who is not the boss."""
+    actor = cycler(app)
+    sent = capture(actor)
+    command = event(actor.node.handle, RebootPicos.enum_name(), RebootPicos.RebootPicos)
+    actor.node.Handle = f"{H0N.auto}.{actor.name}"
+    deliver(actor, command)
+    assert actor.state == PicoCyclerState.PicosLive
+    assert_nack(sent, actor, command, GwScadaCmdRefusalReason.NotMyBoss)
+
+
 # ---------------------------------------------------------------- hp-boss
 
 def hp_boss(app: ScadaApp) -> HpBoss:
@@ -167,6 +180,15 @@ def test_hp_boss_refuses_an_event_it_does_not_take(app: ScadaApp) -> None:
     deliver(actor, command)
     assert_nack(sent, actor, command, GwScadaCmdRefusalReason.UnknownEvent)
     assert [p for _, p in sent if isinstance(p, FsmEvent)] == []
+
+
+def test_hp_boss_refuses_a_command_to_another_handle(app: ScadaApp) -> None:
+    actor = hp_boss(app)
+    sent = capture(actor)
+    command = event(actor.node.handle, TurnHpOnOff.enum_name(), TurnHpOnOff.TurnOff)
+    actor.node.Handle = f"{H0N.auto}.{actor.name}"
+    deliver(actor, command)
+    assert_nack(sent, actor, command, GwScadaCmdRefusalReason.NotMyBoss)
 
 
 # ---------------------------------------------------------------- relay
@@ -202,6 +224,15 @@ def test_relay_refuses_an_event_it_does_not_take(app: ScadaApp) -> None:
     command = event(actor.node.handle, TurnHpOnOff.enum_name(), TurnHpOnOff.TurnOn)
     actor._process_event_message(H0N.admin, command)
     assert_nack(sent, actor, command, GwScadaCmdRefusalReason.UnknownEvent)
+
+
+def test_relay_refuses_a_command_to_another_handle(app: ScadaApp) -> None:
+    actor = a_relay_under_admin(app)
+    sent = capture(actor)
+    command = event(actor.node.handle, ChangeRelayState.enum_name(), ChangeRelayState.OpenRelay)
+    actor.node.Handle = f"{H0N.auto}.{actor.name}"
+    actor._process_event_message(H0N.admin, command)
+    assert_nack(sent, actor, command, GwScadaCmdRefusalReason.NotMyBoss)
 
 
 # ---------------------------------------------------------------- 0-10V outputer
@@ -241,3 +272,12 @@ def test_outputer_refuses_a_value_out_of_range(app: ScadaApp) -> None:
     command = dispatch(actor, 101)
     deliver(actor, command)
     assert_nack(sent, actor, command, GwScadaCmdRefusalReason.OutOfRange)
+
+
+def test_outputer_refuses_a_command_to_another_handle(app: ScadaApp) -> None:
+    actor = an_outputer(app)
+    sent = capture(actor)
+    command = dispatch(actor, 55)
+    actor.node.Handle = f"{H0N.auto}.{actor.name}"
+    deliver(actor, command)
+    assert_nack(sent, actor, command, GwScadaCmdRefusalReason.NotMyBoss)
