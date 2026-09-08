@@ -90,7 +90,6 @@ NO_WORD_TYPES = {
     "slow.contract.heartbeat",
     "slow.dispatch.contract",
     "suit.up",
-    "tank.module.params",
     "wake.up",
 }
 

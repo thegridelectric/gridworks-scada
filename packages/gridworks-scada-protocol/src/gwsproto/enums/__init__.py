@@ -73,6 +73,7 @@ from gwsproto.enums.main_auto_state import MainAutoState
 from gwsproto.enums.market_price_unit import MarketPriceUnit
 from gwsproto.enums.market_quantity_unit import MarketQuantityUnit
 from gwsproto.enums.market_type_name import MarketTypeName
+from gwsproto.enums.pico_board_variant import PicoBoardVariant
 from gwsproto.enums.pico_cycler_event import PicoCyclerEvent
 from gwsproto.enums.pico_cycler_state import PicoCyclerState
 from gwsproto.enums.reboot_picos import RebootPicos
@@ -166,6 +167,7 @@ __all__ = [
     "MarketPriceUnit",
     "MarketQuantityUnit",
     "MarketTypeName",
+    "PicoBoardVariant",
     "PicoCyclerEvent",
     "PicoCyclerState",
     "RebootPicos",
