@@ -7,8 +7,8 @@ from typing import Optional
 from pydantic import BaseModel
 from textual.logging import TextualHandler
 
+from gwadmin.watch.clients.relay_client import CommandTransition
 from gwadmin.watch.clients.relay_client import RelayConfig
-from gwadmin.watch.clients.relay_client import RelayEnergized
 from gwadmin.watch.clients.relay_client import RelayState
 
 module_logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ module_logger.addHandler(TextualHandler())
 
 
 class RelayTableName(BaseModel):
-    channel_name: str = ""
+    node_name: str = ""
     row_name: str = ""
     relay_number: Optional[int] = None
 
@@ -25,25 +25,18 @@ class RelayTableName(BaseModel):
     )
 
     @classmethod
-    def from_channel_name(
-        cls, channel_name: str, relay_idx: Optional[int] = None
-    ) -> "RelayTableName":
-        # The board position (the device's physical marking, e.g. "Relay 18")
-        # comes from the relay config's RelayIdx; the suffix parse covers
-        # old-convention channel names (`vdc-relay1`) still in the field.
-        relay_match = cls.relay_table_name_rgx.match(channel_name)
+    def from_node_name(cls, node_name: str) -> "RelayTableName":
+        # The suffix parse covers old-convention names (`vdc-relay1`) still in
+        # the field; a functional name (`zone1-bedrooms-ops-relay`) has no number.
+        relay_match = cls.relay_table_name_rgx.match(node_name)
         if relay_match is None:
-            channel_part = channel_name.removesuffix("-relay")
-            relay_number = relay_idx
+            channel_part = node_name.removesuffix("-relay")
+            relay_number = None
         else:
             channel_part = relay_match.group("channel_part")
-            relay_number = (
-                relay_idx
-                if relay_idx is not None
-                else int(relay_match.group("relay_number"))
-            )
+            relay_number = int(relay_match.group("relay_number"))
         return RelayTableName(
-            channel_name=channel_name,
+            node_name=node_name,
             row_name=" ".join(
                 [
                     word.capitalize()
@@ -59,75 +52,41 @@ class RelayTableName(BaseModel):
             return self.row_name
         return f"Relay {self.relay_number}: {self.row_name}"
 
+
 class RelayWidgetConfig(RelayConfig):
-    energized_icon: str = "⚡"
-    deenergized_icon: str = "-"
-    show_icon: bool = True
 
     @cached_property
     def table_name(self) -> RelayTableName:
-        return RelayTableName.from_channel_name(self.channel_name, self.relay_idx)
+        return RelayTableName.from_node_name(self.about_node_name)
 
     @classmethod
-    def from_config(
-            cls,
-            config: RelayConfig,
-            energized_icon: str = "🔴",
-            deenergized_icon: str = "⚫️",
-            show_icon: bool = True,
-    ) -> "RelayWidgetConfig":
-        return RelayWidgetConfig(
-            energized_icon=energized_icon,
-            deenergized_icon=deenergized_icon,
-            show_icon=show_icon,
-            **config.model_dump()
-        )
+    def from_config(cls, config: RelayConfig) -> "RelayWidgetConfig":
+        return RelayWidgetConfig(**config.model_dump())
 
-    def get_state_str(self, energized: Optional[bool], *, show_icon: Optional[bool] = None) -> str:
-        if energized is None:
-            icon = "?"
-            description = "?"
-        elif energized:
-            icon = self.energized_icon
-            description = self.energizing_event
-        else:
-            icon = self.deenergized_icon
-            description = self.de_energizing_event
-        if (show_icon is None and self.show_icon) or show_icon is True:
-            return f"{icon} {description}"
-        return description
+    def next_command(self, state: Optional[str]) -> Optional[CommandTransition]:
+        """The command to offer given the observed state: the one that leads
+        somewhere else. A one-command row (the pico-cycler) always offers
+        it; a row with no commands (a relay owned by an interior node) or
+        no observed state offers nothing."""
+        if not self.commands:
+            return None
+        if len(self.commands) == 1:
+            return self.commands[0]
+        if state is None:
+            return None
+        return next((c for c in self.commands if c.to_state != state), None)
 
-    def get_current_state_str(self, energized: Optional[bool], icon: Optional[bool] = False) -> str:
-        if energized is None:
-            return "?"
-        if energized:
-            if icon:
-                return self.energized_icon
-            return self.energized_state
-        else:
-            if icon:
-                return self.deenergized_icon
-            return self.deenergized_state
-    
+    def get_current_state_str(self, state: Optional[str]) -> str:
+        return "?" if state is None else state
+
+    def get_action_str(self, state: Optional[str]) -> str:
+        command = self.next_command(state)
+        return "" if command is None else command.event
+
 
 class RelayWidgetInfo(BaseModel):
     config: RelayWidgetConfig
     observed: Optional[RelayState] = None
 
-    @classmethod
-    def get_observed_state(cls, observed) -> Optional[bool]:
-        if observed is not None:
-            return observed.value == RelayEnergized.energized
-        return None
-
-    def get_state(self) -> Optional[bool]:
-        return self.get_observed_state(self.observed)
-
-    def get_state_str(self) -> str:
-        return self.config.get_state_str(self.get_state())
-
-    def get_energize_str(self) -> str:
-        return self.config.get_energize_str(True)
-
-    def get_deenergize_str(self) -> str:
-        return self.config.get_energize_str(False)
+    def get_state(self) -> Optional[str]:
+        return None if self.observed is None else self.observed.value

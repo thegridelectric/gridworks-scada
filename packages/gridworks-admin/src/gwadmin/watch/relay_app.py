@@ -21,13 +21,11 @@ from gwadmin.config import MAX_ADMIN_TIMEOUT
 from gwadmin.watch.clients.admin_client import AdminClient
 from gwadmin.watch.clients.dac_client import DACWatchClient
 from gwadmin.watch.clients.dispatch_replies import DispatchReply
-from gwadmin.watch.clients.relay_client import RelayEnergized
 from gwadmin.watch.clients.relay_client import RelayWatchClient
 from gwadmin.watch.widgets.dacs import Dacs
 from gwadmin.watch.widgets.keepalive import KeepAliveButton
 from gwadmin.watch.widgets.keepalive import ReleaseControlButton
 from gwadmin.watch.widgets.mqtt import MqttState
-from gwadmin.watch.widgets.reboot_picos import RebootPicosButton
 from gwadmin.watch.widgets.relays import Relays
 from gwadmin.watch.widgets.relay_toggle_button import RelayToggleButton
 from gwadmin.watch.widgets.time_input import TimeInput
@@ -187,9 +185,9 @@ class RelaysApp(App):
         self._admin_client.start()
 
     def on_relay_toggle_button_pressed(self, message: RelayToggleButton.Pressed):
-        self._relay_client.set_relay(
+        self._relay_client.send_command(
             message.about_node_name,
-            RelayEnergized.energized if message.energize else RelayEnergized.deenergized,
+            message.event,
             message.timeout_seconds
         )
 
@@ -202,7 +200,7 @@ class RelaysApp(App):
             path_dbg |= 0x00000001
             new_state = int(new_state)
             dac_table = self.query_one("#dacs_table", DataTable)
-            row = dac_table.get_row_at(dac_table.cursor_row)
+            dac_node_name = dac_table.coordinate_to_cell_key(dac_table.cursor_coordinate).row_key.value
             time_input_value = self.app.query_one(TimeInput).value
             try:
                 time_in_minutes = float(time_input_value) if time_input_value else int(self.settings.config.default_timeout_seconds/60)
@@ -211,7 +209,7 @@ class RelaysApp(App):
                 path_dbg |= 0x00000002
                 timeout_seconds = self.settings.config.default_timeout_seconds
             self._dac_client.set_dac(
-                dac_row_name=row[0],
+                dac_node_name=dac_node_name,
                 new_state=new_state,
                 timeout_seconds=timeout_seconds,
             )
@@ -254,9 +252,6 @@ class RelaysApp(App):
             severity="information" if reply.taken else "warning",
         )
 
-    def on_reboot_picos_button_pressed(self, message: RebootPicosButton.Pressed):
-        self.notify(f"Asking the pico-cycler to reboot the picos ({int(message.timeout_seconds/60)} min admin)")
-        self._relay_client.send_reboot_picos(message.timeout_seconds)
 
     def on_keep_alive_button_pressed(self, _: KeepAliveButton.Pressed):
         if _.timeout_seconds is not None:

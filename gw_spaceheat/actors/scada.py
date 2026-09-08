@@ -60,13 +60,15 @@ from actors.codec_factories import ScadaCodecFactory
 from actors.contract_handler import ContractHandler
 from gwsproto.data_classes.house_0_names import H0N, ScadaWeb
 from gwsproto.data_classes.components.web_server_component import WebServerComponent
-from gwsproto.enums import (LeafAllyBufferOnlyState,  LeafAllyAllTanksState,
+from gwsproto.enums import (HpBossState, LeafAllyBufferOnlyState,  LeafAllyAllTanksState,
+                            PicoCyclerState, RebootPicos,
                             SlowDispatchContractStatus, LocalControlTopState,
-                   MainAutoEvent, MainAutoState, SeasonalStorageMode,  TopState)
+                   MainAutoEvent, MainAutoState, SeasonalStorageMode,  TopState, TurnHpOnOff)
 
 from gwsproto.named_types import ( ActuatorsReady,
     AdminDispatch, AdminAnalogDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
-    Glitch, GoDormant, LayoutLite, NewCommandTree, NoNewContractWarning, ResetHpKeepValue, ScadaControlCapabilities,
+    Glitch, GoDormant, GwCommandInterface, GwCommandTransition, LayoutLite, NewCommandTree, NoNewContractWarning,
+    ResetHpKeepValue, ScadaControlCapabilities,
     ScadaParams, SendControlCapabilities, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment,
     SiegTargetTooLow, SingleMachineState,SlowContractHeartbeat, SuitUp, WakeUp,
 )
@@ -363,7 +365,7 @@ class Scada(PrimeActor, ScadaInterface):
                 try:
                     self._send_to(from_node, self.control_capabilities)
                 except Exception as e:
-                    self.log(f"Trouble with SendLayout: {e}")
+                    self.log(f"Trouble with SendControlCapabilities: {e}")
             case SendLayout():
                 try:
                     self._send_to(from_node, self.layout_lite)
@@ -802,6 +804,7 @@ class Scada(PrimeActor, ScadaInterface):
         node_name = payload.MachineHandle.split('.')[-1]
         self._data.latest_machine_state[node_name] = payload
         self.handle_state_change_subscriptions(from_node, payload)
+        self._forward_single_machine_state(from_node, payload)
 
     def handle_state_change_subscriptions(self, from_node: ShNode, sms: SingleMachineState) -> None:
         # Find all subscriptions for this publisher (from_node)
@@ -1548,6 +1551,21 @@ class Scada(PrimeActor, ScadaInterface):
             if src_actor_class in (ActorClass.Relay, ActorClass.ZeroTenOutputer):
                 self._send_to(self.admin, reading)
 
+    def _forward_single_machine_state(
+        self, from_node: ShNode, sms: SingleMachineState
+    ) -> None:
+        """A commandable node's state reaches the admin panel live: the
+        panel's rows, relays and interior command nodes alike, follow the
+        node's own state machine rather than a reading's 0/1."""
+        if (
+            self.settings.admin.enabled
+            and (
+                from_node.ActorClass == ActorClass.Relay
+                or from_node.ActorClass in self.COMMAND_NODE_INTERFACES
+            )
+        ):
+            self._send_to(self.admin, sms)
+
     #################################################
     # Various properties
     #################################################
@@ -1623,33 +1641,86 @@ class Scada(PrimeActor, ScadaInterface):
     def data(self) -> ScadaData:
         return self._data
 
+    # The interior command nodes' vocabulary, by ActorClass. The layout word
+    # does not yet carry a per-node command interface, so the two nodes that
+    # take event commands without a relay config declare theirs here; the
+    # relays' come from their own config.
+    COMMAND_NODE_INTERFACES: dict[ActorClass, tuple[str, str, list[tuple[str, str]]]] = {
+        ActorClass.HpBoss: (
+            TurnHpOnOff.enum_name(),
+            HpBossState.enum_name(),
+            [(TurnHpOnOff.TurnOn, HpBossState.HpOn), (TurnHpOnOff.TurnOff, HpBossState.HpOff)],
+        ),
+        ActorClass.PicoCycler: (
+            RebootPicos.enum_name(),
+            PicoCyclerState.enum_name(),
+            [(RebootPicos.RebootPicos, PicoCyclerState.RelayOpening)],
+        ),
+    }
+
+    def command_interface(self, node: ShNode) -> GwCommandInterface:
+        """What a boss may ask of this node and the state each command
+        leads to: a relay's two events from its own config, an interior
+        command node's from COMMAND_NODE_INTERFACES."""
+        if node.ActorClass in self.COMMAND_NODE_INTERFACES:
+            event_type, state_type, commands = self.COMMAND_NODE_INTERFACES[node.ActorClass]
+        else:
+            config = next(
+                x for x in node.component.gt.ConfigList if x.ActorName == node.name
+            )
+            event_type, state_type = config.EventType, config.StateType
+            commands = [
+                (config.EnergizingEvent, config.EnergizedState),
+                (config.DeEnergizingEvent, config.DeEnergizedState),
+            ]
+        return GwCommandInterface(
+            ActorName=node.name,
+            EventType=event_type,
+            StateType=state_type,
+            Commands=[
+                GwCommandTransition(Event=event, ToState=to_state)
+                for event, to_state in commands
+            ],
+        )
+
     @property
     def control_capabilities(self) -> ScadaControlCapabilities:
+        """The cover of the live command tree: the nodes an operator may
+        address, their state channels, and an interface for every relay or
+        command node not under an interior command node (a relay under
+        hp-boss or the pico-cycler is commanded through its owner)."""
         relay_nodes = [
-            node.to_gt()
-            for node in self.layout.nodes.values()
+            node for node in self.layout.nodes.values()
             if node.ActorClass == ActorClass.Relay
         ]
         dac_nodes = [
-            node.to_gt()
-            for node in self.layout.nodes.values()
+            node for node in self.layout.nodes.values()
             if node.ActorClass == ActorClass.ZeroTenOutputer
         ]
-
-        control_node_names = {n.Name for n in relay_nodes + dac_nodes}
-
+        command_nodes = [
+            node for node in self.layout.nodes.values()
+            if node.ActorClass in self.COMMAND_NODE_INTERFACES
+        ]
+        control_node_names = {n.name for n in relay_nodes + dac_nodes}
         ctrl_channels = [
             channel.to_gt()
             for channel in self.layout.data_channels.values()
             if channel.AboutNodeName in control_node_names
         ]
+        owner_prefixes = [f"{node.handle}." for node in command_nodes]
+        interfaces = [
+            self.command_interface(node)
+            for node in relay_nodes + command_nodes
+            if not any(node.handle.startswith(p) for p in owner_prefixes)
+        ]
         return ScadaControlCapabilities(
             FromGNodeAlias=self.layout.scada_g_node_alias,
             MessageCreatedMs=int(time.time() * 1000),
-            RelayNodes = relay_nodes,
-            DacNodes=dac_nodes,
-            ControlChannels= ctrl_channels,
-            I2cRelayComponent=self.layout.node(H0N.relay_multiplexer).component.gt
+            RelayNodes=[node.to_gt() for node in relay_nodes],
+            DacNodes=[node.to_gt() for node in dac_nodes],
+            CommandNodes=[node.to_gt() for node in command_nodes],
+            ControlChannels=ctrl_channels,
+            CommandInterfaces=interfaces,
         )
 
     @property

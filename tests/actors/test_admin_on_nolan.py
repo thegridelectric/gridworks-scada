@@ -16,7 +16,13 @@ import pytest
 
 from actors.zero_ten_outputer import ZeroTenOutputer, code_from_volts_times_ten
 from gwsproto.data_classes.house_0_names import H0N
-from gwsproto.enums import ActorClass
+from gwsproto.enums import (
+    ActorClass,
+    HpBossState,
+    PicoCyclerState,
+    RebootPicos,
+    TurnHpOnOff,
+)
 from gwsproto.named_types import (
     AdminAnalogDispatch,
     AdminReleaseControl,
@@ -41,17 +47,12 @@ def app() -> ScadaApp:
     return scada_app
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "scada.control.capabilities/001 requires the House0 Krida "
-        "I2cRelayComponent; a Nolan layout cannot emit it until the word drops it"
-    ),
-)
 def test_control_capabilities_on_nolan(app: ScadaApp) -> None:
-    """A Nolan scada answers SendControlCapabilities: every relay and the
-    0-10V output are in the projection, keyed off the layout's actuator
-    surface rather than a House0 node name."""
+    """A Nolan scada answers SendControlCapabilities with the cover of its
+    tree: every relay and the 0-10V output are in the projection, hp-boss
+    and the pico-cycler are command-node rows with their own vocabulary,
+    and the two relays they own (hp-scada-ops-relay, vdc-relay) carry no
+    interface of their own."""
     scada = app.scada
     layout = scada.layout
     capabilities = scada.control_capabilities
@@ -60,9 +61,36 @@ def test_control_capabilities_on_nolan(app: ScadaApp) -> None:
     }
     assert {n.Name for n in capabilities.RelayNodes} == relay_names
     assert {n.Name for n in capabilities.DacNodes} == {DAC_NODE}
+    assert {n.Name for n in capabilities.CommandNodes} == {H0N.hp_boss, H0N.pico_cycler}
     assert {c.AboutNodeName for c in capabilities.ControlChannels} == relay_names | {
         DAC_NODE
     }
+    interfaces = {i.ActorName: i for i in capabilities.CommandInterfaces}
+    owned = {H0N.hp_scada_ops_relay, H0N.vdc_relay}
+    assert set(interfaces) == (relay_names - owned) | {H0N.hp_boss, H0N.pico_cycler}
+    hp_boss = interfaces[H0N.hp_boss]
+    assert hp_boss.EventType == TurnHpOnOff.enum_name()
+    assert hp_boss.StateType == HpBossState.enum_name()
+    assert {(c.Event, c.ToState) for c in hp_boss.Commands} == {
+        (TurnHpOnOff.TurnOn, HpBossState.HpOn),
+        (TurnHpOnOff.TurnOff, HpBossState.HpOff),
+    }
+    cycler = interfaces[H0N.pico_cycler]
+    assert cycler.EventType == RebootPicos.enum_name()
+    assert [(c.Event, c.ToState) for c in cycler.Commands] == [
+        (RebootPicos.RebootPicos, PicoCyclerState.RelayOpening)
+    ]
+    for name in relay_names - owned:
+        config = next(
+            c for c in layout.node(name).component.gt.ConfigList if c.ActorName == name
+        )
+        relay = interfaces[name]
+        assert relay.EventType == config.EventType
+        assert relay.StateType == config.StateType
+        assert {(c.Event, c.ToState) for c in relay.Commands} == {
+            (config.EnergizingEvent, config.EnergizedState),
+            (config.DeEnergizingEvent, config.DeEnergizedState),
+        }
 
 
 def admin_dispatch(value: int) -> AdminAnalogDispatch:

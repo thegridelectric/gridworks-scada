@@ -271,17 +271,16 @@ class DACWatchClient(AdminSubClient):
         if self._callbacks.mqtt_message_received_callback is not None:
             self._callbacks.mqtt_message_received_callback(topic, payload)
 
-    def set_dac(self, dac_row_name: str, new_state: int, timeout_seconds: Optional[int] = None):
-        self._send_set_command(dac_row_name, new_state, datetime.datetime.now(), timeout_seconds)
+    def set_dac(self, dac_node_name: str, new_state: int, timeout_seconds: Optional[int] = None):
+        self._send_set_command(dac_node_name, new_state, datetime.datetime.now(), timeout_seconds)
 
     def _send_set_command(
             self,
-            dac_row_name: str,
+            dac_node_name: str,
             value: int,
             set_time: datetime.datetime,
             timeout_seconds: Optional[int] = None
     ) -> None:
-        dac_node_name = dac_row_name.lower() + "-010v"
         dispatch = AnalogDispatch(
             FromGNodeAlias=None,
             FromHandle=H0N.admin,

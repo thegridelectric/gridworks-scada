@@ -4,11 +4,21 @@ link is paired with that command and handed to the panel's callback with the
 reason, so a refused command is seen instead of silent."""
 
 import time
+import uuid
 
 from gwproto import Message as GWMessage
 from gwsproto.data_classes.house_0_names import H0N
-from gwsproto.enums import GwScadaCmdRefusalReason
-from gwsproto.named_types import AdminDispatch, DispatchAck, DispatchNack, SingleReading
+from gwsproto.enums import ActorClass, GwScadaCmdRefusalReason, PicoCyclerState, RebootPicos
+from gwsproto.named_types import (
+    AdminDispatch,
+    DispatchAck,
+    DispatchNack,
+    GwCommandInterface,
+    GwCommandTransition,
+    ScadaControlCapabilities,
+    SingleReading,
+    SpaceheatNodeGt,
+)
 
 from gwadmin.watch.clients.dispatch_replies import DispatchReply
 from gwadmin.watch.clients.relay_client import RelayClientCallbacks, RelayWatchClient
@@ -30,17 +40,54 @@ def scada_message(payload) -> tuple[str, bytes]:
     return message.mqtt_topic(), message.model_dump_json().encode()
 
 
+def cycler_capabilities() -> ScadaControlCapabilities:
+    """The smallest cover with a pico-cycler row: one command node under admin."""
+    return ScadaControlCapabilities(
+        FromGNodeAlias="d1.isone.me.versant.keene.beech.scada",
+        MessageCreatedMs=int(time.time() * 1000),
+        RelayNodes=[],
+        DacNodes=[],
+        CommandNodes=[
+            SpaceheatNodeGt(
+                Name=H0N.pico_cycler,
+                ActorHierarchyName=f"s.{H0N.pico_cycler}",
+                Handle=f"{H0N.admin}.{H0N.pico_cycler}",
+                ActorClass=ActorClass.PicoCycler,
+                ShNodeId=str(uuid.uuid4()),
+            )
+        ],
+        ControlChannels=[],
+        CommandInterfaces=[
+            GwCommandInterface(
+                ActorName=H0N.pico_cycler,
+                EventType=RebootPicos.enum_name(),
+                StateType=PicoCyclerState.enum_name(),
+                Commands=[
+                    GwCommandTransition(
+                        Event=RebootPicos.RebootPicos, ToState=PicoCyclerState.RelayOpening
+                    )
+                ],
+            )
+        ],
+    )
+
+
 def client_with_replies() -> tuple[RelayWatchClient, CapturingAdminClient, list[DispatchReply]]:
     replies: list[DispatchReply] = []
     client = RelayWatchClient(callbacks=RelayClientCallbacks(dispatch_reply_callback=replies.append))
     admin = CapturingAdminClient()
     client.set_admin_client(admin)
+    client.process_scada_control_capabilities(cycler_capabilities())
     return client, admin, replies
+
+
+def send_reboot_picos(client: RelayWatchClient, timeout_seconds: int) -> None:
+    client.send_command(H0N.pico_cycler, RebootPicos.RebootPicos, timeout_seconds)
 
 
 def test_nack_is_paired_with_the_command_it_refuses() -> None:
     client, admin, replies = client_with_replies()
-    client.send_reboot_picos(300)
+    send_reboot_picos(client, 300)
     dispatch = admin.published[0]
     assert isinstance(dispatch, AdminDispatch)
     trigger_id = dispatch.DispatchTrigger.TriggerId
@@ -58,14 +105,14 @@ def test_nack_is_paired_with_the_command_it_refuses() -> None:
     reply = replies[0]
     assert not reply.taken
     assert reply.pending is not None
-    assert reply.pending.label == "Reboot picos"
+    assert reply.pending.label == f"{H0N.pico_cycler} {RebootPicos.RebootPicos}"
     assert reply.pending.to_handle == f"{H0N.admin}.{H0N.pico_cycler}"
-    assert "refused Reboot picos: Busy" in reply.describe()
+    assert f"refused {H0N.pico_cycler} {RebootPicos.RebootPicos}: Busy" in reply.describe()
 
 
 def test_ack_is_taken_and_a_reply_is_delivered_once() -> None:
     client, admin, replies = client_with_replies()
-    client.send_reboot_picos(300)
+    send_reboot_picos(client, 300)
     trigger_id = admin.published[0].DispatchTrigger.TriggerId
     ack = DispatchAck(
         FromHandle=f"{H0N.admin}.{H0N.pico_cycler}",

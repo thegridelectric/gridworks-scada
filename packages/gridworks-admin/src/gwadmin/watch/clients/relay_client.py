@@ -4,8 +4,6 @@ import logging
 import threading
 import uuid
 from dataclasses import dataclass
-from enum import auto
-from enum import StrEnum
 from logging import Logger
 from typing import Callable
 from typing import Optional
@@ -15,10 +13,9 @@ from typing import Sequence
 from gwproto import Message as GWMessage
 from gwproto import MQTTTopic
 from gwsproto.data_classes.house_0_names import H0N
-from gwsproto.enums import ChangeRelayPin
 from gwsproto.property_format import SpaceheatName
 
-from gwsproto.named_types import SingleReading
+from gwsproto.named_types import SingleMachineState
 from pydantic import BaseModel
 from pydantic import model_validator
 
@@ -31,26 +28,28 @@ from gwadmin.watch.clients.dispatch_replies import DispatchReply
 from gwadmin.watch.clients.dispatch_replies import DispatchReplyTracker
 from gwsproto.named_types import (AdminDispatch,  AdminKeepAlive, AdminReleaseControl,
                         ScadaControlCapabilities, FsmEvent, SnapshotSpaceheat)
-from gwsproto.enums import RebootPicos, TurnHpOnOff
 
 module_logger = logging.getLogger(__name__)
 
-class RelayConfig(BaseModel):
-    about_node_name: SpaceheatName
-    channel_name: SpaceheatName
-    relay_idx: Optional[int] = None
-    event_type: str
-    energizing_event: str
-    de_energizing_event: str
-    energized_state: str
-    deenergized_state: str
+class CommandTransition(BaseModel):
+    """One command a row takes and the state it leads to (gw.command.transition)."""
+    event: str
+    to_state: str
 
-class RelayEnergized(StrEnum):
-    deenergized = auto()
-    energized = auto()
+class RelayConfig(BaseModel):
+    """One row of the panel: a node the scada reports state for, with the
+    commands the operator may send it. A relay owned by an interior command
+    node (hp-boss's ops relay, the cycler's vdc relay) has no commands and
+    shows state only; the interior node's row carries the commands."""
+    about_node_name: SpaceheatName
+    channel_name: Optional[SpaceheatName] = None
+    event_type: str
+    state_type: str
+    commands: list[CommandTransition]
 
 class RelayState(BaseModel):
-    value: RelayEnergized
+    value: str
+    """A value of the row's state_type enum, from single.machine.state."""
     time: int # unix ms
 
 class RelayInfo(BaseModel):
@@ -125,7 +124,6 @@ class RelayClientCallbacks:
 class RelayWatchClient(AdminSubClient):
     _lock: threading.RLock
     _relays: dict[SpaceheatName, RelayInfo]
-    _channel2node: dict[SpaceheatName, SpaceheatName]
     _admin_client: AdminClient
     _callbacks: RelayClientCallbacks
     _replies: DispatchReplyTracker
@@ -144,7 +142,6 @@ class RelayWatchClient(AdminSubClient):
         self._callbacks = callbacks or RelayClientCallbacks()
         self._logger = logger
         self._relays = {}
-        self._channel2node = {}
         self._replies = DispatchReplyTracker()
 
     def set_admin_client(self, client: AdminClient) -> None:
@@ -160,21 +157,27 @@ class RelayWatchClient(AdminSubClient):
 
     @classmethod
     def _get_relay_configs(cls, ctrl_capabilities: ScadaControlCapabilities) -> dict[str, RelayConfig]:
-        relay_node_names = {node.Name for node in ctrl_capabilities.RelayNodes}
-        relay_channels = {channel.AboutNodeName: channel for channel in ctrl_capabilities.ControlChannels if channel.AboutNodeName in relay_node_names}
-        relay_actor_configs = {config.ActorName: config for config in ctrl_capabilities.I2cRelayComponent.ConfigList}
-        return {
-            node_name : RelayConfig(
-                about_node_name=node_name,
-                channel_name=relay_channels[node_name].Name,
-                relay_idx=relay_actor_configs[node_name].RelayIdx,
-                event_type=relay_actor_configs[node_name].EventType,
-                energizing_event=relay_actor_configs[node_name].EnergizingEvent,
-                de_energizing_event=relay_actor_configs[node_name].DeEnergizingEvent,
-                energized_state=relay_actor_configs[node_name].EnergizedState,
-                deenergized_state=relay_actor_configs[node_name].DeEnergizedState,
-            ) for node_name in relay_node_names
-        }
+        """One row per relay and per interior command node. The commands come
+        from the node's command interface; a relay under an interior node has
+        none (it is commanded through its owner) and its state_type is read
+        off its owner-independent state channel name only for display."""
+        interfaces = {i.ActorName: i for i in ctrl_capabilities.CommandInterfaces}
+        channels = {c.AboutNodeName: c for c in ctrl_capabilities.ControlChannels}
+        configs: dict[str, RelayConfig] = {}
+        for node in ctrl_capabilities.RelayNodes + ctrl_capabilities.CommandNodes:
+            interface = interfaces.get(node.Name)
+            channel = channels.get(node.Name)
+            configs[node.Name] = RelayConfig(
+                about_node_name=node.Name,
+                channel_name=channel.Name if channel is not None else None,
+                event_type=interface.EventType if interface is not None else "",
+                state_type=interface.StateType if interface is not None else "",
+                commands=[
+                    CommandTransition(event=c.Event, to_state=c.ToState)
+                    for c in interface.Commands
+                ] if interface is not None else [],
+            )
+        return configs
 
     def _update_ctrl_capabilities(self, new_ctrl_capabilities: ScadaControlCapabilities) -> dict[SpaceheatName, RelayConfigChange]:
         with self._lock:
@@ -204,11 +207,6 @@ class RelayWatchClient(AdminSubClient):
                         new_config=new_config,
                     )
                     self._relays[relay_name].config = new_config
-            if changed_configs:
-                self._channel2node = {
-                    relay.config.channel_name: relay.config.about_node_name
-                    for relay in self._relays.values()
-                }
         return changed_configs
 
     def process_scada_control_capabilities(self, ctrl_capabilities: ScadaControlCapabilities) -> None:
@@ -241,26 +239,28 @@ class RelayWatchClient(AdminSubClient):
         if state_changes and self._callbacks.relay_state_change_callback is not None:
             self._callbacks.relay_state_change_callback(state_changes)
 
-    def _relay_info_from_channel(self, channel_name: str) -> Optional[RelayInfo]:
-        return self._relays.get(
-            self._channel2node.get(channel_name, ""), None
-        )
+    def _extract_relay_states(self, states: Sequence[SingleMachineState]) -> dict[str, RelayState]:
+        """A row's state is the single.machine.state whose MachineHandle ends
+        in the row's node name; a relay's pin-level report (StateEnum
+        relay.pin) is not the row's state and is skipped."""
+        extracted = {}
+        for sms in states:
+            node_name = sms.MachineHandle.split(".")[-1]
+            relay_info = self._relays.get(node_name)
+            if relay_info is None:
+                continue
+            if relay_info.config.state_type and sms.StateEnum != relay_info.config.state_type:
+                continue
+            if not relay_info.config.state_type and sms.StateEnum == "relay.pin":
+                continue
+            extracted[node_name] = RelayState(value=sms.State, time=sms.UnixMs)
+        return extracted
 
-    def _extract_relay_states(self, readings: Sequence[SingleReading]) -> dict[str, RelayState]:
-        states = {}
-        for reading in readings:
-            if relay_info := self._relay_info_from_channel(reading.ChannelName):
-                states[relay_info.config.about_node_name] = RelayState(
-                    value=RelayEnergized.energized if reading.Value else RelayEnergized.deenergized,
-                    time=reading.ScadaReadTimeUnixMs,
-                )
-        return states
-
-    def _process_single_reading(self, payload: bytes) -> None:
+    def _process_single_machine_state(self, payload: bytes) -> None:
         if self._ctrl_capabilities is not None:
             self._handle_new_relay_states(
                 self._extract_relay_states(
-                    [GWMessage[SingleReading].model_validate_json(payload).Payload]
+                    [GWMessage[SingleMachineState].model_validate_json(payload).Payload]
                 )
             )
 
@@ -276,7 +276,7 @@ class RelayWatchClient(AdminSubClient):
     def _process_snapshot(self, snapshot: SnapshotSpaceheat) -> None:
         if self._ctrl_capabilities is not None:
             self._handle_new_relay_states(
-                self._extract_relay_states(snapshot.LatestReadingList)
+                self._extract_relay_states(snapshot.LatestStateList)
             )
 
     def process_mqtt_state_changed(self, old_state: str, new_state: str) -> None:
@@ -285,8 +285,8 @@ class RelayWatchClient(AdminSubClient):
 
     def process_mqtt_message(self, topic: str, payload: bytes) -> None:
         decoded_topic = MQTTTopic.decode(topic)
-        if decoded_topic.message_type == type_name(SingleReading):
-            self._process_single_reading(payload)
+        if decoded_topic.message_type == type_name(SingleMachineState):
+            self._process_single_machine_state(payload)
         elif (reply := self._replies.match(topic, payload)) is not None:
             if self._callbacks.dispatch_reply_callback is not None:
                 self._callbacks.dispatch_reply_callback(reply)
@@ -299,7 +299,6 @@ class RelayWatchClient(AdminSubClient):
         with self._lock:
             removed_relays = self._relays
             self._relays = {}
-            self._channel2node = {}
         if removed_relays and self._callbacks.relay_config_change_callback is not None:
             self._callbacks.relay_config_change_callback(
                 {
@@ -311,69 +310,32 @@ class RelayWatchClient(AdminSubClient):
                  }
             )
 
-    def set_relay(self, relay_node_name: str, new_state: RelayEnergized, timeout_seconds: Optional[int] = None):
-        if new_state == RelayEnergized.energized:
-            trigger = ChangeRelayPin.Energize
-        else:
-            trigger = ChangeRelayPin.DeEnergize
-        self._send_set_command(relay_node_name, trigger, datetime.datetime.now(), timeout_seconds)
+    def send_command(self, node_name: str, event: str, timeout_seconds: Optional[int] = None) -> None:
+        """Send one of the row's commands to its node, in the node's own
+        vocabulary: a relay event, TurnHpOnOff to hp-boss, RebootPicos to
+        the pico-cycler. The node adopts the TriggerId, so its reply and its
+        fsm.full.report carry it back."""
+        self._send_command(node_name, event, datetime.datetime.now(), timeout_seconds)
 
-    def _send_set_command(
+    def _send_command(
             self,
-            relay_name: str,
-            trigger: ChangeRelayPin,
+            node_name: str,
+            event_name: str,
             set_time: datetime.datetime,
             timeout_seconds: Optional[int] = None
     ) -> None:
-
-        relay_config = self._relays[relay_name].config
-
-        to_handle = f"{H0N.admin}.{relay_name}"
-        event_type = relay_config.event_type
-        event_name = (
-                relay_config.energizing_event
-                if trigger == ChangeRelayPin.Energize
-                else relay_config.de_energizing_event
-        )
-        # TODO: if flow manifold variant is House0Sieg
-        if relay_name == H0N.hp_scada_ops_relay:
-            to_handle = f"{H0N.admin}.{H0N.hp_boss}"
-            event_type = TurnHpOnOff.enum_name()
-            if trigger == ChangeRelayPin.DeEnergize:
-                event_name = TurnHpOnOff.TurnOn
-            else:
-                event_name = TurnHpOnOff.TurnOff
-
+        config = self._relays[node_name].config
+        if event_name not in {c.event for c in config.commands}:
+            raise ValueError(f"{node_name} takes {[c.event for c in config.commands]}, not {event_name}")
         event = FsmEvent(
             FromHandle=H0N.admin,
-            ToHandle=to_handle,
-            EventType=event_type,
+            ToHandle=f"{H0N.admin}.{node_name}",
+            EventType=config.event_type,
             EventName=event_name,
             SendTimeUnixMs=int(set_time.timestamp() * 1000),
             TriggerId=str(uuid.uuid4()),
         )
-        self._replies.note(event.TriggerId, event.ToHandle, f"{relay_name} {event_name}")
-        self._admin_client.publish(
-            AdminDispatch(
-                DispatchTrigger=event,
-                TimeoutSeconds=timeout_seconds
-            )
-        )
-
-
-    def send_reboot_picos(self, timeout_seconds: Optional[int] = None) -> None:
-        """Ask the pico-cycler, kept running under admin, to power-cycle the
-        picos. The cycler adopts this TriggerId, so its fsm.full.report is
-        the answer to this dispatch."""
-        event = FsmEvent(
-            FromHandle=H0N.admin,
-            ToHandle=f"{H0N.admin}.{H0N.pico_cycler}",
-            EventType=RebootPicos.enum_name(),
-            EventName=RebootPicos.RebootPicos,
-            SendTimeUnixMs=int(datetime.datetime.now().timestamp() * 1000),
-            TriggerId=str(uuid.uuid4()),
-        )
-        self._replies.note(event.TriggerId, event.ToHandle, "Reboot picos")
+        self._replies.note(event.TriggerId, event.ToHandle, f"{node_name} {event_name}")
         self._admin_client.publish(
             AdminDispatch(
                 DispatchTrigger=event,

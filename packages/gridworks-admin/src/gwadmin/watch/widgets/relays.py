@@ -1,5 +1,4 @@
 import logging
-import sys
 from logging import Logger
 from typing import Optional
 
@@ -22,7 +21,6 @@ from gwadmin.watch.clients.relay_client import RelayClientCallbacks
 from gwadmin.watch.clients.relay_client import RelayConfigChange
 from gwadmin.watch.widgets.mqtt import Mqtt
 from gwadmin.watch.widgets.mqtt import MqttState
-from gwadmin.watch.widgets.reboot_picos import RebootPicosButton
 from gwadmin.watch.widgets.relay_toggle_button import RelayToggleButton
 from gwadmin.watch.widgets.relay_widget_info import RelayWidgetConfig
 from gwadmin.watch.widgets.relay_widget_info import RelayWidgetInfo
@@ -34,13 +32,12 @@ module_logger.addHandler(TextualHandler())
 
 class Relays(Widget):
     BINDINGS = [
-        ("n", "toggle_relay", "Toggle selected relay"),
-        ("p", "reboot_picos", "Reboot picos"),
+        ("n", "toggle_relay", "Send selected row's command"),
     ]
 
     mqtt_state: Reactive[str] = reactive(ConstrainedMQTTClient.States.stopped)
     state_colors: Reactive[bool] = reactive(False)
-    curr_energized: Reactive[Optional[bool]] = reactive(None)
+    curr_state: Reactive[Optional[str]] = reactive(None)
     curr_config: Reactive[Optional[RelayWidgetConfig]] = reactive(None)
     logger: Logger
     _relays: dict[str, RelayWidgetInfo]
@@ -101,15 +98,10 @@ class Relays(Widget):
                 label="bar",
                 id="relay_toggle_button",
                 ).data_bind(
-                    energized=Relays.curr_energized,
+                    state=Relays.curr_state,
                     config=Relays.curr_config,
                 ),
                 id="relay_toggle_button_container",
-                classes="subsection",
-            ),
-            HorizontalGroup(
-                RebootPicosButton(default_timeout_seconds=self._default_timeout_seconds),
-                id="reboot_picos_container",
                 classes="subsection",
             ),
             id="relays_container"
@@ -120,11 +112,9 @@ class Relays(Widget):
     def on_mount(self) -> None:
         data_table = self.query_one("#relays_table", DataTable)
         for column_name, width in [
-            ("Relay", None),
-            ("Name", 25),
+            ("Name", 30),
             ("Current state", 25),
             ("Action", 25),
-            ("Energized", None),
         ]:
             data_table.add_column(column_name, key=column_name, width=width)
 
@@ -132,11 +122,9 @@ class Relays(Widget):
         if relay_name in self._relays:
             relay = self._relays[relay_name]
             return {
-                "Relay": relay.config.table_name.relay_number,
                 "Name": relay.config.table_name.row_name,
                 "Current state": relay.config.get_current_state_str(relay.get_state()),
-                "Action": relay.config.get_state_str(not relay.get_state(), show_icon=False),
-                "Energized": relay.config.get_current_state_str(relay.get_state(), icon=True),
+                "Action": relay.config.get_action_str(relay.get_state()),
             }
         return {}
 
@@ -144,8 +132,7 @@ class Relays(Widget):
         for relay_name, change in message.changes.items():
             relay_info = self._relays.get(relay_name, None)
             if relay_info is not None:
-                new_state = RelayWidgetInfo.get_observed_state(change.new_state)
-                if new_state != relay_info.get_state():
+                if change.new_state != relay_info.observed:
                     relay_info.observed = change.new_state
                     self._update_relay_row(relay_name)
                 table = self.query_one("#relays_table", DataTable)
@@ -192,11 +179,7 @@ class Relays(Widget):
                         *self._get_relay_row(relay_name),
                         key=relay_name
                     )
-        table.sort(
-            "Relay",
-            "Name",
-            key=lambda row: (row[0], row[1]) if row[0] is not None else (sys.maxsize, row[1]),
-        )
+        table.sort("Name")
         if table.is_valid_coordinate(table.cursor_coordinate):
             selected_row_key = table.coordinate_to_cell_key(table.cursor_coordinate)[0]
         else:
@@ -208,14 +191,14 @@ class Relays(Widget):
         self.logger.debug("++Relays._update_buttons: %s", relay_name)
         relay_info = self._relays.get(relay_name)
         if relay_info is not None:
-            curr_energized = relay_info.get_state()
+            curr_state = relay_info.get_state()
             curr_config = relay_info.config
             curr_title = relay_info.config.table_name.border_title
         else:
-            curr_energized = None
+            curr_state = None
             curr_config = None
             curr_title = ""
-        self.curr_energized = curr_energized
+        self.curr_state = curr_state
         self.curr_config = curr_config
         self.query_one(
             "#relay_toggle_button_container",
@@ -247,8 +230,6 @@ class Relays(Widget):
             RelayToggleButton
         ).action_toggle_relay()
 
-    def action_reboot_picos(self) -> None:
-        self.query_one("#reboot_picos_button", RebootPicosButton).action_reboot_picos()
 
     def relay_client_callbacks(self) -> RelayClientCallbacks:
         return RelayClientCallbacks(

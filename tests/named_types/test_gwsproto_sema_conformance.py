@@ -102,7 +102,6 @@ NO_WORD_ENUMS = {
     "change.primary.pump.control",
     "change.store.flow.relay",
     "gw1.contract.status",
-    "gw1.hp.boss.state",
     "gw1.leaf.ally.all.tanks.event",
     "gw1.leaf.ally.buffer.only.event",
     "gw1.local.control.all.tanks.event",
@@ -113,13 +112,11 @@ NO_WORD_ENUMS = {
     "heat.pump.control",
     "hp.loop.keep.send",
     "hp.model",
-    "pico.cycler.state",
     "primary.pump.control",
     "relay.pin.state",
     "store.flow.relay",
     "top.event",
     "top.state",
-    "turn.hp.on.off",
 }
 
 # --- KNOWN conformance debt to burn down (should shrink to empty) ---

@@ -57,19 +57,22 @@ class CapturingAdminClient:
         return False
 
 
-def gwadmin_reboot_dispatch(timeout_seconds: int) -> AdminDispatch:
+def gwadmin_reboot_dispatch(app: ScadaApp, timeout_seconds: int) -> AdminDispatch:
+    """The pico-cycler row's action: the client learns the row from the
+    scada's capabilities and sends RebootPicos in the row's own vocabulary."""
     admin = CapturingAdminClient()
     client = RelayWatchClient()
     client.set_admin_client(admin)
-    client.send_reboot_picos(timeout_seconds)
+    client.process_scada_control_capabilities(app.scada.control_capabilities)
+    client.send_command(H0N.pico_cycler, RebootPicos.RebootPicos, timeout_seconds)
     assert len(admin.published) == 1
     dispatch = admin.published[0]
     assert isinstance(dispatch, AdminDispatch)
     return dispatch
 
 
-def test_gwadmin_dispatch_is_the_cycler_command() -> None:
-    dispatch = gwadmin_reboot_dispatch(300)
+def test_gwadmin_dispatch_is_the_cycler_command(app: ScadaApp) -> None:
+    dispatch = gwadmin_reboot_dispatch(app, 300)
     event = dispatch.DispatchTrigger
     assert dispatch.TimeoutSeconds == 300
     assert event.FromHandle == H0N.admin
@@ -86,7 +89,7 @@ def test_admin_dispatch_reaches_cycler_and_opens_relay_under_its_trigger_id(app:
     assert isinstance(cycler, PicoCycler)
     sent_by_cycler: list = []
     cycler._send_to = lambda dst, payload, src=None: sent_by_cycler.append((dst.name, payload))
-    dispatch = gwadmin_reboot_dispatch(300)
+    dispatch = gwadmin_reboot_dispatch(app, 300)
 
     async def run() -> None:
         scada.process_admin_dispatch(scada.admin, dispatch)

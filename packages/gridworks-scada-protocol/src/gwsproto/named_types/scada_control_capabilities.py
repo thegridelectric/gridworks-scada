@@ -5,9 +5,7 @@ from typing_extensions import Self
 
 from gwsproto.enums import ActorClass
 from gwsproto.named_types.data_channel_gt import DataChannelGt
-from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
-    I2cMultichannelDtRelayComponentGt,
-)
+from gwsproto.named_types.gw_command_interface import GwCommandInterface
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwsproto.property_format import LeftRightDotStr, UTCMilliseconds
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
@@ -22,8 +20,9 @@ class ScadaControlCapabilities(GwsprotoSemaType):
     MessageCreatedMs: UTCMilliseconds
     RelayNodes: List[SpaceheatNodeGt]
     DacNodes: List[SpaceheatNodeGt]
+    CommandNodes: List[SpaceheatNodeGt]
     ControlChannels: List[DataChannelGt]
-    I2cRelayComponent: I2cMultichannelDtRelayComponentGt
+    CommandInterfaces: List[GwCommandInterface]
     TypeName: Literal["scada.control.capabilities"] = "scada.control.capabilities"
     Version: Literal["001"] = "001"
 
@@ -33,6 +32,7 @@ class ScadaControlCapabilities(GwsprotoSemaType):
         Axiom 1: ActorClassConsistency.
         a. All nodes in RelayNodes SHALL have ActorClass equal to Relay.
         b. All nodes in DacNodes SHALL have ActorClass equal to ZeroTenOutputer.
+        c. No node in CommandNodes SHALL have ActorClass equal to Relay or ZeroTenOutputer.
         """
         for n in self.RelayNodes:
             if n.ActorClass != ActorClass.Relay:
@@ -44,16 +44,21 @@ class ScadaControlCapabilities(GwsprotoSemaType):
                 raise ValueError(
                     f"Axiom 1 (ActorClassConsistency) failed: DacNodes contains {n.Name} with ActorClass {n.ActorClass}!"
                 )
+        for n in self.CommandNodes:
+            if n.ActorClass in (ActorClass.Relay, ActorClass.ZeroTenOutputer):
+                raise ValueError(
+                    f"Axiom 1 (ActorClassConsistency) failed: CommandNodes contains {n.Name} with ActorClass {n.ActorClass}!"
+                )
         return self
 
     @model_validator(mode="after")
     def check_axiom_2(self) -> Self:
         """
         Axiom 2: HandleTerminalMatchesName.
-        For every node in RelayNodes and DacNodes, Handle SHALL be present and
-        its final dot-separated token SHALL equal Name.
+        For every node in RelayNodes, DacNodes and CommandNodes, Handle SHALL be
+        present and its final dot-separated token SHALL equal Name.
         """
-        for n in self.RelayNodes + self.DacNodes:
+        for n in self.RelayNodes + self.DacNodes + self.CommandNodes:
             if not n.Handle or n.Handle.split(".")[-1] != n.Name:
                 raise ValueError(
                     f"Axiom 2 (HandleTerminalMatchesName) failed: {n.Name} Handle {n.Handle!r} must be "
@@ -83,33 +88,32 @@ class ScadaControlCapabilities(GwsprotoSemaType):
     @model_validator(mode="after")
     def check_axiom_4(self) -> Self:
         """
-        Axiom 4: I2cRelayComponentChannelControlNodeConsistency.
-        a. The set of ActorName values in I2cRelayComponent.ConfigList SHALL equal
-        the set of RelayNodes.Name values.
-        b. For each relay actor config in I2cRelayComponent.ConfigList, ChannelName
-        SHALL equal the Name of the ControlChannels entry whose AboutNodeName is
-        that relay actor config's ActorName.
+        Axiom 4: CommandInterfacesCoverTheTree.
+        a. The set of CommandInterfaces.ActorName values SHALL equal the set of
+        Name values of the nodes in RelayNodes and CommandNodes whose Handle
+        does not extend the Handle of any CommandNodes entry (a Handle extends
+        another when it equals that Handle followed by a dot and further
+        tokens).
+        b. No two CommandInterfaces entries SHALL share an ActorName.
         """
-        relay_node_names = {n.Name for n in self.RelayNodes}
-        config_actor_names = {
-            config.ActorName for config in self.I2cRelayComponent.ConfigList
+        owner_prefixes = [f"{n.Handle}." for n in self.CommandNodes if n.Handle]
+        directly_commanded = {
+            n.Name
+            for n in self.RelayNodes + self.CommandNodes
+            if n.Handle and not any(n.Handle.startswith(p) for p in owner_prefixes)
         }
-        if relay_node_names != config_actor_names:
-            missing = sorted(relay_node_names - config_actor_names)
-            extra = sorted(config_actor_names - relay_node_names)
+        interface_names = [i.ActorName for i in self.CommandInterfaces]
+        if set(interface_names) != directly_commanded:
+            missing = sorted(directly_commanded - set(interface_names))
+            extra = sorted(set(interface_names) - directly_commanded)
             raise ValueError(
-                "Axiom 4 (I2cRelayComponentChannelControlNodeConsistency) failed: "
-                "RelayNodes and I2cRelayComponent.ConfigList mismatch. "
-                f"MissingConfigsFor={missing} ExtraConfigsFor={extra}"
+                "Axiom 4 (CommandInterfacesCoverTheTree) failed: CommandInterfaces must "
+                "cover exactly the relay and command nodes not under an interior command node. "
+                f"MissingInterfacesFor={missing} ExtraInterfacesFor={extra}"
             )
-        channel_by_about_name = {c.AboutNodeName: c for c in self.ControlChannels}
-        for config in self.I2cRelayComponent.ConfigList:
-            channel = channel_by_about_name.get(config.ActorName)
-            if channel is None or config.ChannelName != channel.Name:
-                raise ValueError(
-                    f"Axiom 4 (I2cRelayComponentChannelControlNodeConsistency) failed: "
-                    f"I2cRelayComponent config for {config.ActorName} "
-                    f"has ChannelName {config.ChannelName!r}, expected the "
-                    f"ControlChannels entry named for AboutNodeName {config.ActorName!r}."
-                )
+        if len(interface_names) != len(set(interface_names)):
+            raise ValueError(
+                "Axiom 4 (CommandInterfacesCoverTheTree) failed: CommandInterfaces ActorName "
+                f"values must be unique: {sorted(interface_names)}"
+            )
         return self

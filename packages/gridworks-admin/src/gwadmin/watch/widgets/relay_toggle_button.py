@@ -19,106 +19,91 @@ module_logger.addHandler(TextualHandler())
 
 
 class RelayToggleButton(Button, can_focus=True):
+    """Sends the selected row's next command: the relay event, TurnHpOnOff to
+    hp-boss, RebootPicos to the pico-cycler, whichever the row's own
+    vocabulary offers from its observed state."""
+
     BINDINGS = [
-        ("n", "toggle_relay", "Toggle selected relay"),
+        ("n", "toggle_relay", "Send selected row's command"),
     ]
 
-    energized: Reactive[Optional[bool]] = reactive(None)
+    state: Reactive[Optional[str]] = reactive(None)
     config: Reactive[Optional[RelayWidgetConfig]] = reactive(None)
     timeout_seconds: int
 
     def __init__(
         self,
-        energized: Optional[bool] = None,
+        state: Optional[str] = None,
         config: Optional[RelayWidgetConfig] = None,
         default_timeout_seconds: int = DEFAULT_ADMIN_TIMEOUT,
         logger: logging.Logger = module_logger,
         **kwargs
     ) -> None:
         self.logger = logger
-        super().__init__(
-            variant=self.variant_from_state(energized),
-            **kwargs
-        )
+        super().__init__(variant=self.variant_from_state(state), **kwargs)
         self.default_timeout_seconds = default_timeout_seconds
-        self.set_reactive(RelayToggleButton.energized, energized)
+        self.set_reactive(RelayToggleButton.state, state)
         self.set_reactive(RelayToggleButton.config, config or None)
-        self.update_title()
-
-    def update_title(self):
-        if self.energized is True:
-            self.border_title = f"Dee[underline]n[/]ergize"
-        elif self.energized is False:
-            self.border_title = f"E[underline]n[/]ergize"
+        self.update_label()
 
     @classmethod
-    def variant_from_state(cls, energized: Optional[bool]) -> Literal["default", "success", "error"]:
-        if energized is None:
-            return "default"
-        elif energized:
-            return "success"
-        return "error"
+    def variant_from_state(cls, state: Optional[str]) -> Literal["default", "warning"]:
+        return "default" if state is None else "warning"
 
-    def action_toggle_relay(self) -> None:
+    def next_event(self) -> Optional[str]:
         if self.config is None:
-            return
-        input_value = self.app.query_one(TimeInput).value
-        try:
-            time_in_minutes = float(input_value) if input_value else int(self.default_timeout_seconds/60)
-            self.timeout_seconds = int(time_in_minutes * 60)
-        except: # noqa
-            self.timeout_seconds = self.default_timeout_seconds
-        if self.energized is not None:
-            self.post_message(
-                RelayToggleButton.Pressed(
-                    self.config.about_node_name,
-                    not self.energized,
-                    self.timeout_seconds
-                )
-            )
+            return None
+        command = self.config.next_command(self.state)
+        return None if command is None else command.event
 
-    def watch_energized(self) -> None:
-        if self.config is None:
+    def update_label(self) -> None:
+        event = self.next_event()
+        if event is None:
             self.disabled = True
-            return
-        self.label = self.config.get_state_str(not self.energized)
-        self.disabled = self.energized is None
-        self.variant = self.variant_from_state(self.energized)
-        self.update_title()
-
-    def watch_config(self):
-        if self.config is None:
-            self.disabled = True
-            self.border_title = ""
             self.label = ""
             return
-        self.label = self.config.get_state_str(not self.energized)
-        self.update_title()
+        self.disabled = False
+        self.label = f"[underline]n[/] {event}"
+
+    def watch_state(self) -> None:
+        self.variant = self.variant_from_state(self.state)
+        self.update_label()
+
+    def watch_config(self) -> None:
+        if self.config is None:
+            self.border_title = ""
+        self.update_label()
 
     class Pressed(Message):
-        def __init__(self, about_node_name: str, energize: bool, timeout_seconds: int) -> None:
+        def __init__(self, about_node_name: str, event: str, timeout_seconds: int) -> None:
             super().__init__()
             self.about_node_name = about_node_name
-            self.energize = energize
+            self.event = event
             self.timeout_seconds = timeout_seconds
 
-    def on_button_pressed(self):
-        if self.config is None:
-            return
+    def read_timeout(self) -> int:
         input_value = self.app.query_one(TimeInput).value
         try:
             time_in_minutes = float(input_value) if input_value else int(self.default_timeout_seconds/60)
-            self.timeout_seconds = int(time_in_minutes * 60)
-        except:  # noqa
-            self.timeout_seconds = self.default_timeout_seconds
-        if self.energized is not None:
-            self.post_message(
-                RelayToggleButton.Pressed(
-                    self.config.about_node_name,
-                    not self.energized,
-                    self.timeout_seconds
-                )
+            return int(time_in_minutes * 60)
+        except ValueError:
+            return self.default_timeout_seconds
+
+    def action_toggle_relay(self) -> None:
+        self.on_button_pressed()
+
+    def on_button_pressed(self) -> None:
+        event = self.next_event()
+        if self.config is None or event is None:
+            return
+        self.timeout_seconds = self.read_timeout()
+        self.post_message(
+            RelayToggleButton.Pressed(
+                self.config.about_node_name,
+                event,
+                self.timeout_seconds
             )
+        )
         self.post_message(KeepAliveButton.Pressed(self.timeout_seconds))
         timer_display = self.app.query_one(TimerDigits)
         timer_display.restart(self.timeout_seconds)

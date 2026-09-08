@@ -47,6 +47,8 @@ from gwsproto.named_types.gpio_relay_component_gt import GpioRelayComponentGt
 from gwsproto.named_types.gpio_sensor_component_gt import (
     GpioSensorComponentGt,
 )
+from gwsproto.named_types.gw_command_interface import GwCommandInterface
+from gwsproto.named_types.gw_command_transition import GwCommandTransition
 from gwsproto.named_types.ha1_params import Ha1Params
 from gwsproto.named_types.hack_oil_off import HackOilOff
 from gwsproto.named_types.hack_oil_on import HackOilOn
@@ -216,6 +218,8 @@ __all__ = [
     "GoDormant",
     "GpioRelayComponentGt",
     "GpioSensorComponentGt",
+    "GwCommandInterface",
+    "GwCommandTransition",
     "Ha1Params",
     "HackOilOff",
     "HackOilOn",
