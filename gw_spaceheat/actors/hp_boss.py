@@ -35,11 +35,16 @@ class HpBoss(ShNodeActor):
         super().__init__(name, services)
         self.hp_model = self.settings.hp_model # TODO: will move to hardware layout
         self.last_cmd_time = 0
-        self.state = HpBossState.HpOn
+        # The call relay is open at boot (the relay actor adopts the pin, and
+        # a de-energized call relay is the failsafe), so the boss starts
+        # HpOff: a boss that believed HpOn here would treat the first TurnOn
+        # as already done and never close the relay.
+        self.state = HpBossState.HpOff
 
     def start(self) -> None:
-        """ Required method, used for starting long-lived tasks. Noop."""
-        ...
+        """Reports the boot state, so the scada's latest-state list carries
+        hp-boss from the first snapshot instead of after the first change."""
+        self.report_state()
 
     def stop(self) -> None:
         """ Required method, used for stopping tasks. Noop"""
