@@ -63,7 +63,7 @@ class RelayToggleButton(Button, can_focus=True):
             self.label = ""
             return
         self.disabled = False
-        self.label = f"[underline]n[/] {event}"
+        self.label = event
 
     def watch_state(self) -> None:
         self.variant = self.variant_from_state(self.state)

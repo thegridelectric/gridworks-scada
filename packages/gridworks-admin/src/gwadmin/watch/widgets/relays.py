@@ -18,6 +18,7 @@ from gwadmin.watch.clients.constrained_mqtt_client import ConstrainedMQTTClient
 from gwadmin.watch.clients.dispatch_replies import DispatchReply
 from gwadmin.watch.clients.relay_client import ObservedRelayStateChange
 from gwadmin.watch.clients.relay_client import RelayClientCallbacks
+from gwadmin.watch.clients.relay_client import RelayConfig
 from gwadmin.watch.clients.relay_client import RelayConfigChange
 from gwadmin.watch.widgets.mqtt import Mqtt
 from gwadmin.watch.widgets.mqtt import MqttState
@@ -179,13 +180,29 @@ class Relays(Widget):
                         *self._get_relay_row(relay_name),
                         key=relay_name
                     )
-        table.sort("Name")
+        self._sort_rows(table)
         if table.is_valid_coordinate(table.cursor_coordinate):
             selected_row_key = table.coordinate_to_cell_key(table.cursor_coordinate)[0]
         else:
             selected_row_key = ""
         self._update_buttons(selected_row_key)
         self.logger.debug("--on_relays_config_change: selected row key: %s", selected_row_key.value if selected_row_key!="" else "")
+
+    @staticmethod
+    def row_order_key(config: RelayConfig) -> tuple[str, int, str]:
+        """Rows sort by name, except that a relay owned by an interior
+        command node sits directly under its owner's row (vdc-relay under
+        pico-cycler, hp-scada-ops-relay under hp-boss)."""
+        if config.owner is None:
+            return (config.about_node_name, 0, config.about_node_name)
+        return (config.owner, 1, config.about_node_name)
+
+    def _sort_rows(self, table: DataTable) -> None:
+        keys = {
+            info.config.table_name.row_name: self.row_order_key(info.config)
+            for info in self._relays.values()
+        }
+        table.sort("Name", key=lambda name: keys[name])
 
     def _update_buttons(self, relay_name: str) -> None:
         self.logger.debug("++Relays._update_buttons: %s", relay_name)

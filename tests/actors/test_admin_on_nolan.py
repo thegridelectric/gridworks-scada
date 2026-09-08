@@ -21,12 +21,15 @@ from gwsproto.enums import (
     HpBossState,
     PicoCyclerState,
     RebootPicos,
+    SinglePicoState,
     TurnHpOnOff,
 )
 from gwsproto.named_types import (
     AdminAnalogDispatch,
     AdminReleaseControl,
     AnalogDispatch,
+    MachineStates,
+    SingleMachineState,
 )
 from scada_app import ScadaApp
 from tests.utils.scada_live_test_helper import ScadaLiveTest
@@ -131,3 +134,44 @@ async def test_admin_analog_dispatch_reaches_outputer(
             f"ERROR waiting for {DAC_NODE} to report {VOLTS_TIMES_TEN}",
         )
         scada.process_scada_message(scada.admin, AdminReleaseControl())
+
+
+def test_cycler_state_reaches_admin_live(app: ScadaApp) -> None:
+    """The pico-cycler reports its transitions as machine.states; the
+    scada forwards the latest one to the admin link as the node's
+    single.machine.state, so the panel's cycler row moves with the
+    cycle rather than on the next snapshot. A roster row the cycler
+    reports about a pico is not forwarded."""
+    scada = app.scada
+    scada.settings.admin.enabled = True
+    sent: list = []
+    scada._send_to = lambda dst, payload, src=None: sent.append((dst.name, payload))
+    cycler = scada.layout.node(H0N.pico_cycler)
+    now_ms = int(time.time() * 1000)
+    scada.process_machine_states(
+        cycler,
+        MachineStates(
+            MachineHandle=cycler.handle,
+            StateEnum=PicoCyclerState.enum_name(),
+            StateList=[PicoCyclerState.RelayOpening],
+            UnixMsList=[now_ms],
+        ),
+    )
+    forwarded = [p for dst, p in sent if dst == H0N.admin]
+    assert len(forwarded) == 1
+    assert isinstance(forwarded[0], SingleMachineState)
+    assert forwarded[0].MachineHandle == cycler.handle
+    assert forwarded[0].State == PicoCyclerState.RelayOpening
+    assert forwarded[0].UnixMs == now_ms
+    sent.clear()
+    buffer = scada.layout.node("buffer")
+    scada.process_machine_states(
+        cycler,
+        MachineStates(
+            MachineHandle=buffer.handle,
+            StateEnum=SinglePicoState.enum_name(),
+            StateList=[SinglePicoState.Flatlined],
+            UnixMsList=[now_ms],
+        ),
+    )
+    assert [p for dst, p in sent if dst == H0N.admin] == []

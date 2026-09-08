@@ -641,12 +641,14 @@ class Scada(PrimeActor, ScadaInterface):
         else:
             self._data.recent_machine_states[node_name] = payload
        
-        self._data.latest_machine_state[node_name] = SingleMachineState(
+        latest = SingleMachineState(
             MachineHandle=payload.MachineHandle,
             StateEnum=payload.StateEnum,
             State=payload.StateList[-1],
             UnixMs=payload.UnixMsList[-1]
         )
+        self._data.latest_machine_state[node_name] = latest
+        self._forward_single_machine_state(from_node, latest)
 
 
     def process_power_watts(self, from_node: ShNode, payload: PowerWatts):
@@ -1554,11 +1556,14 @@ class Scada(PrimeActor, ScadaInterface):
     def _forward_single_machine_state(
         self, from_node: ShNode, sms: SingleMachineState
     ) -> None:
-        """A commandable node's state reaches the admin panel live: the
+        """A commandable node's own state reaches the admin panel live: the
         panel's rows, relays and interior command nodes alike, follow the
-        node's own state machine rather than a reading's 0/1."""
+        node's own state machine rather than a reading's 0/1. A state a node
+        reports about another node (the cycler's per-pico roster) is not
+        forwarded; the panel reads those from the snapshot."""
         if (
             self.settings.admin.enabled
+            and sms.MachineHandle.split(".")[-1] == from_node.Name
             and (
                 from_node.ActorClass == ActorClass.Relay
                 or from_node.ActorClass in self.COMMAND_NODE_INTERFACES

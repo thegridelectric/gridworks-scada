@@ -42,6 +42,9 @@ class RelayConfig(BaseModel):
     node (hp-boss's ops relay, the cycler's vdc relay) has no commands and
     shows state only; the interior node's row carries the commands."""
     about_node_name: SpaceheatName
+    owner: Optional[SpaceheatName] = None
+    """The interior command node whose Handle this node's Handle extends
+    by one segment; None for a node the operator commands directly."""
     channel_name: Optional[SpaceheatName] = None
     event_type: str
     state_type: str
@@ -163,12 +166,15 @@ class RelayWatchClient(AdminSubClient):
         off its owner-independent state channel name only for display."""
         interfaces = {i.ActorName: i for i in ctrl_capabilities.CommandInterfaces}
         channels = {c.AboutNodeName: c for c in ctrl_capabilities.ControlChannels}
+        owners = {n.Handle: n.Name for n in ctrl_capabilities.CommandNodes}
         configs: dict[str, RelayConfig] = {}
         for node in ctrl_capabilities.RelayNodes + ctrl_capabilities.CommandNodes:
             interface = interfaces.get(node.Name)
             channel = channels.get(node.Name)
+            boss_handle = node.Handle.rsplit(".", 1)[0] if node.Handle else ""
             configs[node.Name] = RelayConfig(
                 about_node_name=node.Name,
+                owner=owners.get(boss_handle),
                 channel_name=channel.Name if channel is not None else None,
                 event_type=interface.EventType if interface is not None else "",
                 state_type=interface.StateType if interface is not None else "",
