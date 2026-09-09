@@ -74,7 +74,8 @@ from actors.ltn.contract_handler import LtnContractHandler
 from gwsproto.named_types import (
     Bid, BidRecommendation, FloParamsHouse0, FloNextHourPlans, Glitch, Ha1Params, LatestPrice,
     LayoutLite, NoNewContractWarning, ResetHpKeepValue, ScadaParams, SendLayout,
-    SetLwtControlParams, SiegLoopEndpointValveAdjustment, SlowContractHeartbeat, SnapshotSpaceheat,
+    SetLwtControlParams, SiegLoopEndpointValveAdjustment, SlowContractHeartbeat, SlowContractRejection,
+    SnapshotSpaceheat,
 )
 
 from paho.mqtt.client import MQTTMessageInfo
@@ -672,6 +673,8 @@ class Ltn(PrimeActor):
                 self.process_snapshot(decoded.Payload)
             case SlowContractHeartbeat():
                 self.contract_handler.process_slow_contract_heartbeat(decoded.Payload)
+            case SlowContractRejection():
+                self.contract_handler.process_slow_contract_rejection(decoded.Payload)
             case EventBase():
                 path_dbg |= 0x00000040
                 self._process_event(decoded.Payload)

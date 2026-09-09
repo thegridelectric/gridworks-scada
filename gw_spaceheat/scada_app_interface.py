@@ -7,6 +7,8 @@ from gwproactor import AppInterface
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
+from gwsproto.enums import TaValidationState
+from gwsproto.named_types import TaDeed
 
 
 class ScadaAppInterface(AppInterface, ABC):
@@ -33,17 +35,23 @@ class ScadaAppInterface(AppInterface, ABC):
 
     @property
     def is_simulated(self) -> bool:
-        """Simulated until proven real: real (False) requires BOTH a TaDeed
-        present AND a layout with no simulated device.
+        """The plant is simulated: the layout carries a simulated device.
 
-        One reader today, the sim-time bridge in Scada. That is this
-        property's future job: deciding whether the scada reads time.time()
-        or the time coordinator's simulated timestep. It is NOT the place to
-        ask about validation (the TaDeed's ValidationState, once the word
-        exists) or about which silicon to drive (the layout's board record,
-        ScadaBoardComponent.simulated). The TaDeed is currently a fake
-        placeholder file at settings.paths.tadeed.
+        Its one job is the sim-time bridge in Scada, deciding whether the
+        scada reads time.time() or the time coordinator's simulated
+        timestep. It is NOT the place to ask whether the scada may trade
+        (validation_state) or which silicon to drive (the layout's board
+        record, ScadaBoardComponent.simulated).
         """
-        if not Path(self.settings.paths.tadeed).exists():
-            return True
         return self.hardware_layout.has_simulated_component()
+
+    @property
+    def validation_state(self) -> TaValidationState:
+        """What a TaValidator has attested about this terminal asset, read
+        from the ta.deed instance at settings.paths.tadeed; UnValidated
+        when there is no deed. An UnValidated scada refuses every LTN
+        contract offer."""
+        deed_path = Path(self.settings.paths.tadeed)
+        if not deed_path.exists():
+            return TaValidationState.UnValidated
+        return TaDeed.model_validate_json(deed_path.read_text()).ValidationState

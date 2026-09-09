@@ -17,7 +17,7 @@ from gwproactor.logger import LoggerOrAdapter
 from gwsproto.enums import MarketPriceUnit
 from gwsproto.enums import SlowDispatchContractStatus
 from gwsproto.named_types import ( 
-    Bid, LatestPrice, SlowContractHeartbeat, SlowDispatchContract, 
+    Bid, LatestPrice, SlowContractHeartbeat, SlowContractRejection, SlowDispatchContract, 
 )
 
 from actors.ltn.config import LtnSettings
@@ -184,6 +184,18 @@ class LtnContractHandler:
         else:
             self.latest_hb = scada_hb
     
+    def process_slow_contract_rejection(self, rejection: SlowContractRejection) -> None:
+        """The scada will not take the offered contract. Drop the pending
+        Created heartbeat so the rejected offer is not resent or reloaded."""
+        if self.latest_hb is None or rejection.ContractId != self.latest_hb.Contract.ContractId:
+            self.logger.info(f"Rejection for a contract we are not offering ... ignoring: {rejection}")
+            return
+        self.logger.warning(
+            f"Scada refused contract {rejection.ContractId}: {rejection.ValidationState.value}"
+        )
+        self.latest_hb = None
+        self.contract_file.unlink(missing_ok=True)
+
     def create_new_contract(self) -> None:
         """
         - Create a new SlowDispatchContract at the top of the hour

@@ -36,7 +36,7 @@ from gwproactor_test.pytest_options import add_live_test_options
 from gwproactor_test.certs import set_test_certificate_cache_dir
 from gwproactor.config import Paths
 
-from actors.config import DEFAULT_OPS_PARAMS_FILE
+from actors.config import DEFAULT_OPS_PARAMS_FILE, DEFAULT_TA_DEED_FILE
 
 
 TEST_DOTENV_PATH = Path(__file__).parent / ".env-gw-spaceheat-test"
@@ -50,6 +50,9 @@ TEST_OPS_PARAMS_PATH = (
     / "config"
     / "gw.nolan.operational.params.json"
 )
+# A ValidatedSimulatedAsset deed for the test layout: without one the scada
+# is UnValidated and refuses every LTN contract offer.
+TEST_TA_DEED_PATH = Path(__file__).parent / "config" / "gw.nolan.ta.deed.json"
 
 # Bridge the scada-specific test dotenv to gwproactor_test, whose autouse
 # default_test_env fixture reads GWPROACTOR_TEST_DOTENV_PATH (defaulting to a
@@ -82,6 +85,7 @@ def copy_test_operational_params(default_test_env):  # noqa: F811
         dest = Path(Paths(name=name).hardware_layout).parent / DEFAULT_OPS_PARAMS_FILE
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(TEST_OPS_PARAMS_PATH, dest)
+        shutil.copyfile(TEST_TA_DEED_PATH, dest.parent / DEFAULT_TA_DEED_FILE)
     yield
 
 @pytest.fixture(autouse=True)

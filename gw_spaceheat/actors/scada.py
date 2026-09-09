@@ -63,7 +63,7 @@ from gwsproto.data_classes.house_0_names import H0N, ScadaWeb
 from gwsproto.data_classes.components.web_server_component import WebServerComponent
 from gwsproto.enums import (FiveVBossState, HpBossState, LeafAllyBufferOnlyState,  LeafAllyAllTanksState,
                             RebootPicos, Turn5VOnOff,
-                            SlowDispatchContractStatus, LocalControlTopState,
+                            SlowDispatchContractStatus, TaValidationState, LocalControlTopState,
                    MainAutoEvent, MainAutoState, SeasonalStorageMode,  TopState, TurnHpOnOff)
 
 from gwsproto.named_types import ( ActuatorsReady,
@@ -71,7 +71,7 @@ from gwsproto.named_types import ( ActuatorsReady,
     Glitch, GoDormant, CommandInterface, CommandTransition, LayoutLite, NewCommandTree, NoNewContractWarning,
     ResetHpKeepValue, ScadaControlCapabilities,
     ScadaParams, SendControlCapabilities, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment,
-    SiegTargetTooLow, SingleMachineState,SlowContractHeartbeat, SuitUp, WakeUp,
+    SiegTargetTooLow, SingleMachineState, SlowContractHeartbeat, SlowContractRejection, SuitUp, WakeUp,
 )
 
 
@@ -1035,6 +1035,20 @@ class Scada(PrimeActor, ScadaInterface):
         self.log(f"{self.contract_handler.formatted_contract(ltn_hb)}")
         return_hb = None
         if ltn_hb.Status == SlowDispatchContractStatus.Created:
+            if self.services.validation_state == TaValidationState.UnValidated:
+                # No TaDeed: nothing has been attested about this asset, so
+                # it holds no standing in any market. Tell the LTN why.
+                self.log(f"Refusing contract {ltn_hb.Contract.ContractId}: UnValidated")
+                self._send_to(
+                    self.ltn,
+                    SlowContractRejection(
+                        FromGNodeAlias=self.layout.scada_g_node_alias,
+                        ContractId=ltn_hb.Contract.ContractId,
+                        ValidationState=TaValidationState.UnValidated,
+                        MessageCreatedMs=int(time.time() * 1000),
+                    ),
+                )
+                return
             if self.top_state == TopState.Admin:
                 self.log("Ignoring new contract, in Admin")
                 return

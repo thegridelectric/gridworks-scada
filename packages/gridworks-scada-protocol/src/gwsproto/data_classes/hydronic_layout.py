@@ -1595,9 +1595,8 @@ class HydronicLayout:
         """True if any component or device type in the layout is simulated: a
         `sim.*` component TypeName, or a DeviceType value belonging to the
         simulated-device vocabulary (gw1.sim.device.type, disjoint from
-        gw1.device.type). This is one half of the derived is_simulated gate
-        (the other is the absence of a TaDeed) — a layout carrying any sim
-        device is simulated by construction."""
+        gw1.device.type). A layout carrying any sim device is simulated by
+        construction; this is what the scada's is_simulated answers from."""
         sim_values = set(SimDeviceType.values())
         for component in self.components.values():
             if component.gt.TypeName.startswith("sim."):

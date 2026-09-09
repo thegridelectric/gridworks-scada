@@ -147,6 +147,7 @@ from gwsproto.named_types.simple_sim_layout import SimpleSimLayout
 from gwsproto.named_types.single_machine_state import SingleMachineState
 from gwsproto.named_types.single_reading import SingleReading
 from gwsproto.named_types.slow_contract_heartbeat import SlowContractHeartbeat
+from gwsproto.named_types.slow_contract_rejection import SlowContractRejection
 from gwsproto.named_types.slow_dispatch_contract import SlowDispatchContract
 from gwsproto.named_types.snapshot_spaceheat import SnapshotSpaceheat
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
@@ -155,6 +156,7 @@ from gwsproto.named_types.spaceheat_telemetry_quantity_projection import (
 )
 from gwsproto.named_types.suit_up import SuitUp
 from gwsproto.named_types.synced_readings import SyncedReadings
+from gwsproto.named_types.ta_deed import TaDeed
 from gwsproto.named_types.tank_module_params import TankModuleParams
 from gwsproto.named_types.tou_window import TouWindow
 from gwsproto.named_types.tank_temp_calibration import TankTempCalibration
@@ -304,12 +306,14 @@ __all__ = [
     "SingleMachineState",
     "SingleReading",
     "SlowContractHeartbeat",
+    "SlowContractRejection",
     "SlowDispatchContract",
     "SnapshotSpaceheat",
     "SpaceheatNodeGt",
     "SpaceheatTelemetryQuantityProjection",
     "SuitUp",
     "SyncedReadings",
+    "TaDeed",
     "TankModuleParams",
     "TankTempCalibration",
     "TouWindow",

@@ -20,6 +20,9 @@ from gwsproto.enums import HpModel
 # key carries identity, whereas here the path is known and identity is read from
 # the payload's TypeName (see sema_to_dc.load_layout, which dispatches on it).
 DEFAULT_OPS_PARAMS_FILE = Path("operational-params.json")
+# The home's ta.deed instance, beside the hardware layout; absent until a
+# TaValidator has issued one.
+DEFAULT_TA_DEED_FILE = Path("ta-deed.json")
 
 DEFAULT_TEST_LAYOUT = (
     Path(__file__).resolve()
@@ -42,9 +45,8 @@ class ScadaPaths(Paths):
     layout in the same folder."""
 
     operational_params: str | Path = Field(default="", validate_default=True)
-    # The scada's proof-of-real: a (currently fake) TaDeed file. Its presence is
-    # one of the two conditions for a non-simulated scada (see
-    # ScadaAppInterface.is_simulated). Defaults beside the hardware layout.
+    # The home's ta.deed instance (ScadaAppInterface.validation_state reads
+    # it; UnValidated when absent). Defaults beside the hardware layout.
     tadeed: str | Path = Field(default="", validate_default=True)
 
     @field_validator("operational_params")
@@ -58,7 +60,7 @@ class ScadaPaths(Paths):
     @classmethod
     def get_tadeed(cls, v: Any, info: ValidationInfo) -> Path:
         if not v:
-            v = Path(info.data["hardware_layout"]).parent / "tadeed.json"
+            v = Path(info.data["hardware_layout"]).parent / DEFAULT_TA_DEED_FILE
         return Path(v)
 
     def duplicate(
