@@ -128,7 +128,6 @@ class Scada(PrimeActor, ScadaInterface):
                 config=self.settings.gridworks_mqtt,
                 on_timestep=self._on_sim_timestep,
             )
-            self._sim_time_listener.start()
         self._layout: HydronicLayout = typing.cast(HydronicLayout, services.hardware_layout)
         self._data = ScadaData(
             self.settings, self._layout, load_operational_params(self.settings)
@@ -259,6 +258,11 @@ class Scada(PrimeActor, ScadaInterface):
         return self._data.ops
 
     def start_tasks(self) -> typing.Sequence[asyncio.Task]:
+        # The sim-time listener's paho thread starts with the scada's tasks,
+        # not at construction: an instantiated-but-never-run scada (the
+        # in-process tests) has no use for it and would leak the thread.
+        if self._sim_time_listener is not None:
+            self._sim_time_listener.start()
         return [
             asyncio.create_task(self.report_sending_task(), name="report_sender"),
             asyncio.create_task(self.snap_sending_task(), name="snap_sender"),

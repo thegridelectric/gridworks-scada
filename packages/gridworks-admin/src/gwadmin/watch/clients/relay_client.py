@@ -27,12 +27,16 @@ from gwadmin.watch.clients.constrained_mqtt_client import StateChangeCallback
 from gwadmin.watch.clients.dispatch_replies import DispatchReply
 from gwadmin.watch.clients.dispatch_replies import DispatchReplyTracker
 from gwsproto.named_types import (AdminDispatch,  AdminKeepAlive, AdminReleaseControl,
-                        ScadaControlCapabilities, FsmEvent, SnapshotSpaceheat)
+                        GwCommandInterface, ScadaControlCapabilities, FsmEvent, SnapshotSpaceheat)
 
 module_logger = logging.getLogger(__name__)
 
 class CommandTransition(BaseModel):
-    """One command a row takes and the state it leads to (gw.command.transition)."""
+    """One command a row takes and the state it leads to (gw.command.transition),
+    with the event type it is sent under: a node may take commands from
+    more than one vocabulary (five-v-boss takes turn.5v.on.off and
+    reboot.picos)."""
+    event_type: str
     event: str
     to_state: str
 
@@ -46,7 +50,6 @@ class RelayConfig(BaseModel):
     """The interior command node whose Handle this node's Handle extends
     by one segment; None for a node the operator commands directly."""
     channel_name: Optional[SpaceheatName] = None
-    event_type: str
     state_type: str
     commands: list[CommandTransition]
 
@@ -160,28 +163,31 @@ class RelayWatchClient(AdminSubClient):
 
     @classmethod
     def _get_relay_configs(cls, ctrl_capabilities: ScadaControlCapabilities) -> dict[str, RelayConfig]:
-        """One row per relay and per interior command node. The commands come
-        from the node's command interface; a relay under an interior node has
-        none (it is commanded through its owner) and its state_type is read
-        off its owner-independent state channel name only for display."""
-        interfaces = {i.ActorName: i for i in ctrl_capabilities.CommandInterfaces}
+        """One row per relay and per interior command node. The commands are
+        the union over the node's command interfaces (one per vocabulary,
+        all reporting the same state type); a relay under an interior node
+        has none (it is commanded through its owner) and its state_type is
+        read off its owner-independent state channel name only for display."""
+        interfaces: dict[str, list[GwCommandInterface]] = {}
+        for i in ctrl_capabilities.CommandInterfaces:
+            interfaces.setdefault(i.ActorName, []).append(i)
         channels = {c.AboutNodeName: c for c in ctrl_capabilities.ControlChannels}
         owners = {n.Handle: n.Name for n in ctrl_capabilities.CommandNodes}
         configs: dict[str, RelayConfig] = {}
         for node in ctrl_capabilities.RelayNodes + ctrl_capabilities.CommandNodes:
-            interface = interfaces.get(node.Name)
+            node_interfaces = interfaces.get(node.Name, [])
             channel = channels.get(node.Name)
             boss_handle = node.Handle.rsplit(".", 1)[0] if node.Handle else ""
             configs[node.Name] = RelayConfig(
                 about_node_name=node.Name,
                 owner=owners.get(boss_handle),
                 channel_name=channel.Name if channel is not None else None,
-                event_type=interface.EventType if interface is not None else "",
-                state_type=interface.StateType if interface is not None else "",
+                state_type=node_interfaces[0].StateType if node_interfaces else "",
                 commands=[
-                    CommandTransition(event=c.Event, to_state=c.ToState)
-                    for c in interface.Commands
-                ] if interface is not None else [],
+                    CommandTransition(event_type=i.EventType, event=c.Event, to_state=c.ToState)
+                    for i in node_interfaces
+                    for c in i.Commands
+                ],
             )
         return configs
 
@@ -331,12 +337,13 @@ class RelayWatchClient(AdminSubClient):
             timeout_seconds: Optional[int] = None
     ) -> None:
         config = self._relays[node_name].config
-        if event_name not in {c.event for c in config.commands}:
+        command = next((c for c in config.commands if c.event == event_name), None)
+        if command is None:
             raise ValueError(f"{node_name} takes {[c.event for c in config.commands]}, not {event_name}")
         event = FsmEvent(
             FromHandle=H0N.admin,
             ToHandle=f"{H0N.admin}.{node_name}",
-            EventType=config.event_type,
+            EventType=command.event_type,
             EventName=event_name,
             SendTimeUnixMs=int(set_time.timestamp() * 1000),
             TriggerId=str(uuid.uuid4()),

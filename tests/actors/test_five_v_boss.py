@@ -11,9 +11,9 @@ Runs over both sim fixtures with admin holding the tree."""
 import time
 import uuid
 from pathlib import Path
-from typing import Iterator
 
 import pytest
+from gwadmin.watch.clients.relay_client import RelayWatchClient
 from gwproto.message import Header, Message
 
 from actors.five_v_boss import FiveVBoss
@@ -31,6 +31,7 @@ from gwsproto.enums import (
     Turn5VOnOff,
 )
 from gwsproto.named_types import (
+    MachineStates,
     DispatchAck,
     DispatchNack,
     FsmAtomicReport,
@@ -52,7 +53,7 @@ PAIRS = {
 
 
 @pytest.fixture(params=sorted(PAIRS))
-def app(request: pytest.FixtureRequest) -> Iterator[ScadaApp]:
+def app(request: pytest.FixtureRequest) -> ScadaApp:
     layout, ops = PAIRS[request.param]
     settings = ScadaApp.get_settings()
     settings.paths.hardware_layout = CONFIG / layout
@@ -60,13 +61,7 @@ def app(request: pytest.FixtureRequest) -> Iterator[ScadaApp]:
     settings.paths.mkdirs()
     scada_app = ScadaApp(app_settings=settings)
     scada_app.instantiate()
-    yield scada_app
-    # Instantiation starts the sim-time paho thread against the test broker;
-    # left running, each one keeps churning while the live tests later in
-    # the run wait for their links, and enough of them time those out.
-    listener = scada_app.scada._sim_time_listener
-    if listener is not None:
-        listener.stop()
+    return scada_app
 
 
 def capture(actor) -> list:
@@ -201,6 +196,21 @@ def test_capabilities_cover_five_v_boss_not_the_cycler(app: ScadaApp) -> None:
     assert {n.Name for n in caps.CommandNodes} == {H0N.five_v_boss, H0N.pico_cycler, H0N.hp_boss}
 
 
+def test_panel_row_gathers_both_vocabularies(app: ScadaApp) -> None:
+    """The panel's five-v-boss row offers the three commands under their
+    own event types (one row per node, two interfaces on this one); the
+    cycler's row offers none."""
+    configs = RelayWatchClient._get_relay_configs(app.scada.control_capabilities)
+    boss = configs[H0N.five_v_boss]
+    assert boss.state_type == FiveVBossState.enum_name()
+    assert {(c.event_type, c.event, c.to_state) for c in boss.commands} == {
+        (Turn5VOnOff.enum_name(), Turn5VOnOff.TurnOff, FiveVBossState.FiveVOff),
+        (Turn5VOnOff.enum_name(), Turn5VOnOff.TurnOn, FiveVBossState.PicoCycler),
+        (RebootPicos.enum_name(), RebootPicos.RebootPicos, FiveVBossState.PicoCycler),
+    }
+    assert configs[H0N.pico_cycler].commands == []
+
+
 # ---------------------------------------------------------------------------
 # The hold
 # ---------------------------------------------------------------------------
@@ -236,6 +246,7 @@ def test_open_confirmation_lands_five_v_off_with_a_full_report(app: ScadaApp) ->
     assert dst == H0N.primary_scada
     assert report.TriggerId == cmd.TriggerId
     assert [a.ToState for a in report.AtomicList] == [FiveVBossState.TurningOff, FiveVBossState.FiveVOff]
+    assert [a.Event for a in report.AtomicList] == [Turn5VOnOff.TurnOff, Turn5VOnOff.TurnOff]
     assert report.AtomicList[0].FromState == FiveVBossState.PicoCycler
     states = [p.State for _, p in sent_of(sent, SingleMachineState)]
     assert states == [FiveVBossState.TurningOff, FiveVBossState.FiveVOff]
@@ -294,6 +305,7 @@ def test_turn_on_closes_and_the_closed_confirmation_hands_back(app: ScadaApp) ->
     [(dst, report)] = sent_of(sent, FsmFullReport)
     assert report.TriggerId == cmd.TriggerId
     assert [a.ToState for a in report.AtomicList] == [FiveVBossState.TurningOn, FiveVBossState.PicoCycler]
+    assert [a.Event for a in report.AtomicList] == [Turn5VOnOff.TurnOn, Turn5VOnOff.TurnOn]
 
 
 def test_turn_on_at_rest_is_acked_and_does_nothing(app: ScadaApp) -> None:
@@ -378,6 +390,10 @@ def test_pico_missing_during_the_hold_cycles_nothing(app: ScadaApp) -> None:
     cycler.state = PicoCyclerState.PicosLive
     deliver(cycler, GoDormant(ToName=H0N.pico_cycler), H0N.five_v_boss)
     assert cycler.state == PicoCyclerState.Dormant
+    # The Dormant row goes to the scada at the transition, not on the next
+    # periodic report: the panel's cycler row flips with the boss's.
+    [(dst, row)] = [(d, p) for d, p in cycler_sent if isinstance(p, MachineStates)]
+    assert dst == H0N.primary_scada and row.StateList == [PicoCyclerState.Dormant]
     hold_off(app, boss, sent)
     cycler.last_open_time = 0
     actor = cycler.pico_actors[0]

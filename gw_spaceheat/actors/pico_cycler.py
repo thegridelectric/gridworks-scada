@@ -385,7 +385,9 @@ class PicoCycler(HydronicNode):
                     self.process_fsm_full_report(message.Payload)
                 case GoDormant():
                     if self.state != PicoCyclerState.Dormant:
-                        self.GoDormant()
+                        # Through trigger_event like WakeUp, so the Dormant
+                        # row reaches the scada now, not on the periodic report.
+                        self.trigger_event(PicoCyclerEvent.GoDormant)
                         self.log("Going Dormant!")
                 case PicoMissing():
                     path_dbg |= 0x00000008

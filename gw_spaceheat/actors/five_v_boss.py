@@ -40,6 +40,12 @@ from actors.command_node import CommandNode
 from scada_app_interface import ScadaAppInterface
 
 
+OFF_PATH = (FiveVBossState.TurningOff, FiveVBossState.FiveVOff)
+"""The states the TurnOff command walks; its atomic reports carry TurnOff,
+the TurnOn command's carry TurnOn (the vocabulary has no confirmation
+event, so a half's label is the command that caused it)."""
+
+
 def shape_five_v_subtree(layout: HydronicLayout, state: FiveVBossState) -> None:
     """The one funnel for the handles under five-v-boss: the cycler owns
     vdc-relay while the boss rests in PicoCycler; in every other state the
@@ -278,7 +284,7 @@ class FiveVBoss(CommandNode):
                 StateEnum=FiveVBossState.enum_name(),
                 ReportType=FsmReportType.Event,
                 EventEnum=Turn5VOnOff.enum_name(),
-                Event=Turn5VOnOff.TurnOff if to_state == FiveVBossState.TurningOff else Turn5VOnOff.TurnOn,
+                Event=Turn5VOnOff.TurnOff if to_state in OFF_PATH else Turn5VOnOff.TurnOn,
                 FromState=from_state,
                 ToState=to_state,
                 UnixTimeMs=int(time.time() * 1000),
