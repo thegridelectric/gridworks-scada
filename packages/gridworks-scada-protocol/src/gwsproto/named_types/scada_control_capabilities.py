@@ -5,7 +5,7 @@ from typing_extensions import Self
 
 from gwsproto.enums import ActorClass
 from gwsproto.named_types.data_channel_gt import DataChannelGt
-from gwsproto.named_types.gw_command_interface import GwCommandInterface
+from gwsproto.named_types.command_interface import CommandInterface
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwsproto.property_format import LeftRightDotStr, UTCMilliseconds
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
@@ -22,7 +22,7 @@ class ScadaControlCapabilities(GwsprotoSemaType):
     DacNodes: List[SpaceheatNodeGt]
     CommandNodes: List[SpaceheatNodeGt]
     ControlChannels: List[DataChannelGt]
-    CommandInterfaces: List[GwCommandInterface]
+    CommandInterfaces: List[CommandInterface]
     TypeName: Literal["scada.control.capabilities"] = "scada.control.capabilities"
     Version: Literal["002"] = "002"
 

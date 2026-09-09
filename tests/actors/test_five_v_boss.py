@@ -23,7 +23,7 @@ from gwsproto.enums import (
     ChangeRelayState,
     FiveVBossState,
     FsmReportType,
-    GwScadaCmdRefusalReason,
+    ScadaCmdRefusalReason,
     MainAutoEvent,
     PicoCyclerState,
     RebootPicos,
@@ -260,7 +260,7 @@ def test_turn_off_with_the_relay_open_is_busy(app: ScadaApp) -> None:
     deliver(boss, cmd, H0N.admin)
     [(dst, nack)] = sent_of(sent, DispatchNack)
     assert dst == H0N.admin
-    assert nack.Reason == GwScadaCmdRefusalReason.Busy
+    assert nack.Reason == ScadaCmdRefusalReason.Busy
     assert nack.TriggerId == cmd.TriggerId
     assert boss.state == FiveVBossState.PicoCycler
     assert sent_of(sent, GoDormant) == []
@@ -275,7 +275,7 @@ def test_commands_while_turning_are_busy(app: ScadaApp) -> None:
     reboot = command(boss.node.handle, RebootPicos.enum_name(), RebootPicos.RebootPicos)
     deliver(boss, reboot, H0N.admin)
     reasons = [p.Reason for _, p in sent_of(sent, DispatchNack)]
-    assert reasons == [GwScadaCmdRefusalReason.Busy] * 3
+    assert reasons == [ScadaCmdRefusalReason.Busy] * 3
     assert boss.state == FiveVBossState.TurningOff
 
 
@@ -349,14 +349,14 @@ def test_reboot_picos_is_forwarded_and_the_reply_passed_back(app: ScadaApp) -> N
         boss,
         DispatchNack(
             FromHandle=cycler.handle, ToHandle=boss.node.handle, TriggerId=cmd.TriggerId,
-            Reason=GwScadaCmdRefusalReason.Busy, UnixTimeMs=int(time.time() * 1000),
+            Reason=ScadaCmdRefusalReason.Busy, UnixTimeMs=int(time.time() * 1000),
         ),
         H0N.pico_cycler,
     )
     [(dst, nack)] = sent_of(sent, DispatchNack)
     assert dst == H0N.admin
     assert nack.TriggerId == cmd.TriggerId
-    assert nack.Reason == GwScadaCmdRefusalReason.Busy
+    assert nack.Reason == ScadaCmdRefusalReason.Busy
     assert nack.FromHandle == boss.node.handle and nack.ToHandle == H0N.admin
 
 
@@ -462,7 +462,7 @@ def test_stale_handle_is_not_my_boss(app: ScadaApp) -> None:
     cmd = command(f"{H0N.auto}.{H0N.five_v_boss}", Turn5VOnOff.enum_name(), Turn5VOnOff.TurnOff, from_handle=H0N.auto)
     deliver(boss, cmd, H0N.admin)
     [(dst, nack)] = sent_of(sent, DispatchNack)
-    assert nack.Reason == GwScadaCmdRefusalReason.NotMyBoss
+    assert nack.Reason == ScadaCmdRefusalReason.NotMyBoss
     assert boss.state == FiveVBossState.PicoCycler
 
 
@@ -471,5 +471,5 @@ def test_unknown_event_is_refused(app: ScadaApp) -> None:
     cmd = command(boss.node.handle, ChangeRelayState.enum_name(), ChangeRelayState.OpenRelay)
     deliver(boss, cmd, H0N.admin)
     [(dst, nack)] = sent_of(sent, DispatchNack)
-    assert nack.Reason == GwScadaCmdRefusalReason.UnknownEvent
+    assert nack.Reason == ScadaCmdRefusalReason.UnknownEvent
     assert sent_of(sent, FsmEvent) == []

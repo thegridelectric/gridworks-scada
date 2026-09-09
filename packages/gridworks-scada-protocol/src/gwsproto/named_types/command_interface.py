@@ -13,7 +13,7 @@ from gwsproto.enums import (
     Turn5VOnOff,
     TurnHpOnOff,
 )
-from gwsproto.named_types.gw_command_transition import GwCommandTransition
+from gwsproto.named_types.command_transition import CommandTransition
 from gwsproto.property_format import LeftRightDotStr, SpaceheatName
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
@@ -32,7 +32,7 @@ STATE_VOCABULARY: dict[str, set[str]] = {
 }
 
 
-class GwCommandInterface(GwsprotoSemaType):
+class CommandInterface(GwsprotoSemaType):
     """
     Sema: https://schemas.electricity.works/types/gw.command.interface/000
     """
@@ -40,7 +40,7 @@ class GwCommandInterface(GwsprotoSemaType):
     ActorName: SpaceheatName
     EventType: LeftRightDotStr
     StateType: LeftRightDotStr
-    Commands: List[GwCommandTransition]
+    Commands: List[CommandTransition]
     TypeName: Literal["gw.command.interface"] = "gw.command.interface"
     Version: Literal["000"] = "000"
 

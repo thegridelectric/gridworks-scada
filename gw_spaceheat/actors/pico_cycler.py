@@ -25,7 +25,7 @@ import transitions
 from actors.hydronic.shared import HydronicNode
 from actors import command_reply
 from gwsproto.enums import (
-    GwScadaCmdRefusalReason,
+    ScadaCmdRefusalReason,
     LogLevel,
     PicoCyclerEvent,
     PicoCyclerState,
@@ -491,7 +491,7 @@ class PicoCycler(HydronicNode):
                 from_node,
                 command_reply.nack(
                     self.node.handle, message.FromHandle, message.TriggerId,
-                    GwScadaCmdRefusalReason.NotMyBoss,
+                    ScadaCmdRefusalReason.NotMyBoss,
                 ),
             )
             return
@@ -506,7 +506,7 @@ class PicoCycler(HydronicNode):
                 from_node,
                 command_reply.nack(
                     self.node.handle, message.FromHandle, message.TriggerId,
-                    GwScadaCmdRefusalReason.UnknownEvent,
+                    ScadaCmdRefusalReason.UnknownEvent,
                 ),
             )
             return
@@ -516,7 +516,7 @@ class PicoCycler(HydronicNode):
                 from_node,
                 command_reply.nack(
                     self.node.handle, message.FromHandle, message.TriggerId,
-                    GwScadaCmdRefusalReason.Busy,
+                    ScadaCmdRefusalReason.Busy,
                 ),
             )
             return

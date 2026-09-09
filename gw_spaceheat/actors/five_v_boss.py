@@ -18,7 +18,7 @@ from gwsproto.enums import (
     ChangeRelayState,
     FiveVBossState,
     FsmReportType,
-    GwScadaCmdRefusalReason,
+    ScadaCmdRefusalReason,
     RebootPicos,
     RelayClosedOrOpen,
     Turn5VOnOff,
@@ -126,7 +126,7 @@ class FiveVBoss(CommandNode):
     def process_fsm_event(self, from_node: ShNode, payload: FsmEvent) -> None:
         if payload.ToHandle != self.node.handle:
             self.log(f"Handle is {self.node.handle}; refusing {payload.FromHandle} -> {payload.ToHandle}")
-            self.refuse(from_node, payload, GwScadaCmdRefusalReason.NotMyBoss)
+            self.refuse(from_node, payload, ScadaCmdRefusalReason.NotMyBoss)
             return
         if payload.EventType == RebootPicos.enum_name() and payload.EventName in RebootPicos.values():
             self.process_reboot_picos(from_node, payload)
@@ -136,7 +136,7 @@ class FiveVBoss(CommandNode):
                 f"Takes {Turn5VOnOff.enum_name()} and {RebootPicos.enum_name()}; "
                 f"refusing {payload.EventType} {payload.EventName}"
             )
-            self.refuse(from_node, payload, GwScadaCmdRefusalReason.UnknownEvent)
+            self.refuse(from_node, payload, ScadaCmdRefusalReason.UnknownEvent)
             return
         if payload.EventName == Turn5VOnOff.TurnOff:
             self.process_turn_off(from_node, payload)
@@ -147,7 +147,7 @@ class FiveVBoss(CommandNode):
         """Forwarded to the cycler as its boss under the command's own
         TriggerId; the cycler's ack or nack is passed back."""
         if self.state != FiveVBossState.PicoCycler:
-            self.refuse(from_node, payload, GwScadaCmdRefusalReason.Busy)
+            self.refuse(from_node, payload, ScadaCmdRefusalReason.Busy)
             return
         self.forwarded[payload.TriggerId] = from_node
         self._send_to(
@@ -173,7 +173,7 @@ class FiveVBoss(CommandNode):
 
     def process_turn_off(self, from_node: ShNode, payload: FsmEvent) -> None:
         if self.state != FiveVBossState.PicoCycler or not self.relay_reported_closed():
-            self.refuse(from_node, payload, GwScadaCmdRefusalReason.Busy)
+            self.refuse(from_node, payload, ScadaCmdRefusalReason.Busy)
             return
         self._send_to(
             from_node,
@@ -183,7 +183,7 @@ class FiveVBoss(CommandNode):
 
     def process_turn_on(self, from_node: ShNode, payload: FsmEvent) -> None:
         if self.state in (FiveVBossState.TurningOff, FiveVBossState.TurningOn):
-            self.refuse(from_node, payload, GwScadaCmdRefusalReason.Busy)
+            self.refuse(from_node, payload, ScadaCmdRefusalReason.Busy)
             return
         self._send_to(
             from_node,
@@ -192,7 +192,7 @@ class FiveVBoss(CommandNode):
         if self.state == FiveVBossState.FiveVOff:
             self.turn_on(payload.TriggerId)
 
-    def refuse(self, from_node: ShNode, payload: FsmEvent, reason: GwScadaCmdRefusalReason) -> None:
+    def refuse(self, from_node: ShNode, payload: FsmEvent, reason: ScadaCmdRefusalReason) -> None:
         self._send_to(
             from_node,
             command_reply.nack(self.node.handle, payload.FromHandle, payload.TriggerId, reason),

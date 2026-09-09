@@ -27,7 +27,7 @@ from gwadmin.watch.clients.constrained_mqtt_client import StateChangeCallback
 from gwadmin.watch.clients.dispatch_replies import DispatchReply
 from gwadmin.watch.clients.dispatch_replies import DispatchReplyTracker
 from gwsproto.named_types import (AdminDispatch,  AdminKeepAlive, AdminReleaseControl,
-                        GwCommandInterface, ScadaControlCapabilities, FsmEvent, SnapshotSpaceheat)
+                        CommandInterface, ScadaControlCapabilities, FsmEvent, SnapshotSpaceheat)
 
 module_logger = logging.getLogger(__name__)
 
@@ -168,7 +168,7 @@ class RelayWatchClient(AdminSubClient):
         all reporting the same state type); a relay under an interior node
         has none (it is commanded through its owner) and its state_type is
         read off its owner-independent state channel name only for display."""
-        interfaces: dict[str, list[GwCommandInterface]] = {}
+        interfaces: dict[str, list[CommandInterface]] = {}
         for i in ctrl_capabilities.CommandInterfaces:
             interfaces.setdefault(i.ActorName, []).append(i)
         channels = {c.AboutNodeName: c for c in ctrl_capabilities.ControlChannels}

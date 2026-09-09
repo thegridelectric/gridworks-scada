@@ -19,7 +19,7 @@ from gwsproto.data_classes.components import I2cDacOutputComponent
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.data_classes.sh_node import ShNode
 from actors import command_reply
-from gwsproto.enums import ActorClass, GwScadaCmdRefusalReason, I2cDacChannel, I2cDacVref
+from gwsproto.enums import ActorClass, ScadaCmdRefusalReason, I2cDacChannel, I2cDacVref
 from gwsproto.named_types import (
     AnalogDispatch,
     DacOutputConfig,
@@ -176,7 +176,7 @@ class ZeroTenOutputer(ShNodeActor):
                 from_node,
                 command_reply.nack(
                     self.node.handle, dispatch.FromHandle, dispatch.TriggerId,
-                    GwScadaCmdRefusalReason.NotMyBoss,
+                    ScadaCmdRefusalReason.NotMyBoss,
                 ),
             )
             return
@@ -191,7 +191,7 @@ class ZeroTenOutputer(ShNodeActor):
                 from_node,
                 command_reply.nack(
                     self.node.handle, dispatch.FromHandle, dispatch.TriggerId,
-                    GwScadaCmdRefusalReason.OutOfRange,
+                    ScadaCmdRefusalReason.OutOfRange,
                 ),
             )
             return

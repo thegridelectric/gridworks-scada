@@ -7,7 +7,7 @@ means the admin link."""
 
 import time
 
-from gwsproto.enums import GwScadaCmdRefusalReason
+from gwsproto.enums import ScadaCmdRefusalReason
 from gwsproto.named_types import DispatchAck, DispatchNack
 from gwsproto.property_format import HandleName, UUID4Str
 
@@ -25,7 +25,7 @@ def nack(
     my_handle: HandleName,
     commander_handle: HandleName,
     trigger_id: UUID4Str,
-    reason: GwScadaCmdRefusalReason,
+    reason: ScadaCmdRefusalReason,
 ) -> DispatchNack:
     return DispatchNack(
         FromHandle=my_handle,

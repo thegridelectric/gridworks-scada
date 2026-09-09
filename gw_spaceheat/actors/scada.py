@@ -68,7 +68,7 @@ from gwsproto.enums import (FiveVBossState, HpBossState, LeafAllyBufferOnlyState
 
 from gwsproto.named_types import ( ActuatorsReady,
     AdminDispatch, AdminAnalogDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
-    Glitch, GoDormant, GwCommandInterface, GwCommandTransition, LayoutLite, NewCommandTree, NoNewContractWarning,
+    Glitch, GoDormant, CommandInterface, CommandTransition, LayoutLite, NewCommandTree, NoNewContractWarning,
     ResetHpKeepValue, ScadaControlCapabilities,
     ScadaParams, SendControlCapabilities, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment,
     SiegTargetTooLow, SingleMachineState,SlowContractHeartbeat, SuitUp, WakeUp,
@@ -1697,7 +1697,7 @@ class Scada(PrimeActor, ScadaInterface):
             return FiveVBossState.PicoCycler
         return FiveVBossState(latest.State)
 
-    def command_interfaces(self, node: ShNode) -> list[GwCommandInterface]:
+    def command_interfaces(self, node: ShNode) -> list[CommandInterface]:
         """What a boss may ask of this node and the state each command
         leads to: a relay's two events from its own config, an interior
         command node's vocabularies from COMMAND_NODE_INTERFACES."""
@@ -1716,12 +1716,12 @@ class Scada(PrimeActor, ScadaInterface):
                 ],
             )]
         return [
-            GwCommandInterface(
+            CommandInterface(
                 ActorName=node.name,
                 EventType=event_type,
                 StateType=state_type,
                 Commands=[
-                    GwCommandTransition(Event=event, ToState=to_state)
+                    CommandTransition(Event=event, ToState=to_state)
                     for event, to_state in commands
                 ],
             )

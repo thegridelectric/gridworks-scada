@@ -6,7 +6,7 @@ from enum import auto
 from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class GwScadaCmdRefusalReason(SemaEnum):
+class ScadaCmdRefusalReason(SemaEnum):
     """Sema: https://schemas.electricity.works/enums/gw.scada.cmd.refusal.reason/000"""
 
     Unknown = auto()
@@ -24,7 +24,7 @@ class GwScadaCmdRefusalReason(SemaEnum):
         return [elt.value for elt in cls]
 
     @classmethod
-    def default(cls) -> "GwScadaCmdRefusalReason":
+    def default(cls) -> "ScadaCmdRefusalReason":
         return cls.Unknown
 
     @classmethod

@@ -16,7 +16,7 @@ from result import Ok, Result
 from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 from actors import command_reply
-from gwsproto.enums import GwScadaCmdRefusalReason, LogLevel, TurnHpOnOff
+from gwsproto.enums import ScadaCmdRefusalReason, LogLevel, TurnHpOnOff
 from gwsproto.named_types import FsmEvent, Glitch, SingleMachineState
 
 class SiegLoopReady(BaseModel):
@@ -95,7 +95,7 @@ class HpBoss(ShNodeActor):
                 from_node,
                 command_reply.nack(
                     self.node.handle, payload.FromHandle, payload.TriggerId,
-                    GwScadaCmdRefusalReason.NotMyBoss,
+                    ScadaCmdRefusalReason.NotMyBoss,
                 ),
             )
             return
@@ -117,7 +117,7 @@ class HpBoss(ShNodeActor):
                 from_node,
                 command_reply.nack(
                     self.node.handle, payload.FromHandle, payload.TriggerId,
-                    GwScadaCmdRefusalReason.UnknownEvent,
+                    ScadaCmdRefusalReason.UnknownEvent,
                 ),
             )
             return

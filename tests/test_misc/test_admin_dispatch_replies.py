@@ -8,13 +8,13 @@ import uuid
 
 from gwproto import Message as GWMessage
 from gwsproto.data_classes.house_0_names import H0N
-from gwsproto.enums import ActorClass, GwScadaCmdRefusalReason, PicoCyclerState, RebootPicos
+from gwsproto.enums import ActorClass, ScadaCmdRefusalReason, PicoCyclerState, RebootPicos
 from gwsproto.named_types import (
     AdminDispatch,
     DispatchAck,
     DispatchNack,
-    GwCommandInterface,
-    GwCommandTransition,
+    CommandInterface,
+    CommandTransition,
     ScadaControlCapabilities,
     SingleReading,
     SpaceheatNodeGt,
@@ -58,12 +58,12 @@ def cycler_capabilities() -> ScadaControlCapabilities:
         ],
         ControlChannels=[],
         CommandInterfaces=[
-            GwCommandInterface(
+            CommandInterface(
                 ActorName=H0N.pico_cycler,
                 EventType=RebootPicos.enum_name(),
                 StateType=PicoCyclerState.enum_name(),
                 Commands=[
-                    GwCommandTransition(
+                    CommandTransition(
                         Event=RebootPicos.RebootPicos, ToState=PicoCyclerState.RelayOpening
                     )
                 ],
@@ -96,7 +96,7 @@ def test_nack_is_paired_with_the_command_it_refuses() -> None:
         FromHandle=f"{H0N.admin}.{H0N.pico_cycler}",
         ToHandle=H0N.admin,
         TriggerId=trigger_id,
-        Reason=GwScadaCmdRefusalReason.Busy,
+        Reason=ScadaCmdRefusalReason.Busy,
         UnixTimeMs=int(time.time() * 1000),
     )
     client.process_mqtt_message(*scada_message(nack))

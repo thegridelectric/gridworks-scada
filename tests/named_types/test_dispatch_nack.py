@@ -1,6 +1,6 @@
 """Tests gw.dispatch.nack type, version 000"""
 
-from gwsproto.enums import GwScadaCmdRefusalReason
+from gwsproto.enums import ScadaCmdRefusalReason
 from gwsproto.named_types import DispatchNack
 
 
@@ -18,7 +18,7 @@ def test_dispatch_nack_generated() -> None:
     d2 = DispatchNack.model_validate(d).model_dump(exclude_none=True)
 
     assert d2 == d
-    assert DispatchNack.model_validate(d).Reason == GwScadaCmdRefusalReason.Busy
+    assert DispatchNack.model_validate(d).Reason == ScadaCmdRefusalReason.Busy
 
 
 def test_dispatch_nack_unknown_reason_coerces_to_default() -> None:
@@ -31,5 +31,5 @@ def test_dispatch_nack_unknown_reason_coerces_to_default() -> None:
         "TypeName": "gw.dispatch.nack",
         "Version": "000",
     }
-    assert DispatchNack.model_validate(d).Reason == GwScadaCmdRefusalReason.Unknown
+    assert DispatchNack.model_validate(d).Reason == ScadaCmdRefusalReason.Unknown
 

@@ -62,7 +62,7 @@ from scada_app_interface import ScadaAppInterface
 from gwsproto.enums import LogLevel, ChangeKeepSend, HpLoopKeepSend
 from gwsproto.named_types import FsmEvent, Glitch, SingleMachineState
 from actors import command_reply
-from gwsproto.enums import GwScadaCmdRefusalReason
+from gwsproto.enums import ScadaCmdRefusalReason
 
 # Internal FSM state before the first pin adoption / confirmation. Never
 # published: the state vocabularies carry no Unknown value, and an
@@ -297,7 +297,7 @@ class Relay(ShNodeActor):
                 from_node,
                 command_reply.nack(
                     self.node.handle, message.FromHandle, message.TriggerId,
-                    GwScadaCmdRefusalReason.NotMyBoss,
+                    ScadaCmdRefusalReason.NotMyBoss,
                 ),
             )
             return Ok(False)
@@ -311,7 +311,7 @@ class Relay(ShNodeActor):
                 from_node,
                 command_reply.nack(
                     self.node.handle, message.FromHandle, message.TriggerId,
-                    GwScadaCmdRefusalReason.UnknownEvent,
+                    ScadaCmdRefusalReason.UnknownEvent,
                 ),
             )
             return Ok(False)
