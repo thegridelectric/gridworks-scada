@@ -2,6 +2,7 @@ from gwsproto.data_classes.components.component import DeviceComponent
 from gwsproto.enums import SimDeviceType
 from gwsproto.errors import DcError
 from gwsproto.named_types import ScadaBoardComponentGt
+from gwsproto.named_types.i2c_expander import I2cExpander
 from gwsproto.named_types.scada_device_type_gt import ScadaDeviceTypeGt
 
 
@@ -28,3 +29,29 @@ class ScadaBoardComponent(DeviceComponent[ScadaBoardComponentGt, ScadaDeviceType
         gw1.sim.device.type value (SimGw108). Board-resident actors take real
         or fake silicon from this, never from a runtime flag."""
         return self.device_type.DeviceType in SimDeviceType.values()
+
+    def expander_address(self, expander: I2cExpander) -> int:
+        """The expander's I2C address on THIS board: the record's fixed
+        address when soldered, else the field-chosen one recorded on the
+        component's I2cAddressList, index-aligned with the record's
+        Expanders (ExpanderIdx is 1-based)."""
+        if expander.I2cAddress is not None:
+            return expander.I2cAddress
+        chosen = self.gt.I2cAddressList or []
+        if len(chosen) < expander.ExpanderIdx:
+            raise DcError(
+                f"board component <{self.gt.ComponentId}> ({self.gt.DeviceType}) "
+                f"has no I2cAddressList entry for field-addressed expander "
+                f"{expander.ExpanderIdx}"
+            )
+        address = chosen[expander.ExpanderIdx - 1]
+        if (
+            expander.AllowedI2cAddressList is not None
+            and address not in expander.AllowedI2cAddressList
+        ):
+            raise DcError(
+                f"board component <{self.gt.ComponentId}>: address {address} for "
+                f"expander {expander.ExpanderIdx} is not in its "
+                f"AllowedI2cAddressList {expander.AllowedI2cAddressList}"
+            )
+        return address

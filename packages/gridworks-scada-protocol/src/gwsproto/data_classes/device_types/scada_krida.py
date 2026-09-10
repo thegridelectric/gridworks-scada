@@ -69,4 +69,7 @@ krida_double_relay_board_16_device_type = ScadaDeviceTypeGt(
     ],
     I2cRelays=[_relay(marking) for marking in range(1, 33)],
     SupportsPinReadback=False,
+    # active-low drivers: a low pin energizes the coil; power-on (all high)
+    # leaves every relay off
+    RelayEnergizedLevel=0,
 )

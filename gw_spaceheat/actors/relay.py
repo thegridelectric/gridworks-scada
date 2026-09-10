@@ -12,7 +12,6 @@ from gwproactor.message import PatInternalWatchdogMessage
 
 from drivers import tca9555
 from gwsproto.data_classes.components import (
-    I2cMultichannelDtRelayComponent,
     I2cRelayComponent,
     GpioRelayComponent,
 )
@@ -32,6 +31,7 @@ from gwsproto.enums import (
     ChangeZoneCallSource,
     FsmReportType,
     HeatPumpControl,
+    I2cExpanderType,
     PrimaryPumpControl,
     RelayClosedOrOpen,
     RelayPinState,
@@ -73,26 +73,53 @@ UNKNOWN_STATE = "Unknown"
 # EventType/StateType (left.right.dot enum names) select the FSM vocabulary —
 # layout-driven, no node-name matching.
 EVENT_ENUM_BY_NAME: dict[str, type[SemaEnum]] = {
-    e.enum_name(): e for e in (ChangeRelayState, ChangeZoneCallSource, ChangeValveState)
+    e.enum_name(): e
+    for e in (
+        ChangeAquastatControl,
+        ChangeHeatPumpControl,
+        ChangeHeatcallSource,
+        ChangeKeepSend,
+        ChangePrimaryPumpControl,
+        ChangeRelayState,
+        ChangeStoreFlowRelay,
+        ChangeValveState,
+        ChangeZoneCallSource,
+    )
 }
 STATE_ENUM_BY_NAME: dict[str, type[SemaEnum]] = {
-    s.enum_name(): s for s in (RelayClosedOrOpen, ZoneCallSource, ValveOpenOrClosed)
+    s.enum_name(): s
+    for s in (
+        AquastatControl,
+        HeatPumpControl,
+        HeatcallSource,
+        HpLoopKeepSend,
+        PrimaryPumpControl,
+        RelayClosedOrOpen,
+        StoreFlowRelay,
+        ValveOpenOrClosed,
+        ZoneCallSource,
+    )
 }
 
 
 class I2cActuation(NamedTuple):
     """Physical actuation facts for one board-resident i2c relay, resolved
-    once at init from the board record: where the bit lives (bus node, chip
-    address, output/input/config registers, bit index) and whether the board
-    supports pin readback (confirmed vs commanded-belief semantics). Field
-    types mirror i2c.bit.address."""
+    once at init from the board record and component: where the bit lives
+    (bus node, chip address, output/input/config registers, bit index),
+    which expander chip protocol drives it, the pin level that energizes
+    the relay, and whether the board supports pin readback (confirmed vs
+    commanded-belief semantics). On a PCF8575 the "registers" are the two
+    bytes of its one port word, so input and output coincide and there is
+    no config register. Field types mirror i2c.bit.address."""
 
     bus_node: ShNode
     i2c_address: NonNegativeInt
+    expander_type: I2cExpanderType
     output_register: NonNegativeInt
     input_register: NonNegativeInt
-    config_register: NonNegativeInt
+    config_register: NonNegativeInt | None
     bit_index: NonNegativeInt
+    energized_level: NonNegativeInt
     supports_readback: bool
 
 
@@ -135,12 +162,10 @@ class Relay(ShNodeActor):
         self._component = self.node.component
 
         if not isinstance(
-            self._component,
-            (I2cMultichannelDtRelayComponent, I2cRelayComponent, GpioRelayComponent)
+            self._component, (I2cRelayComponent, GpioRelayComponent)
         ):
             raise ValueError(f"Component for {self.name} has type "
                              f"{type(self._component)}. Expected "
-                             "I2cMultichannelDtRelayComponent, "
                              "I2cRelayComponent or GpioRelayComponent")
 
         self.relay_actor_config = next(
@@ -150,7 +175,7 @@ class Relay(ShNodeActor):
 
         if self.relay_actor_config is None:
             raise Exception(
-                f"Relay {self.node.name} not in component {self._component}'s RelayActorConfigList:\n"
+                f"Relay {self.node.name} not in component {self._component}'s ConfigList:\n"
                 f"{self._component.gt.ConfigList}"
             )
 
@@ -167,10 +192,6 @@ class Relay(ShNodeActor):
         self._ready = asyncio.Event()
         if isinstance(self._component, I2cRelayComponent):
             self._i2c = self._resolve_i2c_actuation()
-
-        self.relay_multiplexer: ShNode | None = None
-        if isinstance(self._component, I2cMultichannelDtRelayComponent):
-            self.relay_multiplexer = self.layout.node(H0N.relay_multiplexer)
 
         self.initialize_fsm()
         self._stop_requested = False
@@ -210,10 +231,12 @@ class Relay(ShNodeActor):
 
     def _resolve_i2c_actuation(self) -> I2cActuation:
         """RelayName resolved against THIS component's board record — the
-        record's I2cRelays map holds the physical address (expander, output
-        register, bit); the layout never restates it."""
+        record's I2cRelays map holds the physical position (expander, output
+        register, bit) and the board component holds any field-chosen
+        expander address; the layout never restates either."""
         assert isinstance(self._component, I2cRelayComponent)
-        record = self._component.board_component.device_type
+        board = self._component.board_component
+        record = board.device_type
         relay_name = self._component.gt.RelayName
         capability = next(
             (r for r in record.I2cRelays if r.RelayName == relay_name), None
@@ -246,15 +269,32 @@ class Relay(ShNodeActor):
                 f"{self.name}: expected exactly one I2cBus node in the "
                 f"layout; found {len(bus_nodes)}"
             )
+        if expander.ExpanderType == I2cExpanderType.Tca9555:
+            input_register = tca9555.input_register(capability.RegisterIndex)
+            config_register: int | None = tca9555.config_register(
+                capability.RegisterIndex
+            )
+        else:
+            input_register = capability.RegisterIndex
+            config_register = None
         return I2cActuation(
             bus_node=bus_nodes[0],
-            i2c_address=expander.I2cAddress,
+            i2c_address=board.expander_address(expander),
+            expander_type=expander.ExpanderType,
             output_register=capability.RegisterIndex,
-            input_register=tca9555.input_register(capability.RegisterIndex),
-            config_register=tca9555.config_register(capability.RegisterIndex),
+            input_register=input_register,
+            config_register=config_register,
             bit_index=capability.BitIndex,
+            energized_level=record.RelayEnergizedLevel,
             supports_readback=record.SupportsPinReadback,
         )
+
+    def _level(self, pin_value: int) -> int:
+        """The expander pin level for a logical pin value (1 = energize):
+        the board's energizing level, inverted on an active-low board."""
+        a = self._i2c
+        assert a is not None
+        return pin_value if a.energized_level == 1 else 1 - pin_value
 
 
     def my_channel(self) -> DataChannel:
@@ -421,38 +461,9 @@ class Relay(ShNodeActor):
                 new_pin_state,
                 message
             )
-        elif isinstance(self._component, I2cMultichannelDtRelayComponent):
-            self._krida_actuate(relay_pin_event, message)
         else:
             raise Exception(f"Unsupported relay component {type(self._component)}")
 
-    def _krida_actuate(
-        self, relay_pin_event: ChangeRelayPin, message: FsmEvent
-    ) -> None:
-        """Actuate via the legacy krida multiplexer: commanded belief only.
-        The multiplexer moves the pin and reports state on its own channels;
-        the relay-side confirmation round-trip does not exist on this
-        component type, so the boss receives no FsmFullReport."""
-        if self.relay_multiplexer is None:
-            self._send_glitch(
-                "krida-multiplexer-missing",
-                f"{message.EventName} dropped: the layout has no "
-                f"{H0N.relay_multiplexer} node",
-                LogLevel.Critical,
-            )
-            return
-        self._send_to(
-            self.relay_multiplexer,
-            FsmEvent(
-                FromHandle=self.node.handle,
-                ToHandle=self.relay_multiplexer.handle,
-                EventType=ChangeRelayPin.enum_name(),
-                EventName=relay_pin_event,
-                TriggerId=message.TriggerId,
-                SendTimeUnixMs=int(time.time() * 1000),
-            ),
-        )
-        
     def _gpio_actuate_and_report(
         self,
         relay_pin_event: ChangeRelayPin,
@@ -543,11 +554,11 @@ class Relay(ShNodeActor):
         )
         if result is None or not result.Success:
             return None
-        return result.Value
+        return self._level(result.Value)
 
     async def _write_pin(self, pin_value: int) -> str | None:
-        """Drive the relay's output-register bit. Returns an error string on
-        failure, None on success."""
+        """Drive the relay's output bit to the level for a logical pin value.
+        Returns an error string on failure, None on success."""
         a = self._i2c
         assert a is not None
         result = await self._bus_op(
@@ -558,7 +569,7 @@ class Relay(ShNodeActor):
                     RegisterIndex=a.output_register,
                     BitIndex=a.bit_index,
                 ),
-                Value=pin_value,
+                Value=self._level(pin_value),
                 TriggerId=str(uuid.uuid4()),
             )
         )
@@ -571,14 +582,15 @@ class Relay(ShNodeActor):
     async def _register_forensics(self) -> str:
         """Snapshot the expander's output and config registers for the port —
         the diagnostic pair that separates a stuck pin (output right, input
-        wrong) from the reset signature (config back in input mode)."""
+        wrong) from the reset signature (config back in input mode). A
+        register-less expander has only its port byte to show."""
         a = self._i2c
         assert a is not None
         readings = []
-        for label, register in (
-            ("output", a.output_register),
-            ("config", a.config_register),
-        ):
+        registers = [("output", a.output_register)]
+        if a.config_register is not None:
+            registers.append(("config", a.config_register))
+        for label, register in registers:
             result = await self._bus_op(
                 I2cReadReg(
                     Bus=a.bus_node.name,
@@ -626,7 +638,7 @@ class Relay(ShNodeActor):
         )
         if result is None or not result.Success:
             return None
-        return result.Value
+        return self._level(result.Value)
 
     async def _assert_pin(self, pin_value: int) -> str | None:
         """Drive the bit and, on a readback board, confirm it at the pin.
@@ -1058,7 +1070,7 @@ class Relay(ShNodeActor):
                 )
         
         if self.relay_actor_config is None:
-            raise Exception(f"RelayActorConfig cannot be none for {self.name}")
+            raise Exception(f"relay control config cannot be none for {self.name}")
         self.transitions = [
                 {
                     "trigger": self.relay_actor_config.DeEnergizingEvent,

@@ -8,6 +8,9 @@ TCA9555 expanders get chip-faithful semantics: power-on-reset defaults
 output flip-flops ONLY where the config register says output — a floating
 (input-configured) pin reads the float level, which is how the 07-16 field
 incident's "writes read back fine while pins float" behavior reproduces.
+Addresses registered as PCF8575 expanders are a register-less sixteen-bit
+port: a two-byte write sets it, a two-byte read returns it, power-on is
+all-high.
 
 Fault injection is the chaos lever: EIO per address (transient count or
 permanent) and garbled reads (bit-flipped data for N reads).
@@ -58,6 +61,25 @@ class SimTca9555:
         if register in (tca9555.INPUT_PORT_0, tca9555.INPUT_PORT_1):
             return  # input ports are read-only on the chip
         self.registers[register] = value & 0xFF
+
+
+class SimPcf8575:
+    """One PCF8575's quasi-bidirectional port: no registers, one word. A
+    read returns what was last written (the relay board's inputs never
+    pull a driven pin), power-on reset leaves every pin high."""
+
+    def __init__(self) -> None:
+        self.power_on_reset()
+
+    def power_on_reset(self) -> None:
+        self.port: list[int] = [0xFF, 0xFF]
+
+    def read_bytes(self, length: int) -> list[int]:
+        return list(self.port[:length])
+
+    def write_bytes(self, data: list[int]) -> None:
+        for i, value in enumerate(data[:2]):
+            self.port[i] = value & 0xFF
 
 
 class SimMcp4728:
@@ -143,14 +165,16 @@ class SimAds1115:
 
 
 class SimI2c:
-    """smbus2-surface fake bus: SimTca9555 at expander addresses, optional
-    SimMcp4728s behind a TCA9548A-style mux, SimAds1115 at thermistor ADC
-    addresses, a plain register store elsewhere. Not thread-safe; the
-    I2cBus actor serializes."""
+    """smbus2-surface fake bus: SimTca9555 at TCA9555 expander addresses,
+    SimPcf8575 at PCF8575 expander addresses, optional SimMcp4728s behind a
+    TCA9548A-style mux, SimAds1115 at thermistor ADC addresses, a plain
+    register store elsewhere. Not thread-safe; the I2cBus actor
+    serializes."""
 
     def __init__(
         self,
         expander_addresses: tuple[int, ...] = (),
+        pcf8575_addresses: tuple[int, ...] = (),
         mux_address: int | None = None,
         dac_address: int | None = None,
         dac_mux_channels: tuple[int, ...] = (),
@@ -158,6 +182,9 @@ class SimI2c:
     ) -> None:
         self.expanders: dict[int, SimTca9555] = {
             addr: SimTca9555() for addr in expander_addresses
+        }
+        self.pcf8575s: dict[int, SimPcf8575] = {
+            addr: SimPcf8575() for addr in pcf8575_addresses
         }
         self.adcs: dict[int, SimAds1115] = {
             addr: SimAds1115() for addr in adc_addresses
@@ -200,6 +227,9 @@ class SimI2c:
 
     def power_on_reset(self, address: int) -> None:
         """Simulate the OPS-452 mid-run reset on one expander."""
+        if address in self.pcf8575s:
+            self.pcf8575s[address].power_on_reset()
+            return
         self.expanders[address].power_on_reset()
 
     # ---- fault plumbing ----
@@ -236,11 +266,23 @@ class SimI2c:
         self._check_fault(address)
         if address == self.dac_address:
             values = self._routed_dac().read_bytes(length)
+        elif address in self.pcf8575s:
+            values = self.pcf8575s[address].read_bytes(length)
         else:
             values = [
                 self.registers.get((address, i), 0) for i in range(length)
             ]
         return [self._garble(address, v) for v in values]
+
+    def write_bytes(self, address: int, data: list[int]) -> None:
+        """Bare sequential send (the real backend's i2c_rdwr write): the
+        PCF8575 port word, or a plain store elsewhere."""
+        self._check_fault(address)
+        if address in self.pcf8575s:
+            self.pcf8575s[address].write_bytes(data)
+            return
+        for i, value in enumerate(data):
+            self.registers[(address, i)] = value & 0xFF
 
     def read_byte_data(self, address: int, register: int) -> int:
         self._check_fault(address)

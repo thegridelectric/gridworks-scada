@@ -23,4 +23,3 @@ class House0NodeNames:
     hubitat = "hubitat"
     zero_ten_out_multiplexer = "zero-ten-multiplexer"
     analog_temp = "analog-temp"
-    relay_multiplexer = "relay-multiplexer"

@@ -165,6 +165,18 @@
     },
     {
       "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "DeviceType": "KridaDoubleRelayBoard16",
+      "DisplayName": "Krida relay panel",
+      "I2cAddressList": [
+        32,
+        33
+      ],
+      "TypeName": "scada.board.component.gt",
+      "Version": "000"
+    },
+    {
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "775c545c-a9a4-4e40-aaa4-8ba9f71b9478",
       "ConfigList": [
         {
           "ActorName": "vdc-relay",
@@ -174,12 +186,21 @@
           "EnergizedState": "RelayOpen",
           "EnergizingEvent": "OpenRelay",
           "EventType": "change.relay.state",
-          "RelayIdx": 1,
           "StateType": "relay.closed.or.open",
-          "TypeName": "relay.actor.config",
-          "Version": "003",
+          "TypeName": "relay.control.config",
+          "Version": "000",
           "WiringConfig": "NormallyClosed"
-        },
+        }
+      ],
+      "DisplayName": "5VDC Relay",
+      "RelayName": "Relay1",
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000"
+    },
+    {
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "9c4027c1-9f04-43ca-96d3-2b78d4991ac5",
+      "ConfigList": [
         {
           "ActorName": "tstat-common-relay",
           "ChannelName": "tstat-common-relay",
@@ -188,12 +209,21 @@
           "EnergizedState": "RelayOpen",
           "EnergizingEvent": "OpenRelay",
           "EventType": "change.relay.state",
-          "RelayIdx": 2,
           "StateType": "relay.closed.or.open",
-          "TypeName": "relay.actor.config",
-          "Version": "003",
+          "TypeName": "relay.control.config",
+          "Version": "000",
           "WiringConfig": "NormallyClosed"
-        },
+        }
+      ],
+      "DisplayName": "TStat Common Relay",
+      "RelayName": "Relay2",
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000"
+    },
+    {
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "a2d98800-e9d5-4aca-9c09-86eef77df75b",
+      "ConfigList": [
         {
           "ActorName": "charge-discharge-relay",
           "ChannelName": "charge-discharge-relay",
@@ -202,12 +232,21 @@
           "EnergizedState": "ChargingStore",
           "EnergizingEvent": "ChargeStore",
           "EventType": "change.store.flow.relay",
-          "RelayIdx": 3,
           "StateType": "store.flow.relay",
-          "TypeName": "relay.actor.config",
-          "Version": "003",
+          "TypeName": "relay.control.config",
+          "Version": "000",
           "WiringConfig": "NormallyOpen"
-        },
+        }
+      ],
+      "DisplayName": "Store Charge/Discharge Relay",
+      "RelayName": "Relay3",
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000"
+    },
+    {
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "47269e57-4f7e-4229-87ed-ed5faca2a1ac",
+      "ConfigList": [
         {
           "ActorName": "hp-failsafe-relay",
           "ChannelName": "hp-failsafe-relay",
@@ -216,12 +255,21 @@
           "EnergizedState": "Scada",
           "EnergizingEvent": "SwitchToScada",
           "EventType": "change.heat.pump.control",
-          "RelayIdx": 5,
           "StateType": "heat.pump.control",
-          "TypeName": "relay.actor.config",
-          "Version": "003",
+          "TypeName": "relay.control.config",
+          "Version": "000",
           "WiringConfig": "DoubleThrow"
-        },
+        }
+      ],
+      "DisplayName": "Hp Failsafe Relay",
+      "RelayName": "Relay5",
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000"
+    },
+    {
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "6117056d-c4cb-4826-a5e5-b221d73ce107",
+      "ConfigList": [
         {
           "ActorName": "hp-scada-ops-relay",
           "ChannelName": "hp-scada-ops-relay",
@@ -230,12 +278,21 @@
           "EnergizedState": "RelayOpen",
           "EnergizingEvent": "OpenRelay",
           "EventType": "change.relay.state",
-          "RelayIdx": 6,
           "StateType": "relay.closed.or.open",
-          "TypeName": "relay.actor.config",
-          "Version": "003",
+          "TypeName": "relay.control.config",
+          "Version": "000",
           "WiringConfig": "NormallyClosed"
-        },
+        }
+      ],
+      "DisplayName": "Hp Scada Ops Relay",
+      "RelayName": "Relay6",
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000"
+    },
+    {
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "896c855b-1bb8-4b25-8c15-2e275a24ebbb",
+      "ConfigList": [
         {
           "ActorName": "aquastat-ctrl-relay",
           "ChannelName": "aquastat-ctrl-relay",
@@ -244,12 +301,21 @@
           "EnergizedState": "Scada",
           "EnergizingEvent": "SwitchToScada",
           "EventType": "change.aquastat.control",
-          "RelayIdx": 8,
           "StateType": "aquastat.control.state",
-          "TypeName": "relay.actor.config",
-          "Version": "003",
+          "TypeName": "relay.control.config",
+          "Version": "000",
           "WiringConfig": "DoubleThrow"
-        },
+        }
+      ],
+      "DisplayName": "Aquastat Ctrl Relay",
+      "RelayName": "Relay8",
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000"
+    },
+    {
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "3ccf0475-cc72-4d37-854f-804c6b4debe3",
+      "ConfigList": [
         {
           "ActorName": "store-pump-relay",
           "ChannelName": "store-pump-relay",
@@ -258,12 +324,21 @@
           "EnergizedState": "RelayClosed",
           "EnergizingEvent": "CloseRelay",
           "EventType": "change.relay.state",
-          "RelayIdx": 9,
           "StateType": "relay.closed.or.open",
-          "TypeName": "relay.actor.config",
-          "Version": "003",
+          "TypeName": "relay.control.config",
+          "Version": "000",
           "WiringConfig": "NormallyOpen"
-        },
+        }
+      ],
+      "DisplayName": "Store Pump Failsafe",
+      "RelayName": "Relay9",
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000"
+    },
+    {
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "88f4e498-eda5-4d8b-8fe7-adc64a9d2127",
+      "ConfigList": [
         {
           "ActorName": "primary-pump-failsafe-relay",
           "ChannelName": "primary-pump-failsafe-relay",
@@ -272,12 +347,21 @@
           "EnergizedState": "Scada",
           "EnergizingEvent": "SwitchToScada",
           "EventType": "change.primary.pump.control",
-          "RelayIdx": 12,
           "StateType": "primary.pump.control",
-          "TypeName": "relay.actor.config",
-          "Version": "003",
+          "TypeName": "relay.control.config",
+          "Version": "000",
           "WiringConfig": "DoubleThrow"
-        },
+        }
+      ],
+      "DisplayName": "Primary Pump Failsafe",
+      "RelayName": "Relay12",
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000"
+    },
+    {
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "3a301f35-6202-42c6-acd9-7f5015b42480",
+      "ConfigList": [
         {
           "ActorName": "primary-pump-scada-ops-relay",
           "ChannelName": "primary-pump-scada-ops-relay",
@@ -286,12 +370,21 @@
           "EnergizedState": "RelayClosed",
           "EnergizingEvent": "CloseRelay",
           "EventType": "change.relay.state",
-          "RelayIdx": 11,
           "StateType": "relay.closed.or.open",
-          "TypeName": "relay.actor.config",
-          "Version": "003",
+          "TypeName": "relay.control.config",
+          "Version": "000",
           "WiringConfig": "NormallyOpen"
-        },
+        }
+      ],
+      "DisplayName": "Primary Pump SCADA Ops",
+      "RelayName": "Relay11",
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000"
+    },
+    {
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "30b58163-0317-4c91-a8a6-ff148bbbeeed",
+      "ConfigList": [
         {
           "ActorName": "hp-loop-on-off-relay",
           "ChannelName": "hp-loop-on-off-relay",
@@ -300,12 +393,21 @@
           "EnergizedState": "RelayOpen",
           "EnergizingEvent": "OpenRelay",
           "EventType": "change.relay.state",
-          "RelayIdx": 14,
           "StateType": "relay.closed.or.open",
-          "TypeName": "relay.actor.config",
-          "Version": "003",
+          "TypeName": "relay.control.config",
+          "Version": "000",
           "WiringConfig": "NormallyClosed"
-        },
+        }
+      ],
+      "DisplayName": "Hp Loop Valve Active/Dormant Relay",
+      "RelayName": "Relay14",
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000"
+    },
+    {
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "926cff5e-c76b-4eb2-8555-8926dd631e0c",
+      "ConfigList": [
         {
           "ActorName": "hp-loop-keep-send-relay",
           "ChannelName": "hp-loop-keep-send-relay",
@@ -314,12 +416,21 @@
           "EnergizedState": "SendLess",
           "EnergizingEvent": "ChangeToKeepMore",
           "EventType": "change.keep.send",
-          "RelayIdx": 15,
           "StateType": "hp.loop.keep.send",
-          "TypeName": "relay.actor.config",
-          "Version": "003",
+          "TypeName": "relay.control.config",
+          "Version": "000",
           "WiringConfig": "DoubleThrow"
-        },
+        }
+      ],
+      "DisplayName": "Hp Loop Valve SendMore/SendLess Relay",
+      "RelayName": "Relay15",
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000"
+    },
+    {
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "73721bb5-f85f-4276-bd0c-4fbe5c491644",
+      "ConfigList": [
         {
           "ActorName": "zone1-main-failsafe-relay",
           "ChannelName": "zone1-main-failsafe-relay",
@@ -328,12 +439,21 @@
           "EnergizedState": "Scada",
           "EnergizingEvent": "SwitchToScada",
           "EventType": "change.heatcall.source",
-          "RelayIdx": 17,
           "StateType": "heatcall.source",
-          "TypeName": "relay.actor.config",
-          "Version": "003",
+          "TypeName": "relay.control.config",
+          "Version": "000",
           "WiringConfig": "DoubleThrow"
-        },
+        }
+      ],
+      "DisplayName": "Main Zone 1 Failsf",
+      "RelayName": "Relay17",
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000"
+    },
+    {
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "f2b93b14-82d6-4262-b506-3e0692ef21c9",
+      "ConfigList": [
         {
           "ActorName": "zone1-main-ops-relay",
           "ChannelName": "zone1-main-ops-relay",
@@ -342,22 +462,16 @@
           "EnergizedState": "RelayClosed",
           "EnergizingEvent": "CloseRelay",
           "EventType": "change.relay.state",
-          "RelayIdx": 18,
           "StateType": "relay.closed.or.open",
-          "TypeName": "relay.actor.config",
-          "Version": "003",
+          "TypeName": "relay.control.config",
+          "Version": "000",
           "WiringConfig": "NormallyOpen"
         }
       ],
-      "DeviceType": "KridaDoubleRelayBoard16",
-      "DisplayName": "i2c krida relay boards",
-      "I2cAddressList": [
-        32,
-        33
-      ],
-      "I2cBus": "default",
-      "TypeName": "i2c.multichannel.dt.relay.component.gt",
-      "Version": "004"
+      "DisplayName": "Main Zone Scada Ops",
+      "RelayName": "Relay18",
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000"
     },
     {
       "AsyncCaptureDeltaMicroVolts": 2000,
@@ -560,18 +674,18 @@
       "Version": "000"
     },
     {
-      "TypeName": "device.component.gt",
-      "Version": "000",
       "ComponentId": "a6f0c2e4-8b3d-4e71-9c25-6d1f8e4b7a03",
       "DeviceType": "LGARUM048GSS5",
-      "DisplayName": "LG Multi V ARUM048GSS5 outdoor unit"
+      "DisplayName": "LG Multi V ARUM048GSS5 outdoor unit",
+      "TypeName": "device.component.gt",
+      "Version": "000"
     },
     {
-      "TypeName": "device.component.gt",
-      "Version": "000",
       "ComponentId": "d3b7e1a9-2c64-4f58-8a1e-5b9c0d7f2e46",
       "DeviceType": "LGARNH423K3A4",
-      "DisplayName": "LG Hydro Kit ARNH423K3A4 indoor unit"
+      "DisplayName": "LG Hydro Kit ARNH423K3A4 indoor unit",
+      "TypeName": "device.component.gt",
+      "Version": "000"
     }
   ],
   "DataChannels": [
@@ -639,7 +753,7 @@
     },
     {
       "AboutNodeName": "vdc-relay",
-      "CapturedByNodeName": "relay-multiplexer",
+      "CapturedByNodeName": "vdc-relay",
       "DisplayName": "5V DC Bus Relay State",
       "Id": "61cfe3be-3f69-4bae-a815-31b2222e04ce",
       "Name": "vdc-relay",
@@ -651,7 +765,7 @@
     },
     {
       "AboutNodeName": "tstat-common-relay",
-      "CapturedByNodeName": "relay-multiplexer",
+      "CapturedByNodeName": "tstat-common-relay",
       "DisplayName": "TStat Common Relay State",
       "Id": "206c0832-c005-4b3b-95a4-8ca0ba2a89b6",
       "Name": "tstat-common-relay",
@@ -663,7 +777,7 @@
     },
     {
       "AboutNodeName": "charge-discharge-relay",
-      "CapturedByNodeName": "relay-multiplexer",
+      "CapturedByNodeName": "charge-discharge-relay",
       "DisplayName": "Charge/Discharge Relay State",
       "Id": "5c65b687-d357-41a7-8e4e-5274ba01e00d",
       "Name": "charge-discharge-relay",
@@ -675,7 +789,7 @@
     },
     {
       "AboutNodeName": "hp-failsafe-relay",
-      "CapturedByNodeName": "relay-multiplexer",
+      "CapturedByNodeName": "hp-failsafe-relay",
       "DisplayName": "Hp Failsafe Relay State",
       "Id": "6c906bfd-27f2-4ac8-bde8-1c8f94ef926c",
       "Name": "hp-failsafe-relay",
@@ -687,7 +801,7 @@
     },
     {
       "AboutNodeName": "hp-scada-ops-relay",
-      "CapturedByNodeName": "relay-multiplexer",
+      "CapturedByNodeName": "hp-scada-ops-relay",
       "DisplayName": "Hp Scada Ops Relay State",
       "Id": "22db6c24-45ff-4e54-a8ce-c2de56814d8e",
       "Name": "hp-scada-ops-relay",
@@ -699,7 +813,7 @@
     },
     {
       "AboutNodeName": "aquastat-ctrl-relay",
-      "CapturedByNodeName": "relay-multiplexer",
+      "CapturedByNodeName": "aquastat-ctrl-relay",
       "DisplayName": "Aquastat Control Relay State",
       "Id": "426352c4-5acd-44e2-be89-8af4f0fdf7ed",
       "Name": "aquastat-ctrl-relay",
@@ -711,7 +825,7 @@
     },
     {
       "AboutNodeName": "store-pump-relay",
-      "CapturedByNodeName": "relay-multiplexer",
+      "CapturedByNodeName": "store-pump-relay",
       "DisplayName": "Store Pump Failsafe Relay State",
       "Id": "09b17d24-69fc-4b9e-89c2-7ddc0a48f9db",
       "Name": "store-pump-relay",
@@ -723,7 +837,7 @@
     },
     {
       "AboutNodeName": "primary-pump-failsafe-relay",
-      "CapturedByNodeName": "relay-multiplexer",
+      "CapturedByNodeName": "primary-pump-failsafe-relay",
       "DisplayName": "Primary Pump Failsafe Relay State",
       "Id": "3023844f-5ac5-431c-af53-061ed7d1da9c",
       "Name": "primary-pump-failsafe-relay",
@@ -735,7 +849,7 @@
     },
     {
       "AboutNodeName": "primary-pump-scada-ops-relay",
-      "CapturedByNodeName": "relay-multiplexer",
+      "CapturedByNodeName": "primary-pump-scada-ops-relay",
       "DisplayName": "Primary Pump SCADA Ops Relay State",
       "Id": "3bff1462-4fcb-40f0-9b65-8b34d23239ab",
       "Name": "primary-pump-scada-ops-relay",
@@ -747,7 +861,7 @@
     },
     {
       "AboutNodeName": "hp-loop-on-off-relay",
-      "CapturedByNodeName": "relay-multiplexer",
+      "CapturedByNodeName": "hp-loop-on-off-relay",
       "DisplayName": "Hp Loop On Off Relay State",
       "Id": "67a26f67-40d4-4bbd-9c5a-e0541947bd91",
       "Name": "hp-loop-on-off-relay",
@@ -759,7 +873,7 @@
     },
     {
       "AboutNodeName": "hp-loop-keep-send-relay",
-      "CapturedByNodeName": "relay-multiplexer",
+      "CapturedByNodeName": "hp-loop-keep-send-relay",
       "DisplayName": "Hp Loop Keep/Send Relay State",
       "Id": "5b9d25f4-6285-437c-b319-77e4d644bbdd",
       "Name": "hp-loop-keep-send-relay",
@@ -771,7 +885,7 @@
     },
     {
       "AboutNodeName": "zone1-main-failsafe-relay",
-      "CapturedByNodeName": "relay-multiplexer",
+      "CapturedByNodeName": "zone1-main-failsafe-relay",
       "DisplayName": "Main Zone 1 Failsf Relay State",
       "Id": "9ed4ebf6-236d-44d8-8ac4-cde159267c71",
       "Name": "zone1-main-failsafe-relay",
@@ -783,7 +897,7 @@
     },
     {
       "AboutNodeName": "zone1-main-ops-relay",
-      "CapturedByNodeName": "relay-multiplexer",
+      "CapturedByNodeName": "zone1-main-ops-relay",
       "DisplayName": "Main Zone 1 Scada Ops Relay State",
       "Id": "cc4fe406-f785-4a23-a736-8a1a6f9ab064",
       "Name": "zone1-main-ops-relay",
@@ -1247,6 +1361,485 @@
       ],
       "TypeName": "electric.meter.device.type.gt",
       "Version": "000"
+    },
+    {
+      "BusList": [
+        {
+          "BusNumber": 1,
+          "Name": "DefaultBus",
+          "TypeName": "i2c.bus",
+          "Version": "000"
+        }
+      ],
+      "Dacs": [],
+      "DeviceType": "KridaDoubleRelayBoard16",
+      "DisplayName": "GridWorks relay panel: two 16-channel Krida boards, markings Relay1-Relay32",
+      "Expanders": [
+        {
+          "AllowedI2cAddressList": [
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39
+          ],
+          "ExpanderIdx": 1,
+          "ExpanderType": "Pcf8575",
+          "I2cBus": "DefaultBus",
+          "TypeName": "i2c.expander",
+          "Version": "000"
+        },
+        {
+          "AllowedI2cAddressList": [
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39
+          ],
+          "ExpanderIdx": 2,
+          "ExpanderType": "Pcf8575",
+          "I2cBus": "DefaultBus",
+          "TypeName": "i2c.expander",
+          "Version": "000"
+        }
+      ],
+      "I2cRelays": [
+        {
+          "BitIndex": 7,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 0,
+          "RelayName": "Relay1",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 6,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 0,
+          "RelayName": "Relay2",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 5,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 0,
+          "RelayName": "Relay3",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 4,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 0,
+          "RelayName": "Relay4",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 3,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 0,
+          "RelayName": "Relay5",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 2,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 0,
+          "RelayName": "Relay6",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 1,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 0,
+          "RelayName": "Relay7",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 0,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 0,
+          "RelayName": "Relay8",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 0,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 1,
+          "RelayName": "Relay9",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 1,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 1,
+          "RelayName": "Relay10",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 2,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 1,
+          "RelayName": "Relay11",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 3,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 1,
+          "RelayName": "Relay12",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 4,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 1,
+          "RelayName": "Relay13",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 5,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 1,
+          "RelayName": "Relay14",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 6,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 1,
+          "RelayName": "Relay15",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 7,
+          "ExpanderIdx": 1,
+          "RegisterIndex": 1,
+          "RelayName": "Relay16",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 7,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 0,
+          "RelayName": "Relay17",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 6,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 0,
+          "RelayName": "Relay18",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 5,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 0,
+          "RelayName": "Relay19",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 4,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 0,
+          "RelayName": "Relay20",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 3,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 0,
+          "RelayName": "Relay21",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 2,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 0,
+          "RelayName": "Relay22",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 1,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 0,
+          "RelayName": "Relay23",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 0,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 0,
+          "RelayName": "Relay24",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 0,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 1,
+          "RelayName": "Relay25",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 1,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 1,
+          "RelayName": "Relay26",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 2,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 1,
+          "RelayName": "Relay27",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 3,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 1,
+          "RelayName": "Relay28",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 4,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 1,
+          "RelayName": "Relay29",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 5,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 1,
+          "RelayName": "Relay30",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 6,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 1,
+          "RelayName": "Relay31",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "BitIndex": 7,
+          "ExpanderIdx": 2,
+          "RegisterIndex": 1,
+          "RelayName": "Relay32",
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        }
+      ],
+      "MinPollPeriodMs": 200,
+      "Muxes": [],
+      "NativeGpioInputs": [],
+      "NativeGpioOutputs": [],
+      "RelayEnergizedLevel": 0,
+      "SupportsPinReadback": false,
+      "TelemetryNameList": [
+        "RelayState"
+      ],
+      "ThermistorAdcs": [],
+      "TypeName": "gw1.scada.device.type.gt",
+      "Version": "000"
     }
   ],
   "GNodes": [
@@ -1288,35 +1881,35 @@
     "TotalStoreTanks": 1,
     "TypeName": "gw.hydronic",
     "Version": "000",
+    "ZoneCallCircuits": [
+      {
+        "ActuatorKind": "FloorLoop",
+        "CanCool": false,
+        "CircuitPosition": 1,
+        "FailsafeRelayNode": "zone1-main-failsafe-relay",
+        "OpsRelayNode": "zone1-main-ops-relay",
+        "Role": "Baseload",
+        "ServesZone": "main",
+        "SetpointSource": "FromThermostat",
+        "Thermostat": {
+          "ComponentId": "e5e2fb2c-3f96-4079-907f-f96db22d1568",
+          "Kind": "HoneywellViaHubitat",
+          "TypeName": "gw1.zone.thermostat",
+          "Version": "000"
+        },
+        "TypeName": "gw1.zone.call.circuit",
+        "Version": "000",
+        "WhitewireChannelName": "zone1-main-whitewire-pwr"
+      }
+    ],
     "Zones": [
       {
         "Critical": true,
         "KwhPerDegF": 1.0,
         "Name": "main",
+        "TempChannelName": "zone1-main-temp",
         "TypeName": "gw1.hvac.zone",
-        "Version": "000",
-        "TempChannelName": "zone1-main-temp"
-      }
-    ],
-    "ZoneCallCircuits": [
-      {
-        "TypeName": "gw1.zone.call.circuit",
-        "Version": "000",
-        "CircuitPosition": 1,
-        "ServesZone": "main",
-        "ActuatorKind": "FloorLoop",
-        "Role": "Baseload",
-        "CanCool": false,
-        "SetpointSource": "FromThermostat",
-        "Thermostat": {
-          "TypeName": "gw1.zone.thermostat",
-          "Version": "000",
-          "Kind": "HoneywellViaHubitat",
-          "ComponentId": "e5e2fb2c-3f96-4079-907f-f96db22d1568"
-        },
-        "WhitewireChannelName": "zone1-main-whitewire-pwr",
-        "FailsafeRelayNode": "zone1-main-failsafe-relay",
-        "OpsRelayNode": "zone1-main-ops-relay"
+        "Version": "000"
       }
     ]
   },
@@ -1461,25 +2054,25 @@
     },
     {
       "ActorClass": "NoActor",
+      "ComponentId": "a6f0c2e4-8b3d-4e71-9c25-6d1f8e4b7a03",
       "DisplayName": "HP ODU",
       "InPowerMetering": true,
       "Name": "hp-odu",
       "NameplatePowerW": 6000,
       "ShNodeId": "f1692ea8-9866-423c-b260-93d2affc9881",
       "TypeName": "spaceheat.node.gt",
-      "Version": "303",
-      "ComponentId": "a6f0c2e4-8b3d-4e71-9c25-6d1f8e4b7a03"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
+      "ComponentId": "d3b7e1a9-2c64-4f58-8a1e-5b9c0d7f2e46",
       "DisplayName": "HP IDU",
       "InPowerMetering": true,
       "Name": "hp-idu",
       "NameplatePowerW": 6000,
       "ShNodeId": "7c2e9a41-5d8b-4f36-b1a7-3e6d0c8f5a92",
       "TypeName": "spaceheat.node.gt",
-      "Version": "303",
-      "ComponentId": "d3b7e1a9-2c64-4f58-8a1e-5b9c0d7f2e46"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",
@@ -1518,19 +2111,27 @@
       "Version": "303"
     },
     {
-      "ActorClass": "I2cRelayMultiplexer",
-      "ActorHierarchyName": "s.relay-multiplexer",
+      "ActorClass": "NoActor",
       "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
-      "DisplayName": "I2c Relay Multiplexer",
-      "Name": "relay-multiplexer",
-      "ShNodeId": "fc81c64e-b04a-4b87-9861-0c9348b56f5b",
+      "DisplayName": "Krida relay panel",
+      "Name": "krida",
+      "ShNodeId": "08e53eb3-d172-47cc-8640-cc2e9b9306e0",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303"
+    },
+    {
+      "ActorClass": "I2cBus",
+      "ActorHierarchyName": "s.i2c-bus",
+      "DisplayName": "I2C Bus",
+      "Name": "i2c-bus",
+      "ShNodeId": "fb487ab5-e8e4-4359-a43a-e374eb39b2e4",
       "TypeName": "spaceheat.node.gt",
       "Version": "303"
     },
     {
       "ActorClass": "Relay",
       "ActorHierarchyName": "s.vdc-relay",
-      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "775c545c-a9a4-4e40-aaa4-8ba9f71b9478",
       "DisplayName": "5VDC Relay",
       "Handle": "auto.five-v-boss.pico-cycler.vdc-relay",
       "Name": "vdc-relay",
@@ -1541,7 +2142,7 @@
     {
       "ActorClass": "Relay",
       "ActorHierarchyName": "s.tstat-common-relay",
-      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "9c4027c1-9f04-43ca-96d3-2b78d4991ac5",
       "DisplayName": "TStat Common Relay",
       "Handle": "auto.lc.n.tstat-common-relay",
       "Name": "tstat-common-relay",
@@ -1552,7 +2153,7 @@
     {
       "ActorClass": "Relay",
       "ActorHierarchyName": "s.charge-discharge-relay",
-      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "a2d98800-e9d5-4aca-9c09-86eef77df75b",
       "DisplayName": "Store Charge/Discharge Relay",
       "Handle": "auto.lc.n.charge-discharge-relay",
       "Name": "charge-discharge-relay",
@@ -1563,7 +2164,7 @@
     {
       "ActorClass": "Relay",
       "ActorHierarchyName": "s.hp-failsafe-relay",
-      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "47269e57-4f7e-4229-87ed-ed5faca2a1ac",
       "DisplayName": "Hp Failsafe Relay",
       "Handle": "auto.lc.n.hp-failsafe-relay",
       "Name": "hp-failsafe-relay",
@@ -1574,7 +2175,7 @@
     {
       "ActorClass": "Relay",
       "ActorHierarchyName": "s.hp-scada-ops-relay",
-      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "6117056d-c4cb-4826-a5e5-b221d73ce107",
       "DisplayName": "Hp Scada Ops Relay",
       "Handle": "auto.lc.n.hp-scada-ops-relay",
       "Name": "hp-scada-ops-relay",
@@ -1585,7 +2186,7 @@
     {
       "ActorClass": "Relay",
       "ActorHierarchyName": "s.aquastat-ctrl-relay",
-      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "896c855b-1bb8-4b25-8c15-2e275a24ebbb",
       "DisplayName": "Aquastat Ctrl Relay",
       "Handle": "auto.lc.n.aquastat-ctrl-relay",
       "Name": "aquastat-ctrl-relay",
@@ -1596,7 +2197,7 @@
     {
       "ActorClass": "Relay",
       "ActorHierarchyName": "s.store-pump-relay",
-      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "3ccf0475-cc72-4d37-854f-804c6b4debe3",
       "DisplayName": "Store Pump Failsafe",
       "Handle": "auto.lc.n.store-pump-relay",
       "Name": "store-pump-relay",
@@ -1607,7 +2208,7 @@
     {
       "ActorClass": "Relay",
       "ActorHierarchyName": "s.primary-pump-failsafe-relay",
-      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "88f4e498-eda5-4d8b-8fe7-adc64a9d2127",
       "DisplayName": "Primary Pump Failsafe",
       "Handle": "auto.lc.n.primary-pump-failsafe-relay",
       "Name": "primary-pump-failsafe-relay",
@@ -1618,7 +2219,7 @@
     {
       "ActorClass": "Relay",
       "ActorHierarchyName": "s.primary-pump-scada-ops-relay",
-      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "3a301f35-6202-42c6-acd9-7f5015b42480",
       "DisplayName": "Primary Pump SCADA Ops",
       "Handle": "auto.lc.n.primary-pump-scada-ops-relay",
       "Name": "primary-pump-scada-ops-relay",
@@ -1629,7 +2230,7 @@
     {
       "ActorClass": "Relay",
       "ActorHierarchyName": "s.hp-loop-on-off-relay",
-      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "30b58163-0317-4c91-a8a6-ff148bbbeeed",
       "DisplayName": "Hp Loop Valve Active/Dormant Relay",
       "Handle": "auto.lc.n.hp-loop-on-off-relay",
       "Name": "hp-loop-on-off-relay",
@@ -1640,7 +2241,7 @@
     {
       "ActorClass": "Relay",
       "ActorHierarchyName": "s.hp-loop-keep-send-relay",
-      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "926cff5e-c76b-4eb2-8555-8926dd631e0c",
       "DisplayName": "Hp Loop Valve SendMore/SendLess Relay",
       "Handle": "auto.lc.n.hp-loop-keep-send-relay",
       "Name": "hp-loop-keep-send-relay",
@@ -1651,7 +2252,7 @@
     {
       "ActorClass": "Relay",
       "ActorHierarchyName": "s.zone1-main-failsafe-relay",
-      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "73721bb5-f85f-4276-bd0c-4fbe5c491644",
       "DisplayName": "Main Zone 1 Failsf",
       "Handle": "auto.lc.n.zone1-main-failsafe-relay",
       "Name": "zone1-main-failsafe-relay",
@@ -1662,7 +2263,7 @@
     {
       "ActorClass": "Relay",
       "ActorHierarchyName": "s.zone1-main-ops-relay",
-      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "f2b93b14-82d6-4262-b506-3e0692ef21c9",
       "DisplayName": "Main Zone Scada Ops",
       "Handle": "auto.lc.n.zone1-main-ops-relay",
       "Name": "zone1-main-ops-relay",
@@ -1798,13 +2399,13 @@
     },
     {
       "ActorClass": "SiegLoop",
+      "ActorHierarchyName": "s.sieg-loop",
       "DisplayName": "Sieg Loop",
+      "Handle": "auto.lc.n.sieg-loop",
       "Name": "sieg-loop",
       "ShNodeId": "4718081c-b052-42a7-bf30-dea259fa2c35",
       "TypeName": "spaceheat.node.gt",
-      "Version": "303",
-      "Handle": "auto.lc.n.sieg-loop",
-      "ActorHierarchyName": "s.sieg-loop"
+      "Version": "303"
     },
     {
       "ActorClass": "NoActor",

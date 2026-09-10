@@ -14,7 +14,7 @@ from gwsproto.named_types.i2c_thermistor_interface_capability import (
     I2cThermistorInterfaceCapability,
 )
 from gwsproto.named_types.native_gpio_pin import NativeGpioPin
-from gwsproto.property_format import PascalCase
+from gwsproto.property_format import NonNegativeInt, PascalCase
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
@@ -32,6 +32,7 @@ class ScadaDeviceTypeGt(GwsprotoSemaType):
     Muxes: list[I2cMux] = []
     I2cRelays: list[I2cRelayCapability] = []
     SupportsPinReadback: bool
+    RelayEnergizedLevel: NonNegativeInt
     CtAdc: Optional[I2cCtInterfaceCapability] = None
     ThermistorAdcs: list[I2cThermistorInterfaceCapability] = []
     Dacs: list[I2cDacCapability] = []
@@ -140,4 +141,16 @@ class ScadaDeviceTypeGt(GwsprotoSemaType):
                     f"{dac.DacName} has I2cBus {dac.I2cBus} but its mux "
                     f"{dac.MuxName} is on {mux.I2cBus}."
                 )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_5(self) -> Self:
+        """
+        Axiom 5: RelayEnergizedLevelRange. RelayEnergizedLevel SHALL be 0 or 1.
+        """
+        if self.RelayEnergizedLevel not in (0, 1):
+            raise ValueError(
+                "Axiom 5 (RelayEnergizedLevelRange) failed: RelayEnergizedLevel "
+                f"{self.RelayEnergizedLevel} must be 0 or 1."
+            )
         return self

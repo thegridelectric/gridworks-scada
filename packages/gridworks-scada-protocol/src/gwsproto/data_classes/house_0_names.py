@@ -167,7 +167,6 @@ class H0N:
     # instrumentation
     zero_ten_out_multiplexer = "zero-ten-multiplexer"
     analog_temp = "analog-temp"
-    relay_multiplexer = "relay-multiplexer"
     dist_btu = "dist-btu"
     primary_btu = "primary-btu"
     store_btu = "store-btu"

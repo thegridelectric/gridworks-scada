@@ -189,7 +189,6 @@ class Scada(PrimeActor, ScadaInterface):
 
         # Define which actuators must report ready
         self.required_actuators = {
-            self.relay_multiplexer, 
             self.zero_ten_out_multiplexer,
         }
 
@@ -1647,10 +1646,6 @@ class Scada(PrimeActor, ScadaInterface):
         return self.layout.node(H0N.local_control)
 
     @property
-    def relay_multiplexer(self) -> ShNode:
-        return self.layout.node(H0N.relay_multiplexer)
-
-    @property
     def zero_ten_out_multiplexer(self) -> ShNode:
         return self.layout.node(H0N.zero_ten_out_multiplexer)
 
@@ -1799,10 +1794,6 @@ class Scada(PrimeActor, ScadaInterface):
             for node in self.layout.nodes.values()
             if node.ActorClass == ActorClass.ApiFlowModule
         ]
-        if H0N.relay_multiplexer in self.layout.nodes:
-            i2c_relay_component = self.layout.node(H0N.relay_multiplexer).component.gt
-        else:
-            i2c_relay_component = None
         return LayoutLite(
             FromGNodeAlias=self.layout.scada_g_node_alias,
             HardwareLayoutTypeName=self.layout.layout_type_name,
@@ -1819,7 +1810,6 @@ class Scada(PrimeActor, ScadaInterface):
             DataChannels=[ch.to_gt() for ch in self.layout.data_channels.values()],
             DerivedChannels=[ch.to_gt() for ch in self.layout.derived_channels.values()],
             Ha1Params=self.data.ha1_params,
-            I2cRelayComponent=i2c_relay_component,
             MessageCreatedMs=int(time.time() * 1000),
             MessageId=str(uuid.uuid4()),
         )

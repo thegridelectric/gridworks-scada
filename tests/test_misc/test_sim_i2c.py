@@ -71,3 +71,22 @@ def test_power_on_reset_restores_por(sim: SimI2c) -> None:
     sim.power_on_reset(EXPANDER)
     assert sim.read_byte_data(EXPANDER, tca9555.CONFIG_PORT_0) == 0xFF
     assert sim.read_byte_data(EXPANDER, tca9555.OUTPUT_PORT_0) == 0xFF
+
+
+PCF = 0x21
+
+
+@pytest.fixture
+def sim_pcf() -> SimI2c:
+    return SimI2c(pcf8575_addresses=(PCF,))
+
+
+def test_pcf8575_por_is_all_high(sim_pcf: SimI2c) -> None:
+    assert sim_pcf.read_bytes(PCF, 2) == [0xFF, 0xFF]
+
+
+def test_pcf8575_port_word_round_trips(sim_pcf: SimI2c) -> None:
+    sim_pcf.write_bytes(PCF, [0x7F, 0xFE])
+    assert sim_pcf.read_bytes(PCF, 2) == [0x7F, 0xFE]
+    sim_pcf.power_on_reset(PCF)
+    assert sim_pcf.read_bytes(PCF, 2) == [0xFF, 0xFF]

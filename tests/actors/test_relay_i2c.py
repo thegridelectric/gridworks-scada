@@ -15,10 +15,6 @@ Message routing between the two actors is wired directly (bus replies feed
 relay.process_message), so the futures-based bus ops resolve synchronously.
 """
 
-# OFI: run this same failure catalog against a House0-family layout with a
-# simulated Krida (i2c-multiplexer) board once that actuation path is
-# restored — the both-cases merge gate wants the legacy path witnessed too.
-
 import asyncio
 import json
 import time

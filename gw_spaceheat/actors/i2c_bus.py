@@ -15,7 +15,7 @@ from scada_app_interface import ScadaAppInterface
 
 from gwsproto.data_classes.components import I2cRelayComponent
 from gwsproto.data_classes.sh_node import ShNode
-from gwsproto.enums import I2cOperation, LogLevel
+from gwsproto.enums import I2cExpanderType, I2cOperation, LogLevel
 from gwsproto.property_format import NonNegativeInt
 from gwsproto.named_types import (
     Glitch,
@@ -26,7 +26,6 @@ from gwsproto.named_types import (
     I2cWriteBit,
     I2cWriteByte,
     I2cWriteReg,
-    ScadaDeviceTypeGt,
 )
 
 
@@ -66,11 +65,19 @@ class I2cBus(ShNodeActor):
 
         self.bus_name = self.node.name
 
+        # The board's expanders by resolved address (fixed on the record or
+        # field-chosen on the component), and which of them are TCA9555s:
+        # the register-file init and reset guard apply to those alone; a
+        # PCF8575 has no configuration register to clear or watch.
+        board = self.layout.scada_board()
+        self._expander_types: dict[int, I2cExpanderType] = {
+            board.expander_address(expander): expander.ExpanderType
+            for expander in board.device_type.Expanders
+        }
         self._expander_addresses: tuple[int, ...] = tuple(
-            expander.I2cAddress
-            for record in self.layout.device_types.values()
-            if isinstance(record, ScadaDeviceTypeGt)
-            for expander in record.Expanders
+            address
+            for address, expander_type in self._expander_types.items()
+            if expander_type == I2cExpanderType.Tca9555
         )
         self._guard_pending = False
 
@@ -88,11 +95,15 @@ class I2cBus(ShNodeActor):
         # Backend selection happens exactly once, here, from the layout:
         # the board record's DeviceType says whether the silicon is real
         # (Gw108RevB) or simulated (SimGw108). Never from a runtime flag.
-        board = self.layout.scada_board()
         if board.simulated:
             record = board.device_type
             self.i2c = SimI2c(
                 expander_addresses=self._expander_addresses,
+                pcf8575_addresses=tuple(
+                    address
+                    for address, expander_type in self._expander_types.items()
+                    if expander_type == I2cExpanderType.Pcf8575
+                ),
                 mux_address=record.Muxes[0].I2cAddress if record.Muxes else None,
                 dac_address=record.Dacs[0].I2cAddress if record.Dacs else None,
                 dac_mux_channels=tuple(
@@ -200,18 +211,40 @@ class I2cBus(ShNodeActor):
         if error is None:
             a = cmd.Address
             try:
-                current = self.i2c.read_byte_data(a.I2cAddress, a.RegisterIndex)
-                if cmd.Value == 1:
-                    new = current | (1 << a.BitIndex)
+                if self._is_pcf8575(a.I2cAddress):
+                    port = self._receive_bytes(a.I2cAddress, 2)
+                    port[a.RegisterIndex] = self._set_bit(
+                        port[a.RegisterIndex], a.BitIndex, cmd.Value
+                    )
+                    self._send_bytes(a.I2cAddress, port)
                 else:
-                    new = current & ~(1 << a.BitIndex)
-                self.i2c.write_byte_data(a.I2cAddress, a.RegisterIndex, new)
+                    current = self.i2c.read_byte_data(a.I2cAddress, a.RegisterIndex)
+                    self.i2c.write_byte_data(
+                        a.I2cAddress,
+                        a.RegisterIndex,
+                        self._set_bit(current, a.BitIndex, cmd.Value),
+                    )
                 value = cmd.Value
             except Exception as e:
                 error = str(e)
         return self._reply(
             reply_to, cmd.Bus, cmd.TriggerId, I2cOperation.WriteBit, value, error
         )
+
+    @staticmethod
+    def _set_bit(byte: int, bit_index: int, value: int) -> int:
+        if value == 1:
+            return byte | (1 << bit_index)
+        return byte & ~(1 << bit_index) & 0xFF
+
+    def _is_pcf8575(self, address: int) -> bool:
+        return self._expander_types.get(address) == I2cExpanderType.Pcf8575
+
+    def _port_byte(self, address: int, register_index: int) -> int:
+        """One byte of a PCF8575's port word: the chip has no registers, so
+        a RegisterIndex addresses the low (0) or high (1) byte of the one
+        two-byte read."""
+        return self._receive_bytes(address, 2)[register_index]
 
     def _handle_read_bit(
         self, cmd: I2cReadBit, reply_to: ShNode
@@ -221,7 +254,10 @@ class I2cBus(ShNodeActor):
         if error is None:
             a = cmd.Address
             try:
-                current = self.i2c.read_byte_data(a.I2cAddress, a.RegisterIndex)
+                if self._is_pcf8575(a.I2cAddress):
+                    current = self._port_byte(a.I2cAddress, a.RegisterIndex)
+                else:
+                    current = self.i2c.read_byte_data(a.I2cAddress, a.RegisterIndex)
                 value = (current >> a.BitIndex) & 0x01
             except Exception as e:
                 error = str(e)
@@ -261,7 +297,9 @@ class I2cBus(ShNodeActor):
         if error is None:
             a = cmd.Address
             try:
-                if cmd.NumBytes == 1:
+                if self._is_pcf8575(a.I2cAddress) and cmd.NumBytes == 1:
+                    value = self._port_byte(a.I2cAddress, a.RegisterIndex)
+                elif cmd.NumBytes == 1:
                     value = self.i2c.read_byte_data(a.I2cAddress, a.RegisterIndex)
                 else:
                     b = self.i2c.read_i2c_block_data(a.I2cAddress, a.RegisterIndex, 2)
@@ -298,6 +336,15 @@ class I2cBus(ShNodeActor):
         msg = smbus2.i2c_msg.read(address, num_bytes)
         self.i2c.i2c_rdwr(msg)
         return list(msg)
+
+    def _send_bytes(self, address: int, data: list[int]) -> None:
+        """Bare sequential send — no register pointer; the PCF8575 port
+        write. Same two implementations as _receive_bytes."""
+        if isinstance(self.i2c, SimI2c):
+            self.i2c.write_bytes(address, data)
+            return
+        import smbus2
+        self.i2c.i2c_rdwr(smbus2.i2c_msg.write(address, data))
 
     def _handle_read_bytes(
         self, cmd: I2cReadBytes, reply_to: ShNode

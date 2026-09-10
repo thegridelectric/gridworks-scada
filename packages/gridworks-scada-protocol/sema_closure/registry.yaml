@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-09-10T21:25:00Z"
+  last_updated: "2026-09-10T23:30:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -1067,7 +1067,7 @@ types:
         schema_url: "https://schemas.electricity.works/types/gw1.scada.device.type.gt/000"
         created: "2026-09-10T21:25:00Z"
         status: "staging"
-        summary: "Board descriptor (DeviceType, DisplayName, MinPollPeriodMs, TelemetryNameList, NativeGpio, Expanders, Muxes, I2cRelays, SupportsPinReadback, CtAdc, ThermistorAdcs, Dacs; MuxConsistency axiom joins BusMembership / ExpanderMembership / BoardIdentifierUniqueness). The record describes what is allowed; deployment choices (DIP-selected expander address, chosen wiring) live on the component and layout."
+        summary: "Board descriptor (DeviceType, DisplayName, MinPollPeriodMs, TelemetryNameList, NativeGpio, Expanders, Muxes, I2cRelays, SupportsPinReadback, RelayEnergizedLevel, CtAdc, ThermistorAdcs, Dacs; axioms BusMembership / ExpanderMembership / BoardIdentifierUniqueness / MuxConsistency / RelayEnergizedLevelRange). The record describes what is allowed; deployment choices (DIP-selected expander address, chosen wiring) live on the component and layout."
         direct_dependencies:
           structural:
             - "gw.native.gpio.pin:000"
@@ -1078,6 +1078,7 @@ types:
             - "i2c.mux:000"
             - "i2c.relay.capability:000"
             - "i2c.thermistor.interface.capability:000"
+            - "non.negative.int"
             - "pascal.case"
             - "positive.int"
             - "spaceheat.telemetry.name:007"

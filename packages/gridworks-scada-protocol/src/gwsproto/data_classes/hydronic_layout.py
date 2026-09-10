@@ -1306,7 +1306,6 @@ class HydronicLayout:
             H0N.leaf_ally,
             H0N.local_control,
             H0N.derived_generator,
-            # H0N.relay_multiplexer,
             # H0N.vdc_relay,
             # H0N.tstat_common_relay,
             # H0N.store_charge_discharge_relay,

@@ -30,3 +30,13 @@ def test_scada_device_type_gt_supports_pin_readback_required() -> None:
 
     with pytest.raises(ValidationError):
         ScadaDeviceTypeGt.model_validate(d)
+
+
+def test_gw1_scada_device_type_gt_axiom_5_energized_level_range() -> None:
+    d = krida_double_relay_board_16_device_type.model_dump(
+        by_alias=True, exclude_none=True
+    )
+    d["RelayEnergizedLevel"] = 2
+
+    with pytest.raises(ValidationError, match="Axiom 5"):
+        ScadaDeviceTypeGt.model_validate(d)

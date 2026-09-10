@@ -251,12 +251,20 @@
     {
       "TypeName": "spaceheat.node.gt",
       "Version": "303",
-      "Name": "relay-multiplexer",
-      "ActorHierarchyName": "s.relay-multiplexer",
-      "ActorClass": "I2cRelayMultiplexer",
-      "DisplayName": "I2c Relay Multiplexer",
+      "Name": "krida",
+      "ActorClass": "NoActor",
+      "DisplayName": "Sim Krida relay panel",
       "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
-      "ShNodeId": "fc81c64e-b04a-4b87-9861-0c9348b56f5b"
+      "ShNodeId": "c77d0b65-8d2e-4ebd-9ed0-517df3516d46"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "i2c-bus",
+      "ActorHierarchyName": "s.i2c-bus",
+      "ActorClass": "I2cBus",
+      "DisplayName": "I2C Bus",
+      "ShNodeId": "d96f9ec0-a076-4db4-a481-72b7810c654b"
     },
     {
       "TypeName": "spaceheat.node.gt",
@@ -266,7 +274,7 @@
       "Handle": "auto.five-v-boss.pico-cycler.vdc-relay",
       "ActorClass": "Relay",
       "DisplayName": "5VDC Relay",
-      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "5708e647-e43b-4ccc-ac10-29c4156506d0",
       "ShNodeId": "a56bd427-f505-43c7-9160-ebb98b7d366b"
     },
     {
@@ -277,7 +285,7 @@
       "Handle": "auto.lc.n.tstat-common-relay",
       "ActorClass": "Relay",
       "DisplayName": "TStat Common Relay",
-      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "bfd443a4-b0b5-4204-9861-009f19cab75d",
       "ShNodeId": "ef3df088-0286-4464-b220-cf0ce0040636"
     },
     {
@@ -288,7 +296,7 @@
       "Handle": "auto.lc.n.charge-discharge-relay",
       "ActorClass": "Relay",
       "DisplayName": "Store Charge/Discharge Relay",
-      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "b8975f7a-3017-4fa4-a6f7-b26533449a34",
       "ShNodeId": "ccd5ea42-96b7-4090-9031-f0c09d5eacd1"
     },
     {
@@ -299,7 +307,7 @@
       "Handle": "auto.lc.n.hp-failsafe-relay",
       "ActorClass": "Relay",
       "DisplayName": "Hp Failsafe Relay",
-      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "e799dfdf-56c1-4c27-9c5e-1de3a3ca5f01",
       "ShNodeId": "b1b64c06-5961-4d3d-90ef-1803db79f861"
     },
     {
@@ -310,7 +318,7 @@
       "Handle": "auto.lc.n.hp-scada-ops-relay",
       "ActorClass": "Relay",
       "DisplayName": "Hp Scada Ops Relay",
-      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "ba06ee60-2f62-4016-b3bf-6468fc3bf482",
       "ShNodeId": "c3e242be-de11-466c-accd-e9f78e6c4beb"
     },
     {
@@ -321,7 +329,7 @@
       "Handle": "auto.lc.n.aquastat-ctrl-relay",
       "ActorClass": "Relay",
       "DisplayName": "Aquastat Ctrl Relay",
-      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "0eca824d-e427-4eeb-bc25-040e805c1f5b",
       "ShNodeId": "8daa42b9-33bd-4edf-bb25-5dac5c168af5"
     },
     {
@@ -332,7 +340,7 @@
       "Handle": "auto.lc.n.store-pump-relay",
       "ActorClass": "Relay",
       "DisplayName": "Store Pump Relay",
-      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "6c2469d3-3e88-4e41-aef7-f94a0cbf69b3",
       "ShNodeId": "c4d9a75f-21fe-46b5-bf6c-1f21895fc882"
     },
     {
@@ -343,7 +351,7 @@
       "Handle": "auto.lc.n.primary-pump-failsafe-relay",
       "ActorClass": "Relay",
       "DisplayName": "Primary Pump Failsafe",
-      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "fe551daa-c407-47e6-8dd7-f9525f474663",
       "ShNodeId": "483a4d08-1e04-432b-9554-3ba27b923b79"
     },
     {
@@ -354,7 +362,7 @@
       "Handle": "auto.lc.n.primary-pump-scada-ops-relay",
       "ActorClass": "Relay",
       "DisplayName": "Primary Pump SCADA Ops",
-      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "6e3c7cf2-efb6-4ac9-a89b-3d63b3faffd3",
       "ShNodeId": "12edba71-fb65-493e-95e7-4d9812f428bf"
     },
     {
@@ -365,7 +373,7 @@
       "Handle": "auto.lc.n.hp-loop-on-off-relay",
       "ActorClass": "Relay",
       "DisplayName": "Hp Loop Valve Active/Dormant Relay",
-      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "c40ba01f-0f57-463c-b5d3-fbc59c258b2d",
       "ShNodeId": "90da9be9-4430-47c8-9770-c7922340335b"
     },
     {
@@ -376,7 +384,7 @@
       "Handle": "auto.lc.n.hp-loop-keep-send-relay",
       "ActorClass": "Relay",
       "DisplayName": "Hp Loop Valve SendMore/SendLess Relay",
-      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "fbb68f30-44ab-4d0f-9b44-88850e97abef",
       "ShNodeId": "7854f5c6-2a55-4742-aa1f-86444d46692c"
     },
     {
@@ -387,7 +395,7 @@
       "Handle": "auto.lc.n.zone1-main-failsafe-relay",
       "ActorClass": "Relay",
       "DisplayName": "Main Zone 1 Failsf",
-      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "f53b714c-3474-49c8-9ff4-69ea45f39d8f",
       "ShNodeId": "087eb4d0-ab67-4146-8925-b07fedef42e8"
     },
     {
@@ -398,7 +406,7 @@
       "Handle": "auto.lc.n.zone1-main-ops-relay",
       "ActorClass": "Relay",
       "DisplayName": "Main Zone Scada Ops",
-      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "0bba81f6-07cb-4992-9265-6421799acb63",
       "ShNodeId": "06eb3786-9cf6-4d7c-b1ce-35246215ddbf"
     },
     {
@@ -627,7 +635,7 @@
       "Name": "vdc-relay",
       "DisplayName": "5V DC Bus Relay State",
       "AboutNodeName": "vdc-relay",
-      "CapturedByNodeName": "relay-multiplexer",
+      "CapturedByNodeName": "vdc-relay",
       "TelemetryName": "RelayState",
       "Quantity": "Unitless",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
@@ -639,7 +647,7 @@
       "Name": "tstat-common-relay",
       "DisplayName": "TStat Common Relay State",
       "AboutNodeName": "tstat-common-relay",
-      "CapturedByNodeName": "relay-multiplexer",
+      "CapturedByNodeName": "tstat-common-relay",
       "TelemetryName": "RelayState",
       "Quantity": "Unitless",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
@@ -651,7 +659,7 @@
       "Name": "charge-discharge-relay",
       "DisplayName": "Charge/Discharge Relay State",
       "AboutNodeName": "charge-discharge-relay",
-      "CapturedByNodeName": "relay-multiplexer",
+      "CapturedByNodeName": "charge-discharge-relay",
       "TelemetryName": "RelayState",
       "Quantity": "Unitless",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
@@ -663,7 +671,7 @@
       "Name": "hp-failsafe-relay",
       "DisplayName": "Hp Failsafe Relay State",
       "AboutNodeName": "hp-failsafe-relay",
-      "CapturedByNodeName": "relay-multiplexer",
+      "CapturedByNodeName": "hp-failsafe-relay",
       "TelemetryName": "RelayState",
       "Quantity": "Unitless",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
@@ -675,7 +683,7 @@
       "Name": "hp-scada-ops-relay",
       "DisplayName": "Hp Scada Ops Relay State",
       "AboutNodeName": "hp-scada-ops-relay",
-      "CapturedByNodeName": "relay-multiplexer",
+      "CapturedByNodeName": "hp-scada-ops-relay",
       "TelemetryName": "RelayState",
       "Quantity": "Unitless",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
@@ -687,7 +695,7 @@
       "Name": "aquastat-ctrl-relay",
       "DisplayName": "Aquastat Control Relay State",
       "AboutNodeName": "aquastat-ctrl-relay",
-      "CapturedByNodeName": "relay-multiplexer",
+      "CapturedByNodeName": "aquastat-ctrl-relay",
       "TelemetryName": "RelayState",
       "Quantity": "Unitless",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
@@ -699,7 +707,7 @@
       "Name": "store-pump-relay",
       "DisplayName": "Store Pump Relay State",
       "AboutNodeName": "store-pump-relay",
-      "CapturedByNodeName": "relay-multiplexer",
+      "CapturedByNodeName": "store-pump-relay",
       "TelemetryName": "RelayState",
       "Quantity": "Unitless",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
@@ -711,7 +719,7 @@
       "Name": "primary-pump-failsafe-relay",
       "DisplayName": "Primary Pump Failsafe Relay State",
       "AboutNodeName": "primary-pump-failsafe-relay",
-      "CapturedByNodeName": "relay-multiplexer",
+      "CapturedByNodeName": "primary-pump-failsafe-relay",
       "TelemetryName": "RelayState",
       "Quantity": "Unitless",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
@@ -723,7 +731,7 @@
       "Name": "primary-pump-scada-ops-relay",
       "DisplayName": "Primary Pump SCADA Ops Relay State",
       "AboutNodeName": "primary-pump-scada-ops-relay",
-      "CapturedByNodeName": "relay-multiplexer",
+      "CapturedByNodeName": "primary-pump-scada-ops-relay",
       "TelemetryName": "RelayState",
       "Quantity": "Unitless",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
@@ -735,7 +743,7 @@
       "Name": "hp-loop-on-off-relay",
       "DisplayName": "Hp Loop On Off Relay State",
       "AboutNodeName": "hp-loop-on-off-relay",
-      "CapturedByNodeName": "relay-multiplexer",
+      "CapturedByNodeName": "hp-loop-on-off-relay",
       "TelemetryName": "RelayState",
       "Quantity": "Unitless",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
@@ -747,7 +755,7 @@
       "Name": "hp-loop-keep-send-relay",
       "DisplayName": "Hp Loop Keep/Send Relay State",
       "AboutNodeName": "hp-loop-keep-send-relay",
-      "CapturedByNodeName": "relay-multiplexer",
+      "CapturedByNodeName": "hp-loop-keep-send-relay",
       "TelemetryName": "RelayState",
       "Quantity": "Unitless",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
@@ -759,7 +767,7 @@
       "Name": "zone1-main-failsafe-relay",
       "DisplayName": "Main Zone 1 Failsf Relay State",
       "AboutNodeName": "zone1-main-failsafe-relay",
-      "CapturedByNodeName": "relay-multiplexer",
+      "CapturedByNodeName": "zone1-main-failsafe-relay",
       "TelemetryName": "RelayState",
       "Quantity": "Unitless",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
@@ -771,7 +779,7 @@
       "Name": "zone1-main-ops-relay",
       "DisplayName": "Main Zone 1 Scada Ops Relay State",
       "AboutNodeName": "zone1-main-ops-relay",
-      "CapturedByNodeName": "relay-multiplexer",
+      "CapturedByNodeName": "zone1-main-ops-relay",
       "TelemetryName": "RelayState",
       "Quantity": "Unitless",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
@@ -1311,16 +1319,27 @@
       "DisplayName": "Zone 1 Main Temp Sensor"
     },
     {
-      "TypeName": "i2c.multichannel.dt.relay.component.gt",
-      "Version": "004",
+      "TypeName": "scada.board.component.gt",
+      "Version": "000",
       "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
-      "DeviceType": "KridaDoubleRelayBoard16",
+      "DeviceType": "SimKridaDoubleRelayBoard16",
+      "DisplayName": "Sim Krida relay panel",
+      "I2cAddressList": [
+        32,
+        33
+      ]
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "5708e647-e43b-4ccc-ac10-29c4156506d0",
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "RelayName": "Relay1",
       "ConfigList": [
         {
-          "TypeName": "relay.actor.config",
-          "Version": "003",
+          "TypeName": "relay.control.config",
+          "Version": "000",
           "ChannelName": "vdc-relay",
-          "RelayIdx": 1,
           "ActorName": "vdc-relay",
           "WiringConfig": "NormallyClosed",
           "EventType": "change.relay.state",
@@ -1329,12 +1348,21 @@
           "StateType": "relay.closed.or.open",
           "DeEnergizedState": "RelayClosed",
           "EnergizedState": "RelayOpen"
-        },
+        }
+      ],
+      "DisplayName": "5VDC Relay"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "bfd443a4-b0b5-4204-9861-009f19cab75d",
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "RelayName": "Relay2",
+      "ConfigList": [
         {
-          "TypeName": "relay.actor.config",
-          "Version": "003",
+          "TypeName": "relay.control.config",
+          "Version": "000",
           "ChannelName": "tstat-common-relay",
-          "RelayIdx": 2,
           "ActorName": "tstat-common-relay",
           "WiringConfig": "NormallyClosed",
           "EventType": "change.relay.state",
@@ -1343,12 +1371,21 @@
           "StateType": "relay.closed.or.open",
           "DeEnergizedState": "RelayClosed",
           "EnergizedState": "RelayOpen"
-        },
+        }
+      ],
+      "DisplayName": "TStat Common Relay"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "b8975f7a-3017-4fa4-a6f7-b26533449a34",
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "RelayName": "Relay3",
+      "ConfigList": [
         {
-          "TypeName": "relay.actor.config",
-          "Version": "003",
+          "TypeName": "relay.control.config",
+          "Version": "000",
           "ChannelName": "charge-discharge-relay",
-          "RelayIdx": 3,
           "ActorName": "charge-discharge-relay",
           "WiringConfig": "NormallyOpen",
           "EventType": "change.store.flow.relay",
@@ -1357,12 +1394,21 @@
           "StateType": "store.flow.relay",
           "DeEnergizedState": "DischargingStore",
           "EnergizedState": "ChargingStore"
-        },
+        }
+      ],
+      "DisplayName": "Store Charge/Discharge Relay"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "e799dfdf-56c1-4c27-9c5e-1de3a3ca5f01",
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "RelayName": "Relay5",
+      "ConfigList": [
         {
-          "TypeName": "relay.actor.config",
-          "Version": "003",
+          "TypeName": "relay.control.config",
+          "Version": "000",
           "ChannelName": "hp-failsafe-relay",
-          "RelayIdx": 5,
           "ActorName": "hp-failsafe-relay",
           "WiringConfig": "DoubleThrow",
           "EventType": "change.heat.pump.control",
@@ -1371,12 +1417,21 @@
           "StateType": "heat.pump.control",
           "DeEnergizedState": "BufferTankAquastat",
           "EnergizedState": "Scada"
-        },
+        }
+      ],
+      "DisplayName": "Hp Failsafe Relay"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "ba06ee60-2f62-4016-b3bf-6468fc3bf482",
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "RelayName": "Relay6",
+      "ConfigList": [
         {
-          "TypeName": "relay.actor.config",
-          "Version": "003",
+          "TypeName": "relay.control.config",
+          "Version": "000",
           "ChannelName": "hp-scada-ops-relay",
-          "RelayIdx": 6,
           "ActorName": "hp-scada-ops-relay",
           "WiringConfig": "NormallyClosed",
           "EventType": "change.relay.state",
@@ -1385,12 +1440,21 @@
           "StateType": "relay.closed.or.open",
           "DeEnergizedState": "RelayClosed",
           "EnergizedState": "RelayOpen"
-        },
+        }
+      ],
+      "DisplayName": "Hp Scada Ops Relay"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "0eca824d-e427-4eeb-bc25-040e805c1f5b",
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "RelayName": "Relay8",
+      "ConfigList": [
         {
-          "TypeName": "relay.actor.config",
-          "Version": "003",
+          "TypeName": "relay.control.config",
+          "Version": "000",
           "ChannelName": "aquastat-ctrl-relay",
-          "RelayIdx": 8,
           "ActorName": "aquastat-ctrl-relay",
           "WiringConfig": "DoubleThrow",
           "EventType": "change.aquastat.control",
@@ -1399,12 +1463,21 @@
           "StateType": "aquastat.control.state",
           "DeEnergizedState": "Boiler",
           "EnergizedState": "Scada"
-        },
+        }
+      ],
+      "DisplayName": "Aquastat Ctrl Relay"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "6c2469d3-3e88-4e41-aef7-f94a0cbf69b3",
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "RelayName": "Relay9",
+      "ConfigList": [
         {
-          "TypeName": "relay.actor.config",
-          "Version": "003",
+          "TypeName": "relay.control.config",
+          "Version": "000",
           "ChannelName": "store-pump-relay",
-          "RelayIdx": 9,
           "ActorName": "store-pump-relay",
           "WiringConfig": "NormallyOpen",
           "EventType": "change.relay.state",
@@ -1413,12 +1486,21 @@
           "StateType": "relay.closed.or.open",
           "DeEnergizedState": "RelayOpen",
           "EnergizedState": "RelayClosed"
-        },
+        }
+      ],
+      "DisplayName": "Store Pump Relay"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "fe551daa-c407-47e6-8dd7-f9525f474663",
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "RelayName": "Relay12",
+      "ConfigList": [
         {
-          "TypeName": "relay.actor.config",
-          "Version": "003",
+          "TypeName": "relay.control.config",
+          "Version": "000",
           "ChannelName": "primary-pump-failsafe-relay",
-          "RelayIdx": 12,
           "ActorName": "primary-pump-failsafe-relay",
           "WiringConfig": "DoubleThrow",
           "EventType": "change.primary.pump.control",
@@ -1427,12 +1509,21 @@
           "StateType": "primary.pump.control",
           "DeEnergizedState": "HeatPump",
           "EnergizedState": "Scada"
-        },
+        }
+      ],
+      "DisplayName": "Primary Pump Failsafe"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "6e3c7cf2-efb6-4ac9-a89b-3d63b3faffd3",
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "RelayName": "Relay11",
+      "ConfigList": [
         {
-          "TypeName": "relay.actor.config",
-          "Version": "003",
+          "TypeName": "relay.control.config",
+          "Version": "000",
           "ChannelName": "primary-pump-scada-ops-relay",
-          "RelayIdx": 11,
           "ActorName": "primary-pump-scada-ops-relay",
           "WiringConfig": "NormallyOpen",
           "EventType": "change.relay.state",
@@ -1441,12 +1532,21 @@
           "StateType": "relay.closed.or.open",
           "DeEnergizedState": "RelayOpen",
           "EnergizedState": "RelayClosed"
-        },
+        }
+      ],
+      "DisplayName": "Primary Pump SCADA Ops"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "c40ba01f-0f57-463c-b5d3-fbc59c258b2d",
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "RelayName": "Relay14",
+      "ConfigList": [
         {
-          "TypeName": "relay.actor.config",
-          "Version": "003",
+          "TypeName": "relay.control.config",
+          "Version": "000",
           "ChannelName": "hp-loop-on-off-relay",
-          "RelayIdx": 14,
           "ActorName": "hp-loop-on-off-relay",
           "WiringConfig": "NormallyClosed",
           "EventType": "change.relay.state",
@@ -1455,12 +1555,21 @@
           "StateType": "relay.closed.or.open",
           "DeEnergizedState": "RelayClosed",
           "EnergizedState": "RelayOpen"
-        },
+        }
+      ],
+      "DisplayName": "Hp Loop Valve Active/Dormant Relay"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "fbb68f30-44ab-4d0f-9b44-88850e97abef",
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "RelayName": "Relay15",
+      "ConfigList": [
         {
-          "TypeName": "relay.actor.config",
-          "Version": "003",
+          "TypeName": "relay.control.config",
+          "Version": "000",
           "ChannelName": "hp-loop-keep-send-relay",
-          "RelayIdx": 15,
           "ActorName": "hp-loop-keep-send-relay",
           "WiringConfig": "DoubleThrow",
           "EventType": "change.keep.send",
@@ -1469,12 +1578,21 @@
           "StateType": "hp.loop.keep.send",
           "DeEnergizedState": "SendMore",
           "EnergizedState": "SendLess"
-        },
+        }
+      ],
+      "DisplayName": "Hp Loop Valve SendMore/SendLess Relay"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "f53b714c-3474-49c8-9ff4-69ea45f39d8f",
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "RelayName": "Relay17",
+      "ConfigList": [
         {
-          "TypeName": "relay.actor.config",
-          "Version": "003",
+          "TypeName": "relay.control.config",
+          "Version": "000",
           "ChannelName": "zone1-main-failsafe-relay",
-          "RelayIdx": 17,
           "ActorName": "zone1-main-failsafe-relay",
           "WiringConfig": "DoubleThrow",
           "EventType": "change.heatcall.source",
@@ -1483,12 +1601,21 @@
           "StateType": "heatcall.source",
           "DeEnergizedState": "WallThermostat",
           "EnergizedState": "Scada"
-        },
+        }
+      ],
+      "DisplayName": "Main Zone 1 Failsf"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "0bba81f6-07cb-4992-9265-6421799acb63",
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "RelayName": "Relay18",
+      "ConfigList": [
         {
-          "TypeName": "relay.actor.config",
-          "Version": "003",
+          "TypeName": "relay.control.config",
+          "Version": "000",
           "ChannelName": "zone1-main-ops-relay",
-          "RelayIdx": 18,
           "ActorName": "zone1-main-ops-relay",
           "WiringConfig": "NormallyOpen",
           "EventType": "change.relay.state",
@@ -1499,12 +1626,7 @@
           "EnergizedState": "RelayClosed"
         }
       ],
-      "DisplayName": "i2c krida relay boards",
-      "I2cBus": "default",
-      "I2cAddressList": [
-        32,
-        33
-      ]
+      "DisplayName": "Main Zone Scada Ops"
     },
     {
       "TypeName": "sim.pico.tank.module.component.gt",
@@ -1630,8 +1752,8 @@
     {
       "TypeName": "gw1.scada.device.type.gt",
       "Version": "000",
-      "DeviceType": "KridaDoubleRelayBoard16",
-      "DisplayName": "GridWorks relay panel: two 16-channel Krida boards, markings Relay1-Relay32",
+      "DeviceType": "SimKridaDoubleRelayBoard16",
+      "DisplayName": "GridWorks simulated Krida relay panel: two 16-channel boards, markings Relay1-Relay32",
       "MinPollPeriodMs": 200,
       "BusList": [
         {
@@ -2102,6 +2224,7 @@
         }
       ],
       "SupportsPinReadback": false,
+      "RelayEnergizedLevel": 0,
       "ThermistorAdcs": [],
       "Dacs": []
     }

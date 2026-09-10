@@ -13,11 +13,12 @@ place.
 
 import time
 import uuid
-from typing import cast, List, Optional
+from typing import List, Optional
 from pydantic import ValidationError
 from gwsproto.data_classes.sh_node import ShNode
-from gwsproto.data_classes.components.i2c_multichannel_dt_relay_component import (
-    I2cMultichannelDtRelayComponent,
+from gwsproto.data_classes.components import (
+    GpioRelayComponent,
+    I2cRelayComponent,
 )
 from gwsproto.enums import ActorClass, TurnHpOnOff
 from gwsproto.named_types import FsmEvent, NewCommandTree
@@ -119,7 +120,9 @@ class CommandNode(ShNodeActor):
         commandable actuator."""
         if node.ActorClass != ActorClass.Relay:
             return None
-        component = cast(I2cMultichannelDtRelayComponent, node.component)
+        component = node.component
+        if not isinstance(component, (I2cRelayComponent, GpioRelayComponent)):
+            return None
         return next(
             (x for x in component.gt.ConfigList if x.ActorName == node.name),
             None,

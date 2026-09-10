@@ -34,7 +34,6 @@ class GpioSensor(ShNodeActor):
         if not isinstance(self.component, GpioSensorComponent):
             raise ValueError(f"Component for {self.name} has type "
                              f"{type(self.component)}. Expected "
-                             "I2cMultichannelDtRelayComponent or "
                              "GpioSensorComponent")
 
         # TODO later: add an actor that has a GPIO callback running

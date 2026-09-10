@@ -120,7 +120,6 @@ class ScadaSettings(ScadaPathsSettings):
     pico_cycler_state_logging: bool = False
     power_meter_logging_level: int = logging.WARNING
     contract_rep_logging_level: int = logging.INFO
-    relay_multiplexer_logging_level: int = logging.INFO
     paho_logging: bool = False
     local_mqtt: MQTTClient = MQTTClient(tls=TLSInfo(use_tls=False))
     gridworks_mqtt: MQTTClient = MQTTClient(tls=TLSInfo(use_tls=False))

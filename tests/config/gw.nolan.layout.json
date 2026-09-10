@@ -3130,6 +3130,7 @@
         }
       ],
       "SupportsPinReadback": true,
+      "RelayEnergizedLevel": 1,
       "CtAdc": {
         "TypeName": "i2c.ct.interface.capability",
         "Version": "000",
