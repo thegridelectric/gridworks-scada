@@ -26,10 +26,14 @@ from gwsproto.enums import (
     Turn5VOnOff,
     TurnHpOnOff,
 )
+from gwsproto.enums.top_state import TopState
 from gwsproto.named_types import (
     AdminAnalogDispatch,
+    AdminDispatch,
+    AdminKeepAlive,
     AdminReleaseControl,
     AnalogDispatch,
+    FsmEvent,
     MachineStates,
     SingleMachineState,
 )
@@ -184,3 +188,33 @@ def test_cycler_state_reaches_admin_live(app: ScadaApp) -> None:
         ),
     )
     assert [p for dst, p in sent if dst == H0N.admin] == []
+
+
+def test_non_admin_sender_is_refused(app: ScadaApp) -> None:
+    """A dispatch, an analog dispatch or a keep-alive from a node other than
+    admin is logged and dropped: TopState stays Auto and nothing is routed
+    to the addressed actor."""
+    scada = app.scada
+    routed: list = []
+    scada.get_communicator = lambda name: routed.append(name)  # type: ignore[method-assign]
+    sender = scada.layout.node(H0N.hp_boss)
+    assert sender != scada.admin
+    assert scada.top_state == TopState.Auto
+    scada.process_admin_dispatch(
+        sender,
+        AdminDispatch(
+            DispatchTrigger=FsmEvent(
+                FromHandle=H0N.admin,
+                ToHandle=f"{H0N.admin}.{H0N.five_v_boss}",
+                EventType=RebootPicos.enum_name(),
+                EventName=RebootPicos.RebootPicos,
+                TriggerId=str(uuid.uuid4()),
+                SendTimeUnixMs=int(time.time() * 1000),
+            ),
+            TimeoutSeconds=120,
+        ),
+    )
+    scada.process_admin_analog_dispatch(sender, admin_dispatch(VOLTS_TIMES_TEN))
+    scada.process_admin_keep_alive(sender, AdminKeepAlive(AdminTimeoutSeconds=120))
+    assert scada.top_state == TopState.Auto
+    assert routed == []

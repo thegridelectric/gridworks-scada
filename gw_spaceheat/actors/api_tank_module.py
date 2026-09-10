@@ -44,13 +44,34 @@ def microvolts_at_c(temp_c: float, beta: int) -> int:
 
 
 class SimPicoSource:
-    """A simulated pico's liveness, scripted by the sim component's SimLifeS
-    and SimRebootS: it posts readings at the capture period, goes silent
-    SimLifeS after each boot, loses power when the vdc relay opens, and
-    boots again SimRebootS after the relay closes following an open. With
-    SimLifeS absent it never dies on a schedule; with SimRebootS absent a
-    dead pico stays dead (the zombie path). Pure: every method takes the
-    current time, so a test drives it with no clock tricks."""
+    """A simulated pico tank module: a liveness stand-in, not a sensor.
+
+    How it operates. The owning ApiTankModule ticks it once a second
+    (SIM_PICO_TICK_S) and posts whatever it returns to itself, on the same
+    path the web handler uses for a real pico's HTTP post. Each tick:
+
+    - if the pico is dead and a reboot is due, it boots (the boot clock
+      restarts);
+    - if alive for SimLifeS since its boot, it dies (goes silent);
+    - if alive and a capture period has passed since its last post, it
+      returns one MicroVolts reading; otherwise nothing.
+
+    Power follows the vdc relay: the actor feeds it every new state of that
+    relay from the scada's latest machine states. An open kills it at once;
+    the close that follows an open schedules a boot SimRebootS later. So a
+    pico-cycler cycle (open, wait, close) revives it after SimRebootS, the
+    way a real board rejoins wifi after a power cycle.
+
+    What it is not. The reading is one fixed microvolt profile per depth (a
+    tank at rest) that never moves and knows nothing of the plant; the death
+    is on a fixed schedule, not a failure model; a reboot always succeeds,
+    so zombies never arise on their own (SimRebootS absent is the only
+    zombie path, a pico that stays dead); and nothing crosses HTTP, so the
+    real ingress path is not exercised. SimLifeS and SimRebootS come from
+    the layout's sim component (tlayouts emits 120 s and 20 s so a flatline
+    and a cycle fit inside a five-minute run); either absent means absent:
+    no scheduled death, no reboot. Pure: every method takes the current
+    time, so a test drives it with no clock tricks."""
 
     def __init__(
         self,

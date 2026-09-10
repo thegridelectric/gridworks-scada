@@ -456,6 +456,7 @@ class Scada(PrimeActor, ScadaInterface):
     ) -> None:
         if from_node != self.admin:
             self.log(f"Ignoring AdminDispatch from {from_node.name}. Expected admin!")
+            return
 
         if not self.top_state == TopState.Admin:
             self.admin_wakes_up()
@@ -483,6 +484,7 @@ class Scada(PrimeActor, ScadaInterface):
     ) -> None:
         if from_node != self.admin:
             self.log(f"Ignoring AdminAnalogDispatch from {from_node.name}. Expected admin!")
+            return
         if not self.top_state == TopState.Admin:
             self.admin_wakes_up()
             self.log("Admin Wakes Up")
@@ -517,6 +519,7 @@ class Scada(PrimeActor, ScadaInterface):
     ) -> None:
         if from_node != self.admin:
             self.log(f"Ignoring AdminKeepAlive from {from_node.name}. Expected admin!")
+            return
 
         self._renew_admin_timeout(timeout_seconds=payload.AdminTimeoutSeconds)
         self.log(f"Admin timeout renewed: {payload.AdminTimeoutSeconds} seconds")
