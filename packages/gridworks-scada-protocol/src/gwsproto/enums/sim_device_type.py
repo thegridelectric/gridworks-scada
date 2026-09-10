@@ -13,6 +13,7 @@ class SimDeviceType(SemaEnum):
     SimSamsungAE055FEYMCG = auto()
     SimHpOdu = auto()
     SimHpIdu = auto()
+    SimKridaDoubleRelayBoard16 = auto()
 
     @classmethod
     def default(cls) -> "SimDeviceType":

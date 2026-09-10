@@ -2783,6 +2783,7 @@
           "Version": "000",
           "ExpanderIdx": 1,
           "I2cBus": "DefaultBus",
+          "ExpanderType": "Tca9555",
           "I2cAddress": 32
         },
         {
@@ -2790,6 +2791,7 @@
           "Version": "000",
           "ExpanderIdx": 2,
           "I2cBus": "DefaultBus",
+          "ExpanderType": "Tca9555",
           "I2cAddress": 33
         }
       ],

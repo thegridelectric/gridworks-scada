@@ -3,6 +3,7 @@ from typing import Literal, Optional
 from pydantic import PositiveInt, model_validator
 from typing_extensions import Self
 
+from gwsproto.enums import I2cExpanderType
 from gwsproto.property_format import NonNegativeInt, PascalCase
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
@@ -12,6 +13,7 @@ class I2cExpander(GwsprotoSemaType):
 
     ExpanderIdx: PositiveInt
     I2cBus: PascalCase
+    ExpanderType: I2cExpanderType
     I2cAddress: Optional[NonNegativeInt] = None
     AllowedI2cAddressList: Optional[list[NonNegativeInt]] = None
     TypeName: Literal["i2c.expander"] = "i2c.expander"

@@ -1,4 +1,9 @@
-from gwsproto.enums import DeviceType, RelayWiringConfig, TelemetryName
+from gwsproto.enums import (
+    DeviceType,
+    I2cExpanderType,
+    RelayWiringConfig,
+    TelemetryName,
+)
 from gwsproto.named_types.i2c_bus import I2cBus
 from gwsproto.named_types.i2c_expander import I2cExpander
 from gwsproto.named_types.i2c_relay_capability import I2cRelayCapability
@@ -50,10 +55,16 @@ krida_double_relay_board_16_device_type = ScadaDeviceTypeGt(
     ],
     Expanders=[
         I2cExpander(
-            ExpanderIdx=1, I2cBus=DEFAULT_BUS, AllowedI2cAddressList=_ALLOWED_ADDRESSES
+            ExpanderIdx=1,
+            I2cBus=DEFAULT_BUS,
+            ExpanderType=I2cExpanderType.Pcf8575,
+            AllowedI2cAddressList=_ALLOWED_ADDRESSES,
         ),
         I2cExpander(
-            ExpanderIdx=2, I2cBus=DEFAULT_BUS, AllowedI2cAddressList=_ALLOWED_ADDRESSES
+            ExpanderIdx=2,
+            I2cBus=DEFAULT_BUS,
+            ExpanderType=I2cExpanderType.Pcf8575,
+            AllowedI2cAddressList=_ALLOWED_ADDRESSES,
         ),
     ],
     I2cRelays=[_relay(marking) for marking in range(1, 33)],

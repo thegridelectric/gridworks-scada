@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-09-08T21:20:00Z"
+  last_updated: "2026-09-10T21:25:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -338,6 +338,18 @@ enums:
       "000":
         schema_url: "https://schemas.electricity.works/enums/i2c.dac.vref/000"
         created: "2026-08-10T20:40:00Z"
+        status: "staging"
+
+  i2c.expander.type:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "The model of the I²C GPIO expander chipset used by a GridWorks SCADA board; fixes the bus protocol a relay actor drives it with."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/i2c.expander.type/000"
+        created: "2026-09-10T21:25:00Z"
         status: "staging"
 
   i2c.mux.type:
@@ -811,7 +823,7 @@ types:
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw.house0.layout/000"
-        created: "2026-09-08T21:20:00Z"
+        created: "2026-09-10T21:25:00Z"
         status: "staging"
         summary: "The complete deployable artifact for a House0-fleet home: every collection and Hydronic required, never a partial layout. The word MEANS has-a-siegenthaler-loop (beech, maple); sieg-less homes are the coming gw.house0.no.sieg. Component set is eGauge / ADS111x TSnap / Krida / DFRobot / pico flow / tank + sim-tank / Hubitat + poller / web-server over the DeviceType record model. Axioms cover id uniqueness, the core and command-node Name/ActorClass contracts (sieg-loop and hp-boss unconditional command nodes, dormant when unused), per-zone heat-call channels, primary-flow source agreement, the transactive-power boundary, required flow sensing, the unconditional sieg manifold surface, the system-model energy channels and the models that produce them, the unconditional actuators (plant relays, 0-10V outputs, zone-circuit relay pairs), and the split-system heat-pump parts (hp-odu, hp-idu) with their components. 12 CommandableHeatPump (biconditional: Hydronic.HpCommandNodeName ⇒ hp-odu/hp-idu/hp-ctrl-box with ComponentId, ActorClass HpTwin, handle under hp-boss; every HpTwin node is the declared one); 11's NoActor clause defers to it. 13 PrefixClosedHandles + 14 ActuatorLeaves: the layout's authored handles are the initial command tree, so the tree word's two axioms hold here too (identical wording)."
         direct_dependencies:
@@ -922,7 +934,7 @@ types:
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw.nolan.layout/000"
-        created: "2026-09-08T21:20:00Z"
+        created: "2026-09-10T21:25:00Z"
         status: "staging"
         summary: "Axioms mirror the names tiers: 1 TransactivePowerChannel, 2 BoardResolution, 3 CoreShNodesExistenceAndActorClass (identical wording across layout words), 4 CommandNodesExistenceAndActorClass (n, five-v-boss, pico-cycler, hp-boss), 5 RequiredActuators (plant relays incl. the per-tank tank1 element relays + circuit relay binding), 6 RequiredHeatpumpEquipment (hp-odu, hp-ctrl-box with components; a Nolan home is a monobloc), 7 ComponentBinding (every component referenced by exactly one node), 8 RequiredSensing (kind-agnostic names incl. HP and resistive-element power channels), 9 SingleStoreTank. Components are the cac-free DeviceType versions; DeviceTypes holds the specialized <family>.device.type.gt records; relay and opto components are board-generic; nodes/channels ride spaceheat.node.gt/303 + data.channel.gt/003. 10 CommandableHeatPump (biconditional: Hydronic.HpCommandNodeName ⇒ hp-odu/hp-idu/hp-ctrl-box with ComponentId, ActorClass HpTwin, handle under hp-boss; every HpTwin node is the declared one); 6's NoActor clause defers to it. 11 PrefixClosedHandles + 12 ActuatorLeaves: the layout's authored handles are the initial command tree, so the tree word's two axioms hold here too (identical wording)."
         direct_dependencies:
@@ -1053,7 +1065,7 @@ types:
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw1.scada.device.type.gt/000"
-        created: "2026-08-10T20:40:00Z"
+        created: "2026-09-10T21:25:00Z"
         status: "staging"
         summary: "Board descriptor (DeviceType, DisplayName, MinPollPeriodMs, TelemetryNameList, NativeGpio, Expanders, Muxes, I2cRelays, SupportsPinReadback, CtAdc, ThermistorAdcs, Dacs; MuxConsistency axiom joins BusMembership / ExpanderMembership / BoardIdentifierUniqueness). The record describes what is allowed; deployment choices (DIP-selected expander address, chosen wiring) live on the component and layout."
         direct_dependencies:
@@ -1348,11 +1360,12 @@ types:
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/i2c.expander/000"
-        created: "2026-07-27T16:15:00Z"
+        created: "2026-09-10T21:25:00Z"
         status: "staging"
-        summary: "Initial version (ExpanderIdx, I2cBus, I2cAddress, AllowedI2cAddressList; Axiom 1 AddressSpecification: exactly one of the two address fields)."
+        summary: "Initial version (ExpanderIdx, I2cBus, ExpanderType, I2cAddress, AllowedI2cAddressList; Axiom 1 AddressSpecification: exactly one of the two address fields)."
         direct_dependencies:
           structural:
+            - "i2c.expander.type:000"
             - "non.negative.int"
             - "pascal.case"
             - "positive.int"
