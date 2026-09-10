@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from gwadmin.watch.clients.relay_client import RelayWatchClient
+from gwadmin.watch.widgets.relay_widget_info import RelayWidgetConfig
 from gwadmin.watch.widgets.relays import Relays
 from gwsproto.data_classes.house_0_names import H0N
 from scada_app import ScadaApp
@@ -40,3 +41,12 @@ def test_owned_relays_sit_under_their_owner(app: ScadaApp) -> None:
     assert names.index(H0N.hp_scada_ops_relay) == names.index(H0N.hp_boss) + 1
     unowned = [n for n in names if configs[n].owner is None]
     assert unowned == sorted(unowned)
+
+
+def test_owned_rows_indent_one_step(app: ScadaApp) -> None:
+    configs = RelayWatchClient._get_relay_configs(app.scada.control_capabilities)
+    widget_configs = {n: RelayWidgetConfig.from_config(c) for n, c in configs.items()}
+    assert Relays.row_name(widget_configs[H0N.five_v_boss]) == "Five V Boss"
+    assert Relays.row_name(widget_configs[H0N.pico_cycler]) == "  Pico Cycler"
+    assert Relays.row_name(widget_configs[H0N.vdc_relay]) == "  Vdc"
+    assert Relays.row_name(widget_configs[H0N.hp_scada_ops_relay]) == "  Hp Scada Ops"

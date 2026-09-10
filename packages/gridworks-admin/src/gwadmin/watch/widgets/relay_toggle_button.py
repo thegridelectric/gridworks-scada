@@ -19,13 +19,11 @@ module_logger.addHandler(TextualHandler())
 
 
 class RelayToggleButton(Button, can_focus=True):
-    """Sends the selected row's next command: the relay event, TurnHpOnOff to
-    hp-boss, RebootPicos to the pico-cycler, whichever the row's own
-    vocabulary offers from its observed state."""
-
-    BINDINGS = [
-        ("n", "toggle_relay", "Send selected row's command"),
-    ]
+    """Sends one of the selected row's offered commands: the relay event,
+    TurnHpOnOff to hp-boss, TurnOff or RebootPicos to five-v-boss,
+    whichever the row's vocabularies offer from its observed state. The
+    panel has one button per offer slot (`offer_index`): the first offer
+    on `n`, the second on `p`; the keys bind on the Relays widget."""
 
     state: Reactive[Optional[str]] = reactive(None)
     config: Reactive[Optional[RelayWidgetConfig]] = reactive(None)
@@ -33,6 +31,7 @@ class RelayToggleButton(Button, can_focus=True):
 
     def __init__(
         self,
+        offer_index: int,
         state: Optional[str] = None,
         config: Optional[RelayWidgetConfig] = None,
         default_timeout_seconds: int = DEFAULT_ADMIN_TIMEOUT,
@@ -40,6 +39,7 @@ class RelayToggleButton(Button, can_focus=True):
         **kwargs
     ) -> None:
         self.logger = logger
+        self.offer_index = offer_index
         super().__init__(variant=self.variant_from_state(state), **kwargs)
         self.default_timeout_seconds = default_timeout_seconds
         self.set_reactive(RelayToggleButton.state, state)
@@ -53,11 +53,15 @@ class RelayToggleButton(Button, can_focus=True):
     def next_event(self) -> Optional[str]:
         if self.config is None:
             return None
-        command = self.config.next_command(self.state)
+        command = self.config.offered_command(self.state, self.offer_index)
         return None if command is None else command.event
 
     def update_label(self) -> None:
+        """The first slot's button is always shown, empty and disabled when
+        the row offers nothing; a later slot's button is hidden when it has
+        no offer, so a one-offer row keeps a single full-width button."""
         event = self.next_event()
+        self.display = self.offer_index == 0 or event is not None
         if event is None:
             self.disabled = True
             self.label = ""

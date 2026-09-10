@@ -33,7 +33,8 @@ module_logger.addHandler(TextualHandler())
 
 class Relays(Widget):
     BINDINGS = [
-        ("n", "toggle_relay", "Send selected row's command"),
+        ("n", "toggle_relay(0)", "Send selected row's first command"),
+        ("p", "toggle_relay(1)", "Send selected row's second command"),
     ]
 
     mqtt_state: Reactive[str] = reactive(ConstrainedMQTTClient.States.stopped)
@@ -95,13 +96,18 @@ class Relays(Widget):
                 classes="subsection"
             ),
             HorizontalGroup(
-            RelayToggleButton(
-                label="bar",
-                id="relay_toggle_button",
-                ).data_bind(
-                    state=Relays.curr_state,
-                    config=Relays.curr_config,
-                ),
+                *[
+                    RelayToggleButton(
+                        offer_index=offer_index,
+                        label="bar",
+                        id=f"relay_toggle_button_{offer_index}",
+                        classes="relay_toggle_button",
+                    ).data_bind(
+                        state=Relays.curr_state,
+                        config=Relays.curr_config,
+                    )
+                    for offer_index in range(2)
+                ],
                 id="relay_toggle_button_container",
                 classes="subsection",
             ),
@@ -123,7 +129,7 @@ class Relays(Widget):
         if relay_name in self._relays:
             relay = self._relays[relay_name]
             return {
-                "Name": relay.config.table_name.row_name,
+                "Name": self.row_name(relay.config),
                 "Current state": relay.config.get_current_state_str(relay.get_state()),
                 "Action": relay.config.get_action_str(relay.get_state()),
             }
@@ -189,12 +195,9 @@ class Relays(Widget):
         self.logger.debug("--on_relays_config_change: selected row key: %s", selected_row_key.value if selected_row_key!="" else "")
 
     @staticmethod
-    def row_order_key(config: RelayConfig, configs: dict[str, RelayConfig]) -> tuple[str, ...]:
-        """Rows sort by name, except that a node owned by an interior
-        command node sits directly under its owner's row, however deep the
-        chain (vdc-relay under pico-cycler under five-v-boss,
-        hp-scada-ops-relay under hp-boss). The key is the owner chain from
-        the top, so a node sorts right after its owner."""
+    def owner_chain(config: RelayConfig, configs: dict[str, RelayConfig]) -> tuple[str, ...]:
+        """The node's owners from the top down, ending with the node itself
+        (five-v-boss, pico-cycler, vdc-relay for the vdc relay)."""
         chain = [config.about_node_name]
         owner = config.owner
         while owner is not None and owner not in chain:
@@ -203,10 +206,30 @@ class Relays(Widget):
             owner = above.owner if above is not None else None
         return tuple(reversed(chain))
 
+    @classmethod
+    def row_order_key(cls, config: RelayConfig, configs: dict[str, RelayConfig]) -> tuple[str, ...]:
+        """Rows sort by name, except that a node owned by an interior
+        command node sits directly under its owner's row, however deep the
+        chain (vdc-relay under pico-cycler under five-v-boss,
+        hp-scada-ops-relay under hp-boss). The key is the owner chain from
+        the top, so a node sorts right after its owner."""
+        return cls.owner_chain(config, configs)
+
+    @staticmethod
+    def row_name(config: RelayWidgetConfig) -> str:
+        """The Name cell: a node owned by an interior command node is
+        indented one step, whatever its depth, so the owned rows line up
+        under their owners."""
+        indent = "  " if config.owner is not None else ""
+        return indent + config.table_name.row_name
+
+    def _configs(self) -> dict[str, RelayConfig]:
+        return {info.config.about_node_name: info.config for info in self._relays.values()}
+
     def _sort_rows(self, table: DataTable) -> None:
-        configs = {info.config.about_node_name: info.config for info in self._relays.values()}
+        configs = self._configs()
         keys = {
-            info.config.table_name.row_name: self.row_order_key(info.config, configs)
+            self.row_name(info.config): self.row_order_key(info.config, configs)
             for info in self._relays.values()
         }
         table.sort("Name", key=lambda name: keys[name])
@@ -248,9 +271,9 @@ class Relays(Widget):
     def on_mqtt_receipt(self, message: Mqtt.Receipt):  # noqa
         self.app.query_one(MqttState).message_count += 1
 
-    def action_toggle_relay(self) -> None:
+    def action_toggle_relay(self, offer_index: int) -> None:
         self.query_one(
-            "#relay_toggle_button",
+            f"#relay_toggle_button_{offer_index}",
             RelayToggleButton
         ).action_toggle_relay()
 

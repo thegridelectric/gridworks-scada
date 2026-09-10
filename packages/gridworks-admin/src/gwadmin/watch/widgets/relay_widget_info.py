@@ -63,25 +63,39 @@ class RelayWidgetConfig(RelayConfig):
     def from_config(cls, config: RelayConfig) -> "RelayWidgetConfig":
         return RelayWidgetConfig(**config.model_dump())
 
-    def next_command(self, state: Optional[str]) -> Optional[CommandTransition]:
-        """The command to offer given the observed state: the one that leads
-        somewhere else. A one-command row (the pico-cycler) always offers
-        it; a row with no commands (a relay owned by an interior node) or
-        no observed state offers nothing."""
-        if not self.commands:
-            return None
-        if len(self.commands) == 1:
-            return self.commands[0]
+    def offered_commands(self, state: Optional[str]) -> list[CommandTransition]:
+        """The commands to offer given the observed state, one per
+        vocabulary in the order the vocabularies arrive. A two-command
+        vocabulary offers the command that leads somewhere else; a
+        one-command vocabulary (reboot.picos on five-v-boss) is offered
+        when the observed state is its target, since the node only takes
+        it at rest. No observed state, or a row with no commands (a relay
+        owned by an interior node), offers nothing."""
         if state is None:
-            return None
-        return next((c for c in self.commands if c.to_state != state), None)
+            return []
+        vocabularies: dict[str, list[CommandTransition]] = {}
+        for command in self.commands:
+            vocabularies.setdefault(command.event_type, []).append(command)
+        offered: list[CommandTransition] = []
+        for commands in vocabularies.values():
+            if len(commands) == 1:
+                if commands[0].to_state == state:
+                    offered.append(commands[0])
+                continue
+            command = next((c for c in commands if c.to_state != state), None)
+            if command is not None:
+                offered.append(command)
+        return offered
+
+    def offered_command(self, state: Optional[str], offer_index: int) -> Optional[CommandTransition]:
+        offered = self.offered_commands(state)
+        return offered[offer_index] if offer_index < len(offered) else None
 
     def get_current_state_str(self, state: Optional[str]) -> str:
         return "?" if state is None else state
 
     def get_action_str(self, state: Optional[str]) -> str:
-        command = self.next_command(state)
-        return "" if command is None else command.event
+        return " / ".join(c.event for c in self.offered_commands(state))
 
 
 class RelayWidgetInfo(BaseModel):
