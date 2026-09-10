@@ -62,6 +62,7 @@ from gwsproto.enums.market_type_name import MarketTypeName
 from gwsproto.enums.pico_board_variant import PicoBoardVariant
 from gwsproto.enums.pico_cycler_event import PicoCyclerEvent
 from gwsproto.enums.pico_cycler_state import PicoCyclerState
+from gwsproto.enums.single_pico_state import SinglePicoState
 from gwsproto.enums.primary_pump_control import PrimaryPumpControl
 from gwsproto.enums.relay_closed_or_open import RelayClosedOrOpen
 from gwsproto.enums.relay_pin_state import RelayPinState
@@ -129,6 +130,7 @@ __all__ = [
     "PicoBoardVariant",
     "PicoCyclerEvent",
     "PicoCyclerState",
+    "SinglePicoState",
     "PrimaryPumpControl",
     "RelayClosedOrOpen",
     "RelayEnergizationState",
