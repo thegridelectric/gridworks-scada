@@ -15,7 +15,7 @@ from gwsproto.data_classes.components import PicoTankModuleComponent, SimPicoTan
 from gwsproto.enums import TempCalcMethod
 from gwsproto.named_types import SyncedReadings, TankModuleParams
 from result import Ok, Result
-from actors.sh_node_actor import ShNodeActor
+from actors.pico_actor_base import PicoActorBase
 from gwsproto.data_classes.house_0_names import ScadaWeb
 from gwsproto.named_types import PicoMissing, ChannelFlatlined, MicroVolts
 
@@ -28,7 +28,7 @@ PICO_VOLTS = 3.3
 FLATLINE_REPORT_S = 60
 
 
-class ApiTankModule(ShNodeActor):
+class ApiTankModule(PicoActorBase):
     _stop_requested: bool
 
     def __init__(
