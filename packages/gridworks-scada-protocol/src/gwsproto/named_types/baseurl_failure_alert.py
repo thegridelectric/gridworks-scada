@@ -11,4 +11,4 @@ class BaseurlFailureAlert(BaseModel):
     BaseUrl: str
     Message: str
     TypeName: Literal["baseurl.failure.alert"] = "baseurl.failure.alert"
-    Version: Literal["000"] = "000"
+    Version: Literal["100"] = "100"
