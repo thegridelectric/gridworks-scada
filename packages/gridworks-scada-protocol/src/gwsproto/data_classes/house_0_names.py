@@ -165,7 +165,6 @@ class H0N:
     hubitat = "hubitat"
 
     # instrumentation
-    zero_ten_out_multiplexer = "zero-ten-multiplexer"
     analog_temp = "analog-temp"
     dist_btu = "dist-btu"
     primary_btu = "primary-btu"

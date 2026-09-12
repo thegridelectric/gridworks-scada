@@ -105,9 +105,15 @@ class I2cBus(ShNodeActor):
                     if expander_type == I2cExpanderType.Pcf8575
                 ),
                 mux_address=record.Muxes[0].I2cAddress if record.Muxes else None,
-                dac_address=record.Dacs[0].I2cAddress if record.Dacs else None,
+                dac_address=next(
+                    (d.I2cAddress for d in record.Dacs if d.MuxName is not None),
+                    None,
+                ),
                 dac_mux_channels=tuple(
                     d.MuxChannel for d in record.Dacs if d.MuxChannel is not None
+                ),
+                dac_addresses=tuple(
+                    d.I2cAddress for d in record.Dacs if d.MuxName is None
                 ),
                 adc_addresses=tuple(a.I2cAddress for a in record.ThermistorAdcs),
             )

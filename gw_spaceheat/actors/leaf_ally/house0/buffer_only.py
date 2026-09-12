@@ -1,14 +1,13 @@
 import asyncio
 import time
 import uuid
-from typing import cast, List, Sequence, Optional
+from typing import List, Sequence, Optional
 
 from gwsproto.data_classes.house_0_names import H0CN, H0N
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwsproto.data_classes.sh_node import ShNode
-from gwsproto.data_classes.components.dfr_component import DfrComponent
 
 from gwsproto.enums import (
     ActorClass, LeafAllyBufferOnlyEvent, LeafAllyBufferOnlyState, 
@@ -24,6 +23,7 @@ from transitions import Machine
 
 from actors.hydronic.house0 import House0Hydronic
 from scada_app_interface import ScadaAppInterface
+from sema_to_dc import zero_ten_power_on_volts_times_ten
 from gwsproto.named_types import (
     AllyGivesUp, GoDormant, Ha1Params,
     SingleMachineState, SlowContractHeartbeat, SlowDispatchContract, SuitUp
@@ -407,7 +407,6 @@ class BufferOnlyLeafAlly(House0Hydronic):
         """
         Set 0-10 defaults for ZeroTen outputters that are direct reports
         """
-        dfr_component = cast(DfrComponent, self.layout.node(H0N.zero_ten_out_multiplexer).component)
         h_normal_010s = {
             node
             for node in self.my_actuators()
@@ -415,11 +414,7 @@ class BufferOnlyLeafAlly(House0Hydronic):
             self.the_boss_of(node) == self.node
         }
         for dfr_node in h_normal_010s:
-            dfr_config = next(
-                    config
-                    for config in dfr_component.gt.ConfigList
-                    if config.ChannelName == dfr_node.name
-                )
+            level = zero_ten_power_on_volts_times_ten(self.ops, dfr_node.name)
             self._send_to(
                 dst=dfr_node,
                 payload=AnalogDispatch(
@@ -427,12 +422,12 @@ class BufferOnlyLeafAlly(House0Hydronic):
                     FromHandle=self.node.handle,
                     ToHandle=dfr_node.handle,
                     AboutName=dfr_node.Name,
-                    Value=dfr_config.InitialVoltsTimes100,
+                    Value=level,
                     TriggerId=str(uuid.uuid4()),
                     UnixTimeMs=int(time.time() * 1000),
                 )
             )
-            self.log(f"Just set {dfr_node.handle} to {dfr_config.InitialVoltsTimes100} from {self.node.handle} ")            
+            self.log(f"Just set {dfr_node.handle} to {level} from {self.node.handle} ")
 
     def hp_should_be_off(self) -> bool:
         if self.remaining_watthours:

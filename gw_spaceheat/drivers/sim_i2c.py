@@ -167,9 +167,9 @@ class SimAds1115:
 class SimI2c:
     """smbus2-surface fake bus: SimTca9555 at TCA9555 expander addresses,
     SimPcf8575 at PCF8575 expander addresses, optional SimMcp4728s behind a
-    TCA9548A-style mux, SimAds1115 at thermistor ADC addresses, a plain
-    register store elsewhere. Not thread-safe; the I2cBus actor
-    serializes."""
+    TCA9548A-style mux or directly at their own addresses, SimAds1115 at
+    thermistor ADC addresses, a plain register store elsewhere. Not
+    thread-safe; the I2cBus actor serializes."""
 
     def __init__(
         self,
@@ -178,6 +178,7 @@ class SimI2c:
         mux_address: int | None = None,
         dac_address: int | None = None,
         dac_mux_channels: tuple[int, ...] = (),
+        dac_addresses: tuple[int, ...] = (),
         adc_addresses: tuple[int, ...] = (),
     ) -> None:
         self.expanders: dict[int, SimTca9555] = {
@@ -194,6 +195,10 @@ class SimI2c:
         self.mux_select: int = 0
         self.dacs: dict[int, SimMcp4728] = {
             channel: SimMcp4728() for channel in dac_mux_channels
+        }
+        # DACs on the bus itself (no mux), by address
+        self.muxless_dacs: dict[int, SimMcp4728] = {
+            addr: SimMcp4728() for addr in dac_addresses
         }
         self.registers: dict[tuple[int, int], int] = {}
         # address -> remaining EIO count; None = fail until cleared
@@ -266,6 +271,8 @@ class SimI2c:
         self._check_fault(address)
         if address == self.dac_address:
             values = self._routed_dac().read_bytes(length)
+        elif address in self.muxless_dacs:
+            values = self.muxless_dacs[address].read_bytes(length)
         elif address in self.pcf8575s:
             values = self.pcf8575s[address].read_bytes(length)
         else:
@@ -326,6 +333,8 @@ class SimI2c:
                 self.expanders[address].write(register + i, value)
         elif address == self.dac_address:
             self._routed_dac().write(register, data)
+        elif address in self.muxless_dacs:
+            self.muxless_dacs[address].write(register, data)
         elif address in self.adcs:
             self.adcs[address].write(register, data)
         else:

@@ -33,6 +33,7 @@ async def test_auto_state_home_alone_to_ltn(
     async with ScadaLiveTest(
         request=request,
         layout=layout,
+        ops_path=CONFIG / ops_file,
     ) as tst:
         tst.start_child1() # start primary scada
         tst.start_parent() # start ltn

@@ -36,7 +36,9 @@ async def test_unvalidated_scada_rejects_contract_offer(
     layout_file, ops_file = PAIRS[pair]
     layout = load_layout(CONFIG / layout_file, CONFIG / ops_file)
 
-    async with ScadaLiveTest(request=request, layout=layout) as tst:
+    async with ScadaLiveTest(
+        request=request, layout=layout, ops_path=CONFIG / ops_file
+    ) as tst:
         tst.start_child1()
         tst.start_parent()
 

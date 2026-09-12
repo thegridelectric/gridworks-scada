@@ -57,6 +57,7 @@ class ScadaLiveTest(TreeLiveTest):
         parent_layout: Optional[HydronicLayout] = None,
         child1_simulated: bool = True,
         child2_simulated: bool = True,
+        ops_path: Optional[Path] = None,
         **kwargs: typing.Any
     ) -> None:
 
@@ -68,6 +69,12 @@ class ScadaLiveTest(TreeLiveTest):
                 self.child_app_type().paths_name()
             )
         )
+        # The conftest seeds every config dir with the Nolan ops file; a
+        # test on another layout names its pair's ops artifact here, since
+        # the primary scada's actors read ops from the settings path, not
+        # from the layout object handed in.
+        if ops_path is not None:
+            kwargs["child_app_settings"].paths.operational_params = ops_path
         kwargs["child2_app_settings"] = kwargs.get(
             "child2_app_settings",
             self.child2_app_type()

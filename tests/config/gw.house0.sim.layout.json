@@ -480,22 +480,13 @@
     {
       "TypeName": "spaceheat.node.gt",
       "Version": "303",
-      "Name": "zero-ten-multiplexer",
-      "ActorHierarchyName": "s.zero-ten-multiplexer",
-      "ActorClass": "I2cZeroTenMultiplexer",
-      "DisplayName": "I2c Zero Ten Out Multiplexer",
-      "ComponentId": "3b437278-d34a-4c20-be2e-756b06bffc9a",
-      "ShNodeId": "2e7f4c75-47fb-4a0b-bd56-9fc694c69134"
-    },
-    {
-      "TypeName": "spaceheat.node.gt",
-      "Version": "303",
       "Name": "dist-010v",
       "ActorHierarchyName": "s.dist-010v",
       "Handle": "auto.dist-010v",
       "ActorClass": "ZeroTenOutputer",
       "DisplayName": "Dist DFR",
-      "ShNodeId": "f137f4a2-3fb9-423d-ab83-dc2f60525c09"
+      "ShNodeId": "f137f4a2-3fb9-423d-ab83-dc2f60525c09",
+      "ComponentId": "6f3c1c0e-2b0a-4a3e-9c1d-1f0e7a5b2c11"
     },
     {
       "TypeName": "spaceheat.node.gt",
@@ -505,7 +496,8 @@
       "Handle": "auto.primary-010v",
       "ActorClass": "ZeroTenOutputer",
       "DisplayName": "Primary DFR",
-      "ShNodeId": "30a2b01a-6b00-49bf-8fa1-9450f27289b8"
+      "ShNodeId": "30a2b01a-6b00-49bf-8fa1-9450f27289b8",
+      "ComponentId": "b2a9d4e7-5c61-4f8b-8e2a-3d7c9f1a4e22"
     },
     {
       "TypeName": "spaceheat.node.gt",
@@ -515,7 +507,8 @@
       "Handle": "auto.store-010v",
       "ActorClass": "ZeroTenOutputer",
       "DisplayName": "Store DFR",
-      "ShNodeId": "8e631dc8-2049-4e15-b73c-1b281520595b"
+      "ShNodeId": "8e631dc8-2049-4e15-b73c-1b281520595b",
+      "ComponentId": "e1d5f8a3-7b42-4c9d-a6f0-5e8b2c4d7a33"
     },
     {
       "TypeName": "spaceheat.node.gt",
@@ -935,7 +928,7 @@
       "Name": "dist-010v",
       "DisplayName": "Dist 010V",
       "AboutNodeName": "dist-010v",
-      "CapturedByNodeName": "zero-ten-multiplexer",
+      "CapturedByNodeName": "dist-010v",
       "TelemetryName": "VoltsTimesTen",
       "Quantity": "Voltage",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
@@ -947,7 +940,7 @@
       "Name": "primary-010v",
       "DisplayName": "Primary 010V",
       "AboutNodeName": "primary-010v",
-      "CapturedByNodeName": "zero-ten-multiplexer",
+      "CapturedByNodeName": "primary-010v",
       "TelemetryName": "VoltsTimesTen",
       "Quantity": "Voltage",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
@@ -959,7 +952,7 @@
       "Name": "store-010v",
       "DisplayName": "Store 010V",
       "AboutNodeName": "store-010v",
-      "CapturedByNodeName": "zero-ten-multiplexer",
+      "CapturedByNodeName": "store-010v",
       "TelemetryName": "VoltsTimesTen",
       "Quantity": "Voltage",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
@@ -1669,40 +1662,6 @@
       "SimulatesVersion": "012"
     },
     {
-      "TypeName": "dfr.component.gt",
-      "Version": "000",
-      "ComponentId": "3b437278-d34a-4c20-be2e-756b06bffc9a",
-      "DeviceType": "DfrobotDualAnalogOut",
-      "ConfigList": [
-        {
-          "TypeName": "dfr.config",
-          "Version": "000",
-          "ChannelName": "dist-010v",
-          "OutputIdx": 1,
-          "InitialVoltsTimes100": 20
-        },
-        {
-          "TypeName": "dfr.config",
-          "Version": "000",
-          "ChannelName": "primary-010v",
-          "OutputIdx": 2,
-          "InitialVoltsTimes100": 40
-        },
-        {
-          "TypeName": "dfr.config",
-          "Version": "000",
-          "ChannelName": "store-010v",
-          "OutputIdx": 3,
-          "InitialVoltsTimes100": 0
-        }
-      ],
-      "I2cAddressList": [
-        94,
-        95
-      ],
-      "DisplayName": "DFRobot 010V output X 2"
-    },
-    {
       "TypeName": "sim.sensor.component.gt",
       "Version": "000",
       "ComponentId": "4585a8a8-0a6f-4536-abf9-166dcc2b6a23",
@@ -1736,6 +1695,57 @@
       "ComponentId": "7bf73d08-a27e-44cd-bea7-d4cbcc4fe399",
       "DeviceType": "SimSensor",
       "DisplayName": "Sieg Cold Sim Temp Sensor"
+    },
+    {
+      "TypeName": "i2c.dac.output.component.gt",
+      "Version": "000",
+      "ComponentId": "6f3c1c0e-2b0a-4a3e-9c1d-1f0e7a5b2c11",
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "DacName": "Dfr1",
+      "ConfigList": [
+        {
+          "TypeName": "dac.output.config",
+          "Version": "000",
+          "ChannelName": "dist-010v",
+          "ActorName": "dist-010v",
+          "DacChannel": "A"
+        }
+      ],
+      "DisplayName": "Dist Pump 010V"
+    },
+    {
+      "TypeName": "i2c.dac.output.component.gt",
+      "Version": "000",
+      "ComponentId": "b2a9d4e7-5c61-4f8b-8e2a-3d7c9f1a4e22",
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "DacName": "Dfr1",
+      "ConfigList": [
+        {
+          "TypeName": "dac.output.config",
+          "Version": "000",
+          "ChannelName": "primary-010v",
+          "ActorName": "primary-010v",
+          "DacChannel": "B"
+        }
+      ],
+      "DisplayName": "Primary Pump 010V"
+    },
+    {
+      "TypeName": "i2c.dac.output.component.gt",
+      "Version": "000",
+      "ComponentId": "e1d5f8a3-7b42-4c9d-a6f0-5e8b2c4d7a33",
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "DacName": "Dfr2",
+      "ConfigList": [
+        {
+          "TypeName": "dac.output.config",
+          "Version": "000",
+          "ChannelName": "store-010v",
+          "ActorName": "store-010v",
+          "DacChannel": "A"
+        }
+      ],
+      "DisplayName": "Store Pump 010V"
     }
   ],
   "DeviceTypes": [
@@ -2226,7 +2236,26 @@
       "SupportsPinReadback": false,
       "RelayEnergizedLevel": 0,
       "ThermistorAdcs": [],
-      "Dacs": []
+      "Dacs": [
+        {
+          "TypeName": "i2c.dac.capability",
+          "Version": "000",
+          "DacName": "Dfr1",
+          "I2cBus": "DefaultBus",
+          "I2cAddress": 94,
+          "DacType": "Mcp4728",
+          "Channels": 4
+        },
+        {
+          "TypeName": "i2c.dac.capability",
+          "Version": "000",
+          "DacName": "Dfr2",
+          "I2cBus": "DefaultBus",
+          "I2cAddress": 95,
+          "DacType": "Mcp4728",
+          "Channels": 4
+        }
+      ]
     }
   ],
   "Hydronic": {

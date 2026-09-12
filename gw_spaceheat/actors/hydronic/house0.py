@@ -6,12 +6,11 @@ separately."""
 
 import time
 import uuid
-from typing import cast, Optional
+from typing import Optional
 from pydantic import ValidationError
 from gwsproto.conversions.temperature import convert_temp_to_f
 from gwsproto.data_classes.house_0_names import H0CN
 from gwsproto.data_classes.sh_node import ShNode
-from gwsproto.data_classes.components.dfr_component import DfrComponent
 from gwsproto.enums import (
     ActorClass,
     ChangeAquastatControl,
@@ -26,11 +25,11 @@ from gwsproto.enums import (
     TurnHpOnOff
 )
 from gwsproto.named_types import AnalogDispatch, FsmEvent, SingleMachineState
-from gwsproto.names.house0.node_names import House0NodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import (
     HydronicSpaceheatNodeNames as HSNN,
 )
 from actors.hydronic.shared import HydronicNode
+from sema_to_dc import zero_ten_power_on_volts_times_ten
 
 class House0Hydronic(HydronicNode):
     """The House0 plant surface."""
@@ -469,7 +468,6 @@ class House0Hydronic(HydronicNode):
         if command_node is None:
             command_node = self.node
 
-        dfr_component = cast(DfrComponent, self.layout.node(House0NodeNames.zero_ten_out_multiplexer).component)
         commanded_010s = {
             node
             for node in self.my_actuators()
@@ -478,11 +476,7 @@ class House0Hydronic(HydronicNode):
         }
 
         for dfr_node in commanded_010s:
-            dfr_config = next(
-                    config
-                    for config in dfr_component.gt.ConfigList
-                    if config.ChannelName == dfr_node.name
-                )
+            level = zero_ten_power_on_volts_times_ten(self.ops, dfr_node.name)
             self._send_to(
                 dst=dfr_node,
                 payload=AnalogDispatch(
@@ -490,13 +484,13 @@ class House0Hydronic(HydronicNode):
                     FromHandle=command_node.handle,
                     ToHandle=dfr_node.handle,
                     AboutName=dfr_node.Name,
-                    Value=dfr_config.InitialVoltsTimes100,
+                    Value=level,
                     TriggerId=str(uuid.uuid4()),
                     UnixTimeMs=int(time.time() * 1000),
                 ),
                 src=command_node
             )
-            self.log(f"Just set {dfr_node.handle} to {dfr_config.InitialVoltsTimes100} from {command_node.handle} ")
+            self.log(f"Just set {dfr_node.handle} to {level} from {command_node.handle} ")
 
     @property
     def hp_boss(self) -> ShNode:

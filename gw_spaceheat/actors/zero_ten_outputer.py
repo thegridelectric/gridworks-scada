@@ -17,11 +17,11 @@ from scada_app_interface import ScadaAppInterface
 from sema_to_dc import zero_ten_power_on_volts_times_ten
 
 from gwsproto.data_classes.components import I2cDacOutputComponent
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.data_classes.sh_node import ShNode
 from actors import command_reply
 from gwsproto.enums import ActorClass, I2cDacChannel, I2cDacType, ScadaCmdRefusalReason
 from gwsproto.named_types import (
+    ActuatorsReady,
     AnalogDispatch,
     DacOutputConfig,
     I2cReadBytes,
@@ -40,7 +40,7 @@ CHANNEL_INDEX = {
 }
 
 # AnalogDispatch.Value for a 0-10V output is volts times ten, 0-100 — the
-# unit the DFR multiplexer drives and the VoltsTimesTen channel reports.
+# unit the VoltsTimesTen channel reports.
 VOLTS_TIMES_TEN_MAX = 100
 
 
@@ -75,53 +75,39 @@ def volts_times_ten_from_code(code: int, facts: DacFacts) -> int:
 
 class ZeroTenOutputer(ShNodeActor):
     """
-    The component selects the mechanism, as with Relay:
-
-    - I2cDacOutputComponent (Nolan): one channel of a board DAC, resolved
-      from the component's board record (DacName -> address, mux, chip) and
-      driven through the I2cBus single owner. The power-on level comes from
-      the ops word (zero.ten.power.on). Where the chip stores one (MCP4728),
-      boot verifies its EEPROM against that level and reprograms only on a
-      mismatch (Single Write: the one EEPROM-touching path); then Multi-Write
-      of the target level — the power-on level until the first dispatch, the
-      last commanded level after — re-asserted every heartbeat and on every
-      dispatch. A successful write reports the level on the output's channel.
-    - No component (House0): the DFR multiplexer node owns the DFR board
-      and its per-output configs; this node forwards the dispatch to it.
-      Missing word: a per-output DFR component (the DFR analog of
-      i2c.dac.output.component.gt); this branch retires when it lands.
+    One channel of a board DAC, resolved from the component's board record
+    (DacName -> address, mux, chip) and driven through the I2cBus single
+    owner. The power-on level comes from the ops word (zero.ten.power.on).
+    The chip branch is the driver's: where the chip stores a power-on value
+    (MCP4728), boot verifies its EEPROM against that level and reprograms
+    only on a mismatch (Single Write: the one EEPROM-touching path); a chip
+    that stores nothing (GP8403) gets its output range set once at boot and
+    sits at the chip default until the first assert. Then the target level
+    — the power-on level until the first dispatch, the last commanded level
+    after — is re-asserted every heartbeat and on every dispatch. A
+    successful write reports the level on the output's channel.
     """
 
     HEARTBEAT_S = 60
 
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
-        self.dac: I2cDacOutputComponent | None = None
-        self.dfr_multiplexer: ShNode | None = None
         self.bus_op_timeout_s = 1.0
         self.pending_results: dict[str, "asyncio.Future[I2cResult]"] = {}
         self.stop_requested = False
-        self.eeprom_verified = False
+        # the chip's one-time boot step done: EEPROM verified (MCP4728) or
+        # output range set (GP8403); retried each heartbeat until it is
+        self.chip_ready = False
         self.active_warning_keys: set[str] = set()
         self.wake = asyncio.Event()
 
         component = self.node.component
-        if isinstance(component, I2cDacOutputComponent):
-            self.dac = component
-            self.resolve_dac(component)
-        elif component is None:
-            multiplexer = self.layout.node(H0N.zero_ten_out_multiplexer)
-            if multiplexer is None:
-                raise ValueError(
-                    f"{self.name}: no component and no "
-                    f"{H0N.zero_ten_out_multiplexer} node to forward to"
-                )
-            self.dfr_multiplexer = multiplexer
-        else:
+        if not isinstance(component, I2cDacOutputComponent):
             raise ValueError(
-                f"{self.name} expected I2cDacOutputComponent or no component, "
-                f"got {type(component)}"
+                f"{self.name} expected I2cDacOutputComponent, got {type(component)}"
             )
+        self.dac: I2cDacOutputComponent = component
+        self.resolve_dac(component)
 
     def resolve_dac(self, component: I2cDacOutputComponent) -> None:
         """DacName resolved against THIS component's board record — the
@@ -144,11 +130,12 @@ class ZeroTenOutputer(ShNodeActor):
                 f"named {component.gt.DacName}"
             )
         self.dac_address: int = dac.I2cAddress
-        if dac.DacType != I2cDacType.Mcp4728:
+        if self.channel >= dac.Channels:
             raise ValueError(
-                f"{self.name}: DacType {dac.DacType} has no write path yet; "
-                "the GP8403 arm arrives with the House0 shift"
+                f"{self.name}: channel {config.DacChannel.value} is beyond the "
+                f"{dac.Channels} channels of DAC {dac.DacName}"
             )
+        self.dac_type: I2cDacType = dac.DacType
         self.facts: DacFacts = DAC_FACTS[dac.DacType]
         if dac.MuxName is not None:
             mux = next(m for m in record.Muxes if m.MuxName == dac.MuxName)
@@ -212,26 +199,12 @@ class ZeroTenOutputer(ShNodeActor):
             from_node,
             command_reply.ack(self.node.handle, dispatch.FromHandle, dispatch.TriggerId),
         )
-        if self.dac is not None:
-            self.target_code = code_from_volts_times_ten(dispatch.Value, self.facts)
-            self.log(
-                f"Dispatch from {dispatch.FromHandle}: volts x10 {dispatch.Value} "
-                f"-> code {self.target_code}"
-            )
-            self.wake.set()
-            return
-        assert self.dfr_multiplexer is not None
-        self._send_to(
-            self.dfr_multiplexer,
-            AnalogDispatch(
-                FromHandle=self.node.handle,
-                ToHandle=self.dfr_multiplexer.handle,
-                AboutName=self.name,
-                Value=dispatch.Value,
-                TriggerId=dispatch.TriggerId,
-                UnixTimeMs=int(time.time() * 1000),
-            ),
+        self.target_code = code_from_volts_times_ten(dispatch.Value, self.facts)
+        self.log(
+            f"Dispatch from {dispatch.FromHandle}: volts x10 {dispatch.Value} "
+            f"-> code {self.target_code}"
         )
+        self.wake.set()
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         payload = message.Payload
@@ -297,26 +270,19 @@ class ZeroTenOutputer(ShNodeActor):
 
     # ---- the write paths ----
 
-    def data_bits(self) -> tuple[int, int]:
-        return (
-            mcp4728.VREF_BIT[mcp4728.POWER_ON_VREF],
-            mcp4728.gain_bit(mcp4728.POWER_ON_GAIN),
-        )
-
-    async def write_code(self, code: int, command_base: int) -> tuple[bool, str]:
-        """One write of `code` to this channel in the given command family.
-        (ok, detail)."""
-        vref, gain = self.data_bits()
-        hi, lo = mcp4728.encode_data(code, vref, gain)
+    async def write_register(
+        self, register: int, first: int, second: int
+    ) -> tuple[bool, str]:
+        """One two-byte write to a register of this DAC, `first` then
+        `second` on the wire. (ok, detail)."""
         result = await self.muxed_op(
             I2cWriteReg(
                 Bus=self.bus_node.name,
                 Address=I2cRegAddress(
-                    I2cAddress=self.dac_address,
-                    RegisterIndex=mcp4728.command(command_base, self.channel),
+                    I2cAddress=self.dac_address, RegisterIndex=register
                 ),
                 NumBytes=2,
-                Value=(hi << 8) | lo,
+                Value=(first << 8) | second,
                 TriggerId=str(uuid.uuid4()),
             )
         )
@@ -326,12 +292,42 @@ class ZeroTenOutputer(ShNodeActor):
             return False, result.Error or "unknown bus error"
         return True, ""
 
+    def data_bits(self) -> tuple[int, int]:
+        return (
+            mcp4728.VREF_BIT[mcp4728.POWER_ON_VREF],
+            mcp4728.gain_bit(mcp4728.POWER_ON_GAIN),
+        )
+
+    async def write_code(self, code: int, command_base: int) -> tuple[bool, str]:
+        """MCP4728: one write of `code` to this channel in the given command
+        family. (ok, detail)."""
+        vref, gain = self.data_bits()
+        hi, lo = mcp4728.encode_data(code, vref, gain)
+        return await self.write_register(
+            mcp4728.command(command_base, self.channel), hi, lo
+        )
+
+    async def write_output(self, code: int) -> tuple[bool, str]:
+        """GP8403: one write of `code` to this channel's output register.
+        (ok, detail)."""
+        first, second = gp8403.word_bytes(gp8403.encode_word(code))
+        return await self.write_register(
+            gp8403.OUTPUT_REG[self.channel], first, second
+        )
+
+    async def write_target(self, code: int) -> tuple[bool, str]:
+        """The chip's routine level write: the one that never touches a
+        stored power-on value."""
+        if self.dac_type == I2cDacType.Mcp4728:
+            return await self.write_code(code, mcp4728.MULTI_WRITE_BASE)
+        return await self.write_output(code)
+
     async def assert_target(self) -> None:
-        """Multi-Write the target level (input register only) and report it;
-        one Glitch per failure streak, retried every heartbeat."""
+        """Write the target level and report it; one Glitch per failure
+        streak, retried every heartbeat."""
         code = self.target_code
         value = volts_times_ten_from_code(code, self.facts)
-        ok, detail = await self.write_code(code, mcp4728.MULTI_WRITE_BASE)
+        ok, detail = await self.write_target(code)
         key = "i2c-dac-write-failed"
         if not ok:
             self.send_warning_once(
@@ -348,7 +344,27 @@ class ZeroTenOutputer(ShNodeActor):
             ),
         )
 
-    # ---- the boot EEPROM verify ----
+    # ---- the chip's one-time boot step ----
+
+    async def prepare_chip(self) -> bool:
+        """MCP4728: verify (and reprogram) the stored power-on level.
+        GP8403: set the 0-10 V output range, which the chip does not keep
+        across a power-up."""
+        if self.dac_type == I2cDacType.Mcp4728:
+            return await self.verify_eeprom()
+        return await self.set_range()
+
+    async def set_range(self) -> bool:
+        ok, detail = await self.write_register(
+            gp8403.RANGE_REG, *gp8403.word_bytes(gp8403.RANGE_10V)
+        )
+        key = "i2c-dac-range-set-failed"
+        if not ok:
+            self.send_warning_once(key, key, f"{self.name}: {detail}")
+            return False
+        self.clear_warning(key)
+        self.log(f"{self.name}: output range set to 0-10 V")
+        return True
 
     async def read_eeprom_mismatch(self) -> tuple[bool | None, str]:
         """Whether the channel's EEPROM differs from the ops word's power-on
@@ -419,27 +435,24 @@ class ZeroTenOutputer(ShNodeActor):
 
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:
-        if self.dac is None:
-            return []
         return [MonitoredName(self.name, self.HEARTBEAT_S * 2)]
 
     def start(self) -> None:
-        if self.dac is None:
-            return
         self.services.add_task(
             asyncio.create_task(self.main_loop(), name=f"{self.name}-main")
         )
+        self._send_to(self.primary_scada, ActuatorsReady())
 
     async def main_loop(self) -> None:
-        """Watchdog pat + level enforcement each pass: EEPROM verify (retried
-        until it completes once — the bus refuses ops until its init guard
-        finishes), then Multi-Write of the target. A dispatch wakes the loop
-        early, so writes serialize in this one task."""
+        """Watchdog pat + level enforcement each pass: the chip's boot step
+        (retried until it completes once — the bus refuses ops until its
+        init guard finishes), then the target write. A dispatch wakes the
+        loop early, so writes serialize in this one task."""
         while not self.stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
             self.wake.clear()
-            if not self.eeprom_verified:
-                self.eeprom_verified = await self.verify_eeprom()
+            if not self.chip_ready:
+                self.chip_ready = await self.prepare_chip()
             await self.assert_target()
             try:
                 await asyncio.wait_for(self.wake.wait(), timeout=self.HEARTBEAT_S)

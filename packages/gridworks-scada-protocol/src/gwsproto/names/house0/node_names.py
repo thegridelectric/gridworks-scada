@@ -21,5 +21,4 @@ class House0NodeNames:
 
     # House0-specific instrumentation
     hubitat = "hubitat"
-    zero_ten_out_multiplexer = "zero-ten-multiplexer"
     analog_temp = "analog-temp"

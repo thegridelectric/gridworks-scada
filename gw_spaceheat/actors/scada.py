@@ -187,9 +187,12 @@ class Scada(PrimeActor, ScadaInterface):
         self.ready_actuators = set()
         self.all_actuators_ready = False
 
-        # Define which actuators must report ready
+        # Define which actuators must report ready: every 0-10V output
+        # (each reports once its heartbeat task is up)
         self.required_actuators = {
-            self.zero_ten_out_multiplexer,
+            node
+            for node in self.layout.nodes.values()
+            if node.ActorClass == ActorClass.ZeroTenOutputer
         }
 
         # Define which actors depend on actuator readiness
@@ -1644,10 +1647,6 @@ class Scada(PrimeActor, ScadaInterface):
     @property
     def local_control(self) -> ShNode:
         return self.layout.node(H0N.local_control)
-
-    @property
-    def zero_ten_out_multiplexer(self) -> ShNode:
-        return self.layout.node(H0N.zero_ten_out_multiplexer)
 
     @property
     def derived_generator(self) -> ShNode:

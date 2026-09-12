@@ -634,46 +634,6 @@
       "Version": "001"
     },
     {
-      "ComponentId": "3b437278-d34a-4c20-be2e-756b06bffc9a",
-      "ConfigList": [
-        {
-          "ChannelName": "dist-010v",
-          "Exponent": 1,
-          "InitialVoltsTimes100": 20,
-          "OutputIdx": 1,
-          "TypeName": "dfr.config",
-          "Unit": "VoltsRms",
-          "Version": "000"
-        },
-        {
-          "ChannelName": "primary-010v",
-          "Exponent": 1,
-          "InitialVoltsTimes100": 40,
-          "OutputIdx": 2,
-          "TypeName": "dfr.config",
-          "Unit": "VoltsRms",
-          "Version": "000"
-        },
-        {
-          "ChannelName": "store-010v",
-          "Exponent": 1,
-          "InitialVoltsTimes100": 0,
-          "OutputIdx": 3,
-          "TypeName": "dfr.config",
-          "Unit": "VoltsRms",
-          "Version": "000"
-        }
-      ],
-      "DeviceType": "DfrobotDualAnalogOut",
-      "DisplayName": "DFRobot 010V output X 2",
-      "I2cAddressList": [
-        94,
-        95
-      ],
-      "TypeName": "dfr.component.gt",
-      "Version": "000"
-    },
-    {
       "ComponentId": "a6f0c2e4-8b3d-4e71-9c25-6d1f8e4b7a03",
       "DeviceType": "LGARUM048GSS5",
       "DisplayName": "LG Multi V ARUM048GSS5 outdoor unit",
@@ -685,6 +645,57 @@
       "DeviceType": "LGARNH423K3A4",
       "DisplayName": "LG Hydro Kit ARNH423K3A4 indoor unit",
       "TypeName": "device.component.gt",
+      "Version": "000"
+    },
+    {
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "6f3c1c0e-2b0a-4a3e-9c1d-1f0e7a5b2c11",
+      "ConfigList": [
+        {
+          "ActorName": "dist-010v",
+          "ChannelName": "dist-010v",
+          "DacChannel": "A",
+          "TypeName": "dac.output.config",
+          "Version": "000"
+        }
+      ],
+      "DacName": "Dfr1",
+      "DisplayName": "Dist Pump 010V",
+      "TypeName": "i2c.dac.output.component.gt",
+      "Version": "000"
+    },
+    {
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "b2a9d4e7-5c61-4f8b-8e2a-3d7c9f1a4e22",
+      "ConfigList": [
+        {
+          "ActorName": "primary-010v",
+          "ChannelName": "primary-010v",
+          "DacChannel": "B",
+          "TypeName": "dac.output.config",
+          "Version": "000"
+        }
+      ],
+      "DacName": "Dfr1",
+      "DisplayName": "Primary Pump 010V",
+      "TypeName": "i2c.dac.output.component.gt",
+      "Version": "000"
+    },
+    {
+      "BoardComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "ComponentId": "e1d5f8a3-7b42-4c9d-a6f0-5e8b2c4d7a33",
+      "ConfigList": [
+        {
+          "ActorName": "store-010v",
+          "ChannelName": "store-010v",
+          "DacChannel": "A",
+          "TypeName": "dac.output.config",
+          "Version": "000"
+        }
+      ],
+      "DacName": "Dfr2",
+      "DisplayName": "Store Pump 010V",
+      "TypeName": "i2c.dac.output.component.gt",
       "Version": "000"
     }
   ],
@@ -1053,7 +1064,7 @@
     },
     {
       "AboutNodeName": "dist-010v",
-      "CapturedByNodeName": "zero-ten-multiplexer",
+      "CapturedByNodeName": "dist-010v",
       "DisplayName": "Dist 010V",
       "Id": "3eafa498-0a7a-4222-8e70-2645f01cc215",
       "Name": "dist-010v",
@@ -1065,7 +1076,7 @@
     },
     {
       "AboutNodeName": "primary-010v",
-      "CapturedByNodeName": "zero-ten-multiplexer",
+      "CapturedByNodeName": "primary-010v",
       "DisplayName": "Primary 010V",
       "Id": "ddca1429-ae7e-4b0d-9a03-99754e4a7d31",
       "Name": "primary-010v",
@@ -1077,7 +1088,7 @@
     },
     {
       "AboutNodeName": "store-010v",
-      "CapturedByNodeName": "zero-ten-multiplexer",
+      "CapturedByNodeName": "store-010v",
       "DisplayName": "Store 010V",
       "Id": "566ad060-37d2-4bcb-a9d1-ce0111a03b56",
       "Name": "store-010v",
@@ -1371,7 +1382,26 @@
           "Version": "000"
         }
       ],
-      "Dacs": [],
+      "Dacs": [
+        {
+          "Channels": 2,
+          "DacName": "Dfr1",
+          "DacType": "Gp8403",
+          "I2cAddress": 94,
+          "I2cBus": "DefaultBus",
+          "TypeName": "i2c.dac.capability",
+          "Version": "000"
+        },
+        {
+          "Channels": 2,
+          "DacName": "Dfr2",
+          "DacType": "Gp8403",
+          "I2cAddress": 95,
+          "I2cBus": "DefaultBus",
+          "TypeName": "i2c.dac.capability",
+          "Version": "000"
+        }
+      ],
       "DeviceType": "KridaDoubleRelayBoard16",
       "DisplayName": "GridWorks relay panel: two 16-channel Krida boards, markings Relay1-Relay32",
       "Expanders": [
@@ -2340,18 +2370,9 @@
       "Version": "303"
     },
     {
-      "ActorClass": "I2cZeroTenMultiplexer",
-      "ActorHierarchyName": "s.zero-ten-multiplexer",
-      "ComponentId": "3b437278-d34a-4c20-be2e-756b06bffc9a",
-      "DisplayName": "I2c Zero Ten Out Multiplexer",
-      "Name": "zero-ten-multiplexer",
-      "ShNodeId": "2e7f4c75-47fb-4a0b-bd56-9fc694c69134",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "303"
-    },
-    {
       "ActorClass": "ZeroTenOutputer",
       "ActorHierarchyName": "s.dist-010v",
+      "ComponentId": "6f3c1c0e-2b0a-4a3e-9c1d-1f0e7a5b2c11",
       "DisplayName": "Dist DFR",
       "Handle": "auto.dist-010v",
       "Name": "dist-010v",
@@ -2362,6 +2383,7 @@
     {
       "ActorClass": "ZeroTenOutputer",
       "ActorHierarchyName": "s.primary-010v",
+      "ComponentId": "b2a9d4e7-5c61-4f8b-8e2a-3d7c9f1a4e22",
       "DisplayName": "Primary DFR",
       "Handle": "auto.primary-010v",
       "Name": "primary-010v",
@@ -2372,6 +2394,7 @@
     {
       "ActorClass": "ZeroTenOutputer",
       "ActorHierarchyName": "s.store-010v",
+      "ComponentId": "e1d5f8a3-7b42-4c9d-a6f0-5e8b2c4d7a33",
       "DisplayName": "Store DFR",
       "Handle": "auto.store-010v",
       "Name": "store-010v",

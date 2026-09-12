@@ -16,7 +16,6 @@ from gwsproto.data_classes.house_0_names import H0N, H0CN
 from gwsproto.names.hydronic_spaceheat.node_names import (
     HydronicSpaceheatNodeNames as HSNN,
 )
-from gwsproto.data_classes.components.dfr_component import DfrComponent
 
 from gwsproto.enums import (
     ActorClass, ActuationAuthority, LocalControlTopEvent,
