@@ -1,20 +1,38 @@
 import time
 import uuid
+from pathlib import Path
+
 import pytest
 from gwproto import Message
 from actors import LeafAlly
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import MainAutoState, SlowDispatchContractStatus
 from gwsproto.named_types import SlowDispatchContract, SlowContractHeartbeat
+from sema_to_dc import load_layout
 from tests.utils.scada_live_test_helper import ScadaLiveTest
+
+CONFIG = Path(__file__).parent.parent / "config"
+PAIRS = {
+    "nolan": ("gw.nolan.layout.json", "gw.nolan.operational.params.json"),
+    "house0-sim": (
+        "gw.house0.sim.layout.json",
+        "gw.house0.sim.operational.params.json",
+    ),
+}
 
 
 @pytest.mark.asyncio
-async def test_auto_state_home_alone_to_ltn(request: pytest.FixtureRequest) -> None:
+@pytest.mark.parametrize("pair", sorted(PAIRS))
+async def test_auto_state_home_alone_to_ltn(
+    request: pytest.FixtureRequest, pair: str
+) -> None:
     """Test that auto_state transitions from LocalControl to Ltn when a SlowDispatchContract starts."""
-    
+    layout_file, ops_file = PAIRS[pair]
+    layout = load_layout(CONFIG / layout_file, CONFIG / ops_file)
+
     async with ScadaLiveTest(
         request=request,
+        layout=layout,
     ) as tst:
         tst.start_child1() # start primary scada
         tst.start_parent() # start ltn
@@ -25,6 +43,8 @@ async def test_auto_state_home_alone_to_ltn(request: pytest.FixtureRequest) -> N
         )
         scada = tst.child1_app.scada
         ltn = tst.parent_app.ltn
+        assert scada.layout.scada_g_node_alias == layout.scada_g_node_alias
+        assert ltn.layout.scada_g_node_alias == layout.scada_g_node_alias
         leaf_ally = tst.child1_app.get_communicator_as_type(
                 H0N.leaf_ally,
                 LeafAlly

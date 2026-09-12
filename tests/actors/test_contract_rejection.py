@@ -12,16 +12,31 @@ from gwproto import Message
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import MainAutoState, SlowDispatchContractStatus, TaValidationState
 from gwsproto.named_types import SlowContractHeartbeat, SlowDispatchContract
+from sema_to_dc import load_layout
 from tests.utils.scada_live_test_helper import ScadaLiveTest
+
+CONFIG = Path(__file__).parent.parent / "config"
+PAIRS = {
+    "nolan": ("gw.nolan.layout.json", "gw.nolan.operational.params.json"),
+    "house0-sim": (
+        "gw.house0.sim.layout.json",
+        "gw.house0.sim.operational.params.json",
+    ),
+}
 
 
 @pytest.mark.asyncio
-async def test_unvalidated_scada_rejects_contract_offer(request: pytest.FixtureRequest) -> None:
+@pytest.mark.parametrize("pair", sorted(PAIRS))
+async def test_unvalidated_scada_rejects_contract_offer(
+    request: pytest.FixtureRequest, pair: str
+) -> None:
     # The autouse fixture seeds a ValidatedSimulatedAsset deed; remove it so
     # this scada is UnValidated.
     Path(Paths(name="scada").hardware_layout).parent.joinpath("ta-deed.json").unlink()
+    layout_file, ops_file = PAIRS[pair]
+    layout = load_layout(CONFIG / layout_file, CONFIG / ops_file)
 
-    async with ScadaLiveTest(request=request) as tst:
+    async with ScadaLiveTest(request=request, layout=layout) as tst:
         tst.start_child1()
         tst.start_parent()
 
@@ -31,6 +46,8 @@ async def test_unvalidated_scada_rejects_contract_offer(request: pytest.FixtureR
         )
         scada = tst.child1_app.scada
         ltn = tst.parent_app.ltn
+        assert scada.layout.scada_g_node_alias == layout.scada_g_node_alias
+        assert ltn.layout.scada_g_node_alias == layout.scada_g_node_alias
         assert scada.services.validation_state == TaValidationState.UnValidated
         assert scada.auto_state == MainAutoState.LocalControl
 
