@@ -77,6 +77,18 @@ def check_approved_pair(layout_type_name: str, ops_type_name: str) -> None:
         )
 
 
+def zero_ten_power_on_volts_times_ten(ops: OperationalParams, node_name: str) -> int:
+    """The power-on level of the 0-10V output driven by `node_name`, in volts
+    times ten; both family words carry the list. Raises when the ops word
+    names no level for the node: a DAC-backed output boots only with one."""
+    for entry in ops.ZeroTenPowerOnList:
+        if entry.NodeName == node_name:
+            return entry.PowerOnVoltsTimesTen
+    raise ValueError(
+        f"{ops.TypeName} carries no zero.ten.power.on entry for {node_name}"
+    )
+
+
 def use_sieg_loop(ops: OperationalParams) -> bool:
     """Whether the scada runs the Siegenthaler loop. Only the House0 word
     carries the flag; a Nolan plant has no loop, so its word has none."""

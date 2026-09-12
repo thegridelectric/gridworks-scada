@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-09-10T23:30:00Z"
+  last_updated: "2026-09-12T22:45:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -328,18 +328,6 @@ enums:
         created: "2026-06-17T14:20:00Z"
         status: "staging"
 
-  i2c.dac.vref:
-    latest_version: "000"
-    owner: gridworks-energy
-    enum_type: "versioned"
-    description: "The voltage reference a DAC channel converts against."
-
-    versions:
-      "000":
-        schema_url: "https://schemas.electricity.works/enums/i2c.dac.vref/000"
-        created: "2026-08-10T20:40:00Z"
-        status: "staging"
-
   i2c.expander.type:
     latest_version: "000"
     owner: gridworks-energy
@@ -574,20 +562,17 @@ types:
     latest_version: "000"
     owner: gridworks-energy
     versioning_strategy: "literal"
-    description: "Control config for one 0-10V output: reporting channel, commanding actor, DAC channel, and EEPROM power-on defaults — the relay.control.config analog for an analog actuator."
+    description: "Control config for one 0-10V output: reporting channel, commanding actor, DAC channel, — the relay.control.config analog for an analog actuator. The power-on level lives in operational-params (zero.ten.power.on)."
 
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/dac.output.config/000"
         created: "2026-09-02T21:15:00Z"
         status: "staging"
-        summary: "Initial version (ChannelName, ActorName, DacChannel, PowerOnRawValue, PowerOnVref, PowerOnGain; EepromRanges axiom)."
+        summary: "Initial version (ChannelName, ActorName, DacChannel). The EEPROM power-on fields and their axiom left in place for zero.ten.power.on in operational-params; chip and board facts are scada driver tables."
         direct_dependencies:
           structural:
             - "i2c.dac.channel:000"
-            - "i2c.dac.vref:000"
-            - "non.negative.int"
-            - "positive.int"
             - "spaceheat.name"
 
   data.channel.gt:
@@ -657,6 +642,8 @@ types:
   dfr.component.gt:
     latest_version: "000"
     owner: gridworks-energy
+    replaced_by:
+      - "i2c.dac.output.component.gt"
     versioning_strategy: "literal"
     description: "A DFRobot analog-output component instance: DFR0971 dual analog-out boards driving control outputs."
 
@@ -676,6 +663,8 @@ types:
   dfr.config:
     latest_version: "000"
     owner: gridworks-energy
+    replaced_by:
+      - "dac.output.config"
     versioning_strategy: "literal"
     description: "Per-output channel configuration for one DFRobot DFR0971 analog output (0-10V DAC)."
 
@@ -825,7 +814,7 @@ types:
         schema_url: "https://schemas.electricity.works/types/gw.house0.layout/000"
         created: "2026-09-10T21:25:00Z"
         status: "staging"
-        summary: "The complete deployable artifact for a House0-fleet home: every collection and Hydronic required, never a partial layout. The word MEANS has-a-siegenthaler-loop (beech, maple); sieg-less homes are the coming gw.house0.no.sieg. Component set is eGauge / ADS111x TSnap / Krida / DFRobot / pico flow / tank + sim-tank / Hubitat + poller / web-server over the DeviceType record model. Axioms cover id uniqueness, the core and command-node Name/ActorClass contracts (sieg-loop and hp-boss unconditional command nodes, dormant when unused), per-zone heat-call channels, primary-flow source agreement, the transactive-power boundary, required flow sensing, the unconditional sieg manifold surface, the system-model energy channels and the models that produce them, the unconditional actuators (plant relays, 0-10V outputs, zone-circuit relay pairs), and the split-system heat-pump parts (hp-odu, hp-idu) with their components. 12 CommandableHeatPump (biconditional: Hydronic.HpCommandNodeName ⇒ hp-odu/hp-idu/hp-ctrl-box with ComponentId, ActorClass HpTwin, handle under hp-boss; every HpTwin node is the declared one); 11's NoActor clause defers to it. 13 PrefixClosedHandles + 14 ActuatorLeaves: the layout's authored handles are the initial command tree, so the tree word's two axioms hold here too (identical wording)."
+        summary: "The complete deployable artifact for a House0-fleet home: every collection and Hydronic required, never a partial layout. The word MEANS has-a-siegenthaler-loop (beech, maple); sieg-less homes are the coming gw.house0.no.sieg. Component set is eGauge / ADS111x TSnap / the House0 board record (Krida expanders + GP8403 DACs) with per-relay and per-output components / pico flow / tank + sim-tank / Hubitat + poller / web-server over the DeviceType record model. Axioms cover id uniqueness, the core and command-node Name/ActorClass contracts (sieg-loop and hp-boss unconditional command nodes, dormant when unused), per-zone heat-call channels, primary-flow source agreement, the transactive-power boundary, required flow sensing, the unconditional sieg manifold surface, the system-model energy channels and the models that produce them, the unconditional actuators (plant relays, 0-10V outputs, zone-circuit relay pairs), and the split-system heat-pump parts (hp-odu, hp-idu) with their components. 12 CommandableHeatPump (biconditional: Hydronic.HpCommandNodeName ⇒ hp-odu/hp-idu/hp-ctrl-box with ComponentId, ActorClass HpTwin, handle under hp-boss; every HpTwin node is the declared one); 11's NoActor clause defers to it. 13 PrefixClosedHandles + 14 ActuatorLeaves: the layout's authored handles are the initial command tree, so the tree word's two axioms hold here too (identical wording)."
         direct_dependencies:
           structural:
             - "ads111x.based.component.gt:000"
@@ -833,7 +822,6 @@ types:
             - "data.channel.gt:003"
             - "derived.channel.gt:002"
             - "device.component.gt:000"
-            - "dfr.component.gt:000"
             - "electric.meter.component.gt:001"
             - "electric.meter.device.type.gt:000"
             - "g.node.gt:006"
@@ -871,9 +859,9 @@ types:
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw.house0.operational.params/000"
-        created: "2026-08-13T11:55:00Z"
+        created: "2026-09-12T22:45:00Z"
         status: "staging"
-        summary: "ScadaAlias (the applying Scada's identity — stored/emitted instances self-identify; the layout holds the full GNodes) + CaptureTuningList + ActuationAuthority x ServiceMode (authority dominates; ServiceMode inert outside Active) + SeasonalStorageMode + UseSiegLoop (moved in from gw.hydronic: running the loop is operational) + CopCurve + HeatingCurve + HpTurnOnMinutes + HpMaxKwEl + ShortCycleBuffer + LoadOverestimationPercent + OilBoilerBackup + HorizonHours + OnPeakWindows (gw.tou.window with explicit Days). All required — no assumed defaults. Pairs with its layout by family. HpMaxKwEl moved in from scada deployment config; OnPeakWindows added so this word and gw.nolan.operational.params carry identical field sets."
+        summary: "ScadaAlias (the applying Scada's identity — stored/emitted instances self-identify; the layout holds the full GNodes) + CaptureTuningList + ActuationAuthority x ServiceMode (authority dominates; ServiceMode inert outside Active) + SeasonalStorageMode + UseSiegLoop (moved in from gw.hydronic: running the loop is operational) + CopCurve + HeatingCurve + HpTurnOnMinutes + HpMaxKwEl + ShortCycleBuffer + LoadOverestimationPercent + OilBoilerBackup + HorizonHours + OnPeakWindows (gw.tou.window with explicit Days). All required — no assumed defaults. Pairs with its layout by family. HpMaxKwEl moved in from scada deployment config; OnPeakWindows added so this word and gw.nolan.operational.params carry identical field sets. ZeroTenPowerOnList added (zero.ten.power.on per 0-10V output: the power-on level moved out of dac.output.config)."
         direct_dependencies:
           structural:
             - "capture.tuning:000"
@@ -887,6 +875,7 @@ types:
             - "non.negative.int"
             - "positive.float"
             - "positive.int"
+            - "zero.ten.power.on:000"
 
   gw.hydronic:
     latest_version: "000"
@@ -976,9 +965,9 @@ types:
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw.nolan.operational.params/000"
-        created: "2026-08-13T15:41:00Z"
+        created: "2026-09-12T22:45:00Z"
         status: "staging"
-        summary: "ScadaAlias (the applying Scada's identity — stored/emitted instances self-identify; the layout holds the full GNodes) + CaptureTuningList + ActuationAuthority x ServiceMode (authority dominates; ServiceMode inert outside Active) + SeasonalStorageMode + CopCurve + HeatingCurve + HpTurnOnMinutes + HpMaxKwEl + ShortCycleBuffer + LoadOverestimationPercent + OilBoilerBackup + HorizonHours + OnPeakWindows (gw.tou.window with explicit Days). All required — no assumed defaults. Pairs with its layout by family. HeldCircuitPositions dropped. The store/optimization knobs are carried so this word and gw.house0.operational.params have identical field sets — Nolan has no thermal store to season, and they come back out as the functional code that still reads them (LeafAlly selection, layout.lite) is moved off them."
+        summary: "ScadaAlias (the applying Scada's identity — stored/emitted instances self-identify; the layout holds the full GNodes) + CaptureTuningList + ActuationAuthority x ServiceMode (authority dominates; ServiceMode inert outside Active) + SeasonalStorageMode + CopCurve + HeatingCurve + HpTurnOnMinutes + HpMaxKwEl + ShortCycleBuffer + LoadOverestimationPercent + OilBoilerBackup + HorizonHours + OnPeakWindows (gw.tou.window with explicit Days). All required — no assumed defaults. Pairs with its layout by family. HeldCircuitPositions dropped. The store/optimization knobs are carried so this word and gw.house0.operational.params have identical field sets — Nolan has no thermal store to season, and they come back out as the functional code that still reads them (LeafAlly selection, layout.lite) is moved off them. ZeroTenPowerOnList added (zero.ten.power.on per 0-10V output: the power-on level moved out of dac.output.config)."
         direct_dependencies:
           structural:
             - "capture.tuning:000"
@@ -992,6 +981,7 @@ types:
             - "non.negative.int"
             - "positive.float"
             - "positive.int"
+            - "zero.ten.power.on:000"
 
   gw.tou.window:
     latest_version: "000"
@@ -1773,3 +1763,20 @@ types:
           structural:
             - "pascal.case"
             - "uuid4.str"
+
+  zero.ten.power.on:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "The power-on level of one 0-10V output (volts times ten), named by its node; the operational-params home for what was the DAC channel's EEPROM power-on code."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/zero.ten.power.on/000"
+        created: "2026-09-12T22:45:00Z"
+        status: "staging"
+        summary: "Initial version (NodeName, PowerOnVoltsTimesTen; TenVoltCeiling axiom). Carried per output in ZeroTenPowerOnList on both operational-params words."
+        direct_dependencies:
+          structural:
+            - "non.negative.int"
+            - "spaceheat.name"

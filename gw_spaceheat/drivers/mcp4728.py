@@ -21,6 +21,17 @@ EEPROM_WRITE_TIME_S = 0.05
 
 VREF_BIT = {"Internal": 1, "Vdd": 0}
 
+# The chip facts the outputer's volts <-> code math and its boot verify use.
+# GridWorks drives the MCP4728 against its internal 2.048 V reference at
+# gain 1 behind the gw108's times-five output stage, so full scale at the
+# terminal is 10.24 V; the EEPROM holds a power-on code the boot verify
+# checks and reprograms on a mismatch.
+CODES = 4096
+POWER_ON_VREF = "Internal"
+POWER_ON_GAIN = 1
+FULL_SCALE_VOLTS = 10.24
+SUPPORTS_POWER_ON_STORE = True
+
 
 def command(base: int, channel: int) -> int:
     """The command byte addressing `channel` (0-3) in the given family."""

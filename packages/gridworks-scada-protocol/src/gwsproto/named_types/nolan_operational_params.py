@@ -8,6 +8,7 @@ from gwsproto.named_types.capture_tuning import CaptureTuning
 from gwsproto.named_types.cop_curve import CopCurve
 from gwsproto.named_types.heating_curve import HeatingCurve
 from gwsproto.named_types.tou_window import TouWindow
+from gwsproto.named_types.zero_ten_power_on import ZeroTenPowerOn
 from gwsproto.property_format import LeftRightDotStr
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
@@ -26,6 +27,7 @@ class NolanOperationalParams(GwsprotoSemaType):
 
     ScadaAlias: LeftRightDotStr
     CaptureTuningList: List[CaptureTuning]
+    ZeroTenPowerOnList: List[ZeroTenPowerOn]
     ActuationAuthority: ActuationAuthority
     ServiceMode: ServiceMode
     SeasonalStorageMode: SeasonalStorageMode
@@ -61,7 +63,22 @@ class NolanOperationalParams(GwsprotoSemaType):
     @model_validator(mode="after")
     def check_axiom_2(self) -> Self:
         """
-        Axiom 2: PerDayWindowNonOverlap.
+        Axiom 2: ZeroTenPowerOnNodeUniqueness.
+        NodeName SHALL be unique across ZeroTenPowerOnList.
+        """
+        names = [z.NodeName for z in self.ZeroTenPowerOnList]
+        if len(names) != len(set(names)):
+            duplicates = sorted({n for n in names if names.count(n) > 1})
+            raise ValueError(
+                "Axiom 2 (ZeroTenPowerOnNodeUniqueness) failed: NodeName must be "
+                f"unique across ZeroTenPowerOnList; duplicates: {duplicates}"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_3(self) -> Self:
+        """
+        Axiom 3: PerDayWindowNonOverlap.
         For each day of the week, the windows in OnPeakWindows whose Days
         include that day SHALL NOT overlap one another.
         """
@@ -74,7 +91,7 @@ class NolanOperationalParams(GwsprotoSemaType):
             for earlier, later in zip(todays, todays[1:]):
                 if later.Start < earlier.End:
                     raise ValueError(
-                        "Axiom 2 (PerDayWindowNonOverlap) failed: on "
+                        "Axiom 3 (PerDayWindowNonOverlap) failed: on "
                         f"{day} window {later.Start}-{later.End} overlaps "
                         f"{earlier.Start}-{earlier.End}."
                     )

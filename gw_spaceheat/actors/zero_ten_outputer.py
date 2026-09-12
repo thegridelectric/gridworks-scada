@@ -4,7 +4,7 @@ AnalogDispatch from its boss and drives a level."""
 import asyncio
 import time
 import uuid
-from typing import Sequence
+from typing import NamedTuple, Sequence
 
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
@@ -12,14 +12,15 @@ from gwproto.message import Message
 from result import Ok, Result
 
 from actors.sh_node_actor import ShNodeActor
-from drivers import mcp4728
+from drivers import gp8403, mcp4728
 from scada_app_interface import ScadaAppInterface
+from sema_to_dc import zero_ten_power_on_volts_times_ten
 
 from gwsproto.data_classes.components import I2cDacOutputComponent
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.data_classes.sh_node import ShNode
 from actors import command_reply
-from gwsproto.enums import ActorClass, ScadaCmdRefusalReason, I2cDacChannel, I2cDacVref
+from gwsproto.enums import ActorClass, I2cDacChannel, I2cDacType, ScadaCmdRefusalReason
 from gwsproto.named_types import (
     AnalogDispatch,
     DacOutputConfig,
@@ -41,27 +42,35 @@ CHANNEL_INDEX = {
 # AnalogDispatch.Value for a 0-10V output is volts times ten, 0-100 — the
 # unit the DFR multiplexer drives and the VoltsTimesTen channel reports.
 VOLTS_TIMES_TEN_MAX = 100
-MCP4728_CODES = 4096
-MCP4728_INTERNAL_VREF_V = 2.048
-# The gw108 output stage amplifies the chip's output 5x (2.048 V full scale
-# at gain 1 -> 10.24 V at the terminal). Missing word: the board record's
-# i2c.dac.capability carries no output scale; this constant retires when it
-# does, resolved through the component's board record like the address.
-GW108_OUTPUT_GAIN = 5
 
 
-def output_full_scale_volts(config: DacOutputConfig) -> float:
-    """Terminal volts at code 4096 for this channel's reference and gain."""
-    return MCP4728_INTERNAL_VREF_V * config.PowerOnGain * GW108_OUTPUT_GAIN
+class DacFacts(NamedTuple):
+    """What the outputer needs from the choice of DAC chip: the terminal
+    volts at full code and whether the chip stores a power-on value. Driver
+    facts, keyed on the board record's DacType; not vocabulary."""
+
+    codes: int
+    full_scale_volts: float
+    supports_power_on_store: bool
 
 
-def code_from_volts_times_ten(value: int, config: DacOutputConfig) -> int:
-    """The 12-bit code that drives `value` (volts times ten) at the terminal."""
-    return round(value / 10 / output_full_scale_volts(config) * MCP4728_CODES)
+DAC_FACTS: dict[I2cDacType, DacFacts] = {
+    I2cDacType.Mcp4728: DacFacts(
+        mcp4728.CODES, mcp4728.FULL_SCALE_VOLTS, mcp4728.SUPPORTS_POWER_ON_STORE
+    ),
+    I2cDacType.Gp8403: DacFacts(
+        gp8403.CODES, gp8403.FULL_SCALE_VOLTS, gp8403.SUPPORTS_POWER_ON_STORE
+    ),
+}
 
 
-def volts_times_ten_from_code(code: int, config: DacOutputConfig) -> int:
-    return round(code / MCP4728_CODES * output_full_scale_volts(config) * 10)
+def code_from_volts_times_ten(value: int, facts: DacFacts) -> int:
+    """The code that drives `value` (volts times ten) at the terminal."""
+    return round(value / 10 / facts.full_scale_volts * facts.codes)
+
+
+def volts_times_ten_from_code(code: int, facts: DacFacts) -> int:
+    return round(code / facts.codes * facts.full_scale_volts * 10)
 
 
 class ZeroTenOutputer(ShNodeActor):
@@ -69,13 +78,14 @@ class ZeroTenOutputer(ShNodeActor):
     The component selects the mechanism, as with Relay:
 
     - I2cDacOutputComponent (Nolan): one channel of a board DAC, resolved
-      from the component's board record (DacName -> address, mux) and driven
-      through the I2cBus single owner. Boot EEPROM verify against the
-      declared power-on defaults (Single Write only on a mismatch: the one
-      EEPROM-touching path), then Multi-Write of the target level — the
-      power-on level until the first dispatch, the last commanded level
-      after — re-asserted every heartbeat and on every dispatch. A
-      successful write reports the level on the output's channel.
+      from the component's board record (DacName -> address, mux, chip) and
+      driven through the I2cBus single owner. The power-on level comes from
+      the ops word (zero.ten.power.on). Where the chip stores one (MCP4728),
+      boot verifies its EEPROM against that level and reprograms only on a
+      mismatch (Single Write: the one EEPROM-touching path); then Multi-Write
+      of the target level — the power-on level until the first dispatch, the
+      last commanded level after — re-asserted every heartbeat and on every
+      dispatch. A successful write reports the level on the output's channel.
     - No component (House0): the DFR multiplexer node owns the DFR board
       and its per-output configs; this node forwards the dispatch to it.
       Missing word: a per-output DFR component (the DFR analog of
@@ -122,11 +132,6 @@ class ZeroTenOutputer(ShNodeActor):
             raise ValueError(
                 f"{self.name}: component config names actor {config.ActorName}"
             )
-        if config.PowerOnVref != I2cDacVref.Internal:
-            raise ValueError(
-                f"{self.name}: PowerOnVref {config.PowerOnVref} unsupported — "
-                "the Vdd reference has no declared supply voltage to scale by"
-            )
         self.config: DacOutputConfig = config
         self.channel: int = CHANNEL_INDEX[config.DacChannel]
         record = component.board_component.device_type
@@ -139,6 +144,12 @@ class ZeroTenOutputer(ShNodeActor):
                 f"named {component.gt.DacName}"
             )
         self.dac_address: int = dac.I2cAddress
+        if dac.DacType != I2cDacType.Mcp4728:
+            raise ValueError(
+                f"{self.name}: DacType {dac.DacType} has no write path yet; "
+                "the GP8403 arm arrives with the House0 shift"
+            )
+        self.facts: DacFacts = DAC_FACTS[dac.DacType]
         if dac.MuxName is not None:
             mux = next(m for m in record.Muxes if m.MuxName == dac.MuxName)
             self.mux_address: int | None = mux.I2cAddress
@@ -155,10 +166,12 @@ class ZeroTenOutputer(ShNodeActor):
                 f"layout; found {len(bus_nodes)}"
             )
         self.bus_node: ShNode = bus_nodes[0]
-        # The code the heartbeat drives: the declared power-on code until
-        # the first dispatch (exactly, not rounded through volts x10), the
-        # last commanded level after.
-        self.target_code: int = config.PowerOnRawValue
+        # The code the heartbeat drives: the ops word's power-on level until
+        # the first dispatch, the last commanded level after.
+        self.power_on_code: int = code_from_volts_times_ten(
+            zero_ten_power_on_volts_times_ten(self.ops, self.name), self.facts
+        )
+        self.target_code: int = self.power_on_code
 
     # ---- dispatch ----
 
@@ -200,7 +213,7 @@ class ZeroTenOutputer(ShNodeActor):
             command_reply.ack(self.node.handle, dispatch.FromHandle, dispatch.TriggerId),
         )
         if self.dac is not None:
-            self.target_code = code_from_volts_times_ten(dispatch.Value, self.config)
+            self.target_code = code_from_volts_times_ten(dispatch.Value, self.facts)
             self.log(
                 f"Dispatch from {dispatch.FromHandle}: volts x10 {dispatch.Value} "
                 f"-> code {self.target_code}"
@@ -286,8 +299,8 @@ class ZeroTenOutputer(ShNodeActor):
 
     def data_bits(self) -> tuple[int, int]:
         return (
-            mcp4728.VREF_BIT[self.config.PowerOnVref.value],
-            mcp4728.gain_bit(self.config.PowerOnGain),
+            mcp4728.VREF_BIT[mcp4728.POWER_ON_VREF],
+            mcp4728.gain_bit(mcp4728.POWER_ON_GAIN),
         )
 
     async def write_code(self, code: int, command_base: int) -> tuple[bool, str]:
@@ -317,7 +330,7 @@ class ZeroTenOutputer(ShNodeActor):
         """Multi-Write the target level (input register only) and report it;
         one Glitch per failure streak, retried every heartbeat."""
         code = self.target_code
-        value = volts_times_ten_from_code(code, self.config)
+        value = volts_times_ten_from_code(code, self.facts)
         ok, detail = await self.write_code(code, mcp4728.MULTI_WRITE_BASE)
         key = "i2c-dac-write-failed"
         if not ok:
@@ -338,8 +351,9 @@ class ZeroTenOutputer(ShNodeActor):
     # ---- the boot EEPROM verify ----
 
     async def read_eeprom_mismatch(self) -> tuple[bool | None, str]:
-        """Whether the channel's EEPROM differs from the declared PowerOn
-        values, or (None, detail) when the read itself failed."""
+        """Whether the channel's EEPROM differs from the ops word's power-on
+        level (and the driver's reference and gain), or (None, detail) when
+        the read itself failed."""
         result = await self.muxed_op(
             I2cReadBytes(
                 Bus=self.bus_node.name,
@@ -354,15 +368,18 @@ class ZeroTenOutputer(ShNodeActor):
             return None, result.Error or "unknown bus error"
         vref, gain = self.data_bits()
         hi, lo = mcp4728.eeprom_data(result.Bytes, self.channel)
-        expected = (self.config.PowerOnRawValue, vref, gain)
+        expected = (self.power_on_code, vref, gain)
         read = mcp4728.decode_data(hi, lo)
         if read == expected:
             return False, ""
-        return True, f"EEPROM (code, vref, gain) read {read}, layout {expected}"
+        return True, f"EEPROM (code, vref, gain) read {read}, ops {expected}"
 
     async def verify_eeprom(self) -> bool:
-        """Read -> compare to the declared PowerOn values -> reprogram a
-        mismatch (Single Write — the one EEPROM-touching path) -> re-verify."""
+        """Read -> compare to the ops power-on level -> reprogram a mismatch
+        (Single Write — the one EEPROM-touching path) -> re-verify. A chip
+        that stores no power-on value has nothing to verify."""
+        if not self.facts.supports_power_on_store:
+            return True
         mismatch, mismatch_detail = await self.read_eeprom_mismatch()
         if mismatch is None:
             self.send_warning_once(
@@ -373,9 +390,9 @@ class ZeroTenOutputer(ShNodeActor):
             return False
         self.clear_warning("i2c-dac-eeprom-read-failed")
         if not mismatch:
-            self.log(f"{self.name}: EEPROM verified against layout PowerOn values")
+            self.log(f"{self.name}: EEPROM verified against the ops power-on level")
             return True
-        await self.write_code(self.config.PowerOnRawValue, mcp4728.SINGLE_WRITE_BASE)
+        await self.write_code(self.power_on_code, mcp4728.SINGLE_WRITE_BASE)
         # let the chip's EEPROM write cycle complete before the next
         # command or the re-read sees stale data
         await asyncio.sleep(mcp4728.EEPROM_WRITE_TIME_S + 0.01)

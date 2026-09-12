@@ -138,7 +138,7 @@ async def test_admin_analog_dispatch_reaches_outputer(
         scada = h.child_app.scada
         out = h.child_app.proactor.get_communicator(DAC_NODE)
         assert isinstance(out, ZeroTenOutputer)
-        expected_code = code_from_volts_times_ten(VOLTS_TIMES_TEN, out.config)
+        expected_code = code_from_volts_times_ten(VOLTS_TIMES_TEN, out.facts)
         scada.process_scada_message(scada.admin, admin_dispatch(VOLTS_TIMES_TEN))
         assert out.node.handle == f"{H0N.admin}.{DAC_NODE}"
         assert out.target_code == expected_code

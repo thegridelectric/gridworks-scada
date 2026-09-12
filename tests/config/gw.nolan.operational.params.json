@@ -590,6 +590,14 @@
       "AsyncCaptureDelta": 20
     }
   ],
+  "ZeroTenPowerOnList": [
+    {
+      "NodeName": "secondary-010v",
+      "PowerOnVoltsTimesTen": 76,
+      "TypeName": "zero.ten.power.on",
+      "Version": "000"
+    }
+  ],
   "ActuationAuthority": "Active",
   "ServiceMode": "Heating",
   "CopCurve": {

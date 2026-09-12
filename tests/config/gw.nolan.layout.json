@@ -2500,10 +2500,7 @@
           "Version": "000",
           "ChannelName": "secondary-010v",
           "ActorName": "secondary-010v",
-          "DacChannel": "C",
-          "PowerOnRawValue": 3020,
-          "PowerOnVref": "Internal",
-          "PowerOnGain": 1
+          "DacChannel": "C"
         }
       ],
       "DisplayName": "Secondary Pump 010V"

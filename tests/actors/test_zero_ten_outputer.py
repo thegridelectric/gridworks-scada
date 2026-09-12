@@ -8,7 +8,7 @@ becomes a throttled Glitch, never a crash). Plus the House0 path: a node with
 no component forwards the dispatch to the DFR multiplexer.
 
 The Nolan fixture carries `secondary-010v` on Dac2 channel C (power-on code
-3020 = 7.55 V); the House0 sim fixture carries the three DFR outputs.
+76 volts times ten = code 3040); the House0 sim fixture carries the three DFR outputs.
 """
 
 import asyncio
@@ -32,8 +32,8 @@ MUX_ADDRESS = 0x70
 DAC_ADDRESS = 0x60
 DAC2_MUX_CHANNEL = 2
 CHANNEL_C = 2
-C_RAW = 3020  # the layout's PowerOnRawValue for channel C (7.55 V)
-C_VOLTS_TIMES_TEN = 76
+C_VOLTS_TIMES_TEN = 76  # the ops word's power-on level for secondary-010v
+C_RAW = 3040  # 7.6 V of a 10.24 V full scale
 DISPATCH_VOLTS_TIMES_TEN = 50
 DISPATCH_RAW = 2000  # 5.0 V of a 10.24 V full scale
 
@@ -100,7 +100,7 @@ def test_resolves_from_board_record(rig) -> None:
     assert out.mux_address == MUX_ADDRESS
     assert out.mux_channel == DAC2_MUX_CHANNEL
     assert out.channel == CHANNEL_C
-    assert out.config.PowerOnRawValue == C_RAW
+    assert out.power_on_code == C_RAW
     assert out.target_code == C_RAW
 
 
@@ -132,8 +132,8 @@ def test_boot_verify_reprograms_then_stays_clean(rig) -> None:
     assert dac.eeprom[CHANNEL_C] == [C_RAW, 1, 0]
     assert dac.register[CHANNEL_C] == [C_RAW, 1, 0]
     assert out.warnings == ["i2c-dac-eeprom-reprogrammed"]
-    # the glitch names what the chip held and what the layout declares
-    assert f"read (0, 0, 0), layout ({C_RAW}, 1, 0)" in details[0]
+    # the glitch names what the chip held and what the ops word declares
+    assert f"read (0, 0, 0), ops ({C_RAW}, 1, 0)" in details[0]
     # a chip already carrying the declared defaults verifies silently
     out.warnings.clear()
     assert asyncio.run(out.verify_eeprom())
@@ -209,7 +209,8 @@ def test_house0_output_forwards_to_dfr_multiplexer() -> None:
 
 # The 24-byte read i2ctransfer took on honeysuckle's Dac2 after the 2026-09-05
 # bench boot: channel C input register and EEPROM both 0x8b 0xcc (code 3020,
-# internal VREF, gain 1), the layout's PowerOn values for secondary-010v.
+# internal VREF, gain 1), the power-on code the layout declared then. The ops
+# word now says 7.6 V (code 3040), so the same bytes are a mismatch.
 BENCH_READ_2026_09_05 = [
     0xC0, 0x80, 0x00, 0xC8, 0x80, 0x00,
     0xD0, 0x80, 0x00, 0xD8, 0x80, 0x00,
@@ -218,9 +219,10 @@ BENCH_READ_2026_09_05 = [
 ]
 
 
-def test_verify_accepts_the_bench_chip_read(rig) -> None:
-    """The comparison, fed the exact bytes a real MCP4728 returned with the
-    declared power-on values in EEPROM, reports no mismatch."""
+def test_verify_reads_the_bench_chip_bytes(rig) -> None:
+    """The comparison, fed the exact bytes a real MCP4728 returned, decodes
+    the chip's (code, vref, gain) and reports the code-only mismatch against
+    the ops level."""
     out, _, _ = rig
 
     async def chip_read(payload):
@@ -234,4 +236,6 @@ def test_verify_accepts_the_bench_chip_read(rig) -> None:
         )
 
     out.muxed_op = chip_read
-    assert asyncio.run(out.read_eeprom_mismatch()) == (False, "")
+    mismatch, detail = asyncio.run(out.read_eeprom_mismatch())
+    assert mismatch is True
+    assert detail == f"EEPROM (code, vref, gain) read (3020, 1, 0), ops ({C_RAW}, 1, 0)"

@@ -54,7 +54,6 @@ from gwsproto.enums.i2c_adc_channel import I2cAdcChannel
 from gwsproto.enums.i2c_adc_type import I2cAdcType
 from gwsproto.enums.i2c_dac_channel import I2cDacChannel
 from gwsproto.enums.i2c_dac_type import I2cDacType
-from gwsproto.enums.i2c_dac_vref import I2cDacVref
 from gwsproto.enums.i2c_expander_type import I2cExpanderType
 from gwsproto.enums.i2c_mux_type import I2cMuxType
 from gwsproto.enums.i2c_operation import I2cOperation
@@ -152,7 +151,6 @@ __all__ = [
     "I2cAdcType",
     "I2cDacChannel",
     "I2cDacType",
-    "I2cDacVref",
     "I2cExpanderType",
     "I2cMuxType",
     "I2cOperation",

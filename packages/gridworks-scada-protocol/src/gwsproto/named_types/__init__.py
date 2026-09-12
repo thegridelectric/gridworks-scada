@@ -170,6 +170,7 @@ from gwsproto.named_types.usable_energy_layered import UsableEnergyLayered
 from gwsproto.named_types.wake_up import WakeUp
 from gwsproto.named_types.weather_forecast import WeatherForecast
 from gwsproto.named_types.web_server_component_gt import WebServerComponentGt
+from gwsproto.named_types.zero_ten_power_on import ZeroTenPowerOn
 from gwsproto.named_types.zone_call_circuit import ZoneCallCircuit
 from gwsproto.named_types.zone_circuit_governance_cmd import ZoneCircuitGovernanceCmd
 from gwsproto.named_types.zone_thermostat import ZoneThermostat
@@ -327,6 +328,7 @@ __all__ = [
     "WakeUp",
     "WeatherForecast",
     "WebServerComponentGt",
+    "ZeroTenPowerOn",
     "ZoneCallCircuit",
     "ZoneCircuitGovernanceCmd",
     "ZoneThermostat",

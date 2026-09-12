@@ -8,6 +8,7 @@ class I2cDacType(SemaEnum):
 
     Mcp4728 = auto()
     Mcp4725 = auto()
+    Gp8403 = auto()
 
     @classmethod
     def default(cls) -> "I2cDacType":

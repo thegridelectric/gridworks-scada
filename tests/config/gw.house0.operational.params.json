@@ -340,6 +340,26 @@
       "Version": "000"
     }
   ],
+  "ZeroTenPowerOnList": [
+    {
+      "NodeName": "dist-010v",
+      "PowerOnVoltsTimesTen": 20,
+      "TypeName": "zero.ten.power.on",
+      "Version": "000"
+    },
+    {
+      "NodeName": "primary-010v",
+      "PowerOnVoltsTimesTen": 40,
+      "TypeName": "zero.ten.power.on",
+      "Version": "000"
+    },
+    {
+      "NodeName": "store-010v",
+      "PowerOnVoltsTimesTen": 0,
+      "TypeName": "zero.ten.power.on",
+      "Version": "000"
+    }
+  ],
   "CopCurve": {
     "Intercept": 1.02,
     "LwtCoeff": 0.0,
