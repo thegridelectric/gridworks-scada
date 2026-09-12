@@ -62,8 +62,6 @@ NO_WORD_TYPES = {
     "admin.keep.alive",
     "admin.release.control",
     "ally.gives.up",
-    "async.btu.params",
-    "baseurl.failure.alert",
     "bid.recommendation",
     "channel.flatlined",
     "dispatch.contract.go.dormant",

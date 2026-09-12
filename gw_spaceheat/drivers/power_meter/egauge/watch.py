@@ -94,7 +94,7 @@ def watch():
     unresolved_host = args.host
     args.host = socket.gethostbyname(args.host)
     console.print(f"Modbus host: {unresolved_host} -> {args.host}")
-    c = ModbusClient(host=args.host, port=args.port, unit_id=1, timeout=5.0, auto_open=True, debug=False)
+    c = ModbusClient(host=args.host, port=args.port, unit_id=1, timeout=5.0, auto_open=True)
     try:
         c.open()
         if c.is_open:

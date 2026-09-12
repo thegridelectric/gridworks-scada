@@ -2,11 +2,14 @@ from typing import Literal, Optional
 from typing_extensions import Self
 
 from pydantic import PositiveInt, model_validator
+from gwsproto.enums import PicoBoardVariant
 from gwsproto.property_format import SpaceheatName
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
 class AsyncBtuParams(GwsprotoSemaType):
+    """Sema: https://schemas.electricity.works/types/async.btu.params/100"""
+
     HwUid: str
     ActorNodeName: SpaceheatName
     FlowChannelName: SpaceheatName
@@ -22,8 +25,10 @@ class AsyncBtuParams(GwsprotoSemaType):
     AsyncCaptureDeltaCelsiusX100: PositiveInt
     AsyncCaptureDeltaCtVoltsX100: Optional[PositiveInt] = None
     CaptureOffsetS: Optional[float] = None
+    PicoBoardVariant: PicoBoardVariant
+    MicropythonVersion: str
     TypeName: Literal["async.btu.params"] = "async.btu.params"
-    Version: Literal["000"] = "000"
+    Version: Literal["100"] = "100"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
