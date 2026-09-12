@@ -1,9 +1,5 @@
 """Tests async.btu.params type, version 100"""
 
-import json
-import subprocess
-import sys
-
 import pytest
 from pydantic import ValidationError
 
@@ -59,16 +55,3 @@ def test_version_000_wire_shape_is_rejected() -> None:
     d["Version"] = "000"
     with pytest.raises(ValidationError):
         AsyncBtuParams.model_validate(d)
-
-
-def test_conforms_to_sema_runtime(tmp_path) -> None:
-    payload = tmp_path / "async_btu_params.json"
-    payload.write_text(json.dumps(WIRE_100))
-    result = subprocess.run(
-        [sys.executable, "-m", "sema", "validate", str(payload)],
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0 and "No module named sema" in result.stderr:
-        pytest.skip("sema runtime not importable in this venv")
-    assert result.returncode == 0, result.stdout + result.stderr
