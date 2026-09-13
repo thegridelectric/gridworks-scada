@@ -111,6 +111,10 @@ class Scada(PrimeActor, ScadaInterface):
         {"trigger": "AutoWakesUp", "source": "Dormant", "dest": "LocalControl"},
     ]
 
+    @property
+    def services(self) -> ScadaAppInterface:
+        return typing.cast(ScadaAppInterface, self._services)
+
     def __init__(self, name: str, services: ScadaAppInterface) -> None:
         super().__init__(name, services)
         if not isinstance(services.hardware_layout, HydronicLayout):

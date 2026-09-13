@@ -840,10 +840,10 @@ class DerivedGenerator(ShNodeActor):
             max_buffer_usable_kwh += self.LITERS_PER_LAYER * self.WATER_SPECIFIC_HEAT_KWH_PER_KG_C * delta_t_celcius
             simulated_layers = simulated_layers[1:] + [self.rwt_f(simulated_layers[0])]          
         self.log(f"Max buffer usable energy: {round(max_buffer_usable_kwh,1)} kWh")
-        required_energy = self.data.latest_channel_values.get(H0CN.required_energy, 0)
-        if round(max_buffer_usable_kwh,1) < round(required_energy,1):
+        required_energy_kwh = self.data.latest_channel_values.get(H0CN.required_energy, 0) / 1000
+        if round(max_buffer_usable_kwh,1) < round(required_energy_kwh,1):
             summary = "Consider changing strategy to use all tanks and not just the buffer"
-            details = f"A full buffer will not have enough energy to go through the next on-peak ({round(max_buffer_usable_kwh,1)}<{round(required_energy/1000,1)} kWh)"
+            details = f"A full buffer will not have enough energy to go through the next on-peak ({round(max_buffer_usable_kwh,1)}<{round(required_energy_kwh,1)} kWh)"
             self.log(details)
             self.send_info(summary, details)
         
