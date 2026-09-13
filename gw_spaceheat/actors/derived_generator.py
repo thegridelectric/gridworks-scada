@@ -752,7 +752,7 @@ class DerivedGenerator(ShNodeActor):
             self.log("Skipping energy update: heating_forecast not yet available")
             return None
 
-        latest_temps_f = self.latest_temps_f.copy()
+        latest_temps_f = self.data.latest_temperatures_f.copy()
 
         ordered_tank_layers = []
         if self.ops.SeasonalStorageMode== SeasonalStorageMode.AllTanks:
@@ -843,7 +843,7 @@ class DerivedGenerator(ShNodeActor):
         required_energy = self.data.latest_channel_values.get(H0CN.required_energy, 0)
         if round(max_buffer_usable_kwh,1) < round(required_energy,1):
             summary = "Consider changing strategy to use all tanks and not just the buffer"
-            details = f"A full buffer will not have enough energy to go through the next on-peak ({round(max_buffer_usable_kwh,1)}<{round(self.required_kwh,1)} kWh)"
+            details = f"A full buffer will not have enough energy to go through the next on-peak ({round(max_buffer_usable_kwh,1)}<{round(required_energy/1000,1)} kWh)"
             self.log(details)
             self.send_info(summary, details)
         

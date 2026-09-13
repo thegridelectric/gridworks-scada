@@ -15,7 +15,7 @@ from gwsproto.enums.gw_str_enum import GwStrEnum
 from actors.hp_boss import SiegLoopReady
 from gwsproto.enums.hp_boss_state import HpBossState
 from gwsproto.enums import ActuationAuthority
-from actors.sh_node_actor import ShNodeActor
+from actors.hydronic.house0 import House0Hydronic
 from gwsproto.named_types import ActuatorsReady, SingleMachineState
 
 
@@ -74,7 +74,25 @@ class SiegControlEvent(GwStrEnum):
     HpStartUpDone = auto()
 
 
-class SiegLoop(ShNodeActor):
+class SiegLoop(House0Hydronic):
+    """The Siegenthaler-loop valve actor: a valve state machine under a
+    control state machine, both driven by hp-boss's reported state and the
+    loop's own temperatures and power reads.
+
+    Base class: this actor inherits House0Hydronic for the valve choreography
+    (change_to_hp_keep_more / _less, sieg_valve_active / _hold, hp_boss,
+    total_hp_pwr_w) as an interim. A fall-2026 layout has a Siegenthaler loop
+    without the House0 hydronic set, so the choreography is not House0's; the
+    sieg tier and the valve's command surface (admin included) are designed
+    then, and this base class changes with it.
+
+    The original loop, the one that ran the 2025-26 heating season and has not
+    yet been exercised in production in this form, is kept for troubleshooting
+    at commit c55fe9eb, before it was demoted:
+
+        git show c55fe9eb:gw_spaceheat/actors/sieg_loop.py
+    """
+
     FULL_RANGE_S = 100
 
     def __init__(self, name: str, services: ScadaAppInterface):

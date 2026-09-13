@@ -149,8 +149,7 @@ class ScadaSettings(ScadaPathsSettings):
     # hp.device.type.gt record, and an hp-ctrl-box component pointing at
     # hp.control.box.device.type.gt (both words exist in sema; the Nolan layout
     # today has neither, and carries an hp-idu node that should be
-    # hp-ctrl-box). Only reader today is actors/orig_sieg_loop.py, which
-    # nothing imports.
+    # hp-ctrl-box). Nothing reads it today.
     hp_model: HpModel = HpModel.SamsungFiveTonneHydroKit
     airtable_pat: str = "bogus_pat"
     model_config = SettingsConfigDict(env_prefix="SCADA_", extra="ignore")
