@@ -73,8 +73,8 @@ from actors.ltn.contract_handler import LtnContractHandler
  
 from gwsproto.named_types import (
     Bid, BidRecommendation, FloParamsHouse0, FloNextHourPlans, Glitch, Ha1Params, LatestPrice,
-    LayoutLite, NoNewContractWarning, ResetHpKeepValue, ScadaParams, SendLayout,
-    SetLwtControlParams, SiegLoopEndpointValveAdjustment, SlowContractHeartbeat, SlowContractRejection,
+    LayoutLite, NoNewContractWarning, ScadaParams, SendLayout,
+    SlowContractHeartbeat, SlowContractRejection,
     SnapshotSpaceheat,
 )
 
@@ -1937,72 +1937,6 @@ class Ltn(PrimeActor):
                 self.send_new_params(new)
             except Exception as e:
                 self.logger.error(f"Failed to set LoadOverestimationPercent! {e}")
-
-    def reset_keep_seconds(self, new_seconds: float) -> None:
-        self.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.scada.name,
-                Payload=ResetHpKeepValue(
-                    FromHandle=f"{H0N.ltn}",
-                    ToHandle=f"{H0N.ltn}.{H0N.leaf_ally}",
-                    HpKeepSecondsTimes10=round(new_seconds * 10),
-                ),
-            )
-        )
-
-    def send_harder(self, seconds: int) -> None:
-        self.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.scada.name,
-                Payload=SiegLoopEndpointValveAdjustment(
-                    FromHandle=f"{H0N.ltn}",
-                    ToHandle=f"{H0N.ltn}.{H0N.leaf_ally}",
-                    HpKeepPercent=0,
-                    Seconds=seconds,
-                ),
-            )
-        )
-
-    def set_lwt_control_params(self,
-        proportional_gain: float = 5.0,
-        integral_gain: float = 2,
-        derivative_gain: float = 1,
-        control_interval_seconds: int = 5,
-        t1: int = 15,
-        t2: int = 65
-    ) -> None:
-        self.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.scada.name,
-                Payload=SetLwtControlParams(
-                    FromHandle=H0N.ltn,
-                    ToHandle=f"{H0N.ltn}.{H0N.leaf_ally}",
-                    ProportionalGain=proportional_gain,
-                    IntegralGain=integral_gain,
-                    DerivativeGain=derivative_gain,
-                    ControlIntervalSeconds=control_interval_seconds,
-                    T1=t1,
-                    T2=t2,
-                ),
-            )
-        )
-
-    def keep_harder(self, seconds: int) -> None:
-        self.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.scada.name,
-                Payload=SiegLoopEndpointValveAdjustment(
-                    FromHandle=f"{H0N.ltn}",
-                    ToHandle=f"{H0N.ltn}.{H0N.leaf_ally}",
-                    HpKeepPercent=100,
-                    Seconds=seconds,
-                ),
-            )
-        )
 
     def dbg(
         self,
