@@ -112,24 +112,28 @@ def test_boss_reboot_command_opens_relay_with_adopted_trigger_id(app: ScadaApp) 
     assert [r.StateList for r in cycler_rows] == [[PicoCyclerState.RelayOpening]]
 
 
-def test_command_to_stale_handle_is_refused_as_bad_boss(app: ScadaApp) -> None:
+def test_command_to_stale_handle_is_refused_as_not_my_boss(app: ScadaApp) -> None:
     """Admin commanding the cycler directly, by the handle it had before
-    five-v-boss stood above it: the handle is not the cycler's live one."""
+    five-v-boss stood above it: the handle is not the cycler's live one.
+    The NotMyBoss nack to the sender is the whole report; no glitch."""
     cycler, sent = cycler_under_admin(app)
 
-    command(
-        cycler,
-        reboot_command(f"{H0N.admin}.{H0N.pico_cycler}", from_handle=H0N.admin),
-        src=H0N.admin,
-    )
+    stale = reboot_command(f"{H0N.admin}.{H0N.pico_cycler}", from_handle=H0N.admin)
+    command(cycler, stale, src=H0N.admin)
 
     assert cycler.state == PicoCyclerState.PicosLive
     assert relay_events(sent) == []
-    glitches = [p for dst, p in sent if isinstance(p, Glitch)]
-    assert [g.Summary for g in glitches] == ["bad_boss"]
+    assert [p for dst, p in sent if isinstance(p, Glitch)] == []
+    [(dst, nack)] = [(dst, p) for dst, p in sent if isinstance(p, DispatchNack)]
+    assert dst == H0N.admin
+    assert nack.Reason == ScadaCmdRefusalReason.NotMyBoss
+    assert nack.TriggerId == stale.TriggerId
 
 
-def test_command_whose_from_handle_is_not_the_senders_is_refused(app: ScadaApp) -> None:
+def test_command_whose_from_handle_is_not_the_senders_is_dropped(app: ScadaApp) -> None:
+    """Sent by five-v-boss but claiming admin in FromHandle: the wire
+    source and the claim disagree, so nothing moves and no reply goes to
+    the claimed commander; the LTN gets one warning glitch."""
     cycler, sent = cycler_under_admin(app)
     forged = reboot_command(cycler.node.handle)
     forged = forged.model_copy(update={"FromHandle": H0N.admin})
@@ -137,7 +141,9 @@ def test_command_whose_from_handle_is_not_the_senders_is_refused(app: ScadaApp) 
     command(cycler, forged)
 
     assert cycler.state == PicoCyclerState.PicosLive
-    assert sent == []
+    assert relay_events(sent) == []
+    assert [p for dst, p in sent if isinstance(p, DispatchNack)] == []
+    assert [(dst, p.Summary) for dst, p in sent if isinstance(p, Glitch)] == [(H0N.ltn, "bad_sender")]
 
 
 def test_other_event_types_are_refused(app: ScadaApp) -> None:

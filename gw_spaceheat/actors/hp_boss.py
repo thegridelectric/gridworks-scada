@@ -16,8 +16,8 @@ from result import Ok, Result
 from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 from actors import command_reply
-from gwsproto.enums import ScadaCmdRefusalReason, LogLevel, TurnHpOnOff
-from gwsproto.named_types import FsmEvent, Glitch, SingleMachineState
+from gwsproto.enums import ScadaCmdRefusalReason, TurnHpOnOff
+from gwsproto.named_types import FsmEvent, SingleMachineState
 
 class SiegLoopReady(BaseModel):
     TypeName: Literal["sieg.loop.ready"] = "sieg.loop.ready"
@@ -81,15 +81,6 @@ class HpBoss(ShNodeActor):
     def process_fsm_event(self, from_node: ShNode, payload: FsmEvent) -> None: 
         self.log(f"Got {payload}")   
         if payload.ToHandle != self.node.handle:
-             # TODO: turn this into a report?
-            self._send_to(self.ltn,
-                          Glitch(
-                              FromGNodeAlias=self.layout.scada_g_node_alias,
-                              Node=self.name,
-                              Type=LogLevel.Warning,
-                              Summary="bad_boss",
-                              Details=f"{payload.FromHandle} tried to command {self.node.Handle}. Ignoring!"
-                          ))
             self.log(f"Handle is {self.node.Handle}; ignoring {payload}")
             self._send_to(
                 from_node,
@@ -100,10 +91,12 @@ class HpBoss(ShNodeActor):
             )
             return
         if from_node.handle != payload.FromHandle:
-            self.log(
-                f"from_node {from_node.name} has handle {from_node.handle}, not {payload.FromHandle}!"
+            self.send_warning(
+                "bad_sender",
+                f"{from_node.name} (handle {from_node.handle}) sent a command claiming "
+                f"FromHandle {payload.FromHandle}. Ignoring!",
             )
-            # TODO: probably send glitch here as well
+            return
         # TODO: add way for boss to realize its command was ignored before
         # adding the following
         # if time.time() - self.last_cmd_time < 0.5:

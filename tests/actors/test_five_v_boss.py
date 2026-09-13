@@ -37,6 +37,7 @@ from gwsproto.named_types import (
     FsmAtomicReport,
     FsmEvent,
     FsmFullReport,
+    Glitch,
     GoDormant,
     NewCommandTree,
     PicoMissing,
@@ -458,11 +459,31 @@ def test_scada_wakes_five_v_boss_on_admin_release(app: ScadaApp) -> None:
 
 
 def test_stale_handle_is_not_my_boss(app: ScadaApp) -> None:
+    """Local control, truthfully named, commanding by the handle five-v-boss
+    had under it before admin took the tree."""
     boss, sent = boss_under_admin(app)
-    cmd = command(f"{H0N.auto}.{H0N.five_v_boss}", Turn5VOnOff.enum_name(), Turn5VOnOff.TurnOff, from_handle=H0N.auto)
-    deliver(boss, cmd, H0N.admin)
+    lc = app.scada.layout.node(H0N.local_control)
+    cmd = command(
+        f"{lc.handle}.{H0N.five_v_boss}", Turn5VOnOff.enum_name(), Turn5VOnOff.TurnOff,
+        from_handle=lc.handle,
+    )
+    deliver(boss, cmd, H0N.local_control)
     [(dst, nack)] = sent_of(sent, DispatchNack)
+    assert dst == H0N.local_control
     assert nack.Reason == ScadaCmdRefusalReason.NotMyBoss
+    assert sent_of(sent, Glitch) == []
+    assert boss.state == FiveVBossState.PicoCycler
+
+
+def test_command_whose_from_handle_is_not_the_senders_is_dropped(app: ScadaApp) -> None:
+    """To the live handle and claiming admin, but put on the wire by the
+    pico-cycler: no reply to admin, one bad_sender glitch, no state change."""
+    boss, sent = boss_under_admin(app)
+    deliver(boss, turn(boss, Turn5VOnOff.TurnOff), H0N.pico_cycler)
+    assert sent_of(sent, DispatchNack) == []
+    assert sent_of(sent, DispatchAck) == []
+    assert sent_of(sent, FsmEvent) == []
+    assert [(dst, g.Summary) for dst, g in sent_of(sent, Glitch)] == [(H0N.ltn, "bad_sender")]
     assert boss.state == FiveVBossState.PicoCycler
 
 

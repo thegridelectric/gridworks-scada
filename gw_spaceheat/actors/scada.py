@@ -40,7 +40,7 @@ from gwsproto.named_types import FsmFullReport, PowerWatts, SendSnap, ReportEven
 
 
 from gwsproto.named_types import (
-    AnalogDispatch, ChannelReadings, MachineStates,
+    ChannelReadings, MachineStates,
     SingleReading, SyncedReadings,
 )
 
@@ -137,7 +137,6 @@ class Scada(PrimeActor, ScadaInterface):
         self._channels_reported = False
         self._last_report_second = int(now - (now % self.settings.seconds_per_report))
         self._last_snap_s = int(now - (now % self.settings.seconds_per_snapshot))
-        self.pending_dispatch: Optional[AnalogDispatch] = None
 
         local_control_normal = self.layout.node(H0N.local_control_normal)
         if local_control_normal is None:
@@ -314,14 +313,6 @@ class Scada(PrimeActor, ScadaInterface):
                     self.process_ally_gives_up(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with process_ally_gives_up: \n {e}")
-            case AnalogDispatch():
-                if payload.FromGNodeAlias != self._layout.ltn_g_node_alias:
-                    self.logger.error("IGNORING DISPATCH - NOT FROM MY LTN")
-                    return
-                try:
-                    self.process_analog_dispatch(payload)
-                except Exception as e:
-                    self.log(f"Trouble with proces_analog_dispatch: \n {e}")
             case ChannelFlatlined():
                 try:
                     self.data.flush_channel_from_latest(payload.Channel.Name)
@@ -491,7 +482,20 @@ class Scada(PrimeActor, ScadaInterface):
             self.admin_wakes_up()
             self.log("Admin Wakes Up")
         self._renew_admin_timeout(timeout_seconds=payload.TimeoutSeconds)
-        self.process_analog_dispatch(payload.Dispatch)
+        dispatch = payload.Dispatch
+        self.log(f"AdminAnalogDispatch {dispatch.Value} to {dispatch.ToHandle}")
+        to_name = dispatch.ToHandle.split(".")[-1]
+        if communicator := self.get_communicator(to_name):
+            communicator.process_message(
+                Message(
+                    header=Header(
+                        Src=H0N.admin,
+                        Dst=communicator.name,
+                        MessageType=dispatch.TypeName,
+                    ),
+                    Payload=dispatch,
+                )
+            )
 
     def process_admin_release_control(
         self, from_node: ShNode, payload: AdminReleaseControl
@@ -563,25 +567,6 @@ class Scada(PrimeActor, ScadaInterface):
 
         if hasattr(self, 'contract_task'):
             self.contract_task.cancel()
-
-    def process_analog_dispatch(
-        self, payload: AnalogDispatch
-    ) -> None:
-        # HUGE HACK -
-        to_node = self.layout.node(payload.AboutName)
-        boss_handle = '.'.join(to_node.handle.split('.')[:-1])
-        self.log(f"About name is {payload.AboutName}")
-        self._send_to(to_node, AnalogDispatch(FromGNodeAlias=payload.FromGNodeAlias,
-                                              FromHandle=boss_handle,
-                                              ToHandle=to_node.handle,
-                                              AboutName=to_node.name,
-                                              Value=payload.Value,
-                                              TriggerId=payload.TriggerId,
-                                              UnixTimeMs=payload.UnixTimeMs))
-        # to_node = self.layout.node_by_handle(payload.ToHandle)
-        # if to_node:gi
-        #     self.log(f"Sending to {to_node.Name}")
-        #     self._send_to(to_node.Name, payload)
 
     def process_channel_readings(
         self, from_node: ShNode, payload: ChannelReadings

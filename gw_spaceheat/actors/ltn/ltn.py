@@ -68,7 +68,7 @@ from gwsproto.enums import (
     SlowDispatchContractStatus, ActuationAuthority, ServiceMode
 )
 from gwsproto.named_types import PowerWatts, Report, ReportEvent
-from gwsproto.named_types import AnalogDispatch, SendSnap, MachineStates
+from gwsproto.named_types import SendSnap, MachineStates
 from actors.ltn.contract_handler import LtnContractHandler
  
 from gwsproto.named_types import (
@@ -1938,23 +1938,6 @@ class Ltn(PrimeActor):
             except Exception as e:
                 self.logger.error(f"Failed to set LoadOverestimationPercent! {e}")
 
-    def set_keep_seconds(self, val: int = 0) -> None:
-        self.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.scada.name,
-                Payload=AnalogDispatch(
-                    FromGNodeAlias=self.layout.ltn_g_node_alias,
-                    FromHandle=f"{H0N.ltn}",
-                    ToHandle=f"{H0N.ltn}.{H0N.leaf_ally}",
-                    AboutName=H0N.sieg_loop,
-                    Value=val,
-                    TriggerId=str(uuid.uuid4()),
-                    UnixTimeMs=int(time.time() * 1000),
-                ),
-            )
-        )
-
     def reset_keep_seconds(self, new_seconds: float) -> None:
         self.send_threadsafe(
             Message(
@@ -2017,57 +2000,6 @@ class Ltn(PrimeActor):
                     ToHandle=f"{H0N.ltn}.{H0N.leaf_ally}",
                     HpKeepPercent=100,
                     Seconds=seconds,
-                ),
-            )
-        )
-
-    def set_dist_010(self, val: int = 30) -> None:
-        self.services.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.scada.name,
-                Payload=AnalogDispatch(
-                    FromGNodeAlias=self.layout.ltn_g_node_alias,
-                    FromHandle="auto",
-                    ToHandle="auto.dist-010v",
-                    AboutName="dist-010v",
-                    Value=val,
-                    TriggerId=str(uuid.uuid4()),
-                    UnixTimeMs=int(time.time() * 1000),
-                ),
-            )
-        )
-
-    def set_primary_010(self, val: int = 50) -> None:
-        self.services.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.scada.name,
-                Payload=AnalogDispatch(
-                    FromGNodeAlias=self.layout.ltn_g_node_alias,
-                    FromHandle="auto",
-                    ToHandle="auto.primary-010v",
-                    AboutName="primary-010v",
-                    Value=val,
-                    TriggerId=str(uuid.uuid4()),
-                    UnixTimeMs=int(time.time() * 1000),
-                ),
-            )
-        )
-
-    def set_store_010(self, val: int = 30) -> None:
-        self.services.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.scada.name,
-                Payload=AnalogDispatch(
-                    FromGNodeAlias=self.layout.ltn_g_node_alias,
-                    FromHandle="auto",
-                    ToHandle="auto.store-010v",
-                    AboutName="store-010v",
-                    Value=val,
-                    TriggerId=str(uuid.uuid4()),
-                    UnixTimeMs=int(time.time() * 1000),
                 ),
             )
         )

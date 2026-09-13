@@ -162,13 +162,17 @@ class ZeroTenOutputer(ShNodeActor):
 
     # ---- dispatch ----
 
-    def process_analog_dispatch(self, dispatch: AnalogDispatch) -> None:
-        """The reply goes to the node at the dispatch's FromHandle, the
-        commander, rather than to the message's sender: the scada relays an
-        admin dispatch under its own name with FromHandle still admin's."""
-        from_node = self.layout.node_by_handle(dispatch.FromHandle)
-        if from_node is None:
-            self.log(f"Ignoring dispatch from handle {dispatch.FromHandle} - not in layout!!")
+    def process_analog_dispatch(self, from_node: ShNode, dispatch: AnalogDispatch) -> None:
+        """from_node is who put the message on the wire (the transport
+        header's source); the dispatch's FromHandle is who the sender claims
+        to be in the command tree. The two must agree before anything else
+        is looked at."""
+        if dispatch.FromHandle != from_node.handle:
+            self.send_warning(
+                "bad_sender",
+                f"{from_node.name} (handle {from_node.handle}) sent a dispatch claiming "
+                f"FromHandle {dispatch.FromHandle}. Ignoring!",
+            )
             return
         if dispatch.ToHandle != self.node.handle:
             self.log(f"Ignoring dispatch {dispatch} - ToHandle is not {self.node.handle}!")
@@ -209,8 +213,12 @@ class ZeroTenOutputer(ShNodeActor):
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         payload = message.Payload
         if isinstance(payload, AnalogDispatch):
+            from_node = self.layout.node(message.Header.Src, None)
+            if from_node is None:
+                self.log(f"Ignoring {payload.TypeName} from {message.Header.Src} - not in layout")
+                return Ok(False)
             try:
-                self.process_analog_dispatch(payload)
+                self.process_analog_dispatch(from_node, payload)
             except Exception as e:
                 self.log(f"Trouble with process_analog_dispatch: {e}")
             return Ok(True)

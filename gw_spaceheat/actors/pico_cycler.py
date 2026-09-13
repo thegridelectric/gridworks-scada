@@ -471,21 +471,13 @@ class PicoCycler(HydronicNode):
         relay.py checks its commander; the cycle adopts the commander's
         TriggerId so its fsm.full.report is tied to the command."""
         if message.FromHandle != from_node.handle:
-            self.log(
-                f"from_node {from_node.name} has handle {from_node.handle}, not {message.FromHandle}!"
+            self.send_warning(
+                "bad_sender",
+                f"{from_node.name} (handle {from_node.handle}) sent a command claiming "
+                f"FromHandle {message.FromHandle}. Ignoring!",
             )
             return
         if message.ToHandle != self.node.handle:
-            self._send_to(
-                self.ltn,
-                Glitch(
-                    FromGNodeAlias=self.layout.scada_g_node_alias,
-                    Node=self.name,
-                    Type=LogLevel.Warning,
-                    Summary="bad_boss",
-                    Details=f"{message.FromHandle} tried to command {self.node.handle}. Ignoring!",
-                ),
-            )
             self.log(f"Handle is {self.node.handle}; ignoring {message}")
             self._send_to(
                 from_node,

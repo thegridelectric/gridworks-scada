@@ -14,7 +14,7 @@ from actors.hp_boss import HpBoss, SiegLoopReady
 from gwproto import Message
 from gwproto.message import Header
 from gwsproto.data_classes.house_0_names import H0N
-from gwsproto.enums import ChangeRelayState, HpBossState, TurnHpOnOff
+from gwsproto.enums import ChangeRelayState, HpBossState, MainAutoEvent, TurnHpOnOff
 from gwsproto.named_types import (
     AdminDispatch,
     FsmEvent,
@@ -187,6 +187,24 @@ def test_stale_boss_command_changes_nothing(app: ScadaApp) -> None:
     assert relay_events(sent) == []
     assert reported_states(sent) == []
     assert actor.state == HpBossState.HpOn
+
+
+def test_mis_sendered_turn_on_does_not_actuate(app: ScadaApp) -> None:
+    """Admin holds the tree; a TurnOn to hp-boss's live handle claiming
+    admin in FromHandle arrives from the pico-cycler. hp-boss used to log
+    the mismatch and act anyway; now it stops: no relay command, no state
+    report, state unchanged."""
+    scada = app.scada
+    capture(scada)
+    scada.auto_trigger(MainAutoEvent.AutoGoesDormant)
+    actor = hp_boss_actor(app)
+    assert actor.node.handle == f"{H0N.admin}.{H0N.hp_boss}"
+    assert actor.state == HpBossState.HpOff
+    sent = capture(actor)
+    deliver(actor, H0N.pico_cycler, turn(H0N.admin, actor.node.handle, TurnHpOnOff.TurnOn))
+    assert relay_events(sent) == []
+    assert reported_states(sent) == []
+    assert actor.state == HpBossState.HpOff
 
 
 def admin_turn(name: TurnHpOnOff) -> AdminDispatch:

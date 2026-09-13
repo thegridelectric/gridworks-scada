@@ -124,6 +124,13 @@ class FiveVBoss(CommandNode):
     # ------------------------------------------------------------------
 
     def process_fsm_event(self, from_node: ShNode, payload: FsmEvent) -> None:
+        if payload.FromHandle != from_node.handle:
+            self.send_warning(
+                "bad_sender",
+                f"{from_node.name} (handle {from_node.handle}) sent a command claiming "
+                f"FromHandle {payload.FromHandle}. Ignoring!",
+            )
+            return
         if payload.ToHandle != self.node.handle:
             self.log(f"Handle is {self.node.handle}; refusing {payload.FromHandle} -> {payload.ToHandle}")
             self.refuse(from_node, payload, ScadaCmdRefusalReason.NotMyBoss)

@@ -25,7 +25,7 @@ from gwsproto.enums import (
     RebootPicos,
     TurnHpOnOff,
 )
-from gwsproto.named_types import AnalogDispatch, DispatchAck, DispatchNack, FsmEvent
+from gwsproto.named_types import AnalogDispatch, DispatchAck, DispatchNack, FsmEvent, Glitch
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -73,6 +73,21 @@ def deliver(actor, payload, src: str = H0N.admin) -> None:
             Payload=payload,
         )
     )
+
+
+def assert_dropped_as_bad_sender(sent: list, actor) -> None:
+    """The wire source and the payload's FromHandle disagree: no reply to
+    anyone (the claimed commander did not send it), one warning glitch to
+    the LTN, nothing else."""
+    assert acks(sent) == []
+    assert nacks(sent) == []
+    assert [p for _, p in sent if isinstance(p, FsmEvent)] == []
+    glitches = [(dst, p) for dst, p in sent if isinstance(p, Glitch)]
+    assert len(glitches) == 1
+    dst, glitch = glitches[0]
+    assert dst == H0N.ltn
+    assert glitch.Summary == "bad_sender"
+    assert glitch.Node == actor.node.name
 
 
 def acks(sent: list) -> list[tuple[str, DispatchAck]]:
@@ -166,6 +181,17 @@ def test_cycler_refuses_a_command_to_another_handle(app: ScadaApp) -> None:
     assert_nack(sent, actor, command, ScadaCmdRefusalReason.NotMyBoss, commander=H0N.five_v_boss)
 
 
+def test_cycler_drops_a_command_whose_sender_is_not_its_from_handle(app: ScadaApp) -> None:
+    """Well formed and to the live handle, claiming five-v-boss in
+    FromHandle, but put on the wire by hp-boss."""
+    actor = cycler(app)
+    sent = capture(actor)
+    command = cycler_event(actor, RebootPicos.enum_name(), RebootPicos.RebootPicos)
+    deliver(actor, command, src=H0N.hp_boss)
+    assert actor.state == PicoCyclerState.PicosLive
+    assert_dropped_as_bad_sender(sent, actor)
+
+
 # ---------------------------------------------------------------- hp-boss
 
 def hp_boss(app: ScadaApp) -> HpBoss:
@@ -199,6 +225,14 @@ def test_hp_boss_refuses_a_command_to_another_handle(app: ScadaApp) -> None:
     actor.node.Handle = f"{H0N.auto}.{actor.name}"
     deliver(actor, command)
     assert_nack(sent, actor, command, ScadaCmdRefusalReason.NotMyBoss)
+
+
+def test_hp_boss_drops_a_command_whose_sender_is_not_its_from_handle(app: ScadaApp) -> None:
+    actor = hp_boss(app)
+    sent = capture(actor)
+    command = event(actor.node.handle, TurnHpOnOff.enum_name(), TurnHpOnOff.TurnOn)
+    deliver(actor, command, src=H0N.pico_cycler)
+    assert_dropped_as_bad_sender(sent, actor)
 
 
 # ---------------------------------------------------------------- relay
@@ -243,6 +277,15 @@ def test_relay_refuses_a_command_to_another_handle(app: ScadaApp) -> None:
     actor.node.Handle = f"{H0N.auto}.{actor.name}"
     actor._process_event_message(H0N.admin, command)
     assert_nack(sent, actor, command, ScadaCmdRefusalReason.NotMyBoss)
+
+
+def test_relay_drops_a_command_whose_sender_is_not_its_from_handle(app: ScadaApp) -> None:
+    actor = a_relay_under_admin(app)
+    sent = capture(actor)
+    vocabulary = actor.my_event_enum
+    command = event(actor.node.handle, vocabulary.enum_name(), vocabulary.values()[0])
+    actor._process_event_message(H0N.pico_cycler, command)
+    assert_dropped_as_bad_sender(sent, actor)
 
 
 # ---------------------------------------------------------------- 0-10V outputer
@@ -291,3 +334,24 @@ def test_outputer_refuses_a_command_to_another_handle(app: ScadaApp) -> None:
     actor.node.Handle = f"{H0N.auto}.{actor.name}"
     deliver(actor, command)
     assert_nack(sent, actor, command, ScadaCmdRefusalReason.NotMyBoss)
+
+
+def test_outputer_drops_a_dispatch_whose_sender_is_not_its_from_handle(app: ScadaApp) -> None:
+    """FromHandle names admin, the live boss, so the old lookup-by-claim
+    would have passed it; the wire source is the pico-cycler."""
+    actor = an_outputer(app)
+    sent = capture(actor)
+    before = actor.target_code
+    command = dispatch(actor, 55)
+    deliver(actor, command, src=H0N.pico_cycler)
+    assert actor.target_code == before
+    assert_dropped_as_bad_sender(sent, actor)
+
+
+def test_outputer_drops_a_dispatch_from_a_sender_not_in_the_layout(app: ScadaApp) -> None:
+    actor = an_outputer(app)
+    sent = capture(actor)
+    before = actor.target_code
+    deliver(actor, dispatch(actor, 55), src="nobody")
+    assert actor.target_code == before
+    assert sent == []

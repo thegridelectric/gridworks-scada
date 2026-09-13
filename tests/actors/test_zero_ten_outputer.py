@@ -100,15 +100,21 @@ def rig() -> tuple[ZeroTenOutputer, I2cBus, list]:
     return out, bus, sent
 
 
-def dispatch(out: ZeroTenOutputer, value: int) -> AnalogDispatch:
+def dispatch(out: ZeroTenOutputer, value: int) -> Message:
+    """The boot boss commanding the outputer: wire source and FromHandle
+    both the boss's, as the outputer requires."""
     boss = out.layout.node_by_handle(".".join(out.node.handle.split(".")[:-1]))
-    return AnalogDispatch(
-        FromHandle=boss.handle,
-        ToHandle=out.node.handle,
-        AboutName=out.name,
-        Value=value,
-        TriggerId=str(uuid.uuid4()),
-        UnixTimeMs=int(time.time() * 1000),
+    return Message(
+        Src=boss.name,
+        Dst=out.name,
+        Payload=AnalogDispatch(
+            FromHandle=boss.handle,
+            ToHandle=out.node.handle,
+            AboutName=out.name,
+            Value=value,
+            TriggerId=str(uuid.uuid4()),
+            UnixTimeMs=int(time.time() * 1000),
+        ),
     )
 
 
@@ -169,9 +175,7 @@ def test_boot_verify_reprograms_then_stays_clean(rig) -> None:
 def test_dispatch_sets_level_and_heartbeat_holds_it(rig) -> None:
     out, bus, sent = rig
     dac = bus.i2c.dacs[DAC2_MUX_CHANNEL]
-    out.process_message(
-        Message(Src="lc", Dst=NODE, Payload=dispatch(out, DISPATCH_VOLTS_TIMES_TEN))
-    )
+    out.process_message(dispatch(out, DISPATCH_VOLTS_TIMES_TEN))
     assert out.target_code == DISPATCH_RAW
     assert out.wake.is_set()
     asyncio.run(out.assert_target())
@@ -187,7 +191,7 @@ def test_dispatch_sets_level_and_heartbeat_holds_it(rig) -> None:
 
 def test_dispatch_out_of_range_is_ignored(rig) -> None:
     out, _, _ = rig
-    out.process_message(Message(Src="lc", Dst=NODE, Payload=dispatch(out, 101)))
+    out.process_message(dispatch(out, 101))
     assert out.target_code == C_RAW
     assert not out.wake.is_set()
 
@@ -272,9 +276,7 @@ def test_house0_sim_drives_muxless_dacs_through_the_bus() -> None:
         dac = bus.i2c.muxless_dacs[address]
         assert asyncio.run(out.verify_eeprom())
         assert dac.eeprom[channel] == [out.power_on_code, 1, 0]
-        out.process_message(
-            Message(Src="lc", Dst=name, Payload=dispatch(out, DISPATCH_VOLTS_TIMES_TEN))
-        )
+        out.process_message(dispatch(out, DISPATCH_VOLTS_TIMES_TEN))
         asyncio.run(out.assert_target())
         assert dac.register[channel] == [DISPATCH_RAW, 1, 0]
         assert dac.eeprom[channel] == [out.power_on_code, 1, 0]

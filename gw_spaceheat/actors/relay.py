@@ -317,21 +317,14 @@ class Relay(ShNodeActor):
         if from_node is None:
             return Ok(False)
         if message.FromHandle != from_node.handle:
-            self.log(
-                f"from_node {from_node.name} has handle {from_node.handle}, not {message.FromHandle}!"
+            self.send_warning(
+                "bad_sender",
+                f"{from_node.name} (handle {from_node.handle}) sent a command claiming "
+                f"FromHandle {message.FromHandle}. Ignoring!",
             )
             return Ok(False)
 
         if message.ToHandle != self.node.Handle:
-            # TODO: turn this into a report?
-            self._send_to(self.ltn,
-                          Glitch(
-                              FromGNodeAlias=self.layout.scada_g_node_alias,
-                              Node=self.name,
-                              Type=LogLevel.Warning,
-                              Summary="bad_boss",
-                              Details=f"{message.FromHandle} tried to command {self.node.Handle}. Ignoring!"
-                          ))
             self.log(f"Handle is {self.node.Handle}; ignoring {message}")
             self._send_to(
                 from_node,
