@@ -23,7 +23,12 @@ from pathlib import Path
 import pytest
 
 from actors.i2c_bus import I2cBus
-from actors.zero_ten_outputer import ZeroTenOutputer
+from actors.zero_ten_outputer import (
+    DAC_FACTS,
+    ZeroTenOutputer,
+    code_from_volts_times_ten,
+    volts_times_ten_from_code,
+)
 from drivers import gp8403
 from gwproto.message import Message
 from gwsproto.enums import I2cDacType, I2cOperation
@@ -196,6 +201,21 @@ def test_dispatch_out_of_range_is_ignored(rig) -> None:
     assert not out.wake.is_set()
 
 
+def test_dispatch_full_scale_holds_at_the_top_code(rig) -> None:
+    """10 V on the gw108's MCP4728 (10.24 V full scale) is code 4000; on a
+    10 V full-scale chip it is the top code 4095, never 4096 (masked to 0)."""
+    out, bus, sent = rig
+    dac = bus.i2c.dacs[DAC2_MUX_CHANNEL]
+    out.process_message(dispatch(out, 100))
+    assert out.target_code == 4000
+    asyncio.run(out.assert_target())
+    assert dac.register[CHANNEL_C] == [4000, 1, 0]
+    assert sent[-1].Value == 100
+    for facts in DAC_FACTS.values():
+        assert code_from_volts_times_ten(100, facts) <= facts.codes - 1
+        assert volts_times_ten_from_code(code_from_volts_times_ten(100, facts), facts) == 100
+
+
 def test_bus_fault_contained_throttled_and_heals(rig) -> None:
     out, bus, _ = rig
     bus.i2c.inject_fault(MUX_ADDRESS, count=None)
@@ -334,6 +354,15 @@ def test_gp8403_writes_the_multiplexer_wire_bytes() -> None:
     assert sent[-1] == SingleReading(
         ChannelName="primary-010v", Value=40, ScadaReadTimeUnixMs=sent[-1].ScadaReadTimeUnixMs
     )
+    assert not out.warnings
+
+    # full scale: the top 12-bit code, not 4096 masked to 0 (beech 2026-09-13
+    # wrote 0 V for 10 V)
+    out.process_message(dispatch(out, 100))
+    assert out.target_code == 4095
+    asyncio.run(out.assert_target())
+    assert wire(writes[-1]) == (94, gp8403.OUTPUT_REG[1], 0xF0, 0xFF)
+    assert sent[-1].Value == 100
     assert not out.warnings
 
 

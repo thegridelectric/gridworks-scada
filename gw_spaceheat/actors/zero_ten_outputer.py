@@ -65,8 +65,12 @@ DAC_FACTS: dict[I2cDacType, DacFacts] = {
 
 
 def code_from_volts_times_ten(value: int, facts: DacFacts) -> int:
-    """The code that drives `value` (volts times ten) at the terminal."""
-    return round(value / 10 / facts.full_scale_volts * facts.codes)
+    """The code that drives `value` (volts times ten) at the terminal,
+    clamped to the chip's top code: full scale rounds to `codes`, one past
+    the last 12-bit code, and the encoders mask that to 0."""
+    return min(
+        round(value / 10 / facts.full_scale_volts * facts.codes), facts.codes - 1
+    )
 
 
 def volts_times_ten_from_code(code: int, facts: DacFacts) -> int:
