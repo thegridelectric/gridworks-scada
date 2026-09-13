@@ -2461,6 +2461,15 @@
       "ShNodeId": "3b320671-b2f5-4cdd-be00-4c3fcf5af482",
       "TypeName": "spaceheat.node.gt",
       "Version": "303"
+    },
+    {
+      "ActorClass": "NoActor",
+      "ComponentId": "7ee3ea86-5c59-48ef-a371-728e4de21d3b",
+      "DisplayName": "Web Server",
+      "Name": "web-server",
+      "ShNodeId": "6f966b51-092b-4298-8485-1eaed45a13c7",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303"
     }
   ],
   "TypeName": "gw.house0.layout",

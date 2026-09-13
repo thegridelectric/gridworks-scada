@@ -1,3 +1,4 @@
+from collections import Counter
 from typing import Literal
 
 from pydantic import model_validator
@@ -439,7 +440,9 @@ class House0Layout(GwsprotoSemaType):
         Axiom 10: RequiredActuators
         a. The eleven plant relays exist with ActorClass Relay and the three
         *-010v outputs with ActorClass ZeroTenOutputer. b. ZoneCallCircuits is
-        non-empty and each circuit's relay pair names a Relay ShNode.
+        non-empty and each circuit's relay pair names a Relay ShNode. c. Each
+        *-010v output's ComponentId is an i2c.dac.output.component.gt in
+        Components.
         """
         actor_class_by_name = {n.Name: n.ActorClass for n in self.ShNodes}
 
@@ -482,6 +485,19 @@ class House0Layout(GwsprotoSemaType):
                 circuit.FailsafeRelayNode, ActorClass.Relay, "circuit failsafe relay"
             )
             class_or_raise(circuit.OpsRelayNode, ActorClass.Relay, "circuit ops relay")
+        dac_output_ids = {
+            c.ComponentId
+            for c in self.Components
+            if isinstance(c, I2cDacOutputComponentGt)
+        }
+        component_id_by_name = {n.Name: n.ComponentId for n in self.ShNodes}
+        for output in ("dist-010v", "primary-010v", "store-010v"):
+            if component_id_by_name.get(output) not in dac_output_ids:
+                raise ValueError(
+                    f"Axiom 10 (RequiredActuators) failed: {output} ComponentId "
+                    f"{component_id_by_name.get(output)} is not an "
+                    "i2c.dac.output.component.gt in Components."
+                )
         return self
 
     @model_validator(mode="after")
@@ -576,4 +592,24 @@ class House0Layout(GwsprotoSemaType):
         leaf. b. Every leaf SHALL be an actuator or a command node.
         """
         check_actuator_leaves(self.ShNodes, "Axiom 14 (ActuatorLeaves)")
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_15(self) -> Self:
+        """
+        Axiom 15: ComponentBinding
+        Every Component in Components SHALL have its ComponentId referenced by
+        exactly one ShNode in ShNodes.
+        """
+        refs = Counter(n.ComponentId for n in self.ShNodes if n.ComponentId)
+        violations = {
+            c.ComponentId: refs.get(c.ComponentId, 0)
+            for c in self.Components
+            if refs.get(c.ComponentId, 0) != 1
+        }
+        if violations:
+            raise ValueError(
+                "Axiom 15 (ComponentBinding) failed: components not referenced by "
+                f"exactly one ShNode (id: reference count) {violations}."
+            )
         return self

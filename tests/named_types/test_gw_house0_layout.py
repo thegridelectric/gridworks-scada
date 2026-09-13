@@ -122,22 +122,17 @@ def test_gw_house0_layout_axiom_9(assembled: dict) -> None:
     )
 
 
-@pytest.mark.skip(
-    reason="krida multichannel relay component is many-to-one (14 relay "
-    "nodes) until the krida retirement; ComponentBinding lands there"
-)
-def test_gw_house0_layout_component_binding(assembled: dict) -> None:
-    from collections import Counter
+def test_gw_house0_layout_axiom_15(assembled: dict) -> None:
+    """Every component is HAD by exactly one ShNode: an orphan component
+    (its node dropped its ComponentId) is rejected. The web server has no
+    other axiom guarding it, so axiom 15 itself fires."""
 
-    refs = Counter(
-        n["ComponentId"] for n in assembled["ShNodes"] if n.get("ComponentId")
-    )
-    violations = {
-        c["ComponentId"]: refs.get(c["ComponentId"], 0)
-        for c in assembled["Components"]
-        if refs.get(c["ComponentId"], 0) != 1
-    }
-    assert not violations, violations
+    def orphan(d: dict) -> None:
+        for n in d["ShNodes"]:
+            if n["Name"] == "web-server":
+                n.pop("ComponentId")
+
+    reject(assembled, orphan, "Axiom 15")
 
 
 def test_gw_house0_layout_axiom_10_relay(assembled: dict) -> None:
@@ -161,6 +156,22 @@ def test_gw_house0_layout_axiom_10_output(assembled: dict) -> None:
                 n.pop("ActorHierarchyName", None)
 
     reject(assembled, reclass, "Axiom 10")
+
+
+def test_gw_house0_layout_axiom_10_output_component(assembled: dict) -> None:
+    """A 0-10V output bound to something other than a DAC output component
+    fails clause c; the web server's component stands in for the wrong kind
+    (and the web-server node loses its own binding so axiom 15 stays quiet)."""
+
+    def rebind(d: dict) -> None:
+        web = next(c for c in d["Components"] if c["TypeName"] == "web.server.component.gt")
+        for n in d["ShNodes"]:
+            if n["Name"] == "web-server":
+                n.pop("ComponentId")
+            if n["Name"] == "dist-010v":
+                n["ComponentId"] = web["ComponentId"]
+
+    reject(assembled, rebind, "Axiom 10")
 
 
 def test_gw_house0_layout_axiom_10_circuits(assembled: dict) -> None:
