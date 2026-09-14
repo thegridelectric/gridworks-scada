@@ -359,22 +359,22 @@
   ],
   "ZeroTenPowerOnList": [
     {
+      "TypeName": "zero.ten.power.on",
+      "Version": "000",
       "NodeName": "dist-010v",
-      "PowerOnVoltsTimesTen": 20,
-      "TypeName": "zero.ten.power.on",
-      "Version": "000"
+      "PowerOnVoltsTimesTen": 20
     },
     {
+      "TypeName": "zero.ten.power.on",
+      "Version": "000",
       "NodeName": "primary-010v",
-      "PowerOnVoltsTimesTen": 40,
-      "TypeName": "zero.ten.power.on",
-      "Version": "000"
+      "PowerOnVoltsTimesTen": 40
     },
     {
-      "NodeName": "store-010v",
-      "PowerOnVoltsTimesTen": 0,
       "TypeName": "zero.ten.power.on",
-      "Version": "000"
+      "Version": "000",
+      "NodeName": "store-010v",
+      "PowerOnVoltsTimesTen": 0
     }
   ],
   "ActuationAuthority": "Active",
