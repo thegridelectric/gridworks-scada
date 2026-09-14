@@ -1,9 +1,9 @@
-"""The two replies a command node owes its commander: DispatchAck once the
+"""The two replies a bossable node owes its boss: DispatchAck once the
 command is taken (before actuation, which the node's state report then
 confirms) and DispatchNack with the reason on every refusal. Built here so
-the four command nodes (relay, 0-10V outputer, pico-cycler, hp-boss) answer
-in one shape; the reply goes back to the commanding node, which for admin
-means the admin link."""
+relays, 0-10V outputers and the interior command nodes (pico-cycler,
+hp-boss, five-v-boss) answer in one shape; the reply goes back to the
+commanding node, which for admin means the admin link."""
 
 import time
 
