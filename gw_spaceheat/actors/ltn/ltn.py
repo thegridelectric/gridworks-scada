@@ -596,7 +596,14 @@ class Ltn(PrimeActor):
                 self.contract_handler.latest_bid = bid
                 self.services.publish_message(
                     self.SCADA_MQTT, 
-                    Message(Src=self.publication_name, Dst="broadcast", Payload=bid)
+                    # Address the MarketMaker. "mm" is deliberately the gwbase
+                    # RoutingClass.MarketMaker token, so the wire key
+                    # gw.<src>.to.mm.<type> already matches the new/future rabbit
+                    # structure and resolves to TransportClass.MarketMaker — i.e. we
+                    # code to the gwbase transport encoding now. HACK (interim): it's
+                    # hard-coded because H0N has no MM node (the MM is external to the
+                    # scada lexicon); derive it once the LTN is a gwbase actor. OPS-387.
+                    Message(Src=self.publication_name, Dst="mm", Payload=bid)
                 )  
                 self.log(f"Bid: {bid}")
                 self.sent_bid = True
@@ -607,7 +614,10 @@ class Ltn(PrimeActor):
                 self._save_flo_next_hour_plans(flo_next_hour_plans)
                 self.services.publish_message(
                     self.SCADA_MQTT,
-                    Message(Src=self.publication_name, Dst="broadcast", Payload=flo_next_hour_plans)
+                    # HACK (interim): gw-wrapped to scada, not the old Dst="broadcast".
+                    # Revert to a real rjb broadcast once the LTN is a gwbase actor
+                    # (it leaves the scada lexicon); OPS-387.
+                    Message(Src=self.publication_name, Dst=self.scada.name, Payload=flo_next_hour_plans)
                 )
                 self.log(
                     f"FloNextHourPlans: storage_at_hour1={flo_next_hour_plans.ExpectedStorageKwhAtHour1} kWh, "
@@ -617,7 +627,10 @@ class Ltn(PrimeActor):
                 path_dbg |= 0x00000002
                 self.services.publish_message(
                     self.SCADA_MQTT,
-                    Message(Src=self.publication_name, Dst="broadcast", Payload=message.Payload)
+                    # HACK (interim): gw-wrapped to scada, not the old Dst="broadcast".
+                    # Revert to a real rjb broadcast once the LTN is a gwbase actor
+                    # (it leaves the scada lexicon); OPS-387.
+                    Message(Src=self.publication_name, Dst=self.scada.name, Payload=message.Payload)
                 )
             case LatestPrice():
                 path_dbg |= 0x00000004
@@ -889,7 +902,10 @@ class Ltn(PrimeActor):
                             self.flo_params = updated_flo_params
                             self.services.publish_message(
                                 self.SCADA_MQTT,
-                                Message(Src=self.publication_name, Dst="broadcast", Payload=self.flo_params)
+                                # HACK (interim): gw-wrapped to scada, not Dst="broadcast".
+                                # Revert to a real rjb broadcast once the LTN is a gwbase
+                                # actor (it leaves the scada lexicon); OPS-387.
+                                Message(Src=self.publication_name, Dst=self.scada.name, Payload=self.flo_params)
                             )
                             self.bid_runner.get_bid(self.flo_params)
                     elif not self.sent_bid:
@@ -1048,7 +1064,10 @@ class Ltn(PrimeActor):
         )
         self.services.publish_message(
             self.SCADA_MQTT, 
-            Message(Src=self.publication_name, Dst="broadcast", Payload=self.flo_params)
+            # HACK (interim): gw-wrapped to scada, not the old Dst="broadcast".
+            # Revert to a real rjb broadcast once the LTN is a gwbase actor
+            # (it leaves the scada lexicon); OPS-387.
+            Message(Src=self.publication_name, Dst=self.scada.name, Payload=self.flo_params)
         )
         self.bid_runner = BidRunner(
             params=self.flo_params,
