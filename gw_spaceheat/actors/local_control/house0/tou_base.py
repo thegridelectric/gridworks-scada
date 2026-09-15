@@ -15,6 +15,7 @@ from transitions import Machine
 from gwsproto.data_classes.house_0_names import H0CN
 from gwsproto.names.hydronic_spaceheat.node_names import (
     HydronicSpaceheatNodeNames as HSNN,
+    HydronicSpaceheatZoneNodeNames as HSZoneNodeNames,
 )
 
 from gwsproto.enums import (
@@ -201,13 +202,9 @@ class LocalControlTouBase(House0Hydronic):
 
     def _dist_pump_recovery_enabled(self) -> bool:
         required = [HSNN.dist_010v]
-        for zone in self.layout.zone_list:
-            required.extend(
-                [
-                    self.h0n.zone[zone].failsafe_relay,
-                    self.h0n.zone[zone].ops_relay,
-                ]
-            )
+        for i, zone in enumerate(self.layout.zone_list):
+            zone_nodes = HSZoneNodeNames(zone, i + 1)
+            required.extend([zone_nodes.failsafe_relay, zone_nodes.ops_relay])
         return self._has_layout_nodes(required)
 
     def _store_pump_recovery_enabled(self) -> bool:

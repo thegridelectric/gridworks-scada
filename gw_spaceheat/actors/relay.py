@@ -15,7 +15,6 @@ from gwsproto.data_classes.components import (
     I2cRelayComponent,
     GpioRelayComponent,
 )
-from gwsproto.data_classes.house_0_names import ZoneNodes
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
     ActorClass,
@@ -63,7 +62,10 @@ from gwsproto.enums import LogLevel, ChangeKeepSend, HpLoopKeepSend
 from gwsproto.named_types import FsmEvent, Glitch, SingleMachineState
 from actors import command_reply
 from gwsproto.enums import ScadaCmdRefusalReason
-from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
+from gwsproto.names.hydronic_spaceheat.node_names import (
+    HydronicSpaceheatNodeNames as HSNN,
+    HydronicSpaceheatZoneNodeNames as HSZoneNodeNames,
+)
 from gwsproto.names.house0.node_names import House0NodeNames
 
 # Internal FSM state before the first pin adoption / confirmation. Never
@@ -991,7 +993,7 @@ class Relay(ShNodeActor):
         stat_ops_names = []
         # TODO: move the below into House0 Hardware Layout validation
         for i, zone in enumerate(zone_names):
-            zone_nodes = ZoneNodes(zone=zone, idx=i)
+            zone_nodes = HSZoneNodeNames(zone, i + 1)
             stat_failsafe_names.append(zone_nodes.failsafe_relay)
             stat_ops_names.append(zone_nodes.ops_relay)
         vdc_relay_name = self.layout.vdc_relay.name

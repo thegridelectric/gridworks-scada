@@ -2,43 +2,6 @@ from typing import Dict, List
 DEFAULT_ANALOG_READER = "analog-temp"
 
 
-class ZoneNodes:
-    """
-    Spaceheat Node names associated to a zone:
-    self.zone_name, self.stat, self.whitewire
-    """
-    def __init__(self, zone: str, idx: int) -> None:
-        base = f"zone{idx + 1}-{zone}".lower()
-        self.zone =  base
-        self.stat = f"{base}-stat"
-        self.whitewire=f"{base}-whitewire"
-
-        # Required relays
-        self.failsafe_relay = f"{base}-failsafe-relay"
-        self.ops_relay = f"{base}-ops-relay"
-
-    @property
-    def required_relays(self) -> set[str]:
-        "failsafe and ops relays"
-        return {
-            self.failsafe_relay,
-            self.ops_relay,
-        }
-
-    @property
-    def all(self) -> set[str]:
-        """All required nodes this zone"""
-        return {
-            self.zone,
-            self.stat,
-            self.whitewire,
-            self.failsafe_relay,
-            self.ops_relay,
-        }
-
-    def __repr__(self) -> str:
-        return f"Zone {self.zone} Spaceheat nodes: {sorted(self.all)}"
-
 class BufferNodeNames:
     """
     Spaceheat Node names associated to the buffer"
@@ -93,13 +56,10 @@ class TankNodeNames:
 
 
 class H0N:
-    def __init__(self, total_store_tanks: int, zone_list: List[str]) -> None:
+    def __init__(self, total_store_tanks: int) -> None:
         self.tank: Dict[int, TankNodeNames] = {}
-        self.zone: Dict[str, ZoneNodes] = {}
         for i in range(total_store_tanks):
             self.tank[i + 1] = TankNodeNames(i + 1)
-        for i in range(len(zone_list)):
-            self.zone[zone_list[i]] = ZoneNodes(zone=zone_list[i], idx=i)
 
     def tank_index(self, node_name: str) -> int | None:
         """
