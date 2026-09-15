@@ -58,7 +58,6 @@ from gwproactor.message import DBGCommands, DBGPayload, MQTTReceiptPayload, PatI
 
 from gwsproto.conversions.temperature import convert_temp_to_f
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
-from gwsproto.data_classes.house_0_names import H0CN
 
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
@@ -80,6 +79,7 @@ from gwsproto.named_types import (
 )
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
+from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 
 from paho.mqtt.client import MQTTMessageInfo
 from pydantic import BaseModel
@@ -774,7 +774,7 @@ class Ltn(PrimeActor):
         self.short_cycle_buffer = layout.BufferShortCycling
         self.log(f"FLO seasonal storage mode: {self.seasonal_storage_mode}")
 
-        self.tank_temp_channel_names = list(H0CN.buffer.effective)
+        self.tank_temp_channel_names = list(HCN.buffer.effective)
         for tank_idx in sorted(self.layout.h0cn.tank):
             tank = self.layout.h0cn.tank[tank_idx]
             self.tank_temp_channel_names.extend([tank.depth1, tank.depth2, tank.depth3])
@@ -1239,7 +1239,7 @@ class Ltn(PrimeActor):
         all_store_layers = sorted(
             [x for x in self.tank_temp_channel_names if "tank" in x]
         )
-        scrub_and_fill_store_temps(self.latest_temps_f, all_store_layers, H0CN.store_cold_pipe)
+        scrub_and_fill_store_temps(self.latest_temps_f, all_store_layers, HCN.store_cold_pipe)
         self.latest_temps_f = {
             k: self.latest_temps_f[k] for k in sorted(self.latest_temps_f)
         }
@@ -1346,9 +1346,9 @@ class Ltn(PrimeActor):
             return None
 
         if self.seasonal_storage_mode == SeasonalStorageMode.BufferOnly:
-            top_temp = round(tank_temps[H0CN.buffer.depth1],1)
-            middle_temp = round(tank_temps[H0CN.buffer.depth2],1)
-            bottom_temp = round(tank_temps[H0CN.buffer.depth3],1)
+            top_temp = round(tank_temps[HCN.buffer.depth1],1)
+            middle_temp = round(tank_temps[HCN.buffer.depth2],1)
+            bottom_temp = round(tank_temps[HCN.buffer.depth3],1)
             thermocline1 = 1
             thermocline2 = 2
             return top_temp, middle_temp, bottom_temp, thermocline1, thermocline2

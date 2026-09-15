@@ -3,8 +3,8 @@ import time
 from typing import TYPE_CHECKING
 
 from gwsproto.enums import LogLevel
-from gwsproto.data_classes.house_0_names import H0CN
 from gwsproto.named_types import AnalogDispatch, Glitch
+from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 
 
 if TYPE_CHECKING:
@@ -153,7 +153,7 @@ class DistPumpDoctor:
         deadline = time.monotonic() + self.MAX_WAIT_SECONDS
 
         while time.monotonic() < deadline:
-            flow = self.host.data.latest_channel_values.get(H0CN.dist_flow)
+            flow = self.host.data.latest_channel_values.get(HCN.dist_flow)
             if flow is not None and flow > self.THRESHOLD_FLOW_GPM_X100:
                 return True
 

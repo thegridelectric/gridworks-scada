@@ -10,7 +10,6 @@ import pytest
 
 from actors.hydronic.house0 import House0Hydronic
 from actors.sieg_loop import SiegLoop, SiegValveEvent, SiegValveState
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import ChangeKeepSend, ChangeRelayState
 from gwsproto.named_types import FsmEvent
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
@@ -37,7 +36,7 @@ def app(request: pytest.FixtureRequest) -> ScadaApp:
 
 
 def sieg_loop_actor(app: ScadaApp) -> SiegLoop:
-    actor = app.get_communicator_as_type(H0N.sieg_loop, SiegLoop)
+    actor = app.get_communicator_as_type(HSNN.sieg_loop, SiegLoop)
     assert actor is not None, "sieg-loop is constructed in every House0 layout"
     return actor
 

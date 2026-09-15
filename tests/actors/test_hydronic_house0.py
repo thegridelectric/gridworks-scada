@@ -12,7 +12,6 @@ import pytest
 
 import actors.hydronic.house0 as house0_module
 from actors.hydronic.house0 import House0Hydronic
-from gwsproto.data_classes.house_0_names import H0CN, H0N
 from gwsproto.enums import (
     ChangeAquastatControl,
     ChangeHeatPumpControl,
@@ -25,6 +24,8 @@ from gwsproto.enums import (
 )
 from gwsproto.named_types import FsmEvent, Glitch, HeatingForecast, SingleMachineState
 from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
+from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -247,18 +248,18 @@ def test_sieg_loop_node_only_when_the_ops_word_uses_the_loop(
 def test_energy_readers_are_kwh_from_wh_and_zero_when_unknown(
     actor: House0Hydronic, raw, kwh: float
 ) -> None:
-    actor.data.latest_channel_values[H0CN.usable_energy] = raw
-    actor.data.latest_channel_values[H0CN.required_energy] = raw
+    actor.data.latest_channel_values[HCN.usable_energy] = raw
+    actor.data.latest_channel_values[HCN.required_energy] = raw
     assert actor.usable_kwh == kwh
     assert actor.required_kwh == kwh
     assert actor.is_storage_empty() is (kwh < 0.2)
 
 
 def test_total_hp_power_needs_both_units(actor: House0Hydronic) -> None:
-    actor.data.latest_channel_values[H0CN.hp_idu_pwr] = 500
-    actor.data.latest_channel_values[H0CN.hp_odu_pwr] = None
+    actor.data.latest_channel_values[HCN.hp_idu_pwr] = 500
+    actor.data.latest_channel_values[HCN.hp_odu_pwr] = None
     assert actor.total_hp_pwr_w() is None
-    actor.data.latest_channel_values[H0CN.hp_odu_pwr] = 3_000
+    actor.data.latest_channel_values[HCN.hp_odu_pwr] = 3_000
     assert actor.total_hp_pwr_w() == 3_500
 
 
@@ -266,8 +267,8 @@ def test_defrost_is_never_judged_for_a_unit_without_a_known_line(
     actor: House0Hydronic,
 ) -> None:
     # Both sim pairs name SimHpOdu, which has no defrost signature.
-    actor.data.latest_channel_values[H0CN.hp_idu_pwr] = 100
-    actor.data.latest_channel_values[H0CN.hp_odu_pwr] = 100
+    actor.data.latest_channel_values[HCN.hp_idu_pwr] = 100
+    actor.data.latest_channel_values[HCN.hp_odu_pwr] = 100
     assert actor.hp_in_defrost() is False
 
 
@@ -295,28 +296,28 @@ def test_defrost_signature_by_the_hp_odu_device_type(
     odu: int,
     defrost: bool,
 ) -> None:
-    device_type = actor.layout.node(H0N.hp_odu).component.gt.DeviceType
+    device_type = actor.layout.node(HSNN.hp_odu).component.gt.DeviceType
     monkeypatch.setitem(
         house0_module.DEFROST_SIGNATURES,
         device_type,
         house0_module.DefrostSignature(draw, max_w),
     )
-    actor.data.latest_channel_values[H0CN.hp_idu_pwr] = idu
-    actor.data.latest_channel_values[H0CN.hp_odu_pwr] = odu
+    actor.data.latest_channel_values[HCN.hp_idu_pwr] = idu
+    actor.data.latest_channel_values[HCN.hp_odu_pwr] = odu
     assert actor.hp_in_defrost() is defrost
 
 
 def test_defrost_is_false_without_the_watched_draw(
     actor: House0Hydronic, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    device_type = actor.layout.node(H0N.hp_odu).component.gt.DeviceType
+    device_type = actor.layout.node(HSNN.hp_odu).component.gt.DeviceType
     monkeypatch.setitem(
         house0_module.DEFROST_SIGNATURES,
         device_type,
         house0_module.DefrostSignature("total", 8_400),
     )
-    actor.data.latest_channel_values[H0CN.hp_idu_pwr] = 100
-    actor.data.latest_channel_values[H0CN.hp_odu_pwr] = None
+    actor.data.latest_channel_values[HCN.hp_idu_pwr] = 100
+    actor.data.latest_channel_values[HCN.hp_odu_pwr] = None
     assert actor.hp_in_defrost() is False
 
 
@@ -344,8 +345,8 @@ def test_store_flow_predicates(
 ) -> None:
     if state is not None:
         set_store_relay(actor, state)
-    actor.data.latest_channel_values[H0CN.store_flow] = flow_gpm_x100
-    actor.data.latest_channel_values[H0CN.primary_flow] = flow_gpm_x100
+    actor.data.latest_channel_values[HCN.store_flow] = flow_gpm_x100
+    actor.data.latest_channel_values[HCN.primary_flow] = flow_gpm_x100
     assert actor.discharging_store() is expected
     assert actor.flowing_from_hp_to_house() is expected
 
@@ -361,7 +362,7 @@ def f_x100(f: float) -> int:
 def test_get_temperatures_converts_and_marks_the_buffer_available(
     actor: House0Hydronic,
 ) -> None:
-    buffer = actor.h0cn.buffer
+    buffer = HCN.buffer
     tank = actor.h0cn.tank[1]
     for ch, f in (
         (buffer.depth1, 150.0),
@@ -383,7 +384,7 @@ def test_get_temperatures_converts_and_marks_the_buffer_available(
 def test_get_temperatures_buffer_unavailable_when_a_layer_is_missing(
     actor: House0Hydronic,
 ) -> None:
-    buffer = actor.h0cn.buffer
+    buffer = HCN.buffer
     actor.data.latest_channel_values[buffer.depth1] = f_x100(150.0)
     actor.data.latest_channel_values[buffer.depth2] = None
     actor.get_temperatures()
@@ -478,7 +479,7 @@ def set_forecast(
 
 
 def set_temps(actor: House0Hydronic, **temps_f: float) -> None:
-    """Channel names are the H0CN spellings with dashes as underscores."""
+    """Channel names are the tier spellings with dashes as underscores."""
     for name, f in temps_f.items():
         actor.data.latest_temperatures_f[name.replace("_", "-")] = f
 
@@ -489,8 +490,8 @@ def set_flowing(actor: House0Hydronic, flowing: bool) -> None:
         actor,
         StoreFlowRelay.DischargingStore if flowing else StoreFlowRelay.ChargingStore,
     )
-    actor.data.latest_channel_values[H0CN.store_flow] = 500
-    actor.data.latest_channel_values[H0CN.primary_flow] = 500
+    actor.data.latest_channel_values[HCN.store_flow] = 500
+    actor.data.latest_channel_values[HCN.primary_flow] = 500
 
 
 def short_cycle_buffer(actor: House0Hydronic, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -577,10 +578,10 @@ def test_buffer_full_proxies_in_order_and_each_sends_a_glitch(
     assert actor.is_buffer_full() is False  # neither pipe counts while nothing flows
     set_flowing(actor, True)
     assert actor.is_buffer_full() is True  # store-cold-pipe while discharging the store
-    assert H0CN.store_cold_pipe in info_glitches(actor)[-1].Details
+    assert HCN.store_cold_pipe in info_glitches(actor)[-1].Details
     set_temps(actor, buffer_cold_pipe=100.0)
     assert actor.is_buffer_full() is False  # buffer-cold-pipe outranks the store pipe
-    assert H0CN.buffer_cold_pipe in info_glitches(actor)[-1].Details
+    assert HCN.buffer_cold_pipe in info_glitches(actor)[-1].Details
 
 
 def test_buffer_full_uses_hp_ewt_only_while_the_heat_pump_feeds_the_house(
@@ -592,7 +593,7 @@ def test_buffer_full_uses_hp_ewt_only_while_the_heat_pump_feeds_the_house(
     assert actor.is_buffer_full() is False
     set_flowing(actor, True)
     assert actor.is_buffer_full() is True
-    assert H0CN.hp_ewt in info_glitches(actor)[-1].Details
+    assert HCN.hp_ewt in info_glitches(actor)[-1].Details
 
 
 def test_buffer_charge_limited_prefers_hp_ewt_while_flowing(

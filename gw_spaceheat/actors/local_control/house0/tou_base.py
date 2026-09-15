@@ -12,7 +12,7 @@ from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.named_types import AnalogDispatch, SyncedReadings
 from result import Ok, Result
 from transitions import Machine
-from gwsproto.data_classes.house_0_names import H0N, H0CN
+from gwsproto.data_classes.house_0_names import H0CN
 from gwsproto.names.hydronic_spaceheat.node_names import (
     HydronicSpaceheatNodeNames as HSNN,
 )
@@ -200,7 +200,7 @@ class LocalControlTouBase(House0Hydronic):
         return all(self.layout.node(name) is not None for name in names)
 
     def _dist_pump_recovery_enabled(self) -> bool:
-        required = [H0N.dist_010v]
+        required = [HSNN.dist_010v]
         for zone in self.layout.zone_list:
             required.extend(
                 [
@@ -213,7 +213,7 @@ class LocalControlTouBase(House0Hydronic):
     def _store_pump_recovery_enabled(self) -> bool:
         return self._has_layout_nodes(
             [
-                H0N.store_010v,
+                HSNN.store_010v,
                 House0NodeNames.store_charge_discharge_relay,
                 HSNN.store_pump_relay,
             ]

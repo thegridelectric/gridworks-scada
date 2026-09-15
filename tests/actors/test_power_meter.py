@@ -11,9 +11,9 @@ from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import GridworksS
 from scada_app import ScadaApp
 from gwproactor_test.certs import uses_tls
 from gwproactor_test.certs import copy_keys
-from gwsproto.data_classes.house_0_names import H0N, H0CN
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 
 import pytest
 from actors.power_meter import DriverThreadSetupHelper
@@ -91,7 +91,7 @@ def test_power_meter_small():
     
     # Sim-spruce transactive boundary: 4 elements @ 4500, secondary-pump 80,
     # hp-ctrl-box 50, hp-odu 4300 -> 22430 W aggregate nameplate.
-    hp_odu = layout.node(H0N.hp_odu)
+    hp_odu = layout.node(HSNN.hp_odu)
     assert hp_odu.NameplatePowerW == 4300
     assert driver_thread.nameplate_agg_power_w == 22_430
     power_reporting_threshold_ratio = driver_thread.async_power_reporting_threshold
@@ -99,7 +99,7 @@ def test_power_meter_small():
     power_reporting_threshold_w = power_reporting_threshold_ratio * driver_thread.nameplate_agg_power_w
     assert power_reporting_threshold_w == pytest.approx(448.6)
 
-    tt = layout.channel(H0CN.hp_odu_pwr)
+    tt = layout.channel(HCN.hp_odu_pwr)
     driver_thread.latest_telemetry_value[tt] += 400
     assert not driver_thread.should_report_aggregated_power()
     driver_thread.latest_telemetry_value[tt] += 100
@@ -131,7 +131,7 @@ async def test_power_meter_periodic_update(request: pytest.FixtureRequest) -> No
             request=request,
     ) as h:
         expected_channels = [
-            h.child1.hardware_layout.data_channels[H0CN.hp_odu_pwr],
+            h.child1.hardware_layout.data_channels[HCN.hp_odu_pwr],
             h.child1.hardware_layout.data_channels["hp-ctrl-box-pwr"],
             h.child1.hardware_layout.data_channels[HCN.secondary_pump_pwr],
         ]
@@ -210,12 +210,12 @@ async def test_async_power_update(request: pytest.FixtureRequest):
             for name in (
                 "buffer-top-elt-pwr", "buffer-bottom-elt-pwr",
                 "tank1-top-elt-pwr", "tank1-bottom-elt-pwr",
-                HCN.secondary_pump_pwr, "hp-ctrl-box-pwr", H0CN.hp_odu_pwr,
+                HCN.secondary_pump_pwr, "hp-ctrl-box-pwr", HCN.hp_odu_pwr,
             )
         }
 
         assert data.latest_channel_values["hp-ctrl-box-pwr"] == delta_w
-        assert data.latest_channel_values[H0CN.hp_odu_pwr] == delta_w
+        assert data.latest_channel_values[HCN.hp_odu_pwr] == delta_w
 
         # The sim driver applies fake_power_w to every metered channel, so
         # the aggregate sees all seven transactive channels move.

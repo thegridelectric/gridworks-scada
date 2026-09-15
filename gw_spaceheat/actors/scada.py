@@ -59,7 +59,7 @@ from actors.local_control_loader import LocalControl
 from actors.leaf_ally_loader import LeafAlly
 from actors.codec_factories import ScadaCodecFactory
 from actors.contract_handler import ContractHandler
-from gwsproto.data_classes.house_0_names import H0N, ScadaWeb
+from gwsproto.data_classes.house_0_names import ScadaWeb
 from gwsproto.data_classes.components.web_server_component import WebServerComponent
 from gwsproto.enums import (FiveVBossState, HpBossState, LeafAllyBufferOnlyState,  LeafAllyAllTanksState,
                             RebootPicos, Turn5VOnOff,
@@ -874,7 +874,7 @@ class Scada(PrimeActor, ScadaInterface):
             self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMs
 
         # Hack for moving out of Initializing rapidly when restarting Scada
-        if from_node.Name ==H0N.buffer.reader and not self.got_first_buffer_reading:
+        if from_node.Name ==HSNN.buffer.reader and not self.got_first_buffer_reading:
             self.got_first_buffer_reading = True
             if self.auto_state == MainAutoState.LeafTransactiveNode:
                 self.log("First Buffer temps arrived! Sending to LeafAlly")
@@ -1252,7 +1252,7 @@ class Scada(PrimeActor, ScadaInterface):
             shape_five_v_subtree(self.layout, self.five_v_boss_state)
             under_fsm.add(self.layout.vdc_relay.Name)
         if self.data.use_sieg_loop:
-            sieg_loop = self.layout.node(H0N.sieg_loop)
+            sieg_loop = self.layout.node(HSNN.sieg_loop)
             sieg_loop.Handle = f"{boss.handle}.{sieg_loop.Name}"
             for name in (House0NodeNames.hp_loop_on_off, House0NodeNames.hp_loop_keep_send):
                 node = self.layout.node(name)
@@ -1652,7 +1652,7 @@ class Scada(PrimeActor, ScadaInterface):
     def sieg_loop(self) -> ShNode:
         if not self.data.use_sieg_loop:
             raise Exception("Should not call for sieg_loop unless layout uses sieg loop!")
-        return self.layout.node(H0N.sieg_loop)
+        return self.layout.node(HSNN.sieg_loop)
 
     @property
     def pico_cycler(self) -> ShNode:

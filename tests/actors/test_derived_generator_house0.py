@@ -11,9 +11,9 @@ from pathlib import Path
 import pytest
 
 from actors.derived_generator import DerivedGenerator
-from gwsproto.data_classes.house_0_names import H0CN
 from gwsproto.named_types import HeatingForecast
 from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -54,7 +54,7 @@ def test_main_loop_pass_survives_the_first_forecast(app: ScadaApp) -> None:
     for tank in actor.h0cn.tank.values():
         for ch in (tank.depth1, tank.depth2, tank.depth3):
             data.latest_temperatures_f[ch] = 150.0
-    for ch in (H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3):
+    for ch in (HCN.buffer.depth1, HCN.buffer.depth2, HCN.buffer.depth3):
         data.latest_temperatures_f[ch] = 150.0
 
     usable_wh = actor.compute_usable_energy_wh()

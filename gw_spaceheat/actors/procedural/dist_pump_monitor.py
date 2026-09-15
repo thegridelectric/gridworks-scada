@@ -3,7 +3,7 @@
 import time
 from typing import TYPE_CHECKING
 
-from gwsproto.data_classes.house_0_names import H0CN
+from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 
 if TYPE_CHECKING:
     from actors.procedural.procedural_host import ProceduralHost
@@ -63,7 +63,7 @@ class DistPumpMonitor:
         # --------------------------------------------------------
         # Do we have flow data?
         # --------------------------------------------------------
-        flow_gpm_x100 = h.data.latest_channel_values.get(H0CN.dist_flow)
+        flow_gpm_x100 = h.data.latest_channel_values.get(HCN.dist_flow)
         if flow_gpm_x100 is None:
             h.log("[DistPumpCheck] Dist flow not found in latest channel values")
             return False

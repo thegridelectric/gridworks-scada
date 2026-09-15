@@ -51,6 +51,7 @@ from gwsproto.names.hydronic_spaceheat.node_names import (
     TankNodeNames,
 )
 from gwsproto.names.nolan.node_names import NolanNodeNames
+from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from enum import Enum
 
 
@@ -1204,8 +1205,8 @@ class HydronicLayout:
         """
 
         required_channels = {
-            H0CN.usable_energy,
-            H0CN.required_energy,
+            HCN.usable_energy,
+            HCN.required_energy,
         }
 
         # --- 1. Required channels exist ---
@@ -1284,7 +1285,7 @@ class HydronicLayout:
         # unreported: set[str] = set()
 
         # # Buffer device channels
-        # unreported |= self.h0cn.buffer.device
+        # unreported |= HCN.buffer.device
 
         # # Tank device channels
         # for tank in self.h0cn.tank.values():
@@ -1296,7 +1297,7 @@ class HydronicLayout:
 
     @property
     def tank_device_temp_channels(self) -> set[str]:
-        channels = set(self.h0cn.buffer.devices)
+        channels = set(HCN.buffer.devices)
         for tank in self.h0cn.tank.values():
             channels |= tank.devices
         return channels
@@ -1557,23 +1558,23 @@ class HydronicLayout:
 
     @property
     def dist_010v(self) -> ShNode:
-        n = self.node(H0N.dist_010v)
+        n = self.node(HSNN.dist_010v)
         if n is None:
-            raise DcError(f"{H0N.dist_010v} is known to exist")
+            raise DcError(f"{HSNN.dist_010v} is known to exist")
         return n
 
     @property
     def store_010v(self) -> ShNode:
-        n = self.node(H0N.store_010v)
+        n = self.node(HSNN.store_010v)
         if n is None:
-            raise DcError(f"{H0N.store_010v} is known to exist")
+            raise DcError(f"{HSNN.store_010v} is known to exist")
         return n
 
     @property
     def primary_010v(self) -> ShNode:
-        n = self.node(H0N.primary_010v)
+        n = self.node(HSNN.primary_010v)
         if n is None:
-            raise DcError(f"{H0N.primary_010v} is known to exist")
+            raise DcError(f"{HSNN.primary_010v} is known to exist")
         return n
 
     ################################

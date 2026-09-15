@@ -6,6 +6,7 @@ from gwsproto.data_classes.derived_channel import DerivedChannel
 from gwsproto.data_classes.house_0_names import H0CN
 from gwsproto.data_classes.hydronic_layout import ChannelRegistry
 from gwsproto.named_types import LayoutLite
+from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 
 
 class LayoutLiteDc(LayoutLite):
@@ -85,7 +86,7 @@ class LayoutLiteDc(LayoutLite):
         names: list[str] = []
 
         # buffer effective depths
-        names.extend(self.h0cn.buffer.effective)
+        names.extend(HCN.buffer.effective)
 
         # store tanks
         for tank_idx in sorted(self.h0cn.tank):

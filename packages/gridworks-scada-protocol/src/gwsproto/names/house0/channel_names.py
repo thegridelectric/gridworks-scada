@@ -15,7 +15,6 @@ class House0ChannelNames:
     tstat_common_relay_state = "tstat-common-relay"
     charge_discharge_relay_state = "charge-discharge-relay"
     hp_failsafe_relay_state = "hp-failsafe-relay"
-    hp_scada_ops_relay_state = "hp-scada-ops-relay"
     aquastat_ctrl_relay_state = "aquastat-ctrl-relay"
     boiler_scada_ops_relay_state = "boiler-scada-ops-relay"
     primary_pump_scada_ops_relay_state = "primary-pump-scada-ops-relay"

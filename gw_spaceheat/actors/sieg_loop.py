@@ -209,7 +209,7 @@ class SiegLoop(House0Hydronic):
                 # self._send_to(
                 #     self.primary_scada,
                 #     SingleReading(
-                #         ChannelName=H0CN.hp_keep_seconds_x_10,
+                #         ChannelName=HCN.hp_keep_seconds_x_10,
                 #         Value=round(self.keep_seconds * 10),
                 #         ScadaReadTimeUnixMs=int(time.time() *1000)
                 #     )
@@ -576,7 +576,7 @@ class SiegLoop(House0Hydronic):
         # self._send_to(
         #     self.primary_scada,
         #     SingleReading(
-        #         ChannelName=H0CN.hp_keep_seconds_x_10,
+        #         ChannelName=HCN.hp_keep_seconds_x_10,
         #         Value=round(self.keep_seconds * 10),
         #         ScadaReadTimeUnixMs=int(time.time() *1000)
         #     )
@@ -613,7 +613,7 @@ class SiegLoop(House0Hydronic):
         # self._send_to(
         #     self.primary_scada,
         #     SingleReading(
-        #         ChannelName=H0CN.hp_keep_seconds_x_10,
+        #         ChannelName=HCN.hp_keep_seconds_x_10,
         #         Value=round(self.keep_seconds * 10),
         #         ScadaReadTimeUnixMs=int(time.time() *1000)
         #     )

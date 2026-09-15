@@ -118,6 +118,7 @@ class HydronicSpaceheatChannelNames:
 
     # relay state channels
     vdc_relay_state = "vdc-relay"
+    hp_scada_ops_relay_state = "hp-scada-ops-relay"
     buffer_top_elt_relay_state = "buffer-top-elt-relay"
     buffer_bottom_elt_relay_state = "buffer-bottom-elt-relay"
 
@@ -125,6 +126,7 @@ class HydronicSpaceheatChannelNames:
     buffer_top_elt_pwr = "buffer-top-elt-pwr"
     buffer_bottom_elt_pwr = "buffer-bottom-elt-pwr"
     sieg_cold = HNN.sieg_cold
+    sieg_flow = HNN.sieg_flow
     sieg_send_flow = HNN.sieg_send_flow
 
     

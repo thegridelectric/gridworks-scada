@@ -9,7 +9,6 @@ import uuid
 from typing import Literal, NamedTuple, Optional
 from pydantic import ValidationError
 from gwsproto.conversions.temperature import convert_temp_to_f
-from gwsproto.data_classes.house_0_names import H0CN, H0N
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
     ActorClass,
@@ -26,6 +25,7 @@ from gwsproto.named_types import AnalogDispatch, FsmEvent, SingleMachineState
 from gwsproto.names.hydronic_spaceheat.node_names import (
     HydronicSpaceheatNodeNames as HSNN,
 )
+from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from actors.hydronic.shared import HydronicNode
 from actors.hydronic.store_temps import scrub_and_fill_store_temps
 from sema_to_dc import zero_ten_power_on_volts_times_ten
@@ -544,7 +544,7 @@ class House0Hydronic(HydronicNode):
         if relay_state is None or relay_state.State != StoreFlowRelay.DischargingStore:
             return False
 
-        store_flow = self.data.latest_channel_values.get(H0CN.store_flow) or 0
+        store_flow = self.data.latest_channel_values.get(HCN.store_flow) or 0
 
         return store_flow > self.PUMP_FLOW_GPM_THRESHOLD * 100
 
@@ -563,14 +563,14 @@ class House0Hydronic(HydronicNode):
         if relay_state is None or relay_state.State != StoreFlowRelay.DischargingStore:
             return False
 
-        primary_flow = self.data.latest_channel_values.get(H0CN.primary_flow) or 0
+        primary_flow = self.data.latest_channel_values.get(HCN.primary_flow) or 0
         return primary_flow > self.PUMP_FLOW_GPM_THRESHOLD * 100
 
     def hp_in_defrost(self) -> bool:
         """True when the heat pump's total draw is under the defrost line
         for the unit the layout's hp-odu component names; False without
         both power readings or without a known line."""
-        signature = DEFROST_SIGNATURES.get(self.layout.node(H0N.hp_odu).component.gt.DeviceType)
+        signature = DEFROST_SIGNATURES.get(self.layout.node(HSNN.hp_odu).component.gt.DeviceType)
         if signature is None:
             return False
         draw = self.hp_idu_pwr_w() if signature.draw == "idu" else self.total_hp_pwr_w()
@@ -588,12 +588,12 @@ class House0Hydronic(HydronicNode):
         """
 
         # Select the best available "top of buffer" temperature channel
-        if all_tanks_leaf_ally and self.ops.ShortCycleBuffer and H0CN.buffer.depth3 in self.latest_temps_f:
-            buffer_empty_ch = H0CN.buffer.depth3
-        elif H0CN.buffer.depth1 in self.latest_temps_f:
-            buffer_empty_ch = H0CN.buffer.depth1
-        elif H0CN.dist_swt in self.latest_temps_f:
-            buffer_empty_ch = H0CN.dist_swt
+        if all_tanks_leaf_ally and self.ops.ShortCycleBuffer and HCN.buffer.depth3 in self.latest_temps_f:
+            buffer_empty_ch = HCN.buffer.depth3
+        elif HCN.buffer.depth1 in self.latest_temps_f:
+            buffer_empty_ch = HCN.buffer.depth1
+        elif HCN.dist_swt in self.latest_temps_f:
+            buffer_empty_ch = HCN.dist_swt
         else:
             # No meaningful buffer temperature available
             self.log("is_buffer_empty: no buffer temperature channel available")
@@ -638,22 +638,22 @@ class House0Hydronic(HydronicNode):
         """
         used_proxy: bool = True
 
-        if H0CN.buffer.depth3 in self.latest_temps_f:
-            buffer_full_ch = H0CN.buffer.depth3
+        if HCN.buffer.depth3 in self.latest_temps_f:
+            buffer_full_ch = HCN.buffer.depth3
             used_proxy = False
-        elif H0CN.buffer_cold_pipe in self.latest_temps_f:  # Note: often not even installed
-            buffer_full_ch = H0CN.buffer_cold_pipe
+        elif HCN.buffer_cold_pipe in self.latest_temps_f:  # Note: often not even installed
+            buffer_full_ch = HCN.buffer_cold_pipe
 
         elif (
             self.discharging_store()
-            and H0CN.store_cold_pipe in self.latest_temps_f
+            and HCN.store_cold_pipe in self.latest_temps_f
         ):
-            buffer_full_ch = H0CN.store_cold_pipe
+            buffer_full_ch = HCN.store_cold_pipe
         elif (
             self.flowing_from_hp_to_house()
-            and H0CN.hp_ewt in self.latest_temps_f
+            and HCN.hp_ewt in self.latest_temps_f
         ):
-            buffer_full_ch = H0CN.hp_ewt
+            buffer_full_ch = HCN.hp_ewt
         else:
             return False
 
@@ -661,7 +661,7 @@ class House0Hydronic(HydronicNode):
             self.send_info(
                 summary="Buffer full inferred from proxy temperature",
                 details=(
-                    f"{H0CN.buffer.depth3} unavailable; using {buffer_full_ch} "
+                    f"{HCN.buffer.depth3} unavailable; using {buffer_full_ch} "
                     "to infer buffer-full state."
                 ),
             )
@@ -691,12 +691,12 @@ class House0Hydronic(HydronicNode):
         Returns True if the buffer cannot accept more heat without exceeding MaxEwtF.
         This is a physical limit.
         """
-        if H0CN.hp_ewt in self.latest_temps_f and self.flowing_from_hp_to_house():
-            channel_used = H0CN.hp_ewt
-        elif H0CN.buffer_cold_pipe in self.latest_temps_f:
-            channel_used = H0CN.buffer_cold_pipe
-        elif H0CN.buffer.depth3 in self.latest_temps_f:
-            channel_used = H0CN.buffer.depth3
+        if HCN.hp_ewt in self.latest_temps_f and self.flowing_from_hp_to_house():
+            channel_used = HCN.hp_ewt
+        elif HCN.buffer_cold_pipe in self.latest_temps_f:
+            channel_used = HCN.buffer_cold_pipe
+        elif HCN.buffer.depth3 in self.latest_temps_f:
+            channel_used = HCN.buffer.depth3
         else:
             return False
 
@@ -717,35 +717,35 @@ class House0Hydronic(HydronicNode):
         - Returns False if required temperatures are unavailable
         """
         # --- Determine buffer top ---
-        if H0CN.buffer.depth1 in self.latest_temps_f:
-            buffer_top = H0CN.buffer.depth1
-        elif H0CN.buffer.depth2 in self.latest_temps_f:
-            buffer_top = H0CN.buffer.depth2
-        elif H0CN.buffer.depth3 in self.latest_temps_f:
-            buffer_top = H0CN.buffer.depth3
-        elif H0CN.buffer_cold_pipe in self.latest_temps_f:
-            buffer_top = H0CN.buffer_cold_pipe
+        if HCN.buffer.depth1 in self.latest_temps_f:
+            buffer_top = HCN.buffer.depth1
+        elif HCN.buffer.depth2 in self.latest_temps_f:
+            buffer_top = HCN.buffer.depth2
+        elif HCN.buffer.depth3 in self.latest_temps_f:
+            buffer_top = HCN.buffer.depth3
+        elif HCN.buffer_cold_pipe in self.latest_temps_f:
+            buffer_top = HCN.buffer_cold_pipe
         elif not all_tanks_leaf_ally or not self.ops.ShortCycleBuffer:
             return False
 
         # --- Determine storage top ---
         if self.h0cn.tank and self.h0cn.tank[1].depth1 in self.latest_temps_f:
             tank_top = self.h0cn.tank[1].depth1
-        elif H0CN.store_hot_pipe in self.latest_temps_f:
-            tank_top = H0CN.store_hot_pipe
-        elif H0CN.buffer_hot_pipe in self.latest_temps_f:
-            tank_top = H0CN.buffer_hot_pipe
+        elif HCN.store_hot_pipe in self.latest_temps_f:
+            tank_top = HCN.store_hot_pipe
+        elif HCN.buffer_hot_pipe in self.latest_temps_f:
+            tank_top = HCN.buffer_hot_pipe
         else:
             return False
 
         # --- Determine buffer bottom ---
         if all_tanks_leaf_ally and self.ops.ShortCycleBuffer:
-            if H0CN.buffer.depth3 in self.latest_temps_f:
-                buffer_bottom = H0CN.buffer.depth3
-            elif H0CN.buffer.depth2 in self.latest_temps_f:
-                buffer_bottom = H0CN.buffer.depth2
-            elif H0CN.buffer.depth1 in self.latest_temps_f:
-                buffer_bottom = H0CN.buffer.depth1
+            if HCN.buffer.depth3 in self.latest_temps_f:
+                buffer_bottom = HCN.buffer.depth3
+            elif HCN.buffer.depth2 in self.latest_temps_f:
+                buffer_bottom = HCN.buffer.depth2
+            elif HCN.buffer.depth1 in self.latest_temps_f:
+                buffer_bottom = HCN.buffer.depth1
             else:
                 return False
             return self.latest_temps_f[buffer_bottom] > self.latest_temps_f[tank_top]
@@ -764,7 +764,7 @@ class House0Hydronic(HydronicNode):
         Latest usable thermal energy in kWh, derived from SCADA channel.
         Returns 0 if not yet available.
         """
-        val =  self.data.latest_channel_values.get(H0CN.usable_energy, 0)
+        val =  self.data.latest_channel_values.get(HCN.usable_energy, 0)
         if val is None:
             val = 0
         return val / 1000
@@ -775,7 +775,7 @@ class House0Hydronic(HydronicNode):
         Latest required thermal energy in kWh, derived from SCADA channel.
         Returns 0 if not yet available.
         """
-        val = self.data.latest_channel_values.get(H0CN.required_energy, 0)
+        val = self.data.latest_channel_values.get(HCN.required_energy, 0)
         if val is None:
             val = 0
         return  val / 1000
@@ -788,7 +788,7 @@ class House0Hydronic(HydronicNode):
             tank = self.h0cn.tank[tank_idx]
             all_store_layers.extend([tank.depth1, tank.depth2, tank.depth3])
         scrub_and_fill_store_temps(
-            self.data.latest_temperatures_f, all_store_layers, self.h0cn.store_cold_pipe
+            self.data.latest_temperatures_f, all_store_layers, HCN.store_cold_pipe
         )
 
     def get_temperatures(self) -> None:
@@ -830,7 +830,7 @@ class House0Hydronic(HydronicNode):
 
         # Update buffer_available
         self.data.buffer_temps_available = (
-            self.h0cn.buffer.effective <= self.data.latest_temperatures_f.keys()
+            HCN.buffer.effective <= self.data.latest_temperatures_f.keys()
         )
 
         self.fill_missing_store_temps()
@@ -840,7 +840,7 @@ class House0Hydronic(HydronicNode):
     def hp_idu_pwr_w(self) -> Optional[float]:
         """Returns the latest Heat Pump indoor unit power in Watts, or None
         if it does not exist"""
-        raw = self.data.latest_channel_values.get(H0CN.hp_idu_pwr)
+        raw = self.data.latest_channel_values.get(HCN.hp_idu_pwr)
         if raw is None:
             return None
         return raw
@@ -848,7 +848,7 @@ class House0Hydronic(HydronicNode):
     def hp_odu_pwr_w(self) -> Optional[float]:
         """Returns the latest Heat Pump outdoor unit power in Watts, or None
         if it does not exist"""
-        raw = self.data.latest_channel_values.get(H0CN.hp_odu_pwr)
+        raw = self.data.latest_channel_values.get(HCN.hp_odu_pwr)
         if raw is None:
             return None
         return raw

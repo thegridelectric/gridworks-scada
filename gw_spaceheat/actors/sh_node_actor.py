@@ -15,7 +15,6 @@ from actors.config import ScadaSettings
 from actors.scada_data import ScadaData
 from gwsproto.conversions.temperature import convert_temp_to_f
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
-from gwsproto.data_classes.house_0_names import H0CN
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.house0.node_names import House0NodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import (
@@ -32,6 +31,7 @@ from gwsproto.enums import (
 
 
 from gwsproto.named_types import Glitch, HeatingForecast, SingleMachineState
+from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 
 from sema_to_dc import OperationalParams
 from scada_app_interface import ScadaAppInterface
@@ -58,16 +58,16 @@ class ShNodeActor(Actor, ABC):
         self.h0cn = self.layout.h0cn
 
         # set temperature_channel_names
-        self.tank_temp_channel_names = list(self.h0cn.buffer.effective)
+        self.tank_temp_channel_names = list(HCN.buffer.effective)
         for tank_idx in sorted(self.h0cn.tank):
             tank = self.h0cn.tank[tank_idx]
             self.tank_temp_channel_names.extend([tank.depth1, tank.depth2, tank.depth3])
 
         self.pipe_temp_channel_names = [
-            self.h0cn.hp_ewt, self.h0cn.hp_lwt,
-             self.h0cn.dist_swt, self.h0cn.dist_rwt, 
-            self.h0cn.buffer_cold_pipe, self.h0cn.buffer_hot_pipe, 
-            self.h0cn.store_cold_pipe, self.h0cn.store_hot_pipe,
+            HCN.hp_ewt, HCN.hp_lwt,
+             HCN.dist_swt, HCN.dist_rwt, 
+            HCN.buffer_cold_pipe, HCN.buffer_hot_pipe, 
+            HCN.store_cold_pipe, HCN.store_hot_pipe,
         ]
 
         self.temperature_channel_names =  self.tank_temp_channel_names + self.pipe_temp_channel_names
@@ -316,10 +316,10 @@ class ShNodeActor(Actor, ABC):
     def lwt_f(self) -> Optional[float]:
         """Returns the latest Heat pump leaving water temp in deg F, or None
         if it does not exist"""
-        raw = self.data.latest_channel_values.get(H0CN.hp_lwt)
+        raw = self.data.latest_channel_values.get(HCN.hp_lwt)
         if raw is None:
             return None
-        unit = self.layout.channel_registry.unit(H0CN.hp_lwt)
+        unit = self.layout.channel_registry.unit(HCN.hp_lwt)
         if unit is None:
             raise Exception("hp_lwt must belong!")
         return convert_temp_to_f(
@@ -330,10 +330,10 @@ class ShNodeActor(Actor, ABC):
     def ewt_f(self) -> Optional[float]:
         """Returns the latest Heat pump entering water temp in deg F, or None
         if it does not exist"""
-        raw = self.data.latest_channel_values.get(H0CN.hp_ewt)
+        raw = self.data.latest_channel_values.get(HCN.hp_ewt)
         if raw is None:
             return None
-        unit = self.layout.channel_registry.unit(H0CN.hp_ewt)
+        unit = self.layout.channel_registry.unit(HCN.hp_ewt)
         if unit is None:
             raise Exception("hp_ewt must belong!")
         return convert_temp_to_f(
@@ -344,10 +344,10 @@ class ShNodeActor(Actor, ABC):
     def sieg_cold_f(self) -> Optional[float]:
         """Returns the latest Siegenthaler Cold temp in deg F, or None
         if it does not exist"""
-        raw = self.data.latest_channel_values.get(H0CN.sieg_cold)
+        raw = self.data.latest_channel_values.get(HCN.sieg_cold)
         if raw is None:
             return None
-        unit = self.layout.channel_registry.unit(H0CN.sieg_cold)
+        unit = self.layout.channel_registry.unit(HCN.sieg_cold)
         if unit is None:
             raise Exception("sieg_cold must belong!")
         return convert_temp_to_f(
@@ -358,7 +358,7 @@ class ShNodeActor(Actor, ABC):
     def sieg_flow_gpm(self) -> Optional[float]:
         """Returns the latest siegenthaler flow in gallons per minute, or None
         if it does not exist"""
-        sieg_x_100 = self.data.latest_channel_values.get(H0CN.sieg_flow)
+        sieg_x_100 = self.data.latest_channel_values.get(HCN.sieg_flow)
         if sieg_x_100 is None:
             return None
         return sieg_x_100 / 100
@@ -366,7 +366,7 @@ class ShNodeActor(Actor, ABC):
     def primary_flow_gpm(self) -> Optional[float]:
         """Returns the latest primary flow in gallons per minute, or None
         if it does not exist"""
-        primary_x_100 = self.data.latest_channel_values.get(H0CN.primary_flow)
+        primary_x_100 = self.data.latest_channel_values.get(HCN.primary_flow)
         if primary_x_100 is None:
             return None
         return primary_x_100 / 100
@@ -408,10 +408,10 @@ class ShNodeActor(Actor, ABC):
                     )
 
     def hottest_buffer_temp_f(self) -> float | None:
-        raw = self.data.latest_channel_values.get(H0CN.buffer.depth1)
+        raw = self.data.latest_channel_values.get(HCN.buffer.depth1)
         if raw is None:
             return None
-        unit = self.layout.channel_registry.unit(H0CN.buffer.depth1)
+        unit = self.layout.channel_registry.unit(HCN.buffer.depth1)
         if unit is None:
             raise Exception("buffer-depth1 must belong!")
         return convert_temp_to_f(
@@ -420,10 +420,10 @@ class ShNodeActor(Actor, ABC):
                     )
 
     def coldest_buffer_temp_f(self) -> float | None:
-        raw = self.data.latest_channel_values.get(H0CN.buffer.depth3)
+        raw = self.data.latest_channel_values.get(HCN.buffer.depth3)
         if raw is None:
             return None
-        unit = self.layout.channel_registry.unit(H0CN.buffer.depth3)
+        unit = self.layout.channel_registry.unit(HCN.buffer.depth3)
         if unit is None:
             raise Exception("buffer-depth3 must belong!")
         return convert_temp_to_f(

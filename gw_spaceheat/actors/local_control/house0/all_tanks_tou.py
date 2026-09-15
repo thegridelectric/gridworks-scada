@@ -3,13 +3,14 @@ from datetime import datetime
 from typing import Optional
 
 from actors.local_control.house0.tou_base import LocalControlTouBase
-from gwsproto.data_classes.house_0_names import H0CN, H0N
 from gwsproto.enums import (
     LocalControlAllTanksEvent, LocalControlAllTanksState, LocalControlTopState, 
     SeasonalStorageMode
 )
     
 from gwsproto.named_types import SingleMachineState
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
+from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from transitions import Machine
 
 from scada_app_interface import ScadaAppInterface
@@ -185,7 +186,7 @@ class AllTanksTouLocalControl(LocalControlTouBase):
             if self.time_since_blind is not None:
                 self.time_since_blind = None
             if self.state==LocalControlAllTanksState.Initializing:
-                if self.buffer_temps_available and self.data.channel_has_value(H0CN.required_energy):
+                if self.buffer_temps_available and self.data.channel_has_value(HCN.required_energy):
                     if self.is_onpeak():
                         if self.is_buffer_empty():
                             if self.is_storage_colder_than_buffer():
@@ -314,10 +315,10 @@ class AllTanksTouLocalControl(LocalControlTouBase):
             self.storage_declared_ready = True
             return True
         else:
-            if H0N.store_cold_pipe in self.latest_temps_f:
-                check_temp_channel = H0N.store_cold_pipe
-            elif H0N.hp_ewt in self.latest_temps_f:
-                check_temp_channel = H0N.hp_ewt
+            if HSNN.store_cold_pipe in self.latest_temps_f:
+                check_temp_channel = HSNN.store_cold_pipe
+            elif HSNN.hp_ewt in self.latest_temps_f:
+                check_temp_channel = HSNN.hp_ewt
             else:
                 self.log("No EWT temperature channel found, not checking if storage is ready")
                 return False

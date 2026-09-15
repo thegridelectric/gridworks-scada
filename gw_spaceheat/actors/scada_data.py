@@ -9,7 +9,6 @@ from typing import Dict, List, Optional, Union
 
 from actors.config import ScadaSettings
 from gwsproto.data_classes.data_channel import DataChannel
-from gwsproto.data_classes.house_0_names import H0CN
 from gwsproto.named_types import (
     ChannelReadings,
     House0OperationalParams,
@@ -23,6 +22,7 @@ from gwsproto.named_types import (
     HeatingForecast,
     SnapshotSpaceheat,
 )
+from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 
 
 from actors.config import DEFAULT_OPS_PARAMS_FILE
@@ -77,8 +77,8 @@ class ScadaData:
         self.latest_temperatures_f: Dict[str, float] = {}
         self.buffer_temps_available: bool = False # change to buffer_available
 
-        self.latest_channel_values[H0CN.usable_energy] = 0
-        self.latest_channel_unix_ms[H0CN.usable_energy] = int(time.time() * 1000)
+        self.latest_channel_values[HCN.usable_energy] = 0
+        self.latest_channel_unix_ms[HCN.usable_energy] = int(time.time() * 1000)
         self.recent_channel_values: Dict[str, List] = {
             ch.Name: [] for ch in self.my_channels
         }

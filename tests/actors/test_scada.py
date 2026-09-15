@@ -207,10 +207,10 @@ async def test_scada_snaphot_request_delivery(request: pytest.FixtureRequest):
 #             assert scada.scada_ltn_fast_dispatch_contract_is_alive
 #
 #             # Provoke a message by increasing the power of hp-odu
-#             hp_odu = scada._data.hardware_layout.node(H0N.hp_odu)
+#             hp_odu = scada._data.hardware_layout.node(HSNN.hp_odu)
 #             assert hp_odu is not None
 #             scada._layout.channel
-#             ch = scada._layout.channel(H0CN.hp_odu_pwr)
+#             ch = scada._layout.channel(HCN.hp_odu_pwr)
 #             meter._sync_thread.latest_telemetry_value[ch] += 300
 #
 #             await await_for(

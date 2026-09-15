@@ -3,7 +3,6 @@ import time
 import uuid
 from typing import List, Sequence, Optional
 
-from gwsproto.data_classes.house_0_names import H0CN
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
@@ -29,6 +28,7 @@ from gwsproto.named_types import (
     SuitUp
 )
 from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from actors.procedural.dist_pump_doctor import DistPumpDoctor
 from actors.procedural.dist_pump_monitor import DistPumpMonitor
 from actors.procedural.store_pump_doctor import StorePumpDoctor
@@ -298,7 +298,7 @@ class AllTanksLeafAlly(House0Hydronic):
             self.get_temperatures()
 
             if self.state == LeafAllyAllTanksState.Initializing:
-                if self.buffer_temps_available and self.data.channel_has_value(H0CN.required_energy):
+                if self.buffer_temps_available and self.data.channel_has_value(HCN.required_energy):
                     self.no_temps_since = None
                     if self.hp_should_be_off():
                         if (
@@ -547,8 +547,8 @@ class AllTanksLeafAlly(House0Hydronic):
             return True
         else:
             n = len(self.h0cn.tank)
-            if H0CN.store_cold_pipe in self.latest_temps_f:
-                store_channel = H0CN.store_cold_pipe
+            if HCN.store_cold_pipe in self.latest_temps_f:
+                store_channel = HCN.store_cold_pipe
             elif self.h0cn.tank[n].depth3 in self.latest_temps_f:
                 store_channel = self.h0cn.tank[n].depth3
             elif self.h0cn.tank[n].depth2 in self.latest_temps_f:
