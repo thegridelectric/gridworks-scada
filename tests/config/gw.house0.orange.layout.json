@@ -1605,10 +1605,10 @@
           "ChannelName": "zone1-main-failsafe-relay",
           "ActorName": "zone1-main-failsafe-relay",
           "WiringConfig": "DoubleThrow",
-          "EventType": "change.heatcall.source",
+          "EventType": "change.zone.call.source",
           "DeEnergizingEvent": "SwitchToWallThermostat",
           "EnergizingEvent": "SwitchToScada",
-          "StateType": "heatcall.source",
+          "StateType": "zone.call.source",
           "DeEnergizedState": "WallThermostat",
           "EnergizedState": "Scada"
         }

@@ -12,13 +12,13 @@ from gwsproto.enums import (
     ChangeRelayState,
     ChangeStoreFlowRelay,
     HeatPumpControl,
-    HeatcallSource,
+    ZoneCallSource,
     HpLoopKeepSend,
     PrimaryPumpControl,
     RelayClosedOrOpen,
     RelayWiringConfig,
     StoreFlowRelay,
-    ChangeHeatcallSource,
+    ChangeZoneCallSource,
 )
 from gwsproto.property_format import (
     SpaceheatName, LeftRightDotStr
@@ -32,7 +32,7 @@ KNOWN_EVENT_ENUMS = {
     ChangeAquastatControl.enum_name(): ChangeAquastatControl,
     ChangePrimaryPumpControl.enum_name(): ChangePrimaryPumpControl,
     ChangeKeepSend.enum_name(): ChangeKeepSend,
-    ChangeHeatcallSource.enum_name(): ChangeHeatcallSource,
+    ChangeZoneCallSource.enum_name(): ChangeZoneCallSource,
 }
 
 KNOWN_STATE_ENUMS = {
@@ -42,7 +42,7 @@ KNOWN_STATE_ENUMS = {
     AquastatControl.enum_name(): AquastatControl,
     PrimaryPumpControl.enum_name(): PrimaryPumpControl,
     HpLoopKeepSend.enum_name(): HpLoopKeepSend,
-    HeatcallSource.enum_name(): HeatcallSource,
+    ZoneCallSource.enum_name(): ZoneCallSource,
 }
 
 EVENT_TO_STATE = {
@@ -89,11 +89,11 @@ EVENT_TO_STATE = {
         ChangeKeepSend.ChangeToKeepMore: HpLoopKeepSend.SendLess,
     },
     (
-        ChangeHeatcallSource.enum_name(),
-        HeatcallSource.enum_name(),
+        ChangeZoneCallSource.enum_name(),
+        ZoneCallSource.enum_name(),
     ): {
-        ChangeHeatcallSource.SwitchToWallThermostat: HeatcallSource.WallThermostat,
-        ChangeHeatcallSource.SwitchToScada: HeatcallSource.Scada,
+        ChangeZoneCallSource.SwitchToWallThermostat: ZoneCallSource.WallThermostat,
+        ChangeZoneCallSource.SwitchToScada: ZoneCallSource.Scada,
     },
 }
 

@@ -11,7 +11,7 @@ from pydantic import ValidationError
 from gwsproto.errors import DcError
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
-    ChangeHeatcallSource,
+    ChangeZoneCallSource,
     ChangeRelayState
 )
 from gwsproto.named_types import FsmEvent
@@ -169,8 +169,8 @@ class HydronicNode(CommandNode):
             event = FsmEvent(
                 FromHandle=self.node.handle if command_node is None else command_node.handle,
                 ToHandle=self.stat_failsafe_relay(zone).handle,
-                EventType=ChangeHeatcallSource.enum_name(),
-                EventName=ChangeHeatcallSource.SwitchToScada,
+                EventType=ChangeZoneCallSource.enum_name(),
+                EventName=ChangeZoneCallSource.SwitchToScada,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
@@ -200,8 +200,8 @@ class HydronicNode(CommandNode):
             event = FsmEvent(
                 FromHandle=command_node.handle,
                 ToHandle=self.stat_failsafe_relay(zone).handle,
-                EventType=ChangeHeatcallSource.enum_name(),
-                EventName=ChangeHeatcallSource.SwitchToWallThermostat,
+                EventType=ChangeZoneCallSource.enum_name(),
+                EventName=ChangeZoneCallSource.SwitchToWallThermostat,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )

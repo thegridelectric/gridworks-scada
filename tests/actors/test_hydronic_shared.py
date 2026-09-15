@@ -12,7 +12,7 @@ import pytest
 
 import actors.hydronic.shared as shared
 from actors.pico_cycler import PicoCycler
-from gwsproto.enums import ChangeHeatcallSource, ChangeRelayState
+from gwsproto.enums import ChangeZoneCallSource, ChangeRelayState
 from gwsproto.errors import DcError
 from gwsproto.named_types import FsmEvent
 from gwsproto.names.core.node_names import CoreNodeNames
@@ -79,8 +79,8 @@ def test_unknown_zone_raises_dc_error(actor: PicoCycler) -> None:
 @pytest.mark.parametrize(
     ("method", "relay_suffix", "event_type", "event_name"),
     [
-        ("heatcall_ctrl_to_scada", "failsafe-relay", ChangeHeatcallSource, ChangeHeatcallSource.SwitchToScada),
-        ("heatcall_ctrl_to_stat", "failsafe-relay", ChangeHeatcallSource, ChangeHeatcallSource.SwitchToWallThermostat),
+        ("heatcall_ctrl_to_scada", "failsafe-relay", ChangeZoneCallSource, ChangeZoneCallSource.SwitchToScada),
+        ("heatcall_ctrl_to_stat", "failsafe-relay", ChangeZoneCallSource, ChangeZoneCallSource.SwitchToWallThermostat),
         ("stat_ops_close_relay", "ops-relay", ChangeRelayState, ChangeRelayState.CloseRelay),
         ("stat_ops_open_relay", "ops-relay", ChangeRelayState, ChangeRelayState.OpenRelay),
     ],

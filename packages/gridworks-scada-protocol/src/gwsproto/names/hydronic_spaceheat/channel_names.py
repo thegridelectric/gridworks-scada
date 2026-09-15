@@ -1,4 +1,4 @@
-from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HNN
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 
 
 class BufferChannelNames:
@@ -79,35 +79,35 @@ class BufferChannelNames:
 
 
 class HydronicSpaceheatChannelNames:
-    hp_odu_pwr = f"{HNN.hp_odu}-pwr"
-    hp_idu_pwr = f"{HNN.hp_idu}-pwr"
+    hp_odu_pwr = f"{HSNN.hp_odu}-pwr"
+    hp_idu_pwr = f"{HSNN.hp_idu}-pwr"
     # Metered circuit is the ctrl box's feed; that it ≈ primary-pump power on a
     # monobloc is an interpretation, so the channel is NOT primary-pump-pwr.
-    hp_ctrl_box_pwr = f"{HNN.hp_ctrl_box}-pwr"
-    dist_pump_pwr = f"{HNN.dist_pump}-pwr"
-    secondary_pump_pwr = f"{HNN.secondary_pump}-pwr"
-    primary_pump_pwr = f"{HNN.primary_pump}-pwr"
-    store_pump_pwr = f"{HNN.store_pump}-pwr"
+    hp_ctrl_box_pwr = f"{HSNN.hp_ctrl_box}-pwr"
+    dist_pump_pwr = f"{HSNN.dist_pump}-pwr"
+    secondary_pump_pwr = f"{HSNN.secondary_pump}-pwr"
+    primary_pump_pwr = f"{HSNN.primary_pump}-pwr"
+    store_pump_pwr = f"{HSNN.store_pump}-pwr"
 
     # Temperature Channels
-    dist_swt = HNN.dist_swt
-    dist_rwt = HNN.dist_rwt
-    hp_lwt = HNN.hp_lwt
-    hp_ewt = HNN.hp_ewt
-    store_hot_pipe = HNN.store_hot_pipe
-    store_cold_pipe = HNN.store_cold_pipe
-    buffer_hot_pipe = HNN.buffer_hot_pipe
-    buffer_cold_pipe = HNN.buffer_cold_pipe
-    oat = HNN.oat
+    dist_swt = HSNN.dist_swt
+    dist_rwt = HSNN.dist_rwt
+    hp_lwt = HSNN.hp_lwt
+    hp_ewt = HSNN.hp_ewt
+    store_hot_pipe = HSNN.store_hot_pipe
+    store_cold_pipe = HSNN.store_cold_pipe
+    buffer_hot_pipe = HSNN.buffer_hot_pipe
+    buffer_cold_pipe = HSNN.buffer_cold_pipe
+    oat = HSNN.oat
     buffer = BufferChannelNames()
 
-    dist_flow = HNN.dist_flow
-    primary_flow = HNN.primary_flow
-    store_flow = HNN.store_flow
+    dist_flow = HSNN.dist_flow
+    primary_flow = HSNN.primary_flow
+    store_flow = HSNN.store_flow
 
-    dist_flow_hz = f"{HNN.dist_flow}-hz"
-    primary_flow_hz = f"{HNN.primary_flow}-hz"
-    store_flow_hz = f"{HNN.store_flow}-hz"
+    dist_flow_hz = f"{HSNN.dist_flow}-hz"
+    primary_flow_hz = f"{HSNN.primary_flow}-hz"
+    store_flow_hz = f"{HSNN.store_flow}-hz"
 
     required_energy = "required-energy"
     usable_energy = "usable-energy"
@@ -125,9 +125,9 @@ class HydronicSpaceheatChannelNames:
     # element power (buffer flat; store tanks per tank on TankChannelNames)
     buffer_top_elt_pwr = "buffer-top-elt-pwr"
     buffer_bottom_elt_pwr = "buffer-bottom-elt-pwr"
-    sieg_cold = HNN.sieg_cold
-    sieg_flow = HNN.sieg_flow
-    sieg_send_flow = HNN.sieg_send_flow
+    sieg_cold = HSNN.sieg_cold
+    sieg_flow = HSNN.sieg_flow
+    sieg_send_flow = HSNN.sieg_send_flow
 
     
     hp_keep_seconds_x_10 = "hp-keep-seconds-x-10"

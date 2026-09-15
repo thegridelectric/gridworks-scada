@@ -25,7 +25,6 @@ from gwsproto.enums import (
     ChangeRelayPin,
     ChangeRelayState,
     ChangeStoreFlowRelay,
-    ChangeHeatcallSource,
     ChangeValveState,
     ChangeZoneCallSource,
     FsmReportType,
@@ -36,7 +35,6 @@ from gwsproto.enums import (
     RelayPinState,
     RelayWiringConfig,
     StoreFlowRelay,
-    HeatcallSource,
     ValveOpenOrClosed,
     ZoneCallSource,
 
@@ -81,7 +79,6 @@ EVENT_ENUM_BY_NAME: dict[str, type[SemaEnum]] = {
     for e in (
         ChangeAquastatControl,
         ChangeHeatPumpControl,
-        ChangeHeatcallSource,
         ChangeKeepSend,
         ChangePrimaryPumpControl,
         ChangeRelayState,
@@ -95,7 +92,6 @@ STATE_ENUM_BY_NAME: dict[str, type[SemaEnum]] = {
     for s in (
         AquastatControl,
         HeatPumpControl,
-        HeatcallSource,
         HpLoopKeepSend,
         PrimaryPumpControl,
         RelayClosedOrOpen,
@@ -1059,9 +1055,9 @@ class Relay(ShNodeActor):
             if self.de_energizing_event != ChangeKeepSend.ChangeToKeepLess:
                 raise Exception(f"Expect ChangeToSendMore as de-energizing event for {self.name}!")
         elif self.name in stat_failsafe_names:
-            self.my_state_enum = HeatcallSource
-            self.my_event_enum = ChangeHeatcallSource
-            if self.de_energizing_event != ChangeHeatcallSource.SwitchToWallThermostat:
+            self.my_state_enum = ZoneCallSource
+            self.my_event_enum = ChangeZoneCallSource
+            if self.de_energizing_event != ChangeZoneCallSource.SwitchToWallThermostat:
                 raise Exception(
                     f"Expect SwitchToWallThermostat as de-energizing event for {self.name}; got {self.de_energizing_event}"
                 )

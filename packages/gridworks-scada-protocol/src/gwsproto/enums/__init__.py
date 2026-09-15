@@ -22,7 +22,6 @@ from gwsproto.enums.base_g_node_class import BaseGNodeClass
 from gwsproto.enums.g_node_class import GNodeClass
 from gwsproto.enums.change_aquastat_control import ChangeAquastatControl
 from gwsproto.enums.change_heat_pump_control import ChangeHeatPumpControl
-from gwsproto.enums.change_heatcall_source import ChangeHeatcallSource
 from gwsproto.enums.change_keep_send import ChangeKeepSend
 from gwsproto.enums.change_primary_pump_control import ChangePrimaryPumpControl
 from gwsproto.enums.change_relay_pin import ChangeRelayPin
@@ -43,7 +42,6 @@ from gwsproto.enums.ta_validation_state import TaValidationState
 from gwsproto.enums.gw_str_enum import GwStrEnum, SemaEnum
 from gwsproto.enums.heat_call_interpretation import HeatCallInterpretation
 from gwsproto.enums.heat_pump_control import HeatPumpControl
-from gwsproto.enums.heatcall_source import HeatcallSource
 from gwsproto.enums.house0_primary_flow_source import House0PrimaryFlowSource
 from gwsproto.enums.five_v_boss_state import FiveVBossState
 from gwsproto.enums.hp_boss_state import HpBossState
@@ -118,7 +116,6 @@ __all__ = [
     "GNodeClass",
     "ChangeAquastatControl",
     "ChangeHeatPumpControl",
-    "ChangeHeatcallSource",
     "ChangeKeepSend",
     "ChangePrimaryPumpControl",
     "ChangeRelayPin",
@@ -139,7 +136,6 @@ __all__ = [
     "GwStrEnum",
     "HeatCallInterpretation",
     "HeatPumpControl",
-    "HeatcallSource",
     "House0PrimaryFlowSource",
     "FiveVBossState",
     "HpBossState",
