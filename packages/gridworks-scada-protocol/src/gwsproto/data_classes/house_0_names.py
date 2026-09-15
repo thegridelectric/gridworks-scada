@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict
 DEFAULT_ANALOG_READER = "analog-temp"
 
 
@@ -80,36 +80,6 @@ class H0N:
 # House 0 Channels
 #--------------------------------------------------------------
 
-
-class ZoneChannelNames:
-    def __init__(self, zone: str, idx: int) -> None:
-        self.zone_name = f"zone{idx}-{zone}".lower()
-        self.stat_name = f"{self.zone_name}-stat"
-        self.temp = f"{self.zone_name}-temp"
-        self.set = f"{self.zone_name}-set"
-        # SICK / UNSTABLE values — do not trust for heat-call or control. This is
-        # the Hubitat's `thermostatOperatingState` report, which has been very
-        # inaccurate; the trustworthy heat-call signal is the `-heat-call`
-        # DerivedChannel computed from whitewire power (see
-        # derived_generator.handle_heat_call). NOTE: it is still listed in `.all`
-        # below, so right now it is REQUIRED (back-compat for the dashboard
-        # consumers); the direction is to demote it to known-optional once
-        # whitewire-derived heat-call is the relied-on signal everywhere.
-        self.state = f"{self.zone_name}-state"
-        self.whitewire_pwr=f"{self.zone_name}-whitewire-pwr"
-
-    @property
-    def all(self) -> set[str]:
-        """All required channels for this zone"""
-        return {
-            self.temp,
-            self.set,
-            self.state,
-            self.whitewire_pwr,
-        }
-
-    def __repr__(self) -> str:
-        return f"{self.zone_name} Channels: {sorted(self.all)}"
 
 class BufferChannelNames:
     """
@@ -248,10 +218,7 @@ class TankChannelNames:
 
 
 class H0CN:
-    def __init__(self, total_store_tanks: int, zone_list: List[str]) -> None:
+    def __init__(self, total_store_tanks: int) -> None:
         self.tank: Dict[int, TankChannelNames] = {}
-        self.zone: Dict[int, ZoneChannelNames] = {}
         for i in range(total_store_tanks):
             self.tank[i + 1] = TankChannelNames(i + 1)
-        for i in range(len(zone_list)):
-            self.zone[i + 1] = ZoneChannelNames(zone=zone_list[i], idx=i + 1)

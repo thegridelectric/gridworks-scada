@@ -1,6 +1,4 @@
-from typing import Sequence
 from gwsproto.names.hydronic_spaceheat.helpers import Tanks
-from gwsproto.names.hydronic_spaceheat.helpers import HydronicSpaceheatZoneChannelNames as HSZoneChannelNames
 
 
 
@@ -22,24 +20,5 @@ class House0ChannelNames:
     hp_loop_on_off_relay_state = "hp-loop-on-off-relay"
     hp_loop_keep_send_relay_state = "hp-loop-keep-send-relay"
 
-    def __init__(self, total_store_tanks: int, zone_list: Sequence[str]):
+    def __init__(self, total_store_tanks: int):
         self.tanks = Tanks(total_store_tanks).channels
-        self.zones = {
-            name: House0ZoneChannelNames(name, i + 1)
-            for i, name in enumerate(zone_list) 
-        }
-
-
-class House0ZoneChannelNames:
-    """House0-SPECIFIC zone channels only. The hydronic-shared zone channels
-    (temp/set/heat_call/opto_input/whitewire_pwr/gw_microvolts/failsafe_relay_state/
-    ops_relay_state) live on HydronicSpaceheatZoneChannelNames — a consumer uses that
-    class directly when those are the appropriate names; this class does NOT compose
-    from or duplicate them. The heat-call sources (whitewire_pwr, opto_input) moved
-    there since they are cross-family.
-
-    e.g. zone1-living-rm-stat-temp
-    """
-    def __init__(self, zone: str, idx: int) -> None:
-        base = HSZoneChannelNames(zone, idx).base
-        self.stat_temp = f"{base}-stat-temp"

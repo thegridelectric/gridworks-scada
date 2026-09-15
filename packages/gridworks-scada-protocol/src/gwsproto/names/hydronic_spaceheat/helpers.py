@@ -1,22 +1,5 @@
-from typing import Sequence
-
-from gwsproto.property_format import SpaceheatName
-from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatZoneNodeNames, TankNodeNames
-from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatZoneChannelNames, TankChannelNames
-
-
-class HydronicSpaceheatZones:
-
-    def __init__(self, zone_names: Sequence[SpaceheatName]):
-
-        self.nodes: dict[int, HydronicSpaceheatZoneNodeNames] = {}
-        self.channels: dict[int, HydronicSpaceheatZoneChannelNames] = {}
-
-        for idx, name in enumerate(zone_names, start=1):
-
-            self.nodes[idx] = HydronicSpaceheatZoneNodeNames(name, idx)
-            self.channels[idx] = HydronicSpaceheatZoneChannelNames(name, idx)
-
+from gwsproto.names.hydronic_spaceheat.node_names import TankNodeNames
+from gwsproto.names.hydronic_spaceheat.channel_names import TankChannelNames
 
 
 class Tanks:

@@ -4,7 +4,6 @@ from typing import Any, Protocol
 from gwsproto.data_classes.sh_node import ShNode
 from actors.scada_data import ScadaData
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
-from gwsproto.data_classes.house_0_names import H0CN
 from actors.config import ScadaSettings
 
 class ProceduralHost(Protocol):
@@ -71,9 +70,6 @@ class ProceduralHost(Protocol):
         Must emit periodic internal PAT messages.
         """
         ...
-
-    @property
-    def h0cn(self) -> H0CN: ...
 
     def alert(self, summary: str, details: str) -> None: ...
 

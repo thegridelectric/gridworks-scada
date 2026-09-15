@@ -135,12 +135,6 @@ class ScadaSettings(ScadaPathsSettings):
     # either by opto-coupler (Nolan: BinaryState, DigitalZeroIsActive) or by
     # metering the call wire (House0: PowerW, GreaterThanThreshold). WHICH of
     # the two a circuit uses is a wiring fact the layout owns —
-    # gw1.zone.call.circuit already binds the circuit to its channel via
-    # WhitewireChannelName. The THRESHOLD is a tunable and belongs in ops,
-    # per-channel, so only power-metered circuits carry one. It is in fact
-    # already modelled as derived.channel.gt Parameters["Threshold"], so this
-    # setting duplicates a fact the vocabulary holds.
-    whitewire_threshold_watts: float = 20
     # ⏳ Destined for the layout as a component + device-type record, not for a
     # bare enum here. The layout is the fleet's record of what is installed at
     # each house, so heat-pump type is tracked there whether or not control

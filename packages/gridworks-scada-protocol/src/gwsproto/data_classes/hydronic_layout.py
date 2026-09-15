@@ -655,7 +655,7 @@ class HydronicLayout:
         if not 1 <= len(self.zone_list) <= 6:
             raise ValueError("Must have between 1 and 6 store zones")
         self.h0n = H0N(self.total_store_tanks)
-        self.h0cn = H0CN(self.total_store_tanks, self.zone_list)
+        self.h0cn = H0CN(self.total_store_tanks)
         web_servers = {
             ws.web_server_gt.Name
             for ws in self.get_components_by_type(WebServerComponent)

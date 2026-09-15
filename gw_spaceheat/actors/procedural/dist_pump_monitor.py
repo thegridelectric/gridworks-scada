@@ -3,7 +3,10 @@
 import time
 from typing import TYPE_CHECKING
 
-from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
+from gwsproto.names.hydronic_spaceheat.channel_names import (
+    HydronicSpaceheatChannelNames as HCN,
+    HydronicSpaceheatZoneChannelNames as HSZoneChannelNames,
+)
 
 if TYPE_CHECKING:
     from actors.procedural.procedural_host import ProceduralHost
@@ -132,19 +135,25 @@ class DistPumpMonitor:
     # ------------------------------------------------------------
 
     def _any_zones_calling(self) -> bool:
+        """True when any zone's derived heat-call channel reads calling.
+
+        The derived generator computes zone{i}-{label}-heat-call from
+        whichever raw source the layout gives the zone (opto input or
+        whitewire power), so this read is source-neutral.
+        """
         h = self.host
 
-        for i in h.h0cn.zone:
-            whitewire_name = h.h0cn.zone[i].whitewire_pwr
+        for i, zone in enumerate(h.layout.zone_list):
+            heat_call_name = HSZoneChannelNames(zone, i + 1).heat_call
 
-            value = h.data.latest_channel_values.get(whitewire_name)
+            value = h.data.latest_channel_values.get(heat_call_name)
             if value is None:
                 h.log(
-                    f"[DistPumpCheck] {whitewire_name} missing from channel values"
+                    f"[DistPumpCheck] {heat_call_name} missing from channel values"
                 )
                 continue
 
-            if abs(value) > h.settings.whitewire_threshold_watts:
+            if value >= 1:
                 return True
 
         return False

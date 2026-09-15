@@ -1,4 +1,4 @@
-from gwsproto.names.hydronic_spaceheat.helpers import HydronicSpaceheatZoneNodeNames as HSZoneNodeNames
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatZoneNodeNames as HSZoneNodeNames
 
 
 class NolanNodeNames:

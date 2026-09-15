@@ -1,5 +1,5 @@
 
-from gwsproto.names.hydronic_spaceheat.helpers import (
+from gwsproto.names.hydronic_spaceheat.channel_names import (
     HydronicSpaceheatZoneChannelNames as HSZoneChannelNames,
 )
 
