@@ -59,7 +59,6 @@ from actors.local_control_loader import LocalControl
 from actors.leaf_ally_loader import LeafAlly
 from actors.codec_factories import ScadaCodecFactory
 from actors.contract_handler import ContractHandler
-from gwsproto.data_classes.house_0_names import ScadaWeb
 from gwsproto.data_classes.components.web_server_component import WebServerComponent
 from gwsproto.enums import (FiveVBossState, HpBossState, LeafAllyBufferOnlyState,  LeafAllyAllTanksState,
                             RebootPicos, Turn5VOnOff,
@@ -73,7 +72,7 @@ from gwsproto.named_types import ( ActuatorsReady,
     ScadaParams, SendControlCapabilities, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment,
     SiegTargetTooLow, SingleMachineState, SlowContractHeartbeat, SlowContractRejection, SuitUp, WakeUp,
 )
-from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.names.core.node_names import CoreNodeNames, ScadaWeb
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from gwsproto.names.house0.node_names import House0NodeNames
 

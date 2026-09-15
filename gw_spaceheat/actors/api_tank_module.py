@@ -18,7 +18,7 @@ from gwsproto.named_types import SyncedReadings, TankModuleParams
 from result import Ok, Result
 from actors.pico_liveness import PicoLiveness
 from actors.sh_node_actor import ShNodeActor
-from gwsproto.data_classes.house_0_names import ScadaWeb
+from gwsproto.names.core.node_names import ScadaWeb
 from gwsproto.named_types import PicoMissing, ChannelFlatlined, MicroVolts
 
 from scada_app_interface import ScadaAppInterface

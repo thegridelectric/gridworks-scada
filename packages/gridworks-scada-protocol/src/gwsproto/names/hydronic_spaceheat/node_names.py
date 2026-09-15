@@ -93,6 +93,9 @@ class HydronicSpaceheatNodeNames:
     
     oat = "oat"
 
+    # rarely used older names, kept because more than one family carries them
+    hubitat = "hubitat"
+
     # instrumentation
     dist_btu = "dist-btu"
     primary_btu = "primary-btu"

@@ -10,7 +10,7 @@ from gwproto import Message
 from gwsproto.data_classes.components.hubitat_component import HubitatComponent
 from result import Result
 
-from gwsproto.data_classes.house_0_names import ScadaWeb
+from gwsproto.names.core.node_names import ScadaWeb
 from actors.hubitat_interface import HubitatEventContent
 from actors.hubitat_interface import HubitatWebEventHandler
 from actors.hubitat_interface import HubitatWebEventListenerInterface

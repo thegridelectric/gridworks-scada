@@ -42,9 +42,9 @@ from gwsproto.type_helpers.component_base import (
     DeviceComponentBase,
 )
 from gwsproto.data_classes.components.web_server_component import WebServerComponent
-from gwsproto.data_classes.house_0_names import H0CN, H0N, ScadaWeb
+from gwsproto.data_classes.house_0_names import H0CN, H0N
 from gwsproto.enums import SimDeviceType
-from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.names.core.node_names import CoreNodeNames, ScadaWeb
 from gwsproto.names.house0.node_names import House0NodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import (
     HydronicSpaceheatNodeNames as HSNN,

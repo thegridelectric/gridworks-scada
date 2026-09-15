@@ -20,5 +20,4 @@ class House0NodeNames:
     hp_loop_keep_send = "hp-loop-keep-send-relay"
 
     # House0-specific instrumentation
-    hubitat = "hubitat"
     analog_temp = "analog-temp"

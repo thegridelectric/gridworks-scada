@@ -2,9 +2,6 @@ from typing import Dict, List
 DEFAULT_ANALOG_READER = "analog-temp"
 
 
-class ScadaWeb:
-    DEFAULT_SERVER_NAME = "default"
-
 class ZoneNodes:
     """
     Spaceheat Node names associated to a zone:

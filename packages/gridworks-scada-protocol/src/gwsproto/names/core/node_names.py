@@ -22,3 +22,9 @@ class CoreNodeNames:
     # service equipment
     web_server = "web-server"
 
+
+class ScadaWeb:
+    """The proactor web-server registry key every scada's pico and Hubitat
+    actors post through; not a node name."""
+
+    DEFAULT_SERVER_NAME = "default"

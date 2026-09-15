@@ -21,7 +21,7 @@ from gwsproto.named_types import (
     TicklistReed,
     TicklistReedReport,
 )
-from gwsproto.data_classes.house_0_names import ScadaWeb
+from gwsproto.names.core.node_names import ScadaWeb
 from actors.pico_liveness import PicoLiveness
 from actors.sh_node_actor import ShNodeActor
 from gwsproto.enums import LogLevel

@@ -13,7 +13,7 @@ from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwsproto.data_classes.components import PicoBtuMeterComponent
 from gwsproto.enums import DeviceType
-from gwsproto.data_classes.house_0_names import ScadaWeb
+from gwsproto.names.core.node_names import ScadaWeb
 from gwsproto.named_types import (
     AsyncBtuParams, ChannelFlatlined, 
     MultichannelSnapshot, PicoMissing, SyncedReadings
