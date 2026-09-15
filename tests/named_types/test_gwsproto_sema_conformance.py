@@ -108,7 +108,6 @@ NO_WORD_ENUMS = {
     "gw1.main.auto.event",
     "heat.pump.control",
     "hp.loop.keep.send",
-    "hp.model",
     "primary.pump.control",
     "relay.pin.state",
     "store.flow.relay",

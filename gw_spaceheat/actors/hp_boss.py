@@ -33,7 +33,6 @@ class HpBoss(ShNodeActor):
     TURN_ON_ANYWAY_S = 120 # turn on the heat pump after 2 minutes without strat-boss
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
-        self.hp_model = self.settings.hp_model # TODO: will move to hardware layout
         self.last_cmd_time = 0
         # The call relay is open at boot (the relay actor adopts the pin, and
         # a de-energized call relay is the failsafe), so the boss starts

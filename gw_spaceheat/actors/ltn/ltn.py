@@ -69,6 +69,7 @@ from gwsproto.enums import (
 )
 from gwsproto.named_types import PowerWatts, Report, ReportEvent
 from gwsproto.named_types import SendSnap, MachineStates
+from actors.hydronic.store_temps import scrub_and_fill_store_temps
 from actors.ltn.contract_handler import LtnContractHandler
  
 from gwsproto.named_types import (
@@ -1229,25 +1230,14 @@ class Ltn(PrimeActor):
             price_usd_mwh = payload.PriceTimes1000 / 1000
             self.bid_runner.get_next_hour_plans(price_usd_mwh)
 
-    def fill_missing_store_temps(self):
+    def fill_missing_store_temps(self) -> None:
+        """Scrub implausible store layers and fill the missing ones from
+        below (`store_temps.scrub_and_fill_store_temps`, the pass the
+        scada runs too)."""
         all_store_layers = sorted(
             [x for x in self.tank_temp_channel_names if "tank" in x]
         )
-        for layer in all_store_layers:
-            if (
-                layer not in self.latest_temps_f
-                or self.latest_temps_f[layer] < 70
-                or self.latest_temps_f[layer] > 200
-            ):
-                self.latest_temps_f[layer] = None
-        if H0CN.store_cold_pipe in self.latest_temps_f:
-            value_below = self.latest_temps_f[H0CN.store_cold_pipe]
-        else:
-            value_below = 0
-        for layer in sorted(all_store_layers, reverse=True):
-            if self.latest_temps_f[layer] is None:
-                self.latest_temps_f[layer] = value_below
-            value_below = self.latest_temps_f[layer]
+        scrub_and_fill_store_temps(self.latest_temps_f, all_store_layers, H0CN.store_cold_pipe)
         self.latest_temps_f = {
             k: self.latest_temps_f[k] for k in sorted(self.latest_temps_f)
         }
@@ -1279,19 +1269,8 @@ class Ltn(PrimeActor):
             temps[ch_name] = temp_f
 
         self.latest_temps_f = temps.copy()
-        if list(self.latest_temps_f.keys()) == self.tank_temp_channel_names:
-            self.temperatures_available = True
-        else:
-            self.temperatures_available = False
-            all_buffer = [
-                x for x in self.tank_temp_channel_names if "buffer-depth" in x
-            ]
-            available_buffer = [
-                x for x in list(self.latest_temps_f.keys()) if "buffer-depth" in x
-            ]
-            if all_buffer == available_buffer:
-                self.fill_missing_store_temps()
-                self.temperatures_available = True
+        self.fill_missing_store_temps()
+        self.temperatures_available = set(self.tank_temp_channel_names) <= self.latest_temps_f.keys()
 
     async def get_RSWT(self, minus_deltaT=False):
         if self.ha1_params is None:
@@ -1322,7 +1301,7 @@ class Ltn(PrimeActor):
             if minus_deltaT:
                 return rswt - deltaT
             return rswt
-        except:
+        except Exception:
             self.log("Could not find RSWT!")
             return None
 
@@ -1556,7 +1535,6 @@ class Ltn(PrimeActor):
                         float(period["temperature"]), float(period["windSpeed"].replace(' mph',''))
                     ]
             forecasts = dict(list(forecasts.items())[:96])
-            cropped_forecast = dict(list(forecasts.items())[:48])
             wf = {
                 "time": list(forecasts.keys()),
                 "oat": [x[0] for x in list(forecasts.values())],
@@ -1687,7 +1665,7 @@ class Ltn(PrimeActor):
                         current_hour_timestamp = data['HourStartS'][0] - 3600
                         with open(prices_file, 'r', newline='') as f:
                             reader = csv.reader(f)
-                            header = next(reader)
+                            next(reader)  # skip the header row
                             for row in reader:
                                 if float(row[0]) == current_hour_timestamp:
                                     current_hour_row = row

@@ -22,7 +22,7 @@ from scada_app_interface import ScadaAppInterface
 from sema_to_dc import zero_ten_power_on_volts_times_ten
 from gwsproto.enums import  (
 LeafAllyAllTanksState, LeafAllyAllTanksEvent, LogLevel,
-ActuationAuthority, ServiceMode, HpModel,
+ActuationAuthority, ServiceMode,
 )
 from gwsproto.named_types import (
     AllyGivesUp, GoDormant, Ha1Params,

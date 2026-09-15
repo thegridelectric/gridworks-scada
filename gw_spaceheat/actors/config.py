@@ -10,7 +10,6 @@ from pydantic import BaseModel
 from gwsproto.data_classes.house_0_names import H0N
 from gwproactor.config import MQTTClient, Paths
 from pydantic_settings import SettingsConfigDict
-from gwsproto.enums import HpModel
 
 # The deployed config dir holds the two authored artifacts under fixed names,
 # beside each other: proactor already fixes the layout as hardware-layout.json
@@ -150,6 +149,5 @@ class ScadaSettings(ScadaPathsSettings):
     # hp.control.box.device.type.gt (both words exist in sema; the Nolan layout
     # today has neither, and carries an hp-idu node that should be
     # hp-ctrl-box). Nothing reads it today.
-    hp_model: HpModel = HpModel.SamsungFiveTonneHydroKit
     airtable_pat: str = "bogus_pat"
     model_config = SettingsConfigDict(env_prefix="SCADA_", extra="ignore")

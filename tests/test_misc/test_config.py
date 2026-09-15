@@ -18,7 +18,6 @@ from actors.config import ScadaPaths
 from gwproactor.config import LoggingSettings
 from gwproactor.config import MQTTClient
 from actors.config import ScadaSettings
-from gwsproto.enums import HpModel
 from gwproactor.config.proactor_settings import MQTT_LINK_POLL_SECONDS
 from gwproactor_test import clean_test_env
 from gwproactor_test.clean import DefaultTestEnv
@@ -78,7 +77,6 @@ def test_scada_settings_defaults(default_test_env, clean_test_env, clean_scada_e
         latitude=45.6573,
         longitude=-68.7098,
         contract_rep_logging_level=20,
-        hp_model=HpModel.SamsungFiveTonneHydroKit,
         airtable_pat="bogus_pat"
     )
     assert settings.local_mqtt.tls.model_dump() == exp_local_mqtt.tls.model_dump()

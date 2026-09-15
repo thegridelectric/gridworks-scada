@@ -2,14 +2,15 @@
 pairs. Choreography: every command lands on the right relay from the boss,
 with the right event, and nothing is sent by a caller who is not the boss.
 Judgment: the pure readers (energy, power, defrost, store flow) and the
-temperature pass (`get_temperatures` + `fill_missing_store_temps`) pinned
-on the sim channels."""
+temperature pass (`get_temperatures` with the shared store scrub-and-fill)
+pinned on the sim channels."""
 
 import time
 from pathlib import Path
 
 import pytest
 
+import actors.hydronic.house0 as house0_module
 from actors.hydronic.house0 import House0Hydronic
 from gwsproto.data_classes.house_0_names import H0CN, H0N
 from gwsproto.enums import (
@@ -19,7 +20,6 @@ from gwsproto.enums import (
     ChangePrimaryPumpControl,
     ChangeRelayState,
     ChangeStoreFlowRelay,
-    HpModel,
     StoreFlowRelay,
     TurnHpOnOff,
 )
@@ -158,26 +158,35 @@ def test_total_hp_power_needs_both_units(actor: House0Hydronic) -> None:
     assert actor.total_hp_pwr_w() == 3_500
 
 
+def test_defrost_is_never_judged_for_a_unit_without_a_known_line(actor: House0Hydronic) -> None:
+    # Both sim pairs name SimHpOdu, which has no defrost signature.
+    actor.data.latest_channel_values[H0CN.hp_idu_pwr] = 100
+    actor.data.latest_channel_values[H0CN.hp_odu_pwr] = 100
+    assert actor.hp_in_defrost() is False
+
+
 @pytest.mark.parametrize(
-    ("model", "idu", "odu", "defrost"),
+    ("draw", "max_w", "idu", "odu", "defrost"),
     [
-        (HpModel.SamsungFiveTonneHydroKit, 3_999, 9_000, True),   # Samsung: IDU under 4 kW
-        (HpModel.SamsungFiveTonneHydroKit, 4_000, 100, False),
-        (HpModel.SamsungFourTonneHydroKit, 3_999, 9_000, True),
-        (HpModel.LgHighTempHydroKitPlusMultiV, 4_000, 4_399, True),  # LG: total under 8.4 kW
-        (HpModel.LgHighTempHydroKitPlusMultiV, 4_000, 4_400, False),
+        ("total", 8_400, 4_000, 4_399, True),   # LG-shaped: idu + odu under the line
+        ("total", 8_400, 4_000, 4_400, False),
+        ("idu", 4_000, 3_999, 9_000, True),     # Samsung hydro-kit-shaped: idu alone under the line
+        ("idu", 4_000, 4_000, 100, False),
     ],
 )
-def test_defrost_threshold_by_hp_model(
-    actor: House0Hydronic, monkeypatch: pytest.MonkeyPatch, model: HpModel, idu: int, odu: int, defrost: bool
+def test_defrost_signature_by_the_hp_odu_device_type(
+    actor: House0Hydronic, monkeypatch: pytest.MonkeyPatch, draw: str, max_w: int, idu: int, odu: int, defrost: bool
 ) -> None:
-    monkeypatch.setattr(actor.settings, "hp_model", model)
+    device_type = actor.layout.node(H0N.hp_odu).component.gt.DeviceType
+    monkeypatch.setitem(house0_module.DEFROST_SIGNATURES, device_type, house0_module.DefrostSignature(draw, max_w))
     actor.data.latest_channel_values[H0CN.hp_idu_pwr] = idu
     actor.data.latest_channel_values[H0CN.hp_odu_pwr] = odu
     assert actor.hp_in_defrost() is defrost
 
 
-def test_defrost_is_false_without_both_powers(actor: House0Hydronic) -> None:
+def test_defrost_is_false_without_the_watched_draw(actor: House0Hydronic, monkeypatch: pytest.MonkeyPatch) -> None:
+    device_type = actor.layout.node(H0N.hp_odu).component.gt.DeviceType
+    monkeypatch.setitem(house0_module.DEFROST_SIGNATURES, device_type, house0_module.DefrostSignature("total", 8_400))
     actor.data.latest_channel_values[H0CN.hp_idu_pwr] = 100
     actor.data.latest_channel_values[H0CN.hp_odu_pwr] = None
     assert actor.hp_in_defrost() is False
@@ -253,23 +262,39 @@ def test_missing_store_layers_fill_from_the_layer_below(actor: House0Hydronic) -
     assert temps[tank.depth2] == 140.0 and temps[tank.depth3] == 131.0
 
 
-def test_implausible_store_temps_are_dropped_then_filled(actor: House0Hydronic) -> None:
-    # The plausibility scrub runs inside the fill pass, so it needs a missing
-    # layer to trigger; with every layer reporting, an implausible value stays.
+def test_below_floor_store_temp_is_dropped_and_filled_from_the_coldest_layer(actor: House0Hydronic) -> None:
     tank = actor.h0cn.tank[1]
     actor.data.latest_channel_values[tank.depth1] = None
     actor.data.latest_channel_values[tank.depth2] = f_x100(140.0)
-    actor.data.latest_channel_values[tank.depth3] = f_x100(40.0)   # below MIN_USED_TANK_TEMP_F
+    actor.data.latest_channel_values[tank.depth3] = f_x100(20.0)   # below MIN_VALID_TANK_TEMP_F: a fault
     actor.get_temperatures()
     temps = actor.data.latest_temperatures_f
-    assert temps[tank.depth3] == actor.MIN_USED_TANK_TEMP_F  # baseline, no store-cold-pipe in the sim
+    assert temps[tank.depth3] == 140.0  # no store-cold-pipe in the sim: the coldest reporting layer
     assert temps[tank.depth2] == 140.0
     assert temps[tank.depth1] == 140.0
 
 
-def test_implausible_store_temp_survives_when_every_layer_reports(actor: House0Hydronic) -> None:
+def test_implausible_store_temp_is_scrubbed_even_when_every_layer_reports(actor: House0Hydronic) -> None:
     tank = actor.h0cn.tank[1]
     for ch, f in ((tank.depth1, 250.0), (tank.depth2, 140.0), (tank.depth3, 130.0)):
         actor.data.latest_channel_values[ch] = f_x100(f)
     actor.get_temperatures()
-    assert actor.data.latest_temperatures_f[tank.depth1] == 250.0  # pins today's gating; see the spoke
+    assert actor.data.latest_temperatures_f[tank.depth1] == 140.0
+
+
+def test_a_summer_store_at_basement_ambient_is_water(actor: House0Hydronic) -> None:
+    """Oak, 2026-09-15: every layer 60-65 F with the heat pump off."""
+    tank = actor.h0cn.tank[1]
+    for ch, f in ((tank.depth1, 61.0), (tank.depth2, 61.6), (tank.depth3, 60.2)):
+        actor.data.latest_channel_values[ch] = f_x100(f)
+    actor.get_temperatures()
+    temps = actor.data.latest_temperatures_f
+    assert (temps[tank.depth1], temps[tank.depth2], temps[tank.depth3]) == (61.0, 61.6, 60.2)
+
+
+def test_a_store_with_no_valid_reading_stays_empty(actor: House0Hydronic) -> None:
+    tank = actor.h0cn.tank[1]
+    for ch in (tank.depth1, tank.depth2, tank.depth3):
+        actor.data.latest_channel_values[ch] = None
+    actor.get_temperatures()
+    assert not any(ch in actor.data.latest_temperatures_f for ch in (tank.depth1, tank.depth2, tank.depth3))

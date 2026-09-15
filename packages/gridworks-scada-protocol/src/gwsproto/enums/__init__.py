@@ -48,7 +48,6 @@ from gwsproto.enums.house0_primary_flow_source import House0PrimaryFlowSource
 from gwsproto.enums.five_v_boss_state import FiveVBossState
 from gwsproto.enums.hp_boss_state import HpBossState
 from gwsproto.enums.hp_loop_keep_send import HpLoopKeepSend
-from gwsproto.enums.hp_model import HpModel
 from gwsproto.enums.hz_calc_method import HzCalcMethod
 from gwsproto.enums.i2c_adc_channel import I2cAdcChannel
 from gwsproto.enums.i2c_adc_type import I2cAdcType
@@ -145,7 +144,6 @@ __all__ = [
     "FiveVBossState",
     "HpBossState",
     "HpLoopKeepSend",
-    "HpModel",
     "HzCalcMethod",
     "I2cAdcChannel",
     "I2cAdcType",

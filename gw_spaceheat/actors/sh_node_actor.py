@@ -38,8 +38,6 @@ from scada_app_interface import ScadaAppInterface
 
 
 class ShNodeActor(Actor, ABC):
-    MIN_USED_TANK_TEMP_F = 70
-    MAX_VALID_TANK_TEMP_F = 200
     GALLONS_PER_TANK = 120
     NUM_LAYERS_PER_TANK = 3
     GALLON_PER_LITER = 3.78541
@@ -378,7 +376,8 @@ class ShNodeActor(Actor, ABC):
         Returns 0 if this is negative (e.g. during defrost). Returns None if missing
         a key temp.
         """
-        lwt_f = self.lwt_f(); ewt_f = self.ewt_f()
+        lwt_f = self.lwt_f()
+        ewt_f = self.ewt_f()
         if lwt_f is None or ewt_f is None:
             return None
         return max(0, lwt_f - ewt_f)

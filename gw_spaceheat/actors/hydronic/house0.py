@@ -6,10 +6,10 @@ separately."""
 
 import time
 import uuid
-from typing import Optional
+from typing import Literal, NamedTuple, Optional
 from pydantic import ValidationError
 from gwsproto.conversions.temperature import convert_temp_to_f
-from gwsproto.data_classes.house_0_names import H0CN
+from gwsproto.data_classes.house_0_names import H0CN, H0N
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
     ActorClass,
@@ -19,9 +19,7 @@ from gwsproto.enums import (
     ChangePrimaryPumpControl,
     ChangeRelayState,
     ChangeStoreFlowRelay,
-    HpModel,
     StoreFlowRelay,
-    TelemetryName,
     TurnHpOnOff
 )
 from gwsproto.named_types import AnalogDispatch, FsmEvent, SingleMachineState
@@ -29,7 +27,26 @@ from gwsproto.names.hydronic_spaceheat.node_names import (
     HydronicSpaceheatNodeNames as HSNN,
 )
 from actors.hydronic.shared import HydronicNode
+from actors.hydronic.store_temps import scrub_and_fill_store_temps
 from sema_to_dc import zero_ten_power_on_volts_times_ten
+
+class DefrostSignature(NamedTuple):
+    """How a heat pump shows it is defrosting: which draw to watch (the
+    indoor unit alone, or indoor + outdoor) and the watt line it falls
+    under while the compressor reverses."""
+
+    draw: Literal["idu", "total"]
+    max_w: int
+
+
+DEFROST_SIGNATURES: dict[str, DefrostSignature] = {
+    "LGARUM048GSS5": DefrostSignature("total", 8400),
+    "SamsungAE055FCYDCG": DefrostSignature("idu", 4000),  # the hydro-kit pairing (fir)
+}
+"""By the hp-odu component's DeviceType. A unit not listed has no known
+signature and is never judged in defrost. Hand-kept until
+hp.device.type.gt carries the signature, which retires this table."""
+
 
 class House0Hydronic(HydronicNode):
     """The House0 plant surface."""
@@ -549,31 +566,15 @@ class House0Hydronic(HydronicNode):
         primary_flow = self.data.latest_channel_values.get(H0CN.primary_flow) or 0
         return primary_flow > self.PUMP_FLOW_GPM_THRESHOLD * 100
 
-    def odu_pwr(self) -> Optional[float]:
-        """Returns the latest Heat Pump outdoor unit power in Watts, or None
-        if it does not exist"""
-        odu_pwr_channel = self.layout.channel(H0CN.hp_odu_pwr)
-        assert odu_pwr_channel.TelemetryName == TelemetryName.PowerW
-        return self.data.latest_channel_values.get(H0CN.hp_odu_pwr)
-
-    def idu_pwr(self) -> Optional[float]:
-        """Returns the latest Heat Pump indoor unit power in Watts, or None
-        if it does not exist"""
-        idu_pwr_channel = self.layout.channel(H0CN.hp_idu_pwr)
-        assert idu_pwr_channel.TelemetryName == TelemetryName.PowerW
-        return self.data.latest_channel_values.get(H0CN.hp_idu_pwr)
-
     def hp_in_defrost(self) -> bool:
-        odu = self.odu_pwr()
-        idu = self.idu_pwr()
-        if odu is None or idu is None:
+        """True when the heat pump's total draw is under the defrost line
+        for the unit the layout's hp-odu component names; False without
+        both power readings or without a known line."""
+        signature = DEFROST_SIGNATURES.get(self.layout.node(H0N.hp_odu).component.gt.DeviceType)
+        if signature is None:
             return False
-        hp_model = self.settings.hp_model
-        if hp_model in (HpModel.SamsungFourTonneHydroKit, HpModel.SamsungFiveTonneHydroKit):
-            return idu < 4000
-        elif hp_model == HpModel.LgHighTempHydroKitPlusMultiV:
-            return odu + idu < 8400
-        return False
+        draw = self.hp_idu_pwr_w() if signature.draw == "idu" else self.total_hp_pwr_w()
+        return draw is not None and draw < signature.max_w
 
     def is_buffer_empty(self, all_tanks_leaf_ally=False) -> bool:
         """
@@ -640,7 +641,7 @@ class House0Hydronic(HydronicNode):
         if H0CN.buffer.depth3 in self.latest_temps_f:
             buffer_full_ch = H0CN.buffer.depth3
             used_proxy = False
-        elif H0CN.buffer_cold_pipe in self.latest_temps_f: # Note: often not even installed
+        elif H0CN.buffer_cold_pipe in self.latest_temps_f:  # Note: often not even installed
             buffer_full_ch = H0CN.buffer_cold_pipe
 
         elif (
@@ -660,8 +661,8 @@ class House0Hydronic(HydronicNode):
             self.send_info(
                 summary="Buffer full inferred from proxy temperature",
                 details=(
-                    f"Depth3 unavailable; using {used_proxy} "
-                    f"({buffer_full_ch}) to infer buffer-full state."
+                    f"{H0CN.buffer.depth3} unavailable; using {buffer_full_ch} "
+                    "to infer buffer-full state."
                 ),
             )
 
@@ -779,42 +780,23 @@ class House0Hydronic(HydronicNode):
             val = 0
         return  val / 1000
 
-    def fill_missing_store_temps(self):
-        """
-        Assumes stratified tank; missing layers are filled from colder layers below,
-        using store_cold_pipe or a minimum plausible temperature as baseline.
-        """
+    def fill_missing_store_temps(self) -> None:
+        """Scrub implausible store layers and fill the missing ones from
+        below (`store_temps.scrub_and_fill_store_temps`)."""
         all_store_layers = []
         for tank_idx in sorted(self.h0cn.tank):
             tank = self.h0cn.tank[tank_idx]
             all_store_layers.extend([tank.depth1, tank.depth2, tank.depth3])
-
-        # TODO: raise WarningGlitch for temp > MAX_VALID_TANK_TEMP_F
-        for layer in all_store_layers:
-            value = self.data.latest_temperatures_f.get(layer)
-            if (
-                value is None
-                or value < self.MIN_USED_TANK_TEMP_F
-                or value > self.MAX_VALID_TANK_TEMP_F
-            ):
-                self.data.latest_temperatures_f.pop(layer, None)
-
-        value_below = self.data.latest_temperatures_f.get(
-            self.h0cn.store_cold_pipe,
-            self.MIN_USED_TANK_TEMP_F,
+        scrub_and_fill_store_temps(
+            self.data.latest_temperatures_f, all_store_layers, self.h0cn.store_cold_pipe
         )
-
-        for layer in reversed(all_store_layers):
-            if layer not in self.data.latest_temperatures_f:
-                self.data.latest_temperatures_f[layer] = value_below
-            value_below = self.data.latest_temperatures_f[layer]
 
     def get_temperatures(self) -> None:
         """
         1. Updates data.latest_temperatures_f with data from latest_channel_values
         2. Updates buffer_available state
-        3. May fill tank temperatures (not buffer) if some are missing and can be
-           interpolated
+        3. Scrubs implausible tank layers (not buffer) and fills the missing
+           ones from below, on every pass
         """
 
         temps: dict[str, float] = {}
@@ -851,12 +833,7 @@ class House0Hydronic(HydronicNode):
             self.h0cn.buffer.effective <= self.data.latest_temperatures_f.keys()
         )
 
-        tank_temps = set().union(
-            *(tank.effective for tank in self.h0cn.tank.values())
-        )
-
-        if not (tank_temps <= self.data.latest_temperatures_f.keys()):
-            self.fill_missing_store_temps()
+        self.fill_missing_store_temps()
 
         self.data.latest_temperatures_f = dict(sorted(self.data.latest_temperatures_f.items()))
 
