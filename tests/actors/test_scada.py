@@ -9,11 +9,12 @@ import pytest
 from scada_app import ScadaApp
 from actors.config import ScadaSettings
 from gwsproto.named_types import ChannelReadings, ReportEvent, SnapshotSpaceheat
-from gwsproto.data_classes.house_0_names import H0N, H0CN
+from gwsproto.data_classes.house_0_names import H0N
 from tests.utils.scada_live_test_helper import ScadaLiveTest
 from gwsproto.names.hydronic_spaceheat.node_names import (
     HydronicSpaceheatNodeNames as HSNN,
 )
+from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from gwsproto.names.nolan.node_names import NolanNodeNames
 
 
@@ -48,7 +49,7 @@ def test_scada_small():
     # Testing making report events
     ###########################################
 
-    ch = scada._layout.data_channels[H0CN.dist_pump_pwr]
+    ch = scada._layout.data_channels[HCN.secondary_pump_pwr]
 
     scada._data.recent_channel_values[ch.Name] = [43]
     scada._data.recent_channel_unix_ms[ch.Name] = [

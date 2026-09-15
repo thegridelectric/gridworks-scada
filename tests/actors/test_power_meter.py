@@ -12,6 +12,7 @@ from scada_app import ScadaApp
 from gwproactor_test.certs import uses_tls
 from gwproactor_test.certs import copy_keys
 from gwsproto.data_classes.house_0_names import H0N, H0CN
+from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 
 import pytest
 from actors.power_meter import DriverThreadSetupHelper
@@ -47,7 +48,7 @@ def test_power_meter_small():
     assert set(driver_thread._last_sampled_s.keys()) == pwr_meter_channels
 
 
-    ch_1 = layout.channel(H0CN.dist_pump_pwr)
+    ch_1 = layout.channel(HCN.secondary_pump_pwr)
     assert driver_thread.last_reported_telemetry_value[ch_1] is None
     assert driver_thread.latest_telemetry_value[ch_1] is None
 
@@ -66,8 +67,8 @@ def test_power_meter_small():
     driver_thread.last_reported_telemetry_value[ch_1] = driver_thread.latest_telemetry_value[ch_1]
 
     assert driver_thread.value_hits_async_threshold(ch_1) is False
-    dist_pump_capture_delta = driver_thread.tuning_by_ch[ch_1].AsyncCaptureDelta
-    assert dist_pump_capture_delta == 5
+    secondary_pump_capture_delta = driver_thread.tuning_by_ch[ch_1].AsyncCaptureDelta
+    assert secondary_pump_capture_delta == 5
     driver_thread.latest_telemetry_value[ch_1] += 4
     assert driver_thread.value_hits_async_threshold(ch_1) is False
 
@@ -79,7 +80,7 @@ def test_power_meter_small():
     assert driver_thread.should_report_telemetry_reading(ch_1) is False
 
     assert driver_thread.last_reported_agg_power_w is None
-    # dist-pump-pwr sits inside the transactive boundary, so the 6 W bumped
+    # secondary-pump-pwr sits inside the transactive boundary, so the 6 W bumped
     # onto ch_1 above already shows in the aggregate.
     assert driver_thread.latest_agg_power_w == 6
     assert driver_thread.should_report_aggregated_power()
@@ -87,7 +88,7 @@ def test_power_meter_small():
     assert not driver_thread.should_report_aggregated_power()
 
     
-    # Sim-spruce transactive boundary: 4 elements @ 4500, dist-pump 80,
+    # Sim-spruce transactive boundary: 4 elements @ 4500, secondary-pump 80,
     # hp-ctrl-box 50, hp-odu 4300 -> 22430 W aggregate nameplate.
     hp_odu = layout.node(H0N.hp_odu)
     assert hp_odu.NameplatePowerW == 4300
@@ -131,7 +132,7 @@ async def test_power_meter_periodic_update(request: pytest.FixtureRequest) -> No
         expected_channels = [
             h.child1.hardware_layout.data_channels[H0CN.hp_odu_pwr],
             h.child1.hardware_layout.data_channels["hp-ctrl-box-pwr"],
-            h.child1.hardware_layout.data_channels[H0CN.dist_pump_pwr],
+            h.child1.hardware_layout.data_channels[HCN.secondary_pump_pwr],
         ]
         h.child.delimit("Waiting for first readings", log_level=logging.WARNING)
         data = h.child1_app.scada.data
@@ -201,14 +202,14 @@ async def test_async_power_update(request: pytest.FixtureRequest):
             for name in dc.InputChannelNames
         }
 
-        # Sim-spruce transactive boundary: the four elements, dist-pump,
+        # Sim-spruce transactive boundary: the four elements, secondary-pump,
         # hp-ctrl-box, hp-odu.
         assert transactive_channels == {
             data.layout.data_channels[name]
             for name in (
                 "buffer-top-elt-pwr", "buffer-bottom-elt-pwr",
                 "tank1-top-elt-pwr", "tank1-bottom-elt-pwr",
-                "dist-pump-pwr", "hp-ctrl-box-pwr", H0CN.hp_odu_pwr,
+                HCN.secondary_pump_pwr, "hp-ctrl-box-pwr", H0CN.hp_odu_pwr,
             )
         }
 

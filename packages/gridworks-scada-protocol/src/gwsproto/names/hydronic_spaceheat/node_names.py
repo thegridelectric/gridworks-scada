@@ -52,6 +52,7 @@ class HydronicSpaceheatNodeNames:
 
     # pumps
     dist_pump = "dist-pump"
+    secondary_pump = "secondary-pump"
     primary_pump = "primary-pump"
     store_pump = "store-pump"
 

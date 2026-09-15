@@ -85,6 +85,7 @@ class HydronicSpaceheatChannelNames:
     # monobloc is an interpretation, so the channel is NOT primary-pump-pwr.
     hp_ctrl_box_pwr = f"{HNN.hp_ctrl_box}-pwr"
     dist_pump_pwr = f"{HNN.dist_pump}-pwr"
+    secondary_pump_pwr = f"{HNN.secondary_pump}-pwr"
     primary_pump_pwr = f"{HNN.primary_pump}-pwr"
     store_pump_pwr = f"{HNN.store_pump}-pwr"
 

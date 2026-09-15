@@ -42,7 +42,7 @@
     {
       "TypeName": "capture.tuning",
       "Version": "000",
-      "ChannelName": "dist-pump-pwr",
+      "ChannelName": "secondary-pump-pwr",
       "CapturePeriodS": 300,
       "AsyncCapture": true,
       "AsyncCaptureDelta": 5,
@@ -488,6 +488,150 @@
     {
       "TypeName": "capture.tuning",
       "Version": "000",
+      "ChannelName": "fancoil-depth1-device",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "fancoil-depth2-device",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "fancoil-depth3-device",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "fancoil-depth1-micro-v",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "fancoil-depth2-micro-v",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "fancoil-depth3-micro-v",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "floor1-depth1-device",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "floor1-depth2-device",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "floor1-depth3-device",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "floor1-depth1-micro-v",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "floor1-depth2-micro-v",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "floor1-depth3-micro-v",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "pipes1-depth1-device",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "pipes1-depth2-device",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "pipes1-depth3-device",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "pipes1-depth1-micro-v",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "pipes1-depth2-micro-v",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "pipes1-depth3-micro-v",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
       "ChannelName": "primary-flow",
       "CapturePeriodS": 300,
       "AsyncCapture": true,
@@ -592,10 +736,10 @@
   ],
   "ZeroTenPowerOnList": [
     {
-      "NodeName": "secondary-010v",
-      "PowerOnVoltsTimesTen": 76,
       "TypeName": "zero.ten.power.on",
-      "Version": "000"
+      "Version": "000",
+      "NodeName": "secondary-010v",
+      "PowerOnVoltsTimesTen": 76
     }
   ],
   "ActuationAuthority": "Active",
