@@ -852,6 +852,20 @@ class HydronicLayout:
                             "use EmissionMethod.OnTrigger"
                         )
 
+                case "difference":
+                    # e.g. beech's derived sieg-send-flow = primary-flow - sieg-flow
+                    # (minuend, subtrahend) — the DerivedGenerator's contract.
+                    if len(dc.InputChannelNames) != 2:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy 'difference' but "
+                            "must declare exactly two InputChannelNames"
+                        )
+                    if dc.EmissionMethod != EmissionMethod.OnTrigger:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy 'difference' but "
+                            "must use EmissionMethod.OnTrigger"
+                        )
+
                 case "transactive-power":
                     # Produced by the power-meter actor (not derived-generator).
                     # Its inputs are the metered PowerW channels (the transactive

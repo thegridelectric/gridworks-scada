@@ -17,11 +17,8 @@ CONFIG = Path(__file__).parent.parent / "config"
 
 
 PAIRS = {
-    "house0": ("gw.house0.layout.json", "gw.house0.operational.params.json"),
-    "house0-sim": (
-        "gw.house0.sim.layout.json",
-        "gw.house0.sim.operational.params.json",
-    ),
+    "house0-willow": ("gw.house0.willow.layout.json", "gw.house0.willow.operational.params.json"),
+    "house0-orange": ("gw.house0.orange.layout.json", "gw.house0.orange.operational.params.json"),
 }
 
 
@@ -209,7 +206,7 @@ def test_sieg_loop_assembly_check(assembled: dict) -> None:
     refuses at assembly, the check that replaced gw.hydronic's old axiom 1."""
     layout = House0Layout.model_validate(assembled)
     ops = House0OperationalParams.model_validate_json(
-        (CONFIG / "gw.house0.operational.params.json").read_text()
+        (CONFIG / "gw.house0.orange.operational.params.json").read_text()
     ).model_copy(update={"UseSiegLoop": True})
     check_sieg_loop_assembly(layout, ops)
     nolan = NolanLayout.model_validate_json(

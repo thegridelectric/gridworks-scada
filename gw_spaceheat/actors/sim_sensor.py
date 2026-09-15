@@ -25,6 +25,8 @@ _SIM_VALUE_BY_TELEMETRY: dict[TelemetryName, int] = {
     TelemetryName.AirTempFTimes1000: 70_000,     # 70 F
     TelemetryName.CelsiusTimes100: 5_000,        # 50 C
     TelemetryName.HzTimes100: 6_000,             # 60 Hz
+    TelemetryName.GpmTimes100: 400,              # 4 gpm
+    TelemetryName.MicroHz: 2_000_000,            # 2 Hz
 }
 
 
@@ -58,6 +60,13 @@ class SimSensorActor(ShNodeActor):
             if ch.CapturedByNodeName == self.name
         ]
         self._capture_s = DEFAULT_CAPTURE_S
+        # A device actor posts to the derived generator as well as the scada
+        # when a DerivedChannel takes one of its channels as input.
+        self._feeds_derived = any(
+            name in dc.InputChannelNames
+            for dc in self.layout.derived_channels.values()
+            for name in self._channel_names
+        )
 
     def _sim_value(self, channel_name: str) -> int:
         channel = self.layout.data_channels.get(channel_name)
@@ -80,19 +89,31 @@ class SimSensorActor(ShNodeActor):
     async def join(self) -> None:
         """IOLoop takes care of shutting down the associated task."""
 
+    def readings(self) -> SyncedReadings | None:
+        """One post's worth of standing values, None when the sensor captures nothing."""
+        names = [c for c in self._channel_names if c in self.layout.data_channels]
+        if not names:
+            return None
+        return SyncedReadings(
+            ChannelNameList=names,
+            ValueList=[self._sim_value(c) for c in names],
+            ScadaReadTimeUnixMs=int(time.time() * 1000),
+        )
+
+    def post(self) -> None:
+        """Send the standing readings the way a pico-fed device actor does:
+        to the scada, and to the derived generator when it consumes them."""
+        msg = self.readings()
+        if msg is None:
+            return
+        self._send_to(self.primary_scada, msg)
+        if self._feeds_derived:
+            self._send_to(self.derived_generator, msg)
+
     async def main(self) -> None:
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
-            names = [c for c in self._channel_names if c in self.layout.data_channels]
-            if names:
-                self._send_to(
-                    self.primary_scada,
-                    SyncedReadings(
-                        ChannelNameList=names,
-                        ValueList=[self._sim_value(c) for c in names],
-                        ScadaReadTimeUnixMs=int(time.time() * 1000),
-                    ),
-                )
+            self.post()
             await asyncio.sleep(self._capture_s)
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:

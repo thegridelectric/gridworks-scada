@@ -2,9 +2,8 @@
 is a thin component against the Krida board record, the board component
 carries the field-chosen PCF8575 addresses, and the bus actor drives the
 register-less port word. The panel is active-low, so an energize command
-drives the pin to 0. The sim pair boots the sim Krida board (SimI2c with
-SimPcf8575 ports); the real pair proves the same resolution against the
-real record without silicon."""
+drives the pin to 0. Both sim pairs (orange, willow) boot the sim Krida board
+(SimI2c with SimPcf8575 ports)."""
 
 import time
 import uuid
@@ -23,11 +22,8 @@ from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
 PAIRS = {
-    "house0": ("gw.house0.layout.json", "gw.house0.operational.params.json"),
-    "house0-sim": (
-        "gw.house0.sim.layout.json",
-        "gw.house0.sim.operational.params.json",
-    ),
+    "house0-willow": ("gw.house0.willow.layout.json", "gw.house0.willow.operational.params.json"),
+    "house0-orange": ("gw.house0.orange.layout.json", "gw.house0.orange.operational.params.json"),
 }
 
 
@@ -49,7 +45,7 @@ def app(request: pytest.FixtureRequest) -> ScadaApp:
 
 @pytest.fixture
 def sim_rig() -> tuple[Relay, I2cBus]:
-    scada_app = make_app("house0-sim")
+    scada_app = make_app("house0-orange")
     relay = Relay(H0N.vdc_relay, scada_app)
     bus = I2cBus(relay._i2c.bus_node.name, scada_app)
     relay.sent = []
@@ -117,7 +113,7 @@ def test_every_house0_relay_resolves_against_the_krida_record(app: ScadaApp) -> 
 
 
 def test_bus_backend_is_pcf8575_only_on_the_sim_pair() -> None:
-    bus = I2cBus("i2c-bus", make_app("house0-sim"))
+    bus = I2cBus("i2c-bus", make_app("house0-orange"))
     assert isinstance(bus.i2c, SimI2c)
     assert bus._expander_types == {
         0x20: I2cExpanderType.Pcf8575,

@@ -16,6 +16,7 @@ The Nolan fixture carries `secondary-010v` on Dac2 channel C (power-on code
 """
 
 import asyncio
+import json
 import time
 import uuid
 from pathlib import Path
@@ -54,11 +55,8 @@ DISPATCH_VOLTS_TIMES_TEN = 50
 DISPATCH_RAW = 2000  # 5.0 V of a 10.24 V full scale
 
 HOUSE0_PAIRS = {
-    "house0": ("gw.house0.layout.json", "gw.house0.operational.params.json"),
-    "house0-sim": (
-        "gw.house0.sim.layout.json",
-        "gw.house0.sim.operational.params.json",
-    ),
+    "house0-willow": ("gw.house0.willow.layout.json", "gw.house0.willow.operational.params.json"),
+    "house0-orange": ("gw.house0.orange.layout.json", "gw.house0.orange.operational.params.json"),
 }
 # node -> (DAC address, channel index); the wiring the multiplexer had
 HOUSE0_OUTPUTS = {
@@ -69,7 +67,7 @@ HOUSE0_OUTPUTS = {
 HOUSE0_POWER_ON = {"dist-010v": 20, "primary-010v": 40, "store-010v": 0}
 
 
-def make_app(layout: str, ops: str) -> ScadaApp:
+def make_app(layout: str | Path, ops: str) -> ScadaApp:
     settings = ScadaApp.get_settings()
     settings.paths.hardware_layout = CONFIG / layout
     settings.paths.operational_params = CONFIG / ops
@@ -241,9 +239,9 @@ def test_verify_read_failure_warns_and_returns_false(rig) -> None:
 @pytest.mark.parametrize("pair", sorted(HOUSE0_PAIRS))
 def test_every_house0_output_resolves_against_the_krida_record(pair: str) -> None:
     """Both House0 fixtures: one component per output naming the board's
-    DAC, no mux, the ops word's power-on level; the chip is the record's."""
+    DAC, no mux, the ops word's power-on level; the chip is the sim record's."""
     app = make_app(*HOUSE0_PAIRS[pair])
-    chip = I2cDacType.Mcp4728 if pair == "house0-sim" else I2cDacType.Gp8403
+    chip = I2cDacType.Mcp4728
     for name, (address, channel) in HOUSE0_OUTPUTS.items():
         out = ZeroTenOutputer(name, app)
         assert out.dac is app.hardware_layout.node(name).component
@@ -263,7 +261,7 @@ def test_every_house0_output_resolves_against_the_krida_record(pair: str) -> Non
 
 
 def house0_sim_rig(name: str) -> tuple[ZeroTenOutputer, I2cBus, list]:
-    app = make_app(*HOUSE0_PAIRS["house0-sim"])
+    app = make_app(*HOUSE0_PAIRS["house0-orange"])
     bus = I2cBus(BUS_NAME, app)
     out = ZeroTenOutputer(name, app)
     out.warnings = []
@@ -308,12 +306,29 @@ def test_house0_sim_drives_muxless_dacs_through_the_bus() -> None:
     assert bus.i2c.muxless_dacs[94].register[0] == [0, 0, 0]
 
 
-def test_gp8403_writes_the_multiplexer_wire_bytes() -> None:
+def gp8403_board_copy(layout_path: Path, tmp_path: Path) -> Path:
+    """A copy of a sim House0 layout whose board record's DACs are GP8403 —
+    the JSON edited at the wire boundary and reloaded through the layout's own
+    validation."""
+    d = json.loads(layout_path.read_text())
+    for record in d["DeviceTypes"]:
+        for dac in record.get("Dacs", []):
+            dac["DacType"] = I2cDacType.Gp8403.value
+    out = tmp_path / layout_path.name
+    out.write_text(json.dumps(d, indent=2) + "\n")
+    return out
+
+
+def test_gp8403_writes_the_multiplexer_wire_bytes(tmp_path: Path) -> None:
     """The real House0 record's GP8403 arm: the range register once at boot,
     then the code word (code in bits 4-15, low byte first on the wire) to the
     channel's output register at the module address, no mux — byte for byte
-    what the retired multiplexer's `write_word_data` calls put on the bus."""
-    app = make_app(*HOUSE0_PAIRS["house0"])
+    what the retired multiplexer's `write_word_data` calls put on the bus.
+    The suite holds only simulated layouts (MCP4728 sim records), so the arm
+    runs on the willow pair with its board record's DACs declared GP8403 —
+    the one field the chip arm turns on."""
+    layout, ops = HOUSE0_PAIRS["house0-willow"]
+    app = make_app(gp8403_board_copy(CONFIG / layout, tmp_path), ops)
     out = ZeroTenOutputer("primary-010v", app)  # Dfr1 channel B -> reg 0x04
     writes: list[I2cWriteReg] = []
 
@@ -369,7 +384,7 @@ def test_gp8403_writes_the_multiplexer_wire_bytes() -> None:
 def test_outputer_reports_ready_on_start() -> None:
     """Each output is a required actuator: it tells the scada it is up
     when its heartbeat task starts."""
-    app = make_app(*HOUSE0_PAIRS["house0-sim"])
+    app = make_app(*HOUSE0_PAIRS["house0-orange"])
     out = ZeroTenOutputer("dist-010v", app)
     sent: list = []
     out._send_to = lambda dst, payload, src=None: sent.append((dst.name, payload))

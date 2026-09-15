@@ -16,7 +16,7 @@ CONFIG = Path(__file__).parent.parent / "config"
 
 
 def house0_ops() -> dict:
-    return json.loads((CONFIG / "gw.house0.operational.params.json").read_text())
+    return json.loads((CONFIG / "gw.house0.orange.operational.params.json").read_text())
 
 
 def nolan_ops() -> dict:

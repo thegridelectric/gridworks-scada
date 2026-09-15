@@ -21,8 +21,8 @@ CONFIG = Path(__file__).parent.parent / "config"
 @pytest.fixture
 def app() -> ScadaApp:
     settings = ScadaApp.get_settings()
-    settings.paths.hardware_layout = CONFIG / "gw.house0.sim.layout.json"
-    settings.paths.operational_params = CONFIG / "gw.house0.sim.operational.params.json"
+    settings.paths.hardware_layout = CONFIG / "gw.house0.orange.layout.json"
+    settings.paths.operational_params = CONFIG / "gw.house0.orange.operational.params.json"
     settings.paths.mkdirs()
     scada_app = ScadaApp(app_settings=settings)
     scada_app.instantiate()

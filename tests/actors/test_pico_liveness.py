@@ -16,7 +16,7 @@ from scada_app import ScadaApp
 CONFIG = Path(__file__).parent.parent / "config"
 PAIRS = {
     "nolan": ("gw.nolan.layout.json", "gw.nolan.operational.params.json"),
-    "house0-sim": ("gw.house0.sim.layout.json", "gw.house0.sim.operational.params.json"),
+    "house0-orange": ("gw.house0.orange.layout.json", "gw.house0.orange.operational.params.json"),
 }
 PERIOD = 60
 

@@ -36,11 +36,8 @@ PAIRS = {
     # TurnOn leg waits on a SiegLoopReady from the sieg-loop actor, which has
     # never run unsupervised, so admin's TurnOn would sit in PreparingToTurnOn
     # for TURN_ON_ANYWAY_S. Uncomment with the sieg refactor.
-    # "house0": ("gw.house0.layout.json", "gw.house0.operational.params.json"),
-    # "house0-sim": (
-    #     "gw.house0.sim.layout.json",
-    #     "gw.house0.sim.operational.params.json",
-    # ),
+    # "house0-willow": ("gw.house0.willow.layout.json", "gw.house0.willow.operational.params.json"),
+    # "house0-orange": ("gw.house0.orange.layout.json", "gw.house0.orange.operational.params.json"),
 }
 SCADA_SHORT_NAME = "hp-boss-live"
 
