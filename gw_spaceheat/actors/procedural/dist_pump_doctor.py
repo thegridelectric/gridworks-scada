@@ -133,7 +133,7 @@ class DistPumpDoctor:
 
         finally:
             h.log("[DistPumpDoctor] Restoring defaults")
-            h.set_010_defaults()
+            h.set_010_defaults(command_node=h.command_node)
             for zone in h.layout.zone_list:
                 h.heatcall_ctrl_to_stat(zone=zone, command_node=h.command_node)
             await h.await_with_watchdog(5)

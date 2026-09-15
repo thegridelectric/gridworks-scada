@@ -12,7 +12,7 @@ import pytest
 
 from gwsproto.data_classes.house_0_names import H0N
 from actors.pico_cycler import PicoCycler
-from gwsproto.enums import ChangeRelayState, MainAutoEvent
+from gwsproto.enums import ActorClass, ChangeRelayState, MainAutoEvent
 from gwsproto.named_types import FsmEvent, GoDormant, NewCommandTree, PicoMissing
 from scada_app import ScadaApp
 
@@ -106,3 +106,28 @@ def test_flatlined_pico_is_cycled_while_admin_holds_tree(app: ScadaApp) -> None:
     assert event.ToHandle == vdc.handle
     assert event.FromHandle == f"{H0N.admin}.{H0N.five_v_boss}.{H0N.pico_cycler}"
     assert event.EventName == ChangeRelayState.OpenRelay
+
+
+def test_boot_puts_every_actuator_under_local_control_normal(app: ScadaApp) -> None:
+    """The layout declares its actuators flat under the root; the scada's
+    boot-time rewrite (`Scada.__init__` → `set_command_tree(n)`) is what
+    hangs them under `auto.lc.n`. Every relay and 0-10V output is a direct
+    report of `n` after boot, except the ones an interior node owns:
+    hp-scada-ops-relay under hp-boss, vdc-relay under the five-v-boss
+    subtree, and the sieg-loop pair when the loop is in use."""
+    scada = app.scada
+    layout = scada.layout
+    n = layout.node(H0N.local_control_normal)
+    assert n.handle == "auto.lc.n"
+    owned = {layout.hp_scada_ops_relay.Name: layout.hp_boss.handle}
+    if layout.node(H0N.five_v_boss) is not None:
+        owned[layout.vdc_relay.Name] = scada.pico_cycler.handle
+    if scada.data.use_sieg_loop:
+        for name in (H0N.hp_loop_on_off, H0N.hp_loop_keep_send):
+            owned[name] = layout.node(H0N.sieg_loop).handle
+    for node in layout.actuators:
+        parent = owned.get(node.Name, n.handle)
+        assert node.handle == f"{parent}.{node.Name}", node.Name
+    outputs = [a for a in layout.actuators if a.ActorClass == ActorClass.ZeroTenOutputer]
+    assert outputs
+    assert all(o.handle == f"auto.lc.n.{o.Name}" for o in outputs)

@@ -11,7 +11,7 @@ from gwsproto.data_classes.sh_node import ShNode
 
 from gwsproto.enums import ActorClass, FsmReportType, RelayClosedOrOpen
 from gwsproto.named_types import (
-    AnalogDispatch, FsmAtomicReport, FsmFullReport,
+    FsmAtomicReport, FsmFullReport,
     SyncedReadings,
 )
 from result import Ok, Result
@@ -19,7 +19,6 @@ from transitions import Machine
 
 from actors.hydronic.house0 import House0Hydronic
 from scada_app_interface import ScadaAppInterface
-from sema_to_dc import zero_ten_power_on_volts_times_ten
 from gwsproto.enums import  (
 LeafAllyAllTanksState, LeafAllyAllTanksEvent, LogLevel,
 ActuationAuthority, ServiceMode,
@@ -514,32 +513,6 @@ class AllTanksLeafAlly(House0Hydronic):
             self.set_010_defaults()
         except ValueError as e:
             self.log(f"Trouble with set_010_defaults: {e}")
-
-    def set_010_defaults(self) -> None:
-        """
-        Set 0-10 defaults for ZeroTen outputters that are direct reports
-        """
-        h_normal_010s = {
-            node
-            for node in self.my_actuators()
-            if node.ActorClass == ActorClass.ZeroTenOutputer and
-            self.the_boss_of(node) == self.node
-        }
-        for dfr_node in h_normal_010s:
-            level = zero_ten_power_on_volts_times_ten(self.ops, dfr_node.name)
-            self._send_to(
-                dst=dfr_node,
-                payload=AnalogDispatch(
-                    FromGNodeAlias=self.layout.scada_g_node_alias,
-                    FromHandle=self.node.handle,
-                    ToHandle=dfr_node.handle,
-                    AboutName=dfr_node.Name,
-                    Value=level,
-                    TriggerId=str(uuid.uuid4()),
-                    UnixTimeMs=int(time.time() * 1000),
-                )
-            )
-            self.log(f"Just set {dfr_node.handle} to {level} from {self.node.handle} ")
 
     def hp_should_be_off(self) -> bool:
         if self.remaining_watthours:

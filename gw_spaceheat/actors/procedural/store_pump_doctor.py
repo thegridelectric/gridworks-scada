@@ -124,7 +124,7 @@ class StorePumpDoctor:
 
         finally:
             h.log("[StorePumpDoctor] Restoring defaults")
-            h.set_010_defaults()
+            h.set_010_defaults(command_node=h.command_node)
 
             self.running = False
 
