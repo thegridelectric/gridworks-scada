@@ -16,6 +16,7 @@ from gwsproto.enums import ActorClass, ChangeRelayState, MainAutoEvent
 from gwsproto.named_types import FsmEvent, GoDormant, NewCommandTree, PicoMissing
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
+from gwsproto.names.house0.node_names import House0NodeNames
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -125,7 +126,7 @@ def test_boot_puts_every_actuator_under_local_control_normal(app: ScadaApp) -> N
     if layout.node(HSNN.five_v_boss) is not None:
         owned[layout.vdc_relay.Name] = scada.pico_cycler.handle
     if scada.data.use_sieg_loop:
-        for name in (H0N.hp_loop_on_off, H0N.hp_loop_keep_send):
+        for name in (House0NodeNames.hp_loop_on_off, House0NodeNames.hp_loop_keep_send):
             owned[name] = layout.node(H0N.sieg_loop).handle
     for node in layout.actuators:
         parent = owned.get(node.Name, n.handle)

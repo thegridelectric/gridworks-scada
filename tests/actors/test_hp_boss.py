@@ -22,6 +22,7 @@ from gwsproto.named_types import (
 )
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
+from gwsproto.names.house0.node_names import House0NodeNames
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -101,12 +102,12 @@ def test_hp_boss_in_every_tree(app: ScadaApp, boss: str) -> None:
     hp_boss = scada.layout.hp_boss
     relay = scada.layout.hp_scada_ops_relay
     assert hp_boss.handle == f"{boss_node.handle}.{HSNN.hp_boss}"
-    assert relay.handle == f"{hp_boss.handle}.{H0N.hp_scada_ops_relay}"
+    assert relay.handle == f"{hp_boss.handle}.{HSNN.hp_scada_ops_relay}"
     sieg_loop = scada.layout.node(H0N.sieg_loop, None)
     if scada.data.use_sieg_loop:
         assert sieg_loop is not None
         assert sieg_loop.handle == f"{boss_node.handle}.{H0N.sieg_loop}"
-        for name in (H0N.hp_loop_on_off, H0N.hp_loop_keep_send):
+        for name in (House0NodeNames.hp_loop_on_off, House0NodeNames.hp_loop_keep_send):
             assert scada.layout.node(name).handle == f"{sieg_loop.handle}.{name}"
     assert scada.hp_boss is hp_boss
 
@@ -229,7 +230,7 @@ async def test_admin_turns_heat_pump_on_and_off_through_hp_boss(app: ScadaApp) -
     scada.process_admin_dispatch(scada.admin, admin_turn(TurnHpOnOff.TurnOff))
     hp_boss_handle = f"{CoreNodeNames.admin}.{HSNN.hp_boss}"
     assert actor.node.handle == hp_boss_handle
-    assert relay.handle == f"{hp_boss_handle}.{H0N.hp_scada_ops_relay}"
+    assert relay.handle == f"{hp_boss_handle}.{HSNN.hp_scada_ops_relay}"
     assert relay_events(sent) == [
         (hp_boss_handle, relay.handle, ChangeRelayState.OpenRelay)
     ]

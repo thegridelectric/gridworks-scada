@@ -15,7 +15,6 @@ from pathlib import Path
 import pytest
 
 from actors.zero_ten_outputer import ZeroTenOutputer, code_from_volts_times_ten
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import (
     ActorClass,
     FiveVBossState,
@@ -78,7 +77,7 @@ def test_control_capabilities_on_nolan(app: ScadaApp) -> None:
         DAC_NODE
     }
     interfaces = {i.ActorName: i for i in capabilities.CommandInterfaces}
-    owned = {H0N.hp_scada_ops_relay, H0N.vdc_relay}
+    owned = {HSNN.hp_scada_ops_relay, HSNN.vdc_relay}
     assert set(interfaces) == (relay_names - owned) | {HSNN.hp_boss, HSNN.five_v_boss}
     hp_boss = interfaces[HSNN.hp_boss]
     assert hp_boss.EventType == TurnHpOnOff.enum_name()

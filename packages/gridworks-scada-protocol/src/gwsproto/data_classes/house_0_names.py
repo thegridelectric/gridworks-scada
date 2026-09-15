@@ -1,7 +1,9 @@
-from typing import Dict, List, Literal
+from typing import Dict, List
 from pydantic import BaseModel
 from gwsproto.enums import TelemetryName
 from gwsproto.property_format import SpaceheatName
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
+from gwsproto.names.house0.node_names import House0NodeNames
 DEFAULT_ANALOG_READER = "analog-temp"
 
 
@@ -118,22 +120,6 @@ class H0N:
     store_cold_pipe = "store-cold-pipe"
     buffer_hot_pipe = "buffer-hot-pipe"
     buffer = BufferNodeNames()
-
-    # relay nodes (functional names; node name == relay-state channel name.
-    # The krida board position lives in relay.actor.config
-    # RelayIdx, not the name.)
-    vdc_relay: Literal["vdc-relay"] = "vdc-relay"
-    tstat_common_relay: Literal["tstat-common-relay"] = "tstat-common-relay"
-    store_charge_discharge_relay: Literal["charge-discharge-relay"] = "charge-discharge-relay"
-    hp_failsafe_relay: Literal["hp-failsafe-relay"] = "hp-failsafe-relay"
-    hp_scada_ops_relay: Literal["hp-scada-ops-relay"] = "hp-scada-ops-relay"
-    aquastat_ctrl_relay: Literal["aquastat-ctrl-relay"] = "aquastat-ctrl-relay"
-
-    boiler_scada_ops: Literal["boiler-scada-ops-relay"] = "boiler-scada-ops-relay"
-    primary_pump_scada_ops: Literal["primary-pump-scada-ops-relay"] = "primary-pump-scada-ops-relay"
-    primary_pump_failsafe: Literal["primary-pump-failsafe-relay"] = "primary-pump-failsafe-relay"
-    hp_loop_on_off: Literal["hp-loop-on-off-relay"] = "hp-loop-on-off-relay"
-    hp_loop_keep_send: Literal["hp-loop-keep-send-relay"] = "hp-loop-keep-send-relay"
 
     # required flows
     dist_flow = "dist-flow"
@@ -416,18 +402,18 @@ class H0CN:
     hp_keep_seconds_x_10 = "hp-keep-seconds-x-10"
 
     # relay state channels (channel name == relay node name)
-    vdc_relay_state = H0N.vdc_relay
-    tstat_common_relay_state = H0N.tstat_common_relay
-    charge_discharge_relay_state = H0N.store_charge_discharge_relay
-    hp_failsafe_relay_state = H0N.hp_failsafe_relay
-    hp_scada_ops_relay_state = H0N.hp_scada_ops_relay
-    aquastat_ctrl_relay_state = H0N.aquastat_ctrl_relay
-    boiler_scada_ops_relay_state = H0N.boiler_scada_ops
-    primary_pump_scada_ops_relay_state = H0N.primary_pump_scada_ops
-    primary_pump_failsafe_relay_state = H0N.primary_pump_failsafe
+    vdc_relay_state = HSNN.vdc_relay
+    tstat_common_relay_state = House0NodeNames.tstat_common_relay
+    charge_discharge_relay_state = House0NodeNames.store_charge_discharge_relay
+    hp_failsafe_relay_state = House0NodeNames.hp_failsafe_relay
+    hp_scada_ops_relay_state = HSNN.hp_scada_ops_relay
+    aquastat_ctrl_relay_state = House0NodeNames.aquastat_ctrl_relay
+    boiler_scada_ops_relay_state = House0NodeNames.boiler_scada_ops
+    primary_pump_scada_ops_relay_state = House0NodeNames.primary_pump_scada_ops
+    primary_pump_failsafe_relay_state = House0NodeNames.primary_pump_failsafe
 
-    hp_loop_on_off_relay_state = H0N.hp_loop_on_off
-    hp_loop_keep_send_relay_state = H0N.hp_loop_keep_send
+    hp_loop_on_off_relay_state = House0NodeNames.hp_loop_on_off
+    hp_loop_keep_send_relay_state = House0NodeNames.hp_loop_keep_send
 
     # 010V output state (as declared by entity sending, not reading)
     dist_010v = "dist-010v"

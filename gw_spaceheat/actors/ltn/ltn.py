@@ -58,7 +58,7 @@ from gwproactor.message import DBGCommands, DBGPayload, MQTTReceiptPayload, PatI
 
 from gwsproto.conversions.temperature import convert_temp_to_f
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
-from gwsproto.data_classes.house_0_names import H0CN, H0N
+from gwsproto.data_classes.house_0_names import H0CN
 
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
@@ -79,6 +79,7 @@ from gwsproto.named_types import (
     SnapshotSpaceheat,
 )
 from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 
 from paho.mqtt.client import MQTTMessageInfo
 from pydantic import BaseModel
@@ -787,7 +788,7 @@ class Ltn(PrimeActor):
         # Check if HP is on or off by looking at relay 6
         for machine_state in report.StateList:
             ms : MachineStates = machine_state
-            if H0N.hp_scada_ops_relay in ms.MachineHandle:
+            if HSNN.hp_scada_ops_relay in ms.MachineHandle:
                 if ms.StateList[-1] == RelayClosedOrOpen.RelayOpen:
                     self.hp_is_off = True
                 else:

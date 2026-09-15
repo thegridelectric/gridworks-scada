@@ -12,7 +12,6 @@ import pytest
 
 import actors.hydronic.shared as shared
 from actors.pico_cycler import PicoCycler
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import ChangeHeatcallSource, ChangeRelayState
 from gwsproto.errors import DcError
 from gwsproto.named_types import FsmEvent
@@ -128,7 +127,7 @@ def test_vdc_relay_command_from_pico_cycler(actor: PicoCycler, method: str, even
     trigger_id = str(uuid.uuid4())
     getattr(actor, method)(trigger_id=trigger_id)
     dst, event = only_event(actor)
-    assert dst == H0N.vdc_relay
+    assert dst == HSNN.vdc_relay
     assert event.ToHandle == actor.layout.vdc_relay.handle
     assert event.FromHandle == actor.node.handle
     assert event.EventName == event_name

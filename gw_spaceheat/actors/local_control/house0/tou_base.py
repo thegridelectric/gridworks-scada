@@ -214,7 +214,7 @@ class LocalControlTouBase(House0Hydronic):
         return self._has_layout_nodes(
             [
                 H0N.store_010v,
-                H0N.store_charge_discharge_relay,
+                House0NodeNames.store_charge_discharge_relay,
                 HSNN.store_pump_relay,
             ]
         )

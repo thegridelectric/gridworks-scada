@@ -75,6 +75,7 @@ from gwsproto.named_types import ( ActuatorsReady,
 )
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
+from gwsproto.names.house0.node_names import House0NodeNames
 
 
 from sema_to_dc import OperationalParams
@@ -1253,7 +1254,7 @@ class Scada(PrimeActor, ScadaInterface):
         if self.data.use_sieg_loop:
             sieg_loop = self.layout.node(H0N.sieg_loop)
             sieg_loop.Handle = f"{boss.handle}.{sieg_loop.Name}"
-            for name in (H0N.hp_loop_on_off, H0N.hp_loop_keep_send):
+            for name in (House0NodeNames.hp_loop_on_off, House0NodeNames.hp_loop_keep_send):
                 node = self.layout.node(name)
                 node.Handle = f"{sieg_loop.Handle}.{node.Name}"
                 under_fsm.add(node.Name)

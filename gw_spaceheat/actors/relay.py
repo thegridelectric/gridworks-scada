@@ -15,7 +15,7 @@ from gwsproto.data_classes.components import (
     I2cRelayComponent,
     GpioRelayComponent,
 )
-from gwsproto.data_classes.house_0_names import H0N, ZoneNodes
+from gwsproto.data_classes.house_0_names import ZoneNodes
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
     ActorClass,
@@ -63,6 +63,8 @@ from gwsproto.enums import LogLevel, ChangeKeepSend, HpLoopKeepSend
 from gwsproto.named_types import FsmEvent, Glitch, SingleMachineState
 from actors import command_reply
 from gwsproto.enums import ScadaCmdRefusalReason
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
+from gwsproto.names.house0.node_names import House0NodeNames
 
 # Internal FSM state before the first pin adoption / confirmation. Never
 # published: the state vocabularies carry no Unknown value, and an
@@ -996,18 +998,18 @@ class Relay(ShNodeActor):
     
         if self.name in {
             vdc_relay_name,
-            H0N.tstat_common_relay,
-            H0N.hp_scada_ops_relay,
+            House0NodeNames.tstat_common_relay,
+            HSNN.hp_scada_ops_relay,
             self.layout.store_pump_relay.name,
-            H0N.primary_pump_scada_ops,
-            H0N.hp_loop_on_off,
+            House0NodeNames.primary_pump_scada_ops,
+            House0NodeNames.hp_loop_on_off,
         } | set(stat_ops_names):
         
             if self.name in {
                 vdc_relay_name,
-                H0N.tstat_common_relay,
-                H0N.hp_scada_ops_relay,
-                H0N.hp_loop_on_off
+                House0NodeNames.tstat_common_relay,
+                HSNN.hp_scada_ops_relay,
+                House0NodeNames.hp_loop_on_off
             }:
                 if self.de_energizing_event != ChangeRelayState.CloseRelay:
                     raise Exception(
@@ -1019,7 +1021,7 @@ class Relay(ShNodeActor):
                         f"Expect OpenRelay as de-energizing event for {self.name}; got {self.de_energizing_event}"
                     )
 
-        elif self.name == H0N.store_charge_discharge_relay:
+        elif self.name == House0NodeNames.store_charge_discharge_relay:
             self.my_state_enum = StoreFlowRelay
             self.my_event_enum = ChangeStoreFlowRelay
             if self.de_energizing_event != ChangeStoreFlowRelay.DischargeStore:
@@ -1027,14 +1029,14 @@ class Relay(ShNodeActor):
                     f"Expect DischargeStore as de-energizing event for {self.name}; got {self.de_energizing_event}"
                 )
 
-        elif self.name == H0N.hp_failsafe_relay:
+        elif self.name == House0NodeNames.hp_failsafe_relay:
             self.my_state_enum = HeatPumpControl
             self.my_event_enum = ChangeHeatPumpControl
             if self.de_energizing_event != ChangeHeatPumpControl.SwitchToTankAquastat:
                 raise Exception(
                     f"Expect SwitchToTankAquastat as de-energizing event for {self.name}; got {self.de_energizing_event}"
                 )
-        elif self.name == H0N.aquastat_ctrl_relay:
+        elif self.name == House0NodeNames.aquastat_ctrl_relay:
             self.my_state_enum = AquastatControl
             self.my_event_enum = ChangeAquastatControl
             if self.de_energizing_event != ChangeAquastatControl.SwitchToBoiler:
@@ -1042,14 +1044,14 @@ class Relay(ShNodeActor):
                     f"Expect SwitchToBoiler as de-energizing event for {self.name}; got {self.de_energizing_event}"
                 )
 
-        elif self.name == H0N.primary_pump_failsafe:
+        elif self.name == House0NodeNames.primary_pump_failsafe:
             self.my_state_enum = PrimaryPumpControl
             self.my_event_enum = ChangePrimaryPumpControl
             if self.de_energizing_event != ChangePrimaryPumpControl.SwitchToHeatPump:
                 raise Exception(
                     f"Expect SwitchToHeatPump as de-energizing event for {self.name}; got {self.de_energizing_event}"
                 )
-        elif self.name == H0N.hp_loop_keep_send:
+        elif self.name == House0NodeNames.hp_loop_keep_send:
             self.my_state_enum = HpLoopKeepSend
             self.my_event_enum = ChangeKeepSend
             if self.de_energizing_event != ChangeKeepSend.ChangeToKeepLess:

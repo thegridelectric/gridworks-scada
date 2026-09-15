@@ -15,9 +15,9 @@ from actors.i2c_bus import I2cBus
 from actors.relay import I2cCommand, Relay, UNKNOWN_STATE
 from drivers.sim_i2c import SimI2c
 from gwproto.message import Message
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import ChangeRelayPin, I2cExpanderType, RelayClosedOrOpen
 from gwsproto.named_types import FsmFullReport, I2cResult
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -46,7 +46,7 @@ def app(request: pytest.FixtureRequest) -> ScadaApp:
 @pytest.fixture
 def sim_rig() -> tuple[Relay, I2cBus]:
     scada_app = make_app("house0-orange")
-    relay = Relay(H0N.vdc_relay, scada_app)
+    relay = Relay(HSNN.vdc_relay, scada_app)
     bus = I2cBus(relay._i2c.bus_node.name, scada_app)
     relay.sent = []
 
@@ -108,7 +108,7 @@ def test_every_house0_relay_resolves_against_the_krida_record(app: ScadaApp) -> 
         marking = int(relay._component.gt.RelayName.removeprefix("Relay"))
         assert a.i2c_address == addresses[(marking - 1) // 16]
     by_name = {r.name: r for r in relays}
-    assert by_name[H0N.vdc_relay]._i2c.i2c_address == 0x20
+    assert by_name[HSNN.vdc_relay]._i2c.i2c_address == 0x20
     assert by_name["zone1-main-failsafe-relay"]._i2c.i2c_address == 0x21  # Relay17
 
 

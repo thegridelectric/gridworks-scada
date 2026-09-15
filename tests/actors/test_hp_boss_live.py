@@ -23,7 +23,6 @@ from actors.config import AdminLinkSettings
 from actors.hp_boss import HpBoss
 from actors.local_control_loader import LocalControl
 from actors.relay import Relay
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import HpBossState, LocalControlTopState, TopState, TurnHpOnOff
 from gwsproto.named_types import AdminDispatch, AdminReleaseControl, FsmEvent
 from gwsproto.names.core.node_names import CoreNodeNames
@@ -104,13 +103,13 @@ async def test_admin_turns_heat_pump_on_and_off_through_hp_boss_live(
         scada = h.child_app.scada
         hp_boss = h.child_app.proactor.get_communicator(HSNN.hp_boss)
         assert isinstance(hp_boss, HpBoss)
-        relay = h.child_app.proactor.get_communicator(H0N.hp_scada_ops_relay)
+        relay = h.child_app.proactor.get_communicator(HSNN.hp_scada_ops_relay)
         assert isinstance(relay, Relay)
         lc = h.child_app.proactor.get_communicator(CoreNodeNames.local_control)
         assert isinstance(lc, LocalControl)
         relay_cfg = relay.relay_actor_config
         hp_boss_handle = f"{CoreNodeNames.admin}.{HSNN.hp_boss}"
-        relay_handle = f"{hp_boss_handle}.{H0N.hp_scada_ops_relay}"
+        relay_handle = f"{hp_boss_handle}.{HSNN.hp_scada_ops_relay}"
 
         admin = AdminSide(scada.layout.scada_g_node_alias, settings.admin)
         admin.client.start()

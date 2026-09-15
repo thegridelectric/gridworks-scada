@@ -1320,13 +1320,13 @@ class HydronicLayout:
             CoreNodeNames.leaf_ally,
             CoreNodeNames.local_control,
             CoreNodeNames.derived_generator,
-            # H0N.vdc_relay,
-            # H0N.tstat_common_relay,
-            # H0N.store_charge_discharge_relay,
-            # H0N.aquastat_ctrl_relay,
+            # HSNN.vdc_relay,
+            # House0NodeNames.tstat_common_relay,
+            # House0NodeNames.store_charge_discharge_relay,
+            # House0NodeNames.aquastat_ctrl_relay,
             # H0N.store_pump_failsafe,
-            # H0N.primary_pump_scada_ops,
-            # H0N.primary_pump_failsafe
+            # House0NodeNames.primary_pump_scada_ops,
+            # House0NodeNames.primary_pump_failsafe
         ]
 
 
@@ -1338,7 +1338,7 @@ class HydronicLayout:
         )
         # if has_pico_actors:
         #     essential_nodes.append(HSNN.pico_cycler)
-        #     essential_nodes.append(H0N.vdc_relay)  # Also needed for pico cycling
+        #     essential_nodes.append(HSNN.vdc_relay)  # Also needed for pico cycling
 
         # Check for missing essential nodes
         missing_nodes = []

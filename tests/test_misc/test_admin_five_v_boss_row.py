@@ -12,7 +12,6 @@ import pytest
 
 from gwadmin.watch.clients.relay_client import RelayWatchClient
 from gwadmin.watch.widgets.relay_widget_info import RelayWidgetConfig
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import FiveVBossState, RebootPicos, RelayClosedOrOpen, Turn5VOnOff
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from scada_app import ScadaApp
@@ -75,6 +74,6 @@ def test_relay_row_offers_the_other_state(configs: dict[str, RelayWidgetConfig])
 
 
 def test_owned_rows_offer_nothing(configs: dict[str, RelayWidgetConfig]) -> None:
-    for name in (HSNN.pico_cycler, H0N.vdc_relay, H0N.hp_scada_ops_relay):
+    for name in (HSNN.pico_cycler, HSNN.vdc_relay, HSNN.hp_scada_ops_relay):
         assert configs[name].commands == []
         assert offered(configs[name], RelayClosedOrOpen.RelayClosed) == []

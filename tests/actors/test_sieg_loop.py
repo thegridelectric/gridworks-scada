@@ -14,6 +14,7 @@ from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import ChangeKeepSend, ChangeRelayState
 from gwsproto.named_types import FsmEvent
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
+from gwsproto.names.house0.node_names import House0NodeNames
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -76,7 +77,7 @@ def test_valve_movement_reaches_both_relays(
     actor.valve_state = start
     actor.trigger_valve_event(valve_event)
 
-    assert [name for name, _ in sent] == [H0N.hp_loop_keep_send, H0N.hp_loop_on_off]
+    assert [name for name, _ in sent] == [House0NodeNames.hp_loop_keep_send, House0NodeNames.hp_loop_on_off]
     keep_send, on_off = (payload for _, payload in sent)
     assert isinstance(keep_send, FsmEvent)
     assert keep_send.EventType == ChangeKeepSend.enum_name()

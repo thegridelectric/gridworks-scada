@@ -18,7 +18,6 @@ from gwproto.message import Header, Message
 
 from actors.five_v_boss import FiveVBoss
 from actors.pico_cycler import PicoCycler
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import (
     ChangeRelayState,
     FiveVBossState,
@@ -84,7 +83,7 @@ def deliver(actor, payload, src: str) -> None:
 
 def relay_reported(app: ScadaApp, state: RelayClosedOrOpen) -> None:
     """The relay's last reported state on the scada's latest-state list."""
-    app.scada._data.latest_machine_state[H0N.vdc_relay] = SingleMachineState(
+    app.scada._data.latest_machine_state[HSNN.vdc_relay] = SingleMachineState(
         MachineHandle=app.scada.layout.vdc_relay.handle,
         StateEnum=RelayClosedOrOpen.enum_name(),
         State=state,
@@ -149,7 +148,7 @@ def hold_off(app: ScadaApp, boss: FiveVBoss, sent: list) -> FsmEvent:
     cmd = turn(boss, Turn5VOnOff.TurnOff)
     deliver(boss, cmd, CoreNodeNames.admin)
     assert boss.state == FiveVBossState.TurningOff
-    deliver(boss, relay_confirmation(app, ChangeRelayState.OpenRelay, cmd.TriggerId), H0N.vdc_relay)
+    deliver(boss, relay_confirmation(app, ChangeRelayState.OpenRelay, cmd.TriggerId), HSNN.vdc_relay)
     assert boss.state == FiveVBossState.FiveVOff
     return cmd
 
@@ -167,11 +166,11 @@ def test_tree_shape_under_every_boss(app: ScadaApp) -> None:
     layout = scada.layout
     assert layout.five_v_boss.handle == f"{CoreNodeNames.auto}.{HSNN.five_v_boss}"
     assert layout.pico_cycler.handle == f"{CoreNodeNames.auto}.{HSNN.five_v_boss}.{HSNN.pico_cycler}"
-    assert layout.vdc_relay.handle == f"{CoreNodeNames.auto}.{HSNN.five_v_boss}.{HSNN.pico_cycler}.{H0N.vdc_relay}"
+    assert layout.vdc_relay.handle == f"{CoreNodeNames.auto}.{HSNN.five_v_boss}.{HSNN.pico_cycler}.{HSNN.vdc_relay}"
     scada.auto_trigger(MainAutoEvent.AutoGoesDormant)
     assert layout.five_v_boss.handle == f"{CoreNodeNames.admin}.{HSNN.five_v_boss}"
     assert layout.pico_cycler.handle == f"{CoreNodeNames.admin}.{HSNN.five_v_boss}.{HSNN.pico_cycler}"
-    assert layout.vdc_relay.handle == f"{CoreNodeNames.admin}.{HSNN.five_v_boss}.{HSNN.pico_cycler}.{H0N.vdc_relay}"
+    assert layout.vdc_relay.handle == f"{CoreNodeNames.admin}.{HSNN.five_v_boss}.{HSNN.pico_cycler}.{HSNN.vdc_relay}"
 
 
 def test_boot_state_and_report(app: ScadaApp) -> None:
@@ -195,7 +194,7 @@ def test_capabilities_cover_five_v_boss_not_the_cycler(app: ScadaApp) -> None:
         by_actor.setdefault(i.ActorName, []).append(i.EventType)
     assert sorted(by_actor[HSNN.five_v_boss]) == sorted([Turn5VOnOff.enum_name(), RebootPicos.enum_name()])
     assert HSNN.pico_cycler not in by_actor
-    assert H0N.vdc_relay not in by_actor
+    assert HSNN.vdc_relay not in by_actor
     assert {n.Name for n in caps.CommandNodes} == {HSNN.five_v_boss, HSNN.pico_cycler, HSNN.hp_boss}
 
 
@@ -230,12 +229,12 @@ def test_turn_off_takes_the_relay_and_opens_it(app: ScadaApp) -> None:
     [(dst, dormant)] = sent_of(sent, GoDormant)
     assert dst == HSNN.pico_cycler and dormant.ToName == HSNN.pico_cycler
     assert boss.state == FiveVBossState.TurningOff
-    assert layout.vdc_relay.handle == f"{CoreNodeNames.admin}.{HSNN.five_v_boss}.{H0N.vdc_relay}"
+    assert layout.vdc_relay.handle == f"{CoreNodeNames.admin}.{HSNN.five_v_boss}.{HSNN.vdc_relay}"
     assert layout.pico_cycler.handle == f"{CoreNodeNames.admin}.{HSNN.five_v_boss}.{HSNN.pico_cycler}"
     [(dst, tree)] = sent_of(sent, NewCommandTree)
     assert dst == CoreNodeNames.ltn
     [(dst, event)] = sent_of(sent, FsmEvent)
-    assert dst == H0N.vdc_relay
+    assert dst == HSNN.vdc_relay
     assert event.EventName == ChangeRelayState.OpenRelay
     assert event.FromHandle == boss.node.handle
     assert event.ToHandle == layout.vdc_relay.handle
@@ -294,14 +293,14 @@ def test_turn_on_closes_and_the_closed_confirmation_hands_back(app: ScadaApp) ->
     assert ack.TriggerId == cmd.TriggerId
     assert boss.state == FiveVBossState.TurningOn
     [(dst, event)] = sent_of(sent, FsmEvent)
-    assert dst == H0N.vdc_relay
+    assert dst == HSNN.vdc_relay
     assert event.EventName == ChangeRelayState.CloseRelay
-    assert event.ToHandle == f"{CoreNodeNames.admin}.{HSNN.five_v_boss}.{H0N.vdc_relay}"
+    assert event.ToHandle == f"{CoreNodeNames.admin}.{HSNN.five_v_boss}.{HSNN.vdc_relay}"
     assert sent_of(sent, WakeUp) == []
 
-    deliver(boss, relay_confirmation(app, ChangeRelayState.CloseRelay, cmd.TriggerId), H0N.vdc_relay)
+    deliver(boss, relay_confirmation(app, ChangeRelayState.CloseRelay, cmd.TriggerId), HSNN.vdc_relay)
     assert boss.state == FiveVBossState.PicoCycler
-    assert layout.vdc_relay.handle == f"{CoreNodeNames.admin}.{HSNN.five_v_boss}.{HSNN.pico_cycler}.{H0N.vdc_relay}"
+    assert layout.vdc_relay.handle == f"{CoreNodeNames.admin}.{HSNN.five_v_boss}.{HSNN.pico_cycler}.{HSNN.vdc_relay}"
     [(dst, wake)] = sent_of(sent, WakeUp)
     assert dst == HSNN.pico_cycler and wake.ToName == HSNN.pico_cycler
     assert len(sent_of(sent, NewCommandTree)) == 1
@@ -325,7 +324,7 @@ def test_stale_relay_confirmation_is_ignored(app: ScadaApp) -> None:
     """A relay report under another id (a cycler cycle's) moves nothing."""
     boss, sent = boss_under_admin(app)
     deliver(boss, turn(boss, Turn5VOnOff.TurnOff), CoreNodeNames.admin)
-    deliver(boss, relay_confirmation(app, ChangeRelayState.OpenRelay, str(uuid.uuid4())), H0N.vdc_relay)
+    deliver(boss, relay_confirmation(app, ChangeRelayState.OpenRelay, str(uuid.uuid4())), HSNN.vdc_relay)
     assert boss.state == FiveVBossState.TurningOff
     assert sent_of(sent, FsmFullReport) == []
 
@@ -421,9 +420,9 @@ def test_wake_up_restores_the_five_v(app: ScadaApp) -> None:
     deliver(boss, WakeUp(ToName=HSNN.five_v_boss), CoreNodeNames.primary_scada)
     assert boss.state == FiveVBossState.TurningOn
     [(dst, event)] = sent_of(sent, FsmEvent)
-    assert dst == H0N.vdc_relay and event.EventName == ChangeRelayState.CloseRelay
+    assert dst == HSNN.vdc_relay and event.EventName == ChangeRelayState.CloseRelay
     assert boss.trigger_id == event.TriggerId
-    deliver(boss, relay_confirmation(app, ChangeRelayState.CloseRelay, event.TriggerId), H0N.vdc_relay)
+    deliver(boss, relay_confirmation(app, ChangeRelayState.CloseRelay, event.TriggerId), HSNN.vdc_relay)
     assert boss.state == FiveVBossState.PicoCycler
     assert len(sent_of(sent, WakeUp)) == 1
 
@@ -449,7 +448,7 @@ def test_scada_wakes_five_v_boss_on_admin_release(app: ScadaApp) -> None:
     )
     del sent[:]
     scada.auto_trigger(MainAutoEvent.AutoWakesUp)
-    assert scada.layout.vdc_relay.handle == f"{CoreNodeNames.auto}.{HSNN.five_v_boss}.{H0N.vdc_relay}"
+    assert scada.layout.vdc_relay.handle == f"{CoreNodeNames.auto}.{HSNN.five_v_boss}.{HSNN.vdc_relay}"
     assert scada.layout.pico_cycler.handle == f"{CoreNodeNames.auto}.{HSNN.five_v_boss}.{HSNN.pico_cycler}"
     wakes = {dst for dst, p in sent if isinstance(p, WakeUp)}
     assert wakes == {CoreNodeNames.local_control, HSNN.five_v_boss}
