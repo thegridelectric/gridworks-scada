@@ -91,6 +91,7 @@ class DerivedGenerator(ShNodeActor):
             "identity": self.handle_identity,
             "affine": self.handle_affine,
             "sum": self.handle_sum,
+            "difference": self.handle_difference,
             "heat-call": self.handle_heat_call,
             "simple-falling-edge-setpoint": self.handle_simple_falling_edge_setpoint,
             "system-model": self.handle_system_model,
@@ -172,6 +173,27 @@ class DerivedGenerator(ShNodeActor):
                     raise RuntimeError(
                         f"Sum DerivedChannel '{dc.Name}' requires its inputs to share one "
                         f"unit (got {in_units}); summing differing units is undefined"
+                    )
+            elif dc.Strategy == "difference":
+                if len(dc.InputChannelNames) != 2:
+                    raise RuntimeError(
+                        f"Difference DerivedChannel '{dc.Name}' requires exactly two "
+                        f"InputChannelNames (minuend, subtrahend); got "
+                        f"{len(dc.InputChannelNames)}"
+                    )
+                in_units = {
+                    self.layout.channel_registry.unit(ch) for ch in dc.InputChannelNames
+                }
+                if None in in_units:
+                    raise RuntimeError(
+                        f"Difference DerivedChannel '{dc.Name}' has an input channel with "
+                        f"no registered unit"
+                    )
+                if len(in_units) != 1:
+                    raise RuntimeError(
+                        f"Difference DerivedChannel '{dc.Name}' requires its inputs to "
+                        f"share one unit (got {in_units}); subtracting differing units is "
+                        f"undefined"
                     )
             elif dc.Strategy == "simple-falling-edge-setpoint":
                 self.init_simple_falling_edge_setpoint_channel(dc)
@@ -296,6 +318,38 @@ class DerivedGenerator(ShNodeActor):
                 Value=temp_x100,
                 ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs
             )
+        )
+
+    def handle_difference(self, dc: DerivedChannel, payload: SingleReading | None = None) -> None:
+        """Emit dc.Name = InputChannelNames[0] - InputChannelNames[1] (minuend minus
+        subtrahend), from the latest values of both.
+
+        Used for the derived sieg-send-flow on a Siegenthaler-loop house that
+        measures primary-flow (e.g. beech): sieg-send-flow = primary-flow - sieg-flow.
+        Same firing rule as handle_sum: fires when EITHER input arrives, reads the
+        fresh payload value plus the cached latest of the other, and emits nothing
+        until both have been seen. Inputs share one unit (enforced in
+        init_derived_channels), so the difference is a straight integer subtract.
+        """
+        if payload is None:
+            return
+        values = []
+        for ch_name in dc.InputChannelNames:
+            if ch_name == payload.ChannelName:
+                value = payload.Value
+            else:
+                value = self.data.latest_channel_values.get(ch_name)
+            if value is None:
+                return  # not every input available yet
+            values.append(value)
+        minuend, subtrahend = values
+        self._send_to(
+            self.primary_scada,
+            SingleReading(
+                ChannelName=dc.Name,
+                Value=minuend - subtrahend,
+                ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs,
+            ),
         )
 
     def handle_sum(self, dc: DerivedChannel, payload: SingleReading | None = None) -> None:

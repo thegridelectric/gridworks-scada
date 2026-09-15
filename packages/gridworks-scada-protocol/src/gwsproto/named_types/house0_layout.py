@@ -331,7 +331,6 @@ class House0Layout(GwsprotoSemaType):
         required = {
             "sieg-cold",
             "sieg-flow",
-            "sieg-flow-hz",
             "hp-loop-on-off-relay",
             "hp-loop-keep-send-relay",
         }

@@ -124,7 +124,7 @@ class HydronicSpaceheatChannelNames:
     buffer_top_elt_pwr = "buffer-top-elt-pwr"
     buffer_bottom_elt_pwr = "buffer-bottom-elt-pwr"
     sieg_cold = HNN.sieg_cold
-    sieg_send = HNN.sieg_send
+    sieg_send_flow = HNN.sieg_send_flow
 
     
     hp_keep_seconds_x_10 = "hp-keep-seconds-x-10"
