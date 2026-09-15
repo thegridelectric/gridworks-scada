@@ -10,7 +10,6 @@ from gwproto import Message
 from gwsproto.enums import TelemetryName
 
 from actors.config import ScadaSettings
-from gwsproto.data_classes.house_0_names import H0N
 from gwproactor import SyncThreadActor
 from gwsproto.data_classes.components.electric_meter_component import ElectricMeterComponent
 
@@ -29,6 +28,7 @@ from gwsproto.enums import DeviceType, SimDeviceType
 from gwsproto.named_types import ElectricMeterChannelConfig, PowerWatts, SyncedReadings
 
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
+from gwsproto.names.core.node_names import CoreNodeNames
 
 from scada_app_interface import ScadaAppInterface
 
@@ -303,7 +303,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         try:
             msg = Message(
                     Src=self.name,
-                    Dst= H0N.primary_scada,
+                    Dst= CoreNodeNames.primary_scada,
                     Payload=SyncedReadings(
                         ChannelNameList=[ch.Name for ch in channel_report_list],
                         ValueList=[self.latest_telemetry_value[ch] for ch in channel_report_list],
@@ -378,7 +378,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
     def report_aggregated_power_w(self):
         message = Message(
             Src=self.name,
-            Dst=H0N.primary_scada,
+            Dst=CoreNodeNames.primary_scada,
             Payload=PowerWatts(Watts=self.latest_agg_power_w)
         )
         self._put_to_async_queue(message)

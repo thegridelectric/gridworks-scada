@@ -11,9 +11,9 @@ from pathlib import Path
 import pytest
 
 from actors.relay import Relay
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import ChangeRelayPin, ChangeRelayState
 from gwsproto.named_types import FsmEvent, FsmFullReport
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -38,7 +38,7 @@ def test_sim_gpio_relay_reports_to_its_boss(app: ScadaApp) -> None:
     assert relay.GPIO is None, "the fixture's board must be simulated"
     sent: list = []
     relay._send_to = lambda dst, payload, src=None: sent.append((dst.name, payload))
-    cycler = scada.layout.node(H0N.pico_cycler)
+    cycler = scada.layout.node(HSNN.pico_cycler)
     event = FsmEvent(
         FromHandle=cycler.handle,
         ToHandle=vdc.handle,

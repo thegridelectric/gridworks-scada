@@ -15,9 +15,9 @@ from actors.derived_generator import DerivedGenerator
 from actors.sim_sensor import SimSensorActor
 from gwproto.message import Message
 from gwsproto.data_classes.derived_channel import DerivedChannel
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import EmissionMethod, Quantity, Unit
 from gwsproto.named_types import SingleReading
+from gwsproto.names.core.node_names import CoreNodeNames
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -49,7 +49,7 @@ def app() -> ScadaApp:
 
 @pytest.fixture
 def actor(app: ScadaApp) -> DerivedGenerator:
-    generator = app.get_communicator_as_type(H0N.derived_generator, DerivedGenerator)
+    generator = app.get_communicator_as_type(CoreNodeNames.derived_generator, DerivedGenerator)
     assert generator is not None
     return generator
 
@@ -178,7 +178,7 @@ def test_each_house_derives_its_missing_sieg_flow_from_its_sim_sensors(pair: str
     readings imply."""
     app = make_app(*PAIRS[pair])
     scada = app.scada
-    generator = app.get_communicator_as_type(H0N.derived_generator, DerivedGenerator)
+    generator = app.get_communicator_as_type(CoreNodeNames.derived_generator, DerivedGenerator)
     assert generator is not None
     emitted: list[SingleReading] = []
     generator._send_to = lambda dst, payload, src=None: emitted.append(payload)

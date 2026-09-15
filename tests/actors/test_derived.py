@@ -7,8 +7,8 @@ from gwproactor_test.certs import copy_keys
 
 from actors import DerivedGenerator
 from actors.config import ScadaSettings
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.named_types import ScadaParams
+from gwsproto.names.core.node_names import CoreNodeNames
 from scada_app import ScadaApp
 
 def test_ha1(monkeypatch, tmp_path):
@@ -28,7 +28,7 @@ def test_ha1(monkeypatch, tmp_path):
     settings.paths.mkdirs()
     scada_app.instantiate()
     s = scada_app.scada
-    derived = DerivedGenerator(H0N.derived_generator, services=scada_app)
+    derived = DerivedGenerator(CoreNodeNames.derived_generator, services=scada_app)
 
     assert set(derived.temperature_channel_names) == {
         'buffer-depth1', 'buffer-depth2', 'buffer-depth3',
@@ -61,8 +61,8 @@ def test_ha1(monkeypatch, tmp_path):
     new = derived.params.model_copy(update={"DdPowerKw": 10})
     params_from_ltn = ScadaParams(
         FromGNodeAlias=derived.layout.ltn_g_node_alias,
-        FromName=H0N.ltn,
-        ToName=H0N.primary_scada,
+        FromName=CoreNodeNames.ltn,
+        ToName=CoreNodeNames.primary_scada,
         UnixTimeMs=int(time.time() * 1000),
         MessageId=str(uuid.uuid4()),
         NewParams=new

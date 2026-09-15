@@ -7,9 +7,9 @@ import asyncio
 from pathlib import Path
 
 import pytest
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import ActorClass
 from gwsproto.named_types import AnalogDispatch
+from gwsproto.names.core.node_names import CoreNodeNames
 
 from actors.procedural.dist_pump_doctor import DistPumpDoctor
 from actors.procedural.store_pump_doctor import StorePumpDoctor
@@ -34,7 +34,7 @@ def host(request: pytest.FixtureRequest):
     settings.paths.mkdirs()
     app = ScadaApp(app_settings=settings)
     app.instantiate()
-    h = app.get_communicator(H0N.local_control)._impl
+    h = app.get_communicator(CoreNodeNames.local_control)._impl
     h.sent = []
     h._send_to = lambda dst, payload, src=None: h.sent.append((dst.name, payload))
 

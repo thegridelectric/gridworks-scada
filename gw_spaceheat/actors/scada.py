@@ -73,6 +73,8 @@ from gwsproto.named_types import ( ActuatorsReady,
     ScadaParams, SendControlCapabilities, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment,
     SiegTargetTooLow, SingleMachineState, SlowContractHeartbeat, SlowContractRejection, SuitUp, WakeUp,
 )
+from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 
 
 from sema_to_dc import OperationalParams
@@ -142,9 +144,9 @@ class Scada(PrimeActor, ScadaInterface):
         self._last_report_second = int(now - (now % self.settings.seconds_per_report))
         self._last_snap_s = int(now - (now % self.settings.seconds_per_snapshot))
 
-        local_control_normal = self.layout.node(H0N.local_control_normal)
+        local_control_normal = self.layout.node(CoreNodeNames.local_control_normal)
         if local_control_normal is None:
-            raise Exception(f"Must have {H0N.local_control_normal} node")
+            raise Exception(f"Must have {CoreNodeNames.local_control_normal} node")
         self.set_command_tree(local_control_normal)
         self.top_state: TopState = TopState.Auto
         self.top_machine = Machine(
@@ -468,7 +470,7 @@ class Scada(PrimeActor, ScadaInterface):
             communicator.process_message(
                 Message(
                     header=Header(
-                        Src=H0N.admin,
+                        Src=CoreNodeNames.admin,
                         Dst=communicator.name,
                         MessageType=event.TypeName,
                     ),
@@ -493,7 +495,7 @@ class Scada(PrimeActor, ScadaInterface):
             communicator.process_message(
                 Message(
                     header=Header(
-                        Src=H0N.admin,
+                        Src=CoreNodeNames.admin,
                         Dst=communicator.name,
                         MessageType=dispatch.TypeName,
                     ),
@@ -840,7 +842,7 @@ class Scada(PrimeActor, ScadaInterface):
         self._forward_single_reading(payload)
 
     def process_suit_up(self, from_node: ShNode, payload: SuitUp) -> None:
-        if from_node.Name != H0N.leaf_ally:
+        if from_node.Name != CoreNodeNames.leaf_ally:
             self.log(
                 f"Ignoring AllySuitsUp from {from_node.Name} - expect LeafAlly (aa)"
             )
@@ -960,8 +962,8 @@ class Scada(PrimeActor, ScadaInterface):
             self.ContractGracePeriodEnds()
             self.log("ContractGracePeriodEnds: Ltn -> LocalControl")
             self.set_command_tree(self.local_control)
-            self._send_to(self.layout.local_control, WakeUp(ToName=H0N.local_control))
-            self._send_to(self.leaf_ally, GoDormant(ToName=H0N.leaf_ally))
+            self._send_to(self.layout.local_control, WakeUp(ToName=CoreNodeNames.local_control))
+            self._send_to(self.leaf_ally, GoDormant(ToName=CoreNodeNames.leaf_ally))
         elif trigger == MainAutoEvent.LtnReleasesControl:
             if self.auto_state != MainAutoState.LeafTransactiveNode:
                 self.log(f"Ignoring LtnReleasesControl trigger in auto_state {self.auto_state}")
@@ -970,8 +972,8 @@ class Scada(PrimeActor, ScadaInterface):
             self.log("LtnReleasesControls: LeafTransactiveNode -> LocalControl"
             "")
             self.set_command_tree(self.local_control)
-            self._send_to(self.layout.local_control, WakeUp(ToName=H0N.local_control))
-            self._send_to(self.leaf_ally, GoDormant(ToName=H0N.leaf_ally))
+            self._send_to(self.layout.local_control, WakeUp(ToName=CoreNodeNames.local_control))
+            self._send_to(self.leaf_ally, GoDormant(ToName=CoreNodeNames.leaf_ally))
         elif trigger == MainAutoEvent.AllyGivesUp:
             if self.auto_state != MainAutoState.LeafTransactiveNode:
                 self.log(f"Ignoring AllyGivesUp trigger in auto_state {self.auto_state}")
@@ -979,8 +981,8 @@ class Scada(PrimeActor, ScadaInterface):
             self.AllyGivesUp()
             self.log("AllyGivesUp: LeafTransactiveNode -> LocalControl")
             self.set_command_tree(self.local_control)
-            self._send_to(self.layout.local_control, WakeUp(ToName=H0N.local_control))
-            self._send_to(self.leaf_ally, GoDormant(ToName=H0N.leaf_ally))
+            self._send_to(self.layout.local_control, WakeUp(ToName=CoreNodeNames.local_control))
+            self._send_to(self.leaf_ally, GoDormant(ToName=CoreNodeNames.leaf_ally))
         elif trigger == MainAutoEvent.AutoGoesDormant:
             if self.auto_state == MainAutoState.Dormant:
                 self.log(f"Ignoring AutoWakesUp trigger in auto_state {self.auto_state}")
@@ -1005,10 +1007,10 @@ class Scada(PrimeActor, ScadaInterface):
             self.AutoWakesUp()
             self.log("AutoWakesUp: Dormant -> LocalControl")
             self.set_command_tree(self.local_control)
-            self._send_to(self.local_control, WakeUp(ToName=H0N.local_control))
+            self._send_to(self.local_control, WakeUp(ToName=CoreNodeNames.local_control))
             # LocalControl never inherits a dark fleet: five-v-boss restores
             # the 5 V if admin left it held off.
-            five_v_boss = self.layout.node(H0N.five_v_boss)
+            five_v_boss = self.layout.node(HSNN.five_v_boss)
             if five_v_boss is not None:
                 self._send_to(five_v_boss, WakeUp(ToName=five_v_boss.Name))
 
@@ -1242,7 +1244,7 @@ class Scada(PrimeActor, ScadaInterface):
         ops_relay = self.layout.hp_scada_ops_relay
         ops_relay.Handle = f"{hp_boss.Handle}.{ops_relay.Name}"
         under_fsm = {ops_relay.Name}
-        five_v_boss = self.layout.node(H0N.five_v_boss)
+        five_v_boss = self.layout.node(HSNN.five_v_boss)
         if five_v_boss is not None:
             root = boss.handle.split(".")[0]
             five_v_boss.Handle = f"{root}.{five_v_boss.Name}"
@@ -1284,8 +1286,8 @@ class Scada(PrimeActor, ScadaInterface):
         with the top_state reported by `h` [Dormant v anything else] and `aa` [Dormant v anything else]
         """
 
-        lc: LocalControl = self.services.get_communicator_as_type(H0N.local_control, LocalControl)
-        la: LeafAlly = self.services.get_communicator_as_type(H0N.leaf_ally, LeafAlly)
+        lc: LocalControl = self.services.get_communicator_as_type(CoreNodeNames.local_control, LocalControl)
+        la: LeafAlly = self.services.get_communicator_as_type(CoreNodeNames.leaf_ally, LeafAlly)
 
         ally_state = la.state
         local_control_state = lc.top_state
@@ -1442,7 +1444,7 @@ class Scada(PrimeActor, ScadaInterface):
 
         # HACK FOR nodes whose 'actors' are handled by their parent's communicator
         communicator_by_name = {to_node.Name: to_node.Name}
-        communicator_by_name[H0N.local_control_normal] = H0N.local_control
+        communicator_by_name[CoreNodeNames.local_control_normal] = CoreNodeNames.local_control
     
         # if the message is meant for primary_scada, process here
         if to_node.name == self.name:
@@ -1454,7 +1456,7 @@ class Scada(PrimeActor, ScadaInterface):
             self.get_communicator(communicator_by_name[to_node.Name]).process_message(
                 Message(Src=from_node.Name, Dst=to_node.Name, Payload=payload)
             )
-        elif to_node.Name == H0N.admin:
+        elif to_node.Name == CoreNodeNames.admin:
             self.services.publish_message(
                 link_name=self.ADMIN_MQTT,
                 message=Message(
@@ -1462,7 +1464,7 @@ class Scada(PrimeActor, ScadaInterface):
                 ),
                 qos=QOS.AtMostOnce,
             )
-        elif to_node.Name == H0N.ltn:
+        elif to_node.Name == CoreNodeNames.ltn:
             #self._links.publish_upstream(payload)
             self.services.publish_message(
                 link_name=self.LTN_MQTT,
@@ -1519,11 +1521,11 @@ class Scada(PrimeActor, ScadaInterface):
                     f"IGNORING message from upstream. Expected {self.layout.ltn_g_node_alias} but got {src}"
                 )
                 return
-            src = H0N.ltn
+            src = CoreNodeNames.ltn
         elif message.Payload.client_name == self.ADMIN_MQTT:
             if not self.settings.admin.enabled:
                 return
-            src = H0N.admin
+            src = CoreNodeNames.admin
             # TODO: make admin conversation less hacky?
         else:
             raise ValueError(
@@ -1623,23 +1625,23 @@ class Scada(PrimeActor, ScadaInterface):
 
     @property
     def admin(self) -> ShNode:
-        return self.layout.node(H0N.admin)
+        return self.layout.node(CoreNodeNames.admin)
 
     @property
     def ltn(self) -> ShNode:
-        return self.layout.node(H0N.ltn)
+        return self.layout.node(CoreNodeNames.ltn)
 
     @property
     def leaf_ally(self) -> ShNode:
-        return self.layout.node(H0N.leaf_ally)
+        return self.layout.node(CoreNodeNames.leaf_ally)
 
     @property
     def local_control(self) -> ShNode:
-        return self.layout.node(H0N.local_control)
+        return self.layout.node(CoreNodeNames.local_control)
 
     @property
     def derived_generator(self) -> ShNode:
-        return self.layout.node(H0N.derived_generator)
+        return self.layout.node(CoreNodeNames.derived_generator)
 
     @property
     def hp_boss(self) -> ShNode:
@@ -1653,7 +1655,7 @@ class Scada(PrimeActor, ScadaInterface):
 
     @property
     def pico_cycler(self) -> ShNode:
-        return self.layout.node(H0N.pico_cycler)
+        return self.layout.node(HSNN.pico_cycler)
 
     @property
     def data(self) -> ScadaData:
@@ -1692,7 +1694,7 @@ class Scada(PrimeActor, ScadaInterface):
     @property
     def five_v_boss_state(self) -> FiveVBossState:
         """five-v-boss's last reported state, PicoCycler until it reports."""
-        latest = self._data.latest_machine_state.get(H0N.five_v_boss)
+        latest = self._data.latest_machine_state.get(HSNN.five_v_boss)
         if latest is None or latest.StateEnum != FiveVBossState.enum_name():
             return FiveVBossState.PicoCycler
         return FiveVBossState(latest.State)

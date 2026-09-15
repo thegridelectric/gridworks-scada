@@ -37,6 +37,8 @@ from gwsproto.named_types import (
     MachineStates,
     SingleMachineState,
 )
+from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from scada_app import ScadaApp
 from tests.utils.scada_live_test_helper import ScadaLiveTest
 
@@ -71,14 +73,14 @@ def test_control_capabilities_on_nolan(app: ScadaApp) -> None:
     }
     assert {n.Name for n in capabilities.RelayNodes} == relay_names
     assert {n.Name for n in capabilities.DacNodes} == {DAC_NODE}
-    assert {n.Name for n in capabilities.CommandNodes} == {H0N.hp_boss, H0N.five_v_boss, H0N.pico_cycler}
+    assert {n.Name for n in capabilities.CommandNodes} == {HSNN.hp_boss, HSNN.five_v_boss, HSNN.pico_cycler}
     assert {c.AboutNodeName for c in capabilities.ControlChannels} == relay_names | {
         DAC_NODE
     }
     interfaces = {i.ActorName: i for i in capabilities.CommandInterfaces}
     owned = {H0N.hp_scada_ops_relay, H0N.vdc_relay}
-    assert set(interfaces) == (relay_names - owned) | {H0N.hp_boss, H0N.five_v_boss}
-    hp_boss = interfaces[H0N.hp_boss]
+    assert set(interfaces) == (relay_names - owned) | {HSNN.hp_boss, HSNN.five_v_boss}
+    hp_boss = interfaces[HSNN.hp_boss]
     assert hp_boss.EventType == TurnHpOnOff.enum_name()
     assert hp_boss.StateType == HpBossState.enum_name()
     assert {(c.Event, c.ToState) for c in hp_boss.Commands} == {
@@ -86,7 +88,7 @@ def test_control_capabilities_on_nolan(app: ScadaApp) -> None:
         (TurnHpOnOff.TurnOff, HpBossState.HpOff),
     }
     five_v = {
-        i.EventType: i for i in capabilities.CommandInterfaces if i.ActorName == H0N.five_v_boss
+        i.EventType: i for i in capabilities.CommandInterfaces if i.ActorName == HSNN.five_v_boss
     }
     assert set(five_v) == {Turn5VOnOff.enum_name(), RebootPicos.enum_name()}
     assert [(c.Event, c.ToState) for c in five_v[Turn5VOnOff.enum_name()].Commands] == [
@@ -114,8 +116,8 @@ def admin_dispatch(value: int) -> AdminAnalogDispatch:
     return AdminAnalogDispatch(
         Dispatch=AnalogDispatch(
             FromGNodeAlias=None,
-            FromHandle=H0N.admin,
-            ToHandle=f"{H0N.admin}.{DAC_NODE}",
+            FromHandle=CoreNodeNames.admin,
+            ToHandle=f"{CoreNodeNames.admin}.{DAC_NODE}",
             AboutName=DAC_NODE,
             Value=value,
             TriggerId=str(uuid.uuid4()),
@@ -140,7 +142,7 @@ async def test_admin_analog_dispatch_reaches_outputer(
         assert isinstance(out, ZeroTenOutputer)
         expected_code = code_from_volts_times_ten(VOLTS_TIMES_TEN, out.facts)
         scada.process_scada_message(scada.admin, admin_dispatch(VOLTS_TIMES_TEN))
-        assert out.node.handle == f"{H0N.admin}.{DAC_NODE}"
+        assert out.node.handle == f"{CoreNodeNames.admin}.{DAC_NODE}"
         assert out.target_code == expected_code
         await h.await_for(
             lambda: scada.data.latest_channel_values.get(DAC_NODE) == VOLTS_TIMES_TEN,
@@ -159,7 +161,7 @@ def test_cycler_state_reaches_admin_live(app: ScadaApp) -> None:
     scada.settings.admin.enabled = True
     sent: list = []
     scada._send_to = lambda dst, payload, src=None: sent.append((dst.name, payload))
-    cycler = scada.layout.node(H0N.pico_cycler)
+    cycler = scada.layout.node(HSNN.pico_cycler)
     now_ms = int(time.time() * 1000)
     scada.process_machine_states(
         cycler,
@@ -170,7 +172,7 @@ def test_cycler_state_reaches_admin_live(app: ScadaApp) -> None:
             UnixMsList=[now_ms],
         ),
     )
-    forwarded = [p for dst, p in sent if dst == H0N.admin]
+    forwarded = [p for dst, p in sent if dst == CoreNodeNames.admin]
     assert len(forwarded) == 1
     assert isinstance(forwarded[0], SingleMachineState)
     assert forwarded[0].MachineHandle == cycler.handle
@@ -187,7 +189,7 @@ def test_cycler_state_reaches_admin_live(app: ScadaApp) -> None:
             UnixMsList=[now_ms],
         ),
     )
-    assert [p for dst, p in sent if dst == H0N.admin] == []
+    assert [p for dst, p in sent if dst == CoreNodeNames.admin] == []
 
 
 def test_non_admin_sender_is_refused(app: ScadaApp) -> None:
@@ -197,15 +199,15 @@ def test_non_admin_sender_is_refused(app: ScadaApp) -> None:
     scada = app.scada
     routed: list = []
     scada.get_communicator = lambda name: routed.append(name)  # type: ignore[method-assign]
-    sender = scada.layout.node(H0N.hp_boss)
+    sender = scada.layout.node(HSNN.hp_boss)
     assert sender != scada.admin
     assert scada.top_state == TopState.Auto
     scada.process_admin_dispatch(
         sender,
         AdminDispatch(
             DispatchTrigger=FsmEvent(
-                FromHandle=H0N.admin,
-                ToHandle=f"{H0N.admin}.{H0N.five_v_boss}",
+                FromHandle=CoreNodeNames.admin,
+                ToHandle=f"{CoreNodeNames.admin}.{HSNN.five_v_boss}",
                 EventType=RebootPicos.enum_name(),
                 EventName=RebootPicos.RebootPicos,
                 TriggerId=str(uuid.uuid4()),

@@ -15,9 +15,8 @@ import actors
 from actors.ltn import Ltn
 from actors.ltn.config import LtnSettings
 from sema_to_dc import load_layout
-from gwsproto.data_classes import house_0_names
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
-from gwsproto.data_classes.house_0_names import H0N
+from gwsproto.names.core.node_names import CoreNodeNames
 
 
 class LtnApp(App):
@@ -55,7 +54,7 @@ class LtnApp(App):
         Returns 'ltn' so paths use ~/.config/gridworks/ltn/ etc.
         This is the gwproactor framework's hook for setting paths.
         """
-        return H0N.ltn
+        return CoreNodeNames.ltn
 
     @classmethod
     def get_settings(
@@ -90,7 +89,7 @@ class LtnApp(App):
     def _get_name(self, layout: HydronicLayout) -> ProactorName:
         return ProactorName(
             long_name=layout.ltn_g_node_alias,
-            short_name=house_0_names.H0N.ltn
+            short_name=CoreNodeNames.ltn
         )
 
     def _get_link_settings(
@@ -103,7 +102,7 @@ class LtnApp(App):
             self.SCADA_MQTT: LinkSettings(
                 broker_name=self.SCADA_MQTT,
                 peer_long_name=layout.scada_g_node_alias,
-                peer_short_name=H0N.primary_scada,
+                peer_short_name=CoreNodeNames.primary_scada,
                 downstream=True,
             ),
         }

@@ -13,6 +13,7 @@ from gwproactor_test.certs import uses_tls
 from gwproactor_test.certs import copy_keys
 from gwsproto.data_classes.house_0_names import H0N, H0CN
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
+from gwsproto.names.core.node_names import CoreNodeNames
 
 import pytest
 from actors.power_meter import DriverThreadSetupHelper
@@ -32,15 +33,15 @@ def test_power_meter_small():
     layout = scada.layout
     # Raise exception if initiating node is anything except the unique power meter node
     with pytest.raises(Exception):
-        PowerMeter(H0N.primary_scada, services=scada_app)
+        PowerMeter(CoreNodeNames.primary_scada, services=scada_app)
 
-    meter = PowerMeter(H0N.primary_power_meter, services=scada_app)
+    meter = PowerMeter(CoreNodeNames.asset_power_meter, services=scada_app)
     assert isinstance(meter._sync_thread, PowerMeterDriverThread)
     driver_thread: PowerMeterDriverThread = meter._sync_thread
     driver_thread.set_async_loop(asyncio.new_event_loop(), asyncio.Queue())
     DriverThreadSetupHelper(meter.node, settings, layout, scada.logger)
 
-    meter_node = layout.node(H0N.primary_power_meter)
+    meter_node = layout.node(CoreNodeNames.asset_power_meter)
     pwr_meter_channel_names = [cfg.ChannelName for cfg in meter_node.component.gt.ConfigList]
     pwr_meter_channels = set(layout.data_channels[name] for name in pwr_meter_channel_names)
     assert set(driver_thread.last_reported_telemetry_value.keys()) == pwr_meter_channels
@@ -111,7 +112,7 @@ def meter_test_layout() -> HydronicLayout:
     layout = load_layout(
         settings.paths.hardware_layout, Path(settings.paths.operational_params)
     )
-    meter_component = layout.component_from_node(layout.node(H0N.primary_power_meter))
+    meter_component = layout.component_from_node(layout.node(CoreNodeNames.asset_power_meter))
     if not isinstance(meter_component, ElectricMeterComponent):
         raise TypeError(f"ERROR. Got meter component with wrong type ({type(meter_component)})")
     for config in meter_component.gt.ConfigList:
@@ -178,7 +179,7 @@ async def test_async_power_update(request: pytest.FixtureRequest):
         p = typing.cast(
             PowerMeterDriverThread,
             h.child1_app.get_communicator_as_type(
-                H0N.primary_power_meter,
+                CoreNodeNames.asset_power_meter,
                 PowerMeter
             )._sync_thread
         )

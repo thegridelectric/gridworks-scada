@@ -14,6 +14,8 @@ from gwsproto.data_classes.house_0_names import H0N
 from actors.pico_cycler import PicoCycler
 from gwsproto.enums import ActorClass, ChangeRelayState, MainAutoEvent
 from gwsproto.named_types import FsmEvent, GoDormant, NewCommandTree, PicoMissing
+from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -66,8 +68,8 @@ def test_pico_cycler_keeps_vdc_relay_under_every_boss(app: ScadaApp, boss: str) 
     five_v_boss = scada.layout.five_v_boss
     cycler = scada.pico_cycler
     vdc = scada.layout.vdc_relay
-    assert five_v_boss.handle == f"{root}.{H0N.five_v_boss}"
-    assert cycler.handle == f"{five_v_boss.handle}.{H0N.pico_cycler}"
+    assert five_v_boss.handle == f"{root}.{HSNN.five_v_boss}"
+    assert cycler.handle == f"{five_v_boss.handle}.{HSNN.pico_cycler}"
     assert vdc.handle == f"{cycler.handle}.{vdc.name}"
     others = [n for n in scada.layout.actuators if n.Name != vdc.name]
     assert others
@@ -82,7 +84,7 @@ def test_auto_goes_dormant_leaves_pico_cycler_awake(app: ScadaApp) -> None:
     scada.auto_trigger(MainAutoEvent.AutoGoesDormant)
     dormant_to = sorted(dst for dst, p in sent if isinstance(p, GoDormant))
     assert dormant_to == sorted([scada.leaf_ally.name, scada.local_control.name])
-    assert H0N.pico_cycler not in dormant_to
+    assert HSNN.pico_cycler not in dormant_to
 
 
 def test_flatlined_pico_is_cycled_while_admin_holds_tree(app: ScadaApp) -> None:
@@ -92,7 +94,7 @@ def test_flatlined_pico_is_cycled_while_admin_holds_tree(app: ScadaApp) -> None:
     scada = app.scada
     capture(scada)
     scada.auto_trigger(MainAutoEvent.AutoGoesDormant)
-    cycler = scada.get_communicator(H0N.pico_cycler)
+    cycler = scada.get_communicator(HSNN.pico_cycler)
     assert isinstance(cycler, PicoCycler)
     sent = capture(cycler)
     cycler.last_open_time = 0
@@ -102,9 +104,9 @@ def test_flatlined_pico_is_cycled_while_admin_holds_tree(app: ScadaApp) -> None:
     assert len(events) == 1
     event = events[0]
     vdc = scada.layout.vdc_relay
-    assert vdc.handle == f"{H0N.admin}.{H0N.five_v_boss}.{H0N.pico_cycler}.{vdc.name}"
+    assert vdc.handle == f"{CoreNodeNames.admin}.{HSNN.five_v_boss}.{HSNN.pico_cycler}.{vdc.name}"
     assert event.ToHandle == vdc.handle
-    assert event.FromHandle == f"{H0N.admin}.{H0N.five_v_boss}.{H0N.pico_cycler}"
+    assert event.FromHandle == f"{CoreNodeNames.admin}.{HSNN.five_v_boss}.{HSNN.pico_cycler}"
     assert event.EventName == ChangeRelayState.OpenRelay
 
 
@@ -117,10 +119,10 @@ def test_boot_puts_every_actuator_under_local_control_normal(app: ScadaApp) -> N
     subtree, and the sieg-loop pair when the loop is in use."""
     scada = app.scada
     layout = scada.layout
-    n = layout.node(H0N.local_control_normal)
+    n = layout.node(CoreNodeNames.local_control_normal)
     assert n.handle == "auto.lc.n"
     owned = {layout.hp_scada_ops_relay.Name: layout.hp_boss.handle}
-    if layout.node(H0N.five_v_boss) is not None:
+    if layout.node(HSNN.five_v_boss) is not None:
         owned[layout.vdc_relay.Name] = scada.pico_cycler.handle
     if scada.data.use_sieg_loop:
         for name in (H0N.hp_loop_on_off, H0N.hp_loop_keep_send):

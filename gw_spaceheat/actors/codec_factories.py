@@ -24,7 +24,7 @@ from gwproactor import LinkSettings
 from gwproactor.codecs import CodecFactory
 
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
-from gwsproto.data_classes.house_0_names import H0N
+from gwsproto.names.core.node_names import CoreNodeNames
 
 from actors.scada_interface import ScadaInterface
 
@@ -53,7 +53,7 @@ ScadaMessageDecoder = create_message_model(
 
 class GridworksMQTTCodec(MQTTCodec):
     exp_src: str
-    exp_dst: str = H0N.primary_scada
+    exp_dst: str = CoreNodeNames.primary_scada
 
     def __init__(self, hardware_layout: HydronicLayout):
         self.exp_src = hardware_layout.ltn_g_node_alias
@@ -76,11 +76,11 @@ class LocalMQTTCodec(MQTTCodec):
         self.primary_scada = primary_scada
         self.exp_srcs = remote_node_names
         if self.primary_scada:
-            self.exp_srcs.add(H0N.secondary_scada)
-            self.exp_dst = H0N.primary_scada
+            self.exp_srcs.add(CoreNodeNames.secondary_scada)
+            self.exp_dst = CoreNodeNames.primary_scada
         else:
-            self.exp_srcs.add(H0N.primary_scada)
-            self.exp_dst = H0N.secondary_scada
+            self.exp_srcs.add(CoreNodeNames.primary_scada)
+            self.exp_dst = CoreNodeNames.secondary_scada
 
         super().__init__(ScadaMessageDecoder)
 
@@ -112,10 +112,10 @@ class AdminCodec(MQTTCodec):
         super().__init__(ScadaMessageDecoder)
 
     def validate_source_and_destination(self, src: str, dst: str) -> None:
-        if dst != self.scada_gnode or src != H0N.admin:
+        if dst != self.scada_gnode or src != CoreNodeNames.admin:
             raise ValueError(
                 "ERROR validating src and/or dst\n"
-                f"  exp: one of {H0N.admin} -> {self.scada_gnode}\n"
+                f"  exp: one of {CoreNodeNames.admin} -> {self.scada_gnode}\n"
                 f"  got: {src} -> {dst}"
             )
 
@@ -141,7 +141,7 @@ class ScadaCodecFactory(CodecFactory):
         if link_name == self.LTN_MQTT:
             return GridworksMQTTCodec(layout)
         elif link_name == self.LOCAL_MQTT:
-            scada_node = layout.node(H0N.primary_scada)
+            scada_node = layout.node(CoreNodeNames.primary_scada)
             remote_actor_node_names = {
                 node.name
                 for node in layout.nodes.values()

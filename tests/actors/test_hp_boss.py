@@ -20,6 +20,8 @@ from gwsproto.named_types import (
     FsmEvent,
     SingleMachineState,
 )
+from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -49,7 +51,7 @@ def capture(actor) -> list:
 
 
 def hp_boss_actor(app: ScadaApp) -> HpBoss:
-    actor = app.get_communicator_as_type(H0N.hp_boss, HpBoss)
+    actor = app.get_communicator_as_type(HSNN.hp_boss, HpBoss)
     assert actor is not None, "hp-boss actor is constructed in every layout"
     return actor
 
@@ -98,7 +100,7 @@ def test_hp_boss_in_every_tree(app: ScadaApp, boss: str) -> None:
     scada.set_command_tree(boss_node)
     hp_boss = scada.layout.hp_boss
     relay = scada.layout.hp_scada_ops_relay
-    assert hp_boss.handle == f"{boss_node.handle}.{H0N.hp_boss}"
+    assert hp_boss.handle == f"{boss_node.handle}.{HSNN.hp_boss}"
     assert relay.handle == f"{hp_boss.handle}.{H0N.hp_scada_ops_relay}"
     sieg_loop = scada.layout.node(H0N.sieg_loop, None)
     if scada.data.use_sieg_loop:
@@ -179,8 +181,8 @@ def test_stale_boss_command_changes_nothing(app: ScadaApp) -> None:
     actor = hp_boss_actor(app)
     actor.state = HpBossState.HpOn
     sent = capture(actor)
-    stale = turn(H0N.admin, f"{H0N.admin}.{H0N.hp_boss}", TurnHpOnOff.TurnOff)
-    deliver(actor, H0N.admin, stale)
+    stale = turn(CoreNodeNames.admin, f"{CoreNodeNames.admin}.{HSNN.hp_boss}", TurnHpOnOff.TurnOff)
+    deliver(actor, CoreNodeNames.admin, stale)
     assert relay_events(sent) == []
     assert reported_states(sent) == []
     assert actor.state == HpBossState.HpOn
@@ -195,10 +197,10 @@ def test_mis_sendered_turn_on_does_not_actuate(app: ScadaApp) -> None:
     capture(scada)
     scada.auto_trigger(MainAutoEvent.AutoGoesDormant)
     actor = hp_boss_actor(app)
-    assert actor.node.handle == f"{H0N.admin}.{H0N.hp_boss}"
+    assert actor.node.handle == f"{CoreNodeNames.admin}.{HSNN.hp_boss}"
     assert actor.state == HpBossState.HpOff
     sent = capture(actor)
-    deliver(actor, H0N.pico_cycler, turn(H0N.admin, actor.node.handle, TurnHpOnOff.TurnOn))
+    deliver(actor, HSNN.pico_cycler, turn(CoreNodeNames.admin, actor.node.handle, TurnHpOnOff.TurnOn))
     assert relay_events(sent) == []
     assert reported_states(sent) == []
     assert actor.state == HpBossState.HpOff
@@ -207,7 +209,7 @@ def test_mis_sendered_turn_on_does_not_actuate(app: ScadaApp) -> None:
 def admin_turn(name: TurnHpOnOff) -> AdminDispatch:
     """The admin client's wire shape: it addresses hp-boss under admin."""
     return AdminDispatch(
-        DispatchTrigger=turn(H0N.admin, f"{H0N.admin}.{H0N.hp_boss}", name),
+        DispatchTrigger=turn(CoreNodeNames.admin, f"{CoreNodeNames.admin}.{HSNN.hp_boss}", name),
         TimeoutSeconds=120,
     )
 
@@ -225,7 +227,7 @@ async def test_admin_turns_heat_pump_on_and_off_through_hp_boss(app: ScadaApp) -
     relay = scada.layout.hp_scada_ops_relay
 
     scada.process_admin_dispatch(scada.admin, admin_turn(TurnHpOnOff.TurnOff))
-    hp_boss_handle = f"{H0N.admin}.{H0N.hp_boss}"
+    hp_boss_handle = f"{CoreNodeNames.admin}.{HSNN.hp_boss}"
     assert actor.node.handle == hp_boss_handle
     assert relay.handle == f"{hp_boss_handle}.{H0N.hp_scada_ops_relay}"
     assert relay_events(sent) == [

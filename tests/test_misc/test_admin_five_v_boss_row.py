@@ -14,6 +14,7 @@ from gwadmin.watch.clients.relay_client import RelayWatchClient
 from gwadmin.watch.widgets.relay_widget_info import RelayWidgetConfig
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import FiveVBossState, RebootPicos, RelayClosedOrOpen, Turn5VOnOff
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -40,7 +41,7 @@ def offered(config: RelayWidgetConfig, state: str) -> list[tuple[str, str]]:
 
 
 def test_five_v_boss_offers_hold_and_reboot_at_rest(configs: dict[str, RelayWidgetConfig]) -> None:
-    boss = configs[H0N.five_v_boss]
+    boss = configs[HSNN.five_v_boss]
     assert offered(boss, FiveVBossState.PicoCycler) == [
         (Turn5VOnOff.enum_name(), Turn5VOnOff.TurnOff),
         (RebootPicos.enum_name(), RebootPicos.RebootPicos),
@@ -51,13 +52,13 @@ def test_five_v_boss_offers_hold_and_reboot_at_rest(configs: dict[str, RelayWidg
 
 
 def test_five_v_boss_offers_turn_on_alone_while_held_off(configs: dict[str, RelayWidgetConfig]) -> None:
-    boss = configs[H0N.five_v_boss]
+    boss = configs[HSNN.five_v_boss]
     assert offered(boss, FiveVBossState.FiveVOff) == [(Turn5VOnOff.enum_name(), Turn5VOnOff.TurnOn)]
     assert boss.offered_command(FiveVBossState.FiveVOff, 1) is None
 
 
 def test_five_v_boss_withholds_reboot_mid_transition(configs: dict[str, RelayWidgetConfig]) -> None:
-    boss = configs[H0N.five_v_boss]
+    boss = configs[HSNN.five_v_boss]
     for state in (FiveVBossState.TurningOff, FiveVBossState.TurningOn):
         assert [event_type for event_type, _ in offered(boss, state)] == [Turn5VOnOff.enum_name()]
     assert offered(boss, None) == []
@@ -74,6 +75,6 @@ def test_relay_row_offers_the_other_state(configs: dict[str, RelayWidgetConfig])
 
 
 def test_owned_rows_offer_nothing(configs: dict[str, RelayWidgetConfig]) -> None:
-    for name in (H0N.pico_cycler, H0N.vdc_relay, H0N.hp_scada_ops_relay):
+    for name in (HSNN.pico_cycler, H0N.vdc_relay, H0N.hp_scada_ops_relay):
         assert configs[name].commands == []
         assert offered(configs[name], RelayClosedOrOpen.RelayClosed) == []

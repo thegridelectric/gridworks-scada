@@ -7,7 +7,6 @@ import time
 import uuid
 
 from gwproto import Message as GWMessage
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import ActorClass, ScadaCmdRefusalReason, PicoCyclerState, RebootPicos
 from gwsproto.named_types import (
     AdminDispatch,
@@ -19,6 +18,8 @@ from gwsproto.named_types import (
     SingleReading,
     SpaceheatNodeGt,
 )
+from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 
 from gwadmin.watch.clients.dispatch_replies import DispatchReply
 from gwadmin.watch.clients.relay_client import RelayClientCallbacks, RelayWatchClient
@@ -36,7 +37,7 @@ class CapturingAdminClient:
 
 
 def scada_message(payload) -> tuple[str, bytes]:
-    message = GWMessage(Src="scada", Dst=H0N.admin, Payload=payload)
+    message = GWMessage(Src="scada", Dst=CoreNodeNames.admin, Payload=payload)
     return message.mqtt_topic(), message.model_dump_json().encode()
 
 
@@ -49,9 +50,9 @@ def cycler_capabilities() -> ScadaControlCapabilities:
         DacNodes=[],
         CommandNodes=[
             SpaceheatNodeGt(
-                Name=H0N.pico_cycler,
-                ActorHierarchyName=f"s.{H0N.pico_cycler}",
-                Handle=f"{H0N.admin}.{H0N.pico_cycler}",
+                Name=HSNN.pico_cycler,
+                ActorHierarchyName=f"s.{HSNN.pico_cycler}",
+                Handle=f"{CoreNodeNames.admin}.{HSNN.pico_cycler}",
                 ActorClass=ActorClass.PicoCycler,
                 ShNodeId=str(uuid.uuid4()),
             )
@@ -59,7 +60,7 @@ def cycler_capabilities() -> ScadaControlCapabilities:
         ControlChannels=[],
         CommandInterfaces=[
             CommandInterface(
-                ActorName=H0N.pico_cycler,
+                ActorName=HSNN.pico_cycler,
                 EventType=RebootPicos.enum_name(),
                 StateType=PicoCyclerState.enum_name(),
                 Commands=[
@@ -82,7 +83,7 @@ def client_with_replies() -> tuple[RelayWatchClient, CapturingAdminClient, list[
 
 
 def send_reboot_picos(client: RelayWatchClient, timeout_seconds: int) -> None:
-    client.send_command(H0N.pico_cycler, RebootPicos.RebootPicos, timeout_seconds)
+    client.send_command(HSNN.pico_cycler, RebootPicos.RebootPicos, timeout_seconds)
 
 
 def test_nack_is_paired_with_the_command_it_refuses() -> None:
@@ -93,8 +94,8 @@ def test_nack_is_paired_with_the_command_it_refuses() -> None:
     trigger_id = dispatch.DispatchTrigger.TriggerId
 
     nack = DispatchNack(
-        FromHandle=f"{H0N.admin}.{H0N.pico_cycler}",
-        ToHandle=H0N.admin,
+        FromHandle=f"{CoreNodeNames.admin}.{HSNN.pico_cycler}",
+        ToHandle=CoreNodeNames.admin,
         TriggerId=trigger_id,
         Reason=ScadaCmdRefusalReason.Busy,
         UnixTimeMs=int(time.time() * 1000),
@@ -106,7 +107,7 @@ def test_nack_is_paired_with_the_command_it_refuses() -> None:
     assert not reply.taken
     assert reply.pending is not None
     assert reply.pending.label == RebootPicos.RebootPicos
-    assert reply.pending.to_handle == f"{H0N.admin}.{H0N.pico_cycler}"
+    assert reply.pending.to_handle == f"{CoreNodeNames.admin}.{HSNN.pico_cycler}"
     assert reply.describe() == f"{reply.reply.FromHandle} refused {RebootPicos.RebootPicos}: Busy"
 
 
@@ -115,8 +116,8 @@ def test_ack_is_taken_and_a_reply_is_delivered_once() -> None:
     send_reboot_picos(client, 300)
     trigger_id = admin.published[0].DispatchTrigger.TriggerId
     ack = DispatchAck(
-        FromHandle=f"{H0N.admin}.{H0N.pico_cycler}",
-        ToHandle=H0N.admin,
+        FromHandle=f"{CoreNodeNames.admin}.{HSNN.pico_cycler}",
+        ToHandle=CoreNodeNames.admin,
         TriggerId=trigger_id,
         UnixTimeMs=int(time.time() * 1000),
     )
@@ -131,8 +132,8 @@ def test_ack_is_taken_and_a_reply_is_delivered_once() -> None:
 def test_reply_to_a_command_this_panel_did_not_send_is_still_surfaced() -> None:
     client, _, replies = client_with_replies()
     ack = DispatchAck(
-        FromHandle=f"{H0N.admin}.{H0N.pico_cycler}",
-        ToHandle=H0N.admin,
+        FromHandle=f"{CoreNodeNames.admin}.{HSNN.pico_cycler}",
+        ToHandle=CoreNodeNames.admin,
         TriggerId="1c0d8f5e-3f4a-4b3c-9d2e-7a6b5c4d3e2f",
         UnixTimeMs=int(time.time() * 1000),
     )

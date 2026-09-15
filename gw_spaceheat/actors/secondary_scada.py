@@ -8,7 +8,6 @@ from gwproto.message import Header
 from gwproto.message import Message
 
 from actors import ContractHandler
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
 
 from gwsproto.data_classes.sh_node import ShNode
@@ -19,6 +18,7 @@ from gwproactor.message import MQTTReceiptPayload
 from gwsproto.named_types import PowerWatts, Report, SyncedReadings
 from actors.codec_factories import Scada2CodecFactory
 from gwsproto.named_types import Glitch, SnapshotSpaceheat
+from gwsproto.names.core.node_names import CoreNodeNames
 from actors.scada_interface import ScadaInterface
 
 from scada_app_interface import ScadaAppInterface
@@ -103,7 +103,7 @@ class SecondaryScada(PrimeActor, ScadaInterface):
                 new_msg = Message(
                     Header=Header(
                         Src=message.Header.Src, 
-                        Dst=H0N.primary_scada,
+                        Dst=CoreNodeNames.primary_scada,
                         MessageType=message.Payload.TypeName,
                         ),
                     Payload=message.Payload
@@ -118,7 +118,7 @@ class SecondaryScada(PrimeActor, ScadaInterface):
                 new_msg = Message(
                     Header=Header(
                         Src=message.Header.Src, 
-                        Dst=H0N.primary_scada,
+                        Dst=CoreNodeNames.primary_scada,
                         MessageType=message.Payload.TypeName,
                         ),
                     Payload=message.Payload
@@ -134,7 +134,7 @@ class SecondaryScada(PrimeActor, ScadaInterface):
                 new_msg = Message(
                     Header=Header(
                         Src=message.Header.Src, 
-                        Dst=H0N.primary_scada,
+                        Dst=CoreNodeNames.primary_scada,
                         MessageType=message.Payload.TypeName,
                         ),
                     Payload=message.Payload

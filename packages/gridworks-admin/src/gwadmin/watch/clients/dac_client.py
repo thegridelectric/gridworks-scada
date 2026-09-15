@@ -25,10 +25,10 @@ from gwadmin.watch.clients.constrained_mqtt_client import MessageReceivedCallbac
 from gwadmin.watch.clients.constrained_mqtt_client import StateChangeCallback
 from gwadmin.watch.clients.dispatch_replies import DispatchReply
 from gwadmin.watch.clients.dispatch_replies import DispatchReplyTracker
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.named_types import AdminAnalogDispatch
 from gwsproto.named_types import (AdminKeepAlive, AdminReleaseControl,
                          ScadaControlCapabilities, SnapshotSpaceheat)
+from gwsproto.names.core.node_names import CoreNodeNames
 
 module_logger = logging.getLogger(__name__)
 
@@ -283,8 +283,8 @@ class DACWatchClient(AdminSubClient):
     ) -> None:
         dispatch = AnalogDispatch(
             FromGNodeAlias=None,
-            FromHandle=H0N.admin,
-            ToHandle=f"{H0N.admin}.{dac_node_name}",
+            FromHandle=CoreNodeNames.admin,
+            ToHandle=f"{CoreNodeNames.admin}.{dac_node_name}",
             AboutName=dac_node_name,
             Value=value,
             TriggerId=str(uuid.uuid4()),

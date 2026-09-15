@@ -15,7 +15,6 @@ from actors.pico_cycler import PicoCycler
 from actors.relay import Relay
 from actors.zero_ten_outputer import ZeroTenOutputer
 from gwproto.message import Header, Message
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import (
     ActorClass,
     ChangeRelayState,
@@ -26,6 +25,8 @@ from gwsproto.enums import (
     TurnHpOnOff,
 )
 from gwsproto.named_types import AnalogDispatch, DispatchAck, DispatchNack, FsmEvent, Glitch
+from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -55,7 +56,7 @@ def capture(actor) -> list:
     return sent
 
 
-def event(to_handle: str, event_type: str, name: str, from_handle: str = H0N.admin) -> FsmEvent:
+def event(to_handle: str, event_type: str, name: str, from_handle: str = CoreNodeNames.admin) -> FsmEvent:
     return FsmEvent(
         FromHandle=from_handle,
         ToHandle=to_handle,
@@ -66,7 +67,7 @@ def event(to_handle: str, event_type: str, name: str, from_handle: str = H0N.adm
     )
 
 
-def deliver(actor, payload, src: str = H0N.admin) -> None:
+def deliver(actor, payload, src: str = CoreNodeNames.admin) -> None:
     actor.process_message(
         Message(
             header=Header(Src=src, Dst=actor.name, MessageType=payload.TypeName),
@@ -85,7 +86,7 @@ def assert_dropped_as_bad_sender(sent: list, actor) -> None:
     glitches = [(dst, p) for dst, p in sent if isinstance(p, Glitch)]
     assert len(glitches) == 1
     dst, glitch = glitches[0]
-    assert dst == H0N.ltn
+    assert dst == CoreNodeNames.ltn
     assert glitch.Summary == "bad_sender"
     assert glitch.Node == actor.node.name
 
@@ -98,7 +99,7 @@ def nacks(sent: list) -> list[tuple[str, DispatchNack]]:
     return [(dst, p) for dst, p in sent if isinstance(p, DispatchNack)]
 
 
-def assert_ack(sent: list, actor, command, commander: str = H0N.admin) -> None:
+def assert_ack(sent: list, actor, command, commander: str = CoreNodeNames.admin) -> None:
     assert nacks(sent) == []
     replies = acks(sent)
     assert len(replies) == 1
@@ -110,7 +111,7 @@ def assert_ack(sent: list, actor, command, commander: str = H0N.admin) -> None:
 
 
 def assert_nack(
-    sent: list, actor, command, reason: ScadaCmdRefusalReason, commander: str = H0N.admin
+    sent: list, actor, command, reason: ScadaCmdRefusalReason, commander: str = CoreNodeNames.admin
 ) -> None:
     assert acks(sent) == []
     replies = nacks(sent)
@@ -126,13 +127,13 @@ def assert_nack(
 # ---------------------------------------------------------------- pico-cycler
 # The cycler's boss is five-v-boss in every tree; its replies go there.
 
-CYCLER_BOSS = f"{H0N.admin}.{H0N.five_v_boss}"
+CYCLER_BOSS = f"{CoreNodeNames.admin}.{HSNN.five_v_boss}"
 
 
 def cycler(app: ScadaApp) -> PicoCycler:
-    actor = app.scada.get_communicator(H0N.pico_cycler)
+    actor = app.scada.get_communicator(HSNN.pico_cycler)
     assert isinstance(actor, PicoCycler)
-    assert actor.node.handle == f"{CYCLER_BOSS}.{H0N.pico_cycler}"
+    assert actor.node.handle == f"{CYCLER_BOSS}.{HSNN.pico_cycler}"
     return actor
 
 
@@ -144,28 +145,28 @@ def test_cycler_acks_a_reboot_it_takes(app: ScadaApp) -> None:
     actor = cycler(app)
     sent = capture(actor)
     command = cycler_event(actor, RebootPicos.enum_name(), RebootPicos.RebootPicos)
-    deliver(actor, command, src=H0N.five_v_boss)
+    deliver(actor, command, src=HSNN.five_v_boss)
     assert actor.state == PicoCyclerState.RelayOpening
-    assert_ack(sent, actor, command, commander=H0N.five_v_boss)
+    assert_ack(sent, actor, command, commander=HSNN.five_v_boss)
 
 
 def test_cycler_refuses_busy_while_cycling(app: ScadaApp) -> None:
     actor = cycler(app)
     sent = capture(actor)
-    deliver(actor, cycler_event(actor, RebootPicos.enum_name(), RebootPicos.RebootPicos), src=H0N.five_v_boss)
+    deliver(actor, cycler_event(actor, RebootPicos.enum_name(), RebootPicos.RebootPicos), src=HSNN.five_v_boss)
     sent.clear()
     second = cycler_event(actor, RebootPicos.enum_name(), RebootPicos.RebootPicos)
-    deliver(actor, second, src=H0N.five_v_boss)
-    assert_nack(sent, actor, second, ScadaCmdRefusalReason.Busy, commander=H0N.five_v_boss)
+    deliver(actor, second, src=HSNN.five_v_boss)
+    assert_nack(sent, actor, second, ScadaCmdRefusalReason.Busy, commander=HSNN.five_v_boss)
 
 
 def test_cycler_refuses_an_event_it_does_not_take(app: ScadaApp) -> None:
     actor = cycler(app)
     sent = capture(actor)
     command = cycler_event(actor, ChangeRelayState.enum_name(), ChangeRelayState.OpenRelay)
-    deliver(actor, command, src=H0N.five_v_boss)
+    deliver(actor, command, src=HSNN.five_v_boss)
     assert actor.state == PicoCyclerState.PicosLive
-    assert_nack(sent, actor, command, ScadaCmdRefusalReason.UnknownEvent, commander=H0N.five_v_boss)
+    assert_nack(sent, actor, command, ScadaCmdRefusalReason.UnknownEvent, commander=HSNN.five_v_boss)
 
 
 def test_cycler_refuses_a_command_to_another_handle(app: ScadaApp) -> None:
@@ -175,10 +176,10 @@ def test_cycler_refuses_a_command_to_another_handle(app: ScadaApp) -> None:
     actor = cycler(app)
     sent = capture(actor)
     command = cycler_event(actor, RebootPicos.enum_name(), RebootPicos.RebootPicos)
-    actor.node.Handle = f"{H0N.auto}.{H0N.five_v_boss}.{actor.name}"
-    deliver(actor, command, src=H0N.five_v_boss)
+    actor.node.Handle = f"{CoreNodeNames.auto}.{HSNN.five_v_boss}.{actor.name}"
+    deliver(actor, command, src=HSNN.five_v_boss)
     assert actor.state == PicoCyclerState.PicosLive
-    assert_nack(sent, actor, command, ScadaCmdRefusalReason.NotMyBoss, commander=H0N.five_v_boss)
+    assert_nack(sent, actor, command, ScadaCmdRefusalReason.NotMyBoss, commander=HSNN.five_v_boss)
 
 
 def test_cycler_drops_a_command_whose_sender_is_not_its_from_handle(app: ScadaApp) -> None:
@@ -187,7 +188,7 @@ def test_cycler_drops_a_command_whose_sender_is_not_its_from_handle(app: ScadaAp
     actor = cycler(app)
     sent = capture(actor)
     command = cycler_event(actor, RebootPicos.enum_name(), RebootPicos.RebootPicos)
-    deliver(actor, command, src=H0N.hp_boss)
+    deliver(actor, command, src=HSNN.hp_boss)
     assert actor.state == PicoCyclerState.PicosLive
     assert_dropped_as_bad_sender(sent, actor)
 
@@ -195,9 +196,9 @@ def test_cycler_drops_a_command_whose_sender_is_not_its_from_handle(app: ScadaAp
 # ---------------------------------------------------------------- hp-boss
 
 def hp_boss(app: ScadaApp) -> HpBoss:
-    actor = app.get_communicator_as_type(H0N.hp_boss, HpBoss)
+    actor = app.get_communicator_as_type(HSNN.hp_boss, HpBoss)
     assert actor is not None
-    assert actor.node.handle == f"{H0N.admin}.{H0N.hp_boss}"
+    assert actor.node.handle == f"{CoreNodeNames.admin}.{HSNN.hp_boss}"
     return actor
 
 
@@ -222,7 +223,7 @@ def test_hp_boss_refuses_a_command_to_another_handle(app: ScadaApp) -> None:
     actor = hp_boss(app)
     sent = capture(actor)
     command = event(actor.node.handle, TurnHpOnOff.enum_name(), TurnHpOnOff.TurnOff)
-    actor.node.Handle = f"{H0N.auto}.{actor.name}"
+    actor.node.Handle = f"{CoreNodeNames.auto}.{actor.name}"
     deliver(actor, command)
     assert_nack(sent, actor, command, ScadaCmdRefusalReason.NotMyBoss)
 
@@ -231,7 +232,7 @@ def test_hp_boss_drops_a_command_whose_sender_is_not_its_from_handle(app: ScadaA
     actor = hp_boss(app)
     sent = capture(actor)
     command = event(actor.node.handle, TurnHpOnOff.enum_name(), TurnHpOnOff.TurnOn)
-    deliver(actor, command, src=H0N.pico_cycler)
+    deliver(actor, command, src=HSNN.pico_cycler)
     assert_dropped_as_bad_sender(sent, actor)
 
 
@@ -241,7 +242,7 @@ def a_relay_under_admin(app: ScadaApp) -> Relay:
     """A relay the operator commands directly: its handle is admin.<name>."""
     layout = app.scada.layout
     for node in layout.nodes.values():
-        if node.ActorClass == ActorClass.Relay and node.handle == f"{H0N.admin}.{node.name}":
+        if node.ActorClass == ActorClass.Relay and node.handle == f"{CoreNodeNames.admin}.{node.name}":
             actor = app.scada.get_communicator(node.name)
             assert isinstance(actor, Relay)
             return actor
@@ -255,7 +256,7 @@ async def test_relay_acks_a_command_it_takes(app: ScadaApp) -> None:
     sent = capture(actor)
     vocabulary = actor.my_event_enum
     command = event(actor.node.handle, vocabulary.enum_name(), vocabulary.values()[0])
-    actor._process_event_message(H0N.admin, command)
+    actor._process_event_message(CoreNodeNames.admin, command)
     assert_ack(sent, actor, command)
     for task in asyncio.all_tasks():
         if task is not asyncio.current_task():
@@ -266,7 +267,7 @@ def test_relay_refuses_an_event_it_does_not_take(app: ScadaApp) -> None:
     actor = a_relay_under_admin(app)
     sent = capture(actor)
     command = event(actor.node.handle, TurnHpOnOff.enum_name(), TurnHpOnOff.TurnOn)
-    actor._process_event_message(H0N.admin, command)
+    actor._process_event_message(CoreNodeNames.admin, command)
     assert_nack(sent, actor, command, ScadaCmdRefusalReason.UnknownEvent)
 
 
@@ -274,8 +275,8 @@ def test_relay_refuses_a_command_to_another_handle(app: ScadaApp) -> None:
     actor = a_relay_under_admin(app)
     sent = capture(actor)
     command = event(actor.node.handle, ChangeRelayState.enum_name(), ChangeRelayState.OpenRelay)
-    actor.node.Handle = f"{H0N.auto}.{actor.name}"
-    actor._process_event_message(H0N.admin, command)
+    actor.node.Handle = f"{CoreNodeNames.auto}.{actor.name}"
+    actor._process_event_message(CoreNodeNames.admin, command)
     assert_nack(sent, actor, command, ScadaCmdRefusalReason.NotMyBoss)
 
 
@@ -284,7 +285,7 @@ def test_relay_drops_a_command_whose_sender_is_not_its_from_handle(app: ScadaApp
     sent = capture(actor)
     vocabulary = actor.my_event_enum
     command = event(actor.node.handle, vocabulary.enum_name(), vocabulary.values()[0])
-    actor._process_event_message(H0N.pico_cycler, command)
+    actor._process_event_message(HSNN.pico_cycler, command)
     assert_dropped_as_bad_sender(sent, actor)
 
 
@@ -294,7 +295,7 @@ def an_outputer(app: ScadaApp) -> ZeroTenOutputer:
     for name in app.get_communicator_names():
         actor = app.get_communicator(name)
         if isinstance(actor, ZeroTenOutputer):
-            assert actor.node.handle == f"{H0N.admin}.{actor.name}"
+            assert actor.node.handle == f"{CoreNodeNames.admin}.{actor.name}"
             return actor
     raise AssertionError("no ZeroTenOutputer on this layout")
 
@@ -302,7 +303,7 @@ def an_outputer(app: ScadaApp) -> ZeroTenOutputer:
 def dispatch(actor: ZeroTenOutputer, value: int) -> AnalogDispatch:
     return AnalogDispatch(
         FromGNodeAlias=None,
-        FromHandle=H0N.admin,
+        FromHandle=CoreNodeNames.admin,
         ToHandle=actor.node.handle,
         AboutName=actor.name,
         Value=value,
@@ -331,7 +332,7 @@ def test_outputer_refuses_a_command_to_another_handle(app: ScadaApp) -> None:
     actor = an_outputer(app)
     sent = capture(actor)
     command = dispatch(actor, 55)
-    actor.node.Handle = f"{H0N.auto}.{actor.name}"
+    actor.node.Handle = f"{CoreNodeNames.auto}.{actor.name}"
     deliver(actor, command)
     assert_nack(sent, actor, command, ScadaCmdRefusalReason.NotMyBoss)
 
@@ -343,7 +344,7 @@ def test_outputer_drops_a_dispatch_whose_sender_is_not_its_from_handle(app: Scad
     sent = capture(actor)
     before = actor.target_code
     command = dispatch(actor, 55)
-    deliver(actor, command, src=H0N.pico_cycler)
+    deliver(actor, command, src=HSNN.pico_cycler)
     assert actor.target_code == before
     assert_dropped_as_bad_sender(sent, actor)
 

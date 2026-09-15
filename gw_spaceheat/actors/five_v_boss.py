@@ -11,7 +11,6 @@ import uuid
 from typing import Optional
 
 from gwproto.message import Message
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
@@ -33,6 +32,7 @@ from gwsproto.named_types import (
     SingleMachineState,
     WakeUp,
 )
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from result import Ok, Result
 
 from actors import command_reply
@@ -52,7 +52,7 @@ def shape_five_v_subtree(layout: HydronicLayout, state: FiveVBossState) -> None:
     boss owns the relay and the cycler is a leaf. The scada uses it on a
     tree rewrite (from the boss's last reported state) and the boss on its
     own transitions, so the shape is never written twice."""
-    boss = layout.node(H0N.five_v_boss)
+    boss = layout.node(HSNN.five_v_boss)
     cycler = layout.pico_cycler
     relay = layout.vdc_relay
     cycler.Handle = f"{boss.handle}.{cycler.Name}"

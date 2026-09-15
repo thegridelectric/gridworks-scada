@@ -240,7 +240,7 @@ async def _await_scada_connected(
 # They already come apart. RelayWatchClient._send_set_command hardcodes:
 #
 #     if relay_name == H0N.hp_scada_ops_relay:
-#         to_handle  = f"{H0N.admin}.{H0N.hp_boss}"   # dispatch target != about node
+#         to_handle  = f"{CoreNodeNames.admin}.{HSNN.hp_boss}"   # dispatch target != about node
 #         event_type = TurnHpOnOff.enum_name()        # different event vocabulary
 #
 # The about node is hp-scada-ops-relay; the actor dispatched to is hp-boss,

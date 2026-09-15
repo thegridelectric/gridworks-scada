@@ -12,7 +12,6 @@ from typing import Sequence
 
 from gwproto import Message as GWMessage
 from gwproto import MQTTTopic
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.property_format import SpaceheatName
 
 from gwsproto.named_types import SingleMachineState
@@ -28,6 +27,7 @@ from gwadmin.watch.clients.dispatch_replies import DispatchReply
 from gwadmin.watch.clients.dispatch_replies import DispatchReplyTracker
 from gwsproto.named_types import (AdminDispatch,  AdminKeepAlive, AdminReleaseControl,
                         CommandInterface, ScadaControlCapabilities, FsmEvent, SnapshotSpaceheat)
+from gwsproto.names.core.node_names import CoreNodeNames
 
 module_logger = logging.getLogger(__name__)
 
@@ -341,8 +341,8 @@ class RelayWatchClient(AdminSubClient):
         if command is None:
             raise ValueError(f"{node_name} takes {[c.event for c in config.commands]}, not {event_name}")
         event = FsmEvent(
-            FromHandle=H0N.admin,
-            ToHandle=f"{H0N.admin}.{node_name}",
+            FromHandle=CoreNodeNames.admin,
+            ToHandle=f"{CoreNodeNames.admin}.{node_name}",
             EventType=command.event_type,
             EventName=event_name,
             SendTimeUnixMs=int(set_time.timestamp() * 1000),

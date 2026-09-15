@@ -18,9 +18,8 @@ from actors import ScadaInterface
 from actors.config import ScadaSettings
 from sema_to_dc import load_layout
 from actors.scada import ScadaCodecFactory
-from gwsproto.data_classes import house_0_names
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
-from gwsproto.data_classes.house_0_names import H0N
+from gwsproto.names.core.node_names import CoreNodeNames
 from scada_app_interface import ScadaAppInterface
 
 
@@ -61,7 +60,7 @@ class Scada2App(App, ScadaAppInterface):
     def _get_name(self, layout: HardwareLayout) -> ProactorName:
         return ProactorName(
             long_name=typing.cast(HydronicLayout, layout).scada2_g_node_name(),
-            short_name=house_0_names.H0N.secondary_scada
+            short_name=CoreNodeNames.secondary_scada
         )
 
     def _get_link_settings(
@@ -74,7 +73,7 @@ class Scada2App(App, ScadaAppInterface):
             self.LOCAL_MQTT: LinkSettings(
                 broker_name=self.LOCAL_MQTT,
                 peer_long_name=self.hardware_layout.scada_g_node_alias,
-                peer_short_name=H0N.primary_scada,
+                peer_short_name=CoreNodeNames.primary_scada,
                 upstream=True,
             )
         }

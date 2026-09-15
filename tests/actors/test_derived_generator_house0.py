@@ -11,8 +11,9 @@ from pathlib import Path
 import pytest
 
 from actors.derived_generator import DerivedGenerator
-from gwsproto.data_classes.house_0_names import H0CN, H0N
+from gwsproto.data_classes.house_0_names import H0CN
 from gwsproto.named_types import HeatingForecast
+from gwsproto.names.core.node_names import CoreNodeNames
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -45,7 +46,7 @@ def a_day_of_forecast(actor: DerivedGenerator) -> HeatingForecast:
 
 
 def test_main_loop_pass_survives_the_first_forecast(app: ScadaApp) -> None:
-    actor = app.get_communicator_as_type(H0N.derived_generator, DerivedGenerator)
+    actor = app.get_communicator_as_type(CoreNodeNames.derived_generator, DerivedGenerator)
     assert actor is not None
     data = actor.data
     data.heating_forecast = a_day_of_forecast(actor)

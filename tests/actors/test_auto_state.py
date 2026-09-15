@@ -5,9 +5,9 @@ from pathlib import Path
 import pytest
 from gwproto import Message
 from actors import LeafAlly
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import MainAutoState, SlowDispatchContractStatus
 from gwsproto.named_types import SlowDispatchContract, SlowContractHeartbeat
+from gwsproto.names.core.node_names import CoreNodeNames
 from sema_to_dc import load_layout
 from tests.utils.scada_live_test_helper import ScadaLiveTest
 
@@ -44,7 +44,7 @@ async def test_auto_state_home_alone_to_ltn(
         assert scada.layout.scada_g_node_alias == layout.scada_g_node_alias
         assert ltn.layout.scada_g_node_alias == layout.scada_g_node_alias
         leaf_ally = tst.child1_app.get_communicator_as_type(
-                H0N.leaf_ally,
+                CoreNodeNames.leaf_ally,
                 LeafAlly
             )
         if leaf_ally is None:
@@ -89,7 +89,7 @@ async def test_auto_state_home_alone_to_ltn(
         ltn.services.send_threadsafe(
                 Message(
                     Src=ltn.node.name,
-                    Dst=H0N.primary_scada,
+                    Dst=CoreNodeNames.primary_scada,
                     Payload=ltn.contract_handler.latest_hb,
                 )
             )
@@ -123,7 +123,7 @@ async def test_auto_state_home_alone_to_ltn(
 
         # Verify Ltn received the heartbeat
         print("Ltn received heartbeat from Scada")
-        assert ltn.contract_handler.latest_hb.FromNode == H0N.primary_scada
+        assert ltn.contract_handler.latest_hb.FromNode == CoreNodeNames.primary_scada
         assert ltn.contract_handler.latest_hb.Status == SlowDispatchContractStatus.Received
-        assert ltn.contract_handler.latest_hb.FromNode == H0N.primary_scada
+        assert ltn.contract_handler.latest_hb.FromNode == CoreNodeNames.primary_scada
         print(f"Ltn contract status: {ltn.contract_handler.latest_hb.Status}")

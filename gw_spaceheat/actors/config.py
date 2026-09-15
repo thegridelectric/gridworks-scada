@@ -7,7 +7,7 @@ from gwproactor import AppSettings
 from gwproactor.config.mqtt import TLSInfo
 from pydantic import BaseModel
 
-from gwsproto.data_classes.house_0_names import H0N
+from gwsproto.names.core.node_names import CoreNodeNames
 from gwproactor.config import MQTTClient, Paths
 from pydantic_settings import SettingsConfigDict
 
@@ -110,7 +110,7 @@ class ScadaPathsSettings(AppSettings):
 
 class AdminLinkSettings(MQTTClient):
     enabled: bool = False
-    name: str = H0N.admin
+    name: str = CoreNodeNames.admin
     max_timeout_seconds: float = 60 * 60 * 24
 
 class ScadaSettings(ScadaPathsSettings):

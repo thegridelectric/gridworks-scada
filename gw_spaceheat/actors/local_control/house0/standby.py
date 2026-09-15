@@ -1,7 +1,6 @@
 import asyncio
 from typing import List, Optional, Sequence
 import time
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import ActuationAuthority
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
@@ -15,6 +14,7 @@ from gwsproto.data_classes.sh_node import ShNode
 from transitions import Machine
 from actors.hydronic.house0 import House0Hydronic
 from gwsproto.named_types import ActuatorsReady, GoDormant, HeatingForecast, WakeUp
+from gwsproto.names.core.node_names import CoreNodeNames
 from scada_app_interface import ScadaAppInterface
 
 class StandbyLocalControl(House0Hydronic):
@@ -79,9 +79,9 @@ class StandbyLocalControl(House0Hydronic):
 
     @property
     def normal_node(self) -> ShNode:
-        n = self.layout.node(H0N.local_control_normal)
+        n = self.layout.node(CoreNodeNames.local_control_normal)
         if n is None:
-            raise Exception(f"{H0N.local_control_normal} is known to exist")
+            raise Exception(f"{CoreNodeNames.local_control_normal} is known to exist")
         return n
 
     def initialize_actuators(self) -> None:

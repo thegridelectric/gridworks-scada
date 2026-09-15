@@ -16,7 +16,6 @@ from gwproto import Message as GWMessage
 from gwproto import MQTTTopic
 
 from gwadmin.config import ScadaConfig
-from gwsproto.data_classes.house_0_names import H0N
 
 from gwsproto.named_types import SendSnap
 from paho.mqtt.client import MQTTMessageInfo
@@ -29,6 +28,7 @@ from gwadmin.watch.clients.constrained_mqtt_client import MessageReceivedCallbac
 from gwadmin.watch.clients.constrained_mqtt_client import MQTTClientCallbacks
 from gwadmin.watch.clients.constrained_mqtt_client import StateChangeCallback
 from gwsproto.named_types import ScadaControlCapabilities, SendControlCapabilities, SnapshotSpaceheat
+from gwsproto.names.core.node_names import CoreNodeNames
 
 module_logger = logging.getLogger(__name__)
 
@@ -112,7 +112,7 @@ class AdminClient:
                 MQTTTopic.encode(
                     envelope_type=GWMessage.type_name(),
                     src=self._settings.config.scadas[self._settings.curr_scada].long_name,
-                    dst=H0N.admin,
+                    dst=CoreNodeNames.admin,
                     message_type="#",
                 )
             ],
@@ -201,7 +201,7 @@ class AdminClient:
                 MQTTTopic.encode(
                     envelope_type=GWMessage.type_name(),
                     src=self.curr_scada_config.long_name,
-                    dst=H0N.admin,
+                    dst=CoreNodeNames.admin,
                     message_type="#",
                 )
             ],
@@ -220,7 +220,7 @@ class AdminClient:
     def publish(self, payload: Any) -> Result[MQTTMessageInfo, Exception | None]:
         message = Message[Any](
             Dst=self.curr_scada_config.long_name,
-            Src=H0N.admin,
+            Src=CoreNodeNames.admin,
             Payload=payload
         )
         self._logger.debug(f"AdminClient.publish: {message.mqtt_topic()}")
@@ -232,13 +232,13 @@ class AdminClient:
     def _request_ctrl_capabilities(self) -> None:
         self.publish(
             SendControlCapabilities(
-                FromGNodeAlias=H0N.admin,
+                FromGNodeAlias=CoreNodeNames.admin,
                 MessageCreatedMs=int(time.time() * 1000)
             )
         )
 
     def _request_snapshot(self) -> None:
-        self.publish(SendSnap(FromGNodeAlias=H0N.admin))
+        self.publish(SendSnap(FromGNodeAlias=CoreNodeNames.admin))
 
     def _mqtt_state_changed(self, old_state: str, new_state: str) -> None:
         try:

@@ -13,10 +13,10 @@ from pathlib import Path
 import pytest
 
 from actors.pico_cycler import PicoCycler
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import PicoCyclerState, SinglePicoState
 from gwsproto.named_types import Glitch, MachineStates, PicoMissing, SyncedReadings
 from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -35,7 +35,7 @@ def cycler(request: pytest.FixtureRequest) -> PicoCycler:
     settings.paths.mkdirs()
     app = ScadaApp(app_settings=settings)
     app.instantiate()
-    c = app.scada.get_communicator(H0N.pico_cycler)
+    c = app.scada.get_communicator(HSNN.pico_cycler)
     assert isinstance(c, PicoCycler)
     assert c.picos, "fixture declares no picos"
     c.last_open_time = 0

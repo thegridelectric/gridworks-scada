@@ -99,23 +99,6 @@ class TankNodeNames:
 
 
 class H0N:
-    #system actor nodes
-    primary_scada = "s"
-    ltn = "ltn"
-    secondary_scada = "s2"
-    leaf_ally = "la"
-    local_control = "lc"
-    local_control_normal = "n"
-    local_control_backup = "backup"
-    local_control_scada_blind = "scada-blind"
-    primary_power_meter = "power-meter"
-    admin = "admin" 
-    auto = "auto"
-    derived_generator = "derived-generator"
-    five_v_boss = "five-v-boss"
-    pico_cycler = "pico-cycler"
-    hp_boss = "hp-boss"
-
     # topology nodes
     # transactive nodes
     hp_odu = "hp-odu"

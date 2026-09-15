@@ -7,11 +7,11 @@ from typing import Optional
 
 import pytz
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import SlowDispatchContractStatus
 from gwproactor.logger import LoggerOrAdapter
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.named_types import  SlowContractHeartbeat
+from gwsproto.names.core.node_names import CoreNodeNames
 
 
 from actors.config import ScadaSettings
@@ -36,7 +36,7 @@ class ContractHandler:
         self,
         settings: ScadaSettings,
         layout: HydronicLayout,
-        node: ShNode,  # intended to be H0N.primary_scada
+        node: ShNode,  # intended to be CoreNodeNames.primary_scada
         logger: LoggerOrAdapter,
     ):
         self.settings = settings
@@ -109,7 +109,7 @@ class ContractHandler:
 
         try:
             hb = SlowContractHeartbeat.model_validate(contract_data)
-            if hb.FromNode == H0N.ltn:
+            if hb.FromNode == CoreNodeNames.ltn:
                 if hb.Status not in [SlowDispatchContractStatus.TerminatedByLtn,
                                      SlowDispatchContractStatus.CompletedUnknownOutcome]:
                     return
@@ -281,7 +281,7 @@ class ContractHandler:
             return final_hb
         elif ltn_hb.Status in [SlowDispatchContractStatus.Confirmed, SlowDispatchContractStatus.Active]:
             self.latest_scada_hb = SlowContractHeartbeat(
-                FromNode=H0N.primary_scada,
+                FromNode=CoreNodeNames.primary_scada,
                 Contract=ltn_hb.Contract,
                 PreviousStatus=ltn_hb.Status,
                 Status=SlowDispatchContractStatus.Active,

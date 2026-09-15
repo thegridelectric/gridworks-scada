@@ -16,6 +16,8 @@ from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import ChangeHeatcallSource, ChangeRelayState
 from gwsproto.errors import DcError
 from gwsproto.named_types import FsmEvent
+from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -42,7 +44,7 @@ def actor(request: pytest.FixtureRequest) -> PicoCycler:
     """Any HydronicNode subclass will do; PicoCycler is the smallest and is
     the boss of the vdc relay. Sends are captured, not delivered."""
     app = make_app(request.param)
-    pico_cycler = app.get_communicator_as_type(H0N.pico_cycler, PicoCycler)
+    pico_cycler = app.get_communicator_as_type(HSNN.pico_cycler, PicoCycler)
     assert pico_cycler is not None
     pico_cycler.sent = []
     pico_cycler._send_to = lambda dst, payload, src=None: pico_cycler.sent.append((dst.name, payload))
@@ -87,7 +89,7 @@ def test_unknown_zone_raises_dc_error(actor: PicoCycler) -> None:
 def test_zone_relay_command_from_the_boss(
     actor: PicoCycler, method: str, relay_suffix: str, event_type, event_name
 ) -> None:
-    boss = actor.layout.node(H0N.local_control_normal)  # `n` is the boss of the zone relays at boot
+    boss = actor.layout.node(CoreNodeNames.local_control_normal)  # `n` is the boss of the zone relays at boot
     getattr(actor, method)(ZONE, command_node=boss)
     dst, event = only_event(actor)
     assert dst == f"zone1-{ZONE}-{relay_suffix}"
@@ -111,7 +113,7 @@ def test_zone_relay_command_sends_nothing_when_not_the_boss(actor: PicoCycler, m
     "method", ["heatcall_ctrl_to_scada", "heatcall_ctrl_to_stat", "stat_ops_close_relay", "stat_ops_open_relay"]
 )
 def test_zone_relay_command_sends_nothing_for_unknown_zone(actor: PicoCycler, method: str) -> None:
-    getattr(actor, method)("attic", command_node=actor.layout.node(H0N.local_control_normal))
+    getattr(actor, method)("attic", command_node=actor.layout.node(CoreNodeNames.local_control_normal))
     assert actor.sent == []
 
 

@@ -9,13 +9,13 @@ import pytest
 from scada_app import ScadaApp
 from actors.config import ScadaSettings
 from gwsproto.named_types import ChannelReadings, ReportEvent, SnapshotSpaceheat
-from gwsproto.data_classes.house_0_names import H0N
 from tests.utils.scada_live_test_helper import ScadaLiveTest
 from gwsproto.names.hydronic_spaceheat.node_names import (
     HydronicSpaceheatNodeNames as HSNN,
 )
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from gwsproto.names.nolan.node_names import NolanNodeNames
+from gwsproto.names.core.node_names import CoreNodeNames
 
 
 def test_scada_small():
@@ -27,7 +27,7 @@ def test_scada_small():
     scada_app.instantiate()
     layout = scada_app.hardware_layout
     scada = scada_app.scada
-    assert layout.power_meter_node == layout.node(H0N.primary_power_meter)
+    assert layout.power_meter_node == layout.node(CoreNodeNames.asset_power_meter)
     channel_names = [ch.Name for ch in scada._data.my_channels]
     assert (
         list(scada._data.latest_channel_values.keys())
@@ -169,7 +169,7 @@ async def test_scada_snaphot_request_delivery(request: pytest.FixtureRequest):
 #     actors = Actors(
 #         settings,
 #         layout=layout,
-#         scada=ScadaRecorder(H0N.primary_scada, settings, hardware_layout=layout),
+#         scada=ScadaRecorder(CoreNodeNames.primary_scada, settings, hardware_layout=layout),
 #         ltn_settings=AsyncFragmentRunner.make_ltn_settings()
 #     )
 #     actors.scada._last_status_second = int(time.time())

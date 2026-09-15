@@ -13,6 +13,7 @@ from actors.sieg_loop import SiegLoop, SiegValveEvent, SiegValveState
 from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import ChangeKeepSend, ChangeRelayState
 from gwsproto.named_types import FsmEvent
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -49,7 +50,7 @@ def capture(actor: SiegLoop) -> list:
 def test_sieg_loop_carries_the_valve_choreography(app: ScadaApp) -> None:
     actor = sieg_loop_actor(app)
     assert isinstance(actor, House0Hydronic)
-    assert actor.hp_boss.name == H0N.hp_boss
+    assert actor.hp_boss.name == HSNN.hp_boss
 
 
 @pytest.mark.parametrize(

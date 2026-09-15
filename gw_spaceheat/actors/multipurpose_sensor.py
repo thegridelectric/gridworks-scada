@@ -17,13 +17,13 @@ from gwproto.message import Header
 
 from gwsproto.data_classes.components.ads111x_based_component import \
     Ads111xBasedComponent
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.data_classes.data_channel import DataChannel
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import DeviceType
 from gwsproto.named_types import CaptureTuning, SyncedReadings
 from gwsproto.named_types import Glitch
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
+from gwsproto.names.core.node_names import CoreNodeNames
 
 from actors.config import ScadaSettings
 from scada_app_interface import ScadaAppInterface
@@ -149,7 +149,7 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
                 Details=outcome.comments_to_details(),
             )
             message = Message(
-                header=Header(Src=self.name, Dst=H0N.ltn,  MessageType=payload.TypeName),
+                header=Header(Src=self.name, Dst=CoreNodeNames.ltn,  MessageType=payload.TypeName),
                 Payload=payload,
             )
             # TODO: add analog temp logging
@@ -192,7 +192,7 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
                 Details=outcome.comments_to_details(),
             )
             message = Message(
-                header=Header(Src=self.name, Dst=H0N.ltn, MessageType=payload.TypeName),
+                header=Header(Src=self.name, Dst=CoreNodeNames.ltn, MessageType=payload.TypeName),
                 Payload=payload,
             )
             # TODO: add analog temp logging

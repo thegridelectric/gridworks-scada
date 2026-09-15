@@ -1315,11 +1315,11 @@ class HydronicLayout:
 
         # Check for essential nodes that must always exist
         essential_nodes = [
-            H0N.ltn,
-            H0N.primary_scada,
-            H0N.leaf_ally,
-            H0N.local_control,
-            H0N.derived_generator,
+            CoreNodeNames.ltn,
+            CoreNodeNames.primary_scada,
+            CoreNodeNames.leaf_ally,
+            CoreNodeNames.local_control,
+            CoreNodeNames.derived_generator,
             # H0N.vdc_relay,
             # H0N.tstat_common_relay,
             # H0N.store_charge_discharge_relay,
@@ -1337,7 +1337,7 @@ class HydronicLayout:
             for node in nodes.values()
         )
         # if has_pico_actors:
-        #     essential_nodes.append(H0N.pico_cycler)
+        #     essential_nodes.append(HSNN.pico_cycler)
         #     essential_nodes.append(H0N.vdc_relay)  # Also needed for pico cycling
 
         # Check for missing essential nodes
@@ -1349,7 +1349,7 @@ class HydronicLayout:
 
         if missing_nodes:
             error_msg = f"Missing essential nodes in layout: {', '.join(missing_nodes)}"
-            if has_pico_actors and H0N.pico_cycler in missing_nodes:
+            if has_pico_actors and HSNN.pico_cycler in missing_nodes:
                 error_msg += "\nNote: pico_cycler is required because layout contains pico-based actors"
 
             if raise_errors:
@@ -1509,50 +1509,50 @@ class HydronicLayout:
                           f"is only for gw.house0.layout ")
         n = self.node(name)
         if n is None:
-            raise DcError(f"Local control backup {H0N.local_control_backup} must exist"
+            raise DcError(f"Local control backup {House0NodeNames.local_control_backup} must exist"
                           f" for gw.house0.layout")
         return n
 
     @property
     def local_control_scada_blind_node(self) -> ShNode:
-        n = self.node(H0N.local_control_scada_blind)
+        n = self.node(House0NodeNames.local_control_scada_blind)
         if n is None:
-            raise DcError(f"{H0N.local_control_scada_blind} is known to exist")
+            raise DcError(f"{House0NodeNames.local_control_scada_blind} is known to exist")
         return n
     
     @property
     def hp_boss(self) -> ShNode:
-        n = self.node(H0N.hp_boss)
+        n = self.node(HSNN.hp_boss)
         if n is None:
-            raise DcError(f"{H0N.hp_boss} is known to exist")
+            raise DcError(f"{HSNN.hp_boss} is known to exist")
         return n
     
     @property
     def leaf_ally(self) -> ShNode:
-        n = self.node(H0N.leaf_ally)
+        n = self.node(CoreNodeNames.leaf_ally)
         if n is None:
-            raise DcError(f"{H0N.leaf_ally} is known to exist")
+            raise DcError(f"{CoreNodeNames.leaf_ally} is known to exist")
         return n
     
     @property
     def ltn(self) -> ShNode:
-        n = self.node(H0N.ltn)
+        n = self.node(CoreNodeNames.ltn)
         if n is None:
-            raise DcError(f"{H0N.ltn} is known to exist")
+            raise DcError(f"{CoreNodeNames.ltn} is known to exist")
         return n
     
     @property
     def five_v_boss(self) -> ShNode:
-        n = self.node(H0N.five_v_boss)
+        n = self.node(HSNN.five_v_boss)
         if n is None:
-            raise DcError(f"{H0N.five_v_boss} is known to exist")
+            raise DcError(f"{HSNN.five_v_boss} is known to exist")
         return n
 
     @property
     def pico_cycler(self) -> ShNode:
-        n = self.node(H0N.pico_cycler)
+        n = self.node(HSNN.pico_cycler)
         if n is None:
-            raise DcError(f"{H0N.pico_cycler} is known to exist")
+            raise DcError(f"{HSNN.pico_cycler} is known to exist")
         return n
 
     @property
@@ -1771,4 +1771,4 @@ class HydronicLayout:
         raise DcError(f"a {self.layout_type_name} plant has no store bottom element relay")
 
     def scada2_g_node_name(self) -> LeftRightDotStr:
-        return f"{self.scada_g_node_alias}.{H0N.secondary_scada}"
+        return f"{self.scada_g_node_alias}.{CoreNodeNames.secondary_scada}"

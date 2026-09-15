@@ -17,7 +17,6 @@ import pytest
 from gwproto.message import Header, Message
 
 from actors.pico_cycler import PicoCycler
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import (
     ChangeRelayState,
     ScadaCmdRefusalReason,
@@ -28,6 +27,8 @@ from gwsproto.enums import (
     SinglePicoState,
 )
 from gwsproto.named_types import DispatchNack, FsmEvent, Glitch, MachineStates, PicoMissing
+from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -59,13 +60,13 @@ def cycler_under_admin(app: ScadaApp) -> tuple[PicoCycler, list]:
     scada = app.scada
     capture(scada)
     scada.auto_trigger(MainAutoEvent.AutoGoesDormant)
-    cycler = scada.get_communicator(H0N.pico_cycler)
+    cycler = scada.get_communicator(HSNN.pico_cycler)
     assert isinstance(cycler, PicoCycler)
-    assert cycler.node.handle == f"{H0N.admin}.{H0N.five_v_boss}.{H0N.pico_cycler}"
+    assert cycler.node.handle == f"{CoreNodeNames.admin}.{HSNN.five_v_boss}.{HSNN.pico_cycler}"
     return cycler, capture(cycler)
 
 
-def command(cycler: PicoCycler, event: FsmEvent, src: str = H0N.five_v_boss) -> None:
+def command(cycler: PicoCycler, event: FsmEvent, src: str = HSNN.five_v_boss) -> None:
     cycler.process_message(
         Message(
             header=Header(Src=src, Dst=cycler.name, MessageType=event.TypeName),
@@ -74,7 +75,7 @@ def command(cycler: PicoCycler, event: FsmEvent, src: str = H0N.five_v_boss) -> 
     )
 
 
-def reboot_command(to_handle: str, from_handle: str = f"{H0N.admin}.{H0N.five_v_boss}") -> FsmEvent:
+def reboot_command(to_handle: str, from_handle: str = f"{CoreNodeNames.admin}.{HSNN.five_v_boss}") -> FsmEvent:
     return FsmEvent(
         FromHandle=from_handle,
         ToHandle=to_handle,
@@ -118,14 +119,14 @@ def test_command_to_stale_handle_is_refused_as_not_my_boss(app: ScadaApp) -> Non
     The NotMyBoss nack to the sender is the whole report; no glitch."""
     cycler, sent = cycler_under_admin(app)
 
-    stale = reboot_command(f"{H0N.admin}.{H0N.pico_cycler}", from_handle=H0N.admin)
-    command(cycler, stale, src=H0N.admin)
+    stale = reboot_command(f"{CoreNodeNames.admin}.{HSNN.pico_cycler}", from_handle=CoreNodeNames.admin)
+    command(cycler, stale, src=CoreNodeNames.admin)
 
     assert cycler.state == PicoCyclerState.PicosLive
     assert relay_events(sent) == []
     assert [p for dst, p in sent if isinstance(p, Glitch)] == []
     [(dst, nack)] = [(dst, p) for dst, p in sent if isinstance(p, DispatchNack)]
-    assert dst == H0N.admin
+    assert dst == CoreNodeNames.admin
     assert nack.Reason == ScadaCmdRefusalReason.NotMyBoss
     assert nack.TriggerId == stale.TriggerId
 
@@ -136,14 +137,14 @@ def test_command_whose_from_handle_is_not_the_senders_is_dropped(app: ScadaApp) 
     the claimed commander; the LTN gets one warning glitch."""
     cycler, sent = cycler_under_admin(app)
     forged = reboot_command(cycler.node.handle)
-    forged = forged.model_copy(update={"FromHandle": H0N.admin})
+    forged = forged.model_copy(update={"FromHandle": CoreNodeNames.admin})
 
     command(cycler, forged)
 
     assert cycler.state == PicoCyclerState.PicosLive
     assert relay_events(sent) == []
     assert [p for dst, p in sent if isinstance(p, DispatchNack)] == []
-    assert [(dst, p.Summary) for dst, p in sent if isinstance(p, Glitch)] == [(H0N.ltn, "bad_sender")]
+    assert [(dst, p.Summary) for dst, p in sent if isinstance(p, Glitch)] == [(CoreNodeNames.ltn, "bad_sender")]
 
 
 def test_other_event_types_are_refused(app: ScadaApp) -> None:
@@ -151,7 +152,7 @@ def test_other_event_types_are_refused(app: ScadaApp) -> None:
     through it to its relay; the cycler takes only reboot.picos."""
     cycler, sent = cycler_under_admin(app)
     event = FsmEvent(
-        FromHandle=f"{H0N.admin}.{H0N.five_v_boss}",
+        FromHandle=f"{CoreNodeNames.admin}.{HSNN.five_v_boss}",
         ToHandle=cycler.node.handle,
         EventType=ChangeRelayState.enum_name(),
         EventName=ChangeRelayState.OpenRelay,

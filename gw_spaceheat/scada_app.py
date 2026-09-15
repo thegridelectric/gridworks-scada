@@ -20,8 +20,7 @@ from actors.scada import Scada
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
 from sema_to_dc import load_layout
-from gwsproto.data_classes import house_0_names
-from gwsproto.data_classes.house_0_names import H0N
+from gwsproto.names.core.node_names import CoreNodeNames
 from scada_app_interface import ScadaAppInterface
 from universe import assert_universe_coherence
 
@@ -147,7 +146,7 @@ class ScadaApp(App, ScadaAppInterface):
     def _get_name(self, layout: HydronicLayout) -> ProactorName:
         return ProactorName(
             long_name=layout.scada_g_node_alias,
-            short_name=house_0_names.H0N.primary_scada
+            short_name=CoreNodeNames.primary_scada
         )
 
     def _get_link_settings(
@@ -160,19 +159,19 @@ class ScadaApp(App, ScadaAppInterface):
             self.LTN_MQTT: LinkSettings(
                 broker_name=self.LTN_MQTT,
                 peer_long_name=layout.ltn_g_node_alias,
-                peer_short_name=H0N.ltn,
+                peer_short_name=CoreNodeNames.ltn,
                 upstream=True,
             ),
             self.LOCAL_MQTT: LinkSettings(
                 broker_name=self.LOCAL_MQTT,
                 peer_long_name=typing.cast(HydronicLayout, layout).scada2_g_node_name(),
-                peer_short_name=H0N.secondary_scada,
+                peer_short_name=CoreNodeNames.secondary_scada,
                 downstream=True,
             ),
             self.ADMIN_MQTT: LinkSettings(
                 broker_name=self.ADMIN_MQTT,
-                peer_long_name=H0N.admin,
-                peer_short_name=H0N.admin,
+                peer_long_name=CoreNodeNames.admin,
+                peer_short_name=CoreNodeNames.admin,
                 link_subscription_short_name=name.publication_name
             ),
         }

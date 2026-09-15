@@ -3,7 +3,7 @@ import time
 import uuid
 from typing import List, Sequence, Optional
 
-from gwsproto.data_classes.house_0_names import H0CN, H0N
+from gwsproto.data_classes.house_0_names import H0CN
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
@@ -28,6 +28,7 @@ from gwsproto.named_types import (
     SingleMachineState, SlowContractHeartbeat, SlowDispatchContract, 
     SuitUp
 )
+from gwsproto.names.core.node_names import CoreNodeNames
 from actors.procedural.dist_pump_doctor import DistPumpDoctor
 from actors.procedural.dist_pump_monitor import DistPumpMonitor
 from actors.procedural.store_pump_doctor import StorePumpDoctor
@@ -111,8 +112,8 @@ class AllTanksLeafAlly(House0Hydronic):
         self.both_buffer_and_storage_full_since = 0
         self.defrost_detected_since = None
         self.time_started_charging_store = None
-        if H0N.leaf_ally not in self.layout.nodes:
-            raise Exception(f"LeafAlly requires {H0N.leaf_ally} node!!")
+        if CoreNodeNames.leaf_ally not in self.layout.nodes:
+            raise Exception(f"LeafAlly requires {CoreNodeNames.leaf_ally} node!!")
 
     @property
     def command_node(self) -> ShNode:
@@ -284,7 +285,7 @@ class AllTanksLeafAlly(House0Hydronic):
             self.no_temps_since = int(time.time())
             self.log("Temperatures not available. Won't turn on hp until they are. Will bail in 5 if still not available")
         
-        self._send_to(self.primary_scada, SuitUp(ToNode=H0N.primary_scada, FromNode=self.name))
+        self._send_to(self.primary_scada, SuitUp(ToNode=CoreNodeNames.primary_scada, FromNode=self.name))
 
         #  Dormant -> Initializing
         self.trigger_event(LeafAllyAllTanksEvent.WakeUp) # Dormant -> Initializing

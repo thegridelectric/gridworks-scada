@@ -9,9 +9,9 @@ from pathlib import Path
 import pytest
 from gwproactor.config import Paths
 from gwproto import Message
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import MainAutoState, SlowDispatchContractStatus, TaValidationState
 from gwsproto.named_types import SlowContractHeartbeat, SlowDispatchContract
+from gwsproto.names.core.node_names import CoreNodeNames
 from sema_to_dc import load_layout
 from tests.utils.scada_live_test_helper import ScadaLiveTest
 
@@ -73,7 +73,7 @@ async def test_unvalidated_scada_rejects_contract_offer(
         ltn.services.send_threadsafe(
             Message(
                 Src=ltn.node.name,
-                Dst=H0N.primary_scada,
+                Dst=CoreNodeNames.primary_scada,
                 Payload=ltn.contract_handler.latest_hb,
             )
         )

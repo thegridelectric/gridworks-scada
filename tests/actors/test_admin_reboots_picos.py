@@ -17,7 +17,6 @@ from gwproto.message import Header, Message
 from actors.five_v_boss import FiveVBoss
 from actors.pico_cycler import PicoCycler
 from gwadmin.watch.clients.relay_client import RelayWatchClient
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import (
     ChangeRelayState,
     PicoCyclerEvent,
@@ -26,6 +25,8 @@ from gwsproto.enums import (
     TopState,
 )
 from gwsproto.named_types import AdminDispatch, FsmEvent
+from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -67,7 +68,7 @@ def gwadmin_reboot_dispatch(app: ScadaApp, timeout_seconds: int) -> AdminDispatc
     client = RelayWatchClient()
     client.set_admin_client(admin)
     client.process_scada_control_capabilities(app.scada.control_capabilities)
-    client.send_command(H0N.five_v_boss, RebootPicos.RebootPicos, timeout_seconds)
+    client.send_command(HSNN.five_v_boss, RebootPicos.RebootPicos, timeout_seconds)
     assert len(admin.published) == 1
     dispatch = admin.published[0]
     assert isinstance(dispatch, AdminDispatch)
@@ -78,8 +79,8 @@ def test_gwadmin_dispatch_is_the_cycler_command(app: ScadaApp) -> None:
     dispatch = gwadmin_reboot_dispatch(app, 300)
     event = dispatch.DispatchTrigger
     assert dispatch.TimeoutSeconds == 300
-    assert event.FromHandle == H0N.admin
-    assert event.ToHandle == f"{H0N.admin}.{H0N.five_v_boss}"
+    assert event.FromHandle == CoreNodeNames.admin
+    assert event.ToHandle == f"{CoreNodeNames.admin}.{HSNN.five_v_boss}"
     assert event.EventType == RebootPicos.enum_name()
     assert event.EventName == RebootPicos.RebootPicos
 
@@ -88,11 +89,11 @@ def test_admin_dispatch_reaches_cycler_and_opens_relay_under_its_trigger_id(app:
     scada = app.scada
     sent_by_scada: list = []
     scada._send_to = lambda dst, payload, src=None: sent_by_scada.append((dst.name, payload))
-    cycler = scada.get_communicator(H0N.pico_cycler)
+    cycler = scada.get_communicator(HSNN.pico_cycler)
     assert isinstance(cycler, PicoCycler)
     sent_by_cycler: list = []
     cycler._send_to = lambda dst, payload, src=None: sent_by_cycler.append((dst.name, payload))
-    boss = scada.get_communicator(H0N.five_v_boss)
+    boss = scada.get_communicator(HSNN.five_v_boss)
     assert isinstance(boss, FiveVBoss)
     sent_by_boss: list = []
     boss._send_to = lambda dst, payload, src=None: sent_by_boss.append((dst.name, payload))
@@ -109,15 +110,15 @@ def test_admin_dispatch_reaches_cycler_and_opens_relay_under_its_trigger_id(app:
     # The dispatch reached five-v-boss, which forwards it to the cycler as
     # its boss under the same TriggerId.
     [(dst, forwarded)] = [(d, p) for d, p in sent_by_boss if isinstance(p, FsmEvent)]
-    assert dst == H0N.pico_cycler
+    assert dst == HSNN.pico_cycler
     assert forwarded.TriggerId == dispatch.DispatchTrigger.TriggerId
     cycler.process_message(
         Message(
-            header=Header(Src=H0N.five_v_boss, Dst=cycler.name, MessageType=forwarded.TypeName),
+            header=Header(Src=HSNN.five_v_boss, Dst=cycler.name, MessageType=forwarded.TypeName),
             Payload=forwarded,
         )
     )
-    assert cycler.node.handle == f"{H0N.admin}.{H0N.five_v_boss}.{H0N.pico_cycler}"
+    assert cycler.node.handle == f"{CoreNodeNames.admin}.{HSNN.five_v_boss}.{HSNN.pico_cycler}"
     assert cycler.state == PicoCyclerState.RelayOpening
     assert cycler.trigger_id == dispatch.DispatchTrigger.TriggerId
     assert [r.Event for r in cycler.fsm_reports] == [PicoCyclerEvent.ShakeZombies]

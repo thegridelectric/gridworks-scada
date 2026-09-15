@@ -22,7 +22,7 @@ from sema_to_dc import load_layout
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import ActorClass
 from pydantic_settings import BaseSettings
-from gwsproto.data_classes.house_0_names import H0N
+from gwsproto.names.core.node_names import CoreNodeNames
 
 LOGGING_FORMAT = "%(asctime)s %(message)s"
 
@@ -116,11 +116,11 @@ def get_requested_names(args: argparse.Namespace) -> Optional[set[str]]:
         requested = None
     else:
         requested = set(args.nodes)
-        requested.add(H0N.local_control)
+        requested.add(CoreNodeNames.local_control)
         if args.s2 or args.s2_paths:
-            requested.add(H0N.secondary_scada)
+            requested.add(CoreNodeNames.secondary_scada)
         else:
-            requested.add(H0N.primary_scada)
+            requested.add(CoreNodeNames.primary_scada)
     return requested
 
 
@@ -314,7 +314,7 @@ def get_scada2(
             included_node_names=requested_names,
         )
         print(f"type of layout is {type(layout)}")
-        scada2 = SecondaryScada(name=H0N.secondary_scada, settings=settings, hardware_layout=layout, actors_package_name=actors_package_name)
+        scada2 = SecondaryScada(name=CoreNodeNames.secondary_scada, settings=settings, hardware_layout=layout, actors_package_name=actors_package_name)
         if run_in_thread:
             logger.info("run_async_actors_main() starting")
             scada2.run_in_thread()

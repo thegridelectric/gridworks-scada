@@ -78,6 +78,7 @@ from gwsproto.named_types import (
     SlowContractHeartbeat, SlowContractRejection,
     SnapshotSpaceheat,
 )
+from gwsproto.names.core.node_names import CoreNodeNames
 
 from paho.mqtt.client import MQTTMessageInfo
 from pydantic import BaseModel
@@ -396,7 +397,7 @@ class BidRunner(threading.Thread):
 
 class LtnMQTTCodec(MQTTCodec):
     exp_src: str
-    exp_dst: str = H0N.ltn
+    exp_dst: str = CoreNodeNames.ltn
 
     def __init__(self, hardware_layout: HydronicLayout):
         self.exp_src = hardware_layout.scada_g_node_alias
@@ -544,7 +545,7 @@ class Ltn(PrimeActor):
 
     @property
     def scada(self) -> ShNode:
-        return self.layout.node(H0N.primary_scada)
+        return self.layout.node(CoreNodeNames.primary_scada)
 
     @property
     def publication_name(self) -> str:
@@ -826,8 +827,8 @@ class Ltn(PrimeActor):
                 Dst=self.scada.name,
                 Payload=ScadaParams(
                     FromGNodeAlias=self.layout.ltn_g_node_alias,
-                    FromName=H0N.ltn,
-                    ToName=H0N.local_control,
+                    FromName=CoreNodeNames.ltn,
+                    ToName=CoreNodeNames.local_control,
                     UnixTimeMs=int(time.time() * 1000),
                     MessageId=str(uuid.uuid4()),
                     NewParams=new,

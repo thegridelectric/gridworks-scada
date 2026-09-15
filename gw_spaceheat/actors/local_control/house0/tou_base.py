@@ -25,6 +25,8 @@ from gwsproto.enums import (
 from gwsproto.named_types import (ActuatorsReady,
             GoDormant,  Ha1Params,
             NewCommandTree, SingleMachineState, WakeUp)
+from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.names.house0.node_names import House0NodeNames
 
 from actors.procedural.dist_pump_doctor import DistPumpDoctor
 from actors.procedural.dist_pump_monitor import DistPumpMonitor
@@ -84,12 +86,12 @@ class LocalControlTouBase(House0Hydronic):
         else: 
             self.top_state = LocalControlTopState.Normal
         self.log(f"Params: {self.params}")
-        if H0N.local_control_normal not in self.layout.nodes:
-            raise Exception(f"LocalControl requires {H0N.local_control_normal} node!!")
-        if H0N.local_control_scada_blind not in self.layout.nodes:
-            raise Exception(f"LocalControl requires {H0N.local_control_scada_blind} node!!")
-        if H0N.local_control_backup not in self.layout.nodes:
-            raise Exception(f"LocalControl requires {H0N.local_control_backup} node!!")
+        if CoreNodeNames.local_control_normal not in self.layout.nodes:
+            raise Exception(f"LocalControl requires {CoreNodeNames.local_control_normal} node!!")
+        if House0NodeNames.local_control_scada_blind not in self.layout.nodes:
+            raise Exception(f"LocalControl requires {House0NodeNames.local_control_scada_blind} node!!")
+        if House0NodeNames.local_control_backup not in self.layout.nodes:
+            raise Exception(f"LocalControl requires {House0NodeNames.local_control_backup} node!!")
         self.set_command_tree(boss_node=self.normal_node)
         self.actuators_initialized = False
         self.actuators_ready = False

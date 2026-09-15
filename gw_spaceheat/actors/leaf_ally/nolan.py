@@ -23,9 +23,9 @@ from gwproto import Message
 from result import Ok, Result
 
 from actors.hydronic.nolan import NolanHydronic
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import LeafAllyBufferOnlyState
 from gwsproto.named_types import GoDormant, SingleMachineState, SlowDispatchContract, SuitUp
+from gwsproto.names.core.node_names import CoreNodeNames
 from scada_app_interface import ScadaAppInterface
 
 
@@ -63,7 +63,7 @@ class NolanLeafAlly(NolanHydronic):
         self.prev_state = self.state
         self.state = LeafAllyBufferOnlyState.Initializing
         self._send_to(
-            self.primary_scada, SuitUp(ToNode=H0N.primary_scada, FromNode=self.name)
+            self.primary_scada, SuitUp(ToNode=CoreNodeNames.primary_scada, FromNode=self.name)
         )
 
     def go_dormant(self) -> None:
