@@ -520,11 +520,11 @@ class House0Hydronic(HydronicNode):
         - the charge/discharge relay is set to DischargingStore
         - and the store pump is moving water above threshold
         """
-        relay_state: SingleMachineState = self.data.latest_machine_state.get(
+        relay_state: SingleMachineState | None = self.data.latest_machine_state.get(
             self.layout.store_charge_discharge_relay.name
         )
 
-        if relay_state.State != StoreFlowRelay.DischargingStore:
+        if relay_state is None or relay_state.State != StoreFlowRelay.DischargingStore:
             return False
 
         store_flow = self.data.latest_channel_values.get(H0CN.store_flow) or 0
@@ -540,10 +540,10 @@ class House0Hydronic(HydronicNode):
         - primary pump is moving water above threshold
         - Store is not being charged
         """
-        relay_state: SingleMachineState = self.data.latest_machine_state.get(
+        relay_state: SingleMachineState | None = self.data.latest_machine_state.get(
             self.layout.store_charge_discharge_relay.name
         )
-        if relay_state.State != StoreFlowRelay.DischargingStore:
+        if relay_state is None or relay_state.State != StoreFlowRelay.DischargingStore:
             return False
 
         primary_flow = self.data.latest_channel_values.get(H0CN.primary_flow) or 0
