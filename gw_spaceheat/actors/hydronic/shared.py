@@ -149,8 +149,8 @@ class HydronicNode(CommandNode):
         try:
             i = self.layout.zone_list.index(zone)
         except ValueError as e:
-            raise Exception(
-                f"Called stat_failsafe_relay for {zone} which does not exist!"
+            raise DcError(
+                f"Called stat_ops_relay for {zone} which does not exist!"
             ) from e
         return self.required_node(HSZoneNodeNames(zone, i + 1).ops_relay)
 
