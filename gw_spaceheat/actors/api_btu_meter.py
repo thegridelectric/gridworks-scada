@@ -81,6 +81,11 @@ class ApiBtuMeter(PicoActorBase):
         self.ct_channel = None
         if self._component.gt.CtChannelName:
             self.ct_channel = self.layout.channel(self._component.gt.CtChannelName)
+        self.feeds_derived = self.layout.feeds_derived(
+            ch.Name
+            for ch in (self.flow_channel, self.hot_temp_channel, self.cold_temp_channel, self.ct_channel)
+            if ch is not None
+        )
 
     @cached_property
     def async_btu_params_path(self) -> str:
@@ -255,7 +260,7 @@ class ApiBtuMeter(PicoActorBase):
         )
         self._send_to(self.pico_cycler, msg)
         self._send_to(self.primary_scada, msg)
-        if self.data.use_sieg_loop and self.node.name == "sieg-btu":
+        if self.feeds_derived:
             self._send_to(self.derived_generator, msg)
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:

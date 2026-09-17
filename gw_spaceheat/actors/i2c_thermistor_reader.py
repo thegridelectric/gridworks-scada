@@ -82,14 +82,6 @@ class I2cThermistorReader(ShNodeActor):
                 f"found {len(bus_nodes)}",
             )
 
-    def _feeds_derived(self, channel_name: str) -> bool:
-        """Derived routing is computed from the layout: send iff some
-        DerivedChannel lists this channel as an input."""
-        return any(
-            channel_name in (dc.InputChannelNames or [])
-            for dc in self.layout.derived_channels.values()
-        )
-
     def _resolve_adc_capability(self) -> I2cThermistorInterfaceCapability:
         """AdcName resolved against THIS component's board record — it carries
         the physical facts (bus, address, reference volts, series resistance).
@@ -528,7 +520,7 @@ class I2cThermistorReader(ShNodeActor):
             value_list.append(temp_val)
 
             # send to derived generator (single reading, temperature only)
-            if self._feeds_derived(device_cfg.ChannelName):
+            if self.layout.feeds_derived([device_cfg.ChannelName]):
                 self._send_to(
                     self.derived_generator,
                     SingleReading(

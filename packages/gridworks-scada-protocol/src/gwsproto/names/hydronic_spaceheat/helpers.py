@@ -1,20 +1,16 @@
-from gwsproto.names.hydronic_spaceheat.node_names import TankNodeNames
+from typing import Iterable
+
 from gwsproto.names.hydronic_spaceheat.channel_names import TankChannelNames
+from gwsproto.names.hydronic_spaceheat.node_names import TankNodeNames
 
 
-class Tanks:
-
-    def __init__(self, total_store_tanks: int):
-        self.nodes: dict[int, TankNodeNames] = {}
-        self.channels: dict[int, TankChannelNames] = {}
-
-        for idx in range(total_store_tanks):
-            self.nodes[idx+1] = TankNodeNames(idx + 1)
-            self.channels[idx+1] = TankChannelNames(idx + 1)
-
-
-
-
-
-
-
+def store_tanks(node_names: Iterable[str]) -> dict[int, TankChannelNames]:
+    """The store tanks a layout carries, by tank index: a tank is present
+    when its reader node (tank1 .. tank6) is one of the layout's node names.
+    Empty for a layout with no water store tanks."""
+    names = set(node_names)
+    return {
+        idx: TankChannelNames(idx)
+        for idx in range(1, 7)
+        if TankNodeNames(idx).reader in names
+    }

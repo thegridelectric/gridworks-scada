@@ -23,7 +23,6 @@ from gwsproto.enums import (
     Unit, HeatCallInterpretation,
     ActuationAuthority, SeasonalStorageMode, ServiceMode, TelemetryName
 )
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.named_types import (
     Ha1Params, HeatingForecast, LinearOneDimensionalCalibration,
     RequiredEnergyLayered, ScadaParams,
@@ -811,8 +810,8 @@ class DerivedGenerator(ShNodeActor):
 
         ordered_tank_layers = []
         if self.ops.SeasonalStorageMode== SeasonalStorageMode.AllTanks:
-            for tank_idx in sorted(self.h0cn.tank):
-                tank = self.h0cn.tank[tank_idx]
+            for tank_idx in sorted(self.layout.store_tanks):
+                tank = self.layout.store_tanks[tank_idx]
                 ordered_tank_layers.extend([
                     tank.depth1,
                     tank.depth2,
@@ -838,7 +837,7 @@ class DerivedGenerator(ShNodeActor):
             return None
 
         gallons_per_layer = (
-            self.GALLONS_PER_TANK * len(self.h0cn.tank)
+            self.GALLONS_PER_TANK * len(self.layout.store_tanks)
         ) / len(simulated_layers_f)
 
         mass_kg_per_layer = gallons_per_layer * self.GALLON_PER_LITER
@@ -939,7 +938,7 @@ class DerivedGenerator(ShNodeActor):
             )
         # Find the maximum storage
         if self.ops.SeasonalStorageMode == SeasonalStorageMode.AllTanks:
-            num_layers = len(self.h0cn.tank) * self.NUM_LAYERS_PER_TANK
+            num_layers = len(self.layout.store_tanks) * self.NUM_LAYERS_PER_TANK
         elif self.ops.SeasonalStorageMode == SeasonalStorageMode.BufferOnly:
             num_layers = self.NUM_LAYERS_PER_TANK # just the buffer
         else:

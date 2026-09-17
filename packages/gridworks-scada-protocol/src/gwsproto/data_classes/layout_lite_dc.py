@@ -3,10 +3,11 @@ from functools import cached_property
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.data_classes.data_channel import DataChannel
 from gwsproto.data_classes.derived_channel import DerivedChannel
-from gwsproto.data_classes.house_0_names import H0CN
 from gwsproto.data_classes.hydronic_layout import ChannelRegistry
 from gwsproto.named_types import LayoutLite
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
+from gwsproto.names.hydronic_spaceheat.channel_names import TankChannelNames
+from gwsproto.names.hydronic_spaceheat.helpers import store_tanks
 
 
 class LayoutLiteDc(LayoutLite):
@@ -19,11 +20,15 @@ class LayoutLiteDc(LayoutLite):
         return self._gt
 
     @cached_property
-    def h0cn(self) -> H0CN:
-        return H0CN(
-            total_store_tanks=self._gt.TotalStoreTanks,
-            zone_list=self._gt.ZoneList
-        )
+    def store_tanks(self) -> dict[int, TankChannelNames]:
+        """The store tanks this layout carries, by tank index: a tank is
+        present when its reader node (tank1 .. tank6) is one of the layout's
+        ShNodes. Empty for a layout with no water store tanks."""
+        return store_tanks(self.sh_node_by_name)
+
+    @property
+    def has_store_tanks(self) -> bool:
+        return bool(self.store_tanks)
 
     @property
     def total_store_tanks(self) -> int:
@@ -89,8 +94,8 @@ class LayoutLiteDc(LayoutLite):
         names.extend(HCN.buffer.effective)
 
         # store tanks
-        for tank_idx in sorted(self.h0cn.tank):
-            tank = self.h0cn.tank[tank_idx]
+        for tank_idx in sorted(self.store_tanks):
+            tank = self.store_tanks[tank_idx]
             names.extend([tank.depth1, tank.depth2, tank.depth3])
 
         return names
@@ -101,10 +106,7 @@ class LayoutLiteDc(LayoutLite):
         Temperature channels for store tanks only (excludes buffer).
         """
         names: list[str] = []
-
-        # store tanks are indexed starting at 1
-        for tank_idx in range(1, self._gt.TotalStoreTanks + 1):
-            tank = self.h0cn.tank[tank_idx]
+        for tank in self.store_tanks.values():
             names.extend([tank.depth1, tank.depth2, tank.depth3])
 
         return sorted(names)

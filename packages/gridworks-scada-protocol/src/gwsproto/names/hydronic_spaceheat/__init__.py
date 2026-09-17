@@ -1,4 +1,4 @@
-from gwsproto.names.hydronic_spaceheat.helpers import Tanks
+from gwsproto.names.hydronic_spaceheat.helpers import store_tanks
 
 from gwsproto.names.hydronic_spaceheat.node_names import (
     HydronicSpaceheatNodeNames,
@@ -19,5 +19,5 @@ __all__ = [
     "HydronicSpaceheatChannelNames",
     "HydronicSpaceheatZoneChannelNames",
     "TankNodeNames",
-    "Tanks",
+    "store_tanks",
 ]

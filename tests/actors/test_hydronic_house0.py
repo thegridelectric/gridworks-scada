@@ -363,7 +363,7 @@ def test_get_temperatures_converts_and_marks_the_buffer_available(
     actor: House0Hydronic,
 ) -> None:
     buffer = HCN.buffer
-    tank = actor.h0cn.tank[1]
+    tank = actor.layout.store_tanks[1]
     for ch, f in (
         (buffer.depth1, 150.0),
         (buffer.depth2, 140.0),
@@ -395,7 +395,7 @@ def test_get_temperatures_buffer_unavailable_when_a_layer_is_missing(
 
 
 def test_missing_store_layers_fill_from_the_layer_below(actor: House0Hydronic) -> None:
-    tank = actor.h0cn.tank[1]
+    tank = actor.layout.store_tanks[1]
     actor.data.latest_channel_values[tank.depth1] = None  # missing
     actor.data.latest_channel_values[tank.depth2] = f_x100(140.0)
     actor.data.latest_channel_values[tank.depth3] = f_x100(131.0)
@@ -408,7 +408,7 @@ def test_missing_store_layers_fill_from_the_layer_below(actor: House0Hydronic) -
 def test_below_floor_store_temp_is_dropped_and_filled_from_the_coldest_layer(
     actor: House0Hydronic,
 ) -> None:
-    tank = actor.h0cn.tank[1]
+    tank = actor.layout.store_tanks[1]
     actor.data.latest_channel_values[tank.depth1] = None
     actor.data.latest_channel_values[tank.depth2] = f_x100(140.0)
     actor.data.latest_channel_values[tank.depth3] = f_x100(
@@ -426,7 +426,7 @@ def test_below_floor_store_temp_is_dropped_and_filled_from_the_coldest_layer(
 def test_implausible_store_temp_is_scrubbed_even_when_every_layer_reports(
     actor: House0Hydronic,
 ) -> None:
-    tank = actor.h0cn.tank[1]
+    tank = actor.layout.store_tanks[1]
     for ch, f in ((tank.depth1, 250.0), (tank.depth2, 140.0), (tank.depth3, 130.0)):
         actor.data.latest_channel_values[ch] = f_x100(f)
     actor.get_temperatures()
@@ -435,7 +435,7 @@ def test_implausible_store_temp_is_scrubbed_even_when_every_layer_reports(
 
 def test_a_summer_store_at_basement_ambient_is_water(actor: House0Hydronic) -> None:
     """Oak, 2026-09-15: every layer 60-65 F with the heat pump off."""
-    tank = actor.h0cn.tank[1]
+    tank = actor.layout.store_tanks[1]
     for ch, f in ((tank.depth1, 61.0), (tank.depth2, 61.6), (tank.depth3, 60.2)):
         actor.data.latest_channel_values[ch] = f_x100(f)
     actor.get_temperatures()
@@ -448,7 +448,7 @@ def test_a_summer_store_at_basement_ambient_is_water(actor: House0Hydronic) -> N
 
 
 def test_a_store_with_no_valid_reading_stays_empty(actor: House0Hydronic) -> None:
-    tank = actor.h0cn.tank[1]
+    tank = actor.layout.store_tanks[1]
     for ch in (tank.depth1, tank.depth2, tank.depth3):
         actor.data.latest_channel_values[ch] = None
     actor.get_temperatures()

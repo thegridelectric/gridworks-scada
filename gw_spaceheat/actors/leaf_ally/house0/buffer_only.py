@@ -327,7 +327,6 @@ class BufferOnlyLeafAlly(House0Hydronic):
                 await self.store_pump_doctor.run()
 
             # Go Dormant if cold
-            self.get_zone_setpoints()
             if self.is_system_cold() and self.is_buffer_empty():
                 self.log("System is cold, buffer is empty - breaching contract")
                 self._send_to(

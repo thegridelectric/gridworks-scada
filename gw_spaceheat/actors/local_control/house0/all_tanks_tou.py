@@ -1,5 +1,5 @@
 import time
-from datetime import datetime
+
 from typing import Optional
 
 from actors.local_control.house0.tou_base import LocalControlTouBase
@@ -168,9 +168,8 @@ class AllTanksTouLocalControl(LocalControlTouBase):
             self.storage_declared_ready = False
             self.full_storage_energy = None
 
-        time_now = datetime.now(self.timezone)
-        if ((time_now.hour==6 or time_now.hour==16) and time_now.minute>57) or self.zone_setpoints=={}:
-            self.get_zone_setpoints()
+        if self.just_before_onpeak() or self.setpoints_at_onpeak_start=={}:
+            self.refresh_setpoints_at_onpeak_start()
         
         if not (self.heating_forecast and self.buffer_temps_available):
             self.fill_missing_store_temps()

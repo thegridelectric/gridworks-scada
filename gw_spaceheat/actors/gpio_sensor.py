@@ -49,7 +49,7 @@ class GpioSensor(ShNodeActor):
             if dc.CapturedByNodeName == self.name
         )
         self.tuning = self.layout.capture_tuning_by_channel[self.channel_name]
-        self.send_to_derived = self._feeds_derived(self.channel_name)
+        self.send_to_derived = self.layout.feeds_derived([self.channel_name])
         self.prev_value: int = 0
         self.latest_value: int = 0
         self._stop_requested = False
@@ -60,14 +60,6 @@ class GpioSensor(ShNodeActor):
         else:
             import RPi.GPIO as GPIO
             self.GPIO = GPIO
-
-    def _feeds_derived(self, channel_name: str) -> bool:
-        """Derived routing is computed from the layout: send iff some
-        DerivedChannel lists this channel as an input."""
-        return any(
-            channel_name in (dc.InputChannelNames or [])
-            for dc in self.layout.derived_channels.values()
-        )
 
     def _resolve_gpio_pin(self) -> int:
         """GpioName resolved against the NativeGpioInputs of the layout's

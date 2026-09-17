@@ -51,7 +51,7 @@ def test_main_loop_pass_survives_the_first_forecast(app: ScadaApp) -> None:
     data = actor.data
     data.heating_forecast = a_day_of_forecast(actor)
     data.buffer_temps_available = True
-    for tank in actor.h0cn.tank.values():
+    for tank in actor.layout.store_tanks.values():
         for ch in (tank.depth1, tank.depth2, tank.depth3):
             data.latest_temperatures_f[ch] = 150.0
     for ch in (HCN.buffer.depth1, HCN.buffer.depth2, HCN.buffer.depth3):

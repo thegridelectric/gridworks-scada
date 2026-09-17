@@ -12,9 +12,9 @@ import pytest
 
 import actors.hydronic.shared as shared
 from actors.pico_cycler import PicoCycler
-from gwsproto.enums import ChangeZoneCallSource, ChangeRelayState
+from gwsproto.enums import ChangeZoneCallSource, ChangeRelayState, DayOfWeek
 from gwsproto.errors import DcError
-from gwsproto.named_types import FsmEvent
+from gwsproto.named_types import FsmEvent, TouWindow
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from scada_app import ScadaApp
@@ -137,11 +137,11 @@ def test_vdc_relay_command_from_pico_cycler(actor: PicoCycler, method: str, even
 # --- setpoints + system cold ------------------------------------------------
 
 
-def test_zone_setpoints_come_from_the_layout_zones_only(actor: PicoCycler) -> None:
+def test_setpoints_at_onpeak_start_come_from_the_layout_zones_only(actor: PicoCycler) -> None:
     actor.data.latest_channel_values[f"zone1-{ZONE}-set"] = 70_000
     actor.data.latest_channel_values["zone9-attic-set"] = 65_000  # not a layout zone
-    actor.get_zone_setpoints()
-    assert actor.zone_setpoints == {f"zone1-{ZONE}": 70_000}
+    actor.refresh_setpoints_at_onpeak_start()
+    assert actor.setpoints_at_onpeak_start == {f"zone1-{ZONE}": 70_000}
 
 
 @pytest.mark.parametrize(
@@ -160,7 +160,7 @@ def test_is_system_cold_judges_the_critical_zone_against_the_lower_setpoint(
 ) -> None:
     zone = f"zone1-{ZONE}"
     monkeypatch.setattr(actor, "is_onpeak", lambda: onpeak)
-    actor.zone_setpoints = {} if setpoint_at_onpeak is None else {zone: setpoint_at_onpeak}
+    actor.setpoints_at_onpeak_start = {} if setpoint_at_onpeak is None else {zone: setpoint_at_onpeak}
     actor.data.latest_channel_values[f"{zone}-set"] = current_setpoint
     actor.data.latest_channel_values[f"{zone}-temp"] = temp
     assert actor.is_system_cold() is cold
@@ -196,7 +196,8 @@ def at(monkeypatch: pytest.MonkeyPatch, actor: PicoCycler, weekday: int, hour: i
         (0, 6, 57, False, False),   # 3 min out: not yet on-peak, not yet "just before"
         (0, 6, 58, True, True),     # 2 min out: on-peak by the look-ahead, and just before
         (0, 12, 0, False, False),   # mid-day
-        (0, 15, 59, True, False),   # look-ahead into the evening peak
+        (0, 15, 59, True, True),    # look-ahead into the evening peak, and just before it
+        (0, 16, 58, True, False),   # inside the evening peak: not "just before" anything
         (0, 19, 30, True, False),   # evening peak
         (0, 20, 0, False, False),
         (5, 8, 0, False, False),    # Saturday: never on-peak
@@ -209,6 +210,26 @@ def test_tou_clock(
     at(monkeypatch, actor, weekday, hour, minute)
     assert actor.is_onpeak() is onpeak
     assert actor.just_before_onpeak() is just_before
+
+
+def test_tou_clock_reads_the_ops_words_windows(actor: PicoCycler, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The on-peak windows are the ops word's, not a table in the actor: a
+    Saturday-only window makes Saturday morning on-peak and Monday not."""
+    saturday_only = actor.ops.model_copy(update={"OnPeakWindows": [
+        TouWindow(Start="07:00", End="12:00", Days=[DayOfWeek.Saturday]),
+    ]})
+    monkeypatch.setattr(actor.data, "ops", saturday_only)
+    at(monkeypatch, actor, 5, 8, 0)
+    assert actor.is_onpeak() is True
+    at(monkeypatch, actor, 5, 6, 58)
+    assert actor.just_before_onpeak() is True
+    at(monkeypatch, actor, 0, 8, 0)
+    assert actor.is_onpeak() is False
+
+
+def test_just_before_onpeak_needs_a_window_that_day(actor: PicoCycler, monkeypatch: pytest.MonkeyPatch) -> None:
+    at(monkeypatch, actor, 5, 6, 58)  # Saturday: no window opens at 7
+    assert actor.just_before_onpeak() is False
 
 
 def test_latest_temps_f_is_the_data_view(actor: PicoCycler) -> None:

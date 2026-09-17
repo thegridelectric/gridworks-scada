@@ -12,9 +12,13 @@ from gwsproto.errors import DcError
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
     ChangeZoneCallSource,
-    ChangeRelayState
+    ChangeRelayState,
+    DayOfWeek,
 )
 from gwsproto.named_types import FsmEvent
+from gwsproto.names.hydronic_spaceheat.channel_names import (
+    HydronicSpaceheatZoneChannelNames as HSZoneChannelNames,
+)
 from gwsproto.names.hydronic_spaceheat.node_names import (
     HydronicSpaceheatZoneNodeNames as HSZoneNodeNames,
 )
@@ -24,27 +28,45 @@ from actors.command_node import CommandNode
 class HydronicNode(CommandNode):
     """CommandNode + the family-neutral hydronic surface."""
 
-    def get_zone_setpoints(self) -> None:
-        """Populate zone_setpoints from latest_channel_values.
-        Values are in millidegrees (F * 1000) per TelemetryName.AirTempFTimes1000."""
-        self.zone_setpoints = {}
-        for zone_setpoint in [x for x in self.data.latest_channel_values if 'zone' in x and 'set' in x]:
-            zone_name = zone_setpoint.replace('-set', '')
-            zone_name_no_prefix = zone_name[6:] if zone_name[:4] == 'zone' else zone_name
-            if zone_name_no_prefix not in self.layout.zone_list:
-                continue
-            if self.data.latest_channel_values[zone_setpoint] is not None:
-                self.zone_setpoints[zone_name] = self.data.latest_channel_values[zone_setpoint]
+    def zone_channels(self) -> list[HSZoneChannelNames]:
+        """The layout's zones in order, as their hydronic-tier channel names."""
+        return [HSZoneChannelNames(zone, i + 1) for i, zone in enumerate(self.layout.zone_list)]
+
+    def refresh_setpoints_at_onpeak_start(self) -> None:
+        """Take each layout zone's current setpoint (`zone{i}-{label}-set`,
+        F x 1000, keyed by the zone channel base) as the setpoint the zone had
+        when on-peak began. `is_system_cold` judges against the lower of this
+        and the current setpoint, so a thermostat raised during on-peak does
+        not read as a cold house. Refreshed off-peak; held through on-peak."""
+        self.setpoints_at_onpeak_start = {}
+        for zone in self.zone_channels():
+            setpoint = self.data.latest_channel_values.get(zone.set)
+            if setpoint is not None:
+                self.setpoints_at_onpeak_start[zone.base] = setpoint
+
+    def in_onpeak_window(self, at: datetime) -> bool:
+        """Whether `at` (wall time in the actor's zone) falls in one of the ops
+        word's OnPeakWindows: Start inclusive, End exclusive, on a listed day."""
+        day = DayOfWeek[at.strftime("%A")]
+        hh_mm = at.strftime("%H:%M")
+        return any(
+            day in window.Days and window.Start <= hh_mm < window.End
+            for window in self.ops.OnPeakWindows
+        )
 
     def just_before_onpeak(self) -> bool:
+        """Within the two minutes before an on-peak window opens."""
         time_now = datetime.now(self.timezone)
-        return ((time_now.hour==6 or time_now.hour==16) and time_now.minute>57)
+        return not self.in_onpeak_window(time_now) and self.in_onpeak_window(
+            time_now + timedelta(minutes=2)
+        )
 
     def is_onpeak(self) -> bool:
+        """In an on-peak window, or within two minutes of one opening."""
         time_now = datetime.now(self.timezone)
-        time_in_2min = time_now + timedelta(minutes=2)
-        peak_hours = [7, 8, 9, 10, 11] + [16, 17, 18, 19]
-        return (time_now.hour in peak_hours or time_in_2min.hour in peak_hours) and time_now.weekday() < 5
+        return self.in_onpeak_window(time_now) or self.in_onpeak_window(
+            time_now + timedelta(minutes=2)
+        )
 
     def is_system_cold(self) -> bool:
         """Returns True if at least one critical zone is more than 1F below setpoint.
@@ -52,15 +74,17 @@ class HydronicNode(CommandNode):
         Using (a) avoids triggering when the user raises the thermostat during on-peak; using the
         minimum with (b) avoids triggering when the user lowers the thermostat during on-peak."""
         if not self.is_onpeak():  # TODO: bleed into the first half hour of offpeak
-            self.get_zone_setpoints()
-        for zone in self.zone_setpoints:
-            zone_name_no_prefix = zone[6:] if zone[:4] == 'zone' else zone
-            if zone_name_no_prefix not in self.layout.critical_zone_list:
+            self.refresh_setpoints_at_onpeak_start()
+        critical = set(self.layout.critical_zone_list)
+        for i, zone_name in enumerate(self.layout.zone_list):
+            if zone_name not in critical:
                 continue
+            zone_channels = HSZoneChannelNames(zone_name, i + 1)
+            zone = zone_channels.base
 
             # Use the lower of setpoint at start of on-peak vs current setpoint
-            setpoint_at_onpeak = self.zone_setpoints[zone]
-            current_setpoint = self.data.latest_channel_values.get(zone + '-set')
+            setpoint_at_onpeak = self.setpoints_at_onpeak_start.get(zone)
+            current_setpoint = self.data.latest_channel_values.get(zone_channels.set)
             if setpoint_at_onpeak is not None and current_setpoint is not None:
                 setpoint = min(setpoint_at_onpeak, current_setpoint)
             elif setpoint_at_onpeak is not None:
@@ -71,7 +95,7 @@ class HydronicNode(CommandNode):
                 self.log(f"Could not find setpoint for {zone}!")
                 continue
 
-            temperature = self.data.latest_channel_values.get(zone + '-temp')
+            temperature = self.data.latest_channel_values.get(zone_channels.temp)
             if temperature is None:
                 self.log(f"Could not find latest temperature for {zone}!")
                 continue
@@ -167,7 +191,7 @@ class HydronicNode(CommandNode):
             return
         try:
             event = FsmEvent(
-                FromHandle=self.node.handle if command_node is None else command_node.handle,
+                FromHandle=command_node.handle,
                 ToHandle=self.stat_failsafe_relay(zone).handle,
                 EventType=ChangeZoneCallSource.enum_name(),
                 EventName=ChangeZoneCallSource.SwitchToScada,

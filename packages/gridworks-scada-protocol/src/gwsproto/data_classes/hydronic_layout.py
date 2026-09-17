@@ -2,7 +2,7 @@ import typing
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Any, List, Optional, TypeVar
+from typing import Any, Iterable, List, Optional, TypeVar
 
 from gwsproto.errors import DcError
 
@@ -42,7 +42,7 @@ from gwsproto.type_helpers.component_base import (
     DeviceComponentBase,
 )
 from gwsproto.data_classes.components.web_server_component import WebServerComponent
-from gwsproto.data_classes.house_0_names import H0CN, H0N
+from gwsproto.names.hydronic_spaceheat.helpers import store_tanks
 from gwsproto.enums import SimDeviceType
 from gwsproto.names.core.node_names import CoreNodeNames, ScadaWeb
 from gwsproto.names.house0.node_names import House0NodeNames
@@ -654,8 +654,7 @@ class HydronicLayout:
             raise ValueError("Must have between 1 and 6 store tanks")
         if not 1 <= len(self.zone_list) <= 6:
             raise ValueError("Must have between 1 and 6 store zones")
-        self.h0n = H0N(self.total_store_tanks)
-        self.h0cn = H0CN(self.total_store_tanks)
+        self.store_tanks = store_tanks(self.nodes)
         web_servers = {
             ws.web_server_gt.Name
             for ws in self.get_components_by_type(WebServerComponent)
@@ -1005,6 +1004,17 @@ class HydronicLayout:
     def derived_channel(self, name: str, default: Any = None) -> DerivedChannel | None:  # noqa: ANN401
         return self.derived_channels.get(name, default)
 
+    def feeds_derived(self, channel_names: Iterable[str]) -> bool:
+        """Whether any DerivedChannel takes one of these channels as input. A
+        device actor posts its readings to the derived generator as well as
+        the scada exactly when this is true."""
+        names = set(channel_names)
+        return any(
+            name in dc.InputChannelNames
+            for dc in self.derived_channels.values()
+            for name in names
+        )
+
     def node(self, name: str, default: Any = None) -> ShNode | None:  # noqa: ANN401
         return self.nodes.get(name, default)
 
@@ -1296,9 +1306,13 @@ class HydronicLayout:
         return set()
 
     @property
+    def has_store_tanks(self) -> bool:
+        return bool(self.store_tanks)
+
+    @property
     def tank_device_temp_channels(self) -> set[str]:
         channels = set(HCN.buffer.devices)
-        for tank in self.h0cn.tank.values():
+        for tank in self.store_tanks.values():
             channels |= tank.devices
         return channels
 

@@ -1,7 +1,3 @@
-from gwsproto.names.hydronic_spaceheat.helpers import Tanks
-
-
-
 class House0ChannelNames:
     """House0-SPECIFIC channel names only — the krida relay-state channels keyed to
     the House0 relay board. Names shared with core / hydronic_spaceheat (the power,
@@ -19,6 +15,3 @@ class House0ChannelNames:
     primary_pump_failsafe_relay_state = "primary-pump-failsafe-relay"
     hp_loop_on_off_relay_state = "hp-loop-on-off-relay"
     hp_loop_keep_send_relay_state = "hp-loop-keep-send-relay"
-
-    def __init__(self, total_store_tanks: int):
-        self.tanks = Tanks(total_store_tanks).channels

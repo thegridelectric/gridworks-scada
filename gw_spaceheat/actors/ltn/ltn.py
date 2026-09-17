@@ -775,8 +775,8 @@ class Ltn(PrimeActor):
         self.log(f"FLO seasonal storage mode: {self.seasonal_storage_mode}")
 
         self.tank_temp_channel_names = list(HCN.buffer.effective)
-        for tank_idx in sorted(self.layout.h0cn.tank):
-            tank = self.layout.h0cn.tank[tank_idx]
+        for tank_idx in sorted(self.layout.store_tanks):
+            tank = self.layout.store_tanks[tank_idx]
             self.tank_temp_channel_names.extend([tank.depth1, tank.depth2, tank.depth3])
 
         if self.contract_handler.layout_received is False:

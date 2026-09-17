@@ -60,13 +60,7 @@ class SimSensorActor(ShNodeActor):
             if ch.CapturedByNodeName == self.name
         ]
         self._capture_s = DEFAULT_CAPTURE_S
-        # A device actor posts to the derived generator as well as the scada
-        # when a DerivedChannel takes one of its channels as input.
-        self._feeds_derived = any(
-            name in dc.InputChannelNames
-            for dc in self.layout.derived_channels.values()
-            for name in self._channel_names
-        )
+        self.feeds_derived = self.layout.feeds_derived(self._channel_names)
 
     def _sim_value(self, channel_name: str) -> int:
         channel = self.layout.data_channels.get(channel_name)
@@ -107,7 +101,7 @@ class SimSensorActor(ShNodeActor):
         if msg is None:
             return
         self._send_to(self.primary_scada, msg)
-        if self._feeds_derived:
+        if self.feeds_derived:
             self._send_to(self.derived_generator, msg)
 
     async def main(self) -> None:

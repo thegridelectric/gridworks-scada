@@ -729,8 +729,9 @@ class House0Hydronic(HydronicNode):
             return False
 
         # --- Determine storage top ---
-        if self.h0cn.tank and self.h0cn.tank[1].depth1 in self.latest_temps_f:
-            tank_top = self.h0cn.tank[1].depth1
+        tanks = self.layout.store_tanks
+        if tanks and tanks[min(tanks)].depth1 in self.latest_temps_f:
+            tank_top = tanks[min(tanks)].depth1
         elif HCN.store_hot_pipe in self.latest_temps_f:
             tank_top = HCN.store_hot_pipe
         elif HCN.buffer_hot_pipe in self.latest_temps_f:
@@ -784,8 +785,8 @@ class House0Hydronic(HydronicNode):
         """Scrub implausible store layers and fill the missing ones from
         below (`store_temps.scrub_and_fill_store_temps`)."""
         all_store_layers = []
-        for tank_idx in sorted(self.h0cn.tank):
-            tank = self.h0cn.tank[tank_idx]
+        for tank_idx in sorted(self.layout.store_tanks):
+            tank = self.layout.store_tanks[tank_idx]
             all_store_layers.extend([tank.depth1, tank.depth2, tank.depth3])
         scrub_and_fill_store_temps(
             self.data.latest_temperatures_f, all_store_layers, HCN.store_cold_pipe

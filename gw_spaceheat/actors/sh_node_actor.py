@@ -54,13 +54,10 @@ class ShNodeActor(Actor, ABC):
             )
         super().__init__(name, services)
         self.timezone = pytz.timezone(self.settings.timezone_str)
-        self.h0n = self.layout.h0n
-        self.h0cn = self.layout.h0cn
-
         # set temperature_channel_names
         self.tank_temp_channel_names = list(HCN.buffer.effective)
-        for tank_idx in sorted(self.h0cn.tank):
-            tank = self.h0cn.tank[tank_idx]
+        for tank_idx in sorted(self.layout.store_tanks):
+            tank = self.layout.store_tanks[tank_idx]
             self.tank_temp_channel_names.extend([tank.depth1, tank.depth2, tank.depth3])
 
         self.pipe_temp_channel_names = [
@@ -72,7 +69,7 @@ class ShNodeActor(Actor, ABC):
 
         self.temperature_channel_names =  self.tank_temp_channel_names + self.pipe_temp_channel_names
 
-        self.zone_setpoints: dict = {}
+        self.setpoints_at_onpeak_start: dict[str, int] = {}
 
 
 
@@ -383,25 +380,32 @@ class ShNodeActor(Actor, ABC):
         return max(0, lwt_f - ewt_f)
 
     def hottest_store_temp_f(self) -> float | None:
-        raw = self.data.latest_channel_values.get(self.h0cn.tank[1].depth1)
+        """Top of the first store tank; None for a layout without store tanks."""
+        if not self.layout.store_tanks:
+            return None
+        top = self.layout.store_tanks[min(self.layout.store_tanks)].depth1
+        raw = self.data.latest_channel_values.get(top)
         if raw is None:
             return None
-        unit = self.layout.channel_registry.unit(self.h0cn.tank[1].depth1)
+        unit = self.layout.channel_registry.unit(top)
         if unit is None:
-            raise Exception("tank1-depth1 must belong!")
+            raise Exception(f"{top} must belong!")
         return convert_temp_to_f(
                         raw=raw,
                         encoding=unit
                     )
 
     def coldest_store_temp_f(self) -> float | None:
-        last_tank_idx = max(self.h0cn.tank)
-        raw = self.data.latest_channel_values.get(self.h0cn.tank[last_tank_idx].depth3)
+        """Bottom of the last store tank; None for a layout without store tanks."""
+        if not self.layout.store_tanks:
+            return None
+        bottom = self.layout.store_tanks[max(self.layout.store_tanks)].depth3
+        raw = self.data.latest_channel_values.get(bottom)
         if raw is None:
             return None
-        unit = self.layout.channel_registry.unit(self.h0cn.tank[last_tank_idx].depth3)
+        unit = self.layout.channel_registry.unit(bottom)
         if unit is None:
-            raise Exception("tank1-depth1 must belong!")
+            raise Exception(f"{bottom} must belong!")
         return convert_temp_to_f(
                         raw=raw,
                         encoding=unit

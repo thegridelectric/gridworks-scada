@@ -12,7 +12,6 @@ from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.named_types import AnalogDispatch, SyncedReadings
 from result import Ok, Result
 from transitions import Machine
-from gwsproto.data_classes.house_0_names import H0CN
 from gwsproto.names.hydronic_spaceheat.node_names import (
     HydronicSpaceheatNodeNames as HSNN,
     HydronicSpaceheatZoneNodeNames as HSZoneNodeNames,
@@ -229,8 +228,8 @@ class LocalControlTouBase(House0Hydronic):
                 continue
 
             # update zone setpoints if just before a new onpeak
-            if  self.just_before_onpeak() or self.zone_setpoints=={}:
-                self.get_zone_setpoints()
+            if  self.just_before_onpeak() or self.setpoints_at_onpeak_start=={}:
+                self.refresh_setpoints_at_onpeak_start()
 
             # No control of actuators when in Monitor
             if not self.top_state == LocalControlTopState.Monitor:

@@ -423,7 +423,6 @@ class AllTanksLeafAlly(House0Hydronic):
                 await self.store_pump_doctor.run()
 
            # Go Dormant if cold
-            self.get_zone_setpoints()
             if self.is_system_cold() and self.is_buffer_empty() and self.is_storage_empty():
                 self.log("System is cold, buffer and storage are empty - breaching contract")
                 self._send_to(
@@ -546,15 +545,16 @@ class AllTanksLeafAlly(House0Hydronic):
             self.log(f"Storage was declared full {round((time.time() - self.storage_full_since)/60)} minutes ago")
             return True
         else:
-            n = len(self.h0cn.tank)
+            tanks = self.layout.store_tanks
+            last = tanks[max(tanks)] if tanks else None
             if HCN.store_cold_pipe in self.latest_temps_f:
                 store_channel = HCN.store_cold_pipe
-            elif self.h0cn.tank[n].depth3 in self.latest_temps_f:
-                store_channel = self.h0cn.tank[n].depth3
-            elif self.h0cn.tank[n].depth2 in self.latest_temps_f:
-                store_channel = self.h0cn.tank[n].depth2
-            elif self.h0cn.tank[n].depth1 in self.latest_temps_f:
-                store_channel = self.h0cn.tank[n].depth1
+            elif last and last.depth3 in self.latest_temps_f:
+                store_channel = last.depth3
+            elif last and last.depth2 in self.latest_temps_f:
+                store_channel = last.depth2
+            elif last and last.depth1 in self.latest_temps_f:
+                store_channel = last.depth1
             else:
                 self.send_warning(summary="storage_full_fail", details="Impossible to know if the storage is full, store-cold-pipe not found!")
                 return True
