@@ -22,7 +22,7 @@ from actors.local_control_loader import LocalControl
 from gwsproto.enums import LocalControlTopEvent, LocalControlTopState
 from gwsproto.named_types import (
     FsmEvent,
-    NolanOperationalParams,
+    OperationalParams,
     NolanLayout,
     SingleMachineState,
 )
@@ -197,7 +197,7 @@ def test_layout_without_plant_nodes_fails_decode() -> None:
     built by typed mutation of a valid decode, re-validated at the
     boundary."""
     config = Path(__file__).parent.parent / "config"
-    ops = NolanOperationalParams.model_validate_json(
+    ops = OperationalParams.model_validate_json(
         (config / "gw.nolan.operational.params.json").read_text()
     )
     layout = NolanLayout.model_validate(

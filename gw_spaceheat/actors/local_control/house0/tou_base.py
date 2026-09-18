@@ -221,7 +221,7 @@ class LocalControlTouBase(House0Hydronic):
             self._send(PatInternalWatchdogMessage(src=self.name))
 
             self.log(f"Top state: {self.top_state}")
-            self.log(f"LocalControl: {self.ops.SeasonalStorageMode}  |  State: {self.normal_node_state()}")
+            self.log(f"LocalControl: {self.ops.FamilyParams.SeasonalStorageMode}  |  State: {self.normal_node_state()}")
 
             if self.top_state == LocalControlTopState.Dormant:
                 await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
@@ -351,7 +351,7 @@ class LocalControlTouBase(House0Hydronic):
             self.layout.hp_loop_on_off,
         }
 
-        if self.ops.SeasonalStorageMode == SeasonalStorageMode.AllTanks:
+        if self.ops.FamilyParams.SeasonalStorageMode == SeasonalStorageMode.AllTanks:
             excluded_relays.add(self.layout.store_charge_discharge_relay)
 
         target_relays: List[ShNode] = list(h_normal_relays - excluded_relays)

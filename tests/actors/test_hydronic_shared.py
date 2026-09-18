@@ -215,9 +215,10 @@ def test_tou_clock(
 def test_tou_clock_reads_the_ops_words_windows(actor: PicoCycler, monkeypatch: pytest.MonkeyPatch) -> None:
     """The on-peak windows are the ops word's, not a table in the actor: a
     Saturday-only window makes Saturday morning on-peak and Monday not."""
-    saturday_only = actor.ops.model_copy(update={"OnPeakWindows": [
+    tariff = actor.ops.Tariff.model_copy(update={"OnPeakWindows": [
         TouWindow(Start="07:00", End="12:00", Days=[DayOfWeek.Saturday]),
     ]})
+    saturday_only = actor.ops.model_copy(update={"Tariff": tariff})
     monkeypatch.setattr(actor.data, "ops", saturday_only)
     at(monkeypatch, actor, 5, 8, 0)
     assert actor.is_onpeak() is True

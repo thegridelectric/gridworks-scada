@@ -6,6 +6,7 @@ from typing_extensions import Self
 from gwsproto.enums import (
     GpmFromHzMethod,
     HzCalcMethod,
+    PicoBoardVariant,
     TempCalcMethod,
 )
 from gwsproto.type_helpers.component_base import DeviceComponentBase
@@ -36,6 +37,8 @@ class PicoBtuMeterComponentGt(DeviceComponentBase):
     AsyncCaptureDeltaGpmX100: StrictInt
     AsyncCaptureDeltaCelsiusX100: StrictInt
     AsyncCaptureDeltaCtVoltsX100: Optional[StrictInt] = None
+    PicoBoardVariant: PicoBoardVariant
+    MicropythonVersion: Optional[str] = None
     TypeName: Literal["pico.btu.meter.component.gt"] = "pico.btu.meter.component.gt"
     Version: Literal["000"] = "000"
 

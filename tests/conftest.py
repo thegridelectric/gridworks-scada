@@ -44,7 +44,8 @@ TEST_DOTENV_PATH_VAR = "GW_SPACEHEAT_TEST_DOTENV_PATH"
 TEST_HARDWARE_LAYOUT_PATH = Path(__file__).parent / "config" / "gw.nolan.layout.json"
 # The test env copies only the layout file into the per-test config dir; the
 # ops artifact is pinned by env var to its APPROVED partner (sema_to_dc.
-# APPROVED_PAIRS): a gw.nolan.layout pairs only with gw.nolan.operational.params.
+# APPROVED_PAIRS): a gw.nolan.layout pairs only with ops carrying
+# gw.nolan.family.params and the layout's own ScadaAlias.
 TEST_OPS_PARAMS_PATH = (
     Path(__file__).parent
     / "config"

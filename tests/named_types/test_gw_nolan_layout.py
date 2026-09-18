@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from gwsproto.named_types import NolanLayout, NolanOperationalParams
+from gwsproto.named_types import NolanLayout, OperationalParams
 from sema_to_dc import assemble_runtime_layout
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -18,7 +18,7 @@ CONFIG = Path(__file__).parent.parent / "config"
 
 @pytest.fixture(scope="module")
 def assembled() -> dict:
-    ops = NolanOperationalParams.model_validate_json(
+    ops = OperationalParams.model_validate_json(
         (CONFIG / "gw.nolan.operational.params.json").read_text()
     )
     return assemble_runtime_layout(
@@ -219,6 +219,38 @@ def test_gw_nolan_layout_axiom_9(assembled: dict) -> None:
         lambda d: d["Hydronic"].update(TotalStoreTanks=2),
         "Axiom 9",
     )
+
+
+def test_gw_hydronic_axiom_1_a_store_tanks(assembled: dict) -> None:
+    """Zero store tanks is a layout whose store is not water tanks; seven is
+    past the bound."""
+    from gwsproto.named_types import Hydronic
+
+    h = json.loads(json.dumps(assembled["Hydronic"]))
+    h["TotalStoreTanks"] = 0
+    assert Hydronic.model_validate(h).TotalStoreTanks == 0
+    h["TotalStoreTanks"] = 7
+    with pytest.raises(ValueError, match="Axiom 1"):
+        Hydronic.model_validate(h)
+
+
+def test_gw_hydronic_axiom_1_b_no_zones(assembled: dict) -> None:
+    from gwsproto.named_types import Hydronic
+
+    h = json.loads(json.dumps(assembled["Hydronic"]))
+    h["Zones"] = []
+    h["ZoneCallCircuits"] = []
+    with pytest.raises(ValueError, match="Axiom 1"):
+        Hydronic.model_validate(h)
+
+
+def test_gw_hydronic_zone_call_circuits_required(assembled: dict) -> None:
+    from gwsproto.named_types import Hydronic
+
+    h = json.loads(json.dumps(assembled["Hydronic"]))
+    del h["ZoneCallCircuits"]
+    with pytest.raises(ValueError, match="ZoneCallCircuits"):
+        Hydronic.model_validate(h)
 
 
 def test_gw_hydronic_axiom_2(assembled: dict) -> None:

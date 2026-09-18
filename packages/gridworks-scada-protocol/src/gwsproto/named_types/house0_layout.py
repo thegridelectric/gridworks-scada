@@ -26,6 +26,12 @@ from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
 from gwsproto.named_types.pico_btu_meter_component_gt import PicoBtuMeterComponentGt
 from gwsproto.named_types.pico_flow_module_component_gt import PicoFlowModuleComponentGt
 from gwsproto.named_types.pico_tank_module_component_gt import PicoTankModuleComponentGt
+from gwsproto.named_types.sim_pico_btu_meter_component_gt import (
+    SimPicoBtuMeterComponentGt,
+)
+from gwsproto.named_types.sim_pico_flow_module_component_gt import (
+    SimPicoFlowModuleComponentGt,
+)
 from gwsproto.named_types.sim_pico_tank_module_component_gt import (
     SimPicoTankModuleComponentGt,
 )
@@ -41,6 +47,11 @@ from gwsproto.named_types.sim_relay_component_gt import SimRelayComponentGt
 from gwsproto.named_types.sim_sensor_component_gt import SimSensorComponentGt
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwsproto.named_types.web_server_component_gt import WebServerComponentGt
+from gwsproto.type_helpers.board_resolution import (
+    I2C_DAC_OUTPUT,
+    I2C_RELAY,
+    check_board_resolution,
+)
 from gwsproto.type_helpers.command_tree_axioms import (
     check_actuator_leaves,
     check_prefix_closed_handles,
@@ -63,6 +74,8 @@ House0Component = (
     | PicoFlowModuleComponentGt
     | PicoTankModuleComponentGt
     | ScadaBoardComponentGt
+    | SimPicoBtuMeterComponentGt
+    | SimPicoFlowModuleComponentGt
     | SimPicoTankModuleComponentGt
     | SimRelayComponentGt
     | SimSensorComponentGt
@@ -610,5 +623,49 @@ class House0Layout(GwsprotoSemaType):
             raise ValueError(
                 "Axiom 15 (ComponentBinding) failed: components not referenced by "
                 f"exactly one ShNode (id: reference count) {violations}."
+            )
+        return self
+
+
+    @model_validator(mode="after")
+    def check_axiom_16(self) -> Self:
+        """
+        Axiom 16: BoardResolution
+        Every i2c.relay.component.gt and i2c.dac.output.component.gt resolves
+        through its BoardComponentId to a scada.board.component.gt, that
+        board's DeviceType to a gw1.scada.device.type.gt record, and its
+        RelayName / DacName to a name in that record.
+        """
+        check_board_resolution(
+            self.Components,
+            self.DeviceTypes,
+            {
+                "i2c.relay.component.gt": I2C_RELAY,
+                "i2c.dac.output.component.gt": I2C_DAC_OUTPUT,
+            },
+            "Axiom 16 (BoardResolution)",
+            every_board_resident=False,
+        )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_17(self) -> Self:
+        """
+        Axiom 17: BufferTank
+        ShNodes SHALL include a node named "buffer", and for each depth i in
+        1..3 a channel named "buffer-depth{i}" SHALL exist in DataChannels or
+        in DerivedChannels.
+        """
+        if not any(n.Name == "buffer" for n in self.ShNodes):
+            raise ValueError("Axiom 17 (BufferTank) failed: no ShNode named 'buffer'.")
+        channels = {c.Name for c in self.DataChannels} | {
+            c.Name for c in self.DerivedChannels
+        }
+        missing = [
+            f"buffer-depth{i}" for i in (1, 2, 3) if f"buffer-depth{i}" not in channels
+        ]
+        if missing:
+            raise ValueError(
+                f"Axiom 17 (BufferTank) failed: missing buffer channel(s) {missing}."
             )
         return self

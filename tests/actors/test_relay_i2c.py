@@ -5,7 +5,7 @@ permanent-EIO glitch-per-streak, mid-run reset detect/repair/re-assert, and
 the garbled-read false-positive guard).
 
 The pinned artifact pair is decoded through the sema words (NolanLayout on
-the boot assembly path + NolanOperationalParams), and the fixture asserts
+the boot assembly path + OperationalParams), and the fixture asserts
 the layout rides a gw108 board (nolan layout and gw108 do not always go
 together). gw.nolan.layout axiom 3 (LocalControlPlant) forces the plant and
 zone-circuit relays to exist, so the rig adopts the first zone circuit's
@@ -30,7 +30,7 @@ from gwsproto.enums import ChangeRelayPin, LogLevel, SimDeviceType, ZoneCallSour
 from gwsproto.named_types import (
     FsmFullReport,
     Glitch,
-    NolanOperationalParams,
+    OperationalParams,
     I2cResult,
     NolanLayout,
     ScadaBoardComponentGt,
@@ -44,7 +44,7 @@ from sema_to_dc import assemble_runtime_layout
 @pytest.fixture
 def app() -> tuple[ScadaApp, NolanLayout]:
     settings = ScadaApp.get_settings()
-    ops = NolanOperationalParams.model_validate_json(
+    ops = OperationalParams.model_validate_json(
         Path(settings.paths.operational_params).read_text()
     )
     layout = NolanLayout.model_validate(

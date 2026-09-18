@@ -28,6 +28,12 @@ from gwsproto.named_types.i2c_thermistor_reader_component_gt import (
 from gwsproto.named_types.pico_btu_meter_component_gt import PicoBtuMeterComponentGt
 from gwsproto.named_types.pico_tank_module_component_gt import PicoTankModuleComponentGt
 from gwsproto.named_types.scada_board_component_gt import ScadaBoardComponentGt
+from gwsproto.named_types.sim_pico_btu_meter_component_gt import (
+    SimPicoBtuMeterComponentGt,
+)
+from gwsproto.named_types.sim_pico_flow_module_component_gt import (
+    SimPicoFlowModuleComponentGt,
+)
 from gwsproto.named_types.sim_pico_tank_module_component_gt import (
     SimPicoTankModuleComponentGt,
 )
@@ -35,6 +41,14 @@ from gwsproto.named_types.sim_relay_component_gt import SimRelayComponentGt
 from gwsproto.named_types.sim_sensor_component_gt import SimSensorComponentGt
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwsproto.named_types.web_server_component_gt import WebServerComponentGt
+from gwsproto.type_helpers.board_resolution import (
+    GPIO_RELAY,
+    GPIO_SENSOR,
+    I2C_DAC_OUTPUT,
+    I2C_RELAY,
+    I2C_THERMISTOR_READER,
+    check_board_resolution,
+)
 from gwsproto.type_helpers.command_tree_axioms import (
     check_actuator_leaves,
     check_prefix_closed_handles,
@@ -54,6 +68,8 @@ NolanComponent = (
     | PicoBtuMeterComponentGt
     | PicoTankModuleComponentGt
     | ScadaBoardComponentGt
+    | SimPicoBtuMeterComponentGt
+    | SimPicoFlowModuleComponentGt
     | SimPicoTankModuleComponentGt
     | SimRelayComponentGt
     | SimSensorComponentGt
@@ -167,52 +183,25 @@ class NolanLayout(GwsprotoSemaType):
     def check_axiom_2(self) -> "NolanLayout":
         """Axiom 2: BoardResolution.
 
-        For every board-resident component in Components (gpio.sensor.component.gt,
-        gpio.relay.component.gt, i2c.thermistor.reader.component.gt): its
+        For every component in Components carrying a BoardComponentId: its
         BoardComponentId SHALL equal the ComponentId of a scada.board.component.gt in
         Components; that board component's DeviceType SHALL match the DeviceType of a
         gw1.scada.device.type.gt record in DeviceTypes; and the component's board name
-        SHALL match a Name in that record.
+        SHALL match a name in that record.
         """
-        boards = {
-            c.ComponentId: c for c in self.Components
-            if c.TypeName == "scada.board.component.gt"
-        }
-        records = {
-            r.DeviceType: r for r in self.DeviceTypes
-            if isinstance(r, ScadaDeviceTypeGt)
-        }
-        kinds = {
-            "gpio.sensor.component.gt": ("GpioName", "NativeGpioInputs"),
-            "gpio.relay.component.gt": ("GpioName", "NativeGpioOutputs"),
-            "i2c.thermistor.reader.component.gt": ("AdcName", "ThermistorAdcs"),
-        }
-        for c in self.Components:
-            kind = kinds.get(c.TypeName)
-            if kind is None:
-                continue
-            attr, list_name = kind
-            board = boards.get(c.BoardComponentId)
-            if board is None:
-                raise ValueError(
-                    "Axiom 2 (BoardResolution) failed: BoardComponentId "
-                    f"'{c.BoardComponentId}' of component '{c.ComponentId}' does "
-                    "not resolve to a scada.board.component.gt."
-                )
-            record = records.get(board.DeviceType)
-            if record is None:
-                raise ValueError(
-                    "Axiom 2 (BoardResolution) failed: board DeviceType "
-                    f"'{board.DeviceType}' has no gw1.scada.device.type.gt record."
-                )
-            names = {e.Name for e in (getattr(record, list_name) or [])}
-            wanted = getattr(c, attr)
-            if wanted not in names:
-                raise ValueError(
-                    "Axiom 2 (BoardResolution) failed: name "
-                    f"'{wanted}' of component '{c.ComponentId}' is not in the "
-                    f"board record's {list_name}."
-                )
+        check_board_resolution(
+            self.Components,
+            self.DeviceTypes,
+            {
+                "gpio.sensor.component.gt": GPIO_SENSOR,
+                "gpio.relay.component.gt": GPIO_RELAY,
+                "i2c.thermistor.reader.component.gt": I2C_THERMISTOR_READER,
+                "i2c.relay.component.gt": I2C_RELAY,
+                "i2c.dac.output.component.gt": I2C_DAC_OUTPUT,
+            },
+            "Axiom 2 (BoardResolution)",
+            every_board_resident=True,
+        )
         return self
 
     @model_validator(mode="after")

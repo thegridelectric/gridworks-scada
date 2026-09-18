@@ -526,7 +526,7 @@ class Ltn(PrimeActor):
         self.actuation_authority: ActuationAuthority = ActuationAuthority.Active # will get updated when LayoutLite arrives from Scada
         self.service_mode: ServiceMode = ServiceMode.Heating # will get updated when LayoutLite arrives from Scada
         self.seasonal_storage_mode: SeasonalStorageMode = SeasonalStorageMode.AllTanks # will get updated when LayoutLite arrives from Scada
-        self.short_cycle_buffer: bool = False # will get updated when LayoutLite arrives from Scada
+        self.keep_buffer_full: bool = False # will get updated when LayoutLite arrives from Scada
 
     @classmethod
     def get_codec_factory(cls) -> LtnCodecFactory:
@@ -771,7 +771,7 @@ class Ltn(PrimeActor):
         self.ha1_params = layout.Ha1Params
         self.seasonal_storage_mode = layout.SeasonalStorageMode
         self.total_store_tanks = layout.TotalStoreTanks
-        self.short_cycle_buffer = layout.BufferShortCycling
+        self.keep_buffer_full = layout.KeepBufferFull
         self.log(f"FLO seasonal storage mode: {self.seasonal_storage_mode}")
 
         self.tank_temp_channel_names = list(HCN.buffer.effective)
@@ -1438,7 +1438,7 @@ class Ltn(PrimeActor):
                 return top_temp, top_temp, top_temp, thermocline1, thermocline1
     
     async def get_buffer_available_kwh(self):
-        if self.short_cycle_buffer:
+        if self.keep_buffer_full:
             return 0
         if self.seasonal_storage_mode == SeasonalStorageMode.BufferOnly:
             return 0

@@ -3,7 +3,7 @@
 The gen machinery lives in tlayouts (the authoring home, on the sema snapshot);
 scada consumes its two authored artifacts per home:
 
-    gw.house0.layout.json ⊕ gw.house0.operational.params.json
+    gw.house0.layout.json ⊕ gw.operational.params.json
         ──load_layout──▶ HydronicLayout
 
 The layout word decodes to its typed sema word and is handed straight to
@@ -23,12 +23,13 @@ from typing import Any
 from pydantic import TypeAdapter
 
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
-from gwsproto.enums import ActorClass
+from gwsproto.enums import ActorClass, GNodeClass
 from gwsproto.named_types import (
+    House0FamilyParams,
     House0Layout,
-    House0OperationalParams,
+    NolanFamilyParams,
     NolanLayout,
-    NolanOperationalParams,
+    OperationalParams,
 )
 from gwsproto.property_format import LeftRightDotStr
 
@@ -37,49 +38,57 @@ SEMA_LAYOUT_BY_TYPENAME: dict[LeftRightDotStr, type[House0Layout] | type[NolanLa
     word.type_name_value(): word for word in (House0Layout, NolanLayout)
 }
 
-OperationalParams = House0OperationalParams | NolanOperationalParams
-
-SEMA_OPS_BY_TYPENAME: dict[LeftRightDotStr, type[OperationalParams]] = {
-    word.type_name_value(): word
-    for word in (House0OperationalParams, NolanOperationalParams)
-}
-
-# The ONLY layout ⊕ operational-params pairings a scada may boot. The two
-# operational-params words carry the same field set, so a crossed pair decodes
-# cleanly and then describes the wrong plant — one family's relays, tanks and
-# zones tuned by the other family's numbers. Nothing downstream would notice.
+# The ONLY layout ⊕ family-params pairings a scada may boot. The operational
+# params carry a FamilyParams block whose TypeName names the layout family; a
+# crossed pair would tune one family's plant with the other family's knobs.
 # The pairing is checked at load and a mismatch refuses the boot outright.
 # Keys and values are TypeNames (left.right.dot vocabulary), validated at load.
 APPROVED_PAIRS: dict[LeftRightDotStr, LeftRightDotStr] = TypeAdapter(
     dict[LeftRightDotStr, LeftRightDotStr]
 ).validate_python(
     {
-        House0Layout.type_name_value(): House0OperationalParams.type_name_value(),
-        NolanLayout.type_name_value(): NolanOperationalParams.type_name_value(),
+        House0Layout.type_name_value(): House0FamilyParams.type_name_value(),
+        NolanLayout.type_name_value(): NolanFamilyParams.type_name_value(),
     }
 )
 
 
-def check_approved_pair(layout_type_name: str, ops_type_name: str) -> None:
-    """Refuse any layout ⊕ operational-params pairing outside APPROVED_PAIRS.
+def check_approved_pair(layout_type_name: str, family_type_name: str) -> None:
+    """Refuse any layout ⊕ family-params pairing outside APPROVED_PAIRS.
     Raises ValueError naming both words and the one partner that is allowed."""
     expected = APPROVED_PAIRS.get(layout_type_name)
     if expected is None:
         raise ValueError(
-            f"Layout word {layout_type_name!r} has no approved operational-params "
+            f"Layout word {layout_type_name!r} has no approved family-params "
             f"partner. Approved pairs: {APPROVED_PAIRS}."
         )
-    if ops_type_name != expected:
+    if family_type_name != expected:
         raise ValueError(
             f"Mismatched artifact pair: layout {layout_type_name!r} SHALL be paired "
-            f"with {expected!r}, got operational params {ops_type_name!r}. "
+            f"with {expected!r}, got family params {family_type_name!r}. "
             f"Approved pairs: {APPROVED_PAIRS}. Scada will not start."
+        )
+
+
+def check_scada_alias(
+    word: House0Layout | NolanLayout, ops_word: OperationalParams
+) -> None:
+    """The ops word names the Scada it tunes; refuse a pair whose ScadaAlias is
+    not the alias of the layout's Scada GNode."""
+    layout_aliases = [
+        g.Alias for g in word.GNodes if g.GNodeClass == GNodeClass.Scada.value
+    ]
+    if layout_aliases != [ops_word.ScadaAlias]:
+        raise ValueError(
+            f"Mismatched artifact pair: operational params ScadaAlias "
+            f"{ops_word.ScadaAlias!r} is not the layout's Scada GNode alias "
+            f"{layout_aliases}. Scada will not start."
         )
 
 
 def zero_ten_power_on_volts_times_ten(ops: OperationalParams, node_name: str) -> int:
     """The power-on level of the 0-10V output driven by `node_name`, in volts
-    times ten; both family words carry the list. Raises when the ops word
+    times ten. Raises when the ops word
     names no level for the node: a DAC-backed output boots only with one."""
     for entry in ops.ZeroTenPowerOnList:
         if entry.NodeName == node_name:
@@ -90,9 +99,10 @@ def zero_ten_power_on_volts_times_ten(ops: OperationalParams, node_name: str) ->
 
 
 def use_sieg_loop(ops: OperationalParams) -> bool:
-    """Whether the scada runs the Siegenthaler loop. Only the House0 word
-    carries the flag; a Nolan plant has no loop, so its word has none."""
-    return isinstance(ops, House0OperationalParams) and ops.UseSiegLoop
+    """Whether the scada runs the Siegenthaler loop. Only the House0 family
+    params carry the flag; a Nolan plant has no loop, so its block has none."""
+    family = ops.FamilyParams
+    return isinstance(family, House0FamilyParams) and family.UseSiegLoop
 
 
 def check_sieg_loop_assembly(
@@ -105,21 +115,20 @@ def check_sieg_loop_assembly(
         n.ActorClass == ActorClass.SiegLoop for n in word.ShNodes
     ):
         raise ValueError(
-            f"{ops_word.TypeName} sets UseSiegLoop but {word.TypeName} carries "
+            f"{ops_word.FamilyParams.TypeName} sets UseSiegLoop but {word.TypeName} carries "
             "no SiegLoop-classed node."
         )
 
 
 def decode_operational_params(ops: dict[str, Any]) -> OperationalParams:
-    """Decode the operational-params artifact through its own family's word."""
+    """Decode the operational-params artifact."""
     type_name = ops.get("TypeName")
-    ops_cls = SEMA_OPS_BY_TYPENAME.get(str(type_name))
-    if ops_cls is None:
+    if type_name != OperationalParams.type_name_value():
         raise ValueError(
-            f"Operational params TypeName {type_name!r} is not a known "
-            f"operational-params word. Known: {sorted(SEMA_OPS_BY_TYPENAME)}."
+            f"Operational params TypeName {type_name!r} is not "
+            f"{OperationalParams.type_name_value()!r}."
         )
-    return ops_cls.model_validate(ops)
+    return OperationalParams.model_validate(ops)
 
 
 def assemble_runtime_layout(
@@ -178,11 +187,15 @@ def ops_and_sema_to_dc(
     the capture tuning is taken (typed) from the operational-params word."""
     static = json.loads(Path(static_path).read_text())
     ops = json.loads(Path(ops_path).read_text())
-    check_approved_pair(str(static.get("TypeName")), str(ops.get("TypeName")))
+    check_approved_pair(
+        str(static.get("TypeName")),
+        str((ops.get("FamilyParams") or {}).get("TypeName")),
+    )
     # Validates assembly coverage + poll floor against the raw artifacts; raises.
     assemble_runtime_layout(static, ops)
     word = SEMA_LAYOUT_BY_TYPENAME[str(static["TypeName"])].model_validate(static)
     ops_word = decode_operational_params(ops)
+    check_scada_alias(word, ops_word)
     check_sieg_loop_assembly(word, ops_word)
     return HydronicLayout.from_sema(
         word, capture_tuning=ops_word.CaptureTuningList, **load_kwargs

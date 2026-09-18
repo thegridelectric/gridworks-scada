@@ -11,7 +11,6 @@ from actors.config import ScadaSettings
 from gwsproto.data_classes.data_channel import DataChannel
 from gwsproto.named_types import (
     ChannelReadings,
-    House0OperationalParams,
     Report,
     SingleReading,
     SingleMachineState,

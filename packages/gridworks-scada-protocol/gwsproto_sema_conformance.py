@@ -61,6 +61,7 @@ FORMAT_MAP: dict[str, object] = {
     "handle.name": pf.HandleName,
     "hex.char": pf.HexChar,
     "hh.mm": pf.HhMm,
+    "iana.timezone.str": pf.IanaTimezoneStr,
     "left.right.dot": pf.LeftRightDotStr,
     "market.slot.name": pf.MarketSlotName,
     "non.negative.int": pf.NonNegativeInt,

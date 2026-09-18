@@ -42,7 +42,6 @@ from gwsproto.enums.ta_validation_state import TaValidationState
 from gwsproto.enums.gw_str_enum import GwStrEnum, SemaEnum
 from gwsproto.enums.heat_call_interpretation import HeatCallInterpretation
 from gwsproto.enums.heat_pump_control import HeatPumpControl
-from gwsproto.enums.house0_primary_flow_source import House0PrimaryFlowSource
 from gwsproto.enums.five_v_boss_state import FiveVBossState
 from gwsproto.enums.hp_boss_state import HpBossState
 from gwsproto.enums.hp_loop_keep_send import HpLoopKeepSend
@@ -73,6 +72,7 @@ from gwsproto.enums.market_price_unit import MarketPriceUnit
 from gwsproto.enums.market_quantity_unit import MarketQuantityUnit
 from gwsproto.enums.market_type_name import MarketTypeName
 from gwsproto.enums.pico_board_variant import PicoBoardVariant
+from gwsproto.enums.primary_flow_source import PrimaryFlowSource
 from gwsproto.enums.pico_cycler_event import PicoCyclerEvent
 from gwsproto.enums.pico_cycler_state import PicoCyclerState
 from gwsproto.enums.reboot_picos import RebootPicos
@@ -136,7 +136,6 @@ __all__ = [
     "GwStrEnum",
     "HeatCallInterpretation",
     "HeatPumpControl",
-    "House0PrimaryFlowSource",
     "FiveVBossState",
     "HpBossState",
     "HpLoopKeepSend",
@@ -167,6 +166,7 @@ __all__ = [
     "MarketQuantityUnit",
     "MarketTypeName",
     "PicoBoardVariant",
+    "PrimaryFlowSource",
     "PicoCyclerEvent",
     "PicoCyclerState",
     "RebootPicos",

@@ -1,9 +1,9 @@
 from typing import List, Literal, Optional
 
-from pydantic import ConfigDict, model_validator
+from pydantic import ConfigDict, NonNegativeInt, model_validator
 from typing_extensions import Self
 
-from gwsproto.enums import House0PrimaryFlowSource
+from gwsproto.enums import PrimaryFlowSource
 from gwsproto.named_types.hvac_zone import HvacZone
 from gwsproto.named_types.zone_call_circuit import ZoneCallCircuit
 from gwsproto.property_format import SpaceheatName
@@ -16,9 +16,9 @@ class Hydronic(GwsprotoSemaType):
     """
 
     Zones: List[HvacZone]
-    ZoneCallCircuits: Optional[List[ZoneCallCircuit]] = None
-    TotalStoreTanks: int
-    PrimaryFlowSource: House0PrimaryFlowSource
+    ZoneCallCircuits: List[ZoneCallCircuit]
+    TotalStoreTanks: NonNegativeInt
+    PrimaryFlowSource: PrimaryFlowSource
     HpCommandNodeName: Optional[SpaceheatName] = None
     TypeName: Literal["gw.hydronic"] = "gw.hydronic"
     Version: Literal["000"] = "000"
@@ -28,13 +28,13 @@ class Hydronic(GwsprotoSemaType):
     def check_axiom_1(self) -> Self:
         """
         Axiom 1: Cardinality
-        a. TotalStoreTanks SHALL be between 1 and 6 inclusive.
+        a. TotalStoreTanks SHALL be at most 6.
         b. The number of Zones SHALL be between 1 and 6 inclusive.
         """
-        if not 1 <= self.TotalStoreTanks <= 6:
+        if self.TotalStoreTanks > 6:
             raise ValueError(
                 "Axiom 1 (Cardinality) failed: TotalStoreTanks "
-                f"({self.TotalStoreTanks}) must be between 1 and 6 inclusive."
+                f"({self.TotalStoreTanks}) must be at most 6."
             )
         if not 1 <= len(self.Zones) <= 6:
             raise ValueError(
@@ -50,7 +50,7 @@ class Hydronic(GwsprotoSemaType):
         a. Every circuit's ServesZone SHALL equal the Name of a zone in
         Zones. b. No two circuits SHALL share a CircuitPosition.
         """
-        circuits = self.ZoneCallCircuits or []
+        circuits = self.ZoneCallCircuits
         zone_names = {z.Name for z in self.Zones}
         for c in circuits:
             if c.ServesZone not in zone_names:
@@ -74,7 +74,7 @@ class Hydronic(GwsprotoSemaType):
         by its ServesZone SHALL carry a TempChannelName.
         """
         zones_by_name = {z.Name: z for z in self.Zones}
-        for c in self.ZoneCallCircuits or []:
+        for c in self.ZoneCallCircuits:
             zone = zones_by_name.get(c.ServesZone)
             if (
                 c.SetpointSource == "Learned"

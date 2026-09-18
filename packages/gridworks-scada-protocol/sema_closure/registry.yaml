@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-09-15T14:00:00Z"
+  last_updated: "2026-09-18T00:35:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -17,6 +17,13 @@ formats:
     created: "2026-08-12T22:15:00Z"
     status: "published"
     description: "Wall-clock time of day at minute resolution, 24-hour zero-padded HH:MM (00:00 through 23:59); timezone-free"
+
+  iana.timezone.str:
+    owner: gridworks-energy
+    schema_url: "https://schemas.electricity.works/formats/iana.timezone.str"
+    created: "2026-09-17T20:10:00Z"
+    status: "published"
+    description: "Shape of an IANA tz-database identifier: one to three slash-separated segments of letters, digits, underscore, plus, or minus (e.g. America/New_York, Etc/GMT+5, UTC); validates shape only, not membership in the current tz database"
 
   left.right.dot:
     owner: gridworks-energy
@@ -153,16 +160,16 @@ enums:
         created: "2024-10-23T19:32:00Z"
         status: "published"
 
-  gw.house0.primary.flow.source:
+  gw.primary.flow.source:
     latest_version: "000"
     owner: gridworks-energy
     enum_type: "versioned"
-    description: "How House0's primary-loop flow is obtained: measured at the primary pump, or derived as a sum over the Siegenthaler loop sensors."
+    description: "How a hydronic layout's primary-loop flow is obtained: measured at the primary pump, or derived from other sensors (DerivedSiegSum: the Siegenthaler loop's send + flow)."
 
     versions:
       "000":
-        schema_url: "https://schemas.electricity.works/enums/gw.house0.primary.flow.source/000"
-        created: "2026-06-15T17:30:00Z"
+        schema_url: "https://schemas.electricity.works/enums/gw.primary.flow.source/000"
+        created: "2026-09-17T23:55:00Z"
         status: "staging"
 
   gw1.actor.class:
@@ -351,6 +358,18 @@ enums:
         schema_url: "https://schemas.electricity.works/enums/i2c.mux.type/000"
         created: "2026-08-10T20:40:00Z"
         status: "staging"
+
+  pico.board.variant:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "The physical microcontroller board a pico-based sensor module runs on: chip generation and wifi or wired ethernet. Default Unknown."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/pico.board.variant/000"
+        created: "2026-09-08T00:30:00Z"
+        status: "published"
 
   relay.closed.or.open:
     owner: gridworks-energy
@@ -639,46 +658,6 @@ types:
             - "pascal.case"
             - "uuid4.str"
 
-  dfr.component.gt:
-    latest_version: "000"
-    owner: gridworks-energy
-    replaced_by:
-      - "i2c.dac.output.component.gt"
-    versioning_strategy: "literal"
-    description: "A DFRobot analog-output component instance: DFR0971 dual analog-out boards driving control outputs."
-
-    versions:
-      "000":
-        schema_url: "https://schemas.electricity.works/types/dfr.component.gt/000"
-        created: "2026-06-26T03:40:00Z"
-        status: "staging"
-        summary: "Initial Sema version (flattened from the scada DfrComponentGt runtime)."
-        direct_dependencies:
-          structural:
-            - "dfr.config:000"
-            - "pascal.case"
-            - "positive.int"
-            - "uuid4.str"
-
-  dfr.config:
-    latest_version: "000"
-    owner: gridworks-energy
-    replaced_by:
-      - "dac.output.config"
-    versioning_strategy: "literal"
-    description: "Per-output channel configuration for one DFRobot DFR0971 analog output (0-10V DAC)."
-
-    versions:
-      "000":
-        schema_url: "https://schemas.electricity.works/types/dfr.config/000"
-        created: "2026-06-14T12:00:00Z"
-        status: "staging"
-        summary: "Initial Sema version (flattened from the scada DfrConfig runtime). Carries only the per-channel hardware binding; capture/report tuning lives in operational-params (capture.tuning), not the static layout — no Unit/Exponent (redundant; carried by channel identity) or PollPeriodMs/CapturePeriodS/AsyncCapture/AsyncCaptureDelta."
-        direct_dependencies:
-          structural:
-            - "positive.int"
-            - "spaceheat.name"
-
   egauge.register.config:
     latest_version: "000"
     owner: gridworks-energy
@@ -803,6 +782,22 @@ types:
             - "pascal.case"
             - "uuid4.str"
 
+  gw.house0.family.params:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "The House0-family block of gw.operational.params: the knobs that presume a gw.house0.layout (Siegenthaler loop, buffer, store tanks)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.house0.family.params/000"
+        created: "2026-09-17T23:45:00Z"
+        status: "staging"
+        summary: "Initial version: UseSiegLoop, KeepBufferFull, SeasonalStorageMode. All required."
+        direct_dependencies:
+          structural:
+            - "gw1.seasonal.storage.mode:000"
+
   gw.house0.layout:
     latest_version: "000"
     owner: gridworks-energy
@@ -812,9 +807,9 @@ types:
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw.house0.layout/000"
-        created: "2026-09-10T21:25:00Z"
+        created: "2026-09-18T00:35:00Z"
         status: "staging"
-        summary: "The complete deployable artifact for a House0-fleet home: every collection and Hydronic required, never a partial layout. The word MEANS has-a-siegenthaler-loop (beech, maple); sieg-less homes are the coming gw.house0.no.sieg. Component set is eGauge / ADS111x TSnap / the House0 board record (Krida expanders + GP8403 DACs) with per-relay and per-output components / pico flow / tank + sim-tank / Hubitat + poller / web-server over the DeviceType record model. Axioms cover id uniqueness, the core and command-node Name/ActorClass contracts (sieg-loop and hp-boss unconditional command nodes, dormant when unused), per-zone heat-call channels, primary-flow source agreement, the transactive-power boundary, required flow sensing, the unconditional sieg manifold surface, the system-model energy channels and the models that produce them, the unconditional actuators (plant relays, 0-10V outputs each bound to an i2c.dac.output.component.gt, zone-circuit relay pairs), and the split-system heat-pump parts (hp-odu, hp-idu) with their components. 12 CommandableHeatPump (biconditional: Hydronic.HpCommandNodeName ⇒ hp-odu/hp-idu/hp-ctrl-box with ComponentId, ActorClass HpTwin, handle under hp-boss; every HpTwin node is the declared one); 11's NoActor clause defers to it. 13 PrefixClosedHandles + 14 ActuatorLeaves: the layout's authored handles are the initial command tree, so the tree word's two axioms hold here too (identical wording). 15 ComponentBinding (every component referenced by exactly one node)."
+        summary: "The complete deployable artifact for a House0-fleet home: every collection and Hydronic required, never a partial layout. The word MEANS has-a-siegenthaler-loop (beech, maple); sieg-less homes are the coming gw.house0.no.sieg. Component set is eGauge / ADS111x TSnap / the House0 board record (Krida expanders + GP8403 DACs) with per-relay and per-output components / pico flow / tank + sim-tank / Hubitat + poller / web-server over the DeviceType record model. Axioms cover id uniqueness, the core and command-node Name/ActorClass contracts (sieg-loop and hp-boss unconditional command nodes, dormant when unused), per-zone heat-call channels, primary-flow source agreement, the transactive-power boundary, required flow sensing, the unconditional sieg manifold surface, the system-model energy channels and the models that produce them, the unconditional actuators (plant relays, 0-10V outputs each bound to an i2c.dac.output.component.gt, zone-circuit relay pairs), and the split-system heat-pump parts (hp-odu, hp-idu) with their components. 12 CommandableHeatPump (biconditional: Hydronic.HpCommandNodeName ⇒ hp-odu/hp-idu/hp-ctrl-box with ComponentId, ActorClass HpTwin, handle under hp-boss; every HpTwin node is the declared one); 11's NoActor clause defers to it. 13 PrefixClosedHandles + 14 ActuatorLeaves: the layout's authored handles are the initial command tree, so the tree word's two axioms hold here too (identical wording). 15 ComponentBinding (every component referenced by exactly one node). 16 BoardResolution (every i2c relay and DAC output resolves through its board component to a name in the board's gw1.scada.device.type.gt record; the multichannel relay component and the generic sim relay leave the Components union). 17 BufferTank (a House0 home has a buffer tank: the buffer node and its three depth channels). Sim pico flow-module and BTU-meter components join the union."
         direct_dependencies:
           structural:
             - "ads111x.based.component.gt:000"
@@ -833,15 +828,15 @@ types:
             - "hubitat.component.gt:000"
             - "hubitat.poller.component.gt:000"
             - "i2c.dac.output.component.gt:000"
-            - "i2c.multichannel.dt.relay.component.gt:004"
             - "i2c.relay.component.gt:000"
             - "i2c.thermistor.reader.component.gt:000"
             - "pico.btu.meter.component.gt:000"
             - "pico.flow.module.component.gt:001"
             - "pico.tank.module.component.gt:012"
             - "scada.board.component.gt:000"
+            - "sim.pico.btu.meter.component.gt:000"
+            - "sim.pico.flow.module.component.gt:000"
             - "sim.pico.tank.module.component.gt:001"
-            - "sim.relay.component.gt:000"
             - "sim.sensor.component.gt:000"
             - "spaceheat.node.gt:303"
             - "web.server.component.gt:001"
@@ -849,33 +844,6 @@ types:
             - "gw0.required.energy.layered:000"
             - "gw0.usable.energy.layered:000"
             - "gw1.actor.class:014"
-
-  gw.house0.operational.params:
-    latest_version: "000"
-    owner: gridworks-energy
-    versioning_strategy: "literal"
-    description: "Operational/optimization parameters for one House0-fleet home: per-channel capture tuning + modes, COP and heating curves, and optimization knobs."
-
-    versions:
-      "000":
-        schema_url: "https://schemas.electricity.works/types/gw.house0.operational.params/000"
-        created: "2026-09-12T22:45:00Z"
-        status: "staging"
-        summary: "ScadaAlias (the applying Scada's identity — stored/emitted instances self-identify; the layout holds the full GNodes) + CaptureTuningList + ActuationAuthority x ServiceMode (authority dominates; ServiceMode inert outside Active) + SeasonalStorageMode + UseSiegLoop (moved in from gw.hydronic: running the loop is operational) + CopCurve + HeatingCurve + HpTurnOnMinutes + HpMaxKwEl + ShortCycleBuffer + LoadOverestimationPercent + OilBoilerBackup + HorizonHours + OnPeakWindows (gw.tou.window with explicit Days). All required — no assumed defaults. Pairs with its layout by family. HpMaxKwEl moved in from scada deployment config; OnPeakWindows added so this word and gw.nolan.operational.params carry identical field sets. ZeroTenPowerOnList added (zero.ten.power.on per 0-10V output: the power-on level moved out of dac.output.config)."
-        direct_dependencies:
-          structural:
-            - "capture.tuning:000"
-            - "cop.curve:000"
-            - "gw.tou.window:000"
-            - "gw1.actuation.authority:000"
-            - "gw1.seasonal.storage.mode:000"
-            - "gw1.service.mode:000"
-            - "heating.curve:000"
-            - "left.right.dot"
-            - "non.negative.int"
-            - "positive.float"
-            - "positive.int"
-            - "zero.ten.power.on:000"
 
   gw.hydronic:
     latest_version: "000"
@@ -886,12 +854,12 @@ types:
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw.hydronic/000"
-        created: "2026-08-11T17:15:00Z"
+        created: "2026-09-17T23:55:00Z"
         status: "staging"
-        summary: "- Typed hydronic block promoted out of gw.house0.layout's freeform Hydronic: Zones (gw1.hvac.zone list), optional ZoneCallCircuits (gw1.zone.call.circuit list), TotalStoreTanks, PrimaryFlowSource (gw.house0.primary.flow.source), Strategy. Axioms: Cardinality, CircuitResolution, LearnedNeedsTempChannel. The Siegenthaler-loop flags left this word: plumbed-ness is what a has-sieg layout word means, and use is operational (gw.house0.operational.params UseSiegLoop). - HpCommandNodeName (optional spaceheat.name): the node that takes heat-pump commands under hp-boss; absent = nothing commands the heat pump. The layout words' CommandableHeatPump axiom governs it. - Strategy dropped: the control family is the layout word's own TypeName (invariant per word, so not a data field; the same rule that retired SiegLoopPlumbed)."
+        summary: "- Typed hydronic block promoted out of gw.house0.layout's freeform Hydronic: Zones (gw1.hvac.zone list), ZoneCallCircuits (gw1.zone.call.circuit list, required: every layout word requires it non-empty), TotalStoreTanks, PrimaryFlowSource (gw.primary.flow.source), Strategy. Axioms: Cardinality, CircuitResolution, LearnedNeedsTempChannel. The Siegenthaler-loop flags left this word: plumbed-ness is what a has-sieg layout word means, and use is operational (gw.house0.family.params UseSiegLoop). - HpCommandNodeName (optional spaceheat.name): the node that takes heat-pump commands under hp-boss; absent = nothing commands the heat pump. The layout words' CommandableHeatPump axiom governs it. - Strategy dropped: the control family is the layout word's own TypeName (invariant per word, so not a data field; the same rule that retired SiegLoopPlumbed). - TotalStoreTanks may be zero (a store that is not water tanks); the Cardinality axiom keeps only the upper bound of 6."
         direct_dependencies:
           structural:
-            - "gw.house0.primary.flow.source:000"
+            - "gw.primary.flow.source:000"
             - "gw1.hvac.zone:000"
             - "gw1.zone.call.circuit:000"
             - "non.negative.int"
@@ -914,6 +882,22 @@ types:
             - "non.negative.int"
             - "pascal.case"
 
+  gw.nolan.family.params:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "The Nolan-family block of gw.operational.params: the knobs that presume a gw.nolan.layout (buffer, one store tank)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.nolan.family.params/000"
+        created: "2026-09-17T23:45:00Z"
+        status: "staging"
+        summary: "Initial version: KeepBufferFull, SeasonalStorageMode. All required."
+        direct_dependencies:
+          structural:
+            - "gw1.seasonal.storage.mode:000"
+
   gw.nolan.layout:
     latest_version: "000"
     owner: gridworks-energy
@@ -923,9 +907,9 @@ types:
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw.nolan.layout/000"
-        created: "2026-09-10T21:25:00Z"
+        created: "2026-09-18T00:35:00Z"
         status: "staging"
-        summary: "Axioms mirror the names tiers: 1 TransactivePowerChannel, 2 BoardResolution, 3 CoreShNodesExistenceAndActorClass (identical wording across layout words), 4 CommandNodesExistenceAndActorClass (n, five-v-boss, pico-cycler, hp-boss), 5 RequiredActuators (plant relays incl. the per-tank tank1 element relays + circuit relay binding), 6 RequiredHeatpumpEquipment (hp-odu, hp-ctrl-box with components; a Nolan home is a monobloc), 7 ComponentBinding (every component referenced by exactly one node), 8 RequiredSensing (kind-agnostic names incl. HP and resistive-element power channels), 9 SingleStoreTank. Components are the cac-free DeviceType versions; DeviceTypes holds the specialized <family>.device.type.gt records; relay and opto components are board-generic; nodes/channels ride spaceheat.node.gt/303 + data.channel.gt/003. 10 CommandableHeatPump (biconditional: Hydronic.HpCommandNodeName ⇒ hp-odu/hp-idu/hp-ctrl-box with ComponentId, ActorClass HpTwin, handle under hp-boss; every HpTwin node is the declared one); 6's NoActor clause defers to it. 11 PrefixClosedHandles + 12 ActuatorLeaves: the layout's authored handles are the initial command tree, so the tree word's two axioms hold here too (identical wording)."
+        summary: "Axioms mirror the names tiers: 1 TransactivePowerChannel, 2 BoardResolution (gpio sensors/relays, i2c thermistor readers, i2c relays, and DAC outputs each resolve through their board component to a name in the board's gw1.scada.device.type.gt record), 3 CoreShNodesExistenceAndActorClass (identical wording across layout words), 4 CommandNodesExistenceAndActorClass (n, five-v-boss, pico-cycler, hp-boss), 5 RequiredActuators (plant relays incl. the per-tank tank1 element relays + circuit relay binding), 6 RequiredHeatpumpEquipment (hp-odu, hp-ctrl-box with components; a Nolan home is a monobloc), 7 ComponentBinding (every component referenced by exactly one node), 8 RequiredSensing (kind-agnostic names incl. HP and resistive-element power channels), 9 SingleStoreTank. Components are the cac-free DeviceType versions; DeviceTypes holds the specialized <family>.device.type.gt records; the multichannel relay component and the generic sim relay leave the union (the scada builds Nolan relays on per-relay i2c.relay.component.gt against the board record, same as House0); nodes/channels ride spaceheat.node.gt/303 + data.channel.gt/003. 10 CommandableHeatPump (biconditional: Hydronic.HpCommandNodeName ⇒ hp-odu/hp-idu/hp-ctrl-box with ComponentId, ActorClass HpTwin, handle under hp-boss; every HpTwin node is the declared one); 6's NoActor clause defers to it. 11 PrefixClosedHandles + 12 ActuatorLeaves: the layout's authored handles are the initial command tree, so the tree word's two axioms hold here too (identical wording). sim.pico.flow.module.component.gt and sim.pico.btu.meter.component.gt join the union, completing the sim pico triple alongside sim.pico.tank.module.component.gt."
         direct_dependencies:
           structural:
             - "ads111x.based.device.type.gt:000"
@@ -942,39 +926,40 @@ types:
             - "hp.control.box.device.type.gt:000"
             - "hp.device.type.gt:000"
             - "i2c.dac.output.component.gt:000"
-            - "i2c.multichannel.dt.relay.component.gt:004"
             - "i2c.relay.component.gt:000"
             - "i2c.thermistor.reader.component.gt:000"
             - "pico.btu.meter.component.gt:000"
             - "pico.tank.module.component.gt:012"
             - "scada.board.component.gt:000"
+            - "sim.pico.btu.meter.component.gt:000"
+            - "sim.pico.flow.module.component.gt:000"
             - "sim.pico.tank.module.component.gt:001"
-            - "sim.relay.component.gt:000"
             - "sim.sensor.component.gt:000"
             - "spaceheat.node.gt:303"
             - "web.server.component.gt:001"
           axiom:
             - "gw1.actor.class:014"
 
-  gw.nolan.operational.params:
+  gw.operational.params:
     latest_version: "000"
     owner: gridworks-energy
     versioning_strategy: "literal"
-    description: "Operational parameters for one Nolan-family (gw108) home: per-channel capture tuning, actuation authority x service mode, COP/heating curves, and the cooling-season TOU schedule (on-peak windows)."
+    description: "Operational/optimization parameters for one home: the fields every layout family tunes, plus a FamilyParams block (oneOf the <family>.family.params words) for the knobs that presume a layout feature."
 
     versions:
       "000":
-        schema_url: "https://schemas.electricity.works/types/gw.nolan.operational.params/000"
-        created: "2026-09-12T22:45:00Z"
+        schema_url: "https://schemas.electricity.works/types/gw.operational.params/000"
+        created: "2026-09-17T23:45:00Z"
         status: "staging"
-        summary: "ScadaAlias (the applying Scada's identity — stored/emitted instances self-identify; the layout holds the full GNodes) + CaptureTuningList + ActuationAuthority x ServiceMode (authority dominates; ServiceMode inert outside Active) + SeasonalStorageMode + CopCurve + HeatingCurve + HpTurnOnMinutes + HpMaxKwEl + ShortCycleBuffer + LoadOverestimationPercent + OilBoilerBackup + HorizonHours + OnPeakWindows (gw.tou.window with explicit Days). All required — no assumed defaults. Pairs with its layout by family. HeldCircuitPositions dropped. The store/optimization knobs are carried so this word and gw.house0.operational.params have identical field sets — Nolan has no thermal store to season, and they come back out as the functional code that still reads them (LeafAlly selection, layout.lite) is moved off them. ZeroTenPowerOnList added (zero.ten.power.on per 0-10V output: the power-on level moved out of dac.output.config)."
+        summary: "Initial version. ScadaAlias (the applying Scada's identity — stored/emitted instances self-identify; the layout holds the full GNodes) + FamilyParams (oneOf gw.house0.family.params / gw.nolan.family.params, discriminated by TypeName; the family TypeName pairs the instance with its layout family, so a mismatched pair fails at decode) + CaptureTuningList + ZeroTenPowerOnList + ActuationAuthority x ServiceMode (authority dominates; ServiceMode inert outside Active) + CopCurve + HeatingCurve + HpTurnOnMinutes + HpMaxKwEl + LoadOverestimationPercent + OilBoilerBackup + HorizonHours + Tariff (gw.tou.tariff). All required — no assumed defaults. Axioms 1-2: ChannelName unique across CaptureTuningList, NodeName unique across ZeroTenPowerOnList."
         direct_dependencies:
           structural:
             - "capture.tuning:000"
             - "cop.curve:000"
-            - "gw.tou.window:000"
+            - "gw.house0.family.params:000"
+            - "gw.nolan.family.params:000"
+            - "gw.tou.tariff:000"
             - "gw1.actuation.authority:000"
-            - "gw1.seasonal.storage.mode:000"
             - "gw1.service.mode:000"
             - "heating.curve:000"
             - "left.right.dot"
@@ -982,6 +967,24 @@ types:
             - "positive.float"
             - "positive.int"
             - "zero.ten.power.on:000"
+
+  gw.tou.tariff:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A time-of-use tariff as the heating system sees it: Alias, DisplayName, TimezoneStr (iana.timezone.str) and the recurring on-peak windows; every other hour is off-peak."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.tou.tariff/000"
+        created: "2026-09-17T20:10:00Z"
+        status: "staging"
+        summary: "Initial version: Alias (left.right.dot), DisplayName, TimezoneStr (iana.timezone.str, the new format word replacing a bare string), OnPeakWindows (gw.tou.window list). Axiom 1: per-day window non-overlap (moved here from the two operational-params words)."
+        direct_dependencies:
+          structural:
+            - "gw.tou.window:000"
+            - "iana.timezone.str"
+            - "left.right.dot"
 
   gw.tou.window:
     latest_version: "000"
@@ -1361,28 +1364,6 @@ types:
             - "pascal.case"
             - "positive.int"
 
-  i2c.multichannel.dt.relay.component.gt:
-    latest_version: "004"
-    owner: gridworks-energy
-    versioning_strategy: "literal"
-    description: "Configuration for a multi-channel I2C relay board component."
-
-    versions:
-      "004":
-        schema_url: "https://schemas.electricity.works/types/i2c.multichannel.dt.relay.component.gt/004"
-        created: "2026-08-13T16:30:00Z"
-        status: "staging"
-        summary: "- AsyncCaptureDelta: ConfigList[0] example now sets it explicitly (the
-  relay.actor.config dependency itself is unchanged from 003: :002)
-- ComponentAttributeClassId (cac UUID) -> DeviceType (gw1.device.type value, pascal.case).
-  Context-dependent: the device type lived on the referenced cac, not the component."
-        direct_dependencies:
-          structural:
-            - "pascal.case"
-            - "relay.actor.config:003"
-            - "spaceheat.name"
-            - "uuid4.str"
-
   i2c.mux:
     latest_version: "000"
     owner: gridworks-energy
@@ -1539,7 +1520,7 @@ types:
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/pico.btu.meter.component.gt/000"
-        created: "2026-06-12T19:15:00Z"
+        created: "2026-09-18T00:35:00Z"
         status: "staging"
         summary: "Initial Sema version (flattened from the scada PicoBtuMeterComponentGt runtime). ComponentAttributeClassId (cac UUID) -> DeviceType (gw1.device.type value, pascal.case): the device type lived on the referenced cac, not the component. FlowMeterType: spaceheat.make.model enum value -> gw1.device.type value (pascal.case); the device-type enum is articulated by the hardware layout. ConfigList dropped."
         direct_dependencies:
@@ -1547,6 +1528,7 @@ types:
             - "gpm.from.hz.method:000"
             - "hz.calc.method:001"
             - "pascal.case"
+            - "pico.board.variant:000"
             - "positive.float"
             - "spaceheat.name"
             - "temp.calc.method:000"
@@ -1561,7 +1543,7 @@ types:
     versions:
       "001":
         schema_url: "https://schemas.electricity.works/types/pico.flow.module.component.gt/001"
-        created: "2026-06-26T03:40:00Z"
+        created: "2026-09-18T00:35:00Z"
         status: "staging"
         summary: "- ComponentAttributeClassId (cac UUID) -> DeviceType (gw1.device.type value, pascal.case). Context-dependent: the device type lived on the referenced cac, not the component. - FlowMeterType: spaceheat.make.model enum value -> gw1.device.type value (pascal.case); the device-type enum is articulated by the hardware layout."
         direct_dependencies:
@@ -1569,6 +1551,7 @@ types:
             - "gpm.from.hz.method:000"
             - "hz.calc.method:001"
             - "pascal.case"
+            - "pico.board.variant:000"
             - "spaceheat.name"
             - "uuid4.str"
 
@@ -1581,40 +1564,16 @@ types:
     versions:
       "012":
         schema_url: "https://schemas.electricity.works/types/pico.tank.module.component.gt/012"
-        created: "2026-06-26T03:40:00Z"
+        created: "2026-09-18T00:35:00Z"
         status: "staging"
         summary: "- ComponentAttributeClassId (cac UUID) -> DeviceType (gw1.device.type value, pascal.case). Context-dependent: the device type lived on the referenced cac, not the component."
         direct_dependencies:
           structural:
             - "pascal.case"
+            - "pico.board.variant:000"
             - "positive.int"
             - "temp.calc.method:000"
             - "uuid4.str"
-
-  relay.actor.config:
-    latest_version: "003"
-    owner: gridworks-energy
-    versioning_strategy: "literal"
-    description: "Configuration for a relay-backed actor controlling a physical or logical switching device."
-    replaced_by:
-      - "relay.control.config"
-
-    versions:
-      "003":
-        schema_url: "https://schemas.electricity.works/types/relay.actor.config/003"
-        created: "2026-08-13T16:14:00Z"
-        status: "staging"
-        summary: "- Unit: drop (redundant; unit and scaling are carried by channel identity) - Exponent: drop (redundant; unit and scaling are carried by channel identity) - CapturePeriodS / AsyncCapture / AsyncCaptureDelta / PollPeriodMs: drop (capture/report tuning moved to operational-params capture.tuning)"
-        direct_dependencies:
-          structural:
-            - "left.right.dot"
-            - "non.empty.string"
-            - "positive.int"
-            - "relay.wiring.config:000"
-            - "spaceheat.name"
-          axiom:
-            - "change.relay.state:000"
-            - "relay.closed.or.open:000"
 
   relay.control.config:
     latest_version: "000"
@@ -1656,6 +1615,50 @@ types:
             - "pascal.case"
             - "uuid4.str"
 
+  sim.pico.btu.meter.component.gt:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Simulation configuration corresponding to pico.btu.meter.component.gt (the component-faithful simulation facet)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/sim.pico.btu.meter.component.gt/000"
+        created: "2026-09-17T12:55:00Z"
+        status: "staging"
+        summary: "Initial version: the pico.btu.meter.component.gt/000 field set plus SimLifeS / SimRebootS; SimulatesTypeName / SimulatesVersion pin the mirrored word."
+        direct_dependencies:
+          structural:
+            - "gpm.from.hz.method:000"
+            - "hz.calc.method:001"
+            - "pascal.case"
+            - "positive.float"
+            - "positive.int"
+            - "spaceheat.name"
+            - "temp.calc.method:000"
+            - "uuid4.str"
+
+  sim.pico.flow.module.component.gt:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Simulation configuration corresponding to pico.flow.module.component.gt (the component-faithful simulation facet)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/sim.pico.flow.module.component.gt/000"
+        created: "2026-09-17T12:55:00Z"
+        status: "staging"
+        summary: "Initial version: the pico.flow.module.component.gt/001 field set plus SimLifeS / SimRebootS; SimulatesTypeName / SimulatesVersion pin the mirrored word. Axiom 1 HwUidPattern as on the real word."
+        direct_dependencies:
+          structural:
+            - "gpm.from.hz.method:000"
+            - "hz.calc.method:001"
+            - "pascal.case"
+            - "positive.int"
+            - "spaceheat.name"
+            - "uuid4.str"
+
   sim.pico.tank.module.component.gt:
     latest_version: "001"
     owner: gridworks-energy
@@ -1673,24 +1676,6 @@ types:
             - "pascal.case"
             - "positive.int"
             - "temp.calc.method:000"
-            - "uuid4.str"
-
-  sim.relay.component.gt:
-    latest_version: "000"
-    owner: gridworks-energy
-    versioning_strategy: "literal"
-    description: "A simulated relay component — what the scada-side SimRelayActor's relay node uses in a simulated layout (the sim.* counterpart of a relay component)."
-
-    versions:
-      "000":
-        schema_url: "https://schemas.electricity.works/types/sim.relay.component.gt/000"
-        created: "2026-08-13T16:30:00Z"
-        status: "staging"
-        summary: "Initial Sema version (sim-marker relay component for simulated layouts)."
-        direct_dependencies:
-          structural:
-            - "pascal.case"
-            - "relay.actor.config:003"
             - "uuid4.str"
 
   sim.sensor.component.gt:

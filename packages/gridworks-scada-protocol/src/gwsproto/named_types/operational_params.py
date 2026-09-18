@@ -1,38 +1,41 @@
-from typing import List, Literal
+from typing import Annotated, List, Literal, Union
 
-from pydantic import NonNegativeInt, PositiveFloat, PositiveInt, model_validator
+from pydantic import Field, NonNegativeInt, PositiveFloat, PositiveInt, model_validator
 from typing_extensions import Self
 
-from gwsproto.enums import ActuationAuthority, SeasonalStorageMode, ServiceMode
+from gwsproto.enums import ActuationAuthority, ServiceMode
 from gwsproto.named_types.capture_tuning import CaptureTuning
 from gwsproto.named_types.cop_curve import CopCurve
 from gwsproto.named_types.heating_curve import HeatingCurve
-from gwsproto.named_types.tou_window import TouWindow
+from gwsproto.named_types.house0_family_params import House0FamilyParams
+from gwsproto.named_types.nolan_family_params import NolanFamilyParams
+from gwsproto.named_types.tou_tariff import TouTariff
 from gwsproto.named_types.zero_ten_power_on import ZeroTenPowerOn
 from gwsproto.property_format import LeftRightDotStr
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class House0OperationalParams(GwsprotoSemaType):
-    """Sema: https://schemas.electricity.works/types/gw.house0.operational.params/000"""
+class OperationalParams(GwsprotoSemaType):
+    """Sema: https://schemas.electricity.works/types/gw.operational.params/000"""
 
     ScadaAlias: LeftRightDotStr
+    FamilyParams: Annotated[
+        Union[House0FamilyParams, NolanFamilyParams],
+        Field(discriminator="TypeName"),
+    ]
     CaptureTuningList: List[CaptureTuning]
     ZeroTenPowerOnList: List[ZeroTenPowerOn]
     ActuationAuthority: ActuationAuthority
     ServiceMode: ServiceMode
-    SeasonalStorageMode: SeasonalStorageMode
-    UseSiegLoop: bool
     CopCurve: CopCurve
     HeatingCurve: HeatingCurve
     HpTurnOnMinutes: PositiveInt
     HpMaxKwEl: PositiveFloat
-    ShortCycleBuffer: bool
     LoadOverestimationPercent: NonNegativeInt
     OilBoilerBackup: bool
     HorizonHours: PositiveInt
-    OnPeakWindows: List[TouWindow]
-    TypeName: Literal["gw.house0.operational.params"] = "gw.house0.operational.params"
+    Tariff: TouTariff
+    TypeName: Literal["gw.operational.params"] = "gw.operational.params"
     Version: Literal["000"] = "000"
 
     @model_validator(mode="after")
@@ -65,26 +68,4 @@ class House0OperationalParams(GwsprotoSemaType):
                 "Axiom 2 (ZeroTenPowerOnNodeUniqueness) failed: NodeName must be "
                 f"unique across ZeroTenPowerOnList; duplicates: {duplicates}"
             )
-        return self
-
-    @model_validator(mode="after")
-    def check_axiom_3(self) -> Self:
-        """
-        Axiom 3: PerDayWindowNonOverlap.
-        For each day of the week, the windows in OnPeakWindows whose Days
-        include that day SHALL NOT overlap one another.
-        """
-        days = {day for w in self.OnPeakWindows for day in w.Days}
-        for day in days:
-            todays = sorted(
-                (w for w in self.OnPeakWindows if day in w.Days),
-                key=lambda w: w.Start,
-            )
-            for earlier, later in zip(todays, todays[1:]):
-                if later.Start < earlier.End:
-                    raise ValueError(
-                        "Axiom 3 (PerDayWindowNonOverlap) failed: on "
-                        f"{day} window {later.Start}-{later.End} overlaps "
-                        f"{earlier.Start}-{earlier.End}."
-                    )
         return self

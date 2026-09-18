@@ -11,7 +11,7 @@ def test_layout_lite_generated() -> None:
         "ActuationAuthority": "Active",
         "ServiceMode": "Heating",
         "SeasonalStorageMode": "AllTanks",
-        "BufferShortCycling": False,
+        "KeepBufferFull": False,
         "CriticalZoneList": ["Down"],
         "TotalStoreTanks": 3,
         "Ha1Params": {
@@ -95,6 +95,7 @@ def test_layout_lite_generated() -> None:
                 "TempCalcMethod": "SimpleBeta",
                 "ThermistorBeta": 3977,
                 "AsyncCaptureDeltaMicroVolts": 2000,
+                "PicoBoardVariant": "PicoRaspberryWifi2040",
                 "TypeName": "pico.tank.module.component.gt",
                 "Version": "012",
             }
@@ -120,6 +121,7 @@ def test_layout_lite_generated() -> None:
                 "SendHz": True,
                 "SendTickLists": False,
                 "SerialNumber": "NA",
+                "PicoBoardVariant": "PicoRaspberryWifi2040",
                 "TypeName": "pico.flow.module.component.gt",
                 "Version": "001",
             }

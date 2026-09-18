@@ -588,7 +588,7 @@ class House0Hydronic(HydronicNode):
         """
 
         # Select the best available "top of buffer" temperature channel
-        if all_tanks_leaf_ally and self.ops.ShortCycleBuffer and HCN.buffer.depth3 in self.latest_temps_f:
+        if all_tanks_leaf_ally and self.ops.FamilyParams.KeepBufferFull and HCN.buffer.depth3 in self.latest_temps_f:
             buffer_empty_ch = HCN.buffer.depth3
         elif HCN.buffer.depth1 in self.latest_temps_f:
             buffer_empty_ch = HCN.buffer.depth1
@@ -607,7 +607,7 @@ class House0Hydronic(HydronicNode):
         # Conservative near-term requirement (next ~3 hours)
         max_rswt = max(self.heating_forecast.RswtF[:3])
         max_delta_t = max(self.heating_forecast.RswtDeltaTF[:3])
-        if all_tanks_leaf_ally and self.ops.ShortCycleBuffer:
+        if all_tanks_leaf_ally and self.ops.FamilyParams.KeepBufferFull:
             min_buffer_temp_f = round(max_rswt - max_delta_t, 1)
         else:
             min_buffer_temp_f = round(max_rswt, 1)
@@ -725,7 +725,7 @@ class House0Hydronic(HydronicNode):
             buffer_top = HCN.buffer.depth3
         elif HCN.buffer_cold_pipe in self.latest_temps_f:
             buffer_top = HCN.buffer_cold_pipe
-        elif not all_tanks_leaf_ally or not self.ops.ShortCycleBuffer:
+        elif not all_tanks_leaf_ally or not self.ops.FamilyParams.KeepBufferFull:
             return False
 
         # --- Determine storage top ---
@@ -740,7 +740,7 @@ class House0Hydronic(HydronicNode):
             return False
 
         # --- Determine buffer bottom ---
-        if all_tanks_leaf_ally and self.ops.ShortCycleBuffer:
+        if all_tanks_leaf_ally and self.ops.FamilyParams.KeepBufferFull:
             if HCN.buffer.depth3 in self.latest_temps_f:
                 buffer_bottom = HCN.buffer.depth3
             elif HCN.buffer.depth2 in self.latest_temps_f:

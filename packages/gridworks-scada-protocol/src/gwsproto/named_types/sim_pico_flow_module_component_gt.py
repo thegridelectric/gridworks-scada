@@ -1,14 +1,16 @@
 import re
 from typing import Literal, Optional
 
-from pydantic import field_validator
+from pydantic import ConfigDict, PositiveInt, field_validator
 
-from gwsproto.enums import GpmFromHzMethod, HzCalcMethod, PicoBoardVariant
+from gwsproto.enums import GpmFromHzMethod, HzCalcMethod
 from gwsproto.type_helpers.component_base import DeviceComponentBase
 from gwsproto.property_format import SpaceheatName
 
 
-class PicoFlowModuleComponentGt(DeviceComponentBase):
+class SimPicoFlowModuleComponentGt(DeviceComponentBase):
+    """Sema: https://schemas.electricity.works/types/sim.pico.flow.module.component.gt/000"""
+
     Enabled: bool
     SerialNumber: str
     FlowNodeName: SpaceheatName
@@ -27,10 +29,14 @@ class PicoFlowModuleComponentGt(DeviceComponentBase):
     PublishTicklistLength: Optional[int] = None  # required for Reed Params
     ExpAlpha: Optional[float] = None
     CutoffFrequency: Optional[float] = None
-    PicoBoardVariant: PicoBoardVariant
-    MicropythonVersion: Optional[str] = None
-    TypeName: Literal["pico.flow.module.component.gt"] = "pico.flow.module.component.gt"
-    Version: Literal["001"] = "001"
+    SimLifeS: Optional[PositiveInt] = None
+    SimRebootS: Optional[PositiveInt] = None
+    SimulatesTypeName: Literal["pico.flow.module.component.gt"] = "pico.flow.module.component.gt"
+    SimulatesVersion: Literal["001"] = "001"
+    TypeName: Literal["sim.pico.flow.module.component.gt"] = "sim.pico.flow.module.component.gt"
+    Version: Literal["000"] = "000"
+
+    model_config = ConfigDict(extra="allow")
 
     @field_validator("HwUid")
     @classmethod

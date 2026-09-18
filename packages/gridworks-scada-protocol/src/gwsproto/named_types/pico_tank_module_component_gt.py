@@ -3,7 +3,7 @@ from typing import Literal, Optional
 from pydantic import ConfigDict, PositiveInt, model_validator
 from typing_extensions import Self
 
-from gwsproto.enums import TempCalcMethod
+from gwsproto.enums import PicoBoardVariant, TempCalcMethod
 from gwsproto.type_helpers.component_base import DeviceComponentBase
 
 
@@ -21,6 +21,8 @@ class PicoTankModuleComponentGt(DeviceComponentBase):
     SerialNumber: str = "NA"
     AsyncCaptureDeltaMicroVolts: int
     SensorOrder: list[int] | None = None
+    PicoBoardVariant: PicoBoardVariant
+    MicropythonVersion: Optional[str] = None
     TypeName: Literal["pico.tank.module.component.gt"] = "pico.tank.module.component.gt"
     Version: Literal["012"] = "012"
 

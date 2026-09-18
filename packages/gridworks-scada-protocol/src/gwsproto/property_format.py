@@ -149,6 +149,21 @@ def is_hh_mm(candidate: str) -> str:
     return candidate
 
 
+def is_iana_timezone_str(candidate: str) -> str:
+    """Shape of an IANA tz-database identifier: one to three slash-separated
+    segments (e.g. "America/New_York", "Etc/GMT+5", "UTC"). Shape only, not
+    membership in the tz database.
+
+    Raises:
+        ValueError: if candidate is not of iana.timezone.str format
+    """
+    if not isinstance(candidate, str) or not re.fullmatch(
+        r"[A-Za-z_]+(/[A-Za-z0-9_+-]+){0,2}", candidate
+    ):
+        raise ValueError(f"<{candidate}>: Fails iana.timezone.str format.")
+    return candidate
+
+
 def is_left_right_dot(candidate: str) -> str:
     """Lowercase AlphanumericStrings separated by dots (i.e. periods), with most
     significant word to the left.  I.e. `d1.ne` is the child of `d1`.
@@ -335,6 +350,7 @@ Bit = Annotated[int, BeforeValidator(is_bit)]
 HandleName = Annotated[str, BeforeValidator(is_handle_name)]
 HexChar = Annotated[str, BeforeValidator(is_hex_char)]
 HhMm = Annotated[str, BeforeValidator(is_hh_mm)]
+IanaTimezoneStr = Annotated[str, BeforeValidator(is_iana_timezone_str)]
 LeftRightDotStr = Annotated[str, BeforeValidator(is_left_right_dot)]
 MarketName = Annotated[str, BeforeValidator(is_market_name)]
 MarketSlotName = Annotated[str, BeforeValidator(is_market_slot_name)]

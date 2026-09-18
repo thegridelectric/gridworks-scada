@@ -31,7 +31,7 @@ class LayoutLite(GwsprotoSemaType):
     ActuationAuthority: ActuationAuthority
     ServiceMode: ServiceMode
     SeasonalStorageMode: SeasonalStorageMode
-    BufferShortCycling: bool
+    KeepBufferFull: bool
     ZoneList: List[str]
     CriticalZoneList: List[str]
     TotalStoreTanks: PositiveInt

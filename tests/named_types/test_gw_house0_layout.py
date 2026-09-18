@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from gwsproto.named_types import House0Layout, House0OperationalParams, NolanLayout
+from gwsproto.named_types import House0Layout, OperationalParams, NolanLayout
 from sema_to_dc import assemble_runtime_layout, check_sieg_loop_assembly
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -25,7 +25,7 @@ PAIRS = {
 @pytest.fixture(scope="module", params=sorted(PAIRS))
 def assembled(request: pytest.FixtureRequest) -> dict:
     layout, ops_file = PAIRS[request.param]
-    ops = House0OperationalParams.model_validate_json((CONFIG / ops_file).read_text())
+    ops = OperationalParams.model_validate_json((CONFIG / ops_file).read_text())
     return assemble_runtime_layout(
         json.loads((CONFIG / layout).read_text()),
         ops.model_dump(by_alias=True, exclude_none=True),
@@ -205,7 +205,7 @@ def test_sieg_loop_assembly_check(assembled: dict) -> None:
     the House0 pair passes; the same ops over the Nolan layout (no loop)
     refuses at assembly, the check that replaced gw.hydronic's old axiom 1."""
     layout = House0Layout.model_validate(assembled)
-    ops = House0OperationalParams.model_validate_json(
+    ops = OperationalParams.model_validate_json(
         (CONFIG / "gw.house0.orange.operational.params.json").read_text()
     ).model_copy(update={"UseSiegLoop": True})
     check_sieg_loop_assembly(layout, ops)
@@ -293,3 +293,48 @@ def test_gw_house0_layout_axiom_14_b(assembled: dict) -> None:
             if n["Name"] == "hp-odu":
                 n["Handle"] = "auto.lc.n.hp-boss.hp-odu"
     reject(assembled, stray_leaf, "Axiom 14")
+
+
+def test_gw_house0_layout_axiom_16_dangling_board(assembled: dict) -> None:
+    """An i2c relay's BoardComponentId must resolve to a board component."""
+
+    def dangle(d: dict) -> None:
+        for c in d["Components"]:
+            if c["TypeName"] == "i2c.relay.component.gt":
+                c["BoardComponentId"] = "00000000-0000-4000-8000-000000000000"
+
+    reject(assembled, dangle, "Axiom 16")
+
+
+def test_gw_house0_layout_axiom_16_unknown_dac_name(assembled: dict) -> None:
+    """A DAC output's DacName must be one the board record offers."""
+
+    def rename(d: dict) -> None:
+        for c in d["Components"]:
+            if c["TypeName"] == "i2c.dac.output.component.gt":
+                c["DacName"] = "NoSuchDac"
+
+    reject(assembled, rename, "Axiom 16")
+
+
+def test_gw_house0_layout_axiom_17_no_buffer_node(assembled: dict) -> None:
+    """The buffer node under another name: nothing else breaks, the word still
+    rejects."""
+
+    def rename(d: dict) -> None:
+        for n in d["ShNodes"]:
+            if n["Name"] == "buffer":
+                n["Name"] = "buffer-tank"
+                for key in ("ActorHierarchyName", "Handle"):
+                    if key in n:
+                        n[key] = n[key].removesuffix("buffer") + "buffer-tank"
+
+    reject(assembled, rename, "Axiom 17")
+
+
+def test_gw_house0_layout_axiom_17_missing_depth_channel(assembled: dict) -> None:
+    def drop(d: dict) -> None:
+        for key in ("DataChannels", "DerivedChannels"):
+            d[key] = [c for c in d[key] if c["Name"] != "buffer-depth2"]
+
+    reject(assembled, drop, "Axiom 17")

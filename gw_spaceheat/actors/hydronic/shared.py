@@ -51,7 +51,7 @@ class HydronicNode(CommandNode):
         hh_mm = at.strftime("%H:%M")
         return any(
             day in window.Days and window.Start <= hh_mm < window.End
-            for window in self.ops.OnPeakWindows
+            for window in self.ops.Tariff.OnPeakWindows
         )
 
     def just_before_onpeak(self) -> bool:

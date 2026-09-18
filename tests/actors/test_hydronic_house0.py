@@ -494,8 +494,8 @@ def set_flowing(actor: House0Hydronic, flowing: bool) -> None:
     actor.data.latest_channel_values[HCN.primary_flow] = 500
 
 
-def short_cycle_buffer(actor: House0Hydronic, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(actor.ops, "ShortCycleBuffer", True)
+def keep_buffer_full(actor: House0Hydronic, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(actor.ops.FamilyParams, "KeepBufferFull", True)
 
 
 def info_glitches(actor: House0Hydronic) -> list[Glitch]:
@@ -547,7 +547,7 @@ def test_buffer_empty_short_cycle_ally_uses_depth3_and_the_delta_t(
     assert (
         actor.is_buffer_empty(all_tanks_leaf_ally=True) is True
     )  # ops word off: depth1 vs 130
-    short_cycle_buffer(actor, monkeypatch)
+    keep_buffer_full(actor, monkeypatch)
     assert (
         actor.is_buffer_empty(all_tanks_leaf_ally=True) is False
     )  # depth3 125 >= 130 - 10
@@ -649,7 +649,7 @@ def test_storage_colder_than_buffer_short_cycle_ally_compares_the_buffer_bottom(
     assert (
         actor.is_storage_colder_than_buffer(all_tanks_leaf_ally=True) is True
     )  # ops word off: 140 vs 125
-    short_cycle_buffer(actor, monkeypatch)
+    keep_buffer_full(actor, monkeypatch)
     assert (
         actor.is_storage_colder_than_buffer(all_tanks_leaf_ally=True) is False
     )  # 120 > 125 is false

@@ -16,17 +16,17 @@ class LeafAlly(ShNodeActor):
         if self.layout.layout_type_name == "gw.nolan.layout":
             module = importlib.import_module("actors.leaf_ally.nolan")
             impl_class = getattr(module, "NolanLeafAlly")
-        elif self.ops.SeasonalStorageMode == SeasonalStorageMode.AllTanks:
+        elif self.ops.FamilyParams.SeasonalStorageMode == SeasonalStorageMode.AllTanks:
             module = importlib.import_module("actors.leaf_ally.house0.all_tanks")
             impl_class = getattr(module, "AllTanksLeafAlly")
-        elif self.ops.SeasonalStorageMode == SeasonalStorageMode.BufferOnly:
+        elif self.ops.FamilyParams.SeasonalStorageMode == SeasonalStorageMode.BufferOnly:
             module = importlib.import_module("actors.leaf_ally.house0.buffer_only")
             impl_class = getattr(module, "BufferOnlyLeafAlly")
         else:
-            raise Exception(f"SeasonalStorageMode {self.ops.SeasonalStorageMode}")
+            raise Exception(f"SeasonalStorageMode {self.ops.FamilyParams.SeasonalStorageMode}")
         # Create the implementation instance
         self._impl = impl_class(name, services)
-        services.logger.error(f"Creating LeafAlly with strategy {self.ops.SeasonalStorageMode}, "
+        services.logger.error(f"Creating LeafAlly with strategy {self.ops.FamilyParams.SeasonalStorageMode}, "
                               f"using {impl_class.__module__}.{impl_class.__name__}")
 
     # Forward all properties and methods to the implementation

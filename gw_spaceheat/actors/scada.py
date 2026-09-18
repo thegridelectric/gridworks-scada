@@ -1293,7 +1293,7 @@ class Scada(PrimeActor, ScadaInterface):
         local_control_state = lc.top_state
         dormant_state = (
             LeafAllyAllTanksState.Dormant 
-            if self.ops.SeasonalStorageMode == SeasonalStorageMode.AllTanks 
+            if self.ops.FamilyParams.SeasonalStorageMode == SeasonalStorageMode.AllTanks 
             else LeafAllyBufferOnlyState.Dormant
         )
 
@@ -1789,8 +1789,8 @@ class Scada(PrimeActor, ScadaInterface):
             HardwareLayoutTypeName=self.layout.layout_type_name,
             ActuationAuthority=self.ops.ActuationAuthority,
             ServiceMode=self.ops.ServiceMode,
-            SeasonalStorageMode=self.ops.SeasonalStorageMode,
-            BufferShortCycling=self.ops.ShortCycleBuffer,
+            SeasonalStorageMode=self.ops.FamilyParams.SeasonalStorageMode,
+            KeepBufferFull=self.ops.FamilyParams.KeepBufferFull,
             ZoneList=self.layout.zone_list,
             CriticalZoneList=self.layout.critical_zone_list,
             TotalStoreTanks=self.layout.total_store_tanks,

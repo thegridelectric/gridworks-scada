@@ -23,7 +23,7 @@ class LocalControl(ShNodeActor):
 
         layout = services.hardware_layout
         authority = self.ops.ActuationAuthority
-        seasonal_storage_mode = self.ops.SeasonalStorageMode
+        seasonal_storage_mode = self.ops.FamilyParams.SeasonalStorageMode
 
         # Dynamically load the implementation class
         if isinstance(layout.sema_layout, NolanLayout):

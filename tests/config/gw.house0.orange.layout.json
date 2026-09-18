@@ -625,6 +625,18 @@
     {
       "TypeName": "data.channel.gt",
       "Version": "003",
+      "Name": "zone1-main-set",
+      "DisplayName": "Zone1 Main Set",
+      "AboutNodeName": "zone1-main",
+      "CapturedByNodeName": "zone1-main-temp-sensor",
+      "TelemetryName": "AirTempFTimes1000",
+      "Quantity": "Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "Id": "a8f39ab1-df7b-43f8-aefe-fc52ce5516b6"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "003",
       "Name": "vdc-relay",
       "DisplayName": "5V DC Bus Relay State",
       "AboutNodeName": "vdc-relay",

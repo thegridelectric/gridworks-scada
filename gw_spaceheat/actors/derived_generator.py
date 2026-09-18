@@ -809,7 +809,7 @@ class DerivedGenerator(ShNodeActor):
         latest_temps_f = self.data.latest_temperatures_f.copy()
 
         ordered_tank_layers = []
-        if self.ops.SeasonalStorageMode== SeasonalStorageMode.AllTanks:
+        if self.ops.FamilyParams.SeasonalStorageMode== SeasonalStorageMode.AllTanks:
             for tank_idx in sorted(self.layout.store_tanks):
                 tank = self.layout.store_tanks[tank_idx]
                 ordered_tank_layers.extend([
@@ -817,14 +817,14 @@ class DerivedGenerator(ShNodeActor):
                     tank.depth2,
                     tank.depth3,
                 ])
-        elif self.ops.SeasonalStorageMode== SeasonalStorageMode.BufferOnly: 
+        elif self.ops.FamilyParams.SeasonalStorageMode== SeasonalStorageMode.BufferOnly: 
             ordered_tank_layers = [
                     HCN.buffer.depth1,
                     HCN.buffer.depth2,
                     HCN.buffer.depth3,
                 ]
         else:
-            raise ValueError(f"Unsupported SeasonalStorageMode {self.ops.SeasonalStorageMode}")
+            raise ValueError(f"Unsupported SeasonalStorageMode {self.ops.FamilyParams.SeasonalStorageMode}")
 
         simulated_layers_f = [
             latest_temps_f[ch]
@@ -877,7 +877,7 @@ class DerivedGenerator(ShNodeActor):
         """
         Send an info Glitch if we think its time to change strategy
         """
-        if self.ops.SeasonalStorageMode != SeasonalStorageMode.BufferOnly:
+        if self.ops.FamilyParams.SeasonalStorageMode != SeasonalStorageMode.BufferOnly:
             return
         if time.time() - self.last_evaluated_strategy > 3600:
             self.last_evaluated_strategy = time.time()
@@ -937,12 +937,12 @@ class DerivedGenerator(ShNodeActor):
              if 16<=t.hour<=19]
             )
         # Find the maximum storage
-        if self.ops.SeasonalStorageMode == SeasonalStorageMode.AllTanks:
+        if self.ops.FamilyParams.SeasonalStorageMode == SeasonalStorageMode.AllTanks:
             num_layers = len(self.layout.store_tanks) * self.NUM_LAYERS_PER_TANK
-        elif self.ops.SeasonalStorageMode == SeasonalStorageMode.BufferOnly:
+        elif self.ops.FamilyParams.SeasonalStorageMode == SeasonalStorageMode.BufferOnly:
             num_layers = self.NUM_LAYERS_PER_TANK # just the buffer
         else:
-            raise Exception(f"not prepared for seasonal storage mode {self.ops.SeasonalStorageMode}")
+            raise Exception(f"not prepared for seasonal storage mode {self.ops.FamilyParams.SeasonalStorageMode}")
 
         simulated_layers = [self.params.MaxEwtF + 10] * num_layers
         max_storage_kwh = 0
