@@ -5,7 +5,6 @@ import datetime
 from pathlib import Path
 from typing import Optional
 
-import pytz
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.enums import SlowDispatchContractStatus
 from gwproactor.logger import LoggerOrAdapter
@@ -37,12 +36,13 @@ class ContractHandler:
         settings: ScadaSettings,
         layout: HydronicLayout,
         node: ShNode,  # intended to be CoreNodeNames.primary_scada
+        timezone: datetime.tzinfo,
         logger: LoggerOrAdapter,
     ):
         self.settings = settings
         self.layout = layout
         self.node = node
-        self.timezone = pytz.timezone(self.settings.timezone_str)
+        self.timezone = timezone
         self.logger = logger
         self.contract_file = Path(
             f"{self.settings.paths.data_dir}/slow_dispatch_contract.json"

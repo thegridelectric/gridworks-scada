@@ -27,7 +27,6 @@ from datetime import datetime
 from datetime import time as dtime
 from typing import Optional, Sequence
 
-import pytz
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
@@ -101,7 +100,6 @@ class NolanLocalControl(NolanHydronic):
         super().__init__(name, services)
         self._stop_requested: bool = False
         self.actuators_ready = False
-        self.timezone = pytz.timezone(self.settings.timezone_str)
         self.check_required_nodes(self.REQUIRED_NODES)
         self._held_circuit_relays: list[tuple[ZoneCallCircuit, ShNode, ShNode]] = [
             (

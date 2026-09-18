@@ -1,6 +1,5 @@
 import time
 import json
-import pytz
 import asyncio
 import aiohttp
 import math
@@ -72,7 +71,6 @@ class DerivedGenerator(ShNodeActor):
         self.first_required_energy_update_done: bool = False
 
         # House parameters in the .env file
-        self.timezone = pytz.timezone(self.settings.timezone_str)
         self.latitude = self.settings.latitude
         self.longitude = self.settings.longitude
 
@@ -912,6 +910,13 @@ class DerivedGenerator(ShNodeActor):
         - Does not store state locally
 
         If forecasts are unavailable, returns None
+
+        Hardcoded tariff assumption: the morning (7-11), midday (12-15) and
+        afternoon (16-19) hour bands, the weekday tests, and the 4 in
+        `0.8*4*HpMaxKwEl` (the midday gap's length in hours) are written for
+        a weekday 07:00-12:00 + 16:00-20:00 tariff with a four-hour recharge
+        gap. None of it reads the ops word's Tariff.OnPeakWindows, and it can
+        clash with a Tariff whose windows differ.
         """
         required_kwh = 0
         time_now = datetime.now(self.timezone)
@@ -1158,6 +1163,12 @@ class DerivedGenerator(ShNodeActor):
         This is not "the return water temperature at required SWT".
         It is a load- and forecast-limited effective return temperature.
         Requires self.heating_forecast
+
+        Hardcoded tariff assumption: which forecast hours count is asked of
+        the ops word's Tariff.OnPeakWindows, but "the morning window is still
+        ahead" (hour > 19 or hour < 12) and "afternoon only" (hour >= 16)
+        are clock hours written for a weekday 07:00-12:00 + 16:00-20:00
+        tariff. They can clash with a Tariff whose windows differ.
         """
         if self.heating_forecast is None:
             raise RuntimeError(
@@ -1168,12 +1179,12 @@ class DerivedGenerator(ShNodeActor):
         if timenow.hour > 19 or timenow.hour < 12:
             required_swt = max(
                 [rswt for t, rswt in zip(forecasts_times_tz, self.heating_forecast.RswtF)
-                if t.hour in [7,8,9,10,11,16,17,18,19]]
+                if self.in_onpeak_window(t)]
                 )
         else:
             required_swt = max(
                 [rswt for t, rswt in zip(forecasts_times_tz, self.heating_forecast.RswtF)
-                if t.hour in [16,17,18,19]]
+                if self.in_onpeak_window(t) and t.hour >= 16]
                 )
         if swt_f < required_swt - 10:
             delta_t = 0

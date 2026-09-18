@@ -2,6 +2,7 @@ import asyncio
 import time
 import typing
 from abc import ABC
+from datetime import datetime
 from typing import Any, Optional
 import pytz
 
@@ -24,6 +25,7 @@ from gwsproto.names.hydronic_spaceheat.node_names import (
 from gwsproto.data_classes.sh_node import ShNode
 
 from gwsproto.enums import (
+    DayOfWeek,
     LogLevel,
     RelayClosedOrOpen,
     StoreFlowRelay
@@ -53,7 +55,7 @@ class ShNodeActor(Actor, ABC):
                 f"Received type {type(services)}."
             )
         super().__init__(name, services)
-        self.timezone = pytz.timezone(self.settings.timezone_str)
+        self.timezone = pytz.timezone(self.ops.Tariff.TimezoneStr)
         # set temperature_channel_names
         self.tank_temp_channel_names = list(HCN.buffer.effective)
         for tank_idx in sorted(self.layout.store_tanks):
@@ -108,6 +110,16 @@ class ShNodeActor(Actor, ABC):
         """The home's authored operational params, of this home's family
         (House0 or Nolan — see sema_to_dc.APPROVED_PAIRS)."""
         return self.data.ops
+
+    def in_onpeak_window(self, at: datetime) -> bool:
+        """Whether `at` (wall time in the actor's zone) falls in one of the ops
+        word's OnPeakWindows: Start inclusive, End exclusive, on a listed day."""
+        day = DayOfWeek[at.strftime("%A")]
+        hh_mm = at.strftime("%H:%M")
+        return any(
+            day in window.Days and window.Start <= hh_mm < window.End
+            for window in self.ops.Tariff.OnPeakWindows
+        )
 
     async def await_with_watchdog(
         self,

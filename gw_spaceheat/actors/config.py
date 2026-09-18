@@ -127,7 +127,6 @@ class ScadaSettings(ScadaPathsSettings):
     async_power_reporting_threshold: float = 0.02
     persister: PersisterSettings = PersisterSettings()
     admin: AdminLinkSettings = AdminLinkSettings(tls=TLSInfo(use_tls=False))
-    timezone_str: str = "America/New_York"
     # site facts, here until the TaValidator owns them
     latitude: float = 45.6573
     longitude: float = -68.7098

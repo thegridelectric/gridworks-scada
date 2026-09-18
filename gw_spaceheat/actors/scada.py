@@ -166,11 +166,12 @@ class Scada(PrimeActor, ScadaInterface):
             send_event=False,
             model_attribute="auto_state",
         )
-        self.timezone =  pytz.timezone(self.settings.timezone_str)
+        self.timezone = pytz.timezone(self.ops.Tariff.TimezoneStr)
         self._contract_handler: ContractHandler = ContractHandler(
             settings=self.settings,
             layout=self.layout,
             node=self.node,
+            timezone=self.timezone,
             logger=self.logger.add_category_logger(
                 ContractHandler.LOGGER_NAME,
                 level=self.settings.contract_rep_logging_level,

@@ -13,7 +13,6 @@ from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
     ChangeZoneCallSource,
     ChangeRelayState,
-    DayOfWeek,
 )
 from gwsproto.named_types import FsmEvent
 from gwsproto.names.hydronic_spaceheat.channel_names import (
@@ -43,16 +42,6 @@ class HydronicNode(CommandNode):
             setpoint = self.data.latest_channel_values.get(zone.set)
             if setpoint is not None:
                 self.setpoints_at_onpeak_start[zone.base] = setpoint
-
-    def in_onpeak_window(self, at: datetime) -> bool:
-        """Whether `at` (wall time in the actor's zone) falls in one of the ops
-        word's OnPeakWindows: Start inclusive, End exclusive, on a listed day."""
-        day = DayOfWeek[at.strftime("%A")]
-        hh_mm = at.strftime("%H:%M")
-        return any(
-            day in window.Days and window.Start <= hh_mm < window.End
-            for window in self.ops.Tariff.OnPeakWindows
-        )
 
     def just_before_onpeak(self) -> bool:
         """Within the two minutes before an on-peak window opens."""
