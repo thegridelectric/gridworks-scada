@@ -1,7 +1,6 @@
 from typing import Self
 
-from gwsproto.enums import Unit, TelemetryName
-from gwsproto.conversions.temperature import convert_temp_to_f
+from gwsproto.conversions.temperature import Temperature
 from rich.console import Console
 from rich.console import ConsoleOptions
 from rich.console import RenderResult
@@ -43,16 +42,11 @@ class OddsAndEnds:
         raw = reading.Value
         unit = reading.Unit
 
-        if unit in (
-            TelemetryName.AirTempCTimes1000,
-            TelemetryName.WaterTempCTimes1000,
-            TelemetryName.AirTempFTimes1000,
-            TelemetryName.WaterTempFTimes1000,
-            Unit.FahrenheitX100
-        ):
-            assert unit
-            temp_f = convert_temp_to_f(raw=raw, encoding=unit)
-            return f"{temp_f:.2f}", "°F"
+        if unit is not None:
+            try:
+                return f"{Temperature(raw, unit).f:.2f}", "°F"
+            except ValueError:
+                pass
 
         # Fallback: raw display
         return str(raw), str(telemetry or unit or "")

@@ -76,6 +76,11 @@ class Temperature:
         """Degrees Fahrenheit."""
         return convert_temp_to_f(self.raw, self.encoding)
 
+    @property
+    def c(self) -> float:
+        """Degrees Celsius."""
+        return (self.f - 32) * 5 / 9
+
     def __lt__(self, other: "Temperature") -> bool:
         return self.f < other.f
 

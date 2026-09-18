@@ -728,19 +728,17 @@ class Ltn(PrimeActor):
         s = "\n\nSnapshot received:\n"
         for single_reading in snapshot.LatestReadingList:
             channel = self.layout.data_channels[single_reading.ChannelName]
-            telemetry_name = channel.TelemetryName
-            if (
-                telemetry_name == TelemetryName.WaterTempCTimes1000
-                or telemetry_name == TelemetryName.WaterTempCTimes1000.value
-            ):
-                centigrade = single_reading.Value / 1000
-                if self.settings.c_to_f:
-                    fahrenheit = (centigrade * 9 / 5) + 32
-                    extra = f"{fahrenheit:5.2f} F"
-                else:
-                    extra = f"{centigrade:5.2f} C"
+            try:
+                temperature = self.layout.channel_registry.temperature(
+                    channel.Name, single_reading.Value
+                )
+            except ValueError:
+                extra = f"{single_reading.Value} {channel.TelemetryName}"
             else:
-                extra = f"{single_reading.Value} " f"{telemetry_name}"
+                if self.settings.c_to_f:
+                    extra = f"{temperature.f:5.2f} F"
+                else:
+                    extra = f"{temperature.c:5.2f} C"
             s += f"  {channel.AboutNodeName}: {extra}\n"
         return s
 
