@@ -45,16 +45,28 @@ class PicoBtuMeterComponentGt(DeviceComponentBase):
     model_config = ConfigDict(use_enum_values=True)
 
     @model_validator(mode="after")
+    def check_axiom_1(self) -> Self:
+        """
+        Axiom 1: ReadCtVoltageIffCtVoltsDelta.
+        ReadCtVoltage is true iff AsyncCaptureDeltaCtVoltsX100 is present.
+        """
+        if self.ReadCtVoltage != (self.AsyncCaptureDeltaCtVoltsX100 is not None):
+            raise ValueError(
+                "Axiom 1 (ReadCtVoltageIffCtVoltsDelta) failed: "
+                f"ReadCtVoltage {self.ReadCtVoltage}, "
+                f"AsyncCaptureDeltaCtVoltsX100 {self.AsyncCaptureDeltaCtVoltsX100}"
+            )
+        return self
+
+    @model_validator(mode="after")
     def check_axiom_2(self) -> Self:
         """
-        Axiom 2: ReadCtVoltage is True iff AsyncCaptureDeltaCtVoltsX100 exists
+        Axiom 2: ReadCtVoltageIffCtChannelName.
+        ReadCtVoltage is true iff CtChannelName is present.
         """
-        if self.ReadCtVoltage and not self.AsyncCaptureDeltaCtVoltsX100:
+        if self.ReadCtVoltage != (self.CtChannelName is not None):
             raise ValueError(
-                f"Axiom 2 violated! ReadCtVoltage {self.ReadCtVoltage} requires AsyncCaptureDeltaCtVoltsX100!"
-            )
-        if not self.ReadCtVoltage and self.AsyncCaptureDeltaCtVoltsX100:
-            raise ValueError(
-                f"Axiom 2 violated: ReadCtVoltage {self.ReadCtVoltage} means NOAsyncCaptureDeltaCtVoltsX100"
+                "Axiom 2 (ReadCtVoltageIffCtChannelName) failed: "
+                f"ReadCtVoltage {self.ReadCtVoltage}, CtChannelName {self.CtChannelName}"
             )
         return self

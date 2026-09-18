@@ -1,6 +1,7 @@
 from typing import Literal, Optional
 
-from pydantic import ConfigDict, PositiveInt, StrictInt
+from pydantic import ConfigDict, PositiveInt, StrictInt, model_validator
+from typing_extensions import Self
 
 from gwsproto.enums import (
     GpmFromHzMethod,
@@ -41,3 +42,30 @@ class SimPicoBtuMeterComponentGt(DeviceComponentBase):
     Version: Literal["000"] = "000"
 
     model_config = ConfigDict(use_enum_values=True, extra="allow")
+
+    @model_validator(mode="after")
+    def check_axiom_1(self) -> Self:
+        """
+        Axiom 1: ReadCtVoltageIffCtVoltsDelta.
+        ReadCtVoltage is true iff AsyncCaptureDeltaCtVoltsX100 is present.
+        """
+        if self.ReadCtVoltage != (self.AsyncCaptureDeltaCtVoltsX100 is not None):
+            raise ValueError(
+                "Axiom 1 (ReadCtVoltageIffCtVoltsDelta) failed: "
+                f"ReadCtVoltage {self.ReadCtVoltage}, "
+                f"AsyncCaptureDeltaCtVoltsX100 {self.AsyncCaptureDeltaCtVoltsX100}"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_2(self) -> Self:
+        """
+        Axiom 2: ReadCtVoltageIffCtChannelName.
+        ReadCtVoltage is true iff CtChannelName is present.
+        """
+        if self.ReadCtVoltage != (self.CtChannelName is not None):
+            raise ValueError(
+                "Axiom 2 (ReadCtVoltageIffCtChannelName) failed: "
+                f"ReadCtVoltage {self.ReadCtVoltage}, CtChannelName {self.CtChannelName}"
+            )
+        return self

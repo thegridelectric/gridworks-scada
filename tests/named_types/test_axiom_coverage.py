@@ -42,7 +42,6 @@ KNOWN_STALE_VALIDATORS: set[str] = {
     "fsm.event/000:2",
     "gw1.tank.temp.calibration.map/001:1",
     "heating.forecast/000:2",
-    "pico.btu.meter.component.gt/000:2",
 }
 
 # --- KNOWN debt: sema axioms with no rejecting test in tests/named_types ---
@@ -105,13 +104,11 @@ KNOWN_UNTESTED_AXIOMS: set[str] = {
     "pico.flow.module.component.gt/001:1",
     "pico.tank.module.component.gt/012:1",
     "pico.tank.module.component.gt/012:2",
-    "pico.tank.module.component.gt/012:3",
     "relay.control.config/000:1",
     "relay.control.config/000:2",
     "relay.control.config/000:3",
     "sim.pico.tank.module.component.gt/001:1",
     "sim.pico.tank.module.component.gt/001:2",
-    "sim.pico.tank.module.component.gt/001:3",
     "single.machine.state/000:1",
     "spaceheat.node.gt/303:1",
     "spaceheat.node.gt/303:2",

@@ -66,13 +66,14 @@ class SimPicoTankModuleComponentGt(DeviceComponentBase):
 
         return self
 
-    def check_axiom_3(self) -> None:
+    @model_validator(mode="after")
+    def check_axiom_3(self) -> Self:
         """
         Axiom 3: SensorOrderPermutation.
         If SensorOrder is provided, it must be a permutation of [1, 2, 3].
         """
         if self.SensorOrder is None:
-            return
+            return self
 
         expected = [1, 2, 3]
         order = self.SensorOrder
@@ -86,3 +87,4 @@ class SimPicoTankModuleComponentGt(DeviceComponentBase):
             raise ValueError(
                 f"SensorOrder must be a permutation of {expected}; got {order}"
             )
+        return self
