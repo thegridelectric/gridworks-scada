@@ -10,7 +10,6 @@ class House0ChannelNames:
     charge_discharge_relay_state = "charge-discharge-relay"
     hp_failsafe_relay_state = "hp-failsafe-relay"
     aquastat_ctrl_relay_state = "aquastat-ctrl-relay"
-    boiler_scada_ops_relay_state = "boiler-scada-ops-relay"
     primary_pump_scada_ops_relay_state = "primary-pump-scada-ops-relay"
     primary_pump_failsafe_relay_state = "primary-pump-failsafe-relay"
     hp_loop_on_off_relay_state = "hp-loop-on-off-relay"

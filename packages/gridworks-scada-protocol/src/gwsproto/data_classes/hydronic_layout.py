@@ -1751,13 +1751,6 @@ class HydronicLayout:
         raise DcError(f"a {self.layout_type_name} plant has no aquastat ctrl relay")
 
     @property
-    def boiler_scada_ops(self) -> ShNode:
-        """Calls the oil boiler. Nolan has no boiler."""
-        if self.is_house0:
-            return self.required_node(House0NodeNames.boiler_scada_ops)
-        raise DcError(f"a {self.layout_type_name} plant has no boiler scada ops relay")
-
-    @property
     def primary_pump_scada_ops(self) -> ShNode:
         """Nolan does not control its primary pump."""
         if self.is_house0:

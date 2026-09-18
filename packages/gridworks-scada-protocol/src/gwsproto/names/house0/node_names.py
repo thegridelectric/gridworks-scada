@@ -13,7 +13,6 @@ class House0NodeNames:
     store_charge_discharge_relay = "charge-discharge-relay"
     hp_failsafe_relay = "hp-failsafe-relay"
     aquastat_ctrl_relay = "aquastat-ctrl-relay"
-    boiler_scada_ops = "boiler-scada-ops-relay"
     primary_pump_scada_ops = "primary-pump-scada-ops-relay"
     primary_pump_failsafe = "primary-pump-failsafe-relay"
     hp_loop_on_off = "hp-loop-on-off-relay"
