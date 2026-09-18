@@ -34,10 +34,6 @@ class DeviceType(SemaEnum):
     LGARNH423K3A4 = auto()
 
     @classmethod
-    def default(cls) -> "DeviceType":
-        return cls.EgaugePowerMeter
-
-    @classmethod
     def values(cls) -> list[str]:
         return [elt.value for elt in cls]
 

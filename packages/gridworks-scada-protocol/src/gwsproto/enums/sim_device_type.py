@@ -14,10 +14,7 @@ class SimDeviceType(SemaEnum):
     SimHpOdu = auto()
     SimHpIdu = auto()
     SimKridaDoubleRelayBoard16 = auto()
-
-    @classmethod
-    def default(cls) -> "SimDeviceType":
-        return cls.SimSensor
+    SimDac = auto()
 
     @classmethod
     def values(cls) -> list[str]:

@@ -3,7 +3,7 @@ from typing import Literal, Optional
 from pydantic import PositiveInt, model_validator
 from typing_extensions import Self
 
-from gwsproto.enums import TelemetryName
+from gwsproto.enums import AnyDeviceType, TelemetryName
 from gwsproto.named_types.i2c_ct_interface_capability import I2cCtInterfaceCapability
 from gwsproto.named_types.i2c_bus import I2cBus
 from gwsproto.named_types.i2c_dac_capability import I2cDacCapability
@@ -14,14 +14,14 @@ from gwsproto.named_types.i2c_thermistor_interface_capability import (
     I2cThermistorInterfaceCapability,
 )
 from gwsproto.named_types.native_gpio_pin import NativeGpioPin
-from gwsproto.property_format import NonNegativeInt, PascalCase
+from gwsproto.property_format import NonNegativeInt
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
 class ScadaDeviceTypeGt(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/gw1.scada.device.type.gt/000"""
 
-    DeviceType: PascalCase
+    DeviceType: AnyDeviceType
     DisplayName: Optional[str] = None
     MinPollPeriodMs: Optional[PositiveInt] = None
     BusList: list[I2cBus] = []

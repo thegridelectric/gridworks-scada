@@ -2,7 +2,7 @@ from typing import Literal, Optional
 
 from pydantic import ConfigDict, PositiveInt, StrictInt
 
-from gwsproto.enums import TelemetryName
+from gwsproto.enums import AnyDeviceType, TelemetryName
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
@@ -11,7 +11,7 @@ class ElectricMeterDeviceTypeGt(GwsprotoSemaType):
     Sema: https://schemas.electricity.works/types/electric.meter.device.type.gt/000
     """
 
-    DeviceType: str
+    DeviceType: AnyDeviceType
     DisplayName: Optional[str] = None
     MinPollPeriodMs: Optional[PositiveInt] = None
     TelemetryNameList: list[TelemetryName]

@@ -3,6 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from gwsproto.enums import AnyDeviceType
 from gwsproto.named_types.capture_tuning import CaptureTuning
 from gwsproto.property_format import UUID4Str
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
@@ -33,7 +34,7 @@ class DeviceComponentBase(ComponentBase):
     """A component that is its own device (external, board-level, simulated,
     or abstract): DeviceType names its device category."""
 
-    DeviceType: str
+    DeviceType: AnyDeviceType
 
 
 class BoardResidentComponentBase(ComponentBase):

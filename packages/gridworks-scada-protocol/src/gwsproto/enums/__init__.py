@@ -108,8 +108,14 @@ from gwsproto.enums.zone_circuit_governance_state import ZoneCircuitGovernanceSt
 from gwsproto.enums.zone_circuit_role import ZoneCircuitRole
 from gwsproto.enums.zone_setpoint_source import ZoneSetpointSource
 
+AnyDeviceType = DeviceType | SimDeviceType
+"""The device category a component is built on: a real device (gw1.device.type)
+or a simulated one (gw1.sim.device.type). The two vocabularies are disjoint, so
+the value's membership says which it is."""
+
 __all__ = [
     "ActorClass",
+    "AnyDeviceType",
     "ActuationAuthority",
     "AquastatControl",
     "BaseGNodeClass",
