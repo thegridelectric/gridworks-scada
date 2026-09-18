@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from functools import cached_property
 from typing import Any, Iterable, List, Optional, TypeVar
 
+from gwsproto.conversions.temperature import Temperature
 from gwsproto.errors import DcError
 
 import gwsproto.data_classes.components
@@ -34,7 +35,7 @@ from gwsproto.named_types import (
     SpaceheatNodeGt,
     UsableEnergyLayered,
 )
-from gwsproto.property_format import LeftRightDotStr, UUID4Str
+from gwsproto.property_format import LeftRightDotStr, SpaceheatName, UUID4Str
 from gwsproto.type_helpers.channel_named import ChannelNamed
 from gwsproto.type_helpers.component_base import (
     BoardResidentComponentBase,
@@ -80,10 +81,10 @@ class ChannelRegistry:
         self.data = data_channels
         self.derived = derived_channels
 
-    def get(self, name: str) -> DataChannel | DerivedChannel | None:
+    def get(self, name: SpaceheatName) -> DataChannel | DerivedChannel | None:
         return self.data.get(name) or self.derived.get(name)
 
-    def unit(self, name: str) -> Unit | TelemetryName | None:
+    def unit(self, name: SpaceheatName) -> Unit | TelemetryName | None:
         ch = self.get(name)
         if ch is None:
             return None
@@ -92,6 +93,14 @@ class ChannelRegistry:
         if isinstance(ch, DerivedChannel):
             return ch.OutputUnit
         return None
+
+    def temperature(self, name: SpaceheatName, raw: int) -> Temperature:
+        """The raw value of temperature channel `name`, carrying the
+        channel's encoding."""
+        encoding = self.unit(name)
+        if encoding is None:
+            raise DcError(f"No channel named {name}")
+        return Temperature(raw, encoding)
 
 
 

@@ -8,6 +8,7 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Optional
 from pydantic import ValidationError
+from gwsproto.conversions.temperature import Temperature
 from gwsproto.errors import DcError
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
@@ -21,6 +22,7 @@ from gwsproto.names.hydronic_spaceheat.channel_names import (
 from gwsproto.names.hydronic_spaceheat.node_names import (
     HydronicSpaceheatZoneNodeNames as HSZoneNodeNames,
 )
+from gwsproto.property_format import SpaceheatName
 
 from actors.command_node import CommandNode
 
@@ -31,15 +33,23 @@ class HydronicNode(CommandNode):
         """The layout's zones in order, as their hydronic-tier channel names."""
         return [HSZoneChannelNames(zone, i + 1) for i, zone in enumerate(self.layout.zone_list)]
 
+    def channel_temperature(self, channel_name: SpaceheatName) -> Optional[Temperature]:
+        """The channel's latest value with the encoding the layout declares
+        for it; None when there is no value yet."""
+        raw = self.data.latest_channel_values.get(channel_name)
+        if raw is None:
+            return None
+        return self.layout.channel_registry.temperature(channel_name, raw)
+
     def refresh_setpoints_at_onpeak_start(self) -> None:
         """Take each layout zone's current setpoint (`zone{i}-{label}-set`,
-        F x 1000, keyed by the zone channel base) as the setpoint the zone had
-        when on-peak began. `is_system_cold` judges against the lower of this
+        keyed by the zone channel base) as the setpoint the zone had when
+        on-peak began. `is_system_cold` judges against the lower of this
         and the current setpoint, so a thermostat raised during on-peak does
         not read as a cold house. Refreshed off-peak; held through on-peak."""
         self.setpoints_at_onpeak_start = {}
         for zone in self.zone_channels():
-            setpoint = self.data.latest_channel_values.get(zone.set)
+            setpoint = self.channel_temperature(zone.set)
             if setpoint is not None:
                 self.setpoints_at_onpeak_start[zone.base] = setpoint
 
@@ -73,7 +83,7 @@ class HydronicNode(CommandNode):
 
             # Use the lower of setpoint at start of on-peak vs current setpoint
             setpoint_at_onpeak = self.setpoints_at_onpeak_start.get(zone)
-            current_setpoint = self.data.latest_channel_values.get(zone_channels.set)
+            current_setpoint = self.channel_temperature(zone_channels.set)
             if setpoint_at_onpeak is not None and current_setpoint is not None:
                 setpoint = min(setpoint_at_onpeak, current_setpoint)
             elif setpoint_at_onpeak is not None:
@@ -84,12 +94,12 @@ class HydronicNode(CommandNode):
                 self.log(f"Could not find setpoint for {zone}!")
                 continue
 
-            temperature = self.data.latest_channel_values.get(zone_channels.temp)
+            temperature = self.channel_temperature(zone_channels.temp)
             if temperature is None:
                 self.log(f"Could not find latest temperature for {zone}!")
                 continue
 
-            if temperature < setpoint - 1000:  # 1F in millidegrees
+            if temperature.f < setpoint.f - 1.0:
                 self.log(
                     f"{zone} temperature is at least 1F lower than the effective setpoint "
                     "(min of on-peak start and current)"

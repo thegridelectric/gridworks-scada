@@ -12,7 +12,8 @@ import pytest
 
 import actors.hydronic.shared as shared
 from actors.pico_cycler import PicoCycler
-from gwsproto.enums import ChangeZoneCallSource, ChangeRelayState, DayOfWeek
+from gwsproto.conversions.temperature import Temperature
+from gwsproto.enums import ChangeZoneCallSource, ChangeRelayState, DayOfWeek, TelemetryName
 from gwsproto.errors import DcError
 from gwsproto.named_types import FsmEvent, TouWindow
 from gwsproto.names.core.node_names import CoreNodeNames
@@ -141,7 +142,7 @@ def test_setpoints_at_onpeak_start_come_from_the_layout_zones_only(actor: PicoCy
     actor.data.latest_channel_values[f"zone1-{ZONE}-set"] = 70_000
     actor.data.latest_channel_values["zone9-attic-set"] = 65_000  # not a layout zone
     actor.refresh_setpoints_at_onpeak_start()
-    assert actor.setpoints_at_onpeak_start == {f"zone1-{ZONE}": 70_000}
+    assert actor.setpoints_at_onpeak_start == {f"zone1-{ZONE}": Temperature(70_000, TelemetryName.AirTempFTimes1000)}
 
 
 @pytest.mark.parametrize(
@@ -160,7 +161,10 @@ def test_is_system_cold_judges_the_critical_zone_against_the_lower_setpoint(
 ) -> None:
     zone = f"zone1-{ZONE}"
     monkeypatch.setattr(actor, "is_onpeak", lambda: onpeak)
-    actor.setpoints_at_onpeak_start = {} if setpoint_at_onpeak is None else {zone: setpoint_at_onpeak}
+    actor.setpoints_at_onpeak_start = (
+        {} if setpoint_at_onpeak is None
+        else {zone: Temperature(setpoint_at_onpeak, TelemetryName.AirTempFTimes1000)}
+    )
     actor.data.latest_channel_values[f"{zone}-set"] = current_setpoint
     actor.data.latest_channel_values[f"{zone}-temp"] = temp
     assert actor.is_system_cold() is cold
@@ -170,6 +174,39 @@ def test_is_system_cold_is_false_without_a_temperature(actor: PicoCycler, monkey
     monkeypatch.setattr(actor, "is_onpeak", lambda: False)
     actor.data.latest_channel_values[f"zone1-{ZONE}-set"] = 70_000
     assert actor.is_system_cold() is False
+
+
+def test_is_system_cold_reads_each_channel_in_its_own_encoding(actor: PicoCycler, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A setpoint held in one encoding judges a zone temperature read in
+    another: 21.11 C is 70 F, and 68.9 F is more than 1 F under it."""
+    zone = f"zone1-{ZONE}"
+    monkeypatch.setattr(actor, "is_onpeak", lambda: True)
+    actor.setpoints_at_onpeak_start = {zone: Temperature(2111, TelemetryName.CelsiusTimes100)}
+    actor.data.latest_channel_values[f"{zone}-temp"] = 68_900
+    assert actor.channel_temperature(f"{zone}-temp") == Temperature(68_900, TelemetryName.AirTempFTimes1000)
+    assert actor.is_system_cold() is True
+
+
+def test_nolan_zone_temperature_reads_through_its_encoding() -> None:
+    """The Nolan sim pair reads zone temperature as `-gw-temp` in
+    CelsiusTimes100 and carries no zone `-set`, so the cold judgment finds
+    no setpoint."""
+    settings = ScadaApp.get_settings()
+    settings.paths.hardware_layout = CONFIG / "gw.nolan.layout.json"
+    settings.paths.operational_params = CONFIG / "gw.nolan.operational.params.json"
+    settings.paths.mkdirs()
+    app = ScadaApp(app_settings=settings)
+    app.instantiate()
+    pico_cycler = app.get_communicator_as_type(HSNN.pico_cycler, PicoCycler)
+    assert pico_cycler is not None
+    channel = "zone1-bedrooms-gw-temp"
+    assert pico_cycler.layout.channel_registry.unit(channel) == TelemetryName.CelsiusTimes100
+    pico_cycler.data.latest_channel_values[channel] = 2000
+    temperature = pico_cycler.channel_temperature(channel)
+    assert temperature == Temperature(2000, TelemetryName.CelsiusTimes100)
+    assert temperature.f == pytest.approx(68.0)
+    assert pico_cycler.layout.channel_registry.get("zone1-bedrooms-set") is None
+    assert pico_cycler.is_system_cold() is False
 
 
 # --- TOU clock --------------------------------------------------------------

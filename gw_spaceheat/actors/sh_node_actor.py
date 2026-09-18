@@ -14,7 +14,7 @@ from gwproto import Message
 
 from actors.config import ScadaSettings
 from actors.scada_data import ScadaData
-from gwsproto.conversions.temperature import convert_temp_to_f
+from gwsproto.conversions.temperature import Temperature, convert_temp_to_f
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.house0.node_names import House0NodeNames
@@ -34,6 +34,7 @@ from gwsproto.enums import (
 
 from gwsproto.named_types import Glitch, HeatingForecast, SingleMachineState
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
+from gwsproto.property_format import SpaceheatName
 
 from sema_to_dc import OperationalParams
 from scada_app_interface import ScadaAppInterface
@@ -71,7 +72,7 @@ class ShNodeActor(Actor, ABC):
 
         self.temperature_channel_names =  self.tank_temp_channel_names + self.pipe_temp_channel_names
 
-        self.setpoints_at_onpeak_start: dict[str, int] = {}
+        self.setpoints_at_onpeak_start: dict[SpaceheatName, Temperature] = {}
 
 
 
