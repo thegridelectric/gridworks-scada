@@ -83,9 +83,6 @@ class HydronicNode(CommandNode):
                 self.log(f"Could not find setpoint for {zone}!")
                 continue
 
-            if hvac_zone.TempChannelName is None:
-                self.log(f"{zone} names no temperature channel!")
-                continue
             temperature = self.channel_temperature(hvac_zone.TempChannelName)
             if temperature is None:
                 self.log(f"Could not find latest temperature for {zone}!")

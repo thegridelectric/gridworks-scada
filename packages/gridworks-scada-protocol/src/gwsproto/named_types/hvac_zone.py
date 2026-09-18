@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import ConfigDict
 
@@ -14,7 +14,7 @@ class HvacZone(GwsprotoSemaType):
     Name: SpaceheatName
     Critical: bool
     KwhPerDegF: float
-    TempChannelName: Optional[SpaceheatName] = None
+    TempChannelName: SpaceheatName
     TypeName: Literal["gw1.hvac.zone"] = "gw1.hvac.zone"
     Version: Literal["000"] = "000"
     model_config = ConfigDict(extra="allow")

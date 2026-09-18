@@ -52,6 +52,9 @@ from gwsproto.type_helpers.command_tree_axioms import (
     check_prefix_closed_handles,
 )
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
+from gwsproto.type_helpers.zone_temp_channel_resolution import (
+    check_zone_temp_channel_resolution,
+)
 
 # The component types a House0 (fleet) layout may contain (mirrors the sema oneOf).
 House0Component = (
@@ -660,4 +663,19 @@ class House0Layout(GwsprotoSemaType):
             raise ValueError(
                 f"Axiom 17 (BufferTank) failed: missing buffer channel(s) {missing}."
             )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_18(self) -> Self:
+        """
+        Axiom 18: ZoneTempChannelResolution
+        a. Every zone's TempChannelName in Hydronic.Zones SHALL equal the Name of a
+        channel in DataChannels or in DerivedChannels.
+        b. That channel SHALL carry temperature: a DataChannel's Quantity, or a
+        DerivedChannel's OutputQuantity, SHALL be Temperature.
+        """
+        check_zone_temp_channel_resolution(
+            self.Hydronic.Zones, self.DataChannels, self.DerivedChannels,
+            "Axiom 18 (ZoneTempChannelResolution)",
+        )
         return self

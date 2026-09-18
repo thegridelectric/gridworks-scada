@@ -262,19 +262,6 @@ def test_gw_hydronic_axiom_2(assembled: dict) -> None:
         Hydronic.model_validate(h)
 
 
-def test_gw_hydronic_axiom_3(assembled: dict) -> None:
-    from gwsproto.named_types import Hydronic
-
-    h = json.loads(json.dumps(assembled["Hydronic"]))
-    circ = h["ZoneCallCircuits"][0]
-    circ["SetpointSource"] = "Learned"
-    for z in h["Zones"]:
-        if z["Name"] == circ["ServesZone"]:
-            z.pop("TempChannelName", None)
-    with pytest.raises(ValueError, match="Axiom 3"):
-        Hydronic.model_validate(h)
-
-
 def declare_twin(d: dict, handle: str | None = "auto.lc.n.hp-boss.hp-ctrl-box") -> None:
     d["Hydronic"]["HpCommandNodeName"] = "hp-ctrl-box"
     for n in d["ShNodes"]:
@@ -341,3 +328,17 @@ def test_gw_nolan_layout_axiom_12_b(assembled: dict) -> None:
             if n["Name"] == "hp-odu":
                 n["Handle"] = "auto.lc.n.hp-boss.hp-odu"
     reject(assembled, stray_leaf, "Axiom 12")
+
+
+def test_gw_nolan_layout_axiom_13_unknown_channel(assembled: dict) -> None:
+    def rename(d: dict) -> None:
+        d["Hydronic"]["Zones"][0]["TempChannelName"] = "no-such-channel"
+
+    reject(assembled, rename, "Axiom 13")
+
+
+def test_gw_nolan_layout_axiom_13_not_a_temperature(assembled: dict) -> None:
+    def point_at_flow(d: dict) -> None:
+        d["Hydronic"]["Zones"][0]["TempChannelName"] = "primary-flow"
+
+    reject(assembled, point_at_flow, "Axiom 13")

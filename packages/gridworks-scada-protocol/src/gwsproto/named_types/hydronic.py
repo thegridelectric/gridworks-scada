@@ -65,25 +65,3 @@ class Hydronic(GwsprotoSemaType):
                 f"{positions} are not distinct."
             )
         return self
-
-    @model_validator(mode="after")
-    def check_axiom_3(self) -> Self:
-        """
-        Axiom 3: LearnedNeedsTempChannel
-        For every circuit whose SetpointSource is Learned, the zone named
-        by its ServesZone SHALL carry a TempChannelName.
-        """
-        zones_by_name = {z.Name: z for z in self.Zones}
-        for c in self.ZoneCallCircuits:
-            zone = zones_by_name.get(c.ServesZone)
-            if (
-                c.SetpointSource == "Learned"
-                and zone is not None
-                and zone.TempChannelName is None
-            ):
-                raise ValueError(
-                    "Axiom 3 (LearnedNeedsTempChannel) failed: circuit at "
-                    f"position {c.CircuitPosition} is Learned but zone "
-                    f"{c.ServesZone!r} has no TempChannelName."
-                )
-        return self

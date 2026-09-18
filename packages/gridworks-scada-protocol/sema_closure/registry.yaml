@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-09-18T00:35:00Z"
+  last_updated: "2026-09-18T19:35:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -809,7 +809,7 @@ types:
         schema_url: "https://schemas.electricity.works/types/gw.house0.layout/000"
         created: "2026-09-18T00:35:00Z"
         status: "staging"
-        summary: "The complete deployable artifact for a House0-fleet home: every collection and Hydronic required, never a partial layout. The word MEANS has-a-siegenthaler-loop (beech, maple); sieg-less homes are the coming gw.house0.no.sieg. Component set is eGauge / ADS111x TSnap / the House0 board record (Krida expanders + GP8403 DACs) with per-relay and per-output components / pico flow / tank + sim-tank / Hubitat + poller / web-server over the DeviceType record model. Axioms cover id uniqueness, the core and command-node Name/ActorClass contracts (sieg-loop and hp-boss unconditional command nodes, dormant when unused), per-zone heat-call channels, primary-flow source agreement, the transactive-power boundary, required flow sensing, the unconditional sieg manifold surface, the system-model energy channels and the models that produce them, the unconditional actuators (plant relays, 0-10V outputs each bound to an i2c.dac.output.component.gt, zone-circuit relay pairs), and the split-system heat-pump parts (hp-odu, hp-idu) with their components. 12 CommandableHeatPump (biconditional: Hydronic.HpCommandNodeName ⇒ hp-odu/hp-idu/hp-ctrl-box with ComponentId, ActorClass HpTwin, handle under hp-boss; every HpTwin node is the declared one); 11's NoActor clause defers to it. 13 PrefixClosedHandles + 14 ActuatorLeaves: the layout's authored handles are the initial command tree, so the tree word's two axioms hold here too (identical wording). 15 ComponentBinding (every component referenced by exactly one node). 16 BoardResolution (every i2c relay and DAC output resolves through its board component to a name in the board's gw1.scada.device.type.gt record; the multichannel relay component and the generic sim relay leave the Components union). 17 BufferTank (a House0 home has a buffer tank: the buffer node and its three depth channels). Sim pico flow-module and BTU-meter components join the union."
+        summary: "The complete deployable artifact for a House0-fleet home: every collection and Hydronic required. The word MEANS has-a-siegenthaler-loop (beech, maple); sieg-less homes are the coming gw.house0.no.sieg. Component set is eGauge / ADS111x TSnap / the House0 board record (Krida expanders + GP8403 DACs) with per-relay and per-output components / pico flow / tank + sim-tank / Hubitat + poller / web-server over the DeviceType record model. Axioms cover id uniqueness, the core and command-node Name/ActorClass contracts (sieg-loop and hp-boss unconditional command nodes, dormant when unused), per-zone heat-call channels, primary-flow source agreement, the transactive-power boundary, required flow sensing, the unconditional sieg manifold surface, the system-model energy channels and the models that produce them, the unconditional actuators (plant relays, 0-10V outputs each bound to an i2c.dac.output.component.gt, zone-circuit relay pairs), and the split-system heat-pump parts (hp-odu, hp-idu) with their components. 12 CommandableHeatPump (biconditional: Hydronic.HpCommandNodeName ⇒ hp-odu/hp-idu/hp-ctrl-box with ComponentId, ActorClass HpTwin, handle under hp-boss; every HpTwin node is the declared one); 11's NoActor clause defers to it. 13 PrefixClosedHandles + 14 ActuatorLeaves: the layout's authored handles are the initial command tree, so the tree word's two axioms hold here too (identical wording). 15 ComponentBinding (every component referenced by exactly one node). 16 BoardResolution (every i2c relay and DAC output resolves through its board component to a name in the board's gw1.scada.device.type.gt record; the multichannel relay component and the generic sim relay leave the Components union). 17 BufferTank (a House0 home has a buffer tank: the buffer node and its three depth channels). 18 ZoneTempChannelResolution (every zone's TempChannelName names a DataChannel or DerivedChannel whose quantity is Temperature; identical wording across layout words). Sim pico flow-module and BTU-meter components join the union."
         direct_dependencies:
           structural:
             - "ads111x.based.component.gt:000"
@@ -844,6 +844,7 @@ types:
             - "gw0.required.energy.layered:000"
             - "gw0.usable.energy.layered:000"
             - "gw1.actor.class:014"
+            - "gw1.quantity:001"
 
   gw.hydronic:
     latest_version: "000"
@@ -856,7 +857,7 @@ types:
         schema_url: "https://schemas.electricity.works/types/gw.hydronic/000"
         created: "2026-09-17T23:55:00Z"
         status: "staging"
-        summary: "- Typed hydronic block promoted out of gw.house0.layout's freeform Hydronic: Zones (gw1.hvac.zone list), ZoneCallCircuits (gw1.zone.call.circuit list, required: every layout word requires it non-empty), TotalStoreTanks, PrimaryFlowSource (gw.primary.flow.source), Strategy. Axioms: Cardinality, CircuitResolution, LearnedNeedsTempChannel. The Siegenthaler-loop flags left this word: plumbed-ness is what a has-sieg layout word means, and use is operational (gw.house0.family.params UseSiegLoop). - HpCommandNodeName (optional spaceheat.name): the node that takes heat-pump commands under hp-boss; absent = nothing commands the heat pump. The layout words' CommandableHeatPump axiom governs it. - Strategy dropped: the control family is the layout word's own TypeName (invariant per word, so not a data field; the same rule that retired SiegLoopPlumbed). - TotalStoreTanks may be zero (a store that is not water tanks); the Cardinality axiom keeps only the upper bound of 6."
+        summary: "- Typed hydronic block promoted out of gw.house0.layout's freeform Hydronic: Zones (gw1.hvac.zone list), ZoneCallCircuits (gw1.zone.call.circuit list, required: every layout word requires it non-empty), TotalStoreTanks, PrimaryFlowSource (gw.primary.flow.source), Strategy. Axioms: Cardinality, CircuitResolution. The Siegenthaler-loop flags left this word: plumbed-ness is what a has-sieg layout word means, and use is operational (gw.house0.family.params UseSiegLoop). - HpCommandNodeName (optional spaceheat.name): the node that takes heat-pump commands under hp-boss; absent = nothing commands the heat pump. The layout words' CommandableHeatPump axiom governs it. - Strategy dropped: the control family is the layout word's own TypeName (invariant per word, so not a data field; the same rule that retired SiegLoopPlumbed). - TotalStoreTanks may be zero (a store that is not water tanks); the Cardinality axiom keeps only the upper bound of 6."
         direct_dependencies:
           structural:
             - "gw.primary.flow.source:000"
@@ -909,7 +910,7 @@ types:
         schema_url: "https://schemas.electricity.works/types/gw.nolan.layout/000"
         created: "2026-09-18T00:35:00Z"
         status: "staging"
-        summary: "Axioms mirror the names tiers: 1 TransactivePowerChannel, 2 BoardResolution (gpio sensors/relays, i2c thermistor readers, i2c relays, and DAC outputs each resolve through their board component to a name in the board's gw1.scada.device.type.gt record), 3 CoreShNodesExistenceAndActorClass (identical wording across layout words), 4 CommandNodesExistenceAndActorClass (n, five-v-boss, pico-cycler, hp-boss), 5 RequiredActuators (plant relays incl. the per-tank tank1 element relays + circuit relay binding), 6 RequiredHeatpumpEquipment (hp-odu, hp-ctrl-box with components; a Nolan home is a monobloc), 7 ComponentBinding (every component referenced by exactly one node), 8 RequiredSensing (kind-agnostic names incl. HP and resistive-element power channels), 9 SingleStoreTank. Components are the cac-free DeviceType versions; DeviceTypes holds the specialized <family>.device.type.gt records; the multichannel relay component and the generic sim relay leave the union (the scada builds Nolan relays on per-relay i2c.relay.component.gt against the board record, same as House0); nodes/channels ride spaceheat.node.gt/303 + data.channel.gt/003. 10 CommandableHeatPump (biconditional: Hydronic.HpCommandNodeName ⇒ hp-odu/hp-idu/hp-ctrl-box with ComponentId, ActorClass HpTwin, handle under hp-boss; every HpTwin node is the declared one); 6's NoActor clause defers to it. 11 PrefixClosedHandles + 12 ActuatorLeaves: the layout's authored handles are the initial command tree, so the tree word's two axioms hold here too (identical wording). sim.pico.flow.module.component.gt and sim.pico.btu.meter.component.gt join the union, completing the sim pico triple alongside sim.pico.tank.module.component.gt."
+        summary: "Axioms mirror the names tiers: 1 TransactivePowerChannel, 2 BoardResolution (gpio sensors/relays, i2c thermistor readers, i2c relays, and DAC outputs each resolve through their board component to a name in the board's gw1.scada.device.type.gt record), 3 CoreShNodesExistenceAndActorClass (identical wording across layout words), 4 CommandNodesExistenceAndActorClass (n, five-v-boss, pico-cycler, hp-boss), 5 RequiredActuators (plant relays incl. the per-tank tank1 element relays + circuit relay binding), 6 RequiredHeatpumpEquipment (hp-odu, hp-ctrl-box with components; a Nolan home is a monobloc), 7 ComponentBinding (every component referenced by exactly one node), 8 RequiredSensing (kind-agnostic names incl. HP and resistive-element power channels), 9 SingleStoreTank. Components are the cac-free DeviceType versions; DeviceTypes holds the specialized <family>.device.type.gt records; the multichannel relay component and the generic sim relay leave the union (the scada builds Nolan relays on per-relay i2c.relay.component.gt against the board record, same as House0); nodes/channels ride spaceheat.node.gt/303 + data.channel.gt/003. 10 CommandableHeatPump (biconditional: Hydronic.HpCommandNodeName ⇒ hp-odu/hp-idu/hp-ctrl-box with ComponentId, ActorClass HpTwin, handle under hp-boss; every HpTwin node is the declared one); 6's NoActor clause defers to it. 11 PrefixClosedHandles + 12 ActuatorLeaves: the layout's authored handles are the initial command tree, so the tree word's two axioms hold here too (identical wording). 13 ZoneTempChannelResolution (every zone's TempChannelName names a DataChannel or DerivedChannel whose quantity is Temperature; identical wording across layout words). sim.pico.flow.module.component.gt and sim.pico.btu.meter.component.gt join the union, completing the sim pico triple alongside sim.pico.tank.module.component.gt."
         direct_dependencies:
           structural:
             - "ads111x.based.device.type.gt:000"
@@ -939,6 +940,7 @@ types:
             - "web.server.component.gt:001"
           axiom:
             - "gw1.actor.class:014"
+            - "gw1.quantity:001"
 
   gw.operational.params:
     latest_version: "000"
@@ -1044,7 +1046,7 @@ types:
         schema_url: "https://schemas.electricity.works/types/gw1.hvac.zone/000"
         created: "2026-06-15T17:30:00Z"
         status: "staging"
-        summary: "- New shared zone type (Name, Critical, KwhPerDegF, optional TempChannelName) replacing the former parallel ZoneList / CriticalZoneList / ZoneKwhPerDegFList in the hydronic block."
+        summary: "- New shared zone type (Name, Critical, KwhPerDegF, TempChannelName) replacing the former parallel ZoneList / CriticalZoneList / ZoneKwhPerDegFList in the hydronic block."
         direct_dependencies:
           structural:
             - "spaceheat.name"

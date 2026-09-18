@@ -185,7 +185,7 @@
       "ChannelName": "buffer-depth1-device",
       "CapturePeriodS": 60,
       "AsyncCapture": true,
-      "AsyncCaptureDelta": 2000
+      "AsyncCaptureDelta": 200
     },
     {
       "TypeName": "capture.tuning",
@@ -201,7 +201,7 @@
       "ChannelName": "buffer-depth2-device",
       "CapturePeriodS": 60,
       "AsyncCapture": true,
-      "AsyncCaptureDelta": 2000
+      "AsyncCaptureDelta": 200
     },
     {
       "TypeName": "capture.tuning",
@@ -217,7 +217,7 @@
       "ChannelName": "buffer-depth3-device",
       "CapturePeriodS": 60,
       "AsyncCapture": true,
-      "AsyncCaptureDelta": 2000
+      "AsyncCaptureDelta": 200
     },
     {
       "TypeName": "capture.tuning",
@@ -233,7 +233,7 @@
       "ChannelName": "tank1-depth1-device",
       "CapturePeriodS": 60,
       "AsyncCapture": true,
-      "AsyncCaptureDelta": 2000
+      "AsyncCaptureDelta": 200
     },
     {
       "TypeName": "capture.tuning",
@@ -249,7 +249,7 @@
       "ChannelName": "tank1-depth2-device",
       "CapturePeriodS": 60,
       "AsyncCapture": true,
-      "AsyncCaptureDelta": 2000
+      "AsyncCaptureDelta": 200
     },
     {
       "TypeName": "capture.tuning",
@@ -265,7 +265,7 @@
       "ChannelName": "tank1-depth3-device",
       "CapturePeriodS": 60,
       "AsyncCapture": true,
-      "AsyncCaptureDelta": 2000
+      "AsyncCaptureDelta": 200
     },
     {
       "TypeName": "capture.tuning",
@@ -369,7 +369,7 @@
       "ChannelName": "sieg-cold",
       "CapturePeriodS": 300,
       "AsyncCapture": true,
-      "AsyncCaptureDelta": 2000
+      "AsyncCaptureDelta": 200
     }
   ],
   "ZeroTenPowerOnList": [

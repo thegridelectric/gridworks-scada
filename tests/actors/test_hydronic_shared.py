@@ -138,59 +138,67 @@ def test_vdc_relay_command_from_pico_cycler(actor: PicoCycler, method: str, even
 # --- setpoints + system cold ------------------------------------------------
 
 
+def raw_f(actor: PicoCycler, channel: str, f: float) -> int:
+    """`f` degrees Fahrenheit as the raw value `channel` carries."""
+    return actor.layout.channel_registry.temperature_from_f(channel, f).raw
+
+
 def test_setpoints_at_onpeak_start_come_from_the_layout_zones_only(actor: PicoCycler) -> None:
-    actor.data.latest_channel_values[f"zone1-{ZONE}-set"] = 70_000
+    set_channel = f"zone1-{ZONE}-set"
+    actor.data.latest_channel_values[set_channel] = raw_f(actor, set_channel, 70)
     actor.data.latest_channel_values["zone9-attic-set"] = 65_000  # not a layout zone
     actor.refresh_setpoints_at_onpeak_start()
-    assert actor.setpoints_at_onpeak_start == {f"zone1-{ZONE}": Temperature(70_000, TelemetryName.AirTempFTimes1000)}
+    assert actor.setpoints_at_onpeak_start == {
+        f"zone1-{ZONE}": actor.layout.channel_registry.temperature_from_f(set_channel, 70)
+    }
 
 
 @pytest.mark.parametrize(
-    ("onpeak", "setpoint_at_onpeak", "current_setpoint", "temp", "cold"),
+    ("onpeak", "setpoint_at_onpeak_f", "current_setpoint_f", "temp_f", "cold"),
     [
-        (False, None, 70_000, 68_900, True),   # more than 1F under: cold
-        (False, None, 70_000, 69_100, False),  # within 1F: not cold
-        (True, 70_000, 74_000, 69_100, False),  # user raised the stat on-peak: judge against the lower
-        (True, 74_000, 70_000, 69_100, False),  # user lowered it: judge against the lower
-        (True, 74_000, 70_000, 68_900, True),
+        (False, None, 70, 68.9, True),   # more than 1F under: cold
+        (False, None, 70, 69.1, False),  # within 1F: not cold
+        (True, 70, 74, 69.1, False),  # user raised the stat on-peak: judge against the lower
+        (True, 74, 70, 69.1, False),  # user lowered it: judge against the lower
+        (True, 74, 70, 68.9, True),
     ],
 )
 def test_is_system_cold_judges_the_critical_zone_against_the_lower_setpoint(
     actor: PicoCycler, monkeypatch: pytest.MonkeyPatch,
-    onpeak: bool, setpoint_at_onpeak, current_setpoint, temp, cold: bool,
+    onpeak: bool, setpoint_at_onpeak_f, current_setpoint_f, temp_f, cold: bool,
 ) -> None:
     zone = f"zone1-{ZONE}"
     monkeypatch.setattr(actor, "is_onpeak", lambda: onpeak)
     actor.setpoints_at_onpeak_start = (
-        {} if setpoint_at_onpeak is None
-        else {zone: Temperature(setpoint_at_onpeak, TelemetryName.AirTempFTimes1000)}
+        {} if setpoint_at_onpeak_f is None
+        else {zone: actor.layout.channel_registry.temperature_from_f(f"{zone}-set", setpoint_at_onpeak_f)}
     )
-    actor.data.latest_channel_values[f"{zone}-set"] = current_setpoint
-    actor.data.latest_channel_values[f"{zone}-temp"] = temp
+    actor.data.latest_channel_values[f"{zone}-set"] = raw_f(actor, f"{zone}-set", current_setpoint_f)
+    actor.data.latest_channel_values[f"{zone}-temp"] = raw_f(actor, f"{zone}-temp", temp_f)
     assert actor.is_system_cold() is cold
 
 
 def test_is_system_cold_is_false_without_a_temperature(actor: PicoCycler, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(actor, "is_onpeak", lambda: False)
-    actor.data.latest_channel_values[f"zone1-{ZONE}-set"] = 70_000
+    actor.data.latest_channel_values[f"zone1-{ZONE}-set"] = raw_f(actor, f"zone1-{ZONE}-set", 70)
     assert actor.is_system_cold() is False
 
 
 def test_is_system_cold_reads_each_channel_in_its_own_encoding(actor: PicoCycler, monkeypatch: pytest.MonkeyPatch) -> None:
     """A setpoint held in one encoding judges a zone temperature read in
-    another: 21.11 C is 70 F, and 68.9 F is more than 1 F under it."""
+    another: 68.9 F is more than 1 F under 70 F."""
     zone = f"zone1-{ZONE}"
     monkeypatch.setattr(actor, "is_onpeak", lambda: True)
-    actor.setpoints_at_onpeak_start = {zone: Temperature(2111, TelemetryName.CelsiusTimes100)}
-    actor.data.latest_channel_values[f"{zone}-temp"] = 68_900
-    assert actor.channel_temperature(f"{zone}-temp") == Temperature(68_900, TelemetryName.AirTempFTimes1000)
+    actor.setpoints_at_onpeak_start = {zone: Temperature(7000, Unit.FahrenheitX100)}
+    actor.data.latest_channel_values[f"{zone}-temp"] = 2050
+    assert actor.channel_temperature(f"{zone}-temp") == Temperature(2050, TelemetryName.CelsiusTimes100)
     assert actor.is_system_cold() is True
 
 
 def test_nolan_zone_temperature_reads_through_its_encoding() -> None:
     """The Nolan sim pair reads zone temperature as `-gw-temp` in
-    CelsiusTimes100 and carries no zone `-set`, so the cold judgment finds
-    no setpoint."""
+    CelsiusTimes100 and derives the zone `-set` in FahrenheitX100; until
+    the generator has emitted one the cold judgment finds no setpoint."""
     settings = ScadaApp.get_settings()
     settings.paths.hardware_layout = CONFIG / "gw.nolan.layout.json"
     settings.paths.operational_params = CONFIG / "gw.nolan.operational.params.json"
@@ -205,7 +213,8 @@ def test_nolan_zone_temperature_reads_through_its_encoding() -> None:
     temperature = pico_cycler.channel_temperature(channel)
     assert temperature == Temperature(2000, TelemetryName.CelsiusTimes100)
     assert temperature.f == pytest.approx(68.0)
-    assert pico_cycler.layout.channel_registry.get("zone1-bedrooms-set") is None
+    assert pico_cycler.layout.channel_registry.unit("zone1-bedrooms-set") == Unit.FahrenheitX100
+    assert pico_cycler.data.latest_channel_values["zone1-bedrooms-set"] is None
     assert pico_cycler.is_system_cold() is False
 
 

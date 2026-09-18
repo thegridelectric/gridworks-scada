@@ -1468,7 +1468,7 @@
       "DisplayName": "Buffer Depth 1 Device Temp",
       "AboutNodeName": "buffer-depth1",
       "CapturedByNodeName": "buffer",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
       "Id": "5b6db80f-77f7-4217-b3f4-30da7097415d"
@@ -1480,7 +1480,7 @@
       "DisplayName": "Buffer Depth 2 Device Temp",
       "AboutNodeName": "buffer-depth2",
       "CapturedByNodeName": "buffer",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
       "Id": "538440f9-3873-4a0f-835c-730da4016d7d"
@@ -1492,7 +1492,7 @@
       "DisplayName": "Buffer Depth 3 Device Temp",
       "AboutNodeName": "buffer-depth3",
       "CapturedByNodeName": "buffer",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
       "Id": "a7885470-9c48-4844-acf3-c8dbce28f0b7"
@@ -1540,7 +1540,7 @@
       "DisplayName": "Tank1 Depth 1 Device Temp",
       "AboutNodeName": "tank1-depth1",
       "CapturedByNodeName": "tank1",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
       "Id": "eb41c4d1-78af-4940-bec9-1a701ad61fc8"
@@ -1552,7 +1552,7 @@
       "DisplayName": "Tank1 Depth 2 Device Temp",
       "AboutNodeName": "tank1-depth2",
       "CapturedByNodeName": "tank1",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
       "Id": "f7ffb050-6074-476b-8dbb-a6dcad208e27"
@@ -1564,7 +1564,7 @@
       "DisplayName": "Tank1 Depth 3 Device Temp",
       "AboutNodeName": "tank1-depth3",
       "CapturedByNodeName": "tank1",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
       "Id": "658d9d14-3c40-4c79-9137-451e8640febb"
@@ -1612,7 +1612,7 @@
       "DisplayName": "Fancoil Depth 1 Device Temp",
       "AboutNodeName": "fancoil-depth1",
       "CapturedByNodeName": "fancoil",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
       "Id": "bc8417bc-fece-4f50-969c-c7d55378b162"
@@ -1624,7 +1624,7 @@
       "DisplayName": "Fancoil Depth 2 Device Temp",
       "AboutNodeName": "fancoil-depth2",
       "CapturedByNodeName": "fancoil",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
       "Id": "e992694b-2afb-48c6-bdf7-7b424a62462a"
@@ -1636,7 +1636,7 @@
       "DisplayName": "Fancoil Depth 3 Device Temp",
       "AboutNodeName": "fancoil-depth3",
       "CapturedByNodeName": "fancoil",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
       "Id": "9823b16e-5ef9-4970-b9fe-39fc722d8a5d"
@@ -1684,7 +1684,7 @@
       "DisplayName": "Floor1 Depth 1 Device Temp",
       "AboutNodeName": "floor1-depth1",
       "CapturedByNodeName": "floor1",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
       "Id": "b4c66a25-f9e7-4df3-b888-dc3391dc649a"
@@ -1696,7 +1696,7 @@
       "DisplayName": "Floor1 Depth 2 Device Temp",
       "AboutNodeName": "floor1-depth2",
       "CapturedByNodeName": "floor1",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
       "Id": "60c16984-de3f-4822-a153-6413b5f65669"
@@ -1708,7 +1708,7 @@
       "DisplayName": "Floor1 Depth 3 Device Temp",
       "AboutNodeName": "floor1-depth3",
       "CapturedByNodeName": "floor1",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
       "Id": "5598559a-c5b8-47d4-9932-729a0b3807c5"
@@ -1756,7 +1756,7 @@
       "DisplayName": "Pipes1 Depth 1 Device Temp",
       "AboutNodeName": "pipes1-depth1",
       "CapturedByNodeName": "pipes1",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
       "Id": "2e334d71-44fc-44ad-8bce-8559cecbc53f"
@@ -1768,7 +1768,7 @@
       "DisplayName": "Pipes1 Depth 2 Device Temp",
       "AboutNodeName": "pipes1-depth2",
       "CapturedByNodeName": "pipes1",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
       "Id": "7a7cdbc8-903b-40fd-8b8f-e855805652b2"
@@ -1780,7 +1780,7 @@
       "DisplayName": "Pipes1 Depth 3 Device Temp",
       "AboutNodeName": "pipes1-depth3",
       "CapturedByNodeName": "pipes1",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
       "Id": "112c3e22-2208-4b30-965a-0ff7144d2780"
@@ -1837,10 +1837,10 @@
       "TypeName": "data.channel.gt",
       "Version": "003",
       "Name": "hp-lwt",
-      "DisplayName": "Hp Lwt Celsius X 1000",
+      "DisplayName": "Hp Lwt Celsius X 100",
       "AboutNodeName": "hp-lwt",
       "CapturedByNodeName": "primary-btu",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
       "Id": "58a6fc28-cb15-45e5-8d31-59ecb09c9888"
@@ -1849,10 +1849,10 @@
       "TypeName": "data.channel.gt",
       "Version": "003",
       "Name": "hp-ewt",
-      "DisplayName": "Hp Ewt Celsius X 1000",
+      "DisplayName": "Hp Ewt Celsius X 100",
       "AboutNodeName": "hp-ewt",
       "CapturedByNodeName": "primary-btu",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
       "Id": "a68e8699-ae3a-4397-8af8-83080852022d"
@@ -1873,10 +1873,10 @@
       "TypeName": "data.channel.gt",
       "Version": "003",
       "Name": "secondary-lwt",
-      "DisplayName": "Secondary Lwt Celsius X 1000",
+      "DisplayName": "Secondary Lwt Celsius X 100",
       "AboutNodeName": "secondary-lwt",
       "CapturedByNodeName": "secondary-btu",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
       "Id": "138d2464-3696-4256-be24-a8e9d24b951a"
@@ -1885,10 +1885,10 @@
       "TypeName": "data.channel.gt",
       "Version": "003",
       "Name": "secondary-ewt",
-      "DisplayName": "Secondary Ewt Celsius X 1000",
+      "DisplayName": "Secondary Ewt Celsius X 100",
       "AboutNodeName": "secondary-ewt",
       "CapturedByNodeName": "secondary-btu",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
       "Id": "e681822b-2dbc-4d15-b711-5550ea3c0f86"
@@ -1921,10 +1921,10 @@
       "TypeName": "data.channel.gt",
       "Version": "003",
       "Name": "store-hot-pipe",
-      "DisplayName": "Store Hot Pipe Celsius X 1000",
+      "DisplayName": "Store Hot Pipe Celsius X 100",
       "AboutNodeName": "store-hot-pipe",
       "CapturedByNodeName": "store-btu",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
       "Id": "fe6135da-df58-4ea5-9965-346d4ae8cfd9"
@@ -1933,10 +1933,10 @@
       "TypeName": "data.channel.gt",
       "Version": "003",
       "Name": "store-cold-pipe",
-      "DisplayName": "Store Cold Pipe Celsius X 1000",
+      "DisplayName": "Store Cold Pipe Celsius X 100",
       "AboutNodeName": "store-cold-pipe",
       "CapturedByNodeName": "store-btu",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
       "Id": "bb8b2f70-7ae4-45d4-8e33-d5cb426654e7"
@@ -1957,10 +1957,10 @@
       "TypeName": "data.channel.gt",
       "Version": "003",
       "Name": "dist-swt",
-      "DisplayName": "Dist Swt Celsius X 1000",
+      "DisplayName": "Dist Swt Celsius X 100",
       "AboutNodeName": "dist-swt",
       "CapturedByNodeName": "dist-btu",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
       "Id": "78087b97-22a8-4fb3-8602-95c0fdbdf50a"
@@ -1969,10 +1969,10 @@
       "TypeName": "data.channel.gt",
       "Version": "003",
       "Name": "dist-rwt",
-      "DisplayName": "Dist Rwt Celsius X 1000",
+      "DisplayName": "Dist Rwt Celsius X 100",
       "AboutNodeName": "dist-rwt",
       "CapturedByNodeName": "dist-btu",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
       "Id": "78429503-0067-43e0-9a28-6b287b482559"
@@ -2365,6 +2365,94 @@
       "OutputQuantity": "Temperature",
       "EmissionMethod": "OnTrigger",
       "DisplayName": "Zone 4 Garage Floor Temp",
+      "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta"
+    },
+    {
+      "TypeName": "derived.channel.gt",
+      "Version": "002",
+      "Id": "d53cba37-323e-4603-9857-89a704f47a24",
+      "Name": "zone1-bedrooms-set",
+      "CreatedByNodeName": "derived-generator",
+      "Strategy": "simple-falling-edge-setpoint",
+      "InputChannelNames": [
+        "zone1-bedrooms-gw-temp",
+        "zone1-bedrooms-heat-call"
+      ],
+      "OutputUnit": "FahrenheitX100",
+      "OutputQuantity": "Temperature",
+      "EmissionMethod": "AsyncAndPeriodic",
+      "AsyncEmitDelta": 20,
+      "EmitPeriodS": 300,
+      "Parameters": {
+        "SetpointThresholdFX100": 200
+      },
+      "DisplayName": "Zone1 Bedrooms Predicted Setpoint",
+      "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta"
+    },
+    {
+      "TypeName": "derived.channel.gt",
+      "Version": "002",
+      "Id": "96a38649-fa67-42ae-9842-04681d507773",
+      "Name": "zone2-living-rm-set",
+      "CreatedByNodeName": "derived-generator",
+      "Strategy": "simple-falling-edge-setpoint",
+      "InputChannelNames": [
+        "zone2-living-rm-gw-temp",
+        "zone2-living-rm-heat-call"
+      ],
+      "OutputUnit": "FahrenheitX100",
+      "OutputQuantity": "Temperature",
+      "EmissionMethod": "AsyncAndPeriodic",
+      "AsyncEmitDelta": 20,
+      "EmitPeriodS": 300,
+      "Parameters": {
+        "SetpointThresholdFX100": 200
+      },
+      "DisplayName": "Zone2 Living Rm Predicted Setpoint",
+      "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta"
+    },
+    {
+      "TypeName": "derived.channel.gt",
+      "Version": "002",
+      "Id": "fceb17cd-e096-4dee-b275-69f6003bce5b",
+      "Name": "zone3-upstairs-set",
+      "CreatedByNodeName": "derived-generator",
+      "Strategy": "simple-falling-edge-setpoint",
+      "InputChannelNames": [
+        "zone3-upstairs-gw-temp",
+        "zone3-upstairs-heat-call"
+      ],
+      "OutputUnit": "FahrenheitX100",
+      "OutputQuantity": "Temperature",
+      "EmissionMethod": "AsyncAndPeriodic",
+      "AsyncEmitDelta": 20,
+      "EmitPeriodS": 300,
+      "Parameters": {
+        "SetpointThresholdFX100": 200
+      },
+      "DisplayName": "Zone3 Upstairs Predicted Setpoint",
+      "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta"
+    },
+    {
+      "TypeName": "derived.channel.gt",
+      "Version": "002",
+      "Id": "3b951f7d-4235-4181-831f-3fc875578d5c",
+      "Name": "zone4-garage-set",
+      "CreatedByNodeName": "derived-generator",
+      "Strategy": "simple-falling-edge-setpoint",
+      "InputChannelNames": [
+        "zone4-garage-gw-temp",
+        "zone4-garage-heat-call"
+      ],
+      "OutputUnit": "FahrenheitX100",
+      "OutputQuantity": "Temperature",
+      "EmissionMethod": "AsyncAndPeriodic",
+      "AsyncEmitDelta": 20,
+      "EmitPeriodS": 300,
+      "Parameters": {
+        "SetpointThresholdFX100": 200
+      },
+      "DisplayName": "Zone4 Garage Predicted Setpoint",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta"
     }
   ],

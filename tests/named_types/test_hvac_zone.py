@@ -1,5 +1,8 @@
 """Tests gw1.hvac.zone type, version 000"""
 
+import pytest
+from pydantic import ValidationError
+
 from gwsproto.named_types import HvacZone
 
 
@@ -22,10 +25,9 @@ def test_hvac_zone_generated() -> None:
     assert d2 == d
 
 
-def test_hvac_zone_temp_channel_optional() -> None:
+def test_hvac_zone_temp_channel_required() -> None:
     d = base_zone()
     del d["TempChannelName"]
 
-    zone = HvacZone.model_validate(d)
-
-    assert zone.TempChannelName is None
+    with pytest.raises(ValidationError):
+        HvacZone.model_validate(d)

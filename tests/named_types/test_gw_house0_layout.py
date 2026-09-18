@@ -338,3 +338,17 @@ def test_gw_house0_layout_axiom_17_missing_depth_channel(assembled: dict) -> Non
             d[key] = [c for c in d[key] if c["Name"] != "buffer-depth2"]
 
     reject(assembled, drop, "Axiom 17")
+
+
+def test_gw_house0_layout_axiom_18_unknown_channel(assembled: dict) -> None:
+    def rename(d: dict) -> None:
+        d["Hydronic"]["Zones"][0]["TempChannelName"] = "no-such-channel"
+
+    reject(assembled, rename, "Axiom 18")
+
+
+def test_gw_house0_layout_axiom_18_not_a_temperature(assembled: dict) -> None:
+    def point_at_power(d: dict) -> None:
+        d["Hydronic"]["Zones"][0]["TempChannelName"] = "hp-odu-pwr"
+
+    reject(assembled, point_at_power, "Axiom 18")

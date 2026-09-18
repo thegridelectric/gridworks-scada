@@ -50,6 +50,9 @@ from gwsproto.type_helpers.command_tree_axioms import (
     check_prefix_closed_handles,
 )
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
+from gwsproto.type_helpers.zone_temp_channel_resolution import (
+    check_zone_temp_channel_resolution,
+)
 
 # The component types a Nolan (gw108) layout may contain (mirrors the sema draft oneOf).
 NolanComponent = (
@@ -483,4 +486,19 @@ class NolanLayout(GwsprotoSemaType):
         leaf. b. Every leaf SHALL be an actuator or a command node.
         """
         check_actuator_leaves(self.ShNodes, "Axiom 12 (ActuatorLeaves)")
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_13(self) -> "NolanLayout":
+        """
+        Axiom 13: ZoneTempChannelResolution
+        a. Every zone's TempChannelName in Hydronic.Zones SHALL equal the Name of a
+        channel in DataChannels or in DerivedChannels.
+        b. That channel SHALL carry temperature: a DataChannel's Quantity, or a
+        DerivedChannel's OutputQuantity, SHALL be Temperature.
+        """
+        check_zone_temp_channel_resolution(
+            self.Hydronic.Zones, self.DataChannels, self.DerivedChannels,
+            "Axiom 13 (ZoneTempChannelResolution)",
+        )
         return self

@@ -617,7 +617,7 @@
       "DisplayName": "Zone1 Main Temp",
       "AboutNodeName": "zone1-main",
       "CapturedByNodeName": "zone1-main-temp-sensor",
-      "TelemetryName": "AirTempFTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
       "Id": "6d5e7ebd-a3b1-4c00-9211-cff88d7f5ba6"
@@ -629,7 +629,7 @@
       "DisplayName": "Zone1 Main Set",
       "AboutNodeName": "zone1-main",
       "CapturedByNodeName": "zone1-main-temp-sensor",
-      "TelemetryName": "AirTempFTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
       "Id": "b958cfa3-6e64-42fa-86cb-d255659392b5"
@@ -797,7 +797,7 @@
       "DisplayName": "Buffer Depth 1 Device Temp",
       "AboutNodeName": "buffer-depth1",
       "CapturedByNodeName": "buffer",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
       "Id": "3c5171aa-d43f-48cf-9b07-2c9b33155a3c"
@@ -809,7 +809,7 @@
       "DisplayName": "Buffer Depth 2 Device Temp",
       "AboutNodeName": "buffer-depth2",
       "CapturedByNodeName": "buffer",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
       "Id": "b840551d-00ef-49d6-92e9-f12f55eb20d5"
@@ -821,7 +821,7 @@
       "DisplayName": "Buffer Depth 3 Device Temp",
       "AboutNodeName": "buffer-depth3",
       "CapturedByNodeName": "buffer",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
       "Id": "5c26aeb7-047a-4bfe-bf01-1a1c3bc64523"
@@ -869,7 +869,7 @@
       "DisplayName": "Tank1 Depth 1 Device Temp",
       "AboutNodeName": "tank1-depth1",
       "CapturedByNodeName": "tank1",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
       "Id": "21c783c3-4e91-4381-91c6-a49fbadc1a55"
@@ -881,7 +881,7 @@
       "DisplayName": "Tank1 Depth 2 Device Temp",
       "AboutNodeName": "tank1-depth2",
       "CapturedByNodeName": "tank1",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
       "Id": "f40fe416-b557-45b7-9d8e-bfb9e658512f"
@@ -893,7 +893,7 @@
       "DisplayName": "Tank1 Depth 3 Device Temp",
       "AboutNodeName": "tank1-depth3",
       "CapturedByNodeName": "tank1",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
       "Id": "89921cb4-d666-4ac1-9116-d55045c13e8b"
@@ -1073,7 +1073,7 @@
       "DisplayName": "Sieg Cold Water Temp",
       "AboutNodeName": "sieg-cold",
       "CapturedByNodeName": "sieg-cold",
-      "TelemetryName": "WaterTempCTimes1000",
+      "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
       "Id": "aa927b15-89b3-4107-b439-3e338a136830"
