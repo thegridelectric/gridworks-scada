@@ -13,16 +13,12 @@ from gwsproto.named_types.scada_device_type_gt import ScadaDeviceTypeGt
 from gwsproto.named_types.data_channel_gt import DataChannelGt
 from gwsproto.named_types.derived_channel_gt import DerivedChannelGt
 from gwsproto.named_types.device_component_gt import DeviceComponentGt
-from gwsproto.named_types.dfr_component_gt import DfrComponentGt
 from gwsproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwsproto.named_types.g_node_gt import GNodeGt
 from gwsproto.named_types.hydronic import Hydronic
 from gwsproto.named_types.hp_device_type_gt import HpDeviceTypeGt
 from gwsproto.named_types.hubitat_component_gt import HubitatComponentGt
 from gwsproto.named_types.hubitat_poller_component_gt import HubitatPollerComponentGt
-from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
-    I2cMultichannelDtRelayComponentGt,
-)
 from gwsproto.named_types.pico_btu_meter_component_gt import PicoBtuMeterComponentGt
 from gwsproto.named_types.pico_flow_module_component_gt import PicoFlowModuleComponentGt
 from gwsproto.named_types.pico_tank_module_component_gt import PicoTankModuleComponentGt
@@ -43,7 +39,6 @@ from gwsproto.named_types.i2c_thermistor_reader_component_gt import (
     I2cThermistorReaderComponentGt,
 )
 from gwsproto.named_types.scada_board_component_gt import ScadaBoardComponentGt
-from gwsproto.named_types.sim_relay_component_gt import SimRelayComponentGt
 from gwsproto.named_types.sim_sensor_component_gt import SimSensorComponentGt
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwsproto.named_types.web_server_component_gt import WebServerComponentGt
@@ -66,10 +61,8 @@ House0Component = (
     | GpioRelayComponentGt
     | GpioSensorComponentGt
     | I2cDacOutputComponentGt
-    | I2cMultichannelDtRelayComponentGt
     | I2cRelayComponentGt
     | I2cThermistorReaderComponentGt
-    | DfrComponentGt
     | PicoBtuMeterComponentGt
     | PicoFlowModuleComponentGt
     | PicoTankModuleComponentGt
@@ -77,7 +70,6 @@ House0Component = (
     | SimPicoBtuMeterComponentGt
     | SimPicoFlowModuleComponentGt
     | SimPicoTankModuleComponentGt
-    | SimRelayComponentGt
     | SimSensorComponentGt
     | HubitatComponentGt
     | HubitatPollerComponentGt

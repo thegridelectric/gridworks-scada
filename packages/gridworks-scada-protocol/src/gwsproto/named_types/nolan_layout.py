@@ -18,9 +18,6 @@ from gwsproto.named_types.electric_meter_component_gt import ElectricMeterCompon
 from gwsproto.named_types.gpio_relay_component_gt import GpioRelayComponentGt
 from gwsproto.named_types.gpio_sensor_component_gt import GpioSensorComponentGt
 from gwsproto.named_types.i2c_dac_output_component_gt import I2cDacOutputComponentGt
-from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
-    I2cMultichannelDtRelayComponentGt,
-)
 from gwsproto.named_types.i2c_relay_component_gt import I2cRelayComponentGt
 from gwsproto.named_types.i2c_thermistor_reader_component_gt import (
     I2cThermistorReaderComponentGt,
@@ -37,7 +34,6 @@ from gwsproto.named_types.sim_pico_flow_module_component_gt import (
 from gwsproto.named_types.sim_pico_tank_module_component_gt import (
     SimPicoTankModuleComponentGt,
 )
-from gwsproto.named_types.sim_relay_component_gt import SimRelayComponentGt
 from gwsproto.named_types.sim_sensor_component_gt import SimSensorComponentGt
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwsproto.named_types.web_server_component_gt import WebServerComponentGt
@@ -62,7 +58,6 @@ NolanComponent = (
     | GpioSensorComponentGt
     | GpioRelayComponentGt
     | I2cDacOutputComponentGt
-    | I2cMultichannelDtRelayComponentGt
     | I2cRelayComponentGt
     | I2cThermistorReaderComponentGt
     | PicoBtuMeterComponentGt
@@ -71,7 +66,6 @@ NolanComponent = (
     | SimPicoBtuMeterComponentGt
     | SimPicoFlowModuleComponentGt
     | SimPicoTankModuleComponentGt
-    | SimRelayComponentGt
     | SimSensorComponentGt
     | WebServerComponentGt
 )

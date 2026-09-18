@@ -1,5 +1,4 @@
 from gwsproto.named_types.ads111x_based_component_gt import Ads111xBasedComponentGt
-from gwsproto.named_types.dfr_component_gt import DfrComponentGt
 from gwsproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 
 from gwsproto.named_types.gpio_relay_component_gt import GpioRelayComponentGt
@@ -24,7 +23,6 @@ from gwsproto.named_types.web_server_component_gt import WebServerComponentGt
 
 __all__ = [
     "Ads111xBasedComponentGt",
-    "DfrComponentGt",
     "ElectricMeterComponentGt",
     "GpioRelayComponentGt",
     "GpioSensorComponentGt",

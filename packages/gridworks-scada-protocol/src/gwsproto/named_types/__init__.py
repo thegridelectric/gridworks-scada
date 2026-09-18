@@ -20,7 +20,6 @@ from gwsproto.named_types.dac_output_config import DacOutputConfig
 from gwsproto.named_types.data_channel_gt import DataChannelGt
 from gwsproto.named_types.derived_channel_gt import DerivedChannelGt
 from gwsproto.named_types.device_component_gt import DeviceComponentGt
-from gwsproto.named_types.dfr_component_gt import DfrComponentGt
 from gwsproto.named_types.dfr_config import DfrConfig
 from gwsproto.named_types.dispatch_ack import DispatchAck
 from gwsproto.named_types.dispatch_contract_go_dormant import DispatchContractGoDormant
@@ -144,7 +143,6 @@ from gwsproto.named_types.sim_pico_flow_module_component_gt import (
 from gwsproto.named_types.sim_pico_tank_module_component_gt import (
     SimPicoTankModuleComponentGt,
 )
-from gwsproto.named_types.sim_relay_component_gt import SimRelayComponentGt
 from gwsproto.named_types.sim_sensor_component_gt import SimSensorComponentGt
 from gwsproto.named_types.simple_sim_layout import SimpleSimLayout
 from gwsproto.named_types.single_machine_state import SingleMachineState
@@ -203,7 +201,6 @@ __all__ = [
     "DerivedChannelGt",
 
     "DeviceComponentGt",
-    "DfrComponentGt",
     "DfrConfig",
     "DispatchAck",
     "DispatchContractGoDormant",
@@ -308,7 +305,6 @@ __all__ = [
     "SimPicoBtuMeterComponentGt",
     "SimPicoFlowModuleComponentGt",
     "SimPicoTankModuleComponentGt",
-    "SimRelayComponentGt",
     "SimSensorComponentGt",
     "SimpleSimLayout",
     "SingleMachineState",

@@ -2,7 +2,6 @@ from gwsproto.data_classes.components.ads111x_based_component import (
     Ads111xBasedComponent,
 )
 from gwsproto.data_classes.components.component import Component
-from gwsproto.data_classes.components.dfr_component import DfrComponent
 from gwsproto.data_classes.components.electric_meter_component import (
     ElectricMeterComponent,
 )
@@ -46,7 +45,6 @@ from gwsproto.data_classes.components.web_server_component import WebServerCompo
 __all__ = [
     "Ads111xBasedComponent",
     "Component",
-    "DfrComponent",
     "ElectricMeterComponent",
     "GpioRelayComponent",
     "GpioSensorComponent",
