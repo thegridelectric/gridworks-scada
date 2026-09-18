@@ -36,6 +36,7 @@ from gwsproto.named_types.events import RemainingElecEvent, ReportEvent
 from gwsproto.named_types.flo_next_hour_plans import FloNextHourPlans
 from gwsproto.named_types.flo_params import FloParams
 from gwsproto.named_types.flo_params_house0 import FloParamsHouse0
+from gwsproto.named_types.flow_hall_params import FlowHallParams
 from gwsproto.named_types.fsm_atomic_report import FsmAtomicReport
 from gwsproto.named_types.fsm_event import FsmEvent
 from gwsproto.named_types.fsm_full_report import FsmFullReport
@@ -214,6 +215,7 @@ __all__ = [
     "FloNextHourPlans",
     "FloParams",
     "FloParamsHouse0",
+    "FlowHallParams",
     "FsmAtomicReport",
     "FsmEvent",
     "FsmFullReport",

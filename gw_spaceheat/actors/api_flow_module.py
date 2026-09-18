@@ -15,6 +15,7 @@ from gwsproto.data_classes.components import PicoFlowModuleComponent
 from gwsproto.enums import GpmFromHzMethod, DeviceType, HzCalcMethod, TelemetryName
 from gwsproto.named_types import (
     ChannelReadings,
+    FlowHallParams,
     SyncedReadings,
     TicklistHall,
     TicklistHallReport,
@@ -22,6 +23,7 @@ from gwsproto.named_types import (
     TicklistReedReport,
 )
 from gwsproto.names.core.node_names import ScadaWeb
+from actors.pico_identity import PicoIdentity
 from actors.pico_liveness import PicoLiveness
 from actors.sh_node_actor import ShNodeActor
 from gwsproto.enums import LogLevel
@@ -33,7 +35,7 @@ from scada_app_interface import ScadaAppInterface
 
 
 
-class FlowHallParams(BaseModel):
+class FlowHallParams101(BaseModel):
     HwUid: str
     ActorNodeName: str
     FlowNodeName: str
@@ -81,6 +83,10 @@ class ApiFlowModule(ShNodeActor):
         self._stop_requested: bool = False
         self._component = component
         self.hw_uid = self._component.gt.HwUid
+        self.pico_identity = PicoIdentity(
+            board_variant=self._component.gt.PicoBoardVariant,
+            micropython_version=self._component.gt.MicropythonVersion,
+        )
 
         # Flow processing
         self.gpm_channel = self.layout.data_channels[f"{self.name}"]
@@ -145,12 +151,6 @@ class ApiFlowModule(ShNodeActor):
         if self._component.gt.HzCalcMethod == HzCalcMethod.BasicButterWorth:
             if self._component.gt.CutoffFrequency is None:
                 raise DcError(f"{self.name}: BasicButterWorth requires CutoffFrequency")
-        channel_names = [x.ChannelName for x in self._component.gt.ConfigList]
-        if self.gpm_channel.Name not in channel_names:
-            raise DcError(f"Missing {self.gpm_channel.Name} channel!")
-        if self._component.gt.SendHz:
-            if self.hz_channel.Name not in channel_names:
-                raise DcError(f"SendHz but missing {self.hz_channel.Name}!")
         if self._component.gt.SendGallons:
             raise ValueError("Not set up to send gallons right now")
 
@@ -323,11 +323,17 @@ class ApiFlowModule(ShNodeActor):
             self.services.logger.error(log_str)
 
     async def _handle_hall_params_post(self, request: Request) -> Response:
-        # Read params as FlowHallParams
+        # A 200 post carries the pico's board and MicroPython version; a 101
+        # post does not. The answer goes back in the version the pico posted.
         text = await self._get_text(request)
         self.params_text = text
         try:
-            params = FlowHallParams(**json.loads(text))
+            posted = json.loads(text)
+            params: FlowHallParams | FlowHallParams101
+            if posted.get("Version") == "200":
+                params = FlowHallParams(**posted)
+            else:
+                params = FlowHallParams101(**posted)
         except BaseException as e:
             self._report_post_error(e, "malformed FlowHall parameters!")
             self.log("Flow module params are malformed")
@@ -346,18 +352,44 @@ class ApiFlowModule(ShNodeActor):
             if self._component.gt.HwUid is None:
                 self.log(f"UPDATE LAYOUT!!: Pico HWUID {params.HwUid}")
                 self.hw_uid = params.HwUid
-            new_params = FlowHallParams(
-                HwUid=params.HwUid,
-                ActorNodeName=self.name,
-                FlowNodeName=params.FlowNodeName,
-                PublishTicklistPeriodS=self._component.gt.PublishTicklistPeriodS,
-                PublishEmptyTicklistAfterS=self._component.gt.PublishEmptyTicklistAfterS,
-            )
+            new_params: FlowHallParams | FlowHallParams101
+            if isinstance(params, FlowHallParams):
+                self.services.send_threadsafe(
+                    Message(Src=self.name, Dst=self.name, Payload=params)
+                )
+                new_params = FlowHallParams(
+                    HwUid=params.HwUid,
+                    ActorNodeName=self.name,
+                    FlowNodeName=params.FlowNodeName,
+                    PublishTicklistPeriodS=self._component.gt.PublishTicklistPeriodS,
+                    PublishEmptyTicklistAfterS=self._component.gt.PublishEmptyTicklistAfterS,
+                    PicoBoardVariant=params.PicoBoardVariant,
+                    MicropythonVersion=params.MicropythonVersion,
+                )
+            else:
+                new_params = FlowHallParams101(
+                    HwUid=params.HwUid,
+                    ActorNodeName=self.name,
+                    FlowNodeName=params.FlowNodeName,
+                    PublishTicklistPeriodS=self._component.gt.PublishTicklistPeriodS,
+                    PublishEmptyTicklistAfterS=self._component.gt.PublishEmptyTicklistAfterS,
+                )
             return Response(text=new_params.model_dump_json())
         else: # TODO: do we still need this?
             # A strange pico is identifying itself as our "a" tank
             self.log(f"Unknown pico {params.HwUid} identifying as {self.name} Pico A!")
             return Response()
+
+    def check_pico_identity(self, params: FlowHallParams) -> None:
+        """Warns once per difference between the post's board and MicroPython
+        version and the layout's. The layout value is what the house was
+        provisioned with; the scada does not write it."""
+        for d in self.pico_identity.differences(
+            params.PicoBoardVariant, params.MicropythonVersion
+        ):
+            self.send_warning(
+                summary=d.summary(self.name), details=d.details(params.HwUid)
+            )
 
     async def _handle_reed_params_post(self, request: Request) -> Response:
         # Read params as FlowReedParams
@@ -805,6 +837,8 @@ class ApiFlowModule(ShNodeActor):
                 self._process_ticklist_reed(message.Payload)
             case TicklistHall():
                 self._process_ticklist_hall(message.Payload)
+            case FlowHallParams():
+                self.check_pico_identity(message.Payload)
         return Ok(True)
 
     def start(self) -> None:

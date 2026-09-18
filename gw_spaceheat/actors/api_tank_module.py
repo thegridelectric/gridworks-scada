@@ -16,6 +16,7 @@ from gwsproto.enums import RelayClosedOrOpen, TempCalcMethod
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames
 from gwsproto.named_types import SyncedReadings, TankModuleParams
 from result import Ok, Result
+from actors.pico_identity import PicoIdentity
 from actors.pico_liveness import PicoLiveness
 from actors.sh_node_actor import ShNodeActor
 from actors.sim_pico_source import SIM_PICO_TICK_S, SimPicoSource
@@ -91,6 +92,12 @@ class ApiTankModule(ShNodeActor):
             )
 
         self.pico_uid = self._component.gt.PicoHwUid
+        self.pico_identity: Optional[PicoIdentity] = None
+        if isinstance(self._component, PicoTankModuleComponent):
+            self.pico_identity = PicoIdentity(
+                board_variant=self._component.gt.PicoBoardVariant,
+                micropython_version=self._component.gt.MicropythonVersion,
+            )
 
         self.liveness = PicoLiveness(
             expected_post_s=self.layout.capture_tuning_by_channel[
@@ -194,6 +201,9 @@ class ApiTankModule(ShNodeActor):
             return Response()
 
         if self.is_valid_pico_uid(params):
+            self.services.send_threadsafe(
+                Message(Src=self.name, Dst=self.name, Payload=params)
+            )
             tuning = self.layout.capture_tuning_by_channel[self.device_channels[1]]
 
             period = tuning.CapturePeriodS
@@ -220,6 +230,19 @@ class ApiTankModule(ShNodeActor):
             self.log(f"unknown pico {params.HwUid} identifying as {self.name}")
             # TODO: send problem report?
             return Response()
+
+    def check_pico_identity(self, params: TankModuleParams) -> None:
+        """Warns once per difference between the post's board and MicroPython
+        version and the layout's. The layout value is what the house was
+        provisioned with; the scada does not write it."""
+        if self.pico_identity is None:
+            return
+        for d in self.pico_identity.differences(
+            params.PicoBoardVariant, params.MicropythonVersion
+        ):
+            self.send_warning(
+                summary=d.summary(self.name), details=d.details(params.HwUid)
+            )
 
     async def _handle_microvolts_post(self, request: Request) -> Response:
         text = await self._get_text(request)
@@ -306,6 +329,8 @@ class ApiTankModule(ShNodeActor):
         match message.Payload:
             case MicroVolts():
                 self._process_microvolts(message.Payload)
+            case TankModuleParams():
+                self.check_pico_identity(message.Payload)
         return Ok(True)
 
     def start(self) -> None:

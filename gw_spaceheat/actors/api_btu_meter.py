@@ -5,6 +5,7 @@ from functools import cached_property
 from typing import Optional, Sequence
 
 from actors.pico_actor_base import PicoActorBase
+from actors.pico_identity import PicoIdentity
 from actors.pico_liveness import PicoLiveness
 from actors.sim_pico_source import SIM_PICO_TICK_S, SimPicoSource
 from aiohttp.web_request import Request
@@ -13,7 +14,7 @@ from gwproactor import MonitoredName, Problems
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwsproto.data_classes.components import PicoBtuMeterComponent, SimPicoBtuMeterComponent
-from gwsproto.enums import DeviceType, RelayClosedOrOpen, SimDeviceType
+from gwsproto.enums import DeviceType, PicoBoardVariant, RelayClosedOrOpen, SimDeviceType
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames
 from gwsproto.names.core.node_names import ScadaWeb
 from gwsproto.named_types import (
@@ -80,6 +81,13 @@ class ApiBtuMeter(PicoActorBase):
                 handler=self._handle_multichannel_snapshot_post,
             )
         self.pico_uid = self._component.gt.HwUid
+        self.pico_identity: Optional[PicoIdentity] = None
+        if isinstance(self._component, PicoBtuMeterComponent):
+            self.pico_identity = PicoIdentity(
+                # the BTU component twin holds its enums as their values
+                board_variant=PicoBoardVariant(self._component.gt.PicoBoardVariant),
+                micropython_version=self._component.gt.MicropythonVersion,
+            )
         # Find channels by matching AboutNodeName to component's node names
         self.flow_channel = self.layout.channel(self._component.gt.FlowChannelName)
         self.liveness = PicoLiveness(
@@ -192,6 +200,9 @@ class ApiBtuMeter(PicoActorBase):
 
         # Check if this is our pico (or if we don't have one yet)
         if self.is_valid_pico_uid(params):
+            self.services.send_threadsafe(
+                Message(Src=self.name, Dst=self.name, Payload=params.model_copy())
+            )
             # Update the pico's configuration to match our layout
             params.FlowChannelName = self._component.gt.FlowChannelName
             params.SendHz = self._component.gt.SendHz
@@ -243,6 +254,19 @@ class ApiBtuMeter(PicoActorBase):
             self.log(f"unknown pico {params.HwUid} identifying as {self.name}")
             # TODO: send problem report?
             return Response()
+
+    def check_pico_identity(self, params: AsyncBtuParams) -> None:
+        """Warns once per difference between the post's board and MicroPython
+        version and the layout's. The layout value is what the house was
+        provisioned with; the scada does not write it."""
+        if self.pico_identity is None:
+            return
+        for d in self.pico_identity.differences(
+            params.PicoBoardVariant, params.MicropythonVersion
+        ):
+            self.send_warning(
+                summary=d.summary(self.name), details=d.details(params.HwUid)
+            )
 
     async def _handle_multichannel_snapshot_post(self, request: Request) -> Response:
         text = await self._get_text(request)
@@ -306,6 +330,8 @@ class ApiBtuMeter(PicoActorBase):
         match message.Payload:
             case MultichannelSnapshot():
                 self._process_multichannel_snapshot(message.Payload)
+            case AsyncBtuParams():
+                self.check_pico_identity(message.Payload)
         return Ok(True)
 
     def start(self) -> None:
