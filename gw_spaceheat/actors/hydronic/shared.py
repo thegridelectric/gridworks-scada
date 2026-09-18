@@ -8,7 +8,6 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Optional
 from pydantic import ValidationError
-from gwsproto.conversions.temperature import Temperature
 from gwsproto.errors import DcError
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
@@ -22,7 +21,6 @@ from gwsproto.names.hydronic_spaceheat.channel_names import (
 from gwsproto.names.hydronic_spaceheat.node_names import (
     HydronicSpaceheatZoneNodeNames as HSZoneNodeNames,
 )
-from gwsproto.property_format import SpaceheatName
 
 from actors.command_node import CommandNode
 
@@ -32,14 +30,6 @@ class HydronicNode(CommandNode):
     def zone_channels(self) -> list[HSZoneChannelNames]:
         """The layout's zones in order, as their hydronic-tier channel names."""
         return [HSZoneChannelNames(zone, i + 1) for i, zone in enumerate(self.layout.zone_list)]
-
-    def channel_temperature(self, channel_name: SpaceheatName) -> Optional[Temperature]:
-        """The channel's latest value with the encoding the layout declares
-        for it; None when there is no value yet."""
-        raw = self.data.latest_channel_values.get(channel_name)
-        if raw is None:
-            return None
-        return self.layout.channel_registry.temperature(channel_name, raw)
 
     def refresh_setpoints_at_onpeak_start(self) -> None:
         """Take each layout zone's current setpoint (`zone{i}-{label}-set`,
@@ -74,11 +64,10 @@ class HydronicNode(CommandNode):
         minimum with (b) avoids triggering when the user lowers the thermostat during on-peak."""
         if not self.is_onpeak():  # TODO: bleed into the first half hour of offpeak
             self.refresh_setpoints_at_onpeak_start()
-        critical = set(self.layout.critical_zone_list)
-        for i, zone_name in enumerate(self.layout.zone_list):
-            if zone_name not in critical:
+        for i, hvac_zone in enumerate(self.layout.hydronic.Zones):
+            if not hvac_zone.Critical:
                 continue
-            zone_channels = HSZoneChannelNames(zone_name, i + 1)
+            zone_channels = HSZoneChannelNames(hvac_zone.Name, i + 1)
             zone = zone_channels.base
 
             # Use the lower of setpoint at start of on-peak vs current setpoint
@@ -94,7 +83,10 @@ class HydronicNode(CommandNode):
                 self.log(f"Could not find setpoint for {zone}!")
                 continue
 
-            temperature = self.channel_temperature(zone_channels.temp)
+            if hvac_zone.TempChannelName is None:
+                self.log(f"{zone} names no temperature channel!")
+                continue
+            temperature = self.channel_temperature(hvac_zone.TempChannelName)
             if temperature is None:
                 self.log(f"Could not find latest temperature for {zone}!")
                 continue
@@ -288,9 +280,3 @@ class HydronicNode(CommandNode):
             )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    @property
-    def latest_temps_f(self) -> dict[str, float]:
-        return self.data.latest_temperatures_f
-
-

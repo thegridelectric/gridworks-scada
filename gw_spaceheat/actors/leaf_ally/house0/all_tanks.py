@@ -547,18 +547,18 @@ class AllTanksLeafAlly(House0Hydronic):
         else:
             tanks = self.layout.store_tanks
             last = tanks[max(tanks)] if tanks else None
-            if HCN.store_cold_pipe in self.latest_temps_f:
+            if HCN.store_cold_pipe in self.data.latest_temperatures_f:
                 store_channel = HCN.store_cold_pipe
-            elif last and last.depth3 in self.latest_temps_f:
+            elif last and last.depth3 in self.data.latest_temperatures_f:
                 store_channel = last.depth3
-            elif last and last.depth2 in self.latest_temps_f:
+            elif last and last.depth2 in self.data.latest_temperatures_f:
                 store_channel = last.depth2
-            elif last and last.depth1 in self.latest_temps_f:
+            elif last and last.depth1 in self.data.latest_temperatures_f:
                 store_channel = last.depth1
             else:
                 self.send_warning(summary="storage_full_fail", details="Impossible to know if the storage is full, store-cold-pipe not found!")
                 return True
-            store_channel_temp = self.latest_temps_f[store_channel]
+            store_channel_temp = self.data.latest_temperatures_f[store_channel]
             if store_channel_temp > self.params.MaxEwtF: 
                 self.log(f"Storage is full ({store_channel_temp} > {self.params.MaxEwtF} F).")
                 self.storage_declared_full = True

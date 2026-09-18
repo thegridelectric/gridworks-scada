@@ -45,10 +45,10 @@ def test_store_temps_are_none_without_tanks(app: ScadaApp) -> None:
     tank1 = actor.layout.store_tanks[1]
     actor.data.latest_channel_values[tank1.depth1] = 15_000
     actor.data.latest_channel_values[tank1.depth3] = 12_000
-    assert actor.hottest_store_temp_f() == pytest.approx(150.0, abs=0.1)
-    assert actor.coldest_store_temp_f() == pytest.approx(120.0, abs=0.1)
+    assert actor.hottest_store_temp().f == pytest.approx(150.0, abs=0.1)
+    assert actor.coldest_store_temp().f == pytest.approx(120.0, abs=0.1)
 
     actor.layout.store_tanks = {}
     assert not actor.layout.has_store_tanks
-    assert actor.hottest_store_temp_f() is None
-    assert actor.coldest_store_temp_f() is None
+    assert actor.hottest_store_temp() is None
+    assert actor.coldest_store_temp() is None

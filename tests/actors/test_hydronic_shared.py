@@ -13,7 +13,7 @@ import pytest
 import actors.hydronic.shared as shared
 from actors.pico_cycler import PicoCycler
 from gwsproto.conversions.temperature import Temperature
-from gwsproto.enums import ChangeZoneCallSource, ChangeRelayState, DayOfWeek, TelemetryName
+from gwsproto.enums import ChangeZoneCallSource, ChangeRelayState, DayOfWeek, TelemetryName, Unit
 from gwsproto.errors import DcError
 from gwsproto.named_types import FsmEvent, TouWindow
 from gwsproto.names.core.node_names import CoreNodeNames
@@ -209,6 +209,26 @@ def test_nolan_zone_temperature_reads_through_its_encoding() -> None:
     assert pico_cycler.is_system_cold() is False
 
 
+def test_nolan_cold_judgment_reads_the_zones_temp_channel(monkeypatch: pytest.MonkeyPatch) -> None:
+    """With a setpoint held for the zone, the judgment reads the zone's
+    TempChannelName (`-gw-temp` at a Nolan house): 19 C is 66.2 F, more
+    than 1 F under 70 F."""
+    settings = ScadaApp.get_settings()
+    settings.paths.hardware_layout = CONFIG / "gw.nolan.layout.json"
+    settings.paths.operational_params = CONFIG / "gw.nolan.operational.params.json"
+    settings.paths.mkdirs()
+    app = ScadaApp(app_settings=settings)
+    app.instantiate()
+    pico_cycler = app.get_communicator_as_type(HSNN.pico_cycler, PicoCycler)
+    assert pico_cycler is not None
+    monkeypatch.setattr(pico_cycler, "is_onpeak", lambda: True)
+    pico_cycler.setpoints_at_onpeak_start = {"zone1-bedrooms": Temperature(7000, Unit.FahrenheitX100)}
+    pico_cycler.data.latest_channel_values["zone1-bedrooms-gw-temp"] = 2100
+    assert pico_cycler.is_system_cold() is False
+    pico_cycler.data.latest_channel_values["zone1-bedrooms-gw-temp"] = 1900
+    assert pico_cycler.is_system_cold() is True
+
+
 # --- TOU clock --------------------------------------------------------------
 
 
@@ -268,8 +288,3 @@ def test_tou_clock_reads_the_ops_words_windows(actor: PicoCycler, monkeypatch: p
 def test_just_before_onpeak_needs_a_window_that_day(actor: PicoCycler, monkeypatch: pytest.MonkeyPatch) -> None:
     at(monkeypatch, actor, 5, 6, 58)  # Saturday: no window opens at 7
     assert actor.just_before_onpeak() is False
-
-
-def test_latest_temps_f_is_the_data_view(actor: PicoCycler) -> None:
-    actor.data.latest_temperatures_f["buffer-depth1"] = 123.0
-    assert actor.latest_temps_f is actor.data.latest_temperatures_f

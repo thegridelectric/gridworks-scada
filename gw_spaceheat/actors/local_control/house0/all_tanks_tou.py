@@ -314,15 +314,15 @@ class AllTanksTouLocalControl(LocalControlTouBase):
             self.storage_declared_ready = True
             return True
         else:
-            if HSNN.store_cold_pipe in self.latest_temps_f:
+            if HSNN.store_cold_pipe in self.data.latest_temperatures_f:
                 check_temp_channel = HSNN.store_cold_pipe
-            elif HSNN.hp_ewt in self.latest_temps_f:
+            elif HSNN.hp_ewt in self.data.latest_temperatures_f:
                 check_temp_channel = HSNN.hp_ewt
             else:
                 self.log("No EWT temperature channel found, not checking if storage is ready")
                 return False
-            if self.latest_temps_f[check_temp_channel] > self.params.MaxEwtF:
-                self.log(f"{check_temp_channel}: {self.latest_temps_f[check_temp_channel]}. MaxEWT: {self.params.MaxEwtF} F")
+            if self.data.latest_temperatures_f[check_temp_channel] > self.params.MaxEwtF:
+                self.log(f"{check_temp_channel}: {self.data.latest_temperatures_f[check_temp_channel]}. MaxEWT: {self.params.MaxEwtF} F")
                 self.log(f"The storage is not ready, but the bottom is above the maximum EWT ({self.params.MaxEwtF} F).")
                 self.log("The storage will therefore be considered ready, as we cannot charge it further.")
                 self.full_storage_energy = self.usable_kwh

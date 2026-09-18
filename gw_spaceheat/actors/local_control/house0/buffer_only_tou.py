@@ -237,9 +237,9 @@ class BufferOnlyTouLocalControl(LocalControlTouBase):
             self.buffer_declared_ready = True
             return True
         else:
-            if HSNN.buffer_cold_pipe in self.latest_temps_f:
-                self.log(f"Buffer cold pipe: {self.latest_temps_f[HSNN.buffer_cold_pipe]} F")
-                if (self.latest_temps_f[HSNN.buffer_cold_pipe] > self.params.MaxEwtF):
+            if HSNN.buffer_cold_pipe in self.data.latest_temperatures_f:
+                self.log(f"Buffer cold pipe: {self.data.latest_temperatures_f[HSNN.buffer_cold_pipe]} F")
+                if (self.data.latest_temperatures_f[HSNN.buffer_cold_pipe] > self.params.MaxEwtF):
                     self.log(f"The buffer is not ready, but the bottom is above the maximum EWT ({self.params.MaxEwtF} F).")
                     self.log("The buffer will therefore be considered ready, as we cannot charge it further.")
                     self.full_buffer_energy = self.usable_kwh

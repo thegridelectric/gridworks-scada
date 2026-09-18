@@ -8,7 +8,6 @@ import time
 import uuid
 from typing import Literal, NamedTuple, Optional
 from pydantic import ValidationError
-from gwsproto.conversions.temperature import convert_temp_to_f
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
     ActorClass,
@@ -588,11 +587,11 @@ class House0Hydronic(HydronicNode):
         """
 
         # Select the best available "top of buffer" temperature channel
-        if all_tanks_leaf_ally and self.ops.FamilyParams.KeepBufferFull and HCN.buffer.depth3 in self.latest_temps_f:
+        if all_tanks_leaf_ally and self.ops.FamilyParams.KeepBufferFull and HCN.buffer.depth3 in self.data.latest_temperatures_f:
             buffer_empty_ch = HCN.buffer.depth3
-        elif HCN.buffer.depth1 in self.latest_temps_f:
+        elif HCN.buffer.depth1 in self.data.latest_temperatures_f:
             buffer_empty_ch = HCN.buffer.depth1
-        elif HCN.dist_swt in self.latest_temps_f:
+        elif HCN.dist_swt in self.data.latest_temperatures_f:
             buffer_empty_ch = HCN.dist_swt
         else:
             # No meaningful buffer temperature available
@@ -613,7 +612,7 @@ class House0Hydronic(HydronicNode):
             min_buffer_temp_f = round(max_rswt, 1)
 
         min_buffer_temp_f = min(min_buffer_temp_f, self.data.ha1_params.MaxEwtF-10)
-        buffer_temp_f = self.latest_temps_f[buffer_empty_ch]
+        buffer_temp_f = self.data.latest_temperatures_f[buffer_empty_ch]
 
         if buffer_temp_f < min_buffer_temp_f:
             self.log(
@@ -638,20 +637,20 @@ class House0Hydronic(HydronicNode):
         """
         used_proxy: bool = True
 
-        if HCN.buffer.depth3 in self.latest_temps_f:
+        if HCN.buffer.depth3 in self.data.latest_temperatures_f:
             buffer_full_ch = HCN.buffer.depth3
             used_proxy = False
-        elif HCN.buffer_cold_pipe in self.latest_temps_f:  # Note: often not even installed
+        elif HCN.buffer_cold_pipe in self.data.latest_temperatures_f:  # Note: often not even installed
             buffer_full_ch = HCN.buffer_cold_pipe
 
         elif (
             self.discharging_store()
-            and HCN.store_cold_pipe in self.latest_temps_f
+            and HCN.store_cold_pipe in self.data.latest_temperatures_f
         ):
             buffer_full_ch = HCN.store_cold_pipe
         elif (
             self.flowing_from_hp_to_house()
-            and HCN.hp_ewt in self.latest_temps_f
+            and HCN.hp_ewt in self.data.latest_temperatures_f
         ):
             buffer_full_ch = HCN.hp_ewt
         else:
@@ -673,7 +672,7 @@ class House0Hydronic(HydronicNode):
             max_rswt = round(max(self.heating_forecast.RswtF[:3]), 1)
             max_buffer = min(max_rswt, self.data.ha1_params.MaxEwtF)
 
-        buffer_full_ch_temp = self.latest_temps_f[buffer_full_ch]
+        buffer_full_ch_temp = self.data.latest_temperatures_f[buffer_full_ch]
         if buffer_full_ch_temp > max_buffer:
             self.log(
                 f"Buffer full ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F), RSWT is {max_rswt} F"
@@ -691,20 +690,20 @@ class House0Hydronic(HydronicNode):
         Returns True if the buffer cannot accept more heat without exceeding MaxEwtF.
         This is a physical limit.
         """
-        if HCN.hp_ewt in self.latest_temps_f and self.flowing_from_hp_to_house():
+        if HCN.hp_ewt in self.data.latest_temperatures_f and self.flowing_from_hp_to_house():
             channel_used = HCN.hp_ewt
-        elif HCN.buffer_cold_pipe in self.latest_temps_f:
+        elif HCN.buffer_cold_pipe in self.data.latest_temperatures_f:
             channel_used = HCN.buffer_cold_pipe
-        elif HCN.buffer.depth3 in self.latest_temps_f:
+        elif HCN.buffer.depth3 in self.data.latest_temperatures_f:
             channel_used = HCN.buffer.depth3
         else:
             return False
 
-        if self.latest_temps_f[channel_used] >= self.data.ha1_params.MaxEwtF:
-            self.log(f"{channel_used}: {self.latest_temps_f[channel_used]} F >= {self.data.ha1_params.MaxEwtF} F")
+        if self.data.latest_temperatures_f[channel_used] >= self.data.ha1_params.MaxEwtF:
+            self.log(f"{channel_used}: {self.data.latest_temperatures_f[channel_used]} F >= {self.data.ha1_params.MaxEwtF} F")
             return True
         else:
-            self.log(f"{channel_used}: {self.latest_temps_f[channel_used]} F < {self.data.ha1_params.MaxEwtF} F")
+            self.log(f"{channel_used}: {self.data.latest_temperatures_f[channel_used]} F < {self.data.ha1_params.MaxEwtF} F")
             return False
 
     def is_storage_colder_than_buffer(self, min_delta_f: float = 5.4, all_tanks_leaf_ally: bool = False) -> bool:
@@ -717,41 +716,41 @@ class House0Hydronic(HydronicNode):
         - Returns False if required temperatures are unavailable
         """
         # --- Determine buffer top ---
-        if HCN.buffer.depth1 in self.latest_temps_f:
+        if HCN.buffer.depth1 in self.data.latest_temperatures_f:
             buffer_top = HCN.buffer.depth1
-        elif HCN.buffer.depth2 in self.latest_temps_f:
+        elif HCN.buffer.depth2 in self.data.latest_temperatures_f:
             buffer_top = HCN.buffer.depth2
-        elif HCN.buffer.depth3 in self.latest_temps_f:
+        elif HCN.buffer.depth3 in self.data.latest_temperatures_f:
             buffer_top = HCN.buffer.depth3
-        elif HCN.buffer_cold_pipe in self.latest_temps_f:
+        elif HCN.buffer_cold_pipe in self.data.latest_temperatures_f:
             buffer_top = HCN.buffer_cold_pipe
         elif not all_tanks_leaf_ally or not self.ops.FamilyParams.KeepBufferFull:
             return False
 
         # --- Determine storage top ---
         tanks = self.layout.store_tanks
-        if tanks and tanks[min(tanks)].depth1 in self.latest_temps_f:
+        if tanks and tanks[min(tanks)].depth1 in self.data.latest_temperatures_f:
             tank_top = tanks[min(tanks)].depth1
-        elif HCN.store_hot_pipe in self.latest_temps_f:
+        elif HCN.store_hot_pipe in self.data.latest_temperatures_f:
             tank_top = HCN.store_hot_pipe
-        elif HCN.buffer_hot_pipe in self.latest_temps_f:
+        elif HCN.buffer_hot_pipe in self.data.latest_temperatures_f:
             tank_top = HCN.buffer_hot_pipe
         else:
             return False
 
         # --- Determine buffer bottom ---
         if all_tanks_leaf_ally and self.ops.FamilyParams.KeepBufferFull:
-            if HCN.buffer.depth3 in self.latest_temps_f:
+            if HCN.buffer.depth3 in self.data.latest_temperatures_f:
                 buffer_bottom = HCN.buffer.depth3
-            elif HCN.buffer.depth2 in self.latest_temps_f:
+            elif HCN.buffer.depth2 in self.data.latest_temperatures_f:
                 buffer_bottom = HCN.buffer.depth2
-            elif HCN.buffer.depth1 in self.latest_temps_f:
+            elif HCN.buffer.depth1 in self.data.latest_temperatures_f:
                 buffer_bottom = HCN.buffer.depth1
             else:
                 return False
-            return self.latest_temps_f[buffer_bottom] > self.latest_temps_f[tank_top]
+            return self.data.latest_temperatures_f[buffer_bottom] > self.data.latest_temperatures_f[tank_top]
 
-        return self.latest_temps_f[buffer_top] > self.latest_temps_f[tank_top] + min_delta_f
+        return self.data.latest_temperatures_f[buffer_top] > self.data.latest_temperatures_f[tank_top] + min_delta_f
 
     def is_storage_empty(self):
         if self.usable_kwh < 0.2:
@@ -803,29 +802,17 @@ class House0Hydronic(HydronicNode):
         temps: dict[str, float] = {}
 
         for ch_name in self.temperature_channel_names:
-            raw = self.data.latest_channel_values.get(ch_name)
-            if raw is None:
-                continue
-
             try:
-                unit = self.layout.channel_registry.unit(ch_name)
-                if unit is None:
-                    raise Exception(
-                        f"temperature channels should have units! {ch_name}"
-                    )
-                temp_f = convert_temp_to_f(
-                    raw=raw,
-                    encoding=unit
-                )
+                temperature = self.channel_temperature(ch_name)
             except Exception as e:
                 note = f"Temperature conversion failed for {ch_name}: {e}"
                 self.log(note)
                 self.send_warning(summary=note, details="")  
                 continue
-            if temp_f is None:
+            if temperature is None:
                 continue
 
-            temps[ch_name] = round(temp_f, 1)
+            temps[ch_name] = round(temperature.f, 1)
 
         self.data.latest_temperatures_f = temps
 

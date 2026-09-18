@@ -219,15 +219,15 @@ class SiegLoop(House0Hydronic):
             await asyncio.sleep(self.control_interval_seconds)
 
     def hp_loop_is_getting_hot(self):
-        lwt = self.lwt_f()
-        ewt = self.ewt_f()
+        lwt = self.lwt()
+        ewt = self.ewt()
         
-        if self.is_blind() or not lwt or not ewt:
+        if self.is_blind() or lwt is None or ewt is None:
             self.log(f"Warning: hp_loop_is_getting_hot called but blind")
             return True
         
         threshold_lwt = self.data.ha1_params.MaxEwtF-20
-        if max(lwt, ewt) > threshold_lwt:
+        if max(lwt, ewt).f > threshold_lwt:
             return True
         return False
 
