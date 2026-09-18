@@ -36,6 +36,7 @@ from gwsproto.data_classes.components import (
     PicoBtuMeterComponent,
     PicoFlowModuleComponent,
     PicoTankModuleComponent,
+    SimPicoBtuMeterComponent,
     SimPicoTankModuleComponent,
 )
 
@@ -118,7 +119,7 @@ class PicoCycler(HydronicNode):
             if component is None:
                 continue
 
-            if isinstance(component, PicoBtuMeterComponent):
+            if isinstance(component, (PicoBtuMeterComponent, SimPicoBtuMeterComponent)):
                 hw_uid = component.gt.HwUid
             elif isinstance(component, PicoFlowModuleComponent):
                 hw_uid = component.gt.HwUid

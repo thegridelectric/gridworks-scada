@@ -77,39 +77,8 @@ def test_tank_module_emits_by_the_device_channel_encoding(tmp_path: Path, encodi
 
 @pytest.mark.parametrize("encoding", CELSIUS_ENCODINGS)
 def test_btu_meter_emits_by_the_temperature_channel_encoding(tmp_path: Path, encoding: TelemetryName) -> None:
-    """No sim pair boots an ApiBtuMeter, so the Nolan pair's primary-btu
-    node takes the actor and a pico component here."""
     channel_names = ["hp-lwt", "hp-ewt"]
-    layout = declared(NOLAN, channel_names, encoding)
-    node = next(n for n in layout["ShNodes"] if n["Name"] == "primary-btu")
-    node["ActorClass"] = "ApiBtuMeter"
-    layout["Components"] = [c for c in layout["Components"] if c["ComponentId"] != node["ComponentId"]] + [
-        {
-            "TypeName": "pico.btu.meter.component.gt",
-            "Version": "000",
-            "ComponentId": node["ComponentId"],
-            "DeviceType": "Gw101",
-            "Enabled": True,
-            "SerialNumber": "NA",
-            "FlowChannelName": "primary-flow",
-            "HotChannelName": "hp-lwt",
-            "ColdChannelName": "hp-ewt",
-            "ReadCtVoltage": False,
-            "SendHz": False,
-            "FlowMeterType": "SaierFlowSensor",
-            "HzCalcMethod": "UniformWindow",
-            "TempCalcMethod": "SimpleBeta",
-            "GpmFromHzMethod": "Constant",
-            "ThermistorBeta": 3977,
-            "GallonsPerPulse": 0.0009,
-            "AsyncCaptureDeltaGpmX100": 10,
-            "AsyncCaptureDeltaCelsiusX100": 20,
-            "DisplayName": "primary-btu BtuMeter",
-            "HwUid": "pico_aaaaaa",
-            "PicoBoardVariant": "PicoRaspberryWifi2040",
-        }
-    ]
-    app = boot(tmp_path, NOLAN, layout)
+    app = boot(tmp_path, NOLAN, declared(NOLAN, channel_names, encoding))
     btu = app.get_communicator_as_type("primary-btu", ApiBtuMeter)
     assert btu is not None
     sent: list[SyncedReadings] = []
@@ -117,7 +86,7 @@ def test_btu_meter_emits_by_the_temperature_channel_encoding(tmp_path: Path, enc
 
     btu._process_multichannel_snapshot(
         MultichannelSnapshot(
-            HwUid="pico_aaaaaa",
+            HwUid=btu.pico_uid,
             ChannelNameList=["primary-flow", "hp-lwt", "hp-ewt"],
             MeasurementList=[350, 4512, 3987],
             UnitList=["GpmTimes100", "CelsiusTimes100", "CelsiusTimes100"],

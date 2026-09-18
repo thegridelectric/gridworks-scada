@@ -6,13 +6,15 @@ from typing import Optional, Sequence
 
 from actors.pico_actor_base import PicoActorBase
 from actors.pico_liveness import PicoLiveness
+from actors.sim_pico_source import SIM_PICO_TICK_S, SimPicoSource
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 from gwproactor import MonitoredName, Problems
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
-from gwsproto.data_classes.components import PicoBtuMeterComponent
-from gwsproto.enums import DeviceType
+from gwsproto.data_classes.components import PicoBtuMeterComponent, SimPicoBtuMeterComponent
+from gwsproto.enums import DeviceType, RelayClosedOrOpen, SimDeviceType
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames
 from gwsproto.names.core.node_names import ScadaWeb
 from gwsproto.named_types import (
     AsyncBtuParams, ChannelFlatlined, 
@@ -21,10 +23,20 @@ from gwsproto.named_types import (
 from result import Ok, Result
 from scada_app_interface import ScadaAppInterface
 
+# A loop with standing flow and no lift: 4 gpm, both pipes at 50 C, no CT
+# voltage. Fixed until the plant drives loop flow and temperatures.
+SIM_LOOP_GPM_X100 = 400
+SIM_LOOP_CELSIUS_X100 = 5000
+SIM_CT_VOLTS_X100 = 0
+
 
 class ApiBtuMeter(PicoActorBase):
+    """Reads a pico BTU meter over HTTP. When the component is the sim word
+    the actor runs its own SimPicoSource, posting snapshots to itself on the
+    path the web handler uses for a real pico's post."""
+
     _stop_requested: bool
-    _component: PicoBtuMeterComponent
+    _component: PicoBtuMeterComponent | SimPicoBtuMeterComponent
 
     def __init__(
         self,
@@ -37,20 +49,20 @@ class ApiBtuMeter(PicoActorBase):
         if comp is None:
             raise Exception(f" {self.node.actor_class} {self.name} needs a component!")
 
-        if not isinstance(comp, PicoBtuMeterComponent):
+        if not isinstance(comp, (PicoBtuMeterComponent, SimPicoBtuMeterComponent)):
             display_name = getattr(
                 comp.gt, "DisplayName", "MISSING ATTRIBUTE display_name"
             )
             raise ValueError(
                 f"ERROR. Component <{display_name}> for node {self.name} has type {type(comp)}. "
-                f"Expected PicoBtuMeterComponent.\n"
+                f"Expected PicoBtuMeterComponent or SimPicoBtuMeterComponent.\n"
             )
         self._component = comp
         # Btu meters carry no specialized device-type record; identity is on the gt.
         self.device_type = self._component.gt.DeviceType
-        if self.device_type not in [DeviceType.Gw101]:
+        if self.device_type not in [DeviceType.Gw101, SimDeviceType.SimSensor]:
             raise ValueError(
-                f"Expect Gw101 (BtuMeter).. not {self.device_type}"
+                f"Expect Gw101 (BtuMeter) or SimSensor.. not {self.device_type}"
             )
         self._stop_requested: bool = False
 
@@ -86,6 +98,30 @@ class ApiBtuMeter(PicoActorBase):
             for ch in (self.flow_channel, self.hot_temp_channel, self.cold_temp_channel, self.ct_channel)
             if ch is not None
         )
+
+        self.sim_pico: Optional[SimPicoSource[MultichannelSnapshot]] = None
+        if isinstance(self._component, SimPicoBtuMeterComponent):
+            assert self.pico_uid
+            channel_names = [self.flow_channel.Name, self.hot_temp_channel.Name, self.cold_temp_channel.Name]
+            measurements = [SIM_LOOP_GPM_X100, SIM_LOOP_CELSIUS_X100, SIM_LOOP_CELSIUS_X100]
+            units = ["GpmTimes100", "CelsiusTimes100", "CelsiusTimes100"]
+            if self.ct_channel is not None:
+                channel_names.append(self.ct_channel.Name)
+                measurements.append(SIM_CT_VOLTS_X100)
+                units.append("VoltsTimes100")
+            self.sim_pico = SimPicoSource(
+                reading=MultichannelSnapshot(
+                    HwUid=self.pico_uid,
+                    ChannelNameList=channel_names,
+                    MeasurementList=measurements,
+                    UnitList=units,
+                ),
+                capture_period_s=self.liveness.expected_post_s,
+                life_s=self._component.gt.SimLifeS,
+                reboot_s=self._component.gt.SimRebootS,
+                booted_at=time.time(),
+            )
+        self.sim_relay_seen: Optional[tuple[str, int]] = None
 
     @cached_property
     def async_btu_params_path(self) -> str:
@@ -277,6 +313,35 @@ class ApiBtuMeter(PicoActorBase):
         self.services.add_task(
             asyncio.create_task(self.main(), name="ApiBtuMeter keepalive")
         )
+        if self.sim_pico is not None:
+            self.services.add_task(
+                asyncio.create_task(self.sim_pico_main(), name="ApiBtuMeter sim pico")
+            )
+
+    def feed_sim_relay_state(self, now: float) -> None:
+        """Hand the source each new vdc relay state from the scada's latest
+        machine states."""
+        assert self.sim_pico is not None
+        sms = self.data.latest_machine_state.get(HydronicSpaceheatNodeNames.vdc_relay)
+        if sms is None:
+            return
+        seen = (sms.State, sms.UnixMs)
+        if seen == self.sim_relay_seen:
+            return
+        self.sim_relay_seen = seen
+        self.sim_pico.relay_state(RelayClosedOrOpen(sms.State), now)
+
+    async def sim_pico_main(self) -> None:
+        assert self.sim_pico is not None
+        while not self._stop_requested:
+            now = time.time()
+            self.feed_sim_relay_state(now)
+            reading = self.sim_pico.tick(now)
+            if reading is not None:
+                self.services.send_threadsafe(
+                    Message(Src=self.name, Dst=self.name, Payload=reading)
+                )
+            await asyncio.sleep(SIM_PICO_TICK_S)
 
     def stop(self) -> None:
         """IOLoop will take care of stop."""

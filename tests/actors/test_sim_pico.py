@@ -11,15 +11,18 @@ from pathlib import Path
 
 import pytest
 
+from actors.api_btu_meter import SIM_LOOP_CELSIUS_X100, SIM_LOOP_GPM_X100, ApiBtuMeter
 from actors.api_tank_module import (
     SIM_TANK_AT_REST_C,
     ApiTankModule,
-    SimPicoSource,
     microvolts_at_c,
 )
-from gwsproto.data_classes.components import SimPicoTankModuleComponent
+from actors.pico_cycler import PicoCycler
+from actors.sim_pico_source import SimPicoSource
+from gwsproto.data_classes.components import SimPicoBtuMeterComponent, SimPicoTankModuleComponent
 from gwsproto.enums import RelayClosedOrOpen
-from gwsproto.named_types import MicroVolts, SingleMachineState
+from gwsproto.named_types import MicroVolts, MultichannelSnapshot, SingleMachineState, SyncedReadings
+from gwproto import Message
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames
 from scada_app import ScadaApp
 
@@ -33,11 +36,9 @@ ABOUT = ["buffer-depth1", "buffer-depth2", "buffer-depth3"]
 UV = [1_000_000, 1_100_000, 1_200_000]
 
 
-def source(life_s=None, reboot_s=None, booted_at=0.0) -> SimPicoSource:
+def source(life_s=None, reboot_s=None, booted_at=0.0) -> SimPicoSource[MicroVolts]:
     return SimPicoSource(
-        hw_uid="sim-buffer-pico",
-        about_node_names=ABOUT,
-        micro_volts=UV,
+        reading=MicroVolts(HwUid="sim-buffer-pico", AboutNodeNameList=ABOUT, MicroVoltsList=UV),
         capture_period_s=PERIOD,
         life_s=life_s,
         reboot_s=reboot_s,
@@ -45,7 +46,7 @@ def source(life_s=None, reboot_s=None, booted_at=0.0) -> SimPicoSource:
     )
 
 
-def posts(src: SimPicoSource, instants: list[float]) -> list[float]:
+def posts(src: SimPicoSource[MicroVolts], instants: list[float]) -> list[float]:
     """The instants at which ticking at each instant produced a reading."""
     return [t for t in instants if src.tick(t) is not None]
 
@@ -151,10 +152,10 @@ def test_sim_tank_actors_carry_a_source(app: ScadaApp) -> None:
     for a in actors:
         assert isinstance(a._component, SimPicoTankModuleComponent)
         assert a.sim_pico is not None
-        assert a.sim_pico.hw_uid == a._component.gt.PicoHwUid
+        assert a.sim_pico.reading.HwUid == a._component.gt.PicoHwUid
         assert a.sim_pico.capture_period_s == a.liveness.expected_post_s
-        assert a.sim_pico.about_node_names == [a.depth_about_nodes[d] for d in (1, 2, 3)]
-        assert a.sim_pico.micro_volts == [
+        assert a.sim_pico.reading.AboutNodeNameList == [a.depth_about_nodes[d] for d in (1, 2, 3)]
+        assert a.sim_pico.reading.MicroVoltsList == [
             microvolts_at_c(SIM_TANK_AT_REST_C[d], a._component.gt.ThermistorBeta) for d in (1, 2, 3)
         ]
         assert a.sim_pico.life_s == a._component.gt.SimLifeS
@@ -183,3 +184,78 @@ def test_actor_feeds_relay_state_from_latest_machine_states(app: ScadaApp) -> No
     relay(RelayClosedOrOpen.RelayClosed, 1_700_000_003_000)
     a.feed_sim_relay_state(3.0)
     assert a.sim_pico.reboot_at == 8.0
+
+
+# --- the BTU meter over the sim word ------------------------------------------
+
+
+@pytest.fixture
+def btu() -> ApiBtuMeter:
+    """The Nolan pair's primary-btu. Sends are captured, not delivered."""
+    layout_name, ops_name = PAIRS["nolan"]
+    settings = ScadaApp.get_settings()
+    settings.paths.hardware_layout = CONFIG / layout_name
+    settings.paths.operational_params = CONFIG / ops_name
+    settings.paths.mkdirs()
+    app = ScadaApp(app_settings=settings)
+    app.instantiate()
+    actor = app.get_communicator_as_type("primary-btu", ApiBtuMeter)
+    assert actor is not None
+    actor.sent = []
+    actor._send_to = lambda dst, payload, src=None: actor.sent.append(payload)
+    return actor
+
+
+def test_sim_btu_actor_carries_a_source(btu: ApiBtuMeter) -> None:
+    assert isinstance(btu._component, SimPicoBtuMeterComponent)
+    assert btu.sim_pico is not None
+    reading = btu.sim_pico.reading
+    assert reading.HwUid == btu._component.gt.HwUid
+    assert reading.ChannelNameList == ["primary-flow", "hp-lwt", "hp-ewt"]
+    assert reading.MeasurementList == [SIM_LOOP_GPM_X100, SIM_LOOP_CELSIUS_X100, SIM_LOOP_CELSIUS_X100]
+    assert btu.sim_pico.capture_period_s == btu.liveness.expected_post_s
+    assert btu.sim_pico.life_s == btu._component.gt.SimLifeS
+    assert btu.sim_pico.reboot_s == btu._component.gt.SimRebootS
+
+
+def test_sim_btu_reading_goes_out_on_the_real_path(btu: ApiBtuMeter) -> None:
+    """The source's snapshot, processed the way a real pico's post is, marks
+    the pico heard and sends readings in each channel's declared encoding."""
+    assert btu.sim_pico is not None
+    reading = btu.sim_pico.tick(0.0)
+    assert isinstance(reading, MultichannelSnapshot)
+
+    btu.process_message(Message(Src=btu.name, Dst=btu.name, Payload=reading))
+
+    assert not btu.missing()
+    sent = next(p for p in btu.sent if isinstance(p, SyncedReadings))
+    registry = btu.layout.channel_registry
+    assert sent.ValueList[0] == SIM_LOOP_GPM_X100
+    assert registry.temperature("hp-lwt", sent.ValueList[1]).f == pytest.approx(122.0)
+    assert registry.temperature("hp-ewt", sent.ValueList[2]).f == pytest.approx(122.0)
+
+
+def test_pico_cycler_tracks_the_sim_btu_pico(btu: ApiBtuMeter) -> None:
+    cycler = btu.services.get_communicator_as_type(HydronicSpaceheatNodeNames.pico_cycler, PicoCycler)
+    assert cycler is not None
+    assert "sim-primary-btu-pico" in cycler.picos
+
+
+def test_sim_btu_with_a_ct_posts_its_ct_channel() -> None:
+    layout_name, ops_name = PAIRS["nolan"]
+    settings = ScadaApp.get_settings()
+    settings.paths.hardware_layout = CONFIG / layout_name
+    settings.paths.operational_params = CONFIG / ops_name
+    settings.paths.mkdirs()
+    app = ScadaApp(app_settings=settings)
+    app.instantiate()
+    meters = [
+        app.get_communicator_as_type(n.name, ApiBtuMeter)
+        for n in app.hardware_layout.nodes.values()
+        if n.actor_class == "ApiBtuMeter"
+    ]
+    with_ct = [a for a in meters if a is not None and a.ct_channel is not None]
+    assert with_ct, "no sim BTU meter with a CT on the Nolan pair"
+    for a in with_ct:
+        assert a.sim_pico is not None
+        assert a.ct_channel.Name in a.sim_pico.reading.ChannelNameList
