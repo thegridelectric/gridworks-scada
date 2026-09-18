@@ -12,6 +12,7 @@ from gwproactor.actors.rest import RESTPoller
 from gwproto import Message
 from gwsproto.data_classes.components.hubitat_component import HubitatComponent
 from gwsproto.data_classes.components.hubitat_poller_component import HubitatPollerComponent
+from gwsproto.enums import SpaceheatUnit
 from gwsproto.type_helpers import MakerAPIAttributeGt
 from result import Err
 from result import Ok
@@ -24,6 +25,7 @@ from actors.hubitat_interface import HubitatWebEventHandler
 from actors.hubitat_interface import HubitatWebEventListenerInterface
 from actors.hubitat_interface import HubitatWebServerInterface
 from actors.hubitat_interface import MakerAPIRefreshResponse
+from actors.hubitat_interface import temperature_converter
 from actors.hubitat_interface import ValueConverter
 from gwsproto.named_types import SyncedReadings
 
@@ -222,6 +224,15 @@ class HubitatPoller(Actor, HubitatWebEventListenerInterface):
     def _make_value_converter(self, attribute: MakerAPIAttributeGt) -> Optional[ValueConverter]:
         if attribute.enabled:
             if attribute.interpret_as_number:
+                if attribute.unit in (SpaceheatUnit.Fahrenheit, SpaceheatUnit.Celcius):
+                    converter = functools.partial(
+                        temperature_converter,
+                        unit=SpaceheatUnit(attribute.unit),
+                        channel_name=attribute.channel_name,
+                        registry=self._services.hardware_layout.channel_registry,
+                    )
+                    converter(0)  # a channel that is not a temperature channel raises here
+                    return converter
                 return functools.partial(default_float_converter, exponent=attribute.exponent)
             else:
                 return self._make_non_numerical_value_converter(attribute)

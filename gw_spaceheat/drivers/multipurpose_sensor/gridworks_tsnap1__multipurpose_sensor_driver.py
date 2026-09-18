@@ -14,6 +14,7 @@ from adafruit_ads1x15.analog_in import AnalogIn
 from drivers.driver_result import DriverOutcome
 from drivers.multipurpose_sensor.multipurpose_sensor_driver import \
     MultipurposeSensorDriver
+from gwsproto.conversions.temperature import Temperature
 from gwsproto.enums import LogLevel
 from gwsproto.data_classes.components.ads111x_based_component import \
     Ads111xBasedComponent
@@ -45,6 +46,7 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
     SUPPORTED_TELEMETRIES = {
         TelemetryName.WaterTempCTimes1000,
         TelemetryName.AirTempCTimes1000,
+        TelemetryName.CelsiusTimes100,
     }
     MAX_READING_AGE_SEC = 30
 
@@ -79,13 +81,10 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
                 f"Expected device type in {models}, got {component.device_type.DeviceType}"
             )
         self.my_telemetry_names = component.device_type.TelemetryNameList
-        if set(self.my_telemetry_names) != {
-            TelemetryName.WaterTempCTimes1000,
-            TelemetryName.AirTempCTimes1000,
-        }:
+        if not set(self.my_telemetry_names) <= self.SUPPORTED_TELEMETRIES:
             raise Exception(
-                "Expect AirTempCTimes1000 and AirTempFTimes1000 for AdsCac "
-                "TelemetryNameList!"
+                f"Expect AdsCac TelemetryNameList within {self.SUPPORTED_TELEMETRIES}, "
+                f"got {self.my_telemetry_names}!"
             )
         c = component.gt
         self.terminal_block_idx_list = [tc.TerminalBlockIdx for tc in c.ConfigList]
@@ -298,31 +297,17 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
                 outcome.comments.extend(read_outcome.comments)
 
                 if read_outcome.value is not None:
-                    if ch.TelemetryName not in {
-                        TelemetryName.AirTempCTimes1000,
-                        TelemetryName.AirTempFTimes1000,
-                        TelemetryName.WaterTempCTimes1000,
-                        TelemetryName.WaterTempFTimes1000,
-                    }:
+                    if ch.TelemetryName not in self.SUPPORTED_TELEMETRIES:
                         outcome.add_comment(
                             level=LogLevel.Warning,
                             msg=f"Unrecognized TelemetryName {ch.TelemetryName} for {ch.Name}!",
                         )
                         continue  # go onto the next channel
-                    if ch.TelemetryName in {
-                        TelemetryName.AirTempCTimes1000,
-                        TelemetryName.WaterTempCTimes1000,
-                    }:
-                        convert_voltage_result = self.voltage_to_c(read_outcome.value)
-                    elif ch.TelemetryName in {
-                        TelemetryName.AirTempFTimes1000,
-                        TelemetryName.WaterTempFTimes1000,
-                    }:
-                        convert_voltage_result = self.voltage_to_f(read_outcome.value)
+                    convert_voltage_result = self.voltage_to_c(read_outcome.value)
                     if convert_voltage_result.is_ok():
-                        outcome.value[ch.Name] = int(
-                            convert_voltage_result.value * 1000
-                        )
+                        outcome.value[ch.Name] = Temperature.from_c(
+                            convert_voltage_result.value, ch.TelemetryName
+                        ).raw
                     else:
                         outcome.add_comment(
                             level=LogLevel.Warning,
@@ -332,22 +317,6 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
                     outcome.value[ch.Name] = None
 
         return Ok(outcome)
-
-    @classmethod
-    def voltage_to_f(cls, voltage: float) -> Result[float, Exception]:
-        """Calculate resistance from Beta function
-
-        Thermistor data sheets typically provide the three parameters needed
-        for the beta formula (R0, beta, and T0)
-        "Under the best conditions, the beta formula is accurate to approximately
-        +/- 1 C over the temperature range of 0 to 100C
-        """
-        temp_c = cls.voltage_to_c(voltage)
-        if temp_c.is_ok():
-            temp_f = 32 + 8 * temp_c / 5
-            return Ok(temp_f)
-        else:
-            return temp_c
 
     @classmethod
     def voltage_to_c(cls, voltage: float) -> Result[float, Exception]:

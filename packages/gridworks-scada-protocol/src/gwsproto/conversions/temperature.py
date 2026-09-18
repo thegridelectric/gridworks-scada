@@ -26,6 +26,28 @@ def convert_temp_to_f(raw: int, encoding: TelemetryName | Unit) -> float:
     raise ValueError(f"Unknown temperature encoding: {encoding}")
 
 
+def encode_temp_c(c: float, encoding: TelemetryName | Unit) -> int:
+    if encoding == Unit.FahrenheitX100:
+        return round((c * 9 / 5 + 32) * 100)
+
+    if encoding in (
+        TelemetryName.WaterTempCTimes1000,
+        TelemetryName.AirTempCTimes1000,
+    ):
+        return round(c * 1000)
+
+    if encoding == TelemetryName.CelsiusTimes100:
+        return round(c * 100)
+
+    if encoding in (
+        TelemetryName.WaterTempFTimes1000,
+        TelemetryName.AirTempFTimes1000,
+    ):
+        return round((c * 9 / 5 + 32) * 1000)
+
+    raise ValueError(f"Unknown temperature encoding: {encoding}")
+
+
 @dataclass(frozen=True)
 class Temperature:
     """A channel's raw temperature value with the encoding the channel
@@ -38,6 +60,16 @@ class Temperature:
 
     def __post_init__(self) -> None:
         convert_temp_to_f(self.raw, self.encoding)
+
+    @classmethod
+    def from_c(cls, c: float, encoding: TelemetryName | Unit) -> "Temperature":
+        """A measurement in degrees Celsius, rounded into `encoding`."""
+        return cls(encode_temp_c(c, encoding), encoding)
+
+    @classmethod
+    def from_f(cls, f: float, encoding: TelemetryName | Unit) -> "Temperature":
+        """A measurement in degrees Fahrenheit, rounded into `encoding`."""
+        return cls(encode_temp_c((f - 32) * 5 / 9, encoding), encoding)
 
     @property
     def f(self) -> float:

@@ -20,7 +20,7 @@ from gwsproto.data_classes.derived_channel import DerivedChannel
 from gwsproto.conversions.temperature import convert_temp_to_f
 from gwsproto.enums import (
     Unit, HeatCallInterpretation,
-    ActuationAuthority, SeasonalStorageMode, ServiceMode, TelemetryName
+    ActuationAuthority, SeasonalStorageMode, ServiceMode
 )
 from gwsproto.named_types import (
     Ha1Params, HeatingForecast, LinearOneDimensionalCalibration,
@@ -145,11 +145,9 @@ class DerivedGenerator(ShNodeActor):
                     f"No unit registered for input channel '{dc.InputChannelNames[0]}' "
                     f"(required by affine DerivedChannel '{dc.Name}')"
                 )
-                if in_unit not in [Unit.FahrenheitX100, 
-                            TelemetryName.AirTempCTimes1000,
-                            TelemetryName.WaterTempCTimes1000,
-                            TelemetryName.AirTempFTimes1000,
-                            TelemetryName.AirTempCTimes1000]:
+                try:
+                    convert_temp_to_f(0, in_unit)
+                except ValueError:
                     raise RuntimeError("DerivedGenerator only handles temp-based affine conversions now")
                 if dc.OutputUnit != Unit.FahrenheitX100:
                     raise RuntimeError(f"DerivedGenerator only handles affine conversions with output unit"

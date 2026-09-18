@@ -352,8 +352,13 @@ class ApiTankModule(ShNodeActor):
                 continue
             elif self._component.gt.TempCalcMethod == TempCalcMethod.SimpleBeta:
                 try:
-                    value_list.append(int(self.simple_beta(volts) * 1000))
-                    channel_name_list.append(f"{correct_about_name}-device") # channel names match node names
+                    device_channel_name = f"{correct_about_name}-device" # channel names match node names
+                    value_list.append(
+                        self.layout.channel_registry.temperature_from_c(
+                            device_channel_name, self.simple_beta(volts)
+                        ).raw
+                    )
+                    channel_name_list.append(device_channel_name)
                 except BaseException as e:
                     self.log(f"Problem with simple_beta({volts})! {e}")
                     self.services.send_threadsafe(

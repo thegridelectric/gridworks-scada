@@ -10,7 +10,10 @@ from typing import TypeVar
 from gwproto import Message
 from pydantic import ConfigDict, BaseModel
 
+from gwsproto.data_classes.hydronic_layout import ChannelRegistry
+from gwsproto.enums import SpaceheatUnit
 from gwsproto.named_types import SyncedReadings
+from gwsproto.property_format import SpaceheatName
 from drivers.exceptions import DriverWarning
 
 
@@ -107,6 +110,22 @@ def default_float_converter(value: HubitatValueType, exponent: int) -> Optional[
     except: # noqa
         ...
     return None
+
+def temperature_converter(
+    value: HubitatValueType,
+    unit: SpaceheatUnit,
+    channel_name: SpaceheatName,
+    registry: ChannelRegistry,
+) -> Optional[int]:
+    """The hub's reading, in degrees of `unit`, in the channel's encoding."""
+    try:
+        degrees = float(value)
+    except: # noqa
+        return None
+    if unit == SpaceheatUnit.Fahrenheit:
+        return registry.temperature_from_f(channel_name, degrees).raw
+    return registry.temperature_from_c(channel_name, degrees).raw
+
 
 EnumT = TypeVar("EnumT", bound=Enum)
 

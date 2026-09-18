@@ -102,6 +102,22 @@ class ChannelRegistry:
             raise DcError(f"No channel named {name}")
         return Temperature(raw, encoding)
 
+    def temperature_from_c(self, name: SpaceheatName, c: float) -> Temperature:
+        """A Celsius measurement for temperature channel `name`, in the
+        channel's encoding."""
+        encoding = self.unit(name)
+        if encoding is None:
+            raise DcError(f"No channel named {name}")
+        return Temperature.from_c(c, encoding)
+
+    def temperature_from_f(self, name: SpaceheatName, f: float) -> Temperature:
+        """A Fahrenheit measurement for temperature channel `name`, in the
+        channel's encoding."""
+        encoding = self.unit(name)
+        if encoding is None:
+            raise DcError(f"No channel named {name}")
+        return Temperature.from_f(f, encoding)
+
 
 
 HOUSE0_LAYOUT_TYPE_NAME = House0Layout.type_name_value()

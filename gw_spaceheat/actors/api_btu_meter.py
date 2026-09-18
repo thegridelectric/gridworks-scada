@@ -239,15 +239,18 @@ class ApiBtuMeter(PicoActorBase):
                 f"{self.name}: Ignoring data from pico {data.HwUid} - not recognized!"
             )
             return
-        # Convert temperature units where needed
+        # The pico posts temperatures as CelsiusTimes100; each goes out in its
+        # channel's declared encoding
         converted_values = []
-        for i, (measurement, unit) in enumerate(
-            zip(data.MeasurementList, data.UnitList)
+        for channel_name, measurement, unit in zip(
+            data.ChannelNameList, data.MeasurementList, data.UnitList
         ):
             if unit == "CelsiusTimes100":
-                # Convert CelsiusTimes100 to WaterTempCTimes1000
-                # (multiply by 10 to go from x100 to x1000)
-                converted_values.append(measurement * 10)
+                converted_values.append(
+                    self.layout.channel_registry.temperature_from_c(
+                        channel_name, measurement / 100
+                    ).raw
+                )
             else:
                 # Keep other measurements as-is
                 converted_values.append(measurement)
