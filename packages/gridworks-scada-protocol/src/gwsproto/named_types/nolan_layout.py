@@ -45,6 +45,10 @@ from gwsproto.type_helpers.board_resolution import (
     I2C_THERMISTOR_READER,
     check_board_resolution,
 )
+from gwsproto.type_helpers.circuit_channel_axioms import (
+    check_circuit_heat_call_channel,
+    check_circuit_whitewire_channel_resolution,
+)
 from gwsproto.type_helpers.command_tree_axioms import (
     check_actuator_leaves,
     check_prefix_closed_handles,
@@ -500,5 +504,32 @@ class NolanLayout(GwsprotoSemaType):
         check_zone_temp_channel_resolution(
             self.Hydronic.Zones, self.DataChannels, self.DerivedChannels,
             "Axiom 13 (ZoneTempChannelResolution)",
+        )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_14(self) -> "NolanLayout":
+        """
+        Axiom 14: CircuitWhitewireChannelResolution
+        Every circuit's WhitewireChannelName in Hydronic.ZoneCallCircuits SHALL equal the Name
+        of a channel in DataChannels.
+        """
+        check_circuit_whitewire_channel_resolution(
+            self.Hydronic.ZoneCallCircuits, self.DataChannels,
+            "Axiom 14 (CircuitWhitewireChannelResolution)",
+        )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_15(self) -> "NolanLayout":
+        """
+        Axiom 15: CircuitHeatCallChannel
+        For each circuit in Hydronic.ZoneCallCircuits, exactly one channel in DerivedChannels
+        SHALL have Strategy "heat-call" and InputChannelNames equal to [the circuit's
+        WhitewireChannelName].
+        """
+        check_circuit_heat_call_channel(
+            self.Hydronic.ZoneCallCircuits, self.DerivedChannels,
+            "Axiom 15 (CircuitHeatCallChannel)",
         )
         return self

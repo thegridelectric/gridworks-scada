@@ -71,7 +71,6 @@ KNOWN_UNTESTED_AXIOMS: set[str] = {
     "g.node.gt/006:6",
     "gpio.relay.component.gt/000:1",
     "gw.house0.layout/000:1",
-    "gw.house0.layout/000:4",
     "gw.house0.layout/000:5",
     "gw.tou.window/000:1",
     "gw.tou.window/000:2",

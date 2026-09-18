@@ -6,6 +6,7 @@ re-validated at the boundary — chosen so the intended axiom fires. Axioms
 allowlists)."""
 
 import json
+import uuid
 from pathlib import Path
 
 import pytest
@@ -352,3 +353,41 @@ def test_gw_house0_layout_axiom_18_not_a_temperature(assembled: dict) -> None:
         d["Hydronic"]["Zones"][0]["TempChannelName"] = "hp-odu-pwr"
 
     reject(assembled, point_at_power, "Axiom 18")
+
+
+def test_gw_house0_layout_axiom_19_unknown_whitewire_channel(assembled: dict) -> None:
+    def rename(d: dict) -> None:
+        circuit = d["Hydronic"]["ZoneCallCircuits"][0]
+        for c in d["DerivedChannels"]:
+            if c["InputChannelNames"] == [circuit["WhitewireChannelName"]]:
+                c["InputChannelNames"] = ["no-such-channel"]
+        circuit["WhitewireChannelName"] = "no-such-channel"
+
+    reject(assembled, rename, "Axiom 19")
+
+
+def test_gw_house0_layout_axiom_4_missing_heat_call(assembled: dict) -> None:
+    def drop(d: dict) -> None:
+        whitewire = d["Hydronic"]["ZoneCallCircuits"][0]["WhitewireChannelName"]
+        d["DerivedChannels"] = [
+            c
+            for c in d["DerivedChannels"]
+            if not (c["Strategy"] == "heat-call" and c["InputChannelNames"] == [whitewire])
+        ]
+
+    reject(assembled, drop, "Axiom 4")
+
+
+def test_gw_house0_layout_axiom_4_second_heat_call(assembled: dict) -> None:
+    def duplicate(d: dict) -> None:
+        whitewire = d["Hydronic"]["ZoneCallCircuits"][0]["WhitewireChannelName"]
+        heat_call = next(
+            c
+            for c in d["DerivedChannels"]
+            if c["Strategy"] == "heat-call" and c["InputChannelNames"] == [whitewire]
+        )
+        d["DerivedChannels"].append(
+            {**heat_call, "Name": heat_call["Name"] + "-again", "Id": str(uuid.uuid4())}
+        )
+
+    reject(assembled, duplicate, "Axiom 4")

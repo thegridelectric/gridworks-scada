@@ -2130,6 +2130,27 @@
     {
       "TypeName": "derived.channel.gt",
       "Version": "002",
+      "Id": "0ffd5292-9df6-4610-b066-50680852906a",
+      "Name": "zone5-living-rm-fancoil-heat-call",
+      "CreatedByNodeName": "derived-generator",
+      "Strategy": "heat-call",
+      "InputChannelNames": [
+        "zone5-living-rm-fancoil-opto-input"
+      ],
+      "OutputUnit": "Unitless",
+      "OutputQuantity": "Unitless",
+      "EmissionMethod": "AsyncAndPeriodic",
+      "AsyncEmitDelta": 1,
+      "EmitPeriodS": 300,
+      "Parameters": {
+        "Interpretation": "DigitalZeroIsActive"
+      },
+      "DisplayName": "Zone5 Living Rm Fancoil Heat Call",
+      "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta"
+    },
+    {
+      "TypeName": "derived.channel.gt",
+      "Version": "002",
       "Id": "396bbdb3-f376-4f07-90d1-bfa754dfa6e7",
       "Name": "buffer-depth1",
       "CreatedByNodeName": "derived-generator",
