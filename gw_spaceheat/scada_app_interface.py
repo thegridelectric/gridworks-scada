@@ -51,7 +51,22 @@ class ScadaAppInterface(AppInterface, ABC):
         from the ta.deed instance at settings.paths.tadeed; UnValidated
         when there is no deed. An UnValidated scada refuses every LTN
         contract offer."""
+        deed = self.ta_deed
+        if deed is None:
+            return TaValidationState.UnValidated
+        return deed.ValidationState
+
+    @property
+    def ta_deed(self) -> TaDeed | None:
+        """The ta.deed instance at settings.paths.tadeed, or None when the
+        home holds no deed."""
         deed_path = Path(self.settings.paths.tadeed)
         if not deed_path.exists():
-            return TaValidationState.UnValidated
-        return TaDeed.model_validate_json(deed_path.read_text()).ValidationState
+            return None
+        return TaDeed.model_validate_json(deed_path.read_text())
+
+    @abstractmethod
+    def upstream_is_send_capable(self) -> bool:
+        """The upstream link can carry a publish to the broker: connected
+        and fully subscribed, with or without a peer."""
+        raise NotImplementedError

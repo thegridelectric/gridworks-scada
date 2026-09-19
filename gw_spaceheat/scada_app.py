@@ -51,6 +51,9 @@ class ScadaApp(App, ScadaAppInterface):
     def scada(self) -> Scada:
         return self.prime_actor
 
+    def upstream_is_send_capable(self) -> bool:
+        return self.proactor.links.upstream_link.active_for_send()
+
     @classmethod
     def actors_module(cls) -> ModuleType:
         return actors

@@ -61,6 +61,7 @@ from actors.codec_factories import ScadaCodecFactory
 from actors.contract_handler import ContractHandler
 from gwsproto.data_classes.components.web_server_component import WebServerComponent
 from gwsproto.enums import (FiveVBossState, HpBossState, LeafAllyBufferOnlyState,  LeafAllyAllTanksState,
+                            LogLevel,
                             RebootPicos, Turn5VOnOff,
                             SlowDispatchContractStatus, TaValidationState, LocalControlTopState,
                    MainAutoEvent, MainAutoState, SeasonalStorageMode,  TopState, TurnHpOnOff)
@@ -82,6 +83,7 @@ from scada_app_interface import ScadaAppInterface
 
 class Scada(PrimeActor, ScadaInterface):
     ASYNC_POWER_REPORT_THRESHOLD = 0.05
+    STARTUP_ANNOUNCE_POLL_S = 1
     DEFAULT_ACTORS_MODULE = "actors"
     LTN_MQTT = "gridworks_mqtt"
     LOCAL_MQTT = "local_mqtt"
@@ -275,6 +277,9 @@ class Scada(PrimeActor, ScadaInterface):
             asyncio.create_task(self.report_sending_task(), name="report_sender"),
             asyncio.create_task(self.snap_sending_task(), name="snap_sender"),
             asyncio.create_task(self.state_tracker(), name="scada top_state_tracker"),
+            asyncio.create_task(
+                self.announce_at_first_broker_link(), name="startup_announcer"
+            ),
         ]
 
     @classmethod
@@ -1327,6 +1332,33 @@ class Scada(PrimeActor, ScadaInterface):
             if local_control_state == LocalControlTopState.Dormant:
                 self.log("Noticed auto_state LocalControl but LocalControl is Dormant! Sending WakeUp")
                 self._send_to(self.local_control, WakeUp(ToName=self.local_control.name))
+
+    async def announce_at_first_broker_link(self) -> None:
+        """Once per scada run: wait until the upstream link can carry a
+        publish, then send the startup announcements."""
+        while not self.services.upstream_is_send_capable():
+            await asyncio.sleep(self.STARTUP_ANNOUNCE_POLL_S)
+        self.send_startup_announcements()
+
+    def send_startup_announcements(self) -> None:
+        """What the scada says about itself once per run: its layout.lite,
+        and the home's ta.deed or a Warning glitch when it holds none. None
+        of them asks for an ack."""
+        self._send_to(self.ltn, self.layout_lite)
+        deed = self.services.ta_deed
+        if deed is None:
+            self._send_to(
+                self.ltn,
+                Glitch(
+                    FromGNodeAlias=self.layout.scada_g_node_alias,
+                    Node=self.node.name,
+                    Type=LogLevel.Warning,
+                    Summary="no-ta-deed",
+                    Details=f"No ta.deed at {self.settings.paths.tadeed}",
+                ),
+            )
+        else:
+            self._send_to(self.ltn, deed)
 
     async def state_tracker(self) -> None:
         loop_s = self.settings.seconds_per_report
