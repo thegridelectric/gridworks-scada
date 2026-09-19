@@ -383,12 +383,23 @@ class ApiFlowModule(ShNodeActor):
     def check_pico_identity(self, params: FlowHallParams) -> None:
         """Warns once per difference between the post's board and MicroPython
         version and the layout's. The layout value is what the house was
-        provisioned with; the scada does not write it."""
+        provisioned with; the scada does not write it. The first post that
+        matches sends a debug glitch."""
         for d in self.pico_identity.differences(
             params.PicoBoardVariant, params.MicropythonVersion
         ):
             self.send_warning(
                 summary=d.summary(self.name), details=d.details(params.HwUid)
+            )
+        if self.pico_identity.first_match(
+            params.PicoBoardVariant, params.MicropythonVersion
+        ):
+            self.send_debug(
+                summary="pico-identity-matches",
+                details=(
+                    f"pico {params.HwUid} posted {params.PicoBoardVariant.value}, "
+                    f"MicroPython {params.MicropythonVersion}"
+                ),
             )
 
     async def _handle_reed_params_post(self, request: Request) -> Response:

@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import time
 import typing
 from abc import ABC
@@ -422,6 +423,21 @@ class ShNodeActor(Actor, ABC):
             )
         )
         self.log(f"Warning Glitch: {summary}")
+
+    def send_debug(self, summary: str, details: str = "") -> None:
+        """Send Debug Glitch, only while the scada's logger is enabled for DEBUG"""
+        if not self.services.logger.isEnabledFor(logging.DEBUG):
+            return
+        self._send_to(self.ltn,
+            Glitch(
+                FromGNodeAlias=self.layout.scada_g_node_alias,
+                Node=self.node.Name,
+                Type=LogLevel.Debug,
+                Summary=summary,
+                Details=details
+            )
+        )
+        self.log(f"Debug Glitch: {summary}")
 
     def send_error(self, summary: str, details: str = "") -> None:
         """Send Error Glitch"""
