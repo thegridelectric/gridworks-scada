@@ -723,26 +723,13 @@ class HydronicLayout:
         """
         Validate GridWorks-specific semantic constraints for DerivedChannelGt.
 
-        This enforces:
-        - All InputChannelNames reference existing DataChannels
-        - Strategy-specific requirements on inputs, parameters, and emission method
+        This enforces the strategy-specific requirements on inputs,
+        parameters, and emission method.
         """
         data_channel_names = set(self.data_channels.keys())
-        derived_channel_names = set(self.derived_channels.keys())
         errors: list[str] = []
 
-        # --- Input channel existence ---
         for dc in self.derived_channels.values():
-            for input_name in dc.InputChannelNames:
-                if (
-                    input_name not in data_channel_names
-                    and input_name not in derived_channel_names
-                ):
-                    errors.append(
-                        f"DerivedChannel '{dc.Name}' references unknown input "
-                        f"channel '{input_name}'"
-                    )
-
             match dc.Strategy:
                 case "identity":
                     if len(dc.InputChannelNames) != 1:
