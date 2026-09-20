@@ -45,6 +45,12 @@ from gwsproto.type_helpers.board_resolution import (
     I2C_THERMISTOR_READER,
     check_board_resolution,
 )
+from gwsproto.type_helpers.channel_integrity_axioms import (
+    check_channel_name_uniqueness,
+    check_data_channel_node_resolution,
+    check_derived_channel_creator_resolution,
+    check_derived_channel_inputs_acyclic,
+)
 from gwsproto.type_helpers.circuit_channel_axioms import (
     check_circuit_heat_call_channel,
     check_circuit_whitewire_channel_resolution,
@@ -531,5 +537,65 @@ class NolanLayout(GwsprotoSemaType):
         check_circuit_heat_call_channel(
             self.Hydronic.ZoneCallCircuits, self.DerivedChannels,
             "Axiom 15 (CircuitHeatCallChannel)",
+        )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_16(self) -> "NolanLayout":
+        """
+        Axiom 16: DerivedChannelCreatorResolution
+        a. Every channel's CreatedByNodeName in DerivedChannels SHALL equal the Name of a
+        ShNode in ShNodes.
+        b. The ShNode named by a channel's CreatedByNodeName SHALL NOT have ActorClass
+        "NoActor".
+        """
+        check_derived_channel_creator_resolution(
+            self.ShNodes, self.DerivedChannels,
+            "Axiom 16 (DerivedChannelCreatorResolution)",
+        )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_17(self) -> "NolanLayout":
+        """
+        Axiom 17: DataChannelNodeResolution
+        a. Every channel's AboutNodeName in DataChannels SHALL equal the Name of a ShNode in
+        ShNodes.
+        b. Every channel's CapturedByNodeName in DataChannels SHALL equal the Name of a ShNode
+        in ShNodes.
+        c. The ShNode named by a channel's CapturedByNodeName SHALL NOT have ActorClass
+        "NoActor".
+        """
+        check_data_channel_node_resolution(
+            self.ShNodes, self.DataChannels,
+            "Axiom 17 (DataChannelNodeResolution)",
+        )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_18(self) -> "NolanLayout":
+        """
+        Axiom 18: DerivedChannelInputsAcyclic
+        a. Every name in a channel's InputChannelNames in DerivedChannels SHALL equal the Name
+        of a channel in DataChannels or in DerivedChannels.
+        b. No channel in DerivedChannels SHALL be reachable from itself by following
+        InputChannelNames.
+        """
+        check_derived_channel_inputs_acyclic(
+            self.DataChannels, self.DerivedChannels,
+            "Axiom 18 (DerivedChannelInputsAcyclic)",
+        )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_19(self) -> "NolanLayout":
+        """
+        Axiom 19: ChannelNameUniqueness
+        The Names of the channels in DataChannels and DerivedChannels, taken together, SHALL be
+        pairwise distinct.
+        """
+        check_channel_name_uniqueness(
+            self.DataChannels, self.DerivedChannels,
+            "Axiom 19 (ChannelNameUniqueness)",
         )
         return self

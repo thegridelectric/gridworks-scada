@@ -37,6 +37,18 @@ def test_layout_says_which_channels_feed_a_derived_channel(app: ScadaApp) -> Non
     assert not layout.feeds_derived([])
 
 
+def test_a_channel_feeding_only_the_power_meters_own_derived_channel_does_not_feed(
+    app: ScadaApp,
+) -> None:
+    layout = app.scada.layout
+    transactive = next(
+        dc for dc in layout.derived_channels.values() if dc.Strategy == "transactive-power"
+    )
+    assert transactive.CreatedByNodeName == layout.power_meter_node.name
+    assert not layout.feeds_derived(transactive.InputChannelNames)
+    assert layout.feeds_derived(["zone1-main-whitewire-pwr"])
+
+
 def test_sim_sensors_take_the_rule_from_the_layout(app: ScadaApp) -> None:
     sieg = app.get_communicator_as_type(HSNN.sieg_flow, SimSensorActor)
     dist = app.get_communicator_as_type(HSNN.dist_flow, SimSensorActor)

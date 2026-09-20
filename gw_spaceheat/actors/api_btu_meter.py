@@ -419,6 +419,6 @@ class ApiBtuMeter(PicoActorBase):
     async def main(self):
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
-            if self.liveness.report_due(time.time()):
+            if self._component.gt.Enabled and self.liveness.report_due(time.time()):
                 self.report_missing()
             await asyncio.sleep(10)

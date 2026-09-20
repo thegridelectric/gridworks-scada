@@ -227,3 +227,41 @@ async def test_async_power_update(request: pytest.FixtureRequest):
         )
         ltn = h.parent_app.ltn
         assert ltn.data.latest_power_w == 7 * delta_w
+
+
+@pytest.mark.asyncio
+async def test_whitewire_power_through_the_sim_meter_becomes_the_zone_heat_call(
+    request: pytest.FixtureRequest,
+) -> None:
+    """House0 willow derives zone1-main-heat-call from zone1-main-whitewire-pwr
+    (GreaterThanThreshold, 10 W), a channel the power meter captures."""
+    config = Path(__file__).parent.parent / "config"
+    settings = ScadaApp.get_settings()
+    settings.paths.hardware_layout = config / "gw.house0.willow.layout.json"
+    settings.paths.operational_params = config / "gw.house0.willow.operational.params.json"
+    async with ScadaLiveTest(request=request, child_app_settings=settings) as h:
+        h.start_child1()
+        data = h.child1_app.scada.data
+        p = typing.cast(
+            PowerMeterDriverThread,
+            h.child1_app.get_communicator_as_type(
+                CoreNodeNames.asset_power_meter, PowerMeter
+            )._sync_thread,
+        )
+        assert {ch.Name for ch in p.derived_input_channels} == {"zone1-main-whitewire-pwr"}
+        driver = typing.cast(GridworksSimPm1_PowerMeterDriver, p.driver)
+
+        await h.await_for(
+            lambda: data.latest_channel_values.get("zone1-main-heat-call") == 0,
+            "heat call idle at 0 W",
+        )
+        driver.fake_power_w = 50
+        await h.await_for(
+            lambda: data.latest_channel_values.get("zone1-main-heat-call") == 1,
+            "heat call calling at 50 W",
+        )
+        driver.fake_power_w = 0
+        await h.await_for(
+            lambda: data.latest_channel_values.get("zone1-main-heat-call") == 0,
+            "heat call idle again at 0 W",
+        )

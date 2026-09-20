@@ -1030,13 +1030,14 @@ class HydronicLayout:
         return self.derived_channels.get(name, default)
 
     def feeds_derived(self, channel_names: Iterable[str]) -> bool:
-        """Whether any DerivedChannel takes one of these channels as input. A
-        device actor posts its readings to the derived generator as well as
-        the scada exactly when this is true."""
+        """Whether a DerivedChannel the derived generator creates takes one of
+        these channels as input. A device actor posts its readings to the
+        derived generator as well as the scada exactly when this is true."""
         names = set(channel_names)
         return any(
             name in dc.InputChannelNames
             for dc in self.derived_channels.values()
+            if dc.CreatedByNodeName == CoreNodeNames.derived_generator
             for name in names
         )
 

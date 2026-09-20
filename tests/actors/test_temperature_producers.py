@@ -5,18 +5,19 @@ back as the same temperature."""
 import importlib
 import json
 import sys
+import time
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 
 import pytest
 
 from actors.api_btu_meter import ApiBtuMeter
-from actors.api_tank_module import ApiTankModule
+from actors.api_tank_module import OPEN_THERMISTOR_REPORT_S, PICO_VOLTS, ApiTankModule
 from actors.derived_generator import DerivedGenerator
 from actors.hubitat_poller import HubitatPoller
 from drivers.driver_result import DriverOutcome
-from gwsproto.enums import TelemetryName
-from gwsproto.named_types import MicroVolts, MultichannelSnapshot, SingleReading, SyncedReadings
+from gwsproto.enums import LogLevel, TelemetryName
+from gwsproto.named_types import Glitch, MicroVolts, MultichannelSnapshot, SingleReading, SyncedReadings
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.type_helpers import MakerAPIAttributeGt
 from result import Ok
@@ -73,6 +74,48 @@ def test_tank_module_emits_by_the_device_channel_encoding(tmp_path: Path, encodi
     for name in channel_names:
         raw = readings.ValueList[readings.ChannelNameList.index(name)]
         assert tank.layout.channel_registry.temperature(name, raw).f == pytest.approx(expected_f, abs=0.02)
+
+
+def test_open_thermistor_is_one_warning_glitch_a_day_and_no_temperature(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    app = boot(tmp_path, WILLOW, json.loads((CONFIG / WILLOW[0]).read_text()))
+    tank = app.get_communicator_as_type("buffer", ApiTankModule)
+    assert tank is not None
+    assert tank.pico_uid
+    sent: list = []
+    tank._send_to = lambda dst, payload, src=None: sent.append(payload)
+    about = [tank.depth_about_nodes[i] for i in (1, 2, 3)]
+
+    def post(depth3_volts: float) -> None:
+        tank._process_microvolts(
+            MicroVolts(
+                HwUid=tank.pico_uid,
+                AboutNodeNameList=about,
+                MicroVoltsList=[1_200_000, 1_200_000, int(depth3_volts * 1e6)],
+            )
+        )
+
+    post(PICO_VOLTS)
+    post(PICO_VOLTS)
+    glitches = [p for p in sent if isinstance(p, Glitch)]
+    assert [(g.Type, g.Summary) for g in glitches] == [(LogLevel.Warning, "open-thermistor")]
+    assert about[2] in glitches[0].Details
+    for readings in (p for p in sent if isinstance(p, SyncedReadings)):
+        assert f"{about[2]}-device" not in readings.ChannelNameList
+        assert f"{about[0]}-device" in readings.ChannelNameList
+
+    # a reconnected thermistor reads again; opening again the same day is silent
+    post(1.2)
+    assert f"{about[2]}-device" in sent[-1].ChannelNameList
+    post(PICO_VOLTS)
+    assert len([p for p in sent if isinstance(p, Glitch)]) == 1
+
+    # still open a day later: reported again
+    a_day_on = time.time() + OPEN_THERMISTOR_REPORT_S
+    monkeypatch.setattr(time, "time", lambda: a_day_on)
+    post(PICO_VOLTS)
+    assert len([p for p in sent if isinstance(p, Glitch)]) == 2
 
 
 @pytest.mark.parametrize("encoding", CELSIUS_ENCODINGS)

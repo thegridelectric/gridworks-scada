@@ -179,6 +179,9 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         self.transactive_channel_names = set(
             transactive_power_input_names(hardware_layout)
         )
+        self.derived_input_channels = {
+            ch for ch in self.my_channels if hardware_layout.feeds_derived([ch.Name])
+        }
         self._validate_channels_with_component(component)
         self.last_reported_telemetry_value = {
             ch: None for ch in self.my_channels
@@ -311,6 +314,21 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
                     )
                 )
             self._put_to_async_queue(msg)
+            derived_input_list = [
+                ch for ch in channel_report_list if ch in self.derived_input_channels
+            ]
+            if derived_input_list:
+                self._put_to_async_queue(
+                    Message(
+                        Src=self.name,
+                        Dst=CoreNodeNames.derived_generator,
+                        Payload=SyncedReadings(
+                            ChannelNameList=[ch.Name for ch in derived_input_list],
+                            ValueList=[self.latest_telemetry_value[ch] for ch in derived_input_list],
+                            ScadaReadTimeUnixMs=msg.Payload.ScadaReadTimeUnixMs,
+                        ),
+                    )
+                )
             for ch in channel_report_list:
                 self._last_sampled_s[ch] = int(time.time())
                 self.last_reported_telemetry_value[ch] = self.latest_telemetry_value[ch]

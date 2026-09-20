@@ -241,7 +241,7 @@ class ApiFlowModule(ShNodeActor):
 
             self._send(PatInternalWatchdogMessage(src=self.name))
 
-            if self.liveness.report_due(time.time()):
+            if self._component.gt.Enabled and self.liveness.report_due(time.time()):
                 self.report_missing()
 
             try:

@@ -1357,6 +1357,7 @@ class Scada(PrimeActor, ScadaInterface):
                     Details=f"No ta.deed at {self.settings.paths.tadeed}",
                 ),
             )
+            self.log(f"Warning Glitch: no-ta-deed ({self.settings.paths.tadeed})")
         else:
             self._send_to(self.ltn, deed)
 

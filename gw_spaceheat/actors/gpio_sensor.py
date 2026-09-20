@@ -50,8 +50,9 @@ class GpioSensor(ShNodeActor):
         )
         self.tuning = self.layout.capture_tuning_by_channel[self.channel_name]
         self.send_to_derived = self.layout.feeds_derived([self.channel_name])
-        self.prev_value: int = 0
-        self.latest_value: int = 0
+        # None until the pin has been read
+        self.prev_value: int | None = None
+        self.latest_value: int | None = None
         self._stop_requested = False
 
         # Real pin only on a real board; a SimGw108 board has no GPIO.
@@ -137,8 +138,8 @@ class GpioSensor(ShNodeActor):
             self._send(PatInternalWatchdogMessage(src=self.name))
             changed = self.read_pin()
 
-            # Async capture on change
-            if self.tuning.AsyncCapture and changed:
+            # The first reading always publishes; after it, async capture on change
+            if changed and (self.tuning.AsyncCapture or self.prev_value is None):
                         self._publish()
 
             # Synchronous capture at exact period boundary
@@ -149,6 +150,8 @@ class GpioSensor(ShNodeActor):
             await asyncio.sleep(poll_period)
 
     def _publish(self):
+        if self.latest_value is None:
+            return
         msg = SingleReading(
             ChannelName=self.channel_name,
             Value=self.latest_value,

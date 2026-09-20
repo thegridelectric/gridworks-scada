@@ -29,6 +29,7 @@ R_FIXED_KOHMS = 5.65  # The voltage divider resistors in the TankModule
 THERMISTOR_T0 = 298  # i.e. 25 degrees
 THERMISTOR_R0_KOHMS = 10  # The R0 of the NTC thermistor - an industry standard
 PICO_VOLTS = 3.3
+OPEN_THERMISTOR_REPORT_S = 24 * 3600  # an open thermistor is reported once a day
 # A tank at rest, stratified: depth1 is the top. Fixed until the plant drives
 # tank temperatures.
 SIM_TANK_AT_REST_C: dict[int, float] = {1: 55.0, 2: 50.0, 3: 45.0}
@@ -92,6 +93,8 @@ class ApiTankModule(ShNodeActor):
             )
 
         self.pico_uid = self._component.gt.PicoHwUid
+        # When each depth node's open thermistor was last reported
+        self.open_thermistor_reported_s: dict[str, float] = {}
         self.pico_identity: Optional[PicoIdentity] = None
         if isinstance(self._component, PicoTankModuleComponent):
             self.pico_identity = PicoIdentity(
@@ -300,6 +303,16 @@ class ApiTankModule(ShNodeActor):
                 #print(f"Updated {channel_name_list[-1]}: {round(volts,3)} V")
             if volts <= 0:
                 continue
+            elif volts >= PICO_VOLTS:
+                # An open thermistor sits at the pico rail: no temperature
+                last_reported_s = self.open_thermistor_reported_s.get(correct_about_name)
+                if last_reported_s is None or time.time() - last_reported_s >= OPEN_THERMISTOR_REPORT_S:
+                    self.open_thermistor_reported_s[correct_about_name] = time.time()
+                    self.send_warning(
+                        "open-thermistor",
+                        f"{correct_about_name} reads {volts} V, the pico rail",
+                    )
+                continue
             elif self._component.gt.TempCalcMethod == TempCalcMethod.SimpleBeta:
                 try:
                     device_channel_name = f"{correct_about_name}-device" # channel names match node names
@@ -310,18 +323,9 @@ class ApiTankModule(ShNodeActor):
                     )
                     channel_name_list.append(device_channel_name)
                 except BaseException as e:
-                    self.log(f"Problem with simple_beta({volts})! {e}")
-                    self.services.send_threadsafe(
-                        Message(
-                            Payload=Problems(
-                                msg=(
-                                    f"Volts to temp problem for {correct_about_name}"
-                                ),
-                                errors=[e],
-                            ).problem_event(
-                                summary=(f"Volts to temp problem for {correct_about_name}"),
-                            )
-                        )
+                    self.send_warning(
+                        "volts-to-temp-problem",
+                        f"{correct_about_name} simple_beta({volts}): {e}",
                     )
             else:
                 raise Exception(f"No code for {self._component.gt.TempCalcMethod}!")
@@ -417,7 +421,7 @@ class ApiTankModule(ShNodeActor):
     async def main(self):
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
-            if self.liveness.report_due(time.time()):
+            if self._component.gt.Enabled and self.liveness.report_due(time.time()):
                 self.report_missing()
             await asyncio.sleep(10)
 

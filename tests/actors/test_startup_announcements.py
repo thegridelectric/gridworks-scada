@@ -74,8 +74,11 @@ async def test_announcements_with_no_deed_are_the_layout_and_one_warning(
         tst.start_child1()
         scada = tst.child1_app.scada
         sent = record_sends(monkeypatch, scada)
+        logged: list[str] = []
+        monkeypatch.setattr(scada, "log", logged.append)
         scada.send_startup_announcements()
         assert [type(p) for p in sent] == [LayoutLite, Glitch]
+        assert [note for note in logged if note.startswith("Warning Glitch: no-ta-deed")]
         glitch = sent[1]
         assert isinstance(glitch, Glitch)
         assert glitch.Type == LogLevel.Warning

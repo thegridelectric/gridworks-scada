@@ -381,3 +381,105 @@ def test_gw_nolan_layout_axiom_15_second_heat_call(assembled: dict) -> None:
         )
 
     reject(assembled, duplicate, "Axiom 15")
+
+
+# Channel integrity axioms. Earlier axioms pin the channels with these
+# Strategies by name or by input, so the mutations below use the others and
+# trip only the axiom under test. Matches are anchored at the opening
+# parenthesis so "Axiom 2" cannot be satisfied by "Axiom 20".
+PINNED_STRATEGIES = {"transactive-power", "heat-call", "system-model"}
+
+
+def free_derived(d: dict) -> list[dict]:
+    return [c for c in d["DerivedChannels"] if c["Strategy"] not in PINNED_STRATEGIES]
+
+
+def no_actor_node_name(d: dict) -> str:
+    return next(n["Name"] for n in d["ShNodes"] if n["ActorClass"] == "NoActor")
+
+
+def add_derived_copy(d: dict, name: str) -> None:
+    d["DerivedChannels"].append(
+        {**free_derived(d)[-1], "Name": name, "Id": str(uuid.uuid4())}
+    )
+
+
+def test_gw_nolan_layout_axiom_16_a_creator_is_a_node(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        free_derived(d)[-1]["CreatedByNodeName"] = "no-such-node"
+
+    reject(assembled, mutate, r"Axiom 16 \(.*failed \(a\)")
+
+
+def test_gw_nolan_layout_axiom_16_b_creator_has_an_actor(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        free_derived(d)[-1]["CreatedByNodeName"] = no_actor_node_name(d)
+
+    reject(assembled, mutate, r"Axiom 16 \(.*failed \(b\)")
+
+
+def test_gw_nolan_layout_axiom_17_a_about_node_is_a_node(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        d["DataChannels"][-1]["AboutNodeName"] = "no-such-node"
+
+    reject(assembled, mutate, r"Axiom 17 \(.*failed \(a\)")
+
+
+def test_gw_nolan_layout_axiom_17_b_capturer_is_a_node(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        d["DataChannels"][-1]["CapturedByNodeName"] = "no-such-node"
+
+    reject(assembled, mutate, r"Axiom 17 \(.*failed \(b\)")
+
+
+def test_gw_nolan_layout_axiom_17_c_capturer_has_an_actor(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        d["DataChannels"][-1]["CapturedByNodeName"] = no_actor_node_name(d)
+
+    reject(assembled, mutate, r"Axiom 17 \(.*failed \(c\)")
+
+
+def test_gw_nolan_layout_axiom_18_a_input_is_a_channel(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        free_derived(d)[-1]["InputChannelNames"] = ["no-such-channel"]
+
+    reject(assembled, mutate, r"Axiom 18 \(.*failed \(a\)")
+
+
+def test_gw_nolan_layout_axiom_18_b_self_input(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        channel = free_derived(d)[-1]
+        channel["InputChannelNames"] = [channel["Name"]]
+
+    reject(assembled, mutate, r"Axiom 18 \(.*failed \(b\)")
+
+
+def test_gw_nolan_layout_axiom_18_b_two_channel_cycle(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        first, second = free_derived(d)[-2:]
+        first["InputChannelNames"] = [second["Name"]]
+        second["InputChannelNames"] = [first["Name"]]
+
+    reject(assembled, mutate, r"Axiom 18 \(.*failed \(b\)")
+
+
+def test_gw_nolan_layout_axiom_18_derived_input_chain_accepted(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        first, second = free_derived(d)[-2:]
+        first["InputChannelNames"] = [second["Name"]]
+
+    NolanLayout.model_validate(mutated(assembled, mutate))
+
+
+def test_gw_nolan_layout_axiom_19_derived_shares_a_data_channel_name(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        add_derived_copy(d, d["DataChannels"][-1]["Name"])
+
+    reject(assembled, mutate, r"Axiom 19 \(")
+
+
+def test_gw_nolan_layout_axiom_19_two_derived_share_a_name(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        add_derived_copy(d, free_derived(d)[-1]["Name"])
+
+    reject(assembled, mutate, r"Axiom 19 \(")
