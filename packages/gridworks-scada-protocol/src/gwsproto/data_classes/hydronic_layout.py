@@ -326,18 +326,9 @@ class HydronicLayout:
         derived_gt: DerivedChannelGt,
         nodes: dict[str, ShNode],
     ) -> DerivedChannel:
-        created_by_node = nodes.get(derived_gt.CreatedByNodeName)
-
-        if created_by_node is None:
-            raise ValueError(
-                f"ERROR. DerivedChannel related nodes must exist for "
-                f"{derived_gt.Name}!\n"
-                f"  For CreatedByNodeName<{derived_gt.CreatedByNodeName}> got None!\n"
-            )
-
         try:
             d = DerivedChannel(
-                created_by_node=created_by_node,
+                created_by_node=nodes[derived_gt.CreatedByNodeName],
                 **derived_gt.model_dump(by_alias=True, mode="json"),
             )
         except Exception as e:
