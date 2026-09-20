@@ -55,7 +55,9 @@ class GpioSensor(ShNodeActor):
         self.latest_value: int | None = None
         self._stop_requested = False
 
-        # Real pin only on a real board; a SimGw108 board has no GPIO.
+        # Real pin only on a real board; a SimGw108 board has no GPIO and
+        # reads sim_pin_value, which a test or the simulated plant sets.
+        self.sim_pin_value: int = 1
         if self.component.board_component.simulated:
             self.GPIO = None
         else:
@@ -99,7 +101,7 @@ class GpioSensor(ShNodeActor):
             raw = self.GPIO.input(self.gpio_pin)
             latest = 1 if raw else 0
         else:
-            latest = 1 # TODO: create a simulated sensor later
+            latest = self.sim_pin_value
         if latest != self.latest_value:
             self.prev_value = self.latest_value
             self.latest_value = latest
