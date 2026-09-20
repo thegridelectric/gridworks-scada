@@ -314,19 +314,9 @@ class HydronicLayout:
     def make_channel(
         cls, channel_gt: DataChannelGt, nodes: dict[str, ShNode]
     ) -> DataChannel:
-        about_node = nodes.get(channel_gt.AboutNodeName)
-        captured_by_node = nodes.get(channel_gt.CapturedByNodeName)
-        if about_node is None or captured_by_node is None:
-            raise ValueError(
-                f"ERROR. DataChannel related nodes must exist for {channel_gt.Name}!\n"
-                f"  For AboutNodeName <{channel_gt.AboutNodeName}> "
-                f"got {about_node}\n"
-                f"  for CapturedByNodeName <{channel_gt.CapturedByNodeName}>"
-                f"got {captured_by_node}"
-            )
         return DataChannel(
-            about_node=about_node,
-            captured_by_node=captured_by_node,
+            about_node=nodes[channel_gt.AboutNodeName],
+            captured_by_node=nodes[channel_gt.CapturedByNodeName],
             **channel_gt.model_dump(by_alias=True, mode="json"),
         )
 

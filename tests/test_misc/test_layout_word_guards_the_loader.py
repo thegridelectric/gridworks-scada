@@ -11,7 +11,8 @@ import pytest
 from sema_to_dc import ops_and_sema_to_dc
 
 CONFIG = Path(__file__).parent.parent / "config"
-# (layout, ops, number of DerivedChannelInputsAcyclic in that layout word)
+# (layout, ops, number of DerivedChannelInputsAcyclic in that layout word);
+# DataChannelNodeResolution is the axiom before it.
 PAIRS = {
     "nolan": ("gw.nolan.layout.json", "gw.nolan.operational.params.json", 18),
     "house0-willow": (
@@ -41,4 +42,20 @@ def test_a_derived_input_naming_no_channel_is_refused_by_the_word(
         identity["InputChannelNames"] = ["no-such-channel"]
 
     with pytest.raises(ValueError, match=rf"Axiom {axiom} \(.*failed \(a\)"):
+        load_broken(tmp_path, layout, ops, mutate)
+
+
+@pytest.mark.parametrize("pair", sorted(PAIRS))
+@pytest.mark.parametrize(
+    ("field", "clause"), [("AboutNodeName", "a"), ("CapturedByNodeName", "b")]
+)
+def test_a_data_channel_naming_no_node_is_refused_by_the_word(
+    tmp_path: Path, pair: str, field: str, clause: str
+) -> None:
+    layout, ops, inputs_axiom = PAIRS[pair]
+
+    def mutate(d: dict) -> None:
+        d["DataChannels"][-1][field] = "no-such-node"
+
+    with pytest.raises(ValueError, match=rf"Axiom {inputs_axiom - 1} \(.*failed \({clause}\)"):
         load_broken(tmp_path, layout, ops, mutate)
