@@ -81,6 +81,9 @@ from gwsproto.names.house0.node_names import House0NodeNames
 from sema_to_dc import OperationalParams
 from scada_app_interface import ScadaAppInterface
 
+UNKNOWN_CHANNEL_LOG_PERIOD_S = 15
+
+
 class Scada(PrimeActor, ScadaInterface):
     ASYNC_POWER_REPORT_THRESHOLD = 0.05
     STARTUP_ANNOUNCE_POLL_S = 1
@@ -276,6 +279,9 @@ class Scada(PrimeActor, ScadaInterface):
         return [
             asyncio.create_task(self.report_sending_task(), name="report_sender"),
             asyncio.create_task(self.snap_sending_task(), name="snap_sender"),
+            asyncio.create_task(
+                self.unknown_channel_logging_task(), name="unknown_channel_logger"
+            ),
             asyncio.create_task(self.state_tracker(), name="scada top_state_tracker"),
             asyncio.create_task(
                 self.announce_at_first_broker_link(), name="startup_announcer"
@@ -1464,6 +1470,15 @@ class Scada(PrimeActor, ScadaInterface):
                 await asyncio.sleep(self.seconds_til_next_snap())
             except Exception as e:
                 self.log(e)
+
+    async def unknown_channel_logging_task(self):
+        while self.settings.unknown_channel_logging and not self._stop_requested:
+            unknown = self._data.unknown_channels()
+            self.services.logger.error(
+                f"[UnknownChannels] no value: {','.join(unknown.no_value) or '-'}"
+                f" | stale: {','.join(unknown.stale) or '-'}"
+            )
+            await asyncio.sleep(UNKNOWN_CHANNEL_LOG_PERIOD_S)
 
     #####################################################################
     # Basic plumbing - mostly about messages

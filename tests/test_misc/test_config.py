@@ -50,6 +50,7 @@ def test_scada_settings_defaults(default_test_env, clean_test_env, clean_scada_e
     )
     exp = dict(
         pico_cycler_state_logging=False,
+        unknown_channel_logging=False,
         power_meter_logging_level=logging.WARNING,
         local_mqtt=exp_local_mqtt.model_dump(),
         gridworks_mqtt=MQTTClient(
@@ -63,6 +64,7 @@ def test_scada_settings_defaults(default_test_env, clean_test_env, clean_scada_e
         seconds_per_report=300,
         seconds_per_snapshot=30,
         async_power_reporting_threshold=0.02,
+        power_meter_lost_after_s=10,
         paths=ScadaPaths().model_dump(),
         logging=LoggingSettings().model_dump(),
         persister=PersisterSettings().model_dump(),

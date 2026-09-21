@@ -14,6 +14,8 @@ from gwproactor_test.certs import copy_keys
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
+from gwproto import Message
+from gwsproto.named_types import ChannelFlatlined, PowerWatts, SyncedReadings
 
 import pytest
 from actors.power_meter import DriverThreadSetupHelper
@@ -265,3 +267,191 @@ async def test_whitewire_power_through_the_sim_meter_becomes_the_zone_heat_call(
             lambda: data.latest_channel_values.get("zone1-main-heat-call") == 0,
             "heat call idle again at 0 W",
         )
+
+
+WILLOW_LAYOUT = Path(__file__).parent.parent / "config" / "gw.house0.willow.layout.json"
+WILLOW_OPS = Path(__file__).parent.parent / "config" / "gw.house0.willow.operational.params.json"
+WHITEWIRE = "zone1-main-whitewire-pwr"
+
+
+def willow_settings(lost_after_s: float) -> ScadaSettings:
+    settings = ScadaApp.get_settings()
+    settings.paths.hardware_layout = WILLOW_LAYOUT
+    settings.paths.operational_params = WILLOW_OPS
+    settings.power_meter_lost_after_s = lost_after_s
+    return settings
+
+
+def willow_layout_with_one_second_capture() -> HydronicLayout:
+    layout = load_layout(WILLOW_LAYOUT, WILLOW_OPS)
+    meter_component = layout.component_from_node(layout.node(CoreNodeNames.asset_power_meter))
+    if not isinstance(meter_component, ElectricMeterComponent):
+        raise TypeError(f"ERROR. Got meter component with wrong type ({type(meter_component)})")
+    for config in meter_component.gt.ConfigList:
+        layout.capture_tuning_by_channel[config.ChannelName].CapturePeriodS = 1
+    return layout
+
+
+def meter_thread(h: ScadaLiveTest) -> PowerMeterDriverThread:
+    return typing.cast(
+        PowerMeterDriverThread,
+        h.child1_app.get_communicator_as_type(
+            CoreNodeNames.asset_power_meter, PowerMeter
+        )._sync_thread,
+    )
+
+
+def record_meter_messages(p: PowerMeterDriverThread) -> list[Message]:
+    """Every message the driver thread queues from here on, still delivered."""
+    sent: list[Message] = []
+    deliver = p._put_to_async_queue
+
+    def record_and_deliver(message: Message) -> None:
+        sent.append(message)
+        deliver(message)
+
+    p._put_to_async_queue = record_and_deliver
+    return sent
+
+
+def flatlined_names(sent: list[Message]) -> list[str]:
+    return [m.Payload.Channel.Name for m in sent if isinstance(m.Payload, ChannelFlatlined)]
+
+
+@pytest.mark.asyncio
+async def test_a_lost_meter_channel_goes_unknown_and_stops_reporting(
+    request: pytest.FixtureRequest,
+) -> None:
+    async with ScadaLiveTest(
+        request=request,
+        child_app_settings=willow_settings(lost_after_s=1.0),
+        child1_layout=willow_layout_with_one_second_capture(),
+    ) as h:
+        h.start_child1()
+        data = h.child1_app.scada.data
+        p = meter_thread(h)
+        driver = typing.cast(GridworksSimPm1_PowerMeterDriver, p.driver)
+        await h.await_for(
+            lambda: data.latest_channel_values.get(HCN.hp_odu_pwr) is not None,
+            "first hp-odu-pwr reading",
+        )
+        sent = record_meter_messages(p)
+        driver.no_value_channel_names = {HCN.hp_odu_pwr}
+        await h.await_for(
+            lambda: data.latest_channel_values[HCN.hp_odu_pwr] is None,
+            "hp-odu-pwr unknown at the scada",
+        )
+        received = len(data.recent_channel_values[HCN.hp_odu_pwr])
+        others = len(data.recent_channel_values[HCN.hp_idu_pwr])
+        await h.await_for(
+            lambda: len(data.recent_channel_values[HCN.hp_idu_pwr]) >= others + 2,
+            "two more capture periods on a live channel",
+        )
+        assert len(data.recent_channel_values[HCN.hp_odu_pwr]) == received
+        assert data.latest_channel_values[HCN.hp_odu_pwr] is None
+        assert flatlined_names(sent) == [HCN.hp_odu_pwr]
+
+
+@pytest.mark.asyncio
+async def test_a_short_gap_in_meter_reads_is_not_a_loss(
+    request: pytest.FixtureRequest,
+) -> None:
+    lost_after_s = 3.0
+    async with ScadaLiveTest(
+        request=request,
+        child_app_settings=willow_settings(lost_after_s=lost_after_s),
+        child1_layout=willow_layout_with_one_second_capture(),
+    ) as h:
+        h.start_child1()
+        data = h.child1_app.scada.data
+        p = meter_thread(h)
+        driver = typing.cast(GridworksSimPm1_PowerMeterDriver, p.driver)
+        await h.await_for(
+            lambda: data.latest_channel_values.get(HCN.hp_odu_pwr) == 0,
+            "first hp-odu-pwr reading",
+        )
+        sent = record_meter_messages(p)
+        # The watts move while the channel returns no value, so a value
+        # that stays at 0 shows the reads in the gap came back empty.
+        driver.no_value_channel_names = {HCN.hp_odu_pwr}
+        driver.fake_power_w = 700
+        await h.await_for(
+            lambda: data.latest_channel_values[HCN.hp_idu_pwr] == 700,
+            "a poll inside the gap",
+        )
+        assert data.latest_channel_values[HCN.hp_odu_pwr] == 0
+        driver.no_value_channel_names = set()
+        await h.await_for(
+            lambda: data.latest_channel_values[HCN.hp_odu_pwr] == 700,
+            "hp-odu-pwr read again",
+        )
+        await asyncio.sleep(lost_after_s + 1)
+        assert flatlined_names(sent) == []
+        assert data.latest_channel_values[HCN.hp_odu_pwr] == 700
+
+
+@pytest.mark.asyncio
+async def test_a_recovered_meter_channel_reports_on_that_poll(
+    request: pytest.FixtureRequest,
+) -> None:
+    """The capture period stays at the layout's, so a report seconds after
+    the first good read is the recovery and not the periodic beat."""
+    async with ScadaLiveTest(
+        request=request, child_app_settings=willow_settings(lost_after_s=1.0)
+    ) as h:
+        h.start_child1()
+        data = h.child1_app.scada.data
+        p = meter_thread(h)
+        driver = typing.cast(GridworksSimPm1_PowerMeterDriver, p.driver)
+        await h.await_for(
+            lambda: data.latest_channel_values.get(WHITEWIRE) == 0,
+            "first whitewire reading",
+        )
+        driver.no_value_channel_names = {WHITEWIRE}
+        await h.await_for(
+            lambda: data.latest_channel_values[WHITEWIRE] is None,
+            "whitewire unknown at the scada",
+        )
+        sent = record_meter_messages(p)
+        driver.no_value_channel_names = set()
+        await h.await_for(
+            lambda: data.latest_channel_values[WHITEWIRE] == 0,
+            "whitewire back at the scada",
+        )
+        destinations = {
+            m.Header.Dst
+            for m in sent
+            if isinstance(m.Payload, SyncedReadings)
+            and WHITEWIRE in m.Payload.ChannelNameList
+        }
+        assert destinations == {CoreNodeNames.primary_scada, CoreNodeNames.derived_generator}
+
+
+@pytest.mark.asyncio
+async def test_a_recovered_transactive_channel_reports_aggregate_power(
+    request: pytest.FixtureRequest,
+) -> None:
+    async with ScadaLiveTest(
+        request=request, child_app_settings=willow_settings(lost_after_s=1.0)
+    ) as h:
+        h.start_child1()
+        data = h.child1_app.scada.data
+        p = meter_thread(h)
+        driver = typing.cast(GridworksSimPm1_PowerMeterDriver, p.driver)
+        assert HCN.hp_odu_pwr in p.transactive_channel_names
+        await h.await_for(
+            lambda: data.latest_channel_values.get(HCN.hp_odu_pwr) == 0,
+            "first hp-odu-pwr reading",
+        )
+        driver.no_value_channel_names = {HCN.hp_odu_pwr}
+        await h.await_for(
+            lambda: data.latest_channel_values[HCN.hp_odu_pwr] is None,
+            "hp-odu-pwr unknown at the scada",
+        )
+        sent = record_meter_messages(p)
+        driver.no_value_channel_names = set()
+        await h.await_for(
+            lambda: data.latest_channel_values[HCN.hp_odu_pwr] == 0,
+            "hp-odu-pwr back at the same watts",
+        )
+        assert [m.Payload.Watts for m in sent if isinstance(m.Payload, PowerWatts)] == [0]

@@ -5,7 +5,7 @@ import json
 import time
 import uuid
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, NamedTuple, Optional, Union
 
 from actors.config import ScadaSettings
 from gwsproto.data_classes.data_channel import DataChannel
@@ -44,6 +44,15 @@ def load_operational_params(settings: ScadaSettings) -> OperationalParams:
 
 from gwsproto.data_classes.derived_channel import DerivedChannel
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
+class UnknownChannels(NamedTuple):
+    """The data channels the scada holds no usable value for."""
+
+    no_value: list[str]
+    """Names of channels with no latest value: never read, or flushed."""
+    stale: list[str]
+    """Names of channels whose latest value is older than the flatline bound."""
+
+
 class ScadaData:
 
     def __init__(
@@ -205,6 +214,17 @@ class ScadaData:
         ):
             return True
         return False
+
+    def unknown_channels(self) -> UnknownChannels:
+        no_value = [
+            ch.Name for ch in self.my_channels
+            if self.latest_channel_values[ch.Name] is None
+        ]
+        stale = [
+            ch.Name for ch in self.my_channels
+            if self.latest_channel_values[ch.Name] is not None and self.flatlined(ch)
+        ]
+        return UnknownChannels(no_value=no_value, stale=stale)
 
     def make_snapshot(self) -> SnapshotSpaceheat:
         latest_reading_list = []

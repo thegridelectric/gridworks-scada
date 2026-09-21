@@ -25,7 +25,7 @@ from gwproactor.message import InternalShutdownMessage
 from gwproactor.sync_thread import SyncAsyncInteractionThread
 from gwproactor import Problems
 from gwsproto.enums import DeviceType, SimDeviceType
-from gwsproto.named_types import ElectricMeterChannelConfig, PowerWatts, SyncedReadings
+from gwsproto.named_types import ChannelFlatlined, ElectricMeterChannelConfig, PowerWatts, SyncedReadings
 
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.names.core.node_names import CoreNodeNames
@@ -144,6 +144,9 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
     latest_telemetry_value: Dict[DataChannel, Optional[int]]
     _last_sampled_s: Dict[DataChannel, Optional[int]]
     async_power_reporting_threshold: float
+    lost_after_s: float
+    last_value_monotonic_s: Dict[DataChannel, float]
+    lost_channels: set[DataChannel]
     _hardware_layout: HydronicLayout
     _hw_uid: str = ""
 
@@ -197,6 +200,11 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
             for ch in self.my_channels
         }
         self.async_power_reporting_threshold = settings.async_power_reporting_threshold
+        self.lost_after_s = settings.power_meter_lost_after_s
+        self.last_value_monotonic_s = {
+            ch: time.monotonic() for ch in self.my_channels
+        }
+        self.lost_channels = set()
 
     def _validate_channels_with_component(self, component: ElectricMeterComponent) -> None:
         for channel in self.my_channels:
@@ -224,6 +232,9 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         self._put_to_async_queue(message)
 
     def _preiterate(self) -> None:
+        self.last_value_monotonic_s = {
+            ch: time.monotonic() for ch in self.my_channels
+        }
         result = self.driver.start()
         if result.is_ok():
             if result.value.warnings:
@@ -262,6 +273,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         start_s = time.time()
         self._ensure_hardware_uid()
         self.update_latest_value_dicts()
+        self.flush_lost_channels()
         if self.should_report_aggregated_power():
             self.report_aggregated_power_w()
         channel_report_list = [
@@ -284,6 +296,8 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
             if read.is_ok():
                 if read.value.value is not None:
                     self.latest_telemetry_value[ch] = read.value.value
+                    self.last_value_monotonic_s[ch] = time.monotonic()
+                    self.lost_channels.discard(ch)
                 if read.value.warnings:
                     log_event = False
                     if not logged_one and self._logger.isEnabledFor(logging.DEBUG):
@@ -299,6 +313,29 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
                     )
             else:
                 raise read.value
+
+    def flush_lost_channels(self) -> None:
+        """A channel with no read that returned a value inside lost_after_s
+        is lost: its values go to None and the scada is told once. The age
+        is monotonic, so a stepped wall clock cannot hold it open."""
+        now = time.monotonic()
+        for ch in self.my_channels:
+            if ch in self.lost_channels:
+                continue
+            if now - self.last_value_monotonic_s[ch] <= self.lost_after_s:
+                continue
+            self.lost_channels.add(ch)
+            self.latest_telemetry_value[ch] = None
+            self.last_reported_telemetry_value[ch] = None
+            if ch.Name in self.transactive_channel_names:
+                self.last_reported_agg_power_w = None
+            self._put_to_async_queue(
+                Message(
+                    Src=self.name,
+                    Dst=CoreNodeNames.primary_scada,
+                    Payload=ChannelFlatlined(FromName=self.name, Channel=ch),
+                )
+            )
 
     def report_sampled_telemetry_values(
         self, channel_report_list: List[DataChannel]

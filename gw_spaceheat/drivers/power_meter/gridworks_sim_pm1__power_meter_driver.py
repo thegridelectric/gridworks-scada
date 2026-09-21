@@ -21,11 +21,16 @@ class GridworksSimPm1_PowerMeterDriver(PowerMeterDriver):
         self.component = component
         self.fake_current_rms_micro_amps = 18000
         self.fake_power_w = 0
+        # Channels whose reads come back with no value, as a meter that
+        # cannot be reached does.
+        self.no_value_channel_names: set[str] = set()
 
     def read_hw_uid(self) -> Result[DriverResult[str | None], Exception]:
         return Ok(DriverResult("1001ab"))
 
     def read_power_w(self, channel: DataChannel) -> Result[DriverResult[int | None], Exception]:
+        if channel.Name in self.no_value_channel_names:
+            return Ok(DriverResult(None))
         return Ok(DriverResult(self.fake_power_w))
 
     def read_current_rms_micro_amps(

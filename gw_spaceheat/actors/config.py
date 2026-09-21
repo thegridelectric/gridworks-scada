@@ -34,6 +34,10 @@ DEFAULT_TEST_LAYOUT = (
 
 DEFAULT_MAX_EVENT_BYTES: int = 500 * 1024 * 1024
 
+# A power meter channel with no read that returned a value for this long is
+# lost.
+POWER_METER_LOST_AFTER_S: float = 10
+
 class PersisterSettings(BaseModel):
     max_bytes: int = DEFAULT_MAX_EVENT_BYTES
 
@@ -117,6 +121,7 @@ class ScadaSettings(ScadaPathsSettings):
     """Settings for the GridWorks scada."""
     #logging related (temporary)
     pico_cycler_state_logging: bool = False
+    unknown_channel_logging: bool = False
     power_meter_logging_level: int = logging.WARNING
     contract_rep_logging_level: int = logging.INFO
     paho_logging: bool = False
@@ -125,6 +130,7 @@ class ScadaSettings(ScadaPathsSettings):
     seconds_per_report: int = 300
     seconds_per_snapshot: int = 30
     async_power_reporting_threshold: float = 0.02
+    power_meter_lost_after_s: float = POWER_METER_LOST_AFTER_S
     persister: PersisterSettings = PersisterSettings()
     admin: AdminLinkSettings = AdminLinkSettings(tls=TLSInfo(use_tls=False))
     # site facts, here until the TaValidator owns them
