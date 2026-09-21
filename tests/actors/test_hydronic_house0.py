@@ -255,11 +255,19 @@ def test_energy_readers_are_kwh_from_wh_and_zero_when_unknown(
     assert actor.is_storage_empty() is (kwh < 0.2)
 
 
+def read_now(actor: House0Hydronic, channel_name: str, value: int | None) -> None:
+    """A reading of the channel taken now; None is a channel with no reading."""
+    actor.data.latest_channel_values[channel_name] = value
+    actor.data.latest_channel_unix_ms[channel_name] = (
+        None if value is None else int(time.time() * 1000)
+    )
+
+
 def test_total_hp_power_needs_both_units(actor: House0Hydronic) -> None:
-    actor.data.latest_channel_values[HCN.hp_idu_pwr] = 500
-    actor.data.latest_channel_values[HCN.hp_odu_pwr] = None
+    read_now(actor, HCN.hp_idu_pwr, 500)
+    read_now(actor, HCN.hp_odu_pwr, None)
     assert actor.total_hp_pwr_w() is None
-    actor.data.latest_channel_values[HCN.hp_odu_pwr] = 3_000
+    read_now(actor, HCN.hp_odu_pwr, 3_000)
     assert actor.total_hp_pwr_w() == 3_500
 
 
@@ -267,8 +275,8 @@ def test_defrost_is_never_judged_for_a_unit_without_a_known_line(
     actor: House0Hydronic,
 ) -> None:
     # Both sim pairs name SimHpOdu, which has no defrost signature.
-    actor.data.latest_channel_values[HCN.hp_idu_pwr] = 100
-    actor.data.latest_channel_values[HCN.hp_odu_pwr] = 100
+    read_now(actor, HCN.hp_idu_pwr, 100)
+    read_now(actor, HCN.hp_odu_pwr, 100)
     assert actor.hp_in_defrost() is False
 
 
@@ -302,8 +310,8 @@ def test_defrost_signature_by_the_hp_odu_device_type(
         device_type,
         house0_module.DefrostSignature(draw, max_w),
     )
-    actor.data.latest_channel_values[HCN.hp_idu_pwr] = idu
-    actor.data.latest_channel_values[HCN.hp_odu_pwr] = odu
+    read_now(actor, HCN.hp_idu_pwr, idu)
+    read_now(actor, HCN.hp_odu_pwr, odu)
     assert actor.hp_in_defrost() is defrost
 
 
@@ -316,8 +324,8 @@ def test_defrost_is_false_without_the_watched_draw(
         device_type,
         house0_module.DefrostSignature("total", 8_400),
     )
-    actor.data.latest_channel_values[HCN.hp_idu_pwr] = 100
-    actor.data.latest_channel_values[HCN.hp_odu_pwr] = None
+    read_now(actor, HCN.hp_idu_pwr, 100)
+    read_now(actor, HCN.hp_odu_pwr, None)
     assert actor.hp_in_defrost() is False
 
 

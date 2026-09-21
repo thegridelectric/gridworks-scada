@@ -566,14 +566,23 @@ class House0Hydronic(HydronicNode):
         return primary_flow > self.PUMP_FLOW_GPM_THRESHOLD * 100
 
     def hp_in_defrost(self) -> bool:
-        """True when the heat pump's total draw is under the defrost line
-        for the unit the layout's hp-odu component names; False without
-        both power readings or without a known line."""
+        """True when the draw the signature watches is under the defrost
+        line for the unit the layout's hp-odu component names. A draw that
+        is not live answers from its last real reading, so a meter lost
+        during a defrost does not end the defrost. False without a known
+        line, or for a draw never read."""
         signature = DEFROST_SIGNATURES.get(self.layout.node(HSNN.hp_odu).component.gt.DeviceType)
         if signature is None:
             return False
-        draw = self.hp_idu_pwr_w() if signature.draw == "idu" else self.total_hp_pwr_w()
-        return draw is not None and draw < signature.max_w
+        idu = self.hp_idu_pwr_w()
+        if idu is None:
+            idu = self.data.last_real_value(HCN.hp_idu_pwr)
+        if signature.draw == "idu":
+            return idu is not None and idu < signature.max_w
+        odu = self.hp_odu_pwr_w()
+        if odu is None:
+            odu = self.data.last_real_value(HCN.hp_odu_pwr)
+        return idu is not None and odu is not None and idu + odu < signature.max_w
 
     def is_buffer_empty(self, all_tanks_leaf_ally=False) -> bool:
         """
@@ -827,19 +836,17 @@ class House0Hydronic(HydronicNode):
 
     def hp_idu_pwr_w(self) -> Optional[float]:
         """Returns the latest Heat Pump indoor unit power in Watts, or None
-        if it does not exist"""
-        raw = self.data.latest_channel_values.get(HCN.hp_idu_pwr)
-        if raw is None:
+        if the channel is not live"""
+        if not self.channel_is_live(HCN.hp_idu_pwr):
             return None
-        return raw
+        return self.data.latest_channel_values[HCN.hp_idu_pwr]
 
     def hp_odu_pwr_w(self) -> Optional[float]:
         """Returns the latest Heat Pump outdoor unit power in Watts, or None
-        if it does not exist"""
-        raw = self.data.latest_channel_values.get(HCN.hp_odu_pwr)
-        if raw is None:
+        if the channel is not live"""
+        if not self.channel_is_live(HCN.hp_odu_pwr):
             return None
-        return raw
+        return self.data.latest_channel_values[HCN.hp_odu_pwr]
 
     def total_hp_pwr_w(self) -> Optional[float]:
         """Returns the latest Heat Pump total power in Watts, or None

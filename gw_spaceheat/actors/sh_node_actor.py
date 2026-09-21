@@ -332,12 +332,24 @@ class ShNodeActor(Actor, ABC):
             return None
         return self.layout.channel_registry.temperature(channel_name, raw)
 
+    def channel_is_live(self, channel_name: SpaceheatName) -> bool:
+        """True when the layout has the data channel and its latest reading
+        is inside the flatline bound."""
+        channel = self.layout.data_channels.get(channel_name)
+        return channel is not None and not self.data.flatlined(channel)
+
     def lwt(self) -> Optional[Temperature]:
-        """The latest heat pump leaving water temperature."""
+        """The latest heat pump leaving water temperature; None when the
+        channel is not live."""
+        if not self.channel_is_live(HCN.hp_lwt):
+            return None
         return self.channel_temperature(HCN.hp_lwt)
 
     def ewt(self) -> Optional[Temperature]:
-        """The latest heat pump entering water temperature."""
+        """The latest heat pump entering water temperature; None when the
+        channel is not live."""
+        if not self.channel_is_live(HCN.hp_ewt):
+            return None
         return self.channel_temperature(HCN.hp_ewt)
 
     def sieg_flow_gpm(self) -> Optional[float]:

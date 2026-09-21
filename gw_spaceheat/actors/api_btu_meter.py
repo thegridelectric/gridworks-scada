@@ -31,6 +31,21 @@ SIM_LOOP_CELSIUS_X100 = 5000
 SIM_CT_VOLTS_X100 = 0
 
 
+def snapshot_without(
+    reading: MultichannelSnapshot, channel_names: set[str]
+) -> MultichannelSnapshot:
+    """The snapshot with the named channels dropped from its lists."""
+    kept = [
+        i for i, name in enumerate(reading.ChannelNameList) if name not in channel_names
+    ]
+    return MultichannelSnapshot(
+        HwUid=reading.HwUid,
+        ChannelNameList=[reading.ChannelNameList[i] for i in kept],
+        MeasurementList=[reading.MeasurementList[i] for i in kept],
+        UnitList=[reading.UnitList[i] for i in kept],
+    )
+
+
 class ApiBtuMeter(PicoActorBase):
     """Reads a pico BTU meter over HTTP. When the component is the sim word
     the actor runs its own SimPicoSource, posting snapshots to itself on the
@@ -101,6 +116,12 @@ class ApiBtuMeter(PicoActorBase):
         self.ct_channel = None
         if self._component.gt.CtChannelName:
             self.ct_channel = self.layout.channel(self._component.gt.CtChannelName)
+        self.channel_liveness: dict[str, PicoLiveness] = {
+            ch.Name: PicoLiveness(
+                expected_post_s=self.layout.capture_tuning_by_channel[ch.Name].CapturePeriodS
+            )
+            for ch in self.flatlined_channels()
+        }
         self.feeds_derived = self.layout.feeds_derived(
             ch.Name
             for ch in (self.flow_channel, self.hot_temp_channel, self.cold_temp_channel, self.ct_channel)
@@ -124,6 +145,7 @@ class ApiBtuMeter(PicoActorBase):
                     MeasurementList=measurements,
                     UnitList=units,
                 ),
+                without=snapshot_without,
                 capture_period_s=self.liveness.expected_post_s,
                 life_s=self._component.gt.SimLifeS,
                 reboot_s=self._component.gt.SimRebootS,
@@ -304,7 +326,11 @@ class ApiBtuMeter(PicoActorBase):
 
     def _process_multichannel_snapshot(self, data: MultichannelSnapshot) -> None:
         if data.HwUid == self.pico_uid:
-            self.liveness.heard(time.time())
+            now = time.time()
+            self.liveness.heard(now)
+            for channel_name in data.ChannelNameList:
+                if channel_name in self.channel_liveness:
+                    self.channel_liveness[channel_name].heard(now)
         else:
             self.log(
                 f"{self.name}: Ignoring data from pico {data.HwUid} - not recognized!"
@@ -416,9 +442,30 @@ class ApiBtuMeter(PicoActorBase):
                 ChannelFlatlined(FromName=self.name, Channel=channel),
             )
 
+    def check_liveness(self) -> None:
+        """The whole pico by its posts, then each channel by the posts that
+        carry it. A quiet channel on a posting pico is flatlined at the
+        scada and is no PicoMissing; a missing pico is not also reported
+        channel by channel."""
+        if not self._component.gt.Enabled:
+            return
+        now = time.time()
+        if self.liveness.report_due(now):
+            self.report_missing()
+        if self.liveness.missing(now):
+            return
+        for channel_name, liveness in self.channel_liveness.items():
+            if liveness.report_due(now):
+                self._send_to(
+                    self.primary_scada,
+                    ChannelFlatlined(
+                        FromName=self.name,
+                        Channel=self.layout.data_channels[channel_name],
+                    ),
+                )
+
     async def main(self):
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
-            if self._component.gt.Enabled and self.liveness.report_due(time.time()):
-                self.report_missing()
+            self.check_liveness()
             await asyncio.sleep(10)

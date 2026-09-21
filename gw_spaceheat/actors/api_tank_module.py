@@ -35,6 +35,18 @@ OPEN_THERMISTOR_REPORT_S = 24 * 3600  # an open thermistor is reported once a da
 SIM_TANK_AT_REST_C: dict[int, float] = {1: 55.0, 2: 50.0, 3: 45.0}
 
 
+def microvolts_without(reading: MicroVolts, about_node_names: set[str]) -> MicroVolts:
+    """The reading with the named depths dropped from its lists."""
+    kept = [
+        i for i, name in enumerate(reading.AboutNodeNameList) if name not in about_node_names
+    ]
+    return MicroVolts(
+        HwUid=reading.HwUid,
+        AboutNodeNameList=[reading.AboutNodeNameList[i] for i in kept],
+        MicroVoltsList=[reading.MicroVoltsList[i] for i in kept],
+    )
+
+
 def microvolts_at_c(temp_c: float, beta: int) -> int:
     """The divider voltage the pico reads for a thermistor at temp_c, in
     microvolts: the inverse of simple_beta."""
@@ -126,6 +138,13 @@ class ApiTankModule(ShNodeActor):
                 3: f"{self.name}-depth3-micro-v",
             }
 
+        self.channel_liveness: dict[str, PicoLiveness] = {
+            name: PicoLiveness(
+                expected_post_s=self.layout.capture_tuning_by_channel[name].CapturePeriodS
+            )
+            for name in self.flatlined_channel_names()
+        }
+
         self.sim_pico: Optional[SimPicoSource[MicroVolts]] = None
         if isinstance(self._component, SimPicoTankModuleComponent):
             assert self.pico_uid
@@ -136,6 +155,7 @@ class ApiTankModule(ShNodeActor):
                     AboutNodeNameList=[self.depth_about_nodes[d] for d in (1, 2, 3)],
                     MicroVoltsList=[microvolts_at_c(SIM_TANK_AT_REST_C[d], beta) for d in (1, 2, 3)],
                 ),
+                without=microvolts_without,
                 capture_period_s=self.liveness.expected_post_s,
                 life_s=self._component.gt.SimLifeS,
                 reboot_s=self._component.gt.SimRebootS,
@@ -330,6 +350,9 @@ class ApiTankModule(ShNodeActor):
             else:
                 raise Exception(f"No code for {self._component.gt.TempCalcMethod}!")
 
+        now = time.time()
+        for channel_name in channel_name_list:
+            self.channel_liveness[channel_name].heard(now)
         if channel_name_list:
             msg = SyncedReadings(
                 ChannelNameList=channel_name_list,
@@ -418,11 +441,32 @@ class ApiTankModule(ShNodeActor):
                 ChannelFlatlined(FromName=self.name, Channel=self.layout.data_channels[ch]),
             )
 
+    def check_liveness(self) -> None:
+        """The whole pico by its posts, then each channel by the posts that
+        carry it. A quiet channel on a posting pico is flatlined at the
+        scada and is no PicoMissing; a missing pico is not also reported
+        channel by channel."""
+        if not self._component.gt.Enabled:
+            return
+        now = time.time()
+        if self.liveness.report_due(now):
+            self.report_missing()
+        if self.liveness.missing(now):
+            return
+        for channel_name, liveness in self.channel_liveness.items():
+            if liveness.report_due(now):
+                self._send_to(
+                    self.primary_scada,
+                    ChannelFlatlined(
+                        FromName=self.name,
+                        Channel=self.layout.data_channels[channel_name],
+                    ),
+                )
+
     async def main(self):
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
-            if self._component.gt.Enabled and self.liveness.report_due(time.time()):
-                self.report_missing()
+            self.check_liveness()
             await asyncio.sleep(10)
 
     def simple_beta(self, volts: float, fahrenheit=False) -> float:

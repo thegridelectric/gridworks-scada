@@ -1,4 +1,4 @@
-from typing import Generic, Optional, TypeVar
+from typing import Callable, Generic, Optional, TypeVar
 
 from gwsproto.enums import RelayClosedOrOpen
 from gwsproto.named_types import MicroVolts, MultichannelSnapshot
@@ -27,8 +27,12 @@ class SimPicoSource(Generic[PicoReadingT]):
     pico-cycler cycle (open, wait, close) revives it after SimRebootS, the
     way a real board rejoins wifi after a power cycle.
 
+    A post can drop part of the reading: while omitted_names is not empty
+    the source posts what the actor's `without` makes of the reading and
+    those names, as a pico does that keeps posting with one sensor gone.
+
     What it is not. The reading is the one fixed payload the actor built
-    it with, which never moves and knows nothing of the plant; the death
+    it with, whose values never move and know nothing of the plant; the death
     is on a fixed schedule, not a failure model; a reboot always succeeds,
     so zombies never arise on their own (SimRebootS absent is the only
     zombie path, a pico that stays dead); and nothing crosses HTTP, so the
@@ -41,12 +45,15 @@ class SimPicoSource(Generic[PicoReadingT]):
     def __init__(
         self,
         reading: PicoReadingT,
+        without: Callable[[PicoReadingT, set[str]], PicoReadingT],
         capture_period_s: int,
         life_s: Optional[int],
         reboot_s: Optional[int],
         booted_at: float,
     ) -> None:
         self.reading = reading
+        self.without = without
+        self.omitted_names: set[str] = set()
         self.capture_period_s = capture_period_s
         self.life_s = life_s
         self.reboot_s = reboot_s
@@ -83,4 +90,6 @@ class SimPicoSource(Generic[PicoReadingT]):
         if self.last_post is not None and now - self.last_post < self.capture_period_s:
             return None
         self.last_post = now
+        if self.omitted_names:
+            return self.without(self.reading, self.omitted_names)
         return self.reading

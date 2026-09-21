@@ -16,6 +16,7 @@ from actors.api_tank_module import (
     SIM_TANK_AT_REST_C,
     ApiTankModule,
     microvolts_at_c,
+    microvolts_without,
 )
 from actors.pico_cycler import PicoCycler
 from actors.sim_pico_source import SimPicoSource
@@ -39,6 +40,7 @@ UV = [1_000_000, 1_100_000, 1_200_000]
 def source(life_s=None, reboot_s=None, booted_at=0.0) -> SimPicoSource[MicroVolts]:
     return SimPicoSource(
         reading=MicroVolts(HwUid="sim-buffer-pico", AboutNodeNameList=ABOUT, MicroVoltsList=UV),
+        without=microvolts_without,
         capture_period_s=PERIOD,
         life_s=life_s,
         reboot_s=reboot_s,
@@ -59,6 +61,17 @@ def test_posts_at_the_capture_period() -> None:
     assert reading.AboutNodeNameList == ABOUT
     assert reading.MicroVoltsList == UV
     assert posts(src, [1.0, 30.0, 59.0, 60.0, 61.0, 119.0, 120.0]) == [60.0, 120.0]
+
+
+def test_a_post_drops_the_omitted_names_until_they_are_cleared() -> None:
+    src = source()
+    src.omitted_names = {ABOUT[1]}
+    reading = src.tick(0.0)
+    assert reading is not None
+    assert reading.AboutNodeNameList == [ABOUT[0], ABOUT[2]]
+    assert reading.MicroVoltsList == [UV[0], UV[2]]
+    src.omitted_names = set()
+    assert src.tick(float(PERIOD)) == src.reading
 
 
 def test_no_life_means_it_never_dies() -> None:

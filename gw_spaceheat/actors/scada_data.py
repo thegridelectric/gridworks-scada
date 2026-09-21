@@ -82,6 +82,9 @@ class ScadaData:
         self.latest_channel_unix_ms: Dict[str, int | None] = {
             ch.Name: None for ch in self.my_channels
         }
+        # The value a flush cleared from latest_channel_values, by channel
+        # name; read through last_real_value.
+        self.last_real_channel_values: Dict[str, int] = {}
         self.latest_temperatures_f: Dict[str, float] = {}
         self.buffer_temps_available: bool = False # change to buffer_available
 
@@ -142,8 +145,18 @@ class ScadaData:
         """
         if channel_name in self.latest_channel_values and self.latest_channel_values[channel_name] is not None:
             print(f"Channel {channel_name} flatlined - removing from snapshots!")
+            self.last_real_channel_values[channel_name] = self.latest_channel_values[channel_name]
         self.latest_channel_values[channel_name] = None
         self.latest_channel_unix_ms[channel_name] = None
+
+    def last_real_value(self, channel_name: str) -> Optional[int]:
+        """The channel's last reading that carried a value, whatever its
+        age: the latest value when there is one, else the value a flush
+        cleared. None for a channel never read."""
+        latest = self.latest_channel_values.get(channel_name)
+        if latest is not None:
+            return latest
+        return self.last_real_channel_values.get(channel_name)
 
     def flush_recent_readings(self):
         self.recent_channel_values = {ch.Name: [] for ch in self.my_channels}
