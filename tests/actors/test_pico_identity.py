@@ -1,6 +1,6 @@
 """A pico's params post carries its board and MicroPython version; the actor
-holds them against the layout's component and warns once per difference. At
-DEBUG the first post that matches sends a debug glitch."""
+holds them against the layout's component and warns once per difference. A
+post that matches sends nothing."""
 
 import asyncio
 import json
@@ -55,18 +55,6 @@ def test_a_standing_difference_shows_once_and_a_new_value_shows_again() -> None:
     assert len(identity.differences(OTHER_BOARD, "1.24.1")) == 1
     assert identity.differences(OTHER_BOARD, "1.24.1") == []
     assert len(identity.differences(PicoBoardVariant.Unknown, "1.24.1")) == 1
-
-
-def test_first_match_is_true_once_and_only_for_a_matching_post() -> None:
-    identity = PicoIdentity(LAYOUT_BOARD, "1.24.1")
-    assert not identity.first_match(OTHER_BOARD, "1.24.1")
-    assert not identity.first_match(LAYOUT_BOARD, "1.25.0")
-    assert identity.first_match(LAYOUT_BOARD, "1.24.1")
-    assert not identity.first_match(LAYOUT_BOARD, "1.24.1")
-
-
-def test_first_match_ignores_the_version_a_layout_does_not_state() -> None:
-    assert PicoIdentity(LAYOUT_BOARD, None).first_match(LAYOUT_BOARD, "1.25.0")
 
 
 def with_real_pico(pair: tuple[str, str], node_name: str, hw_uid_field: str) -> dict:
@@ -162,27 +150,6 @@ def test_tank_module_warns_once_on_a_board_the_layout_does_not_say(
     assert LAYOUT_BOARD.value in glitch.Details
 
 
-@pytest.mark.parametrize("pair_name", sorted(PAIRS))
-def test_tank_module_at_debug_says_once_that_the_pico_matches(
-    tmp_path: Path, pair_name: str
-) -> None:
-    pair = PAIRS[pair_name]
-    app = boot(tmp_path, pair, with_real_pico(pair, "tank1", "PicoHwUid"))
-    actor = app.get_communicator_as_type("tank1", ApiTankModule)
-    assert actor is not None
-    sent = capture_sends(actor)
-
-    with scada_logger_at(actor, logging.DEBUG):
-        for _ in range(2):
-            actor.process_message(
-                Message(Src="tank1", Dst="tank1", Payload=tank_params(LAYOUT_BOARD))
-            )
-    [glitch] = debugs(sent)
-    assert glitch.Summary == "pico-identity-matches"
-    assert LAYOUT_BOARD.value in glitch.Details
-    assert warnings(sent) == []
-
-
 def test_tank_module_above_debug_sends_no_match_glitch(tmp_path: Path) -> None:
     pair = PAIRS["nolan"]
     app = boot(tmp_path, pair, with_real_pico(pair, "tank1", "PicoHwUid"))
@@ -270,22 +237,6 @@ def test_btu_meter_warns_once_on_a_board_the_layout_does_not_say(tmp_path: Path)
     assert "PicoBoardVariant" in glitch.Summary
 
 
-def test_btu_meter_at_debug_says_once_that_the_pico_matches(tmp_path: Path) -> None:
-    pair = PAIRS["nolan"]
-    app = boot(tmp_path, pair, with_real_pico(pair, "primary-btu", "HwUid"))
-    actor = app.get_communicator_as_type("primary-btu", ApiBtuMeter)
-    assert actor is not None
-    sent = capture_sends(actor)
-
-    with scada_logger_at(actor, logging.DEBUG):
-        for _ in range(2):
-            actor.process_message(
-                Message(Src=actor.name, Dst=actor.name, Payload=btu_params(actor, LAYOUT_BOARD))
-            )
-    [glitch] = debugs(sent)
-    assert glitch.Summary == "pico-identity-matches"
-
-
 HOUSE0_PAIRS = ["orange", "willow"]
 
 
@@ -359,25 +310,6 @@ def test_flow_module_warns_once_on_a_board_the_layout_does_not_say(
         )
     [glitch] = warnings(sent)
     assert "PicoBoardVariant" in glitch.Summary
-
-
-@pytest.mark.parametrize("pair_name", HOUSE0_PAIRS)
-def test_flow_module_at_debug_says_once_that_the_pico_matches(
-    tmp_path: Path, pair_name: str
-) -> None:
-    pair = PAIRS[pair_name]
-    app = boot(tmp_path, pair, with_hall_flow_pico(pair))
-    actor = app.get_communicator_as_type("dist-flow", ApiFlowModule)
-    assert actor is not None
-    sent = capture_sends(actor)
-
-    with scada_logger_at(actor, logging.DEBUG):
-        for _ in range(2):
-            actor.process_message(
-                Message(Src="dist-flow", Dst="dist-flow", Payload=flow_params(LAYOUT_BOARD))
-            )
-    [glitch] = debugs(sent)
-    assert glitch.Summary == "pico-identity-matches"
 
 
 class Post:

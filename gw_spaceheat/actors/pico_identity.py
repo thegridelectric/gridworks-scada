@@ -6,8 +6,7 @@ A pico posts its params at every boot and the pico-cycler reboots picos,
 so a standing difference is reported once per scada run, not once per post.
 
 Pure: nothing is sent from here. The actor sends a warning for each
-difference `differences` returns, and a debug glitch for the post
-`first_match` accepts."""
+difference `differences` returns."""
 
 from typing import NamedTuple, Optional
 
@@ -45,7 +44,6 @@ class PicoIdentity:
         self.board_variant = board_variant
         self.micropython_version = micropython_version
         self.reported: set[PicoIdentityDifference] = set()
-        self.match_reported = False
 
     def differences(
         self, posted_board_variant: PicoBoardVariant, posted_micropython_version: str
@@ -75,25 +73,3 @@ class PicoIdentity:
         new = [d for d in found if d not in self.reported]
         self.reported.update(new)
         return new
-
-    def matches(
-        self, posted_board_variant: PicoBoardVariant, posted_micropython_version: str
-    ) -> bool:
-        """Whether this post agrees with the layout on every field the
-        layout states."""
-        return posted_board_variant == self.board_variant and (
-            self.micropython_version is None
-            or posted_micropython_version == self.micropython_version
-        )
-
-    def first_match(
-        self, posted_board_variant: PicoBoardVariant, posted_micropython_version: str
-    ) -> bool:
-        """True for the first post of the scada run that matches the layout;
-        records it."""
-        if self.match_reported or not self.matches(
-            posted_board_variant, posted_micropython_version
-        ):
-            return False
-        self.match_reported = True
-        return True
