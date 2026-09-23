@@ -4,7 +4,7 @@ from typing import Literal
 from pydantic import model_validator
 from typing_extensions import Self
 
-from gwsproto.enums import ActorClass
+from gwsproto.enums import ActorClass, GwZoneEmitterType, Quantity
 
 from gwsproto.named_types.ads111x_based_component_gt import Ads111xBasedComponentGt
 from gwsproto.named_types.ads111x_based_device_type_gt import Ads111xBasedDeviceTypeGt
@@ -42,6 +42,7 @@ from gwsproto.named_types.scada_board_component_gt import ScadaBoardComponentGt
 from gwsproto.named_types.sim_sensor_component_gt import SimSensorComponentGt
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwsproto.named_types.web_server_component_gt import WebServerComponentGt
+from gwsproto.property_format import SpaceheatName
 from gwsproto.type_helpers.board_resolution import (
     I2C_DAC_OUTPUT,
     I2C_RELAY,
@@ -110,6 +111,8 @@ class House0Layout(GwsprotoSemaType):
     Components: list[House0Component]
     DeviceTypes: list[House0DeviceType]
     Hydronic: Hydronic
+    DisabledNodeNames: list[SpaceheatName]
+    DisabledChannelNames: list[SpaceheatName]
     TypeName: Literal["gw.house0.layout"] = "gw.house0.layout"
     Version: Literal["000"] = "000"
 
@@ -305,7 +308,14 @@ class House0Layout(GwsprotoSemaType):
         names = {c.Name for c in (self.DataChannels or [])} | {
             c.Name for c in (self.DerivedChannels or [])
         }
-        missing = sorted({"dist-flow", "store-flow"} - names)
+        required = {
+            "hp-odu-pwr", "hp-idu-pwr",
+            "primary-pump-pwr", "store-pump-pwr", "dist-pump-pwr",
+            "hp-lwt", "hp-ewt", "dist-swt", "dist-rwt",
+            "store-hot-pipe", "store-cold-pipe", "buffer-hot-pipe",
+            "dist-flow", "store-flow",
+        }
+        missing = sorted(required - names)
         if missing:
             raise ValueError(
                 f"Axiom 7 (RequiredSensing) failed: missing channel(s) {missing}."
@@ -635,12 +645,10 @@ class House0Layout(GwsprotoSemaType):
     def check_axiom_17(self) -> Self:
         """
         Axiom 17: BufferTank
-        ShNodes SHALL include a node named "buffer", and for each depth i in
-        1..3 a channel named "buffer-depth{i}" SHALL exist in DataChannels or
-        in DerivedChannels.
+        A House0 home has a buffer tank. For each depth i in 1..3 a channel
+        named "buffer-depth{i}" SHALL exist in DataChannels or in
+        DerivedChannels.
         """
-        if not any(n.Name == "buffer" for n in self.ShNodes):
-            raise ValueError("Axiom 17 (BufferTank) failed: no ShNode named 'buffer'.")
         channels = {c.Name for c in self.DataChannels} | {
             c.Name for c in self.DerivedChannels
         }
@@ -739,4 +747,154 @@ class House0Layout(GwsprotoSemaType):
             self.DataChannels, self.DerivedChannels,
             "Axiom 23 (ChannelNameUniqueness)",
         )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_24(self) -> Self:
+        """
+        Axiom 24: StoreTankTemps
+        For each tank index N in 1..Hydronic.TotalStoreTanks and each depth i in
+        1..3, a channel named "tank{N}-depth{i}" SHALL exist in DataChannels or
+        in DerivedChannels.
+        """
+        channels = {c.Name for c in self.DataChannels} | {
+            c.Name for c in self.DerivedChannels
+        }
+        missing = [
+            f"tank{tank}-depth{depth}"
+            for tank in range(1, self.Hydronic.TotalStoreTanks + 1)
+            for depth in (1, 2, 3)
+            if f"tank{tank}-depth{depth}" not in channels
+        ]
+        if missing:
+            raise ValueError(
+                f"Axiom 24 (StoreTankTemps) failed: missing store tank channel(s) "
+                f"{missing}."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_25(self) -> Self:
+        """
+        Axiom 25: WebServerNode
+        ShNodes SHALL contain exactly one node named "web-server", with
+        ActorClass "NoActor".
+        """
+        matches = [node for node in self.ShNodes if node.Name == "web-server"]
+        if len(matches) != 1 or matches[0].ActorClass != ActorClass.NoActor:
+            raise ValueError(
+                f"Axiom 25 (WebServerNode) failed: expected exactly one ShNode "
+                f"'web-server' with ActorClass NoActor, got {matches}."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_26(self) -> Self:
+        """
+        Axiom 26: FloorLoopCircuitTemp
+        a. Every circuit in Hydronic.ZoneCallCircuits whose EmitterType is
+        "RadiantSlab" SHALL carry FloorTempChannelName. b. Where a circuit
+        carries FloorTempChannelName, it SHALL equal the Name of a channel in
+        DataChannels or in DerivedChannels, and that channel SHALL carry
+        temperature: a DataChannel's Quantity, or a DerivedChannel's
+        OutputQuantity, SHALL be Temperature.
+        """
+        quantity_by_name = {d.Name: d.Quantity for d in self.DataChannels}
+        quantity_by_name.update(
+            {d.Name: d.OutputQuantity for d in self.DerivedChannels}
+        )
+        for circuit in self.Hydronic.ZoneCallCircuits:
+            floor_channel = circuit.FloorTempChannelName
+            if floor_channel is None:
+                if circuit.EmitterType == GwZoneEmitterType.RadiantSlab:
+                    raise ValueError(
+                        "Axiom 26 (FloorLoopCircuitTemp) failed: circuit at position "
+                        f"{circuit.CircuitPosition} has EmitterType "
+                        f"{circuit.EmitterType}, so it SHALL carry FloorTempChannelName."
+                    )
+                continue
+            if floor_channel not in quantity_by_name:
+                raise ValueError(
+                    "Axiom 26 (FloorLoopCircuitTemp) failed: circuit at position "
+                    f"{circuit.CircuitPosition} names FloorTempChannelName "
+                    f"{floor_channel!r}, which is not a channel in DataChannels or "
+                    "DerivedChannels."
+                )
+            if quantity_by_name[floor_channel] != Quantity.Temperature:
+                raise ValueError(
+                    "Axiom 26 (FloorLoopCircuitTemp) failed: circuit at position "
+                    f"{circuit.CircuitPosition} names {floor_channel!r}, whose "
+                    f"quantity is {quantity_by_name[floor_channel]}, not Temperature."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_27(self) -> Self:
+        """
+        Axiom 27: DisabledNamesResolve
+        Every name in DisabledNodeNames SHALL equal the Name of an ShNode in
+        ShNodes, and every name in DisabledChannelNames SHALL equal the Name of
+        a channel in DataChannels or in DerivedChannels.
+        """
+        node_names = {node.Name for node in self.ShNodes}
+        channel_names = {c.Name for c in self.DataChannels} | {
+            c.Name for c in self.DerivedChannels
+        }
+        for name in self.DisabledNodeNames:
+            if name not in node_names:
+                raise ValueError(
+                    "Axiom 27 (DisabledNamesResolve) failed: "
+                    f"DisabledNodeNames names '{name}', which is no ShNode."
+                )
+        for name in self.DisabledChannelNames:
+            if name not in channel_names:
+                raise ValueError(
+                    "Axiom 27 (DisabledNamesResolve) failed: "
+                    f"DisabledChannelNames names '{name}', which is no channel."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_28(self) -> Self:
+        """
+        Axiom 28: DisabledNodesAreSensors
+        Every name in DisabledNodeNames SHALL be the CapturedByNodeName of at
+        least one DataChannel, and every DataChannel whose CapturedByNodeName
+        is in DisabledNodeNames SHALL have its Name in DisabledChannelNames.
+        """
+        disabled_nodes = set(self.DisabledNodeNames)
+        disabled_channels = set(self.DisabledChannelNames)
+        capturing = {c.CapturedByNodeName for c in self.DataChannels}
+        for name in disabled_nodes:
+            if name not in capturing:
+                raise ValueError(
+                    "Axiom 28 (DisabledNodesAreSensors) failed: "
+                    f"'{name}' captures no DataChannel."
+                )
+        for c in self.DataChannels:
+            if c.CapturedByNodeName in disabled_nodes and c.Name not in disabled_channels:
+                raise ValueError(
+                    "Axiom 28 (DisabledNodesAreSensors) failed: "
+                    f"'{c.Name}' is captured by disabled node "
+                    f"'{c.CapturedByNodeName}' but is not in DisabledChannelNames."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_29(self) -> Self:
+        """
+        Axiom 29: EnabledDerivedChannelsHaveLiveInputs
+        Every DerivedChannel whose Name is not in DisabledChannelNames SHALL
+        have no name in its InputChannelNames that is in DisabledChannelNames.
+        """
+        disabled = set(self.DisabledChannelNames)
+        for d in self.DerivedChannels:
+            if d.Name in disabled:
+                continue
+            dead = [name for name in d.InputChannelNames if name in disabled]
+            if dead:
+                raise ValueError(
+                    f"Axiom 29 (EnabledDerivedChannelsHaveLiveInputs) failed: "
+                    f"'{d.Name}' is enabled but reads disabled inputs {dead}."
+                )
         return self

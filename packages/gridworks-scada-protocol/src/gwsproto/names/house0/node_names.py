@@ -6,9 +6,6 @@ class House0NodeNames:
     those. The four name classes are disjoint.
     """
 
-    local_control_backup = "backup"
-    local_control_scada_blind = "scada-blind"
-
     tstat_common_relay = "tstat-common-relay"
     store_charge_discharge_relay = "charge-discharge-relay"
     hp_failsafe_relay = "hp-failsafe-relay"
@@ -20,3 +17,10 @@ class House0NodeNames:
 
     # House0-specific instrumentation
     analog_temp = "analog-temp"
+
+    # the siegenthaler loop: its actor, flow meters and manifold temperatures
+    sieg_loop = "sieg-loop"
+    sieg_flow = "sieg-flow"
+    sieg_send_flow = "sieg-send-flow"
+    sieg_cold = "sieg-cold"
+    sieg_hot = "sieg-hot"

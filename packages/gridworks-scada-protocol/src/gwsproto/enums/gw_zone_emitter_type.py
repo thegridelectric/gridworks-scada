@@ -3,15 +3,16 @@ from enum import auto
 from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class ZoneCircuitRole(SemaEnum):
-    """Sema: https://schemas.electricity.works/enums/zone.circuit.role/000"""
+class GwZoneEmitterType(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/gw.zone.emitter.type/000"""
 
-    Baseload = auto()
-    RapidResponse = auto()
+    Other = auto()
+    RadiantSlab = auto()
+    FanCoil = auto()
 
     @classmethod
-    def default(cls) -> "ZoneCircuitRole":
-        return cls.Baseload
+    def default(cls) -> "GwZoneEmitterType":
+        return cls.Other
 
     @classmethod
     def values(cls) -> list[str]:
@@ -19,7 +20,7 @@ class ZoneCircuitRole(SemaEnum):
 
     @classmethod
     def enum_name(cls) -> str:
-        return "zone.circuit.role"
+        return "gw.zone.emitter.type"
 
     @classmethod
     def enum_version(cls) -> str:

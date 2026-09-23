@@ -3,7 +3,7 @@ from typing import List, Literal
 
 from pydantic import ConfigDict, model_validator
 
-from gwsproto.enums import ActorClass
+from gwsproto.enums import ActorClass, GwZoneEmitterType, Quantity
 from gwsproto.named_types.ads111x_based_device_type_gt import Ads111xBasedDeviceTypeGt
 from gwsproto.named_types.electric_meter_device_type_gt import ElectricMeterDeviceTypeGt
 from gwsproto.named_types.scada_device_type_gt import ScadaDeviceTypeGt
@@ -37,6 +37,7 @@ from gwsproto.named_types.sim_pico_tank_module_component_gt import (
 from gwsproto.named_types.sim_sensor_component_gt import SimSensorComponentGt
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwsproto.named_types.web_server_component_gt import WebServerComponentGt
+from gwsproto.property_format import SpaceheatName
 from gwsproto.type_helpers.board_resolution import (
     GPIO_RELAY,
     GPIO_SENSOR,
@@ -141,6 +142,8 @@ class NolanLayout(GwsprotoSemaType):
     Components: List[NolanComponent]
     DeviceTypes: List[NolanDeviceType]
     Hydronic: Hydronic
+    DisabledNodeNames: List[SpaceheatName]
+    DisabledChannelNames: List[SpaceheatName]
     TypeName: Literal["gw.nolan.layout"] = "gw.nolan.layout"
     Version: Literal["000"] = "000"
 
@@ -243,13 +246,16 @@ class NolanLayout(GwsprotoSemaType):
     def check_axiom_4(self) -> "NolanLayout":
         """Axiom 4: CommandNodesExistenceAndActorClass.
 
-        ShNodes SHALL contain "n" (NoActor), "five-v-boss" (FiveVBoss),
-        "pico-cycler" (PicoCycler) and
-        "hp-boss" (HpBoss), with no additional ShNode of those Names; the
-        effective handle of "n" SHALL be "auto.lc.n".
+        ShNodes SHALL contain "n" (NoActor), "backup" (NoActor),
+        "scada-blind" (NoActor), "five-v-boss" (FiveVBoss),
+        "pico-cycler" (PicoCycler) and "hp-boss" (HpBoss), with no
+        additional ShNode of those Names; the effective handle of "n" SHALL
+        be "auto.lc.n".
         """
         pairs = (
             ("n", ActorClass.NoActor),
+            ("backup", ActorClass.NoActor),
+            ("scada-blind", ActorClass.NoActor),
             ("five-v-boss", ActorClass.FiveVBoss),
             ("pico-cycler", ActorClass.PicoCycler),
             ("hp-boss", ActorClass.HpBoss),
@@ -265,7 +271,7 @@ class NolanLayout(GwsprotoSemaType):
     def check_axiom_5(self) -> "NolanLayout":
         """Axiom 5: RequiredActuators.
 
-        a. ShNodes SHALL include the plant relays "iso-valve-relay",
+        a. ShNodes SHALL include the plant relays "vdc-relay", "iso-valve-relay",
         "secondary-pump-relay", "hp-scada-ops-relay", "charge-valve-relay",
         "store-pump-relay", "buffer-top-elt-relay", "buffer-bottom-elt-relay",
         "tank1-top-elt-relay", and "tank1-bottom-elt-relay", each with
@@ -293,6 +299,7 @@ class NolanLayout(GwsprotoSemaType):
                 )
 
         for required in (
+            "vdc-relay",
             "iso-valve-relay",
             "secondary-pump-relay",
             "hp-scada-ops-relay",
@@ -403,11 +410,12 @@ class NolanLayout(GwsprotoSemaType):
             for name in (
                 "hp-lwt", "hp-ewt", "dist-swt", "dist-rwt",
                 "store-hot-pipe", "store-cold-pipe",
-                "secondary-lwt", "secondary-ewt",
+                "secondary-lwt", "secondary-ewt", "buffer-cold-pipe",
+                "fancoil-swt", "fancoil-rwt", "floor-swt", "floor-rwt",
                 "dist-flow", "primary-flow", "store-flow", "secondary-flow",
-                "buffer-depth1-device", "buffer-depth2-device", "buffer-depth3-device",
-                "tank1-depth1-device", "tank1-depth2-device", "tank1-depth3-device",
                 "hp-odu-pwr", "hp-ctrl-box-pwr",
+                "primary-pump-pwr", "store-pump-pwr", "dist-pump-pwr",
+                "secondary-pump-pwr",
                 "buffer-top-elt-pwr", "buffer-bottom-elt-pwr",
                 "tank1-top-elt-pwr", "tank1-bottom-elt-pwr",
             )
@@ -598,4 +606,217 @@ class NolanLayout(GwsprotoSemaType):
             self.DataChannels, self.DerivedChannels,
             "Axiom 19 (ChannelNameUniqueness)",
         )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_20(self) -> "NolanLayout":
+        """
+        Axiom 20: BufferTank
+        A Nolan home has a buffer tank. For each depth i in 1..3 a channel
+        named "buffer-depth{i}" SHALL exist in DataChannels or in
+        DerivedChannels.
+        """
+        channels = {c.Name for c in self.DataChannels} | {
+            c.Name for c in self.DerivedChannels
+        }
+        missing = [
+            f"buffer-depth{i}" for i in (1, 2, 3) if f"buffer-depth{i}" not in channels
+        ]
+        if missing:
+            raise ValueError(
+                f"Axiom 20 (BufferTank) failed: missing buffer channel(s) {missing}."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_21(self) -> "NolanLayout":
+        """
+        Axiom 21: StoreTankTemps
+        For each tank index N in 1..Hydronic.TotalStoreTanks and each depth i in
+        1..3, a channel named "tank{N}-depth{i}" SHALL exist in DataChannels or
+        in DerivedChannels.
+        """
+        channels = {c.Name for c in self.DataChannels} | {
+            c.Name for c in self.DerivedChannels
+        }
+        missing = [
+            f"tank{tank}-depth{depth}"
+            for tank in range(1, self.Hydronic.TotalStoreTanks + 1)
+            for depth in (1, 2, 3)
+            if f"tank{tank}-depth{depth}" not in channels
+        ]
+        if missing:
+            raise ValueError(
+                f"Axiom 21 (StoreTankTemps) failed: missing store tank channel(s) "
+                f"{missing}."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_22(self) -> "NolanLayout":
+        """
+        Axiom 22: SystemModelEnergyChannels
+        DerivedChannels SHALL include channels named "usable-energy" and
+        "required-energy", each with CreatedByNodeName "derived-generator" and
+        Strategy "system-model". Parameters.EnergyModel.TypeName SHALL be
+        gw0.usable.energy.layered on "usable-energy" and
+        gw0.required.energy.layered on "required-energy".
+        """
+        expected_models = {
+            "usable-energy": "gw0.usable.energy.layered",
+            "required-energy": "gw0.required.energy.layered",
+        }
+        derived_by_name = {d.Name: d for d in self.DerivedChannels}
+        for name, expected in expected_models.items():
+            channel = derived_by_name.get(name)
+            if channel is None:
+                raise ValueError(
+                    "Axiom 22 (SystemModelEnergyChannels) failed: "
+                    f"DerivedChannel '{name}' is absent."
+                )
+            if channel.CreatedByNodeName != "derived-generator":
+                raise ValueError(
+                    "Axiom 22 (SystemModelEnergyChannels) failed: "
+                    f"'{name}' must be created by 'derived-generator', got "
+                    f"'{channel.CreatedByNodeName}'."
+                )
+            if channel.Strategy != "system-model":
+                raise ValueError(
+                    "Axiom 22 (SystemModelEnergyChannels) failed: "
+                    f"'{name}' must use Strategy 'system-model', got "
+                    f"'{channel.Strategy}'."
+                )
+            model = (channel.Parameters or {}).get("EnergyModel") or {}
+            type_name = model.get("TypeName")
+            if type_name != expected:
+                raise ValueError(
+                    "Axiom 22 (SystemModelEnergyChannels) failed: "
+                    f"'{name}' must name EnergyModel '{expected}', got '{type_name}'."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_23(self) -> "NolanLayout":
+        """
+        Axiom 23: WebServerNode
+        ShNodes SHALL contain exactly one node named "web-server", with
+        ActorClass "NoActor".
+        """
+        matches = [node for node in self.ShNodes if node.Name == "web-server"]
+        if len(matches) != 1 or matches[0].ActorClass != ActorClass.NoActor:
+            raise ValueError(
+                f"Axiom 23 (WebServerNode) failed: expected exactly one ShNode "
+                f"'web-server' with ActorClass NoActor, got {matches}."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_24(self) -> "NolanLayout":
+        """
+        Axiom 24: FloorLoopCircuitTemp
+        a. Every circuit in Hydronic.ZoneCallCircuits whose EmitterType is
+        "RadiantSlab" SHALL carry FloorTempChannelName. b. Where a circuit
+        carries FloorTempChannelName, it SHALL equal the Name of a channel in
+        DataChannels or in DerivedChannels, and that channel SHALL carry
+        temperature: a DataChannel's Quantity, or a DerivedChannel's
+        OutputQuantity, SHALL be Temperature.
+        """
+        quantity_by_name = {d.Name: d.Quantity for d in self.DataChannels}
+        quantity_by_name.update(
+            {d.Name: d.OutputQuantity for d in self.DerivedChannels}
+        )
+        for circuit in self.Hydronic.ZoneCallCircuits:
+            floor_channel = circuit.FloorTempChannelName
+            if floor_channel is None:
+                if circuit.EmitterType == GwZoneEmitterType.RadiantSlab:
+                    raise ValueError(
+                        "Axiom 24 (FloorLoopCircuitTemp) failed: circuit at position "
+                        f"{circuit.CircuitPosition} has EmitterType "
+                        f"{circuit.EmitterType}, so it SHALL carry FloorTempChannelName."
+                    )
+                continue
+            if floor_channel not in quantity_by_name:
+                raise ValueError(
+                    "Axiom 24 (FloorLoopCircuitTemp) failed: circuit at position "
+                    f"{circuit.CircuitPosition} names FloorTempChannelName "
+                    f"{floor_channel!r}, which is not a channel in DataChannels or "
+                    "DerivedChannels."
+                )
+            if quantity_by_name[floor_channel] != Quantity.Temperature:
+                raise ValueError(
+                    "Axiom 24 (FloorLoopCircuitTemp) failed: circuit at position "
+                    f"{circuit.CircuitPosition} names {floor_channel!r}, whose "
+                    f"quantity is {quantity_by_name[floor_channel]}, not Temperature."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_25(self) -> "NolanLayout":
+        """
+        Axiom 25: DisabledNamesResolve
+        Every name in DisabledNodeNames SHALL equal the Name of an ShNode in
+        ShNodes, and every name in DisabledChannelNames SHALL equal the Name of
+        a channel in DataChannels or in DerivedChannels.
+        """
+        node_names = {node.Name for node in self.ShNodes}
+        channel_names = {c.Name for c in self.DataChannels} | {
+            c.Name for c in self.DerivedChannels
+        }
+        for name in self.DisabledNodeNames:
+            if name not in node_names:
+                raise ValueError(
+                    "Axiom 25 (DisabledNamesResolve) failed: "
+                    f"DisabledNodeNames names '{name}', which is no ShNode."
+                )
+        for name in self.DisabledChannelNames:
+            if name not in channel_names:
+                raise ValueError(
+                    "Axiom 25 (DisabledNamesResolve) failed: "
+                    f"DisabledChannelNames names '{name}', which is no channel."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_26(self) -> "NolanLayout":
+        """
+        Axiom 26: DisabledNodesAreSensors
+        Every name in DisabledNodeNames SHALL be the CapturedByNodeName of at
+        least one DataChannel, and every DataChannel whose CapturedByNodeName
+        is in DisabledNodeNames SHALL have its Name in DisabledChannelNames.
+        """
+        disabled_nodes = set(self.DisabledNodeNames)
+        disabled_channels = set(self.DisabledChannelNames)
+        capturing = {c.CapturedByNodeName for c in self.DataChannels}
+        for name in disabled_nodes:
+            if name not in capturing:
+                raise ValueError(
+                    "Axiom 26 (DisabledNodesAreSensors) failed: "
+                    f"'{name}' captures no DataChannel."
+                )
+        for c in self.DataChannels:
+            if c.CapturedByNodeName in disabled_nodes and c.Name not in disabled_channels:
+                raise ValueError(
+                    "Axiom 26 (DisabledNodesAreSensors) failed: "
+                    f"'{c.Name}' is captured by disabled node "
+                    f"'{c.CapturedByNodeName}' but is not in DisabledChannelNames."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_27(self) -> "NolanLayout":
+        """
+        Axiom 27: EnabledDerivedChannelsHaveLiveInputs
+        Every DerivedChannel whose Name is not in DisabledChannelNames SHALL
+        have no name in its InputChannelNames that is in DisabledChannelNames.
+        """
+        disabled = set(self.DisabledChannelNames)
+        for d in self.DerivedChannels:
+            if d.Name in disabled:
+                continue
+            dead = [name for name in d.InputChannelNames if name in disabled]
+            if dead:
+                raise ValueError(
+                    f"Axiom 27 (EnabledDerivedChannelsHaveLiveInputs) failed: "
+                    f"'{d.Name}' is enabled but reads disabled inputs {dead}."
+                )
         return self

@@ -86,10 +86,6 @@ class HydronicSpaceheatNodeNames:
     # buffer tank
     buffer = BufferNodeNames()  # set below
 
-    sieg_flow = "sieg-flow"
-    sieg_cold = "sieg-cold"
-    sieg_loop = "sieg-loop"
-    sieg_send_flow = "sieg-send-flow"
     
     oat = "oat"
 

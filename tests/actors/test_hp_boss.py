@@ -102,10 +102,10 @@ def test_hp_boss_in_every_tree(app: ScadaApp, boss: str) -> None:
     relay = scada.layout.hp_scada_ops_relay
     assert hp_boss.handle == f"{boss_node.handle}.{HSNN.hp_boss}"
     assert relay.handle == f"{hp_boss.handle}.{HSNN.hp_scada_ops_relay}"
-    sieg_loop = scada.layout.node(HSNN.sieg_loop, None)
+    sieg_loop = scada.layout.node(House0NodeNames.sieg_loop, None)
     if scada.data.use_sieg_loop:
         assert sieg_loop is not None
-        assert sieg_loop.handle == f"{boss_node.handle}.{HSNN.sieg_loop}"
+        assert sieg_loop.handle == f"{boss_node.handle}.{House0NodeNames.sieg_loop}"
         for name in (House0NodeNames.hp_loop_on_off, House0NodeNames.hp_loop_keep_send):
             assert scada.layout.node(name).handle == f"{sieg_loop.handle}.{name}"
     assert scada.hp_boss is hp_boss
@@ -158,7 +158,7 @@ async def test_turn_on_follows_the_layout_strategy(app: ScadaApp) -> None:
         assert relay_events(sent) == []
         assert actor.state == HpBossState.PreparingToTurnOn
         assert reported_states(sent) == [HpBossState.PreparingToTurnOn]
-        deliver(actor, HSNN.sieg_loop, SiegLoopReady())
+        deliver(actor, House0NodeNames.sieg_loop, SiegLoopReady())
         assert relay_events(sent) == [close]
         assert actor.state == HpBossState.HpOn
         assert reported_states(sent) == [
@@ -239,7 +239,7 @@ async def test_admin_turns_heat_pump_on_and_off_through_hp_boss(app: ScadaApp) -
     scada.process_admin_dispatch(scada.admin, admin_turn(TurnHpOnOff.TurnOn))
     if scada.data.use_sieg_loop:
         assert actor.state == HpBossState.PreparingToTurnOn
-        deliver(actor, HSNN.sieg_loop, SiegLoopReady())
+        deliver(actor, House0NodeNames.sieg_loop, SiegLoopReady())
     assert relay_events(sent) == [
         (hp_boss_handle, relay.handle, ChangeRelayState.CloseRelay)
     ]

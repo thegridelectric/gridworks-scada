@@ -207,10 +207,26 @@
     {
       "TypeName": "spaceheat.node.gt",
       "Version": "303",
+      "Name": "primary-pump",
+      "ActorClass": "NoActor",
+      "DisplayName": "Primary Pump",
+      "ShNodeId": "0d0c97bd-e259-44e3-a068-6e5bc484cdca"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
       "Name": "store-pump",
       "ActorClass": "NoActor",
       "DisplayName": "Store Pump",
       "ShNodeId": "c35d9c77-1ebb-4822-b01e-00ff189092f7"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "dist-pump",
+      "ActorClass": "NoActor",
+      "DisplayName": "Dist Pump",
+      "ShNodeId": "298dcf32-a289-4016-889d-efcfa2a4c77f"
     },
     {
       "TypeName": "spaceheat.node.gt",
@@ -553,12 +569,92 @@
     {
       "TypeName": "spaceheat.node.gt",
       "Version": "303",
+      "Name": "hp-lwt",
+      "ActorHierarchyName": "s.hp-lwt",
+      "ActorClass": "SimSensorActor",
+      "DisplayName": "Hp Lwt Sim Temp Sensor",
+      "ComponentId": "3447a2c4-ca63-4118-b591-1883f7c19d0d",
+      "ShNodeId": "68069605-cea9-4e56-8e12-a029a6a55995"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "hp-ewt",
+      "ActorHierarchyName": "s.hp-ewt",
+      "ActorClass": "SimSensorActor",
+      "DisplayName": "Hp Ewt Sim Temp Sensor",
+      "ComponentId": "5acec8fb-9f40-4ba7-9a25-e243dda733a8",
+      "ShNodeId": "305aa7d7-6e58-41d4-b637-d16c9cea454c"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "dist-swt",
+      "ActorHierarchyName": "s.dist-swt",
+      "ActorClass": "SimSensorActor",
+      "DisplayName": "Dist Swt Sim Temp Sensor",
+      "ComponentId": "236ccffe-3171-4e68-a9ed-00de41592a93",
+      "ShNodeId": "1dad579a-112c-4d98-90ef-bb52a96c710d"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "dist-rwt",
+      "ActorHierarchyName": "s.dist-rwt",
+      "ActorClass": "SimSensorActor",
+      "DisplayName": "Dist Rwt Sim Temp Sensor",
+      "ComponentId": "5207e2b3-9ccf-4357-865b-4a5ce627b817",
+      "ShNodeId": "c2ed7d9f-cef9-4b01-893c-8be4f650a116"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "store-hot-pipe",
+      "ActorHierarchyName": "s.store-hot-pipe",
+      "ActorClass": "SimSensorActor",
+      "DisplayName": "Store Hot Pipe Sim Temp Sensor",
+      "ComponentId": "714ab9ed-e051-4be7-a20f-1465bfee4c58",
+      "ShNodeId": "af47ba0f-8683-486a-ad9c-e14c298047b6"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "store-cold-pipe",
+      "ActorHierarchyName": "s.store-cold-pipe",
+      "ActorClass": "SimSensorActor",
+      "DisplayName": "Store Cold Pipe Sim Temp Sensor",
+      "ComponentId": "801d4e4c-68aa-40b7-8558-e7f7b5024781",
+      "ShNodeId": "6fbbd31c-6581-4ca5-b357-6f2f98eb9bde"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "buffer-hot-pipe",
+      "ActorHierarchyName": "s.buffer-hot-pipe",
+      "ActorClass": "SimSensorActor",
+      "DisplayName": "Buffer Hot Pipe Sim Temp Sensor",
+      "ComponentId": "e6b8072c-01b5-4073-a99d-46bf8442d97b",
+      "ShNodeId": "efb2944a-9edf-45ce-bd44-eac6adeebb58"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
       "Name": "sieg-cold",
       "ActorHierarchyName": "s.sieg-cold",
       "ActorClass": "SimSensorActor",
       "DisplayName": "Sieg Cold Sim Temp Sensor",
       "ComponentId": "7bf73d08-a27e-44cd-bea7-d4cbcc4fe399",
       "ShNodeId": "3ecbacf6-f448-4155-a0f5-ccd404d1e2d2"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "sieg-hot",
+      "ActorHierarchyName": "s.sieg-hot",
+      "ActorClass": "SimSensorActor",
+      "DisplayName": "Sieg Hot Sim Temp Sensor",
+      "ComponentId": "6e19dc2b-13c6-404f-9385-cfd0ed51568d",
+      "ShNodeId": "27a57a5c-af08-4816-b77c-8901338a45ad"
     }
   ],
   "DataChannels": [
@@ -589,6 +685,18 @@
     {
       "TypeName": "data.channel.gt",
       "Version": "003",
+      "Name": "primary-pump-pwr",
+      "DisplayName": "PRIMARY PUMP PWR",
+      "AboutNodeName": "primary-pump",
+      "CapturedByNodeName": "power-meter",
+      "TelemetryName": "PowerW",
+      "Quantity": "Power",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "Id": "9c26163a-236a-4533-885b-44f551a78e57"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "003",
       "Name": "store-pump-pwr",
       "DisplayName": "STORE PUMP PWR",
       "AboutNodeName": "store-pump",
@@ -597,6 +705,18 @@
       "Quantity": "Power",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "Id": "7876ebb2-03d2-4c7f-9046-011b7c5d4deb"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "003",
+      "Name": "dist-pump-pwr",
+      "DisplayName": "DIST PUMP PWR",
+      "AboutNodeName": "dist-pump",
+      "CapturedByNodeName": "power-meter",
+      "TelemetryName": "PowerW",
+      "Quantity": "Power",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "Id": "4c740b03-4b85-49c5-90c8-1ce4e314377c"
     },
     {
       "TypeName": "data.channel.gt",
@@ -1069,14 +1189,110 @@
     {
       "TypeName": "data.channel.gt",
       "Version": "003",
+      "Name": "hp-lwt",
+      "DisplayName": "Hp Lwt Temp",
+      "AboutNodeName": "hp-lwt",
+      "CapturedByNodeName": "hp-lwt",
+      "TelemetryName": "CelsiusTimes100",
+      "Quantity": "Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "Id": "05a091f2-faf7-4605-8ea5-011c9ff017c6"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "003",
+      "Name": "hp-ewt",
+      "DisplayName": "Hp Ewt Temp",
+      "AboutNodeName": "hp-ewt",
+      "CapturedByNodeName": "hp-ewt",
+      "TelemetryName": "CelsiusTimes100",
+      "Quantity": "Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "Id": "f2befb59-495d-4c07-b20f-64969f98cb55"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "003",
+      "Name": "dist-swt",
+      "DisplayName": "Dist Swt Temp",
+      "AboutNodeName": "dist-swt",
+      "CapturedByNodeName": "dist-swt",
+      "TelemetryName": "CelsiusTimes100",
+      "Quantity": "Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "Id": "2f004d1d-0bbb-42a7-ada0-448d61601eed"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "003",
+      "Name": "dist-rwt",
+      "DisplayName": "Dist Rwt Temp",
+      "AboutNodeName": "dist-rwt",
+      "CapturedByNodeName": "dist-rwt",
+      "TelemetryName": "CelsiusTimes100",
+      "Quantity": "Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "Id": "52048392-5dbb-4c80-be8b-dff305220530"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "003",
+      "Name": "store-hot-pipe",
+      "DisplayName": "Store Hot Pipe Temp",
+      "AboutNodeName": "store-hot-pipe",
+      "CapturedByNodeName": "store-hot-pipe",
+      "TelemetryName": "CelsiusTimes100",
+      "Quantity": "Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "Id": "c747107e-1e3d-4ac1-b983-e7bf9defcdbe"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "003",
+      "Name": "store-cold-pipe",
+      "DisplayName": "Store Cold Pipe Temp",
+      "AboutNodeName": "store-cold-pipe",
+      "CapturedByNodeName": "store-cold-pipe",
+      "TelemetryName": "CelsiusTimes100",
+      "Quantity": "Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "Id": "e8200400-62f7-4191-a2c1-544f4d3022cc"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "003",
+      "Name": "buffer-hot-pipe",
+      "DisplayName": "Buffer Hot Pipe Temp",
+      "AboutNodeName": "buffer-hot-pipe",
+      "CapturedByNodeName": "buffer-hot-pipe",
+      "TelemetryName": "CelsiusTimes100",
+      "Quantity": "Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "Id": "02445774-9012-40bb-9c08-1b1a3c92dd67"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "003",
       "Name": "sieg-cold",
-      "DisplayName": "Sieg Cold Water Temp",
+      "DisplayName": "Sieg Cold Temp",
       "AboutNodeName": "sieg-cold",
       "CapturedByNodeName": "sieg-cold",
       "TelemetryName": "CelsiusTimes100",
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "Id": "cd4aaee8-3e8a-4a34-87b9-bf2e5c0a7a64"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "003",
+      "Name": "sieg-hot",
+      "DisplayName": "Sieg Hot Temp",
+      "AboutNodeName": "sieg-hot",
+      "CapturedByNodeName": "sieg-hot",
+      "TelemetryName": "CelsiusTimes100",
+      "Quantity": "Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "Id": "9a8f7095-45f5-43e8-be3f-64f002c49d32"
     }
   ],
   "DerivedChannels": [
@@ -1295,7 +1511,17 @@
         {
           "TypeName": "electric.meter.channel.config",
           "Version": "000",
+          "ChannelName": "primary-pump-pwr"
+        },
+        {
+          "TypeName": "electric.meter.channel.config",
+          "Version": "000",
           "ChannelName": "store-pump-pwr"
+        },
+        {
+          "TypeName": "electric.meter.channel.config",
+          "Version": "000",
+          "ChannelName": "dist-pump-pwr"
         },
         {
           "TypeName": "electric.meter.channel.config",
@@ -1772,9 +1998,65 @@
     {
       "TypeName": "sim.sensor.component.gt",
       "Version": "000",
+      "ComponentId": "3447a2c4-ca63-4118-b591-1883f7c19d0d",
+      "DeviceType": "SimSensor",
+      "DisplayName": "Hp Lwt Sim Temp Sensor"
+    },
+    {
+      "TypeName": "sim.sensor.component.gt",
+      "Version": "000",
+      "ComponentId": "5acec8fb-9f40-4ba7-9a25-e243dda733a8",
+      "DeviceType": "SimSensor",
+      "DisplayName": "Hp Ewt Sim Temp Sensor"
+    },
+    {
+      "TypeName": "sim.sensor.component.gt",
+      "Version": "000",
+      "ComponentId": "236ccffe-3171-4e68-a9ed-00de41592a93",
+      "DeviceType": "SimSensor",
+      "DisplayName": "Dist Swt Sim Temp Sensor"
+    },
+    {
+      "TypeName": "sim.sensor.component.gt",
+      "Version": "000",
+      "ComponentId": "5207e2b3-9ccf-4357-865b-4a5ce627b817",
+      "DeviceType": "SimSensor",
+      "DisplayName": "Dist Rwt Sim Temp Sensor"
+    },
+    {
+      "TypeName": "sim.sensor.component.gt",
+      "Version": "000",
+      "ComponentId": "714ab9ed-e051-4be7-a20f-1465bfee4c58",
+      "DeviceType": "SimSensor",
+      "DisplayName": "Store Hot Pipe Sim Temp Sensor"
+    },
+    {
+      "TypeName": "sim.sensor.component.gt",
+      "Version": "000",
+      "ComponentId": "801d4e4c-68aa-40b7-8558-e7f7b5024781",
+      "DeviceType": "SimSensor",
+      "DisplayName": "Store Cold Pipe Sim Temp Sensor"
+    },
+    {
+      "TypeName": "sim.sensor.component.gt",
+      "Version": "000",
+      "ComponentId": "e6b8072c-01b5-4073-a99d-46bf8442d97b",
+      "DeviceType": "SimSensor",
+      "DisplayName": "Buffer Hot Pipe Sim Temp Sensor"
+    },
+    {
+      "TypeName": "sim.sensor.component.gt",
+      "Version": "000",
       "ComponentId": "7bf73d08-a27e-44cd-bea7-d4cbcc4fe399",
       "DeviceType": "SimSensor",
       "DisplayName": "Sieg Cold Sim Temp Sensor"
+    },
+    {
+      "TypeName": "sim.sensor.component.gt",
+      "Version": "000",
+      "ComponentId": "6e19dc2b-13c6-404f-9385-cfd0ed51568d",
+      "DeviceType": "SimSensor",
+      "DisplayName": "Sieg Hot Sim Temp Sensor"
     }
   ],
   "DeviceTypes": [
@@ -2306,8 +2588,7 @@
         "Version": "000",
         "CircuitPosition": 1,
         "ServesZone": "main",
-        "ActuatorKind": "FloorLoop",
-        "Role": "Baseload",
+        "EmitterType": "Other",
         "CanCool": false,
         "SetpointSource": "Learned",
         "Thermostat": {
@@ -2322,5 +2603,7 @@
     ],
     "TotalStoreTanks": 1,
     "PrimaryFlowSource": "Measured"
-  }
+  },
+  "DisabledNodeNames": [],
+  "DisabledChannelNames": []
 }

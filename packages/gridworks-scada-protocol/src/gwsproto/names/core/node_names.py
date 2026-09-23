@@ -18,6 +18,8 @@ class CoreNodeNames:
     # local control and its states
     local_control = "lc"
     local_control_normal = "n"
+    local_control_backup = "backup"
+    local_control_scada_blind = "scada-blind"
 
     # service equipment
     web_server = "web-server"

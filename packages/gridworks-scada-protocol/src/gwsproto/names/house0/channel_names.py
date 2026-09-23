@@ -5,6 +5,12 @@ class House0ChannelNames:
     a consumer uses CoreChannelNames / HydronicSpaceheatChannelNames directly.
     """
 
+    # the siegenthaler loop: flows and manifold temperatures
+    sieg_flow = "sieg-flow"
+    sieg_send_flow = "sieg-send-flow"
+    sieg_cold = "sieg-cold"
+    sieg_hot = "sieg-hot"
+
     # relay state channels (House0 krida board)
     tstat_common_relay_state = "tstat-common-relay"
     charge_discharge_relay_state = "charge-discharge-relay"

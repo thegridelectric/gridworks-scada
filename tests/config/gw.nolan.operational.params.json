@@ -75,6 +75,33 @@
     {
       "TypeName": "capture.tuning",
       "Version": "000",
+      "ChannelName": "primary-pump-pwr",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 5,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "store-pump-pwr",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 5,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "dist-pump-pwr",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 5,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
       "ChannelName": "economy-energy-l1-pwr",
       "CapturePeriodS": 300,
       "AsyncCapture": true,

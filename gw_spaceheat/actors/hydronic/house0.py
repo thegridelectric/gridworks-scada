@@ -21,6 +21,7 @@ from gwsproto.enums import (
     TurnHpOnOff
 )
 from gwsproto.named_types import AnalogDispatch, FsmEvent, SingleMachineState
+from gwsproto.names.house0.node_names import House0NodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import (
     HydronicSpaceheatNodeNames as HSNN,
 )
@@ -516,7 +517,7 @@ class House0Hydronic(HydronicNode):
     def sieg_loop(self) -> ShNode:
         if not self.data.use_sieg_loop:
             raise Exception("Should not be calling for sieg_loop if not using sieg loop")
-        return self.layout.node(HSNN.sieg_loop)
+        return self.layout.node(House0NodeNames.sieg_loop)
 
     @property
     def dist_010v(self) -> ShNode:

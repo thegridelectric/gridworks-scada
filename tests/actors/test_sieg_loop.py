@@ -36,7 +36,7 @@ def app(request: pytest.FixtureRequest) -> ScadaApp:
 
 
 def sieg_loop_actor(app: ScadaApp) -> SiegLoop:
-    actor = app.get_communicator_as_type(HSNN.sieg_loop, SiegLoop)
+    actor = app.get_communicator_as_type(House0NodeNames.sieg_loop, SiegLoop)
     assert actor is not None, "sieg-loop is constructed in every House0 layout"
     return actor
 

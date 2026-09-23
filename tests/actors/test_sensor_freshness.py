@@ -85,9 +85,10 @@ def test_water_temperature_accessors_are_none_past_the_flatline_bound() -> None:
     assert actor.lift_f() is None
 
 
-def test_water_temperature_accessors_on_a_layout_without_the_channels() -> None:
+def test_water_temperature_accessors_are_none_before_any_reading() -> None:
     actor = local_control(make_app(WILLOW))
-    assert HCN.hp_lwt not in actor.layout.data_channels
+    assert HCN.hp_lwt in actor.layout.data_channels
+    assert actor.data.latest_channel_values[HCN.hp_lwt] is None
     assert actor.lwt() is None
     assert actor.ewt() is None
     assert actor.lift_f() is None

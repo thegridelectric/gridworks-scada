@@ -4,9 +4,8 @@ from pydantic import PositiveInt, model_validator
 from typing_extensions import Self
 
 from gwsproto.enums import (
+    GwZoneEmitterType,
     ThermostatKind,
-    ZoneActuatorKind,
-    ZoneCircuitRole,
     ZoneSetpointSource,
 )
 from gwsproto.named_types.zone_thermostat import ZoneThermostat
@@ -19,12 +18,12 @@ class ZoneCallCircuit(GwsprotoSemaType):
 
     CircuitPosition: PositiveInt
     ServesZone: SpaceheatName
-    ActuatorKind: ZoneActuatorKind
-    Role: ZoneCircuitRole
+    EmitterType: GwZoneEmitterType
     CanCool: bool
     SetpointSource: ZoneSetpointSource
     Thermostat: ZoneThermostat
     WhitewireChannelName: SpaceheatName
+    FloorTempChannelName: SpaceheatName | None = None
     FailsafeRelayNode: SpaceheatName
     OpsRelayNode: SpaceheatName
     TypeName: Literal["gw1.zone.call.circuit"] = "gw1.zone.call.circuit"
@@ -33,13 +32,13 @@ class ZoneCallCircuit(GwsprotoSemaType):
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
         """
-        Axiom 1: FloorLoopsCannotCool. If ActuatorKind is FloorLoop, CanCool
+        Axiom 1: OnlyFanCoilsCool. If EmitterType is not FanCoil, CanCool
         SHALL be false.
         """
-        if self.ActuatorKind == ZoneActuatorKind.FloorLoop and self.CanCool:
+        if self.EmitterType != GwZoneEmitterType.FanCoil and self.CanCool:
             raise ValueError(
-                "Axiom 1 (FloorLoopsCannotCool) failed: ActuatorKind is "
-                "FloorLoop but CanCool is true."
+                f"Axiom 1 (OnlyFanCoilsCool) failed: EmitterType is "
+                f"{self.EmitterType}, so CanCool SHALL be false."
             )
         return self
 

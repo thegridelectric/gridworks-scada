@@ -88,10 +88,10 @@ class LocalControlTouBase(House0Hydronic):
         self.log(f"Params: {self.params}")
         if CoreNodeNames.local_control_normal not in self.layout.nodes:
             raise Exception(f"LocalControl requires {CoreNodeNames.local_control_normal} node!!")
-        if House0NodeNames.local_control_scada_blind not in self.layout.nodes:
-            raise Exception(f"LocalControl requires {House0NodeNames.local_control_scada_blind} node!!")
-        if House0NodeNames.local_control_backup not in self.layout.nodes:
-            raise Exception(f"LocalControl requires {House0NodeNames.local_control_backup} node!!")
+        if CoreNodeNames.local_control_scada_blind not in self.layout.nodes:
+            raise Exception(f"LocalControl requires {CoreNodeNames.local_control_scada_blind} node!!")
+        if CoreNodeNames.local_control_backup not in self.layout.nodes:
+            raise Exception(f"LocalControl requires {CoreNodeNames.local_control_backup} node!!")
         self.set_command_tree(boss_node=self.normal_node)
         self.actuators_initialized = False
         self.actuators_ready = False

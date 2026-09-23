@@ -126,7 +126,7 @@ def test_boot_puts_every_actuator_under_local_control_normal(app: ScadaApp) -> N
         owned[layout.vdc_relay.Name] = scada.pico_cycler.handle
     if scada.data.use_sieg_loop:
         for name in (House0NodeNames.hp_loop_on_off, House0NodeNames.hp_loop_keep_send):
-            owned[name] = layout.node(HSNN.sieg_loop).handle
+            owned[name] = layout.node(House0NodeNames.sieg_loop).handle
     for node in layout.actuators:
         parent = owned.get(node.Name, n.handle)
         assert node.handle == f"{parent}.{node.Name}", node.Name

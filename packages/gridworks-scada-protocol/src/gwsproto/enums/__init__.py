@@ -40,6 +40,7 @@ from gwsproto.enums.gpm_from_hz_method import GpmFromHzMethod
 from gwsproto.enums.scada_cmd_refusal_reason import ScadaCmdRefusalReason
 from gwsproto.enums.ta_validation_state import TaValidationState
 from gwsproto.enums.gw_str_enum import GwStrEnum, SemaEnum
+from gwsproto.enums.gw_zone_emitter_type import GwZoneEmitterType
 from gwsproto.enums.heat_call_interpretation import HeatCallInterpretation
 from gwsproto.enums.heat_pump_control import HeatPumpControl
 from gwsproto.enums.five_v_boss_state import FiveVBossState
@@ -98,14 +99,12 @@ from gwsproto.enums.top_state import TopState
 from gwsproto.enums.turn_5v_on_off import Turn5VOnOff
 from gwsproto.enums.turn_hp_on_off import TurnHpOnOff
 from gwsproto.enums.unit import Unit
-from gwsproto.enums.zone_actuator_kind import ZoneActuatorKind
 from gwsproto.enums.valve_open_or_closed import ValveOpenOrClosed
 from gwsproto.enums.zone_call_circuit_event import ZoneCallCircuitEvent
 from gwsproto.enums.zone_call_circuit_state import ZoneCallCircuitState
 from gwsproto.enums.zone_call_source import ZoneCallSource
 from gwsproto.enums.zone_circuit_governance_event import ZoneCircuitGovernanceEvent
 from gwsproto.enums.zone_circuit_governance_state import ZoneCircuitGovernanceState
-from gwsproto.enums.zone_circuit_role import ZoneCircuitRole
 from gwsproto.enums.zone_setpoint_source import ZoneSetpointSource
 
 AnyDeviceType = DeviceType | SimDeviceType
@@ -140,6 +139,7 @@ __all__ = [
     "ScadaCmdRefusalReason",
     "TaValidationState",
     "GwStrEnum",
+    "GwZoneEmitterType",
     "HeatCallInterpretation",
     "HeatPumpControl",
     "FiveVBossState",
@@ -199,13 +199,11 @@ __all__ = [
     "Turn5VOnOff",
     "TurnHpOnOff",
     "Unit",
-    "ZoneActuatorKind",
     "ValveOpenOrClosed",
     "ZoneCallCircuitEvent",
     "ZoneCallCircuitState",
     "ZoneCallSource",
     "ZoneCircuitGovernanceEvent",
     "ZoneCircuitGovernanceState",
-    "ZoneCircuitRole",
     "ZoneSetpointSource",
 ]

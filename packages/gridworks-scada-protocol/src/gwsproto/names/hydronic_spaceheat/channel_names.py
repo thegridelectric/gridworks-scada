@@ -125,9 +125,6 @@ class HydronicSpaceheatChannelNames:
     # element power (buffer flat; store tanks per tank on TankChannelNames)
     buffer_top_elt_pwr = "buffer-top-elt-pwr"
     buffer_bottom_elt_pwr = "buffer-bottom-elt-pwr"
-    sieg_cold = HSNN.sieg_cold
-    sieg_flow = HSNN.sieg_flow
-    sieg_send_flow = HSNN.sieg_send_flow
 
     
     hp_keep_seconds_x_10 = "hp-keep-seconds-x-10"

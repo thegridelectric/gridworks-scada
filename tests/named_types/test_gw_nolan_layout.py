@@ -483,3 +483,132 @@ def test_gw_nolan_layout_axiom_19_two_derived_share_a_name(assembled: dict) -> N
         add_derived_copy(d, free_derived(d)[-1]["Name"])
 
     reject(assembled, mutate, r"Axiom 19 \(")
+
+
+def drop_channel(d: dict, name: str) -> None:
+    d["DataChannels"] = [c for c in d["DataChannels"] if c["Name"] != name]
+    d["DerivedChannels"] = [c for c in d["DerivedChannels"] if c["Name"] != name]
+
+
+def first_circuit(d: dict) -> dict:
+    return d["Hydronic"]["ZoneCallCircuits"][0]
+
+
+def test_gw_nolan_layout_axiom_20_missing_buffer_depth(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        drop_channel(d, "buffer-depth1")
+
+    reject(assembled, mutate, r"Axiom 20 \(")
+
+
+def test_gw_nolan_layout_axiom_21_missing_tank_depth(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        drop_channel(d, "tank1-depth1")
+
+    reject(assembled, mutate, r"Axiom 21 \(")
+
+
+def test_gw_nolan_layout_axiom_22_missing_usable_energy(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        drop_channel(d, "usable-energy")
+
+    reject(assembled, mutate, r"Axiom 22 \(")
+
+
+def test_gw_nolan_layout_axiom_23_web_server_node_absent(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        for node in d["ShNodes"]:
+            if node["Name"] == "web-server":
+                node["Name"] = "web-server2"
+
+    reject(assembled, mutate, r"Axiom 23 \(")
+
+
+def test_gw_nolan_layout_axiom_24_a_slab_circuit_without_a_floor_channel(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        circuit = first_circuit(d)
+        circuit["EmitterType"] = "RadiantSlab"
+        circuit["CanCool"] = False
+        circuit.pop("FloorTempChannelName", None)
+
+    reject(assembled, mutate, r"Axiom 24 \(")
+
+
+def test_gw_nolan_layout_axiom_24_b_floor_channel_does_not_resolve(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        first_circuit(d)["FloorTempChannelName"] = "no-such-channel"
+
+    reject(assembled, mutate, r"Axiom 24 \(")
+
+
+def test_gw_nolan_layout_axiom_24_b_floor_channel_is_not_a_temperature(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        first_circuit(d)["FloorTempChannelName"] = "dist-flow"
+
+    reject(assembled, mutate, r"Axiom 24 \(")
+
+
+def test_gw_nolan_layout_axiom_24_slab_circuit_with_a_temperature_channel(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        circuit = first_circuit(d)
+        circuit["EmitterType"] = "RadiantSlab"
+        circuit["CanCool"] = False
+        circuit["FloorTempChannelName"] = "dist-swt"
+
+    NolanLayout.model_validate(mutated(assembled, mutate))
+
+
+def test_gw_nolan_layout_axiom_25_disabled_node_must_resolve(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        d["DisabledNodeNames"] = ["no-such-node"]
+
+    reject(assembled, mutate, r"Axiom 25 \(")
+
+
+def test_gw_nolan_layout_axiom_25_disabled_channel_must_resolve(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        d["DisabledChannelNames"] = ["no-such-channel"]
+
+    reject(assembled, mutate, r"Axiom 25 \(")
+
+
+def test_gw_nolan_layout_axiom_26_disabled_node_captures_nothing(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        d["DisabledNodeNames"] = [no_actor_node_name(d)]
+
+    reject(assembled, mutate, r"Axiom 26 \(")
+
+
+def test_gw_nolan_layout_axiom_26_captured_channel_not_listed(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        d["DisabledNodeNames"] = [d["DataChannels"][0]["CapturedByNodeName"]]
+        d["DisabledChannelNames"] = []
+
+    reject(assembled, mutate, r"Axiom 26 \(")
+
+
+def test_gw_nolan_layout_axiom_26_disabled_node_with_its_channels(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        node = d["DataChannels"][0]["CapturedByNodeName"]
+        captured = [c["Name"] for c in d["DataChannels"] if c["CapturedByNodeName"] == node]
+        derived = [c["Name"] for c in d["DerivedChannels"] if set(c["InputChannelNames"]) & set(captured)]
+        d["DisabledNodeNames"] = [node]
+        d["DisabledChannelNames"] = captured + derived
+
+    NolanLayout.model_validate(mutated(assembled, mutate))
+
+
+def test_gw_nolan_layout_axiom_27_enabled_derived_reads_disabled_input(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        derived = next(c for c in d["DerivedChannels"] if c["InputChannelNames"])
+        d["DisabledChannelNames"] = [derived["InputChannelNames"][0]]
+
+    reject(assembled, mutate, r"Axiom 27 \(")
+
+
+def test_gw_nolan_layout_axiom_27_disabled_derived_may_read_disabled_input(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        derived = next(c for c in d["DerivedChannels"] if c["InputChannelNames"])
+        d["DisabledChannelNames"] = [derived["InputChannelNames"][0], derived["Name"]]
+
+    NolanLayout.model_validate(mutated(assembled, mutate))

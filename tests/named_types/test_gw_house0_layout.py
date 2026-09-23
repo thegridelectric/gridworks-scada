@@ -318,21 +318,6 @@ def test_gw_house0_layout_axiom_16_unknown_dac_name(assembled: dict) -> None:
     reject(assembled, rename, "Axiom 16")
 
 
-def test_gw_house0_layout_axiom_17_no_buffer_node(assembled: dict) -> None:
-    """The buffer node under another name: nothing else breaks, the word still
-    rejects."""
-
-    def rename(d: dict) -> None:
-        for n in d["ShNodes"]:
-            if n["Name"] == "buffer":
-                n["Name"] = "buffer-tank"
-                for key in ("ActorHierarchyName", "Handle"):
-                    if key in n:
-                        n[key] = n[key].removesuffix("buffer") + "buffer-tank"
-
-    reject(assembled, rename, "Axiom 17")
-
-
 def test_gw_house0_layout_axiom_17_missing_depth_channel(assembled: dict) -> None:
     def drop(d: dict) -> None:
         for key in ("DataChannels", "DerivedChannels"):
@@ -493,3 +478,118 @@ def test_gw_house0_layout_axiom_23_two_derived_share_a_name(assembled: dict) -> 
         add_derived_copy(d, free_derived(d)[-1]["Name"])
 
     reject(assembled, mutate, r"Axiom 23 \(")
+
+
+def drop_channel(d: dict, name: str) -> None:
+    d["DataChannels"] = [c for c in d["DataChannels"] if c["Name"] != name]
+    d["DerivedChannels"] = [c for c in d["DerivedChannels"] if c["Name"] != name]
+
+
+def first_circuit(d: dict) -> dict:
+    return d["Hydronic"]["ZoneCallCircuits"][0]
+
+
+def test_gw_house0_layout_axiom_24_missing_tank_depth(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        drop_channel(d, "tank1-depth1")
+
+    reject(assembled, mutate, r"Axiom 24 \(")
+
+
+def test_gw_house0_layout_axiom_25_web_server_node_absent(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        for node in d["ShNodes"]:
+            if node["Name"] == "web-server":
+                node["Name"] = "web-server2"
+
+    reject(assembled, mutate, r"Axiom 25 \(")
+
+
+def test_gw_house0_layout_axiom_26_a_slab_circuit_without_a_floor_channel(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        circuit = first_circuit(d)
+        circuit["EmitterType"] = "RadiantSlab"
+        circuit["CanCool"] = False
+        circuit.pop("FloorTempChannelName", None)
+
+    reject(assembled, mutate, r"Axiom 26 \(")
+
+
+def test_gw_house0_layout_axiom_26_b_floor_channel_does_not_resolve(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        first_circuit(d)["FloorTempChannelName"] = "no-such-channel"
+
+    reject(assembled, mutate, r"Axiom 26 \(")
+
+
+def test_gw_house0_layout_axiom_26_b_floor_channel_is_not_a_temperature(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        first_circuit(d)["FloorTempChannelName"] = "dist-flow"
+
+    reject(assembled, mutate, r"Axiom 26 \(")
+
+
+def test_gw_house0_layout_axiom_26_slab_circuit_with_a_temperature_channel(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        circuit = first_circuit(d)
+        circuit["EmitterType"] = "RadiantSlab"
+        circuit["CanCool"] = False
+        circuit["FloorTempChannelName"] = "dist-swt"
+
+    House0Layout.model_validate(mutated(assembled, mutate))
+
+
+def test_gw_house0_layout_axiom_27_disabled_node_must_resolve(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        d["DisabledNodeNames"] = ["no-such-node"]
+
+    reject(assembled, mutate, r"Axiom 27 \(")
+
+
+def test_gw_house0_layout_axiom_27_disabled_channel_must_resolve(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        d["DisabledChannelNames"] = ["no-such-channel"]
+
+    reject(assembled, mutate, r"Axiom 27 \(")
+
+
+def test_gw_house0_layout_axiom_28_disabled_node_captures_nothing(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        d["DisabledNodeNames"] = [no_actor_node_name(d)]
+
+    reject(assembled, mutate, r"Axiom 28 \(")
+
+
+def test_gw_house0_layout_axiom_28_captured_channel_not_listed(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        d["DisabledNodeNames"] = [d["DataChannels"][0]["CapturedByNodeName"]]
+        d["DisabledChannelNames"] = []
+
+    reject(assembled, mutate, r"Axiom 28 \(")
+
+
+def test_gw_house0_layout_axiom_28_disabled_node_with_its_channels(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        node = d["DataChannels"][0]["CapturedByNodeName"]
+        captured = [c["Name"] for c in d["DataChannels"] if c["CapturedByNodeName"] == node]
+        derived = [c["Name"] for c in d["DerivedChannels"] if set(c["InputChannelNames"]) & set(captured)]
+        d["DisabledNodeNames"] = [node]
+        d["DisabledChannelNames"] = captured + derived
+
+    House0Layout.model_validate(mutated(assembled, mutate))
+
+
+def test_gw_house0_layout_axiom_29_enabled_derived_reads_disabled_input(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        derived = next(c for c in d["DerivedChannels"] if c["InputChannelNames"])
+        d["DisabledChannelNames"] = [derived["InputChannelNames"][0]]
+
+    reject(assembled, mutate, r"Axiom 29 \(")
+
+
+def test_gw_house0_layout_axiom_29_disabled_derived_may_read_disabled_input(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        derived = next(c for c in d["DerivedChannels"] if c["InputChannelNames"])
+        d["DisabledChannelNames"] = [derived["InputChannelNames"][0], derived["Name"]]
+
+    House0Layout.model_validate(mutated(assembled, mutate))

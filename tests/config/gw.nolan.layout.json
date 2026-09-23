@@ -81,6 +81,24 @@
     {
       "TypeName": "spaceheat.node.gt",
       "Version": "303",
+      "Name": "backup",
+      "Handle": "auto.lc.backup",
+      "ActorClass": "NoActor",
+      "DisplayName": "LocalControl Backup",
+      "ShNodeId": "4dc951a3-1709-4ca9-80dd-b0ff1bda188b"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "scada-blind",
+      "Handle": "auto.lc.scada-blind",
+      "ActorClass": "NoActor",
+      "DisplayName": "LocalControl Scada Blind",
+      "ShNodeId": "2215d8a1-36d5-4271-af0c-0dbd9c9657c7"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
       "Name": "la",
       "ActorHierarchyName": "s.la",
       "Handle": "ltn.la",
@@ -238,6 +256,33 @@
       "ComponentId": "075d5714-6b2e-48dc-bb30-73c48d17b901",
       "NameplatePowerW": 4300,
       "ShNodeId": "f719057f-1678-4cfd-b728-53215d6bd7bc"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "primary-pump",
+      "ActorClass": "NoActor",
+      "DisplayName": "Primary Pump",
+      "NameplatePowerW": 80,
+      "ShNodeId": "78f831bc-9e9e-49ad-af36-05b24e5cbaf3"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "store-pump",
+      "ActorClass": "NoActor",
+      "DisplayName": "Store Pump",
+      "NameplatePowerW": 80,
+      "ShNodeId": "35e33189-57f2-4701-a2d1-1cee644e651f"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "dist-pump",
+      "ActorClass": "NoActor",
+      "DisplayName": "Dist Pump",
+      "NameplatePowerW": 80,
+      "ShNodeId": "1ed556ad-da19-4fcc-996f-6c3b7e8c8869"
     },
     {
       "TypeName": "spaceheat.node.gt",
@@ -1028,6 +1073,42 @@
       "Quantity": "Power",
       "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
       "Id": "70c9c3d0-1d36-4f94-bdc7-d1ab6e4673c3"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "003",
+      "Name": "primary-pump-pwr",
+      "DisplayName": "PRIMARY PUMP PWR",
+      "AboutNodeName": "primary-pump",
+      "CapturedByNodeName": "power-meter",
+      "TelemetryName": "PowerW",
+      "Quantity": "Power",
+      "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
+      "Id": "5d58be39-59b7-42e4-986d-9f12458c2aaa"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "003",
+      "Name": "store-pump-pwr",
+      "DisplayName": "STORE PUMP PWR",
+      "AboutNodeName": "store-pump",
+      "CapturedByNodeName": "power-meter",
+      "TelemetryName": "PowerW",
+      "Quantity": "Power",
+      "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
+      "Id": "dd9e1952-4129-4726-95fc-d6b1428f04eb"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "003",
+      "Name": "dist-pump-pwr",
+      "DisplayName": "DIST PUMP PWR",
+      "AboutNodeName": "dist-pump",
+      "CapturedByNodeName": "power-meter",
+      "TelemetryName": "PowerW",
+      "Quantity": "Power",
+      "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta",
+      "Id": "6a880ef6-4c42-4b61-aabc-756df2ec6c21"
     },
     {
       "TypeName": "data.channel.gt",
@@ -2343,6 +2424,22 @@
     {
       "TypeName": "derived.channel.gt",
       "Version": "002",
+      "Id": "aa800c77-0d4e-4359-bc59-26bad2ea3c20",
+      "Name": "buffer-cold-pipe",
+      "CreatedByNodeName": "derived-generator",
+      "Strategy": "identity",
+      "InputChannelNames": [
+        "pipes1-depth3-device"
+      ],
+      "OutputUnit": "FahrenheitX100",
+      "OutputQuantity": "Temperature",
+      "EmissionMethod": "OnTrigger",
+      "DisplayName": "Buffer Cold Pipe",
+      "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta"
+    },
+    {
+      "TypeName": "derived.channel.gt",
+      "Version": "002",
       "Id": "50f6ce22-4891-407e-832c-850ed4f285a6",
       "Name": "zone1-bedrooms-floor-temp",
       "CreatedByNodeName": "derived-generator",
@@ -2525,6 +2622,21 @@
           "TypeName": "electric.meter.channel.config",
           "Version": "000",
           "ChannelName": "hp-odu-pwr"
+        },
+        {
+          "TypeName": "electric.meter.channel.config",
+          "Version": "000",
+          "ChannelName": "primary-pump-pwr"
+        },
+        {
+          "TypeName": "electric.meter.channel.config",
+          "Version": "000",
+          "ChannelName": "store-pump-pwr"
+        },
+        {
+          "TypeName": "electric.meter.channel.config",
+          "Version": "000",
+          "ChannelName": "dist-pump-pwr"
         },
         {
           "TypeName": "electric.meter.channel.config",
@@ -3925,8 +4037,7 @@
         "Version": "000",
         "CircuitPosition": 1,
         "ServesZone": "bedrooms",
-        "ActuatorKind": "FloorLoop",
-        "Role": "Baseload",
+        "EmitterType": "RadiantSlab",
         "CanCool": false,
         "SetpointSource": "Learned",
         "Thermostat": {
@@ -3935,6 +4046,7 @@
           "Kind": "MechanicalDial"
         },
         "WhitewireChannelName": "zone1-bedrooms-opto-input",
+        "FloorTempChannelName": "zone1-bedrooms-floor-temp",
         "FailsafeRelayNode": "zone1-bedrooms-failsafe-relay",
         "OpsRelayNode": "zone1-bedrooms-ops-relay"
       },
@@ -3943,8 +4055,7 @@
         "Version": "000",
         "CircuitPosition": 2,
         "ServesZone": "living-rm",
-        "ActuatorKind": "FloorLoop",
-        "Role": "Baseload",
+        "EmitterType": "RadiantSlab",
         "CanCool": false,
         "SetpointSource": "Learned",
         "Thermostat": {
@@ -3953,6 +4064,7 @@
           "Kind": "MechanicalDial"
         },
         "WhitewireChannelName": "zone2-living-rm-opto-input",
+        "FloorTempChannelName": "zone2-living-rm-floor-temp",
         "FailsafeRelayNode": "zone2-living-rm-failsafe-relay",
         "OpsRelayNode": "zone2-living-rm-ops-relay"
       },
@@ -3961,8 +4073,7 @@
         "Version": "000",
         "CircuitPosition": 3,
         "ServesZone": "upstairs",
-        "ActuatorKind": "FloorLoop",
-        "Role": "Baseload",
+        "EmitterType": "FanCoil",
         "CanCool": false,
         "SetpointSource": "Learned",
         "Thermostat": {
@@ -3979,8 +4090,7 @@
         "Version": "000",
         "CircuitPosition": 4,
         "ServesZone": "garage",
-        "ActuatorKind": "FloorLoop",
-        "Role": "Baseload",
+        "EmitterType": "RadiantSlab",
         "CanCool": false,
         "SetpointSource": "Learned",
         "Thermostat": {
@@ -3989,6 +4099,7 @@
           "Kind": "MechanicalDial"
         },
         "WhitewireChannelName": "zone4-garage-opto-input",
+        "FloorTempChannelName": "zone4-garage-floor-temp",
         "FailsafeRelayNode": "zone4-garage-failsafe-relay",
         "OpsRelayNode": "zone4-garage-ops-relay"
       },
@@ -3997,8 +4108,7 @@
         "Version": "000",
         "CircuitPosition": 5,
         "ServesZone": "living-rm",
-        "ActuatorKind": "Fancoil",
-        "Role": "RapidResponse",
+        "EmitterType": "FanCoil",
         "CanCool": true,
         "SetpointSource": "Learned",
         "Thermostat": {
@@ -4013,5 +4123,13 @@
     ],
     "TotalStoreTanks": 1,
     "PrimaryFlowSource": "Measured"
-  }
+  },
+  "DisabledNodeNames": [],
+  "DisabledChannelNames": [
+    "primary-pump-pwr",
+    "store-pump-pwr",
+    "dist-pump-pwr",
+    "pipes1-depth3-device",
+    "buffer-cold-pipe"
+  ]
 }

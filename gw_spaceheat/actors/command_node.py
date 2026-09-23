@@ -25,9 +25,6 @@ from gwsproto.named_types import FsmEvent, NewCommandTree
 
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.names.house0.node_names import House0NodeNames
-from gwsproto.names.hydronic_spaceheat.node_names import (
-    HydronicSpaceheatNodeNames as HSNN,
-)
 
 
 from actors.sh_node_actor import ShNodeActor
@@ -99,7 +96,7 @@ class CommandNode(ShNodeActor):
         ops_relay.Handle = f"{hp_boss.Handle}.{ops_relay.Name}"
         under_fsm = {ops_relay.Name}
         if self.data.use_sieg_loop:
-            sieg_loop = self.layout.node(HSNN.sieg_loop)
+            sieg_loop = self.layout.node(House0NodeNames.sieg_loop)
             sieg_loop.Handle = f"{boss_node.handle}.{sieg_loop.Name}"
             for name in (House0NodeNames.hp_loop_on_off, House0NodeNames.hp_loop_keep_send):
                 node = self.layout.node(name)

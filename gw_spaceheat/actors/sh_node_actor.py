@@ -18,6 +18,7 @@ from actors.scada_data import ScadaData
 from gwsproto.conversions.temperature import Temperature
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.names.house0.channel_names import House0ChannelNames
 from gwsproto.names.house0.node_names import House0NodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import (
     HydronicSpaceheatNodeNames as HSNN,
@@ -355,7 +356,7 @@ class ShNodeActor(Actor, ABC):
     def sieg_flow_gpm(self) -> Optional[float]:
         """Returns the latest siegenthaler flow in gallons per minute, or None
         if it does not exist"""
-        sieg_x_100 = self.data.latest_channel_values.get(HCN.sieg_flow)
+        sieg_x_100 = self.data.latest_channel_values.get(House0ChannelNames.sieg_flow)
         if sieg_x_100 is None:
             return None
         return sieg_x_100 / 100
