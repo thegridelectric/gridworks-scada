@@ -105,3 +105,23 @@ def test_honeywell_thermostat():
     assert layout.channel("zone1-garage-state").CapturedByNodeName == "zone1-garage-stat"
     assert layout.channel("zone1-garage-state").TelemetryName == TelemetryName.ThermostatState
 
+
+
+def test_flow_module_keeps_its_reference_component_id():
+    """A flow module whose alias is in the reference layout keeps that
+    ComponentId across a regen, for both the Hall and the Reed word."""
+    from layout_gen import LayoutIDMap
+    from layout_gen.flow import HallCfg, ReedCfg, add_flow
+
+    hall = HallCfg(ActorNodeName="sieg-flow", HwUid="pico_4e6e35")
+    reed = ReedCfg(ActorNodeName="dist-flow2", HwUid="pico_2a7e22")
+    reference = LayoutIDMap()
+    reference.add_component("30e25b97-60bf-40e3-870a-1ba80bf3b164", hall.component_display_name())
+    reference.add_component("30d6a861-baa7-49fd-8033-771c0704469a", reed.component_display_name())
+
+    db = LayoutDb(existing_layout=reference, add_stubs=True, stub_config=StubConfig())
+    add_flow(db, hall)
+    add_flow(db, reed)
+
+    assert db.component_id_by_alias(hall.component_display_name()) == "30e25b97-60bf-40e3-870a-1ba80bf3b164"
+    assert db.component_id_by_alias(reed.component_display_name()) == "30d6a861-baa7-49fd-8033-771c0704469a"

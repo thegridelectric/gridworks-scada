@@ -91,7 +91,7 @@ def add_flow(
         )
 
     
-    if not db.component_id_by_alias(flow_cfg.component_display_name):
+    if not db.component_id_by_alias(flow_cfg.component_display_name()):
         config_list = [
                 ChannelConfig(
                     ChannelName=f"{flow_cfg.FlowNodeName}",
@@ -115,7 +115,7 @@ def add_flow(
             db.add_components(
                 [
                     PicoFlowModuleComponentGt(
-                        ComponentId=db.make_component_id(flow_hall_cfg.component_display_name),
+                        ComponentId=db.make_component_id(flow_hall_cfg.component_display_name()),
                         ComponentAttributeClassId=db.cac_id_by_alias(make_model),
                         DisplayName=flow_hall_cfg.component_display_name(),
                         ConfigList=config_list,
@@ -141,7 +141,7 @@ def add_flow(
             db.add_components(
                 [
                     PicoFlowModuleComponentGt(
-                        ComponentId=db.make_component_id(flow_reed_cfg.component_display_name),
+                        ComponentId=db.make_component_id(flow_reed_cfg.component_display_name()),
                         ComponentAttributeClassId=db.cac_id_by_alias(make_model),
                         DisplayName=flow_reed_cfg.component_display_name(),
                         ConfigList=config_list,
