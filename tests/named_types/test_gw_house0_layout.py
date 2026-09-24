@@ -633,3 +633,96 @@ def test_gw_house0_layout_axiom_30_b_actuator_channel_telemetry(
 
     reject(assembled, mutate, r"Axiom 30 \(")
 
+
+
+def drop_nodes(names: set[str]):
+    """Drop nodes with the components they bind, so ComponentBinding stays quiet."""
+
+    def mutate(d: dict) -> None:
+        component_ids = {n.get("ComponentId") for n in d["ShNodes"] if n["Name"] in names}
+        d["ShNodes"] = [n for n in d["ShNodes"] if n["Name"] not in names]
+        d["Components"] = [c for c in d["Components"] if c["ComponentId"] not in component_ids]
+
+    return mutate
+
+
+def test_gw_house0_layout_axiom_31_scada_owner_without_primary_010v(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        drop_nodes({"primary-010v"})(d)
+        d["DataChannels"] = [c for c in d["DataChannels"] if c["Name"] != "primary-010v"]
+
+    reject(assembled, mutate, r"Axiom 31 \(")
+
+
+def test_gw_house0_layout_axiom_31_scada_owner_relay_without_a_channel(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        d["DataChannels"] = [
+            c for c in d["DataChannels"] if c["Name"] != "primary-pump-failsafe-relay"
+        ]
+
+    reject(assembled, mutate, r"Axiom 31 \(")
+
+
+def test_gw_house0_layout_axiom_31_heat_pump_owner_with_primary_pump_actuators(
+    assembled: dict,
+) -> None:
+    def mutate(d: dict) -> None:
+        d["Hydronic"]["PrimaryPumpOwner"] = "HeatPump"
+
+    reject(assembled, mutate, r"Axiom 31 \(")
+
+
+def test_gw_house0_layout_axiom_31_heat_pump_owner_without_actuators_is_accepted(
+    assembled: dict,
+) -> None:
+    names = {"primary-pump-failsafe-relay", "primary-pump-scada-ops-relay", "primary-010v"}
+
+    def mutate(d: dict) -> None:
+        d["Hydronic"]["PrimaryPumpOwner"] = "HeatPump"
+        drop_nodes(names)(d)
+        d["DataChannels"] = [c for c in d["DataChannels"] if c["Name"] not in names]
+
+    House0Layout.model_validate(mutated(assembled, mutate))
+
+
+def hp_record(device_type: str, factory_installed: bool, overridable: bool) -> dict:
+    return {
+        "TypeName": "hp.device.type.gt",
+        "Version": "000",
+        "DeviceType": device_type,
+        "DisplayName": "test record",
+        "MaxKwEl": 6.0,
+        "HeatingCapacityBtuHr": 48000,
+        "CoolingCapacityBtuHr": 48000,
+        "PrimaryPumpFactoryInstalled": factory_installed,
+        "PrimaryPumpOverridable": overridable,
+        "PrimaryPumpAlwaysOn": False,
+        "Refrigerant": "R32",
+        "CompressorRatedAmps": 20.0,
+        "Mca": 30.0,
+        "Mop": 40.0,
+        "ProductInfoUrl": "https://example.com",
+    }
+
+
+def odu_device_type(d: dict) -> str:
+    odu = next(n for n in d["ShNodes"] if n["Name"] == "hp-odu")
+    return next(c for c in d["Components"] if c["ComponentId"] == odu["ComponentId"])["DeviceType"]
+
+
+def test_gw_house0_layout_axiom_32_scada_owner_against_a_non_overridable_factory_pump(
+    assembled: dict,
+) -> None:
+    def mutate(d: dict) -> None:
+        d["DeviceTypes"].append(hp_record(odu_device_type(d), True, False))
+
+    reject(assembled, mutate, r"Axiom 32 \(")
+
+
+def test_gw_house0_layout_axiom_32_scada_owner_against_an_overridable_factory_pump_is_accepted(
+    assembled: dict,
+) -> None:
+    def mutate(d: dict) -> None:
+        d["DeviceTypes"].append(hp_record(odu_device_type(d), True, True))
+
+    House0Layout.model_validate(mutated(assembled, mutate))

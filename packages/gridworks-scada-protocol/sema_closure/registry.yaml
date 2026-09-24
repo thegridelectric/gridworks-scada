@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-09-24T17:15:00Z"
+  last_updated: "2026-09-24T17:50:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -177,6 +177,30 @@ enums:
       "000":
         schema_url: "https://schemas.electricity.works/enums/gw.primary.flow.source/000"
         created: "2026-09-17T23:55:00Z"
+        status: "staging"
+
+  gw.primary.pump.owner:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Who owns a hydronic layout's primary pump: the heat pump itself (HeatPump) or the scada through its own actuators (Scada); an install fact, distinct from the primary.pump.control relay state."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/gw.primary.pump.owner/000"
+        created: "2026-09-24T17:50:00Z"
+        status: "staging"
+
+  gw.refrigerant.cycle:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Refrigerant-cycle topology of a layout's heat pump: one compressor (Single) or two in series (Cascade, a flatter COP curve)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/gw.refrigerant.cycle/000"
+        created: "2026-09-24T17:50:00Z"
         status: "staging"
 
   gw.zone.emitter.type:
@@ -802,9 +826,9 @@ types:
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw.house0.layout/000"
-        created: "2026-09-23T22:25:00Z"
+        created: "2026-09-24T17:50:00Z"
         status: "staging"
-        summary: "The complete deployable artifact for a House0-fleet home: every collection and Hydronic required. The word MEANS has-a-siegenthaler-loop (beech, maple); sieg-less homes are gw.house0.no.sieg. Components: eGauge, ADS111x thermistor snaps, the House0 board record (Krida expanders and GP8403 DACs) with per-relay and per-output components, pico flow and BTU meters, tank modules real and sim, Hubitat with poller, web-server, all over the DeviceType record model. Axioms: 1 GlobalIdUniqueness; 2 CoreShNodesExistenceAndActorClass; 3 CommandNodesExistenceAndActorClass (n, backup, scada-blind, five-v-boss, pico-cycler, hp-boss, sieg-loop); 4 CircuitHeatCallChannel; 5 PrimaryFlowSourceChannelAgreement; 6 TransactivePowerChannel; 7 RequiredSensing (heat-pump and pump power, plant pipe temperatures, dist and store flow); 8 SiegManifoldChannels (sieg-cold, sieg-hot, sieg-flow, sieg-send-flow, the two hp-loop relays); 9 SystemModelEnergyChannels; 10 RequiredActuators (plant relays, the three 0-10V outputs each bound to a DAC output component, zone-circuit relay pairs); 11 RequiredHeatpumpEquipment (hp-odu, hp-idu); 12 CommandableHeatPump (biconditional on Hydronic.HpCommandNodeName; 11's NoActor clause defers to it); 13 PrefixClosedHandles and 14 ActuatorLeaves (the authored handles are the initial command tree); 15 ComponentBinding; 16 BoardResolution; 17 BufferTank (three buffer depth readings, no node); 18 ZoneTempChannelResolution; 19 CircuitWhitewireChannelResolution; 20 DerivedChannelCreatorResolution; 21 DataChannelNodeResolution; 22 DerivedChannelInputsAcyclic; 23 ChannelNameUniqueness; 24 StoreTankTemps; 25 WebServerNode; 26 FloorLoopCircuitTemp (a RadiantSlab or StoreUnderFloor circuit names its floor temperature channel). Wording is identical across layout words where the axiom name is shared. 27 DisabledNamesResolve, 28 DisabledNodesAreSensors (a disabled node captures DataChannels, all of them disabled), 29 EnabledDerivedChannelsHaveLiveInputs; DisabledNodeNames and DisabledChannelNames list required names currently unavailable pending a field visit."
+        summary: "The complete deployable artifact for a House0-fleet home: every collection and Hydronic required. The word MEANS has-a-siegenthaler-loop (beech, maple); sieg-less homes are gw.house0.no.sieg. Components: eGauge, ADS111x thermistor snaps, the House0 board record (Krida expanders and GP8403 DACs) with per-relay and per-output components, pico flow and BTU meters, tank modules real and sim, Hubitat with poller, web-server, all over the DeviceType record model. Axioms: 1 GlobalIdUniqueness; 2 CoreShNodesExistenceAndActorClass; 3 CommandNodesExistenceAndActorClass (n, backup, scada-blind, five-v-boss, pico-cycler, hp-boss, sieg-loop); 4 CircuitHeatCallChannel; 5 PrimaryFlowSourceChannelAgreement; 6 TransactivePowerChannel; 7 RequiredSensing (heat-pump and pump power, plant pipe temperatures, dist and store flow); 8 SiegManifoldChannels (sieg-cold, sieg-hot, sieg-flow, sieg-send-flow, the two hp-loop relays); 9 SystemModelEnergyChannels; 10 RequiredActuators (plant relays, dist-010v and store-010v each bound to a DAC output component, zone-circuit relay pairs); 11 RequiredHeatpumpEquipment (hp-odu, hp-idu); 12 CommandableHeatPump (biconditional on Hydronic.HpCommandNodeName; 11's NoActor clause defers to it); 13 PrefixClosedHandles and 14 ActuatorLeaves (the authored handles are the initial command tree); 15 ComponentBinding; 16 BoardResolution; 17 BufferTank (three buffer depth readings, no node); 18 ZoneTempChannelResolution; 19 CircuitWhitewireChannelResolution; 20 DerivedChannelCreatorResolution; 21 DataChannelNodeResolution; 22 DerivedChannelInputsAcyclic; 23 ChannelNameUniqueness; 24 StoreTankTemps; 25 WebServerNode; 26 FloorLoopCircuitTemp (a RadiantSlab or StoreUnderFloor circuit names its floor temperature channel). Wording is identical across layout words where the axiom name is shared. 27 DisabledNamesResolve, 28 DisabledNodesAreSensors (a disabled node captures DataChannels, all of them disabled), 29 EnabledDerivedChannelsHaveLiveInputs; DisabledNodeNames and DisabledChannelNames list required names currently unavailable pending a field visit. 30 ActuatorChannels; 31 PrimaryPumpActuators (the primary-pump relay pair and primary-010v, nodes and channels, exist iff Hydronic.PrimaryPumpOwner is Scada); 32 PrimaryPumpRecordAgreement (under Scada no hp.device.type.gt record joined to hp-odu / hp-idu ships a non-overridable pump)."
         direct_dependencies:
           structural:
             - "ads111x.based.component.gt:000"
@@ -847,17 +871,19 @@ types:
     latest_version: "000"
     owner: gridworks-energy
     versioning_strategy: "literal"
-    description: "House0-fleet hydronic / flow-topology config: zones, zone-call circuits, store-tank count, primary-flow source."
+    description: "House0-fleet hydronic / flow-topology config: zones, zone-call circuits, store-tank count, primary-flow source, primary-pump owner, refrigerant cycle."
 
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw.hydronic/000"
-        created: "2026-09-23T22:25:00Z"
+        created: "2026-09-24T17:50:00Z"
         status: "staging"
-        summary: "- Typed hydronic block promoted out of gw.house0.layout's freeform Hydronic: Zones (gw1.hvac.zone list), ZoneCallCircuits (gw1.zone.call.circuit list, required: every layout word requires it non-empty), TotalStoreTanks, PrimaryFlowSource (gw.primary.flow.source), Strategy. Axioms: Cardinality, CircuitResolution. The Siegenthaler-loop flags left this word: plumbed-ness is what a has-sieg layout word means, and use is operational (gw.house0.family.params UseSiegLoop). - HpCommandNodeName (optional spaceheat.name): the node that takes heat-pump commands under hp-boss; absent = nothing commands the heat pump. The layout words' CommandableHeatPump axiom governs it. - Strategy dropped: the control family is the layout word's own TypeName (invariant per word, so not a data field; the same rule that retired SiegLoopPlumbed). - TotalStoreTanks may be zero (a store that is not water tanks); the Cardinality axiom keeps only the upper bound of 6."
+        summary: "- Typed hydronic block promoted out of gw.house0.layout's freeform Hydronic: Zones (gw1.hvac.zone list), ZoneCallCircuits (gw1.zone.call.circuit list, required: every layout word requires it non-empty), TotalStoreTanks, PrimaryFlowSource (gw.primary.flow.source), Strategy. Axioms: Cardinality, CircuitResolution. The Siegenthaler-loop flags left this word: plumbed-ness is what a has-sieg layout word means, and use is operational (gw.house0.family.params UseSiegLoop). - HpCommandNodeName (optional spaceheat.name): the node that takes heat-pump commands under hp-boss; absent = nothing commands the heat pump. The layout words' CommandableHeatPump axiom governs it. - Strategy dropped: the control family is the layout word's own TypeName (invariant per word, so not a data field; the same rule that retired SiegLoopPlumbed). - TotalStoreTanks may be zero (a store that is not water tanks); the Cardinality axiom keeps only the upper bound of 6. - PrimaryPumpOwner (gw.primary.pump.owner, required): who runs the primary pump, the heat pump or the scada; the layout words' PrimaryPumpActuators axiom ties the actuator nodes to it. RefrigerantCycle (gw.refrigerant.cycle, required): single compressor or two-compressor cascade, for the optimizer's COP model."
         direct_dependencies:
           structural:
             - "gw.primary.flow.source:000"
+            - "gw.primary.pump.owner:000"
+            - "gw.refrigerant.cycle:000"
             - "gw1.hvac.zone:000"
             - "gw1.zone.call.circuit:000"
             - "non.negative.int"
@@ -905,9 +931,9 @@ types:
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw.nolan.layout/000"
-        created: "2026-09-23T22:25:00Z"
+        created: "2026-09-24T17:50:00Z"
         status: "staging"
-        summary: "The complete deployable artifact for a Nolan home: monobloc heat pump, one store tank, the gw108 board. Components are the cac-free DeviceType versions; DeviceTypes holds the per-family device-type records; every relay is a per-relay component against the board record. Axioms: 1 TransactivePowerChannel; 2 BoardResolution (gpio sensors and relays, i2c thermistor readers, i2c relays and DAC outputs each resolve through their board component to a name in the board record); 3 CoreShNodesExistenceAndActorClass; 4 CommandNodesExistenceAndActorClass (n, backup, scada-blind, five-v-boss, pico-cycler, hp-boss); 5 RequiredActuators (plant relays including vdc-relay and the tank1 element relays, secondary-010v, zone-circuit relay pairs); 6 RequiredHeatpumpEquipment (hp-odu, hp-ctrl-box); 7 ComponentBinding; 8 RequiredSensing (heat-pump, element and pump power, plant, secondary and circuit supply/return temperatures, buffer-hot-pipe, four flows); 9 SingleStoreTank; 10 CommandableHeatPump (biconditional on Hydronic.HpCommandNodeName; 6's NoActor clause defers to it); 11 PrefixClosedHandles and 12 ActuatorLeaves; 13 ZoneTempChannelResolution; 14 CircuitWhitewireChannelResolution; 15 CircuitHeatCallChannel; 16 DerivedChannelCreatorResolution; 17 DataChannelNodeResolution; 18 DerivedChannelInputsAcyclic; 19 ChannelNameUniqueness; 20 BufferTank (three buffer depth readings, no node); 21 StoreTankTemps; 22 SystemModelEnergyChannels; 23 WebServerNode; 24 FloorLoopCircuitTemp (a RadiantSlab or StoreUnderFloor circuit names its floor temperature channel). Wording is identical across layout words where the axiom name is shared. 25 DisabledNamesResolve, 26 DisabledNodesAreSensors (a disabled node captures DataChannels, all of them disabled), 27 EnabledDerivedChannelsHaveLiveInputs; DisabledNodeNames and DisabledChannelNames list required names currently unavailable pending a field visit."
+        summary: "The complete deployable artifact for a Nolan home: monobloc heat pump, one store tank, the gw108 board. Components are the cac-free DeviceType versions; DeviceTypes holds the per-family device-type records; every relay is a per-relay component against the board record. Axioms: 1 TransactivePowerChannel; 2 BoardResolution (gpio sensors and relays, i2c thermistor readers, i2c relays and DAC outputs each resolve through their board component to a name in the board record); 3 CoreShNodesExistenceAndActorClass; 4 CommandNodesExistenceAndActorClass (n, backup, scada-blind, five-v-boss, pico-cycler, hp-boss); 5 RequiredActuators (plant relays including vdc-relay and the tank1 element relays, secondary-010v, zone-circuit relay pairs); 6 RequiredHeatpumpEquipment (hp-odu, hp-ctrl-box); 7 ComponentBinding; 8 RequiredSensing (heat-pump, element and pump power, plant, secondary and circuit supply/return temperatures, buffer-hot-pipe, four flows); 9 SingleStoreTank; 10 CommandableHeatPump (biconditional on Hydronic.HpCommandNodeName; 6's NoActor clause defers to it); 11 PrefixClosedHandles and 12 ActuatorLeaves; 13 ZoneTempChannelResolution; 14 CircuitWhitewireChannelResolution; 15 CircuitHeatCallChannel; 16 DerivedChannelCreatorResolution; 17 DataChannelNodeResolution; 18 DerivedChannelInputsAcyclic; 19 ChannelNameUniqueness; 20 BufferTank (three buffer depth readings, no node); 21 StoreTankTemps; 22 SystemModelEnergyChannels; 23 WebServerNode; 24 FloorLoopCircuitTemp (a RadiantSlab or StoreUnderFloor circuit names its floor temperature channel). Wording is identical across layout words where the axiom name is shared. 25 DisabledNamesResolve, 26 DisabledNodesAreSensors (a disabled node captures DataChannels, all of them disabled), 27 EnabledDerivedChannelsHaveLiveInputs; DisabledNodeNames and DisabledChannelNames list required names currently unavailable pending a field visit. 28 ActuatorChannels; 29 PrimaryPumpRecordAgreement (under Hydronic.PrimaryPumpOwner Scada no hp.device.type.gt or hp.control.box.device.type.gt record joined to hp-odu / hp-ctrl-box ships a non-overridable pump)."
         direct_dependencies:
           structural:
             - "ads111x.based.device.type.gt:000"

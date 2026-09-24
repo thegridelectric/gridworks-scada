@@ -4,7 +4,13 @@ from typing import Literal
 from pydantic import model_validator
 from typing_extensions import Self
 
-from gwsproto.enums import ActorClass, GwZoneEmitterType, Quantity, TelemetryName
+from gwsproto.enums import (
+    ActorClass,
+    GwZoneEmitterType,
+    PrimaryPumpOwner,
+    Quantity,
+    TelemetryName,
+)
 
 from gwsproto.named_types.ads111x_based_component_gt import Ads111xBasedComponentGt
 from gwsproto.named_types.ads111x_based_device_type_gt import Ads111xBasedDeviceTypeGt
@@ -467,13 +473,11 @@ class House0Layout(GwsprotoSemaType):
             "hp-scada-ops-relay",
             "aquastat-ctrl-relay",
             "store-pump-relay",
-            "primary-pump-failsafe-relay",
-            "primary-pump-scada-ops-relay",
             "hp-loop-on-off-relay",
             "hp-loop-keep-send-relay",
         ):
             class_or_raise(required, ActorClass.Relay, "plant relay")
-        for required in ("dist-010v", "primary-010v", "store-010v"):
+        for required in ("dist-010v", "store-010v"):
             class_or_raise(required, ActorClass.ZeroTenOutputer, "0-10V output")
         circuits = self.Hydronic.ZoneCallCircuits or []
         if not circuits:
@@ -491,7 +495,7 @@ class House0Layout(GwsprotoSemaType):
             if isinstance(c, I2cDacOutputComponentGt)
         }
         component_id_by_name = {n.Name: n.ComponentId for n in self.ShNodes}
-        for output in ("dist-010v", "primary-010v", "store-010v"):
+        for output in ("dist-010v", "store-010v"):
             if component_id_by_name.get(output) not in dac_output_ids:
                 raise ValueError(
                     f"Axiom 10 (RequiredActuators) failed: {output} ComponentId "
@@ -912,14 +916,12 @@ class House0Layout(GwsprotoSemaType):
             "hp-scada-ops-relay",
             "aquastat-ctrl-relay",
             "store-pump-relay",
-            "primary-pump-failsafe-relay",
-            "primary-pump-scada-ops-relay",
             "hp-loop-on-off-relay",
             "hp-loop-keep-send-relay",
         ]
         for circuit in self.Hydronic.ZoneCallCircuits or []:
             relays.extend((circuit.FailsafeRelayNode, circuit.OpsRelayNode))
-        outputs = ["dist-010v", "primary-010v", "store-010v"]
+        outputs = ["dist-010v", "store-010v"]
         channel_by_name = {c.Name: c for c in (self.DataChannels or [])}
         for name, telemetry in [(r, TelemetryName.RelayState) for r in relays] + [
             (o, TelemetryName.VoltsTimesTen) for o in outputs
@@ -943,3 +945,83 @@ class House0Layout(GwsprotoSemaType):
                 )
         return self
 
+    @model_validator(mode="after")
+    def check_axiom_31(self) -> Self:
+        """
+        Axiom 31: PrimaryPumpActuators
+        Under Hydronic.PrimaryPumpOwner Scada the primary-pump failsafe and
+        scada-ops relays and primary-010v exist (Relay / ZeroTenOutputer on a
+        DAC output component), each with its own-name DataChannel; under
+        HeatPump none of the three names exists as a node or channel.
+        """
+        wanted = {
+            "primary-pump-failsafe-relay": (ActorClass.Relay, TelemetryName.RelayState),
+            "primary-pump-scada-ops-relay": (ActorClass.Relay, TelemetryName.RelayState),
+            "primary-010v": (ActorClass.ZeroTenOutputer, TelemetryName.VoltsTimesTen),
+        }
+        nodes = {n.Name: n for n in self.ShNodes}
+        channels = {c.Name: c for c in self.DataChannels}
+        if self.Hydronic.PrimaryPumpOwner == PrimaryPumpOwner.HeatPump:
+            present = sorted(name for name in wanted if name in nodes or name in channels)
+            if present:
+                raise ValueError(
+                    "Axiom 31 (PrimaryPumpActuators) failed: PrimaryPumpOwner is "
+                    f"HeatPump but {present} exist as ShNodes or DataChannels."
+                )
+            return self
+        dac_output_ids = {
+            c.ComponentId for c in self.Components if isinstance(c, I2cDacOutputComponentGt)
+        }
+        for name, (actor_class, telemetry) in wanted.items():
+            node = nodes.get(name)
+            if node is None or node.ActorClass != actor_class:
+                raise ValueError(
+                    "Axiom 31 (PrimaryPumpActuators) failed: PrimaryPumpOwner is Scada "
+                    f"but no ShNode named {name!r} with ActorClass {actor_class.value}."
+                )
+            if actor_class == ActorClass.ZeroTenOutputer and node.ComponentId not in dac_output_ids:
+                raise ValueError(
+                    "Axiom 31 (PrimaryPumpActuators) failed: primary-010v ComponentId "
+                    f"{node.ComponentId} is not an i2c.dac.output.component.gt."
+                )
+            channel = channels.get(name)
+            if (
+                channel is None
+                or channel.AboutNodeName != name
+                or channel.CapturedByNodeName != name
+                or channel.TelemetryName != telemetry
+            ):
+                raise ValueError(
+                    f"Axiom 31 (PrimaryPumpActuators) failed: actuator {name!r} has no "
+                    "DataChannel of its own Name about and captured by itself with "
+                    f"TelemetryName {telemetry.value}."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_32(self) -> Self:
+        """
+        Axiom 32: PrimaryPumpRecordAgreement
+        Under Hydronic.PrimaryPumpOwner Scada, no hp.device.type.gt record
+        joined (by DeviceType) to the component hp-odu or hp-idu binds has
+        PrimaryPumpFactoryInstalled true with PrimaryPumpOverridable false.
+        """
+        if self.Hydronic.PrimaryPumpOwner != PrimaryPumpOwner.Scada:
+            return self
+        component_by_id = {c.ComponentId: c for c in self.Components}
+        device_types: set[str] = set()
+        for n in self.ShNodes:
+            if n.Name in ("hp-odu", "hp-idu") and n.ComponentId in component_by_id:
+                device_type = getattr(component_by_id[n.ComponentId], "DeviceType", None)
+                if device_type is not None:
+                    device_types.add(device_type)
+        for r in self.DeviceTypes:
+            if not isinstance(r, HpDeviceTypeGt) or r.DeviceType not in device_types:
+                continue
+            if r.PrimaryPumpFactoryInstalled and not r.PrimaryPumpOverridable:
+                raise ValueError(
+                    "Axiom 32 (PrimaryPumpRecordAgreement) failed: PrimaryPumpOwner is "
+                    f"Scada but record {r.DeviceType!r} ships its primary pump inside "
+                    "the unit with no override."
+                )
+        return self

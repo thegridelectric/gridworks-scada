@@ -4122,7 +4122,9 @@
       }
     ],
     "TotalStoreTanks": 1,
-    "PrimaryFlowSource": "Measured"
+    "PrimaryFlowSource": "Measured",
+    "PrimaryPumpOwner": "HeatPump",
+    "RefrigerantCycle": "Single"
   },
   "DisabledNodeNames": [],
   "DisabledChannelNames": [
@@ -4130,6 +4132,9 @@
     "store-pump-pwr",
     "dist-pump-pwr",
     "pipes1-depth3-device",
-    "buffer-cold-pipe"
+    "buffer-cold-pipe",
+    "store-hot-pipe",
+    "store-cold-pipe",
+    "fancoil-depth3-device"
   ]
 }

@@ -652,3 +652,38 @@ def test_gw_nolan_layout_axiom_28_b_actuator_channel_telemetry(
 
     reject(assembled, mutate, r"Axiom 28 \(")
 
+
+
+def control_box_record(d: dict, factory_installed: bool, overridable: bool) -> dict:
+    box = next(n for n in d["ShNodes"] if n["Name"] == "hp-ctrl-box")
+    device_type = next(
+        c for c in d["Components"] if c["ComponentId"] == box["ComponentId"]
+    )["DeviceType"]
+    return {
+        "TypeName": "hp.control.box.device.type.gt",
+        "Version": "000",
+        "DeviceType": device_type,
+        "PrimaryPumpFactoryInstalled": factory_installed,
+        "PrimaryPumpOverridable": overridable,
+        "PrimaryPumpAlwaysOn": False,
+    }
+
+
+def test_gw_nolan_layout_axiom_29_scada_owner_against_a_non_overridable_factory_pump(
+    assembled: dict,
+) -> None:
+    def mutate(d: dict) -> None:
+        d["Hydronic"]["PrimaryPumpOwner"] = "Scada"
+        d["DeviceTypes"].append(control_box_record(d, True, False))
+
+    reject(assembled, mutate, r"Axiom 29 \(")
+
+
+def test_gw_nolan_layout_axiom_29_scada_owner_against_an_overridable_control_box_is_accepted(
+    assembled: dict,
+) -> None:
+    def mutate(d: dict) -> None:
+        d["Hydronic"]["PrimaryPumpOwner"] = "Scada"
+        d["DeviceTypes"].append(control_box_record(d, True, True))
+
+    NolanLayout.model_validate(mutated(assembled, mutate))

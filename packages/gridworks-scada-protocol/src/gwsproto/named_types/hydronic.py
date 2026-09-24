@@ -3,7 +3,7 @@ from typing import List, Literal, Optional
 from pydantic import ConfigDict, NonNegativeInt, model_validator
 from typing_extensions import Self
 
-from gwsproto.enums import PrimaryFlowSource
+from gwsproto.enums import PrimaryFlowSource, PrimaryPumpOwner, RefrigerantCycle
 from gwsproto.named_types.hvac_zone import HvacZone
 from gwsproto.named_types.zone_call_circuit import ZoneCallCircuit
 from gwsproto.property_format import SpaceheatName
@@ -19,6 +19,8 @@ class Hydronic(GwsprotoSemaType):
     ZoneCallCircuits: List[ZoneCallCircuit]
     TotalStoreTanks: NonNegativeInt
     PrimaryFlowSource: PrimaryFlowSource
+    PrimaryPumpOwner: PrimaryPumpOwner
+    RefrigerantCycle: RefrigerantCycle
     HpCommandNodeName: Optional[SpaceheatName] = None
     TypeName: Literal["gw.hydronic"] = "gw.hydronic"
     Version: Literal["000"] = "000"

@@ -2,8 +2,15 @@ from collections import Counter
 from typing import List, Literal
 
 from pydantic import ConfigDict, model_validator
+from typing_extensions import Self
 
-from gwsproto.enums import ActorClass, GwZoneEmitterType, Quantity, TelemetryName
+from gwsproto.enums import (
+    ActorClass,
+    GwZoneEmitterType,
+    PrimaryPumpOwner,
+    Quantity,
+    TelemetryName,
+)
 from gwsproto.named_types.ads111x_based_device_type_gt import Ads111xBasedDeviceTypeGt
 from gwsproto.named_types.electric_meter_device_type_gt import ElectricMeterDeviceTypeGt
 from gwsproto.named_types.scada_device_type_gt import ScadaDeviceTypeGt
@@ -869,3 +876,33 @@ class NolanLayout(GwsprotoSemaType):
                 )
         return self
 
+    @model_validator(mode="after")
+    def check_axiom_29(self) -> Self:
+        """
+        Axiom 29: PrimaryPumpRecordAgreement
+        Under Hydronic.PrimaryPumpOwner Scada, no hp.device.type.gt or
+        hp.control.box.device.type.gt record joined (by DeviceType) to the
+        component hp-odu or hp-ctrl-box binds has PrimaryPumpFactoryInstalled
+        true with PrimaryPumpOverridable false.
+        """
+        if self.Hydronic.PrimaryPumpOwner != PrimaryPumpOwner.Scada:
+            return self
+        component_by_id = {c.ComponentId: c for c in self.Components}
+        device_types: set[str] = set()
+        for n in self.ShNodes:
+            if n.Name in ("hp-odu", "hp-ctrl-box") and n.ComponentId in component_by_id:
+                device_type = getattr(component_by_id[n.ComponentId], "DeviceType", None)
+                if device_type is not None:
+                    device_types.add(device_type)
+        for r in self.DeviceTypes:
+            if not isinstance(r, (HpDeviceTypeGt, HpControlBoxDeviceTypeGt)):
+                continue
+            if r.DeviceType not in device_types:
+                continue
+            if r.PrimaryPumpFactoryInstalled and not r.PrimaryPumpOverridable:
+                raise ValueError(
+                    "Axiom 29 (PrimaryPumpRecordAgreement) failed: PrimaryPumpOwner is "
+                    f"Scada but record {r.DeviceType!r} ships its primary pump inside "
+                    "the unit with no override."
+                )
+        return self

@@ -38,9 +38,9 @@ class HydronicSpaceheatNodeNames:
     # For monoblocs, hp-odu IS the heat pump (there is no hp-idu, though
     # there MAY be an hp-ctrl-box).
     hp_odu = "hp-odu"
-    # The heat pump's indoor unit when it carries its own refrigerant
-    # cycle/compressor stage (the cascade hydro kits). NOT a monobloc's indoor
-    # box — that is hp-ctrl-box.
+    # The heat pump's indoor unit: it exchanges refrigerant heat with the
+    # water, with or without a compressor stage of its own. NOT a monobloc's
+    # indoor box — that is hp-ctrl-box.
     hp_idu = "hp-idu"
     # A monobloc's indoor box: control electronics, the water-pump feed, and the
     # backup heater — no compressor. Deliberately NOT hp-idu.
