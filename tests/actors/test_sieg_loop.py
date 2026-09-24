@@ -4,14 +4,17 @@ on/off that starts the motion), under the sieg-loop's own handle. Guards the
 partition residue where the actor lost its choreography and the movement
 error was swallowed, so the valve silently never moved."""
 
+import time
+import uuid
 from pathlib import Path
 
 import pytest
 
 from actors.hydronic.house0 import House0Hydronic
 from actors.sieg_loop import SiegLoop, SiegValveEvent, SiegValveState
-from gwsproto.enums import ChangeKeepSend, ChangeRelayState
+from gwsproto.enums import ChangeKeepSend, ChangeRelayState, MainAutoEvent
 from gwsproto.named_types import FsmEvent
+from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from gwsproto.names.house0.node_names import House0NodeNames
 from scada_app import ScadaApp
@@ -87,3 +90,76 @@ def test_valve_movement_reaches_both_relays(
     assert on_off.EventName == ChangeRelayState.CloseRelay
     assert on_off.FromHandle == actor.node.handle
     assert actor.valve_state != start
+
+
+LOOP_RELAYS = (House0NodeNames.hp_loop_on_off, House0NodeNames.hp_loop_keep_send)
+LOOP_METHODS = ("sieg_valve_active", "sieg_valve_hold", "change_to_hp_keep_more", "change_to_hp_keep_less")
+
+
+def test_loop_relays_hang_under_sieg_loop_in_every_tree(app: ScadaApp) -> None:
+    """sieg-loop is the immediate boss of relays 14 and 15 whichever node
+    holds the tree: local control's normal node, admin, or local control
+    itself when the scada rebuilds the tree. A tree rewrite reparents
+    sieg-loop and never reaches through it to its relays."""
+    scada = app.scada
+    scada._send_to = lambda dst, payload, src=None: None
+    layout = scada.layout
+    loop = layout.node(House0NodeNames.sieg_loop)
+
+    def relays_hang_under_the_loop() -> None:
+        for name in LOOP_RELAYS:
+            assert layout.node(name).handle == f"{loop.handle}.{name}"
+
+    assert loop.handle == f"{CoreNodeNames.auto}.{CoreNodeNames.local_control}.{CoreNodeNames.local_control_normal}.{House0NodeNames.sieg_loop}"
+    relays_hang_under_the_loop()
+    scada.auto_trigger(MainAutoEvent.AutoGoesDormant)
+    assert loop.handle == f"{CoreNodeNames.admin}.{House0NodeNames.sieg_loop}"
+    relays_hang_under_the_loop()
+    scada.auto_trigger(MainAutoEvent.AutoWakesUp)
+    assert loop.handle == f"{CoreNodeNames.auto}.{CoreNodeNames.local_control}.{House0NodeNames.sieg_loop}"
+    relays_hang_under_the_loop()
+
+
+def test_a_boss_side_command_to_a_loop_relay_fails_the_event_axiom(app: ScadaApp) -> None:
+    """The ownership is enforced at the event: fsm.event axiom 2 makes the
+    sender the relay's immediate boss, and that is sieg-loop, so a boss
+    node cannot even build a command to relay 14 or 15."""
+    layout = app.scada.layout
+    boss = layout.node(CoreNodeNames.local_control_normal)
+    for name in LOOP_RELAYS:
+        with pytest.raises(ValueError, match="immediate boss"):
+            FsmEvent(
+                FromHandle=boss.handle,
+                ToHandle=layout.node(name).handle,
+                EventType=ChangeRelayState.enum_name(),
+                EventName=ChangeRelayState.OpenRelay,
+                SendTimeUnixMs=int(time.time() * 1000),
+                TriggerId=str(uuid.uuid4()),
+            )
+
+
+@pytest.mark.parametrize("boss_name", [CoreNodeNames.local_control, CoreNodeNames.leaf_ally])
+def test_boss_nodes_leave_the_loop_relays_alone_at_initialization(
+    app: ScadaApp, boss_name: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Local control and the leaf ally set every relay they own at
+    initialization and touch neither loop relay, by any of the four loop
+    methods: sieg-loop parks its own motor."""
+    scada = app.scada
+    scada._send_to = lambda dst, payload, src=None: None
+    boss = scada.get_communicator(boss_name)
+    if boss_name == CoreNodeNames.leaf_ally:
+        scada.set_command_tree(boss.node)  # local control's normal node holds the tree from instantiation
+    impl = getattr(boss, "_impl", boss)
+    assert isinstance(impl, House0Hydronic)
+    sent: list = []
+    impl._send_to = lambda dst, payload, src=None: sent.append(dst.name)
+    called: list[str] = []
+    for method in LOOP_METHODS:
+        monkeypatch.setattr(impl, method, lambda *a, _m=method, **k: called.append(_m))
+    impl.actuators_ready = True
+    impl.initialize_actuators()
+
+    assert sent, "initialization sets the relays the boss owns"
+    assert called == []
+    assert not set(sent) & set(LOOP_RELAYS)
