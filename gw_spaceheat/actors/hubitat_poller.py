@@ -6,28 +6,29 @@ from typing import Sequence
 from aiohttp import ClientResponse
 from aiohttp import ClientSession
 from gwproactor import Actor
-from gwproactor import Problems
 from gwproactor import AppInterface
 from gwproactor.actors.rest import RESTPoller
 from gwproto import Message
 from gwsproto.data_classes.components.hubitat_component import HubitatComponent
 from gwsproto.data_classes.components.hubitat_poller_component import HubitatPollerComponent
-from gwsproto.enums import SpaceheatUnit
+from gwsproto.enums import LogLevel, SpaceheatUnit
 from gwsproto.type_helpers import MakerAPIAttributeGt
 from result import Err
 from result import Ok
 from result import Result
 
+from actors.glitch_limit import REPEAT_GLITCH_S, GlitchLimit
 from actors.hubitat_interface import default_float_converter
 from actors.hubitat_interface import HubitatAttributeConvertFailure
 from actors.hubitat_interface import HubitatAttributeMissing
+from actors.hubitat_interface import HubitatAttributeWarning
 from actors.hubitat_interface import HubitatWebEventHandler
 from actors.hubitat_interface import HubitatWebEventListenerInterface
 from actors.hubitat_interface import HubitatWebServerInterface
 from actors.hubitat_interface import MakerAPIRefreshResponse
 from actors.hubitat_interface import temperature_converter
 from actors.hubitat_interface import ValueConverter
-from gwsproto.named_types import SyncedReadings
+from gwsproto.named_types import Glitch, SyncedReadings
 
 
 
@@ -46,7 +47,9 @@ class HubitatRESTPoller(RESTPoller):
             services: AppInterface,
     ):
         self._report_dst = services.name
+        self._scada_g_node_alias = services.hardware_layout.scada_g_node_alias
         self._component = component
+        self.glitch_limit = GlitchLimit(REPEAT_GLITCH_S)
         super().__init__(
             name,
             self._component.rest,
@@ -121,6 +124,13 @@ class HubitatRESTPoller(RESTPoller):
                             values.append(convert_result.value)
                     else:
                         warnings.append(convert_result.err())
+            for w in warnings:
+                key = (
+                    f"hubitat-attribute {w.node_name} {w.attribute_name} {type(w).__name__}"
+                    if isinstance(w, HubitatAttributeWarning)
+                    else f"hubitat-attribute {type(w).__name__}"
+                )
+                self.send_warning("hubitat-attribute", key, str(w))
             if values:
                 return Message(
                     Src=self._name,
@@ -131,27 +141,31 @@ class HubitatRESTPoller(RESTPoller):
                         ScadaReadTimeUnixMs=int(1000 * time.time())
                     )
                 )
-            if warnings:
-                self._forward(
-                    Message(
-                        Payload=Problems(warnings=warnings).problem_event(
-                            summary=(
-                                f"<{self._name}> _convert() warnings "
-                            )
-                        )
-                    )
-                )
         except BaseException as e:
-            self._forward(
-                Message(
-                    Payload=Problems(errors=[e]).problem_event(
-                        summary=(
-                            f"<{self._name}> _convert() error"
-                        )
-                    )
-                )
+            self.send_warning(
+                "hubitat-reply-refused", "hubitat-reply-refused",
+                f"{self._name} cannot decode the hub's reply: {type(e).__name__}: {e}",
             )
         return None
+
+    def send_warning(self, summary: str, key: str, details: str) -> None:
+        """A Warning glitch to the primary scada, at most once per key per
+        REPEAT_GLITCH_S. Called on the IO loop."""
+        if not self.glitch_limit.due(key):
+            return
+        self._forward(
+            Message(
+                Src=self._name,
+                Dst=self._report_dst,
+                Payload=Glitch(
+                    FromGNodeAlias=self._scada_g_node_alias,
+                    Node=self._name,
+                    Type=LogLevel.Warning,
+                    Summary=summary,
+                    Details=details,
+                ),
+            )
+        )
 
 class HubitatPoller(Actor, HubitatWebEventListenerInterface):
 

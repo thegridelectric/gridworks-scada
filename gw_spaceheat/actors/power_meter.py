@@ -7,15 +7,15 @@ from typing import Dict, List, Optional
 
 from gwproactor.logger import LoggerOrAdapter
 from gwproto import Message
-from gwsproto.enums import TelemetryName
+from gwsproto.enums import LogLevel, TelemetryName
 
 from actors.config import ScadaSettings
+from actors.glitch_limit import REPEAT_GLITCH_S, GlitchLimit
 from gwproactor import SyncThreadActor
 from gwsproto.data_classes.components.electric_meter_component import ElectricMeterComponent
 
 from gwsproto.data_classes.data_channel import DataChannel
 from gwsproto.data_classes.sh_node import ShNode
-from drivers.exceptions import DriverWarning
 from drivers.power_meter.egauge_4030__power_meter_driver import EGuage4030_PowerMeterDriver
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
     GridworksSimPm1_PowerMeterDriver,
@@ -23,9 +23,8 @@ from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
 from gwproactor.message import InternalShutdownMessage
 from gwproactor.sync_thread import SyncAsyncInteractionThread
-from gwproactor import Problems
 from gwsproto.enums import DeviceType, SimDeviceType
-from gwsproto.named_types import ChannelFlatlined, ElectricMeterChannelConfig, PowerWatts, SyncedReadings
+from gwsproto.named_types import ChannelFlatlined, ElectricMeterChannelConfig, Glitch, PowerWatts, SyncedReadings
 
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.names.core.node_names import CoreNodeNames
@@ -42,32 +41,6 @@ def transactive_power_input_names(hardware_layout: HydronicLayout) -> List[str]:
         if dc.Strategy == "transactive-power":
             return list(dc.InputChannelNames)
     raise ValueError("No transactive-power DerivedChannel in the layout")
-
-
-class HWUidMismatch(DriverWarning):
-    expected: str
-    got: str
-
-    def __init__(
-            self,
-            expected: str,
-            got: str,
-            msg: str = "",
-    ):
-        super().__init__(msg)
-        self.expected = expected
-        self.got = got
-
-    def __str__(self):
-        s = self.__class__.__name__
-        super_str = super().__str__()
-        if super_str:
-            s += f" <{super_str}>"
-        s += (
-            f"  exp: {self.expected}\n"
-            f"  got: {self.got}"
-        )
-        return s
 
 
 class DriverThreadSetupHelper:
@@ -205,6 +178,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
             ch: time.monotonic() for ch in self.my_channels
         }
         self.lost_channels = set()
+        self.glitch_limit = GlitchLimit(REPEAT_GLITCH_S)
 
     def _validate_channels_with_component(self, component: ElectricMeterComponent) -> None:
         for channel in self.my_channels:
@@ -215,21 +189,23 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
                 raise Exception(f"Reading power for channel {channel.Name} but this is not in the ConfigList!")
             self.driver.validate_config(channel_config)
 
-    def _report_problems(self, problems: Problems, tag: str, log_event: bool = False):
-        event = problems.problem_event(
-            summary=f"Driver problems: {tag} for {self.driver.component}",
+    def send_glitch(self, level: LogLevel, summary: str, key: str, details: str) -> None:
+        """A glitch to the primary scada, at most once per key per REPEAT_GLITCH_S."""
+        if not self.glitch_limit.due(key):
+            return
+        self._put_to_async_queue(
+            Message(
+                Src=self.name,
+                Dst=CoreNodeNames.primary_scada,
+                Payload=Glitch(
+                    FromGNodeAlias=self._hardware_layout.scada_g_node_alias,
+                    Node=self.name,
+                    Type=level,
+                    Summary=summary,
+                    Details=details,
+                ),
+            )
         )
-        message = Message(Payload=event)
-        if log_event and self._logger.isEnabledFor(logging.DEBUG):
-            self._logger.info(
-                "PowerMeter event:\n"
-                f"{event}"
-            )
-            self._logger.info(
-                "PowerMeter message\n"
-                f"{message.model_dump_json(indent=2)}"
-            )
-        self._put_to_async_queue(message)
 
     def _preiterate(self) -> None:
         self.last_value_monotonic_s = {
@@ -238,9 +214,15 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         result = self.driver.start()
         if result.is_ok():
             if result.value.warnings:
-                self._report_problems(Problems(warnings=result.value.warnings), "startup warning")
+                self.send_glitch(
+                    LogLevel.Warning, "meter-start-warning", "meter-start-warning",
+                    f"{self.name}: {'; '.join(str(w) for w in result.value.warnings)}",
+                )
         else:
-            self._report_problems(Problems(errors=[result.err()]), "startup error")
+            self.send_glitch(
+                LogLevel.Warning, "meter-start-error", "meter-start-error",
+                f"{self.name} driver did not start: {result.err()}",
+            )
             self._put_to_async_queue(
                 InternalShutdownMessage(Src=self.name, Reason=f"Driver start error for {self.name}")
             )
@@ -255,16 +237,10 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
                         self.driver.component.gt.HwUid
                         and self._hw_uid != self.driver.component.gt.HwUid
                     ):
-                        self._report_problems(
-                            Problems(
-                                warnings=[
-                                    HWUidMismatch(
-                                        expected=self.driver.component.gt.HwUid,
-                                        got=self._hw_uid,
-                                    )
-                                ]
-                            ),
-                            "Hardware UID read"
+                        self.send_glitch(
+                            LogLevel.Warning, "meter-hw-uid-mismatch", "meter-hw-uid-mismatch",
+                            f"{self.name} reads HwUid {self._hw_uid}; the layout names "
+                            f"{self.driver.component.gt.HwUid}",
                         )
             else:
                 raise hw_uid_read_result.value
@@ -299,18 +275,15 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
                     self.last_value_monotonic_s[ch] = time.monotonic()
                     self.lost_channels.discard(ch)
                 if read.value.warnings:
-                    log_event = False
                     if not logged_one and self._logger.isEnabledFor(logging.DEBUG):
                         logged_one = True
-                        log_event = True
                         self._logger.info(f"PowerMeter: TryConnectResult:\n{read.value}")
-                        problems = Problems(warnings=read.value.warnings)
-                        self._logger.info(f"PowerMeter: Problems:\n{problems}")
-                    self._report_problems(
-                        problems=Problems(warnings=read.value.warnings),
-                        tag="read warnings",
-                        log_event=log_event
-                    )
+                    for w in read.value.warnings:
+                        self.send_glitch(
+                            LogLevel.Warning, "meter-read-warning",
+                            f"meter-read-warning {ch.Name} {type(w).__name__}",
+                            f"{ch.Name}: {type(w).__name__}: {w}",
+                        )
             else:
                 raise read.value
 
@@ -370,7 +343,11 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
                 self._last_sampled_s[ch] = int(time.time())
                 self.last_reported_telemetry_value[ch] = self.latest_telemetry_value[ch]
         except Exception as e:
-            self._report_problems(Problems(warnings=[e, [self.latest_telemetry_value[ch] for ch in channel_report_list]]), "synced reading generation failure")
+            self.send_glitch(
+                LogLevel.Error, "meter-synced-readings", "meter-synced-readings",
+                f"{type(e).__name__}: {e}; values "
+                f"{[self.latest_telemetry_value[ch] for ch in channel_report_list]}",
+            )
 
     def value_hits_async_threshold(self, ch: DataChannel) -> bool:
         """This telemetry tuple is supposed to report asynchronously on change, with

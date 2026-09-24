@@ -4,13 +4,15 @@ from typing import Sequence
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 from gwproactor import Actor
-from gwproactor import Problems
 from gwproactor import AppInterface
 from gwproto import Message
 from gwsproto.data_classes.components.hubitat_component import HubitatComponent
+from gwsproto.enums import LogLevel
+from gwsproto.named_types import Glitch
 from result import Result
 
 from gwsproto.names.core.node_names import ScadaWeb
+from actors.glitch_limit import REPEAT_GLITCH_S, GlitchLimit
 from actors.hubitat_interface import HubitatEventContent
 from actors.hubitat_interface import HubitatWebEventHandler
 from actors.hubitat_interface import HubitatWebEventListenerInterface
@@ -42,6 +44,7 @@ class Hubitat(Actor, HubitatWebServerInterface):
         self._component = component
         self._report_dst = services.name
         self._web_event_handlers = dict()
+        self.glitch_limit = GlitchLimit(REPEAT_GLITCH_S)
         super().__init__(name, services)
         if self._component.gt.Hubitat.WebListenEnabled:
             self._services.add_web_route(
@@ -68,14 +71,8 @@ class Hubitat(Actor, HubitatWebServerInterface):
         try:
             text = await request.text()
         except Exception as e:
-            self.services.send_threadsafe(
-                Message(
-                    Payload=Problems(errors=[e]).problem_event(
-                        summary=(
-                            f"ERROR awaiting hubitat request text <{self._name}>: {type(e)} <{e}>"
-                        ),
-                    )
-                )
+            self.send_warning(
+                "hubitat-unreadable-post", f"{self.name} cannot read a post body: {type(e).__name__}: {e}"
             )
         else:
             try:
@@ -90,19 +87,29 @@ class Hubitat(Actor, HubitatWebServerInterface):
                     if message is not None:
                         self.services.send_threadsafe(message)
             except Exception as e: # noqa
-                self.services.send_threadsafe(
-                    Message(
-                        Payload=Problems(
-                            msg=f"request: <{text}>",
-                            errors=[e]
-                        ).problem_event(
-                            summary=(
-                                f"Hubitat event processing error for <{self._name}>: {type(e)} <{e}>"
-                            ),
-                        )
-                    )
+                self.send_warning(
+                    "hubitat-event-refused", f"{self.name} refused an event: {type(e).__name__}: {e}"
                 )
         return Response()
+
+    def send_warning(self, summary: str, details: str) -> None:
+        """A Warning glitch to the primary scada, at most once per summary
+        per REPEAT_GLITCH_S. Called on the IO loop."""
+        if not self.glitch_limit.due(summary):
+            return
+        self.services.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self._report_dst,
+                Payload=Glitch(
+                    FromGNodeAlias=self.services.hardware_layout.scada_g_node_alias,
+                    Node=self.name,
+                    Type=LogLevel.Warning,
+                    Summary=summary,
+                    Details=details,
+                ),
+            )
+        )
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         raise ValueError("Hubitat does not currently process any messages")

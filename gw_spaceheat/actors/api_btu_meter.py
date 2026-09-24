@@ -4,6 +4,7 @@ import time
 from functools import cached_property
 from typing import Optional, Sequence
 
+from actors.glitch_limit import REPEAT_GLITCH_S, GlitchLimit
 from actors.pico_actor_base import PicoActorBase
 from actors.pico_identity import PicoIdentity
 from actors.pico_liveness import PicoLiveness
@@ -30,6 +31,11 @@ from scada_app_interface import ScadaAppInterface
 SIM_LOOP_GPM_X100 = 400
 SIM_LOOP_CELSIUS_X100 = 5000
 SIM_CT_VOLTS_X100 = 0
+
+# The pico drops a thermistor at either rail before it posts; one near a
+# rail gets past that guard as a temperature no hydronic pipe reaches.
+IMPLAUSIBLE_BELOW_C = -40.0
+IMPLAUSIBLE_ABOVE_C = 130.0
 
 
 def snapshot_without(
@@ -98,6 +104,9 @@ class ApiBtuMeter(PicoActorBase):
             )
         self.pico_uid = self._component.gt.HwUid
         self.refused_posts = RefusedPosts(self)
+        # One Warning a day per channel for a thermistor that reads
+        # impossibly or stops arriving while its siblings post
+        self.glitch_limit = GlitchLimit(REPEAT_GLITCH_S)
         self.pico_identity: Optional[PicoIdentity] = None
         if isinstance(self._component, PicoBtuMeterComponent):
             self.pico_identity = PicoIdentity(
@@ -312,23 +321,35 @@ class ApiBtuMeter(PicoActorBase):
             return
         # The pico posts temperatures as CelsiusTimes100; each goes out in its
         # channel's declared encoding
+        channel_names = []
         converted_values = []
         for channel_name, measurement, unit in zip(
             data.ChannelNameList, data.MeasurementList, data.UnitList
         ):
             if unit == "CelsiusTimes100":
+                celsius = measurement / 100
+                if celsius < IMPLAUSIBLE_BELOW_C or celsius > IMPLAUSIBLE_ABOVE_C:
+                    if self.glitch_limit.due(f"open-thermistor:{channel_name}"):
+                        self.send_warning(
+                            "open-thermistor",
+                            f"{channel_name} reads {celsius} C, a thermistor near a pico rail",
+                        )
+                    continue
                 converted_values.append(
                     self.layout.channel_registry.temperature_from_c(
-                        channel_name, measurement / 100
+                        channel_name, celsius
                     ).raw
                 )
             else:
                 # Keep other measurements as-is
                 converted_values.append(measurement)
+            channel_names.append(channel_name)
+        if not channel_names:
+            return
 
         # Create and send the synced readings message
         msg = SyncedReadings(
-            ChannelNameList=data.ChannelNameList,  # TODO OPS-35 disambiguate between AboutNodeNames and ChannelNames
+            ChannelNameList=channel_names,  # TODO OPS-35 disambiguate between AboutNodeNames and ChannelNames
             ValueList=converted_values,
             ScadaReadTimeUnixMs=int(time.time() * 1000),
         )
@@ -439,6 +460,11 @@ class ApiBtuMeter(PicoActorBase):
                         Channel=self.layout.data_channels[channel_name],
                     ),
                 )
+                if self.glitch_limit.due(f"quiet-channel:{channel_name}"):
+                    self.send_warning(
+                        "quiet-channel",
+                        f"{channel_name} stopped arriving while pico {self.pico_uid} posts its other channels",
+                    )
 
     async def main(self):
         while not self._stop_requested:
