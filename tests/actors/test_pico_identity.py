@@ -256,7 +256,6 @@ def with_hall_flow_pico(pair: tuple[str, str]) -> dict:
             "DeviceType": "GridworksPicoFlowHall",
             "DisplayName": "Dist Flow HallFlowModule",
             "HwUid": "pico_1a2b3c",
-            "Enabled": True,
             "SerialNumber": "1025",
             "FlowNodeName": "dist-flow",
             "FlowMeterType": "SaierFlowSensor",

@@ -9,7 +9,6 @@ def component() -> dict:
     return {
         "ComponentId": "7fc24a16-37e6-442b-83cb-9b5be5a3cce9",
         "DeviceType": "Gw101",
-        "Enabled": False,
         "SerialNumber": "example",
         "FlowChannelName": "scada",
         "HotChannelName": "scada",

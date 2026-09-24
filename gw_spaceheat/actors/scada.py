@@ -219,7 +219,7 @@ class Scada(PrimeActor, ScadaInterface):
                 name=cfg.Name,
                 host=cfg.Host,
                 port=cfg.Port,
-                enabled=cfg.Enabled,
+                enabled=cfg.Serve,
                 server_kwargs=cfg.Kwargs,
             )
 

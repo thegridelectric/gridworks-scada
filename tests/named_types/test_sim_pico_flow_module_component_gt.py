@@ -9,7 +9,6 @@ def component() -> dict:
     return {
         "ComponentId": "3702ecf7-32a5-4582-a073-13b8edc1154f",
         "DeviceType": "GridworksPicoFlowHall",
-        "Enabled": True,
         "SerialNumber": "NA",
         "HwUid": "pico_60e352",
         "FlowNodeName": "dist-flow",

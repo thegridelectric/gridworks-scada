@@ -1,7 +1,7 @@
 from typing import Literal
 
 from gwsproto.type_helpers.component_base import DeviceComponentBase
-from gwproto.named_types.web_server_gt import WebServerGt
+from gwsproto.named_types.web_server_gt import WebServerGt
 
 
 class WebServerComponentGt(DeviceComponentBase):

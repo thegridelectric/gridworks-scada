@@ -110,8 +110,7 @@ class HubitatRESTPoller(RESTPoller):
             values = []
             warnings = []
             for config_attribute in self._component.gt.Poller.attributes:
-                if (config_attribute.enabled and
-                    config_attribute.web_poll_enabled and
+                if (config_attribute.web_poll_enabled and
                     config_attribute.attribute_name in self._value_converters and
                     not self._layout.channel_disabled(config_attribute.channel_name)
                 ):
@@ -214,9 +213,9 @@ class HubitatPoller(Actor, HubitatWebEventListenerInterface):
         """
         poll_value_converters = dict()
         handlers = []
-        if self._component.gt.Poller.enabled and not self.disabled:
+        if not self.disabled:
             for attribute in self._component.gt.Poller.attributes:
-                if attribute.enabled and not self._layout.channel_disabled(attribute.channel_name):
+                if not self._layout.channel_disabled(attribute.channel_name):
                     if (converter := self._make_value_converter(attribute)) is not None:
                         if attribute.web_poll_enabled:
                             poll_value_converters[attribute.attribute_name] = converter
@@ -241,21 +240,18 @@ class HubitatPoller(Actor, HubitatWebEventListenerInterface):
         return None
 
     def _make_value_converter(self, attribute: MakerAPIAttributeGt) -> Optional[ValueConverter]:
-        if attribute.enabled:
-            if attribute.interpret_as_number:
-                if attribute.unit in (SpaceheatUnit.Fahrenheit, SpaceheatUnit.Celcius):
-                    converter = functools.partial(
-                        temperature_converter,
-                        unit=SpaceheatUnit(attribute.unit),
-                        channel_name=attribute.channel_name,
-                        registry=self._services.hardware_layout.channel_registry,
-                    )
-                    converter(0)  # a channel that is not a temperature channel raises here
-                    return converter
-                return functools.partial(default_float_converter, exponent=attribute.exponent)
-            else:
-                return self._make_non_numerical_value_converter(attribute)
-        return None
+        if attribute.interpret_as_number:
+            if attribute.unit in (SpaceheatUnit.Fahrenheit, SpaceheatUnit.Celcius):
+                converter = functools.partial(
+                    temperature_converter,
+                    unit=SpaceheatUnit(attribute.unit),
+                    channel_name=attribute.channel_name,
+                    registry=self._services.hardware_layout.channel_registry,
+                )
+                converter(0)  # a channel that is not a temperature channel raises here
+                return converter
+            return functools.partial(default_float_converter, exponent=attribute.exponent)
+        return self._make_non_numerical_value_converter(attribute)
 
     def _get_hubitat_actor(self) -> Optional[HubitatWebServerInterface]:
         hubitat_actor = None
@@ -282,11 +278,11 @@ class HubitatPoller(Actor, HubitatWebEventListenerInterface):
         raise ValueError("HubitatTankModule does not currently process any messages")
 
     def start(self) -> None:
-        if self._component.gt.Poller.enabled and not self.disabled:
+        if not self.disabled:
             self._poller.start()
 
     def stop(self) -> None:
-        if self._component.gt.Poller.enabled and not self.disabled:
+        if not self.disabled:
             try:
                 self._poller.stop()
             except: # noqa

@@ -345,7 +345,8 @@ class House0Layout(GwsprotoSemaType):
         """
         Axiom 6: TransactivePowerChannel
         Exactly one transactive-power DerivedChannel; each input resolves to
-        a PowerW DataChannel whose AboutNode carries a NameplatePowerW.
+        a PowerW DataChannel whose AboutNode carries a NameplatePowerW and
+        is not in DisabledChannelNames.
         """
         if not self.ShNodes:
             return self
@@ -376,6 +377,11 @@ class House0Layout(GwsprotoSemaType):
                 raise ValueError(
                     f"Axiom 6 (TransactivePowerChannel) failed: about-node "
                     f"'{ch.AboutNodeName}' of input '{name}' has no NameplatePowerW."
+                )
+            if name in self.DisabledChannelNames:
+                raise ValueError(
+                    f"Axiom 6 (TransactivePowerChannel) failed: input '{name}' "
+                    "is in DisabledChannelNames."
                 )
         return self
 
@@ -850,17 +856,29 @@ class House0Layout(GwsprotoSemaType):
         """
         Axiom 28: DisabledNodesAreSensors
         Every name in DisabledNodeNames SHALL be the CapturedByNodeName of at
-        least one DataChannel, and every DataChannel whose CapturedByNodeName
-        is in DisabledNodeNames SHALL have its Name in DisabledChannelNames.
+        least one DataChannel and SHALL NOT be a Relay or ZeroTenOutputer
+        node; every DataChannel whose CapturedByNodeName is in
+        DisabledNodeNames SHALL have its Name in DisabledChannelNames; no name
+        in DisabledChannelNames SHALL be a DataChannel captured by such a
+        node. Disabling is a sensing concept; an actuator is wired or absent.
         """
         disabled_nodes = set(self.DisabledNodeNames)
         disabled_channels = set(self.DisabledChannelNames)
         capturing = {c.CapturedByNodeName for c in self.DataChannels}
+        actuators = {
+            n.Name for n in self.ShNodes
+            if n.ActorClass in (ActorClass.Relay, ActorClass.ZeroTenOutputer)
+        }
         for name in disabled_nodes:
             if name not in capturing:
                 raise ValueError(
                     "Axiom 28 (DisabledNodesAreSensors) failed: "
                     f"'{name}' captures no DataChannel."
+                )
+            if name in actuators:
+                raise ValueError(
+                    "Axiom 28 (DisabledNodesAreSensors) failed: "
+                    f"'{name}' is an actuator; an actuator is wired or absent."
                 )
         for c in self.DataChannels:
             if c.CapturedByNodeName in disabled_nodes and c.Name not in disabled_channels:
@@ -868,6 +886,11 @@ class House0Layout(GwsprotoSemaType):
                     "Axiom 28 (DisabledNodesAreSensors) failed: "
                     f"'{c.Name}' is captured by disabled node "
                     f"'{c.CapturedByNodeName}' but is not in DisabledChannelNames."
+                )
+            if c.Name in disabled_channels and c.CapturedByNodeName in actuators:
+                raise ValueError(
+                    "Axiom 28 (DisabledNodesAreSensors) failed: "
+                    f"'{c.Name}' is captured by actuator '{c.CapturedByNodeName}'."
                 )
         return self
 
@@ -1055,5 +1078,29 @@ class House0Layout(GwsprotoSemaType):
                 raise ValueError(
                     f"Axiom 33 (CommandNodeHandles) failed: {n.Name!r} has effective "
                     f"handle {effective!r}, expected {want!r}."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_34(self) -> Self:
+        """
+        Axiom 34: HeatCallChannelBelongsToCircuit
+        Every heat-call DerivedChannel's InputChannelNames SHALL equal [the
+        WhitewireChannelName of exactly one circuit in
+        Hydronic.ZoneCallCircuits]; with CircuitHeatCallChannel, heat calls
+        and circuits are one to one.
+        """
+        whitewires = [c.WhitewireChannelName for c in self.Hydronic.ZoneCallCircuits]
+        for d in self.DerivedChannels:
+            if d.Strategy != "heat-call":
+                continue
+            if (
+                len(d.InputChannelNames) != 1
+                or whitewires.count(d.InputChannelNames[0]) != 1
+            ):
+                raise ValueError(
+                    f"Axiom 34 (HeatCallChannelBelongsToCircuit) failed: heat-call "
+                    f"channel '{d.Name}' has inputs {d.InputChannelNames}, not exactly "
+                    "one circuit's whitewire."
                 )
         return self

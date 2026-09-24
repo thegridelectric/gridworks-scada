@@ -43,6 +43,43 @@ def reject(assembled: dict, mutate, axiom: str) -> None:
     with pytest.raises(ValueError, match=axiom):
         House0Layout.model_validate(mutated(assembled, mutate))
 
+def sensor_off_the_meter(d: dict) -> str:
+    """A node capturing channels that feed no transactive-power channel and
+    is not an actuator: the one a disabled-list test may disable without
+    tripping the transactive or actuator clauses."""
+    metered = {
+        n
+        for x in d["DerivedChannels"]
+        if x["Strategy"] == "transactive-power"
+        for n in x["InputChannelNames"]
+    }
+    actuators = {
+        n["Name"] for n in d["ShNodes"] if n["ActorClass"] in ("Relay", "ZeroTenOutputer")
+    }
+    captured: dict[str, set[str]] = {}
+    for c in d["DataChannels"]:
+        captured.setdefault(c["CapturedByNodeName"], set()).add(c["Name"])
+    return next(
+        node
+        for node, names in captured.items()
+        if not names & metered and node not in actuators
+    )
+
+
+def unmetered_derived(d: dict) -> dict:
+    """A DerivedChannel with inputs, none of them in the transactive set."""
+    metered = {
+        n
+        for x in d["DerivedChannels"]
+        if x["Strategy"] == "transactive-power"
+        for n in x["InputChannelNames"]
+    }
+    return next(
+        c for c in d["DerivedChannels"]
+        if c["InputChannelNames"] and not set(c["InputChannelNames"]) & metered
+    )
+
+
 
 def test_gw_house0_layout_generated(assembled: dict) -> None:
     House0Layout.model_validate(assembled)
@@ -576,7 +613,7 @@ def test_gw_house0_layout_axiom_28_disabled_node_captures_nothing(assembled: dic
 
 def test_gw_house0_layout_axiom_28_captured_channel_not_listed(assembled: dict) -> None:
     def mutate(d: dict) -> None:
-        d["DisabledNodeNames"] = [d["DataChannels"][0]["CapturedByNodeName"]]
+        d["DisabledNodeNames"] = [sensor_off_the_meter(d)]
         d["DisabledChannelNames"] = []
 
     reject(assembled, mutate, r"Axiom 28 \(")
@@ -584,7 +621,7 @@ def test_gw_house0_layout_axiom_28_captured_channel_not_listed(assembled: dict) 
 
 def test_gw_house0_layout_axiom_28_disabled_node_with_its_channels(assembled: dict) -> None:
     def mutate(d: dict) -> None:
-        node = d["DataChannels"][0]["CapturedByNodeName"]
+        node = sensor_off_the_meter(d)
         captured = [c["Name"] for c in d["DataChannels"] if c["CapturedByNodeName"] == node]
         derived = [c["Name"] for c in d["DerivedChannels"] if set(c["InputChannelNames"]) & set(captured)]
         d["DisabledNodeNames"] = [node]
@@ -595,7 +632,7 @@ def test_gw_house0_layout_axiom_28_disabled_node_with_its_channels(assembled: di
 
 def test_gw_house0_layout_axiom_29_enabled_derived_reads_disabled_input(assembled: dict) -> None:
     def mutate(d: dict) -> None:
-        derived = next(c for c in d["DerivedChannels"] if c["InputChannelNames"])
+        derived = unmetered_derived(d)
         d["DisabledChannelNames"] = [derived["InputChannelNames"][0]]
 
     reject(assembled, mutate, r"Axiom 29 \(")
@@ -603,8 +640,17 @@ def test_gw_house0_layout_axiom_29_enabled_derived_reads_disabled_input(assemble
 
 def test_gw_house0_layout_axiom_29_disabled_derived_may_read_disabled_input(assembled: dict) -> None:
     def mutate(d: dict) -> None:
-        derived = next(c for c in d["DerivedChannels"] if c["InputChannelNames"])
-        d["DisabledChannelNames"] = [derived["InputChannelNames"][0], derived["Name"]]
+        derived = unmetered_derived(d)
+        disabled = [derived["InputChannelNames"][0], derived["Name"]]
+        # a derived channel downstream of a disabled one is disabled with it
+        grew = True
+        while grew:
+            grew = False
+            for c in d["DerivedChannels"]:
+                if c["Name"] not in disabled and set(c["InputChannelNames"]) & set(disabled):
+                    disabled.append(c["Name"])
+                    grew = True
+        d["DisabledChannelNames"] = disabled
 
     House0Layout.model_validate(mutated(assembled, mutate))
 
@@ -740,3 +786,40 @@ def test_gw_house0_layout_axiom_32_scada_owner_against_an_overridable_factory_pu
         d["DeviceTypes"].append(hp_record(odu_device_type(d), True, True))
 
     House0Layout.model_validate(mutated(assembled, mutate))
+
+
+def test_gw_house0_layout_axiom_6_transactive_input_disabled(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        transactive = next(c for c in d["DerivedChannels"] if c["Strategy"] == "transactive-power")
+        d["DisabledChannelNames"] = [transactive["InputChannelNames"][0]]
+
+    reject(assembled, mutate, r"Axiom 6 \(")
+
+
+def test_gw_house0_layout_axiom_28_disabled_actuator_node(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        d["DisabledNodeNames"] = ["store-pump-relay"]
+        d["DisabledChannelNames"] = ["store-pump-relay"]
+
+    reject(assembled, mutate, r"Axiom 28 \(")
+
+
+def test_gw_house0_layout_axiom_28_disabled_actuator_channel(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        d["DisabledChannelNames"] = ["store-pump-relay"]
+
+    reject(assembled, mutate, r"Axiom 28 \(")
+
+
+def test_gw_house0_layout_axiom_34_heat_call_for_no_circuit(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        stray = json.loads(json.dumps(
+            next(c for c in d["DerivedChannels"] if c["Strategy"] == "heat-call")
+        ))
+        stray["Name"] = "stray-heat-call"
+        stray["Id"] = str(uuid.uuid4())
+        stray["InputChannelNames"] = ["hp-odu-pwr"]
+        d["DerivedChannels"].append(stray)
+
+    reject(assembled, mutate, r"Axiom 34 \(")
+

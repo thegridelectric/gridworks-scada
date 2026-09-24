@@ -164,7 +164,8 @@ class NolanLayout(GwsprotoSemaType):
         "transactive-power" — the metered transactive boundary, computed by the
         power-meter actor. Each name in that channel's InputChannelNames SHALL
         resolve to an existing DataChannel with TelemetryName "PowerW", and the
-        AboutNode of each such DataChannel SHALL carry a NameplatePowerW.
+        AboutNode of each such DataChannel SHALL carry a NameplatePowerW. No
+        input SHALL be in DisabledChannelNames.
         """
         transactive = [
             d for d in self.DerivedChannels if d.Strategy == "transactive-power"
@@ -193,6 +194,11 @@ class NolanLayout(GwsprotoSemaType):
                 raise ValueError(
                     "Axiom 1 (TransactivePowerChannel) failed: about-node "
                     f"'{ch.AboutNodeName}' of input '{name}' has no NameplatePowerW."
+                )
+            if name in self.DisabledChannelNames:
+                raise ValueError(
+                    "Axiom 1 (TransactivePowerChannel) failed: input "
+                    f"'{name}' is in DisabledChannelNames."
                 )
         return self
 
@@ -783,17 +789,29 @@ class NolanLayout(GwsprotoSemaType):
         """
         Axiom 26: DisabledNodesAreSensors
         Every name in DisabledNodeNames SHALL be the CapturedByNodeName of at
-        least one DataChannel, and every DataChannel whose CapturedByNodeName
-        is in DisabledNodeNames SHALL have its Name in DisabledChannelNames.
+        least one DataChannel and SHALL NOT be a Relay or ZeroTenOutputer
+        node; every DataChannel whose CapturedByNodeName is in
+        DisabledNodeNames SHALL have its Name in DisabledChannelNames; no name
+        in DisabledChannelNames SHALL be a DataChannel captured by such a
+        node. Disabling is a sensing concept; an actuator is wired or absent.
         """
         disabled_nodes = set(self.DisabledNodeNames)
         disabled_channels = set(self.DisabledChannelNames)
         capturing = {c.CapturedByNodeName for c in self.DataChannels}
+        actuators = {
+            n.Name for n in self.ShNodes
+            if n.ActorClass in (ActorClass.Relay, ActorClass.ZeroTenOutputer)
+        }
         for name in disabled_nodes:
             if name not in capturing:
                 raise ValueError(
                     "Axiom 26 (DisabledNodesAreSensors) failed: "
                     f"'{name}' captures no DataChannel."
+                )
+            if name in actuators:
+                raise ValueError(
+                    "Axiom 26 (DisabledNodesAreSensors) failed: "
+                    f"'{name}' is an actuator; an actuator is wired or absent."
                 )
         for c in self.DataChannels:
             if c.CapturedByNodeName in disabled_nodes and c.Name not in disabled_channels:
@@ -801,6 +819,11 @@ class NolanLayout(GwsprotoSemaType):
                     "Axiom 26 (DisabledNodesAreSensors) failed: "
                     f"'{c.Name}' is captured by disabled node "
                     f"'{c.CapturedByNodeName}' but is not in DisabledChannelNames."
+                )
+            if c.Name in disabled_channels and c.CapturedByNodeName in actuators:
+                raise ValueError(
+                    "Axiom 26 (DisabledNodesAreSensors) failed: "
+                    f"'{c.Name}' is captured by actuator '{c.CapturedByNodeName}'."
                 )
         return self
 
@@ -936,5 +959,29 @@ class NolanLayout(GwsprotoSemaType):
                 raise ValueError(
                     f"Axiom 30 (CommandNodeHandles) failed: {n.Name!r} has effective "
                     f"handle {effective!r}, expected {want!r}."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_31(self) -> "NolanLayout":
+        """
+        Axiom 31: HeatCallChannelBelongsToCircuit
+        Every heat-call DerivedChannel's InputChannelNames SHALL equal [the
+        WhitewireChannelName of exactly one circuit in
+        Hydronic.ZoneCallCircuits]; with CircuitHeatCallChannel, heat calls
+        and circuits are one to one.
+        """
+        whitewires = [c.WhitewireChannelName for c in self.Hydronic.ZoneCallCircuits]
+        for d in self.DerivedChannels:
+            if d.Strategy != "heat-call":
+                continue
+            if (
+                len(d.InputChannelNames) != 1
+                or whitewires.count(d.InputChannelNames[0]) != 1
+            ):
+                raise ValueError(
+                    "Axiom 31 (HeatCallChannelBelongsToCircuit) failed: heat-call "
+                    f"channel '{d.Name}' has inputs {d.InputChannelNames}, not exactly "
+                    "one circuit's whitewire."
                 )
         return self

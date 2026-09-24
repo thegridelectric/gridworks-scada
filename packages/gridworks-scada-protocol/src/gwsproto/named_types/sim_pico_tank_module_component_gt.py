@@ -8,7 +8,6 @@ from gwsproto.type_helpers.component_base import DeviceComponentBase
 
 
 class SimPicoTankModuleComponentGt(DeviceComponentBase):
-    Enabled: bool
     PicoHwUid: Optional[str] = None
     PicoAHwUid: Optional[str] = None
     PicoBHwUid: Optional[str] = None

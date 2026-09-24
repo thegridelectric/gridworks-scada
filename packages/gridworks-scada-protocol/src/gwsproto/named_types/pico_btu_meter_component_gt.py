@@ -20,7 +20,6 @@ class PicoBtuMeterComponentGt(DeviceComponentBase):
     Sema: https://schemas.electricity.works/types/pico.btu.meter.component.gt/000
     """
 
-    Enabled: bool
     SerialNumber: str
     FlowChannelName: SpaceheatName
     HotChannelName: SpaceheatName

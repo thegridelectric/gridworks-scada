@@ -11,7 +11,6 @@ from gwsproto.property_format import SpaceheatName
 class SimPicoFlowModuleComponentGt(DeviceComponentBase):
     """Sema: https://schemas.electricity.works/types/sim.pico.flow.module.component.gt/000"""
 
-    Enabled: bool
     SerialNumber: str
     FlowNodeName: SpaceheatName
     FlowMeterType: str = "SaierFlowSensor"

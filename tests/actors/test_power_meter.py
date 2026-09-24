@@ -86,23 +86,23 @@ def test_power_meter_small():
     assert driver_thread.should_report_telemetry_reading(ch_1) is False
 
     assert driver_thread.last_reported_agg_power_w is None
-    # secondary-pump-pwr sits inside the transactive boundary, so the 6 W bumped
-    # onto ch_1 above already shows in the aggregate.
-    assert driver_thread.latest_agg_power_w == 6
+    # secondary-pump-pwr is outside the transactive boundary (pump power is
+    # never metered), so the 6 W bumped onto ch_1 above is not in the aggregate.
+    assert driver_thread.latest_agg_power_w == 0
     assert driver_thread.should_report_aggregated_power()
     driver_thread.report_aggregated_power_w()
     assert not driver_thread.should_report_aggregated_power()
 
     
-    # Sim-spruce transactive boundary: 4 elements @ 4500, secondary-pump 80,
-    # hp-ctrl-box 50, hp-odu 4300 -> 22430 W aggregate nameplate.
+    # Sim-spruce transactive boundary: 4 elements @ 4500, hp-ctrl-box 50,
+    # hp-odu 4300 -> 22350 W aggregate nameplate.
     hp_odu = layout.node(HSNN.hp_odu)
     assert hp_odu.NameplatePowerW == 4300
-    assert driver_thread.nameplate_agg_power_w == 22_430
+    assert driver_thread.nameplate_agg_power_w == 22_350
     power_reporting_threshold_ratio = driver_thread.async_power_reporting_threshold
     assert power_reporting_threshold_ratio == 0.02
     power_reporting_threshold_w = power_reporting_threshold_ratio * driver_thread.nameplate_agg_power_w
-    assert power_reporting_threshold_w == pytest.approx(448.6)
+    assert power_reporting_threshold_w == pytest.approx(447.0)
 
     tt = layout.channel(HCN.hp_odu_pwr)
     driver_thread.latest_telemetry_value[tt] += 400
@@ -110,7 +110,7 @@ def test_power_meter_small():
     driver_thread.latest_telemetry_value[tt] += 100
     assert driver_thread.should_report_aggregated_power()
     driver_thread.report_aggregated_power_w()
-    assert driver_thread.latest_agg_power_w == 506
+    assert driver_thread.latest_agg_power_w == 500
 
 def meter_test_layout() -> HydronicLayout:
     settings = ScadaSettings()
@@ -196,9 +196,11 @@ async def test_async_power_update(request: pytest.FixtureRequest):
         delta_w = int(p.async_power_reporting_threshold * p.nameplate_agg_power_w) + 1
 
         driver.fake_power_w += delta_w
+        # the aggregate and the channel readings are two messages; wait for both
         await h.await_for(
-                lambda: data.latest_power_w > 0,
-                "Scada wait for PowerWatts"
+                lambda: data.latest_power_w > 0
+                and data.latest_channel_values[HCN.hp_odu_pwr] == delta_w,
+                "Scada wait for PowerWatts and the metered readings"
                 )
 
         transactive_channels = {
@@ -208,14 +210,14 @@ async def test_async_power_update(request: pytest.FixtureRequest):
             for name in dc.InputChannelNames
         }
 
-        # Sim-spruce transactive boundary: the four elements, secondary-pump,
-        # hp-ctrl-box, hp-odu.
+        # Sim-spruce transactive boundary: the four elements, hp-ctrl-box,
+        # hp-odu. Pump power is never metered.
         assert transactive_channels == {
             data.layout.data_channels[name]
             for name in (
                 "buffer-top-elt-pwr", "buffer-bottom-elt-pwr",
                 "tank1-top-elt-pwr", "tank1-bottom-elt-pwr",
-                HCN.secondary_pump_pwr, "hp-ctrl-box-pwr", HCN.hp_odu_pwr,
+                "hp-ctrl-box-pwr", HCN.hp_odu_pwr,
             )
         }
 
@@ -223,15 +225,15 @@ async def test_async_power_update(request: pytest.FixtureRequest):
         assert data.latest_channel_values[HCN.hp_odu_pwr] == delta_w
 
         # The sim driver applies fake_power_w to every metered channel, so
-        # the aggregate sees all seven transactive channels move.
-        assert data.latest_power_w == 7 * delta_w
+        # the aggregate sees all six transactive channels move.
+        assert data.latest_power_w == 6 * delta_w
 
         await h.await_for(
             lambda: ltn_received_counts['power.watts'] > initial,
             "Ltn wait for power.watts",
         )
         ltn = h.parent_app.ltn
-        assert ltn.data.latest_power_w == 7 * delta_w
+        assert ltn.data.latest_power_w == 6 * delta_w
 
 
 @pytest.mark.asyncio

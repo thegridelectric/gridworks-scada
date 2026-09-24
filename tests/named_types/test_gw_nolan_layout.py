@@ -38,6 +38,43 @@ def reject(assembled: dict, mutate, axiom: str) -> None:
     with pytest.raises(ValueError, match=axiom):
         NolanLayout.model_validate(mutated(assembled, mutate))
 
+def sensor_off_the_meter(d: dict) -> str:
+    """A node capturing channels that feed no transactive-power channel and
+    is not an actuator: the one a disabled-list test may disable without
+    tripping the transactive or actuator clauses."""
+    metered = {
+        n
+        for x in d["DerivedChannels"]
+        if x["Strategy"] == "transactive-power"
+        for n in x["InputChannelNames"]
+    }
+    actuators = {
+        n["Name"] for n in d["ShNodes"] if n["ActorClass"] in ("Relay", "ZeroTenOutputer")
+    }
+    captured: dict[str, set[str]] = {}
+    for c in d["DataChannels"]:
+        captured.setdefault(c["CapturedByNodeName"], set()).add(c["Name"])
+    return next(
+        node
+        for node, names in captured.items()
+        if not names & metered and node not in actuators
+    )
+
+
+def unmetered_derived(d: dict) -> dict:
+    """A DerivedChannel with inputs, none of them in the transactive set."""
+    metered = {
+        n
+        for x in d["DerivedChannels"]
+        if x["Strategy"] == "transactive-power"
+        for n in x["InputChannelNames"]
+    }
+    return next(
+        c for c in d["DerivedChannels"]
+        if c["InputChannelNames"] and not set(c["InputChannelNames"]) & metered
+    )
+
+
 
 def test_gw_nolan_layout_generated(assembled: dict) -> None:
     NolanLayout.model_validate(assembled)
@@ -596,7 +633,7 @@ def test_gw_nolan_layout_axiom_26_disabled_node_captures_nothing(assembled: dict
 
 def test_gw_nolan_layout_axiom_26_captured_channel_not_listed(assembled: dict) -> None:
     def mutate(d: dict) -> None:
-        d["DisabledNodeNames"] = [d["DataChannels"][0]["CapturedByNodeName"]]
+        d["DisabledNodeNames"] = [sensor_off_the_meter(d)]
         d["DisabledChannelNames"] = []
 
     reject(assembled, mutate, r"Axiom 26 \(")
@@ -604,7 +641,7 @@ def test_gw_nolan_layout_axiom_26_captured_channel_not_listed(assembled: dict) -
 
 def test_gw_nolan_layout_axiom_26_disabled_node_with_its_channels(assembled: dict) -> None:
     def mutate(d: dict) -> None:
-        node = d["DataChannels"][0]["CapturedByNodeName"]
+        node = sensor_off_the_meter(d)
         captured = [c["Name"] for c in d["DataChannels"] if c["CapturedByNodeName"] == node]
         derived = [c["Name"] for c in d["DerivedChannels"] if set(c["InputChannelNames"]) & set(captured)]
         d["DisabledNodeNames"] = [node]
@@ -615,7 +652,7 @@ def test_gw_nolan_layout_axiom_26_disabled_node_with_its_channels(assembled: dic
 
 def test_gw_nolan_layout_axiom_27_enabled_derived_reads_disabled_input(assembled: dict) -> None:
     def mutate(d: dict) -> None:
-        derived = next(c for c in d["DerivedChannels"] if c["InputChannelNames"])
+        derived = unmetered_derived(d)
         d["DisabledChannelNames"] = [derived["InputChannelNames"][0]]
 
     reject(assembled, mutate, r"Axiom 27 \(")
@@ -623,8 +660,17 @@ def test_gw_nolan_layout_axiom_27_enabled_derived_reads_disabled_input(assembled
 
 def test_gw_nolan_layout_axiom_27_disabled_derived_may_read_disabled_input(assembled: dict) -> None:
     def mutate(d: dict) -> None:
-        derived = next(c for c in d["DerivedChannels"] if c["InputChannelNames"])
-        d["DisabledChannelNames"] = [derived["InputChannelNames"][0], derived["Name"]]
+        derived = unmetered_derived(d)
+        disabled = [derived["InputChannelNames"][0], derived["Name"]]
+        # a derived channel downstream of a disabled one is disabled with it
+        grew = True
+        while grew:
+            grew = False
+            for c in d["DerivedChannels"]:
+                if c["Name"] not in disabled and set(c["InputChannelNames"]) & set(disabled):
+                    disabled.append(c["Name"])
+                    grew = True
+        d["DisabledChannelNames"] = disabled
 
     NolanLayout.model_validate(mutated(assembled, mutate))
 
@@ -702,3 +748,40 @@ def test_gw_nolan_layout_axiom_29_scada_owner_against_an_overridable_control_box
         d["DeviceTypes"].append(control_box_record(d, True, True))
 
     NolanLayout.model_validate(mutated(assembled, mutate))
+
+
+def test_gw_nolan_layout_axiom_1_transactive_input_disabled(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        transactive = next(c for c in d["DerivedChannels"] if c["Strategy"] == "transactive-power")
+        d["DisabledChannelNames"] = [transactive["InputChannelNames"][0]]
+
+    reject(assembled, mutate, r"Axiom 1 \(")
+
+
+def test_gw_nolan_layout_axiom_26_disabled_actuator_node(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        d["DisabledNodeNames"] = ["store-pump-relay"]
+        d["DisabledChannelNames"] = ["store-pump-relay"]
+
+    reject(assembled, mutate, r"Axiom 26 \(")
+
+
+def test_gw_nolan_layout_axiom_26_disabled_actuator_channel(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        d["DisabledChannelNames"] = ["store-pump-relay"]
+
+    reject(assembled, mutate, r"Axiom 26 \(")
+
+
+def test_gw_nolan_layout_axiom_31_heat_call_for_no_circuit(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        stray = json.loads(json.dumps(
+            next(c for c in d["DerivedChannels"] if c["Strategy"] == "heat-call")
+        ))
+        stray["Name"] = "stray-heat-call"
+        stray["Id"] = str(uuid.uuid4())
+        stray["InputChannelNames"] = ["hp-odu-pwr"]
+        d["DerivedChannels"].append(stray)
+
+    reject(assembled, mutate, r"Axiom 31 \(")
+

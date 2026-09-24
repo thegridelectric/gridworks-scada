@@ -17,7 +17,6 @@ from gwsproto.property_format import (
 class SimPicoBtuMeterComponentGt(DeviceComponentBase):
     """Sema: https://schemas.electricity.works/types/sim.pico.btu.meter.component.gt/000"""
 
-    Enabled: bool
     SerialNumber: str
     FlowChannelName: SpaceheatName
     HotChannelName: SpaceheatName

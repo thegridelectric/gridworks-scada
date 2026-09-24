@@ -9,7 +9,6 @@ def component() -> dict:
     return {
         "ComponentId": "b58df331-f649-4563-9e40-d3e500529679",
         "DeviceType": "GridworksTankModule3",
-        "Enabled": False,
         "TempCalcMethod": "SimpleBeta",
         "ThermistorBeta": 1,
         "SendMicroVolts": False,

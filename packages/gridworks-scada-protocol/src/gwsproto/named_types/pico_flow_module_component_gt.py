@@ -9,7 +9,6 @@ from gwsproto.property_format import SpaceheatName
 
 
 class PicoFlowModuleComponentGt(DeviceComponentBase):
-    Enabled: bool
     SerialNumber: str
     FlowNodeName: SpaceheatName
     FlowMeterType: str = "SaierFlowSensor"
