@@ -44,7 +44,10 @@ def test_power_meter_small():
     DriverThreadSetupHelper(meter.node, settings, layout, scada.logger)
 
     meter_node = layout.node(CoreNodeNames.asset_power_meter)
-    pwr_meter_channel_names = [cfg.ChannelName for cfg in meter_node.component.gt.ConfigList]
+    # the meter reads its ConfigList less the layout's disabled channels
+    pwr_meter_channel_names = layout.enabled_channel_names(
+        cfg.ChannelName for cfg in meter_node.component.gt.ConfigList
+    )
     pwr_meter_channels = set(layout.data_channels[name] for name in pwr_meter_channel_names)
     assert set(driver_thread.last_reported_telemetry_value.keys()) == pwr_meter_channels
     assert set(driver_thread.eq_reporting_config.keys()) == pwr_meter_channels

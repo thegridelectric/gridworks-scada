@@ -114,7 +114,13 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
             self.component.device_type.MinPollPeriodMs,
         )
         self._telemetry_destination = telemetry_destination
-        my_channel_names = {x.ChannelName for x in self.component.gt.ConfigList}
+        my_channel_names = set(
+            hardware_layout.enabled_channel_names(
+                x.ChannelName for x in self.component.gt.ConfigList
+            )
+        )
+        if hardware_layout.node_disabled(node.name):
+            my_channel_names = set()
         self.my_channels = [
             ch
             for ch in self._hardware_layout.data_channels.values()

@@ -90,11 +90,18 @@ class ApiFlowModule(ShNodeActor):
             micropython_version=self._component.gt.MicropythonVersion,
         )
 
+        # Built but idle: a disabled node keeps its routes and its place in
+        # the cycler's roster, and neither reads, reports nor alerts.
+        self.disabled: bool = self.layout.node_disabled(self.name)
         # Flow processing
         self.gpm_channel = self.layout.data_channels[f"{self.name}"]
         self.hz_channel = self.layout.data_channels[f"{self.name}-hz"]
+        self.publish_gpm: bool = not self.layout.channel_disabled(self.gpm_channel.Name)
+        self.publish_hz: bool = (
+            self._component.gt.SendHz and not self.layout.channel_disabled(self.hz_channel.Name)
+        )
         self.feeds_derived = self.layout.feeds_derived(
-            [self.gpm_channel.Name, self.hz_channel.Name]
+            self.layout.enabled_channel_names([self.gpm_channel.Name, self.hz_channel.Name])
         )
 
         self.nano_timestamps: List[int] = []
@@ -114,37 +121,36 @@ class ApiFlowModule(ShNodeActor):
 
         self.validate_config_params()
 
-        if self._component.gt.Enabled:
-            if self._component.gt.DeviceType == DeviceType.GridworksPicoFlowHall:
-                self._services.add_web_route(
-                    server_name=ScadaWeb.DEFAULT_SERVER_NAME,
-                    method="POST",
-                    path="/" + self.hall_params_path,
-                    handler=self._handle_hall_params_post,
-                )
-                self._services.add_web_route(
-                    server_name=ScadaWeb.DEFAULT_SERVER_NAME,
-                    method="POST",
-                    path="/" + self.ticklist_hall_path,
-                    handler=self._handle_ticklist_hall_post,
-                )
-            elif self._component.gt.DeviceType == DeviceType.GridworksPicoFlowReed:
-                self._services.add_web_route(
-                    server_name=ScadaWeb.DEFAULT_SERVER_NAME,
-                    method="POST",
-                    path="/" + self.reed_params_path,
-                    handler=self._handle_reed_params_post,
-                )
-                self._services.add_web_route(
-                    server_name=ScadaWeb.DEFAULT_SERVER_NAME,
-                    method="POST",
-                    path="/" + self.ticklist_reed_path,
-                    handler=self._handle_ticklist_reed_post,
-                )
-            else:
-                raise Exception(
-                    f"ApiFlowMeter actor does not recognize {self._component.gt.DeviceType}"
-                )
+        if self._component.gt.DeviceType == DeviceType.GridworksPicoFlowHall:
+            self._services.add_web_route(
+                server_name=ScadaWeb.DEFAULT_SERVER_NAME,
+                method="POST",
+                path="/" + self.hall_params_path,
+                handler=self._handle_hall_params_post,
+            )
+            self._services.add_web_route(
+                server_name=ScadaWeb.DEFAULT_SERVER_NAME,
+                method="POST",
+                path="/" + self.ticklist_hall_path,
+                handler=self._handle_ticklist_hall_post,
+            )
+        elif self._component.gt.DeviceType == DeviceType.GridworksPicoFlowReed:
+            self._services.add_web_route(
+                server_name=ScadaWeb.DEFAULT_SERVER_NAME,
+                method="POST",
+                path="/" + self.reed_params_path,
+                handler=self._handle_reed_params_post,
+            )
+            self._services.add_web_route(
+                server_name=ScadaWeb.DEFAULT_SERVER_NAME,
+                method="POST",
+                path="/" + self.ticklist_reed_path,
+                handler=self._handle_ticklist_reed_post,
+            )
+        else:
+            raise Exception(
+                f"ApiFlowMeter actor does not recognize {self._component.gt.DeviceType}"
+            )
 
     def validate_config_params(self) -> None:
         if self._component.gt.HzCalcMethod == HzCalcMethod.BasicExpWeightedAvg:
@@ -177,10 +183,12 @@ class ApiFlowModule(ShNodeActor):
             return 1
 
     def publish_synced_readings(self):
+        if self.disabled or not self.publish_gpm:
+            return
         if self.latest_gpm is not None:
             channel_names = [self.gpm_channel.Name]
             values = [int(self.latest_gpm * 100)]
-            if self._component.gt.SendHz:
+            if self.publish_hz:
                 channel_names.append(self.hz_channel.Name)
                 values.append(int(self.latest_hz * 1e6))
             msg = SyncedReadings(
@@ -224,7 +232,7 @@ class ApiFlowModule(ShNodeActor):
         return [MonitoredName(self.name, self.flatline_seconds() * 2.1)]
 
     async def main(self):
-        if self.slow_turner:
+        if self.slow_turner and not self.disabled:
             self.publish_zero_flow()
 
         while not self._stop_requested:
@@ -243,7 +251,7 @@ class ApiFlowModule(ShNodeActor):
 
             self._send(PatInternalWatchdogMessage(src=self.name))
 
-            if self._component.gt.Enabled and self.liveness.report_due(time.time()):
+            if not self.disabled and self.liveness.report_due(time.time()):
                 self.report_missing()
 
             try:
@@ -494,10 +502,12 @@ class ApiFlowModule(ShNodeActor):
     def publish_zero_flow(self):
         self.latest_gpm = 0
         self.latest_hz = 0
+        if self.disabled or not self.publish_gpm:
+            return
         # Set the appropriate channels to 0
         channel_names = [self.gpm_channel.Name]
         values = [0]
-        if self._component.gt.SendHz:
+        if self.publish_hz:
             channel_names.append(self.hz_channel.Name)
             values.append(0)
         # Set the timestamp for the zero reading just after (100ms) the latest tick received
@@ -541,9 +551,11 @@ class ApiFlowModule(ShNodeActor):
         gallons_per_tick = self._component.gt.ConstantGallonsPerTick
         self.latest_gpm = first_frequency * 60 * gallons_per_tick
         self.latest_hz = first_frequency
+        if self.disabled or not self.publish_gpm:
+            return
         channel_names = [self.gpm_channel.Name]
         values = [int(self.latest_gpm * 100)]
-        if self._component.gt.SendHz:
+        if self.publish_hz:
             channel_names.append(self.hz_channel.Name)
             values.append(int(self.latest_hz * 1e6))
         msg = SyncedReadings(
@@ -644,6 +656,8 @@ class ApiFlowModule(ShNodeActor):
         hz_list = [x / 1e6 for x in micro_hz_readings.ValueList]
         gpms = [x * 60 * gallons_per_tick for x in hz_list]
         self.latest_gpm = gpms[-1]
+        if self.disabled or not self.publish_gpm:
+            return
         gpm_readings = ChannelReadings(
             ChannelName=self.gpm_channel.Name,
             ValueList=[int(x*100) for x in gpms],
@@ -653,7 +667,7 @@ class ApiFlowModule(ShNodeActor):
         if self.feeds_derived:
             self._send_to(self.derived_generator, gpm_readings)
         self._send_to(self.pico_cycler, gpm_readings)
-        if self._component.gt.SendHz:
+        if self.publish_hz:
             self._send_to(self.primary_scada, micro_hz_readings)
 
     def get_micro_hz_readings(self) -> ChannelReadings:

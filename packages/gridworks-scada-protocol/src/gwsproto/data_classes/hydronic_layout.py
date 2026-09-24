@@ -647,6 +647,12 @@ class HydronicLayout:
         }
         self.data_channels = dict(data_channels)
         self.derived_channels = dict(derived_channels)
+        # The house cannot serve these yet: required by the word, declared in
+        # the layout, pending a field visit. A disabled node's actor is built
+        # but neither reads, reports nor alerts; a disabled channel is skipped
+        # by its capturing actor and by the derived generator.
+        self.disabled_node_names: frozenset[str] = frozenset(sema_layout.DisabledNodeNames)
+        self.disabled_channel_names: frozenset[str] = frozenset(sema_layout.DisabledChannelNames)
         self.validate_derived_channels()
 
         # ---- Hydronic block (the gw.hydronic type) — taken from the word ----
@@ -997,15 +1003,27 @@ class HydronicLayout:
     def derived_channel(self, name: str, default: Any = None) -> DerivedChannel | None:  # noqa: ANN401
         return self.derived_channels.get(name, default)
 
+    def node_disabled(self, name: str) -> bool:
+        return name in self.disabled_node_names
+
+    def channel_disabled(self, name: str) -> bool:
+        return name in self.disabled_channel_names
+
+    def enabled_channel_names(self, names: Iterable[str]) -> list[str]:
+        """The given channel names with the disabled ones left out, order kept."""
+        return [name for name in names if name not in self.disabled_channel_names]
+
     def feeds_derived(self, channel_names: Iterable[str]) -> bool:
         """Whether a DerivedChannel the derived generator creates takes one of
         these channels as input. A device actor posts its readings to the
-        derived generator as well as the scada exactly when this is true."""
+        derived generator as well as the scada exactly when this is true.
+        A disabled DerivedChannel takes nothing."""
         names = set(channel_names)
         return any(
             name in dc.InputChannelNames
             for dc in self.derived_channels.values()
             if dc.CreatedByNodeName == CoreNodeNames.derived_generator
+            and dc.Name not in self.disabled_channel_names
             for name in names
         )
 
@@ -1281,23 +1299,9 @@ class HydronicLayout:
 
     @property
     def unreported_channels(self) -> set[str]:
-        """
-        Channels that must exist in the layout but are NOT reported upstream.
-        """
-        # Example: exclude all device-level temperature channels
-        # (kept locally for diagnostics and derived generation)
-        # unreported: set[str] = set()
-
-        # # Buffer device channels
-        # unreported |= HCN.buffer.device
-
-        # # Tank device channels
-        # for tank in self.h0cn.tank.values():
-        #     unreported |= tank.device
-
-        # return unreported
-
-        return set()
+        """Channels that exist in the layout but are not reported upstream:
+        the disabled ones."""
+        return set(self.disabled_channel_names)
 
     @property
     def has_store_tanks(self) -> bool:

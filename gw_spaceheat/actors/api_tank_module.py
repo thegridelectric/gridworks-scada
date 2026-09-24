@@ -90,20 +90,22 @@ class ApiTankModule(ShNodeActor):
             )
 
         self._stop_requested: bool = False
+        # Built but idle: a disabled node keeps its routes and its place in
+        # the cycler's roster, and neither reads, reports nor alerts.
+        self.disabled: bool = self.layout.node_disabled(self.name)
 
-        if self._component.gt.Enabled:
-            self._services.add_web_route(
-                server_name=ScadaWeb.DEFAULT_SERVER_NAME,
-                method="POST",
-                path="/" + self.microvolts_path,
-                handler=self._handle_microvolts_post,
-            )
-            self._services.add_web_route(
-                server_name=ScadaWeb.DEFAULT_SERVER_NAME,
-                method="POST",
-                path="/" + self.params_path,
-                handler=self._handle_params_post,
-            )
+        self._services.add_web_route(
+            server_name=ScadaWeb.DEFAULT_SERVER_NAME,
+            method="POST",
+            path="/" + self.microvolts_path,
+            handler=self._handle_microvolts_post,
+        )
+        self._services.add_web_route(
+            server_name=ScadaWeb.DEFAULT_SERVER_NAME,
+            method="POST",
+            path="/" + self.params_path,
+            handler=self._handle_params_post,
+        )
 
         self.pico_uid = self._component.gt.PicoHwUid
         # When each depth node's open thermistor was last reported
@@ -127,17 +129,27 @@ class ApiTankModule(ShNodeActor):
             2: f"{self.name}-depth2",
             3: f"{self.name}-depth3",
         }
+        # Disabled channels are left out here, so nothing below reads,
+        # reports or alerts on them.
         self.device_channels: dict[int, str] = {
-            1: f"{self.name}-depth1-device",
-            2: f"{self.name}-depth2-device",
-            3: f"{self.name}-depth3-device",
+            depth: name
+            for depth, name in (
+                (1, f"{self.name}-depth1-device"),
+                (2, f"{self.name}-depth2-device"),
+                (3, f"{self.name}-depth3-device"),
+            )
+            if not self.layout.channel_disabled(name)
         }
-
+        self.electrical_channels: dict[int, str] = {}
         if self._component.gt.SendMicroVolts:
-            self.electrical_channels: dict[int, str] = {
-                1: f"{self.name}-depth1-micro-v",
-                2: f"{self.name}-depth2-micro-v",
-                3: f"{self.name}-depth3-micro-v",
+            self.electrical_channels = {
+                depth: name
+                for depth, name in (
+                    (1, f"{self.name}-depth1-micro-v"),
+                    (2, f"{self.name}-depth2-micro-v"),
+                    (3, f"{self.name}-depth3-micro-v"),
+                )
+                if not self.layout.channel_disabled(name)
             }
 
         self.channel_liveness: dict[str, PicoLiveness] = {
@@ -289,10 +301,12 @@ class ApiTankModule(ShNodeActor):
             correct_about_name = depth_map.get(incoming_about, incoming_about)
     
             volts = data.MicroVoltsList[i] / 1e6
-            if self._component.gt.SendMicroVolts:
+            electrical_channel_name = f"{correct_about_name}-micro-v"
+            if electrical_channel_name in self.electrical_channels.values():
                 value_list.append(data.MicroVoltsList[i])
-                channel_name_list.append(f"{correct_about_name}-micro-v")
-                #print(f"Updated {channel_name_list[-1]}: {round(volts,3)} V")
+                channel_name_list.append(electrical_channel_name)
+            if f"{correct_about_name}-device" not in self.device_channels.values():
+                continue
             if volts <= 0:
                 continue
             elif volts >= PICO_VOLTS:
@@ -350,7 +364,7 @@ class ApiTankModule(ShNodeActor):
         self.services.add_task(
             asyncio.create_task(self.main(), name="ApiTankModule keepalive")
         )
-        if self.sim_pico is not None:
+        if self.sim_pico is not None and not self.disabled:
             self.services.add_task(
                 asyncio.create_task(self.sim_pico_main(), name="ApiTankModule sim pico")
             )
@@ -398,10 +412,7 @@ class ApiTankModule(ShNodeActor):
         return self.liveness.missing(time.time())
 
     def flatlined_channel_names(self) -> list[str]:
-        names = list(self.device_channels.values())
-        if self._component.gt.SendMicroVolts:
-            names.extend(self.electrical_channels.values())
-        return names
+        return list(self.device_channels.values()) + list(self.electrical_channels.values())
 
     def report_missing(self) -> None:
         assert self.pico_uid
@@ -420,7 +431,7 @@ class ApiTankModule(ShNodeActor):
         carry it. A quiet channel on a posting pico is flatlined at the
         scada and is no PicoMissing; a missing pico is not also reported
         channel by channel."""
-        if not self._component.gt.Enabled:
+        if self.disabled:
             return
         now = time.time()
         if self.liveness.report_due(now):

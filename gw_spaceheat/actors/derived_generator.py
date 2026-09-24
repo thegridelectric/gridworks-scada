@@ -109,7 +109,11 @@ class DerivedGenerator(ShNodeActor):
 
             if dc.CreatedByNodeName != self.name:
                 continue
-    
+            # A disabled DerivedChannel is never computed: the house cannot
+            # serve one of its inputs yet
+            if self.layout.channel_disabled(dc.Name):
+                continue
+
             handler = self.strategy_handlers.get(dc.Strategy)
             if handler is None:
                 raise RuntimeError(
@@ -205,6 +209,7 @@ class DerivedGenerator(ShNodeActor):
             dc.Name
             for dc in self.layout.derived_channels.values()
             if dc.CreatedByNodeName == self.name
+            and not self.layout.channel_disabled(dc.Name)
         }
 
         missing = expected - handled_names

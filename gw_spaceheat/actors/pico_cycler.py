@@ -127,8 +127,8 @@ class PicoCycler(HydronicNode):
                 hw_uid = component.gt.PicoHwUid
             else:
                 continue
-            # A pico out of service is not watched and its absence cycles nothing
-            if not component.gt.Enabled:
+            # A disabled pico is not watched and its absence cycles nothing
+            if self.layout.node_disabled(node.name):
                 continue
             if hw_uid is None:
                 self.send_warning(

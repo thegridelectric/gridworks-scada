@@ -185,6 +185,7 @@ def poller(tmp_path: Path, attributes: list[MakerAPIAttributeGt]) -> tuple[Hubit
     p._name = "zone1-main-hubitat"
     p._report_dst = app.name
     p._scada_g_node_alias = app.hardware_layout.scada_g_node_alias
+    p._layout = app.hardware_layout
     p._component = SimpleNamespace(gt=SimpleNamespace(Poller=SimpleNamespace(attributes=attributes)))
     p._value_converters = {a.attribute_name: (lambda v: int(float(v) * 1000)) for a in attributes}
     p._forward = forwarded.append

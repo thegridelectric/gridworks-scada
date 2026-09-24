@@ -82,6 +82,7 @@ from sema_to_dc import OperationalParams
 from scada_app_interface import ScadaAppInterface
 
 UNKNOWN_CHANNEL_LOG_PERIOD_S = 15
+DISABLED_ROSTER_PERIOD_S = 24 * 3600
 
 
 class Scada(PrimeActor, ScadaInterface):
@@ -281,6 +282,9 @@ class Scada(PrimeActor, ScadaInterface):
             asyncio.create_task(self.snap_sending_task(), name="snap_sender"),
             asyncio.create_task(
                 self.unknown_channel_logging_task(), name="unknown_channel_logger"
+            ),
+            asyncio.create_task(
+                self.disabled_roster_task(), name="disabled_roster"
             ),
             asyncio.create_task(self.state_tracker(), name="scada top_state_tracker"),
             asyncio.create_task(
@@ -1470,6 +1474,33 @@ class Scada(PrimeActor, ScadaInterface):
                 await asyncio.sleep(self.seconds_til_next_snap())
             except Exception as e:
                 self.log(e)
+
+    def disabled_roster_glitch(self) -> Glitch | None:
+        """One Warning naming the layout's disabled nodes and channels, so a
+        reader of the journal can tell an expected silence from an unreported
+        one. None when the layout disables nothing."""
+        nodes = sorted(self.layout.disabled_node_names)
+        channels = sorted(self.layout.disabled_channel_names)
+        if not nodes and not channels:
+            return None
+        return Glitch(
+            FromGNodeAlias=self.layout.scada_g_node_alias,
+            Node=self.node.name,
+            Type=LogLevel.Warning,
+            Summary="disabled-roster",
+            Details=(
+                f"nodes: {', '.join(nodes) or '-'} | channels: {', '.join(channels) or '-'}"
+            ),
+        )
+
+    async def disabled_roster_task(self):
+        """The disabled roster, once a day: the set is static for a run and a
+        field window is short, so once at start and then daily."""
+        while not self._stop_requested:
+            glitch = self.disabled_roster_glitch()
+            if glitch is not None:
+                self._send_to(self.ltn, glitch)
+            await asyncio.sleep(DISABLED_ROSTER_PERIOD_S)
 
     async def unknown_channel_logging_task(self):
         while self.settings.unknown_channel_logging and not self._stop_requested:

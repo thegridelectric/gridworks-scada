@@ -1,7 +1,7 @@
 """A pico that keeps posting and drops one channel: the actor tells the
 scada that channel has flatlined after 2.5 of its capture periods, and
 does not call the pico missing. The BTU meter is the Nolan sim's
-store-btu; the tank module is the willow sim's tank1. Each actor's clock
+primary-btu; the tank module is the willow sim's tank1. Each actor's clock
 is driven by the test, its sim source ticked once a second and its
 liveness checked every ten, as `sim_pico_main` and `main` do."""
 
@@ -96,10 +96,10 @@ def rig(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> Rig:
     clock = Clock(time.time())
     if request.param == "btu":
         app = make_app("gw.nolan.layout.json", "gw.nolan.operational.params.json")
-        actor = app.get_communicator_as_type("store-btu", ApiBtuMeter)
+        actor = app.get_communicator_as_type("primary-btu", ApiBtuMeter)
         assert actor is not None
         monkeypatch.setattr(api_btu_meter, "time", clock)
-        return Rig(app, actor, clock, omit="store-cold-pipe", channel="store-cold-pipe")
+        return Rig(app, actor, clock, omit="hp-ewt", channel="hp-ewt")
     app = make_app("gw.house0.willow.layout.json", "gw.house0.willow.operational.params.json")
     actor = app.get_communicator_as_type("tank1", ApiTankModule)
     assert actor is not None

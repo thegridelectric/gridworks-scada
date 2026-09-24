@@ -92,6 +92,8 @@ class DriverThreadSetupHelper:
     def make_eq_reporting_config(self) -> Dict[DataChannel, ElectricMeterChannelConfig]:
         response_dict: Dict[DataChannel, ElectricMeterChannelConfig] = {}
         for config in self.component.gt.ConfigList:
+            if self.hardware_layout.channel_disabled(config.ChannelName):
+                continue
             ch = self.hardware_layout.data_channels[config.ChannelName]
             response_dict[ch] = config
         return response_dict
@@ -150,7 +152,11 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         self.transactive_nameplate_watts = setup_helper.get_transactive_nameplate_watts()
         self.last_reported_agg_power_w: Optional[int] = None
         component: ElectricMeterComponent = typing.cast(ElectricMeterComponent, node.component)
-        my_channel_names = [cfg.ChannelName for cfg in component.gt.ConfigList]
+        my_channel_names = hardware_layout.enabled_channel_names(
+            cfg.ChannelName for cfg in component.gt.ConfigList
+        )
+        if hardware_layout.node_disabled(node.name):
+            my_channel_names = []
         self.my_channels = [hardware_layout.data_channels[name] for name in my_channel_names]
         self.transactive_channel_names = set(
             transactive_power_input_names(hardware_layout)

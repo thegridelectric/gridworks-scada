@@ -229,12 +229,14 @@ class ScadaData:
         return False
 
     def unknown_channels(self) -> UnknownChannels:
+        """Channels with no value or a stale one. A disabled channel is
+        neither: the layout says the house cannot serve it yet."""
         no_value = [
-            ch.Name for ch in self.my_channels
+            ch.Name for ch in self.my_reported_channels
             if self.latest_channel_values[ch.Name] is None
         ]
         stale = [
-            ch.Name for ch in self.my_channels
+            ch.Name for ch in self.my_reported_channels
             if self.latest_channel_values[ch.Name] is not None and self.flatlined(ch)
         ]
         return UnknownChannels(no_value=no_value, stale=stale)

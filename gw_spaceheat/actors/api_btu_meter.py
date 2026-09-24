@@ -88,20 +88,22 @@ class ApiBtuMeter(PicoActorBase):
                 f"Expect Gw101 (BtuMeter) or SimSensor.. not {self.device_type}"
             )
         self._stop_requested: bool = False
+        # Built but idle: a disabled node keeps its routes and its place in
+        # the cycler's roster, and neither reads, reports nor alerts.
+        self.disabled: bool = self.layout.node_disabled(self.name)
 
-        if self._component.gt.Enabled:
-            self._services.add_web_route(
-                server_name=ScadaWeb.DEFAULT_SERVER_NAME,
-                method="POST",
-                path="/" + self.async_btu_params_path,
-                handler=self._handle_async_btu_params_post,
-            )
-            self._services.add_web_route(
-                server_name=ScadaWeb.DEFAULT_SERVER_NAME,
-                method="POST",
-                path="/" + self.multichannel_snapshot_path,
-                handler=self._handle_multichannel_snapshot_post,
-            )
+        self._services.add_web_route(
+            server_name=ScadaWeb.DEFAULT_SERVER_NAME,
+            method="POST",
+            path="/" + self.async_btu_params_path,
+            handler=self._handle_async_btu_params_post,
+        )
+        self._services.add_web_route(
+            server_name=ScadaWeb.DEFAULT_SERVER_NAME,
+            method="POST",
+            path="/" + self.multichannel_snapshot_path,
+            handler=self._handle_multichannel_snapshot_post,
+        )
         self.pico_uid = self._component.gt.HwUid
         self.refused_posts = RefusedPosts(self)
         # One Warning a day per channel for a thermistor that reads
@@ -127,17 +129,22 @@ class ApiBtuMeter(PicoActorBase):
         self.ct_channel = None
         if self._component.gt.CtChannelName:
             self.ct_channel = self.layout.channel(self._component.gt.CtChannelName)
+        # The channels this actor reads, reports and alerts on: the
+        # component's, less the disabled ones.
+        self.enabled_channel_names: set[str] = set(
+            self.layout.enabled_channel_names(
+                ch.Name
+                for ch in (self.flow_channel, self.hot_temp_channel, self.cold_temp_channel, self.ct_channel)
+                if ch is not None
+            )
+        )
         self.channel_liveness: dict[str, PicoLiveness] = {
             ch.Name: PicoLiveness(
                 expected_post_s=self.layout.capture_tuning_by_channel[ch.Name].CapturePeriodS
             )
             for ch in self.flatlined_channels()
         }
-        self.feeds_derived = self.layout.feeds_derived(
-            ch.Name
-            for ch in (self.flow_channel, self.hot_temp_channel, self.cold_temp_channel, self.ct_channel)
-            if ch is not None
-        )
+        self.feeds_derived = self.layout.feeds_derived(self.enabled_channel_names)
 
         self.sim_pico: Optional[SimPicoSource[MultichannelSnapshot]] = None
         if isinstance(self._component, SimPicoBtuMeterComponent):
@@ -326,6 +333,8 @@ class ApiBtuMeter(PicoActorBase):
         for channel_name, measurement, unit in zip(
             data.ChannelNameList, data.MeasurementList, data.UnitList
         ):
+            if channel_name not in self.enabled_channel_names:
+                continue
             if unit == "CelsiusTimes100":
                 celsius = measurement / 100
                 if celsius < IMPLAUSIBLE_BELOW_C or celsius > IMPLAUSIBLE_ABOVE_C:
@@ -373,7 +382,7 @@ class ApiBtuMeter(PicoActorBase):
         self.services.add_task(
             asyncio.create_task(self.main(), name="ApiBtuMeter keepalive")
         )
-        if self.sim_pico is not None:
+        if self.sim_pico is not None and not self.disabled:
             self.services.add_task(
                 asyncio.create_task(self.sim_pico_main(), name="ApiBtuMeter sim pico")
             )
@@ -424,7 +433,7 @@ class ApiBtuMeter(PicoActorBase):
         channels = [self.flow_channel, self.hot_temp_channel, self.cold_temp_channel]
         if self.ct_channel:
             channels.append(self.ct_channel)
-        return channels
+        return [ch for ch in channels if ch.Name in self.enabled_channel_names]
 
     def report_missing(self) -> None:
         if not self.pico_uid:
@@ -444,7 +453,7 @@ class ApiBtuMeter(PicoActorBase):
         carry it. A quiet channel on a posting pico is flatlined at the
         scada and is no PicoMissing; a missing pico is not also reported
         channel by channel."""
-        if not self._component.gt.Enabled:
+        if self.disabled:
             return
         now = time.time()
         if self.liveness.report_due(now):

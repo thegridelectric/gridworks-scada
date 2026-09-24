@@ -54,11 +54,13 @@ class SimSensorActor(ShNodeActor):
         # The channels this sensor reports are those bound to its node via
         # DataChannel.CapturedByNodeName — the sole channel→node binding (per the
         # layout-boundary spoke), so the sim component needs no ConfigList.
-        self._channel_names = [
+        self._channel_names = self.layout.enabled_channel_names(
             ch.Name
             for ch in self.layout.data_channels.values()
             if ch.CapturedByNodeName == self.name
-        ]
+        )
+        if self.layout.node_disabled(self.name):
+            self._channel_names = []
         self._capture_s = DEFAULT_CAPTURE_S
         self.feeds_derived = self.layout.feeds_derived(self._channel_names)
 

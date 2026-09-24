@@ -125,6 +125,9 @@ class I2cThermistorReader(ShNodeActor):
 
         device_configs: dict[SpaceheatName, I2cThermistorChannelConfig] = {}
         electrical_configs: dict[SpaceheatName, I2cThermistorChannelConfig] = {}
+        # A thermistor is one wire read as two channels (microvolts, then
+        # temperature); when either half is disabled neither is read.
+        disabled_about: set[SpaceheatName] = set()
 
         # --- classify configs ---
         for cfg in self.component.gt.ConfigList:
@@ -134,6 +137,10 @@ class I2cThermistorReader(ShNodeActor):
                 )
 
             ch = self.layout.data_channels[cfg.ChannelName]
+
+            if self.layout.node_disabled(self.name) or self.layout.channel_disabled(ch.Name):
+                disabled_about.add(ch.AboutNodeName)
+                continue
 
             if ch.TelemetryName == TelemetryName.MicroVolts:
                 electrical_configs[ch.Name] = cfg
@@ -146,6 +153,17 @@ class I2cThermistorReader(ShNodeActor):
                     f"{self.name}: unsupported TelemetryName {ch.TelemetryName} "
                     f"for channel {ch.Name}"
                 )
+
+        device_configs = {
+            name: cfg
+            for name, cfg in device_configs.items()
+            if self.layout.data_channels[name].AboutNodeName not in disabled_about
+        }
+        electrical_configs = {
+            name: cfg
+            for name, cfg in electrical_configs.items()
+            if self.layout.data_channels[name].AboutNodeName not in disabled_about
+        }
 
         # --- group electrical by AboutNodeName ---
         electrical_by_about: dict[SpaceheatName, SpaceheatName] = {}

@@ -49,6 +49,12 @@ class GpioSensor(ShNodeActor):
             if dc.CapturedByNodeName == self.name
         )
         self.tuning = self.layout.capture_tuning_by_channel[self.channel_name]
+        # One channel, so a disabled channel and a disabled node are the same
+        # thing: the pin is polled and nothing is published.
+        self.disabled: bool = (
+            self.layout.node_disabled(self.name)
+            or self.layout.channel_disabled(self.channel_name)
+        )
         self.send_to_derived = self.layout.feeds_derived([self.channel_name])
         # None until the pin has been read
         self.prev_value: int | None = None
@@ -152,7 +158,7 @@ class GpioSensor(ShNodeActor):
             await asyncio.sleep(poll_period)
 
     def _publish(self):
-        if self.latest_value is None:
+        if self.disabled or self.latest_value is None:
             return
         msg = SingleReading(
             ChannelName=self.channel_name,

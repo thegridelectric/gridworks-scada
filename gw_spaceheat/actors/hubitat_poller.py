@@ -47,6 +47,7 @@ class HubitatRESTPoller(RESTPoller):
             services: AppInterface,
     ):
         self._report_dst = services.name
+        self._layout = services.hardware_layout
         self._scada_g_node_alias = services.hardware_layout.scada_g_node_alias
         self._component = component
         self.glitch_limit = GlitchLimit(REPEAT_GLITCH_S)
@@ -111,7 +112,8 @@ class HubitatRESTPoller(RESTPoller):
             for config_attribute in self._component.gt.Poller.attributes:
                 if (config_attribute.enabled and
                     config_attribute.web_poll_enabled and
-                    config_attribute.attribute_name in self._value_converters
+                    config_attribute.attribute_name in self._value_converters and
+                    not self._layout.channel_disabled(config_attribute.channel_name)
                 ):
                     convert_result = self._convert_attribute(
                         config_attribute,
@@ -192,6 +194,9 @@ class HubitatPoller(Actor, HubitatWebEventListenerInterface):
 
         super().__init__(name, services)
         self._component = component
+        # Built but idle: a disabled node polls nothing and listens for nothing.
+        self._layout = services.hardware_layout
+        self.disabled: bool = self._layout.node_disabled(name)
         self._poller = HubitatRESTPoller(
                 name=name,
                 component=component,
@@ -209,9 +214,9 @@ class HubitatPoller(Actor, HubitatWebEventListenerInterface):
         """
         poll_value_converters = dict()
         handlers = []
-        if self._component.gt.Poller.enabled:
+        if self._component.gt.Poller.enabled and not self.disabled:
             for attribute in self._component.gt.Poller.attributes:
-                if attribute.enabled:
+                if attribute.enabled and not self._layout.channel_disabled(attribute.channel_name):
                     if (converter := self._make_value_converter(attribute)) is not None:
                         if attribute.web_poll_enabled:
                             poll_value_converters[attribute.attribute_name] = converter
@@ -277,11 +282,11 @@ class HubitatPoller(Actor, HubitatWebEventListenerInterface):
         raise ValueError("HubitatTankModule does not currently process any messages")
 
     def start(self) -> None:
-        if self._component.gt.Poller.enabled:
+        if self._component.gt.Poller.enabled and not self.disabled:
             self._poller.start()
 
     def stop(self) -> None:
-        if self._component.gt.Poller.enabled:
+        if self._component.gt.Poller.enabled and not self.disabled:
             try:
                 self._poller.stop()
             except: # noqa
