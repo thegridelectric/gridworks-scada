@@ -214,10 +214,9 @@ class House0Layout(GwsprotoSemaType):
           "pico-cycler" → ActorClass "PicoCycler"
           "hp-boss"     → ActorClass "HpBoss"
           "sieg-loop"   → ActorClass "SiegLoop"
-        The effective handle of "n" SHALL be "auto.lc.n". (A gw.house0.layout
-        plant has a siegenthaler loop; whether the loop is USED is
-        operational, so sieg-loop and hp-boss are unconditional command
-        nodes, dormant when unused.)
+        (A gw.house0.layout plant has a siegenthaler loop; whether the loop
+        is USED is operational, so sieg-loop and hp-boss are unconditional
+        command nodes, dormant when unused.)
         """
         if not self.ShNodes:
             return self
@@ -240,13 +239,6 @@ class House0Layout(GwsprotoSemaType):
                     f"Axiom 3 (CommandNodesExistenceAndActorClass) failed: expected exactly one "
                     f"ShNode {name!r} with ActorClass {actor_class}."
                 )
-        n_node = nodes_by_name["n"][0]
-        effective = n_node.Handle if n_node.Handle is not None else n_node.Name
-        if effective != "auto.lc.n":
-            raise ValueError(
-                f"Axiom 3 (CommandNodesExistenceAndActorClass) failed: 'n' effective handle is "
-                f"{effective!r}, expected 'auto.lc.n'."
-            )
         return self
 
     @model_validator(mode="after")
@@ -1023,5 +1015,45 @@ class House0Layout(GwsprotoSemaType):
                     "Axiom 32 (PrimaryPumpRecordAgreement) failed: PrimaryPumpOwner is "
                     f"Scada but record {r.DeviceType!r} ships its primary pump inside "
                     "the unit with no override."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_33(self) -> Self:
+        """
+        Axiom 33: CommandNodeHandles
+        The authored tree is the plant with no one in charge: "auto" is the
+        root, the command nodes and every actuator hang directly under it,
+        and a fixed relay hangs under the interior node that owns it. The
+        effective handles of the command nodes and fixed relays SHALL be the
+        declared ones; every other ShNode whose ActorClass is Relay or
+        ZeroTenOutputer SHALL have the effective handle "auto.<Name>".
+        """
+        expected = {
+            "five-v-boss": "auto.five-v-boss",
+            "pico-cycler": "auto.five-v-boss.pico-cycler",
+            "vdc-relay": "auto.five-v-boss.pico-cycler.vdc-relay",
+            "lc": "auto.lc",
+            "n": "auto.lc.n",
+            "backup": "auto.lc.backup",
+            "scada-blind": "auto.lc.scada-blind",
+            "hp-boss": "auto.hp-boss",
+            "hp-scada-ops-relay": "auto.hp-boss.hp-scada-ops-relay",
+            "sieg-loop": "auto.sieg-loop",
+            "hp-loop-on-off-relay": "auto.sieg-loop.hp-loop-on-off-relay",
+            "hp-loop-keep-send-relay": "auto.sieg-loop.hp-loop-keep-send-relay",
+        }
+        for n in self.ShNodes:
+            effective = n.Handle if n.Handle is not None else n.Name
+            if n.Name in expected:
+                want = expected[n.Name]
+            elif n.ActorClass in (ActorClass.Relay, ActorClass.ZeroTenOutputer):
+                want = f"auto.{n.Name}"
+            else:
+                continue
+            if effective != want:
+                raise ValueError(
+                    f"Axiom 33 (CommandNodeHandles) failed: {n.Name!r} has effective "
+                    f"handle {effective!r}, expected {want!r}."
                 )
         return self

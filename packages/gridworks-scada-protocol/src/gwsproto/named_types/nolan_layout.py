@@ -256,8 +256,7 @@ class NolanLayout(GwsprotoSemaType):
         ShNodes SHALL contain "n" (NoActor), "backup" (NoActor),
         "scada-blind" (NoActor), "five-v-boss" (FiveVBoss),
         "pico-cycler" (PicoCycler) and "hp-boss" (HpBoss), with no
-        additional ShNode of those Names; the effective handle of "n" SHALL
-        be "auto.lc.n".
+        additional ShNode of those Names.
         """
         pairs = (
             ("n", ActorClass.NoActor),
@@ -268,10 +267,6 @@ class NolanLayout(GwsprotoSemaType):
             ("hp-boss", ActorClass.HpBoss),
         )
         exact_match_pairs(self.ShNodes, pairs, "Axiom 4 (CommandNodesExistenceAndActorClass)")
-        require_effective_handles(
-            self.ShNodes, (("n", "auto.lc.n"),),
-            "Axiom 4 (CommandNodesExistenceAndActorClass)",
-        )
         return self
 
     @model_validator(mode="after")
@@ -904,5 +899,42 @@ class NolanLayout(GwsprotoSemaType):
                     "Axiom 29 (PrimaryPumpRecordAgreement) failed: PrimaryPumpOwner is "
                     f"Scada but record {r.DeviceType!r} ships its primary pump inside "
                     "the unit with no override."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_30(self) -> Self:
+        """
+        Axiom 30: CommandNodeHandles
+        The authored tree is the plant with no one in charge: "auto" is the
+        root, the command nodes and every actuator hang directly under it,
+        and a fixed relay hangs under the interior node that owns it. The
+        effective handles of the command nodes and fixed relays SHALL be the
+        declared ones; every other ShNode whose ActorClass is Relay or
+        ZeroTenOutputer SHALL have the effective handle "auto.<Name>".
+        """
+        expected = {
+            "five-v-boss": "auto.five-v-boss",
+            "pico-cycler": "auto.five-v-boss.pico-cycler",
+            "vdc-relay": "auto.five-v-boss.pico-cycler.vdc-relay",
+            "lc": "auto.lc",
+            "n": "auto.lc.n",
+            "backup": "auto.lc.backup",
+            "scada-blind": "auto.lc.scada-blind",
+            "hp-boss": "auto.hp-boss",
+            "hp-scada-ops-relay": "auto.hp-boss.hp-scada-ops-relay",
+        }
+        for n in self.ShNodes:
+            effective = n.Handle if n.Handle is not None else n.Name
+            if n.Name in expected:
+                want = expected[n.Name]
+            elif n.ActorClass in (ActorClass.Relay, ActorClass.ZeroTenOutputer):
+                want = f"auto.{n.Name}"
+            else:
+                continue
+            if effective != want:
+                raise ValueError(
+                    f"Axiom 30 (CommandNodeHandles) failed: {n.Name!r} has effective "
+                    f"handle {effective!r}, expected {want!r}."
                 )
         return self

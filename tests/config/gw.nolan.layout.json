@@ -140,7 +140,7 @@
       "Version": "303",
       "Name": "hp-boss",
       "ActorHierarchyName": "s.hp-boss",
-      "Handle": "auto.lc.n.hp-boss",
+      "Handle": "auto.hp-boss",
       "ActorClass": "HpBoss",
       "DisplayName": "Hp Boss - the heat pump's interior command node (dormant until a commandable heat pump or engaged loop hangs under it)",
       "ShNodeId": "2c915e66-7439-4074-9d56-a5160c582b5e"
@@ -437,7 +437,7 @@
       "Version": "303",
       "Name": "hp-scada-ops-relay",
       "ActorHierarchyName": "s.hp-scada-ops-relay",
-      "Handle": "auto.hp-scada-ops-relay",
+      "Handle": "auto.hp-boss.hp-scada-ops-relay",
       "ActorClass": "Relay",
       "DisplayName": "Hp Scada Ops Relay",
       "ComponentId": "2adcd918-10a7-41ea-a5f2-33ce35363089",

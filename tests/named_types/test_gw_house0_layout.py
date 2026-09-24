@@ -69,13 +69,27 @@ def test_gw_house0_layout_axiom_3(assembled: dict) -> None:
     )
 
 
-def test_gw_house0_layout_axiom_3_n_handle(assembled: dict) -> None:
-    """'n' must have effective handle auto.lc.n."""
+def set_handle(name: str, handle: str):
     def mutate(d: dict) -> None:
-        for n in d["ShNodes"]:
-            if n["Name"] == "n":
-                n["Handle"] = "auto.n"
-    reject(assembled, mutate, "Axiom 3")
+        next(n for n in d["ShNodes"] if n["Name"] == name)["Handle"] = handle
+    return mutate
+
+
+def test_gw_house0_layout_axiom_33_command_node_declared_under_lc(assembled: dict) -> None:
+    """hp-boss and its relay move together so the tree stays prefix-closed
+    and the handle axiom is the one that rejects."""
+    def mutate(d: dict) -> None:
+        set_handle("hp-boss", "auto.lc.n.hp-boss")(d)
+        set_handle("hp-scada-ops-relay", "auto.lc.n.hp-boss.hp-scada-ops-relay")(d)
+    reject(assembled, mutate, "Axiom 33")
+
+
+def test_gw_house0_layout_axiom_33_fixed_relay_declared_flat(assembled: dict) -> None:
+    reject(assembled, set_handle("hp-loop-on-off-relay", "auto.hp-loop-on-off-relay"), "Axiom 33")
+
+
+def test_gw_house0_layout_axiom_33_floating_actuator_under_a_boss(assembled: dict) -> None:
+    reject(assembled, set_handle("store-pump-relay", "auto.lc.n.store-pump-relay"), "Axiom 33")
 
 
 def test_gw_house0_layout_axiom_7(assembled: dict) -> None:
@@ -217,7 +231,7 @@ def test_sieg_loop_assembly_check(assembled: dict) -> None:
         check_sieg_loop_assembly(nolan, ops)
 
 
-def declare_twin(d: dict, name: str = "hp-idu", handle: str | None = "auto.lc.n.hp-boss.hp-idu") -> None:
+def declare_twin(d: dict, name: str = "hp-idu", handle: str | None = "auto.hp-boss.hp-idu") -> None:
     d["Hydronic"]["HpCommandNodeName"] = name
     for n in d["ShNodes"]:
         if n["Name"] == name:
@@ -292,7 +306,7 @@ def test_gw_house0_layout_axiom_14_b(assembled: dict) -> None:
     def stray_leaf(d: dict) -> None:
         for n in d["ShNodes"]:
             if n["Name"] == "hp-odu":
-                n["Handle"] = "auto.lc.n.hp-boss.hp-odu"
+                n["Handle"] = "auto.hp-boss.hp-odu"
     reject(assembled, stray_leaf, "Axiom 14")
 
 
