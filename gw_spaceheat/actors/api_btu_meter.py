@@ -7,10 +7,11 @@ from typing import Optional, Sequence
 from actors.pico_actor_base import PicoActorBase
 from actors.pico_identity import PicoIdentity
 from actors.pico_liveness import PicoLiveness
+from actors.pico_post_refusal import RefusedPosts, refused_post, unknown_pico, unreadable_post
 from actors.sim_pico_source import SIM_PICO_TICK_S, SimPicoSource
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
-from gwproactor import MonitoredName, Problems
+from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwsproto.data_classes.components import PicoBtuMeterComponent, SimPicoBtuMeterComponent
@@ -18,7 +19,7 @@ from gwsproto.enums import DeviceType, PicoBoardVariant, RelayClosedOrOpen, SimD
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames
 from gwsproto.names.core.node_names import ScadaWeb
 from gwsproto.named_types import (
-    AsyncBtuParams, ChannelFlatlined, 
+    AsyncBtuParams, ChannelFlatlined, Glitch,
     MultichannelSnapshot, PicoMissing, SyncedReadings
 )
 from result import Ok, Result
@@ -96,6 +97,7 @@ class ApiBtuMeter(PicoActorBase):
                 handler=self._handle_multichannel_snapshot_post,
             )
         self.pico_uid = self._component.gt.HwUid
+        self.refused_posts = RefusedPosts(self)
         self.pico_identity: Optional[PicoIdentity] = None
         if isinstance(self._component, PicoBtuMeterComponent):
             self.pico_identity = PicoIdentity(
@@ -165,30 +167,8 @@ class ApiBtuMeter(PicoActorBase):
         try:
             return await request.text()
         except Exception as e:
-            self.services.send_threadsafe(
-                Message(
-                    Payload=Problems(errors=[e]).problem_event(
-                        summary=(
-                            f"ERROR awaiting post ext <{self.name}>: {type(e)} <{e}>"
-                        ),
-                    )
-                )
-            )
+            self.refused_posts.report(unreadable_post(self.name, e))
         return None
-
-    def _report_post_error(self, exception: BaseException, text: str) -> None:
-        self.services.send_threadsafe(
-            Message(
-                Payload=Problems(
-                    msg=f"request: <{text}>", errors=[exception]
-                ).problem_event(
-                    summary=(
-                        "Pico POST processing error for "
-                        f"<{self._name}>: {type(exception)} <{exception}>"
-                    ),
-                )
-            )
-        )
 
     def is_valid_pico_uid(self, params: AsyncBtuParams) -> bool:
         if params.HwUid == self._component.gt.HwUid:
@@ -206,10 +186,12 @@ class ApiBtuMeter(PicoActorBase):
         text = await self._get_text(request)
         self.params_text = text
         #self.log(f"Params received: {text}")
+        if text is None:
+            return Response()
         try:
             params = AsyncBtuParams(**json.loads(text))
         except BaseException as e:
-            self._report_post_error(e, "malformed BtuMeter parameters!")
+            self.refused_posts.report(refused_post(self.name, text, e, AsyncBtuParams))
             r = Response()
             self.log(f"malformed BtuMeter parameters: {e}")
             return r
@@ -272,9 +254,10 @@ class ApiBtuMeter(PicoActorBase):
             # self.log(f"Valid pico id. returning {txt}")
             return Response(text=txt)
         else:
-            # A strange pico is identifying itself as our "a" tank
             self.log(f"unknown pico {params.HwUid} identifying as {self.name}")
-            # TODO: send problem report?
+            self.refused_posts.report(
+                unknown_pico(self.name, params.HwUid, self._component.gt.HwUid)
+            )
             return Response()
 
     def check_pico_identity(self, params: AsyncBtuParams) -> None:
@@ -297,6 +280,8 @@ class ApiBtuMeter(PicoActorBase):
             data = MultichannelSnapshot(**json.loads(text))
         except Exception as e:
             self.log(f"Did not interpret data as MultichannelSnapshot: {e}")
+            if text is not None:
+                self.refused_posts.report(refused_post(self.name, text, e, MultichannelSnapshot))
             return Response(text="failed", status=100)
 
         self.readings_text = text
@@ -310,7 +295,7 @@ class ApiBtuMeter(PicoActorBase):
                     )
                 )
             except Exception as e:  # noqa
-                self._report_post_error(e, text)
+                self.refused_posts.report(refused_post(self.name, text, e, MultichannelSnapshot))
         return Response()
 
     def _process_multichannel_snapshot(self, data: MultichannelSnapshot) -> None:
@@ -356,6 +341,8 @@ class ApiBtuMeter(PicoActorBase):
         match message.Payload:
             case MultichannelSnapshot():
                 self._process_multichannel_snapshot(message.Payload)
+            case Glitch():
+                self._send_to(self.ltn, message.Payload)
             case AsyncBtuParams():
                 self.check_pico_identity(message.Payload)
         return Ok(True)

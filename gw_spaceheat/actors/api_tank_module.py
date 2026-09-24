@@ -8,16 +8,17 @@ from typing import Optional, Sequence
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 from gwsproto.errors import DcError
-from gwproactor import MonitoredName, Problems
+from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwsproto.data_classes.components import PicoTankModuleComponent, SimPicoTankModuleComponent
 from gwsproto.enums import RelayClosedOrOpen, TempCalcMethod
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames
-from gwsproto.named_types import SyncedReadings, TankModuleParams
+from gwsproto.named_types import Glitch, SyncedReadings, TankModuleParams
 from result import Ok, Result
 from actors.pico_identity import PicoIdentity
 from actors.pico_liveness import PicoLiveness
+from actors.pico_post_refusal import RefusedPosts, refused_post, unknown_pico, unreadable_post
 from actors.sh_node_actor import ShNodeActor
 from actors.sim_pico_source import SIM_PICO_TICK_S, SimPicoSource
 from gwsproto.names.core.node_names import ScadaWeb
@@ -107,6 +108,7 @@ class ApiTankModule(ShNodeActor):
         self.pico_uid = self._component.gt.PicoHwUid
         # When each depth node's open thermistor was last reported
         self.open_thermistor_reported_s: dict[str, float] = {}
+        self.refused_posts = RefusedPosts(self)
         self.pico_identity: Optional[PicoIdentity] = None
         if isinstance(self._component, PicoTankModuleComponent):
             self.pico_identity = PicoIdentity(
@@ -175,30 +177,8 @@ class ApiTankModule(ShNodeActor):
         try:
             return await request.text()
         except Exception as e:
-            self.services.send_threadsafe(
-                Message(
-                    Payload=Problems(errors=[e]).problem_event(
-                        summary=(
-                            f"ERROR awaiting post ext <{self.name}>: {type(e)} <{e}>"
-                        ),
-                    )
-                )
-            )
+            self.refused_posts.report(unreadable_post(self.name, e))
         return None
-
-    def _report_post_error(self, exception: BaseException, text: str) -> None:
-        self.services.send_threadsafe(
-            Message(
-                Payload=Problems(
-                    msg=f"request: <{text}>", errors=[exception]
-                ).problem_event(
-                    summary=(
-                        "Pico POST processing error for "
-                        f"<{self._name}>: {type(exception)} <{exception}>"
-                    ),
-                )
-            )
-        )
 
     def is_valid_pico_uid(self, params: TankModuleParams) -> bool:
         return (
@@ -215,10 +195,12 @@ class ApiTankModule(ShNodeActor):
     async def _handle_params_post(self, request: Request) -> Response:
         text = await self._get_text(request)
         self.params_text = text
+        if text is None:
+            return Response()
         try:
             params = TankModuleParams(**json.loads(text))
         except BaseException as e:
-            self._report_post_error(e, "malformed tankmodule parameters!")
+            self.refused_posts.report(refused_post(self.name, text, e, TankModuleParams))
             return Response()
         if params.ActorNodeName != self.name:
             return Response()
@@ -249,9 +231,10 @@ class ApiTankModule(ShNodeActor):
                          f"{self.name}'s tank component in the layout")
             return Response(text=new_params.model_dump_json())
         else:
-            # A strange pico is identifying itself as our "a" tank
             self.log(f"unknown pico {params.HwUid} identifying as {self.name}")
-            # TODO: send problem report?
+            self.refused_posts.report(
+                unknown_pico(self.name, params.HwUid, self._component.gt.PicoHwUid)
+            )
             return Response()
 
     def check_pico_identity(self, params: TankModuleParams) -> None:
@@ -280,7 +263,7 @@ class ApiTankModule(ShNodeActor):
                     )
                 )
             except Exception as e:  # noqa
-                self._report_post_error(e, text)
+                self.refused_posts.report(refused_post(self.name, text, e, MicroVolts))
         return Response()
 
     def _process_microvolts(self, data: MicroVolts) -> None:
@@ -358,6 +341,8 @@ class ApiTankModule(ShNodeActor):
                 self._process_microvolts(message.Payload)
             case TankModuleParams():
                 self.check_pico_identity(message.Payload)
+            case Glitch():
+                self._send_to(self.ltn, message.Payload)
         return Ok(True)
 
     def start(self) -> None:

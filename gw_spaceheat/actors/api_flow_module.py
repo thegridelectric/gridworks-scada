@@ -8,7 +8,7 @@ import numpy as np
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 from gwsproto.errors import DcError
-from gwproactor import MonitoredName, Problems
+from gwproactor import MonitoredName
 from gwproactor.message import InternalShutdownMessage, PatInternalWatchdogMessage
 from gwproto import Message
 from gwsproto.data_classes.components import PicoFlowModuleComponent
@@ -25,6 +25,7 @@ from gwsproto.named_types import (
 from gwsproto.names.core.node_names import ScadaWeb
 from actors.pico_identity import PicoIdentity
 from actors.pico_liveness import PicoLiveness
+from actors.pico_post_refusal import RefusedPosts, refused_post, unknown_pico, unreadable_post
 from actors.sh_node_actor import ShNodeActor
 from gwsproto.enums import LogLevel
 from gwsproto.named_types import Glitch, PicoMissing
@@ -83,6 +84,7 @@ class ApiFlowModule(ShNodeActor):
         self._stop_requested: bool = False
         self._component = component
         self.hw_uid = self._component.gt.HwUid
+        self.refused_posts = RefusedPosts(self)
         self.pico_identity = PicoIdentity(
             board_variant=self._component.gt.PicoBoardVariant,
             micropython_version=self._component.gt.MicropythonVersion,
@@ -286,31 +288,8 @@ class ApiFlowModule(ShNodeActor):
         try:
             return await request.text()
         except Exception as e:
-            self.services.send_threadsafe(
-                Message(
-                    Payload=Problems(
-                        errors=[e]
-                    ).problem_event(
-                        summary=(
-                            f"ERROR awaiting post ext <{self.name}>: {type(e)} <{e}>"
-                        ),
-                    )
-                )
-            )
+            self.refused_posts.report(unreadable_post(self.name, e))
         return None
-
-    def _report_post_error(self, exception: BaseException, text: str) -> None:
-        self.services.send_threadsafe(
-            Message(
-                Payload=Problems(
-                    msg=f"request: <{text}>", errors=[exception]
-                ).problem_event(
-                    summary=(
-                        f"Pico POST processing error for <{self._name}>: {type(exception)} <{exception}>"
-                    ),
-                )
-            )
-        )
 
     def need_to_update_layout(self) -> bool:
         if self._component.gt.HwUid:
@@ -327,6 +306,8 @@ class ApiFlowModule(ShNodeActor):
         # post does not. The answer goes back in the version the pico posted.
         text = await self._get_text(request)
         self.params_text = text
+        if text is None:
+            return Response()
         try:
             posted = json.loads(text)
             params: FlowHallParams | FlowHallParams101
@@ -335,7 +316,7 @@ class ApiFlowModule(ShNodeActor):
             else:
                 params = FlowHallParams101(**posted)
         except BaseException as e:
-            self._report_post_error(e, "malformed FlowHall parameters!")
+            self.refused_posts.report(refused_post(self.name, text, e, FlowHallParams))
             self.log("Flow module params are malformed")
             return Response()
         if params.FlowNodeName != self._component.gt.FlowNodeName:
@@ -375,9 +356,11 @@ class ApiFlowModule(ShNodeActor):
                     PublishEmptyTicklistAfterS=self._component.gt.PublishEmptyTicklistAfterS,
                 )
             return Response(text=new_params.model_dump_json())
-        else: # TODO: do we still need this?
-            # A strange pico is identifying itself as our "a" tank
-            self.log(f"Unknown pico {params.HwUid} identifying as {self.name} Pico A!")
+        else:
+            self.log(f"Unknown pico {params.HwUid} identifying as {self.name}")
+            self.refused_posts.report(
+                unknown_pico(self.name, params.HwUid, self._component.gt.HwUid)
+            )
             return Response()
 
     def check_pico_identity(self, params: FlowHallParams) -> None:
@@ -395,10 +378,12 @@ class ApiFlowModule(ShNodeActor):
         # Read params as FlowReedParams
         text = await self._get_text(request)
         self.params_text = text
+        if text is None:
+            return Response()
         try:
             params = FlowReedParams(**json.loads(text))
         except BaseException as e:
-            self._report_post_error(e, "malformed tankmodule parameters!")
+            self.refused_posts.report(refused_post(self.name, text, e, FlowReedParams))
             self.log("Flow module params are malformed")
             return Response()
         if params.FlowNodeName != self._component.gt.FlowNodeName:
@@ -426,9 +411,11 @@ class ApiFlowModule(ShNodeActor):
                 DeadbandMilliseconds=params.DeadbandMilliseconds,
             )
             return Response(text=new_params.model_dump_json())
-        else: # TODO: do we still need this?
-            # A strange pico is identifying itself as our "a" tank
-            self.log(f"Unknown pico {params.HwUid} identifying as {self.name} Pico A!")
+        else:
+            self.log(f"Unknown pico {params.HwUid} identifying as {self.name}")
+            self.refused_posts.report(
+                unknown_pico(self.name, params.HwUid, self._component.gt.HwUid)
+            )
             return Response()
 
     async def _handle_ticklist_hall_post(self, request: Request) -> Response:
@@ -449,7 +436,7 @@ class ApiFlowModule(ShNodeActor):
                     )
                 )
             except Exception as e: # noqa
-                self._report_post_error(e, text)
+                self.refused_posts.report(refused_post(self.name, text, e, TicklistHall))
         return Response()
 
     async def _handle_ticklist_reed_post(self, request: Request) -> Response:
@@ -470,7 +457,7 @@ class ApiFlowModule(ShNodeActor):
                     )
                 )
             except Exception as e: # noqa
-                self._report_post_error(e, text)
+                self.refused_posts.report(refused_post(self.name, text, e, TicklistReed))
         return Response()
 
     def update_timestamps_for_hall(self, data: TicklistHall) -> None:
@@ -837,6 +824,8 @@ class ApiFlowModule(ShNodeActor):
                 self._process_ticklist_reed(message.Payload)
             case TicklistHall():
                 self._process_ticklist_hall(message.Payload)
+            case Glitch():
+                self._send_to(self.ltn, message.Payload)
             case FlowHallParams():
                 self.check_pico_identity(message.Payload)
         return Ok(True)
