@@ -116,7 +116,16 @@ NO_WORD_ENUMS = {
 }
 
 # --- KNOWN conformance debt to burn down (should shrink to empty) ---
-KNOWN_TYPE_VERSION_DRIFT: set[str] = set()
+# The pico params words are staged ahead of the hardware: sema carries
+# async.btu.params/110, tank.module.params/210 and flow.hall.params/210
+# (each adds FirmwareCommit) while every pico in the field posts 100 / 200
+# / 200 and no firmware stamps a commit yet. gwsproto tracks the wire and
+# moves up with the firmware that posts the new version.
+KNOWN_TYPE_VERSION_DRIFT: set[str] = {
+    "async.btu.params",
+    "flow.hall.params",
+    "tank.module.params",
+}
 KNOWN_ENUM_VERSION_DRIFT: set[str] = set()
 
 KNOWN_FORMAT_ISSUES: set[str] = set()
