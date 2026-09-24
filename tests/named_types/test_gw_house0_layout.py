@@ -593,3 +593,43 @@ def test_gw_house0_layout_axiom_29_disabled_derived_may_read_disabled_input(asse
         d["DisabledChannelNames"] = [derived["InputChannelNames"][0], derived["Name"]]
 
     House0Layout.model_validate(mutated(assembled, mutate))
+
+def test_gw_house0_layout_axiom_30_a_actuator_without_a_channel(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        d["DataChannels"] = [c for c in d["DataChannels"] if c["Name"] != "vdc-relay"]
+
+    reject(assembled, mutate, r"Axiom 30 \(")
+
+
+def test_gw_house0_layout_axiom_30_a_actuator_channel_about_another_node(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        next(c for c in d["DataChannels"] if c["Name"] == "vdc-relay")["AboutNodeName"] = "hp-scada-ops-relay"
+
+    reject(assembled, mutate, r"Axiom 30 \(")
+
+
+def test_gw_house0_layout_axiom_30_a_circuit_relay_without_a_channel(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        relay = d["Hydronic"]["ZoneCallCircuits"][0]["OpsRelayNode"]
+        d["DataChannels"] = [c for c in d["DataChannels"] if c["Name"] != relay]
+
+    reject(assembled, mutate, r"Axiom 30 \(")
+
+
+@pytest.mark.parametrize(
+    ("name", "telemetry", "quantity"),
+    [("vdc-relay", "VoltsTimesTen", "Voltage"), ("dist-010v", "RelayState", "Unitless")],
+)
+def test_gw_house0_layout_axiom_30_b_actuator_channel_telemetry(
+    assembled: dict, name: str, telemetry: str, quantity: str
+) -> None:
+    """The quantity moves with the telemetry so data.channel.gt's own
+    consistency check is not what fires."""
+
+    def mutate(d: dict) -> None:
+        channel = next(c for c in d["DataChannels"] if c["Name"] == name)
+        channel["TelemetryName"] = telemetry
+        channel["Quantity"] = quantity
+
+    reject(assembled, mutate, r"Axiom 30 \(")
+

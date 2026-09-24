@@ -3,7 +3,7 @@ from typing import List, Literal
 
 from pydantic import ConfigDict, model_validator
 
-from gwsproto.enums import ActorClass, GwZoneEmitterType, Quantity
+from gwsproto.enums import ActorClass, GwZoneEmitterType, Quantity, TelemetryName
 from gwsproto.named_types.ads111x_based_device_type_gt import Ads111xBasedDeviceTypeGt
 from gwsproto.named_types.electric_meter_device_type_gt import ElectricMeterDeviceTypeGt
 from gwsproto.named_types.scada_device_type_gt import ScadaDeviceTypeGt
@@ -820,3 +820,52 @@ class NolanLayout(GwsprotoSemaType):
                     f"'{d.Name}' is enabled but reads disabled inputs {dead}."
                 )
         return self
+
+    @model_validator(mode="after")
+    def check_axiom_28(self) -> "NolanLayout":
+        """
+        Axiom 28: ActuatorChannels
+        a. Every ShNode RequiredActuators names — the listed relays and 0-10V
+        outputs, and each circuit's FailsafeRelayNode and OpsRelayNode — has a
+        DataChannel of the same Name, about and captured by that node.
+        b. That channel's TelemetryName is RelayState for a Relay and
+        VoltsTimesTen for a ZeroTenOutputer.
+        """
+        relays = [
+            "vdc-relay",
+            "iso-valve-relay",
+            "secondary-pump-relay",
+            "hp-scada-ops-relay",
+            "charge-valve-relay",
+            "store-pump-relay",
+            "buffer-top-elt-relay",
+            "buffer-bottom-elt-relay",
+            "tank1-top-elt-relay",
+            "tank1-bottom-elt-relay",
+        ]
+        for circuit in self.Hydronic.ZoneCallCircuits or []:
+            relays.extend((circuit.FailsafeRelayNode, circuit.OpsRelayNode))
+        outputs = ["secondary-010v"]
+        channel_by_name = {c.Name: c for c in (self.DataChannels or [])}
+        for name, telemetry in [(r, TelemetryName.RelayState) for r in relays] + [
+            (o, TelemetryName.VoltsTimesTen) for o in outputs
+        ]:
+            channel = channel_by_name.get(name)
+            if channel is None:
+                raise ValueError(
+                    f"Axiom 28 (ActuatorChannels) failed: actuator '{name}' has no "
+                    "DataChannel of the same Name."
+                )
+            if channel.AboutNodeName != name or channel.CapturedByNodeName != name:
+                raise ValueError(
+                    f"Axiom 28 (ActuatorChannels) failed: channel '{name}' is about "
+                    f"'{channel.AboutNodeName}', captured by "
+                    f"'{channel.CapturedByNodeName}'; both SHALL be '{name}'."
+                )
+            if channel.TelemetryName != telemetry:
+                raise ValueError(
+                    f"Axiom 28 (ActuatorChannels) failed: channel '{name}' has "
+                    f"TelemetryName {channel.TelemetryName}, not {telemetry.value}."
+                )
+        return self
+

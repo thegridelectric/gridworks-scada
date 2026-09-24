@@ -4,7 +4,7 @@ from typing import Literal
 from pydantic import model_validator
 from typing_extensions import Self
 
-from gwsproto.enums import ActorClass, GwZoneEmitterType, Quantity
+from gwsproto.enums import ActorClass, GwZoneEmitterType, Quantity, TelemetryName
 
 from gwsproto.named_types.ads111x_based_component_gt import Ads111xBasedComponentGt
 from gwsproto.named_types.ads111x_based_device_type_gt import Ads111xBasedDeviceTypeGt
@@ -326,20 +326,15 @@ class House0Layout(GwsprotoSemaType):
     def check_axiom_8(self) -> Self:
         """
         Axiom 8: SiegManifoldChannels
-        The sieg loop's sensing and valve-observation channels SHALL exist
-        (unconditional — a gw.house0.layout plant has a sieg loop).
+        The sieg loop's sensing channels SHALL exist (unconditional — a
+        gw.house0.layout plant has a sieg loop).
         """
         if not self.ShNodes:
             return self
         names = {c.Name for c in (self.DataChannels or [])} | {
             c.Name for c in (self.DerivedChannels or [])
         }
-        required = {
-            "sieg-cold",
-            "sieg-flow",
-            "hp-loop-on-off-relay",
-            "hp-loop-keep-send-relay",
-        }
+        required = {"sieg-cold", "sieg-flow"}
         missing = sorted(required - names)
         if missing:
             raise ValueError(
@@ -898,3 +893,53 @@ class House0Layout(GwsprotoSemaType):
                     f"'{d.Name}' is enabled but reads disabled inputs {dead}."
                 )
         return self
+
+    @model_validator(mode="after")
+    def check_axiom_30(self) -> Self:
+        """
+        Axiom 30: ActuatorChannels
+        a. Every ShNode RequiredActuators names — the listed relays and 0-10V
+        outputs, and each circuit's FailsafeRelayNode and OpsRelayNode — has a
+        DataChannel of the same Name, about and captured by that node.
+        b. That channel's TelemetryName is RelayState for a Relay and
+        VoltsTimesTen for a ZeroTenOutputer.
+        """
+        relays = [
+            "vdc-relay",
+            "tstat-common-relay",
+            "charge-discharge-relay",
+            "hp-failsafe-relay",
+            "hp-scada-ops-relay",
+            "aquastat-ctrl-relay",
+            "store-pump-relay",
+            "primary-pump-failsafe-relay",
+            "primary-pump-scada-ops-relay",
+            "hp-loop-on-off-relay",
+            "hp-loop-keep-send-relay",
+        ]
+        for circuit in self.Hydronic.ZoneCallCircuits or []:
+            relays.extend((circuit.FailsafeRelayNode, circuit.OpsRelayNode))
+        outputs = ["dist-010v", "primary-010v", "store-010v"]
+        channel_by_name = {c.Name: c for c in (self.DataChannels or [])}
+        for name, telemetry in [(r, TelemetryName.RelayState) for r in relays] + [
+            (o, TelemetryName.VoltsTimesTen) for o in outputs
+        ]:
+            channel = channel_by_name.get(name)
+            if channel is None:
+                raise ValueError(
+                    f"Axiom 30 (ActuatorChannels) failed: actuator '{name}' has no "
+                    "DataChannel of the same Name."
+                )
+            if channel.AboutNodeName != name or channel.CapturedByNodeName != name:
+                raise ValueError(
+                    f"Axiom 30 (ActuatorChannels) failed: channel '{name}' is about "
+                    f"'{channel.AboutNodeName}', captured by "
+                    f"'{channel.CapturedByNodeName}'; both SHALL be '{name}'."
+                )
+            if channel.TelemetryName != telemetry:
+                raise ValueError(
+                    f"Axiom 30 (ActuatorChannels) failed: channel '{name}' has "
+                    f"TelemetryName {channel.TelemetryName}, not {telemetry.value}."
+                )
+        return self
+
