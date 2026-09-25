@@ -10,9 +10,17 @@ from textual.logging import TextualHandler
 from gwadmin.watch.clients.relay_client import CommandTransition
 from gwadmin.watch.clients.relay_client import RelayConfig
 from gwadmin.watch.clients.relay_client import RelayState
+from gwsproto.enums import MoveSiegValve
 
 module_logger = logging.getLogger(__name__)
 module_logger.addHandler(TextualHandler())
+
+# Vocabularies whose node takes a command while its observed state is no
+# command's result (the sieg valve mid-travel starts a fresh run to the
+# commanded stop). Every other node nacks Busy in transition. Hand-kept
+# until gw.command.interface carries this fact per vocabulary; that field
+# retires this constant.
+MID_TRANSITION_VOCABULARIES: frozenset[str] = frozenset({MoveSiegValve.enum_name()})
 
 
 class RelayTableName(BaseModel):
@@ -65,26 +73,30 @@ class RelayWidgetConfig(RelayConfig):
 
     def offered_commands(self, state: Optional[str]) -> list[CommandTransition]:
         """The commands to offer given the observed state, in the order the
-        vocabularies arrive. A two-command vocabulary offers the command
-        that leads somewhere else, and every command when the observed
-        state is no command's result (a valve mid-travel, a hold
-        mid-transition); a one-command vocabulary (reboot.picos on
-        five-v-boss) is offered when the observed state is its target,
-        since the node only takes it at rest. No observed state, or a row
-        with no commands (a relay owned by an interior node), offers
-        nothing."""
+        vocabularies arrive. A two-command vocabulary offers the first
+        command whose result differs from the observed state, or every
+        such command when the node takes commands mid-transition
+        (MID_TRANSITION_VOCABULARIES: a valve mid-travel offers both
+        stops); a one-command vocabulary (reboot.picos on five-v-boss) is
+        offered when the observed state is its target, since the node only
+        takes it at rest. No observed state, or a row with no commands (a
+        relay owned by an interior node), offers nothing."""
         if state is None:
             return []
         vocabularies: dict[str, list[CommandTransition]] = {}
         for command in self.commands:
             vocabularies.setdefault(command.event_type, []).append(command)
         offered: list[CommandTransition] = []
-        for commands in vocabularies.values():
+        for event_type, commands in vocabularies.items():
             if len(commands) == 1:
                 if commands[0].to_state == state:
                     offered.append(commands[0])
                 continue
-            offered.extend(c for c in commands if c.to_state != state)
+            elsewhere = [c for c in commands if c.to_state != state]
+            if event_type in MID_TRANSITION_VOCABULARIES:
+                offered.extend(elsewhere)
+            elif elsewhere:
+                offered.append(elsewhere[0])
         return offered
 
     def offered_command(self, state: Optional[str], offer_index: int) -> Optional[CommandTransition]:

@@ -57,14 +57,12 @@ def test_five_v_boss_offers_turn_on_alone_while_held_off(configs: dict[str, Rela
 
 
 def test_five_v_boss_withholds_reboot_mid_transition(configs: dict[str, RelayWidgetConfig]) -> None:
-    """Mid-transition the observed state is no command's result, so the
-    hold's vocabulary offers both of its commands; the reboot stays withheld."""
+    """Five-v-boss nacks Busy while turning, so mid-transition the hold's
+    vocabulary offers one command, the first whose result differs from the
+    observed state; the reboot stays withheld."""
     boss = configs[HSNN.five_v_boss]
     for state in (FiveVBossState.TurningOff, FiveVBossState.TurningOn):
-        assert offered(boss, state) == [
-            (Turn5VOnOff.enum_name(), Turn5VOnOff.TurnOff),
-            (Turn5VOnOff.enum_name(), Turn5VOnOff.TurnOn),
-        ]
+        assert offered(boss, state) == [(Turn5VOnOff.enum_name(), Turn5VOnOff.TurnOff)]
     assert offered(boss, None) == []
     assert boss.get_action_str(None) == ""
 
