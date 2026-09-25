@@ -16,6 +16,7 @@ import pytest
 
 from actors.hydronic.house0 import House0Hydronic
 from actors.sieg_loop import (
+    VIEW_CHANNELS,
     HoldFullSend,
     SiegControlState,
     SiegLoop,
@@ -26,6 +27,7 @@ from actors.sieg_loop import (
 )
 from clock import ManualClock
 from gwproto import Message
+from gwsproto.data_classes.derived_channel import DerivedChannel
 from gwproto.message import Header
 from gwsproto.enums import (
     ActuationAuthority,
@@ -47,6 +49,8 @@ from gwsproto.named_types import (
     SingleMachineState,
 )
 from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.names.house0.channel_names import House0ChannelNames
+from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from gwsproto.names.house0.node_names import House0NodeNames
 from scada_app import ScadaApp
@@ -542,3 +546,73 @@ def test_capabilities_cover_sieg_loop_with_its_two_moves(app: ScadaApp) -> None:
     assert House0NodeNames.hp_loop_on_off not in by_actor
     assert House0NodeNames.hp_loop_keep_send not in by_actor
     assert House0NodeNames.sieg_loop in {n.Name for n in caps.CommandNodes}
+
+
+# --------------------------------------
+# The sieg-view strip (debug output for the maple test-drives)
+# --------------------------------------
+
+
+def read(actor: SiegLoop, channel_name: str, value: int) -> None:
+    actor.data.latest_channel_values[channel_name] = value
+    actor.data.latest_channel_unix_ms[channel_name] = int(time.time() * 1000)
+
+
+def view_names(line: str) -> set[str]:
+    """The channel names on a sieg-view line, the derived mark stripped."""
+    assert line.startswith("sieg-view ")
+    body = line.split(" | ")[0].split(" ", 2)[2]
+    return {part.split("=")[0].rstrip("*") for part in body.split()}
+
+
+def test_the_view_names_every_neighbourhood_channel_the_layout_carries(app: ScadaApp) -> None:
+    actor = sieg_loop_actor(app)
+    line = actor.view()
+    named = {name for name in VIEW_CHANNELS if actor.layout.channel_registry.get(name) is not None}
+    assert view_names(line) == named
+    assert HCN.hp_lwt in named and House0ChannelNames.sieg_flow in named
+    derived = {n for n in named if isinstance(actor.layout.channel_registry.get(n), DerivedChannel)}
+    assert derived, "each House0 fixture derives one of the three flows"
+    for name in derived:
+        assert f"{name}*=" in line
+
+
+def test_a_flushed_channel_shows_as_missing_until_it_reads_again(app: ScadaApp) -> None:
+    actor = sieg_loop_actor(app)
+    assert f"{HCN.hp_lwt}=--" in actor.view()
+    read(actor, HCN.hp_lwt, 4512)  # CelsiusTimes100 in the fixtures
+    assert f"{HCN.hp_lwt}=113.2F@0s" in actor.view()
+    actor.data.flush_channel_from_latest(HCN.hp_lwt)
+    assert f"{HCN.hp_lwt}=--" in actor.view()
+    read(actor, HCN.hp_lwt, 4512)
+    assert f"{HCN.hp_lwt}=113.2F@0s" in actor.view()
+
+
+def test_the_blind_reason_on_the_line_matches_is_blind(app: ScadaApp) -> None:
+    actor = sieg_loop_actor(app)
+    strategy = actor.strategy
+    assert isinstance(strategy, StratProtect)
+    assert strategy.is_blind()
+    assert "blind=no lift" in actor.view()
+    read(actor, HCN.hp_lwt, 4500)
+    read(actor, HCN.hp_ewt, 4000)
+    assert "blind=no power" in actor.view()
+    read(actor, HCN.hp_odu_pwr, 3000)
+    read(actor, HCN.hp_idu_pwr, 200)
+    assert not strategy.is_blind()
+    line = actor.view()
+    assert "blind=" not in line
+    assert line.endswith("| lift=9.0F pwr=3200W")
+
+
+def test_every_tick_and_valve_transition_writes_a_view_line(tmp_path: Path) -> None:
+    scada_app, clock = manual_app(tmp_path, strategy=SiegLoopStrategy.HoldFullSend)
+    actor = sieg_loop_actor(scada_app)
+    capture(actor)
+    lines: list[str] = []
+    actor.log = lines.append
+    actor.tick()
+    assert sum(line.startswith("sieg-view ") for line in lines) == 1
+    lines.clear()
+    actor.valve.trigger_valve_event(SiegValveEvent.StartKeepingLess)
+    assert [line for line in lines if line.startswith("sieg-view ")] == [actor.view()]

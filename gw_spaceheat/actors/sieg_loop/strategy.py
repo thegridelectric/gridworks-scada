@@ -57,3 +57,8 @@ class SiegStrategy(ABC):
     def resume(self) -> None:
         """The loop is back under automatic control after a command: put
         the valve where the strategy wants it."""
+
+    def blind_reason(self) -> Optional[str]:
+        """Why the strategy cannot see the heat pump, None when it can. A
+        strategy with no inputs is never blind."""
+        return None

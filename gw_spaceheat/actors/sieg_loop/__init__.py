@@ -5,12 +5,15 @@ watchdog pat and the hp-boss subscription; the strategy decides what the
 valve does under automatic control."""
 
 import asyncio
+import time
 from typing import Any, Optional, Sequence
 
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto.message import Message
+from gwsproto.data_classes.derived_channel import DerivedChannel
 from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.enums import TelemetryName, Unit
 from gwsproto.enums import (
     FsmReportType,
     HpBossState,
@@ -26,6 +29,8 @@ from gwsproto.named_types import (
     FsmFullReport,
     SingleMachineState,
 )
+from gwsproto.names.house0.channel_names import House0ChannelNames
+from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from result import Ok, Result
 
 from actors import command_reply
@@ -49,6 +54,29 @@ __all__ = [
     "StratProtect",
     "selected_strategy",
 ]
+
+
+# The loop's neighbourhood: the channels the sieg-view strip carries when
+# the layout names them. Debug output for the maple test-drives; removed
+# with the strip once they are done.
+VIEW_CHANNELS: tuple[str, ...] = (
+    HCN.hp_lwt,
+    HCN.hp_ewt,
+    House0ChannelNames.sieg_hot,
+    House0ChannelNames.sieg_cold,
+    House0ChannelNames.sieg_flow,
+    House0ChannelNames.sieg_send_flow,
+    HCN.primary_flow,
+    HCN.hp_odu_pwr,
+    HCN.hp_idu_pwr,
+    HCN.buffer_hot_pipe,
+    HCN.buffer_cold_pipe,
+    HCN.store_hot_pipe,
+    HCN.dist_swt,
+    HCN.dist_rwt,
+)
+FLOW_UNITS = {TelemetryName.GpmTimes100, Unit.GpmX100}
+POWER_UNITS = {TelemetryName.PowerW, Unit.Watts}
 
 
 def boss_of(handle: str) -> str:
@@ -117,6 +145,7 @@ class SiegLoop(House0Hydronic):
             self.commanded_by = None
             self.strategy.resume()
         self.strategy.tick()
+        self.log_view()
         if self.since_last_pat_s >= self.PAT_INTERVAL_S:
             self.since_last_pat_s = 0
             self._send(PatInternalWatchdogMessage(src=self.name))
@@ -209,6 +238,53 @@ class SiegLoop(House0Hydronic):
                 Cause=cause,
             ),
         )
+        self.log_view()
+
+    # --------------------------------------
+    # The sieg-view strip (debug output for the maple test-drives)
+    # --------------------------------------
+
+    def view_value(self, name: str, raw: int) -> str:
+        """The channel's latest raw value in the house's units."""
+        unit = self.layout.channel_registry.unit(name)
+        if unit in FLOW_UNITS:
+            return f"{raw / 100:.2f}gpm"
+        if unit in POWER_UNITS:
+            return f"{raw}W"
+        return f"{self.layout.channel_registry.temperature(name, raw).f:.1f}F"
+
+    def view(self) -> str:
+        """One line: every channel of VIEW_CHANNELS the layout names, with
+        its latest value or `--` when there is none, the reading's age in
+        seconds, and `*` on a derived channel; then the quantities the
+        strategy acts on, lift and total power, and the blind reason when
+        the strategy is blind."""
+        now_s = time.time()
+        parts: list[str] = []
+        for name in VIEW_CHANNELS:
+            channel = self.layout.channel_registry.get(name)
+            if channel is None:
+                continue
+            label = f"{name}*" if isinstance(channel, DerivedChannel) else name
+            raw = self.data.latest_channel_values.get(name)
+            unix_ms = self.data.latest_channel_unix_ms.get(name)
+            if raw is None or unix_ms is None:
+                parts.append(f"{label}=--")
+            else:
+                parts.append(f"{label}={self.view_value(name, raw)}@{now_s - unix_ms / 1000:.0f}s")
+        lift = self.lift_f()
+        pwr = self.total_hp_pwr_w()
+        tail = [
+            f"lift={'--' if lift is None else f'{lift:.1f}F'}",
+            f"pwr={'--' if pwr is None else f'{pwr:.0f}W'}",
+        ]
+        reason = self.strategy.blind_reason()
+        if reason is not None:
+            tail.append(f"blind={reason}")
+        return f"sieg-view {self.valve.valve_state} " + " ".join(parts) + " | " + " ".join(tail)
+
+    def log_view(self) -> None:
+        self.log(self.view())
 
     def move_ended(self) -> None:
         """The motor stopped. A commanded move reports in full under the

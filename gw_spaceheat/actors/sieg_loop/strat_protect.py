@@ -4,6 +4,7 @@ send when the loop cannot see its inputs. A control state machine driven by
 hp-boss's reported state and the loop's own temperature and power reads."""
 
 from enum import auto
+from typing import Optional
 
 from gwsproto.enums import HpBossState
 from gwsproto.enums.gw_str_enum import GwStrEnum
@@ -125,18 +126,21 @@ class StratProtect(SiegStrategy):
         return max(lwt, ewt).f > threshold_lwt
 
     def is_blind(self) -> bool:
+        return self.blind_reason() is not None
+
+    def blind_reason(self) -> Optional[str]:
         if self.loop.lift_f() is None:
-            return True
+            return "no lift"
         pwr = self.loop.total_hp_pwr_w()
         if pwr is None:
-            return True
+            return "no power"
         if (
             self.hp_turned_off_time is not None
             and self.loop.services.clock.now() - self.hp_turned_off_time > self.OFF_SETTLE_S
             and pwr > self.OFF_POWER_W
         ):
-            return True
-        return False
+            return f"{pwr:.0f}W over {self.OFF_POWER_W}W {self.OFF_SETTLE_S}s after off"
+        return None
 
     # --------------------------------------
     # Control state machine
