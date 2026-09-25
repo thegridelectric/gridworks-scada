@@ -98,17 +98,6 @@ def zero_ten_power_on_volts_times_ten(ops: OperationalParams, node_name: str) ->
     )
 
 
-def use_sieg_loop(ops: OperationalParams) -> bool:
-    """Whether the scada runs the Siegenthaler loop's protection control. Only
-    the House0 family params carry a strategy; a Nolan plant has no loop, so
-    its block has none. HoldFullSend behaves as no loop."""
-    family = ops.FamilyParams
-    return (
-        isinstance(family, House0FamilyParams)
-        and family.SiegLoopStrategy is SiegLoopStrategy.StratProtect
-    )
-
-
 def check_sieg_loop_strategy(ops_word: OperationalParams) -> None:
     """The loader refuses a strategy the scada cannot run yet. Raises on
     LwtControl, which is not built."""

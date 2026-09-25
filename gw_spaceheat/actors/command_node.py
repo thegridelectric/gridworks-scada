@@ -95,8 +95,8 @@ class CommandNode(ShNodeActor):
         ops_relay = self.layout.hp_scada_ops_relay
         ops_relay.Handle = f"{hp_boss.Handle}.{ops_relay.Name}"
         under_fsm = {ops_relay.Name}
-        if self.data.use_sieg_loop:
-            sieg_loop = self.layout.node(House0NodeNames.sieg_loop)
+        sieg_loop = self.layout.node(House0NodeNames.sieg_loop)
+        if sieg_loop is not None:
             sieg_loop.Handle = f"{boss_node.handle}.{sieg_loop.Name}"
             for name in (House0NodeNames.hp_loop_on_off, House0NodeNames.hp_loop_keep_send):
                 node = self.layout.node(name)

@@ -1,9 +1,13 @@
-"""sieg-loop, the Siegenthaler valve actor on both House0 fixtures: a valve
-movement reaches the two relays it drives (keep/send direction, then the
-on/off that starts the motion), under the sieg-loop's own handle. Guards the
-partition residue where the actor lost its choreography and the movement
-error was swallowed, so the valve silently never moved."""
+"""sieg-loop, the Siegenthaler valve actor on both House0 fixtures: the
+strategy the ops word selects, a valve movement reaching the two relays it
+drives (keep/send direction, then the on/off that starts the motion) under
+the sieg-loop's own handle, the valve travel timed on the scada's clock, and
+the valve state reported on change. Guards the partition residue where the
+actor lost its choreography and the movement error was swallowed, so the
+valve silently never moved."""
 
+import asyncio
+import json
 import time
 import uuid
 from pathlib import Path
@@ -11,9 +15,26 @@ from pathlib import Path
 import pytest
 
 from actors.hydronic.house0 import House0Hydronic
-from actors.sieg_loop import SiegLoop, SiegValveEvent, SiegValveState
-from gwsproto.enums import ChangeKeepSend, ChangeRelayState, MainAutoEvent
-from gwsproto.named_types import FsmEvent
+from actors.sieg_loop import (
+    HoldFullSend,
+    SiegLoop,
+    SiegLoopReady,
+    SiegValveEvent,
+    SiegValveState,
+    StratProtect,
+)
+from clock import ManualClock
+from gwproto import Message
+from gwproto.message import Header
+from gwsproto.enums import (
+    ActuationAuthority,
+    ChangeKeepSend,
+    ChangeRelayState,
+    HpBossState,
+    MainAutoEvent,
+    SiegLoopStrategy,
+)
+from gwsproto.named_types import ActuatorsReady, FsmEvent, SingleMachineState
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from gwsproto.names.house0.node_names import House0NodeNames
@@ -76,11 +97,12 @@ def test_valve_movement_reaches_both_relays(
         if valve_event == SiegValveEvent.StartKeepingMore
         else SiegValveState.FullyKeep
     )
-    actor.valve_state = start
-    actor.trigger_valve_event(valve_event)
+    actor.valve.valve_state = start
+    actor.valve.trigger_valve_event(valve_event)
 
-    assert [name for name, _ in sent] == [House0NodeNames.hp_loop_keep_send, House0NodeNames.hp_loop_on_off]
-    keep_send, on_off = (payload for _, payload in sent)
+    commands = [(name, p) for name, p in sent if isinstance(p, FsmEvent)]
+    assert [name for name, _ in commands] == [House0NodeNames.hp_loop_keep_send, House0NodeNames.hp_loop_on_off]
+    keep_send, on_off = (payload for _, payload in commands)
     assert isinstance(keep_send, FsmEvent)
     assert keep_send.EventType == ChangeKeepSend.enum_name()
     assert keep_send.EventName == direction
@@ -89,7 +111,7 @@ def test_valve_movement_reaches_both_relays(
     assert on_off.EventType == ChangeRelayState.enum_name()
     assert on_off.EventName == ChangeRelayState.CloseRelay
     assert on_off.FromHandle == actor.node.handle
-    assert actor.valve_state != start
+    assert actor.valve.valve_state != start
 
 
 LOOP_RELAYS = (House0NodeNames.hp_loop_on_off, House0NodeNames.hp_loop_keep_send)
@@ -163,3 +185,181 @@ def test_boss_nodes_leave_the_loop_relays_alone_at_initialization(
     assert sent, "initialization sets the relays the boss owns"
     assert called == []
     assert not set(sent) & set(LOOP_RELAYS)
+
+
+# --- the strategy and the clock ---------------------------------------------
+
+
+def manual_app(
+    tmp_path: Path,
+    pair: str = "house0-willow",
+    strategy: SiegLoopStrategy | None = None,
+    authority: ActuationAuthority | None = None,
+) -> tuple[ScadaApp, ManualClock]:
+    """The fixture pair on a manual clock, with the ops word's strategy or
+    actuation authority overridden."""
+    layout, ops = PAIRS[pair]
+    ops_dict = json.loads((CONFIG / ops).read_text())
+    if strategy is not None:
+        ops_dict["FamilyParams"]["SiegLoopStrategy"] = strategy.value
+    if authority is not None:
+        ops_dict["ActuationAuthority"] = authority.value
+    ops_path = tmp_path / ops
+    ops_path.write_text(json.dumps(ops_dict))
+    settings = ScadaApp.get_settings()
+    settings.paths.hardware_layout = CONFIG / layout
+    settings.paths.operational_params = ops_path
+    settings.paths.mkdirs()
+    clock = ManualClock(start_s=1_700_000_000)
+    scada_app = ScadaApp(app_settings=settings, clock=clock)
+    scada_app.instantiate()
+    return scada_app, clock
+
+
+def deliver(actor: SiegLoop, src: str, payload) -> None:
+    actor.process_message(
+        Message(
+            header=Header(Src=src, Dst=actor.name, MessageType=payload.TypeName),
+            Payload=payload,
+        )
+    )
+
+
+def hp_boss_state(actor: SiegLoop, state: HpBossState) -> SingleMachineState:
+    return SingleMachineState(
+        MachineHandle=actor.hp_boss.handle,
+        StateEnum=HpBossState.enum_name(),
+        State=state,
+        UnixMs=int(time.time() * 1000),
+    )
+
+
+def relay_events(sent: list) -> list[tuple[str, str]]:
+    """(ToName, EventName) of every relay command sent."""
+    return [(dst, p.EventName) for dst, p in sent if isinstance(p, FsmEvent)]
+
+
+def valve_reports(sent: list) -> list[str]:
+    return [
+        p.State
+        for _, p in sent
+        if isinstance(p, SingleMachineState) and p.StateEnum == SiegValveState.enum_name()
+    ]
+
+
+async def settle() -> None:
+    for _ in range(5):
+        await asyncio.sleep(0)
+
+
+TO_SEND = [
+    (House0NodeNames.hp_loop_keep_send, ChangeKeepSend.ChangeToKeepLess),
+    (House0NodeNames.hp_loop_on_off, ChangeRelayState.CloseRelay),
+]
+TO_KEEP = [
+    (House0NodeNames.hp_loop_keep_send, ChangeKeepSend.ChangeToKeepMore),
+    (House0NodeNames.hp_loop_on_off, ChangeRelayState.CloseRelay),
+]
+HOLD = [(House0NodeNames.hp_loop_on_off, ChangeRelayState.OpenRelay)]
+
+
+def test_the_fixtures_run_strat_protect(app: ScadaApp) -> None:
+    assert isinstance(sieg_loop_actor(app).strategy, StratProtect)
+
+
+def test_standby_runs_hold_full_send_whatever_the_field_says(tmp_path: Path) -> None:
+    app, _ = manual_app(tmp_path, strategy=SiegLoopStrategy.StratProtect, authority=ActuationAuthority.Standby)
+    assert isinstance(sieg_loop_actor(app).strategy, HoldFullSend)
+
+
+def test_lwt_control_is_refused(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="LwtControl"):
+        manual_app(tmp_path, strategy=SiegLoopStrategy.LwtControl)
+
+
+@pytest.mark.asyncio
+async def test_hold_full_send_moves_once_to_send_then_only_answers(tmp_path: Path) -> None:
+    """After ActuatorsReady one move to full send: direction to send, motor
+    on for the full range plus the overshoot, motor off. Then nothing the
+    heat pump does moves the valve, and hp-boss gets no ready message."""
+    app, clock = manual_app(tmp_path, strategy=SiegLoopStrategy.HoldFullSend)
+    actor = sieg_loop_actor(app)
+    sent = capture(actor)
+    deliver(actor, actor.primary_scada.name, ActuatorsReady())
+    await settle()
+    assert relay_events(sent) == TO_SEND
+    assert actor.valve.valve_state == SiegValveState.KeepingLess
+
+    clock.advance(actor.valve.FULL_RANGE_S + actor.valve.OVERSHOOT_S - 1)
+    await settle()
+    assert relay_events(sent) == TO_SEND, "the motor runs the whole travel"
+    clock.advance(1)
+    await settle()
+    assert relay_events(sent) == TO_SEND + HOLD
+    assert actor.valve.keep_seconds == 0
+    assert actor.valve.valve_state == SiegValveState.SteadyBlend
+
+    sent.clear()
+    for state in (HpBossState.HpOff, HpBossState.PreparingToTurnOn, HpBossState.HpOn, HpBossState.HpOff):
+        deliver(actor, actor.hp_boss.name, hp_boss_state(actor, state))
+    actor.strategy.tick()
+    await settle()
+    assert relay_events(sent) == []
+    assert not any(isinstance(p, SiegLoopReady) for _, p in sent)
+
+
+@pytest.mark.asyncio
+async def test_strat_protect_answers_preparing_to_turn_on_with_ready(app: ScadaApp) -> None:
+    actor = sieg_loop_actor(app)
+    sent = capture(actor)
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.PreparingToTurnOn))
+    assert [dst for dst, p in sent if isinstance(p, SiegLoopReady)] == [actor.hp_boss.name]
+
+
+@pytest.mark.asyncio
+async def test_a_new_move_settles_the_travel_so_far_from_the_clock(tmp_path: Path) -> None:
+    """A move toward send cut short by a move toward keep: the motor stops,
+    keep_seconds is what the clock says ran, and the motor reverses from
+    there. The finishing move clamps at full keep."""
+    app, clock = manual_app(tmp_path, strategy=SiegLoopStrategy.HoldFullSend)
+    actor = sieg_loop_actor(app)
+    valve = actor.valve
+    sent = capture(actor)
+    assert valve.keep_seconds == valve.FULL_RANGE_S
+    valve.move_to_full_send()
+    await settle()
+    clock.advance(40)
+    await settle()
+    assert valve.keep_seconds == valve.FULL_RANGE_S, "settled only when the motor stops"
+
+    valve.move_to_full_keep()
+    await settle()
+    assert valve.keep_seconds == 60
+    assert relay_events(sent) == TO_SEND + HOLD + TO_KEEP
+    assert valve.valve_state == SiegValveState.KeepingMore
+
+    clock.advance(60 + valve.OVERSHOOT_S)
+    await settle()
+    assert relay_events(sent) == TO_SEND + HOLD + TO_KEEP + HOLD
+    assert valve.keep_seconds == valve.FULL_RANGE_S
+    assert valve.valve_state == SiegValveState.SteadyBlend
+
+
+@pytest.mark.asyncio
+async def test_one_valve_report_per_state_change(tmp_path: Path) -> None:
+    """The valve state rides single.machine.state under sieg.valve.state, once
+    per change and never between."""
+    app, clock = manual_app(tmp_path, strategy=SiegLoopStrategy.HoldFullSend)
+    actor = sieg_loop_actor(app)
+    sent = capture(actor)
+    deliver(actor, actor.primary_scada.name, ActuatorsReady())
+    await settle()
+    for _ in range(3):
+        actor.strategy.tick()
+        clock.advance(10)
+        await settle()
+    assert valve_reports(sent) == [SiegValveState.KeepingLess]
+    clock.advance(actor.valve.FULL_RANGE_S)
+    await settle()
+    assert valve_reports(sent) == [SiegValveState.KeepingLess, SiegValveState.SteadyBlend]
+    assert all(p.MachineHandle == actor.node.handle for _, p in sent if isinstance(p, SingleMachineState))

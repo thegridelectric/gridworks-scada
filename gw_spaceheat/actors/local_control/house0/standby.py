@@ -115,11 +115,7 @@ class StandbyLocalControl(House0Hydronic):
         self.log("energizing key relays for keeping things off")
         self.hp_failsafe_switch_to_scada(from_node=self.normal_node)
         self.aquastat_ctrl_switch_to_scada(from_node=self.normal_node)
-        if self.data.use_sieg_loop:
-            self.turn_off_HP(from_node=self.normal_node)
-        else:
-            self.energize(self.layout.hp_scada_ops_relay, from_node=self.normal_node)
-            self.energize(self.layout.hp_loop_on_off, from_node=self.normal_node)
+        self.turn_off_HP(from_node=self.normal_node)
         
     def start(self) -> None:
         self._send_to(

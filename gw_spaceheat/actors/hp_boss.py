@@ -1,27 +1,22 @@
 import time
 import uuid
 import asyncio
-from typing import Literal
-from pydantic import BaseModel
 
 
 from gwproto.message import Message
 
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.named_types import FsmFullReport
-from gwsproto.enums import ChangeRelayState, HpBossState
+from gwsproto.enums import ChangeRelayState, HpBossState, SiegLoopStrategy
 from result import Ok, Result
 
 
 from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 from actors import command_reply
+from actors.sieg_loop.strategy import SiegLoopReady, selected_strategy
 from gwsproto.enums import ScadaCmdRefusalReason, TurnHpOnOff
 from gwsproto.named_types import FsmEvent, SingleMachineState
-
-class SiegLoopReady(BaseModel):
-    TypeName: Literal["sieg.loop.ready"] = "sieg.loop.ready"
-    Version: str = "000"
 
 class HpBoss(ShNodeActor):
     """
@@ -127,14 +122,14 @@ class HpBoss(ShNodeActor):
             self.state = HpBossState.HpOff
             self.report_state()
         elif self.state == HpBossState.HpOff:
-            if self.data.use_sieg_loop:
-                # Sieg strategy: HpOff -> PreparingToTurnOn; the relay
-                # closes when the loop reports ready.
+            if selected_strategy(self.ops) is SiegLoopStrategy.StratProtect:
+                # The loop protects the start: HpOff -> PreparingToTurnOn;
+                # the relay closes when the loop reports ready.
                 self.state = HpBossState.PreparingToTurnOn
                 self.report_state()
                 asyncio.create_task(self._waiting_to_turn_on())
             else:
-                # Sieg-less strategy: close the call relay now.
+                # No loop, or one that holds full send: close the call relay now.
                 self.close_hp_scada_ops_relay()
                 self.state = HpBossState.HpOn
                 self.report_state()

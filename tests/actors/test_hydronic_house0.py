@@ -228,14 +228,9 @@ def test_plant_command_sends_nothing_when_not_the_boss(
     assert actor.sent == []
 
 
-def test_sieg_loop_node_only_when_the_ops_word_uses_the_loop(
-    actor: House0Hydronic, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    assert actor.data.use_sieg_loop  # both sim pairs run the loop
+def test_sieg_loop_is_the_layout_node(actor: House0Hydronic) -> None:
+    """Every House0 layout has the loop; the node is not gated on the ops word."""
     assert actor.sieg_loop is actor.layout.node("sieg-loop")
-    monkeypatch.setattr(type(actor.data), "use_sieg_loop", property(lambda self: False))
-    with pytest.raises(Exception):
-        actor.sieg_loop
 
 
 # --- pure readers -----------------------------------------------------------

@@ -515,9 +515,7 @@ class House0Hydronic(HydronicNode):
 
     @property
     def sieg_loop(self) -> ShNode:
-        if not self.data.use_sieg_loop:
-            raise Exception("Should not be calling for sieg_loop if not using sieg loop")
-        return self.layout.node(House0NodeNames.sieg_loop)
+        return self.required_node(House0NodeNames.sieg_loop)
 
     @property
     def dist_010v(self) -> ShNode:

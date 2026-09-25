@@ -1,5 +1,5 @@
 """hp-boss, the heat pump's command node, in every layout: its place in every
-command tree, both strategies (sieg: TurnOn waits on SiegLoopReady; sieg-less:
+command tree, both start strategies (StratProtect: TurnOn waits on SiegLoopReady; otherwise:
 TurnOn closes the call relay now), a stale boss changing nothing, and admin
 turning the heat pump on and off through hp-boss rather than by addressing the
 relay itself."""
@@ -10,10 +10,11 @@ from pathlib import Path
 
 import pytest
 
-from actors.hp_boss import HpBoss, SiegLoopReady
+from actors.hp_boss import HpBoss
+from actors.sieg_loop.strategy import SiegLoopReady, selected_strategy
 from gwproto import Message
 from gwproto.message import Header
-from gwsproto.enums import ChangeRelayState, HpBossState, MainAutoEvent, TurnHpOnOff
+from gwsproto.enums import ChangeRelayState, HpBossState, MainAutoEvent, SiegLoopStrategy, TurnHpOnOff
 from gwsproto.named_types import (
     AdminDispatch,
     FsmEvent,
@@ -92,8 +93,8 @@ def reported_states(sent: list) -> list[str]:
 @pytest.mark.parametrize("boss", ["admin", "local_control", "leaf_ally"])
 def test_hp_boss_in_every_tree(app: ScadaApp, boss: str) -> None:
     """Whatever boss the scada hands the tree to, hp-boss sits directly under
-    it and the call relay reports to hp-boss; the loop pair rides only when
-    the ops word runs the loop."""
+    it and the call relay reports to hp-boss; the loop pair rides in every
+    layout that has the loop."""
     scada = app.scada
     capture(scada)
     boss_node = getattr(scada, boss)
@@ -103,8 +104,7 @@ def test_hp_boss_in_every_tree(app: ScadaApp, boss: str) -> None:
     assert hp_boss.handle == f"{boss_node.handle}.{HSNN.hp_boss}"
     assert relay.handle == f"{hp_boss.handle}.{HSNN.hp_scada_ops_relay}"
     sieg_loop = scada.layout.node(House0NodeNames.sieg_loop, None)
-    if scada.data.use_sieg_loop:
-        assert sieg_loop is not None
+    if sieg_loop is not None:
         assert sieg_loop.handle == f"{boss_node.handle}.{House0NodeNames.sieg_loop}"
         for name in (House0NodeNames.hp_loop_on_off, House0NodeNames.hp_loop_keep_send):
             assert scada.layout.node(name).handle == f"{sieg_loop.handle}.{name}"
@@ -141,9 +141,9 @@ def test_turn_off_opens_call_relay_from_hp_boss(app: ScadaApp) -> None:
 
 @pytest.mark.asyncio
 async def test_turn_on_follows_the_layout_strategy(app: ScadaApp) -> None:
-    """Sieg-less: TurnOn closes the call relay now and reports HpOn. Sieg:
-    TurnOn reports PreparingToTurnOn and the relay closes only when the
-    loop says ready."""
+    """No loop, or HoldFullSend: TurnOn closes the call relay now and reports
+    HpOn. StratProtect: TurnOn reports PreparingToTurnOn and the relay closes
+    only when the loop says ready."""
     scada = app.scada
     capture(scada)
     scada.set_command_tree(scada.local_control)
@@ -154,7 +154,7 @@ async def test_turn_on_follows_the_layout_strategy(app: ScadaApp) -> None:
     relay = scada.layout.hp_scada_ops_relay
     deliver(actor, boss.name, turn(boss.handle, actor.node.handle, TurnHpOnOff.TurnOn))
     close = (actor.node.handle, relay.handle, ChangeRelayState.CloseRelay)
-    if scada.data.use_sieg_loop:
+    if selected_strategy(actor.ops) is SiegLoopStrategy.StratProtect:
         assert relay_events(sent) == []
         assert actor.state == HpBossState.PreparingToTurnOn
         assert reported_states(sent) == [HpBossState.PreparingToTurnOn]
@@ -237,7 +237,7 @@ async def test_admin_turns_heat_pump_on_and_off_through_hp_boss(app: ScadaApp) -
 
     sent.clear()
     scada.process_admin_dispatch(scada.admin, admin_turn(TurnHpOnOff.TurnOn))
-    if scada.data.use_sieg_loop:
+    if selected_strategy(actor.ops) is SiegLoopStrategy.StratProtect:
         assert actor.state == HpBossState.PreparingToTurnOn
         deliver(actor, House0NodeNames.sieg_loop, SiegLoopReady())
     assert relay_events(sent) == [

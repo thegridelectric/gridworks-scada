@@ -116,7 +116,7 @@ def test_boot_puts_every_actuator_under_local_control_normal(app: ScadaApp) -> N
     hangs them under `auto.lc.n`. Every relay and 0-10V output is a direct
     report of `n` after boot, except the ones an interior node owns:
     hp-scada-ops-relay under hp-boss, vdc-relay under the five-v-boss
-    subtree, and the sieg-loop pair when the loop is in use."""
+    subtree, and the sieg-loop pair in a layout with the loop."""
     scada = app.scada
     layout = scada.layout
     n = layout.node(CoreNodeNames.local_control_normal)
@@ -124,7 +124,7 @@ def test_boot_puts_every_actuator_under_local_control_normal(app: ScadaApp) -> N
     owned = {layout.hp_scada_ops_relay.Name: layout.hp_boss.handle}
     if layout.node(HSNN.five_v_boss) is not None:
         owned[layout.vdc_relay.Name] = scada.pico_cycler.handle
-    if scada.data.use_sieg_loop:
+    if layout.node(House0NodeNames.sieg_loop) is not None:
         for name in (House0NodeNames.hp_loop_on_off, House0NodeNames.hp_loop_keep_send):
             owned[name] = layout.node(House0NodeNames.sieg_loop).handle
     for node in layout.actuators:

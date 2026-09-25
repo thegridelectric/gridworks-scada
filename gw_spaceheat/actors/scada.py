@@ -182,9 +182,10 @@ class Scada(PrimeActor, ScadaInterface):
         self.initialize_hierarchical_state_data()
 
         self.state_machine_subscriptions: List[StateMachineSubscription] = []
-        if self.data.use_sieg_loop:
+        sieg_loop = self.layout.node(House0NodeNames.sieg_loop)
+        if sieg_loop is not None:
             self.state_machine_subscriptions.append(StateMachineSubscription(
-                subscriber_name=self.sieg_loop.name,
+                subscriber_name=sieg_loop.name,
                 publisher_name=self.hp_boss.name
             ))
 
@@ -205,8 +206,8 @@ class Scada(PrimeActor, ScadaInterface):
 
         # Define which actors depend on actuator readiness
         self.actuator_dependents = {self.local_control}
-        if self.data.use_sieg_loop:
-            self.actuator_dependents.add(self.sieg_loop)
+        if sieg_loop is not None:
+            self.actuator_dependents.add(sieg_loop)
 
         # configure web APIs
         for ws in self.layout.get_components_by_type(WebServerComponent):
@@ -1262,8 +1263,8 @@ class Scada(PrimeActor, ScadaInterface):
             five_v_boss.Handle = f"{root}.{five_v_boss.Name}"
             shape_five_v_subtree(self.layout, self.five_v_boss_state)
             under_fsm.add(self.layout.vdc_relay.Name)
-        if self.data.use_sieg_loop:
-            sieg_loop = self.layout.node(House0NodeNames.sieg_loop)
+        sieg_loop = self.layout.node(House0NodeNames.sieg_loop)
+        if sieg_loop is not None:
             sieg_loop.Handle = f"{boss.handle}.{sieg_loop.Name}"
             for name in (House0NodeNames.hp_loop_on_off, House0NodeNames.hp_loop_keep_send):
                 node = self.layout.node(name)
@@ -1725,9 +1726,7 @@ class Scada(PrimeActor, ScadaInterface):
 
     @property
     def sieg_loop(self) -> ShNode:
-        if not self.data.use_sieg_loop:
-            raise Exception("Should not call for sieg_loop unless layout uses sieg loop!")
-        return self.layout.node(House0NodeNames.sieg_loop)
+        return self.required_node(House0NodeNames.sieg_loop)
 
     @property
     def pico_cycler(self) -> ShNode:
