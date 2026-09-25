@@ -17,6 +17,7 @@ import pytest
 from actors.hydronic.house0 import House0Hydronic
 from actors.sieg_loop import (
     HoldFullSend,
+    SiegControlState,
     SiegLoop,
     SiegLoopReady,
     SiegValveEvent,
@@ -32,9 +33,19 @@ from gwsproto.enums import (
     ChangeRelayState,
     HpBossState,
     MainAutoEvent,
+    MoveSiegValve,
+    ScadaCmdRefusalReason,
     SiegLoopStrategy,
+    TurnHpOnOff,
 )
-from gwsproto.named_types import ActuatorsReady, FsmEvent, SingleMachineState
+from gwsproto.named_types import (
+    ActuatorsReady,
+    DispatchAck,
+    DispatchNack,
+    FsmEvent,
+    FsmFullReport,
+    SingleMachineState,
+)
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from gwsproto.names.house0.node_names import House0NodeNames
@@ -68,6 +79,7 @@ def sieg_loop_actor(app: ScadaApp) -> SiegLoop:
 def capture(actor: SiegLoop) -> list:
     sent: list = []
     actor._send_to = lambda dst, payload, src=None: sent.append((dst.name, payload))
+    actor._send = lambda message: None  # the watchdog pat on the tick
     return sent
 
 
@@ -297,7 +309,7 @@ async def test_hold_full_send_moves_once_to_send_then_only_answers(tmp_path: Pat
     await settle()
     assert relay_events(sent) == TO_SEND + HOLD
     assert actor.valve.keep_seconds == 0
-    assert actor.valve.valve_state == SiegValveState.SteadyBlend
+    assert actor.valve.valve_state == SiegValveState.FullySend
 
     sent.clear()
     for state in (HpBossState.HpOff, HpBossState.PreparingToTurnOn, HpBossState.HpOn, HpBossState.HpOff):
@@ -320,7 +332,7 @@ async def test_strat_protect_answers_preparing_to_turn_on_with_ready(app: ScadaA
 async def test_a_new_move_settles_the_travel_so_far_from_the_clock(tmp_path: Path) -> None:
     """A move toward send cut short by a move toward keep: the motor stops,
     keep_seconds is what the clock says ran, and the motor reverses from
-    there. The finishing move clamps at full keep."""
+    there. The finishing move clamps at full keep and lands on the stop."""
     app, clock = manual_app(tmp_path, strategy=SiegLoopStrategy.HoldFullSend)
     actor = sieg_loop_actor(app)
     valve = actor.valve
@@ -342,7 +354,7 @@ async def test_a_new_move_settles_the_travel_so_far_from_the_clock(tmp_path: Pat
     await settle()
     assert relay_events(sent) == TO_SEND + HOLD + TO_KEEP + HOLD
     assert valve.keep_seconds == valve.FULL_RANGE_S
-    assert valve.valve_state == SiegValveState.SteadyBlend
+    assert valve.valve_state == SiegValveState.FullyKeep
 
 
 @pytest.mark.asyncio
@@ -361,5 +373,172 @@ async def test_one_valve_report_per_state_change(tmp_path: Path) -> None:
     assert valve_reports(sent) == [SiegValveState.KeepingLess]
     clock.advance(actor.valve.FULL_RANGE_S)
     await settle()
-    assert valve_reports(sent) == [SiegValveState.KeepingLess, SiegValveState.SteadyBlend]
+    assert valve_reports(sent) == [SiegValveState.KeepingLess, SiegValveState.FullySend]
     assert all(p.MachineHandle == actor.node.handle for _, p in sent if isinstance(p, SingleMachineState))
+
+
+# --- the command surface -----------------------------------------------------
+
+
+def move(actor: SiegLoop, name: MoveSiegValve, from_handle: str = CoreNodeNames.admin) -> FsmEvent:
+    return FsmEvent(
+        FromHandle=from_handle,
+        ToHandle=actor.node.handle,
+        EventType=MoveSiegValve.enum_name(),
+        EventName=name,
+        SendTimeUnixMs=int(time.time() * 1000),
+        TriggerId=str(uuid.uuid4()),
+    )
+
+
+def loop_under_admin(app: ScadaApp) -> SiegLoop:
+    scada = app.scada
+    scada._send_to = lambda dst, payload, src=None: None
+    scada.auto_trigger(MainAutoEvent.AutoGoesDormant)
+    actor = sieg_loop_actor(app)
+    assert actor.node.handle == f"{CoreNodeNames.admin}.{House0NodeNames.sieg_loop}"
+    return actor
+
+
+def replies(sent: list) -> list[tuple[str, type]]:
+    return [(dst, type(p)) for dst, p in sent if isinstance(p, (DispatchAck, DispatchNack))]
+
+
+@pytest.mark.asyncio
+async def test_admin_move_is_acked_run_in_full_and_held_across_ticks(tmp_path: Path) -> None:
+    """On HoldFullSend with the valve at full send, admin's MoveToFullKeep is
+    acked, the motor runs the whole range plus the overshoot toward keep,
+    the valve lands on FullyKeep, and ticks leave it there while admin holds
+    the tree. The full report carries the commander's TriggerId."""
+    app, clock = manual_app(tmp_path, strategy=SiegLoopStrategy.HoldFullSend)
+    actor = loop_under_admin(app)
+    sent = capture(actor)
+    deliver(actor, actor.primary_scada.name, ActuatorsReady())
+    await settle()
+    clock.advance(actor.valve.FULL_RANGE_S + actor.valve.OVERSHOOT_S)
+    await settle()
+    assert actor.valve.valve_state == SiegValveState.FullySend
+    sent.clear()
+
+    cmd = move(actor, MoveSiegValve.MoveToFullKeep)
+    deliver(actor, CoreNodeNames.admin, cmd)
+    await settle()
+    assert replies(sent) == [(CoreNodeNames.admin, DispatchAck)]
+    assert relay_events(sent) == TO_KEEP
+    assert not actor.automatic
+    clock.advance(actor.valve.FULL_RANGE_S + actor.valve.OVERSHOOT_S - 1)
+    await settle()
+    assert relay_events(sent) == TO_KEEP, "a commanded move runs the full range whatever keep_seconds says"
+    clock.advance(1)
+    await settle()
+    assert relay_events(sent) == TO_KEEP + HOLD
+    assert actor.valve.valve_state == SiegValveState.FullyKeep
+    [(dst, report)] = [(d, p) for d, p in sent if isinstance(p, FsmFullReport)]
+    assert dst == actor.primary_scada.name
+    assert report.TriggerId == cmd.TriggerId
+    [atomic] = report.AtomicList
+    assert (atomic.EventEnum, atomic.Event, atomic.FromState, atomic.ToState) == (
+        MoveSiegValve.enum_name(), MoveSiegValve.MoveToFullKeep, SiegValveState.FullySend, SiegValveState.FullyKeep,
+    )
+    assert atomic.TriggerId == cmd.TriggerId
+
+    sent.clear()
+    for _ in range(3):
+        actor.tick()
+        clock.advance(actor.CONTROL_INTERVAL_S)
+        await settle()
+    assert relay_events(sent) == []
+    assert actor.valve.valve_state == SiegValveState.FullyKeep
+
+
+@pytest.mark.asyncio
+async def test_a_commanded_move_holds_the_loop_until_the_tree_changes_hands(tmp_path: Path) -> None:
+    """StratProtect with no readings is blind and wants full send; admin's
+    MoveToFullKeep moves the valve to keep and the loop ignores its own
+    control until the tree returns to local control, noticed on the tick,
+    when it goes back to send."""
+    app, clock = manual_app(tmp_path, strategy=SiegLoopStrategy.StratProtect)
+    actor = loop_under_admin(app)
+    sent = capture(actor)
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.HpOff))
+    deliver(actor, actor.primary_scada.name, ActuatorsReady())
+    await settle()
+    assert isinstance(actor.strategy, StratProtect)
+    assert actor.strategy.control_state == SiegControlState.Blind
+    clock.advance(actor.valve.FULL_RANGE_S + actor.valve.OVERSHOOT_S)
+    await settle()
+    assert actor.valve.valve_state == SiegValveState.FullySend
+    sent.clear()
+
+    deliver(actor, CoreNodeNames.admin, move(actor, MoveSiegValve.MoveToFullKeep))
+    await settle()
+    clock.advance(actor.valve.FULL_RANGE_S + actor.valve.OVERSHOOT_S)
+    await settle()
+    assert actor.valve.valve_state == SiegValveState.FullyKeep
+    sent.clear()
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.HpOn))
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.HpOff))
+    actor.tick()
+    await settle()
+    assert relay_events(sent) == [], "the strategy's moves are withheld while admin's command holds"
+    assert actor.valve.valve_state == SiegValveState.FullyKeep
+
+    app.scada.auto_trigger(MainAutoEvent.AutoWakesUp)
+    assert actor.node.handle.startswith(CoreNodeNames.auto)
+    actor.tick()
+    await settle()
+    assert actor.automatic
+    assert relay_events(sent) == TO_SEND
+    clock.advance(actor.valve.FULL_RANGE_S + actor.valve.OVERSHOOT_S)
+    await settle()
+    assert actor.valve.valve_state == SiegValveState.FullySend
+
+
+@pytest.mark.asyncio
+async def test_bad_commands_move_nothing(tmp_path: Path) -> None:
+    """A command whose FromHandle is not the sender's is dropped; one to a
+    stale handle is nacked NotMyBoss; a wrong EventType is nacked
+    UnknownEvent. None moves the valve or holds the loop."""
+    app, _ = manual_app(tmp_path, strategy=SiegLoopStrategy.HoldFullSend)
+    actor = loop_under_admin(app)
+    sent = capture(actor)
+
+    deliver(actor, CoreNodeNames.local_control, move(actor, MoveSiegValve.MoveToFullKeep))
+    assert replies(sent) == [], "dropped with a warning, no reply"
+
+    stale = move(actor, MoveSiegValve.MoveToFullKeep)
+    stale = stale.model_copy(update={"ToHandle": f"auto.lc.n.{House0NodeNames.sieg_loop}"})
+    deliver(actor, CoreNodeNames.admin, stale)
+    [(dst, nack)] = [(d, p) for d, p in sent if isinstance(p, DispatchNack)]
+    assert (dst, nack.Reason) == (CoreNodeNames.admin, ScadaCmdRefusalReason.NotMyBoss)
+    sent.clear()
+
+    wrong = move(actor, MoveSiegValve.MoveToFullKeep).model_copy(
+        update={"EventType": TurnHpOnOff.enum_name(), "EventName": TurnHpOnOff.TurnOn}
+    )
+    deliver(actor, CoreNodeNames.admin, wrong)
+    [(dst, nack)] = [(d, p) for d, p in sent if isinstance(p, DispatchNack)]
+    assert (dst, nack.Reason) == (CoreNodeNames.admin, ScadaCmdRefusalReason.UnknownEvent)
+
+    await settle()
+    assert relay_events(sent) == []
+    assert actor.automatic
+
+
+def test_capabilities_cover_sieg_loop_with_its_two_moves(app: ScadaApp) -> None:
+    """The panel commands sieg-loop with move.sieg.valve; relays 14 and 15
+    sit under it and are commanded through it."""
+    caps = app.scada.control_capabilities
+    by_actor: dict[str, list] = {}
+    for i in caps.CommandInterfaces:
+        by_actor.setdefault(i.ActorName, []).append(i)
+    [interface] = by_actor[House0NodeNames.sieg_loop]
+    assert interface.EventType == MoveSiegValve.enum_name()
+    assert interface.StateType == SiegValveState.enum_name()
+    assert {(c.Event, c.ToState) for c in interface.Commands} == {
+        (MoveSiegValve.MoveToFullSend, SiegValveState.FullySend),
+        (MoveSiegValve.MoveToFullKeep, SiegValveState.FullyKeep),
+    }
+    assert House0NodeNames.hp_loop_on_off not in by_actor
+    assert House0NodeNames.hp_loop_keep_send not in by_actor
+    assert House0NodeNames.sieg_loop in {n.Name for n in caps.CommandNodes}

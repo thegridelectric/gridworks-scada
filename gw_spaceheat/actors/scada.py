@@ -62,7 +62,7 @@ from actors.contract_handler import ContractHandler
 from gwsproto.data_classes.components.web_server_component import WebServerComponent
 from gwsproto.enums import (FiveVBossState, HpBossState, LeafAllyBufferOnlyState,  LeafAllyAllTanksState,
                             LogLevel,
-                            RebootPicos, Turn5VOnOff,
+                            MoveSiegValve, RebootPicos, SiegValveState, Turn5VOnOff,
                             SlowDispatchContractStatus, TaValidationState, LocalControlTopState,
                    MainAutoEvent, MainAutoState, SeasonalStorageMode,  TopState, TurnHpOnOff)
 
@@ -1738,7 +1738,7 @@ class Scada(PrimeActor, ScadaInterface):
 
     # The interior command nodes an operator sees as rows: their own state
     # reaches the panel live and they are listed in the capabilities.
-    COMMAND_NODE_CLASSES = {ActorClass.FiveVBoss, ActorClass.PicoCycler, ActorClass.HpBoss}
+    COMMAND_NODE_CLASSES = {ActorClass.FiveVBoss, ActorClass.PicoCycler, ActorClass.HpBoss, ActorClass.SiegLoop}
 
     # The interior command nodes' vocabularies, by ActorClass: one entry per
     # vocabulary (event type, state type, the commands and the state each
@@ -1764,6 +1764,14 @@ class Scada(PrimeActor, ScadaInterface):
                 [(RebootPicos.RebootPicos, FiveVBossState.PicoCycler)],
             ),
         ],
+        ActorClass.SiegLoop: [(
+            MoveSiegValve.enum_name(),
+            SiegValveState.enum_name(),
+            [
+                (MoveSiegValve.MoveToFullSend, SiegValveState.FullySend),
+                (MoveSiegValve.MoveToFullKeep, SiegValveState.FullyKeep),
+            ],
+        )],
     }
 
     @property

@@ -7,27 +7,12 @@ import asyncio
 from enum import auto
 from typing import TYPE_CHECKING, Optional
 
+from gwsproto.enums import SiegValveState
 from gwsproto.enums.gw_str_enum import GwStrEnum
 from transitions import Machine
 
 if TYPE_CHECKING:
     from actors.sieg_loop import SiegLoop
-
-
-class SiegValveState(GwStrEnum):
-    KeepingMore = auto()
-    KeepingLess = auto()
-    SteadyBlend = auto()
-    FullySend = auto()
-    FullyKeep = auto()
-
-    @classmethod
-    def values(cls) -> list[str]:
-        return [elt.value for elt in cls]
-
-    @classmethod
-    def enum_name(cls) -> str:
-        return "sieg.valve.state"
 
 
 class SiegValveEvent(GwStrEnum):
@@ -42,9 +27,12 @@ class SiegValveEvent(GwStrEnum):
 class SiegValve:
     """The valve state machine and its motor runs. A run toward keep adds
     to keep_seconds, a run toward send subtracts; both overshoot the range
-    by ten seconds when the target is a stop, which is how the valve
-    re-homes. A new run cancels the one in flight, which settles its
-    keep_seconds from the clock before the motor changes direction."""
+    by ten seconds when the target is a stop. A run that ends on a stop
+    lands the machine on FullySend or FullyKeep; any other end is
+    SteadyBlend. A new run cancels the one in flight, which settles its
+    keep_seconds from the clock before the motor changes direction. A
+    full run is the whole range plus the overshoot whatever keep_seconds
+    says, which is how a commanded move re-homes the valve."""
 
     FULL_RANGE_S = 100
     OVERSHOOT_S = 10
@@ -103,6 +91,14 @@ class SiegValve:
         self.loop.log("Moving to just keep")
         self.travel(-self.keep_seconds + self.t2)
 
+    def full_run_to_send(self) -> None:
+        self.loop.log("Full run to send")
+        self.travel(-(self.FULL_RANGE_S + self.OVERSHOOT_S))
+
+    def full_run_to_keep(self) -> None:
+        self.loop.log("Full run to keep")
+        self.travel(self.FULL_RANGE_S + self.OVERSHOOT_S)
+
     def travel(self, delta_s: float) -> None:
         """Run the motor for delta_s seconds: toward keep when positive,
         toward send when negative. Cancels the run in flight."""
@@ -132,12 +128,20 @@ class SiegValve:
             ran_s = clock.now() - start_s
             moved = ran_s if toward_keep else -ran_s
             self.keep_seconds = min(self.FULL_RANGE_S, max(0, start_keep_seconds + moved))
-            self.trigger_valve_event(
-                SiegValveEvent.StopKeepingMore if toward_keep else SiegValveEvent.StopKeepingLess
-            )
+            if toward_keep:
+                at_stop = self.keep_seconds == self.FULL_RANGE_S
+                self.trigger_valve_event(
+                    SiegValveEvent.ResetToFullyKeep if at_stop else SiegValveEvent.StopKeepingMore
+                )
+            else:
+                at_stop = self.keep_seconds == 0
+                self.trigger_valve_event(
+                    SiegValveEvent.ResetToFullySend if at_stop else SiegValveEvent.StopKeepingLess
+                )
             self.loop.log(
                 f"Motor stopped after {round(ran_s, 1)} s: keep_seconds {round(self.keep_seconds, 1)}"
             )
+            self.loop.move_ended()
 
     # --------------------------------------
     # Valve state machine

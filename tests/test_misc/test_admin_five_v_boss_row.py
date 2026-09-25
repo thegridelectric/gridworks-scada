@@ -1,7 +1,7 @@
 """The panel's five-v-boss row on a Nolan scada offers every command its
 two vocabularies allow from the observed state: the hold's TurnOff and
 the forwarded RebootPicos at rest, TurnOn alone while the 5 V is held
-off, and mid-transition the hold's way back with the reboot withheld
+off, and mid-transition both hold commands with the reboot withheld
 (the node nacks Busy either way; the panel does not pretend otherwise).
 A relay row offers the one event that leads elsewhere; the cycler row,
 commanded through five-v-boss, offers nothing."""
@@ -57,9 +57,14 @@ def test_five_v_boss_offers_turn_on_alone_while_held_off(configs: dict[str, Rela
 
 
 def test_five_v_boss_withholds_reboot_mid_transition(configs: dict[str, RelayWidgetConfig]) -> None:
+    """Mid-transition the observed state is no command's result, so the
+    hold's vocabulary offers both of its commands; the reboot stays withheld."""
     boss = configs[HSNN.five_v_boss]
     for state in (FiveVBossState.TurningOff, FiveVBossState.TurningOn):
-        assert [event_type for event_type, _ in offered(boss, state)] == [Turn5VOnOff.enum_name()]
+        assert offered(boss, state) == [
+            (Turn5VOnOff.enum_name(), Turn5VOnOff.TurnOff),
+            (Turn5VOnOff.enum_name(), Turn5VOnOff.TurnOn),
+        ]
     assert offered(boss, None) == []
     assert boss.get_action_str(None) == ""
 

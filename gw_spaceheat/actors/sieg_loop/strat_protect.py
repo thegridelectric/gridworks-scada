@@ -108,6 +108,9 @@ class StratProtect(SiegStrategy):
     def tick(self) -> None:
         self.engage_brain()
 
+    def resume(self) -> None:
+        self.move_for(self.control_state)
+
     # --------------------------------------
     # Reads
     # --------------------------------------
@@ -195,16 +198,20 @@ class StratProtect(SiegStrategy):
         if self.control_state == orig_state:
             self.loop.log(f"Warning: event {event} did not cause a change in control state")
             return
+        if self.loop.automatic:
+            self.move_for(self.control_state)
 
+    def move_for(self, state: SiegControlState) -> None:
+        """The valve posture the control state calls for."""
         valve = self.loop.valve
-        if self.control_state == SiegControlState.Blind:
+        if state == SiegControlState.Blind:
             valve.move_to_full_send()
-        elif self.control_state == SiegControlState.HpOff:
+        elif state == SiegControlState.HpOff:
             # OFI (OPS-400): per heat pump. Maple (Mitsubishi, always-on
             # primary) needs full keep when off to protect stratification;
             # Beech (LG, timed primary) may want a different posture when off.
             valve.move_to_full_keep()
-        elif self.control_state == SiegControlState.HpStartingUp:
+        elif state == SiegControlState.HpStartingUp:
             valve.move_to_just_keep()
-        elif self.control_state == SiegControlState.HpHasLift:
+        elif state == SiegControlState.HpHasLift:
             valve.move_to_full_send()

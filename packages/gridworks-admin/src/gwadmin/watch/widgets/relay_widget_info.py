@@ -64,13 +64,15 @@ class RelayWidgetConfig(RelayConfig):
         return RelayWidgetConfig(**config.model_dump())
 
     def offered_commands(self, state: Optional[str]) -> list[CommandTransition]:
-        """The commands to offer given the observed state, one per
-        vocabulary in the order the vocabularies arrive. A two-command
-        vocabulary offers the command that leads somewhere else; a
-        one-command vocabulary (reboot.picos on five-v-boss) is offered
-        when the observed state is its target, since the node only takes
-        it at rest. No observed state, or a row with no commands (a relay
-        owned by an interior node), offers nothing."""
+        """The commands to offer given the observed state, in the order the
+        vocabularies arrive. A two-command vocabulary offers the command
+        that leads somewhere else, and every command when the observed
+        state is no command's result (a valve mid-travel, a hold
+        mid-transition); a one-command vocabulary (reboot.picos on
+        five-v-boss) is offered when the observed state is its target,
+        since the node only takes it at rest. No observed state, or a row
+        with no commands (a relay owned by an interior node), offers
+        nothing."""
         if state is None:
             return []
         vocabularies: dict[str, list[CommandTransition]] = {}
@@ -82,9 +84,7 @@ class RelayWidgetConfig(RelayConfig):
                 if commands[0].to_state == state:
                     offered.append(commands[0])
                 continue
-            command = next((c for c in commands if c.to_state != state), None)
-            if command is not None:
-                offered.append(command)
+            offered.extend(c for c in commands if c.to_state != state)
         return offered
 
     def offered_command(self, state: Optional[str], offer_index: int) -> Optional[CommandTransition]:

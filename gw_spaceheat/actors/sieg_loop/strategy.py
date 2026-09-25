@@ -52,3 +52,8 @@ class SiegStrategy(ABC):
     @abstractmethod
     def tick(self) -> None:
         """The loop's control interval elapsed."""
+
+    @abstractmethod
+    def resume(self) -> None:
+        """The loop is back under automatic control after a command: put
+        the valve where the strategy wants it."""

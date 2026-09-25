@@ -44,6 +44,7 @@ from gwsproto.named_types import (
     WakeUp,
 )
 from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.names.house0.node_names import House0NodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from scada_app import ScadaApp
 
@@ -195,7 +196,10 @@ def test_capabilities_cover_five_v_boss_not_the_cycler(app: ScadaApp) -> None:
     assert sorted(by_actor[HSNN.five_v_boss]) == sorted([Turn5VOnOff.enum_name(), RebootPicos.enum_name()])
     assert HSNN.pico_cycler not in by_actor
     assert HSNN.vdc_relay not in by_actor
-    assert {n.Name for n in caps.CommandNodes} == {HSNN.five_v_boss, HSNN.pico_cycler, HSNN.hp_boss}
+    expected = {HSNN.five_v_boss, HSNN.pico_cycler, HSNN.hp_boss}
+    if app.scada.layout.node(House0NodeNames.sieg_loop) is not None:
+        expected.add(House0NodeNames.sieg_loop)
+    assert {n.Name for n in caps.CommandNodes} == expected
 
 
 def test_panel_row_gathers_both_vocabularies(app: ScadaApp) -> None:
