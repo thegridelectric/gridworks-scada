@@ -11,8 +11,9 @@ from pathlib import Path
 
 import pytest
 
-from gwsproto.named_types import House0Layout, OperationalParams, NolanLayout
-from sema_to_dc import assemble_runtime_layout, check_sieg_loop_assembly
+from gwsproto.enums import SiegLoopStrategy
+from gwsproto.named_types import House0Layout, OperationalParams
+from sema_to_dc import assemble_runtime_layout, check_sieg_loop_strategy
 
 CONFIG = Path(__file__).parent.parent / "config"
 
@@ -252,20 +253,32 @@ def test_gw_house0_layout_axiom_11_actor_class(assembled: dict) -> None:
     reject(assembled, reclass, "Axiom 11")
 
 
-def test_sieg_loop_assembly_check(assembled: dict) -> None:
-    """Ops asking for the loop needs a SiegLoop-classed node in the layout:
-    the House0 pair passes; the same ops over the Nolan layout (no loop)
-    refuses at assembly, the check that replaced gw.hydronic's old axiom 1."""
-    layout = House0Layout.model_validate(assembled)
+def test_sieg_loop_strategy_check() -> None:
+    """The loader takes HoldFullSend and StratProtect and refuses LwtControl,
+    which is not built."""
     ops = OperationalParams.model_validate_json(
         (CONFIG / "gw.house0.orange.operational.params.json").read_text()
-    ).model_copy(update={"UseSiegLoop": True})
-    check_sieg_loop_assembly(layout, ops)
-    nolan = NolanLayout.model_validate_json(
-        (CONFIG / "gw.nolan.layout.json").read_text()
     )
-    with pytest.raises(ValueError, match="SiegLoop"):
-        check_sieg_loop_assembly(nolan, ops)
+    for strategy in (SiegLoopStrategy.HoldFullSend, SiegLoopStrategy.StratProtect):
+        check_sieg_loop_strategy(
+            ops.model_copy(
+                update={
+                    "FamilyParams": ops.FamilyParams.model_copy(
+                        update={"SiegLoopStrategy": strategy}
+                    )
+                }
+            )
+        )
+    with pytest.raises(ValueError, match="LwtControl"):
+        check_sieg_loop_strategy(
+            ops.model_copy(
+                update={
+                    "FamilyParams": ops.FamilyParams.model_copy(
+                        update={"SiegLoopStrategy": SiegLoopStrategy.LwtControl}
+                    )
+                }
+            )
+        )
 
 
 def declare_twin(d: dict, name: str = "hp-idu", handle: str | None = "auto.hp-boss.hp-idu") -> None:

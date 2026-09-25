@@ -23,7 +23,7 @@ from typing import Any
 from pydantic import TypeAdapter
 
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
-from gwsproto.enums import ActorClass, GNodeClass
+from gwsproto.enums import GNodeClass, SiegLoopStrategy
 from gwsproto.named_types import (
     House0FamilyParams,
     House0Layout,
@@ -99,24 +99,27 @@ def zero_ten_power_on_volts_times_ten(ops: OperationalParams, node_name: str) ->
 
 
 def use_sieg_loop(ops: OperationalParams) -> bool:
-    """Whether the scada runs the Siegenthaler loop. Only the House0 family
-    params carry the flag; a Nolan plant has no loop, so its block has none."""
+    """Whether the scada runs the Siegenthaler loop's protection control. Only
+    the House0 family params carry a strategy; a Nolan plant has no loop, so
+    its block has none. HoldFullSend behaves as no loop."""
     family = ops.FamilyParams
-    return isinstance(family, House0FamilyParams) and family.UseSiegLoop
+    return (
+        isinstance(family, House0FamilyParams)
+        and family.SiegLoopStrategy is SiegLoopStrategy.StratProtect
+    )
 
 
-def check_sieg_loop_assembly(
-    word: House0Layout | NolanLayout, ops_word: OperationalParams
-) -> None:
-    """Ops saying use the loop requires a SiegLoop-classed node in the layout.
-    The layout word says what is plumbed; the ops word says whether the scada
-    runs it. Raises on a pair that asks for a loop the plant does not have."""
-    if use_sieg_loop(ops_word) and not any(
-        n.ActorClass == ActorClass.SiegLoop for n in word.ShNodes
+def check_sieg_loop_strategy(ops_word: OperationalParams) -> None:
+    """The loader refuses a strategy the scada cannot run yet. Raises on
+    LwtControl, which is not built."""
+    family = ops_word.FamilyParams
+    if (
+        isinstance(family, House0FamilyParams)
+        and family.SiegLoopStrategy is SiegLoopStrategy.LwtControl
     ):
         raise ValueError(
-            f"{ops_word.FamilyParams.TypeName} sets UseSiegLoop but {word.TypeName} carries "
-            "no SiegLoop-classed node."
+            f"{family.TypeName} names SiegLoopStrategy LwtControl, which the scada "
+            "cannot run."
         )
 
 
@@ -196,7 +199,7 @@ def ops_and_sema_to_dc(
     word = SEMA_LAYOUT_BY_TYPENAME[str(static["TypeName"])].model_validate(static)
     ops_word = decode_operational_params(ops)
     check_scada_alias(word, ops_word)
-    check_sieg_loop_assembly(word, ops_word)
+    check_sieg_loop_strategy(ops_word)
     return HydronicLayout.from_sema(
         word, capture_tuning=ops_word.CaptureTuningList, **load_kwargs
     )

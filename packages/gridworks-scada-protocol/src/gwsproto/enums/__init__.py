@@ -32,6 +32,7 @@ from gwsproto.enums.change_zone_call_source import ChangeZoneCallSource
 from gwsproto.enums.day_of_week import DayOfWeek
 from gwsproto.enums.device_type import DeviceType
 from gwsproto.enums.move_sieg_valve import MoveSiegValve
+from gwsproto.enums.sieg_loop_strategy import SiegLoopStrategy
 from gwsproto.enums.sieg_valve_state import SiegValveState
 from gwsproto.enums.sim_device_type import SimDeviceType
 from gwsproto.enums.emission_method import EmissionMethod
@@ -135,6 +136,7 @@ __all__ = [
     "DayOfWeek",
     "DeviceType",
     "MoveSiegValve",
+    "SiegLoopStrategy",
     "SiegValveState",
     "SimDeviceType",
     "EmissionMethod",

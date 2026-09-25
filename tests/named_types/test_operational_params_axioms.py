@@ -40,7 +40,7 @@ def test_gw_operational_params_axiom_2_duplicate_node(name: str) -> None:
 def test_gw_operational_params_family_block_is_discriminated() -> None:
     d = ops("gw.nolan.operational.params.json")
     d["FamilyParams"]["TypeName"] = "gw.house0.family.params"
-    with pytest.raises(ValueError, match="UseSiegLoop"):
+    with pytest.raises(ValueError, match="SiegLoopStrategy"):
         OperationalParams.model_validate(d)
 
 

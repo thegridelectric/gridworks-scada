@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-09-24T22:45:00Z"
+  last_updated: "2026-09-25T17:10:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -434,6 +434,18 @@ enums:
         created: "2024-09-17T19:18:00Z"
         status: "published"
 
+  sieg.loop.strategy:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "How the sieg-loop drives the Siegenthaler valve while the tree is in automatic hands: hold full send, protect stratification only, or control leaving-water temperature."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/sieg.loop.strategy/000"
+        created: "2026-09-25T17:10:00Z"
+        status: "staging"
+
   spaceheat.telemetry.name:
     latest_version: "007"
     owner: gridworks-energy
@@ -810,12 +822,13 @@ types:
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw.house0.family.params/000"
-        created: "2026-09-17T23:45:00Z"
+        created: "2026-09-25T17:10:00Z"
         status: "staging"
-        summary: "Initial version: UseSiegLoop, KeepBufferFull, SeasonalStorageMode. All required."
+        summary: "Initial version: SiegLoopStrategy, KeepBufferFull, SeasonalStorageMode. All required."
         direct_dependencies:
           structural:
             - "gw1.seasonal.storage.mode:000"
+            - "sieg.loop.strategy:000"
 
   gw.house0.layout:
     latest_version: "000"
@@ -878,7 +891,7 @@ types:
         schema_url: "https://schemas.electricity.works/types/gw.hydronic/000"
         created: "2026-09-24T17:50:00Z"
         status: "staging"
-        summary: "- Typed hydronic block promoted out of gw.house0.layout's freeform Hydronic: Zones (gw1.hvac.zone list), ZoneCallCircuits (gw1.zone.call.circuit list, required: every layout word requires it non-empty), TotalStoreTanks, PrimaryFlowSource (gw.primary.flow.source), Strategy. Axioms: Cardinality, CircuitResolution. The Siegenthaler-loop flags left this word: plumbed-ness is what a has-sieg layout word means, and use is operational (gw.house0.family.params UseSiegLoop). - HpCommandNodeName (optional spaceheat.name): the node that takes heat-pump commands under hp-boss; absent = nothing commands the heat pump. The layout words' CommandableHeatPump axiom governs it. - Strategy dropped: the control family is the layout word's own TypeName (invariant per word, so not a data field; the same rule that retired SiegLoopPlumbed). - TotalStoreTanks may be zero (a store that is not water tanks); the Cardinality axiom keeps only the upper bound of 6. - PrimaryPumpOwner (gw.primary.pump.owner, required): who runs the primary pump, the heat pump or the scada; the layout words' PrimaryPumpActuators axiom ties the actuator nodes to it. RefrigerantCycle (gw.refrigerant.cycle, required): single compressor or two-compressor cascade, for the optimizer's COP model."
+        summary: "- Typed hydronic block promoted out of gw.house0.layout's freeform Hydronic: Zones (gw1.hvac.zone list), ZoneCallCircuits (gw1.zone.call.circuit list, required: every layout word requires it non-empty), TotalStoreTanks, PrimaryFlowSource (gw.primary.flow.source), Strategy. Axioms: Cardinality, CircuitResolution. The Siegenthaler-loop flags left this word: plumbed-ness is what a has-sieg layout word means, and use is operational (gw.house0.family.params SiegLoopStrategy). - HpCommandNodeName (optional spaceheat.name): the node that takes heat-pump commands under hp-boss; absent = nothing commands the heat pump. The layout words' CommandableHeatPump axiom governs it. - Strategy dropped: the control family is the layout word's own TypeName (invariant per word, so not a data field; the same rule that retired SiegLoopPlumbed). - TotalStoreTanks may be zero (a store that is not water tanks); the Cardinality axiom keeps only the upper bound of 6. - PrimaryPumpOwner (gw.primary.pump.owner, required): who runs the primary pump, the heat pump or the scada; the layout words' PrimaryPumpActuators axiom ties the actuator nodes to it. RefrigerantCycle (gw.refrigerant.cycle, required): single compressor or two-compressor cascade, for the optimizer's COP model."
         direct_dependencies:
           structural:
             - "gw.primary.flow.source:000"
@@ -978,7 +991,7 @@ types:
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw.operational.params/000"
-        created: "2026-09-17T23:45:00Z"
+        created: "2026-09-25T17:10:00Z"
         status: "staging"
         summary: "Initial version. ScadaAlias (the applying Scada's identity — stored/emitted instances self-identify; the layout holds the full GNodes) + FamilyParams (oneOf gw.house0.family.params / gw.nolan.family.params, discriminated by TypeName; the family TypeName pairs the instance with its layout family, so a mismatched pair fails at decode) + CaptureTuningList + ZeroTenPowerOnList + ActuationAuthority x ServiceMode (authority dominates; ServiceMode inert outside Active) + CopCurve + HeatingCurve + HpTurnOnMinutes + HpMaxKwEl + LoadOverestimationPercent + OilBoilerBackup + HorizonHours + Tariff (gw.tou.tariff). All required — no assumed defaults. Axioms 1-2: ChannelName unique across CaptureTuningList, NodeName unique across ZeroTenPowerOnList."
         direct_dependencies:
