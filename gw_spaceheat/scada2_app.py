@@ -1,5 +1,5 @@
 import typing
-from typing import Any
+from typing import Any, Optional
 from pathlib import Path
 from types import ModuleType
 
@@ -20,6 +20,7 @@ from sema_to_dc import load_layout
 from actors.scada import ScadaCodecFactory
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.names.core.node_names import CoreNodeNames
+from clock import Clock, build_clock
 from scada_app_interface import ScadaAppInterface
 
 
@@ -95,9 +96,19 @@ class Scada2App(App, ScadaAppInterface):
             super().get_settings(*args, **kwargs)
         )
 
+    def __init__(self, *, clock: Optional[Clock] = None, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self._clock = clock if clock is not None else build_clock(
+            self.settings.clock_source, self.is_simulated, self.settings.gridworks_mqtt
+        )
+
     @property
     def settings(self) -> ScadaSettings:
         return typing.cast(ScadaSettings, super().settings)
+
+    @property
+    def clock(self) -> Clock:
+        return self._clock
 
     @property
     def prime_actor(self) -> SecondaryScada:

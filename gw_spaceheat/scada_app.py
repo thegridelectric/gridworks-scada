@@ -1,5 +1,5 @@
 import typing
-from typing import Optional
+from typing import Any, Optional
 from pathlib import Path
 from types import ModuleType
 
@@ -21,6 +21,7 @@ from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
 from sema_to_dc import load_layout
 from gwsproto.names.core.node_names import CoreNodeNames
+from clock import Clock, build_clock
 from scada_app_interface import ScadaAppInterface
 from universe import assert_universe_coherence
 
@@ -34,9 +35,21 @@ class ScadaApp(App, ScadaAppInterface):
     def app_settings_type(cls) -> type[ScadaSettings]:
         return ScadaSettings
 
+    def __init__(self, *, clock: Optional[Clock] = None, **kwargs: Any) -> None:
+        """clock: injected only by tests (a ManualClock); a box builds its
+        clock from settings.clock_source."""
+        super().__init__(**kwargs)
+        self._clock = clock if clock is not None else build_clock(
+            self.settings.clock_source, self.is_simulated, self.settings.gridworks_mqtt
+        )
+
     @property
     def settings(self) -> ScadaSettings:
         return typing.cast(ScadaSettings, self._settings)
+
+    @property
+    def clock(self) -> Clock:
+        return self._clock
 
     @classmethod
     def prime_actor_type(cls) -> type[Scada]:

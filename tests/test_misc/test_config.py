@@ -7,6 +7,7 @@ import logging
 import dotenv
 import pytest
 from gwproactor.config import Paths
+from clock import ClockSource
 from gwproactor.config.mqtt import TLSInfo
 from gwproactor.config.proactor_settings import ACK_TIMEOUT_SECONDS
 from gwproactor.config.proactor_settings import NUM_INITIAL_EVENT_REUPLOADS
@@ -61,6 +62,7 @@ def test_scada_settings_defaults(default_test_env, clean_test_env, clean_scada_e
         ).model_dump(),
         proactor=ProactorSettings().model_dump(),
         paho_logging=False,
+        clock_source=ClockSource.Wall,
         seconds_per_report=300,
         seconds_per_snapshot=30,
         async_power_reporting_threshold=0.02,

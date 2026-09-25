@@ -6,6 +6,7 @@ from gwproactor import AppInterface
 
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
+from clock import Clock
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.enums import TaValidationState
 from gwsproto.named_types import TaDeed
@@ -31,6 +32,12 @@ class ScadaAppInterface(AppInterface, ABC):
     @property
     @abstractmethod
     def hardware_layout(self) -> HydronicLayout:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def clock(self) -> Clock:
+        """The one clock every actor reads plant time from."""
         raise NotImplementedError
 
     @property

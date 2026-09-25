@@ -30,7 +30,7 @@ from gwproto.message import Header, Message
 from gwproto.messages import EventBase
 from gwproto.messages import PingMessage
 
-from sim_time import SimTimeListener
+from clock import TimestepClock
 
 from gwsproto.enums import ActorClass
 
@@ -129,17 +129,13 @@ class Scada(PrimeActor, ScadaInterface):
             raise Exception("Make sure to pass HydronicLayout object as hardware_layout!")
         self.got_first_buffer_reading = False
         self.is_simulated = self.services.is_simulated
-        self._sim_time_listener: typing.Optional[SimTimeListener] = None
         if self.services.is_simulated:
             self.log("SIMULATED")
-            # Sim-time bridge (sim-time spoke, OPS-40): listen for the time
-            # coordinator's timesteps on the same broker as gridworks_mqtt;
-            # each timestep pings upstream so harness pacing keeps the link
-            # active. See sim_time.py's OFI docstring — interim by design.
-            self._sim_time_listener = SimTimeListener(
-                config=self.settings.gridworks_mqtt,
-                on_timestep=self._on_sim_timestep,
-            )
+        self.log(f"clock: {type(self.services.clock).__name__}")
+        if isinstance(self.services.clock, TimestepClock):
+            # Each coordinator step pings upstream so harness pacing keeps
+            # the link active.
+            self.services.clock.on_step = self._on_sim_timestep
         self._layout: HydronicLayout = typing.cast(HydronicLayout, services.hardware_layout)
         self._data = ScadaData(
             self.settings, self._layout, load_operational_params(self.settings)
@@ -237,8 +233,8 @@ class Scada(PrimeActor, ScadaInterface):
 
     def stop(self):
         self._stop_requested = True
-        if self._sim_time_listener is not None:
-            self._sim_time_listener.stop()
+        if isinstance(self.services.clock, TimestepClock):
+            self.services.clock.stop()
 
     def _on_sim_timestep(self, time_unix_s: int) -> None:
         """Bridge keepalive: ping upstream on each received timestep so the
@@ -272,11 +268,11 @@ class Scada(PrimeActor, ScadaInterface):
         return self._data.ops
 
     def start_tasks(self) -> typing.Sequence[asyncio.Task]:
-        # The sim-time listener's paho thread starts with the scada's tasks,
+        # The timestep clock's paho thread starts with the scada's tasks,
         # not at construction: an instantiated-but-never-run scada (the
         # in-process tests) has no use for it and would leak the thread.
-        if self._sim_time_listener is not None:
-            self._sim_time_listener.start()
+        if isinstance(self.services.clock, TimestepClock):
+            self.services.clock.start()
         return [
             asyncio.create_task(self.report_sending_task(), name="report_sender"),
             asyncio.create_task(self.snap_sending_task(), name="snap_sender"),
