@@ -4,6 +4,7 @@ The pinned test layout declares the i2c-bus node (axiom 6 forces exactly
 one), so the fixture boots straight off the pair.
 """
 
+import sys
 import uuid
 from pathlib import Path
 
@@ -113,6 +114,42 @@ def test_backend_follows_board_record(bus_app: ScadaApp) -> None:
         {**board.device_type.model_dump(by_alias=True), "DeviceType": "Gw108RevB"}
     )
     assert not ScadaBoardComponent(board.gt, real_record).simulated
+
+
+def real_board(bus_app: ScadaApp, bus_list: list[dict]) -> ScadaBoardComponent:
+    """The fixture's board as a real Gw108RevB with the given BusList."""
+    board = bus_app.hardware_layout.scada_board()
+    record = ScadaDeviceTypeGt.model_validate(
+        {
+            **board.device_type.model_dump(by_alias=True),
+            "DeviceType": "Gw108RevB",
+            "BusList": bus_list,
+        }
+    )
+    return ScadaBoardComponent(board.gt, record)
+
+
+def test_adapter_number_comes_from_the_record(
+    bus_app: ScadaApp, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A real board opens the adapter its BusList entry names, not a literal."""
+    opened: list[int] = []
+
+    class FakeSmbus2:
+        @staticmethod
+        def SMBus(bus_number: int) -> FakeSMBus:
+            opened.append(bus_number)
+            return FakeSMBus()
+
+    monkeypatch.setitem(sys.modules, "smbus2", FakeSmbus2)
+    board = real_board(
+        bus_app,
+        [{"Name": "DefaultBus", "BusNumber": 3, "TypeName": "i2c.bus", "Version": "000"}],
+    )
+    monkeypatch.setattr(bus_app.hardware_layout, "scada_board", lambda: board)
+    actor = I2cBus(BUS_NAME, bus_app)
+    assert actor.bus_number == 3
+    assert opened == [3]
 
 
 def test_registered_actor_instantiates(bus_app: ScadaApp) -> None:

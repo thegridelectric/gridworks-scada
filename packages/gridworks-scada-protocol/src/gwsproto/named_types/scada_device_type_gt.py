@@ -24,7 +24,7 @@ class ScadaDeviceTypeGt(GwsprotoSemaType):
     DeviceType: AnyDeviceType
     DisplayName: Optional[str] = None
     MinPollPeriodMs: Optional[PositiveInt] = None
-    BusList: list[I2cBus] = []
+    BusList: list[I2cBus]
     TelemetryNameList: list[TelemetryName] = []
     NativeGpioInputs: list[NativeGpioPin] = []
     NativeGpioOutputs: list[NativeGpioPin] = []
@@ -152,5 +152,18 @@ class ScadaDeviceTypeGt(GwsprotoSemaType):
             raise ValueError(
                 "Axiom 5 (RelayEnergizedLevelRange) failed: RelayEnergizedLevel "
                 f"{self.RelayEnergizedLevel} must be 0 or 1."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_6(self) -> Self:
+        """
+        Axiom 6: SingleBus. BusList SHALL have exactly one entry: a scada
+        process drives one bus, and the bus actor opens that entry's adapter.
+        """
+        if len(self.BusList) != 1:
+            raise ValueError(
+                "Axiom 6 (SingleBus) failed: BusList declares "
+                f"{len(self.BusList)} buses; exactly one is required."
             )
         return self

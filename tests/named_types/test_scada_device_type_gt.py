@@ -40,3 +40,14 @@ def test_gw1_scada_device_type_gt_axiom_5_energized_level_range() -> None:
 
     with pytest.raises(ValidationError, match="Axiom 5"):
         ScadaDeviceTypeGt.model_validate(d)
+
+
+def test_gw1_scada_device_type_gt_axiom_6_rejects_two_buses() -> None:
+    d = krida_double_relay_board_16_device_type.model_dump(
+        by_alias=True, exclude_none=True
+    )
+    d["BusList"] = d["BusList"] + [
+        {"Name": "SecondBus", "BusNumber": 3, "TypeName": "i2c.bus", "Version": "000"}
+    ]
+    with pytest.raises(ValidationError, match="Axiom 6 \\(SingleBus\\)"):
+        ScadaDeviceTypeGt.model_validate(d)

@@ -12,6 +12,7 @@ from pydantic import ValidationError
 from gwsproto.enums import DeviceType, SimDeviceType
 from gwsproto.named_types import (
     ElectricMeterDeviceTypeGt,
+    I2cBus,
     ScadaBoardComponentGt,
     ScadaDeviceTypeGt,
 )
@@ -22,6 +23,7 @@ COMPONENT_ID = "00000000-0000-4000-8000-000000000001"
 def scada_device_type(device_type: str) -> ScadaDeviceTypeGt:
     return ScadaDeviceTypeGt(
         DeviceType=device_type,
+        BusList=[I2cBus(Name="DefaultBus", BusNumber=1)],
         SupportsPinReadback=True,
         RelayEnergizedLevel=0,
     )

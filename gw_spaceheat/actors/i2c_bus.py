@@ -70,6 +70,9 @@ class I2cBus(ShNodeActor):
         # the register-file init and reset guard apply to those alone; a
         # PCF8575 has no configuration register to clear or watch.
         board = self.layout.scada_board()
+        # The adapter is the record's one BusList entry (axiom 6 SingleBus
+        # holds the record to exactly one), never a literal.
+        self.bus_number: int = board.device_type.BusList[0].BusNumber
         self._expander_types: dict[int, I2cExpanderType] = {
             board.expander_address(expander): expander.ExpanderType
             for expander in board.device_type.Expanders
@@ -120,7 +123,7 @@ class I2cBus(ShNodeActor):
         else:
             try:
                 import smbus2
-                self.i2c = smbus2.SMBus(1)
+                self.i2c = smbus2.SMBus(self.bus_number)
             except Exception as e:
                 self.i2c = None
                 self._send_glitch(
