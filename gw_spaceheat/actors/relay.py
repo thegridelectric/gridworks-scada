@@ -57,7 +57,7 @@ from actors.i2c_bus import ExpanderReinitialized
 from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 from gwsproto.enums import LogLevel, ChangeKeepSend, HpLoopKeepSend
-from gwsproto.named_types import FsmEvent, Glitch, SingleMachineState
+from gwsproto.named_types import FsmEvent, Glitch, SingleMachineState, SingleReading
 from actors import command_reply
 from gwsproto.enums import ScadaCmdRefusalReason
 from gwsproto.names.hydronic_spaceheat.node_names import (
@@ -923,6 +923,16 @@ class Relay(ShNodeActor):
                 StateEnum=self.my_state_enum.enum_name(),
                 State=self.state,
                 UnixMs=now_ms,
+            ),
+        )
+        # The same confirmed state as a reading on the RelayState channel:
+        # 1 energized, 0 de-energized.
+        self._send_to(
+            self.primary_scada,
+            SingleReading(
+                ChannelName=self.my_channel().Name,
+                Value=1 if self.state == self.relay_actor_config.EnergizedState else 0,
+                ScadaReadTimeUnixMs=now_ms,
             ),
         )
 

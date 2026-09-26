@@ -16,7 +16,7 @@ from actors.relay import I2cCommand, Relay, UNKNOWN_STATE
 from drivers.sim_i2c import SimI2c
 from gwproto.message import Message
 from gwsproto.enums import ChangeRelayPin, I2cExpanderType, RelayClosedOrOpen
-from gwsproto.named_types import FsmFullReport, I2cResult
+from gwsproto.named_types import FsmFullReport, I2cResult, SingleMachineState, SingleReading
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from scada_app import ScadaApp
 
@@ -147,3 +147,25 @@ async def test_house0_relay_energizes_low_and_reports(sim_rig) -> None:
     a = relay._i2c
     port = bus.i2c.pcf8575s[a.i2c_address].read_bytes(2)
     assert port == [0xFF, 0xFF]
+
+
+@pytest.mark.asyncio
+async def test_house0_relay_reports_its_energization_as_a_reading(sim_rig) -> None:
+    """Beside each SingleMachineState the relay sends a SingleReading on its
+    RelayState channel, 1 energized and 0 de-energized, at the same time;
+    an Unknown state sends neither."""
+    relay, bus = sim_rig
+    await relay._boot_adopt()  # no readback: state unknown, nothing sent
+    assert relay.state == UNKNOWN_STATE
+    assert not [p for _, p in relay.sent if isinstance(p, SingleReading)]
+    channel = relay.my_channel().Name
+    for energize, value in ((True, 1), (False, 0)):
+        cmd = command(relay, energize=energize)
+        relay._i2c_command = cmd
+        await relay._attempt_command(cmd)
+        readings = [p for _, p in relay.sent if isinstance(p, SingleReading)]
+        states = [p for _, p in relay.sent if isinstance(p, SingleMachineState)]
+        assert len(readings) == len(states)
+        assert readings[-1].ChannelName == channel
+        assert readings[-1].Value == value
+        assert readings[-1].ScadaReadTimeUnixMs == states[-1].UnixMs

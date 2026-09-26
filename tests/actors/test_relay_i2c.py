@@ -35,6 +35,7 @@ from gwsproto.named_types import (
     NolanLayout,
     ScadaBoardComponentGt,
     SingleMachineState,
+    SingleReading,
 )
 from gwproto.message import Message
 from scada_app import ScadaApp
@@ -137,6 +138,9 @@ async def test_por_boot_adopts_deenergized(rig) -> None:
     await boot(relay, bus)
     assert relay.state == ZoneCallSource.WallThermostat
     assert state_reports(relay)[-1].State == ZoneCallSource.WallThermostat
+    readings = [p for _, p in relay.sent if isinstance(p, SingleReading)]
+    assert [(r.ChannelName, r.Value) for r in readings] == [(relay.my_channel().Name, 0)]
+    assert readings[0].ScadaReadTimeUnixMs == state_reports(relay)[-1].UnixMs
 
 
 @pytest.mark.asyncio
