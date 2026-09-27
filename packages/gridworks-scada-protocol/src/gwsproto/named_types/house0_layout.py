@@ -324,15 +324,16 @@ class House0Layout(GwsprotoSemaType):
     def check_axiom_8(self) -> Self:
         """
         Axiom 8: SiegManifoldChannels
-        The sieg loop's sensing channels SHALL exist (unconditional — a
-        gw.house0.layout plant has a sieg loop).
+        For each of the names "sieg-cold", "sieg-hot", "sieg-flow" and
+        "sieg-send-flow": a channel with that Name SHALL exist in
+        DataChannels or in DerivedChannels.
         """
         if not self.ShNodes:
             return self
         names = {c.Name for c in (self.DataChannels or [])} | {
             c.Name for c in (self.DerivedChannels or [])
         }
-        required = {"sieg-cold", "sieg-flow"}
+        required = {"sieg-cold", "sieg-hot", "sieg-flow", "sieg-send-flow"}
         missing = sorted(required - names)
         if missing:
             raise ValueError(

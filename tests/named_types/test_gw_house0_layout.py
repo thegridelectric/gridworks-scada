@@ -151,6 +151,19 @@ def test_gw_house0_layout_axiom_8(assembled: dict) -> None:
     )
 
 
+def test_gw_house0_layout_axiom_8_takes_sieg_send_flow_data_or_derived(assembled: dict) -> None:
+    """sieg-send-flow satisfies the axiom from either list (willow measures it,
+    orange derives it) and is required from one of them."""
+    reject(
+        assembled,
+        lambda d: d.update(
+            DataChannels=[c for c in d["DataChannels"] if c["Name"] != "sieg-send-flow"],
+            DerivedChannels=[c for c in d["DerivedChannels"] if c["Name"] != "sieg-send-flow"],
+        ),
+        "Axiom 8",
+    )
+
+
 def test_gw_house0_layout_axiom_6(assembled: dict) -> None:
     """A transactive input whose about-node loses NameplatePowerW fails."""
     def mutate(d: dict) -> None:

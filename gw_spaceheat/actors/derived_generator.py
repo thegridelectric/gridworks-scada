@@ -25,7 +25,7 @@ from gwsproto.enums import (
 from gwsproto.named_types import (
     Ha1Params, HeatingForecast, LinearOneDimensionalCalibration,
     RequiredEnergyLayered, ScadaParams,
-    SingleReading, SyncedReadings,
+    ChannelReadings, SingleReading, SyncedReadings,
     UsableEnergyLayered, WeatherForecast
 )
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
@@ -778,6 +778,20 @@ class DerivedGenerator(ShNodeActor):
                             ChannelName=ch,
                             Value=val,
                             ScadaReadTimeUnixMs=message.Payload.ScadaReadTimeUnixMs,
+                        ),
+                    )
+
+            case ChannelReadings():
+                for val, ms in zip(
+                    message.Payload.ValueList,
+                    message.Payload.ScadaReadTimeUnixMsList,
+                ):
+                    self.handle_input_reading(
+                        from_node,
+                        SingleReading(
+                            ChannelName=message.Payload.ChannelName,
+                            Value=val,
+                            ScadaReadTimeUnixMs=ms,
                         ),
                     )
         return Ok(True)

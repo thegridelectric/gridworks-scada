@@ -16,7 +16,7 @@ from actors.sim_sensor import SimSensorActor
 from gwproto.message import Message
 from gwsproto.data_classes.derived_channel import DerivedChannel
 from gwsproto.enums import EmissionMethod, Quantity, Unit
-from gwsproto.named_types import SingleReading
+from gwsproto.named_types import ChannelReadings, SingleReading
 from gwsproto.names.core.node_names import CoreNodeNames
 from scada_app import ScadaApp
 
@@ -244,3 +244,26 @@ def test_a_derived_reading_feeds_the_derived_channels_that_take_it(
     actor._dispatch_derived_input(reading("primary-flow", 700))
     ours = [(out.ChannelName, out.Value) for _, out in sent if out.ChannelName in {alias.Name, total.Name}]
     assert ours == [("primary-flow-alias", 700), ("total-flow", 1000)]
+
+
+def test_channel_readings_from_a_flow_pico_feed_the_derived_channels(actor: DerivedGenerator) -> None:
+    """A hall flow pico posts its gpm as ChannelReadings (a list per channel);
+    the generator takes each reading in order, as it takes a SingleReading.
+    On orange, primary-flow arriving fires the difference sieg-send-flow."""
+    sent = capture_sends(actor)
+    actor.data.latest_channel_values["sieg-flow"] = 300
+    actor.process_message(
+        Message(
+            Src="primary-flow",
+            Dst=actor.name,
+            Payload=ChannelReadings(
+                ChannelName="primary-flow",
+                ValueList=[1000, 1100],
+                ScadaReadTimeUnixMsList=[1_700_000_000_000, 1_700_000_010_000],
+            ),
+        )
+    )
+    assert [(out.ChannelName, out.Value) for _, out in sent if out.ChannelName == "sieg-send-flow"] == [
+        ("sieg-send-flow", 700),
+        ("sieg-send-flow", 800),
+    ]
