@@ -36,8 +36,10 @@ class HpBoss(ShNodeActor):
         self.state = HpBossState.HpOff
 
     def start(self) -> None:
-        """Reports the boot state, so the scada's latest-state list carries
-        hp-boss from the first snapshot instead of after the first change."""
+        """Boots the call relay open and reports HpOff, so the relay holds
+        the posture the boss believes and the scada's latest-state list
+        carries hp-boss from the first snapshot."""
+        self.open_hp_scada_ops_relay()
         self.report_state()
 
     def stop(self) -> None:

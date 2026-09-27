@@ -112,15 +112,19 @@ def test_hp_boss_in_every_tree(app: ScadaApp, boss: str) -> None:
 
 
 def test_hp_boss_boots_off_and_reports_it(app: ScadaApp) -> None:
-    """The call relay is open at boot, so the boss starts HpOff and says so
-    at start: the first snapshot carries hp.boss.state, and the first
-    TurnOn is not mistaken for a no-op."""
+    """The boss starts HpOff, commands the call relay open so the relay
+    holds that posture, and says so at start: the first snapshot carries
+    hp.boss.state, and the first TurnOn is not mistaken for a no-op."""
     actor = hp_boss_actor(app)
     assert actor.state == HpBossState.HpOff
     sent = capture(actor)
     actor.start()
+    relay = app.scada.layout.hp_scada_ops_relay
+    assert relay_events(sent) == [
+        (actor.node.handle, relay.handle, ChangeRelayState.OpenRelay)
+    ]
     assert reported_states(sent) == [HpBossState.HpOff]
-    assert [dst for dst, _ in sent] == [actor.primary_scada.name]
+    assert [dst for dst, _ in sent] == [relay.name, actor.primary_scada.name]
 
 
 def test_turn_off_opens_call_relay_from_hp_boss(app: ScadaApp) -> None:

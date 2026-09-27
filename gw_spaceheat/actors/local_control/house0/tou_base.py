@@ -20,7 +20,6 @@ from gwsproto.names.hydronic_spaceheat.node_names import (
 from gwsproto.enums import (
     ActorClass, ActuationAuthority, LocalControlTopEvent,
     LocalControlTopState,
-    SeasonalStorageMode,
 )
 from gwsproto.named_types import (ActuatorsReady,
             GoDormant,  Ha1Params,
@@ -350,9 +349,6 @@ class LocalControlTouBase(House0Hydronic):
             self.layout.aquastat_control_relay,
             self.layout.hp_loop_on_off,
         }
-
-        if self.ops.FamilyParams.SeasonalStorageMode == SeasonalStorageMode.AllTanks:
-            excluded_relays.add(self.layout.store_charge_discharge_relay)
 
         target_relays: List[ShNode] = list(h_normal_relays - excluded_relays)
     
