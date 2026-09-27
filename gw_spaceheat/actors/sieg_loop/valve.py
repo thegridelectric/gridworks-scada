@@ -4,11 +4,13 @@ the motor time from full send toward full keep, and a move is one motor run
 timed on the scada's clock."""
 
 import asyncio
+from dataclasses import dataclass, field
 from enum import auto
 from typing import TYPE_CHECKING, Optional
 
-from gwsproto.enums import SiegValveState
+from gwsproto.enums import MoveSiegValve, SiegValveState
 from gwsproto.enums.gw_str_enum import GwStrEnum
+from gwsproto.named_types import FsmAtomicReport
 from transitions import Machine
 
 if TYPE_CHECKING:
@@ -22,6 +24,24 @@ class SiegValveEvent(GwStrEnum):
     StopKeepingLess = auto()
     ResetToFullySend = auto()
     ResetToFullyKeep = auto()
+
+
+@dataclass
+class Move:
+    """One motor run and its written record. trigger_id names it in every
+    relay command and in the full report; event is the boss's command when
+    the move was commanded, None when the strategy chose it; from_state is
+    the valve state before the run; atomics collects the relays' reports as
+    they arrive; pending holds, by relay name, the confirmation the loop is
+    waiting for from each relay commanded in the current phase; started is
+    set when the run picks the move up."""
+
+    trigger_id: str
+    from_state: SiegValveState
+    event: Optional[MoveSiegValve] = None
+    atomics: list[FsmAtomicReport] = field(default_factory=list)
+    pending: dict[str, "asyncio.Future[bool]"] = field(default_factory=dict)
+    started: bool = False
 
 
 class SiegValve:
@@ -74,6 +94,8 @@ class SiegValve:
         self.t1 = 26
         self.t2 = self.FULL_RANGE_S - 18
         self.task: Optional[asyncio.Task[None]] = None
+        # The move the run in flight is making; None between runs.
+        self.move: Optional[Move] = None
 
     # --------------------------------------
     # Targets
@@ -108,24 +130,40 @@ class SiegValve:
         self.task = asyncio.create_task(self.run(delta_s, self.task), name="sieg valve travel")
 
     async def run(self, delta_s: float, previous: Optional[asyncio.Task[None]]) -> None:
+        """One move: the start transition commands the relays under the
+        move's id, the motor clock starts once both relays have reported
+        (or the loop's wait runs out), the stop transition opens the on/off
+        relay, and the move ends with its full report. A nack from a relay
+        skips the motor time. A run cancelled by the next move settles from
+        the clock and reports without waiting on the hold."""
         if previous is not None and not previous.done():
             previous.cancel()
             await asyncio.wait([previous])
         clock = self.loop.services.clock
         toward_keep = delta_s > 0
+        move = self.loop.begin_move(self.valve_state)
+        self.move = move
         self.trigger_valve_event(
             SiegValveEvent.StartKeepingMore if toward_keep else SiegValveEvent.StartKeepingLess
         )
-        start_s = clock.now()
         start_keep_seconds = self.keep_seconds
         self.loop.log(
             f"Motor {'toward keep' if toward_keep else 'toward send'} for "
             f"{round(abs(delta_s), 1)} s from keep_seconds {round(start_keep_seconds, 1)}"
         )
+        ran_s = 0.0
+        cancelled = False
         try:
-            await clock.sleep(abs(delta_s))
+            if await self.loop.relays_reported(move):
+                start_s = clock.now()
+                try:
+                    await clock.sleep(abs(delta_s))
+                finally:
+                    ran_s = clock.now() - start_s
+        except asyncio.CancelledError:
+            cancelled = True
+            raise
         finally:
-            ran_s = clock.now() - start_s
             moved = ran_s if toward_keep else -ran_s
             self.keep_seconds = min(self.FULL_RANGE_S, max(0, start_keep_seconds + moved))
             if toward_keep:
@@ -141,7 +179,10 @@ class SiegValve:
             self.loop.log(
                 f"Motor stopped after {round(ran_s, 1)} s: keep_seconds {round(self.keep_seconds, 1)}"
             )
-            self.loop.move_ended()
+            if not cancelled:
+                await self.loop.relays_reported(move)
+            self.move = None
+            self.loop.move_ended(move, self.valve_state)
 
     # --------------------------------------
     # Valve state machine
@@ -156,13 +197,26 @@ class SiegValve:
         self.loop.log(f"{event}: {orig_state} -> {self.valve_state}")
         self.loop.report_valve_state(event)
 
+    def current_move(self) -> Move:
+        """The move the transition belongs to: the run's, or a new one when
+        the transition is fired outside a run."""
+        if self.move is None:
+            self.move = self.loop.begin_move(self.valve_state)
+        return self.move
+
     def before_keeping_more(self, event: SiegValveEvent) -> None:
-        self.loop.change_to_hp_keep_more()
-        self.loop.sieg_valve_active()
+        move = self.current_move()
+        self.loop.expect_reports(move, self.loop.layout.hp_loop_keep_send, self.loop.layout.hp_loop_on_off)
+        self.loop.change_to_hp_keep_more(move.trigger_id)
+        self.loop.sieg_valve_active(move.trigger_id)
 
     def before_keeping_less(self, event: SiegValveEvent) -> None:
-        self.loop.change_to_hp_keep_less()
-        self.loop.sieg_valve_active()
+        move = self.current_move()
+        self.loop.expect_reports(move, self.loop.layout.hp_loop_keep_send, self.loop.layout.hp_loop_on_off)
+        self.loop.change_to_hp_keep_less(move.trigger_id)
+        self.loop.sieg_valve_active(move.trigger_id)
 
     def before_keeping_steady(self, event: SiegValveEvent) -> None:
-        self.loop.sieg_valve_hold()
+        move = self.current_move()
+        self.loop.expect_reports(move, self.loop.layout.hp_loop_on_off)
+        self.loop.sieg_valve_hold(move.trigger_id)

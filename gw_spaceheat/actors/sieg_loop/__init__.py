@@ -6,6 +6,7 @@ valve does under automatic control."""
 
 import asyncio
 import time
+import uuid
 from typing import Any, Optional, Sequence
 
 from gwproactor import MonitoredName
@@ -24,6 +25,8 @@ from gwsproto.enums import (
 )
 from gwsproto.named_types import (
     ActuatorsReady,
+    DispatchAck,
+    DispatchNack,
     FsmAtomicReport,
     FsmEvent,
     FsmFullReport,
@@ -38,11 +41,12 @@ from actors.hydronic.house0 import House0Hydronic
 from actors.sieg_loop.hold_full_send import HoldFullSend
 from actors.sieg_loop.strat_protect import SiegControlEvent, SiegControlState, StratProtect
 from actors.sieg_loop.strategy import SiegLoopReady, SiegStrategy, selected_strategy
-from actors.sieg_loop.valve import SiegValve, SiegValveEvent
+from actors.sieg_loop.valve import Move, SiegValve, SiegValveEvent
 from scada_app_interface import ScadaAppInterface
 
 __all__ = [
     "HoldFullSend",
+    "Move",
     "SiegControlEvent",
     "SiegControlState",
     "SiegLoop",
@@ -96,10 +100,21 @@ class SiegLoop(House0Hydronic):
     noticed on the tick, when the strategy resumes. The move a command asks
     for is a full run, so a command to the stop the valve is already on
     re-homes it.
+
+    Every move, commanded or automatic, is a Move with one TriggerId: the
+    commander's, or one the loop mints. Its two relay commands ride under
+    that id; the loop waits for each commanded relay's full report before
+    the motor clock starts, treats a nack as the move refused, and when the
+    motor stops sends one full report to the scada with the relays' atomics
+    and its own under that id.
     """
 
     CONTROL_INTERVAL_S = 30
     PAT_INTERVAL_S = 5 * 60
+    # How long a commanded relay has to report before the loop goes on
+    # without it: a warning glitch, and enforcement below the loop keeps
+    # retrying a failed write.
+    RELAY_REPORT_WAIT_S = 5
 
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
@@ -109,11 +124,9 @@ class SiegLoop(House0Hydronic):
         self.valve = SiegValve(self)
         # The boss whose command holds the loop, None under automatic control.
         self.commanded_by: Optional[str] = None
-        # The command in flight: its TriggerId, its event and the valve
-        # state it started from, for the full report when the move ends.
-        self.trigger_id: Optional[str] = None
-        self.command_event: Optional[MoveSiegValve] = None
-        self.command_from_state: Optional[SiegValveState] = None
+        # The move the relays' replies belong to: the run in flight, or a
+        # commanded move whose run has not yet started.
+        self.move: Optional[Move] = None
         strategy = selected_strategy(self.ops)
         if strategy is SiegLoopStrategy.HoldFullSend:
             self.strategy: SiegStrategy = HoldFullSend(self)
@@ -168,9 +181,88 @@ class SiegLoop(House0Hydronic):
                 self.process_single_machine_state(from_node, payload)
             case FsmEvent():
                 self.process_fsm_event(from_node, payload)
+            case DispatchAck():
+                if not self.is_loop_relay(from_node):
+                    self.log(f"{self.name} received unexpected message: {message.Header}")
+                # The relay took the command; its full report confirms it.
+            case DispatchNack():
+                self.process_dispatch_nack(from_node, payload)
+            case FsmFullReport():
+                self.process_fsm_full_report(from_node, payload)
             case _:
                 self.log(f"{self.name} received unexpected message: {message.Header}")
         return Ok(True)
+
+    def is_loop_relay(self, node: ShNode) -> bool:
+        return node.name in (self.layout.hp_loop_on_off.name, self.layout.hp_loop_keep_send.name)
+
+    def process_dispatch_nack(self, from_node: ShNode, payload: DispatchNack) -> None:
+        if not self.is_loop_relay(from_node):
+            self.log(f"{self.name} received unexpected nack from {from_node.name}: {payload}")
+            return
+        self.send_error(
+            "relay_nack",
+            f"{from_node.name} refused {payload.TriggerId} from {payload.ToHandle}: {payload.Reason}",
+        )
+        self.resolve_report(from_node, payload.TriggerId, False)
+
+    def process_fsm_full_report(self, from_node: ShNode, payload: FsmFullReport) -> None:
+        if not self.is_loop_relay(from_node):
+            self.log(f"{self.name} received unexpected full report from {from_node.name}")
+            return
+        move = self.move
+        if move is None or payload.TriggerId != move.trigger_id:
+            self.log(f"Report {payload.TriggerId} from {from_node.name} is not the move in flight; dropped")
+            return
+        move.atomics.extend(payload.AtomicList)
+        self.resolve_report(from_node, payload.TriggerId, True)
+
+    def resolve_report(self, relay: ShNode, trigger_id: str, reported: bool) -> None:
+        move = self.move
+        if move is None or trigger_id != move.trigger_id:
+            return
+        future = move.pending.get(relay.name)
+        if future is not None and not future.done():
+            future.set_result(reported)
+
+    # --------------------------------------
+    # Moves
+    # --------------------------------------
+
+    def begin_move(self, from_state: SiegValveState) -> Move:
+        """The move a run is starting: the commanded move waiting for its
+        run, else a new automatic one under a minted id."""
+        if self.move is None or self.move.started:
+            self.move = Move(trigger_id=str(uuid.uuid4()), from_state=from_state)
+        self.move.started = True
+        return self.move
+
+    def expect_reports(self, move: Move, *relays: ShNode) -> None:
+        """Register the full report each relay owes for the commands about
+        to be sent under the move."""
+        for relay in relays:
+            move.pending[relay.name] = asyncio.get_running_loop().create_future()
+
+    async def relays_reported(self, move: Move) -> bool:
+        """Wait for every pending relay report of the move. True once all
+        have reported, or after RELAY_REPORT_WAIT_S on the scada's clock
+        with a warning glitch; False when a relay nacked."""
+        pending = list(move.pending.values())
+        if not pending:
+            return True
+        reports = asyncio.gather(*pending)
+        wait = asyncio.ensure_future(self.services.clock.sleep(self.RELAY_REPORT_WAIT_S))
+        done, _ = await asyncio.wait({reports, wait}, return_when=asyncio.FIRST_COMPLETED)
+        move.pending = {}
+        if reports in done:
+            wait.cancel()
+            return all(reports.result())
+        reports.cancel()
+        self.send_warning(
+            "relay_silent",
+            f"no full report within {self.RELAY_REPORT_WAIT_S} s for move {move.trigger_id}; going on",
+        )
+        return True
 
     def process_single_machine_state(self, from_node: ShNode, payload: SingleMachineState) -> None:
         if payload.StateEnum != HpBossState.enum_name():
@@ -208,9 +300,7 @@ class SiegLoop(House0Hydronic):
         )
         event = MoveSiegValve(payload.EventName)
         self.commanded_by = boss_of(self.node.handle)
-        self.trigger_id = payload.TriggerId
-        self.command_event = event
-        self.command_from_state = self.valve.valve_state
+        self.move = Move(trigger_id=payload.TriggerId, from_state=self.valve.valve_state, event=event)
         self.log(f"{event} from {payload.FromHandle}: the loop is held until the tree changes hands")
         if event == MoveSiegValve.MoveToFullSend:
             self.valve.full_run_to_send()
@@ -286,35 +376,26 @@ class SiegLoop(House0Hydronic):
     def log_view(self) -> None:
         self.log(self.view())
 
-    def move_ended(self) -> None:
-        """The motor stopped. A commanded move reports in full under the
-        commander's TriggerId; an automatic one has nothing to add to the
-        valve state already reported."""
-        if self.trigger_id is None or self.command_event is None or self.command_from_state is None:
-            return
+    def move_ended(self, move: Move, to_state: SiegValveState) -> None:
+        """The motor stopped: the move's full report goes to the scada, the
+        relays' atomics as they came and the loop's own last."""
+        own = FsmAtomicReport(
+            MachineHandle=self.node.handle,
+            StateEnum=SiegValveState.enum_name(),
+            ReportType=FsmReportType.Event,
+            EventEnum=MoveSiegValve.enum_name() if move.event is not None else None,
+            Event=move.event,
+            FromState=move.from_state,
+            ToState=to_state,
+            UnixTimeMs=self.services.clock.now_ms(),
+            TriggerId=move.trigger_id,
+        )
         self._send_to(
             self.primary_scada,
-            FsmFullReport(
-                FromName=self.name,
-                TriggerId=self.trigger_id,
-                AtomicList=[
-                    FsmAtomicReport(
-                        MachineHandle=self.node.handle,
-                        StateEnum=SiegValveState.enum_name(),
-                        ReportType=FsmReportType.Event,
-                        EventEnum=MoveSiegValve.enum_name(),
-                        Event=self.command_event,
-                        FromState=self.command_from_state,
-                        ToState=self.valve.valve_state,
-                        UnixTimeMs=self.services.clock.now_ms(),
-                        TriggerId=self.trigger_id,
-                    )
-                ],
-            ),
+            FsmFullReport(FromName=self.name, TriggerId=move.trigger_id, AtomicList=[*move.atomics, own]),
         )
-        self.trigger_id = None
-        self.command_event = None
-        self.command_from_state = None
+        if self.move is move:
+            self.move = None
 
     # --------------------------------------
     # Required methods and properties

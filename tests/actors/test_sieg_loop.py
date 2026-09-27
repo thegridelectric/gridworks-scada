@@ -29,11 +29,14 @@ from clock import ManualClock
 from gwproto import Message
 from gwsproto.data_classes.derived_channel import DerivedChannel
 from gwproto.message import Header
+from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
     ActuationAuthority,
     ChangeKeepSend,
     ChangeRelayState,
+    FsmReportType,
     HpBossState,
+    LogLevel,
     MainAutoEvent,
     MoveSiegValve,
     ScadaCmdRefusalReason,
@@ -44,10 +47,13 @@ from gwsproto.named_types import (
     ActuatorsReady,
     DispatchAck,
     DispatchNack,
+    FsmAtomicReport,
     FsmEvent,
     FsmFullReport,
+    Glitch,
     SingleMachineState,
 )
+from actors import command_reply
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.house0.channel_names import House0ChannelNames
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
@@ -80,11 +86,61 @@ def sieg_loop_actor(app: ScadaApp) -> SiegLoop:
     return actor
 
 
-def capture(actor: SiegLoop) -> list:
+def relay_full_report(relay: ShNode, cmd: FsmEvent) -> FsmFullReport:
+    """The shape a relay actor reports a taken command in: one atomic under
+    the command's TriggerId from the relay's own handle."""
+    return FsmFullReport(
+        FromName=relay.name,
+        TriggerId=cmd.TriggerId,
+        AtomicList=[
+            FsmAtomicReport(
+                MachineHandle=relay.handle,
+                StateEnum=cmd.EventType,
+                ReportType=FsmReportType.Event,
+                EventEnum=cmd.EventType,
+                Event=cmd.EventName,
+                FromState="Unknown",
+                ToState=cmd.EventName,
+                UnixTimeMs=int(time.time() * 1000),
+                TriggerId=cmd.TriggerId,
+            )
+        ],
+    )
+
+
+def capture(actor: SiegLoop, relays: str = "answer") -> list:
+    """Replace the actor's sends with a list, and stand in for its two
+    relays: `answer` acks every command and reports it in full, as a relay
+    on a live board does; `ack_only` acks and never reports (the test
+    delivers the reports, or lets the wait time out); `nack` refuses every
+    command NotMyBoss."""
     sent: list = []
-    actor._send_to = lambda dst, payload, src=None: sent.append((dst.name, payload))
+    loop_relays = {actor.layout.hp_loop_on_off.name, actor.layout.hp_loop_keep_send.name}
+
+    def send_to(dst: ShNode, payload, src=None) -> None:
+        sent.append((dst.name, payload))
+        if not (isinstance(payload, FsmEvent) and dst.name in loop_relays):
+            return
+        if relays == "nack":
+            deliver(actor, dst.name, command_reply.nack(
+                dst.handle, payload.FromHandle, payload.TriggerId, ScadaCmdRefusalReason.NotMyBoss
+            ))
+            return
+        deliver(actor, dst.name, command_reply.ack(dst.handle, payload.FromHandle, payload.TriggerId))
+        if relays == "answer":
+            deliver(actor, dst.name, relay_full_report(dst, payload))
+
+    actor._send_to = send_to
     actor._send = lambda message: None  # the watchdog pat on the tick
     return sent
+
+
+def glitches(sent: list) -> list[tuple[LogLevel, str]]:
+    return [(p.Type, p.Summary) for _, p in sent if isinstance(p, Glitch)]
+
+
+def full_reports(sent: list) -> list[FsmFullReport]:
+    return [p for dst, p in sent if isinstance(p, FsmFullReport) and dst == CoreNodeNames.primary_scada]
 
 
 def test_sieg_loop_carries_the_valve_choreography(app: ScadaApp) -> None:
@@ -100,7 +156,8 @@ def test_sieg_loop_carries_the_valve_choreography(app: ScadaApp) -> None:
         (SiegValveEvent.StartKeepingLess, ChangeKeepSend.ChangeToKeepLess),
     ],
 )
-def test_valve_movement_reaches_both_relays(
+@pytest.mark.asyncio
+async def test_valve_movement_reaches_both_relays(
     app: ScadaApp, valve_event: SiegValveEvent, direction: ChangeKeepSend
 ) -> None:
     """A keep-more or keep-less movement sends the direction to the keep/send
@@ -264,7 +321,7 @@ def valve_reports(sent: list) -> list[str]:
 
 
 async def settle() -> None:
-    for _ in range(5):
+    for _ in range(20):
         await asyncio.sleep(0)
 
 
@@ -381,6 +438,118 @@ async def test_one_valve_report_per_state_change(tmp_path: Path) -> None:
     assert all(p.MachineHandle == actor.node.handle for _, p in sent if isinstance(p, SingleMachineState))
 
 
+# --- the relays answer -------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_an_automatic_move_reports_in_full_under_one_minted_id(tmp_path: Path) -> None:
+    """The strategy's move to send: both relay commands carry one TriggerId
+    the loop minted, the relays' acks and reports are neither logged nor
+    glitched, and when the motor stops one full report goes to the scada
+    under that id: the relays' atomics in order, then the loop's own with
+    the valve's from and to states and no event."""
+    app, clock = manual_app(tmp_path, strategy=SiegLoopStrategy.HoldFullSend)
+    actor = sieg_loop_actor(app)
+    sent = capture(actor)
+    deliver(actor, actor.primary_scada.name, ActuatorsReady())
+    await settle()
+    ids = {p.TriggerId for _, p in sent if isinstance(p, FsmEvent)}
+    assert len(ids) == 1
+    [move_id] = ids
+    uuid.UUID(move_id)
+    assert full_reports(sent) == []
+    clock.advance(actor.valve.FULL_RANGE_S + actor.valve.OVERSHOOT_S)
+    await settle()
+    assert actor.valve.valve_state == SiegValveState.FullySend
+    [report] = full_reports(sent)
+    assert report.FromName == actor.name
+    assert report.TriggerId == move_id
+    assert [a.MachineHandle for a in report.AtomicList] == [
+        actor.layout.hp_loop_keep_send.handle,
+        actor.layout.hp_loop_on_off.handle,
+        actor.layout.hp_loop_on_off.handle,
+        actor.node.handle,
+    ]
+    own = report.AtomicList[-1]
+    assert (own.StateEnum, own.EventEnum, own.Event, own.FromState, own.ToState) == (
+        SiegValveState.enum_name(), None, None, SiegValveState.FullyKeep, SiegValveState.FullySend,
+    )
+    assert glitches(sent) == []
+
+
+@pytest.mark.asyncio
+async def test_the_motor_clock_starts_when_both_relays_have_reported(tmp_path: Path) -> None:
+    """With the relays acking but not yet reporting, the valve machine says
+    KeepingLess and the clock does not run: the full travel passes and the
+    valve is still moving. Once both reports arrive the travel is timed
+    from then."""
+    app, clock = manual_app(tmp_path, strategy=SiegLoopStrategy.HoldFullSend)
+    actor = sieg_loop_actor(app)
+    sent = capture(actor, relays="ack_only")
+    deliver(actor, actor.primary_scada.name, ActuatorsReady())
+    await settle()
+    assert actor.valve.valve_state == SiegValveState.KeepingLess
+    commands = [(dst, p) for dst, p in sent if isinstance(p, FsmEvent)]
+    clock.advance(3)
+    await settle()
+    for dst, cmd in commands:
+        deliver(actor, dst, relay_full_report(actor.layout.node(dst), cmd))
+    await settle()
+    clock.advance(actor.valve.FULL_RANGE_S + actor.valve.OVERSHOOT_S - 1)
+    await settle()
+    assert actor.valve.valve_state == SiegValveState.KeepingLess, "timed from the reports, not the command"
+    clock.advance(1)
+    await settle()
+    assert actor.valve.valve_state == SiegValveState.FullySend
+    assert glitches(sent) == []
+
+
+@pytest.mark.asyncio
+async def test_a_silent_relay_glitches_a_warning_and_the_clock_starts_anyway(tmp_path: Path) -> None:
+    """No report within the wait: one warning glitch, then the travel is
+    timed from the end of the wait. Enforcement below the loop keeps
+    retrying a failed write, so the loop does not hold the valve hostage."""
+    app, clock = manual_app(tmp_path, strategy=SiegLoopStrategy.HoldFullSend)
+    actor = sieg_loop_actor(app)
+    sent = capture(actor, relays="ack_only")
+    deliver(actor, actor.primary_scada.name, ActuatorsReady())
+    await settle()
+    clock.advance(actor.RELAY_REPORT_WAIT_S)
+    await settle()
+    assert glitches(sent) == [(LogLevel.Warning, "relay_silent")]
+    clock.advance(actor.valve.FULL_RANGE_S + actor.valve.OVERSHOOT_S - 1)
+    await settle()
+    assert actor.valve.valve_state == SiegValveState.KeepingLess
+    clock.advance(1)
+    await settle()
+    assert actor.valve.valve_state == SiegValveState.FullySend
+    clock.advance(actor.RELAY_REPORT_WAIT_S)
+    await settle()
+    assert glitches(sent) == [(LogLevel.Warning, "relay_silent")] * 2, "the hold went unreported too"
+    [report] = full_reports(sent)
+    assert [a.MachineHandle for a in report.AtomicList] == [actor.node.handle], "nothing from the relays to fold"
+
+
+@pytest.mark.asyncio
+async def test_a_nack_ends_the_move_with_an_error_glitch(tmp_path: Path) -> None:
+    """A relay refusing the command is a scada fault: one error glitch per
+    nack, the motor is not started (the on/off relay is opened again),
+    keep_seconds is untouched, and the move still reports in full."""
+    app, clock = manual_app(tmp_path, strategy=SiegLoopStrategy.HoldFullSend)
+    actor = sieg_loop_actor(app)
+    sent = capture(actor, relays="nack")
+    deliver(actor, actor.primary_scada.name, ActuatorsReady())
+    await settle()
+    assert relay_events(sent) == TO_SEND + HOLD
+    assert actor.valve.keep_seconds == actor.valve.FULL_RANGE_S
+    assert glitches(sent) and all(g == (LogLevel.Error, "relay_nack") for g in glitches(sent))
+    [report] = full_reports(sent)
+    assert [a.MachineHandle for a in report.AtomicList] == [actor.node.handle]
+    clock.advance(actor.valve.FULL_RANGE_S + actor.valve.OVERSHOOT_S)
+    await settle()
+    assert actor.valve.keep_seconds == actor.valve.FULL_RANGE_S, "the motor never ran"
+
+
 # --- the command surface -----------------------------------------------------
 
 
@@ -437,14 +606,23 @@ async def test_admin_move_is_acked_run_in_full_and_held_across_ticks(tmp_path: P
     await settle()
     assert relay_events(sent) == TO_KEEP + HOLD
     assert actor.valve.valve_state == SiegValveState.FullyKeep
-    [(dst, report)] = [(d, p) for d, p in sent if isinstance(p, FsmFullReport)]
-    assert dst == actor.primary_scada.name
+    assert all(p.TriggerId == cmd.TriggerId for _, p in sent if isinstance(p, FsmEvent)), (
+        "the relay commands ride under the commander's TriggerId"
+    )
+    [report] = full_reports(sent)
     assert report.TriggerId == cmd.TriggerId
-    [atomic] = report.AtomicList
+    assert [a.MachineHandle for a in report.AtomicList] == [
+        actor.layout.hp_loop_keep_send.handle,
+        actor.layout.hp_loop_on_off.handle,
+        actor.layout.hp_loop_on_off.handle,
+        actor.node.handle,
+    ], "both relays' atomics, then the loop's own"
+    atomic = report.AtomicList[-1]
     assert (atomic.EventEnum, atomic.Event, atomic.FromState, atomic.ToState) == (
         MoveSiegValve.enum_name(), MoveSiegValve.MoveToFullKeep, SiegValveState.FullySend, SiegValveState.FullyKeep,
     )
-    assert atomic.TriggerId == cmd.TriggerId
+    assert all(a.TriggerId == cmd.TriggerId for a in report.AtomicList)
+    assert glitches(sent) == []
 
     sent.clear()
     for _ in range(3):
@@ -605,7 +783,8 @@ def test_the_blind_reason_on_the_line_matches_is_blind(app: ScadaApp) -> None:
     assert line.endswith("| lift=9.0F pwr=3200W")
 
 
-def test_every_tick_and_valve_transition_writes_a_view_line(tmp_path: Path) -> None:
+@pytest.mark.asyncio
+async def test_every_tick_and_valve_transition_writes_a_view_line(tmp_path: Path) -> None:
     scada_app, clock = manual_app(tmp_path, strategy=SiegLoopStrategy.HoldFullSend)
     actor = sieg_loop_actor(scada_app)
     capture(actor)

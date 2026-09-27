@@ -383,7 +383,7 @@ class House0Hydronic(HydronicNode):
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
-    def sieg_valve_active(self, from_node: Optional[ShNode] = None) -> None:
+    def sieg_valve_active(self, trigger_id: str, from_node: Optional[ShNode] = None) -> None:
         """
         Activate the valve controlling how much water is flowing out of the
         Siegenthaler loop. This will result in the flow out beginning to decrease
@@ -399,7 +399,7 @@ class House0Hydronic(HydronicNode):
                 EventType=ChangeRelayState.enum_name(),
                 EventName=ChangeRelayState.CloseRelay,
                 SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
+                TriggerId=trigger_id,
             )
             self._send_to(self.layout.hp_loop_on_off, event, from_node)
             self.log(
@@ -408,7 +408,7 @@ class House0Hydronic(HydronicNode):
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
-    def sieg_valve_hold(self, from_node: Optional[ShNode] = None) -> None:
+    def sieg_valve_hold(self, trigger_id: str, from_node: Optional[ShNode] = None) -> None:
         """
         Stop sending a signal to move the valve controlling how much water is 
         flowing out of the Siegenthaler loop.  Energized state.
@@ -422,7 +422,7 @@ class House0Hydronic(HydronicNode):
                 EventType=ChangeRelayState.enum_name(),
                 EventName=ChangeRelayState.OpenRelay,
                 SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
+                TriggerId=trigger_id,
             )
             self._send_to(self.layout.hp_loop_on_off, event, from_node)
             self.log(
@@ -431,7 +431,7 @@ class House0Hydronic(HydronicNode):
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
-    def change_to_hp_keep_less(self, from_node: Optional[ShNode] = None) -> None:
+    def change_to_hp_keep_less(self, trigger_id: str, from_node: Optional[ShNode] = None) -> None:
         """
         Sets the Keep/Send relay so that if relay 14 is On, the Siegenthaler
         valve moves towards sending MORE water out of the Siegenthaler loop (SendMore)
@@ -445,7 +445,7 @@ class House0Hydronic(HydronicNode):
                 EventType=ChangeKeepSend.enum_name(),
                 EventName=ChangeKeepSend.ChangeToKeepLess,
                 SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
+                TriggerId=trigger_id,
             )
             self._send_to(self.layout.hp_loop_keep_send, event, from_node)
             self.log(
@@ -454,7 +454,7 @@ class House0Hydronic(HydronicNode):
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
-    def change_to_hp_keep_more(self, from_node: Optional[ShNode] = None) -> None:
+    def change_to_hp_keep_more(self, trigger_id: str, from_node: Optional[ShNode] = None) -> None:
         """
         Sets the Keep/Send relay so that if relay 15 is On, the Siegenthaler
         valve moves towards sending LESS water out of the Siegenthaler loop (SendLess)
@@ -468,7 +468,7 @@ class House0Hydronic(HydronicNode):
                 EventType=ChangeKeepSend.enum_name(),
                 EventName=ChangeKeepSend.ChangeToKeepMore,
                 SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
+                TriggerId=trigger_id,
             )
             self._send_to(self.layout.hp_loop_keep_send, event, from_node)
             self.log(

@@ -6,6 +6,7 @@ temperature pass (`get_temperatures` with the shared store scrub-and-fill)
 pinned on the sim channels."""
 
 import time
+import uuid
 from pathlib import Path
 
 import pytest
@@ -205,7 +206,10 @@ def test_plant_command_from_the_boss(
     actor: House0Hydronic, method: str, target: str, event_type, event_name
 ) -> None:
     boss = boss_of(actor, method)
-    getattr(actor, method)(boss)
+    if method in LOOP_METHODS:
+        getattr(actor, method)(str(uuid.uuid4()), boss)
+    else:
+        getattr(actor, method)(boss)
     dst, event = only_event(actor)
     target_node = getattr(actor.layout, target)
     assert dst == target_node.name
@@ -222,9 +226,11 @@ def test_plant_command_sends_nothing_when_not_the_boss(
     # The local-control node (`auto.lc`) is the boss of `n`, not of the relays,
     # and `n` is not the boss of the loop relays: the FsmEvent fails its boss
     # axiom and the helper logs instead of sending.
-    getattr(actor, method)()
     if method in LOOP_METHODS:
-        getattr(actor, method)(actor.layout.node(CoreNodeNames.local_control_normal))
+        getattr(actor, method)(str(uuid.uuid4()))
+        getattr(actor, method)(str(uuid.uuid4()), actor.layout.node(CoreNodeNames.local_control_normal))
+    else:
+        getattr(actor, method)()
     assert actor.sent == []
 
 
