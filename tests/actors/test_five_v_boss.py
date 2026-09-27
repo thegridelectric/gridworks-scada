@@ -20,6 +20,7 @@ from actors.five_v_boss import FiveVBoss
 from actors.pico_cycler import PicoCycler
 from gwsproto.enums import (
     ChangeRelayState,
+    LogLevel,
     FiveVBossState,
     FsmReportType,
     ScadaCmdRefusalReason,
@@ -46,6 +47,7 @@ from gwsproto.named_types import (
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.house0.node_names import House0NodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
+from actors import command_reply
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -251,8 +253,10 @@ def test_open_confirmation_lands_five_v_off_with_a_full_report(app: ScadaApp) ->
     [(dst, report)] = sent_of(sent, FsmFullReport)
     assert dst == CoreNodeNames.primary_scada
     assert report.TriggerId == cmd.TriggerId
-    assert [a.ToState for a in report.AtomicList] == [FiveVBossState.TurningOff, FiveVBossState.FiveVOff]
-    assert [a.Event for a in report.AtomicList] == [Turn5VOnOff.TurnOff, Turn5VOnOff.TurnOff]
+    assert [a.ToState for a in report.AtomicList] == [
+        FiveVBossState.TurningOff, RelayClosedOrOpen.RelayOpen, FiveVBossState.FiveVOff,
+    ], "the relay's atomic folds in between the boss's own"
+    assert [a.Event for a in report.AtomicList] == [Turn5VOnOff.TurnOff, ChangeRelayState.OpenRelay, Turn5VOnOff.TurnOff]
     assert report.AtomicList[0].FromState == FiveVBossState.PicoCycler
     states = [p.State for _, p in sent_of(sent, SingleMachineState)]
     assert states == [FiveVBossState.TurningOff, FiveVBossState.FiveVOff]
@@ -310,8 +314,10 @@ def test_turn_on_closes_and_the_closed_confirmation_hands_back(app: ScadaApp) ->
     assert len(sent_of(sent, NewCommandTree)) == 1
     [(dst, report)] = sent_of(sent, FsmFullReport)
     assert report.TriggerId == cmd.TriggerId
-    assert [a.ToState for a in report.AtomicList] == [FiveVBossState.TurningOn, FiveVBossState.PicoCycler]
-    assert [a.Event for a in report.AtomicList] == [Turn5VOnOff.TurnOn, Turn5VOnOff.TurnOn]
+    assert [a.ToState for a in report.AtomicList] == [
+        FiveVBossState.TurningOn, RelayClosedOrOpen.RelayClosed, FiveVBossState.PicoCycler,
+    ]
+    assert [a.Event for a in report.AtomicList] == [Turn5VOnOff.TurnOn, ChangeRelayState.CloseRelay, Turn5VOnOff.TurnOn]
 
 
 def test_turn_on_at_rest_is_acked_and_does_nothing(app: ScadaApp) -> None:
@@ -499,3 +505,11 @@ def test_unknown_event_is_refused(app: ScadaApp) -> None:
     [(dst, nack)] = sent_of(sent, DispatchNack)
     assert nack.Reason == ScadaCmdRefusalReason.UnknownEvent
     assert sent_of(sent, FsmEvent) == []
+
+
+def test_the_relays_nack_is_an_error_glitch(app: ScadaApp) -> None:
+    boss, sent = boss_under_admin(app)
+    nack = command_reply.nack(boss.relay.handle, boss.node.handle, str(uuid.uuid4()), ScadaCmdRefusalReason.NotMyBoss)
+    deliver(boss, nack, HSNN.vdc_relay)
+    [(dst, glitch)] = sent_of(sent, Glitch)
+    assert (dst, glitch.Type, glitch.Summary) == (CoreNodeNames.ltn, LogLevel.Error, "relay_nack")

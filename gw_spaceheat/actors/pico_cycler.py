@@ -31,7 +31,7 @@ from gwsproto.enums import (
     PicoCyclerState,
     SinglePicoState,
 )
-from gwsproto.named_types import Glitch, GoDormant, PicoMissing, WakeUp
+from gwsproto.named_types import DispatchNack, Glitch, GoDormant, PicoMissing, WakeUp
 from gwsproto.data_classes.components import (
     PicoBtuMeterComponent,
     PicoFlowModuleComponent,
@@ -353,13 +353,16 @@ class PicoCycler(HydronicNode):
                 self.send_fsm_report()
 
     def process_fsm_full_report(self, payload: FsmFullReport) -> None:
+        """The relay's report under the cycle's id: its atomics fold into
+        the cycle's report, and the transition it confirms follows."""
         if payload.FromName != self.layout.vdc_relay.name:
             raise Exception(
                 f"should only get FsmFullReports from VdcRelay, not {payload.FromName}"
             )
-        # start_time = payload.AtomicList[0].UnixTimeMs
-        # end_time = payload.AtomicList[-1].UnixTimeMs
-        # self.log(f"Relay1 dispatch took {end_time - start_time} ms")
+        if payload.TriggerId != self.trigger_id:
+            self.log(f"Relay report {payload.TriggerId} is not the cycle in flight ({self.trigger_id}); dropped")
+            return
+        self.fsm_reports.extend(payload.AtomicList)
         relay_report = payload.AtomicList[0]
         if relay_report.EventEnum != ChangeRelayState.enum_name():
             raise Exception(
@@ -387,6 +390,11 @@ class PicoCycler(HydronicNode):
                 case FsmFullReport():
                     path_dbg |= 0x00000004
                     self.process_fsm_full_report(message.Payload)
+                case DispatchNack():
+                    self.send_error(
+                        "relay_nack",
+                        f"{src_node.name} refused {message.Payload.TriggerId}: {message.Payload.Reason}",
+                    )
                 case GoDormant():
                     if self.state != PicoCyclerState.Dormant:
                         # Through trigger_event like WakeUp, so the Dormant

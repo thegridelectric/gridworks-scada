@@ -11,8 +11,9 @@ from pathlib import Path
 import pytest
 
 from actors.relay import Relay
-from gwsproto.enums import ChangeRelayPin, ChangeRelayState
+from gwsproto.enums import ChangeRelayPin, ChangeRelayState, MainAutoEvent
 from gwsproto.named_types import FsmEvent, FsmFullReport
+from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from scada_app import ScadaApp
 
@@ -56,3 +57,30 @@ def test_sim_gpio_relay_reports_to_its_boss(app: ScadaApp) -> None:
     assert dst == cycler.name
     assert report.TriggerId == event.TriggerId
     assert [a.Event for a in report.AtomicList] == [ChangeRelayState.OpenRelay, ChangeRelayPin.Energize]
+
+
+def test_a_relay_commanded_by_admin_reports_to_the_scada(app: ScadaApp) -> None:
+    """Admin does not fold, so the relay's written record goes to the
+    journal, not the panel."""
+    scada = app.scada
+    scada._send_to = lambda dst, payload, src=None: None
+    scada.auto_trigger(MainAutoEvent.AutoGoesDormant)
+    node = scada.layout.vdc_relay
+    node.Handle = f"{CoreNodeNames.admin}.{node.name}"
+    relay = scada.get_communicator(node.name)
+    assert isinstance(relay, Relay)
+    assert relay.GPIO is None
+    sent: list = []
+    relay._send_to = lambda dst, payload, src=None: sent.append((dst.name, payload))
+    event = FsmEvent(
+        FromHandle=CoreNodeNames.admin,
+        ToHandle=node.handle,
+        EventType=relay.my_event_enum.enum_name(),
+        EventName=relay.relay_actor_config.EnergizingEvent,
+        SendTimeUnixMs=int(time.time() * 1000),
+        TriggerId=str(uuid.uuid4()),
+    )
+    relay._process_event_message(CoreNodeNames.admin, event)
+    [(dst, report)] = [(d, p) for d, p in sent if isinstance(p, FsmFullReport)]
+    assert dst == CoreNodeNames.primary_scada
+    assert report.TriggerId == event.TriggerId

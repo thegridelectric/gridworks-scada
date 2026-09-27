@@ -1,22 +1,33 @@
+import asyncio
 import time
 import uuid
-import asyncio
-
+from typing import Optional
 
 from gwproto.message import Message
-
 from gwsproto.data_classes.sh_node import ShNode
-from gwsproto.named_types import FsmFullReport
-from gwsproto.enums import ChangeRelayState, HpBossState, SiegLoopStrategy
+from gwsproto.enums import (
+    ChangeRelayState,
+    FsmReportType,
+    HpBossState,
+    ScadaCmdRefusalReason,
+    SiegLoopStrategy,
+    TurnHpOnOff,
+)
+from gwsproto.named_types import (
+    DispatchAck,
+    DispatchNack,
+    FsmAtomicReport,
+    FsmEvent,
+    FsmFullReport,
+    SingleMachineState,
+)
 from result import Ok, Result
 
-
-from actors.sh_node_actor import ShNodeActor
-from scada_app_interface import ScadaAppInterface
 from actors import command_reply
+from actors.sh_node_actor import ShNodeActor
 from actors.sieg_loop.strategy import SiegLoopReady, selected_strategy
-from gwsproto.enums import ScadaCmdRefusalReason, TurnHpOnOff
-from gwsproto.named_types import FsmEvent, SingleMachineState
+from scada_app_interface import ScadaAppInterface
+
 
 class HpBoss(ShNodeActor):
     """
@@ -24,6 +35,12 @@ class HpBoss(ShNodeActor):
     HpBoss
         ├── HpScadaOps
         └── SiegLoop
+
+    Every command to the call relay rides under one TriggerId: the boss's
+    when a TurnHpOnOff command drives it, one hp-boss mints when it acts on
+    its own (boot, the start timeout). hp-boss keeps its own transitions
+    under that id as atomics, folds the relay's full report in when it
+    arrives, and sends the one full report to the scada.
     """
     TURN_ON_ANYWAY_S = 120 # turn on the heat pump after 2 minutes without strat-boss
     def __init__(self, name: str, services: ScadaAppInterface):
@@ -34,11 +51,16 @@ class HpBoss(ShNodeActor):
         # HpOff: a boss that believed HpOn here would treat the first TurnOn
         # as already done and never close the relay.
         self.state = HpBossState.HpOff
+        # The command in flight: its id and hp-boss's own transitions under
+        # it, reported in full once the relay's report folds in.
+        self.trigger_id: Optional[str] = None
+        self.fsm_reports: list[FsmAtomicReport] = []
 
     def start(self) -> None:
         """Boots the call relay open and reports HpOff, so the relay holds
         the posture the boss believes and the scada's latest-state list
         carries hp-boss from the first snapshot."""
+        self.begin(str(uuid.uuid4()))
         self.open_hp_scada_ops_relay()
         self.report_state()
 
@@ -62,20 +84,26 @@ class HpBoss(ShNodeActor):
                 except Exception as e:
                     self.log(f"Trouble with process_fsm_event: {e}")
             case FsmFullReport():
-                ... # relay reports back with ack of change if we care
+                self.process_fsm_full_report(from_node, payload)
+            case DispatchAck():
+                pass  # the relay took the command; its full report confirms it
+            case DispatchNack():
+                self.send_error(
+                    "relay_nack",
+                    f"{from_node.name} refused {payload.TriggerId}: {payload.Reason}",
+                )
             case SiegLoopReady():
                 try:
                     self.process_sieg_loop_ready(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with process_sieg_loop_ready: {e}")
-            case _: 
+            case _:
                 self.log(f"{self.name} received unexpected message: {message.Header}"
             )
         return Ok(True)
-    
 
-    def process_fsm_event(self, from_node: ShNode, payload: FsmEvent) -> None: 
-        self.log(f"Got {payload}")   
+    def process_fsm_event(self, from_node: ShNode, payload: FsmEvent) -> None:
+        self.log(f"Got {payload}")
         if payload.ToHandle != self.node.handle:
             self.log(f"Handle is {self.node.Handle}; ignoring {payload}")
             self._send_to(
@@ -120,21 +148,69 @@ class HpBoss(ShNodeActor):
         # carry the Krida multiplexers. Goes with the board-generic
         # required-actuator set when the Krida assumption is removed.
         if payload.EventName == TurnHpOnOff.TurnOff:
+            self.begin(payload.TriggerId)
             self.open_hp_scada_ops_relay()
-            self.state = HpBossState.HpOff
-            self.report_state()
+            self.transition(HpBossState.HpOff, TurnHpOnOff.TurnOff)
         elif self.state == HpBossState.HpOff:
+            self.begin(payload.TriggerId)
             if selected_strategy(self.ops) is SiegLoopStrategy.StratProtect:
                 # The loop protects the start: HpOff -> PreparingToTurnOn;
                 # the relay closes when the loop reports ready.
-                self.state = HpBossState.PreparingToTurnOn
-                self.report_state()
+                self.transition(HpBossState.PreparingToTurnOn, TurnHpOnOff.TurnOn)
                 asyncio.create_task(self._waiting_to_turn_on())
             else:
                 # No loop, or one that holds full send: close the call relay now.
                 self.close_hp_scada_ops_relay()
-                self.state = HpBossState.HpOn
-                self.report_state()
+                self.transition(HpBossState.HpOn, TurnHpOnOff.TurnOn)
+
+    def begin(self, trigger_id: str) -> None:
+        """Open a command's record. A record still open loses its report."""
+        if self.trigger_id is not None:
+            self.log(f"Command {self.trigger_id} superseded by {trigger_id} before its relay reported")
+        self.trigger_id = trigger_id
+        self.fsm_reports = []
+
+    def transition(self, to_state: HpBossState, event: Optional[TurnHpOnOff]) -> None:
+        """Move to to_state, keep the transition under the command in
+        flight (event None when hp-boss acts on its own), and report the
+        state."""
+        from_state = self.state
+        self.state = to_state
+        if self.trigger_id is not None:
+            self.fsm_reports.append(
+                FsmAtomicReport(
+                    MachineHandle=self.node.handle,
+                    StateEnum=HpBossState.enum_name(),
+                    ReportType=FsmReportType.Event,
+                    EventEnum=TurnHpOnOff.enum_name() if event is not None else None,
+                    Event=event,
+                    FromState=from_state,
+                    ToState=to_state,
+                    UnixTimeMs=int(time.time() * 1000),
+                    TriggerId=self.trigger_id,
+                )
+            )
+        self.report_state()
+
+    def process_fsm_full_report(self, from_node: ShNode, payload: FsmFullReport) -> None:
+        """The relay's report under the command in flight folds into
+        hp-boss's own, which then goes to the scada."""
+        if from_node.Name != self.layout.hp_scada_ops_relay.Name:
+            self.log(f"Ignoring fsm.full.report from {from_node.name}")
+            return
+        if payload.TriggerId != self.trigger_id:
+            self.log(f"Ignoring relay report {payload.TriggerId} (command in flight is {self.trigger_id})")
+            return
+        self._send_to(
+            self.primary_scada,
+            FsmFullReport(
+                FromName=self.name,
+                TriggerId=payload.TriggerId,
+                AtomicList=[*self.fsm_reports, *payload.AtomicList],
+            ),
+        )
+        self.trigger_id = None
+        self.fsm_reports = []
 
     def report_state(self) -> None:
         self._send_to(
@@ -150,54 +226,42 @@ class HpBoss(ShNodeActor):
     def process_sieg_loop_ready(self, from_node: ShNode, payload: SiegLoopReady):
         self.log(f"Got SiegLoop ready, state is {self.state}")
         if self.state == HpBossState.PreparingToTurnOn:
-            self.state = HpBossState.HpOn
             self.close_hp_scada_ops_relay()
+            self.transition(HpBossState.HpOn, TurnHpOnOff.TurnOn)
             self.log(f"Got SiegLoop ready. Changing state to {self.state}")
-            self.report_state()
         # TODO: name/cancelany waiting_to_turn_on task
 
     async def _waiting_to_turn_on(self)-> None:
         await asyncio.sleep(120)
         # If still in state WaitingToTurnOn, turn on:
         if self.state == HpBossState.PreparingToTurnOn:
-            self.state = HpBossState.HpOff
+            self.begin(str(uuid.uuid4()))
             self.open_hp_scada_ops_relay()
-            self.log(f"Did not hear from Sieg loop for 2 minutes. Turning off!")
-            self.report_state()
+            self.transition(HpBossState.HpOff, None)
+            self.log("Did not hear from Sieg loop for 2 minutes. Turning off!")
             self.alert(
                 "Sieg loop did not report ready within 2 minutes",
                 "Turning off the heat pump (opened HP scada ops relay).",
             )
 
-    def open_hp_scada_ops_relay(self) -> None:
+    def command_relay(self, event_name: ChangeRelayState) -> None:
+        assert self.trigger_id is not None, "a relay command needs a command in flight"
         try:
             event = FsmEvent(
                 FromHandle=self.node.handle,
                 ToHandle=self.layout.hp_scada_ops_relay.handle,
                 EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.OpenRelay,
+                EventName=event_name,
                 SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
+                TriggerId=self.trigger_id,
             )
             self._send_to(self.layout.hp_scada_ops_relay, event)
-            self.log(f"{self.node.handle} sending OpenRelay to {self.layout.hp_scada_ops_relay.handle}")
-        
+            self.log(f"{self.node.handle} sending {event_name} to {self.layout.hp_scada_ops_relay.handle}")
         except Exception as e:
-            self.log(f"Tried to turn off heat pump! {e}")
+            self.log(f"Tried to command the call relay {event_name}: {e}")
+
+    def open_hp_scada_ops_relay(self) -> None:
+        self.command_relay(ChangeRelayState.OpenRelay)
 
     def close_hp_scada_ops_relay(self) -> None:
-        try:
-            event = FsmEvent(
-                FromHandle=self.node.handle,
-                ToHandle=self.layout.hp_scada_ops_relay.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.CloseRelay,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
-            self._send_to(self.layout.hp_scada_ops_relay, event)
-            self.log(f"{self.node.handle} sending CloseRelay to {self.layout.hp_scada_ops_relay.handle}")
-        
-        except Exception as e:
-            self.log(f"Tried to turn on heat pump! {e}")
-
+        self.command_relay(ChangeRelayState.CloseRelay)

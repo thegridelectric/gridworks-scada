@@ -17,8 +17,12 @@ import pytest
 from gwproto.message import Header, Message
 
 from actors.pico_cycler import PicoCycler
+from actors import command_reply
 from gwsproto.enums import (
     ChangeRelayState,
+    FsmReportType,
+    LogLevel,
+    RelayClosedOrOpen,
     ScadaCmdRefusalReason,
     MainAutoEvent,
     PicoCyclerEvent,
@@ -26,7 +30,7 @@ from gwsproto.enums import (
     RebootPicos,
     SinglePicoState,
 )
-from gwsproto.named_types import DispatchNack, FsmEvent, Glitch, MachineStates, PicoMissing
+from gwsproto.named_types import DispatchNack, FsmAtomicReport, FsmEvent, FsmFullReport, Glitch, MachineStates, PicoMissing
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from scada_app import ScadaApp
@@ -90,7 +94,29 @@ def relay_events(sent: list) -> list[FsmEvent]:
     return [p for dst, p in sent if isinstance(p, FsmEvent)]
 
 
-def test_boss_reboot_command_opens_relay_with_adopted_trigger_id(app: ScadaApp) -> None:
+def relay_report(relay, cmd: FsmEvent) -> FsmFullReport:
+    """The relay's full report of a taken command, one atomic under its id."""
+    return FsmFullReport(
+        FromName=relay.name,
+        TriggerId=cmd.TriggerId,
+        AtomicList=[
+            FsmAtomicReport(
+                MachineHandle=relay.handle,
+                StateEnum=RelayClosedOrOpen.enum_name(),
+                ReportType=FsmReportType.Event,
+                EventEnum=cmd.EventType,
+                Event=cmd.EventName,
+                FromState=RelayClosedOrOpen.RelayClosed,
+                ToState=RelayClosedOrOpen.RelayOpen,
+                UnixTimeMs=int(time.time() * 1000),
+                TriggerId=cmd.TriggerId,
+            )
+        ],
+    )
+
+
+@pytest.mark.asyncio
+async def test_boss_reboot_command_opens_relay_with_adopted_trigger_id(app: ScadaApp) -> None:
     cycler, sent = cycler_under_admin(app)
     event = reboot_command(cycler.node.handle)
 
@@ -111,6 +137,24 @@ def test_boss_reboot_command_opens_relay_with_adopted_trigger_id(app: ScadaApp) 
         if isinstance(p, MachineStates) and p.StateEnum == PicoCyclerState.enum_name()
     ]
     assert [r.StateList for r in cycler_rows] == [[PicoCyclerState.RelayOpening]]
+
+    relay = app.scada.layout.vdc_relay
+    command(cycler, relay_report(relay, opens[0]), src=relay.name)
+    assert cycler.state == PicoCyclerState.RelayOpen
+    assert [r.MachineHandle for r in cycler.fsm_reports] == [
+        cycler.node.handle, relay.handle, cycler.node.handle,
+    ], "the relay's atomics fold into the cycle's report"
+    assert [r.Event for r in cycler.fsm_reports] == [
+        PicoCyclerEvent.ShakeZombies, ChangeRelayState.OpenRelay, PicoCyclerEvent.ConfirmOpened,
+    ]
+
+
+def test_a_relay_nack_is_an_error_glitch(app: ScadaApp) -> None:
+    cycler, sent = cycler_under_admin(app)
+    relay = app.scada.layout.vdc_relay
+    command(cycler, command_reply.nack(relay.handle, cycler.node.handle, str(uuid.uuid4()), ScadaCmdRefusalReason.NotMyBoss), src=relay.name)
+    [(dst, glitch)] = [(d, p) for d, p in sent if isinstance(p, Glitch)]
+    assert (dst, glitch.Type, glitch.Summary) == (CoreNodeNames.ltn, LogLevel.Error, "relay_nack")
 
 
 def test_command_to_stale_handle_is_refused_as_not_my_boss(app: ScadaApp) -> None:

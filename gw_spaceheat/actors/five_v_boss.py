@@ -171,6 +171,12 @@ class FiveVBoss(CommandNode):
         self.log(f"Forwarded {payload.EventName} from {payload.FromHandle} to {self.cycler.handle}")
 
     def process_cycler_reply(self, from_node: ShNode, payload: DispatchAck | DispatchNack) -> None:
+        """The cycler's reply to a forwarded command goes back to the
+        commander; the relay's ack is silent and its nack is an error."""
+        if from_node.Name == self.relay.Name:
+            if isinstance(payload, DispatchNack):
+                self.send_error("relay_nack", f"{from_node.name} refused {payload.TriggerId}: {payload.Reason}")
+            return
         commander = self.forwarded.pop(payload.TriggerId, None)
         if from_node.Name != self.cycler.Name or commander is None:
             self.log(f"Ignoring reply {payload.TriggerId} from {from_node.name}")
@@ -251,6 +257,7 @@ class FiveVBoss(CommandNode):
         if payload.TriggerId != self.trigger_id:
             self.log(f"Ignoring relay report {payload.TriggerId} (hold is {self.trigger_id})")
             return
+        self.fsm_reports.extend(payload.AtomicList)
         event = payload.AtomicList[0].Event
         if event == ChangeRelayState.OpenRelay and self.state == FiveVBossState.TurningOff:
             self.transition(FiveVBossState.FiveVOff)

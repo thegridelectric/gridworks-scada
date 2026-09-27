@@ -494,7 +494,7 @@ class Relay(ShNodeActor):
         if boss is not None:
             self.send_state(now_ms=now_ms)
             self._send_to(
-                boss,
+                command_reply.report_destination(boss, self.primary_scada),
                 FsmFullReport(
                     FromName=self.name,
                     TriggerId=message.TriggerId,
@@ -707,7 +707,7 @@ class Relay(ShNodeActor):
         ]
         self.send_state(now_ms=now_ms)
         self._send_to(
-            command.boss,
+            command_reply.report_destination(command.boss, self.primary_scada),
             FsmFullReport(
                 FromName=self.name,
                 TriggerId=command.trigger_id,

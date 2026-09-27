@@ -38,6 +38,8 @@ from actors.scada_interface import ScadaInterface
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.named_types import FsmFullReport, PowerWatts, SendSnap, ReportEvent
 
+from actors import command_reply
+
 
 from gwsproto.named_types import (
     ChannelReadings, MachineStates,
@@ -1738,7 +1740,7 @@ class Scada(PrimeActor, ScadaInterface):
 
     # The interior command nodes an operator sees as rows: their own state
     # reaches the panel live and they are listed in the capabilities.
-    COMMAND_NODE_CLASSES = {ActorClass.FiveVBoss, ActorClass.PicoCycler, ActorClass.HpBoss, ActorClass.SiegLoop}
+    COMMAND_NODE_CLASSES = command_reply.COMMAND_NODE_CLASSES
 
     # The interior command nodes' vocabularies, by ActorClass: one entry per
     # vocabulary (event type, state type, the commands and the state each

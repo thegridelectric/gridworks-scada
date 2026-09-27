@@ -14,10 +14,24 @@ from actors.hp_boss import HpBoss
 from actors.sieg_loop.strategy import SiegLoopReady, selected_strategy
 from gwproto import Message
 from gwproto.message import Header
-from gwsproto.enums import ChangeRelayState, HpBossState, MainAutoEvent, SiegLoopStrategy, TurnHpOnOff
+from actors import command_reply
+from gwsproto.enums import (
+    ChangeRelayState,
+    FsmReportType,
+    HpBossState,
+    LogLevel,
+    MainAutoEvent,
+    RelayClosedOrOpen,
+    ScadaCmdRefusalReason,
+    SiegLoopStrategy,
+    TurnHpOnOff,
+)
 from gwsproto.named_types import (
     AdminDispatch,
+    FsmAtomicReport,
     FsmEvent,
+    FsmFullReport,
+    Glitch,
     SingleMachineState,
 )
 from gwsproto.names.core.node_names import CoreNodeNames
@@ -90,6 +104,31 @@ def reported_states(sent: list) -> list[str]:
     return [p.State for _, p in sent if isinstance(p, SingleMachineState)]
 
 
+def full_reports(sent: list) -> list[tuple[str, FsmFullReport]]:
+    return [(d, p) for d, p in sent if isinstance(p, FsmFullReport)]
+
+
+def relay_report(relay, cmd: FsmEvent) -> FsmFullReport:
+    """The call relay's full report of a taken command, one atomic under its id."""
+    return FsmFullReport(
+        FromName=relay.name,
+        TriggerId=cmd.TriggerId,
+        AtomicList=[
+            FsmAtomicReport(
+                MachineHandle=relay.handle,
+                StateEnum=RelayClosedOrOpen.enum_name(),
+                ReportType=FsmReportType.Event,
+                EventEnum=cmd.EventType,
+                Event=cmd.EventName,
+                FromState=RelayClosedOrOpen.RelayClosed,
+                ToState=RelayClosedOrOpen.RelayOpen,
+                UnixTimeMs=int(time.time() * 1000),
+                TriggerId=cmd.TriggerId,
+            )
+        ],
+    )
+
+
 @pytest.mark.parametrize("boss", ["admin", "local_control", "leaf_ally"])
 def test_hp_boss_in_every_tree(app: ScadaApp, boss: str) -> None:
     """Whatever boss the scada hands the tree to, hp-boss sits directly under
@@ -141,6 +180,30 @@ def test_turn_off_opens_call_relay_from_hp_boss(app: ScadaApp) -> None:
     ]
     assert actor.state == HpBossState.HpOff
     assert reported_states(sent) == [HpBossState.HpOff]
+    [(_, cmd)] = [(d, p) for d, p in sent if isinstance(p, FsmEvent)]
+    assert cmd.TriggerId == actor.trigger_id, "the relay command rides under the boss's command id"
+    assert full_reports(sent) == []
+
+    deliver(actor, relay.name, relay_report(relay, cmd))
+    [(dst, report)] = full_reports(sent)
+    assert dst == CoreNodeNames.primary_scada
+    assert report.TriggerId == cmd.TriggerId
+    assert [a.MachineHandle for a in report.AtomicList] == [actor.node.handle, relay.handle]
+    own = report.AtomicList[0]
+    assert (own.Event, own.FromState, own.ToState) == (TurnHpOnOff.TurnOff, HpBossState.HpOff, HpBossState.HpOff)
+    assert actor.trigger_id is None
+
+
+def test_the_relays_nack_is_an_error_glitch(app: ScadaApp) -> None:
+    scada = app.scada
+    capture(scada)
+    scada.set_command_tree(scada.local_control)
+    actor = hp_boss_actor(app)
+    sent = capture(actor)
+    relay = scada.layout.hp_scada_ops_relay
+    deliver(actor, relay.name, command_reply.nack(relay.handle, actor.node.handle, str(uuid.uuid4()), ScadaCmdRefusalReason.NotMyBoss))
+    [(dst, glitch)] = [(d, p) for d, p in sent if isinstance(p, Glitch)]
+    assert (dst, glitch.Type, glitch.Summary) == (CoreNodeNames.ltn, LogLevel.Error, "relay_nack")
 
 
 @pytest.mark.asyncio
