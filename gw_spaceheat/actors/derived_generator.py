@@ -19,7 +19,7 @@ from actors.sh_node_actor import ShNodeActor
 from gwsproto.data_classes.derived_channel import DerivedChannel
 from gwsproto.conversions.temperature import convert_temp_to_f
 from gwsproto.enums import (
-    Unit, HeatCallInterpretation,
+    Unit, HeatCallInterpretation, TelemetryName,
     ActuationAuthority, SeasonalStorageMode, ServiceMode
 )
 from gwsproto.named_types import (
@@ -57,6 +57,17 @@ class DerivedHandler(Protocol):
         dc: DerivedChannel,
         payload: SingleReading | None = None,
     ) -> None: ...
+
+# A DataChannel encodes its unit as a TelemetryName and a DerivedChannel as a
+# Unit; these pairs are the same encoding under two names.
+EQUIVALENT_UNIT: dict[TelemetryName, Unit] = {TelemetryName.GpmTimes100: Unit.GpmX100}
+
+
+def as_unit(encoding: Unit | TelemetryName) -> Unit | TelemetryName:
+    if isinstance(encoding, TelemetryName):
+        return EQUIVALENT_UNIT.get(encoding, encoding)
+    return encoding
+
 
 class DerivedGenerator(ShNodeActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
@@ -162,7 +173,10 @@ class DerivedGenerator(ShNodeActor):
                         f"Sum DerivedChannel '{dc.Name}' requires InputChannelNames"
                     )
                 in_units = {
-                    self.layout.channel_registry.unit(ch) for ch in dc.InputChannelNames
+                    as_unit(unit) if unit is not None else None
+                    for unit in (
+                        self.layout.channel_registry.unit(ch) for ch in dc.InputChannelNames
+                    )
                 }
                 if None in in_units:
                     raise RuntimeError(
@@ -182,7 +196,10 @@ class DerivedGenerator(ShNodeActor):
                         f"{len(dc.InputChannelNames)}"
                     )
                 in_units = {
-                    self.layout.channel_registry.unit(ch) for ch in dc.InputChannelNames
+                    as_unit(unit) if unit is not None else None
+                    for unit in (
+                        self.layout.channel_registry.unit(ch) for ch in dc.InputChannelNames
+                    )
                 }
                 if None in in_units:
                     raise RuntimeError(
@@ -260,23 +277,23 @@ class DerivedGenerator(ShNodeActor):
         self.log(f"Initialized simple falling-edge setpoint channel '{dc.Name}'")
 
     def handle_identity(self, dc: DerivedChannel, payload: SingleReading | None = None) -> None:
-        """Returns the identical data, after unit transformation"""
+        """Returns the identical data: unchanged when the input carries the
+        OutputUnit's encoding, else converted (temperatures to FahrenheitX100)."""
         if payload is None:
             return
 
         in_unit = self.layout.channel_registry.unit(payload.ChannelName)
         assert in_unit
 
-        temp_f = convert_temp_to_f(payload.Value, in_unit)
+        if as_unit(in_unit) == dc.OutputUnit:
+            value = payload.Value
+        else:
+            value = int(convert_temp_to_f(payload.Value, in_unit) * 100)
 
-        if temp_f is None:
-            return None
-
-        self._send_to(
-            self.primary_scada,
+        self.emit_derived(
             SingleReading(
                 ChannelName=dc.Name,
-                Value=int(temp_f * 100),
+                Value=value,
                 ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs
             )
         )
@@ -312,8 +329,7 @@ class DerivedGenerator(ShNodeActor):
         # scaling, so apply M to the FahrenheitX100-scaled input and add B there.
         assert dc.OutputUnit == Unit.FahrenheitX100
         temp_x100 = int(calib.M * (x * 100) + calib.B)
-        self._send_to(
-            self.primary_scada,
+        self.emit_derived(
             SingleReading(
                 ChannelName=dc.Name,
                 Value=temp_x100,
@@ -344,8 +360,7 @@ class DerivedGenerator(ShNodeActor):
                 return  # not every input available yet
             values.append(value)
         minuend, subtrahend = values
-        self._send_to(
-            self.primary_scada,
+        self.emit_derived(
             SingleReading(
                 ChannelName=dc.Name,
                 Value=minuend - subtrahend,
@@ -375,8 +390,7 @@ class DerivedGenerator(ShNodeActor):
             if value is None:
                 return  # not every input available yet
             total += value
-        self._send_to(
-            self.primary_scada,
+        self.emit_derived(
             SingleReading(
                 ChannelName=dc.Name,
                 Value=total,
@@ -610,8 +624,7 @@ class DerivedGenerator(ShNodeActor):
 
         if should_emit:
             self.log(f"Setpoint {dc.Name}: {state.setpoint_f} F phase={state.phase}")
-            self._send_to(
-                self.primary_scada,
+            self.emit_derived(
                 SingleReading(
                     ChannelName=dc.Name,
                     Value=int(state.setpoint_f * 100),
@@ -672,8 +685,7 @@ class DerivedGenerator(ShNodeActor):
         if value is None:
             return
 
-        self._send_to(
-            self.primary_scada,
+        self.emit_derived(
             SingleReading(
                 ChannelName=dc.Name,
                 Value=value,
@@ -769,6 +781,12 @@ class DerivedGenerator(ShNodeActor):
                         ),
                     )
         return Ok(True)
+
+    def emit_derived(self, reading: SingleReading) -> None:
+        """A derived reading goes to the scada and then, like a device
+        reading, to every derived channel that takes it as input."""
+        self._send_to(self.primary_scada, reading)
+        self._dispatch_derived_input(reading)
 
     def _dispatch_derived_input(self, payload: SingleReading) -> None:
         derived_channels = self.derived_by_input.get(payload.ChannelName)

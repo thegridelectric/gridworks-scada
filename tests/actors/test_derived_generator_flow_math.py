@@ -214,3 +214,33 @@ def test_each_house_derives_its_missing_sieg_flow_from_its_sim_sensors(pair: str
     (reading,) = [r for r in emitted if r.ChannelName == derived_name]
     assert reading.Value == arithmetic(latest)
     assert derived_name not in app.hardware_layout.data_channels  # derived, never measured
+
+
+def test_identity_passes_a_flow_reading_through_unchanged(actor: DerivedGenerator) -> None:
+    """An identity channel over a flow (a legacy-named meter republished under
+    the grammar name) keeps the reading's value: GpmTimes100 in, GpmX100 out."""
+    dc = flow_channel(actor, "primary-flow-alias", "identity", ["primary-flow"])
+    sent = capture_sends(actor)
+    actor.handle_identity(dc, reading("primary-flow", 730))
+    assert [(name, out.ChannelName, out.Value) for name, out in sent] == [
+        (CoreNodeNames.primary_scada, "primary-flow-alias", 730)
+    ]
+
+
+def test_a_derived_reading_feeds_the_derived_channels_that_take_it(
+    actor: DerivedGenerator,
+) -> None:
+    """A derived reading is dispatched like a device reading: an identity over
+    primary-flow and a sum over that identity both emit on one primary-flow
+    reading, and the sum's registration accepts the derived input's GpmX100
+    beside sieg-flow's GpmTimes100."""
+    alias = flow_channel(actor, "primary-flow-alias", "identity", ["primary-flow"])
+    total = flow_channel(actor, "total-flow", "sum", ["primary-flow-alias", "sieg-flow"])
+    actor.layout.derived_channels[alias.Name] = alias
+    actor.layout.derived_channels[total.Name] = total
+    actor.init_derived_channels()
+    sent = capture_sends(actor)
+    actor.data.latest_channel_values["sieg-flow"] = 300
+    actor._dispatch_derived_input(reading("primary-flow", 700))
+    ours = [(out.ChannelName, out.Value) for _, out in sent if out.ChannelName in {alias.Name, total.Name}]
+    assert ours == [("primary-flow-alias", 700), ("total-flow", 1000)]
