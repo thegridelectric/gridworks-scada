@@ -1,8 +1,9 @@
-"""The panel's sieg-loop row on a House0 scada: at a stop it offers the
-move to the other stop; mid-travel, where the observed state is no
-command's result, it offers both moves, so an operator can re-home or
-reverse a valve that is moving. Relays 14 and 15, owned by the loop,
-offer nothing."""
+"""The panel's sieg-loop row on a House0 scada: every command whose
+result differs from the observed state. At a stop that is the move to
+the other stop and StopValve; held in a blend, both moves; mid-travel,
+where the observed state is no command's result, all three, so an
+operator can re-home, reverse or stop a valve that is moving. Relays 14
+and 15, owned by the loop, offer nothing."""
 
 from pathlib import Path
 
@@ -40,14 +41,22 @@ def offered(config: RelayWidgetConfig, state: str) -> list[str]:
 def test_sieg_loop_row_offers_the_other_stop_at_a_stop(configs: dict[str, RelayWidgetConfig]) -> None:
     loop = configs[House0NodeNames.sieg_loop]
     assert loop.state_type == SiegValveState.enum_name()
-    assert offered(loop, SiegValveState.FullySend) == [MoveSiegValve.MoveToFullKeep]
-    assert offered(loop, SiegValveState.FullyKeep) == [MoveSiegValve.MoveToFullSend]
+    assert offered(loop, SiegValveState.FullySend) == [MoveSiegValve.MoveToFullKeep, MoveSiegValve.StopValve]
+    assert offered(loop, SiegValveState.FullyKeep) == [MoveSiegValve.MoveToFullSend, MoveSiegValve.StopValve]
 
 
-def test_sieg_loop_row_offers_both_moves_while_moving(configs: dict[str, RelayWidgetConfig]) -> None:
+def test_sieg_loop_row_offers_all_three_while_moving(configs: dict[str, RelayWidgetConfig]) -> None:
     loop = configs[House0NodeNames.sieg_loop]
-    for state in (SiegValveState.KeepingLess, SiegValveState.KeepingMore, SiegValveState.SteadyBlend):
-        assert offered(loop, state) == [MoveSiegValve.MoveToFullSend, MoveSiegValve.MoveToFullKeep]
+    for state in (SiegValveState.KeepingLess, SiegValveState.KeepingMore):
+        assert offered(loop, state) == [
+            MoveSiegValve.MoveToFullSend, MoveSiegValve.MoveToFullKeep, MoveSiegValve.StopValve,
+        ]
+    assert loop.get_action_str(SiegValveState.KeepingLess) == "MoveToFullSend / MoveToFullKeep / StopValve"
+
+
+def test_sieg_loop_row_offers_both_moves_in_a_blend(configs: dict[str, RelayWidgetConfig]) -> None:
+    loop = configs[House0NodeNames.sieg_loop]
+    assert offered(loop, SiegValveState.SteadyBlend) == [MoveSiegValve.MoveToFullSend, MoveSiegValve.MoveToFullKeep]
     assert loop.get_action_str(SiegValveState.SteadyBlend) == "MoveToFullSend / MoveToFullKeep"
 
 

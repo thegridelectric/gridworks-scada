@@ -5,10 +5,11 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class MoveSiegValve(SemaEnum):
-    """Sema: https://schemas.electricity.works/enums/move.sieg.valve/000"""
+    """Sema: https://schemas.electricity.works/enums/move.sieg.valve/001"""
 
     MoveToFullSend = auto()
     MoveToFullKeep = auto()
+    StopValve = auto()
 
     @classmethod
     def default(cls) -> "MoveSiegValve":
@@ -24,4 +25,4 @@ class MoveSiegValve(SemaEnum):
 
     @classmethod
     def enum_version(cls) -> str:
-        return "000"
+        return "001"

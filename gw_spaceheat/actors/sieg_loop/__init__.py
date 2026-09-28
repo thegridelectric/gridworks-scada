@@ -97,9 +97,9 @@ class SiegLoop(House0Hydronic):
 
     A command from the boss (MoveSiegValve) takes the loop out of automatic
     control: the strategy's moves are withheld until the tree changes hands,
-    noticed on the tick, when the strategy resumes. The move a command asks
-    for is a full run, so a command to the stop the valve is already on
-    re-homes it.
+    noticed on the tick, when the strategy resumes. MoveToFullSend and
+    MoveToFullKeep ask for a full run, so a command to the stop the valve
+    is already on re-homes it; StopValve stops the motor where it is.
 
     Every move, commanded or automatic, is a Move with one TriggerId: the
     commander's, or one the loop mints. Its two relay commands ride under
@@ -300,12 +300,17 @@ class SiegLoop(House0Hydronic):
         )
         event = MoveSiegValve(payload.EventName)
         self.commanded_by = boss_of(self.node.handle)
-        self.move = Move(trigger_id=payload.TriggerId, from_state=self.valve.valve_state, event=event)
+        commanded = Move(trigger_id=payload.TriggerId, from_state=self.valve.valve_state, event=event)
+        self.move = commanded
         self.log(f"{event} from {payload.FromHandle}: the loop is held until the tree changes hands")
         if event == MoveSiegValve.MoveToFullSend:
             self.valve.full_run_to_send()
-        else:
+        elif event == MoveSiegValve.MoveToFullKeep:
             self.valve.full_run_to_keep()
+        elif event == MoveSiegValve.StopValve:
+            self.valve.stop(commanded)
+        else:
+            raise ValueError(f"{self.name} has no dispatch for {event}")
 
     def refuse(self, from_node: ShNode, payload: FsmEvent, reason: ScadaCmdRefusalReason) -> None:
         self._send_to(
@@ -344,9 +349,10 @@ class SiegLoop(House0Hydronic):
         return f"{self.layout.channel_registry.temperature(name, raw).f:.1f}F"
 
     def view(self) -> str:
-        """One line: every channel of VIEW_CHANNELS the layout names, with
-        its latest value or `--` when there is none, the reading's age in
-        seconds, and `*` on a derived channel; then the quantities the
+        """One line: the valve state and keep_seconds; every channel of
+        VIEW_CHANNELS the layout names, with its latest value or `--` when
+        there is none, the reading's age in seconds, and `*` on a derived
+        channel; then the quantities the
         strategy acts on, lift and total power, and the blind reason when
         the strategy is blind."""
         now_s = time.time()
@@ -371,7 +377,10 @@ class SiegLoop(House0Hydronic):
         reason = self.strategy.blind_reason()
         if reason is not None:
             tail.append(f"blind={reason}")
-        return f"sieg-view {self.valve.valve_state} " + " ".join(parts) + " | " + " ".join(tail)
+        return (
+            f"sieg-view {self.valve.valve_state} keep={self.valve.keep_seconds:.1f}s "
+            + " ".join(parts) + " | " + " ".join(tail)
+        )
 
     def log_view(self) -> None:
         self.log(self.view())

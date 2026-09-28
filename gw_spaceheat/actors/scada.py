@@ -1771,6 +1771,7 @@ class Scada(PrimeActor, ScadaInterface):
             [
                 (MoveSiegValve.MoveToFullSend, SiegValveState.FullySend),
                 (MoveSiegValve.MoveToFullKeep, SiegValveState.FullyKeep),
+                (MoveSiegValve.StopValve, SiegValveState.SteadyBlend),
             ],
         )],
     }

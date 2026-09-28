@@ -52,7 +52,9 @@ class SiegValve:
     SteadyBlend. A new run cancels the one in flight, which settles its
     keep_seconds from the clock before the motor changes direction. A
     full run is the whole range plus the overshoot whatever keep_seconds
-    says, which is how a commanded move re-homes the valve."""
+    says, which is how a commanded move re-homes the valve. A stop cancels
+    the run in flight without starting another: the run settles the same
+    way and ends under the stop's move."""
 
     FULL_RANGE_S = 100
     OVERSHOOT_S = 10
@@ -96,6 +98,9 @@ class SiegValve:
         self.task: Optional[asyncio.Task[None]] = None
         # The move the run in flight is making; None between runs.
         self.move: Optional[Move] = None
+        # The commanded stop cancelling the run in flight; None when the run
+        # ends by itself or is cancelled by the next run.
+        self.stopping: Optional[Move] = None
 
     # --------------------------------------
     # Targets
@@ -121,6 +126,20 @@ class SiegValve:
         self.loop.log("Full run to keep")
         self.travel(self.FULL_RANGE_S + self.OVERSHOOT_S)
 
+    def stop(self, stop: Move) -> None:
+        """Stop the motor where it is. With the motor running, the run in
+        flight is cancelled and ends under the stop's move. With the motor
+        at rest nothing moves and the stop reports the valve's state as it
+        stands."""
+        running = self.valve_state in (SiegValveState.KeepingMore, SiegValveState.KeepingLess)
+        if self.task is None or self.task.done() or not running:
+            self.loop.log(f"Motor at rest: {self.valve_state} at keep_seconds {round(self.keep_seconds, 1)}")
+            self.loop.move_ended(stop, self.valve_state)
+            return
+        self.loop.log("Stopping the motor")
+        self.stopping = stop
+        self.task.cancel()
+
     def travel(self, delta_s: float) -> None:
         """Run the motor for delta_s seconds: toward keep when positive,
         toward send when negative. Cancels the run in flight."""
@@ -135,7 +154,10 @@ class SiegValve:
         (or the loop's wait runs out), the stop transition opens the on/off
         relay, and the move ends with its full report. A nack from a relay
         skips the motor time. A run cancelled by the next move settles from
-        the clock and reports without waiting on the hold."""
+        the clock and reports without waiting on the hold. A run cancelled
+        by a stop settles from the clock, commands the hold under the
+        stop's TriggerId and waits on it; the run's move reports without
+        the hold, then the stop's move reports with it."""
         if previous is not None and not previous.done():
             previous.cancel()
             await asyncio.wait([previous])
@@ -164,6 +186,10 @@ class SiegValve:
             cancelled = True
             raise
         finally:
+            stop = self.stopping
+            self.stopping = None
+            if stop is not None:
+                self.move = stop
             moved = ran_s if toward_keep else -ran_s
             self.keep_seconds = min(self.FULL_RANGE_S, max(0, start_keep_seconds + moved))
             if toward_keep:
@@ -179,10 +205,14 @@ class SiegValve:
             self.loop.log(
                 f"Motor stopped after {round(ran_s, 1)} s: keep_seconds {round(self.keep_seconds, 1)}"
             )
-            if not cancelled:
+            if stop is not None:
+                await self.loop.relays_reported(stop)
+            elif not cancelled:
                 await self.loop.relays_reported(move)
             self.move = None
             self.loop.move_ended(move, self.valve_state)
+            if stop is not None:
+                self.loop.move_ended(stop, self.valve_state)
 
     # --------------------------------------
     # Valve state machine
