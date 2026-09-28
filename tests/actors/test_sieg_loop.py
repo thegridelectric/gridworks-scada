@@ -407,7 +407,7 @@ async def test_a_new_move_settles_the_travel_so_far_from_the_clock(tmp_path: Pat
 
     valve.move_to_full_keep()
     await settle()
-    assert valve.keep_seconds == 60
+    assert valve.keep_seconds == valve.FULL_RANGE_S - 40
     assert relay_events(sent) == TO_SEND + HOLD + TO_KEEP
     assert valve.valve_state == SiegValveState.KeepingMore
 
@@ -659,7 +659,7 @@ async def test_stop_valve_mid_travel_holds_the_blend_and_reports_under_its_id(tm
     assert relay_events(sent) == TO_SEND + HOLD
     hold = [p for dst, p in sent if isinstance(p, FsmEvent)][-1]
     assert hold.TriggerId == stop.TriggerId, "the hold rides under the stop's TriggerId"
-    assert valve.keep_seconds == 60
+    assert valve.keep_seconds == valve.FULL_RANGE_S - 40
     assert valve.valve_state == SiegValveState.SteadyBlend
     reports = {r.TriggerId: r for r in full_reports(sent)}
     assert set(reports) == {run.TriggerId, stop.TriggerId}
@@ -688,7 +688,7 @@ async def test_stop_valve_mid_travel_holds_the_blend_and_reports_under_its_id(tm
         await settle()
     assert relay_events(sent) == []
     assert valve.valve_state == SiegValveState.SteadyBlend
-    assert valve.keep_seconds == 60
+    assert valve.keep_seconds == valve.FULL_RANGE_S - 40
 
 
 @pytest.mark.asyncio
@@ -730,7 +730,7 @@ async def test_a_move_after_a_stop_runs_the_full_range_and_re_homes(tmp_path: Pa
     await settle()
     deliver(actor, CoreNodeNames.admin, move(actor, MoveSiegValve.StopValve))
     await settle()
-    assert valve.keep_seconds == 60
+    assert valve.keep_seconds == valve.FULL_RANGE_S - 40
     sent.clear()
 
     deliver(actor, CoreNodeNames.admin, move(actor, MoveSiegValve.MoveToFullSend))
@@ -871,7 +871,7 @@ def test_the_view_names_every_neighbourhood_channel_the_layout_carries(app: Scad
 
 def test_the_view_carries_the_valve_position_after_its_state(app: ScadaApp) -> None:
     actor = sieg_loop_actor(app)
-    assert actor.view().startswith(f"sieg-view {SiegValveState.FullyKeep} keep=100.0s ")
+    assert actor.view().startswith(f"sieg-view {SiegValveState.FullyKeep} keep={float(actor.valve.FULL_RANGE_S)}s ")
     actor.valve.keep_seconds = 59.96
     assert " keep=60.0s " in actor.view()
 

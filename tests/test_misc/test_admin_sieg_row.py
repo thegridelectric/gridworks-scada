@@ -2,7 +2,8 @@
 valve can use from its observed state: at a stop, the move to the other
 stop; in a steady blend, both moves; travelling, StopValve and the move to
 the other stop, since the motor is already headed for this one. The
-Action cell joins the pair with a bare slash so it fits its width."""
+Action cell joins the pair with a bare slash so it fits its width. Relays
+14 and 15, owned by the loop, offer nothing."""
 
 from pathlib import Path
 
@@ -10,23 +11,30 @@ import pytest
 
 from gwadmin.watch.clients.relay_client import RelayWatchClient
 from gwadmin.watch.widgets.relay_widget_info import RelayWidgetConfig
-from gwsproto.enums import ActorClass, MoveSiegValve, SiegValveState
+from gwsproto.enums import MoveSiegValve, RelayClosedOrOpen, SiegValveState
+from gwsproto.names.house0.node_names import House0NodeNames
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
 
 
 @pytest.fixture
-def sieg() -> RelayWidgetConfig:
+def configs() -> dict[str, RelayWidgetConfig]:
     settings = ScadaApp.get_settings()
     settings.paths.hardware_layout = CONFIG / "gw.house0.willow.layout.json"
     settings.paths.operational_params = CONFIG / "gw.house0.willow.operational.params.json"
     settings.paths.mkdirs()
     scada_app = ScadaApp(app_settings=settings)
     scada_app.instantiate()
-    node = next(n for n in scada_app.scada.layout.nodes.values() if n.ActorClass == ActorClass.SiegLoop)
-    configs = RelayWatchClient._get_relay_configs(scada_app.scada.control_capabilities)
-    return RelayWidgetConfig.from_config(configs[node.name])
+    return {
+        name: RelayWidgetConfig.from_config(config)
+        for name, config in RelayWatchClient._get_relay_configs(scada_app.scada.control_capabilities).items()
+    }
+
+
+@pytest.fixture
+def sieg(configs: dict[str, RelayWidgetConfig]) -> RelayWidgetConfig:
+    return next(c for name, c in configs.items() if name == House0NodeNames.sieg_loop)
 
 
 def offered(config: RelayWidgetConfig, state: str) -> list[str]:
@@ -51,3 +59,9 @@ def test_travelling_offers_stop_and_the_other_stop(sieg: RelayWidgetConfig) -> N
     assert offered(sieg, SiegValveState.KeepingLess) == [MoveSiegValve.MoveToFullKeep, MoveSiegValve.StopValve]
     assert sieg.get_action_str(SiegValveState.KeepingMore) == "MoveToFullSend/StopValve"
     assert len(sieg.get_action_str(SiegValveState.KeepingLess)) <= 25
+
+
+def test_loop_relays_offer_nothing(configs: dict[str, RelayWidgetConfig]) -> None:
+    for name in (House0NodeNames.hp_loop_on_off, House0NodeNames.hp_loop_keep_send):
+        assert configs[name].commands == []
+        assert offered(configs[name], RelayClosedOrOpen.RelayClosed) == []

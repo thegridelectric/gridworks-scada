@@ -56,7 +56,13 @@ class SiegValve:
     the run in flight without starting another: the run settles the same
     way and ends under the stop's move."""
 
-    FULL_RANGE_S = 100
+    # Positions are motor seconds from the send stop. The flow split
+    # changes only between keep onset (t1) and keep complete (t2); the
+    # motor runs on to the keep stop beyond. Measured at maple from the
+    # flow meters during full travels, 2026-09-28; the meters answered
+    # about 4 s after the motor, and that lag is taken out of each. They
+    # are facts about one valve and belong in the layout as parameters.
+    FULL_RANGE_S = 94  # keep stop
     OVERSHOOT_S = 10
 
     transitions = [
@@ -91,10 +97,8 @@ class SiegValve:
         )
         self.valve_state: SiegValveState = SiegValveState.FullyKeep
         self.keep_seconds: float = self.FULL_RANGE_S
-        # Motor seconds from full send at which flow starts through the loop,
-        # and at which all of it does.
-        self.t1 = 26
-        self.t2 = self.FULL_RANGE_S - 18
+        self.t1 = 26  # keep onset: the keep opening appears
+        self.t2 = 56  # keep complete: all flow is kept from here on
         self.task: Optional[asyncio.Task[None]] = None
         # The move the run in flight is making; None between runs.
         self.move: Optional[Move] = None
