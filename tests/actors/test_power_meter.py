@@ -460,3 +460,42 @@ async def test_a_recovered_transactive_channel_reports_aggregate_power(
             "hp-odu-pwr back at the same watts",
         )
         assert [m.Payload.Watts for m in sent if isinstance(m.Payload, PowerWatts)] == [0]
+
+
+def test_periodic_power_report_lands_on_the_period_boundary(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A channel's periodic report is due when the wall clock crosses the next
+    multiple of its CapturePeriodS, not CapturePeriodS after its last report:
+    every channel on a 300 s period posts together at the top of the five
+    minutes, and the derived generator's periodic derivations that ride on
+    the meter's post (the zone heat-calls) fire on the boundary too."""
+    import actors.power_meter as pm
+
+    settings = ScadaApp.get_settings()
+    if uses_tls(settings):
+        copy_keys("scada", settings)
+    settings.paths.mkdirs()
+    scada_app = ScadaApp(app_settings=settings)
+    scada_app.instantiate()
+    layout = scada_app.scada.layout
+    meter = PowerMeter(CoreNodeNames.asset_power_meter, services=scada_app)
+    driver_thread: PowerMeterDriverThread = meter._sync_thread
+    driver_thread.set_async_loop(asyncio.new_event_loop(), asyncio.Queue())
+    ch = layout.channel(HCN.hp_odu_pwr)
+    period = driver_thread.tuning_by_ch[ch].CapturePeriodS
+    assert period == 300
+
+    boundary = 1_800_000_000  # a multiple of 300
+    clock = {"now": boundary + 10.0}
+    monkeypatch.setattr(pm.time, "time", lambda: clock["now"])
+    driver_thread.update_latest_value_dicts()
+    driver_thread.report_sampled_telemetry_values([ch])  # first report, 10 s past a boundary
+
+    clock["now"] = boundary + 290.0
+    assert driver_thread.should_report_telemetry_reading(ch) is False  # same period
+    clock["now"] = boundary + 301.0
+    assert driver_thread.should_report_telemetry_reading(ch) is True  # the boundary passed
+    driver_thread.report_sampled_telemetry_values([ch])
+    clock["now"] = boundary + 599.0
+    assert driver_thread.should_report_telemetry_reading(ch) is False
+    clock["now"] = boundary + 600.5
+    assert driver_thread.should_report_telemetry_reading(ch) is True

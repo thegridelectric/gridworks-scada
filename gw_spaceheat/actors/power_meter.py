@@ -371,15 +371,14 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         return False
 
     def should_report_telemetry_reading(self, ch: DataChannel) -> bool:
-        """The telemetry data should get reported synchronously once every SamplePeriodS, and also asynchronously
-        on a big enough change - both configured in the eq_config (eq for electrical quantity) config for this
-        telemetry tuple.
-
-        Note that SamplePeriodS will often be 300 seconds, which will also match the duration of each status message
-        the Scada sends up to the cloud (GtShSimpleStatus.ReportingPeriodS).  The Scada will likely do this at the
-        top of every 5 minutes - but not the power meter.. The point of the synchronous reporting is to
-        get at least one reading for this telemetry tuple in the Scada's status report; it does not need to be
-        at the beginning or end of the status report time period.
+        """A channel reports on the period boundary and on change. The periodic
+        report is due once the wall clock crosses the next multiple of the
+        channel's CapturePeriodS since its last report, so every channel on one
+        period posts together at the top of that period (the 300 s channels at
+        the top of the five minutes, with the scada's report slot) and the
+        derived channels that ride on the meter's post, the zone heat-calls,
+        fire on the boundary too. The change report is the channel's
+        AsyncCaptureDelta. Both come from the channel's capture tuning.
         """
         if self.latest_telemetry_value[ch] is None:
             return False
@@ -388,10 +387,8 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
             or self.last_reported_telemetry_value[ch] is None
         ):
             return True
-        if (
-            time.time() - self._last_sampled_s[ch]
-            > self.tuning_by_ch[ch].CapturePeriodS
-        ):
+        period = self.tuning_by_ch[ch].CapturePeriodS
+        if int(time.time() // period) > int(self._last_sampled_s[ch] // period):
             return True
         if self.value_hits_async_threshold(ch):
             return True
