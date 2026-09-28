@@ -47,7 +47,7 @@ def test_five_v_boss_offers_hold_and_reboot_at_rest(configs: dict[str, RelayWidg
     ]
     assert boss.offered_command(FiveVBossState.PicoCycler, 0).event == Turn5VOnOff.TurnOff
     assert boss.offered_command(FiveVBossState.PicoCycler, 1).event == RebootPicos.RebootPicos
-    assert boss.get_action_str(FiveVBossState.PicoCycler) == "TurnOff / RebootPicos"
+    assert boss.get_action_str(FiveVBossState.PicoCycler) == "TurnOff/RebootPicos"
 
 
 def test_five_v_boss_offers_turn_on_alone_while_held_off(configs: dict[str, RelayWidgetConfig]) -> None:

@@ -11,6 +11,7 @@ from gwadmin.watch.clients.relay_client import CommandTransition
 from gwadmin.watch.clients.relay_client import RelayConfig
 from gwadmin.watch.clients.relay_client import RelayState
 from gwsproto.enums import MoveSiegValve
+from gwsproto.enums import SiegValveState
 
 module_logger = logging.getLogger(__name__)
 module_logger.addHandler(TextualHandler())
@@ -21,6 +22,16 @@ module_logger.addHandler(TextualHandler())
 # until gw.command.interface carries this fact per vocabulary; that field
 # retires this constant.
 MID_TRANSITION_VOCABULARIES: frozenset[str] = frozenset({MoveSiegValve.enum_name()})
+
+# For the sieg valve, the command results not offered from each observed
+# state: no stop at a stop, and no move toward the stop the motor is
+# already running to.
+UNOFFERED_FROM: dict[str, frozenset[str]] = {
+    SiegValveState.FullySend: frozenset({SiegValveState.SteadyBlend}),
+    SiegValveState.FullyKeep: frozenset({SiegValveState.SteadyBlend}),
+    SiegValveState.KeepingMore: frozenset({SiegValveState.FullyKeep}),
+    SiegValveState.KeepingLess: frozenset({SiegValveState.FullySend}),
+}
 
 
 class RelayTableName(BaseModel):
@@ -72,15 +83,18 @@ class RelayWidgetConfig(RelayConfig):
         return RelayWidgetConfig(**config.model_dump())
 
     def offered_commands(self, state: Optional[str]) -> list[CommandTransition]:
-        """The commands to offer given the observed state, in the order the
-        vocabularies arrive. A two-command vocabulary offers the first
-        command whose result differs from the observed state, or every
-        such command when the node takes commands mid-transition
-        (MID_TRANSITION_VOCABULARIES: a valve mid-travel offers both
-        stops); a one-command vocabulary (reboot.picos on five-v-boss) is
-        offered when the observed state is its target, since the node only
-        takes it at rest. No observed state, or a row with no commands (a
-        relay owned by an interior node), offers nothing."""
+        """The commands to offer given the observed state, at most two, in
+        the order the vocabularies arrive. A two-command vocabulary offers
+        the first command whose result differs from the observed state. A
+        vocabulary the node takes mid-transition (MID_TRANSITION_VOCABULARIES,
+        the sieg valve) offers what the valve can usefully do from where it
+        is: at a stop, the move to the other stop; in a steady blend, both
+        moves; travelling, StopValve and the move to the other stop, since
+        the motor is already headed for this one. A one-command vocabulary
+        (reboot.picos on five-v-boss) is offered when the observed state is
+        its target, since the node only takes it at rest. No observed
+        state, or a row with no commands (a relay owned by an interior
+        node), offers nothing."""
         if state is None:
             return []
         vocabularies: dict[str, list[CommandTransition]] = {}
@@ -94,7 +108,7 @@ class RelayWidgetConfig(RelayConfig):
                 continue
             elsewhere = [c for c in commands if c.to_state != state]
             if event_type in MID_TRANSITION_VOCABULARIES:
-                offered.extend(elsewhere)
+                offered.extend(c for c in elsewhere if c.to_state not in UNOFFERED_FROM.get(state, ()))
             elif elsewhere:
                 offered.append(elsewhere[0])
         return offered
@@ -107,7 +121,7 @@ class RelayWidgetConfig(RelayConfig):
         return "?" if state is None else state
 
     def get_action_str(self, state: Optional[str]) -> str:
-        return " / ".join(c.event for c in self.offered_commands(state))
+        return "/".join(c.event for c in self.offered_commands(state))
 
 
 class RelayWidgetInfo(BaseModel):
