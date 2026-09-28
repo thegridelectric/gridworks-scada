@@ -672,7 +672,6 @@ class Scada(PrimeActor, ScadaInterface):
 
         also updates its data.latest_power_w
         calls contract_handler.update_energy_usage
-        #TODO: add channel for aggregated transactive power?
         """
         self._send_to(self.ltn, payload)
         self._data.latest_power_w = payload.Watts

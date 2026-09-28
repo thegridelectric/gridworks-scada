@@ -15,6 +15,7 @@ from gwproactor import SyncThreadActor
 from gwsproto.data_classes.components.electric_meter_component import ElectricMeterComponent
 
 from gwsproto.data_classes.data_channel import DataChannel
+from gwsproto.data_classes.derived_channel import DerivedChannel
 from gwsproto.data_classes.sh_node import ShNode
 from drivers.power_meter.egauge_4030__power_meter_driver import EGuage4030_PowerMeterDriver
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
@@ -24,7 +25,7 @@ from drivers.power_meter.power_meter_driver import PowerMeterDriver
 from gwproactor.message import InternalShutdownMessage
 from gwproactor.sync_thread import SyncAsyncInteractionThread
 from gwsproto.enums import DeviceType, SimDeviceType
-from gwsproto.named_types import ChannelFlatlined, ElectricMeterChannelConfig, Glitch, PowerWatts, SyncedReadings
+from gwsproto.named_types import ChannelFlatlined, ElectricMeterChannelConfig, Glitch, PowerWatts, SingleReading, SyncedReadings
 
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.names.core.node_names import CoreNodeNames
@@ -32,15 +33,21 @@ from gwsproto.names.core.node_names import CoreNodeNames
 from scada_app_interface import ScadaAppInterface
 
 
-def transactive_power_input_names(hardware_layout: HydronicLayout) -> List[str]:
-    """The metered channel names declared by the layout's single
-    transactive-power DerivedChannel. The load-layout axiom guarantees exactly
-    one such channel, so the metered set is read from it (not from per-channel
-    flags)."""
+def transactive_power_channel(hardware_layout: HydronicLayout) -> DerivedChannel:
+    """The layout's single transactive-power DerivedChannel, the metered
+    power at the transactive boundary. The load-layout axiom guarantees
+    exactly one; the power meter creates it."""
     for dc in hardware_layout.derived_channels.values():
         if dc.Strategy == "transactive-power":
-            return list(dc.InputChannelNames)
+            return dc
     raise ValueError("No transactive-power DerivedChannel in the layout")
+
+
+def transactive_power_input_names(hardware_layout: HydronicLayout) -> List[str]:
+    """The metered channel names the power meter reads for its transactive
+    boundary: the inputs of the layout's transactive-power DerivedChannel,
+    not per-channel flags."""
+    return list(transactive_power_channel(hardware_layout).InputChannelNames)
 
 
 class DriverThreadSetupHelper:
@@ -115,6 +122,9 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
     driver: PowerMeterDriver
     transactive_nameplate_watts: Dict[DataChannel, int]
     last_reported_agg_power_w: Optional[int] = None
+    last_reported_agg_s: Optional[float] = None
+    transactive_channel_name: str
+    transactive_period_s: int
     last_reported_telemetry_value: Dict[DataChannel, Optional[int]]
     latest_telemetry_value: Dict[DataChannel, Optional[int]]
     _last_sampled_s: Dict[DataChannel, Optional[int]]
@@ -161,6 +171,18 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         self.transactive_channel_names = set(
             transactive_power_input_names(hardware_layout)
         )
+        self.transactive_channel_name = transactive_power_channel(hardware_layout).Name
+        periods = {
+            hardware_layout.capture_tuning_by_channel[name].CapturePeriodS
+            for name in self.transactive_channel_names
+        }
+        if len(periods) != 1:
+            raise ValueError(
+                f"{node.Name}: the transactive inputs carry {len(periods)} capture "
+                f"periods {sorted(periods)}; the aggregate posts on one boundary"
+            )
+        self.transactive_period_s = periods.pop()
+        self.last_reported_agg_s = None
         self.derived_input_channels = {
             ch for ch in self.my_channels if hardware_layout.feeds_derived([ch.Name])
         }
@@ -411,23 +433,47 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         return int(sum(self.transactive_nameplate_watts.values()))
 
     def report_aggregated_power_w(self):
-        message = Message(
-            Src=self.name,
-            Dst=CoreNodeNames.primary_scada,
-            Payload=PowerWatts(Watts=self.latest_agg_power_w)
+        """The aggregate leaves the meter two ways at once: a PowerWatts,
+        which the scada passes straight on to the LTN, and a SingleReading
+        on the layout's transactive-power channel, which is how the metered
+        power at the transactive boundary reaches the snapshot and the
+        report as a channel of its own."""
+        now_ms = int(1000 * time.time())
+        self._put_to_async_queue(
+            Message(
+                Src=self.name,
+                Dst=CoreNodeNames.primary_scada,
+                Payload=PowerWatts(Watts=self.latest_agg_power_w),
+            )
         )
-        self._put_to_async_queue(message)
+        self._put_to_async_queue(
+            Message(
+                Src=self.name,
+                Dst=CoreNodeNames.primary_scada,
+                Payload=SingleReading(
+                    ChannelName=self.transactive_channel_name,
+                    Value=self.latest_agg_power_w,
+                    ScadaReadTimeUnixMs=now_ms,
+                ),
+            )
+        )
         self.last_reported_agg_power_w = self.latest_agg_power_w
-
+        self.last_reported_agg_s = now_ms / 1000
 
     def should_report_aggregated_power(self) -> bool:
-        """Aggregated power is sent up asynchronously on change via a PowerWatts message, and the last aggregated
-        power sent up is recorded in self.last_reported_agg_power_w."""
+        """The aggregate reports on change and on the period boundary: on a
+        change above the nameplate ratio (async_power_reporting_threshold),
+        and once the wall clock crosses the next multiple of the transactive
+        inputs' CapturePeriodS since its last report, with the inputs' own
+        periodic post."""
         if self.latest_agg_power_w is None:
             return False
         if self.nameplate_agg_power_w == 0:
             return False
-        if self.last_reported_agg_power_w is None:
+        if self.last_reported_agg_power_w is None or self.last_reported_agg_s is None:
+            return True
+        period = self.transactive_period_s
+        if int(time.time() // period) > int(self.last_reported_agg_s // period):
             return True
         abs_power_delta = abs(self.latest_agg_power_w - self.last_reported_agg_power_w)
         change_ratio = abs_power_delta / self.nameplate_agg_power_w
@@ -435,8 +481,18 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
             return True
         return False
 
+    def derived_channels_created(self) -> set[str]:
+        """The derived channels this actor creates: the transactive-power
+        channel, and nothing else."""
+        return {self.transactive_channel_name}
+
 
 class PowerMeter(SyncThreadActor):
+    """Power metering is the scada's highest-priority job: this actor reads
+    the meter on its own thread and clock, and it, not the derived
+    generator, creates the layout's transactive-power channel, the metered
+    power at the transactive boundary."""
+
     POWER_METER_LOGGER_NAME: str = "PowerMeter"
 
     def __init__(
@@ -459,6 +515,9 @@ class PowerMeter(SyncThreadActor):
                 )
             ),
         )
+
+    def derived_channels_created(self) -> set[str]:
+        return self.sync_thread.derived_channels_created()
 
     @property
     def sync_thread(self) -> PowerMeterDriverThread:

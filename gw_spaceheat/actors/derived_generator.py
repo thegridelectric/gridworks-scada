@@ -114,10 +114,23 @@ class DerivedGenerator(ShNodeActor):
         self.next_phase_log_boundary_ts: dict[str, float] = {}
         self.init_derived_channels()
 
+    def derived_channels_created(self) -> set[str]:
+        """The derived channels this actor makes: the layout's derived
+        channels it is named creator of, whose strategy it has a handler
+        for, and that are not disabled."""
+        return {
+            dc.Name
+            for dc in self.layout.derived_channels.values()
+            if dc.CreatedByNodeName == self.name
+            and dc.Strategy in self.strategy_handlers
+            and not self.layout.channel_disabled(dc.Name)
+        }
+
     def init_derived_channels(self) -> None:
 
         for dc in self.layout.derived_channels.values():
 
+            # transactive-power is the power meter's and never this actor's
             if dc.CreatedByNodeName != self.name:
                 continue
             # A disabled DerivedChannel is never computed: the house cannot

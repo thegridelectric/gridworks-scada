@@ -26,6 +26,15 @@ from scada_app_interface import ScadaAppInterface
 from universe import assert_universe_coherence
 
 
+@typing.runtime_checkable
+class DerivedChannelCreator(typing.Protocol):
+    """An actor that creates derived channels says which, so boot can hold
+    the layout's CreatedByNodeName to an actor that really makes the
+    channel."""
+
+    def derived_channels_created(self) -> set[str]: ...
+
+
 class ScadaApp(App, ScadaAppInterface):
     LTN_MQTT: str = ScadaInterface.LTN_MQTT
     LOCAL_MQTT: str = ScadaInterface.LOCAL_MQTT
@@ -46,6 +55,47 @@ class ScadaApp(App, ScadaAppInterface):
     @property
     def settings(self) -> ScadaSettings:
         return typing.cast(ScadaSettings, self._settings)
+
+    def instantiate(self) -> "ScadaApp":
+        super().instantiate()
+        self.assert_derived_creators()
+        return self
+
+    def assert_derived_creators(self) -> None:
+        """Every derived channel the layout names a scada actor creator of is
+        one that actor claims, and every claim is a channel the layout names
+        that actor creator of. A channel with a named creator that nothing
+        makes never reaches the snapshot or the report; the layout is refused
+        at boot instead. Disabled derived channels are outside the check."""
+        layout = self.hardware_layout
+        proactor = self.raw_proactor
+        actor_names = set(proactor.get_communicator_names())
+        claimed: dict[str, str] = {}
+        for name in actor_names:
+            actor = proactor.get_communicator(name)
+            if isinstance(actor, DerivedChannelCreator):
+                for channel in actor.derived_channels_created():
+                    claimed[channel] = name
+        declared = {
+            dc.Name: dc.CreatedByNodeName
+            for dc in layout.derived_channels.values()
+            if dc.CreatedByNodeName in actor_names
+            and not layout.channel_disabled(dc.Name)
+        }
+        problems = [
+            f"{channel} is created by {creator}, which does not claim it"
+            for channel, creator in declared.items()
+            if claimed.get(channel) != creator
+        ] + [
+            f"{channel} is claimed by {actor}, which the layout does not name its creator"
+            for channel, actor in claimed.items()
+            if declared.get(channel) != actor
+            and not (
+                channel in layout.derived_channels and layout.channel_disabled(channel)
+            )
+        ]
+        if problems:
+            raise ValueError("Derived channel creators: " + "; ".join(problems))
 
     @property
     def clock(self) -> Clock:

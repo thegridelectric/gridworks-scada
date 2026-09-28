@@ -15,7 +15,7 @@ from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatCha
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from gwproto import Message
-from gwsproto.named_types import ChannelFlatlined, PowerWatts, SyncedReadings
+from gwsproto.named_types import ChannelFlatlined, PowerWatts, SingleReading, SyncedReadings
 
 import pytest
 from actors.power_meter import DriverThreadSetupHelper
@@ -499,3 +499,75 @@ def test_periodic_power_report_lands_on_the_period_boundary(monkeypatch: pytest.
     assert driver_thread.should_report_telemetry_reading(ch) is False
     clock["now"] = boundary + 600.5
     assert driver_thread.should_report_telemetry_reading(ch) is True
+
+
+def transactive_messages(sent: list[Message]) -> list[tuple[str, int]]:
+    """The aggregate's two messages, in order: ('power.watts', W) for a
+    PowerWatts and ('transactive-power', W) for the derived channel's
+    SingleReading; the metered SyncedReadings are left out."""
+    out: list[tuple[str, int]] = []
+    for m in sent:
+        if isinstance(m.Payload, PowerWatts):
+            out.append(("power.watts", m.Payload.Watts))
+        elif isinstance(m.Payload, SingleReading) and m.Payload.ChannelName == "transactive-power":
+            out.append(("transactive-power", m.Payload.Value))
+    return out
+
+
+def test_the_power_meter_creates_transactive_power(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The aggregate at the transactive boundary leaves the meter two ways at
+    once, the PowerWatts that goes on to the LTN and a SingleReading on the
+    layout's transactive-power channel, on a change above the nameplate
+    ratio and at the 300 s boundary of the metered inputs' capture period;
+    inside the period, below the ratio, neither is sent."""
+    import actors.power_meter as pm
+
+    settings = ScadaApp.get_settings()
+    if uses_tls(settings):
+        copy_keys("scada", settings)
+    settings.paths.mkdirs()
+    scada_app = ScadaApp(app_settings=settings)
+    scada_app.instantiate()
+    meter = PowerMeter(CoreNodeNames.asset_power_meter, services=scada_app)
+    p: PowerMeterDriverThread = meter._sync_thread
+    p.set_async_loop(asyncio.new_event_loop(), asyncio.Queue())
+    driver = typing.cast(GridworksSimPm1_PowerMeterDriver, p.driver)
+    assert p.transactive_period_s == 300
+    assert p.derived_channels_created() == {"transactive-power"}
+
+    boundary = 1_800_000_000  # a multiple of 300
+    clock = {"now": boundary + 10.0}
+    monkeypatch.setattr(pm.time, "time", lambda: clock["now"])
+    sent = record_meter_messages(p)
+
+    p._iterate()  # the first aggregate, 10 s past a boundary
+    assert transactive_messages(sent) == [("power.watts", 0), ("transactive-power", 0)]
+    reading = next(m.Payload for m in sent if isinstance(m.Payload, SingleReading))
+    assert reading.ScadaReadTimeUnixMs == int(1000 * clock["now"])
+    assert {m.Header.Dst for m in sent if isinstance(m.Payload, SingleReading)} == {
+        CoreNodeNames.primary_scada
+    }
+
+    # 6 metered transactive channels; the sim driver puts fake_power_w on each.
+    ratio_w = p.async_power_reporting_threshold * p.nameplate_agg_power_w
+    below = int(ratio_w / 6) - 1
+    above = int(ratio_w / 6) + 1
+    sent.clear()
+    clock["now"] = boundary + 290.0
+    driver.fake_power_w = below
+    p._iterate()  # inside the period, below the ratio
+    assert transactive_messages(sent) == []
+
+    clock["now"] = boundary + 301.0
+    p._iterate()  # the boundary passed
+    assert transactive_messages(sent) == [
+        ("power.watts", 6 * below), ("transactive-power", 6 * below)
+    ]
+
+    sent.clear()
+    clock["now"] = boundary + 320.0
+    driver.fake_power_w = below + above
+    p._iterate()  # a change above the ratio inside the period
+    assert transactive_messages(sent) == [
+        ("power.watts", 6 * (below + above)), ("transactive-power", 6 * (below + above))
+    ]
