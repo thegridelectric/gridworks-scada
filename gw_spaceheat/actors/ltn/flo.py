@@ -1,16 +1,43 @@
-import gc
-import time
-import json
-from typing import List
-from gwproactor.logger import LoggerOrAdapter
-from actors.ltn.dtypes import DNode, DEdge
-from gwsproto.enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName
-from gwsproto.named_types import FloParamsHouse0, PriceQuantityUnitless, BidRecommendation
+from __future__ import annotations
 
-P_NODE = "hw1.isone.ver.keene" # TODO: add to House0Params for audit trail
+import gc
+import json
+import time
+from typing import List
+
+from gwproactor.logger import LoggerOrAdapter
+from gwsproto.enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName
+from gwsproto.named_types import BidRecommendation, FloParamsHouse0, PriceQuantityUnitless
+
+P_NODE = "hw1.isone.ver.keene"  # TODO: add to House0Params for audit trail
+
+
+class DNode:
+    def __init__(self, parameters: FloParamsHouse0, time_slice: int | None = 0):
+        self.params = parameters
+        self.time_slice = time_slice
+        self.energy = self.get_energy()
+        self.pathcost = 0 if time_slice == self.params.HorizonHours else 1e9
+        self.next_node: DNode | None = None
+
+    def get_energy(self) -> float:
+        energy_kwh = 0  # TODO: create
+        return energy_kwh
+
+
+class DEdge:
+    def __init__(self, tail: DNode, head: DNode, cost: float):
+        self.tail: DNode = tail
+        self.head: DNode = head
+        self.cost = cost
+
+    def __repr__(self):
+        return f"Edge[{self.tail} --cost:{round(self.cost, 3)}--> {self.head}]"
+
 
 class Flo():
-    LOGGER_NAME="flo"
+    LOGGER_NAME = "flo"
+
     def __init__(self, flo_params_bytes: bytes, logger: LoggerOrAdapter):
         flo_params_dict = json.loads(flo_params_bytes.decode('utf-8'))
         flo_params = FloParamsHouse0.model_validate(flo_params_dict)
@@ -25,7 +52,7 @@ class Flo():
     def create_edges(self):
         self.edges: dict[DNode, list[DEdge]] = {}
         # TODO make Dijkstra Edges
-    
+
     def solve_dijkstra(self):
         start_time = time.time()
         try:
@@ -43,7 +70,7 @@ class Flo():
         self.initial_node: DNode = self.nodes[0][50]
         self.bid_edges: dict[DNode, list[DEdge]] = {}
 
-    def generate_recommendation(self, flo_params_bytes: bytes | None=None) -> bytes:
+    def generate_recommendation(self, flo_params_bytes: bytes | None = None) -> bytes:
         """ Returns serialized"""
         self.logger.info("Generating bid...")
         if flo_params_bytes:
@@ -51,7 +78,7 @@ class Flo():
             flo_params = FloParamsHouse0.model_validate(flo_params_dict)
         self.pq_pairs: List[PriceQuantityUnitless] = []
         self.find_initial_node(flo_params)
-        
+
         forecasted_cop = self.flo_params.COP(oat=self.flo_params.OatForecastF[0])
         forecasted_price_usd_mwh = self.flo_params.total_price_forecast[0]
         price_range_usd_mwh = sorted(list(range(-100, 2000)) + [forecasted_price_usd_mwh])
@@ -65,12 +92,12 @@ class Flo():
             if not self.pq_pairs or (self.pq_pairs[-1].QuantityX1000-int(best_quantity_kwh*1000)>10):
                 self.pq_pairs.append(
                     PriceQuantityUnitless(
-                        PriceX1000 = int(price_usd_mwh * 1000),
-                        QuantityX1000 = int(best_quantity_kwh * 1000))
+                        PriceX1000=int(price_usd_mwh * 1000),
+                        QuantityX1000=int(best_quantity_kwh * 1000))
                 )
         self.logger.info(f"Done ({len(self.pq_pairs)} PQ pairs found).")
         slot_start_s = flo_params.StartUnixS
-        mtn = MarketTypeName.rt60gate5.value # TODO: send in House0FloParams
+        mtn = MarketTypeName.rt60gate5.value  # TODO: send in House0FloParams
         market_slot_name = f"e.{mtn}.{P_NODE}.{slot_start_s}"
 
         return BidRecommendation(
