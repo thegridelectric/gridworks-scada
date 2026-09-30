@@ -31,5 +31,5 @@ INSTALL_FLO="${3:-install_flo}"
 
 if [ "$INSTALL_FLO" == "install_flo" ]
 then
-  pip install -e ../gridworks-innovations/gridworks-flo/
+  pip install -e ../../optimal-flexibility
 fi

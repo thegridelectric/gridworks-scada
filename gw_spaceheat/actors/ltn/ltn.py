@@ -4,7 +4,6 @@ import json
 import gc
 import multiprocessing
 import pickle
-import subprocess
 import threading
 import time
 import uuid
@@ -41,12 +40,11 @@ from gwproactor import ProactorName
 from gwproactor import AppInterface
 from gwproto import HardwareLayout
 
-
-try:
-    from gridflo import Flo
-# this is so CI/CD passes - will remove once Flo is decoupled
-except ImportError:
-    from actors.ltn.flo import Flo # Will raise NotImplementedError
+from bruce.graph_optimizer.assets.heat_pump_water_tank import (
+    HeatPumpWaterTankAsset,
+    HeatPumpWaterTankParams,
+)
+from bruce.graph_optimizer.graph import Graph
 
 from gwproto import Message, MQTTCodec, create_message_model
 from gwproto.messages import EventBase
@@ -73,7 +71,7 @@ from gwsproto.named_types import AnalogDispatch, SendSnap, MachineStates
 from actors.ltn.contract_handler import LtnContractHandler
  
 from gwsproto.named_types import (
-    Bid, BidRecommendation, FloParamsHouse0, FloNextHourPlans, Glitch, Ha1Params, LatestPrice,
+    Bid, FloNextHourPlans, Glitch, Ha1Params, LatestPrice, PriceQuantityUnitless,
     LayoutLite, NoNewContractWarning, ResetHpKeepValue, ScadaParams, SendLayout,
     SetLwtControlParams, SiegLoopEndpointValveAdjustment, SlowContractHeartbeat, SnapshotSpaceheat,
 )
@@ -90,117 +88,91 @@ TANK_GALLONS = 120
 MAX_HORIZON_HOURS = 48
 
 
+class PriceForecast(BaseModel):
+    dist_usd_per_mwh: List[float]
+    lmp_usd_per_mwh: List[float]
+
+    @property
+    def total_energy(self) -> List[float]:
+        """Calculate the total price forecast by summing dp, lmp, and reg components."""
+        return [dp + lmp for dp, lmp in zip(self.dist_usd_per_mwh, self.lmp_usd_per_mwh)]
+
+
 def _flo_build_worker(flo_params_bytes: bytes, result_queue: multiprocessing.Queue) -> None:
-    """Child process: build Flo, solve Dijkstra, trim, pickle the trimmed graph, send it back, exit."""
+    """Child process: build graph, find shortest path, trim, pickle, exit."""
     try:
-        g = Flo(flo_params_bytes)
-        g.solve_dijkstra()
-        g.trim_graph_for_waiting()
-        g.logger = None
-        g.patting_watchdog = None
-        g.settings = None
-        trimmed_data = pickle.dumps(g)
+        params = HeatPumpWaterTankParams.model_validate_json(flo_params_bytes)
+        asset = HeatPumpWaterTankAsset(params)
+        graph = Graph(asset)
+        graph.find_shortest_path()
+        graph.trim_graph_for_waiting()
+        graph.logger = None
+        trimmed_data = pickle.dumps(graph)
         result_queue.put(("ok", trimmed_data))
     except Exception as e:
         result_queue.put(("error", str(e)))
 
 
-def _flo_recommend_worker(
-    trimmed_graph_data: bytes,
-    updated_flo_params_bytes: bytes,
-    result_queue: multiprocessing.Queue,
-) -> None:
-    """Child process: unpickle trimmed graph, generate recommendation, send back result bytes."""
+def _flo_bid_worker(trimmed_graph_data: bytes, updated_flo_params_bytes: bytes, result_queue: multiprocessing.Queue) -> None:
+    """Child process: unpickle graph, generate PQ pairs, pickle graph with updated params, exit."""
     try:
-        import logging as _logging
-        g: Flo = pickle.loads(trimmed_graph_data)
-        g.logger = _logging.getLogger("gridflo.flo")
-        recommendation_bytes = g.generate_recommendation(updated_flo_params_bytes)
-        # Also pickle the trimmed graph again (with initial_node etc. now set)
-        # so the next child can use it for get_next_node_at_price
-        g.logger = None
-        updated_trimmed_data = pickle.dumps(g)
-        result_queue.put(("ok", recommendation_bytes, updated_trimmed_data))
+        graph: Graph = pickle.loads(trimmed_graph_data)
+        updated_params = HeatPumpWaterTankParams.model_validate_json(updated_flo_params_bytes)
+        forecast_price_usd_mwh = updated_params.elec_usd_mwh[0]
+        pq_pairs = graph.generate_bid(
+            forecast_price_usd_mwh=forecast_price_usd_mwh,
+            updated_params=updated_params,
+        )
+        pq_payload = [
+            {"price_usd_mwh": p.price_usd_mwh, "quantity_kwh": p.quantity_kwh}
+            for p in pq_pairs
+        ]
+        graph.logger = None
+        updated_trimmed_data = pickle.dumps(graph)
+        result_queue.put(("ok", json.dumps(pq_payload).encode("utf-8"), updated_trimmed_data))
     except Exception as e:
         result_queue.put(("error", str(e)))
 
 
-def _flo_plans_worker(
-    trimmed_graph_data: bytes,
-    price_usd_mwh: float,
-    result_queue: multiprocessing.Queue,
-) -> None:
-    """Child process: unpickle trimmed graph, get next hour plans at price, send back results."""
+def _flo_plans_worker(trimmed_graph_data: bytes, price_usd_mwh: float, result_queue: multiprocessing.Queue) -> None:
+    """Child process: clearing-price plan from trimmed graph."""
     try:
-        import logging as _logging
-        g: Flo = pickle.loads(trimmed_graph_data)
-        g.logger = _logging.getLogger("gridflo.flo")
-        g.get_next_node_at_price(price_usd_mwh)
-        expected_storage_kwh = round(float(g.initial_node.next_node.energy), 2)
-        hourly_plan = [float(x) for x in list(g.initial_node.next_node.shortest_path_hp_kwh_el)]
+        graph: Graph = pickle.loads(trimmed_graph_data)
+        graph.get_next_node_at_price(price_usd_mwh)
+        if graph.initial_node is None or graph.initial_node.next_node is None:
+            raise ValueError("No initial node or next node after plan-at-price")
+        next_node = graph.initial_node.next_node
+        expected_storage_kwh = round(float(next_node.state.energy), 2)
+        hourly_plan = [float(x) for x in next_node.shortest_path_elec]
         result_queue.put(("ok", expected_storage_kwh, hourly_plan))
     except Exception as e:
         result_queue.put(("error", str(e)))
 
 
-def _get_flo_git_commit() -> str:
-    """Get gridworks-innovations HEAD commit when available; else FloParamsHouse0 default."""
-    candidates: list[Path] = []
-    # Prefer: gridflo package location (editable install)
-    try:
-        import gridflo
-        if p := getattr(gridflo, "__file__", None):
-            # gridflo/__init__.py -> gridflo -> gridworks-flo -> gridworks-innovations
-            candidates.append(Path(p).resolve().parents[2])
-    except ImportError:
-        pass
-    # Fallback: sibling of gridworks-scada
-    scada_root = Path(__file__).resolve().parents[3]
-    candidates.append(scada_root.parent / "gridworks-innovations")
-    for repo_path in candidates:
-        if (repo_path / ".git").exists():
-            r = subprocess.run(
-                ["git", "rev-parse", "HEAD"],
-                cwd=repo_path,
-                capture_output=True,
-                text=True,
-            )
-            if r.returncode == 0 and r.stdout.strip():
-                return r.stdout.strip()
-    return FloParamsHouse0.model_fields["FloGitCommit"].default
-
-
-class PriceForecast(BaseModel):
-    dp_usd_per_mwh: List[float]
-    lmp_usd_per_mwh: List[float]
-    reg_usd_per_mwh: List[float]
-
-    @property
-    def total_energy(self) -> List[float]:
-        """Calculate the total price forecast by summing dp, lmp, and reg components."""
-        return [dp + lmp for dp, lmp in zip(self.dp_usd_per_mwh, self.lmp_usd_per_mwh)]
-
-
 class BidRunner(threading.Thread):
-    """Coordinates Flo work across three short-lived child processes.
+    """
+    Coordinates optimizer work across short-lived child processes.
 
-    Every phase that touches the Flo graph (build, recommend, plans) runs
+    Every phase that touches the Flo graph (build, bid, plans) runs
     in a forked child process. The parent thread only holds pickle bytes
     and plain results (floats, lists). When each child exits, the OS
     reclaims all its memory.
     """
 
-    def __init__(self, params: FloParamsHouse0,
-                 settings: LtnSettings,
-                 io_loop_manager_name: str,
-                 ltn_name: str,
-                 ltn_g_node_alias: str,
-                 send_threadsafe: Callable[[Message], None],
-                 on_complete: Callable[[str], None],
-                 logger: LoggerOrAdapter):
+    def __init__(
+        self, 
+        params: HeatPumpWaterTankParams,
+        settings: LtnSettings,
+        io_loop_manager_name: str,
+        ltn_name: str,
+        ltn_g_node_alias: str,
+        send_threadsafe: Callable[[Message], None],
+        on_complete: Callable[[str], None],
+        logger: LoggerOrAdapter,
+    ):
         super().__init__()
         self.stop_event = threading.Event()
-        self.logger = logger or print  # Fallback to print if no logger provided
+        self.logger = logger or print
         self.orig_flo_params = params
         self.settings = settings
         self.io_loop_manager_name = io_loop_manager_name
@@ -212,11 +184,10 @@ class BidRunner(threading.Thread):
         self.get_next_hour_plans_event = threading.Event()
 
     def _run_in_child(self, target, args, timeout_s=30, max_total_s=300, pat_watchdog=True):
-        """Run target in a forked child process and return the result tuple.
-
-        Pats the watchdog every timeout_s seconds while waiting.
-        Kills the child and returns an error after max_total_s seconds
-        to prevent deadlocked children from blocking the BidRunner forever.
+        """
+        Run target in a forked child process and return the result tuple.
+        - If pat_watchdog is True, pats the watchdog every timeout_s seconds while waiting.
+        - Kills the child and returns an error after max_total_s seconds
         """
         ctx = multiprocessing.get_context("forkserver")
         result_queue = ctx.Queue()
@@ -249,10 +220,10 @@ class BidRunner(threading.Thread):
     def run(self):
         try:
             while not self.stop_event.is_set():
-                # ── Phase 0: Build + solve in a child process ──
-                self.logger.info("Creating graph and solving Dijkstra (in child process)...")
+                # ── Phase 1: Build the graph + find the shortest path ──
+                self.logger.info("Creating graph and finding the shortest path (in child process)...")
                 st = time.time()
-                flo_params_bytes = self.orig_flo_params.model_dump_json().encode('utf-8')
+                flo_params_bytes = self.orig_flo_params.model_dump_json().encode("utf-8")
 
                 result = self._run_in_child(_flo_build_worker, (flo_params_bytes,))
 
@@ -262,7 +233,7 @@ class BidRunner(threading.Thread):
                         FromGNodeAlias=self.ltn_alias,
                         Node=self.ltn_name,
                         Type=LogLevel.Error,
-                        Summary=f"{self.ltn_alias.split('.')[-2]}.{self.ltn_alias.split('.')[-1]} - Error creating DGraph w Advanced FLO",
+                        Summary=f"{self.ltn_alias.split('.')[-2]}.{self.ltn_alias.split('.')[-1]} - Error creating graph and finding the shortest path",
                         Details=result[1],
                         CreatedMs=int(time.time() * 1000)
                     )
@@ -275,40 +246,46 @@ class BidRunner(threading.Thread):
                     f"Trimmed graph: {len(trimmed_graph_data)} bytes"
                 )
 
-                # ── Phase 1: Wait for get_bid, then generate recommendation in child ──
-                # Don't clear() before wait() — if get_bid() was already called
-                # during Phase 0, the flag is already set and we should proceed.
-                self.logger.info("BidRunner waiting for get_bid to be called before computing bid.")
+                # ── Phase 2: Wait for get_bid event, then generate PQ pairs and a bid ──
+                self.logger.info("BidRunner waiting for get_bid event to be set before generating a bid.")
                 self.get_bid_event.wait()
                 self.get_bid_event.clear()
-                self.logger.info("Generating bid recommendation (in child process)")
+                self.logger.info("Generating PQ pairs and a bid (in child process)")
 
-                updated_bytes = self.updated_flo_params.model_dump_json().encode('utf-8')
+                updated_bytes = self.updated_flo_params.model_dump_json().encode("utf-8")
                 result = self._run_in_child(
-                    _flo_recommend_worker,
+                    _flo_bid_worker,
                     (trimmed_graph_data, updated_bytes),
                     pat_watchdog=False,
                 )
                 del trimmed_graph_data
 
                 if result[0] == "error":
-                    self.logger.info(f"Error generating recommendation: {result[1]}")
+                    self.logger.info(f"Error generating PQ pairs: {result[1]}")
                     return
 
-                recommendation_bytes = result[1]
-                trimmed_graph_data = result[2]  # updated graph with initial_node set
+                pq_pairs_bytes = result[1]
+                trimmed_graph_data = result[2]
+                pq_pairs = json.loads(pq_pairs_bytes.decode("utf-8"))
+                self.logger.info(f"Done! Found {len(pq_pairs)} PQ pairs.")
 
-                recommendation_dict = json.loads(recommendation_bytes)
-                recommendation = BidRecommendation.model_validate(recommendation_dict)
-                self.logger.info(f"Done! Found {len(recommendation.PqPairs)} PQ pairs.")
-
+                slot_start_s = self.updated_flo_params.start_unix_s
+                mtn = MarketTypeName.rt60gate5.value  # TODO: send in optimizer params
+                market_slot_name = f"e.{mtn}.{Ltn.P_NODE}.{slot_start_s}"
+                gws_pq_pairs = [
+                    PriceQuantityUnitless(
+                        PriceX1000=int(round(float(p["price_usd_mwh"]) * 1000)),
+                        QuantityX1000=int(round(float(p["quantity_kwh"]) * 1000)),
+                    )
+                    for p in pq_pairs
+                ]
                 bid = Bid(
-                    BidderAlias=str(recommendation.BidderAlias),
-                    MarketSlotName=str(recommendation.MarketSlotName),
-                    PqPairs=list(recommendation.PqPairs),
-                    InjectionIsPositive=bool(recommendation.InjectionIsPositive),
-                    PriceUnit=MarketPriceUnit(recommendation.PriceUnit),
-                    QuantityUnit=MarketQuantityUnit(recommendation.QuantityUnit),
+                    BidderAlias=self.updated_flo_params.site_id,
+                    MarketSlotName=market_slot_name,
+                    PqPairs=gws_pq_pairs,
+                    InjectionIsPositive=True,
+                    PriceUnit=MarketPriceUnit.USDPerMWh,
+                    QuantityUnit=MarketQuantityUnit.AvgkW,
                     SignedMarketFeeTxn="BogusAlgoSignature",
                 )
 
@@ -321,8 +298,8 @@ class BidRunner(threading.Thread):
                     )
                 )
 
-                # ── Phase 2: Wait for get_next_hour_plans, then run in child ──
-                self.logger.info("BidRunner waiting for get_next_hour_plans to be called.")
+                # ── Phase 3: Wait for get_next_hour_plans, then get plan at clearing price ──
+                self.logger.info("BidRunner waiting for get_next_hour_plans event before getting plan at clearing price.")
                 self.get_next_hour_plans_event.wait()
                 self.get_next_hour_plans_event.clear()
                 self.logger.info("Getting plan at clearing price (in child process)")
@@ -351,7 +328,6 @@ class BidRunner(threading.Thread):
                         Payload=flo_next_hour_plans
                     )
                 )
-
                 break
         except Exception as e:
             self.logger.info(f"An error occured running Dijkstra or getting bid: {e}")
@@ -361,7 +337,6 @@ class BidRunner(threading.Thread):
             self._clear()
 
     def _clear(self) -> None:
-        """Release all references to help gc reclaim memory. Call when run() is finished."""
         self.orig_flo_params = None
         self.updated_flo_params = None
         self.settings = None
@@ -374,7 +349,7 @@ class BidRunner(threading.Thread):
         self.get_bid_event = None
         self.get_next_hour_plans_event = None
 
-    def get_bid(self, updated_flo_params: FloParamsHouse0):
+    def get_bid(self, updated_flo_params: HeatPumpWaterTankParams):
         self.logger.info("Getting bid...")
         self.updated_flo_params = updated_flo_params
         self.get_bid_event.set()
@@ -445,12 +420,6 @@ class LtnCodecFactory(CodecFactory):
             )
         return LtnMQTTCodec(layout)
 
-
-class Telemetry(BaseModel):
-    Value: int
-    Unit: TelemetryName
-
-
     
 class Ltn(PrimeActor):
     MAIN_LOOP_SLEEP_SECONDS = 61
@@ -474,7 +443,7 @@ class Ltn(PrimeActor):
         self.longitude = self.settings.longitude
         self.flo_horizon_hours = self.settings.flo_horizon_hours
         self.sent_bid = False
-        self.flo_params = None
+        self.flo_params: HeatPumpWaterTankParams | None = None
         self.hp_is_off = False
         self.weather_forecast = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
@@ -892,11 +861,11 @@ class Ltn(PrimeActor):
                             t, m, b, th1, th2 = result
                             updated_flo_params = self.flo_params.model_copy(
                                 update={
-                                    "InitialTopTempF": int(t),
-                                    "InitialMiddleTempF": int(m),
-                                    "InitialBottomTempF": int(b),
-                                    "InitialThermocline1": int(th1 * 3),
-                                    "InitialThermocline2": int(th2 * 3),
+                                    "initial_top_temp": float(t),
+                                    "initial_middle_temp": float(m),
+                                    "initial_bottom_temp": float(b),
+                                    "initial_thermocline1": int(th1 * 3),
+                                    "initial_thermocline2": int(th2 * 3),
                                 }
                             )
                             self.flo_params = updated_flo_params
@@ -946,11 +915,9 @@ class Ltn(PrimeActor):
             return
 
         if datetime.now().minute >= self.create_graph_minute:
-            dijkstra_start_time = int(
-                datetime.timestamp((datetime.now() + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0))
-                )
+            start_unix_s = int(datetime.timestamp((datetime.now() + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)))
         else:
-            dijkstra_start_time = int(datetime.timestamp(datetime.now()))
+            start_unix_s = int(datetime.timestamp(datetime.now()))
             self.log(f"NOT RUNNING Dijkstra! Not past minute {self.create_graph_minute}")
             return
         await self.get_weather(session)
@@ -983,8 +950,6 @@ class Ltn(PrimeActor):
             return
         t, m, b, th1, th2 = result
 
-        buffer_available_kwh = await self.get_buffer_available_kwh()
-        house_available_kwh = await self.get_house_available_kwh()
         if self.price_forecast is None:
             self.log("Not running flo - no price forecast")
             return
@@ -996,22 +961,20 @@ class Ltn(PrimeActor):
             return
 
         # Crop weather and price forecasts to the horizon
-        self.log(f"Settings ask for a {self.flo_horizon_hours} hour horizon")
         if self.flo_horizon_hours > MAX_HORIZON_HOURS:
-            self.log(f"Horizon hours is greater than max allowed {MAX_HORIZON_HOURS}!")
+            self.log(f"Horizon hours {self.flo_horizon_hours} is greater than max allowed {MAX_HORIZON_HOURS}!")
             self.flo_horizon_hours = MAX_HORIZON_HOURS
         if self.flo_horizon_hours > len(self.weather_forecast["oat"]):
-            self.log(f"Horizon hours is greater than weather forecast length {len(self.weather_forecast['oat'])}!")
-            self.flo_horizon_hours = self.weather_forecast["oat"]
+            self.log(f"Horizon hours {self.flo_horizon_hours} is greater than weather forecast length {len(self.weather_forecast['oat'])}!")
+            self.flo_horizon_hours = len(self.weather_forecast["oat"])
         if self.flo_horizon_hours > len(self.price_forecast.lmp_usd_per_mwh):
-            self.log(f"Horizon hours is greater than price forecast length {len(self.price_forecast.lmp_usd_per_mwh)}!")
+            self.log(f"Horizon hours {self.flo_horizon_hours} is greater than price forecast length {len(self.price_forecast.lmp_usd_per_mwh)}!")
             self.flo_horizon_hours = len(self.price_forecast.lmp_usd_per_mwh)
         self.log(f"Using a {self.flo_horizon_hours} hour horizon")
         self.weather_forecast["oat"] = self.weather_forecast["oat"][:self.flo_horizon_hours]
         self.weather_forecast["ws"] = self.weather_forecast["ws"][:self.flo_horizon_hours]
         self.price_forecast.lmp_usd_per_mwh = self.price_forecast.lmp_usd_per_mwh[:self.flo_horizon_hours]
-        self.price_forecast.dp_usd_per_mwh = self.price_forecast.dp_usd_per_mwh[:self.flo_horizon_hours]
-        self.price_forecast.reg_usd_per_mwh = self.price_forecast.reg_usd_per_mwh[:self.flo_horizon_hours]
+        self.price_forecast.dist_usd_per_mwh = self.price_forecast.dist_usd_per_mwh[:self.flo_horizon_hours]
 
         if self.flo_next_hour_plans:
             previous_plan_hp_kwh_el_list = self.flo_next_hour_plans.HourlyHpKwhElPlan
@@ -1020,54 +983,47 @@ class Ltn(PrimeActor):
             previous_plan_hp_kwh_el_list = None
             previous_estimate_storage_kwh_now = None
 
-        flo_git_commit = _get_flo_git_commit()
-        self.log(f"Flo git commit: {flo_git_commit}")
-
         num_tanks = self.total_store_tanks if self.seasonal_storage_mode == SeasonalStorageMode.AllTanks else 1
+        num_layers = int(9 * num_tanks)  # Model uses 9 layers per tank
+        horizon = self.flo_horizon_hours
+        elec_usd_mwh = [
+            lmp + dist
+            for lmp, dist in zip(
+                self.price_forecast.lmp_usd_per_mwh,
+                self.price_forecast.dist_usd_per_mwh,
+                strict=True,
+            )
+        ]
+        # TODO: get the real load and RSWT forecasts using house parameters
+        # TODO: adjust load forecast for buffer/house available kwh
+        buffer_available_kwh = await self.get_buffer_available_kwh()
+        load_kwh = [5.0] * horizon
+        rswt_f = [140.0] * horizon
 
-        self.flo_params = FloParamsHouse0(
-            GNodeAlias=self.layout.scada_g_node_alias,
-            StartUnixS=dijkstra_start_time,
-            HorizonHours=self.flo_horizon_hours,
-            NumLayers=int(3*num_tanks*3), # 3 sensors per tank, 3 layers per sensor
-            InitialTopTempF=int(t),
-            InitialMiddleTempF=int(m),
-            InitialBottomTempF=int(b),
-            InitialThermocline1= int(th1*3),
-            InitialThermocline2= int(th2*3),
-            StorageVolumeGallons = TANK_GALLONS*num_tanks,
-            LmpForecast=self.price_forecast.lmp_usd_per_mwh,
-            DistPriceForecast=self.price_forecast.dp_usd_per_mwh,
-            RegPriceForecast=self.price_forecast.reg_usd_per_mwh,
-            OatForecastF=self.weather_forecast["oat"],
-            WindSpeedForecastMph=self.weather_forecast["ws"],
-            AlphaTimes10=self.ha1_params.AlphaTimes10,
-            BetaTimes100=self.ha1_params.BetaTimes100,
-            GammaEx6=self.ha1_params.GammaEx6,
-            IntermediatePowerKw=self.ha1_params.IntermediatePowerKw,
-            IntermediateRswtF=self.ha1_params.IntermediateRswtF,
-            DdPowerKw=self.ha1_params.DdPowerKw,
-            DdRswtF=self.ha1_params.DdRswtF,
-            DdDeltaTF=self.ha1_params.DdDeltaTF,
-            MaxEwtF=self.ha1_params.MaxEwtF,
-            CopIntercept=self.ha1_params.CopIntercept,
-            CopOatCoeff=self.ha1_params.CopOatCoeff,
-            CopLwtCoeff=self.ha1_params.CopLwtCoeff,
-            CopMin=self.ha1_params.CopMin,
-            CopMinOatF=self.ha1_params.CopMinOatF,
-            HpIsOff=self.hp_is_off,
-            BufferAvailableKwh=buffer_available_kwh,
-            HouseAvailableKwh=house_available_kwh,
-            PreviousPlanHpKwhElList=previous_plan_hp_kwh_el_list,
-            PreviousEstimateStorageKwhNow=previous_estimate_storage_kwh_now,
-            FloGitCommit=flo_git_commit,
-        )
-        self.services.publish_message(
-            self.SCADA_MQTT, 
-            # HACK (interim): gw-wrapped to scada, not the old Dst="broadcast".
-            # Revert to a real rjb broadcast once the LTN is a gwbase actor
-            # (it leaves the scada lexicon); OPS-387.
-            Message(Src=self.publication_name, Dst=self.scada.name, Payload=self.flo_params)
+        self.flo_params = HeatPumpWaterTankParams(
+            horizon=horizon,
+            start_unix_s=start_unix_s,
+            site_id=self.layout.ltn_g_node_alias,
+            timestep_duration_hours=[1.0] * horizon,
+            num_layers=num_layers,
+            storage_volume_gallons=float(TANK_GALLONS * num_tanks),
+            initial_top_temp=float(t),
+            initial_middle_temp=float(m),
+            initial_bottom_temp=float(b),
+            initial_thermocline1=int(th1 * 3),
+            initial_thermocline2=int(th2 * 3),
+            hp_currently_on=not self.hp_is_off,
+            elec_usd_mwh=elec_usd_mwh,
+            oat_f=list(self.weather_forecast["oat"]),
+            load_kwh=load_kwh,
+            rswt_f=rswt_f,
+            cop_intercept=self.ha1_params.CopIntercept,
+            cop_oat_coeff=self.ha1_params.CopOatCoeff,
+            cop_lwt_coeff=self.ha1_params.CopLwtCoeff,
+            cop_min=self.ha1_params.CopMin,
+            cop_min_oat_f=float(self.ha1_params.CopMinOatF),
+            previous_plan_hp_kwh_el_list=previous_plan_hp_kwh_el_list,
+            previous_estimate_storage_kwh_now=previous_estimate_storage_kwh_now,
         )
         self.bid_runner = BidRunner(
             params=self.flo_params,
@@ -1086,12 +1042,11 @@ class Ltn(PrimeActor):
         # Instead of waiting, return to event loop
         self.log("Started Dijkstra computation in background")
 
-    def _cleanup_bid_runner(self, ltn_name: str) -> None:
-        """Callback to clean up bid runner when it's done.
-        Note: This is called from the BidRunner thread."""
-        self.log("Cleaned up bid runner")
+    def _cleanup_bid_runner(self, ltn_name: str) -> None:  
+        """Callback to clean up bid runner when it's done."""
         self.bid_runner = None
         gc.collect()
+        self.log("Cleaned up bid runner")
 
     def _save_flo_next_hour_plans(self, flo_next_hour_plans: FloNextHourPlans) -> None:
         """Persist flo_next_hour_plans to file with timestamp for restart recovery."""
@@ -1491,39 +1446,39 @@ class Ltn(PrimeActor):
             self.log(f"Something failed in get_buffer_available_kwh ({e}), returning 0 kWh")
             return 0
         
-    async def get_house_available_kwh(self):
-        setpoints = {}
-        temps = {}
-        thermal_mass = {}
-        zone_names = []
-        for zone_setpoint in [x for x in self.latest_channel_values if 'zone' in x and 'set' in x]:
-            zone_name = zone_setpoint.replace('-set','')
-            zone_names.append(zone_name)
-            # Get setpoints for each zone
-            if self.latest_channel_values[zone_setpoint] is not None:
-                setpoints[zone_name] = round(self.latest_channel_values[zone_setpoint]/1000,1)
-            # Get temperatures for each zone
-            zone_temp = zone_setpoint.replace('-set','-temp')
-            if (zone_temp in self.latest_channel_values and self.latest_channel_values[zone_temp] is not None):
-                temps[zone_name] = round(self.latest_channel_values[zone_temp]/1000,1)
-            # Get thermal mass for each zone
-            zone_name_no_prefix = zone_name[6:] if zone_name[:4]=='zone' else zone_name
-            if zone_name_no_prefix in self.layout.zone_list:
-                zone_index = self.layout.zone_list.index(zone_name_no_prefix)
-                thermal_mass[zone_name] = self.layout.zone_kwh_per_deg_f_list[zone_index]
+    # async def get_house_available_kwh(self):
+    #     setpoints = {}
+    #     temps = {}
+    #     thermal_mass = {}
+    #     zone_names = []
+    #     for zone_setpoint in [x for x in self.latest_channel_values if 'zone' in x and 'set' in x]:
+    #         zone_name = zone_setpoint.replace('-set','')
+    #         zone_names.append(zone_name)
+    #         # Get setpoints for each zone
+    #         if self.latest_channel_values[zone_setpoint] is not None:
+    #             setpoints[zone_name] = round(self.latest_channel_values[zone_setpoint]/1000,1)
+    #         # Get temperatures for each zone
+    #         zone_temp = zone_setpoint.replace('-set','-temp')
+    #         if (zone_temp in self.latest_channel_values and self.latest_channel_values[zone_temp] is not None):
+    #             temps[zone_name] = round(self.latest_channel_values[zone_temp]/1000,1)
+    #         # Get thermal mass for each zone
+    #         zone_name_no_prefix = zone_name[6:] if zone_name[:4]=='zone' else zone_name
+    #         if zone_name_no_prefix in self.layout.zone_list:
+    #             zone_index = self.layout.zone_list.index(zone_name_no_prefix)
+    #             thermal_mass[zone_name] = self.layout.zone_kwh_per_deg_f_list[zone_index]
 
-        self.log(f"Found all zone setpoints: {setpoints}")
-        self.log(f"Found all zone temperatures: {temps}")
-        self.log(f"Found all zone thermal masses: {thermal_mass}")
-        house_availale_kwh = 0
-        for zone in zone_names:
-            if 'zone4' in zone or 'upstairs' in zone:
-                continue
-            if zone in temps and zone in setpoints and zone in thermal_mass:
-                house_availale_kwh += thermal_mass[zone] * (temps[zone] - setpoints[zone])
-        house_availale_kwh = round(house_availale_kwh,2)
-        self.log(f"House available kWh: {house_availale_kwh}")
-        return min(0, house_availale_kwh) # TODO: TEMPORARY only consider negative values
+    #     self.log(f"Found all zone setpoints: {setpoints}")
+    #     self.log(f"Found all zone temperatures: {temps}")
+    #     self.log(f"Found all zone thermal masses: {thermal_mass}")
+    #     house_availale_kwh = 0
+    #     for zone in zone_names:
+    #         if 'zone4' in zone or 'upstairs' in zone:
+    #             continue
+    #         if zone in temps and zone in setpoints and zone in thermal_mass:
+    #             house_availale_kwh += thermal_mass[zone] * (temps[zone] - setpoints[zone])
+    #     house_availale_kwh = round(house_availale_kwh,2)
+    #     self.log(f"House available kWh: {house_availale_kwh}")
+    #     return min(0, house_availale_kwh) # TODO: TEMPORARY consider negative values
 
     async def get_weather(self, session: aiohttp.ClientSession) -> None:
         config_dir = self.settings.paths.config_dir
@@ -1672,9 +1627,8 @@ class Ltn(PrimeActor):
                     self.log("Successfully received price forecast from the price service API")
                     data = response.json()
                     self.price_forecast = PriceForecast(
-                        dp_usd_per_mwh=data['DistList'],
+                        dist_usd_per_mwh=data['DistList'],
                         lmp_usd_per_mwh=data['LmpList'],  
-                        reg_usd_per_mwh=[0] * len(data['LmpList']),
                     )
                     # self.log(f"- LMP USD/MWh {self.price_forecast.lmp_usd_per_mwh}")
                     # self.log(f"- Total energy USD/MWh {[round(x,2) for x in self.price_forecast.total_energy]}")
@@ -1735,9 +1689,8 @@ class Ltn(PrimeActor):
 
                 # Update the price forecast
                 self.price_forecast = PriceForecast(
-                    dp_usd_per_mwh=dp_forecast_usd_per_mwh,
+                    dist_usd_per_mwh=dp_forecast_usd_per_mwh,
                     lmp_usd_per_mwh=lmp_forecast_usd_per_mwh,
-                    reg_usd_per_mwh=reg_forecast_usd_per_mwh,
                 )
                 self.log("Successfully read price forecast from local CSV.")
                 # self.log(f"- LMP USD/MWh {self.price_forecast.lmp_usd_per_mwh}")
