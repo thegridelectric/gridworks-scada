@@ -1,4 +1,4 @@
-"""NolanLocalControl: layout-family selection, the top machine, and TOU
+"""NolanCoolingTou: layout-family selection, the top machine, and TOU
 cooling — the schedule at its boundaries, the state-command sequencing
 (ON: iso valve OpenValve → pump CloseRelay → hp-boss TurnOn; OFF: hp-boss
 TurnOff → pump OpenRelay), the zone holds (SwitchToScada + ops OpenRelay on circuit
@@ -17,7 +17,7 @@ from pathlib import Path
 import pytest
 import pytz
 
-from actors.local_control.nolan import NolanLocalControl
+from actors.local_control.nolan import NolanCoolingTou
 from actors.local_control_loader import LocalControl
 from gwsproto.enums import LocalControlTopEvent, LocalControlTopState
 from gwsproto.named_types import (
@@ -53,9 +53,9 @@ def app() -> ScadaApp:
     return scada_app
 
 
-def make_impl(app: ScadaApp) -> NolanLocalControl:
+def make_impl(app: ScadaApp) -> NolanCoolingTou:
     lc = LocalControl(LC_NAME, app)
-    assert isinstance(lc._impl, NolanLocalControl)
+    assert isinstance(lc._impl, NolanCoolingTou)
     inner = lc._impl
     inner.sent = []
     inner._send_to = lambda dst, payload, src=None: inner.sent.append(
@@ -65,12 +65,12 @@ def make_impl(app: ScadaApp) -> NolanLocalControl:
 
 
 @pytest.fixture
-def impl(app: ScadaApp) -> NolanLocalControl:
+def impl(app: ScadaApp) -> NolanCoolingTou:
     return make_impl(app)
 
 
 @pytest.fixture
-def spruce_impl(tmp_path: Path) -> NolanLocalControl:
+def spruce_impl(tmp_path: Path) -> NolanCoolingTou:
     settings = ScadaApp.get_settings()
     settings.paths.hardware_layout = SPRUCE_LAYOUT
     settings.paths.operational_params = SPRUCE_OPS
@@ -80,11 +80,11 @@ def spruce_impl(tmp_path: Path) -> NolanLocalControl:
     return make_impl(scada_app)
 
 
-def test_nolan_layout_selects_nolan_local_control(impl: NolanLocalControl) -> None:
+def test_nolan_layout_selects_nolan_local_control(impl: NolanCoolingTou) -> None:
     assert impl.top_state == LocalControlTopState.Normal
 
 
-def test_top_machine_round_trip(impl: NolanLocalControl) -> None:
+def test_top_machine_round_trip(impl: NolanCoolingTou) -> None:
     impl.trigger_top_event(LocalControlTopEvent.MonitorOnly)
     assert impl.top_state == LocalControlTopState.Monitor
     impl.trigger_top_event(LocalControlTopEvent.MonitorAndControl)
@@ -112,7 +112,7 @@ def dt(day: int, hour: int, minute: int) -> datetime:
     return ET.localize(datetime(2026, 8, day, hour, minute))
 
 
-def test_hp_should_be_on_boundaries(impl: NolanLocalControl) -> None:
+def test_hp_should_be_on_boundaries(impl: NolanCoolingTou) -> None:
     on = impl.hp_should_be_on
     assert on(dt(15, 12, 0))  # Saturday, mid-on-peak hours: weekend ON
     assert on(dt(10, 6, 59))  # weekday pre-peak
@@ -127,11 +127,11 @@ def test_hp_should_be_on_boundaries(impl: NolanLocalControl) -> None:
 # ---- the TOU loop against the spruce plant records ----
 
 
-def fsm_events(impl: NolanLocalControl) -> list[tuple[str, str]]:
+def fsm_events(impl: NolanCoolingTou) -> list[tuple[str, str]]:
     return [(dst, p.EventName) for dst, p in impl.sent if isinstance(p, FsmEvent)]
 
 
-def test_resolves_spruce_plant_targets(spruce_impl: NolanLocalControl) -> None:
+def test_resolves_spruce_plant_targets(spruce_impl: NolanCoolingTou) -> None:
     assert spruce_impl.layout.iso_valve.name == NolanNodeNames.iso_valve_relay
     assert spruce_impl.layout.secondary_pump_relay.name == NolanNodeNames.secondary_pump_relay
     assert spruce_impl.layout.hp_scada_ops_relay.name == HSNN.hp_scada_ops_relay
@@ -145,9 +145,9 @@ def test_resolves_spruce_plant_targets(spruce_impl: NolanLocalControl) -> None:
 
 
 def test_on_and_off_sequencing(
-    spruce_impl: NolanLocalControl, monkeypatch: pytest.MonkeyPatch
+    spruce_impl: NolanCoolingTou, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(NolanLocalControl, "SEQUENCE_STEP_S", 0.01)
+    monkeypatch.setattr(NolanCoolingTou, "SEQUENCE_STEP_S", 0.01)
     asyncio.run(spruce_impl.turn_on_hp())
     on_targets = [dst for dst, _ in fsm_events(spruce_impl)]
     assert on_targets == [
@@ -165,7 +165,7 @@ def test_on_and_off_sequencing(
 
 
 def test_zone_holds_command_failsafe_and_release_ops(
-    spruce_impl: NolanLocalControl,
+    spruce_impl: NolanCoolingTou,
 ) -> None:
     spruce_impl.command_zone_holds()
     targets = [dst for dst, _ in fsm_events(spruce_impl)]
@@ -185,7 +185,7 @@ def test_missing_plant_node_is_a_crash_not_a_degrade(
     """gw.nolan.layout axiom 3 forces the plant nodes to exist at decode;
     if construction ever sees one missing anyway (contract bypassed), the
     actor must crash — never run partially blind."""
-    monkeypatch.setattr(NolanLocalControl, "REQUIRED_NODES", ("no-such-node",))
+    monkeypatch.setattr(NolanCoolingTou, "REQUIRED_NODES", ("no-such-node",))
     with pytest.raises(ValueError, match="required node no-such-node"):
         LocalControl(LC_NAME, app)
 

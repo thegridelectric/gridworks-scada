@@ -18,7 +18,7 @@ from gwsproto.names.hydronic_spaceheat.node_names import (
 )
 
 from gwsproto.enums import (
-    ActorClass, ActuationAuthority, LocalControlTopEvent,
+    ActorClass, LocalControlTopEvent,
     LocalControlTopState,
 )
 from gwsproto.named_types import (ActuatorsReady,
@@ -80,10 +80,7 @@ class LocalControlTouBase(House0Hydronic):
             send_event=False,
             model_attribute="top_state",
         )  
-        if self.ops.ActuationAuthority == ActuationAuthority.MonitorOnly:
-            self.top_state = LocalControlTopState.Monitor
-        else: 
-            self.top_state = LocalControlTopState.Normal
+        self.top_state = LocalControlTopState.Normal
         self.log(f"Params: {self.params}")
         if CoreNodeNames.local_control_normal not in self.layout.nodes:
             raise Exception(f"LocalControl requires {CoreNodeNames.local_control_normal} node!!")
@@ -500,13 +497,6 @@ class LocalControlTouBase(House0Hydronic):
 
     def process_wake_up(self, from_node: ShNode, payload: WakeUp) -> None:
         if self.top_state != LocalControlTopState.Dormant:
-            return
-
-        # Monitor-only mode: Dormant -> Monitor
-        if self.ops.ActuationAuthority == ActuationAuthority.MonitorOnly:
-            # MonitorOnly: SCADA must not actuate anything
-            self.trigger_top_event(LocalControlTopEvent.MonitorOnly)
-            self.log("Monitor-only: WakeUp transitioned Dormant -> Monitor")
             return
 
         # Normal behavior: Dormant -> Normal

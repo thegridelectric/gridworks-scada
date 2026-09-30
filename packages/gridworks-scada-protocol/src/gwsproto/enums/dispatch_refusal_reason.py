@@ -4,15 +4,16 @@ from typing import List
 from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class TopState(SemaEnum):
-    """Sema: https://schemas.electricity.works/enums/gw.top.state/000"""
+class DispatchRefusalReason(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/gw.dispatch.refusal.reason/000"""
 
-    Auto = auto()
-    Admin = auto()
+    Standby = auto()
+    NoAggregator = auto()
+    ServiceContractBroken = auto()
 
     @classmethod
-    def default(cls) -> "TopState":
-        return cls.Auto
+    def default(cls) -> "DispatchRefusalReason":
+        return cls.Standby
 
     @classmethod
     def values(cls) -> List[str]:
@@ -20,7 +21,7 @@ class TopState(SemaEnum):
 
     @classmethod
     def enum_name(cls) -> str:
-        return "gw.top.state"
+        return "gw.dispatch.refusal.reason"
 
     @classmethod
     def enum_version(cls) -> str:

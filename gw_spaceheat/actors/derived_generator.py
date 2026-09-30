@@ -20,7 +20,7 @@ from gwsproto.data_classes.derived_channel import DerivedChannel
 from gwsproto.conversions.temperature import convert_temp_to_f
 from gwsproto.enums import (
     Unit, HeatCallInterpretation, TelemetryName,
-    ActuationAuthority, SeasonalStorageMode, ServiceMode
+    SeasonalStorageMode, ServiceMode
 )
 from gwsproto.named_types import (
     Ha1Params, HeatingForecast, LinearOneDimensionalCalibration,
@@ -840,7 +840,7 @@ class DerivedGenerator(ShNodeActor):
         - Assumes stratified storage
         """
         if (
-            self.ops.ActuationAuthority != ActuationAuthority.Active
+            not self.ops.AcceptsDispatch
             or self.ops.ServiceMode != ServiceMode.Heating
         ):
             return None

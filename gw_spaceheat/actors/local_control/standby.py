@@ -1,69 +1,71 @@
+"""The standby machine, one for every layout family: the scada holds the
+plant in the ops word's standby posture and runs no control loop. Having
+claimed the normal node's tree, it de-energizes every relay directly under
+that node except the ops word's EnergizedStandbyRelays, energizes those,
+and tells hp-boss to turn the heat pump off (hp-boss has no dormant or
+wake handling, so an admin session can leave it HpOn). The 0-10V outputs
+stay at their power-on levels and are never written. The command tree
+keeps its shape: five-v-boss runs, the sieg loop holds HoldFullSend,
+hp-boss sits at HpOff. The posture is set at ActuatorsReady and again on
+every WakeUp; standby refuses dispatch by axiom."""
+
 import asyncio
-from typing import List, Optional, Sequence
 import time
-from gwsproto.enums import ActuationAuthority
+from typing import Sequence
+
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
-
-from gwsproto.enums import ActorClass
 from gwproto import Message
 from result import Ok, Result
-from gwsproto.enums import LocalControlStandbyTopState, LocalControlStandbyTopEvent
-from gwsproto.named_types import SingleMachineState
-from gwsproto.data_classes.sh_node import ShNode
 from transitions import Machine
-from actors.hydronic.house0 import House0Hydronic
-from gwsproto.named_types import ActuatorsReady, GoDormant, HeatingForecast, WakeUp
+
+from actors.hydronic.shared import HydronicNode
+from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.enums import (
+    ActorClass,
+    LocalControlStandbyTopEvent,
+    LocalControlStandbyTopState,
+    TurnHpOnOff,
+)
+from gwsproto.named_types import ActuatorsReady, GoDormant, HeatingForecast, SingleMachineState, WakeUp
 from gwsproto.names.core.node_names import CoreNodeNames
 from scada_app_interface import ScadaAppInterface
 
-class StandbyLocalControl(House0Hydronic):
+
+class StandbyLocalControl(HydronicNode):
     MAIN_LOOP_SLEEP_SECONDS = 300
     top_states = LocalControlStandbyTopState.values()
 
     top_transitions = [
-            {"trigger": "TopGoDormant", "source": "EverythingOff", "dest": "Dormant"},
-            {"trigger": "TopWakeUp", "source": "Dormant", "dest": "EverythingOff"},
-    ]   
+        {"trigger": "TopGoDormant", "source": "EverythingOff", "dest": "Dormant"},
+        {"trigger": "TopWakeUp", "source": "Dormant", "dest": "EverythingOff"},
+    ]
 
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
-        if self.ops.ActuationAuthority != ActuationAuthority.Standby:
-            raise Exception(
-                f"Expect actuation authority Standby, got {self.ops.ActuationAuthority}"
-            )
+        if not self.ops.Standby:
+            raise Exception("The standby machine runs only when the ops word says Standby")
         self._stop_requested: bool = False
-        self.buffer_declared_ready = False
-        self.full_buffer_energy: Optional[float] = None  # in kWh
-
         self.top_machine = Machine(
             model=self,
             states=StandbyLocalControl.top_states,
             transitions=StandbyLocalControl.top_transitions,
             initial=LocalControlStandbyTopState.EverythingOff,
             send_event=True,
-            model_attribute="top_state"
+            model_attribute="top_state",
         )
         self.top_state: LocalControlStandbyTopState = LocalControlStandbyTopState.EverythingOff
         self.set_command_tree(boss_node=self.normal_node)
         self.actuators_ready = False
-        self.log("Starting Standby Local Control")
+        self.log(f"Starting standby local control, posture {self.ops.StandbyPosture}")
 
     def trigger_top_event(self, cause: LocalControlStandbyTopEvent) -> None:
-        """
-        Trigger top event. Set relays_initialized to False if top state
-        is Dormant. Report state change.
-        """
         now_ms = int(time.time() * 1000)
         orig_state = self.top_state
         if cause == LocalControlStandbyTopEvent.TopGoDormant:
             self.TopGoDormant()
         elif cause == LocalControlStandbyTopEvent.TopWakeUp:
             self.TopWakeUp()
-        
-        if self.top_state == LocalControlStandbyTopState.Dormant:
-            self.relays_initialized = False
-
         self._send_to(
             self.primary_scada,
             SingleMachineState(
@@ -75,7 +77,6 @@ class StandbyLocalControl(House0Hydronic):
             ),
         )
         self.log(f"{cause}: {orig_state} -> {self.top_state}")
-        self.log("Set top state command tree")
 
     @property
     def normal_node(self) -> ShNode:
@@ -84,39 +85,37 @@ class StandbyLocalControl(House0Hydronic):
             raise Exception(f"{CoreNodeNames.local_control_normal} is known to exist")
         return n
 
-    def initialize_actuators(self) -> None:
+    def set_standby_posture(self) -> None:
+        """The posture, in three steps: de-energize every relay directly
+        under the normal node that the ops word does not list, energize the
+        listed ones, tell hp-boss to turn the heat pump off."""
         if not self.actuators_ready:
-            self.log("Waiting to initialize actuators until actuator drivers are ready")
+            self.log("Waiting to set the standby posture until actuator drivers are ready")
             return
         if self.top_state != LocalControlStandbyTopState.EverythingOff:
-            raise Exception("Can not go into update_relays if top state is not EverythingOff")
-        
-        self.log("Initializing relays")
-        h_normal_relays =  {
-            relay
-            for relay in self.my_actuators()
-            if relay.ActorClass == ActorClass.Relay and
-            self.the_boss_of(relay) == self.normal_node
-        }
+            raise Exception("Cannot set the standby posture unless top state is EverythingOff")
+        energized = set(self.ops.EnergizedStandbyRelays)
+        claimed = sorted(
+            (
+                relay
+                for relay in self.my_actuators()
+                if relay.ActorClass == ActorClass.Relay
+                and self.the_boss_of(relay) == self.normal_node
+            ),
+            key=lambda relay: relay.Name,
+        )
+        for relay in claimed:
+            if relay.Name not in energized:
+                self.de_energize(relay, from_node=self.normal_node)
+        for relay in claimed:
+            if relay.Name in energized:
+                self.energize(relay, from_node=self.normal_node)
+        self.send_state_command(self.layout.hp_boss, TurnHpOnOff.TurnOff, self.normal_node)
+        self.log(
+            f"Standby posture set: {len(claimed)} relays under {self.normal_node.handle}, "
+            f"energized {sorted(energized)}, hp-boss told TurnOff"
+        )
 
-        excluded_relays = {
-            self.layout.hp_failsafe_relay,
-            self.layout.hp_scada_ops_relay,
-            self.layout.aquastat_control_relay,
-            self.layout.hp_loop_on_off,
-        }
-
-        target_relays: List[ShNode] = list(h_normal_relays - excluded_relays)
-        target_relays.sort(key=lambda x: x.Name)
-        self.log("de-energizing most relays")
-        for relay in target_relays:
-            self.de_energize(relay, from_node=self.normal_node)
-
-        self.log("energizing key relays for keeping things off")
-        self.hp_failsafe_switch_to_scada(from_node=self.normal_node)
-        self.aquastat_ctrl_switch_to_scada(from_node=self.normal_node)
-        self.turn_off_HP(from_node=self.normal_node)
-        
     def start(self) -> None:
         self._send_to(
             self.primary_scada,
@@ -149,7 +148,6 @@ class StandbyLocalControl(House0Hydronic):
                 if len(self.my_actuators()) > 0:
                     raise Exception("LocalControl sent GoDormant with live actuators under it!")
                 if self.top_state != LocalControlStandbyTopState.Dormant:
-                    # TopGoDormant: Normal/UsingNonElectricBackup -> Dormant
                     self.trigger_top_event(cause=LocalControlStandbyTopEvent.TopGoDormant)
             case WakeUp():
                 try:
@@ -157,25 +155,20 @@ class StandbyLocalControl(House0Hydronic):
                 except Exception as e:
                     self.log(f"Trouble with process_wake_up: {e}")
             case HeatingForecast():
-                ... # Ignore this
-
+                ...  # standby runs no loop that would use it
         return Ok(True)
-    
+
     def process_actuators_ready(self, from_node: ShNode, payload: ActuatorsReady) -> None:
-        """Initialize actuators if that hasn't happened yet"""
         if not self.actuators_ready:
             self.actuators_ready = True
-            self.initialize_actuators()
+            self.set_standby_posture()
 
     def process_wake_up(self, from_node: ShNode, payload: WakeUp) -> None:
         if self.top_state != LocalControlStandbyTopState.Dormant:
             return
-        # TopWakeUp: Dormant -> EverythingOff
         self.trigger_top_event(LocalControlStandbyTopEvent.TopWakeUp)
         self.set_command_tree(boss_node=self.normal_node)
-        # Set actuators the way they need to be
-        self.log("TopWakeUp: Dormant -> EverythingOff")
-        self.initialize_actuators()
+        self.set_standby_posture()
 
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:
@@ -185,4 +178,4 @@ class StandbyLocalControl(House0Hydronic):
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
-            self.log(f"HaStrategy: Standby |  State: {self.top_state}")
+            self.log(f"Standby | State: {self.top_state}")

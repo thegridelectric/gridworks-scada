@@ -474,8 +474,14 @@
       "PowerOnVoltsTimesTen": 0
     }
   ],
-  "ActuationAuthority": "Active",
+  "Standby": false,
+  "StandbyPosture": "NoHeatingOrCooling",
+  "EnergizedStandbyRelays": [
+    "hp-failsafe-relay",
+    "aquastat-ctrl-relay"
+  ],
   "ServiceMode": "Heating",
+  "AcceptsDispatch": true,
   "CopCurve": {
     "TypeName": "cop.curve",
     "Version": "000",

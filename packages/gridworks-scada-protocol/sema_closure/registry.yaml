@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-09-25T17:10:00Z"
+  last_updated: "2026-09-30T18:35:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -167,6 +167,18 @@ enums:
         created: "2024-10-23T19:32:00Z"
         status: "published"
 
+  gw.dispatch.refusal.reason:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Why a scada refuses dispatch contracts: Standby, NoAggregator, or ServiceContractBroken. Default Standby so an unknown reason still reads as a refusal."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/gw.dispatch.refusal.reason/000"
+        created: "2026-09-30T18:35:00Z"
+        status: "staging"
+
   gw.primary.flow.source:
     latest_version: "000"
     owner: gridworks-energy
@@ -203,6 +215,18 @@ enums:
         created: "2026-09-24T17:50:00Z"
         status: "staging"
 
+  gw.standby.posture:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "What a scada in Standby does to the plant: MonitorOnly (energizes nothing) or NoHeatingOrCooling (holds every heat source off); the intent behind the house's EnergizedStandbyRelays list. Default MonitorOnly so an unknown posture touches nothing."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/gw.standby.posture/000"
+        created: "2026-09-30T18:35:00Z"
+        status: "staging"
+
   gw.zone.emitter.type:
     latest_version: "000"
     owner: gridworks-energy
@@ -228,18 +252,6 @@ enums:
         status: "staging"
         added_values:
           - "FiveVBoss"
-
-  gw1.actuation.authority:
-    latest_version: "000"
-    owner: gridworks-energy
-    enum_type: "versioned"
-    description: "Degree of physical actuation authority SCADA exercises: Active / Standby / MonitorOnly. Dominates gw1.service.mode; default MonitorOnly so an unrecognized value degrades to non-actuation."
-
-    versions:
-      "000":
-        schema_url: "https://schemas.electricity.works/enums/gw1.actuation.authority/000"
-        created: "2026-08-13T11:55:00Z"
-        status: "staging"
 
   gw1.emission.method:
     latest_version: "000"
@@ -287,7 +299,7 @@ enums:
     latest_version: "000"
     owner: gridworks-energy
     enum_type: "versioned"
-    description: "Thermal service the system provides while actuation authority is Active: Heating / Cooling. Inert outside Active — gw1.actuation.authority dominates."
+    description: "Thermal service the system provides: Heating / Cooling. Selects the local control machine on a plant that can do both, and gates heating contracts at the LTN."
 
     versions:
       "000":
@@ -991,23 +1003,25 @@ types:
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw.operational.params/000"
-        created: "2026-09-25T17:10:00Z"
+        created: "2026-09-30T18:35:00Z"
         status: "staging"
-        summary: "Initial version. ScadaAlias (the applying Scada's identity — stored/emitted instances self-identify; the layout holds the full GNodes) + FamilyParams (oneOf gw.house0.family.params / gw.nolan.family.params, discriminated by TypeName; the family TypeName pairs the instance with its layout family, so a mismatched pair fails at decode) + CaptureTuningList + ZeroTenPowerOnList + ActuationAuthority x ServiceMode (authority dominates; ServiceMode inert outside Active) + CopCurve + HeatingCurve + HpTurnOnMinutes + HpMaxKwEl + LoadOverestimationPercent + OilBoilerBackup + HorizonHours + Tariff (gw.tou.tariff). All required — no assumed defaults. Axioms 1-2: ChannelName unique across CaptureTuningList, NodeName unique across ZeroTenPowerOnList."
+        summary: "Initial version. ScadaAlias (the applying Scada's identity — stored/emitted instances self-identify; the layout holds the full GNodes) + FamilyParams (oneOf gw.house0.family.params / gw.nolan.family.params, discriminated by TypeName; the family TypeName pairs the instance with its layout family, so a mismatched pair fails at decode) + CaptureTuningList + ZeroTenPowerOnList + Standby x StandbyPosture x EnergizedStandbyRelays (the standby machine energizes the listed relays and nothing else; the posture names what the list achieves) + ServiceMode + AcceptsDispatch x DispatchRefusalReason (present iff refusing) + CopCurve + HeatingCurve + HpTurnOnMinutes + HpMaxKwEl + LoadOverestimationPercent + OilBoilerBackup + HorizonHours + Tariff (gw.tou.tariff). All required but the reason — no assumed defaults. Axioms 1-2: ChannelName unique across CaptureTuningList, NodeName unique across ZeroTenPowerOnList. Axiom 3: Standby refuses dispatch with reason Standby. Axiom 4: the reason is present iff AcceptsDispatch is false. Axiom 5: the posture fixes the relay list (MonitorOnly empty; House0 NoHeatingOrCooling = hp-failsafe-relay + aquastat-ctrl-relay; Nolan NoHeatingOrCooling empty)."
         direct_dependencies:
           structural:
             - "capture.tuning:000"
             - "cop.curve:000"
+            - "gw.dispatch.refusal.reason:000"
             - "gw.house0.family.params:000"
             - "gw.nolan.family.params:000"
+            - "gw.standby.posture:000"
             - "gw.tou.tariff:000"
-            - "gw1.actuation.authority:000"
             - "gw1.service.mode:000"
             - "heating.curve:000"
             - "left.right.dot"
             - "non.negative.int"
             - "positive.float"
             - "positive.int"
+            - "spaceheat.name"
             - "zero.ten.power.on:000"
 
   gw.tou.tariff:

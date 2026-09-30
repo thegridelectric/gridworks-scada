@@ -1,26 +1,26 @@
 from enum import auto
+from typing import List
 
 from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class ActuationAuthority(SemaEnum):
-    """Sema: https://schemas.electricity.works/enums/gw1.actuation.authority/000"""
+class StandbyPosture(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/gw.standby.posture/000"""
 
-    Active = auto()
-    Standby = auto()
     MonitorOnly = auto()
+    NoHeatingOrCooling = auto()
 
     @classmethod
-    def default(cls) -> "ActuationAuthority":
+    def default(cls) -> "StandbyPosture":
         return cls.MonitorOnly
 
     @classmethod
-    def values(cls) -> list[str]:
+    def values(cls) -> List[str]:
         return [elt.value for elt in cls]
 
     @classmethod
     def enum_name(cls) -> str:
-        return "gw1.actuation.authority"
+        return "gw.standby.posture"
 
     @classmethod
     def enum_version(cls) -> str:

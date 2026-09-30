@@ -10,7 +10,7 @@ import pytest
 from actors.scada import Scada
 from gwproactor.config import Paths
 from gwsproto.enums import LogLevel, TaValidationState
-from gwsproto.named_types import Glitch, LayoutLite, TaDeed
+from gwsproto.named_types import Glitch, HouseOperatingStatus, LayoutLite, TaDeed
 from scada_app import ScadaApp
 from tests.utils.scada_live_test_helper import ScadaLiveTest
 
@@ -59,7 +59,7 @@ async def test_announcements_with_a_deed_are_the_layout_and_that_deed(
         scada = tst.child1_app.scada
         sent = record_sends(monkeypatch, scada)
         scada.send_startup_announcements()
-        assert [type(p) for p in sent] == [LayoutLite, TaDeed]
+        assert [type(p) for p in sent] == [LayoutLite, TaDeed, HouseOperatingStatus]
         assert sent[0].FromGNodeAlias == scada.layout.scada_g_node_alias
         assert sent[1] == tst.child1_app.ta_deed
 
@@ -77,7 +77,7 @@ async def test_announcements_with_no_deed_are_the_layout_and_one_warning(
         logged: list[str] = []
         monkeypatch.setattr(scada, "log", logged.append)
         scada.send_startup_announcements()
-        assert [type(p) for p in sent] == [LayoutLite, Glitch]
+        assert [type(p) for p in sent] == [LayoutLite, Glitch, HouseOperatingStatus]
         assert [note for note in logged if note.startswith("Warning Glitch: no-ta-deed")]
         glitch = sent[1]
         assert isinstance(glitch, Glitch)

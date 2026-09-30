@@ -5,7 +5,7 @@ facade drives."""
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Literal, Optional
 
-from gwsproto.enums import ActuationAuthority, HpBossState, SiegLoopStrategy
+from gwsproto.enums import HpBossState, SiegLoopStrategy
 from gwsproto.named_types import House0FamilyParams, OperationalParams
 from pydantic import BaseModel
 
@@ -28,7 +28,7 @@ def selected_strategy(ops: OperationalParams) -> Optional[SiegLoopStrategy]:
     family = ops.FamilyParams
     if not isinstance(family, House0FamilyParams):
         return None
-    if ops.ActuationAuthority is ActuationAuthority.Standby:
+    if ops.Standby:
         return SiegLoopStrategy.HoldFullSend
     return family.SiegLoopStrategy
 

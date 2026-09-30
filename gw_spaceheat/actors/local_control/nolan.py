@@ -1,4 +1,10 @@
-"""NolanLocalControl — the Nolan layout family's local control.
+"""NolanCoolingTou — the Nolan family's cooling-season local control.
+
+REVIEW before the 2027 cooling season: the loop is not a state machine
+(only the top machine is one) and carries its schedule and plant knowledge
+as constants rather than operational params (ONPEAK_WINDOWS with no Tariff
+read, HELD_CIRCUIT_POSITIONS rather than the circuits' CanCool,
+STARTUP_DELAY_S, SEQUENCE_STEP_S, TOU_CHECK_S).
 
 The Nolan plant (radiant floors + fan coils, cooling, one store tank)
 shares no control scheme with House0 tank storage. Normal runs TOU
@@ -59,7 +65,7 @@ from gwsproto.named_types import (
 from scada_app_interface import ScadaAppInterface
 
 
-class NolanLocalControl(NolanHydronic):
+class NolanCoolingTou(NolanHydronic):
     MAIN_LOOP_SLEEP_SECONDS = 300
 
     STARTUP_DELAY_S = 30.0
@@ -112,8 +118,8 @@ class NolanLocalControl(NolanHydronic):
         ]
         self.top_machine = Machine(
             model=self,
-            states=NolanLocalControl.top_states,
-            transitions=NolanLocalControl.top_transitions,
+            states=NolanCoolingTou.top_states,
+            transitions=NolanCoolingTou.top_transitions,
             initial=LocalControlTopState.Normal,
             send_event=True,
             model_attribute="top_state",
@@ -121,8 +127,7 @@ class NolanLocalControl(NolanHydronic):
         self.top_state: LocalControlTopState = LocalControlTopState.Normal
         self.set_command_tree(boss_node=self.normal_node)
         self.log(
-            "Starting Nolan Local Control in Normal (TOU cooling; ops "
-            f"ActuationAuthority {self.ops.ActuationAuthority}, ServiceMode {self.ops.ServiceMode})"
+            f"Starting NolanCoolingTou in Normal (TOU cooling; ops ServiceMode {self.ops.ServiceMode})"
         )
 
     @property
@@ -288,11 +293,11 @@ class NolanLocalControl(NolanHydronic):
             ),
         )
         self.services.add_task(
-            asyncio.create_task(self.main(), name="NolanLocalControl keepalive")
+            asyncio.create_task(self.main(), name="NolanCoolingTou keepalive")
         )
         self.services.add_task(
             asyncio.create_task(
-                self.tou_control(), name="NolanLocalControl tou"
+                self.tou_control(), name="NolanCoolingTou tou"
             )
         )
 

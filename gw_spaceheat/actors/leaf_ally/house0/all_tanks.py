@@ -20,7 +20,7 @@ from actors.hydronic.house0 import House0Hydronic
 from scada_app_interface import ScadaAppInterface
 from gwsproto.enums import  (
 LeafAllyAllTanksState, LeafAllyAllTanksEvent, LogLevel,
-ActuationAuthority, ServiceMode,
+ServiceMode,
 )
 from gwsproto.named_types import (
     AllyGivesUp, GoDormant, Ha1Params,
@@ -195,16 +195,6 @@ class AllTanksLeafAlly(House0Hydronic):
                     AllyGivesUp(Reason="System is cold, not entering DispatchContracts"))
                 return
             
-            if (
-                self.ops.ActuationAuthority != ActuationAuthority.Active
-                or self.ops.ServiceMode != ServiceMode.Heating
-            ):
-                self.log("Cannot wake up - in standby mode")
-                self._send_to(
-                    self.primary_scada,
-                    AllyGivesUp(Reason=f"In {self.ops.ActuationAuthority}/{self.ops.ServiceMode} Mode ... not entering DispatchContracts"))
-                return
-
             if not self.heating_forecast:
                 self.log("Cannot Wake up - missing forecasts!")
                 self._send_to(

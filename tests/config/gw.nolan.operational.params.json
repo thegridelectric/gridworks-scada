@@ -775,8 +775,11 @@
       "PowerOnVoltsTimesTen": 76
     }
   ],
-  "ActuationAuthority": "Active",
-  "ServiceMode": "Heating",
+  "Standby": false,
+  "StandbyPosture": "NoHeatingOrCooling",
+  "EnergizedStandbyRelays": [],
+  "ServiceMode": "Cooling",
+  "AcceptsDispatch": true,
   "CopCurve": {
     "TypeName": "cop.curve",
     "Version": "000",

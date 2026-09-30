@@ -16,7 +16,6 @@ on these ideas:
  """
 
 from gwsproto.enums.actor_class import ActorClass
-from gwsproto.enums.actuation_authority import ActuationAuthority
 from gwsproto.enums.aquastat_control import AquastatControl
 from gwsproto.enums.base_g_node_class import BaseGNodeClass
 from gwsproto.enums.g_node_class import GNodeClass
@@ -31,7 +30,9 @@ from gwsproto.enums.change_valve_state import ChangeValveState
 from gwsproto.enums.change_zone_call_source import ChangeZoneCallSource
 from gwsproto.enums.day_of_week import DayOfWeek
 from gwsproto.enums.device_type import DeviceType
+from gwsproto.enums.dispatch_refusal_reason import DispatchRefusalReason
 from gwsproto.enums.move_sieg_valve import MoveSiegValve
+from gwsproto.enums.nolan_lc_buffer_only_state import NolanLcBufferOnlyState
 from gwsproto.enums.sieg_loop_strategy import SiegLoopStrategy
 from gwsproto.enums.sieg_valve_state import SiegValveState
 from gwsproto.enums.sim_device_type import SimDeviceType
@@ -41,6 +42,7 @@ from gwsproto.enums.g_node_status import GNodeStatus
 from gwsproto.enums.gpio_sense_mode import GpioSenseMode
 from gwsproto.enums.gpm_from_hz_method import GpmFromHzMethod
 from gwsproto.enums.scada_cmd_refusal_reason import ScadaCmdRefusalReason
+from gwsproto.enums.standby_posture import StandbyPosture
 from gwsproto.enums.ta_validation_state import TaValidationState
 from gwsproto.enums.gw_str_enum import GwStrEnum, SemaEnum
 from gwsproto.enums.gw_zone_emitter_type import GwZoneEmitterType
@@ -120,7 +122,6 @@ the value's membership says which it is."""
 __all__ = [
     "ActorClass",
     "AnyDeviceType",
-    "ActuationAuthority",
     "AquastatControl",
     "BaseGNodeClass",
     "GNodeClass",
@@ -135,7 +136,9 @@ __all__ = [
     "ChangeZoneCallSource",
     "DayOfWeek",
     "DeviceType",
+    "DispatchRefusalReason",
     "MoveSiegValve",
+    "NolanLcBufferOnlyState",
     "SiegLoopStrategy",
     "SiegValveState",
     "SimDeviceType",
@@ -145,6 +148,7 @@ __all__ = [
     "GpioSenseMode",
     "GpmFromHzMethod",
     "ScadaCmdRefusalReason",
+    "StandbyPosture",
     "TaValidationState",
     "GwStrEnum",
     "GwZoneEmitterType",

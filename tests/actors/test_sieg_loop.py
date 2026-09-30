@@ -31,7 +31,6 @@ from gwsproto.data_classes.derived_channel import DerivedChannel
 from gwproto.message import Header
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
-    ActuationAuthority,
     ChangeKeepSend,
     ChangeRelayState,
     FsmReportType,
@@ -267,16 +266,18 @@ def manual_app(
     tmp_path: Path,
     pair: str = "house0-willow",
     strategy: SiegLoopStrategy | None = None,
-    authority: ActuationAuthority | None = None,
+    standby: bool = False,
 ) -> tuple[ScadaApp, ManualClock]:
     """The fixture pair on a manual clock, with the ops word's strategy or
-    actuation authority overridden."""
+    Standby set."""
     layout, ops = PAIRS[pair]
     ops_dict = json.loads((CONFIG / ops).read_text())
     if strategy is not None:
         ops_dict["FamilyParams"]["SiegLoopStrategy"] = strategy.value
-    if authority is not None:
-        ops_dict["ActuationAuthority"] = authority.value
+    if standby:
+        ops_dict["Standby"] = True
+        ops_dict["AcceptsDispatch"] = False
+        ops_dict["DispatchRefusalReason"] = "Standby"
     ops_path = tmp_path / ops
     ops_path.write_text(json.dumps(ops_dict))
     settings = ScadaApp.get_settings()
@@ -341,7 +342,7 @@ def test_the_fixtures_run_strat_protect(app: ScadaApp) -> None:
 
 
 def test_standby_runs_hold_full_send_whatever_the_field_says(tmp_path: Path) -> None:
-    app, _ = manual_app(tmp_path, strategy=SiegLoopStrategy.StratProtect, authority=ActuationAuthority.Standby)
+    app, _ = manual_app(tmp_path, strategy=SiegLoopStrategy.StratProtect, standby=True)
     assert isinstance(sieg_loop_actor(app).strategy, HoldFullSend)
 
 

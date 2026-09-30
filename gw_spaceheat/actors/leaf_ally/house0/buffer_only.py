@@ -10,7 +10,7 @@ from gwsproto.data_classes.sh_node import ShNode
 
 from gwsproto.enums import (
     ActorClass, LeafAllyBufferOnlyEvent, LeafAllyBufferOnlyState, 
-    FsmReportType, RelayClosedOrOpen, ActuationAuthority
+    FsmReportType, RelayClosedOrOpen
 )
 
 from gwsproto.named_types import (
@@ -170,13 +170,6 @@ class BufferOnlyLeafAlly(House0Hydronic):
                 AllyGivesUp(Reason="System is cold, not entering DispatchContracts"))
             return
         
-        if self.ops.ActuationAuthority == ActuationAuthority.Standby:
-            self.log("Cannot wake up - in standby mode")
-            self._send_to(
-                self.primary_scada,
-                AllyGivesUp(Reason="In Standby Mode ... does not enter DispatchContracts"))
-            return
-
         if not self.heating_forecast:
             self.log("Cannot Wake up - missing forecasts!")
             self._send_to(

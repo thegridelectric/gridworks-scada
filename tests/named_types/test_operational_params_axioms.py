@@ -59,3 +59,84 @@ def test_gw_tou_tariff_axiom_1_overlapping_windows() -> None:
 def test_zero_ten_power_on_axiom_1_above_ten_volts() -> None:
     with pytest.raises(ValueError, match="Axiom 1 \\(TenVoltCeiling\\)"):
         ZeroTenPowerOn(NodeName="dist-010v", PowerOnVoltsTimesTen=101)
+
+
+@pytest.mark.parametrize("name", OPS_FIXTURES)
+def test_gw_operational_params_axiom_3_standby_accepts_dispatch(name: str) -> None:
+    d = ops(name)
+    d["Standby"] = True
+    with pytest.raises(ValueError, match="Axiom 3 \\(StandbyRefusesDispatch\\)"):
+        OperationalParams.model_validate(d)
+
+
+@pytest.mark.parametrize("name", OPS_FIXTURES)
+def test_gw_operational_params_axiom_3_standby_refuses_for_another_reason(name: str) -> None:
+    d = ops(name)
+    d["Standby"] = True
+    d["AcceptsDispatch"] = False
+    d["DispatchRefusalReason"] = "NoAggregator"
+    with pytest.raises(ValueError, match="Axiom 3 \\(StandbyRefusesDispatch\\)"):
+        OperationalParams.model_validate(d)
+
+
+@pytest.mark.parametrize("name", OPS_FIXTURES)
+def test_gw_operational_params_axiom_4_refusal_without_reason(name: str) -> None:
+    d = ops(name)
+    d["AcceptsDispatch"] = False
+    with pytest.raises(ValueError, match="Axiom 4 \\(RefusalReasonPresence\\)"):
+        OperationalParams.model_validate(d)
+
+
+@pytest.mark.parametrize("name", OPS_FIXTURES)
+def test_gw_operational_params_axiom_4_reason_while_accepting(name: str) -> None:
+    d = ops(name)
+    d["DispatchRefusalReason"] = "NoAggregator"
+    with pytest.raises(ValueError, match="Axiom 4 \\(RefusalReasonPresence\\)"):
+        OperationalParams.model_validate(d)
+
+
+@pytest.mark.parametrize("name", OPS_FIXTURES)
+def test_gw_operational_params_axiom_5_a_monitor_only_energizes_nothing(name: str) -> None:
+    d = ops(name)
+    d["StandbyPosture"] = "MonitorOnly"
+    d["EnergizedStandbyRelays"] = ["hp-failsafe-relay"]
+    with pytest.raises(ValueError, match="Axiom 5 \\(PostureRelaysPerFamily\\)"):
+        OperationalParams.model_validate(d)
+
+
+def test_gw_operational_params_axiom_5_b_house0_list_is_fixed() -> None:
+    d = ops("gw.house0.orange.operational.params.json")
+    assert d["EnergizedStandbyRelays"] == ["hp-failsafe-relay", "aquastat-ctrl-relay"]
+    for relays in ([], ["hp-failsafe-relay"], ["hp-failsafe-relay", "aquastat-ctrl-relay", "store-pump-relay"]):
+        d["EnergizedStandbyRelays"] = relays
+        with pytest.raises(ValueError, match="Axiom 5 \\(PostureRelaysPerFamily\\)"):
+            OperationalParams.model_validate(d)
+
+
+def test_gw_operational_params_axiom_5_c_nolan_list_is_empty() -> None:
+    d = ops("gw.nolan.operational.params.json")
+    assert d["EnergizedStandbyRelays"] == []
+    d["EnergizedStandbyRelays"] = ["iso-valve-relay"]
+    with pytest.raises(ValueError, match="Axiom 5 \\(PostureRelaysPerFamily\\)"):
+        OperationalParams.model_validate(d)
+
+
+def test_standby_relays_are_relays_the_normal_node_claims() -> None:
+    """Assembly refuses an EnergizedStandbyRelays name that is not a Relay
+    ShNode whose boot handle sits directly under the tree root (the relays
+    local control's normal node claims): a relay under a command node, a
+    non-relay node, and an unknown name each fail."""
+    from sema_to_dc import check_energized_standby_relays, decode_operational_params
+
+    layout = json.loads((CONFIG / "gw.house0.orange.layout.json").read_text())
+    d = ops("gw.house0.orange.operational.params.json")
+    d["StandbyPosture"] = "MonitorOnly"
+    d["EnergizedStandbyRelays"] = []
+    check_energized_standby_relays(decode_operational_params(d), layout)
+    for bad in ("hp-scada-ops-relay", "hp-loop-on-off-relay", "vdc-relay", "hp-boss", "no-such-relay"):
+        d["StandbyPosture"] = "NoHeatingOrCooling"
+        d["EnergizedStandbyRelays"] = ["hp-failsafe-relay", "aquastat-ctrl-relay"]
+        good = decode_operational_params(d)
+        bad_ops = good.model_copy(update={"EnergizedStandbyRelays": [bad]})
+        with pytest.raises(ValueError, match=f"EnergizedStandbyRelays.*{bad}"):
+            check_energized_standby_relays(bad_ops, layout)

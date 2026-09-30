@@ -56,6 +56,7 @@ from gwsproto.named_types.heating_curve import HeatingCurve
 from gwsproto.named_types.heating_forecast import HeatingForecast
 from gwsproto.named_types.house0_layout import House0Layout
 from gwsproto.named_types.house0_family_params import House0FamilyParams
+from gwsproto.named_types.house_operating_status import HouseOperatingStatus
 from gwsproto.named_types.hydronic import Hydronic
 from gwsproto.named_types.hp_control_box_device_type_gt import HpControlBoxDeviceTypeGt
 from gwsproto.named_types.hp_device_type_gt import HpDeviceTypeGt
@@ -233,6 +234,7 @@ __all__ = [
     "HeatingForecast",
     "House0Layout",
     "House0FamilyParams",
+    "HouseOperatingStatus",
     "HpControlBoxDeviceTypeGt",
     "HpDeviceTypeGt",
     "HubitatComponentGt",

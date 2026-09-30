@@ -112,7 +112,6 @@ NO_WORD_ENUMS = {
     "relay.pin.state",
     "store.flow.relay",
     "top.event",
-    "top.state",
 }
 
 # --- KNOWN conformance debt to burn down (should shrink to empty) ---

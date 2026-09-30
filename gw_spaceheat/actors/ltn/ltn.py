@@ -64,7 +64,7 @@ from gwsproto.enums import (
     LogLevel,
     MarketPriceUnit, MarketQuantityUnit, MarketTypeName,
     TelemetryName, RelayClosedOrOpen, SeasonalStorageMode,
-    SlowDispatchContractStatus, ActuationAuthority, ServiceMode
+    SlowDispatchContractStatus, ServiceMode
 )
 from gwsproto.named_types import PowerWatts, Report, ReportEvent
 from gwsproto.named_types import SendSnap, MachineStates
@@ -72,7 +72,7 @@ from actors.hydronic.store_temps import scrub_and_fill_store_temps
 from actors.ltn.contract_handler import LtnContractHandler
  
 from gwsproto.named_types import (
-    Bid, BidRecommendation, FloParamsHouse0, FloNextHourPlans, Glitch, Ha1Params, LatestPrice,
+    Bid, BidRecommendation, FloParamsHouse0, FloNextHourPlans, Glitch, Ha1Params, HouseOperatingStatus, LatestPrice,
     LayoutLite, NoNewContractWarning, ScadaParams, SendLayout,
     SlowContractHeartbeat, SlowContractRejection,
     SnapshotSpaceheat,
@@ -523,9 +523,12 @@ class Ltn(PrimeActor):
         self.total_store_tanks = 3 # will also get updated when LayoutLite arrives
         # TODO: read strategy from hardware layout: node = hardware_layout.node(...)
         self.buffer_flo = False
-        self.actuation_authority: ActuationAuthority = ActuationAuthority.Active # will get updated when LayoutLite arrives from Scada
-        self.service_mode: ServiceMode = ServiceMode.Heating # will get updated when LayoutLite arrives from Scada
-        self.seasonal_storage_mode: SeasonalStorageMode = SeasonalStorageMode.AllTanks # will get updated when LayoutLite arrives from Scada
+        # The posture facts ride gw.house.operating.status, the LTN's one source;
+        # until the first one arrives the LTN refuses to dispatch.
+        self.operating_status: Optional[HouseOperatingStatus] = None
+        self.accepts_dispatch: bool = False
+        self.service_mode: ServiceMode = ServiceMode.Heating
+        self.seasonal_storage_mode: SeasonalStorageMode = SeasonalStorageMode.AllTanks
         self.keep_buffer_full: bool = False # will get updated when LayoutLite arrives from Scada
 
     @classmethod
@@ -659,6 +662,9 @@ class Ltn(PrimeActor):
             case LayoutLite():
                 path_dbg |= 0x00000001
                 self.process_layout_lite(decoded.Payload)
+            case HouseOperatingStatus():
+                path_dbg |= 0x00000001
+                self.process_house_operating_status(decoded.Payload)
             case NoNewContractWarning():
                 path_dbg |= 0x00000002
                 self.process_no_new_contract_warning(decoded.Payload)
@@ -758,19 +764,26 @@ class Ltn(PrimeActor):
         for reading in snapshot.LatestReadingList:
             self.latest_channel_values[reading.ChannelName] = reading.Value
 
+    def process_house_operating_status(self, status: HouseOperatingStatus) -> None:
+        """The scada's slow operating facts: the LTN bids and runs FLOs only
+        while the house accepts dispatch and serves heat, and sizes the FLO
+        by the storage mode."""
+        self.log(f"Operating status: {status}")
+        self.operating_status = status
+        self.accepts_dispatch = status.AcceptsDispatch
+        self.service_mode = status.ServiceMode
+        self.seasonal_storage_mode = status.SeasonalStorageMode
+        self.log(f"FLO seasonal storage mode: {self.seasonal_storage_mode}")
+
     def process_layout_lite(self, layout: LayoutLite) -> None:
         """ ContractState: Initializing -> Ready if needed
         """
         self.log("Processing layout lite")
         self.logger.info(f"Processing layout lite: {layout}")
         self.layout_lite = layout
-        self.actuation_authority = layout.ActuationAuthority
-        self.service_mode = layout.ServiceMode
         self.ha1_params = layout.Ha1Params
-        self.seasonal_storage_mode = layout.SeasonalStorageMode
         self.total_store_tanks = layout.TotalStoreTanks
         self.keep_buffer_full = layout.KeepBufferFull
-        self.log(f"FLO seasonal storage mode: {self.seasonal_storage_mode}")
 
         self.tank_temp_channel_names = list(HCN.buffer.effective)
         for tank_idx in sorted(self.layout.store_tanks):
@@ -872,10 +885,7 @@ class Ltn(PrimeActor):
                 await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
                 continue
 
-            if (
-                self.actuation_authority != ActuationAuthority.Active
-                or self.service_mode != ServiceMode.Heating
-            ):
+            if not self.accepts_dispatch or self.service_mode != ServiceMode.Heating:
                 # SCADA-side: plant is not accepting heating intent
                 await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
                 continue
@@ -964,10 +974,7 @@ class Ltn(PrimeActor):
             self.log("Do not have layout lite from scada so not running dijkstra... must not be connected!!")
             return
 
-        if (
-            self.actuation_authority != ActuationAuthority.Active
-            or self.service_mode != ServiceMode.Heating
-        ):
+        if not self.accepts_dispatch or self.service_mode != ServiceMode.Heating:
             self.log("Should not be running FLOs when Scada is in Summer!! Sent glitch")
             glitch = Glitch(
                 FromGNodeAlias=self.layout.ltn_g_node_alias,

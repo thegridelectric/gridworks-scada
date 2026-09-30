@@ -14,7 +14,6 @@ import os
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 import asyncio
-import enum
 import typing
 import uuid
 import time
@@ -36,7 +35,7 @@ from gwsproto.enums import ActorClass
 
 from actors.scada_interface import ScadaInterface
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
-from gwsproto.named_types import FsmFullReport, PowerWatts, SendSnap, ReportEvent
+from gwsproto.named_types import FsmFullReport, HouseOperatingStatus, PowerWatts, SendSnap, ReportEvent
 
 from actors import command_reply
 
@@ -70,7 +69,7 @@ from gwsproto.enums import (FiveVBossState, HpBossState, LeafAllyBufferOnlyState
 
 from gwsproto.named_types import ( ActuatorsReady,
     AdminDispatch, AdminAnalogDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
-    Glitch, GoDormant, CommandInterface, CommandTransition, LayoutLite, NewCommandTree, NoNewContractWarning,
+    Glitch, GoDormant, CommandInterface, CommandTransition, LayoutLite, NoNewContractWarning,
     ResetHpKeepValue, ScadaControlCapabilities,
     ScadaParams, SendControlCapabilities, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment,
     SiegTargetTooLow, SingleMachineState, SlowContractHeartbeat, SlowContractRejection, SuitUp, WakeUp,
@@ -153,6 +152,10 @@ class Scada(PrimeActor, ScadaInterface):
             raise Exception(f"Must have {CoreNodeNames.local_control_normal} node")
         self.set_command_tree(local_control_normal)
         self.top_state: TopState = TopState.Auto
+        # The slow facts of the LTN-scada agreement, sent once after the startup
+        # announcements and then only when one changes.
+        self.ltn_dispatching: bool = False
+        self.last_operating_status: Optional[HouseOperatingStatus] = None
         self.top_machine = Machine(
             model=self,
             states=Scada.top_states,
@@ -532,6 +535,7 @@ class Scada(PrimeActor, ScadaInterface):
         # AdminReleasesControl:  Admin => Auto
         self.AdminReleasesControl()
         self.log(f"Admin releases control: {self.top_state}")
+        self.report_operating_status()
         # cancel the timeout
         if self._admin_timeout_task is not None:
             if not self._admin_timeout_task.cancelled():
@@ -925,6 +929,7 @@ class Scada(PrimeActor, ScadaInterface):
         # Trigger the AdminWakesUp event for top state:  Auto => Admin
         self.AdminWakesUp()
         self.log(f"Message from Admin! top_state {self.top_state}")
+        self.report_operating_status()
         if self.auto_state == MainAutoState.Dormant:
             self.log("AdminWakesUp called when auto state was dormant!!")
             return
@@ -939,6 +944,7 @@ class Scada(PrimeActor, ScadaInterface):
         # AdminTimesOut: Admin => Auto
         self.AdminTimesOut()
         self.log(f"Admin timed out! {self.top_state}")
+        self.report_operating_status()
         # cancel the timeout
         if self._admin_timeout_task is not None:
             if not self._admin_timeout_task.cancelled():
@@ -1097,6 +1103,9 @@ class Scada(PrimeActor, ScadaInterface):
         if return_hb:
             self._send_to(self.ltn, return_hb) # on completion, will send back a completion
             # hb with final energy_used_wh
+        latest = self.contract_handler.latest_scada_hb
+        if latest is not None and latest.Status == SlowDispatchContractStatus.Active:
+            self.note_ltn_dispatching(True)
 
     def process_new_contract(self) -> None:
         """Called after contract is confirmed (SuitUp received)"""
@@ -1164,6 +1173,7 @@ class Scada(PrimeActor, ScadaInterface):
                 ContractId=hb.Contract.ContractId,
                 GraceEndTimeS=grace_end_s
             ))
+            self.note_ltn_dispatching(False)
             return
          # Case 2: We have a different contract after the wait - this is the normal
          # case where the old contract expired and Ltn sent a new one
@@ -1190,6 +1200,7 @@ class Scada(PrimeActor, ScadaInterface):
         if not self.in_grace_period():
             self.log(f"Grace period expired for contract {hb.Contract.ContractId} - transitioning to home alone")
             self.auto_trigger(MainAutoEvent.ContractGracePeriodEnds)
+            self.note_ltn_dispatching(False)
 
     def dispatch_contract_live(self) -> None:
         """ DispatchContractLive: LeafAlly -> LeafTransactiveNode
@@ -1350,8 +1361,8 @@ class Scada(PrimeActor, ScadaInterface):
 
     def send_startup_announcements(self) -> None:
         """What the scada says about itself once per run: its layout.lite,
-        and the home's ta.deed or a Warning glitch when it holds none. None
-        of them asks for an ack."""
+        the home's ta.deed or a Warning glitch when it holds none, and its
+        operating status. None of them asks for an ack."""
         self._send_to(self.ltn, self.layout_lite)
         deed = self.services.ta_deed
         if deed is None:
@@ -1368,6 +1379,42 @@ class Scada(PrimeActor, ScadaInterface):
             self.log(f"Warning Glitch: no-ta-deed ({self.settings.paths.tadeed})")
         else:
             self._send_to(self.ltn, deed)
+        self.report_operating_status()
+
+    @property
+    def house_operating_status(self) -> HouseOperatingStatus:
+        """The slow facts of the LTN-scada agreement: six authored on the ops
+        word and copied from it, the rest runtime facts."""
+        return HouseOperatingStatus(
+            ScadaAlias=self.layout.scada_g_node_alias,
+            ValidationState=self.services.validation_state,
+            Standby=self.ops.Standby,
+            StandbyPosture=self.ops.StandbyPosture,
+            SeasonalStorageMode=self.ops.FamilyParams.SeasonalStorageMode,
+            ServiceMode=self.ops.ServiceMode,
+            AcceptsDispatch=self.ops.AcceptsDispatch,
+            DispatchRefusalReason=self.ops.DispatchRefusalReason,
+            TopState=self.top_state,
+            LtnDispatching=self.ltn_dispatching,
+            UnixMs=int(time.time() * 1000),
+        )
+
+    def report_operating_status(self) -> None:
+        """Send the operating status to the LTN when a field has changed
+        since the last one sent (the first send always goes)."""
+        status = self.house_operating_status
+        if self.last_operating_status is not None and (
+            status.model_dump(exclude={"UnixMs"})
+            == self.last_operating_status.model_dump(exclude={"UnixMs"})
+        ):
+            return
+        self.last_operating_status = status
+        self._send_to(self.ltn, status)
+
+    def note_ltn_dispatching(self, dispatching: bool) -> None:
+        if dispatching != self.ltn_dispatching:
+            self.ltn_dispatching = dispatching
+            self.report_operating_status()
 
     async def state_tracker(self) -> None:
         loop_s = self.settings.seconds_per_report
@@ -1733,10 +1780,6 @@ class Scada(PrimeActor, ScadaInterface):
     def pico_cycler(self) -> ShNode:
         return self.layout.node(HSNN.pico_cycler)
 
-    @property
-    def data(self) -> ScadaData:
-        return self._data
-
     # The interior command nodes an operator sees as rows: their own state
     # reaches the panel live and they are listed in the capabilities.
     COMMAND_NODE_CLASSES = command_reply.COMMAND_NODE_CLASSES
@@ -1872,9 +1915,6 @@ class Scada(PrimeActor, ScadaInterface):
         return LayoutLite(
             FromGNodeAlias=self.layout.scada_g_node_alias,
             HardwareLayoutTypeName=self.layout.layout_type_name,
-            ActuationAuthority=self.ops.ActuationAuthority,
-            ServiceMode=self.ops.ServiceMode,
-            SeasonalStorageMode=self.ops.FamilyParams.SeasonalStorageMode,
             KeepBufferFull=self.ops.FamilyParams.KeepBufferFull,
             ZoneList=self.layout.zone_list,
             CriticalZoneList=self.layout.critical_zone_list,

@@ -12,5 +12,5 @@ def test_top_state() -> None:
     }
 
     assert TopState.default() == TopState.Auto
-    assert TopState.enum_name() == "top.state"
+    assert TopState.enum_name() == "gw.top.state"
     assert TopState.enum_version() == "000"

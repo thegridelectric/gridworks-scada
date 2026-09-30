@@ -5,7 +5,6 @@ from gwsproto.named_types.data_channel_gt import DataChannelGt
 from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
     I2cMultichannelDtRelayComponentGt,
 )
-from gwsproto.enums import ActuationAuthority, ServiceMode, SeasonalStorageMode
 from gwsproto.named_types.pico_flow_module_component_gt import PicoFlowModuleComponentGt
 from gwsproto.named_types.pico_tank_module_component_gt import PicoTankModuleComponentGt
 from gwsproto.named_types.sim_pico_tank_module_component_gt import SimPicoTankModuleComponentGt
@@ -28,9 +27,6 @@ class LayoutLite(GwsprotoSemaType):
     MessageCreatedMs: UTCMilliseconds
     MessageId: UUID4Str
     HardwareLayoutTypeName: LeftRightDotStr
-    ActuationAuthority: ActuationAuthority
-    ServiceMode: ServiceMode
-    SeasonalStorageMode: SeasonalStorageMode
     KeepBufferFull: bool
     ZoneList: List[str]
     CriticalZoneList: List[str]

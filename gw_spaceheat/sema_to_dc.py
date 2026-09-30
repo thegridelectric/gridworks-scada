@@ -23,7 +23,7 @@ from typing import Any
 from pydantic import TypeAdapter
 
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
-from gwsproto.enums import GNodeClass, SiegLoopStrategy
+from gwsproto.enums import ActorClass, GNodeClass, SiegLoopStrategy
 from gwsproto.named_types import (
     House0FamilyParams,
     House0Layout,
@@ -112,6 +112,26 @@ def check_sieg_loop_strategy(ops_word: OperationalParams) -> None:
         )
 
 
+def check_energized_standby_relays(ops_word: OperationalParams, static: dict[str, Any]) -> None:
+    """Every EnergizedStandbyRelays name is a Relay ShNode of the static
+    layout whose boot handle sits directly under the tree root: one of the
+    relays local control's normal node claims, not a relay under a command
+    node (hp-boss, the sieg loop, the pico cycler). Raises on any other name."""
+    nodes = {n["Name"]: n for n in static.get("ShNodes") or []}
+    for name in ops_word.EnergizedStandbyRelays:
+        node = nodes.get(name)
+        if node is None or node.get("ActorClass") != ActorClass.Relay.value:
+            raise ValueError(
+                f"EnergizedStandbyRelays names {name!r}, which is not a Relay ShNode of the layout"
+            )
+        handle = node.get("Handle") or name
+        if handle.count(".") != 1:
+            raise ValueError(
+                f"EnergizedStandbyRelays names {name!r}, whose boot handle {handle!r} is not "
+                "directly under the tree root (a relay under a command node is that node's)"
+            )
+
+
 def decode_operational_params(ops: dict[str, Any]) -> OperationalParams:
     """Decode the operational-params artifact."""
     type_name = ops.get("TypeName")
@@ -189,6 +209,7 @@ def ops_and_sema_to_dc(
     ops_word = decode_operational_params(ops)
     check_scada_alias(word, ops_word)
     check_sieg_loop_strategy(ops_word)
+    check_energized_standby_relays(ops_word, static)
     return HydronicLayout.from_sema(
         word, capture_tuning=ops_word.CaptureTuningList, **load_kwargs
     )
