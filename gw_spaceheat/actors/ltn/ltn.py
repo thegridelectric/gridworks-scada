@@ -994,11 +994,12 @@ class Ltn(PrimeActor):
                 strict=True,
             )
         ]
-        # TODO: get the real load and RSWT forecasts using house parameters
-        # TODO: adjust load forecast for buffer/house available kwh
+        # TODO: adjust load forecast for buffer available kwh
+        # TODO: use the new hosue energy and RSWT models
         buffer_available_kwh = await self.get_buffer_available_kwh()
-        load_kwh = [5.0] * horizon
-        rswt_f = [140.0] * horizon
+        load_forecast_kwh = await self.get_load_forecast(horizon, buffer_available_kwh)
+        rswt_forecast_f = await self.get_rswt_forecast(load_forecast_kwh)
+        
 
         self.flo_params = HeatPumpWaterTankParams(
             horizon=horizon,
@@ -1015,8 +1016,8 @@ class Ltn(PrimeActor):
             hp_currently_on=not self.hp_is_off,
             elec_usd_mwh=elec_usd_mwh,
             oat_f=list(self.weather_forecast["oat"]),
-            load_kwh=load_kwh,
-            rswt_f=rswt_f,
+            load_kwh=load_forecast_kwh,
+            rswt_f=rswt_forecast_f,
             cop_intercept=self.ha1_params.CopIntercept,
             cop_oat_coeff=self.ha1_params.CopOatCoeff,
             cop_lwt_coeff=self.ha1_params.CopLwtCoeff,
@@ -1041,6 +1042,35 @@ class Ltn(PrimeActor):
         self.bid_runner.start()  
         # Instead of waiting, return to event loop
         self.log("Started Dijkstra computation in background")
+
+    async def get_load_forecast(self, horizon: int, buffer_available_kwh: float | None = None) -> List[float]:
+        alpha = self.ha1_params.AlphaTimes10 / 10
+        beta = self.ha1_params.BetaTimes100 / 100
+        gamma = self.ha1_params.GammaEx6 / 1e6
+        oat_forecast = [float(x) for x in self.weather_forecast["oat"][:horizon]]
+        ws_forecast = [float(x) for x in self.weather_forecast["ws"][:horizon]]
+        load_forecast = [
+            max(0, alpha + beta * oat + gamma * ws * (65 - oat))
+            for oat, ws in zip(oat_forecast, ws_forecast, strict=True)
+        ]
+        # TODO: adjust load forecast for buffer available kwh
+        return load_forecast
+
+    async def get_rswt_forecast(self, load_forecast: List[float]) -> List[float]:
+        intermediate_rswt = self.ha1_params.IntermediateRswtF
+        dd_rswt = self.ha1_params.DdRswtF
+        intermediate_power = self.ha1_params.IntermediatePowerKw
+        dd_power = self.ha1_params.DdPowerKw
+        no_power_rswt = -(self.ha1_params.AlphaTimes10 / 10) / (self.ha1_params.BetaTimes100 / 100)
+        x_rswt = np.array([no_power_rswt, intermediate_rswt, dd_rswt])
+        y_hpower = np.array([0, intermediate_power, dd_power])
+        A = np.vstack([x_rswt**2, x_rswt, np.ones_like(x_rswt)]).T
+        a, b, c = np.linalg.solve(A, y_hpower)
+        rswt_forecast = [
+            round((-b + (b**2 - 4 * a * (c - rhp)) ** 0.5) / (2 * a), 2)
+            for rhp in load_forecast
+        ]
+        return rswt_forecast
 
     def _cleanup_bid_runner(self, ltn_name: str) -> None:  
         """Callback to clean up bid runner when it's done."""
@@ -1445,40 +1475,6 @@ class Ltn(PrimeActor):
         except Exception as e:
             self.log(f"Something failed in get_buffer_available_kwh ({e}), returning 0 kWh")
             return 0
-        
-    # async def get_house_available_kwh(self):
-    #     setpoints = {}
-    #     temps = {}
-    #     thermal_mass = {}
-    #     zone_names = []
-    #     for zone_setpoint in [x for x in self.latest_channel_values if 'zone' in x and 'set' in x]:
-    #         zone_name = zone_setpoint.replace('-set','')
-    #         zone_names.append(zone_name)
-    #         # Get setpoints for each zone
-    #         if self.latest_channel_values[zone_setpoint] is not None:
-    #             setpoints[zone_name] = round(self.latest_channel_values[zone_setpoint]/1000,1)
-    #         # Get temperatures for each zone
-    #         zone_temp = zone_setpoint.replace('-set','-temp')
-    #         if (zone_temp in self.latest_channel_values and self.latest_channel_values[zone_temp] is not None):
-    #             temps[zone_name] = round(self.latest_channel_values[zone_temp]/1000,1)
-    #         # Get thermal mass for each zone
-    #         zone_name_no_prefix = zone_name[6:] if zone_name[:4]=='zone' else zone_name
-    #         if zone_name_no_prefix in self.layout.zone_list:
-    #             zone_index = self.layout.zone_list.index(zone_name_no_prefix)
-    #             thermal_mass[zone_name] = self.layout.zone_kwh_per_deg_f_list[zone_index]
-
-    #     self.log(f"Found all zone setpoints: {setpoints}")
-    #     self.log(f"Found all zone temperatures: {temps}")
-    #     self.log(f"Found all zone thermal masses: {thermal_mass}")
-    #     house_availale_kwh = 0
-    #     for zone in zone_names:
-    #         if 'zone4' in zone or 'upstairs' in zone:
-    #             continue
-    #         if zone in temps and zone in setpoints and zone in thermal_mass:
-    #             house_availale_kwh += thermal_mass[zone] * (temps[zone] - setpoints[zone])
-    #     house_availale_kwh = round(house_availale_kwh,2)
-    #     self.log(f"House available kWh: {house_availale_kwh}")
-    #     return min(0, house_availale_kwh) # TODO: TEMPORARY consider negative values
 
     async def get_weather(self, session: aiohttp.ClientSession) -> None:
         config_dir = self.settings.paths.config_dir
