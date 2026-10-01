@@ -317,8 +317,10 @@ class BidRunner(threading.Thread):
 
                 # Send flo next hour plans through LTN's message processing
                 _, expected_storage_kwh_at_hour1, hourly_hp_kwh_el_plan = result
+                expected_elec_usd_mwh_at_hour1 = float(self.orig_flo_params.elec_usd_mwh[1])
                 flo_next_hour_plans = FloNextHourPlans(
                     ExpectedStorageKwhAtHour1=expected_storage_kwh_at_hour1,
+                    ExpectedElecUsdMwhAtHour1=expected_elec_usd_mwh_at_hour1,
                     HourlyHpKwhElPlan=hourly_hp_kwh_el_plan,
                 )
                 self.send_threadsafe(
@@ -979,9 +981,11 @@ class Ltn(PrimeActor):
         if self.flo_next_hour_plans:
             previous_plan_hp_kwh_el_list = self.flo_next_hour_plans.HourlyHpKwhElPlan
             previous_estimate_storage_kwh_now = self.flo_next_hour_plans.ExpectedStorageKwhAtHour1
+            previous_estimate_elec_usd_mwh_now = self.flo_next_hour_plans.ExpectedElecUsdMwhAtHour1
         else:
             previous_plan_hp_kwh_el_list = None
             previous_estimate_storage_kwh_now = None
+            previous_estimate_elec_usd_mwh_now = None
 
         num_tanks = self.total_store_tanks if self.seasonal_storage_mode == SeasonalStorageMode.AllTanks else 1
         num_layers = int(9 * num_tanks)  # Model uses 9 layers per tank
@@ -1023,6 +1027,7 @@ class Ltn(PrimeActor):
             cop_min_oat_f=float(self.ha1_params.CopMinOatF),
             previous_plan_hp_kwh_el_list=previous_plan_hp_kwh_el_list,
             previous_estimate_storage_kwh_now=previous_estimate_storage_kwh_now,
+            previous_estimate_elec_usd_mwh_now=previous_estimate_elec_usd_mwh_now,
         )
         self.bid_runner = BidRunner(
             params=self.flo_params,
