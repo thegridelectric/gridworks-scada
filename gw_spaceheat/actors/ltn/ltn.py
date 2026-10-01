@@ -1603,7 +1603,7 @@ class Ltn(PrimeActor):
                 return price
             except Exception as e:
                 self.log(f"Error getting forecast price: {e}")
-                return 0 #TODO: define a better default price or even break the contract
+                return 0 #TODO: define a better default price or even LTN doesn't send contract?
         
         # Use the code below instead to use perfect forecasted price instead of real-time price
         # try:
