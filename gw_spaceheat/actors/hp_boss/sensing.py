@@ -2,24 +2,46 @@
 of heat pump, by the hp-odu component's DeviceType, and how its channels
 show what the unit is doing.
 
-Interim. The tables here are the hand-kept copy of what the heat pump's
+Channels or machine states, the litmus test. A channel carries a value
+sampled over time: a reading is a time and a value with no cause, it has
+an age, and a consumer reasons about its value and its freshness. A
+derived channel is a channel whose value is a function of other channels'
+readings by a strategy the layout declares (a sum, a threshold, a
+difference), with no memory beyond its inputs. A machine state carries a
+judgment with memory: entered by a transition with a trigger and a cause,
+held until the next transition, able to carry hysteresis, a blind state
+and a timer. So: if the value now is a pure function of other readings
+now, or of a declared window of them, it is a derived channel; if telling
+it requires remembering what it was, a latch, a timer, a cause, it is a
+machine. Everything the scada commands is a machine. Something observed
+is either, by the test; being an observation does not make it a channel.
+
+This surface supplies both. The unit's state, Off, Charging, Defrost, and
+Unknown while blind, is a machine: it holds across the draw's noise with
+a running-above / stopped-below pair, a defrost is told by the draw
+falling while the state is Charging, and blind is a timer on the inputs'
+age. Its derived channels are the water side: lift (hp-lwt minus hp-ewt)
+and heat output (primary flow times lift), published as soon as the
+channels exist; whether the machine acts on them is the trust question
+below, not whether they are derived. Power is
+not this surface's to derive: the power meter owns every power channel
+and every channel derived from power, since transactive power is the
+whole electrical load, the resistive elements as much as the heat pump.
+This machine reads the power meter's channels; it does not make them.
+
+Interim. The tables below are the hand-kept copy of what the heat pump's
 device-type record (hp.device.type.gt) will carry; the record retires
 them. Two things are known to be wrong with the shape: the running-above /
 stopped-below power pair does not handle defrost (the draw falls while the
 unit is still in a cycle and the pump must keep running), and no heat-pump
 temperature sensor is trusted yet; hp-ewt, hp-lwt, the primary and
 secondary flows and the secondary ewt and lwt join this surface when their
-sensors, some of them picos, earn trust.
-
-Where this converges: hp-boss runs a sensed machine of the unit's state,
-Off, Charging, Defrost, and Unknown while blind, derived here once from
-the power channels and later confirmed by lift, reported as a machine
-state like every other machine in the scada, and every consumer (the pump
-posture, the cold logic, the sieg strategy, which still carries its own
-idle-draw line in sieg_loop/strat_protect.py) reads that state rather
-than the raw draw. The state is the unit's, never a compressor's: some
-units have two compressors, and nothing outside this package knows how
-many.
+sensors, some of them picos, earn trust. The machine above is not built;
+today the Nolan heating machine and House0's plant judgment read these
+tables directly, and the sieg loop carries its own idle-draw line in
+sieg_loop/strat_protect.py. The state is the unit's, never a compressor's:
+some units have two compressors, and nothing outside this package knows
+how many.
 """
 
 from typing import Literal, NamedTuple
