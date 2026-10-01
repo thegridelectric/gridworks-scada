@@ -5,7 +5,9 @@ the loader can select and every sieg-loop strategy. A standby row also
 proves the standby posture: the relays the normal node claims sit
 de-energized except the ops word's EnergizedStandbyRelays, the 0-10V
 outputs at their power-on level, hp-boss at HpOff, the sieg loop (House0)
-in HoldFullSend.
+in HoldFullSend. Admin taking the tree and disturbing it (the heat pump
+on, a relay energized) leaves nothing behind: on release the standby
+machine re-sets the posture and hp-boss is HpOff again.
 
 The rows are an each-choice covering (a 1-wise covering array), not the
 product of the axes: every value of every axis appears in at least one
@@ -18,6 +20,8 @@ HoldFullSend whatever the field says (`actors/sieg_loop/strategy.py`
 row covering the new value."""
 
 import json
+import time
+import uuid
 from pathlib import Path
 from typing import NamedTuple
 
@@ -29,7 +33,17 @@ from actors.relay import Relay, UNKNOWN_STATE
 from actors.sieg_loop import SiegLoop
 from actors.sieg_loop.hold_full_send import HoldFullSend
 from actors.zero_ten_outputer import ZeroTenOutputer
-from gwsproto.enums import ActorClass, HpBossState, SeasonalStorageMode, ServiceMode, SiegLoopStrategy
+from gwsproto.enums import (
+    ActorClass,
+    HpBossState,
+    LocalControlStandbyTopState,
+    SeasonalStorageMode,
+    ServiceMode,
+    SiegLoopStrategy,
+    TurnHpOnOff,
+)
+from gwsproto.enums.top_state import TopState
+from gwsproto.named_types import AdminDispatch, AdminReleaseControl, FsmEvent
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.house0.node_names import House0NodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
@@ -195,3 +209,91 @@ async def test_every_relay_leaves_unknown_at_boot(
 ) -> None:
     layout_file, ops_file = LAYOUTS[row.layout]
     await assert_boot(request, CONFIG / layout_file, row_ops(tmp_path, ops_file, row), row)
+
+
+STANDBY_ROWS = tuple(row for row in ROWS if row.local_control.standby)
+
+
+def admin_dispatch(to_name: str, event_type: str, event_name: str) -> AdminDispatch:
+    """The admin client's wire shape for a state command to one node."""
+    return AdminDispatch(
+        DispatchTrigger=FsmEvent(
+            FromHandle=CoreNodeNames.admin,
+            ToHandle=f"{CoreNodeNames.admin}.{to_name}",
+            EventType=event_type,
+            EventName=event_name,
+            SendTimeUnixMs=int(time.time() * 1000),
+            TriggerId=str(uuid.uuid4()),
+        ),
+        TimeoutSeconds=120,
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "row", STANDBY_ROWS, ids=[f"{r.layout}-{r.local_control.machine}" for r in STANDBY_ROWS]
+)
+async def test_standby_posture_restored_after_admin(
+    request: pytest.FixtureRequest, tmp_path: Path, row: Row
+) -> None:
+    """Standby boots to its posture; admin takes the tree, turns the heat
+    pump on and energizes a relay the ops word does not list; on release
+    the posture is back and hp-boss is HpOff again."""
+    layout_file, ops_file = LAYOUTS[row.layout]
+    ops_path = row_ops(tmp_path, ops_file, row)
+    layout = load_layout(CONFIG / layout_file, ops_path)
+    async with ScadaLiveTest(request=request, layout=layout, ops_path=ops_path) as h:
+        h.start_child1()
+        scada = h.child1_app.scada
+        lc = scada.services.get_communicator_as_type(CoreNodeNames.local_control, LocalControl)
+        assert lc is not None
+        energized = lc.ops.EnergizedStandbyRelays
+        relays = {
+            node.Name: scada.services.get_communicator_as_type(node.Name, Relay)
+            for node in scada.layout.nodes.values()
+            if node.ActorClass == ActorClass.Relay
+        }
+        hp_boss = scada.services.get_communicator_as_type(HSNN.hp_boss, HpBoss)
+        assert hp_boss is not None
+        await h.await_for(
+            lambda: all(relay.state != UNKNOWN_STATE for relay in relays.values())
+            and hp_boss.state == HpBossState.HpOff,
+            "ERROR waiting for the standby posture at boot",
+            timeout=10,
+        )
+        assert_standby_posture(h, relays, energized)
+        normal_handle = scada.layout.node(CoreNodeNames.local_control_normal).handle
+        disturbed_name = next(
+            name
+            for name in sorted(relays)
+            if scada.layout.node(name).handle == f"{normal_handle}.{name}" and name not in energized
+        )
+        disturbed = relays[disturbed_name]
+        cfg = disturbed.relay_actor_config
+
+        scada.process_scada_message(
+            scada.admin, admin_dispatch(HSNN.hp_boss, TurnHpOnOff.enum_name(), TurnHpOnOff.TurnOn)
+        )
+        assert scada.top_state == TopState.Admin
+        assert lc.top_state == LocalControlStandbyTopState.Dormant
+        await h.await_for(
+            lambda: hp_boss.state == HpBossState.HpOn,
+            "ERROR waiting for admin's TurnOn to reach HpOn",
+        )
+        scada.process_scada_message(
+            scada.admin, admin_dispatch(disturbed_name, cfg.EventType, cfg.EnergizingEvent)
+        )
+        await h.await_for(
+            lambda: disturbed.state == cfg.EnergizedState,
+            f"ERROR waiting for admin to energize {disturbed_name}",
+        )
+
+        scada.process_scada_message(scada.admin, AdminReleaseControl())
+        assert scada.top_state == TopState.Auto
+        assert lc.top_state == LocalControlStandbyTopState.EverythingOff
+        await h.await_for(
+            lambda: hp_boss.state == HpBossState.HpOff and disturbed.state == cfg.DeEnergizedState,
+            "ERROR waiting for the standby posture to be restored after admin's release",
+            timeout=10,
+        )
+        assert_standby_posture(h, relays, energized)

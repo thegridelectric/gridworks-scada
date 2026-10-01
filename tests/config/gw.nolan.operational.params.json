@@ -6,7 +6,9 @@
     "TypeName": "gw.nolan.family.params",
     "Version": "000",
     "KeepBufferFull": false,
-    "SeasonalStorageMode": "AllTanks"
+    "SeasonalStorageMode": "AllTanks",
+    "BufferFullF": 130,
+    "BufferChargeF": 90
   },
   "CaptureTuningList": [
     {

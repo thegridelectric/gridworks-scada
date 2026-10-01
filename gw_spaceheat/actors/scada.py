@@ -1070,6 +1070,7 @@ class Scada(PrimeActor, ScadaInterface):
                 return
             if self.contract_handler.latest_scada_hb is None: # contract already wrapped up
                 return_hb = self.contract_handler.start_new_contract_hb(ltn_hb) #sets up matching latest_scada_hb
+                self.process_new_contract()
                 if self.auto_state == MainAutoState.LocalControl:
                     self.dispatch_contract_live() # sets up the trees, changes state, let's aa and h know
                 elif self.auto_state == MainAutoState.LeafTransactiveNode:
@@ -1085,6 +1086,7 @@ class Scada(PrimeActor, ScadaInterface):
                 self._send_to(self.ltn, completion_hb)
 
                 self.contract_handler.start_new_contract_hb(ltn_hb)
+                self.process_new_contract()
 
                 self._send_to(self.leaf_ally, self.contract_handler.latest_scada_hb.Contract)
                 # will send hb in process_suit_up, after leaf ally acknowledges
@@ -1108,7 +1110,10 @@ class Scada(PrimeActor, ScadaInterface):
             self.note_ltn_dispatching(True)
 
     def process_new_contract(self) -> None:
-        """Called after contract is confirmed (SuitUp received)"""
+        """Start the end-of-contract timing for the latest contract: when
+        the scada starts one, and again when the ally suits up (the ally
+        suits up once per wake, so a contract that follows another back to
+        back never brings a SuitUp of its own)."""
         # Cancel any existing timers
         if hasattr(self, 'contract_task'):
             self.contract_task.cancel()

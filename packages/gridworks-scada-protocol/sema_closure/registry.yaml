@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-09-30T18:35:00Z"
+  last_updated: "2026-10-01T00:45:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -942,10 +942,11 @@ types:
         schema_url: "https://schemas.electricity.works/types/gw.nolan.family.params/000"
         created: "2026-09-17T23:45:00Z"
         status: "staging"
-        summary: "Initial version: KeepBufferFull, SeasonalStorageMode. All required."
+        summary: "Initial version: KeepBufferFull, SeasonalStorageMode, BufferFullF, BufferChargeF. All required. Axiom 1: BufferChargeF below BufferFullF."
         direct_dependencies:
           structural:
             - "gw1.seasonal.storage.mode:000"
+            - "positive.int"
 
   gw.nolan.layout:
     latest_version: "000"
