@@ -74,6 +74,7 @@ HOUSE0_CONTROLS = (
     LocalControlChoice("StandbyLocalControl", True, SeasonalStorageMode.AllTanks, ServiceMode.Heating),
 )
 NOLAN_CONTROLS = (
+    LocalControlChoice("NolanBufferOnlyTou", False, SeasonalStorageMode.BufferOnly, ServiceMode.Heating),
     LocalControlChoice("NolanCoolingTou", False, SeasonalStorageMode.AllTanks, ServiceMode.Cooling),
     LocalControlChoice("StandbyLocalControl", True, SeasonalStorageMode.AllTanks, ServiceMode.Cooling),
 )
@@ -98,6 +99,7 @@ ROWS = (
     Row("willow", HOUSE0_CONTROLS[2], SiegLoopStrategy.HoldFullSend),  # Standby forces HoldFullSend
     Row("nolan", NOLAN_CONTROLS[0], None),
     Row("nolan", NOLAN_CONTROLS[1], None),
+    Row("nolan", NOLAN_CONTROLS[2], None),
 )
 
 

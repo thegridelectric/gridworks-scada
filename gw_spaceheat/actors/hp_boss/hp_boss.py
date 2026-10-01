@@ -1,3 +1,7 @@
+"""HpBoss: the heat pump's command node in every layout, owning the call
+relay and the turn-on strategy. The sensing side of the heat pump is
+`sensing.py` beside this file."""
+
 import asyncio
 import time
 import uuid

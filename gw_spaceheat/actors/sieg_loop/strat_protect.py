@@ -46,6 +46,10 @@ class SiegControlEvent(GwStrEnum):
 class StratProtect(SiegStrategy):
     # Seconds after hp-boss reports off before power above the draw of an
     # idle heat pump means the loop is blind to what the heat pump is doing.
+    # Interim: these two are heat-pump facts spelled again here (the
+    # hp-boss sensing surface, actors/hp_boss/sensing.py, holds the same
+    # draw and lag by device type) and not keyed by device type; they
+    # belong there, read as the unit's sensed state once it reports one.
     OFF_SETTLE_S = 120
     OFF_POWER_W = 500
 

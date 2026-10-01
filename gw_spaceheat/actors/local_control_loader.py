@@ -34,6 +34,9 @@ class LocalControl(ShNodeActor):
         elif nolan and service_mode == ServiceMode.Cooling:
             module = importlib.import_module("actors.local_control.nolan")
             impl_class = getattr(module, "NolanCoolingTou")
+        elif nolan and service_mode == ServiceMode.Heating and seasonal_storage_mode == SeasonalStorageMode.BufferOnly:
+            module = importlib.import_module("actors.local_control.nolan_buffer_only_tou")
+            impl_class = getattr(module, "NolanBufferOnlyTou")
         elif not nolan and service_mode == ServiceMode.Heating and seasonal_storage_mode == SeasonalStorageMode.AllTanks:
             module = importlib.import_module("actors.local_control.house0.all_tanks_tou")
             impl_class = getattr(module, "AllTanksTouLocalControl")

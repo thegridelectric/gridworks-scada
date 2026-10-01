@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-import actors.hydronic.house0 as house0_module
+import actors.hp_boss.sensing as sensing
 from actors.hydronic.house0 import House0Hydronic
 from gwsproto.enums import (
     ChangeAquastatControl,
@@ -307,9 +307,9 @@ def test_defrost_signature_by_the_hp_odu_device_type(
 ) -> None:
     device_type = actor.layout.node(HSNN.hp_odu).component.gt.DeviceType
     monkeypatch.setitem(
-        house0_module.DEFROST_SIGNATURES,
+        sensing.DEFROST_SIGNATURES,
         device_type,
-        house0_module.DefrostSignature(draw, max_w),
+        sensing.DefrostSignature(draw, max_w),
     )
     read_now(actor, HCN.hp_idu_pwr, idu)
     read_now(actor, HCN.hp_odu_pwr, odu)
@@ -321,9 +321,9 @@ def test_defrost_is_false_without_the_watched_draw(
 ) -> None:
     device_type = actor.layout.node(HSNN.hp_odu).component.gt.DeviceType
     monkeypatch.setitem(
-        house0_module.DEFROST_SIGNATURES,
+        sensing.DEFROST_SIGNATURES,
         device_type,
-        house0_module.DefrostSignature("total", 8_400),
+        sensing.DefrostSignature("total", 8_400),
     )
     read_now(actor, HCN.hp_idu_pwr, 100)
     read_now(actor, HCN.hp_odu_pwr, None)

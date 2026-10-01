@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-import actors.hydronic.house0 as house0_module
+import actors.hp_boss.sensing as sensing
 from actors.hydronic.house0 import House0Hydronic
 from actors.scada_data import ScadaData
 from actors.sh_node_actor import ShNodeActor
@@ -105,9 +105,9 @@ def defrost_actors(monkeypatch: pytest.MonkeyPatch) -> tuple[House0Hydronic, Hou
     assert isinstance(la, House0Hydronic)
     assert lc.data is la.data
     monkeypatch.setitem(
-        house0_module.DEFROST_SIGNATURES,
+        sensing.DEFROST_SIGNATURES,
         lc.layout.node(HSNN.hp_odu).component.gt.DeviceType,
-        house0_module.DefrostSignature("idu", DEFROST_MAX_W),
+        sensing.DefrostSignature("idu", DEFROST_MAX_W),
     )
     return lc, la
 

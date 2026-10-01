@@ -6,7 +6,7 @@ separately."""
 
 import time
 import uuid
-from typing import Literal, NamedTuple, Optional
+from typing import Optional
 from pydantic import ValidationError
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
@@ -26,26 +26,11 @@ from gwsproto.names.hydronic_spaceheat.node_names import (
     HydronicSpaceheatNodeNames as HSNN,
 )
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
+from actors.hp_boss.sensing import DEFROST_SIGNATURES
 from actors.hydronic.shared import HydronicNode
 from actors.hydronic.store_temps import scrub_and_fill_store_temps
 from sema_to_dc import zero_ten_power_on_volts_times_ten
 
-class DefrostSignature(NamedTuple):
-    """How a heat pump shows it is defrosting: which draw to watch (the
-    indoor unit alone, or indoor + outdoor) and the watt line it falls
-    under while the compressor reverses."""
-
-    draw: Literal["idu", "total"]
-    max_w: int
-
-
-DEFROST_SIGNATURES: dict[str, DefrostSignature] = {
-    "LGARUM048GSS5": DefrostSignature("total", 8400),
-    "SamsungAE055FCYDCG": DefrostSignature("idu", 4000),  # the hydro-kit pairing (fir)
-}
-"""By the hp-odu component's DeviceType. A unit not listed has no known
-signature and is never judged in defrost. Hand-kept until
-hp.device.type.gt carries the signature, which retires this table."""
 
 
 class House0Hydronic(HydronicNode):

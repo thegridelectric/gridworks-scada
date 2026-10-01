@@ -121,6 +121,15 @@ def test_gw_operational_params_axiom_5_c_nolan_list_is_empty() -> None:
         OperationalParams.model_validate(d)
 
 
+def test_gw_nolan_family_params_axiom_1_charge_not_below_full() -> None:
+    d = ops("gw.nolan.operational.params.json")
+    family = d["FamilyParams"]
+    assert family["BufferChargeF"] < family["BufferFullF"]
+    family["BufferChargeF"] = family["BufferFullF"]
+    with pytest.raises(ValueError, match="Axiom 1 \\(ChargeBelowFull\\)"):
+        OperationalParams.model_validate(d)
+
+
 def test_standby_relays_are_relays_the_normal_node_claims() -> None:
     """Assembly refuses an EnergizedStandbyRelays name that is not a Relay
     ShNode whose boot handle sits directly under the tree root (the relays
