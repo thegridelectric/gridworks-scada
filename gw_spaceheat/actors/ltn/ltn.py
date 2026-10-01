@@ -994,13 +994,11 @@ class Ltn(PrimeActor):
                 strict=True,
             )
         ]
-        # TODO: adjust load forecast for buffer available kwh
-        # TODO: use the new hosue energy and RSWT models
+        # TODO: use the new house load and RSWT models
         buffer_available_kwh = await self.get_buffer_available_kwh()
         load_forecast_kwh = await self.get_load_forecast(horizon, buffer_available_kwh)
         rswt_forecast_f = await self.get_rswt_forecast(load_forecast_kwh)
         
-
         self.flo_params = HeatPumpWaterTankParams(
             horizon=horizon,
             start_unix_s=start_unix_s,
@@ -1044,6 +1042,7 @@ class Ltn(PrimeActor):
         self.log("Started Dijkstra computation in background")
 
     async def get_load_forecast(self, horizon: int, buffer_available_kwh: float | None = None) -> List[float]:
+        # Compute load forecast based on weather forecast
         alpha = self.ha1_params.AlphaTimes10 / 10
         beta = self.ha1_params.BetaTimes100 / 100
         gamma = self.ha1_params.GammaEx6 / 1e6
@@ -1053,7 +1052,16 @@ class Ltn(PrimeActor):
             max(0, alpha + beta * oat + gamma * ws * (65 - oat))
             for oat, ws in zip(oat_forecast, ws_forecast, strict=True)
         ]
-        # TODO: adjust load forecast for buffer available kwh
+        # Adjust for available buffer energy
+        i = 0
+        if buffer_available_kwh < 0:
+            load_forecast[0] += -buffer_available_kwh
+        else:
+            while buffer_available_kwh > 0 and i < len(load_forecast):
+                load_backup = load_forecast[i]
+                load_forecast[i] = load_forecast[i] - min(buffer_available_kwh, load_forecast[i])
+                buffer_available_kwh = buffer_available_kwh - min(buffer_available_kwh, load_backup)
+                i += 1
         return load_forecast
 
     async def get_rswt_forecast(self, load_forecast: List[float]) -> List[float]:
