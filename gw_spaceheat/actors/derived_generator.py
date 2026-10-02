@@ -179,8 +179,10 @@ class DerivedGenerator(ShNodeActor):
         else:
             tank_index = self.layout.h0n.tank_index(from_node.name)
             if tank_index is None:
-                self.send_info(f"derived-generator got SyncedReadings from {from_node.name}"
-                               " and only expects from tanks!")
+                # Pipe-thermistor tank modules (dist, sieg) post here too;
+                # their readings are not derived from, so no glitch.
+                # self.send_info(f"derived-generator got SyncedReadings from {from_node.name}"
+                #                " and only expects from tanks!")
                 return
             calibration = self.tmap.Tank[tank_index]
             tank = self.h0cn.tank[tank_index]
