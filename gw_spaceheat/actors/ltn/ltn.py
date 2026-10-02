@@ -1070,6 +1070,16 @@ class Ltn(PrimeActor):
         return load_forecast
 
     async def get_rswt_forecast(self, load_forecast: List[float]) -> List[float]:
+        # rswt_coeff_chc = ...
+        # rswt_intercept_chc = ...
+        # m_kg_chc = ...
+        # heat_capacity = 4.187 / 3600 # kWh/kg/K
+        # rswt_forecast = [
+        #     1/(1-rswt_coeff_chc) * (load_forecast[i]/(m_kg_chc*heat_capacity) + rswt_intercept_chc)
+        #     for i in range(len(load_forecast))
+        # ]
+        # return rswt_forecast
+
         intermediate_rswt = self.ha1_params.IntermediateRswtF
         dd_rswt = self.ha1_params.DdRswtF
         intermediate_power = self.ha1_params.IntermediatePowerKw
