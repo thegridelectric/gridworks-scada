@@ -12,10 +12,12 @@ pump's own limits stop it when the buffer is hot.
 
 The postures are not states. Every zone is on its thermostat with the
 scada relay open; the store circuit is closed; the secondary pump and iso
-valve follow measured heat-pump power, on above the on-threshold, off on
-the first read below the off-threshold, on while the power is unknown.
-The loop derives the postures each check and commands a change; the
-relay layer's assert-then-verify holds the pins between commands.
+valve follow the hp-sensor machine's state, to which this machine
+subscribes: off while the heat pump is detected off, on while it is
+detected on and while the state is unknown. The pump is commanded the
+moment a state arrives. The loop derives the postures each check and
+commands a change; the relay layer's assert-then-verify holds the pins
+between commands.
 """
 
 import asyncio
@@ -32,6 +34,7 @@ from transitions import Machine
 
 from actors.hp_boss.sensing import HP_TRAITS, HpTraits
 from actors.hydronic.nolan import NolanHydronic
+from actors.in_process_messages import MachineStateSubscribe
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
     ChangeRelayState,
@@ -40,6 +43,7 @@ from gwsproto.enums import (
     LocalControlTopEvent,
     LocalControlTopState,
     NolanLcBufferOnlyState,
+    SpruceHackHpState,
 )
 from gwsproto.enums.gw_str_enum import SemaEnum
 from gwsproto.named_types import (
@@ -202,6 +206,9 @@ class NolanBufferOnlyTou(NolanHydronic):
             )
         ]
         self.buffer_full: bool = False
+        # The heat pump as hp-sensor last reported it; Unknown until a
+        # state arrives.
+        self.hp_state: SpruceHackHpState = SpruceHackHpState.Unknown
         # The commanded secondary-pump state; None until the first decision.
         self.pump_on: Optional[bool] = None
         # Whether the hp-boss was last commanded to a closed call.
@@ -228,7 +235,6 @@ class NolanBufferOnlyTou(NolanHydronic):
         self.log(
             f"Starting NolanBufferOnlyTou in Normal (band "
             f"{self.family.BufferChargeF}-{self.family.BufferFullF} F, "
-            f"pump {self.traits.on_above_w}/{self.traits.off_below_w} W, "
             f"call opens {self.traits.call_open_lead_s} s before on-peak, "
             f"for {device_type})"
         )
@@ -317,18 +323,9 @@ class NolanBufferOnlyTou(NolanHydronic):
     # ---- the postures ----
 
     def pump_wanted(self) -> bool:
-        """On above the on-threshold, off below the off-threshold, held
-        between; on while the heat-pump power is unknown."""
-        if not self.channel_is_live(HCN.hp_odu_pwr):
-            return True
-        watts = self.data.latest_channel_values.get(HCN.hp_odu_pwr)
-        if watts is None:
-            return True
-        if watts > self.traits.on_above_w:
-            return True
-        if watts < self.traits.off_below_w:
-            return False
-        return True if self.pump_on is None else self.pump_on
+        """Off while hp-sensor says the heat pump is off; on while it says
+        on and while it does not know."""
+        return self.hp_state != SpruceHackHpState.HpDetectedOff
 
     def enforce_pump(self) -> None:
         wanted = self.pump_wanted()
@@ -356,7 +353,7 @@ class NolanBufferOnlyTou(NolanHydronic):
     def boot(self) -> None:
         """The boot posture, commanded once the actuators are ready: zones
         on their thermostats, the store circuit closed, the call open, the
-        pump per the power rule. Initializing -> HpCallOff."""
+        pump per the hp-sensor state. Initializing -> HpCallOff."""
         for failsafe, ops_relay in self.zone_relays:
             self.send_state_command(
                 failsafe,
@@ -438,14 +435,32 @@ class NolanBufferOnlyTou(NolanHydronic):
         self.trigger_call_event(NolanLcBufferOnlyEvent.CallWakeUp)
         self.boot()
 
+    def on_hp_sensor_state(self, state: SpruceHackHpState) -> None:
+        """The pump follows the moment a state arrives, when this machine
+        holds the tree."""
+        self.hp_state = state
+        if not self.actuators_ready or self.top_state in (
+            LocalControlTopState.Dormant,
+            LocalControlTopState.Monitor,
+        ):
+            return
+        self.enforce_pump()
+
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         from_node = self.layout.node(message.Header.Src, None)
         if from_node is None:
             self.log("Not processing message from message.Header.Src - no Node!")
             return Ok(True)
-        match message.Payload:
+        payload = message.Payload
+        match payload:
             case ActuatorsReady():
                 self.on_actuators_ready()
+            case SingleMachineState():
+                if (
+                    from_node.name == HSNN.hp_sensor
+                    and payload.StateEnum == SpruceHackHpState.enum_name()
+                ):
+                    self.on_hp_sensor_state(SpruceHackHpState(payload.State))
             case GoDormant():
                 self.go_dormant()
             case WakeUp():
@@ -455,6 +470,7 @@ class NolanBufferOnlyTou(NolanHydronic):
     # ---- lifecycle ----
 
     def start(self) -> None:
+        self._send_to(self.primary_scada, MachineStateSubscribe(NodeName=HSNN.hp_sensor))
         self._send_to(
             self.primary_scada,
             SingleMachineState(

@@ -17,10 +17,12 @@ from pathlib import Path
 
 import pytest
 import pytz
+from gwproto.message import Header, Message
 from pydantic import ValidationError
 
 from actors.local_control.nolan.buffer_only_cooling_tou import NolanBufferOnlyCoolingTou
 from actors.hp_boss.sensing import HP_TRAITS, HpTraits, validated_hp_traits
+from actors.in_process_messages import MachineStateSubscribe
 from actors.local_control.nolan.buffer_only_tou import NolanBufferOnlyTou
 from actors.local_control_loader import LocalControl
 from gwsproto.enums import (
@@ -35,6 +37,7 @@ from gwsproto.enums import (
     SeasonalStorageMode,
     ServiceMode,
     SimDeviceType,
+    SpruceHackHpState,
     TurnHpOnOff,
 )
 from gwsproto.named_types import (
@@ -407,8 +410,8 @@ def test_hp_traits_off_line_below_on_line() -> None:
 def test_heating_boot_posture(heat: NolanBufferOnlyTou) -> None:
     """After ActuatorsReady: every zone on its thermostat with the scada
     relay open, the store circuit closed, the call open, and the secondary
-    pump on with the iso valve open because the heat-pump power is not
-    known yet. The machine reports HpCallOff and nothing more."""
+    pump on with the iso valve open because no hp-sensor state has
+    arrived yet. The machine reports HpCallOff and nothing more."""
     heat.on_actuators_ready()
     assert commands(heat) == ZONE_RELEASE + STORE_CLOSED + CALL_OFF + PUMP_ON
     assert call_states(heat) == [NolanLcBufferOnlyState.HpCallOff]
@@ -484,34 +487,78 @@ def test_heating_call_opens_before_onpeak(heat: NolanBufferOnlyTou) -> None:
     assert commands(heat) == CALL_ON
 
 
-def test_heating_pump_follows_power(heat: NolanBufferOnlyTou) -> None:
-    """Secondary pump and iso valve: on above the on-threshold, off on the
-    first read below the off-threshold, held between, on when the power is
-    unknown. Not a function of the call."""
+def hp_sensor_says(actor: NolanBufferOnlyTou, state: SpruceHackHpState) -> None:
+    """The hp-sensor state as the scada forwards it to a subscriber."""
+    payload = SingleMachineState(
+        MachineHandle=HSNN.hp_sensor,
+        StateEnum=SpruceHackHpState.enum_name(),
+        State=state,
+        UnixMs=int(time.time() * 1000),
+    )
+    actor.process_message(
+        Message(
+            header=Header(Src=HSNN.hp_sensor, Dst=actor.name, MessageType=payload.TypeName),
+            Payload=payload,
+        )
+    )
+
+
+@pytest.mark.asyncio
+async def test_heating_subscribes_to_hp_sensor_at_start(heat: NolanBufferOnlyTou) -> None:
+    heat._stop_requested = True  # the two loops end at once
+    heat._send = lambda message: None  # the watchdog pat
+    heat.start()
+    assert [
+        (dst, p.NodeName) for dst, p in heat.sent if isinstance(p, MachineStateSubscribe)
+    ] == [(CoreNodeNames.primary_scada, HSNN.hp_sensor)]
+
+
+def test_heating_pump_follows_hp_sensor(heat: NolanBufferOnlyTou) -> None:
+    """Secondary pump and iso valve follow the hp-sensor state the moment
+    it arrives, with no check in between: off in HpDetectedOff, on in
+    HpDetectedOn and in Unknown, and on before any state has arrived. Not
+    a function of the call, and the watts are not read."""
     heat.on_actuators_ready()
+    assert commands(heat)[-2:] == PUMP_ON
     buffer_at(heat, 120, 130)  # full, so the call stays off throughout
     heat.sent.clear()
-    read_at(heat, HCN.hp_odu_pwr, 50)
-    heat.check(ONPEAK)
+    hp_sensor_says(heat, SpruceHackHpState.HpDetectedOff)
     assert commands(heat) == PUMP_OFF
     heat.sent.clear()
-    read_at(heat, HCN.hp_odu_pwr, 300)
-    heat.check(ONPEAK)
-    assert commands(heat) == []
     read_at(heat, HCN.hp_odu_pwr, 600)
     heat.check(ONPEAK)
+    hp_sensor_says(heat, SpruceHackHpState.HpDetectedOff)
+    assert commands(heat) == []
+    hp_sensor_says(heat, SpruceHackHpState.HpDetectedOn)
     assert commands(heat) == PUMP_ON
     heat.sent.clear()
-    read_at(heat, HCN.hp_odu_pwr, 300)
-    heat.check(ONPEAK)
-    assert commands(heat) == []
+    hp_sensor_says(heat, SpruceHackHpState.Unknown)
     read_at(heat, HCN.hp_odu_pwr, 50)
     heat.check(ONPEAK)
+    assert commands(heat) == []
+    hp_sensor_says(heat, SpruceHackHpState.HpDetectedOff)
     assert commands(heat) == PUMP_OFF
     heat.sent.clear()
-    read_at(heat, HCN.hp_odu_pwr, None)
-    heat.check(ONPEAK)
+    hp_sensor_says(heat, SpruceHackHpState.Unknown)
     assert commands(heat) == PUMP_ON
+
+
+def test_heating_hp_sensor_state_while_dormant_waits_for_the_wake(
+    heat: NolanBufferOnlyTou,
+) -> None:
+    """While admin holds the tree a state is kept and nothing is
+    commanded; the boot on release commands the pump by it."""
+    heat.on_actuators_ready()
+    for node in heat.my_actuators():  # admin has taken the tree
+        node.Handle = f"admin.{node.Name}"
+    heat.go_dormant()
+    heat.sent.clear()
+    hp_sensor_says(heat, SpruceHackHpState.HpDetectedOff)
+    assert commands(heat) == []
+    for node in heat.layout.actuators:  # the scada hands the tree back first
+        node.Handle = f"{heat.node.handle}.{node.Name}"
+    heat.wake_up()
+    assert commands(heat) == ZONE_RELEASE + STORE_CLOSED + CALL_OFF + PUMP_OFF
 
 
 def test_heating_scada_blind(heat: NolanBufferOnlyTou) -> None:
