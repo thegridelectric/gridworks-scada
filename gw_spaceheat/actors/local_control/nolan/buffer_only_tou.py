@@ -21,6 +21,7 @@ relay layer's assert-then-verify holds the pins between commands.
 import asyncio
 import time
 from datetime import datetime, timedelta
+from enum import auto
 from typing import Optional, Sequence
 
 from gwproactor import MonitoredName
@@ -40,6 +41,7 @@ from gwsproto.enums import (
     LocalControlTopState,
     NolanLcBufferOnlyState,
 )
+from gwsproto.enums.gw_str_enum import SemaEnum
 from gwsproto.named_types import (
     ActuatorsReady,
     GoDormant,
@@ -58,6 +60,35 @@ from gwsproto.names.nolan.node_names import NolanNodeNames
 from scada_app_interface import ScadaAppInterface
 
 
+class NolanLcBufferOnlyEvent(SemaEnum):
+    """The events that move the Nolan heating machine's call between the
+    gw1.nolan.lc.buffer.only.state values; each transition reports its
+    event as the SingleMachineState Cause. Local to this machine and not a
+    published sema word."""
+
+    Boot = auto()
+    CallOn = auto()
+    CallOff = auto()
+    CallGoDormant = auto()
+    CallWakeUp = auto()
+
+    @classmethod
+    def default(cls) -> "NolanLcBufferOnlyEvent":
+        return cls.CallWakeUp
+
+    @classmethod
+    def values(cls) -> list[str]:
+        return [elt.value for elt in cls]
+
+    @classmethod
+    def enum_name(cls) -> str:
+        return "gw1.nolan.lc.buffer.only.event"
+
+    @classmethod
+    def enum_version(cls) -> str:
+        return "000"
+
+
 class NolanBufferOnlyTou(NolanHydronic):
     MAIN_LOOP_SLEEP_SECONDS = 300
     TOU_CHECK_S = 60.0
@@ -73,27 +104,75 @@ class NolanBufferOnlyTou(NolanHydronic):
 
     top_states = LocalControlTopState.values()
     top_transitions = [
-        {"trigger": "MonitorOnly", "source": "Normal", "dest": "Monitor"},
-        {"trigger": "MonitorAndControl", "source": "Monitor", "dest": "Normal"},
-        {"trigger": "MissingData", "source": "Normal", "dest": "ScadaBlind"},
-        {"trigger": "DataAvailable", "source": "ScadaBlind", "dest": "Normal"},
-        {"trigger": "TopGoDormant", "source": "Normal", "dest": "Dormant"},
-        {"trigger": "TopGoDormant", "source": "Monitor", "dest": "Dormant"},
-        {"trigger": "TopGoDormant", "source": "ScadaBlind", "dest": "Dormant"},
-        {"trigger": "TopWakeUp", "source": "Dormant", "dest": "Normal"},
+        {
+            "trigger": LocalControlTopEvent.MonitorOnly,
+            "source": LocalControlTopState.Normal,
+            "dest": LocalControlTopState.Monitor,
+        },
+        {
+            "trigger": LocalControlTopEvent.MonitorAndControl,
+            "source": LocalControlTopState.Monitor,
+            "dest": LocalControlTopState.Normal,
+        },
+        {
+            "trigger": LocalControlTopEvent.MissingData,
+            "source": LocalControlTopState.Normal,
+            "dest": LocalControlTopState.ScadaBlind,
+        },
+        {
+            "trigger": LocalControlTopEvent.DataAvailable,
+            "source": LocalControlTopState.ScadaBlind,
+            "dest": LocalControlTopState.Normal,
+        },
+        {
+            "trigger": LocalControlTopEvent.TopGoDormant,
+            "source": LocalControlTopState.Normal,
+            "dest": LocalControlTopState.Dormant,
+        },
+        {
+            "trigger": LocalControlTopEvent.TopGoDormant,
+            "source": LocalControlTopState.Monitor,
+            "dest": LocalControlTopState.Dormant,
+        },
+        {
+            "trigger": LocalControlTopEvent.TopGoDormant,
+            "source": LocalControlTopState.ScadaBlind,
+            "dest": LocalControlTopState.Dormant,
+        },
+        {
+            "trigger": LocalControlTopEvent.TopWakeUp,
+            "source": LocalControlTopState.Dormant,
+            "dest": LocalControlTopState.Normal,
+        },
     ]
 
     call_states = NolanLcBufferOnlyState.values()
     call_transitions = [
-        {"trigger": "Boot", "source": "Initializing", "dest": "HpCallOff"},
-        {"trigger": "CallOn", "source": "HpCallOff", "dest": "HpCallOn"},
-        {"trigger": "CallOff", "source": "HpCallOn", "dest": "HpCallOff"},
         {
-            "trigger": "CallGoDormant",
-            "source": ["Initializing", "HpCallOn", "HpCallOff"],
-            "dest": "Dormant",
+            "trigger": NolanLcBufferOnlyEvent.Boot,
+            "source": NolanLcBufferOnlyState.Initializing,
+            "dest": NolanLcBufferOnlyState.HpCallOff,
         },
-        {"trigger": "CallWakeUp", "source": "Dormant", "dest": "Initializing"},
+        {
+            "trigger": NolanLcBufferOnlyEvent.CallOn,
+            "source": NolanLcBufferOnlyState.HpCallOff,
+            "dest": NolanLcBufferOnlyState.HpCallOn,
+        },
+        {
+            "trigger": NolanLcBufferOnlyEvent.CallOff,
+            "source": NolanLcBufferOnlyState.HpCallOn,
+            "dest": NolanLcBufferOnlyState.HpCallOff,
+        },
+        {
+            "trigger": NolanLcBufferOnlyEvent.CallGoDormant,
+            "source": [NolanLcBufferOnlyState.Initializing, NolanLcBufferOnlyState.HpCallOn, NolanLcBufferOnlyState.HpCallOff],
+            "dest": NolanLcBufferOnlyState.Dormant,
+        },
+        {
+            "trigger": NolanLcBufferOnlyEvent.CallWakeUp,
+            "source": NolanLcBufferOnlyState.Dormant,
+            "dest": NolanLcBufferOnlyState.Initializing,
+        },
     ]
 
     def __init__(self, name: str, services: ScadaAppInterface):
@@ -111,13 +190,7 @@ class NolanBufferOnlyTou(NolanHydronic):
         if hp_odu is None:
             raise ValueError(f"{HSNN.hp_odu} has no component; cannot read its device type")
         device_type = hp_odu.gt.DeviceType
-        traits = HP_TRAITS.get(device_type)
-        if traits is None:
-            raise ValueError(
-                f"No heat-pump traits for hp-odu device type "
-                f"{device_type}; NolanBufferOnlyTou cannot run this layout"
-            )
-        self.traits: HpTraits = traits
+        self.traits: HpTraits = HP_TRAITS[device_type]
         self.zone_relays: list[tuple[ShNode, ShNode]] = [
             (
                 self.required_node(c.FailsafeRelayNode),
@@ -189,9 +262,9 @@ class NolanBufferOnlyTou(NolanHydronic):
         )
         self.log(f"{cause}: {orig_state} -> {self.top_state}")
 
-    def trigger_call_event(self, event: str) -> None:
+    def trigger_call_event(self, event: NolanLcBufferOnlyEvent) -> None:
         orig_state = self.call_state
-        getattr(self, event)()
+        getattr(self, event.value)()
         self._send_to(
             self.primary_scada,
             SingleMachineState(
@@ -199,10 +272,10 @@ class NolanBufferOnlyTou(NolanHydronic):
                 StateEnum=NolanLcBufferOnlyState.enum_name(),
                 State=self.call_state,
                 UnixMs=int(time.time() * 1000),
-                Cause=event,
+                Cause=event.value,
             ),
         )
-        self.log(f"{event}: {orig_state} -> {self.call_state}")
+        self.log(f"{event.value}: {orig_state} -> {self.call_state}")
 
     # ---- the band ----
 
@@ -306,7 +379,7 @@ class NolanBufferOnlyTou(NolanHydronic):
         self.command_call(False)
         self.pump_on = None
         self.enforce_pump()
-        self.trigger_call_event("Boot")
+        self.trigger_call_event(NolanLcBufferOnlyEvent.Boot)
 
     # ---- the check, every TOU_CHECK_S ----
 
@@ -320,21 +393,21 @@ class NolanBufferOnlyTou(NolanHydronic):
         if self.top_state == LocalControlTopState.Normal and not fresh:
             self.trigger_top_event(LocalControlTopEvent.MissingData)
             self.set_command_tree(boss_node=self.boss)
-            self.trigger_call_event("CallGoDormant")
+            self.trigger_call_event(NolanLcBufferOnlyEvent.CallGoDormant)
         elif self.top_state == LocalControlTopState.ScadaBlind and fresh:
             self.trigger_top_event(LocalControlTopEvent.DataAvailable)
             self.set_command_tree(boss_node=self.boss)
-            self.trigger_call_event("CallWakeUp")
+            self.trigger_call_event(NolanLcBufferOnlyEvent.CallWakeUp)
             self.boot()
         if self.top_state == LocalControlTopState.Normal:
             self.update_band()
             wanted = self.offpeak(now) and not self.buffer_full
             if wanted and self.call_state == NolanLcBufferOnlyState.HpCallOff:
                 self.command_call(True)
-                self.trigger_call_event("CallOn")
+                self.trigger_call_event(NolanLcBufferOnlyEvent.CallOn)
             elif not wanted and self.call_state == NolanLcBufferOnlyState.HpCallOn:
                 self.command_call(False)
-                self.trigger_call_event("CallOff")
+                self.trigger_call_event(NolanLcBufferOnlyEvent.CallOff)
         else:
             wanted = self.offpeak(now)
             if wanted != self.call_closed:
@@ -354,7 +427,7 @@ class NolanBufferOnlyTou(NolanHydronic):
         if self.top_state != LocalControlTopState.Dormant:
             self.trigger_top_event(LocalControlTopEvent.TopGoDormant)
         if self.call_state != NolanLcBufferOnlyState.Dormant:
-            self.trigger_call_event("CallGoDormant")
+            self.trigger_call_event(NolanLcBufferOnlyEvent.CallGoDormant)
 
     def wake_up(self) -> None:
         """A released tree is re-booted, never resumed."""
@@ -362,7 +435,7 @@ class NolanBufferOnlyTou(NolanHydronic):
             return
         self.trigger_top_event(LocalControlTopEvent.TopWakeUp)
         self.set_command_tree(boss_node=self.normal_node)
-        self.trigger_call_event("CallWakeUp")
+        self.trigger_call_event(NolanLcBufferOnlyEvent.CallWakeUp)
         self.boot()
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:

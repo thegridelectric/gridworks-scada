@@ -31,6 +31,9 @@ from gwsproto.named_types import (
     NolanLayout,
     OperationalParams,
 )
+from gwsproto.names.hydronic_spaceheat.node_names import (
+    HydronicSpaceheatNodeNames as HSNN,
+)
 from gwsproto.property_format import LeftRightDotStr
 
 # The authored static artifact names its sema layout type; dispatch on it.
@@ -132,6 +135,26 @@ def check_energized_standby_relays(ops_word: OperationalParams, static: dict[str
             )
 
 
+def check_hp_traits(word: House0Layout | NolanLayout) -> None:
+    """A Nolan layout's hp-odu device type has an HP_TRAITS row: the
+    heat-pump threshold machine runs on its lines whichever local control
+    is selected. Raises naming the device type, the supported heat pumps
+    and where the row goes."""
+    # actors imports this module, so a top-level import of the table would cycle.
+    from actors.hp_boss.sensing import HP_TRAITS
+
+    if not isinstance(word, NolanLayout):
+        return
+    node = next(n for n in word.ShNodes if n.Name == HSNN.hp_odu)
+    component = next(c for c in word.Components if c.ComponentId == node.ComponentId)
+    if component.DeviceType not in HP_TRAITS:
+        raise ValueError(
+            f"hp-odu device type {component.DeviceType} has no heat-pump traits; "
+            f"supported: {', '.join(sorted(HP_TRAITS))}. Measure the unit and add "
+            "its row to HP_TRAITS in actors/hp_boss/sensing.py."
+        )
+
+
 def decode_operational_params(ops: dict[str, Any]) -> OperationalParams:
     """Decode the operational-params artifact."""
     type_name = ops.get("TypeName")
@@ -210,6 +233,7 @@ def ops_and_sema_to_dc(
     check_scada_alias(word, ops_word)
     check_sieg_loop_strategy(ops_word)
     check_energized_standby_relays(ops_word, static)
+    check_hp_traits(word)
     return HydronicLayout.from_sema(
         word, capture_tuning=ops_word.CaptureTuningList, **load_kwargs
     )

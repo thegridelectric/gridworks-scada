@@ -17,20 +17,24 @@ from pathlib import Path
 
 import pytest
 import pytz
+from pydantic import ValidationError
 
 from actors.local_control.nolan.buffer_only_cooling_tou import NolanBufferOnlyCoolingTou
-from actors.hp_boss.sensing import HP_TRAITS
+from actors.hp_boss.sensing import HP_TRAITS, HpTraits, validated_hp_traits
 from actors.local_control.nolan.buffer_only_tou import NolanBufferOnlyTou
 from actors.local_control_loader import LocalControl
 from gwsproto.enums import (
     ChangeRelayState,
     ChangeValveState,
     ChangeZoneCallSource,
+    DeviceType,
+    DispatchRefusalReason,
     LocalControlTopEvent,
     LocalControlTopState,
     NolanLcBufferOnlyState,
     SeasonalStorageMode,
     ServiceMode,
+    SimDeviceType,
     TurnHpOnOff,
 )
 from gwsproto.named_types import (
@@ -356,19 +360,48 @@ def test_heating_layout_selects_buffer_only_tou(heat: NolanBufferOnlyTou) -> Non
     assert heat.call_state == NolanLcBufferOnlyState.Initializing
 
 
-def test_heating_unknown_heat_pump_fails_construction(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+@pytest.mark.parametrize(
+    "service, standby",
+    [(ServiceMode.Heating, False), (ServiceMode.Cooling, False), (ServiceMode.Heating, True)],
+)
+def test_unknown_heat_pump_stops_the_scada_at_load(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, service: ServiceMode, standby: bool
 ) -> None:
-    """A Nolan layout whose hp-odu device type has no traits row
-    stops the scada at construction, naming the device type."""
-    monkeypatch.delitem(HP_TRAITS, "SimHpOdu")
+    """A Nolan layout whose hp-odu device type has no traits row stops the
+    scada at load in every local-control selection, naming the device type,
+    the supported heat pumps and where the row goes."""
+    monkeypatch.delitem(HP_TRAITS, SimDeviceType.SimHpOdu)
+    ops = json.loads(SPRUCE_OPS.read_text())
+    ops["ServiceMode"] = service.value
+    ops["Standby"] = standby
+    if standby:
+        ops["AcceptsDispatch"] = False
+        ops["DispatchRefusalReason"] = DispatchRefusalReason.Standby.value
+    ops["FamilyParams"]["SeasonalStorageMode"] = SeasonalStorageMode.BufferOnly.value
+    ops_path = tmp_path / "gw.nolan.operational.params.json"
+    ops_path.write_text(json.dumps(ops))
     settings = ScadaApp.get_settings()
     settings.paths.hardware_layout = SPRUCE_LAYOUT
-    settings.paths.operational_params = heating_ops(tmp_path)
+    settings.paths.operational_params = ops_path
     settings.paths.mkdirs()
-    scada_app = ScadaApp(app_settings=settings)
-    with pytest.raises(ValueError, match="SimHpOdu"):
-        scada_app.instantiate()
+    with pytest.raises(
+        ValueError, match=r"SimHpOdu.*SamsungAE055FCYDCG.*actors/hp_boss/sensing\.py"
+    ):
+        ScadaApp(app_settings=settings).instantiate()
+
+
+def test_hp_traits_keyed_by_device_type_members() -> None:
+    assert all(isinstance(k, (DeviceType, SimDeviceType)) for k in HP_TRAITS)
+
+
+def test_hp_traits_rows_go_through_their_formats() -> None:
+    with pytest.raises(ValidationError):
+        validated_hp_traits({DeviceType.SamsungAE055FCYDCG: HpTraits(500, -1, 120)})
+
+
+def test_hp_traits_off_line_below_on_line() -> None:
+    with pytest.raises(ValueError, match="off line 500 W is not below on line 80 W"):
+        validated_hp_traits({DeviceType.SamsungAE055FCYDCG: HpTraits(80, 500, 120)})
 
 
 def test_heating_boot_posture(heat: NolanBufferOnlyTou) -> None:

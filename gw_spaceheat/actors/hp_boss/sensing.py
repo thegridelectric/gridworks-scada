@@ -46,27 +46,45 @@ how many.
 
 from typing import Literal, NamedTuple
 
+from gwsproto.enums import AnyDeviceType, DeviceType, SimDeviceType
+from gwsproto.property_format import NonNegativeInt
+from pydantic import TypeAdapter
+
 
 class HpTraits(NamedTuple):
     """One kind of heat pump in its power draw: the outdoor-unit draw
     above which the unit is running and the secondary pump must run, the
     draw below which it has stopped, and how long before an on-peak window
     opens the call opens, so the unit has stopped drawing by the
-    boundary."""
+    boundary. hp.device.type.gt carrying the three values retires this
+    record."""
 
-    on_above_w: int
-    off_below_w: int
-    call_open_lead_s: int
+    on_above_w: NonNegativeInt
+    off_below_w: NonNegativeInt
+    call_open_lead_s: NonNegativeInt
 
 
-HP_TRAITS: dict[str, HpTraits] = {
-    "SamsungAE055FCYDCG": HpTraits(500, 80, 120),
-    "SimHpOdu": HpTraits(500, 80, 120),
-}
+def validated_hp_traits(rows: dict[AnyDeviceType, HpTraits]) -> dict[AnyDeviceType, HpTraits]:
+    """The rows through their formats, each heat pump's off line below its
+    on line. Raises on a row that fails either."""
+    traits = TypeAdapter(dict[AnyDeviceType, HpTraits]).validate_python(rows)
+    for device_type, row in traits.items():
+        if row.off_below_w >= row.on_above_w:
+            raise ValueError(
+                f"HP_TRAITS {device_type}: off line {row.off_below_w} W is not "
+                f"below on line {row.on_above_w} W"
+            )
+    return traits
+
+
+HP_TRAITS: dict[AnyDeviceType, HpTraits] = validated_hp_traits({
+    DeviceType.SamsungAE055FCYDCG: HpTraits(500, 80, 120),
+    SimDeviceType.SimHpOdu: HpTraits(500, 80, 120),
+})
 """By the hp-odu component's DeviceType. The only source of these values:
-a layout whose heat pump has no row cannot run the Nolan heating machine. Hand-kept
-until hp.device.type.gt carries the three values, which retires this
-table. The Samsung lead is provisional: the unit's stop lag is unmeasured
+a Nolan layout whose heat pump has no row stops the scada at load. Hand-kept
+until the heat-pump state machine and hp.device.type.gt carrying the three
+values retire this table. The Samsung lead is provisional: the unit's stop lag is unmeasured
 (the spruce journal shows stops within a minute of the call opening and
 one at four minutes on a young run)."""
 
@@ -74,16 +92,19 @@ one at four minutes on a young run)."""
 class DefrostSignature(NamedTuple):
     """How a heat pump shows it is defrosting: which draw to watch (the
     indoor unit alone, or indoor + outdoor) and the watt line it falls
-    under while the compressor reverses."""
+    under while the compressor reverses. hp.device.type.gt carrying the
+    signature retires this record."""
 
     draw: Literal["idu", "total"]
-    max_w: int
+    max_w: NonNegativeInt
 
 
-DEFROST_SIGNATURES: dict[str, DefrostSignature] = {
-    "LGARUM048GSS5": DefrostSignature("total", 8400),
-    "SamsungAE055FCYDCG": DefrostSignature("idu", 4000),  # the hydro-kit pairing (fir)
-}
+DEFROST_SIGNATURES: dict[AnyDeviceType, DefrostSignature] = TypeAdapter(
+    dict[AnyDeviceType, DefrostSignature]
+).validate_python({
+    DeviceType.LGARUM048GSS5: DefrostSignature("total", 8400),
+    DeviceType.SamsungAE055FCYDCG: DefrostSignature("idu", 4000),  # the hydro-kit pairing (fir)
+})
 """By the hp-odu component's DeviceType. A unit not listed has no known
 signature and is never judged in defrost. Hand-kept until
 hp.device.type.gt carries the signature, which retires this table."""
