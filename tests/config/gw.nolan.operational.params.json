@@ -6,7 +6,7 @@
     "TypeName": "gw.nolan.family.params",
     "Version": "000",
     "KeepBufferFull": false,
-    "SeasonalStorageMode": "AllTanks",
+    "SeasonalStorageMode": "BufferOnly",
     "BufferFullF": 130,
     "BufferChargeF": 90
   },

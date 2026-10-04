@@ -1,4 +1,5 @@
-"""NolanCoolingTou — the Nolan family's cooling-season local control.
+"""NolanBufferOnlyCoolingTou — the Nolan family's cooling-season local
+control, selected for Cooling with SeasonalStorageMode BufferOnly.
 
 REVIEW before the 2027 cooling season: the loop is not a state machine
 (only the top machine is one) and carries its schedule and plant knowledge
@@ -64,7 +65,7 @@ from gwsproto.named_types import (
 from scada_app_interface import ScadaAppInterface
 
 
-class NolanCoolingTou(NolanHydronic):
+class NolanBufferOnlyCoolingTou(NolanHydronic):
     MAIN_LOOP_SLEEP_SECONDS = 300
 
     STARTUP_DELAY_S = 30.0
@@ -117,8 +118,8 @@ class NolanCoolingTou(NolanHydronic):
         ]
         self.top_machine = Machine(
             model=self,
-            states=NolanCoolingTou.top_states,
-            transitions=NolanCoolingTou.top_transitions,
+            states=NolanBufferOnlyCoolingTou.top_states,
+            transitions=NolanBufferOnlyCoolingTou.top_transitions,
             initial=LocalControlTopState.Normal,
             send_event=True,
             model_attribute="top_state",
@@ -126,7 +127,7 @@ class NolanCoolingTou(NolanHydronic):
         self.top_state: LocalControlTopState = LocalControlTopState.Normal
         self.set_command_tree(boss_node=self.normal_node)
         self.log(
-            f"Starting NolanCoolingTou in Normal (TOU cooling; ops ServiceMode {self.ops.ServiceMode})"
+            f"Starting NolanBufferOnlyCoolingTou in Normal (TOU cooling; ops ServiceMode {self.ops.ServiceMode})"
         )
 
     @property
@@ -292,11 +293,11 @@ class NolanCoolingTou(NolanHydronic):
             ),
         )
         self.services.add_task(
-            asyncio.create_task(self.main(), name="NolanCoolingTou keepalive")
+            asyncio.create_task(self.main(), name="NolanBufferOnlyCoolingTou keepalive")
         )
         self.services.add_task(
             asyncio.create_task(
-                self.tou_control(), name="NolanCoolingTou tou"
+                self.tou_control(), name="NolanBufferOnlyCoolingTou tou"
             )
         )
 

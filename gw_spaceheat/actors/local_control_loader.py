@@ -31,9 +31,9 @@ class LocalControl(ShNodeActor):
         if standby:
             module = importlib.import_module("actors.local_control.standby")
             impl_class = getattr(module, "StandbyLocalControl")
-        elif nolan and service_mode == ServiceMode.Cooling:
-            module = importlib.import_module("actors.local_control.nolan.cooling_tou")
-            impl_class = getattr(module, "NolanCoolingTou")
+        elif nolan and service_mode == ServiceMode.Cooling and seasonal_storage_mode == SeasonalStorageMode.BufferOnly:
+            module = importlib.import_module("actors.local_control.nolan.buffer_only_cooling_tou")
+            impl_class = getattr(module, "NolanBufferOnlyCoolingTou")
         elif nolan and service_mode == ServiceMode.Heating and seasonal_storage_mode == SeasonalStorageMode.BufferOnly:
             module = importlib.import_module("actors.local_control.nolan.buffer_only_tou")
             impl_class = getattr(module, "NolanBufferOnlyTou")
