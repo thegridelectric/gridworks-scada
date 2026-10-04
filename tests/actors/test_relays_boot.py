@@ -5,7 +5,12 @@ the loader can select and every sieg-loop strategy. A standby row also
 proves the standby posture: the relays the normal node claims sit
 de-energized except the ops word's EnergizedStandbyRelays, the 0-10V
 outputs at their power-on level, hp-boss at HpOff, the sieg loop (House0)
-in HoldFullSend. Admin taking the tree and disturbing it (the heat pump
+in HoldFullSend. The relays under a command node are as that node runs
+them: the call relay open (energized where it is normally closed,
+de-energized where it is normally open), the 5 V relay closed under the
+pico cycler, the two loop relays as the valve's run to full send has
+them. A params file that lists one of those relays stops the scada at
+load. Admin taking the tree and disturbing it (the heat pump
 on, a relay energized) leaves nothing behind: on release the standby
 machine re-sets the posture and hp-boss is HpOff again.
 
@@ -27,6 +32,7 @@ from typing import NamedTuple
 
 import pytest
 
+from actors.five_v_boss import FiveVBoss
 from actors.hp_boss import HpBoss
 from actors.local_control_loader import LocalControl
 from actors.relay import Relay, UNKNOWN_STATE
@@ -35,11 +41,16 @@ from actors.sieg_loop.hold_full_send import HoldFullSend
 from actors.zero_ten_outputer import ZeroTenOutputer
 from gwsproto.enums import (
     ActorClass,
+    FiveVBossState,
     HpBossState,
+    HpLoopKeepSend,
     LocalControlStandbyTopState,
+    RelayClosedOrOpen,
+    RelayWiringConfig,
     SeasonalStorageMode,
     ServiceMode,
     SiegLoopStrategy,
+    SiegValveState,
     TurnHpOnOff,
 )
 from gwsproto.enums.top_state import TopState
@@ -47,6 +58,7 @@ from gwsproto.named_types import AdminDispatch, AdminReleaseControl, FsmEvent
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.house0.node_names import House0NodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
+from scada_app import ScadaApp
 from sema_to_dc import load_layout
 from tests.utils.scada_live_test_helper import ScadaLiveTest
 
@@ -161,6 +173,67 @@ def assert_standby_posture(h: ScadaLiveTest, relays: dict[str, Relay], energized
         assert isinstance(sieg_loop.strategy, HoldFullSend)
 
 
+def command_node_relays_trouble(h: ScadaLiveTest, relays: dict[str, Relay]) -> list[str]:
+    """What is not yet as its command node runs it under standby; empty
+    when all is. The call relay is open after hp-boss's TurnOff, which is
+    its energized state where it is wired normally closed (House0) and its
+    de-energized state where it is wired normally open (Nolan). The 5 V
+    relay is closed under the pico cycler with five-v-boss at rest. On
+    House0 the loop relays are as the valve's run has them: the direction
+    relay at send, the motor relay closed while the run to full send is
+    under way and open once it has ended."""
+    scada = h.child1_app.scada
+    trouble: list[str] = []
+
+    call = relays[HSNN.hp_scada_ops_relay]
+    call_cfg = call.relay_actor_config
+    off_state = (
+        call_cfg.EnergizedState
+        if call_cfg.WiringConfig == RelayWiringConfig.NormallyClosed
+        else call_cfg.DeEnergizedState
+    )
+    assert off_state == RelayClosedOrOpen.RelayOpen
+    if call.state != off_state:
+        trouble.append(f"call relay {call.state}, want {off_state}")
+
+    five_v_boss = scada.services.get_communicator_as_type(HSNN.five_v_boss, FiveVBoss)
+    assert five_v_boss is not None
+    vdc_node = scada.layout.vdc_relay
+    if five_v_boss.state != FiveVBossState.PicoCycler:
+        trouble.append(f"five-v-boss {five_v_boss.state}")
+    if vdc_node.handle != f"{scada.layout.node(HSNN.pico_cycler).handle}.{vdc_node.Name}":
+        trouble.append(f"vdc relay handle {vdc_node.handle}")
+    if relays[vdc_node.Name].state != RelayClosedOrOpen.RelayClosed:
+        trouble.append(f"vdc relay {relays[vdc_node.Name].state}")
+
+    sieg_loop = scada.services.get_communicator_as_type(House0NodeNames.sieg_loop, SiegLoop)
+    if sieg_loop is not None:
+        valve_state = sieg_loop.valve.valve_state
+        motor = relays[House0NodeNames.hp_loop_on_off].state
+        direction = relays[House0NodeNames.hp_loop_keep_send].state
+        if valve_state == SiegValveState.KeepingLess:
+            want_motor = RelayClosedOrOpen.RelayClosed
+        elif valve_state == SiegValveState.FullySend:
+            want_motor = RelayClosedOrOpen.RelayOpen
+        else:
+            want_motor = None
+            trouble.append(f"sieg valve {valve_state}")
+        if want_motor is not None and motor != want_motor:
+            trouble.append(f"loop motor relay {motor} with the valve {valve_state}")
+        if direction != HpLoopKeepSend.SendMore:
+            trouble.append(f"loop direction relay {direction}")
+    return trouble
+
+
+async def await_command_node_relays(h: ScadaLiveTest, relays: dict[str, Relay]) -> None:
+    await h.await_for(
+        lambda: not command_node_relays_trouble(h, relays),
+        "ERROR waiting for the command nodes' relays under standby",
+        timeout=10,
+        err_str_f=lambda: "; ".join(command_node_relays_trouble(h, relays)),
+    )
+
+
 async def assert_boot(
     request: pytest.FixtureRequest, layout_path: Path, ops_path: Path, row: Row
 ) -> None:
@@ -198,6 +271,7 @@ async def assert_boot(
                 timeout=10,
             )
             assert_standby_posture(h, relays, lc.ops.EnergizedStandbyRelays)
+            await await_command_node_relays(h, relays)
 
 
 @pytest.mark.asyncio
@@ -264,6 +338,7 @@ async def test_standby_posture_restored_after_admin(
             timeout=10,
         )
         assert_standby_posture(h, relays, energized)
+        await await_command_node_relays(h, relays)
         normal_handle = scada.layout.node(CoreNodeNames.local_control_normal).handle
         disturbed_name = next(
             name
@@ -299,3 +374,38 @@ async def test_standby_posture_restored_after_admin(
             timeout=10,
         )
         assert_standby_posture(h, relays, energized)
+        await await_command_node_relays(h, relays)
+
+
+COMMAND_NODE_RELAYS = (
+    ("willow", HSNN.hp_scada_ops_relay),
+    ("willow", House0NodeNames.hp_loop_on_off),
+    ("willow", House0NodeNames.hp_loop_keep_send),
+    ("willow", HSNN.vdc_relay),
+    ("nolan", HSNN.hp_scada_ops_relay),
+    ("nolan", HSNN.vdc_relay),
+)
+
+
+@pytest.mark.parametrize(
+    ("layout_name", "relay_name"),
+    COMMAND_NODE_RELAYS,
+    ids=[f"{layout_name}-{relay_name}" for layout_name, relay_name in COMMAND_NODE_RELAYS],
+)
+def test_a_command_nodes_relay_in_the_standby_list_stops_the_scada_at_load(
+    tmp_path: Path, layout_name: str, relay_name: str
+) -> None:
+    """A relay under hp-boss, the sieg loop or the pico cycler is that
+    node's to run. A params file that lists one in EnergizedStandbyRelays
+    is refused before any actor is built."""
+    layout_file, ops_file = LAYOUTS[layout_name]
+    ops = json.loads((CONFIG / ops_file).read_text())
+    ops["EnergizedStandbyRelays"] = [*ops["EnergizedStandbyRelays"], relay_name]
+    ops_path = tmp_path / ops_file
+    ops_path.write_text(json.dumps(ops))
+    settings = ScadaApp.get_settings()
+    settings.paths.hardware_layout = CONFIG / layout_file
+    settings.paths.operational_params = ops_path
+    settings.paths.mkdirs()
+    with pytest.raises(ValueError, match=f"EnergizedStandbyRelays.*{relay_name}"):
+        ScadaApp(app_settings=settings).instantiate()
