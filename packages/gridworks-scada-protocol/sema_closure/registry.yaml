@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-10-01T00:45:00Z"
+  last_updated: "2026-10-04T18:40:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -265,6 +265,18 @@ enums:
         created: "2026-02-02T22:17:00Z"
         status: "published"
 
+  gw1.nolan.lc.buffer.only.state:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "States of the Nolan buffer-only heating machine: Initializing, HpCallOn, HpCallOff, Dormant. The state names the heat-pump call decision; postures re-asserted each check are not states."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/gw1.nolan.lc.buffer.only.state/000"
+        created: "2026-09-30T18:35:00Z"
+        status: "staging"
+
   gw1.quantity:
     latest_version: "001"
     owner: gridworks-energy
@@ -483,6 +495,18 @@ enums:
         schema_url: "https://schemas.electricity.works/enums/spaceheat.unit/001"
         created: "2024-09-02T15:00:00Z"
         status: "published"
+
+  spruce.hack.hp.state:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "The heat pump's running state sensed from outdoor-unit power on spruce's starter-script thresholds: Unknown, HpOn, HpOff, held between the on and off lines."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/spruce.hack.hp.state/000"
+        created: "2026-10-04T18:40:00Z"
+        status: "staging"
 
   temp.calc.method:
     latest_version: "000"

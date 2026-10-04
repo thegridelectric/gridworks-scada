@@ -96,6 +96,7 @@ from gwsproto.enums.setpoint_phase import SetpointPhase
 from gwsproto.enums.single_pico_state import SinglePicoState
 from gwsproto.enums.slow_dispatch_contract_status import SlowDispatchContractStatus
 from gwsproto.enums.spaceheat_unit import SpaceheatUnit
+from gwsproto.enums.spruce_hack_hp_state import SpruceHackHpState
 from gwsproto.enums.store_flow_relay import StoreFlowRelay
 from gwsproto.enums.telemetry_name import TelemetryName
 from gwsproto.enums.temp_calc_method import TempCalcMethod
@@ -203,6 +204,7 @@ __all__ = [
     "SinglePicoState",
     "SlowDispatchContractStatus",
     "SpaceheatUnit",
+    "SpruceHackHpState",
     "StoreFlowRelay",
     "TelemetryName",
     "TempCalcMethod",
