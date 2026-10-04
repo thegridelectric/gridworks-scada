@@ -359,7 +359,7 @@ class LocalControlTouBase(House0Hydronic):
 
         if self.is_onpeak():
             self.log("Is on peak: turning off HP")
-            self.turn_off_HP(from_node=self.normal_node)
+            self.turn_off_hp(from_node=self.normal_node)
 
         try:
             self.log("Setting 010 defaults inside initialize_actuators")
@@ -439,7 +439,7 @@ class LocalControlTouBase(House0Hydronic):
             self.hp_failsafe_switch_to_aquastat(from_node=self.backup_node)
             self.aquastat_ctrl_switch_to_boiler(from_node=self.backup_node)
         else:
-            self.turn_on_HP(from_node=self.backup_node)
+            self.turn_on_hp(from_node=self.backup_node)
 
     def start(self) -> None:
         self._send_to(

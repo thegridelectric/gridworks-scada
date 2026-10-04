@@ -18,7 +18,6 @@ from gwsproto.enums import (
     ChangeRelayState,
     ChangeStoreFlowRelay,
     StoreFlowRelay,
-    TurnHpOnOff
 )
 from gwsproto.named_types import AnalogDispatch, FsmEvent, SingleMachineState
 from gwsproto.names.house0.node_names import House0NodeNames
@@ -169,16 +168,6 @@ class House0Hydronic(HydronicNode):
             )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def turn_on_HP(self, from_node: Optional[ShNode] = None) -> None:
-        """Tell hp-boss, the heat pump's command node, to turn the heat
-        pump on. from_node defaults to self.node; the command is dropped
-        with a log line if from_node is not hp-boss's boss."""
-        self.send_state_command(self.hp_boss, TurnHpOnOff.TurnOn, from_node)
-
-    def turn_off_HP(self, from_node: Optional[ShNode] = None) -> None:
-        """Tell hp-boss to turn the heat pump off (see turn_on_HP)."""
-        self.send_state_command(self.hp_boss, TurnHpOnOff.TurnOff, from_node)
 
     def aquastat_ctrl_switch_to_boiler(self, from_node: Optional[ShNode] = None) -> None:
         """
@@ -493,10 +482,6 @@ class House0Hydronic(HydronicNode):
                 src=command_node
             )
             self.log(f"Just set {dfr_node.handle} to {level} from {command_node.handle} ")
-
-    @property
-    def hp_boss(self) -> ShNode:
-        return self.layout.hp_boss
 
     @property
     def sieg_loop(self) -> ShNode:

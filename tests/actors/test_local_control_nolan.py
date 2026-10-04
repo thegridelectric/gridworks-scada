@@ -18,9 +18,9 @@ from pathlib import Path
 import pytest
 import pytz
 
-from actors.local_control.nolan import NolanCoolingTou
+from actors.local_control.nolan.cooling_tou import NolanCoolingTou
 from actors.hp_boss.sensing import HP_TRAITS
-from actors.local_control.nolan_buffer_only_tou import NolanBufferOnlyTou
+from actors.local_control.nolan.buffer_only_tou import NolanBufferOnlyTou
 from actors.local_control_loader import LocalControl
 from gwsproto.enums import (
     ChangeRelayState,
@@ -164,7 +164,7 @@ def test_on_and_off_sequencing(
     spruce_impl: NolanCoolingTou, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(NolanCoolingTou, "SEQUENCE_STEP_S", 0.01)
-    asyncio.run(spruce_impl.turn_on_hp())
+    asyncio.run(spruce_impl.sequence_hp_on())
     on_targets = [dst for dst, _ in fsm_events(spruce_impl)]
     assert on_targets == [
         NolanNodeNames.iso_valve_relay,
@@ -172,7 +172,7 @@ def test_on_and_off_sequencing(
         HSNN.hp_boss,
     ]
     spruce_impl.sent.clear()
-    asyncio.run(spruce_impl.turn_off_hp())
+    asyncio.run(spruce_impl.sequence_hp_off())
     off_targets = [dst for dst, _ in fsm_events(spruce_impl)]
     assert off_targets == [
         HSNN.hp_boss,

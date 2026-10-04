@@ -47,7 +47,6 @@ from gwsproto.enums import (
     ChangeZoneCallSource,
     LocalControlTopEvent,
     LocalControlTopState,
-    TurnHpOnOff,
 )
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import (
@@ -212,25 +211,25 @@ class NolanCoolingTou(NolanHydronic):
             if i < len(steps) - 1:
                 await asyncio.sleep(self.SEQUENCE_STEP_S)
 
-    async def turn_on_hp(self) -> None:
+    async def sequence_hp_on(self) -> None:
         """ON: iso valve open → secondary pump on → heat pump on, through
         hp-boss (which closes the call relay)."""
         await self.command_sequence(
             [
                 (self.layout.iso_valve, ChangeValveState.OpenValve.value),
                 (self.layout.secondary_pump_relay, ChangeRelayState.CloseRelay.value),
-                (self.layout.hp_boss, TurnHpOnOff.TurnOn.value),
             ]
         )
+        await asyncio.sleep(self.SEQUENCE_STEP_S)
+        self.turn_on_hp(from_node=self.normal_node)
 
-    async def turn_off_hp(self) -> None:
+    async def sequence_hp_off(self) -> None:
         """OFF: heat pump off through hp-boss → secondary pump off. The iso
         valve stays open; the DAC writer holds the pump speed setting."""
+        self.turn_off_hp(from_node=self.normal_node)
+        await asyncio.sleep(self.SEQUENCE_STEP_S)
         await self.command_sequence(
-            [
-                (self.layout.hp_boss, TurnHpOnOff.TurnOff.value),
-                (self.layout.secondary_pump_relay, ChangeRelayState.OpenRelay.value),
-            ]
+            [(self.layout.secondary_pump_relay, ChangeRelayState.OpenRelay.value)]
         )
 
     async def tou_control(self) -> None:
@@ -250,9 +249,9 @@ class NolanCoolingTou(NolanHydronic):
                 want_on = self.hp_should_be_on(datetime.now(self.timezone))
                 if want_on != applied:
                     if want_on:
-                        await self.turn_on_hp()
+                        await self.sequence_hp_on()
                     else:
-                        await self.turn_off_hp()
+                        await self.sequence_hp_off()
                     applied = want_on
             await asyncio.sleep(self.TOU_CHECK_S)
 

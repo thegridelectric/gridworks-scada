@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from actors.local_control.nolan import NolanCoolingTou
+from actors.local_control.nolan.cooling_tou import NolanCoolingTou
 from scada_app import ScadaApp
 
 SPRUCE_LAYOUT = Path(__file__).parent.parent / "config" / "gw.nolan.layout.json"

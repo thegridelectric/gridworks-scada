@@ -201,13 +201,13 @@ class BufferOnlyTouLocalControl(LocalControlTouBase):
             previous_state != LocalControlBufferOnlyState.HpOn
             and self.state == LocalControlBufferOnlyState.HpOn
         ):
-            self.turn_on_HP(from_node=self.normal_node)
+            self.turn_on_hp(from_node=self.normal_node)
             self.time_hp_turned_on = time.time()
         if (
             previous_state != LocalControlBufferOnlyState.HpOff
             and self.state == LocalControlBufferOnlyState.HpOff
         ):
-            self.turn_off_HP(from_node=self.normal_node)
+            self.turn_off_hp(from_node=self.normal_node)
             self.time_hp_turned_on = None
 
     def is_buffer_ready(self) -> bool:

@@ -313,7 +313,7 @@ class AllTanksLeafAlly(House0Hydronic):
                             AllyGivesUp(Reason="Missing temperatures required for operation"))
                         return
                     if self.hp_should_be_off():
-                        self.turn_off_HP()
+                        self.turn_off_hp()
 
             # 1
             elif self.state == LeafAllyAllTanksState.HpOnStoreOff:
@@ -432,17 +432,17 @@ class AllTanksLeafAlly(House0Hydronic):
             return
         if self.state == LeafAllyAllTanksState.Initializing:
             if self.hp_should_be_off():
-                self.turn_off_HP()
+                self.turn_off_hp()
             return
 
         if self.prev_state == LeafAllyAllTanksState.HpOffNonElectricBackup:
             self.hp_failsafe_switch_to_scada()
             self.aquastat_ctrl_switch_to_scada()
         if "HpOn" not in self.prev_state and "HpOn" in self.state:
-            self.turn_on_HP()
+            self.turn_on_hp()
             self.time_hp_turned_on = time.time()
         if "HpOff" not in self.prev_state and "HpOff" in self.state:
-            self.turn_off_HP()
+            self.turn_off_hp()
             self.time_hp_turned_on = None
         if "StoreDischarge" in self.state:
             self.turn_on_store_pump()
@@ -497,7 +497,7 @@ class AllTanksLeafAlly(House0Hydronic):
         self.hp_failsafe_switch_to_scada()
         self.aquastat_ctrl_switch_to_scada()
         if self.hp_should_be_off():
-            self.turn_off_HP()
+            self.turn_off_hp()
         try:
             self.set_010_defaults()
         except ValueError as e:

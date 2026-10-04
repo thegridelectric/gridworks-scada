@@ -25,7 +25,6 @@ from gwsproto.enums import (
     ActorClass,
     LocalControlStandbyTopEvent,
     LocalControlStandbyTopState,
-    TurnHpOnOff,
 )
 from gwsproto.named_types import ActuatorsReady, GoDormant, HeatingForecast, SingleMachineState, WakeUp
 from gwsproto.names.core.node_names import CoreNodeNames
@@ -110,7 +109,7 @@ class StandbyLocalControl(HydronicNode):
         for relay in claimed:
             if relay.Name in energized:
                 self.energize(relay, from_node=self.normal_node)
-        self.send_state_command(self.layout.hp_boss, TurnHpOnOff.TurnOff, self.normal_node)
+        self.turn_off_hp(from_node=self.normal_node)
         self.log(
             f"Standby posture set: {len(claimed)} relays under {self.normal_node.handle}, "
             f"energized {sorted(energized)}, hp-boss told TurnOff"

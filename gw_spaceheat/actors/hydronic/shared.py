@@ -13,6 +13,7 @@ from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
     ChangeZoneCallSource,
     ChangeRelayState,
+    TurnHpOnOff,
 )
 from gwsproto.named_types import FsmEvent
 from gwsproto.names.hydronic_spaceheat.channel_names import (
@@ -96,6 +97,20 @@ class HydronicNode(CommandNode):
                 return True
         self.log("All critical zones are at or above their effective setpoint")
         return False
+
+    @property
+    def hp_boss(self) -> ShNode:
+        return self.layout.hp_boss
+
+    def turn_on_hp(self, from_node: Optional[ShNode] = None) -> None:
+        """Tell hp-boss, the heat pump's command node, to turn the heat
+        pump on. from_node defaults to self.node; the command is dropped
+        with a log line if from_node is not hp-boss's boss."""
+        self.send_state_command(self.hp_boss, TurnHpOnOff.TurnOn, from_node)
+
+    def turn_off_hp(self, from_node: Optional[ShNode] = None) -> None:
+        """Tell hp-boss to turn the heat pump off (see turn_on_hp)."""
+        self.send_state_command(self.hp_boss, TurnHpOnOff.TurnOff, from_node)
 
     def close_vdc_relay(self, trigger_id: Optional[str] = None, from_node: Optional[ShNode] = None) -> None:
         """

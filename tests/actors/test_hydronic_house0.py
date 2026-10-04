@@ -196,8 +196,8 @@ CHOREOGRAPHY = [
         ChangeKeepSend,
         ChangeKeepSend.ChangeToKeepMore,
     ),
-    ("turn_on_HP", "hp_boss", TurnHpOnOff, TurnHpOnOff.TurnOn),
-    ("turn_off_HP", "hp_boss", TurnHpOnOff, TurnHpOnOff.TurnOff),
+    ("turn_on_hp", "hp_boss", TurnHpOnOff, TurnHpOnOff.TurnOn),
+    ("turn_off_hp", "hp_boss", TurnHpOnOff, TurnHpOnOff.TurnOff),
 ]
 
 

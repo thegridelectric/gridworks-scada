@@ -289,10 +289,10 @@ class AllTanksTouLocalControl(LocalControlTouBase):
         if self.state == LocalControlAllTanksState.Dormant or self.state == LocalControlAllTanksState.Initializing:
             return
         if "HpOn" not in previous_state and "HpOn" in self.state:
-            self.turn_on_HP(from_node=self.normal_node)
+            self.turn_on_hp(from_node=self.normal_node)
             self.time_hp_turned_on = time.time()
         if "HpOff" not in previous_state and "HpOff" in self.state:
-            self.turn_off_HP(from_node=self.normal_node)
+            self.turn_off_hp(from_node=self.normal_node)
             self.time_hp_turned_on = None
         if "StoreDischarge" in self.state:
             self.turn_on_store_pump(command_node=self.normal_node)

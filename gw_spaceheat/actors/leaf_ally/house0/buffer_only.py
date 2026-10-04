@@ -284,7 +284,7 @@ class BufferOnlyLeafAlly(House0Hydronic):
                             AllyGivesUp(Reason="Missing temperatures required for operation"))
                         return
                     if self.hp_should_be_off():
-                        self.turn_off_HP() 
+                        self.turn_off_hp() 
 
             # 1
             elif self.state == LeafAllyBufferOnlyState.HpOn:
@@ -339,16 +339,16 @@ class BufferOnlyLeafAlly(House0Hydronic):
             return
         if self.state == LeafAllyBufferOnlyState.Initializing:
             if self.hp_should_be_off():
-                self.turn_off_HP()
+                self.turn_off_hp()
             return
 
         if self.prev_state == LeafAllyBufferOnlyState.HpOffNonElectricBackup:
             self.hp_failsafe_switch_to_scada()
             self.aquastat_ctrl_switch_to_scada()
         if "HpOn" not in self.prev_state and "HpOn" in self.state:
-            self.turn_on_HP()
+            self.turn_on_hp()
         if "HpOff" not in self.prev_state and "HpOff" in self.state:
-            self.turn_off_HP()
+            self.turn_off_hp()
         if self.state == LeafAllyBufferOnlyState.HpOffNonElectricBackup.value:
             self.hp_failsafe_switch_to_aquastat()
             self.aquastat_ctrl_switch_to_boiler()
@@ -388,7 +388,7 @@ class BufferOnlyLeafAlly(House0Hydronic):
         self.hp_failsafe_switch_to_scada()
         self.aquastat_ctrl_switch_to_scada()
         if self.hp_should_be_off():
-            self.turn_off_HP()
+            self.turn_off_hp()
         try:
             self.set_010_defaults()
         except ValueError as e:

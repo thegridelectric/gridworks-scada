@@ -39,7 +39,6 @@ from gwsproto.enums import (
     LocalControlTopEvent,
     LocalControlTopState,
     NolanLcBufferOnlyState,
-    TurnHpOnOff,
 )
 from gwsproto.named_types import (
     ActuatorsReady,
@@ -275,11 +274,10 @@ class NolanBufferOnlyTou(NolanHydronic):
         self.pump_on = wanted
 
     def command_call(self, closed: bool) -> None:
-        self.send_state_command(
-            self.layout.hp_boss,
-            TurnHpOnOff.TurnOn.value if closed else TurnHpOnOff.TurnOff.value,
-            from_node=self.boss,
-        )
+        if closed:
+            self.turn_on_hp(from_node=self.boss)
+        else:
+            self.turn_off_hp(from_node=self.boss)
         self.call_closed = closed
 
     def boot(self) -> None:
