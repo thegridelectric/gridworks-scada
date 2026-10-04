@@ -6,7 +6,7 @@ import math
 import numpy as np
 from dataclasses import dataclass
 from enum import StrEnum, auto
-from typing import Optional, Protocol, Sequence
+from typing import Callable, Optional, Protocol, Sequence
 from result import Ok, Result
 from datetime import datetime,  timezone
 from gwproto import Message
@@ -957,7 +957,9 @@ class DerivedGenerator(ShNodeActor):
         - Requires forecasts to be present
         - Does not store state locally
 
-        If forecasts are unavailable, returns None
+        Returns None until the heating forecast exists. The heating
+        forecast is made from the weather forecast, so holding one without
+        the other is a defect and raises.
 
         Hardcoded tariff assumption: the morning (7-11), midday (12-15) and
         afternoon (16-19) hour bands, the weekday tests, and the 4 in
@@ -975,6 +977,11 @@ class DerivedGenerator(ShNodeActor):
         if self.heating_forecast is None:
             self.log("Not updating required energy until forecasts exist")
             return None
+        if self.weather_forecast is None:
+            raise RuntimeError(
+                "Required energy needs the weather forecast, and the generator "
+                "holds a heating forecast with no weather forecast behind it"
+            )
 
         forecasts_times_tz = [datetime.fromtimestamp(x, tz=self.timezone) for x in self.heating_forecast.Time]
         morning_kWh = sum(
@@ -1216,7 +1223,9 @@ class DerivedGenerator(ShNodeActor):
         the ops word's Tariff.OnPeakWindows, but "the morning window is still
         ahead" (hour > 19 or hour < 12) and "afternoon only" (hour >= 16)
         are clock hours written for a weekday 07:00-12:00 + 16:00-20:00
-        tariff. They can clash with a Tariff whose windows differ.
+        tariff. They can clash with a Tariff whose windows differ. When no
+        on-peak hour in the forecast counts, the windows' clock hours count
+        on any day.
         """
         if self.heating_forecast is None:
             raise RuntimeError(
@@ -1224,16 +1233,19 @@ class DerivedGenerator(ShNodeActor):
             )
         forecasts_times_tz = [datetime.fromtimestamp(x, tz=self.timezone) for x in self.heating_forecast.Time]
         timenow = datetime.now(self.timezone)
-        if timenow.hour > 19 or timenow.hour < 12:
-            required_swt = max(
-                [rswt for t, rswt in zip(forecasts_times_tz, self.heating_forecast.RswtF)
-                if self.in_onpeak_window(t)]
-                )
-        else:
-            required_swt = max(
-                [rswt for t, rswt in zip(forecasts_times_tz, self.heating_forecast.RswtF)
-                if self.in_onpeak_window(t) and t.hour >= 16]
-                )
+        afternoon_only = 12 <= timenow.hour <= 19
+
+        def counted_rswt(in_window: Callable[[datetime], bool]) -> list[float]:
+            return [
+                rswt for t, rswt in zip(forecasts_times_tz, self.heating_forecast.RswtF)
+                if in_window(t) and (t.hour >= 16 or not afternoon_only)
+            ]
+
+        # Going into a weekend the forecast holds no on-peak hour that
+        # counts; the tariff's clock hours then count on any day.
+        required_swt = max(
+            counted_rswt(self.in_onpeak_window) or counted_rswt(self.in_onpeak_clock_hours)
+        )
         if swt_f < required_swt - 10:
             delta_t = 0
         elif swt_f < required_swt:

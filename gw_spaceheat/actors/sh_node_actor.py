@@ -124,6 +124,16 @@ class ShNodeActor(Actor, ABC):
             for window in self.ops.Tariff.OnPeakWindows
         )
 
+    def in_onpeak_clock_hours(self, at: datetime) -> bool:
+        """Whether `at` (wall time in the actor's zone) falls in the clock
+        hours of one of the ops word's OnPeakWindows, on any day of the
+        week."""
+        hh_mm = at.strftime("%H:%M")
+        return any(
+            window.Start <= hh_mm < window.End
+            for window in self.ops.Tariff.OnPeakWindows
+        )
+
     async def await_with_watchdog(
         self,
         total_seconds: float,
