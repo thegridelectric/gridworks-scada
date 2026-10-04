@@ -15,6 +15,7 @@ from pathlib import Path
 import pytest
 
 from actors.hydronic.house0 import House0Hydronic
+from actors.in_process_messages import MachineStateSubscribe
 from actors.sieg_loop import (
     VIEW_CHANNELS,
     HoldFullSend,
@@ -380,6 +381,26 @@ async def test_hold_full_send_moves_once_to_send_then_only_answers(tmp_path: Pat
     await settle()
     assert relay_events(sent) == []
     assert not any(isinstance(p, SiegLoopReady) for _, p in sent)
+
+
+@pytest.mark.asyncio
+async def test_the_loop_subscribes_to_hp_boss_at_start_and_receives_its_states(app: ScadaApp) -> None:
+    """The loop asks the scada for hp-boss's states when it starts, and the
+    scada then sends it each state hp-boss reports."""
+    actor = sieg_loop_actor(app)
+    sent = capture(actor)
+    actor.stop_requested = True  # the tick task ends at once
+    actor.start()
+    [subscribe] = [p for dst, p in sent if isinstance(p, MachineStateSubscribe)]
+    assert subscribe.NodeName == actor.hp_boss.name
+
+    scada = app.scada
+    scada.process_scada_message(actor.node, subscribe)
+    forwarded: list = []
+    scada._send_to = lambda dst, payload, src=None: forwarded.append((dst.name, payload, src))
+    state = hp_boss_state(actor, HpBossState.PreparingToTurnOn)
+    scada.process_scada_message(actor.hp_boss, state)
+    assert (actor.name, state, actor.hp_boss) in forwarded
 
 
 @pytest.mark.asyncio

@@ -38,6 +38,7 @@ from result import Ok, Result
 
 from actors import command_reply
 from actors.hydronic.house0 import House0Hydronic
+from actors.in_process_messages import MachineStateSubscribe
 from actors.sieg_loop.hold_full_send import HoldFullSend
 from actors.sieg_loop.strat_protect import SiegControlEvent, SiegControlState, StratProtect
 from actors.sieg_loop.strategy import SiegLoopReady, SiegStrategy, selected_strategy
@@ -411,6 +412,7 @@ class SiegLoop(House0Hydronic):
     # --------------------------------------
 
     def start(self) -> None:
+        self._send_to(self.primary_scada, MachineStateSubscribe(NodeName=self.hp_boss.name))
         self.services.add_task(asyncio.create_task(self.main(), name="Sieg Loop Synchronous Report"))
 
     def stop(self) -> None:

@@ -18,7 +18,7 @@ import typing
 import uuid
 import time
 import pytz
-from typing import Any, List, Optional
+from typing import Any, Optional
 import dotenv
 from gwproactor import CommunicatorInterface
 from gwproactor import ProactorLogger
@@ -50,12 +50,13 @@ from actors.five_v_boss import shape_five_v_subtree
 from actors.scada_data import ScadaData, load_operational_params
 from actors.config import ScadaSettings
 from gwsproto.data_classes.sh_node import ShNode
+from gwsproto.property_format import SpaceheatName
 from gwproactor import QOS
 
 from gwproactor.links import Transition
 from gwproactor.message import MQTTReceiptPayload
 
-from actors.subscription_handler import ChannelSubscription, StateMachineSubscription
+from actors.in_process_messages import ChannelSubscribe, MachineStateSubscribe
 from actors.local_control_loader import LocalControl
 from actors.leaf_ally_loader import LeafAlly
 from actors.codec_factories import ScadaCodecFactory
@@ -186,16 +187,8 @@ class Scada(PrimeActor, ScadaInterface):
         )
         self.initialize_hierarchical_state_data()
 
-        self.state_machine_subscriptions: List[StateMachineSubscription] = []
-        sieg_loop = self.layout.node(House0NodeNames.sieg_loop)
-        if sieg_loop is not None:
-            self.state_machine_subscriptions.append(StateMachineSubscription(
-                subscriber_name=sieg_loop.name,
-                publisher_name=self.hp_boss.name
-            ))
-
-
-        self.channel_subscriptions: typing.Dict[str, ChannelSubscription] = {}
+        self.channel_subscribers: dict[SpaceheatName, list[SpaceheatName]] = {}
+        self.machine_state_subscribers: dict[SpaceheatName, list[SpaceheatName]] = {}
 
         # Initialize actuator tracking
         self.ready_actuators = set()
@@ -211,6 +204,7 @@ class Scada(PrimeActor, ScadaInterface):
 
         # Define which actors depend on actuator readiness
         self.actuator_dependents = {self.local_control}
+        sieg_loop = self.layout.node(House0NodeNames.sieg_loop)
         if sieg_loop is not None:
             self.actuator_dependents.add(sieg_loop)
 
@@ -340,13 +334,18 @@ class Scada(PrimeActor, ScadaInterface):
             case ChannelFlatlined():
                 try:
                     self.data.flush_channel_from_latest(payload.Channel.Name)
+                    self.forward_to_channel_subscribers(from_node, payload.Channel.Name, payload)
                 except Exception as e:
                     self.log(f"Trouble with ChannelFlatlined: \n {e}")
+            case ChannelSubscribe():
+                self.process_channel_subscribe(from_node, payload)
             case ChannelReadings():
                 try:
                     self.process_channel_readings(from_node, payload)
                 except Exception as e:
                     self.logger.error(f"problem with process_channel_readings: \n {e}")
+            case MachineStateSubscribe():
+                self.process_machine_state_subscribe(from_node, payload)
             case FsmFullReport():
                 try:
                     self.process_fsm_full_report(from_node, payload)
@@ -614,6 +613,49 @@ class Scada(PrimeActor, ScadaInterface):
                 ch.Name
             ] = payload.ScadaReadTimeUnixMsList[-1]
 
+    def process_channel_subscribe(
+        self, from_node: ShNode, payload: ChannelSubscribe
+    ) -> None:
+        """The sender becomes a subscriber of the channel. Raises on a
+        channel the layout does not have."""
+        if payload.ChannelName not in self._layout.data_channels:
+            raise ValueError(
+                f"{from_node.name} subscribed to {payload.ChannelName}, "
+                "which is not a data channel of this layout"
+            )
+        subscribers = self.channel_subscribers.setdefault(payload.ChannelName, [])
+        if from_node.name not in subscribers:
+            subscribers.append(from_node.name)
+
+    def forward_to_channel_subscribers(
+        self,
+        from_node: ShNode,
+        channel_name: SpaceheatName,
+        payload: SingleReading | ChannelFlatlined,
+    ) -> None:
+        for subscriber in self.channel_subscribers.get(channel_name, []):
+            self._send_to(self._layout.node(subscriber), payload, from_node)
+
+    def process_machine_state_subscribe(
+        self, from_node: ShNode, payload: MachineStateSubscribe
+    ) -> None:
+        """The sender becomes a subscriber of the node's machine states and
+        is sent the latest one held. Raises on a node the layout does not
+        have."""
+        publisher = self._layout.node(payload.NodeName, None)
+        if publisher is None:
+            raise ValueError(
+                f"{from_node.name} subscribed to the machine states of "
+                f"{payload.NodeName}, which is not a node of this layout"
+            )
+        subscribers = self.machine_state_subscribers.setdefault(payload.NodeName, [])
+        if from_node.name in subscribers:
+            return
+        subscribers.append(from_node.name)
+        latest = self._data.latest_machine_state.get(payload.NodeName)
+        if latest is not None:
+            self._send_to(from_node, latest, publisher)
+
     def process_fsm_full_report(
         self, from_node: ShNode, payload: FsmFullReport
     ) -> None:
@@ -824,24 +866,9 @@ class Scada(PrimeActor, ScadaInterface):
             )
         node_name = payload.MachineHandle.split('.')[-1]
         self._data.latest_machine_state[node_name] = payload
-        self.handle_state_change_subscriptions(from_node, payload)
+        for subscriber in self.machine_state_subscribers.get(node_name, []):
+            self._send_to(self._layout.node(subscriber), payload, from_node)
         self._forward_single_machine_state(from_node, payload)
-
-    def handle_state_change_subscriptions(self, from_node: ShNode, sms: SingleMachineState) -> None:
-        # Find all subscriptions for this publisher (from_node)
-        for subscription in self.state_machine_subscriptions:
-            if subscription.publisher_name == from_node.Name:
-                # Get the subscriber node
-                subscriber_node = self._layout.node(subscription.subscriber_name)
-                if subscriber_node is not None:
-                    self.log(f"Sending {sms.MachineHandle} state to {subscriber_node.name}")
-                    self._send_to(
-                        to_node=subscriber_node,
-                        payload=sms,
-                        from_node=from_node
-                    )
-                else:
-                    self.log(f"Subscriber {subscription.subscriber_name} not found for state change from {from_node.Name}")
 
 
     def process_single_reading(
@@ -858,6 +885,7 @@ class Scada(PrimeActor, ScadaInterface):
         self._data.latest_channel_values[ch.Name] = payload.Value
         self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMs
         self._forward_single_reading(payload)
+        self.forward_to_channel_subscribers(from_node, ch.Name, payload)
 
     def process_suit_up(self, from_node: ShNode, payload: SuitUp) -> None:
         if from_node.Name != CoreNodeNames.leaf_ally:
@@ -889,6 +917,16 @@ class Scada(PrimeActor, ScadaInterface):
             )
             self._data.latest_channel_values[ch.Name] = payload.ValueList[idx]
             self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMs
+            if ch.Name in self.channel_subscribers:
+                self.forward_to_channel_subscribers(
+                    from_node,
+                    ch.Name,
+                    SingleReading(
+                        ChannelName=ch.Name,
+                        Value=payload.ValueList[idx],
+                        ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs,
+                    ),
+                )
 
         # Hack for moving out of Initializing rapidly when restarting Scada
         if from_node.Name ==HSNN.buffer.reader and not self.got_first_buffer_reading:
