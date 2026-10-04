@@ -423,13 +423,22 @@ async def test_a_recovered_meter_channel_reports_on_that_poll(
             lambda: data.latest_channel_values[WHITEWIRE] == 0,
             "whitewire back at the scada",
         )
-        destinations = {
-            m.Header.Dst
-            for m in sent
-            if isinstance(m.Payload, SyncedReadings)
-            and WHITEWIRE in m.Payload.ChannelNameList
-        }
-        assert destinations == {CoreNodeNames.primary_scada, CoreNodeNames.derived_generator}
+
+        def destinations() -> set[str]:
+            return {
+                m.Header.Dst
+                for m in sent
+                if isinstance(m.Payload, SyncedReadings)
+                and WHITEWIRE in m.Payload.ChannelNameList
+            }
+
+        # The meter thread sends to the scada first, so the scada can hold
+        # the value before the second send is recorded.
+        await h.await_for(
+            lambda: destinations()
+            == {CoreNodeNames.primary_scada, CoreNodeNames.derived_generator},
+            "the recovery sent to the scada and the derived generator",
+        )
 
 
 @pytest.mark.asyncio
