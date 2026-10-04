@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-10-04T18:40:00Z"
+  last_updated: "2026-10-04T20:20:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -252,6 +252,7 @@ enums:
         status: "staging"
         added_values:
           - "FiveVBoss"
+          - "HpSensor"
 
   gw1.emission.method:
     latest_version: "000"
@@ -500,7 +501,7 @@ enums:
     latest_version: "000"
     owner: gridworks-energy
     enum_type: "versioned"
-    description: "The heat pump's running state sensed from outdoor-unit power on spruce's starter-script thresholds: Unknown, HpOn, HpOff, held between the on and off lines."
+    description: "The heat pump's running state sensed from outdoor-unit power on spruce's starter-script thresholds: Unknown, HpDetectedOn, HpDetectedOff, held between the on and off lines."
 
     versions:
       "000":

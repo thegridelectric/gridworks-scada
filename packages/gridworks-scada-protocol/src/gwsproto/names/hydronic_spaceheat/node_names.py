@@ -45,6 +45,9 @@ class HydronicSpaceheatNodeNames:
     # A monobloc's indoor box: control electronics, the water-pump feed, and the
     # backup heater — no compressor. Deliberately NOT hp-idu.
     hp_ctrl_box = "hp-ctrl-box"
+    # The heat pump as the scada senses it: the actor that reports its
+    # sensed running state, apart from hp-odu. No component.
+    hp_sensor = "hp-sensor"
     # Buffer elements are flat (one buffer); store-tank elements are per
     # tank, on TankNodeNames.
     buffer_top_elt = "buffer-top-elt"

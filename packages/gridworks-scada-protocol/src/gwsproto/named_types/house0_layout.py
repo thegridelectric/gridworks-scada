@@ -593,6 +593,8 @@ class House0Layout(GwsprotoSemaType):
         Axiom 14: ActuatorLeaves.
         a. Every actuator SHALL have a dotted effective handle and SHALL be a
         leaf. b. Every leaf SHALL be an actuator or a command node.
+        c. Every NoActor ShNode directly under the LocalControl ShNode SHALL be
+        named "n", "backup" or "scada-blind".
         """
         check_actuator_leaves(self.ShNodes, "Axiom 14 (ActuatorLeaves)")
         return self

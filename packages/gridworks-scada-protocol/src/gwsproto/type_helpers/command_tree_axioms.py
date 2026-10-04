@@ -7,8 +7,14 @@ from typing import Iterable
 
 from gwsproto.enums import ActorClass
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
+from gwsproto.names.core.node_names import CoreNodeNames
 
 ACTUATOR_CLASSES = {ActorClass.Relay, ActorClass.ZeroTenOutputer, ActorClass.HpTwin}
+LOCAL_CONTROL_STATE_NODES = {
+    CoreNodeNames.local_control_normal,
+    CoreNodeNames.local_control_backup,
+    CoreNodeNames.local_control_scada_blind,
+}
 COMMAND_CLASSES = {
     ActorClass.LocalControl,
     ActorClass.LeafAlly,
@@ -41,7 +47,9 @@ def check_prefix_closed_handles(nodes: Iterable[SpaceheatNodeGt], axiom: str) ->
 def check_actuator_leaves(nodes: Iterable[SpaceheatNodeGt], axiom: str) -> None:
     """a. every actuator has a dotted effective handle and is a leaf;
     b. every dotted-handle leaf is an actuator or a command node (a
-    command class, or a NoActor directly under the LocalControl node)."""
+    command class, or a NoActor directly under the LocalControl node);
+    c. the NoActor nodes directly under the LocalControl node are named
+    n, backup or scada-blind."""
     by_handle = {effective_handle(n): n for n in nodes}
     handles = set(by_handle)
     lc_handles = {h for h, n in by_handle.items() if n.ActorClass == ActorClass.LocalControl}
@@ -66,3 +74,13 @@ def check_actuator_leaves(nodes: Iterable[SpaceheatNodeGt], axiom: str) -> None:
                     f"(ActorClass {node.ActorClass}) is neither an actuator nor a "
                     "command node."
                 )
+        if (
+            node.ActorClass == ActorClass.NoActor
+            and "." in handle
+            and handle.rsplit(".", 1)[0] in lc_handles
+            and node.Name not in LOCAL_CONTROL_STATE_NODES
+        ):
+            raise ValueError(
+                f"{axiom} failed: {node.Name!r} with handle {handle!r} is a NoActor "
+                "node under local control other than n, backup or scada-blind."
+            )

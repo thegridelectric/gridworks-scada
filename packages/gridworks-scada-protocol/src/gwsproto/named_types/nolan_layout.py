@@ -44,6 +44,9 @@ from gwsproto.named_types.sim_pico_tank_module_component_gt import (
 from gwsproto.named_types.sim_sensor_component_gt import SimSensorComponentGt
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwsproto.named_types.web_server_component_gt import WebServerComponentGt
+from gwsproto.names.hydronic_spaceheat.node_names import (
+    HydronicSpaceheatNodeNames as HSNN,
+)
 from gwsproto.property_format import SpaceheatName
 from gwsproto.type_helpers.board_resolution import (
     GPIO_RELAY,
@@ -510,6 +513,8 @@ class NolanLayout(GwsprotoSemaType):
         Axiom 12: ActuatorLeaves.
         a. Every actuator SHALL have a dotted effective handle and SHALL be a
         leaf. b. Every leaf SHALL be an actuator or a command node.
+        c. Every NoActor ShNode directly under the LocalControl ShNode SHALL be
+        named "n", "backup" or "scada-blind".
         """
         check_actuator_leaves(self.ShNodes, "Axiom 12 (ActuatorLeaves)")
         return self
@@ -984,4 +989,18 @@ class NolanLayout(GwsprotoSemaType):
                     f"channel '{d.Name}' has inputs {d.InputChannelNames}, not exactly "
                     "one circuit's whitewire."
                 )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_32(self) -> "NolanLayout":
+        """
+        Axiom 32: HpSensorNode
+        ShNodes SHALL include a node named "hp-sensor" with ActorClass "HpSensor".
+        """
+        node = next((n for n in self.ShNodes if n.Name == HSNN.hp_sensor), None)
+        if node is None or node.ActorClass != ActorClass.HpSensor:
+            raise ValueError(
+                "Axiom 32 (HpSensorNode) failed: no ShNode named 'hp-sensor' with "
+                "ActorClass 'HpSensor'."
+            )
         return self

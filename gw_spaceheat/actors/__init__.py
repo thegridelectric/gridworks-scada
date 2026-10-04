@@ -6,6 +6,7 @@ from actors.derived_generator import DerivedGenerator
 from actors.gpio_sensor import GpioSensor
 from actors.five_v_boss import FiveVBoss
 from actors.hp_boss import HpBoss
+from actors.hp_sensor import HpSensor
 from actors.honeywell_thermostat import HoneywellThermostat
 from actors.hubitat import Hubitat
 from actors.hubitat_poller import HubitatPoller
@@ -33,6 +34,7 @@ __all__ = [
     "HoneywellThermostat",
     "FiveVBoss",
     "HpBoss",
+    "HpSensor",
     "Hubitat",
     "HubitatPoller",
     "GpioSensor",

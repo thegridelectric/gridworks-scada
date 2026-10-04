@@ -35,6 +35,7 @@ class ActorClass(SemaEnum):
     SimRelayActor = auto()
     I2cDacWriter = auto()
     HpTwin = auto()
+    HpSensor = auto()
 
     @classmethod
     def default(cls) -> "ActorClass":

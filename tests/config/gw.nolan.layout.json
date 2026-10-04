@@ -148,6 +148,15 @@
     {
       "TypeName": "spaceheat.node.gt",
       "Version": "303",
+      "Name": "hp-sensor",
+      "ActorHierarchyName": "s.hp-sensor",
+      "ActorClass": "HpSensor",
+      "DisplayName": "Hp Sensor - the heat pump's sensed running state",
+      "ShNodeId": "3b8c1464-3c46-4f9e-90cc-cef122b5c848"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
       "Name": "lc",
       "ActorHierarchyName": "s.lc",
       "Handle": "auto.lc",

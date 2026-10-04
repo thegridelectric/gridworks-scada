@@ -8,8 +8,8 @@ class SpruceHackHpState(SemaEnum):
     """Sema: https://schemas.electricity.works/enums/spruce.hack.hp.state/000"""
 
     Unknown = auto()
-    HpOn = auto()
-    HpOff = auto()
+    HpDetectedOn = auto()
+    HpDetectedOff = auto()
 
     @classmethod
     def default(cls) -> "SpruceHackHpState":
