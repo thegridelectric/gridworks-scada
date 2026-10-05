@@ -1,3 +1,4 @@
+import shutil
 import typing
 from typing import Optional
 
@@ -7,10 +8,21 @@ from gwproactor_test.instrumented_proactor import MinRangeTuple
 from gwproactor_test.tree_live_test_helper import TreeLiveTest
 
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
+from gwsproto.named_types import TaDeed
 from tests.conftest import TEST_HARDWARE_LAYOUT_PATH
 from ltn_app import LtnApp
 from scada2_app import Scada2App
 from scada_app import ScadaApp
+
+
+def fixture_deed_path(layout: HydronicLayout) -> Optional[Path]:
+    """The ta.deed fixture in tests/config whose TaId is the layout's
+    TerminalAsset GNodeId, or None when no fixture deed binds it."""
+    for path in sorted(TEST_HARDWARE_LAYOUT_PATH.parent.glob("*.ta.deed.json")):
+        deed = TaDeed.model_validate_json(path.read_text())
+        if deed.TaId == layout.terminal_asset_g_node_id:
+            return path
+    return None
 
 
 class ScadaLiveTest(TreeLiveTest):
@@ -75,6 +87,16 @@ class ScadaLiveTest(TreeLiveTest):
         # from the layout object handed in.
         if ops_path is not None:
             kwargs["child_app_settings"].paths.operational_params = ops_path
+        # Likewise the deed, which binds one terminal asset: a test on
+        # another layout gets the fixture deed issued to that layout's
+        # terminal asset, copied over the seeded one. A test that removed
+        # the seeded deed stays without one.
+        primary_layout = child1_layout or child_layout or layout
+        seeded_deed = Path(kwargs["child_app_settings"].paths.tadeed)
+        if primary_layout is not None and seeded_deed.exists():
+            deed_path = fixture_deed_path(primary_layout)
+            if deed_path is not None:
+                shutil.copyfile(deed_path, seeded_deed)
         kwargs["child2_app_settings"] = kwargs.get(
             "child2_app_settings",
             self.child2_app_type()

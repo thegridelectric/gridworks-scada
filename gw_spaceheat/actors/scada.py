@@ -1404,22 +1404,37 @@ class Scada(PrimeActor, ScadaInterface):
 
     def send_startup_announcements(self) -> None:
         """What the scada says about itself once per run: its layout.lite,
-        the home's ta.deed or a Warning glitch when it holds none, and its
-        operating status. None of them asks for an ack."""
+        its ta.deed or a Warning glitch when it holds none (no file, or a
+        file whose deed names another terminal asset), and its operating
+        status. None of them asks for an ack."""
         self._send_to(self.ltn, self.layout_lite)
         deed = self.services.ta_deed
         if deed is None:
+            on_file = self.services.deed_on_file
+            if on_file is None:
+                summary = "no-ta-deed"
+                details = f"No ta.deed at {self.settings.paths.tadeed}"
+                note = str(self.settings.paths.tadeed)
+            else:
+                summary = "ta-deed-wrong-asset"
+                details = (
+                    f"The ta.deed at {self.settings.paths.tadeed} has TaId "
+                    f"{on_file.TaId} ({on_file.TaAlias}); the layout's "
+                    f"TerminalAsset is {self.layout.terminal_asset_g_node_id} "
+                    f"({self.layout.terminal_asset_g_node_alias})"
+                )
+                note = details
             self._send_to(
                 self.ltn,
                 Glitch(
                     FromGNodeAlias=self.layout.scada_g_node_alias,
                     Node=self.node.name,
                     Type=LogLevel.Warning,
-                    Summary="no-ta-deed",
-                    Details=f"No ta.deed at {self.settings.paths.tadeed}",
+                    Summary=summary,
+                    Details=details,
                 ),
             )
-            self.log(f"Warning Glitch: no-ta-deed ({self.settings.paths.tadeed})")
+            self.log(f"Warning Glitch: {summary} ({note})")
         else:
             self._send_to(self.ltn, deed)
         self.report_operating_status()

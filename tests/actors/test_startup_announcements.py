@@ -1,8 +1,10 @@
 """Once per run, when the upstream link can first carry a publish, a scada
-sends its layout.lite and the home's ta.deed, or a no-ta-deed Warning when
-it holds no deed. No LTN is needed for any of it."""
+sends its layout.lite and the home's ta.deed, or a Warning when it holds no
+deed (no-ta-deed) or a deed for another terminal asset (ta-deed-wrong-asset).
+No LTN is needed for any of it."""
 
 import asyncio
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +20,16 @@ from tests.utils.scada_live_test_helper import ScadaLiveTest
 def remove_deed() -> None:
     # The autouse fixture seeds a ValidatedSimulatedAsset deed.
     Path(Paths(name="scada").hardware_layout).parent.joinpath("ta-deed.json").unlink()
+
+
+def deed_another_asset() -> TaDeed:
+    """Rewrites the seeded deed with a TaId that is not the layout's
+    terminal asset, and returns it."""
+    path = Path(Paths(name="scada").hardware_layout).parent.joinpath("ta-deed.json")
+    deed = TaDeed.model_validate_json(path.read_text())
+    other = deed.model_copy(update={"TaId": str(uuid.uuid4())})
+    path.write_text(other.model_dump_json(by_alias=True))
+    return other
 
 
 async def no_announcer(self: Scada) -> None:
@@ -41,10 +53,23 @@ async def test_ta_deed_is_the_deed_and_validation_state_derives_from_it(
         app = tst.child1_app
         deed = app.ta_deed
         assert isinstance(deed, TaDeed)
+        assert deed.TaId == app.hardware_layout.terminal_asset_g_node_id
         assert app.validation_state == deed.ValidationState
         assert app.validation_state != TaValidationState.UnValidated
 
         remove_deed()
+        assert app.ta_deed is None
+        assert app.validation_state == TaValidationState.UnValidated
+
+
+@pytest.mark.asyncio
+async def test_a_deed_for_another_terminal_asset_is_no_deed(
+    request: pytest.FixtureRequest,
+) -> None:
+    async with ScadaLiveTest(request=request) as tst:
+        app = tst.child1_app
+        other = deed_another_asset()
+        assert app.deed_on_file == other
         assert app.ta_deed is None
         assert app.validation_state == TaValidationState.UnValidated
 
@@ -84,6 +109,32 @@ async def test_announcements_with_no_deed_are_the_layout_and_one_warning(
         assert glitch.Type == LogLevel.Warning
         assert glitch.Summary == "no-ta-deed"
         assert glitch.FromGNodeAlias == scada.layout.scada_g_node_alias
+
+
+@pytest.mark.asyncio
+async def test_announcements_with_another_assets_deed_are_the_layout_and_one_warning(
+    request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    other = deed_another_asset()
+    monkeypatch.setattr(Scada, "announce_at_first_broker_link", no_announcer)
+    async with ScadaLiveTest(request=request) as tst:
+        tst.start_child1()
+        scada = tst.child1_app.scada
+        sent = record_sends(monkeypatch, scada)
+        logged: list[str] = []
+        monkeypatch.setattr(scada, "log", logged.append)
+        scada.send_startup_announcements()
+        assert [type(p) for p in sent] == [LayoutLite, Glitch, HouseOperatingStatus]
+        assert [note for note in logged if note.startswith("Warning Glitch: ta-deed-wrong-asset")]
+        glitch = sent[1]
+        assert isinstance(glitch, Glitch)
+        assert glitch.Type == LogLevel.Warning
+        assert glitch.Summary == "ta-deed-wrong-asset"
+        assert other.TaId in glitch.Details
+        assert scada.layout.terminal_asset_g_node_id in glitch.Details
+        status = sent[2]
+        assert isinstance(status, HouseOperatingStatus)
+        assert status.ValidationState == TaValidationState.UnValidated
 
 
 @pytest.mark.asyncio

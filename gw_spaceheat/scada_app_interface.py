@@ -55,22 +55,31 @@ class ScadaAppInterface(AppInterface, ABC):
     @property
     def validation_state(self) -> TaValidationState:
         """What a TaValidator has attested about this terminal asset, read
-        from the ta.deed instance at settings.paths.tadeed; UnValidated
-        when there is no deed. An UnValidated scada refuses every LTN
-        contract offer."""
+        from its ta.deed; UnValidated when it holds none. An UnValidated
+        scada refuses every LTN contract offer."""
         deed = self.ta_deed
         if deed is None:
             return TaValidationState.UnValidated
         return deed.ValidationState
 
     @property
-    def ta_deed(self) -> TaDeed | None:
-        """The ta.deed instance at settings.paths.tadeed, or None when the
-        home holds no deed."""
+    def deed_on_file(self) -> TaDeed | None:
+        """The ta.deed instance at settings.paths.tadeed, whatever terminal
+        asset it names, or None when there is no file."""
         deed_path = Path(self.settings.paths.tadeed)
         if not deed_path.exists():
             return None
         return TaDeed.model_validate_json(deed_path.read_text())
+
+    @property
+    def ta_deed(self) -> TaDeed | None:
+        """This terminal asset's deed: the one on file when its TaId is the
+        layout's TerminalAsset GNodeId. None when there is no file, and
+        None when the file's deed names another terminal asset."""
+        deed = self.deed_on_file
+        if deed is None or deed.TaId != self.hardware_layout.terminal_asset_g_node_id:
+            return None
+        return deed
 
     @abstractmethod
     def upstream_is_send_capable(self) -> bool:
