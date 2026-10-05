@@ -1,1 +1,9 @@
-{"TaId": "5e97d2c8-14ab-4f06-9c3d-7a8b1e6f4d20", "TaAlias": "d1.isone.me.versant.keene.spruce.ta", "ValidationState": "ValidatedRealAssetIncorrectGps", "ValidatorAlias": "d1.validator.gridworks", "IssuedS": 1757300400, "TypeName": "ta.deed", "Version": "000"}
+{
+  "TaId": "5e97d2c8-14ab-4f06-9c3d-7a8b1e6f4d20",
+  "TaAlias": "d1.isone.me.versant.keene.spruce.ta",
+  "ValidationState": "ValidatedSimulatedAsset",
+  "ValidatorAlias": "d1.validator.gridworks",
+  "IssuedS": 1757300400,
+  "TypeName": "ta.deed",
+  "Version": "000"
+}
