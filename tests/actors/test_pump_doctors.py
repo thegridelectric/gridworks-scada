@@ -1,17 +1,23 @@
 """The pump doctors restore the 0-10V power-on levels when they finish,
 under local control on both sim House0 pairs. Local control's own node is
 `lc` while the outputs report to `n`, so the restore has to address the
-host's command node, not the host."""
+host's command node, not the host. The dist-pump monitor and doctor reach
+every zone-call circuit, including one whose place differs from its zone's
+(the sim Nolan living room's second circuit)."""
 
 import asyncio
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
+from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import ActorClass
-from gwsproto.named_types import AnalogDispatch
+from gwsproto.named_types import AnalogDispatch, ZoneCallCircuit
 from gwsproto.names.core.node_names import CoreNodeNames
 
 from actors.procedural.dist_pump_doctor import DistPumpDoctor
+from actors.procedural.dist_pump_monitor import DistPumpMonitor
 from actors.procedural.store_pump_doctor import StorePumpDoctor
 from scada_app import ScadaApp
 from sema_to_dc import zero_ten_power_on_volts_times_ten
@@ -87,3 +93,93 @@ def test_set_010_defaults_from_the_host_itself_sends_nothing(host) -> None:
     before = len(h.sent)
     h.set_010_defaults()
     assert restores_after(h, before) == {}
+
+
+# --- circuits are looked up, not named by position ---------------------------
+
+
+FANCOIL = "living-rm-fancoil"  # circuit 5, serving zone 2 (living-rm)
+
+
+@pytest.fixture
+def nolan_layout() -> HydronicLayout:
+    settings = ScadaApp.get_settings()
+    settings.paths.hardware_layout = CONFIG / "gw.nolan.layout.json"
+    settings.paths.operational_params = CONFIG / "gw.nolan.operational.params.json"
+    settings.paths.mkdirs()
+    app = ScadaApp(app_settings=settings)
+    app.instantiate()
+    return app.hardware_layout
+
+
+class CircuitHost:
+    """A procedural host on a real layout that records the circuit each zone
+    relay command names, in place of sending it."""
+
+    def __init__(self, layout: HydronicLayout) -> None:
+        self.layout = layout
+        self.data = SimpleNamespace(latest_channel_values={})
+        self.commands: list[tuple[str, str]] = []
+        self.node = layout.node(CoreNodeNames.local_control)
+        self.command_node = layout.node(CoreNodeNames.local_control_normal)
+        self.ltn = self.node
+        self.primary_scada = self.node
+        self.dist_010v = layout.node("secondary-010v")
+
+    def log(self, note: str) -> None:
+        pass
+
+    def _send_to(self, dst: ShNode, payload, src: ShNode | None = None) -> None:
+        pass
+
+    async def await_with_watchdog(self, total_seconds: float, pat_every: float = 20.0) -> None:
+        return None
+
+    def set_010_defaults(self, command_node: ShNode | None = None) -> None:
+        pass
+
+    def heatcall_ctrl_to_scada(self, circuit: ZoneCallCircuit, command_node: ShNode | None = None) -> None:
+        self.commands.append(("to-scada", circuit.Name))
+
+    def heatcall_ctrl_to_stat(self, circuit: ZoneCallCircuit, command_node: ShNode | None = None) -> None:
+        self.commands.append(("to-stat", circuit.Name))
+
+    def stat_ops_close_relay(self, circuit: ZoneCallCircuit, command_node: ShNode | None = None) -> None:
+        self.commands.append(("ops-close", circuit.Name))
+
+    def stat_ops_open_relay(self, circuit: ZoneCallCircuit, command_node: ShNode | None = None) -> None:
+        self.commands.append(("ops-open", circuit.Name))
+
+
+def test_heat_call_channel_is_the_circuits_own(nolan_layout: HydronicLayout) -> None:
+    [fancoil] = [c for c in nolan_layout.hydronic.ZoneCallCircuits if c.Name == FANCOIL]
+    assert nolan_layout.heat_call_channel(fancoil) == "zone5-living-rm-fancoil-heat-call"
+
+
+def test_dist_pump_monitor_reads_a_call_on_a_circuit_away_from_its_zones_place(
+    nolan_layout: HydronicLayout,
+) -> None:
+    """Only the fancoil calls. Its heat-call channel is named for place 5,
+    which no zone index reaches."""
+    host = CircuitHost(nolan_layout)
+    for circuit in nolan_layout.hydronic.ZoneCallCircuits:
+        host.data.latest_channel_values[nolan_layout.heat_call_channel(circuit)] = 0
+    [fancoil] = [c for c in nolan_layout.hydronic.ZoneCallCircuits if c.Name == FANCOIL]
+    host.data.latest_channel_values[nolan_layout.heat_call_channel(fancoil)] = 1
+    monitor = DistPumpMonitor(host=host, doctor=DistPumpDoctor(host=host))
+    assert monitor._any_zones_calling()
+
+
+def test_dist_pump_doctor_commands_every_circuits_relays(nolan_layout: HydronicLayout) -> None:
+    host = CircuitHost(nolan_layout)
+    doctor = DistPumpDoctor(host=host)
+
+    async def flow_seen(*args, **kwargs) -> bool:
+        return True
+
+    doctor.wait_for_dist_flow = flow_seen
+    asyncio.run(doctor.run())
+    names = [c.Name for c in nolan_layout.hydronic.ZoneCallCircuits]
+    assert FANCOIL in names
+    for command in ("to-scada", "ops-close", "to-stat", "ops-open"):
+        assert [n for k, n in host.commands if k == command] == names

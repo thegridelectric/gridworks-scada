@@ -1,20 +1,17 @@
 import asyncio
 from abc import abstractmethod
-from typing import List, Optional, Sequence, cast
+from typing import List, Optional, Sequence
 import time
-import uuid
-from datetime import datetime, timedelta
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 
 from gwsproto.data_classes.sh_node import ShNode
-from gwsproto.named_types import AnalogDispatch, SyncedReadings
+from gwsproto.named_types import SyncedReadings
 from result import Ok, Result
 from transitions import Machine
 from gwsproto.names.hydronic_spaceheat.node_names import (
     HydronicSpaceheatNodeNames as HSNN,
-    HydronicSpaceheatZoneNodeNames as HSZoneNodeNames,
 )
 
 from gwsproto.enums import (
@@ -23,7 +20,7 @@ from gwsproto.enums import (
 )
 from gwsproto.named_types import (ActuatorsReady,
             GoDormant,  Ha1Params,
-            NewCommandTree, SingleMachineState, WakeUp)
+            SingleMachineState, WakeUp)
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.house0.node_names import House0NodeNames
 
@@ -196,11 +193,9 @@ class LocalControlTouBase(House0Hydronic):
         return all(self.layout.node(name) is not None for name in names)
 
     def _dist_pump_recovery_enabled(self) -> bool:
-        required = [HSNN.dist_010v]
-        for i, zone in enumerate(self.layout.zone_list):
-            zone_nodes = HSZoneNodeNames(zone, i + 1)
-            required.extend([zone_nodes.failsafe_relay, zone_nodes.ops_relay])
-        return self._has_layout_nodes(required)
+        # The circuits' relays are required actuators (gw.house0.layout
+        # RequiredActuators), so the 0-10V output is the one that can be absent.
+        return self._has_layout_nodes([HSNN.dist_010v])
 
     def _store_pump_recovery_enabled(self) -> bool:
         return self._has_layout_nodes(

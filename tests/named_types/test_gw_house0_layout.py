@@ -96,6 +96,14 @@ def test_gw_house0_layout_axiom_2(assembled: dict) -> None:
     reject(assembled, mutate, "Axiom 2")
 
 
+def test_gw_house0_layout_axiom_2_cold_watch(assembled: dict) -> None:
+    reject(
+        assembled,
+        lambda d: d.update(ShNodes=[n for n in d["ShNodes"] if n["Name"] != "cold-watch"]),
+        "Axiom 2",
+    )
+
+
 def test_gw_house0_layout_axiom_3(assembled: dict) -> None:
     """sieg-loop is an unconditional command node — removing it fails."""
     reject(
@@ -238,10 +246,12 @@ def test_gw_house0_layout_axiom_10_output_component(assembled: dict) -> None:
 
 
 def test_gw_house0_layout_axiom_10_circuits(assembled: dict) -> None:
+    """An empty circuit list is refused by the hydronic block, where every
+    zone names a primary circuit."""
     reject(
         assembled,
         lambda d: d["Hydronic"].update(ZoneCallCircuits=[]),
-        "Axiom 10",
+        r"Axiom 3 \(PrimaryCircuit",
     )
 
 
@@ -405,14 +415,14 @@ def test_gw_house0_layout_axiom_17_missing_depth_channel(assembled: dict) -> Non
 
 def test_gw_house0_layout_axiom_18_unknown_channel(assembled: dict) -> None:
     def rename(d: dict) -> None:
-        d["Hydronic"]["Zones"][0]["TempChannelName"] = "no-such-channel"
+        d["Hydronic"]["ZoneCallCircuits"][0]["TempChannelName"] = "no-such-channel"
 
     reject(assembled, rename, "Axiom 18")
 
 
 def test_gw_house0_layout_axiom_18_not_a_temperature(assembled: dict) -> None:
     def point_at_power(d: dict) -> None:
-        d["Hydronic"]["Zones"][0]["TempChannelName"] = "hp-odu-pwr"
+        d["Hydronic"]["ZoneCallCircuits"][0]["TempChannelName"] = "hp-odu-pwr"
 
     reject(assembled, point_at_power, "Axiom 18")
 
@@ -459,7 +469,9 @@ def test_gw_house0_layout_axiom_4_second_heat_call(assembled: dict) -> None:
 # Strategies by name or by input, so the mutations below use the others and
 # trip only the axiom under test. Matches are anchored at the opening
 # parenthesis so "Axiom 2" cannot be satisfied by "Axiom 20".
-PINNED_STRATEGIES = {"transactive-power", "heat-call", "system-model"}
+PINNED_STRATEGIES = {
+    "transactive-power", "heat-call", "system-model", "simple-falling-edge-setpoint",
+}
 
 
 def free_derived(d: dict) -> list[dict]:
@@ -849,3 +861,34 @@ def test_gw_house0_layout_axiom_34_heat_call_for_no_circuit(assembled: dict) -> 
 
     reject(assembled, mutate, r"Axiom 34 \(")
 
+
+def test_gw_house0_layout_axiom_35_unknown_channel(assembled: dict) -> None:
+    def rename(d: dict) -> None:
+        d["Hydronic"]["ZoneCallCircuits"][0]["SetpointChannelName"] = "no-such-channel"
+
+    reject(assembled, rename, r"Axiom 35 \(")
+
+
+def test_gw_house0_layout_axiom_35_learned_setpoint_wrong_strategy(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        name = d["Hydronic"]["ZoneCallCircuits"][0]["SetpointChannelName"]
+        next(c for c in d["DerivedChannels"] if c["Name"] == name)["Strategy"] = "identity"
+
+    reject(assembled, mutate, r"Axiom 35 \(")
+
+
+def test_gw_house0_layout_axiom_36_setpoint_not_read_from_the_thermostat(assembled: dict) -> None:
+    """A circuit declared FromThermostat whose setpoint channel is not a
+    data channel captured by its thermostat's node."""
+    def mutate(d: dict) -> None:
+        circuit = d["Hydronic"]["ZoneCallCircuits"][0]
+        circuit["SetpointSource"] = "FromThermostat"
+        circuit["Thermostat"]["Kind"] = "HoneywellViaHubitat"
+        circuit["Thermostat"]["ComponentId"] = str(uuid.uuid4())
+
+    reject(assembled, mutate, r"Axiom 36 \(")
+
+
+def test_gw_house0_layout_axiom_37(assembled: dict) -> None:
+    """A House0 home stores heat in water tanks."""
+    reject(assembled, lambda d: d["Hydronic"].pop("WaterStore"), r"Axiom 37 \(WaterStore\)")

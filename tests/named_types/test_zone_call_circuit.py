@@ -8,6 +8,7 @@ from gwsproto.named_types import ZoneCallCircuit
 def base_circuit() -> dict:
     return {
         "CircuitPosition": 1,
+        "Name": "down",
         "ServesZone": "zone1-down",
         "EmitterType": "Other",
         "CanCool": False,
@@ -67,3 +68,27 @@ def test_zone_call_circuit_axiom_2() -> None:
         ValueError, match="Axiom 2 \\(ReadSetpointNeedsCommsStat\\) failed"
     ):
         ZoneCallCircuit.model_validate(d)
+
+
+def test_zone_call_circuit_name_required() -> None:
+    d = base_circuit()
+    del d["Name"]
+
+    with pytest.raises(ValueError, match="Name"):
+        ZoneCallCircuit.model_validate(d)
+
+
+def test_gw1_zone_call_circuit_axiom_3() -> None:
+    d = base_circuit()
+    d["SetpointChannelName"] = "zone1-down-set"
+
+    with pytest.raises(ValueError, match="Axiom 3 \\(SetpointNeedsTemp\\) failed"):
+        ZoneCallCircuit.model_validate(d)
+
+
+def test_gw1_zone_call_circuit_axiom_3_setpoint_with_temp() -> None:
+    d = base_circuit()
+    d["SetpointChannelName"] = "zone1-down-set"
+    d["TempChannelName"] = "zone1-down-temp"
+
+    assert ZoneCallCircuit.model_validate(d).TempChannelName == "zone1-down-temp"

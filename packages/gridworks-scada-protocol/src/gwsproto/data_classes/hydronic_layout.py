@@ -34,6 +34,7 @@ from gwsproto.named_types import (
     ScadaBoardComponentGt,
     SpaceheatNodeGt,
     UsableEnergyLayered,
+    ZoneCallCircuit,
 )
 from gwsproto.property_format import LeftRightDotStr, SpaceheatName, UUID4Str
 from gwsproto.type_helpers.channel_named import ChannelNamed
@@ -661,9 +662,8 @@ class HydronicLayout:
         self.zone_list = [z.Name for z in self.hydronic.Zones]
         self.critical_zone_list = [z.Name for z in self.hydronic.Zones if z.Critical]
         self.zone_kwh_per_deg_f_list = [z.KwhPerDegF for z in self.hydronic.Zones]
-        self.total_store_tanks = self.hydronic.TotalStoreTanks
-        if not 1 <= self.total_store_tanks <= 6:
-            raise ValueError("Must have between 1 and 6 store tanks")
+        water_store = self.hydronic.WaterStore
+        self.total_store_tanks = water_store.TotalStoreTanks if water_store is not None else 0
         if not 1 <= len(self.zone_list) <= 6:
             raise ValueError("Must have between 1 and 6 store zones")
         self.store_tanks = store_tanks(self.nodes)
@@ -1302,6 +1302,17 @@ class HydronicLayout:
         """Channels that exist in the layout but are not reported upstream:
         the disabled ones."""
         return set(self.disabled_channel_names)
+
+    def heat_call_channel(self, circuit: ZoneCallCircuit) -> SpaceheatName:
+        """The circuit's heat-call channel: the heat-call derived channel
+        whose one input is the circuit's whitewire channel."""
+        [name] = [
+            d.Name
+            for d in self.derived_channels.values()
+            if d.Strategy == "heat-call"
+            and list(d.InputChannelNames) == [circuit.WhitewireChannelName]
+        ]
+        return name
 
     @property
     def has_store_tanks(self) -> bool:

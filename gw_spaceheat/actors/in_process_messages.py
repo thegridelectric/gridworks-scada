@@ -25,3 +25,15 @@ class MachineStateSubscribe(BaseModel):
     NodeName: SpaceheatName
     TypeName: Literal["machine.state.subscribe"] = "machine.state.subscribe"
     Version: Literal["000"] = "000"
+
+
+class BreakServiceContract(BaseModel):
+    """The cold watch's latch has fired with the stores empty: a critical
+    zone has been cold for the whole latch and the buffer (and, at an
+    AllTanks house, the store) is empty. A scada holding a dispatch
+    contract refuses dispatch with ServiceContractBroken and ends the
+    contract. In-process, with no sema word."""
+
+    Cause: str
+    TypeName: Literal["break.service.contract"] = "break.service.contract"
+    Version: Literal["000"] = "000"

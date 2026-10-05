@@ -26,13 +26,13 @@ from gwsproto.names.hydronic_spaceheat.node_names import (
 )
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from actors.hp_boss.sensing import DEFROST_SIGNATURES
-from actors.hydronic.shared import HydronicNode
+from actors.hydronic.cold import ColdJudgmentNode
 from actors.hydronic.store_temps import scrub_and_fill_store_temps
 from sema_to_dc import zero_ten_power_on_volts_times_ten
 
 
 
-class House0Hydronic(HydronicNode):
+class House0Hydronic(ColdJudgmentNode):
     """The House0 plant surface."""
 
     def close_tstat_common_relay(self, from_node: Optional[ShNode] = None) -> None:
@@ -553,56 +553,6 @@ class House0Hydronic(HydronicNode):
             odu = self.data.last_real_value(HCN.hp_odu_pwr)
         return idu is not None and odu is not None and idu + odu < signature.max_w
 
-    def is_buffer_empty(self, all_tanks_leaf_ally=False) -> bool:
-        """
-        Returns True if the buffer does not contain enough usable heat
-        to meet the near-term required return-water temperature.
-
-        Uses the coldest available top-of-buffer measurement and the
-        maximum required RWT minus delta-T over the next few hours.
-
-        If forecasts are unavailable, returns False (cannot assert empty).
-        """
-
-        # Select the best available "top of buffer" temperature channel
-        if all_tanks_leaf_ally and self.ops.FamilyParams.KeepBufferFull and HCN.buffer.depth3 in self.data.latest_temperatures_f:
-            buffer_empty_ch = HCN.buffer.depth3
-        elif HCN.buffer.depth1 in self.data.latest_temperatures_f:
-            buffer_empty_ch = HCN.buffer.depth1
-        elif HCN.dist_swt in self.data.latest_temperatures_f:
-            buffer_empty_ch = HCN.dist_swt
-        else:
-            # No meaningful buffer temperature available
-            self.log("is_buffer_empty: no buffer temperature channel available")
-            return False
-
-        if self.heating_forecast is None:
-            # Cannot reason about emptiness without forecast context
-            self.log("is_buffer_empty: no heating forecast available")
-            return False
-
-        # Conservative near-term requirement (next ~3 hours)
-        max_rswt = max(self.heating_forecast.RswtF[:3])
-        max_delta_t = max(self.heating_forecast.RswtDeltaTF[:3])
-        if all_tanks_leaf_ally and self.ops.FamilyParams.KeepBufferFull:
-            min_buffer_temp_f = round(max_rswt - max_delta_t, 1)
-        else:
-            min_buffer_temp_f = round(max_rswt, 1)
-
-        min_buffer_temp_f = min(min_buffer_temp_f, self.data.ha1_params.MaxEwtF-10)
-        buffer_temp_f = self.data.latest_temperatures_f[buffer_empty_ch]
-
-        if buffer_temp_f < min_buffer_temp_f:
-            self.log(
-                f"Buffer empty ({buffer_empty_ch}: {buffer_temp_f} < {min_buffer_temp_f} F), RSWT is {max_rswt}F"
-            )
-            return True
-        else:
-            self.log(
-                f"Buffer not empty ({buffer_empty_ch}: {buffer_temp_f} >= {min_buffer_temp_f} F), RSWT is {max_rswt}F"
-            )
-            return False
-
     def is_buffer_full(self) -> bool:
         """
         Returns True if the buffer is considered thermally full relative to
@@ -729,23 +679,6 @@ class House0Hydronic(HydronicNode):
             return self.data.latest_temperatures_f[buffer_bottom] > self.data.latest_temperatures_f[tank_top]
 
         return self.data.latest_temperatures_f[buffer_top] > self.data.latest_temperatures_f[tank_top] + min_delta_f
-
-    def is_storage_empty(self):
-        if self.usable_kwh < 0.2:
-            return True
-        else:
-            return False
-
-    @property
-    def usable_kwh(self) -> float:
-        """
-        Latest usable thermal energy in kWh, derived from SCADA channel.
-        Returns 0 if not yet available.
-        """
-        val =  self.data.latest_channel_values.get(HCN.usable_energy, 0)
-        if val is None:
-            val = 0
-        return val / 1000
 
     @property
     def required_kwh(self) -> float:

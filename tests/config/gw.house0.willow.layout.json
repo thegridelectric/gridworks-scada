@@ -120,6 +120,15 @@
     {
       "TypeName": "spaceheat.node.gt",
       "Version": "303",
+      "Name": "cold-watch",
+      "ActorHierarchyName": "s.cold-watch",
+      "ActorClass": "ColdWatch",
+      "DisplayName": "Cold Watch",
+      "ShNodeId": "feefe23e-d84d-4650-b2c6-59e729ea1dab"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
       "Name": "lc",
       "ActorHierarchyName": "s.lc",
       "Handle": "auto.lc",
@@ -741,18 +750,6 @@
       "Quantity": "Temperature",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
       "Id": "6d5e7ebd-a3b1-4c00-9211-cff88d7f5ba6"
-    },
-    {
-      "TypeName": "data.channel.gt",
-      "Version": "003",
-      "Name": "zone1-main-set",
-      "DisplayName": "Zone1 Main Set",
-      "AboutNodeName": "zone1-main",
-      "CapturedByNodeName": "zone1-main-temp-sensor",
-      "TelemetryName": "CelsiusTimes100",
-      "Quantity": "Temperature",
-      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
-      "Id": "b958cfa3-6e64-42fa-86cb-d255659392b5"
     },
     {
       "TypeName": "data.channel.gt",
@@ -1488,6 +1485,28 @@
       "OutputQuantity": "Temperature",
       "EmissionMethod": "OnTrigger",
       "DisplayName": "Tank1 Depth3 Effective Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta"
+    },
+    {
+      "TypeName": "derived.channel.gt",
+      "Version": "002",
+      "Id": "0a5dd487-3739-4e7d-bd6c-ed6e81305f30",
+      "Name": "zone1-main-set",
+      "CreatedByNodeName": "derived-generator",
+      "Strategy": "simple-falling-edge-setpoint",
+      "InputChannelNames": [
+        "zone1-main-temp",
+        "zone1-main-heat-call"
+      ],
+      "OutputUnit": "FahrenheitX100",
+      "OutputQuantity": "Temperature",
+      "EmissionMethod": "AsyncAndPeriodic",
+      "AsyncEmitDelta": 20,
+      "EmitPeriodS": 300,
+      "Parameters": {
+        "SetpointThresholdFX100": 200
+      },
+      "DisplayName": "Zone1 Main Predicted Setpoint",
       "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta"
     }
   ],
@@ -2577,7 +2596,7 @@
         "Name": "main",
         "Critical": true,
         "KwhPerDegF": 1.0,
-        "TempChannelName": "zone1-main-temp"
+        "PrimaryCircuitPosition": 1
       }
     ],
     "ZoneCallCircuits": [
@@ -2585,6 +2604,7 @@
         "TypeName": "gw1.zone.call.circuit",
         "Version": "000",
         "CircuitPosition": 1,
+        "Name": "main",
         "ServesZone": "main",
         "EmitterType": "Other",
         "CanCool": false,
@@ -2595,11 +2615,17 @@
           "Kind": "MechanicalDial"
         },
         "WhitewireChannelName": "zone1-main-whitewire-pwr",
+        "SetpointChannelName": "zone1-main-set",
+        "TempChannelName": "zone1-main-temp",
         "FailsafeRelayNode": "zone1-main-failsafe-relay",
         "OpsRelayNode": "zone1-main-ops-relay"
       }
     ],
-    "TotalStoreTanks": 1,
+    "WaterStore": {
+      "TypeName": "gw.water.store",
+      "Version": "000",
+      "TotalStoreTanks": 1
+    },
     "PrimaryFlowSource": "DerivedSiegSum",
     "PrimaryPumpOwner": "Scada",
     "RefrigerantCycle": "Cascade"

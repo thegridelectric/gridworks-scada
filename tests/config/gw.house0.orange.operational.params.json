@@ -75,14 +75,6 @@
     {
       "TypeName": "capture.tuning",
       "Version": "000",
-      "ChannelName": "zone1-main-set",
-      "CapturePeriodS": 300,
-      "AsyncCapture": true,
-      "AsyncCaptureDelta": 1
-    },
-    {
-      "TypeName": "capture.tuning",
-      "Version": "000",
       "ChannelName": "vdc-relay",
       "CapturePeriodS": 300,
       "AsyncCapture": true,

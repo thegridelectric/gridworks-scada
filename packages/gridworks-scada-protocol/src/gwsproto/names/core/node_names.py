@@ -14,6 +14,7 @@ class CoreNodeNames:
     admin = "admin"
     auto = "auto"
     derived_generator = "derived-generator"
+    cold_watch = "cold-watch"
 
     # local control and its states
     local_control = "lc"

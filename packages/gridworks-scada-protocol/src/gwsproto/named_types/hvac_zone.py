@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import ConfigDict
+from pydantic import ConfigDict, PositiveInt
 
 from gwsproto.property_format import SpaceheatName
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
@@ -14,7 +14,7 @@ class HvacZone(GwsprotoSemaType):
     Name: SpaceheatName
     Critical: bool
     KwhPerDegF: float
-    TempChannelName: SpaceheatName
+    PrimaryCircuitPosition: PositiveInt
     TypeName: Literal["gw1.hvac.zone"] = "gw1.hvac.zone"
     Version: Literal["000"] = "000"
     model_config = ConfigDict(extra="allow")

@@ -11,7 +11,7 @@ def base_zone() -> dict:
         "Name": "zone1-down",
         "Critical": True,
         "KwhPerDegF": 2.5,
-        "TempChannelName": "zone1-down-temp",
+        "PrimaryCircuitPosition": 1,
         "TypeName": "gw1.hvac.zone",
         "Version": "000",
     }
@@ -25,9 +25,9 @@ def test_hvac_zone_generated() -> None:
     assert d2 == d
 
 
-def test_hvac_zone_temp_channel_required() -> None:
+def test_hvac_zone_primary_circuit_required() -> None:
     d = base_zone()
-    del d["TempChannelName"]
+    del d["PrimaryCircuitPosition"]
 
     with pytest.raises(ValidationError):
         HvacZone.model_validate(d)

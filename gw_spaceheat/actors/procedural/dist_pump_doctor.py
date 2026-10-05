@@ -77,13 +77,9 @@ class DistPumpDoctor:
                 ),
             )
 
-            if not h.layout.zone_list:
-                h.log("[DistPumpDoctor] No zones found")
-                return
-
             # Switch zones to SCADA
-            for zone in h.layout.zone_list:
-                h.heatcall_ctrl_to_scada(zone=zone, command_node=h.command_node)
+            for circuit in h.layout.hydronic.ZoneCallCircuits:
+                h.heatcall_ctrl_to_scada(circuit, command_node=h.command_node)
 
             # Set 0-10 to zero
             
@@ -102,8 +98,8 @@ class DistPumpDoctor:
         
             await h.await_with_watchdog(15)
 
-            for zone in h.layout.zone_list:
-                h.stat_ops_close_relay(zone=zone, command_node=self.host.command_node)
+            for circuit in h.layout.hydronic.ZoneCallCircuits:
+                h.stat_ops_close_relay(circuit, command_node=self.host.command_node)
 
             h.log("[DistPumpDoctor] Waiting for dist flow")
             flow_detected = await self.wait_for_dist_flow()
@@ -134,11 +130,11 @@ class DistPumpDoctor:
         finally:
             h.log("[DistPumpDoctor] Restoring defaults")
             h.set_010_defaults(command_node=h.command_node)
-            for zone in h.layout.zone_list:
-                h.heatcall_ctrl_to_stat(zone=zone, command_node=h.command_node)
+            for circuit in h.layout.hydronic.ZoneCallCircuits:
+                h.heatcall_ctrl_to_stat(circuit, command_node=h.command_node)
             await h.await_with_watchdog(5)
-            for zone in h.layout.zone_list:
-                h.stat_ops_open_relay(zone=zone, command_node=h.command_node)
+            for circuit in h.layout.hydronic.ZoneCallCircuits:
+                h.stat_ops_open_relay(circuit, command_node=h.command_node)
 
             self.running = False
 

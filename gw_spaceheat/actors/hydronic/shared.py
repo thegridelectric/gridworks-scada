@@ -1,5 +1,6 @@
 """Family-neutral hydronic helpers — zone-call circuit relays, the vdc
-pair, TOU/setpoint judgment, temperature access. Inherited by every
+pair, TOU judgment, temperature access, whether the buffer and store
+are empty. Inherited by every
 family's control impls and by PicoCycler (tier C+D shared slice of the
 sh_node_actor partition; see the partition spoke)."""
 
@@ -8,41 +9,19 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Optional
 from pydantic import ValidationError
-from gwsproto.errors import DcError
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
     ChangeZoneCallSource,
     ChangeRelayState,
     TurnHpOnOff,
 )
-from gwsproto.named_types import FsmEvent
-from gwsproto.names.hydronic_spaceheat.channel_names import (
-    HydronicSpaceheatZoneChannelNames as HSZoneChannelNames,
-)
-from gwsproto.names.hydronic_spaceheat.node_names import (
-    HydronicSpaceheatZoneNodeNames as HSZoneNodeNames,
-)
+from gwsproto.named_types import FsmEvent, ZoneCallCircuit
+from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 
 from actors.command_node import CommandNode
 
 class HydronicNode(CommandNode):
     """CommandNode + the family-neutral hydronic surface."""
-
-    def zone_channels(self) -> list[HSZoneChannelNames]:
-        """The layout's zones in order, as their hydronic-tier channel names."""
-        return [HSZoneChannelNames(zone, i + 1) for i, zone in enumerate(self.layout.zone_list)]
-
-    def refresh_setpoints_at_onpeak_start(self) -> None:
-        """Take each layout zone's current setpoint (`zone{i}-{label}-set`,
-        keyed by the zone channel base) as the setpoint the zone had when
-        on-peak began. `is_system_cold` judges against the lower of this
-        and the current setpoint, so a thermostat raised during on-peak does
-        not read as a cold house. Refreshed off-peak; held through on-peak."""
-        self.setpoints_at_onpeak_start = {}
-        for zone in self.zone_channels():
-            setpoint = self.channel_temperature(zone.set)
-            if setpoint is not None:
-                self.setpoints_at_onpeak_start[zone.base] = setpoint
 
     def just_before_onpeak(self) -> bool:
         """Within the two minutes before an on-peak window opens."""
@@ -57,46 +36,6 @@ class HydronicNode(CommandNode):
         return self.in_onpeak_window(time_now) or self.in_onpeak_window(
             time_now + timedelta(minutes=2)
         )
-
-    def is_system_cold(self) -> bool:
-        """Returns True if at least one critical zone is more than 1F below setpoint.
-        Setpoint used is the minimum of: (a) setpoint at start of on-peak, (b) current setpoint.
-        Using (a) avoids triggering when the user raises the thermostat during on-peak; using the
-        minimum with (b) avoids triggering when the user lowers the thermostat during on-peak."""
-        if not self.is_onpeak():  # TODO: bleed into the first half hour of offpeak
-            self.refresh_setpoints_at_onpeak_start()
-        for i, hvac_zone in enumerate(self.layout.hydronic.Zones):
-            if not hvac_zone.Critical:
-                continue
-            zone_channels = HSZoneChannelNames(hvac_zone.Name, i + 1)
-            zone = zone_channels.base
-
-            # Use the lower of setpoint at start of on-peak vs current setpoint
-            setpoint_at_onpeak = self.setpoints_at_onpeak_start.get(zone)
-            current_setpoint = self.channel_temperature(zone_channels.set)
-            if setpoint_at_onpeak is not None and current_setpoint is not None:
-                setpoint = min(setpoint_at_onpeak, current_setpoint)
-            elif setpoint_at_onpeak is not None:
-                setpoint = setpoint_at_onpeak
-            elif current_setpoint is not None:
-                setpoint = current_setpoint
-            else:
-                self.log(f"Could not find setpoint for {zone}!")
-                continue
-
-            temperature = self.channel_temperature(hvac_zone.TempChannelName)
-            if temperature is None:
-                self.log(f"Could not find latest temperature for {zone}!")
-                continue
-
-            if temperature.f < setpoint.f - 1.0:
-                self.log(
-                    f"{zone} temperature is at least 1F lower than the effective setpoint "
-                    "(min of on-peak start and current)"
-                )
-                return True
-        self.log("All critical zones are at or above their effective setpoint")
-        return False
 
     @property
     def hp_boss(self) -> ShNode:
@@ -155,61 +94,40 @@ class HydronicNode(CommandNode):
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
-    def stat_failsafe_relay(self, zone: str) -> ShNode:
-        """
-        Returns the failsafe relay for the zone.
-        Raises a DcError if zone is not in the layout's zone_list
-        """
-        try:
-            i = self.layout.zone_list.index(zone)
-        except ValueError as e:
-            raise DcError(
-                f"Called stat_failsafe_relay for {zone} which does not exist!"
-            ) from e
-        return self.required_node(HSZoneNodeNames(zone, i + 1).failsafe_relay)
+    def stat_failsafe_relay(self, circuit: ZoneCallCircuit) -> ShNode:
+        """Returns the circuit's failsafe relay."""
+        return self.required_node(circuit.FailsafeRelayNode)
 
-    def stat_ops_relay(self, zone: str) -> ShNode:
-        """
-        Returns the scada thermostat ops relay for the zone
-        Raises a DcError if zone is not in the layout's zone_list
-        """
-        try:
-            i = self.layout.zone_list.index(zone)
-        except ValueError as e:
-            raise DcError(
-                f"Called stat_ops_relay for {zone} which does not exist!"
-            ) from e
-        return self.required_node(HSZoneNodeNames(zone, i + 1).ops_relay)
+    def stat_ops_relay(self, circuit: ZoneCallCircuit) -> ShNode:
+        """Returns the circuit's scada thermostat ops relay."""
+        return self.required_node(circuit.OpsRelayNode)
 
-    def heatcall_ctrl_to_scada(self, zone: str, command_node: ShNode | None = None) -> None:
+    def heatcall_ctrl_to_scada(self, circuit: ZoneCallCircuit, command_node: ShNode | None = None) -> None:
         """
-        Take over thermostatic control of the zone from the wall thermostat
+        Take over thermostatic control of the circuit from the wall thermostat
         by energizing appropriate relay.
         Will log an error and do nothing if not the boss of this relay.
         """
         if command_node is None:
             command_node = self.node
-        if zone not in self.layout.zone_list:
-            self.log(f"{zone} not a recongized zone!")
-            return
         try:
             event = FsmEvent(
                 FromHandle=command_node.handle,
-                ToHandle=self.stat_failsafe_relay(zone).handle,
+                ToHandle=self.stat_failsafe_relay(circuit).handle,
                 EventType=ChangeZoneCallSource.enum_name(),
                 EventName=ChangeZoneCallSource.SwitchToScada,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
 
-            self._send_to(self.stat_failsafe_relay(zone), event, command_node)
+            self._send_to(self.stat_failsafe_relay(circuit), event, command_node)
             self.log(
-                f"{command_node.handle} sending SwitchToScada to {self.stat_failsafe_relay(zone).handle} (zone {zone})"
+                f"{command_node.handle} sending SwitchToScada to {self.stat_failsafe_relay(circuit).handle} (circuit {circuit.Name})"
             )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
-    def heatcall_ctrl_to_stat(self, zone: str, command_node: ShNode| None = None) -> None:
+    def heatcall_ctrl_to_stat(self, circuit: ZoneCallCircuit, command_node: ShNode| None = None) -> None:
         """
         Return control of the whitewire heatcall signal to the wall thermostat
         by de-energizing appropriate relay.
@@ -220,75 +138,133 @@ class HydronicNode(CommandNode):
         """
         if command_node is None:
             command_node = self.node
-        if zone not in self.layout.zone_list:
-            self.log(f"{zone} not a recongized zone!")
-            return
         try:
             event = FsmEvent(
                 FromHandle=command_node.handle,
-                ToHandle=self.stat_failsafe_relay(zone).handle,
+                ToHandle=self.stat_failsafe_relay(circuit).handle,
                 EventType=ChangeZoneCallSource.enum_name(),
                 EventName=ChangeZoneCallSource.SwitchToWallThermostat,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
-            self._send_to(self.stat_failsafe_relay(zone), event, command_node)
+            self._send_to(self.stat_failsafe_relay(circuit), event, command_node)
             self.log(
-                f"{command_node.handle} sending SwitchToWallThermostat to {self.stat_failsafe_relay(zone).handle} (zone {zone})"
+                f"{command_node.handle} sending SwitchToWallThermostat to {self.stat_failsafe_relay(circuit).handle} (circuit {circuit.Name})"
             )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
-    def stat_ops_close_relay(self, zone: str, command_node: ShNode | None = None) -> None:
+    def stat_ops_close_relay(self, circuit: ZoneCallCircuit, command_node: ShNode | None = None) -> None:
         """
-        Close (energize) the ScadaOps relay for associated zone. Will send a heatcall on the white
+        Close (energize) the ScadaOps relay for the circuit. Will send a heatcall on the white
         wire IF the associated failsafe relay is energized (switched to SCADA).
         Will log an error and do nothing if not the boss of this relay.
         """
         if command_node is None:
             command_node = self.node
-        if zone not in self.layout.zone_list:
-            self.log(f"{zone} not a recongized zone!")
-            return
         try:
             event = FsmEvent(
                 FromHandle=command_node.handle,
-                ToHandle=self.stat_ops_relay(zone).handle,
+                ToHandle=self.stat_ops_relay(circuit).handle,
                 EventType=ChangeRelayState.enum_name(),
                 EventName=ChangeRelayState.CloseRelay,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
-            self._send_to(self.stat_ops_relay(zone), event, command_node)
+            self._send_to(self.stat_ops_relay(circuit), event, command_node)
             self.log(
-                f"{command_node.handle} sending CloseRelay to {self.stat_ops_relay(zone).handle} (zone {zone})"
+                f"{command_node.handle} sending CloseRelay to {self.stat_ops_relay(circuit).handle} (circuit {circuit.Name})"
             )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
-    def stat_ops_open_relay(self, zone: str, command_node: ShNode | None = None) -> None:
+    def stat_ops_open_relay(self, circuit: ZoneCallCircuit, command_node: ShNode | None = None) -> None:
         """
-        Open (de-energize) the ScadaOps relay for associated zone. Will send 0 on the white
+        Open (de-energize) the ScadaOps relay for the circuit. Will send 0 on the white
         wire IF the associated failsafe relay is energized (switched to SCADA).
         Will log an error and do nothing if not the boss of this relay.
         """
         if command_node is None:
             command_node = self.node
-        if zone not in self.layout.zone_list:
-            self.log(f"{zone} not a recongized zone!")
-            return
         try:
             event = FsmEvent(
                 FromHandle=command_node.handle,
-                ToHandle=self.stat_ops_relay(zone).handle,
+                ToHandle=self.stat_ops_relay(circuit).handle,
                 EventType=ChangeRelayState.enum_name(),
                 EventName=ChangeRelayState.OpenRelay,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
-            self._send_to(self.stat_ops_relay(zone), event, command_node)
+            self._send_to(self.stat_ops_relay(circuit), event, command_node)
             self.log(
-                f"{command_node.handle} sending OpenRelay to {self.stat_ops_relay(zone).handle} (zone {zone})"
+                f"{command_node.handle} sending OpenRelay to {self.stat_ops_relay(circuit).handle} (circuit {circuit.Name})"
             )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
+
+    def is_buffer_empty(self, all_tanks_leaf_ally=False) -> bool:
+        """
+        Returns True if the buffer does not contain enough usable heat
+        to meet the near-term required return-water temperature.
+
+        Uses the coldest available top-of-buffer measurement and the
+        maximum required RWT minus delta-T over the next few hours.
+
+        If forecasts are unavailable, returns False (cannot assert empty).
+        """
+
+        # Select the best available "top of buffer" temperature channel
+        if all_tanks_leaf_ally and self.ops.FamilyParams.KeepBufferFull and HCN.buffer.depth3 in self.data.latest_temperatures_f:
+            buffer_empty_ch = HCN.buffer.depth3
+        elif HCN.buffer.depth1 in self.data.latest_temperatures_f:
+            buffer_empty_ch = HCN.buffer.depth1
+        elif HCN.dist_swt in self.data.latest_temperatures_f:
+            buffer_empty_ch = HCN.dist_swt
+        else:
+            # No meaningful buffer temperature available
+            self.log("is_buffer_empty: no buffer temperature channel available")
+            return False
+
+        if self.heating_forecast is None:
+            # Cannot reason about emptiness without forecast context
+            self.log("is_buffer_empty: no heating forecast available")
+            return False
+
+        # Conservative near-term requirement (next ~3 hours)
+        max_rswt = max(self.heating_forecast.RswtF[:3])
+        max_delta_t = max(self.heating_forecast.RswtDeltaTF[:3])
+        if all_tanks_leaf_ally and self.ops.FamilyParams.KeepBufferFull:
+            min_buffer_temp_f = round(max_rswt - max_delta_t, 1)
+        else:
+            min_buffer_temp_f = round(max_rswt, 1)
+
+        min_buffer_temp_f = min(min_buffer_temp_f, self.data.ha1_params.MaxEwtF-10)
+        buffer_temp_f = self.data.latest_temperatures_f[buffer_empty_ch]
+
+        if buffer_temp_f < min_buffer_temp_f:
+            self.log(
+                f"Buffer empty ({buffer_empty_ch}: {buffer_temp_f} < {min_buffer_temp_f} F), RSWT is {max_rswt}F"
+            )
+            return True
+        else:
+            self.log(
+                f"Buffer not empty ({buffer_empty_ch}: {buffer_temp_f} >= {min_buffer_temp_f} F), RSWT is {max_rswt}F"
+            )
+            return False
+
+    def is_storage_empty(self):
+        if self.usable_kwh < 0.2:
+            return True
+        else:
+            return False
+
+    @property
+    def usable_kwh(self) -> float:
+        """
+        Latest usable thermal energy in kWh, derived from SCADA channel.
+        Returns 0 if not yet available.
+        """
+        val =  self.data.latest_channel_values.get(HCN.usable_energy, 0)
+        if val is None:
+            val = 0
+        return val / 1000

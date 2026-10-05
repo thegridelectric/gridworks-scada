@@ -36,6 +36,7 @@ class ActorClass(SemaEnum):
     I2cDacWriter = auto()
     HpTwin = auto()
     HpSensor = auto()
+    ColdWatch = auto()
 
     @classmethod
     def default(cls) -> "ActorClass":

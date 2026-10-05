@@ -10,8 +10,9 @@ import uuid
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
-from gwsproto.named_types import NolanLayout, OperationalParams
+from gwsproto.named_types import NolanLayout, OperationalParams, WaterStore
 from sema_to_dc import assemble_runtime_layout
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -115,6 +116,14 @@ def test_gw_nolan_layout_axiom_3(assembled: dict) -> None:
     )
 
 
+def test_gw_nolan_layout_axiom_3_cold_watch(assembled: dict) -> None:
+    reject(
+        assembled,
+        lambda d: d.update(ShNodes=[n for n in d["ShNodes"] if n["Name"] != "cold-watch"]),
+        "Axiom 3",
+    )
+
+
 def test_gw_nolan_layout_axiom_3_exact_match(assembled: dict) -> None:
     """A second node with a core name is rejected."""
     def duplicate(d: dict) -> None:
@@ -180,10 +189,12 @@ def test_gw_nolan_layout_axiom_5_tank1_elt(assembled: dict) -> None:
 
 
 def test_gw_nolan_layout_axiom_5_circuits(assembled: dict) -> None:
+    """An empty circuit list is refused by the hydronic block, where every
+    zone names a primary circuit."""
     reject(
         assembled,
         lambda d: d["Hydronic"].update(ZoneCallCircuits=[]),
-        "Axiom 5",
+        r"Axiom 3 \(PrimaryCircuit",
     )
 
 
@@ -269,22 +280,35 @@ def test_gw_nolan_layout_axiom_8_elt_pwr(assembled: dict) -> None:
 def test_gw_nolan_layout_axiom_9(assembled: dict) -> None:
     reject(
         assembled,
-        lambda d: d["Hydronic"].update(TotalStoreTanks=2),
-        "Axiom 9",
+        lambda d: d["Hydronic"]["WaterStore"].update(TotalStoreTanks=2),
+        r"Axiom 9 \(SingleStoreTank\) failed: TotalStoreTanks",
     )
 
 
-def test_gw_hydronic_axiom_1_a_store_tanks(assembled: dict) -> None:
-    """Zero store tanks is a layout whose store is not water tanks; seven is
-    past the bound."""
+def test_gw_nolan_layout_axiom_9_store_absent(assembled: dict) -> None:
+    reject(
+        assembled,
+        lambda d: d["Hydronic"].pop("WaterStore"),
+        r"Axiom 9 \(SingleStoreTank\) failed: Hydronic.WaterStore is absent",
+    )
+
+
+def test_gw_hydronic_water_store_optional(assembled: dict) -> None:
+    """A hydronic block whose store is not water tanks carries no WaterStore."""
     from gwsproto.named_types import Hydronic
 
     h = json.loads(json.dumps(assembled["Hydronic"]))
-    h["TotalStoreTanks"] = 0
-    assert Hydronic.model_validate(h).TotalStoreTanks == 0
-    h["TotalStoreTanks"] = 7
-    with pytest.raises(ValueError, match="Axiom 1"):
-        Hydronic.model_validate(h)
+    del h["WaterStore"]
+    assert Hydronic.model_validate(h).WaterStore is None
+
+
+def test_gw_water_store_axiom_1() -> None:
+    """One to six tanks; zero is refused by the format, seven by the axiom."""
+    assert WaterStore(TotalStoreTanks=6).TotalStoreTanks == 6
+    with pytest.raises(ValidationError):
+        WaterStore(TotalStoreTanks=0)
+    with pytest.raises(ValueError, match=r"Axiom 1 \(TankCount\)"):
+        WaterStore(TotalStoreTanks=7)
 
 
 def test_gw_hydronic_axiom_1_b_no_zones(assembled: dict) -> None:
@@ -313,6 +337,59 @@ def test_gw_hydronic_axiom_2(assembled: dict) -> None:
     h["ZoneCallCircuits"][0]["ServesZone"] = "no-such-zone"
     with pytest.raises(ValueError, match="Axiom 2"):
         Hydronic.model_validate(h)
+
+
+def reject_hydronic(assembled: dict, mutate, axiom: str) -> None:
+    from gwsproto.named_types import Hydronic
+
+    h = json.loads(json.dumps(assembled["Hydronic"]))
+    mutate(h)
+    with pytest.raises(ValueError, match=axiom):
+        Hydronic.model_validate(h)
+
+
+def test_gw_hydronic_axiom_2_b_position_is_the_place_in_the_list(assembled: dict) -> None:
+    def swap(h: dict) -> None:
+        h["ZoneCallCircuits"][0]["CircuitPosition"] = 2
+        h["ZoneCallCircuits"][1]["CircuitPosition"] = 1
+
+    reject_hydronic(assembled, swap, r"Axiom 2 \(")
+
+
+def test_gw_hydronic_axiom_2_c_zone_names_distinct(assembled: dict) -> None:
+    reject_hydronic(
+        assembled, lambda h: h["Zones"].append(dict(h["Zones"][0])), r"Axiom 2 \("
+    )
+
+
+def test_gw_hydronic_axiom_3_a_primary_serves_another_zone(assembled: dict) -> None:
+    def mutate(h: dict) -> None:
+        h["Zones"][0]["PrimaryCircuitPosition"] = h["Zones"][1]["PrimaryCircuitPosition"]
+
+    reject_hydronic(assembled, mutate, r"Axiom 3 \(PrimaryCircuit")
+
+
+def test_gw_hydronic_axiom_3_b_primary_without_a_setpoint(assembled: dict) -> None:
+    """The living room's fancoil circuit serves the zone and carries no
+    setpoint channel, so it cannot be the zone's primary."""
+    def mutate(h: dict) -> None:
+        fancoil = next(c for c in h["ZoneCallCircuits"] if c["Name"] == "living-rm-fancoil")
+        zone = next(z for z in h["Zones"] if z["Name"] == fancoil["ServesZone"])
+        zone["PrimaryCircuitPosition"] = fancoil["CircuitPosition"]
+
+    reject_hydronic(assembled, mutate, r"Axiom 3 \(PrimaryCircuit")
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["Name", "WhitewireChannelName", "SetpointChannelName", "TempChannelName",
+     "FailsafeRelayNode", "OpsRelayNode"],
+)
+def test_gw_hydronic_axiom_4(assembled: dict, field: str) -> None:
+    def share(h: dict) -> None:
+        h["ZoneCallCircuits"][1][field] = h["ZoneCallCircuits"][0][field]
+
+    reject_hydronic(assembled, share, r"Axiom 4 \(CircuitDistinctness")
 
 
 def declare_twin(d: dict, handle: str | None = "auto.hp-boss.hp-ctrl-box") -> None:
@@ -385,14 +462,14 @@ def test_gw_nolan_layout_axiom_12_b(assembled: dict) -> None:
 
 def test_gw_nolan_layout_axiom_13_unknown_channel(assembled: dict) -> None:
     def rename(d: dict) -> None:
-        d["Hydronic"]["Zones"][0]["TempChannelName"] = "no-such-channel"
+        d["Hydronic"]["ZoneCallCircuits"][0]["TempChannelName"] = "no-such-channel"
 
     reject(assembled, rename, "Axiom 13")
 
 
 def test_gw_nolan_layout_axiom_13_not_a_temperature(assembled: dict) -> None:
     def point_at_flow(d: dict) -> None:
-        d["Hydronic"]["Zones"][0]["TempChannelName"] = "primary-flow"
+        d["Hydronic"]["ZoneCallCircuits"][0]["TempChannelName"] = "primary-flow"
 
     reject(assembled, point_at_flow, "Axiom 13")
 
@@ -439,7 +516,9 @@ def test_gw_nolan_layout_axiom_15_second_heat_call(assembled: dict) -> None:
 # Strategies by name or by input, so the mutations below use the others and
 # trip only the axiom under test. Matches are anchored at the opening
 # parenthesis so "Axiom 2" cannot be satisfied by "Axiom 20".
-PINNED_STRATEGIES = {"transactive-power", "heat-call", "system-model"}
+PINNED_STRATEGIES = {
+    "transactive-power", "heat-call", "system-model", "simple-falling-edge-setpoint",
+}
 
 
 def free_derived(d: dict) -> list[dict]:
@@ -803,3 +882,62 @@ def test_gw_nolan_layout_axiom_32_hp_sensor_wrong_actor_class(assembled: dict) -
                 del n["ActorHierarchyName"]
 
     reject(assembled, mutate, "Axiom 32")
+
+
+def first_setpoint(d: dict) -> dict:
+    """The derived setpoint channel of the layout's first circuit."""
+    name = d["Hydronic"]["ZoneCallCircuits"][0]["SetpointChannelName"]
+    return next(c for c in d["DerivedChannels"] if c["Name"] == name)
+
+
+def test_gw_nolan_layout_axiom_33_a_unknown_channel(assembled: dict) -> None:
+    def rename(d: dict) -> None:
+        d["Hydronic"]["ZoneCallCircuits"][0]["SetpointChannelName"] = "no-such-channel"
+
+    reject(assembled, rename, r"Axiom 33 \(")
+
+
+def test_gw_nolan_layout_axiom_33_b_not_a_temperature(assembled: dict) -> None:
+    def point_at_flow(d: dict) -> None:
+        d["Hydronic"]["ZoneCallCircuits"][0]["SetpointChannelName"] = "primary-flow"
+
+    reject(assembled, point_at_flow, r"Axiom 33 \(")
+
+
+def test_gw_nolan_layout_axiom_33_c_learned_on_a_data_channel(assembled: dict) -> None:
+    def point_at_thermistor(d: dict) -> None:
+        circuit = d["Hydronic"]["ZoneCallCircuits"][0]
+        circuit["SetpointChannelName"] = d["Hydronic"]["ZoneCallCircuits"][3]["TempChannelName"]
+
+    reject(assembled, point_at_thermistor, r"Axiom 33 \(")
+
+
+def test_gw_nolan_layout_axiom_33_d_inputs_lack_the_circuits_temperature(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        circuits = d["Hydronic"]["ZoneCallCircuits"]
+        setpoint = first_setpoint(d)
+        setpoint["InputChannelNames"] = [
+            circuits[1]["TempChannelName"] if n == circuits[0]["TempChannelName"] else n
+            for n in setpoint["InputChannelNames"]
+        ]
+
+    reject(assembled, mutate, r"Axiom 33 \(")
+
+
+def test_gw_nolan_layout_axiom_33_e_wrong_strategy(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        first_setpoint(d)["Strategy"] = "identity"
+
+    reject(assembled, mutate, r"Axiom 33 \(")
+
+
+def test_gw_nolan_layout_axiom_34_setpoint_not_read_from_the_thermostat(assembled: dict) -> None:
+    """A circuit declared FromThermostat whose setpoint channel is not a
+    data channel captured by its thermostat's node."""
+    def mutate(d: dict) -> None:
+        circuit = d["Hydronic"]["ZoneCallCircuits"][0]
+        circuit["SetpointSource"] = "FromThermostat"
+        circuit["Thermostat"]["Kind"] = "HoneywellViaHubitat"
+        circuit["Thermostat"]["ComponentId"] = str(uuid.uuid4())
+
+    reject(assembled, mutate, r"Axiom 34 \(")

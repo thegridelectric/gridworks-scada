@@ -3,7 +3,6 @@ import time
 from typing import TYPE_CHECKING
 
 from gwsproto.enums import StoreFlowRelay, RelayClosedOrOpen
-from gwsproto.named_types import SingleMachineState
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 
 if TYPE_CHECKING:

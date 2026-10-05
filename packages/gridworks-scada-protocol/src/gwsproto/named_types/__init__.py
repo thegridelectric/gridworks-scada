@@ -116,6 +116,7 @@ from gwsproto.named_types.pico_missing import PicoMissing
 from gwsproto.named_types.pico_tank_module_component_gt import PicoTankModuleComponentGt
 from gwsproto.named_types.power_watts import PowerWatts
 from gwsproto.named_types.price_quantity_unitless import PriceQuantityUnitless
+from gwsproto.named_types.recorded_setpoints import RecordedSetpoints
 from gwsproto.named_types.relay_actor_config import RelayActorConfig
 from gwsproto.named_types.relay_control_config import RelayControlConfig
 from gwsproto.named_types.scada_board_component_gt import ScadaBoardComponentGt
@@ -172,6 +173,7 @@ from gwsproto.named_types.ticklist_reed_report import TicklistReedReport
 from gwsproto.named_types.unit_quantity_projection import UnitQuantityProjection
 from gwsproto.named_types.usable_energy_layered import UsableEnergyLayered
 from gwsproto.named_types.wake_up import WakeUp
+from gwsproto.named_types.water_store import WaterStore
 from gwsproto.named_types.weather_forecast import WeatherForecast
 from gwsproto.named_types.web_server_component_gt import WebServerComponentGt
 from gwsproto.named_types.zero_ten_power_on import ZeroTenPowerOn
@@ -285,6 +287,7 @@ __all__ = [
     "PicoTankModuleComponentGt",
     "PowerWatts",
     "PriceQuantityUnitless",
+    "RecordedSetpoints",
     "RelayActorConfig",
     "RelayControlConfig",
     "ScadaBoardComponentGt",
@@ -334,6 +337,7 @@ __all__ = [
     "UnitQuantityProjection",
     "UsableEnergyLayered",
     "WakeUp",
+    "WaterStore",
     "WeatherForecast",
     "WebServerComponentGt",
     "ZeroTenPowerOn",

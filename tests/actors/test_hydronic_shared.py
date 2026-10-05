@@ -1,8 +1,8 @@
-"""The family-neutral hydronic surface (`actors/hydronic/shared.py`) on both
-sim House0 pairs: the zone-call circuit relays resolve by zone name, the
-commands they emit target the right relay from the right boss, a caller who
-is not the boss sends nothing, and the TOU/setpoint judgment reads the zone
-setpoint and temperature channels."""
+"""The family-neutral hydronic surface (`actors/hydronic/shared.py`) on the
+sim House0 and Nolan pairs: a zone-call circuit's relays are the ones it
+names, the commands emitted for a circuit target the right relay from the
+right boss, a caller who is not the boss sends nothing, and the TOU judgment
+reads the tariff's windows."""
 
 import datetime as real_datetime
 import uuid
@@ -14,7 +14,6 @@ import actors.hydronic.shared as shared
 from actors.pico_cycler import PicoCycler
 from gwsproto.conversions.temperature import Temperature
 from gwsproto.enums import ChangeZoneCallSource, ChangeRelayState, DayOfWeek, TelemetryName, Unit
-from gwsproto.errors import DcError
 from gwsproto.named_types import FsmEvent, TouWindow
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
@@ -24,8 +23,8 @@ CONFIG = Path(__file__).parent.parent / "config"
 PAIRS = {
     "house0-willow": ("gw.house0.willow.layout.json", "gw.house0.willow.operational.params.json"),
     "house0-orange": ("gw.house0.orange.layout.json", "gw.house0.orange.operational.params.json"),
+    "nolan": ("gw.nolan.layout.json", "gw.nolan.operational.params.json"),
 }
-ZONE = "main"  # both sim pairs carry the single critical zone zone1-main
 
 
 def make_app(pair: str) -> ScadaApp:
@@ -58,62 +57,52 @@ def only_event(actor: PicoCycler) -> tuple[str, FsmEvent]:
     return dst, payload
 
 
-# --- zone relay lookup ------------------------------------------------------
+# --- zone-call circuit relays ----------------------------------------------
 
 
-def test_zone_relays_resolve_by_zone_name(actor: PicoCycler) -> None:
-    zone_node = actor.layout.node(f"zone1-{ZONE}")
-    assert actor.stat_failsafe_relay(ZONE) is actor.layout.node(f"{zone_node.name}-failsafe-relay")
-    assert actor.stat_ops_relay(ZONE) is actor.layout.node(f"{zone_node.name}-ops-relay")
-
-
-def test_unknown_zone_raises_dc_error(actor: PicoCycler) -> None:
-    with pytest.raises(DcError):
-        actor.stat_failsafe_relay("attic")
-    with pytest.raises(DcError):
-        actor.stat_ops_relay("attic")
+def test_circuit_relays_are_the_ones_it_names(actor: PicoCycler) -> None:
+    for circuit in actor.layout.hydronic.ZoneCallCircuits:
+        assert actor.stat_failsafe_relay(circuit) is actor.layout.node(circuit.FailsafeRelayNode)
+        assert actor.stat_ops_relay(circuit) is actor.layout.node(circuit.OpsRelayNode)
 
 
 # --- zone relay commands ----------------------------------------------------
 
 
 @pytest.mark.parametrize(
-    ("method", "relay_suffix", "event_type", "event_name"),
+    ("method", "relay_field", "event_type", "event_name"),
     [
-        ("heatcall_ctrl_to_scada", "failsafe-relay", ChangeZoneCallSource, ChangeZoneCallSource.SwitchToScada),
-        ("heatcall_ctrl_to_stat", "failsafe-relay", ChangeZoneCallSource, ChangeZoneCallSource.SwitchToWallThermostat),
-        ("stat_ops_close_relay", "ops-relay", ChangeRelayState, ChangeRelayState.CloseRelay),
-        ("stat_ops_open_relay", "ops-relay", ChangeRelayState, ChangeRelayState.OpenRelay),
+        ("heatcall_ctrl_to_scada", "FailsafeRelayNode", ChangeZoneCallSource, ChangeZoneCallSource.SwitchToScada),
+        ("heatcall_ctrl_to_stat", "FailsafeRelayNode", ChangeZoneCallSource, ChangeZoneCallSource.SwitchToWallThermostat),
+        ("stat_ops_close_relay", "OpsRelayNode", ChangeRelayState, ChangeRelayState.CloseRelay),
+        ("stat_ops_open_relay", "OpsRelayNode", ChangeRelayState, ChangeRelayState.OpenRelay),
     ],
 )
-def test_zone_relay_command_from_the_boss(
-    actor: PicoCycler, method: str, relay_suffix: str, event_type, event_name
+def test_circuit_relay_command_from_the_boss(
+    actor: PicoCycler, method: str, relay_field: str, event_type, event_name
 ) -> None:
+    """Every circuit, including the Nolan living room's second circuit
+    (place 5, serving zone 2), is commanded through the relay it names."""
     boss = actor.layout.node(CoreNodeNames.local_control_normal)  # `n` is the boss of the zone relays at boot
-    getattr(actor, method)(ZONE, command_node=boss)
-    dst, event = only_event(actor)
-    assert dst == f"zone1-{ZONE}-{relay_suffix}"
-    assert event.ToHandle == actor.layout.node(dst).handle
-    assert event.FromHandle == boss.handle
-    assert event.EventType == event_type.enum_name()
-    assert event.EventName == event_name
+    for circuit in actor.layout.hydronic.ZoneCallCircuits:
+        actor.sent = []
+        getattr(actor, method)(circuit, command_node=boss)
+        dst, event = only_event(actor)
+        assert dst == getattr(circuit, relay_field)
+        assert event.ToHandle == actor.layout.node(dst).handle
+        assert event.FromHandle == boss.handle
+        assert event.EventType == event_type.enum_name()
+        assert event.EventName == event_name
 
 
 @pytest.mark.parametrize(
     "method", ["heatcall_ctrl_to_scada", "heatcall_ctrl_to_stat", "stat_ops_close_relay", "stat_ops_open_relay"]
 )
-def test_zone_relay_command_sends_nothing_when_not_the_boss(actor: PicoCycler, method: str) -> None:
+def test_circuit_relay_command_sends_nothing_when_not_the_boss(actor: PicoCycler, method: str) -> None:
     # pico-cycler is not the boss of the zone relays: the FsmEvent fails its
     # boss axiom and the helper logs instead of sending.
-    getattr(actor, method)(ZONE)
-    assert actor.sent == []
-
-
-@pytest.mark.parametrize(
-    "method", ["heatcall_ctrl_to_scada", "heatcall_ctrl_to_stat", "stat_ops_close_relay", "stat_ops_open_relay"]
-)
-def test_zone_relay_command_sends_nothing_for_unknown_zone(actor: PicoCycler, method: str) -> None:
-    getattr(actor, method)("attic", command_node=actor.layout.node(CoreNodeNames.local_control_normal))
+    for circuit in actor.layout.hydronic.ZoneCallCircuits:
+        getattr(actor, method)(circuit)
     assert actor.sent == []
 
 
@@ -135,70 +124,12 @@ def test_vdc_relay_command_from_pico_cycler(actor: PicoCycler, method: str, even
     assert event.TriggerId == trigger_id
 
 
-# --- setpoints + system cold ------------------------------------------------
-
-
-def raw_f(actor: PicoCycler, channel: str, f: float) -> int:
-    """`f` degrees Fahrenheit as the raw value `channel` carries."""
-    return actor.layout.channel_registry.temperature_from_f(channel, f).raw
-
-
-def test_setpoints_at_onpeak_start_come_from_the_layout_zones_only(actor: PicoCycler) -> None:
-    set_channel = f"zone1-{ZONE}-set"
-    actor.data.latest_channel_values[set_channel] = raw_f(actor, set_channel, 70)
-    actor.data.latest_channel_values["zone9-attic-set"] = 65_000  # not a layout zone
-    actor.refresh_setpoints_at_onpeak_start()
-    assert actor.setpoints_at_onpeak_start == {
-        f"zone1-{ZONE}": actor.layout.channel_registry.temperature_from_f(set_channel, 70)
-    }
-
-
-@pytest.mark.parametrize(
-    ("onpeak", "setpoint_at_onpeak_f", "current_setpoint_f", "temp_f", "cold"),
-    [
-        (False, None, 70, 68.9, True),   # more than 1F under: cold
-        (False, None, 70, 69.1, False),  # within 1F: not cold
-        (True, 70, 74, 69.1, False),  # user raised the stat on-peak: judge against the lower
-        (True, 74, 70, 69.1, False),  # user lowered it: judge against the lower
-        (True, 74, 70, 68.9, True),
-    ],
-)
-def test_is_system_cold_judges_the_critical_zone_against_the_lower_setpoint(
-    actor: PicoCycler, monkeypatch: pytest.MonkeyPatch,
-    onpeak: bool, setpoint_at_onpeak_f, current_setpoint_f, temp_f, cold: bool,
-) -> None:
-    zone = f"zone1-{ZONE}"
-    monkeypatch.setattr(actor, "is_onpeak", lambda: onpeak)
-    actor.setpoints_at_onpeak_start = (
-        {} if setpoint_at_onpeak_f is None
-        else {zone: actor.layout.channel_registry.temperature_from_f(f"{zone}-set", setpoint_at_onpeak_f)}
-    )
-    actor.data.latest_channel_values[f"{zone}-set"] = raw_f(actor, f"{zone}-set", current_setpoint_f)
-    actor.data.latest_channel_values[f"{zone}-temp"] = raw_f(actor, f"{zone}-temp", temp_f)
-    assert actor.is_system_cold() is cold
-
-
-def test_is_system_cold_is_false_without_a_temperature(actor: PicoCycler, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(actor, "is_onpeak", lambda: False)
-    actor.data.latest_channel_values[f"zone1-{ZONE}-set"] = raw_f(actor, f"zone1-{ZONE}-set", 70)
-    assert actor.is_system_cold() is False
-
-
-def test_is_system_cold_reads_each_channel_in_its_own_encoding(actor: PicoCycler, monkeypatch: pytest.MonkeyPatch) -> None:
-    """A setpoint held in one encoding judges a zone temperature read in
-    another: 68.9 F is more than 1 F under 70 F."""
-    zone = f"zone1-{ZONE}"
-    monkeypatch.setattr(actor, "is_onpeak", lambda: True)
-    actor.setpoints_at_onpeak_start = {zone: Temperature(7000, Unit.FahrenheitX100)}
-    actor.data.latest_channel_values[f"{zone}-temp"] = 2050
-    assert actor.channel_temperature(f"{zone}-temp") == Temperature(2050, TelemetryName.CelsiusTimes100)
-    assert actor.is_system_cold() is True
+# --- temperature access ---------------------------------------------------
 
 
 def test_nolan_zone_temperature_reads_through_its_encoding() -> None:
     """The Nolan sim pair reads zone temperature as `-gw-temp` in
-    CelsiusTimes100 and derives the zone `-set` in FahrenheitX100; until
-    the generator has emitted one the cold judgment finds no setpoint."""
+    CelsiusTimes100 and derives the zone `-set` in FahrenheitX100."""
     settings = ScadaApp.get_settings()
     settings.paths.hardware_layout = CONFIG / "gw.nolan.layout.json"
     settings.paths.operational_params = CONFIG / "gw.nolan.operational.params.json"
@@ -214,28 +145,6 @@ def test_nolan_zone_temperature_reads_through_its_encoding() -> None:
     assert temperature == Temperature(2000, TelemetryName.CelsiusTimes100)
     assert temperature.f == pytest.approx(68.0)
     assert pico_cycler.layout.channel_registry.unit("zone1-bedrooms-set") == Unit.FahrenheitX100
-    assert pico_cycler.data.latest_channel_values["zone1-bedrooms-set"] is None
-    assert pico_cycler.is_system_cold() is False
-
-
-def test_nolan_cold_judgment_reads_the_zones_temp_channel(monkeypatch: pytest.MonkeyPatch) -> None:
-    """With a setpoint held for the zone, the judgment reads the zone's
-    TempChannelName (`-gw-temp` at a Nolan house): 19 C is 66.2 F, more
-    than 1 F under 70 F."""
-    settings = ScadaApp.get_settings()
-    settings.paths.hardware_layout = CONFIG / "gw.nolan.layout.json"
-    settings.paths.operational_params = CONFIG / "gw.nolan.operational.params.json"
-    settings.paths.mkdirs()
-    app = ScadaApp(app_settings=settings)
-    app.instantiate()
-    pico_cycler = app.get_communicator_as_type(HSNN.pico_cycler, PicoCycler)
-    assert pico_cycler is not None
-    monkeypatch.setattr(pico_cycler, "is_onpeak", lambda: True)
-    pico_cycler.setpoints_at_onpeak_start = {"zone1-bedrooms": Temperature(7000, Unit.FahrenheitX100)}
-    pico_cycler.data.latest_channel_values["zone1-bedrooms-gw-temp"] = 2100
-    assert pico_cycler.is_system_cold() is False
-    pico_cycler.data.latest_channel_values["zone1-bedrooms-gw-temp"] = 1900
-    assert pico_cycler.is_system_cold() is True
 
 
 # --- TOU clock --------------------------------------------------------------

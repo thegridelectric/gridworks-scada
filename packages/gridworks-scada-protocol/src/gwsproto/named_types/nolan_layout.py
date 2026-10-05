@@ -64,16 +64,16 @@ from gwsproto.type_helpers.channel_integrity_axioms import (
 )
 from gwsproto.type_helpers.circuit_channel_axioms import (
     check_circuit_heat_call_channel,
+    check_circuit_setpoint_channel,
+    check_circuit_temp_channel_resolution,
     check_circuit_whitewire_channel_resolution,
+    check_read_thermostat_channels,
 )
 from gwsproto.type_helpers.command_tree_axioms import (
     check_actuator_leaves,
     check_prefix_closed_handles,
 )
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
-from gwsproto.type_helpers.zone_temp_channel_resolution import (
-    check_zone_temp_channel_resolution,
-)
 
 # The component types a Nolan (gw108) layout may contain (mirrors the sema draft oneOf).
 NolanComponent = (
@@ -236,7 +236,7 @@ class NolanLayout(GwsprotoSemaType):
 
         ShNodes SHALL contain a node with each of the core Name / ActorClass
         pairs (s, s2, power-meter, ltn, admin, auto, la, lc,
-        derived-generator), and no additional ShNode with any of these Names
+        derived-generator, cold-watch), and no additional ShNode with any of these Names
         SHALL exist. The effective handle of "admin" SHALL be "admin" and of
         "auto" SHALL be "auto".
         """
@@ -250,6 +250,7 @@ class NolanLayout(GwsprotoSemaType):
             ("la", ActorClass.LeafAlly),
             ("lc", ActorClass.LocalControl),
             ("derived-generator", ActorClass.DerivedGenerator),
+            ("cold-watch", ActorClass.ColdWatch),
         )
         exact_match_pairs(self.ShNodes, pairs, "Axiom 3 (CoreShNodesExistenceAndActorClass)")
         require_effective_handles(
@@ -287,9 +288,9 @@ class NolanLayout(GwsprotoSemaType):
         "store-pump-relay", "buffer-top-elt-relay", "buffer-bottom-elt-relay",
         "tank1-top-elt-relay", and "tank1-bottom-elt-relay", each with
         ActorClass "Relay".
-        b. Hydronic.ZoneCallCircuits SHALL be non-empty, and each circuit's
-        FailsafeRelayNode and OpsRelayNode SHALL name a ShNode in ShNodes
-        with ActorClass "Relay".
+        b. Each circuit's FailsafeRelayNode and OpsRelayNode in
+        Hydronic.ZoneCallCircuits SHALL name a ShNode in ShNodes with
+        ActorClass "Relay".
         c. ShNodes SHALL include a node named "secondary-010v" with
         ActorClass "ZeroTenOutputer" and a ComponentId equal to the
         ComponentId of an i2c.dac.output.component.gt in Components.
@@ -322,12 +323,7 @@ class NolanLayout(GwsprotoSemaType):
             "tank1-bottom-elt-relay",
         ):
             relay_or_raise(required, "plant relay")
-        circuits = self.Hydronic.ZoneCallCircuits or []
-        if not circuits:
-            raise ValueError(
-                "Axiom 5 (RequiredActuators) failed: Hydronic.ZoneCallCircuits is empty."
-            )
-        for circuit in circuits:
+        for circuit in self.Hydronic.ZoneCallCircuits:
             relay_or_raise(circuit.FailsafeRelayNode, "circuit failsafe relay")
             relay_or_raise(circuit.OpsRelayNode, "circuit ops relay")
         output_node = next((n for n in self.ShNodes if n.Name == "secondary-010v"), None)
@@ -442,13 +438,18 @@ class NolanLayout(GwsprotoSemaType):
     def check_axiom_9(self) -> "NolanLayout":
         """Axiom 9: SingleStoreTank.
 
-        Hydronic.TotalStoreTanks SHALL equal 1 — the Nolan plant carries
-        exactly one store tank.
+        Hydronic.WaterStore SHALL be present and its TotalStoreTanks SHALL
+        equal 1: the Nolan plant carries exactly one store tank.
         """
-        if self.Hydronic.TotalStoreTanks != 1:
+        store = self.Hydronic.WaterStore
+        if store is None:
+            raise ValueError(
+                "Axiom 9 (SingleStoreTank) failed: Hydronic.WaterStore is absent."
+            )
+        if store.TotalStoreTanks != 1:
             raise ValueError(
                 f"Axiom 9 (SingleStoreTank) failed: TotalStoreTanks is "
-                f"{self.Hydronic.TotalStoreTanks}, expected 1."
+                f"{store.TotalStoreTanks}, expected 1."
             )
         return self
 
@@ -522,15 +523,15 @@ class NolanLayout(GwsprotoSemaType):
     @model_validator(mode="after")
     def check_axiom_13(self) -> "NolanLayout":
         """
-        Axiom 13: ZoneTempChannelResolution
-        a. Every zone's TempChannelName in Hydronic.Zones SHALL equal the Name of a
-        channel in DataChannels or in DerivedChannels.
+        Axiom 13: CircuitTempChannelResolution
+        a. Every circuit's TempChannelName in Hydronic.ZoneCallCircuits SHALL equal the
+        Name of a channel in DataChannels or in DerivedChannels.
         b. That channel SHALL carry temperature: a DataChannel's Quantity, or a
         DerivedChannel's OutputQuantity, SHALL be Temperature.
         """
-        check_zone_temp_channel_resolution(
-            self.Hydronic.Zones, self.DataChannels, self.DerivedChannels,
-            "Axiom 13 (ZoneTempChannelResolution)",
+        check_circuit_temp_channel_resolution(
+            self.Hydronic.ZoneCallCircuits, self.DataChannels, self.DerivedChannels,
+            "Axiom 13 (CircuitTempChannelResolution)",
         )
         return self
 
@@ -645,16 +646,18 @@ class NolanLayout(GwsprotoSemaType):
     def check_axiom_21(self) -> "NolanLayout":
         """
         Axiom 21: StoreTankTemps
-        For each tank index N in 1..Hydronic.TotalStoreTanks and each depth i in
-        1..3, a channel named "tank{N}-depth{i}" SHALL exist in DataChannels or
-        in DerivedChannels.
+        For each tank index N in 1..Hydronic.WaterStore.TotalStoreTanks and each
+        depth i in 1..3, a channel named "tank{N}-depth{i}" SHALL exist in
+        DataChannels or in DerivedChannels.
         """
+        store = self.Hydronic.WaterStore
+        total_tanks = store.TotalStoreTanks if store is not None else 0
         channels = {c.Name for c in self.DataChannels} | {
             c.Name for c in self.DerivedChannels
         }
         missing = [
             f"tank{tank}-depth{depth}"
-            for tank in range(1, self.Hydronic.TotalStoreTanks + 1)
+            for tank in range(1, total_tanks + 1)
             for depth in (1, 2, 3)
             if f"tank{tank}-depth{depth}" not in channels
         ]
@@ -1003,4 +1006,40 @@ class NolanLayout(GwsprotoSemaType):
                 "Axiom 32 (HpSensorNode) failed: no ShNode named 'hp-sensor' with "
                 "ActorClass 'HpSensor'."
             )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_33(self) -> "NolanLayout":
+        """
+        Axiom 33: CircuitSetpointChannel
+        a. Every circuit's SetpointChannelName in Hydronic.ZoneCallCircuits SHALL equal
+        the Name of a channel in DataChannels or in DerivedChannels.
+        b. That channel SHALL carry temperature: a DataChannel's Quantity, or a
+        DerivedChannel's OutputQuantity, SHALL be Temperature.
+        c. Where a circuit's SetpointSource is "Learned", its SetpointChannelName SHALL
+        name a channel in DerivedChannels.
+        d. That derived channel's InputChannelNames SHALL contain the circuit's
+        TempChannelName and the Name of the circuit's heat-call channel (the
+        CircuitHeatCallChannel axiom).
+        e. That derived channel's Strategy SHALL be "simple-falling-edge-setpoint".
+        """
+        check_circuit_setpoint_channel(
+            self.Hydronic.ZoneCallCircuits, self.DataChannels, self.DerivedChannels,
+            "Axiom 33 (CircuitSetpointChannel)",
+        )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_34(self) -> "NolanLayout":
+        """
+        Axiom 34: ReadThermostatChannels
+        Where a circuit's SetpointSource is "FromThermostat", the channels named by its
+        SetpointChannelName and TempChannelName SHALL each be a channel in DataChannels
+        whose CapturedByNodeName is the Name of an ShNode whose ComponentId equals the
+        circuit's Thermostat.ComponentId.
+        """
+        check_read_thermostat_channels(
+            self.Hydronic.ZoneCallCircuits, self.DataChannels, self.ShNodes,
+            "Axiom 34 (ReadThermostatChannels)",
+        )
         return self

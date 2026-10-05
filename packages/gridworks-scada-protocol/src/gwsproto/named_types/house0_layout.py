@@ -62,16 +62,16 @@ from gwsproto.type_helpers.channel_integrity_axioms import (
 )
 from gwsproto.type_helpers.circuit_channel_axioms import (
     check_circuit_heat_call_channel,
+    check_circuit_setpoint_channel,
+    check_circuit_temp_channel_resolution,
     check_circuit_whitewire_channel_resolution,
+    check_read_thermostat_channels,
 )
 from gwsproto.type_helpers.command_tree_axioms import (
     check_actuator_leaves,
     check_prefix_closed_handles,
 )
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
-from gwsproto.type_helpers.zone_temp_channel_resolution import (
-    check_zone_temp_channel_resolution,
-)
 
 # The component types a House0 (fleet) layout may contain (mirrors the sema oneOf).
 House0Component = (
@@ -164,6 +164,7 @@ class House0Layout(GwsprotoSemaType):
           "la"                → ActorClass "LeafAlly"
           "lc"                → ActorClass "LocalControl"
           "derived-generator" → ActorClass "DerivedGenerator"
+          "cold-watch"        → ActorClass "ColdWatch"
         The effective handle (Handle if present, otherwise Name) of "admin"
         SHALL be "admin" and of "auto" SHALL be "auto".
         """
@@ -179,6 +180,7 @@ class House0Layout(GwsprotoSemaType):
             "la": ActorClass.LeafAlly,
             "lc": ActorClass.LocalControl,
             "derived-generator": ActorClass.DerivedGenerator,
+            "cold-watch": ActorClass.ColdWatch,
         }
         nodes_by_name: dict[str, list] = {}
         for n in self.ShNodes:
@@ -444,8 +446,8 @@ class House0Layout(GwsprotoSemaType):
         """
         Axiom 10: RequiredActuators
         a. The eleven plant relays exist with ActorClass Relay and the three
-        *-010v outputs with ActorClass ZeroTenOutputer. b. ZoneCallCircuits is
-        non-empty and each circuit's relay pair names a Relay ShNode. c. Each
+        *-010v outputs with ActorClass ZeroTenOutputer. b. Each circuit's relay
+        pair names a Relay ShNode. c. Each
         *-010v output's ComponentId is an i2c.dac.output.component.gt in
         Components.
         """
@@ -478,12 +480,7 @@ class House0Layout(GwsprotoSemaType):
             class_or_raise(required, ActorClass.Relay, "plant relay")
         for required in ("dist-010v", "store-010v"):
             class_or_raise(required, ActorClass.ZeroTenOutputer, "0-10V output")
-        circuits = self.Hydronic.ZoneCallCircuits or []
-        if not circuits:
-            raise ValueError(
-                "Axiom 10 (RequiredActuators) failed: Hydronic.ZoneCallCircuits is empty."
-            )
-        for circuit in circuits:
+        for circuit in self.Hydronic.ZoneCallCircuits:
             class_or_raise(
                 circuit.FailsafeRelayNode, ActorClass.Relay, "circuit failsafe relay"
             )
@@ -664,15 +661,15 @@ class House0Layout(GwsprotoSemaType):
     @model_validator(mode="after")
     def check_axiom_18(self) -> Self:
         """
-        Axiom 18: ZoneTempChannelResolution
-        a. Every zone's TempChannelName in Hydronic.Zones SHALL equal the Name of a
-        channel in DataChannels or in DerivedChannels.
+        Axiom 18: CircuitTempChannelResolution
+        a. Every circuit's TempChannelName in Hydronic.ZoneCallCircuits SHALL equal the
+        Name of a channel in DataChannels or in DerivedChannels.
         b. That channel SHALL carry temperature: a DataChannel's Quantity, or a
         DerivedChannel's OutputQuantity, SHALL be Temperature.
         """
-        check_zone_temp_channel_resolution(
-            self.Hydronic.Zones, self.DataChannels, self.DerivedChannels,
-            "Axiom 18 (ZoneTempChannelResolution)",
+        check_circuit_temp_channel_resolution(
+            self.Hydronic.ZoneCallCircuits, self.DataChannels, self.DerivedChannels,
+            "Axiom 18 (CircuitTempChannelResolution)",
         )
         return self
 
@@ -753,16 +750,18 @@ class House0Layout(GwsprotoSemaType):
     def check_axiom_24(self) -> Self:
         """
         Axiom 24: StoreTankTemps
-        For each tank index N in 1..Hydronic.TotalStoreTanks and each depth i in
-        1..3, a channel named "tank{N}-depth{i}" SHALL exist in DataChannels or
-        in DerivedChannels.
+        For each tank index N in 1..Hydronic.WaterStore.TotalStoreTanks and each
+        depth i in 1..3, a channel named "tank{N}-depth{i}" SHALL exist in
+        DataChannels or in DerivedChannels.
         """
+        store = self.Hydronic.WaterStore
+        total_tanks = store.TotalStoreTanks if store is not None else 0
         channels = {c.Name for c in self.DataChannels} | {
             c.Name for c in self.DerivedChannels
         }
         missing = [
             f"tank{tank}-depth{depth}"
-            for tank in range(1, self.Hydronic.TotalStoreTanks + 1)
+            for tank in range(1, total_tanks + 1)
             for depth in (1, 2, 3)
             if f"tank{tank}-depth{depth}" not in channels
         ]
@@ -1106,4 +1105,51 @@ class House0Layout(GwsprotoSemaType):
                     f"channel '{d.Name}' has inputs {d.InputChannelNames}, not exactly "
                     "one circuit's whitewire."
                 )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_35(self) -> Self:
+        """
+        Axiom 35: CircuitSetpointChannel
+        a. Every circuit's SetpointChannelName in Hydronic.ZoneCallCircuits SHALL equal
+        the Name of a channel in DataChannels or in DerivedChannels.
+        b. That channel SHALL carry temperature: a DataChannel's Quantity, or a
+        DerivedChannel's OutputQuantity, SHALL be Temperature.
+        c. Where a circuit's SetpointSource is "Learned", its SetpointChannelName SHALL
+        name a channel in DerivedChannels.
+        d. That derived channel's InputChannelNames SHALL contain the circuit's
+        TempChannelName and the Name of the circuit's heat-call channel (the
+        CircuitHeatCallChannel axiom).
+        e. That derived channel's Strategy SHALL be "simple-falling-edge-setpoint".
+        """
+        check_circuit_setpoint_channel(
+            self.Hydronic.ZoneCallCircuits, self.DataChannels, self.DerivedChannels,
+            "Axiom 35 (CircuitSetpointChannel)",
+        )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_36(self) -> Self:
+        """
+        Axiom 36: ReadThermostatChannels
+        Where a circuit's SetpointSource is "FromThermostat", the channels named by its
+        SetpointChannelName and TempChannelName SHALL each be a channel in DataChannels
+        whose CapturedByNodeName is the Name of an ShNode whose ComponentId equals the
+        circuit's Thermostat.ComponentId.
+        """
+        check_read_thermostat_channels(
+            self.Hydronic.ZoneCallCircuits, self.DataChannels, self.ShNodes,
+            "Axiom 36 (ReadThermostatChannels)",
+        )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_37(self) -> Self:
+        """
+        Axiom 37: WaterStore
+        Hydronic.WaterStore SHALL be present: a House0 home stores heat in
+        water tanks.
+        """
+        if self.Hydronic.WaterStore is None:
+            raise ValueError("Axiom 37 (WaterStore) failed: Hydronic.WaterStore is absent.")
         return self

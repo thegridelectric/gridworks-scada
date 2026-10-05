@@ -2,6 +2,7 @@
 not necessarily re-use. """
 
 import json
+import os
 import time
 import uuid
 from pathlib import Path
@@ -9,8 +10,11 @@ from typing import Dict, List, NamedTuple, Optional, Union
 
 from actors.config import ScadaSettings
 from gwsproto.data_classes.data_channel import DataChannel
+from gwsproto.data_classes.derived_channel import DerivedChannel
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.named_types import (
     ChannelReadings,
+    RecordedSetpoints,
     Report,
     SingleReading,
     SingleMachineState,
@@ -22,6 +26,7 @@ from gwsproto.named_types import (
     SnapshotSpaceheat,
 )
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
+from gwsproto.property_format import LeftRightDotStr, SpaceheatName
 
 
 from actors.config import DEFAULT_OPS_PARAMS_FILE
@@ -42,8 +47,51 @@ def load_operational_params(settings: ScadaSettings) -> OperationalParams:
         )
     return decode_operational_params(json.loads(path.read_text()))
 
-from gwsproto.data_classes.derived_channel import DerivedChannel
-from gwsproto.data_classes.hydronic_layout import HydronicLayout
+
+RECORDED_SETPOINTS_FILE = "recorded-setpoints.json"
+
+
+def write_text_atomically(path: Path, text: str) -> None:
+    """Replace the file in one step, so neither a reader nor a power cut
+    meets a half-written one."""
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(text)
+    os.replace(tmp, path)
+
+
+def save_operational_params(settings: ScadaSettings, ops: OperationalParams) -> None:
+    """Write the params the scada now runs over its operational-params
+    file."""
+    write_text_atomically(
+        Path(settings.paths.operational_params),
+        json.dumps(ops.model_dump(by_alias=True, exclude_none=True, mode="json"), indent=2) + "\n",
+    )
+
+
+def load_recorded_setpoints(
+    settings: ScadaSettings, scada_alias: LeftRightDotStr
+) -> dict[SpaceheatName, SingleReading]:
+    """The recorded setpoints this scada last wrote, by channel name; none
+    when it has written none, or when the file is another scada's."""
+    path = Path(settings.paths.data_dir) / RECORDED_SETPOINTS_FILE
+    if not path.exists():
+        return {}
+    record = RecordedSetpoints.model_validate_json(path.read_text())
+    if record.ScadaAlias != scada_alias:
+        return {}
+    return {reading.ChannelName: reading for reading in record.SetpointList}
+
+
+def save_recorded_setpoints(
+    settings: ScadaSettings, scada_alias: LeftRightDotStr, setpoints: dict[SpaceheatName, SingleReading]
+) -> None:
+    record = RecordedSetpoints(ScadaAlias=scada_alias, SetpointList=list(setpoints.values()))
+    write_text_atomically(
+        Path(settings.paths.data_dir) / RECORDED_SETPOINTS_FILE,
+        json.dumps(record.model_dump(by_alias=True, exclude_none=True, mode="json"), indent=2) + "\n",
+    )
+
+
 class UnknownChannels(NamedTuple):
     """The data channels the scada holds no usable value for."""
 
@@ -71,6 +119,11 @@ class ScadaData:
         # writer).
         self.ops: OperationalParams = ops
         self.ha1_params: Ha1Params = self.make_ha1_params(ops)
+        # The last reading each learned zone setpoint channel carried, kept
+        # across restarts (actors/hydronic/cold.py).
+        self.recorded_setpoints: dict[SpaceheatName, SingleReading] = load_recorded_setpoints(
+            settings, hardware_layout.scada_g_node_alias
+        )
         self.my_data_channels = self.get_my_data_channels()
         self.my_derived_channels = self.get_my_derived_channels()
         self.my_channels: list[Union[DataChannel, DerivedChannel]] = self.my_data_channels + self.my_derived_channels

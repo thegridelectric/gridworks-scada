@@ -62,7 +62,6 @@ from actors import command_reply
 from gwsproto.enums import ScadaCmdRefusalReason
 from gwsproto.names.hydronic_spaceheat.node_names import (
     HydronicSpaceheatNodeNames as HSNN,
-    HydronicSpaceheatZoneNodeNames as HSZoneNodeNames,
 )
 from gwsproto.names.house0.node_names import House0NodeNames
 
@@ -994,14 +993,9 @@ class Relay(ShNodeActor):
         self.my_state_enum = RelayClosedOrOpen
         self.my_event_enum = ChangeRelayState
         self.de_energized_state = "RelayClosed"
-        zone_names = self.layout.zone_list
-        stat_failsafe_names = []
-        stat_ops_names = []
-        # TODO: move the below into House0 Hardware Layout validation
-        for i, zone in enumerate(zone_names):
-            zone_nodes = HSZoneNodeNames(zone, i + 1)
-            stat_failsafe_names.append(zone_nodes.failsafe_relay)
-            stat_ops_names.append(zone_nodes.ops_relay)
+        circuits = self.layout.hydronic.ZoneCallCircuits
+        stat_failsafe_names = [c.FailsafeRelayNode for c in circuits]
+        stat_ops_names = [c.OpsRelayNode for c in circuits]
         vdc_relay_name = self.layout.vdc_relay.name
     
         if self.name in {

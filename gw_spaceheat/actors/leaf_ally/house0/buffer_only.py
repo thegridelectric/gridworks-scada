@@ -163,13 +163,9 @@ class BufferOnlyLeafAlly(House0Hydronic):
         if from_node != self.primary_scada:
             raise Exception("contract should come from scada!")
 
-        if self.is_system_cold() and self.is_buffer_empty():
-            self.log("Cannot wake up - system is cold and buffer is empty")
-            self._send_to(
-                self.primary_scada,
-                AllyGivesUp(Reason="System is cold, not entering DispatchContracts"))
+        if self.declines_offer_for_cold():
             return
-        
+
         if not self.heating_forecast:
             self.log("Cannot Wake up - missing forecasts!")
             self._send_to(
@@ -318,17 +314,6 @@ class BufferOnlyLeafAlly(House0Hydronic):
             # Verify store pump health; initiate recovery if needed
             if self.store_pump_monitor.needs_recovery():
                 await self.store_pump_doctor.run()
-
-            # Go Dormant if cold
-            if self.is_system_cold() and self.is_buffer_empty():
-                self.log("System is cold, buffer is empty - breaching contract")
-                self._send_to(
-                    self.primary_scada,
-                    AllyGivesUp(Reason="System is cold"),
-                )
-                self.send_info("System is cold - breaching contract")
-                await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
-                continue
 
             self.engage_brain()
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)

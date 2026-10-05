@@ -31,7 +31,7 @@ from gwproto.messages import PingMessage
 
 from clock import TimestepClock
 
-from gwsproto.enums import ActorClass
+from gwsproto.enums import ActorClass, DispatchRefusalReason
 
 from actors.scada_interface import ScadaInterface
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
@@ -47,7 +47,7 @@ from gwsproto.named_types import (
 
 from actors.command_node import build_command_tree
 from actors.five_v_boss import shape_five_v_subtree
-from actors.scada_data import ScadaData, load_operational_params
+from actors.scada_data import ScadaData, load_operational_params, save_operational_params
 from actors.config import ScadaSettings
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.property_format import SpaceheatName
@@ -56,7 +56,7 @@ from gwproactor import QOS
 from gwproactor.links import Transition
 from gwproactor.message import MQTTReceiptPayload
 
-from actors.in_process_messages import ChannelSubscribe, MachineStateSubscribe
+from actors.in_process_messages import BreakServiceContract, ChannelSubscribe, MachineStateSubscribe
 from actors.local_control_loader import LocalControl
 from actors.leaf_ally_loader import LeafAlly
 from actors.codec_factories import ScadaCodecFactory
@@ -337,6 +337,8 @@ class Scada(PrimeActor, ScadaInterface):
                     self.forward_to_channel_subscribers(from_node, payload.Channel.Name, payload)
                 except Exception as e:
                     self.log(f"Trouble with ChannelFlatlined: \n {e}")
+            case BreakServiceContract():
+                self.process_break_service_contract(from_node, payload)
             case ChannelSubscribe():
                 self.process_channel_subscribe(from_node, payload)
             case ChannelReadings():
@@ -612,6 +614,47 @@ class Scada(PrimeActor, ScadaInterface):
             self._data.latest_channel_unix_ms[
                 ch.Name
             ] = payload.ScadaReadTimeUnixMsList[-1]
+
+    def process_break_service_contract(
+        self, from_node: ShNode, payload: BreakServiceContract
+    ) -> None:
+        """The cold watch reports the house cold through the latch with the
+        stores empty. A scada holding a dispatch contract has broken it: it
+        refuses dispatch from here on with ServiceContractBroken, in the
+        params it runs and in its operational-params file, reports the
+        refusal on its operating status, and ends the contract. A scada
+        holding no contract has broken none and changes nothing. A scada
+        that already refuses dispatch keeps its params and its reason. Only
+        a params file that accepts dispatch again, read at a restart,
+        clears the refusal."""
+        if not (
+            self.contract_handler.latest_scada_hb
+            or self.auto_state == MainAutoState.LeafTransactiveNode
+        ):
+            self.log(f"Cold house ({payload.Cause}); no dispatch contract to break")
+            return
+        if not self.ops.AcceptsDispatch:
+            self.log(
+                f"Cold house ({payload.Cause}); already refusing dispatch: "
+                f"{self.ops.DispatchRefusalReason}"
+            )
+            return
+        self.log(f"Cold house ({payload.Cause}): refusing dispatch, ServiceContractBroken")
+        self._data.ops = OperationalParams.model_validate(
+            {
+                **self.ops.model_dump(by_alias=True, exclude_none=True),
+                "AcceptsDispatch": False,
+                "DispatchRefusalReason": DispatchRefusalReason.ServiceContractBroken,
+            }
+        )
+        save_operational_params(self.settings, self.ops)
+        self.report_operating_status()
+        self.process_ally_gives_up(
+            from_node,
+            AllyGivesUp(
+                Reason=f"{DispatchRefusalReason.ServiceContractBroken}: {payload.Cause}"
+            ),
+        )
 
     def process_channel_subscribe(
         self, from_node: ShNode, payload: ChannelSubscribe

@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 
 from gwsproto.names.hydronic_spaceheat.channel_names import (
     HydronicSpaceheatChannelNames as HCN,
-    HydronicSpaceheatZoneChannelNames as HSZoneChannelNames,
 )
 
 if TYPE_CHECKING:
@@ -135,16 +134,16 @@ class DistPumpMonitor:
     # ------------------------------------------------------------
 
     def _any_zones_calling(self) -> bool:
-        """True when any zone's derived heat-call channel reads calling.
+        """True when any zone-call circuit's heat-call channel reads calling.
 
-        The derived generator computes zone{i}-{label}-heat-call from
-        whichever raw source the layout gives the zone (opto input or
+        The derived generator computes a circuit's heat-call channel from
+        whichever raw source the layout gives the circuit (opto input or
         whitewire power), so this read is source-neutral.
         """
         h = self.host
 
-        for i, zone in enumerate(h.layout.zone_list):
-            heat_call_name = HSZoneChannelNames(zone, i + 1).heat_call
+        for circuit in h.layout.hydronic.ZoneCallCircuits:
+            heat_call_name = h.layout.heat_call_channel(circuit)
 
             value = h.data.latest_channel_values.get(heat_call_name)
             if value is None:
