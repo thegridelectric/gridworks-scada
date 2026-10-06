@@ -44,7 +44,7 @@ from gwsproto.enums import (
     FiveVBossState,
     HpBossState,
     HpLoopKeepSend,
-    LocalControlStandbyTopState,
+    LocalControlTopState,
     RelayClosedOrOpen,
     RelayWiringConfig,
     SeasonalStorageMode,
@@ -54,7 +54,7 @@ from gwsproto.enums import (
     TurnHpOnOff,
 )
 from gwsproto.enums.top_state import TopState
-from gwsproto.named_types import AdminDispatch, AdminReleaseControl, FsmEvent
+from gwsproto.named_types import AdminDispatch, AdminReleaseControl, FsmEvent, GoDormant, WakeUp
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.house0.node_names import House0NodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
@@ -312,7 +312,9 @@ async def test_standby_posture_restored_after_admin(
 ) -> None:
     """Standby boots to its posture; admin takes the tree, turns the heat
     pump on and energizes a relay the ops word does not list; on release
-    the posture is back and hp-boss is HpOff again."""
+    the posture is back and hp-boss is HpOff again. The local control's
+    state is Standby throughout and is reported once, and the scada's
+    auto-state check sends it neither GoDormant nor WakeUp."""
     layout_file, ops_file = LAYOUTS[row.layout]
     ops_path = row_ops(tmp_path, ops_file, row)
     layout = load_layout(CONFIG / layout_file, ops_path)
@@ -337,6 +339,17 @@ async def test_standby_posture_restored_after_admin(
         )
         assert_standby_posture(h, relays, energized)
         await await_command_node_relays(h, relays)
+        reported = scada.data.latest_machine_state[CoreNodeNames.local_control]
+        assert reported.State == LocalControlTopState.Standby
+        nudges: list = []
+        scada_send_to = scada._send_to
+
+        def recording_send_to(to_node, payload, from_node=None) -> None:
+            if to_node.name == CoreNodeNames.local_control and isinstance(payload, (GoDormant, WakeUp)):
+                nudges.append(payload)
+            scada_send_to(to_node, payload, from_node)
+
+        scada._send_to = recording_send_to
         normal_handle = scada.layout.node(CoreNodeNames.local_control_normal).handle
         disturbed_name = next(
             name
@@ -350,7 +363,10 @@ async def test_standby_posture_restored_after_admin(
             scada.admin, admin_dispatch(HSNN.hp_boss, TurnHpOnOff.enum_name(), TurnHpOnOff.TurnOn)
         )
         assert scada.top_state == TopState.Admin
-        assert lc.top_state == LocalControlStandbyTopState.Dormant
+        assert lc.top_state == LocalControlTopState.Standby
+        nudges.clear()
+        scada.enforce_auto_state_consistency()
+        assert nudges == []
         await h.await_for(
             lambda: hp_boss.state == HpBossState.HpOn,
             "ERROR waiting for admin's TurnOn to reach HpOn",
@@ -365,7 +381,7 @@ async def test_standby_posture_restored_after_admin(
 
         scada.process_scada_message(scada.admin, AdminReleaseControl())
         assert scada.top_state == TopState.Auto
-        assert lc.top_state == LocalControlStandbyTopState.EverythingOff
+        assert lc.top_state == LocalControlTopState.Standby
         await h.await_for(
             lambda: hp_boss.state == HpBossState.HpOff and disturbed.state == cfg.DeEnergizedState,
             "ERROR waiting for the standby posture to be restored after admin's release",
@@ -373,6 +389,10 @@ async def test_standby_posture_restored_after_admin(
         )
         assert_standby_posture(h, relays, energized)
         await await_command_node_relays(h, relays)
+        nudges.clear()
+        scada.enforce_auto_state_consistency()
+        assert nudges == []
+        assert scada.data.latest_machine_state[CoreNodeNames.local_control] is reported
 
 
 COMMAND_NODE_RELAYS = (

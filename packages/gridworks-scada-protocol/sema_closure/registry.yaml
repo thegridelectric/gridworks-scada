@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-10-05T15:30:00Z"
+  last_updated: "2026-10-06T11:35:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -252,7 +252,7 @@ enums:
         status: "staging"
         added_values:
           - "FiveVBoss"
-          - "HpSensor"
+          - "HpWatch"
           - "ColdWatch"
 
   gw1.emission.method:
@@ -347,6 +347,18 @@ enums:
         added_values:
           - "Seconds"
           - "SecondsX10"
+
+  gw2.lc.top.state:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Top state of the local control node, reported by whichever local control machine the scada runs: Dormant, UsingNonElectricBackup, Normal, ScadaBlind, Standby."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/gw2.lc.top.state/000"
+        created: "2026-10-06T11:35:00Z"
+        status: "published"
 
   hz.calc.method:
     latest_version: "001"

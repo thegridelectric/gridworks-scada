@@ -3,9 +3,11 @@ into its run tells the LTN and the leaf ally about the one it loaded. An
 offer that arrives in those seconds is not read back from the store: the
 leaf ally gets no heartbeat for it, and a contract the ally gave up stays
 ended. A live contract in the store is taken up again after a restart; a
-contract the store holds as ended is not."""
+contract the store holds as ended is not. A scada that restarts refusing
+dispatch ends the live contract it finds in the store."""
 
 import asyncio
+import json
 import time
 import uuid
 from pathlib import Path
@@ -14,7 +16,12 @@ from typing import Any
 import pytest
 
 from actors.scada import Scada
-from gwsproto.enums import MainAutoState, SlowDispatchContractStatus
+from gwsproto.enums import (
+    DispatchRefusalReason,
+    MainAutoState,
+    SiegLoopStrategy,
+    SlowDispatchContractStatus,
+)
 from gwsproto.named_types import SlowContractHeartbeat, SlowDispatchContract
 from sema_to_dc import load_layout
 from tests.actors.test_cold_handling import CONFIG, WILLOW, heating_ops
@@ -148,6 +155,79 @@ async def test_a_live_stored_contract_is_taken_up_again_after_a_restart(
         assert scada.contract_handler.energy_used_wh == 120
         assert {hb.Contract.ContractId for hb in sends.heartbeats_to_ltn()} == {contract.ContractId}
         assert contract in sends.to_leaf_ally(SlowDispatchContract)
+
+
+def refusing_ops(tmp_path: Path, reason: DispatchRefusalReason) -> Path:
+    """Willow's ops word refusing dispatch for the reason; Standby also
+    selects the standby local control."""
+    ops_path = heating_ops(tmp_path, WILLOW, AcceptsDispatch=False, DispatchRefusalReason=reason.value)
+    if reason == DispatchRefusalReason.Standby:
+        ops = json.loads(ops_path.read_text())
+        ops["Standby"] = True
+        ops["FamilyParams"]["SiegLoopStrategy"] = SiegLoopStrategy.HoldFullSend.value
+        ops_path.write_text(json.dumps(ops, indent=2))
+    return ops_path
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "reason", [DispatchRefusalReason.Standby, DispatchRefusalReason.ServiceContractBroken]
+)
+async def test_a_live_stored_contract_is_ended_by_a_scada_that_refuses_dispatch(
+    request: pytest.FixtureRequest,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    reason: DispatchRefusalReason,
+) -> None:
+    ops_path = refusing_ops(tmp_path, reason)
+    layout = load_layout(CONFIG / WILLOW[0], ops_path)
+    async with ScadaLiveTest(request=request, layout=layout, ops_path=ops_path) as h:
+        app = h.child1_app
+        contract = SlowDispatchContract(
+            ScadaAlias=layout.scada_g_node_alias,
+            StartS=(int(time.time()) // 300) * 300,
+            DurationMinutes=60,
+            AvgPowerWatts=1000,
+            OilBoilerOn=False,
+            ContractId=str(uuid.uuid4()),
+        )
+        stored = SlowContractHeartbeat(
+            FromNode="s",
+            Contract=contract,
+            PreviousStatus=SlowDispatchContractStatus.Confirmed,
+            Status=SlowDispatchContractStatus.Active,
+            WattHoursUsed=120,
+            MessageCreatedMs=int(time.time() * 1000),
+            MyDigit=4,
+            YourLastDigit=5,
+        )
+        contract_file = Path(app.settings.paths.data_dir) / "slow_dispatch_contract.json"
+        contract_file.parent.mkdir(parents=True, exist_ok=True)
+        contract_file.write_text(stored.model_dump_json(indent=4))
+
+        h.start_child1()
+        scada = app.scada
+        sends = Sends(monkeypatch, scada)
+        await h.await_for(
+            lambda: bool(sends.heartbeats_to_ltn()),
+            "ERROR waiting for the scada to speak of the stored contract",
+            timeout=30,
+            err_str_f=lambda: (
+                f"auto_state: {scada.auto_state}, "
+                f"latest_scada_hb: {scada.contract_handler.latest_scada_hb}"
+            ),
+        )
+        [ended] = sends.heartbeats_to_ltn()
+        assert ended.Contract.ContractId == contract.ContractId
+        assert ended.Status == SlowDispatchContractStatus.TerminatedByScada
+        assert ended.WattHoursUsed == 120
+        assert ended.Cause is not None and reason.value in ended.Cause
+        assert scada.auto_state == MainAutoState.LocalControl
+        assert scada.contract_handler.latest_scada_hb is None
+        assert sends.to_leaf_ally(SlowDispatchContract) == []
+        assert sends.to_leaf_ally(SlowContractHeartbeat) == []
+        in_store = SlowContractHeartbeat.model_validate_json(contract_file.read_text())
+        assert in_store.Status == SlowDispatchContractStatus.TerminatedByScada
 
 
 @pytest.mark.asyncio

@@ -43,8 +43,10 @@ class LocalControlTouBase(House0Hydronic):
 
 
     top_states = [
-        state for state in LocalControlTopState.values()
-        if state != LocalControlTopState.Monitor
+        LocalControlTopState.Dormant,
+        LocalControlTopState.UsingNonElectricBackup,
+        LocalControlTopState.Normal,
+        LocalControlTopState.ScadaBlind,
     ]
     top_transitions = [
         {"trigger": "TopGoDormant", "source": "Normal", "dest": "Dormant"},

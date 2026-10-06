@@ -1,4 +1,4 @@
-"""hp-sensor: the heat pump as the scada senses it."""
+"""hp-watch: the heat pump as the scada senses it."""
 
 import time
 
@@ -15,8 +15,8 @@ from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 
 
-class HpSensor(ShNodeActor):
-    """The actor at the hp-sensor node, where the heat pump's sensed running
+class HpWatch(ShNodeActor):
+    """The actor at the hp-watch node, where the heat pump's sensed running
     state is reported as a machine state. It runs the threshold machine on
     hp-odu power as the scada forwards it: HpDetectedOn on a read above the
     heat pump's on line, HpDetectedOff on a read below its off line, held in

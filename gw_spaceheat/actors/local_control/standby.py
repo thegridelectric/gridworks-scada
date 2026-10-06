@@ -7,7 +7,9 @@ wake handling, so an admin session can leave it HpOn). The 0-10V outputs
 stay at their power-on levels and are never written. The command tree
 keeps its shape: five-v-boss runs, the sieg loop holds HoldFullSend,
 hp-boss sits at HpOff. The posture is set at ActuatorsReady and again on
-every WakeUp; standby refuses dispatch by axiom."""
+every WakeUp; standby refuses dispatch by axiom. Standby is a state of
+local control with no machine behind it: the state is reported at start,
+and it stays Standby while admin holds the tree."""
 
 import asyncio
 import time
@@ -17,15 +19,10 @@ from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from result import Ok, Result
-from transitions import Machine
 
 from actors.hydronic.shared import HydronicNode
 from gwsproto.data_classes.sh_node import ShNode
-from gwsproto.enums import (
-    ActorClass,
-    LocalControlStandbyTopEvent,
-    LocalControlStandbyTopState,
-)
+from gwsproto.enums import ActorClass, LocalControlTopState
 from gwsproto.named_types import ActuatorsReady, GoDormant, HeatingForecast, SingleMachineState, WakeUp
 from gwsproto.names.core.node_names import CoreNodeNames
 from scada_app_interface import ScadaAppInterface
@@ -33,49 +30,16 @@ from scada_app_interface import ScadaAppInterface
 
 class StandbyLocalControl(HydronicNode):
     MAIN_LOOP_SLEEP_SECONDS = 300
-    top_states = LocalControlStandbyTopState.values()
-
-    top_transitions = [
-        {"trigger": "TopGoDormant", "source": "EverythingOff", "dest": "Dormant"},
-        {"trigger": "TopWakeUp", "source": "Dormant", "dest": "EverythingOff"},
-    ]
+    top_state = LocalControlTopState.Standby
 
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
         if not self.ops.Standby:
             raise Exception("The standby machine runs only when the ops word says Standby")
         self._stop_requested: bool = False
-        self.top_machine = Machine(
-            model=self,
-            states=StandbyLocalControl.top_states,
-            transitions=StandbyLocalControl.top_transitions,
-            initial=LocalControlStandbyTopState.EverythingOff,
-            send_event=True,
-            model_attribute="top_state",
-        )
-        self.top_state: LocalControlStandbyTopState = LocalControlStandbyTopState.EverythingOff
         self.set_command_tree(boss_node=self.normal_node)
         self.actuators_ready = False
         self.log(f"Starting standby local control, posture {self.ops.StandbyPosture}")
-
-    def trigger_top_event(self, cause: LocalControlStandbyTopEvent) -> None:
-        now_ms = int(time.time() * 1000)
-        orig_state = self.top_state
-        if cause == LocalControlStandbyTopEvent.TopGoDormant:
-            self.TopGoDormant()
-        elif cause == LocalControlStandbyTopEvent.TopWakeUp:
-            self.TopWakeUp()
-        self._send_to(
-            self.primary_scada,
-            SingleMachineState(
-                MachineHandle=self.node.handle,
-                StateEnum=LocalControlStandbyTopState.enum_name(),
-                State=self.top_state,
-                UnixMs=now_ms,
-                Cause=cause.value,
-            ),
-        )
-        self.log(f"{cause}: {orig_state} -> {self.top_state}")
 
     @property
     def normal_node(self) -> ShNode:
@@ -91,8 +55,6 @@ class StandbyLocalControl(HydronicNode):
         if not self.actuators_ready:
             self.log("Waiting to set the standby posture until actuator drivers are ready")
             return
-        if self.top_state != LocalControlStandbyTopState.EverythingOff:
-            raise Exception("Cannot set the standby posture unless top state is EverythingOff")
         energized = set(self.ops.EnergizedStandbyRelays)
         claimed = sorted(
             (
@@ -120,7 +82,7 @@ class StandbyLocalControl(HydronicNode):
             self.primary_scada,
             SingleMachineState(
                 MachineHandle=self.node.handle,
-                StateEnum=LocalControlStandbyTopState.enum_name(),
+                StateEnum=LocalControlTopState.enum_name(),
                 State=self.top_state,
                 UnixMs=int(time.time() * 1000),
             ),
@@ -146,8 +108,6 @@ class StandbyLocalControl(HydronicNode):
             case GoDormant():
                 if len(self.my_actuators()) > 0:
                     raise Exception("LocalControl sent GoDormant with live actuators under it!")
-                if self.top_state != LocalControlStandbyTopState.Dormant:
-                    self.trigger_top_event(cause=LocalControlStandbyTopEvent.TopGoDormant)
             case WakeUp():
                 try:
                     self.process_wake_up(from_node, message.Payload)
@@ -163,9 +123,6 @@ class StandbyLocalControl(HydronicNode):
             self.set_standby_posture()
 
     def process_wake_up(self, from_node: ShNode, payload: WakeUp) -> None:
-        if self.top_state != LocalControlStandbyTopState.Dormant:
-            return
-        self.trigger_top_event(LocalControlStandbyTopEvent.TopWakeUp)
         self.set_command_tree(boss_node=self.normal_node)
         self.set_standby_posture()
 

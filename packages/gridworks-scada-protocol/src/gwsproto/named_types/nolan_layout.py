@@ -997,14 +997,14 @@ class NolanLayout(GwsprotoSemaType):
     @model_validator(mode="after")
     def check_axiom_32(self) -> "NolanLayout":
         """
-        Axiom 32: HpSensorNode
-        ShNodes SHALL include a node named "hp-sensor" with ActorClass "HpSensor".
+        Axiom 32: HpWatchNode
+        ShNodes SHALL include a node named "hp-watch" with ActorClass "HpWatch".
         """
-        node = next((n for n in self.ShNodes if n.Name == HSNN.hp_sensor), None)
-        if node is None or node.ActorClass != ActorClass.HpSensor:
+        node = next((n for n in self.ShNodes if n.Name == HSNN.hp_watch), None)
+        if node is None or node.ActorClass != ActorClass.HpWatch:
             raise ValueError(
-                "Axiom 32 (HpSensorNode) failed: no ShNode named 'hp-sensor' with "
-                "ActorClass 'HpSensor'."
+                "Axiom 32 (HpWatchNode) failed: no ShNode named 'hp-watch' with "
+                "ActorClass 'HpWatch'."
             )
         return self
 

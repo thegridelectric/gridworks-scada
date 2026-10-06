@@ -47,7 +47,7 @@ class HydronicSpaceheatNodeNames:
     hp_ctrl_box = "hp-ctrl-box"
     # The heat pump as the scada senses it: the actor that reports its
     # sensed running state, apart from hp-odu. No component.
-    hp_sensor = "hp-sensor"
+    hp_watch = "hp-watch"
     # Buffer elements are flat (one buffer); store-tank elements are per
     # tank, on TankNodeNames.
     buffer_top_elt = "buffer-top-elt"

@@ -1385,7 +1385,9 @@ class Scada(PrimeActor, ScadaInterface):
         live contract puts the leaf ally back in charge, and the LTN and
         the leaf ally get the heartbeat. Nothing is sent when a contract
         offered since the load has taken the loaded one's place, or when
-        the loaded contract is no longer the live one."""
+        the loaded contract is no longer the live one. A scada that does
+        not accept dispatch ends the live contract instead: the LTN gets
+        the terminating heartbeat and the leaf ally hears nothing."""
         if loaded is None:
             return
         latest = self.contract_handler.latest_scada_hb
@@ -1394,6 +1396,14 @@ class Scada(PrimeActor, ScadaInterface):
                 return
         elif latest is None or latest.Contract.ContractId != loaded.Contract.ContractId:
             return
+        elif not self.ops.AcceptsDispatch:
+            self.process_ally_gives_up(
+                self.node,
+                AllyGivesUp(
+                    Reason=f"{self.ops.DispatchRefusalReason}: not resuming the stored contract"
+                ),
+            )
+            return
         else:
             self.dispatch_contract_live()
         self._send_to(self.ltn, loaded)
@@ -1401,7 +1411,8 @@ class Scada(PrimeActor, ScadaInterface):
     
     def enforce_auto_state_consistency(self) -> None:
         """ Enforces that auto_state [LocalControl, LeafTransactiveNode, Dormant] is consistent
-        with the top_state reported by `h` [Dormant v anything else] and `aa` [Dormant v anything else]
+        with the top_state reported by `h` [Dormant v anything else] and `aa` [Dormant v anything else].
+        A local control in Standby is consistent with every auto_state.
         """
 
         lc: LocalControl = self.services.get_communicator_as_type(CoreNodeNames.local_control, LocalControl)
@@ -1409,6 +1420,7 @@ class Scada(PrimeActor, ScadaInterface):
 
         ally_state = la.state
         local_control_state = lc.top_state
+        standby = local_control_state == LocalControlTopState.Standby
         dormant_state = (
             LeafAllyAllTanksState.Dormant 
             if self.ops.FamilyParams.SeasonalStorageMode == SeasonalStorageMode.AllTanks 
@@ -1419,7 +1431,7 @@ class Scada(PrimeActor, ScadaInterface):
             if ally_state != dormant_state:
                 self.log(f"Noticed auto_state Dormant but LeafAlly in {ally_state}! Sending GoDormant")
                 self._send_to(self.leaf_ally, GoDormant(ToName=self.leaf_ally.name))
-            if local_control_state != LocalControlTopState.Dormant:
+            if not standby and local_control_state != LocalControlTopState.Dormant:
                 self.log(f"Noticed auto_state Dormant but LocalControl in {local_control_state}! Sending GoDormant")
                 self._send_to(self.local_control, GoDormant(ToName=self.local_control.name))
         elif self.auto_state == MainAutoState.LeafTransactiveNode:
@@ -1434,7 +1446,7 @@ class Scada(PrimeActor, ScadaInterface):
                     self._send_to(self.leaf_ally, contract)  # This is how the Ltn wakes up
                 else: # we might be in the grace period of an expired contract ... this check will 
                     self.log("No contract but in grace period. This will correct in 5 minutes")
-            if local_control_state != LocalControlTopState.Dormant:
+            if not standby and local_control_state != LocalControlTopState.Dormant:
                 self.log(f"Noticed auto_state Ltn but LocalControl in {local_control_state}! Sending GoDormant")
                 self._send_to(self.local_control, GoDormant(ToName=self.local_control.name))
         elif self.auto_state == MainAutoState.LocalControl:

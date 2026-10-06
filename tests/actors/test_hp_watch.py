@@ -1,4 +1,4 @@
-"""The heat-pump threshold machine at hp-sensor, in-process on the sim
+"""The heat-pump threshold machine at hp-watch, in-process on the sim
 Nolan fixture: Unknown until the first hp-odu power read, HpDetectedOn
 above the on line, HpDetectedOff below the off line, held in between, and
 Unknown again when the channel flatlines."""
@@ -10,7 +10,7 @@ import pytest
 from gwproto.message import Header, Message
 
 from actors.hp_boss.sensing import HP_TRAITS
-from actors.hp_sensor import HpSensor
+from actors.hp_watch import HpWatch
 from actors.in_process_messages import ChannelSubscribe
 from gwsproto.enums import SpruceHackHpState
 from gwsproto.named_types import ChannelFlatlined, SingleMachineState, SingleReading
@@ -20,7 +20,7 @@ from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNa
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
-HP_SENSOR = "hp-sensor"
+HP_WATCH = "hp-watch"
 
 
 @pytest.fixture
@@ -34,19 +34,19 @@ def app() -> ScadaApp:
     return scada_app
 
 
-def hp_sensor_actor(app: ScadaApp) -> HpSensor:
-    actor = app.get_communicator_as_type(HP_SENSOR, HpSensor)
-    assert actor is not None, "hp-sensor is constructed in every Nolan layout"
+def hp_watch_actor(app: ScadaApp) -> HpWatch:
+    actor = app.get_communicator_as_type(HP_WATCH, HpWatch)
+    assert actor is not None, "hp-watch is constructed in every Nolan layout"
     return actor
 
 
-def capture(actor: HpSensor) -> list:
+def capture(actor: HpWatch) -> list:
     sent: list = []
     actor._send_to = lambda dst, payload, src=None: sent.append((dst.name, payload))
     return sent
 
 
-def deliver(actor: HpSensor, src: str, payload) -> None:
+def deliver(actor: HpWatch, src: str, payload) -> None:
     actor.process_message(
         Message(
             header=Header(Src=src, Dst=actor.name, MessageType=payload.TypeName),
@@ -55,7 +55,7 @@ def deliver(actor: HpSensor, src: str, payload) -> None:
     )
 
 
-def power(actor: HpSensor, watts: int, channel: str = HCN.hp_odu_pwr) -> None:
+def power(actor: HpWatch, watts: int, channel: str = HCN.hp_odu_pwr) -> None:
     deliver(
         actor,
         CoreNodeNames.asset_power_meter,
@@ -65,7 +65,7 @@ def power(actor: HpSensor, watts: int, channel: str = HCN.hp_odu_pwr) -> None:
     )
 
 
-def flatline(actor: HpSensor, channel: str = HCN.hp_odu_pwr) -> None:
+def flatline(actor: HpWatch, channel: str = HCN.hp_odu_pwr) -> None:
     deliver(
         actor,
         CoreNodeNames.asset_power_meter,
@@ -81,7 +81,7 @@ def reported_states(sent: list) -> list[str]:
 
 
 def test_start_subscribes_to_hp_odu_power_and_reports_unknown(app: ScadaApp) -> None:
-    actor = hp_sensor_actor(app)
+    actor = hp_watch_actor(app)
     sent = capture(actor)
     actor.start()
     assert [(dst, p.ChannelName) for dst, p in sent if isinstance(p, ChannelSubscribe)] == [
@@ -89,7 +89,7 @@ def test_start_subscribes_to_hp_odu_power_and_reports_unknown(app: ScadaApp) -> 
     ]
     [(dst, state)] = [(dst, p) for dst, p in sent if isinstance(p, SingleMachineState)]
     assert dst == CoreNodeNames.primary_scada
-    assert state.MachineHandle == HP_SENSOR
+    assert state.MachineHandle == HP_WATCH
     assert state.StateEnum == SpruceHackHpState.enum_name()
     assert state.State == SpruceHackHpState.Unknown
 
@@ -98,7 +98,7 @@ def test_the_machine_crosses_at_each_line_and_holds_in_between(app: ScadaApp) ->
     """One report per transition: a read above the on line detects on, a
     read below the off line detects off, and a read on a line or between
     the two changes nothing."""
-    actor = hp_sensor_actor(app)
+    actor = hp_watch_actor(app)
     traits = HP_TRAITS[actor.layout.node(HSNN.hp_odu).component.gt.DeviceType]
     sent = capture(actor)
 
@@ -129,7 +129,7 @@ def test_a_read_between_the_lines_while_unknown_detects_off(app: ScadaApp) -> No
     with no earlier state to hold, it is HpDetectedOff: running the pump
     when the system is not hot destratifies the buffer. The same holds
     after a flatline."""
-    actor = hp_sensor_actor(app)
+    actor = hp_watch_actor(app)
     traits = HP_TRAITS[actor.layout.node(HSNN.hp_odu).component.gt.DeviceType]
     between = (traits.on_above_w + traits.off_below_w) // 2
     sent = capture(actor)
@@ -150,7 +150,7 @@ def test_a_read_between_the_lines_while_unknown_detects_off(app: ScadaApp) -> No
 
 
 def test_a_flatline_goes_unknown_and_a_fresh_read_comes_back(app: ScadaApp) -> None:
-    actor = hp_sensor_actor(app)
+    actor = hp_watch_actor(app)
     traits = HP_TRAITS[actor.layout.node(HSNN.hp_odu).component.gt.DeviceType]
     sent = capture(actor)
     power(actor, traits.on_above_w + 1)
@@ -167,7 +167,7 @@ def test_a_flatline_goes_unknown_and_a_fresh_read_comes_back(app: ScadaApp) -> N
 
 
 def test_other_channels_do_not_move_the_machine(app: ScadaApp) -> None:
-    actor = hp_sensor_actor(app)
+    actor = hp_watch_actor(app)
     traits = HP_TRAITS[actor.layout.node(HSNN.hp_odu).component.gt.DeviceType]
     sent = capture(actor)
     power(actor, traits.on_above_w + 1)

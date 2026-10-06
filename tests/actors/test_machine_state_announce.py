@@ -3,8 +3,7 @@
 The scada seeds only its own TopState row of `latest_machine_state`; the
 LeafAlly and LocalControl rows come from the actors themselves, sent as a
 `SingleMachineState` in `start()`, so the first snapshot carries every
-machine's row and reports the machine's real enum (Standby local control
-speaks `LocalControlStandbyTopState`, not `LocalControlTopState`).
+machine's row and reports the machine's real enum.
 
 Runs against both authored pairs: the pinned Nolan fixture and the House0
 fixture."""

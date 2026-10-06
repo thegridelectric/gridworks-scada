@@ -103,7 +103,6 @@ NO_WORD_ENUMS = {
     "gw1.leaf.ally.buffer.only.event",
     "gw1.local.control.all.tanks.event",
     "gw1.local.control.buffer.only.event",
-    "gw1.local.control.standby.top.event",
     "gw1.local.control.top.event",
     "gw1.main.auto.event",
     "heat.pump.control",

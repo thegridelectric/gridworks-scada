@@ -6,6 +6,7 @@ validation state when the deed changes. A repeated report with nothing
 changed sends nothing. In-process on every Standby x ServiceMode cell the
 loader selects; a Standby cell refuses the offer and never dispatches."""
 
+import asyncio
 import json
 import time
 import uuid
@@ -185,6 +186,12 @@ async def test_operating_status_emits_once_per_change(
     layout = load_layout(CONFIG / layout_file, ops_path)
     async with ScadaLiveTest(request=request, layout=layout, ops_path=ops_path) as h:
         h.start_child1()
+        # The scada reads its contract store as its tasks start; an offer
+        # handed to it before then would be read back as a stored contract.
+        await h.await_for(
+            lambda: any(t.get_name() == "scada top_state_tracker" for t in asyncio.all_tasks()),
+            "ERROR waiting for the scada's tasks to start",
+        )
         scada = h.child1_app.scada
         statuses: list[HouseOperatingStatus] = []
         to_ltn: list[Any] = []

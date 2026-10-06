@@ -67,8 +67,6 @@ from gwsproto.enums.local_control_all_tanks_event import LocalControlAllTanksEve
 from gwsproto.enums.local_control_all_tanks_state import LocalControlAllTanksState
 from gwsproto.enums.local_control_buffer_only_event import LocalControlBufferOnlyEvent
 from gwsproto.enums.local_control_buffer_only_state import LocalControlBufferOnlyState
-from gwsproto.enums.local_control_standby_top_event import LocalControlStandbyTopEvent
-from gwsproto.enums.local_control_standby_top_state import LocalControlStandbyTopState
 from gwsproto.enums.local_control_top_event import LocalControlTopEvent
 from gwsproto.enums.local_control_top_state import LocalControlTopState
 from gwsproto.enums.log_level import LogLevel
@@ -174,8 +172,6 @@ __all__ = [
     "LocalControlAllTanksState",
     "LocalControlBufferOnlyEvent",
     "LocalControlBufferOnlyState",
-    "LocalControlStandbyTopEvent",
-    "LocalControlStandbyTopState",
     "LocalControlTopEvent",
     "LocalControlTopState",
     "LogLevel",

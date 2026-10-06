@@ -866,18 +866,18 @@ def test_gw_nolan_layout_axiom_31_heat_call_for_no_circuit(assembled: dict) -> N
 
 
 
-def test_gw_nolan_layout_axiom_32_hp_sensor_absent(assembled: dict) -> None:
+def test_gw_nolan_layout_axiom_32_hp_watch_absent(assembled: dict) -> None:
     reject(
         assembled,
-        lambda d: d.update(ShNodes=[n for n in d["ShNodes"] if n["Name"] != "hp-sensor"]),
+        lambda d: d.update(ShNodes=[n for n in d["ShNodes"] if n["Name"] != "hp-watch"]),
         "Axiom 32",
     )
 
 
-def test_gw_nolan_layout_axiom_32_hp_sensor_wrong_actor_class(assembled: dict) -> None:
+def test_gw_nolan_layout_axiom_32_hp_watch_wrong_actor_class(assembled: dict) -> None:
     def mutate(d: dict) -> None:
         for n in d["ShNodes"]:
-            if n["Name"] == "hp-sensor":
+            if n["Name"] == "hp-watch":
                 n["ActorClass"] = "NoActor"
                 del n["ActorHierarchyName"]
 

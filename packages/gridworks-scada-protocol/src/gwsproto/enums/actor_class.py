@@ -35,7 +35,7 @@ class ActorClass(SemaEnum):
     SimRelayActor = auto()
     I2cDacWriter = auto()
     HpTwin = auto()
-    HpSensor = auto()
+    HpWatch = auto()
     ColdWatch = auto()
 
     @classmethod

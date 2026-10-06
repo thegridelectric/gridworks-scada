@@ -1,5 +1,5 @@
 """
-Tests for enum local.control.top.state.neb.000 from the GridWorks Type Registry.
+Tests for the gwsproto twin of gw2.lc.top.state 000.
 """
 
 from gwsproto.enums import LocalControlTopState
@@ -11,9 +11,9 @@ def test_local_control_top_state() -> None:
         "UsingNonElectricBackup",
         "Normal",
         "ScadaBlind",
-        "Monitor"
+        "Standby",
     }
 
     assert LocalControlTopState.default() == LocalControlTopState.Dormant
-    assert LocalControlTopState.enum_name() == "gw1.lc.top.state"
-    assert LocalControlTopState.enum_version() == "001"
+    assert LocalControlTopState.enum_name() == "gw2.lc.top.state"
+    assert LocalControlTopState.enum_version() == "000"
