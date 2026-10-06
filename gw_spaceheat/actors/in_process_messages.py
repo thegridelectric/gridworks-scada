@@ -37,3 +37,22 @@ class BreakServiceContract(BaseModel):
     Cause: str
     TypeName: Literal["break.service.contract"] = "break.service.contract"
     Version: Literal["000"] = "000"
+
+
+class HouseCold(BaseModel):
+    """The cold watch's latch has fired with the stores empty, the same
+    look that breaks a dispatch contract: the local control leaves Normal
+    for its cold state. In-process, with no sema word."""
+
+    Cause: str
+    TypeName: Literal["house.cold"] = "house.cold"
+    Version: Literal["000"] = "000"
+
+
+class HouseWarm(BaseModel):
+    """No critical zone is cold, after a HouseCold: the local control
+    leaves its cold state when it is off-peak. In-process, with no sema
+    word."""
+
+    TypeName: Literal["house.warm"] = "house.warm"
+    Version: Literal["000"] = "000"

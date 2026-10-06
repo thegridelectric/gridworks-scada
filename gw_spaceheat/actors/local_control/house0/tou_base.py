@@ -30,6 +30,7 @@ from actors.procedural.store_pump_doctor import StorePumpDoctor
 from actors.procedural.store_pump_monitor import StorePumpMonitor
 
 from actors.hydronic.house0 import House0Hydronic
+from actors.in_process_messages import HouseCold, HouseWarm
 from scada_app_interface import ScadaAppInterface
 
 
@@ -39,7 +40,6 @@ class LocalControlTouBase(House0Hydronic):
     should inherit from this base class."""
     MAIN_LOOP_SLEEP_SECONDS = 60
     BLIND_MINUTES = 5
-    SYSTEM_COLD_MINUTES = 5  # Min time house+tanks cold before leaving Normal
 
 
     COLD_STATES = (LocalControlTopState.InBackup, LocalControlTopState.ColdOverride)
@@ -71,7 +71,7 @@ class LocalControlTouBase(House0Hydronic):
         self.hardware_layout = self._services.hardware_layout
         
         self.time_since_blind: Optional[float] = None
-        self.system_cold_since: Optional[float] = None
+        self.house_cold = False
         self.scadablind_scada = False
         self.scadablind_boiler = False
 
@@ -231,17 +231,7 @@ class LocalControlTouBase(House0Hydronic):
             self.get_temperatures()
 
             # Update top state
-            if self.top_state == LocalControlTopState.Normal:
-                if self.time_to_trigger_system_cold():
-                    now = time.time()
-                    if self.system_cold_since is None:
-                        self.system_cold_since = now
-                    elif now - self.system_cold_since >= self.SYSTEM_COLD_MINUTES * 60:
-                        self.trigger_system_cold_event()
-                        self.system_cold_since = None
-                else:
-                    self.system_cold_since = None
-            elif self.top_state in self.COLD_STATES and not self.is_system_cold() and not self.is_onpeak():
+            if self.top_state in self.COLD_STATES and not self.house_cold and not self.is_onpeak():
                 self.trigger_zones_at_setpoint_offpeak()
             elif self.top_state == LocalControlTopState.ScadaBlind:
                 if self.heating_forecast and self.buffer_temps_available:
@@ -282,13 +272,6 @@ class LocalControlTouBase(House0Hydronic):
             return self.cold_override_node
 
         return self.normal_node
-
-    @abstractmethod
-    def time_to_trigger_system_cold(self) -> bool:
-        """
-        Logic for triggering SystemCold (and leaving top state Normal)
-        """
-        raise NotImplementedError
 
     @abstractmethod
     def normal_node_state(self) -> str:
@@ -364,8 +347,9 @@ class LocalControlTouBase(House0Hydronic):
 
     def trigger_system_cold_event(self) -> None:
         """
-        Called to change top state from Normal to InBackup or ColdOverride,
-        by whether the house uses its backup when cold.
+        Called on the cold watch's HouseCold to change top state from
+        Normal to InBackup or ColdOverride, by whether the house uses its
+        backup when cold.
         What it does:
           - changes command tree (the cold state's node is the boss)
           - updates the normal state to Dormant if needed
@@ -473,6 +457,14 @@ class LocalControlTouBase(House0Hydronic):
         match message.Payload:
             case ActuatorsReady():
                 self.process_actuators_ready(from_node, message.Payload)
+            case HouseCold():
+                self.house_cold = True
+                if self.top_state == LocalControlTopState.Normal:
+                    self.trigger_system_cold_event()
+            case HouseWarm():
+                self.house_cold = False
+                if self.top_state in self.COLD_STATES and not self.is_onpeak():
+                    self.trigger_zones_at_setpoint_offpeak()
             case GoDormant():
                 if len(self.my_actuators()) > 0:
                     raise Exception("LocalControl sent GoDormant with live actuators under it!")

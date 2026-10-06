@@ -24,7 +24,7 @@ from result import Ok, Result
 
 from actors.glitch_limit import REPEAT_GLITCH_S, GlitchLimit
 from actors.hydronic.shared import HydronicNode
-from actors.in_process_messages import BreakServiceContract, MachineStateSubscribe
+from actors.in_process_messages import BreakServiceContract, HouseCold, HouseWarm, MachineStateSubscribe
 from actors.scada_data import save_recorded_setpoints
 from scada_app_interface import ScadaAppInterface
 
@@ -314,7 +314,9 @@ class ColdWatch(ColdJudgmentNode):
         A critical zone cold for COLD_LATCH_S raises the critical-zone-cold
         glitch, once per cold spell, unless the house is in standby, where
         it may be unheated on purpose. Cold that long with the stores empty
-        asks the scada to break any dispatch contract, once per cold spell.
+        tells the local control the house is cold and asks the scada to
+        break any dispatch contract, once per cold spell; the warm pass
+        that ends such a spell tells the local control the house is warm.
         A house still cold after STILL_COLD_IN_BACKUP_S in backup raises
         its own glitch, once per stay. A circuit reading under FREEZE_F
         raises the zone-freezing glitch."""
@@ -327,7 +329,9 @@ class ColdWatch(ColdJudgmentNode):
         cold = self.cold_critical_zones()
         if not cold:
             self.cold_reported = False
-            self.break_sent = False
+            if self.break_sent:
+                self.break_sent = False
+                self._send_to(self.layout.local_control, HouseWarm())
         if self.cold_spell.held(bool(cold), now_s):
             cause = (
                 f"{'; '.join(zone.line() for zone in cold)}. "
@@ -338,6 +342,10 @@ class ColdWatch(ColdJudgmentNode):
                 self.alert(CRITICAL_ZONE_COLD, f"{cause}.")
             if not self.break_sent and self.stores_empty():
                 self.break_sent = True
+                self._send_to(
+                    self.layout.local_control,
+                    HouseCold(Cause=f"{cause} with the stores empty"),
+                )
                 self._send_to(
                     self.primary_scada,
                     BreakServiceContract(Cause=f"{cause} with the stores empty"),

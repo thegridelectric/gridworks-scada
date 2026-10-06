@@ -120,7 +120,7 @@ def assert_refused(scada: Scada, ops_path: Path, seen: Recorder) -> None:
 
 
 @pytest.mark.asyncio
-async def test_a_cold_nolan_house_holding_no_contract_raises_the_glitch_and_stays_in_normal(
+async def test_a_cold_nolan_house_holding_no_contract_raises_the_glitch_and_goes_to_cold_override(
     request: pytest.FixtureRequest, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     fast_watch(monkeypatch)
@@ -151,7 +151,14 @@ async def test_a_cold_nolan_house_holding_no_contract_raises_the_glitch_and_stay
         assert len(seen.cold_glitches()) == 1
         assert seen.refusals() == []
         assert scada.ops.AcceptsDispatch is True
-        assert impl.top_state in (LocalControlTopState.Normal, LocalControlTopState.ScadaBlind)
+        await h.await_for(
+            lambda: impl.top_state == LocalControlTopState.ColdOverride,
+            "ERROR waiting for the local control to react to the watch",
+            timeout=10,
+            err_str_f=lambda: f"top state: {impl.top_state}",
+        )
+        cold_override = impl.layout.local_control_cold_override_node
+        assert impl.layout.hp_boss.handle == f"{cold_override.handle}.{impl.layout.hp_boss.name}"
 
 
 def ltn_hb(scada: Scada, contract: SlowDispatchContract, status: SlowDispatchContractStatus) -> SlowContractHeartbeat:

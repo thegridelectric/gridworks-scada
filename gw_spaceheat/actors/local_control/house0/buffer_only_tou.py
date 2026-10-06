@@ -90,13 +90,6 @@ class BufferOnlyTouLocalControl(LocalControlTouBase):
             ),
         )
 
-    def time_to_trigger_system_cold(self) -> bool:
-        """
-        Logic for triggering SystemCold (and leaving top state Normal).
-        In shoulder, this means: 1) house is cold 2) buffer is really empty
-        """
-        return self.is_system_cold() and self.is_buffer_empty()
-
     def normal_node_state(self) -> str:
         return self.state
 

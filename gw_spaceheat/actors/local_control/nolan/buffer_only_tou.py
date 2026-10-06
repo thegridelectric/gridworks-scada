@@ -34,7 +34,7 @@ from transitions import Machine
 
 from actors.hp_boss.sensing import HP_TRAITS, HpTraits
 from actors.hydronic.nolan import NolanHydronic
-from actors.in_process_messages import MachineStateSubscribe
+from actors.in_process_messages import HouseCold, HouseWarm, MachineStateSubscribe
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
     ChangeRelayState,
@@ -112,9 +112,25 @@ class NolanBufferOnlyTou(NolanHydronic):
         LocalControlTopState.Dormant,
         LocalControlTopState.Normal,
         LocalControlTopState.ScadaBlind,
+        LocalControlTopState.ColdOverride,
         LocalControlTopState.InBackup,
     ]
     top_transitions = [
+        {
+            "trigger": LocalControlTopEvent.SystemColdNoBackup,
+            "source": LocalControlTopState.Normal,
+            "dest": LocalControlTopState.ColdOverride,
+        },
+        {
+            "trigger": LocalControlTopEvent.CriticalZonesAtSetpointOffpeak,
+            "source": LocalControlTopState.ColdOverride,
+            "dest": LocalControlTopState.Normal,
+        },
+        {
+            "trigger": LocalControlTopEvent.TopGoDormant,
+            "source": LocalControlTopState.ColdOverride,
+            "dest": LocalControlTopState.Dormant,
+        },
         {
             "trigger": LocalControlTopEvent.MissingData,
             "source": LocalControlTopState.Normal,
@@ -205,6 +221,7 @@ class NolanBufferOnlyTou(NolanHydronic):
         self.pump_on: Optional[bool] = None
         # Whether the hp-boss was last commanded to a closed call.
         self.call_closed: Optional[bool] = None
+        self.house_cold = False
         self.top_machine = Machine(
             model=self,
             states=NolanBufferOnlyTou.top_states,
@@ -238,9 +255,11 @@ class NolanBufferOnlyTou(NolanHydronic):
     @property
     def boss(self) -> ShNode:
         """The node commanding the plant: scada-blind while the band is
-        blind, normal otherwise."""
+        blind, cold-override while the house is cold, normal otherwise."""
         if self.top_state == LocalControlTopState.ScadaBlind:
             return self.layout.local_control_scada_blind_node
+        if self.top_state == LocalControlTopState.ColdOverride:
+            return self.layout.local_control_cold_override_node
         return self.normal_node
 
     # ---- reporting ----
@@ -385,6 +404,8 @@ class NolanBufferOnlyTou(NolanHydronic):
             self.set_command_tree(boss_node=self.boss)
             self.trigger_call_event(NolanLcBufferOnlyEvent.CallWakeUp)
             self.boot()
+        if self.top_state == LocalControlTopState.ColdOverride and not self.house_cold:
+            self.leave_cold_override(now)
         if self.top_state == LocalControlTopState.Normal:
             self.update_band()
             wanted = self.offpeak(now) and not self.buffer_full
@@ -394,11 +415,39 @@ class NolanBufferOnlyTou(NolanHydronic):
             elif not wanted and self.call_state == NolanLcBufferOnlyState.HpCallOn:
                 self.command_call(False)
                 self.trigger_call_event(NolanLcBufferOnlyEvent.CallOff)
-        else:
+        elif self.top_state == LocalControlTopState.ScadaBlind:
             wanted = self.offpeak(now)
             if wanted != self.call_closed:
                 self.command_call(wanted)
         self.enforce_pump()
+
+    # ---- the cold house, on the watch's word ----
+
+    def on_house_cold(self) -> None:
+        """Normal -> ColdOverride: the tree moves under cold-override, the
+        call machine goes Dormant and the call is closed whatever the
+        tariff. The pump keeps following the hp-watch."""
+        self.house_cold = True
+        if self.top_state != LocalControlTopState.Normal:
+            return
+        self.trigger_top_event(LocalControlTopEvent.SystemColdNoBackup)
+        self.set_command_tree(boss_node=self.boss)
+        self.trigger_call_event(NolanLcBufferOnlyEvent.CallGoDormant)
+        self.command_call(True)
+
+    def on_house_warm(self, now: datetime) -> None:
+        self.house_cold = False
+        if self.top_state == LocalControlTopState.ColdOverride:
+            self.leave_cold_override(now)
+
+    def leave_cold_override(self, now: datetime) -> None:
+        """ColdOverride -> Normal, off-peak only, through a boot."""
+        if not self.offpeak(now):
+            return
+        self.trigger_top_event(LocalControlTopEvent.CriticalZonesAtSetpointOffpeak)
+        self.set_command_tree(boss_node=self.boss)
+        self.trigger_call_event(NolanLcBufferOnlyEvent.CallWakeUp)
+        self.boot()
 
     # ---- messages ----
 
@@ -451,6 +500,10 @@ class NolanBufferOnlyTou(NolanHydronic):
                 self.go_dormant()
             case WakeUp():
                 self.wake_up()
+            case HouseCold():
+                self.on_house_cold()
+            case HouseWarm():
+                self.on_house_warm(datetime.now(self.timezone))
         return Ok(True)
 
     # ---- lifecycle ----

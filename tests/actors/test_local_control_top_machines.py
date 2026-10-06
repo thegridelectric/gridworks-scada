@@ -24,6 +24,7 @@ TOP_STATES = {
         LocalControlTopState.Normal,
         LocalControlTopState.ScadaBlind,
         LocalControlTopState.InBackup,
+        LocalControlTopState.ColdOverride,
     },
     StandbyLocalControl: {
         LocalControlTopState.Dormant,
@@ -62,6 +63,25 @@ def test_house0_leaves_a_cold_state_warm_offpeak_or_dormant(state: LocalControlT
         (t["trigger"], t["dest"])
         for t in LocalControlTouBase.top_transitions
         if t["source"] == state
+    } == {
+        (LocalControlTopEvent.CriticalZonesAtSetpointOffpeak, LocalControlTopState.Normal),
+        (LocalControlTopEvent.TopGoDormant, LocalControlTopState.Dormant),
+    }
+
+
+def test_nolan_system_cold_leaves_normal_for_cold_override() -> None:
+    assert {
+        (t["trigger"], t["dest"])
+        for t in NolanBufferOnlyTou.top_transitions
+        if t["source"] == LocalControlTopState.Normal and t["dest"] in COLD_STATES
+    } == {(LocalControlTopEvent.SystemColdNoBackup, LocalControlTopState.ColdOverride)}
+
+
+def test_nolan_leaves_cold_override_warm_offpeak_or_dormant() -> None:
+    assert {
+        (t["trigger"], t["dest"])
+        for t in NolanBufferOnlyTou.top_transitions
+        if t["source"] == LocalControlTopState.ColdOverride
     } == {
         (LocalControlTopEvent.CriticalZonesAtSetpointOffpeak, LocalControlTopState.Normal),
         (LocalControlTopEvent.TopGoDormant, LocalControlTopState.Dormant),

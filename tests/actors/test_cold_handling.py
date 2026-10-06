@@ -18,7 +18,7 @@ from gwproto.message import Header, Message
 
 import actors.hydronic.cold as cold
 from actors.hydronic.cold import ColdJudgmentNode, ColdWatch
-from actors.in_process_messages import BreakServiceContract, MachineStateSubscribe
+from actors.in_process_messages import BreakServiceContract, HouseCold, HouseWarm, MachineStateSubscribe
 from actors.leaf_ally_loader import LeafAlly
 from actors.local_control.house0.tou_base import LocalControlTouBase
 from actors.local_control.nolan.buffer_only_tou import NolanBufferOnlyTou
@@ -153,6 +153,13 @@ def glitches(actor: ColdWatch, summary: str) -> list[Glitch]:
 
 def breaks(actor: ColdWatch) -> list[BreakServiceContract]:
     return [p for dst, p in actor.sent if isinstance(p, BreakServiceContract)]
+
+
+def to_local_control(actor: ColdWatch) -> list[HouseCold | HouseWarm]:
+    return [
+        p for dst, p in actor.sent
+        if isinstance(p, (HouseCold, HouseWarm)) and dst == LC_NAME
+    ]
 
 
 # --- the judgment at a thermostat's setpoint (House0) -----------------------
@@ -447,6 +454,46 @@ def test_five_minutes_cold_with_the_stores_empty_asks_the_scada_once(
     for elapsed in (360, 420, 7200):
         house.cold_watch(T0 + elapsed)
     assert len(breaks(house)) == 1
+
+
+def test_five_minutes_cold_with_the_stores_empty_tells_the_local_control_once(
+    house: ColdWatch, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(house, "stores_empty", lambda: True)
+    make_cold(house)
+    for elapsed in (0, 60, 120, 180, 240, 299):
+        house.cold_watch(T0 + elapsed)
+    assert to_local_control(house) == []
+
+    house.cold_watch(T0 + cold.COLD_LATCH_S)
+    [told] = to_local_control(house)
+    assert isinstance(told, HouseCold)
+    assert told.Cause == breaks(house)[0].Cause
+
+    for elapsed in (360, 420, 7200):
+        house.cold_watch(T0 + elapsed)
+    assert len(to_local_control(house)) == 1
+
+
+def test_a_warm_pass_after_the_cold_message_tells_the_local_control(
+    house: ColdWatch, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(house, "stores_empty", lambda: True)
+    make_warm(house)
+    house.cold_watch(T0)
+    make_cold(house)
+    house.cold_watch(T0 + 60)
+    make_warm(house)
+    house.cold_watch(T0 + 120)
+    assert to_local_control(house) == []  # no cold message, so no warm one
+
+    make_cold(house)
+    house.cold_watch(T0 + 180)
+    house.cold_watch(T0 + 180 + cold.COLD_LATCH_S)
+    make_warm(house)
+    house.cold_watch(T0 + 240 + cold.COLD_LATCH_S)
+    house.cold_watch(T0 + 300 + cold.COLD_LATCH_S)
+    assert [type(p) for p in to_local_control(house)] == [HouseCold, HouseWarm]
 
 
 def test_a_house_cold_with_heat_in_its_stores_breaks_no_contract(

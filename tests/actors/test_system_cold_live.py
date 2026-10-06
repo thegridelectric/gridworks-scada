@@ -22,18 +22,16 @@ from gwsproto.enums import (
 from gwsproto.named_types import FsmEvent
 from gwsproto.names.core.node_names import CoreNodeNames
 from sema_to_dc import load_layout
-from tests.actors.test_cold_handling import CONFIG, WILLOW, heating_ops
-from tests.actors.test_cold_handling_live import fast_watch, heating_impl, hold_cold
+from tests.actors.test_cold_handling import CONFIG, WILLOW, heating_ops, put_f
+from tests.actors.test_cold_handling_live import cold_watch, fast_watch, heating_impl, hold_cold
 from tests.utils.scada_live_test_helper import ScadaLiveTest
 
 
 def fast_local_control(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A local control that looks every second and calls the system cold
-    after two, beside a watch fast enough to record the setpoint the zone
-    is judged against."""
+    """A local control that looks every second, beside a watch with a
+    two-second latch."""
     fast_watch(monkeypatch)
     monkeypatch.setattr(LocalControlTouBase, "MAIN_LOOP_SLEEP_SECONDS", 1)
-    monkeypatch.setattr(LocalControlTouBase, "SYSTEM_COLD_MINUTES", 2 / 60)
     # The watchdog cannot sample a timeout scaled to a loop this fast.
     monkeypatch.setattr(
         LocalControlTouBase, "monitored_names",
@@ -49,10 +47,11 @@ async def system_cold_commands(
     cold_state: LocalControlTopState,
     state_node_name: str,
 ) -> tuple[LocalControlTouBase, set[tuple[str, str]]]:
-    """Run willow until its local control is in Normal, hold it cold with
-    the buffer empty until it is in cold_state, and return the (node,
-    event) commands it sent from that state's node. The state then holds
-    while it is on-peak and returns to Normal off-peak."""
+    """Run willow until its local control is in Normal, hold it cold at
+    the watch with the stores empty until the local control is in
+    cold_state, and return the (node, event) commands it sent from that
+    state's node. The state then holds while it is on-peak and returns to
+    Normal off-peak once the watch says the house is warm."""
     fast_local_control(monkeypatch)
     ops_path = heating_ops(tmp_path, WILLOW, UsesBackupWhenCold=uses_backup_when_cold)
     layout = load_layout(CONFIG / WILLOW[0], ops_path)
@@ -75,10 +74,11 @@ async def system_cold_commands(
             err_str_f=lambda: f"top state: {impl.top_state}, ready: {impl.actuators_ready}",
         )
         held_in_normal = impl.my_actuators()
-        monkeypatch.setattr(impl, "is_buffer_empty", lambda *args, **kwargs: True)
+        watch = cold_watch(h.child1_app)
+        monkeypatch.setattr(watch, "stores_empty", lambda: True)
 
         def cold_and_out_of_normal() -> bool:
-            hold_cold(impl, "zone1-main", "zone1-main-temp")
+            hold_cold(watch, "zone1-main", "zone1-main-temp")
             return impl.top_state != LocalControlTopState.Normal
 
         await h.await_for(
@@ -100,8 +100,13 @@ async def system_cold_commands(
             if isinstance(payload, FsmEvent) and payload.FromHandle == state_node.handle
         }
 
-        monkeypatch.setattr(impl, "is_system_cold", lambda: False)
         monkeypatch.setattr(impl, "is_onpeak", lambda: True)
+        put_f(watch, "zone1-main-temp", 70)
+        await h.await_for(
+            lambda: not impl.house_cold,
+            "ERROR waiting for the watch to say the house is warm",
+            timeout=30,
+        )
         await asyncio.sleep(3 * impl.MAIN_LOOP_SLEEP_SECONDS)
         assert impl.top_state == cold_state
         monkeypatch.setattr(impl, "is_onpeak", lambda: False)

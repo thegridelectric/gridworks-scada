@@ -15,6 +15,7 @@ from gwproto.message import Message
 from actors.local_control.house0.tou_base import LocalControlTouBase
 from actors.local_control.nolan.buffer_only_tou import NolanBufferOnlyTou
 from actors.local_control.standby import StandbyLocalControl
+from actors.in_process_messages import HouseCold, HouseWarm
 from actors.local_control_loader import LocalControl
 from actors.scada import Scada
 from gwsproto.enums import DispatchRefusalReason, LocalControlTopState, MainAutoEvent
@@ -208,6 +209,41 @@ def test_a_house0_house_with_no_backup_boots_and_goes_to_cold_override(tmp_path:
     impl.trigger_system_cold_event()
     assert impl.top_state == LocalControlTopState.ColdOverride
     assert_tree(scada, seen, state_node_handle(scada, CoreNodeNames.local_control_cold_override))
+
+
+def watch_tells(scada: Scada, impl: Impl, payload: HouseCold | HouseWarm) -> None:
+    impl.process_message(
+        Message(Src=CoreNodeNames.cold_watch, Dst=CoreNodeNames.local_control, Payload=payload)
+    )
+
+
+def test_the_watchs_cold_message_moves_a_house0_tree_under_backup_and_its_warm_message_back(
+    house0: tuple[Scada, LocalControlTouBase, Seen], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    scada, impl, seen = house0
+    monkeypatch.setattr(impl, "is_onpeak", lambda: False)
+    watch_tells(scada, impl, HouseCold(Cause="zone1 cold"))
+    assert impl.top_state == LocalControlTopState.InBackup
+    assert_tree(scada, seen, state_node_handle(scada, CoreNodeNames.local_control_backup))
+    watch_tells(scada, impl, HouseWarm())
+    assert impl.top_state == LocalControlTopState.Normal
+    assert_tree(scada, seen, state_node_handle(scada, CoreNodeNames.local_control_normal))
+
+
+def test_the_watchs_cold_message_moves_a_nolan_tree_under_cold_override_and_its_warm_message_back(
+    nolan: tuple[Scada, NolanBufferOnlyTou, Seen], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    scada, impl, seen = nolan
+    monkeypatch.setattr(impl, "offpeak", lambda now: False)
+    watch_tells(scada, impl, HouseCold(Cause="zone1 cold"))
+    assert impl.top_state == LocalControlTopState.ColdOverride
+    assert_tree(scada, seen, state_node_handle(scada, CoreNodeNames.local_control_cold_override))
+    watch_tells(scada, impl, HouseWarm())
+    assert impl.top_state == LocalControlTopState.ColdOverride  # warm on-peak holds
+    monkeypatch.setattr(impl, "offpeak", lambda now: True)
+    watch_tells(scada, impl, HouseWarm())
+    assert impl.top_state == LocalControlTopState.Normal
+    assert_tree(scada, seen, state_node_handle(scada, CoreNodeNames.local_control_normal))
 
 
 def test_house0_missing_data_moves_the_tree_under_scada_blind_and_data_moves_it_back(

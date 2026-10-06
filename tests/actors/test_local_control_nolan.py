@@ -15,6 +15,7 @@ from pydantic import ValidationError
 from actors.hp_boss.sensing import HP_TRAITS, HpTraits, validated_hp_traits
 from actors.in_process_messages import MachineStateSubscribe
 from actors.local_control.nolan.buffer_only_tou import NolanBufferOnlyTou
+from actors.in_process_messages import HouseCold, HouseWarm
 from actors.local_control_loader import LocalControl
 from gwsproto.enums import (
     ChangeRelayState,
@@ -461,6 +462,70 @@ def test_heating_scada_blind(heat: NolanBufferOnlyTou) -> None:
     ]
     assert commands(heat) == ZONE_RELEASE + STORE_CLOSED + CALL_OFF + PUMP_ON
     assert all(e.FromHandle == heat.normal_node.handle for e in hp_boss_events(heat))
+
+
+def watch_says(actor: NolanBufferOnlyTou, payload: HouseCold | HouseWarm) -> None:
+    actor.process_message(
+        Message(Src=CoreNodeNames.cold_watch, Dst=LC_NAME, Payload=payload)
+    )
+
+
+def test_heating_cold_override(heat: NolanBufferOnlyTou) -> None:
+    """The watch's cold message moves the tree under cold-override, where
+    the call is closed whatever the tariff and the pump still follows the
+    hp-watch; its warm message holds through the peak and re-boots Normal
+    off-peak."""
+    heat.on_actuators_ready()
+    buffer_at(heat, 80, 80)
+    heat.check(ONPEAK)
+    assert heat.call_state == NolanLcBufferOnlyState.HpCallOff
+    heat.sent.clear()
+    watch_says(heat, HouseCold(Cause="zone1-bedrooms cold"))
+    assert heat.top_state == LocalControlTopState.ColdOverride
+    assert call_states(heat) == [NolanLcBufferOnlyState.Dormant]
+    assert commands(heat) == CALL_ON
+    assert hp_boss_events(heat)[-1].FromHandle == heat.layout.local_control_cold_override_node.handle
+    heat.sent.clear()
+    heat.check(ONPEAK)
+    heat.check(OFFPEAK)
+    assert commands(heat) == []  # the call stays closed, blind to the tariff
+    hp_watch_says(heat, SpruceHackHpState.HpDetectedOff)
+    assert commands(heat) == PUMP_OFF
+    hp_watch_says(heat, SpruceHackHpState.HpDetectedOn)
+    assert commands(heat) == PUMP_OFF + PUMP_ON
+    heat.sent.clear()
+    buffer_at(heat, 80, 80, age_s=301)
+    heat.check(ONPEAK)
+    assert heat.top_state == LocalControlTopState.ColdOverride  # a blind band changes nothing here
+    watch_says(heat, HouseWarm())
+    assert heat.top_state == LocalControlTopState.ColdOverride  # warm on-peak holds
+    assert commands(heat) == []
+    buffer_at(heat, 120, 130)
+    heat.check(OFFPEAK)
+    assert heat.top_state == LocalControlTopState.Normal
+    assert call_states(heat) == [
+        NolanLcBufferOnlyState.Initializing,
+        NolanLcBufferOnlyState.HpCallOff,
+    ]
+    assert commands(heat) == ZONE_RELEASE + STORE_CLOSED + CALL_OFF + PUMP_ON
+    assert all(e.FromHandle == heat.normal_node.handle for e in hp_boss_events(heat))
+
+
+def test_heating_warm_offpeak_leaves_cold_override_at_once(heat: NolanBufferOnlyTou) -> None:
+    heat.on_actuators_ready()
+    buffer_at(heat, 80, 80)
+    heat.check(OFFPEAK)
+    heat.sent.clear()
+    watch_says(heat, HouseCold(Cause="zone1-bedrooms cold"))
+    assert heat.top_state == LocalControlTopState.ColdOverride
+    heat.sent.clear()
+    heat.offpeak = lambda now: True
+    watch_says(heat, HouseWarm())
+    assert heat.top_state == LocalControlTopState.Normal
+    assert call_states(heat) == [
+        NolanLcBufferOnlyState.Initializing,
+        NolanLcBufferOnlyState.HpCallOff,
+    ]
 
 
 def test_heating_dormant_and_wake(heat: NolanBufferOnlyTou) -> None:
