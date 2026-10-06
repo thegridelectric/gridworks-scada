@@ -14,6 +14,7 @@ LOCAL_CONTROL_STATE_NODES = {
     CoreNodeNames.local_control_normal,
     CoreNodeNames.local_control_backup,
     CoreNodeNames.local_control_scada_blind,
+    CoreNodeNames.local_control_standby,
 }
 COMMAND_CLASSES = {
     ActorClass.LocalControl,
@@ -49,7 +50,7 @@ def check_actuator_leaves(nodes: Iterable[SpaceheatNodeGt], axiom: str) -> None:
     b. every dotted-handle leaf is an actuator or a command node (a
     command class, or a NoActor directly under the LocalControl node);
     c. the NoActor nodes directly under the LocalControl node are named
-    n, backup or scada-blind."""
+    n, backup, scada-blind or standby."""
     by_handle = {effective_handle(n): n for n in nodes}
     handles = set(by_handle)
     lc_handles = {h for h, n in by_handle.items() if n.ActorClass == ActorClass.LocalControl}
@@ -82,5 +83,5 @@ def check_actuator_leaves(nodes: Iterable[SpaceheatNodeGt], axiom: str) -> None:
         ):
             raise ValueError(
                 f"{axiom} failed: {node.Name!r} with handle {handle!r} is a NoActor "
-                "node under local control other than n, backup or scada-blind."
+                "node under local control other than n, backup, scada-blind or standby."
             )

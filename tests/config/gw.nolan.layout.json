@@ -99,6 +99,15 @@
     {
       "TypeName": "spaceheat.node.gt",
       "Version": "303",
+      "Name": "standby",
+      "Handle": "auto.lc.standby",
+      "ActorClass": "NoActor",
+      "DisplayName": "LocalControl Standby",
+      "ShNodeId": "50a1f829-8274-4112-9a15-399acc61bed6"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
       "Name": "la",
       "ActorHierarchyName": "s.la",
       "Handle": "ltn.la",

@@ -37,6 +37,7 @@ from gwsproto.enums import (
 from gwsproto.named_types import Glitch, HeatingForecast, SingleMachineState
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from gwsproto.property_format import SpaceheatName
+from gwsproto.type_helpers.command_tree_axioms import LOCAL_CONTROL_STATE_NODES
 
 from sema_to_dc import OperationalParams
 from scada_app_interface import ScadaAppInterface
@@ -274,7 +275,8 @@ class ShNodeActor(Actor, ABC):
             src = self.node
         # HACK FOR nodes whose 'actors' are handled by their parent's communicator
         communicator_by_name = {dst.Name: dst.Name}
-        communicator_by_name[CoreNodeNames.local_control_normal] = CoreNodeNames.local_control
+        for state_node in LOCAL_CONTROL_STATE_NODES:
+            communicator_by_name[state_node] = CoreNodeNames.local_control
         
         message = Message(Src=src.name, Dst=communicator_by_name[dst.Name], Payload=payload)
 

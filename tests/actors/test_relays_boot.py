@@ -32,6 +32,7 @@ from typing import NamedTuple
 
 import pytest
 
+from actors import command_reply
 from actors.five_v_boss import FiveVBoss
 from actors.hp_boss import HpBoss
 from actors.local_control_loader import LocalControl
@@ -44,6 +45,7 @@ from gwsproto.enums import (
     FiveVBossState,
     HpBossState,
     HpLoopKeepSend,
+    LocalControlTopEvent,
     LocalControlTopState,
     RelayClosedOrOpen,
     RelayWiringConfig,
@@ -58,6 +60,7 @@ from gwsproto.named_types import AdminDispatch, AdminReleaseControl, FsmEvent, G
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.house0.node_names import House0NodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
+from gwsproto.type_helpers.command_tree_axioms import LOCAL_CONTROL_STATE_NODES
 from scada_app import ScadaApp
 from sema_to_dc import load_layout
 from tests.utils.scada_live_test_helper import ScadaLiveTest
@@ -144,11 +147,15 @@ def assert_standby_posture(h: ScadaLiveTest, relays: dict[str, Relay], energized
     outputs hold their power-on level, hp-boss is HpOff, the sieg loop
     (House0) runs HoldFullSend."""
     scada = h.child1_app.scada
+    standby_handle = scada.layout.node(CoreNodeNames.local_control_standby).handle
     normal_handle = scada.layout.node(CoreNodeNames.local_control_normal).handle
+    assert not [
+        node.handle for node in scada.layout.nodes.values() if node.handle.startswith(f"{normal_handle}.")
+    ]
     claimed = {
         name: relay
         for name, relay in relays.items()
-        if scada.layout.node(name).handle == f"{normal_handle}.{name}"
+        if scada.layout.node(name).handle == f"{standby_handle}.{name}"
     }
     assert set(energized) <= set(claimed)
     for name, relay in claimed.items():
@@ -312,9 +319,11 @@ async def test_standby_posture_restored_after_admin(
 ) -> None:
     """Standby boots to its posture; admin takes the tree, turns the heat
     pump on and energizes a relay the ops word does not list; on release
-    the posture is back and hp-boss is HpOff again. The local control's
-    state is Standby throughout and is reported once, and the scada's
-    auto-state check sends it neither GoDormant nor WakeUp."""
+    the posture is back and hp-boss is HpOff again. The tree hangs under
+    the standby node, never under n. The local control is Dormant while
+    admin holds the tree and Standby again on release, each reported with
+    its cause. A WakeUp that finds it in Standby does nothing, and the
+    scada's auto-state check wakes a standby left Dormant under auto."""
     layout_file, ops_file = LAYOUTS[row.layout]
     ops_path = row_ops(tmp_path, ops_file, row)
     layout = load_layout(CONFIG / layout_file, ops_path)
@@ -350,11 +359,11 @@ async def test_standby_posture_restored_after_admin(
             scada_send_to(to_node, payload, from_node)
 
         scada._send_to = recording_send_to
-        normal_handle = scada.layout.node(CoreNodeNames.local_control_normal).handle
+        standby_handle = scada.layout.node(CoreNodeNames.local_control_standby).handle
         disturbed_name = next(
             name
             for name in sorted(relays)
-            if scada.layout.node(name).handle == f"{normal_handle}.{name}" and name not in energized
+            if scada.layout.node(name).handle == f"{standby_handle}.{name}" and name not in energized
         )
         disturbed = relays[disturbed_name]
         cfg = disturbed.relay_actor_config
@@ -363,7 +372,14 @@ async def test_standby_posture_restored_after_admin(
             scada.admin, admin_dispatch(HSNN.hp_boss, TurnHpOnOff.enum_name(), TurnHpOnOff.TurnOn)
         )
         assert scada.top_state == TopState.Admin
-        assert lc.top_state == LocalControlTopState.Standby
+        assert lc.top_state == LocalControlTopState.Dormant
+        await h.await_for(
+            lambda: scada.data.latest_machine_state[CoreNodeNames.local_control].State
+            == LocalControlTopState.Dormant,
+            "ERROR waiting for the local control's Dormant report",
+        )
+        dormant = scada.data.latest_machine_state[CoreNodeNames.local_control]
+        assert dormant.Cause == LocalControlTopEvent.TopGoDormant
         nudges.clear()
         scada.enforce_auto_state_consistency()
         assert nudges == []
@@ -383,6 +399,13 @@ async def test_standby_posture_restored_after_admin(
         assert scada.top_state == TopState.Auto
         assert lc.top_state == LocalControlTopState.Standby
         await h.await_for(
+            lambda: scada.data.latest_machine_state[CoreNodeNames.local_control].State
+            == LocalControlTopState.Standby,
+            "ERROR waiting for the local control's Standby report",
+        )
+        woken = scada.data.latest_machine_state[CoreNodeNames.local_control]
+        assert woken.Cause == LocalControlTopEvent.TopWakeUp
+        await h.await_for(
             lambda: hp_boss.state == HpBossState.HpOff and disturbed.state == cfg.DeEnergizedState,
             "ERROR waiting for the standby posture to be restored after admin's release",
             timeout=10,
@@ -392,7 +415,26 @@ async def test_standby_posture_restored_after_admin(
         nudges.clear()
         scada.enforce_auto_state_consistency()
         assert nudges == []
-        assert scada.data.latest_machine_state[CoreNodeNames.local_control] is reported
+
+        postures: list[None] = []
+        set_standby_posture = lc._impl.set_standby_posture
+
+        def counting_set_standby_posture() -> None:
+            postures.append(None)
+            set_standby_posture()
+
+        lc._impl.set_standby_posture = counting_set_standby_posture
+        scada._send_to(scada.local_control, WakeUp(ToName=CoreNodeNames.local_control))
+        assert postures == []
+        assert scada.data.latest_machine_state[CoreNodeNames.local_control] is woken
+
+        lc._impl.TopGoDormant()
+        assert lc.top_state == LocalControlTopState.Dormant
+        nudges.clear()
+        scada.enforce_auto_state_consistency()
+        assert [type(nudge) for nudge in nudges] == [WakeUp]
+        assert lc.top_state == LocalControlTopState.Standby
+        assert postures == [None]
 
 
 COMMAND_NODE_RELAYS = (
@@ -427,3 +469,42 @@ def test_a_command_nodes_relay_in_the_standby_list_stops_the_scada_at_load(
     settings.paths.mkdirs()
     with pytest.raises(ValueError, match=f"EnergizedStandbyRelays.*{relay_name}"):
         ScadaApp(app_settings=settings).instantiate()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("layout_name", ["willow", "nolan"])
+async def test_an_ack_to_a_local_control_state_node_reaches_local_control(
+    request: pytest.FixtureRequest, layout_name: str
+) -> None:
+    """A relay acks its commander by node name. Local control's state nodes
+    have no actor of their own, so an ack to any of them is delivered to
+    the local control actor and never published, from an actor and from
+    the scada alike."""
+    layout_file, ops_file = LAYOUTS[layout_name]
+    layout = load_layout(CONFIG / layout_file, CONFIG / ops_file)
+    async with ScadaLiveTest(request=request, layout=layout, ops_path=CONFIG / ops_file) as h:
+        h.start_child1()
+        scada = h.child1_app.scada
+        relay = scada.services.get_communicator_as_type(HSNN.vdc_relay, Relay)
+        lc = scada.services.get_communicator_as_type(CoreNodeNames.local_control, LocalControl)
+        assert relay is not None and lc is not None
+        sent: list = []
+        published: list = []
+        delivered: list = []
+        services = scada.services
+        services.send = sent.append
+        services.publish_message = lambda *args, **kwargs: published.append((args, kwargs))
+        lc.process_message = delivered.append
+        for name in sorted(LOCAL_CONTROL_STATE_NODES):
+            state_node = scada.layout.node(name)
+            assert state_node is not None
+            ack = command_reply.ack(
+                f"{state_node.handle}.{relay.name}", state_node.handle, str(uuid.uuid4())
+            )
+            sent.clear()
+            delivered.clear()
+            relay._send_to(state_node, ack)
+            assert [m.Header.Dst for m in sent] == [CoreNodeNames.local_control], name
+            scada._send_to(state_node, ack)
+            assert [m.Payload for m in delivered] == [ack], name
+        assert published == []

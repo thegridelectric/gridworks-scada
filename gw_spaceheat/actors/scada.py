@@ -78,6 +78,7 @@ from gwsproto.named_types import ( ActuatorsReady,
 from gwsproto.names.core.node_names import CoreNodeNames, ScadaWeb
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from gwsproto.names.house0.node_names import House0NodeNames
+from gwsproto.type_helpers.command_tree_axioms import LOCAL_CONTROL_STATE_NODES
 
 
 from sema_to_dc import OperationalParams
@@ -148,10 +149,15 @@ class Scada(PrimeActor, ScadaInterface):
         self._last_report_second = int(now - (now % self.settings.seconds_per_report))
         self._last_snap_s = int(now - (now % self.settings.seconds_per_snapshot))
 
-        local_control_normal = self.layout.node(CoreNodeNames.local_control_normal)
-        if local_control_normal is None:
-            raise Exception(f"Must have {CoreNodeNames.local_control_normal} node")
-        self.set_command_tree(local_control_normal)
+        boot_boss_name = (
+            CoreNodeNames.local_control_standby
+            if self.ops.Standby
+            else CoreNodeNames.local_control_normal
+        )
+        boot_boss = self.layout.node(boot_boss_name)
+        if boot_boss is None:
+            raise Exception(f"Must have {boot_boss_name} node")
+        self.set_command_tree(boot_boss)
         self.top_state: TopState = TopState.Auto
         # The slow facts of the LTN-scada agreement, sent once after the startup
         # announcements and then only when one changes.
@@ -1412,7 +1418,6 @@ class Scada(PrimeActor, ScadaInterface):
     def enforce_auto_state_consistency(self) -> None:
         """ Enforces that auto_state [LocalControl, LeafTransactiveNode, Dormant] is consistent
         with the top_state reported by `h` [Dormant v anything else] and `aa` [Dormant v anything else].
-        A local control in Standby is consistent with every auto_state.
         """
 
         lc: LocalControl = self.services.get_communicator_as_type(CoreNodeNames.local_control, LocalControl)
@@ -1420,7 +1425,6 @@ class Scada(PrimeActor, ScadaInterface):
 
         ally_state = la.state
         local_control_state = lc.top_state
-        standby = local_control_state == LocalControlTopState.Standby
         dormant_state = (
             LeafAllyAllTanksState.Dormant 
             if self.ops.FamilyParams.SeasonalStorageMode == SeasonalStorageMode.AllTanks 
@@ -1431,7 +1435,7 @@ class Scada(PrimeActor, ScadaInterface):
             if ally_state != dormant_state:
                 self.log(f"Noticed auto_state Dormant but LeafAlly in {ally_state}! Sending GoDormant")
                 self._send_to(self.leaf_ally, GoDormant(ToName=self.leaf_ally.name))
-            if not standby and local_control_state != LocalControlTopState.Dormant:
+            if local_control_state != LocalControlTopState.Dormant:
                 self.log(f"Noticed auto_state Dormant but LocalControl in {local_control_state}! Sending GoDormant")
                 self._send_to(self.local_control, GoDormant(ToName=self.local_control.name))
         elif self.auto_state == MainAutoState.LeafTransactiveNode:
@@ -1446,7 +1450,7 @@ class Scada(PrimeActor, ScadaInterface):
                     self._send_to(self.leaf_ally, contract)  # This is how the Ltn wakes up
                 else: # we might be in the grace period of an expired contract ... this check will 
                     self.log("No contract but in grace period. This will correct in 5 minutes")
-            if not standby and local_control_state != LocalControlTopState.Dormant:
+            if local_control_state != LocalControlTopState.Dormant:
                 self.log(f"Noticed auto_state Ltn but LocalControl in {local_control_state}! Sending GoDormant")
                 self._send_to(self.local_control, GoDormant(ToName=self.local_control.name))
         elif self.auto_state == MainAutoState.LocalControl:
@@ -1688,7 +1692,8 @@ class Scada(PrimeActor, ScadaInterface):
 
         # HACK FOR nodes whose 'actors' are handled by their parent's communicator
         communicator_by_name = {to_node.Name: to_node.Name}
-        communicator_by_name[CoreNodeNames.local_control_normal] = CoreNodeNames.local_control
+        for state_node in LOCAL_CONTROL_STATE_NODES:
+            communicator_by_name[state_node] = CoreNodeNames.local_control
     
         # if the message is meant for primary_scada, process here
         if to_node.name == self.name:

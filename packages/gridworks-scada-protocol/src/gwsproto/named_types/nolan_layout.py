@@ -264,14 +264,15 @@ class NolanLayout(GwsprotoSemaType):
         """Axiom 4: CommandNodesExistenceAndActorClass.
 
         ShNodes SHALL contain "n" (NoActor), "backup" (NoActor),
-        "scada-blind" (NoActor), "five-v-boss" (FiveVBoss),
-        "pico-cycler" (PicoCycler) and "hp-boss" (HpBoss), with no
-        additional ShNode of those Names.
+        "scada-blind" (NoActor), "standby" (NoActor), "five-v-boss"
+        (FiveVBoss), "pico-cycler" (PicoCycler) and "hp-boss" (HpBoss),
+        with no additional ShNode of those Names.
         """
         pairs = (
             ("n", ActorClass.NoActor),
             ("backup", ActorClass.NoActor),
             ("scada-blind", ActorClass.NoActor),
+            ("standby", ActorClass.NoActor),
             ("five-v-boss", ActorClass.FiveVBoss),
             ("pico-cycler", ActorClass.PicoCycler),
             ("hp-boss", ActorClass.HpBoss),
@@ -515,7 +516,10 @@ class NolanLayout(GwsprotoSemaType):
         a. Every actuator SHALL have a dotted effective handle and SHALL be a
         leaf. b. Every leaf SHALL be an actuator or a command node.
         c. Every NoActor ShNode directly under the LocalControl ShNode SHALL be
-        named "n", "backup" or "scada-blind".
+        one of local control's state nodes, named for the gw2.lc.top.state
+        values in which local control holds the command tree: "n" (Normal),
+        "backup" (UsingNonElectricBackup), "scada-blind" (ScadaBlind) or
+        "standby" (Standby).
         """
         check_actuator_leaves(self.ShNodes, "Axiom 12 (ActuatorLeaves)")
         return self
@@ -952,6 +956,7 @@ class NolanLayout(GwsprotoSemaType):
             "n": "auto.lc.n",
             "backup": "auto.lc.backup",
             "scada-blind": "auto.lc.scada-blind",
+            "standby": "auto.lc.standby",
             "hp-boss": "auto.hp-boss",
             "hp-scada-ops-relay": "auto.hp-boss.hp-scada-ops-relay",
         }

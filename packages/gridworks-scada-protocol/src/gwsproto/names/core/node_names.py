@@ -21,6 +21,7 @@ class CoreNodeNames:
     local_control_normal = "n"
     local_control_backup = "backup"
     local_control_scada_blind = "scada-blind"
+    local_control_standby = "standby"
 
     # service equipment
     web_server = "web-server"

@@ -1543,6 +1543,13 @@ class HydronicLayout:
         if n is None:
             raise DcError(f"{CoreNodeNames.local_control_scada_blind} is known to exist")
         return n
+
+    @property
+    def local_control_standby_node(self) -> ShNode:
+        n = self.node(CoreNodeNames.local_control_standby)
+        if n is None:
+            raise DcError(f"{CoreNodeNames.local_control_standby} is known to exist")
+        return n
     
     @property
     def hp_boss(self) -> ShNode:

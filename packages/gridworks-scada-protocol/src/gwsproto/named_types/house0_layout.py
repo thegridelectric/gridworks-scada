@@ -212,6 +212,7 @@ class House0Layout(GwsprotoSemaType):
           "n"           → ActorClass "NoActor"
           "backup"      → ActorClass "NoActor"
           "scada-blind" → ActorClass "NoActor"
+          "standby"     → ActorClass "NoActor"
           "five-v-boss" → ActorClass "FiveVBoss"
           "pico-cycler" → ActorClass "PicoCycler"
           "hp-boss"     → ActorClass "HpBoss"
@@ -226,6 +227,7 @@ class House0Layout(GwsprotoSemaType):
             "n": ActorClass.NoActor,
             "backup": ActorClass.NoActor,
             "scada-blind": ActorClass.NoActor,
+            "standby": ActorClass.NoActor,
             "five-v-boss": ActorClass.FiveVBoss,
             "pico-cycler": ActorClass.PicoCycler,
             "hp-boss": ActorClass.HpBoss,
@@ -591,7 +593,10 @@ class House0Layout(GwsprotoSemaType):
         a. Every actuator SHALL have a dotted effective handle and SHALL be a
         leaf. b. Every leaf SHALL be an actuator or a command node.
         c. Every NoActor ShNode directly under the LocalControl ShNode SHALL be
-        named "n", "backup" or "scada-blind".
+        one of local control's state nodes, named for the gw2.lc.top.state
+        values in which local control holds the command tree: "n" (Normal),
+        "backup" (UsingNonElectricBackup), "scada-blind" (ScadaBlind) or
+        "standby" (Standby).
         """
         check_actuator_leaves(self.ShNodes, "Axiom 14 (ActuatorLeaves)")
         return self
@@ -1062,6 +1067,7 @@ class House0Layout(GwsprotoSemaType):
             "n": "auto.lc.n",
             "backup": "auto.lc.backup",
             "scada-blind": "auto.lc.scada-blind",
+            "standby": "auto.lc.standby",
             "hp-boss": "auto.hp-boss",
             "hp-scada-ops-relay": "auto.hp-boss.hp-scada-ops-relay",
             "sieg-loop": "auto.sieg-loop",
