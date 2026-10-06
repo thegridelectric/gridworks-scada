@@ -892,3 +892,24 @@ def test_gw_house0_layout_axiom_36_setpoint_not_read_from_the_thermostat(assembl
 def test_gw_house0_layout_axiom_37(assembled: dict) -> None:
     """A House0 home stores heat in water tanks."""
     reject(assembled, lambda d: d["Hydronic"].pop("WaterStore"), r"Axiom 37 \(WaterStore\)")
+
+
+def test_gw_house0_layout_axiom_3_cold_override(assembled: dict) -> None:
+    """cold-override is a command node in every House0 layout."""
+    def mutate(d: dict) -> None:
+        d["ShNodes"] = [n for n in d["ShNodes"] if n["Name"] != "cold-override"]
+
+    reject(assembled, mutate, r"Axiom 3 \(")
+
+
+def test_gw_house0_layout_axiom_3_c_backup_node_without_a_backup(assembled: dict) -> None:
+    reject(assembled, lambda d: d["Hydronic"].pop("Backup"), r"Axiom 3 \(")
+
+
+def test_gw_house0_layout_axiom_38(assembled: dict) -> None:
+    """A boiler relay that is not a Relay ShNode."""
+    def mutate(d: dict) -> None:
+        d["Hydronic"]["Backup"]["AquastatCtrlRelayName"] = "backup"
+
+    reject(assembled, mutate, r"Axiom 38 \(BackupRelays\)")
+

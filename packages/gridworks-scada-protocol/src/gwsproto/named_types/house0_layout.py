@@ -49,6 +49,7 @@ from gwsproto.named_types.sim_sensor_component_gt import SimSensorComponentGt
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwsproto.named_types.web_server_component_gt import WebServerComponentGt
 from gwsproto.property_format import SpaceheatName
+from gwsproto.type_helpers.backup_axioms import check_backup_node, check_backup_relays
 from gwsproto.type_helpers.board_resolution import (
     I2C_DAC_OUTPUT,
     I2C_RELAY,
@@ -206,26 +207,29 @@ class House0Layout(GwsprotoSemaType):
     def check_axiom_3(self) -> Self:
         """
         Axiom 3: CommandNodesExistenceAndActorClass
-        ShNodes SHALL contain a node with each of the following Name /
+        a. ShNodes SHALL contain a node with each of the following Name /
         ActorClass pairs, and no additional ShNode with any of these Names
         SHALL exist:
-          "n"           → ActorClass "NoActor"
-          "backup"      → ActorClass "NoActor"
-          "scada-blind" → ActorClass "NoActor"
-          "standby"     → ActorClass "NoActor"
-          "five-v-boss" → ActorClass "FiveVBoss"
-          "pico-cycler" → ActorClass "PicoCycler"
-          "hp-boss"     → ActorClass "HpBoss"
-          "sieg-loop"   → ActorClass "SiegLoop"
+          "n"             → ActorClass "NoActor"
+          "cold-override" → ActorClass "NoActor"
+          "scada-blind"   → ActorClass "NoActor"
+          "standby"       → ActorClass "NoActor"
+          "five-v-boss"   → ActorClass "FiveVBoss"
+          "pico-cycler"   → ActorClass "PicoCycler"
+          "hp-boss"       → ActorClass "HpBoss"
+          "sieg-loop"     → ActorClass "SiegLoop"
         (A gw.house0.layout plant has a siegenthaler loop; whether the loop
         is USED is operational, so sieg-loop and hp-boss are unconditional
         command nodes, dormant when unused.)
+        b. If Hydronic.Backup is present, ShNodes SHALL contain exactly one
+        node named "backup", with ActorClass "NoActor".
+        c. If Hydronic.Backup is absent, no ShNode SHALL be named "backup".
         """
         if not self.ShNodes:
             return self
         pairs = {
             "n": ActorClass.NoActor,
-            "backup": ActorClass.NoActor,
+            "cold-override": ActorClass.NoActor,
             "scada-blind": ActorClass.NoActor,
             "standby": ActorClass.NoActor,
             "five-v-boss": ActorClass.FiveVBoss,
@@ -243,6 +247,9 @@ class House0Layout(GwsprotoSemaType):
                     f"Axiom 3 (CommandNodesExistenceAndActorClass) failed: expected exactly one "
                     f"ShNode {name!r} with ActorClass {actor_class}."
                 )
+        check_backup_node(
+            self.ShNodes, self.Hydronic.Backup, "Axiom 3 (CommandNodesExistenceAndActorClass)"
+        )
         return self
 
     @model_validator(mode="after")
@@ -1066,6 +1073,7 @@ class House0Layout(GwsprotoSemaType):
             "lc": "auto.lc",
             "n": "auto.lc.n",
             "backup": "auto.lc.backup",
+            "cold-override": "auto.lc.cold-override",
             "scada-blind": "auto.lc.scada-blind",
             "standby": "auto.lc.standby",
             "hp-boss": "auto.hp-boss",
@@ -1158,4 +1166,16 @@ class House0Layout(GwsprotoSemaType):
         """
         if self.Hydronic.WaterStore is None:
             raise ValueError("Axiom 37 (WaterStore) failed: Hydronic.WaterStore is absent.")
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_38(self) -> Self:
+        """
+        Axiom 38: BackupRelays
+        Where Hydronic.Backup is a gw.boiler.backup, its FailsafeRelayName and
+        AquastatCtrlRelayName, and where it is a gw.element.backup, each name
+        in its ElementRelayNames, SHALL equal the Name of an ShNode in ShNodes
+        whose ActorClass is "Relay".
+        """
+        check_backup_relays(self.ShNodes, self.Hydronic.Backup, "Axiom 38 (BackupRelays)")
         return self

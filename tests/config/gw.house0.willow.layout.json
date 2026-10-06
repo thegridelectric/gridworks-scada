@@ -157,6 +157,15 @@
     {
       "TypeName": "spaceheat.node.gt",
       "Version": "303",
+      "Name": "cold-override",
+      "Handle": "auto.lc.cold-override",
+      "ActorClass": "NoActor",
+      "DisplayName": "LocalControl Cold Override",
+      "ShNodeId": "14473eee-a539-4713-856b-9b71c6451c6d"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
       "Name": "scada-blind",
       "Handle": "auto.lc.scada-blind",
       "ActorClass": "NoActor",
@@ -2634,6 +2643,13 @@
       "TypeName": "gw.water.store",
       "Version": "000",
       "TotalStoreTanks": 1
+    },
+    "Backup": {
+      "TypeName": "gw.boiler.backup",
+      "Version": "000",
+      "FailsafeRelayName": "hp-failsafe-relay",
+      "AquastatCtrlRelayName": "aquastat-ctrl-relay",
+      "InService": true
     },
     "PrimaryFlowSource": "DerivedSiegSum",
     "PrimaryPumpOwner": "Scada",

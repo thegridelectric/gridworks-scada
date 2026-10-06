@@ -3,7 +3,6 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class LocalControlTopEvent(SemaEnum):
-    """Sema: https://schemas.electricity.works/enums/gw1.local.control.top.event/000"""
 
     SystemCold = auto()
     TopGoDormant = auto()

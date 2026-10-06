@@ -1,6 +1,6 @@
 """House0's SystemCold transition on a running scada: a house cold with
 its buffer empty leaves Normal, and the commands that follow depend on
-whether the house has an oil boiler."""
+whether the house goes to its backup when cold."""
 
 from pathlib import Path
 from typing import Any
@@ -42,13 +42,13 @@ async def system_cold_commands(
     request: pytest.FixtureRequest,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
-    oil_boiler_backup: bool,
+    uses_backup_when_cold: bool,
 ) -> tuple[LocalControlTouBase, set[tuple[str, str]]]:
     """Run willow until its local control is in Normal, hold it cold with
     the buffer empty, and return the local control with the (node, event)
     commands it sent from its backup node."""
     fast_local_control(monkeypatch)
-    ops_path = heating_ops(tmp_path, WILLOW, OilBoilerBackup=oil_boiler_backup)
+    ops_path = heating_ops(tmp_path, WILLOW, UsesBackupWhenCold=uses_backup_when_cold)
     layout = load_layout(CONFIG / WILLOW[0], ops_path)
     async with ScadaLiveTest(request=request, layout=layout, ops_path=ops_path) as h:
         h.start_child1()
@@ -109,7 +109,7 @@ async def test_a_cold_house0_house_with_a_boiler_hands_the_house_to_the_boiler(
 
 
 @pytest.mark.asyncio
-async def test_a_cold_house0_house_with_no_boiler_runs_its_heat_pump(
+async def test_a_cold_house0_house_that_does_not_use_its_backup_runs_its_heat_pump(
     request: pytest.FixtureRequest, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     impl, commands = await system_cold_commands(request, tmp_path, monkeypatch, False)

@@ -11,6 +11,7 @@ from gwsproto.named_types.analog_dispatch import AnalogDispatch
 from gwsproto.named_types.async_btu_params import AsyncBtuParams
 from gwsproto.named_types.baseurl_failure_alert import BaseurlFailureAlert
 from gwsproto.named_types.bid import Bid
+from gwsproto.named_types.boiler_backup import BoilerBackup
 from gwsproto.named_types.bid_recommendation import BidRecommendation
 from gwsproto.named_types.capture_tuning import CaptureTuning
 from gwsproto.named_types.cop_curve import CopCurve
@@ -31,6 +32,7 @@ from gwsproto.named_types.electric_meter_channel_config import (
 )
 from gwsproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwsproto.named_types.electric_meter_device_type_gt import ElectricMeterDeviceTypeGt
+from gwsproto.named_types.element_backup import ElementBackup
 from gwsproto.named_types.energy_instruction import EnergyInstruction
 from gwsproto.named_types.events import RemainingElecEvent, ReportEvent
 from gwsproto.named_types.flo_next_hour_plans import FloNextHourPlans
@@ -195,6 +197,7 @@ __all__ = [
     "AsyncBtuParams",
     "BaseurlFailureAlert",
     "Bid",
+    "BoilerBackup",
     "BidRecommendation",
     "CaptureTuning",
     "CopCurve",
@@ -214,6 +217,7 @@ __all__ = [
     "ElectricMeterChannelConfig",
     "ElectricMeterComponentGt",
     "ElectricMeterDeviceTypeGt",
+    "ElementBackup",
     "EnergyInstruction",
     "FloNextHourPlans",
     "FloParams",

@@ -13,6 +13,7 @@ ACTUATOR_CLASSES = {ActorClass.Relay, ActorClass.ZeroTenOutputer, ActorClass.HpT
 LOCAL_CONTROL_STATE_NODES = {
     CoreNodeNames.local_control_normal,
     CoreNodeNames.local_control_backup,
+    CoreNodeNames.local_control_cold_override,
     CoreNodeNames.local_control_scada_blind,
     CoreNodeNames.local_control_standby,
 }

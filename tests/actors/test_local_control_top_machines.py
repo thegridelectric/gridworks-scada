@@ -53,6 +53,7 @@ def test_every_commanding_top_state_has_its_state_node() -> None:
     state_nodes = {
         LocalControlTopState.Normal: CoreNodeNames.local_control_normal,
         LocalControlTopState.InBackup: CoreNodeNames.local_control_backup,
+        LocalControlTopState.ColdOverride: CoreNodeNames.local_control_cold_override,
         LocalControlTopState.ScadaBlind: CoreNodeNames.local_control_scada_blind,
         LocalControlTopState.Standby: CoreNodeNames.local_control_standby,
     }

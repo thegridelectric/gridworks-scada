@@ -941,3 +941,32 @@ def test_gw_nolan_layout_axiom_34_setpoint_not_read_from_the_thermostat(assemble
         circuit["Thermostat"]["ComponentId"] = str(uuid.uuid4())
 
     reject(assembled, mutate, r"Axiom 34 \(")
+
+
+def test_gw_nolan_layout_axiom_4_cold_override(assembled: dict) -> None:
+    """cold-override is a command node in every Nolan layout."""
+    def mutate(d: dict) -> None:
+        d["ShNodes"] = [n for n in d["ShNodes"] if n["Name"] != "cold-override"]
+
+    reject(assembled, mutate, r"Axiom 4 \(")
+
+
+def test_gw_nolan_layout_axiom_4_b_backup_node_missing(assembled: dict) -> None:
+    """The fixture has a Backup, so it needs its backup node."""
+    def mutate(d: dict) -> None:
+        d["ShNodes"] = [n for n in d["ShNodes"] if n["Name"] != "backup"]
+
+    reject(assembled, mutate, r"Axiom 4 \(")
+
+
+def test_gw_nolan_layout_axiom_4_c_backup_node_without_a_backup(assembled: dict) -> None:
+    reject(assembled, lambda d: d["Hydronic"].pop("Backup"), r"Axiom 4 \(")
+
+
+def test_gw_nolan_layout_axiom_35(assembled: dict) -> None:
+    """A backup element that is not a Relay ShNode."""
+    def mutate(d: dict) -> None:
+        d["Hydronic"]["Backup"]["ElementRelayNames"] = ["buffer-top-elt"]
+
+    reject(assembled, mutate, r"Axiom 35 \(BackupRelays\)")
+

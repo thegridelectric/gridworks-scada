@@ -90,6 +90,15 @@
     {
       "TypeName": "spaceheat.node.gt",
       "Version": "303",
+      "Name": "cold-override",
+      "Handle": "auto.lc.cold-override",
+      "ActorClass": "NoActor",
+      "DisplayName": "LocalControl Cold Override",
+      "ShNodeId": "187a37e9-5fe6-40bb-8cc9-c502e90ee69a"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
       "Name": "scada-blind",
       "Handle": "auto.lc.scada-blind",
       "ActorClass": "NoActor",
@@ -4155,6 +4164,15 @@
       "TypeName": "gw.water.store",
       "Version": "000",
       "TotalStoreTanks": 1
+    },
+    "Backup": {
+      "TypeName": "gw.element.backup",
+      "Version": "000",
+      "ElementRelayNames": [
+        "buffer-top-elt-relay",
+        "buffer-bottom-elt-relay"
+      ],
+      "InService": false
     },
     "PrimaryFlowSource": "Measured",
     "PrimaryPumpOwner": "HeatPump",

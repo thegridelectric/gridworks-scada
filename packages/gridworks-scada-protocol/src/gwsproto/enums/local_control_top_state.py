@@ -12,6 +12,7 @@ class LocalControlTopState(SemaEnum):
     ScadaBlind = auto()
     Standby = auto()
     InBackup = auto()
+    ColdOverride = auto()
 
     @classmethod
     def default(cls) -> "LocalControlTopState":

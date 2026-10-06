@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-10-06T16:15:00Z"
+  last_updated: "2026-10-06T18:10:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -352,7 +352,7 @@ enums:
     latest_version: "000"
     owner: gridworks-energy
     enum_type: "versioned"
-    description: "Top state of the local control node, reported by whichever local control machine the scada runs: Dormant, Normal, ScadaBlind, Standby, InBackup."
+    description: "Top state of the local control node, reported by whichever local control machine the scada runs: Dormant, Normal, ScadaBlind, Standby, InBackup, ColdOverride."
 
     versions:
       "000":
@@ -863,6 +863,38 @@ types:
             - "pascal.case"
             - "uuid4.str"
 
+  gw.boiler.backup:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A boiler held by its aquastat as backup heat: its failsafe and aquastat-control relays, and whether it is in service."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.boiler.backup/000"
+        created: "2026-10-06T18:10:00Z"
+        status: "staging"
+        summary: "FailsafeRelayName and AquastatCtrlRelayName (spaceheat.name), InService (boolean). Axiom DistinctRelays. Carried by gw.hydronic as one kind of the optional Backup."
+        direct_dependencies:
+          structural:
+            - "spaceheat.name"
+
+  gw.element.backup:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Resistive elements as backup heat: their relays, and whether they are in service."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.element.backup/000"
+        created: "2026-10-06T18:10:00Z"
+        status: "staging"
+        summary: "ElementRelayNames (spaceheat.name list), InService (boolean). Axioms NonEmptyElements, DistinctElements. Carried by gw.hydronic as one kind of the optional Backup."
+        direct_dependencies:
+          structural:
+            - "spaceheat.name"
+
   gw.house0.family.params:
     latest_version: "000"
     owner: gridworks-energy
@@ -889,9 +921,9 @@ types:
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw.house0.layout/000"
-        created: "2026-10-06T15:30:00Z"
+        created: "2026-10-06T18:10:00Z"
         status: "staging"
-        summary: "The complete deployable artifact for a House0-fleet home: every collection and Hydronic required. The word MEANS has-a-siegenthaler-loop (beech, maple); sieg-less homes are gw.house0.no.sieg. Components: eGauge, ADS111x thermistor snaps, the House0 board record (Krida expanders and GP8403 DACs) with per-relay and per-output components, pico flow and BTU meters, tank modules real and sim, Hubitat with poller, web-server, all over the DeviceType record model. The axioms carry the layout invariants; wording is identical across layout words where the axiom name is shared."
+        summary: "The complete deployable artifact for a House0-fleet home: every collection and Hydronic required. The word MEANS has-a-siegenthaler-loop (beech, maple); sieg-less homes are gw.house0.no.sieg. Components: eGauge, ADS111x thermistor snaps, the House0 board record (Krida expanders and GP8403 DACs) with per-relay and per-output components, pico flow and BTU meters, tank modules real and sim, Hubitat with poller, web-server, all over the DeviceType record model. The axioms carry the layout invariants; wording is identical across layout words where the axiom name is shared. The cold-override command node is required; the backup command node exists if and only if Hydronic.Backup is present, and the relays a backup names are Relay ShNodes (axiom BackupRelays)."
         direct_dependencies:
           structural:
             - "ads111x.based.component.gt:000"
@@ -924,6 +956,8 @@ types:
             - "spaceheat.node.gt:303"
             - "web.server.component.gt:001"
           axiom:
+            - "gw.boiler.backup:000"
+            - "gw.element.backup:000"
             - "gw.zone.emitter.type:000"
             - "gw0.required.energy.layered:000"
             - "gw0.usable.energy.layered:000"
@@ -936,16 +970,18 @@ types:
     latest_version: "000"
     owner: gridworks-energy
     versioning_strategy: "literal"
-    description: "Hydronic / flow-topology config: zones, zone-call circuits, water store, primary-flow source, primary-pump owner, refrigerant cycle."
+    description: "Hydronic / flow-topology config: zones, zone-call circuits, water store, backup heat, primary-flow source, primary-pump owner, refrigerant cycle."
 
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw.hydronic/000"
-        created: "2026-10-05T15:30:00Z"
+        created: "2026-10-06T18:10:00Z"
         status: "staging"
-        summary: "- Typed hydronic block promoted out of gw.house0.layout's freeform Hydronic: Zones (gw1.hvac.zone list), ZoneCallCircuits (gw1.zone.call.circuit list, required), PrimaryFlowSource (gw.primary.flow.source), Strategy. Axioms: Cardinality, CircuitResolution. The Siegenthaler-loop flags left this word: plumbed-ness is what a has-sieg layout word means, and use is operational (gw.house0.family.params SiegLoopStrategy). - HpCommandNodeName (optional spaceheat.name): the node that takes heat-pump commands under hp-boss; absent = nothing commands the heat pump. The layout words' CommandableHeatPump axiom governs it. - Strategy dropped: the control family is the layout word's own TypeName (invariant per word, so not a data field; the same rule that retired SiegLoopPlumbed). - WaterStore (optional gw.water.store): the water store tanks; absent for a layout whose store is not water tanks. Cardinality bounds the zones. - PrimaryPumpOwner (gw.primary.pump.owner, required): who runs the primary pump, the heat pump or the scada; the layout words' PrimaryPumpActuators axiom ties the actuator nodes to it. RefrigerantCycle (gw.refrigerant.cycle, required): single compressor or two-compressor cascade, for the optimizer's COP model. - CircuitResolution b: a circuit's CircuitPosition is its 1-based place in ZoneCallCircuits. PrimaryCircuit axiom: each zone's PrimaryCircuitPosition names a circuit serving that zone, and that circuit carries a setpoint channel. CircuitDistinctness axiom: no two circuits share a Name, a whitewire channel, a setpoint channel, a temperature channel or a relay node. CircuitResolution d is dropped: PrimaryCircuit implies every zone is served."
+        summary: "- Typed hydronic block promoted out of gw.house0.layout's freeform Hydronic: Zones (gw1.hvac.zone list), ZoneCallCircuits (gw1.zone.call.circuit list, required), PrimaryFlowSource (gw.primary.flow.source), Strategy. Axioms: Cardinality, CircuitResolution. The Siegenthaler-loop flags left this word: plumbed-ness is what a has-sieg layout word means, and use is operational (gw.house0.family.params SiegLoopStrategy). - HpCommandNodeName (optional spaceheat.name): the node that takes heat-pump commands under hp-boss; absent = nothing commands the heat pump. The layout words' CommandableHeatPump axiom governs it. - Strategy dropped: the control family is the layout word's own TypeName (invariant per word, so not a data field; the same rule that retired SiegLoopPlumbed). - WaterStore (optional gw.water.store): the water store tanks; absent for a layout whose store is not water tanks. Cardinality bounds the zones. - PrimaryPumpOwner (gw.primary.pump.owner, required): who runs the primary pump, the heat pump or the scada; the layout words' PrimaryPumpActuators axiom ties the actuator nodes to it. RefrigerantCycle (gw.refrigerant.cycle, required): single compressor or two-compressor cascade, for the optimizer's COP model. - Backup (optional, one of gw.boiler.backup or gw.element.backup): the backup heat; absent for a layout with no backup. - CircuitResolution b: a circuit's CircuitPosition is its 1-based place in ZoneCallCircuits. PrimaryCircuit axiom: each zone's PrimaryCircuitPosition names a circuit serving that zone, and that circuit carries a setpoint channel. CircuitDistinctness axiom: no two circuits share a Name, a whitewire channel, a setpoint channel, a temperature channel or a relay node. CircuitResolution d is dropped: PrimaryCircuit implies every zone is served."
         direct_dependencies:
           structural:
+            - "gw.boiler.backup:000"
+            - "gw.element.backup:000"
             - "gw.primary.flow.source:000"
             - "gw.primary.pump.owner:000"
             - "gw.refrigerant.cycle:000"
@@ -997,9 +1033,9 @@ types:
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw.nolan.layout/000"
-        created: "2026-10-06T15:30:00Z"
+        created: "2026-10-06T18:10:00Z"
         status: "staging"
-        summary: "The complete deployable artifact for a Nolan home: monobloc heat pump, one store tank, the gw108 board. Components are the cac-free DeviceType versions; DeviceTypes holds the per-family device-type records; every relay is a per-relay component against the board record. The axioms carry the layout invariants; wording is identical across layout words where the axiom name is shared."
+        summary: "The complete deployable artifact for a Nolan home: monobloc heat pump, one store tank, the gw108 board. Components are the cac-free DeviceType versions; DeviceTypes holds the per-family device-type records; every relay is a per-relay component against the board record. The axioms carry the layout invariants; wording is identical across layout words where the axiom name is shared. The cold-override command node is required; the backup command node exists if and only if Hydronic.Backup is present, and the relays a backup names are Relay ShNodes (axiom BackupRelays)."
         direct_dependencies:
           structural:
             - "ads111x.based.device.type.gt:000"
@@ -1029,6 +1065,8 @@ types:
             - "spaceheat.node.gt:303"
             - "web.server.component.gt:001"
           axiom:
+            - "gw.boiler.backup:000"
+            - "gw.element.backup:000"
             - "gw.zone.emitter.type:000"
             - "gw0.required.energy.layered:000"
             - "gw0.usable.energy.layered:000"
@@ -1048,7 +1086,7 @@ types:
         schema_url: "https://schemas.electricity.works/types/gw.operational.params/000"
         created: "2026-09-30T18:35:00Z"
         status: "staging"
-        summary: "Initial version. ScadaAlias (the applying Scada's identity — stored/emitted instances self-identify; the layout holds the full GNodes) + FamilyParams (oneOf gw.house0.family.params / gw.nolan.family.params, discriminated by TypeName; the family TypeName pairs the instance with its layout family, so a mismatched pair fails at decode) + CaptureTuningList + ZeroTenPowerOnList + Standby x StandbyPosture x EnergizedStandbyRelays (the standby machine energizes the listed relays and nothing else; the posture names what the list achieves) + ServiceMode + AcceptsDispatch x DispatchRefusalReason (present iff refusing) + CopCurve + HeatingCurve + HpTurnOnMinutes + HpMaxKwEl + LoadOverestimationPercent + OilBoilerBackup + HorizonHours + Tariff (gw.tou.tariff). All required but the reason — no assumed defaults. Axioms 1-2: ChannelName unique across CaptureTuningList, NodeName unique across ZeroTenPowerOnList. Axiom 3: Standby refuses dispatch with reason Standby. Axiom 4: the reason is present iff AcceptsDispatch is false. Axiom 5: the posture fixes the relay list (MonitorOnly empty; House0 NoHeatingOrCooling = hp-failsafe-relay + aquastat-ctrl-relay; Nolan NoHeatingOrCooling empty)."
+        summary: "Initial version. ScadaAlias (the applying Scada's identity — stored/emitted instances self-identify; the layout holds the full GNodes) + FamilyParams (oneOf gw.house0.family.params / gw.nolan.family.params, discriminated by TypeName; the family TypeName pairs the instance with its layout family, so a mismatched pair fails at decode) + CaptureTuningList + ZeroTenPowerOnList + Standby x StandbyPosture x EnergizedStandbyRelays (the standby machine energizes the listed relays and nothing else; the posture names what the list achieves) + ServiceMode + AcceptsDispatch x DispatchRefusalReason (present iff refusing) + CopCurve + HeatingCurve + HpTurnOnMinutes + HpMaxKwEl + LoadOverestimationPercent + UsesBackupWhenCold + HorizonHours + Tariff (gw.tou.tariff). All required but the reason — no assumed defaults. Axioms 1-2: ChannelName unique across CaptureTuningList, NodeName unique across ZeroTenPowerOnList. Axiom 3: Standby refuses dispatch with reason Standby. Axiom 4: the reason is present iff AcceptsDispatch is false. Axiom 5: the posture fixes the relay list (MonitorOnly empty; House0 NoHeatingOrCooling = hp-failsafe-relay + aquastat-ctrl-relay; Nolan NoHeatingOrCooling empty)."
         direct_dependencies:
           structural:
             - "capture.tuning:000"

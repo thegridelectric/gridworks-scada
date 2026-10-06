@@ -48,6 +48,7 @@ from gwsproto.names.hydronic_spaceheat.node_names import (
     HydronicSpaceheatNodeNames as HSNN,
 )
 from gwsproto.property_format import SpaceheatName
+from gwsproto.type_helpers.backup_axioms import check_backup_node, check_backup_relays
 from gwsproto.type_helpers.board_resolution import (
     GPIO_RELAY,
     GPIO_SENSOR,
@@ -263,14 +264,17 @@ class NolanLayout(GwsprotoSemaType):
     def check_axiom_4(self) -> "NolanLayout":
         """Axiom 4: CommandNodesExistenceAndActorClass.
 
-        ShNodes SHALL contain "n" (NoActor), "backup" (NoActor),
+        a. ShNodes SHALL contain "n" (NoActor), "cold-override" (NoActor),
         "scada-blind" (NoActor), "standby" (NoActor), "five-v-boss"
         (FiveVBoss), "pico-cycler" (PicoCycler) and "hp-boss" (HpBoss),
         with no additional ShNode of those Names.
+        b. If Hydronic.Backup is present, ShNodes SHALL contain exactly one
+        node named "backup", with ActorClass "NoActor".
+        c. If Hydronic.Backup is absent, no ShNode SHALL be named "backup".
         """
         pairs = (
             ("n", ActorClass.NoActor),
-            ("backup", ActorClass.NoActor),
+            ("cold-override", ActorClass.NoActor),
             ("scada-blind", ActorClass.NoActor),
             ("standby", ActorClass.NoActor),
             ("five-v-boss", ActorClass.FiveVBoss),
@@ -278,6 +282,9 @@ class NolanLayout(GwsprotoSemaType):
             ("hp-boss", ActorClass.HpBoss),
         )
         exact_match_pairs(self.ShNodes, pairs, "Axiom 4 (CommandNodesExistenceAndActorClass)")
+        check_backup_node(
+            self.ShNodes, self.Hydronic.Backup, "Axiom 4 (CommandNodesExistenceAndActorClass)"
+        )
         return self
 
     @model_validator(mode="after")
@@ -955,6 +962,7 @@ class NolanLayout(GwsprotoSemaType):
             "lc": "auto.lc",
             "n": "auto.lc.n",
             "backup": "auto.lc.backup",
+            "cold-override": "auto.lc.cold-override",
             "scada-blind": "auto.lc.scada-blind",
             "standby": "auto.lc.standby",
             "hp-boss": "auto.hp-boss",
@@ -1047,4 +1055,16 @@ class NolanLayout(GwsprotoSemaType):
             self.Hydronic.ZoneCallCircuits, self.DataChannels, self.ShNodes,
             "Axiom 34 (ReadThermostatChannels)",
         )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_35(self) -> "NolanLayout":
+        """Axiom 35: BackupRelays.
+
+        Where Hydronic.Backup is a gw.boiler.backup, its FailsafeRelayName and
+        AquastatCtrlRelayName, and where it is a gw.element.backup, each name
+        in its ElementRelayNames, SHALL equal the Name of an ShNode in ShNodes
+        whose ActorClass is "Relay".
+        """
+        check_backup_relays(self.ShNodes, self.Hydronic.Backup, "Axiom 35 (BackupRelays)")
         return self

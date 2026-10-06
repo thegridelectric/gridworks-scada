@@ -12,6 +12,7 @@ def test_local_control_top_state() -> None:
         "ScadaBlind",
         "Standby",
         "InBackup",
+        "ColdOverride",
     }
 
     assert LocalControlTopState.default() == LocalControlTopState.Dormant

@@ -39,7 +39,7 @@ class OperationalParams(GwsprotoSemaType):
     HpTurnOnMinutes: PositiveInt
     HpMaxKwEl: PositiveFloat
     LoadOverestimationPercent: NonNegativeInt
-    OilBoilerBackup: bool
+    UsesBackupWhenCold: bool
     HorizonHours: PositiveInt
     Tariff: TouTariff
     TypeName: Literal["gw.operational.params"] = "gw.operational.params"

@@ -499,7 +499,7 @@
   "HpTurnOnMinutes": 12,
   "HpMaxKwEl": 9.66,
   "LoadOverestimationPercent": 0,
-  "OilBoilerBackup": true,
+  "UsesBackupWhenCold": true,
   "HorizonHours": 48,
   "Tariff": {
     "TypeName": "gw.tou.tariff",

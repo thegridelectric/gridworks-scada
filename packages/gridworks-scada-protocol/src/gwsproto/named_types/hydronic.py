@@ -1,9 +1,11 @@
-from typing import List, Literal, Optional
+from typing import Annotated, List, Literal, Optional, Union
 
-from pydantic import ConfigDict, model_validator
+from pydantic import ConfigDict, Field, model_validator
 from typing_extensions import Self
 
 from gwsproto.enums import PrimaryFlowSource, PrimaryPumpOwner, RefrigerantCycle
+from gwsproto.named_types.boiler_backup import BoilerBackup
+from gwsproto.named_types.element_backup import ElementBackup
 from gwsproto.named_types.hvac_zone import HvacZone
 from gwsproto.named_types import water_store
 from gwsproto.named_types.zone_call_circuit import ZoneCallCircuit
@@ -21,6 +23,9 @@ class Hydronic(GwsprotoSemaType):
     # The class attribute shadows the type name inside the class body, so the
     # annotation goes through the module.
     WaterStore: Optional[water_store.WaterStore] = None
+    Backup: Optional[
+        Annotated[Union[BoilerBackup, ElementBackup], Field(discriminator="TypeName")]
+    ] = None
     PrimaryFlowSource: PrimaryFlowSource
     PrimaryPumpOwner: PrimaryPumpOwner
     RefrigerantCycle: RefrigerantCycle

@@ -228,7 +228,7 @@ class LocalControlTouBase(House0Hydronic):
                 if self.heating_forecast and self.buffer_temps_available:
                     self.log("Forecasts and temperatures are both available again!")
                     self.trigger_data_available()
-                elif self.is_onpeak() and self.ops.OilBoilerBackup:
+                elif self.is_onpeak() and self.ops.UsesBackupWhenCold:
                     if not self.scadablind_boiler:
                         self.aquastat_ctrl_switch_to_boiler(from_node=self.scada_blind_node)
                         self.scadablind_boiler = True
@@ -407,7 +407,7 @@ class LocalControlTouBase(House0Hydronic):
         """
         self.turn_off_store_pump(command_node=self.backup_node)
         self.valved_to_discharge_store(from_node=self.backup_node)
-        if self.ops.OilBoilerBackup:
+        if self.ops.UsesBackupWhenCold:
             self.hp_failsafe_switch_to_aquastat(from_node=self.backup_node)
             self.aquastat_ctrl_switch_to_boiler(from_node=self.backup_node)
         else:
