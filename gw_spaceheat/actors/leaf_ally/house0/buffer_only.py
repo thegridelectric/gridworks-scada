@@ -90,8 +90,6 @@ class BufferOnlyLeafAlly(House0Hydronic):
         )
         self.log(f"Params: {self.params}")
         self.time_buffer_full = 0
-        if CoreNodeNames.leaf_ally not in self.layout.nodes:
-            raise Exception(f"LeafAlly requires {CoreNodeNames.leaf_ally} node!!")
 
     @property
     def command_node(self) -> ShNode:

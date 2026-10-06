@@ -3,6 +3,7 @@ control, on the authored pairs: the whole tree has the shape the state
 calls for, the tree the local control publishes is that tree, and no
 command sent in the transition was dropped for want of the rights."""
 
+import json
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -23,7 +24,7 @@ from gwsproto.names.house0.node_names import House0NodeNames
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from scada_app import ScadaApp
-from tests.actors.test_cold_handling import NOLAN, WILLOW, heating_ops, make_app, put_f
+from tests.actors.test_cold_handling import CONFIG, NOLAN, WILLOW, heating_ops, make_app, put_f
 
 ORANGE = ("gw.house0.orange.layout.json", "gw.house0.orange.operational.params.json")
 HOUSE0 = {"willow": WILLOW, "orange": ORANGE}
@@ -174,6 +175,39 @@ def test_house0_system_cold_moves_the_tree_under_backup_and_warm_moves_it_back(
     impl.trigger_zones_at_setpoint_offpeak()
     assert impl.top_state == LocalControlTopState.Normal
     assert_tree(scada, seen, state_node_handle(scada, CoreNodeNames.local_control_normal))
+
+
+@pytest.mark.parametrize("house", sorted(HOUSE0))
+def test_house0_system_cold_without_backup_moves_the_tree_under_cold_override_and_warm_moves_it_back(
+    house: str, tmp_path: Path,
+) -> None:
+    pair = HOUSE0[house]
+    app = make_app(pair, heating_ops(tmp_path, pair, UsesBackupWhenCold=False))
+    impl = impl_of(app)
+    assert isinstance(impl, LocalControlTouBase)
+    scada, seen = app.scada, Seen(impl)
+    impl.trigger_system_cold_event()
+    assert impl.top_state == LocalControlTopState.ColdOverride
+    assert_tree(scada, seen, state_node_handle(scada, CoreNodeNames.local_control_cold_override))
+    impl.trigger_zones_at_setpoint_offpeak()
+    assert impl.top_state == LocalControlTopState.Normal
+    assert_tree(scada, seen, state_node_handle(scada, CoreNodeNames.local_control_normal))
+
+
+def test_a_house0_house_with_no_backup_boots_and_goes_to_cold_override(tmp_path: Path) -> None:
+    layout = json.loads((CONFIG / WILLOW[0]).read_text())
+    del layout["Hydronic"]["Backup"]
+    layout["ShNodes"] = [n for n in layout["ShNodes"] if n["Name"] != CoreNodeNames.local_control_backup]
+    layout_path = tmp_path / "hardware-layout.json"
+    layout_path.write_text(json.dumps(layout, indent=2))
+    pair = (str(layout_path), WILLOW[1])
+    app = make_app(pair, heating_ops(tmp_path, pair, UsesBackupWhenCold=False))
+    impl = impl_of(app)
+    assert isinstance(impl, LocalControlTouBase)
+    scada, seen = app.scada, Seen(impl)
+    impl.trigger_system_cold_event()
+    assert impl.top_state == LocalControlTopState.ColdOverride
+    assert_tree(scada, seen, state_node_handle(scada, CoreNodeNames.local_control_cold_override))
 
 
 def test_house0_missing_data_moves_the_tree_under_scada_blind_and_data_moves_it_back(

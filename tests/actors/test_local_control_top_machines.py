@@ -17,6 +17,7 @@ TOP_STATES = {
         LocalControlTopState.Normal,
         LocalControlTopState.ScadaBlind,
         LocalControlTopState.InBackup,
+        LocalControlTopState.ColdOverride,
     },
     NolanBufferOnlyTou: {
         LocalControlTopState.Dormant,
@@ -39,6 +40,32 @@ def test_top_machine_states(machine: type) -> None:
         assert transition["source"] in states
         assert transition["dest"] in states
         assert transition["trigger"] in LocalControlTopEvent.values()
+
+
+COLD_STATES = {LocalControlTopState.InBackup, LocalControlTopState.ColdOverride}
+
+
+def test_house0_system_cold_leaves_normal_for_the_cold_state_its_event_names() -> None:
+    assert {
+        (t["trigger"], t["dest"])
+        for t in LocalControlTouBase.top_transitions
+        if t["source"] == LocalControlTopState.Normal and t["dest"] in COLD_STATES
+    } == {
+        (LocalControlTopEvent.SystemCold, LocalControlTopState.InBackup),
+        (LocalControlTopEvent.SystemColdNoBackup, LocalControlTopState.ColdOverride),
+    }
+
+
+@pytest.mark.parametrize("state", sorted(COLD_STATES))
+def test_house0_leaves_a_cold_state_warm_offpeak_or_dormant(state: LocalControlTopState) -> None:
+    assert {
+        (t["trigger"], t["dest"])
+        for t in LocalControlTouBase.top_transitions
+        if t["source"] == state
+    } == {
+        (LocalControlTopEvent.CriticalZonesAtSetpointOffpeak, LocalControlTopState.Normal),
+        (LocalControlTopEvent.TopGoDormant, LocalControlTopState.Dormant),
+    }
 
 
 def test_nolan_has_no_way_into_backup() -> None:
@@ -64,6 +91,7 @@ def test_every_commanding_top_state_has_its_state_node() -> None:
 def test_top_events() -> None:
     assert set(LocalControlTopEvent.values()) == {
         "SystemCold",
+        "SystemColdNoBackup",
         "TopGoDormant",
         "TopWakeUp",
         "MissingData",

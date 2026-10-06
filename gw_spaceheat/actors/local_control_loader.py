@@ -1,5 +1,5 @@
 import importlib
-from gwsproto.enums import ActorClass, SeasonalStorageMode, ServiceMode
+from gwsproto.enums import SeasonalStorageMode, ServiceMode
 from gwsproto.named_types import NolanLayout
 from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
@@ -17,12 +17,6 @@ class LocalControl(ShNodeActor):
 
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
-        node = services.hardware_layout.node(name)
-        if node is None:
-            raise Exception("Expect a LocalControl node!")
-        if node.ActorClass != ActorClass.LocalControl:
-            raise Exception("Expects ActorClass LocalControl!")
-
         layout = services.hardware_layout
         standby = self.ops.Standby
         nolan = isinstance(layout.sema_layout, NolanLayout)

@@ -124,7 +124,7 @@ class AllTanksTouLocalControl(LocalControlTouBase):
         
     def time_to_trigger_system_cold(self) -> bool:
         """
-        Logic for triggering SystemCold (and moving to top state InBackup).
+        Logic for triggering SystemCold (and leaving top state Normal).
         In winter, this means: 1) house is cold 2) buffer is really empty and 3) store is empty
         """
         return self.is_system_cold() and self.is_buffer_empty() and self.is_storage_empty()

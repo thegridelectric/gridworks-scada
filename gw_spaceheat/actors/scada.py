@@ -149,14 +149,11 @@ class Scada(PrimeActor, ScadaInterface):
         self._last_report_second = int(now - (now % self.settings.seconds_per_report))
         self._last_snap_s = int(now - (now % self.settings.seconds_per_snapshot))
 
-        boot_boss_name = (
-            CoreNodeNames.local_control_standby
+        boot_boss = (
+            self.layout.local_control_standby_node
             if self.ops.Standby
-            else CoreNodeNames.local_control_normal
+            else self.layout.local_control_normal_node
         )
-        boot_boss = self.layout.node(boot_boss_name)
-        if boot_boss is None:
-            raise Exception(f"Must have {boot_boss_name} node")
         self.set_command_tree(boot_boss)
         self.top_state: TopState = TopState.Auto
         # The slow facts of the LTN-scada agreement, sent once after the startup

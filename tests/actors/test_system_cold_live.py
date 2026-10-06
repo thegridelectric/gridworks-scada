@@ -1,7 +1,9 @@
 """House0's SystemCold transition on a running scada: a house cold with
-its buffer empty leaves Normal, and the commands that follow depend on
-whether the house goes to its backup when cold."""
+its buffer empty leaves Normal for InBackup or ColdOverride by whether it
+goes to its backup when cold, and each state commands from its own node
+and holds through the peak."""
 
+import asyncio
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +20,7 @@ from gwsproto.enums import (
     TurnHpOnOff,
 )
 from gwsproto.named_types import FsmEvent
+from gwsproto.names.core.node_names import CoreNodeNames
 from sema_to_dc import load_layout
 from tests.actors.test_cold_handling import CONFIG, WILLOW, heating_ops
 from tests.actors.test_cold_handling_live import fast_watch, heating_impl, hold_cold
@@ -43,10 +46,13 @@ async def system_cold_commands(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     uses_backup_when_cold: bool,
+    cold_state: LocalControlTopState,
+    state_node_name: str,
 ) -> tuple[LocalControlTouBase, set[tuple[str, str]]]:
     """Run willow until its local control is in Normal, hold it cold with
-    the buffer empty, and return the local control with the (node, event)
-    commands it sent from its backup node."""
+    the buffer empty until it is in cold_state, and return the (node,
+    event) commands it sent from that state's node. The state then holds
+    while it is on-peak and returns to Normal off-peak."""
     fast_local_control(monkeypatch)
     ops_path = heating_ops(tmp_path, WILLOW, UsesBackupWhenCold=uses_backup_when_cold)
     layout = load_layout(CONFIG / WILLOW[0], ops_path)
@@ -81,16 +87,32 @@ async def system_cold_commands(
             timeout=30,
             err_str_f=lambda: f"top state: {impl.top_state}",
         )
-        backup = impl.layout.local_control_backup_node
-        assert impl.layout.hp_boss.handle == f"{backup.handle}.{impl.layout.hp_boss.name}"
+        assert impl.top_state == cold_state
+        state_node = impl.layout.node(state_node_name)
+        assert state_node is not None
+        assert impl.layout.hp_boss.handle == f"{state_node.handle}.{impl.layout.hp_boss.name}"
         assert held_in_normal
-        assert all(node.handle.startswith(f"{backup.handle}.") for node in held_in_normal)
+        assert all(node.handle.startswith(f"{state_node.handle}.") for node in held_in_normal)
         assert impl.normal_node_state() == "Dormant"
         commands = {
             (dst, str(payload.EventName))
             for dst, payload in sent
-            if isinstance(payload, FsmEvent) and payload.FromHandle == backup.handle
+            if isinstance(payload, FsmEvent) and payload.FromHandle == state_node.handle
         }
+
+        monkeypatch.setattr(impl, "is_system_cold", lambda: False)
+        monkeypatch.setattr(impl, "is_onpeak", lambda: True)
+        await asyncio.sleep(3 * impl.MAIN_LOOP_SLEEP_SECONDS)
+        assert impl.top_state == cold_state
+        monkeypatch.setattr(impl, "is_onpeak", lambda: False)
+        await h.await_for(
+            lambda: impl.top_state == LocalControlTopState.Normal,
+            "ERROR waiting for the warm off-peak house to return to Normal",
+            timeout=30,
+            err_str_f=lambda: f"top state: {impl.top_state}",
+        )
+        normal = impl.layout.local_control_normal_node
+        assert impl.layout.hp_boss.handle == f"{normal.handle}.{impl.layout.hp_boss.name}"
         return impl, commands
 
 
@@ -98,8 +120,10 @@ async def system_cold_commands(
 async def test_a_cold_house0_house_with_a_boiler_hands_the_house_to_the_boiler(
     request: pytest.FixtureRequest, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    impl, commands = await system_cold_commands(request, tmp_path, monkeypatch, True)
-    assert impl.top_state == LocalControlTopState.InBackup
+    impl, commands = await system_cold_commands(
+        request, tmp_path, monkeypatch, True,
+        LocalControlTopState.InBackup, CoreNodeNames.local_control_backup,
+    )
     assert commands == {
         (impl.layout.store_pump_relay.name, ChangeRelayState.OpenRelay.value),
         (impl.layout.store_charge_discharge_relay.name, ChangeStoreFlowRelay.DischargeStore.value),
@@ -112,8 +136,10 @@ async def test_a_cold_house0_house_with_a_boiler_hands_the_house_to_the_boiler(
 async def test_a_cold_house0_house_that_does_not_use_its_backup_runs_its_heat_pump(
     request: pytest.FixtureRequest, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    impl, commands = await system_cold_commands(request, tmp_path, monkeypatch, False)
-    assert impl.top_state == LocalControlTopState.InBackup
+    impl, commands = await system_cold_commands(
+        request, tmp_path, monkeypatch, False,
+        LocalControlTopState.ColdOverride, CoreNodeNames.local_control_cold_override,
+    )
     assert commands == {
         (impl.layout.store_pump_relay.name, ChangeRelayState.OpenRelay.value),
         (impl.layout.store_charge_discharge_relay.name, ChangeStoreFlowRelay.DischargeStore.value),

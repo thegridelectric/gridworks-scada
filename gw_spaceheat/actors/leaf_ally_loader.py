@@ -4,19 +4,13 @@ from gwproto import Message
 from result import Ok, Result
 
 from actors.sh_node_actor import ShNodeActor
-from gwsproto.enums import ActorClass, SeasonalStorageMode
+from gwsproto.enums import SeasonalStorageMode
 from gwsproto.named_types import AllyGivesUp, SlowDispatchContract
 from scada_app_interface import ScadaAppInterface
 
 class LeafAlly(ShNodeActor):
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
-        node = services.hardware_layout.node(name)
-        if node is None:
-            raise Exception("Missing the LeafAlly!!")
-        if node.ActorClass != ActorClass.LeafAlly:
-            raise Exception("Expects ActorClass LeafAlly!")
-
         # Dynamically load the implementation. 
         if self.layout.layout_type_name == "gw.nolan.layout":
             module = importlib.import_module("actors.leaf_ally.nolan")

@@ -1527,14 +1527,17 @@ class HydronicLayout:
 
     @property
     def local_control_backup_node(self) -> ShNode:
-        name = CoreNodeNames.local_control_backup
-        if not self.is_house0:
-            raise DcError(f"Local Control backup node {name} "
-                          f"is only for gw.house0.layout ")
-        n = self.node(name)
+        n = self.node(CoreNodeNames.local_control_backup)
         if n is None:
-            raise DcError(f"Local control backup {CoreNodeNames.local_control_backup} must exist"
-                          f" for gw.house0.layout")
+            raise DcError(f"{CoreNodeNames.local_control_backup} exists only when "
+                          "the layout declares a Backup")
+        return n
+
+    @property
+    def local_control_cold_override_node(self) -> ShNode:
+        n = self.node(CoreNodeNames.local_control_cold_override)
+        if n is None:
+            raise DcError(f"{CoreNodeNames.local_control_cold_override} is known to exist")
         return n
 
     @property

@@ -39,22 +39,27 @@ class LocalControlTouBase(House0Hydronic):
     should inherit from this base class."""
     MAIN_LOOP_SLEEP_SECONDS = 60
     BLIND_MINUTES = 5
-    SYSTEM_COLD_MINUTES = 5  # Min time house+tanks cold before switching to InBackup
+    SYSTEM_COLD_MINUTES = 5  # Min time house+tanks cold before leaving Normal
 
 
+    COLD_STATES = (LocalControlTopState.InBackup, LocalControlTopState.ColdOverride)
     top_states = [
         LocalControlTopState.Dormant,
         LocalControlTopState.InBackup,
+        LocalControlTopState.ColdOverride,
         LocalControlTopState.Normal,
         LocalControlTopState.ScadaBlind,
     ]
     top_transitions = [
         {"trigger": "TopGoDormant", "source": "Normal", "dest": "Dormant"},
         {"trigger": "TopGoDormant", "source": "InBackup", "dest": "Dormant"},
+        {"trigger": "TopGoDormant", "source": "ColdOverride", "dest": "Dormant"},
         {"trigger": "TopGoDormant", "source": "ScadaBlind", "dest": "Dormant"},
         {"trigger": "TopWakeUp", "source": "Dormant", "dest": "Normal"},
         {"trigger": "SystemCold", "source": "Normal", "dest": "InBackup"},
+        {"trigger": "SystemColdNoBackup", "source": "Normal", "dest": "ColdOverride"},
         {"trigger": "CriticalZonesAtSetpointOffpeak", "source": "InBackup", "dest": "Normal"},
+        {"trigger": "CriticalZonesAtSetpointOffpeak", "source": "ColdOverride", "dest": "Normal"},
         {"trigger": "MissingData", "source": "Normal", "dest": "ScadaBlind"},
         {"trigger": "DataAvailable", "source": "ScadaBlind", "dest": "Normal"},
     ]
@@ -80,12 +85,6 @@ class LocalControlTouBase(House0Hydronic):
         )  
         self.top_state = LocalControlTopState.Normal
         self.log(f"Params: {self.params}")
-        if CoreNodeNames.local_control_normal not in self.layout.nodes:
-            raise Exception(f"LocalControl requires {CoreNodeNames.local_control_normal} node!!")
-        if CoreNodeNames.local_control_scada_blind not in self.layout.nodes:
-            raise Exception(f"LocalControl requires {CoreNodeNames.local_control_scada_blind} node!!")
-        if CoreNodeNames.local_control_backup not in self.layout.nodes:
-            raise Exception(f"LocalControl requires {CoreNodeNames.local_control_backup} node!!")
         self.set_command_tree(boss_node=self.normal_node)
         self.actuators_initialized = False
         self.actuators_ready = False
@@ -107,11 +106,29 @@ class LocalControlTouBase(House0Hydronic):
 
     @property
     def backup_node(self) -> ShNode:
-        """ 
+        """
         The node / state machine responsible
         for backup operations
         """
         return self.layout.local_control_backup_node
+
+    @property
+    def cold_override_node(self) -> ShNode:
+        """
+        The node / state machine that runs the heat pump through the
+        peak because the house is cold
+        """
+        return self.layout.local_control_cold_override_node
+
+    def uses_backup_when_cold(self) -> bool:
+        return self.ops.UsesBackupWhenCold
+
+    @property
+    def cold_state_node(self) -> ShNode:
+        """The node that commands when the house is cold"""
+        if self.uses_backup_when_cold():
+            return self.backup_node
+        return self.cold_override_node
 
     @property
     def scada_blind_node(self) -> ShNode:
@@ -134,6 +151,8 @@ class LocalControlTouBase(House0Hydronic):
         now_ms = int(time.time() * 1000)
         if cause == LocalControlTopEvent.SystemCold:
             self.SystemCold()
+        elif cause == LocalControlTopEvent.SystemColdNoBackup:
+            self.SystemColdNoBackup()
         elif cause == LocalControlTopEvent.TopGoDormant:
             self.TopGoDormant()
         elif cause == LocalControlTopEvent.TopWakeUp:
@@ -222,7 +241,7 @@ class LocalControlTouBase(House0Hydronic):
                         self.system_cold_since = None
                 else:
                     self.system_cold_since = None
-            elif self.top_state == LocalControlTopState.InBackup and not self.is_system_cold() and not self.is_onpeak():
+            elif self.top_state in self.COLD_STATES and not self.is_system_cold() and not self.is_onpeak():
                 self.trigger_zones_at_setpoint_offpeak()
             elif self.top_state == LocalControlTopState.ScadaBlind:
                 if self.heating_forecast and self.buffer_temps_available:
@@ -259,12 +278,15 @@ class LocalControlTouBase(House0Hydronic):
         if self.top_state == LocalControlTopState.InBackup:
             return self.backup_node
 
+        if self.top_state == LocalControlTopState.ColdOverride:
+            return self.cold_override_node
+
         return self.normal_node
 
     @abstractmethod
     def time_to_trigger_system_cold(self) -> bool:
         """
-        Logic for triggering SystemCold (and moving to top state InBackup)
+        Logic for triggering SystemCold (and leaving top state Normal)
         """
         raise NotImplementedError
 
@@ -342,27 +364,31 @@ class LocalControlTouBase(House0Hydronic):
 
     def trigger_system_cold_event(self) -> None:
         """
-        Called to change top state from Normal to InBackup. Only acts if
-          (a) house is actually cold and (b) top state is Normal
-        What it does: 
-          - changes command tree (the backup node is the boss)
-          - triggers SystemCold
-          - takes necessary actuator actions to go backup
+        Called to change top state from Normal to InBackup or ColdOverride,
+        by whether the house uses its backup when cold.
+        What it does:
+          - changes command tree (the cold state's node is the boss)
           - updates the normal state to Dormant if needed
+          - takes the actuator actions of the cold state
+          - triggers SystemCold or SystemColdNoBackup
           - reports top state change
         """
-        self.set_command_tree(boss_node=self.backup_node)
+        self.set_command_tree(boss_node=self.cold_state_node)
         if not self.top_state == LocalControlTopState.Dormant:
             self.normal_node_goes_dormant()
-        self.backup_actuator_actions()
-        self.trigger_top_event(cause=LocalControlTopEvent.SystemCold)    
+        if self.uses_backup_when_cold():
+            self.backup_actuator_actions()
+            self.trigger_top_event(cause=LocalControlTopEvent.SystemCold)
+        else:
+            self.cold_override_actuator_actions()
+            self.trigger_top_event(cause=LocalControlTopEvent.SystemColdNoBackup)
 
     def trigger_zones_at_setpoint_offpeak(self):
         """
-        Called to change top state from InBackup to Normal
+        Called to change top state from InBackup or ColdOverride to Normal
         """
-        if self.top_state != LocalControlTopState.InBackup:
-            raise Exception("Should only call trigger_zones_at_setpoint_offpeak in transition from InBackup to Normal!")
+        if self.top_state not in self.COLD_STATES:
+            raise Exception("Should only call trigger_zones_at_setpoint_offpeak in transition from a cold state to Normal!")
         self.trigger_top_event(cause=LocalControlTopEvent.CriticalZonesAtSetpointOffpeak)
         self.set_command_tree(boss_node=self.normal_node)
         self.normal_node_wakes_up()
@@ -402,16 +428,23 @@ class LocalControlTouBase(House0Hydronic):
         Expects command tree set already with self.backup_node as boss
           - turns off store pump
           - iso valve open (valved to discharge)
-          - if using oil boiler, turns hp failsafe to aquastat and aquastat ctrl to boiler
-          - if not using oil boiler, turns on heat pump
+          - turns hp failsafe to aquastat and aquastat ctrl to boiler
         """
         self.turn_off_store_pump(command_node=self.backup_node)
         self.valved_to_discharge_store(from_node=self.backup_node)
-        if self.ops.UsesBackupWhenCold:
-            self.hp_failsafe_switch_to_aquastat(from_node=self.backup_node)
-            self.aquastat_ctrl_switch_to_boiler(from_node=self.backup_node)
-        else:
-            self.turn_on_hp(from_node=self.backup_node)
+        self.hp_failsafe_switch_to_aquastat(from_node=self.backup_node)
+        self.aquastat_ctrl_switch_to_boiler(from_node=self.backup_node)
+
+    def cold_override_actuator_actions(self) -> None:
+        """
+        Expects command tree set already with self.cold_override_node as boss
+          - turns off store pump
+          - iso valve open (valved to discharge)
+          - turns on heat pump
+        """
+        self.turn_off_store_pump(command_node=self.cold_override_node)
+        self.valved_to_discharge_store(from_node=self.cold_override_node)
+        self.turn_on_hp(from_node=self.cold_override_node)
 
     def start(self) -> None:
         self._send_to(
@@ -444,7 +477,7 @@ class LocalControlTouBase(House0Hydronic):
                 if len(self.my_actuators()) > 0:
                     raise Exception("LocalControl sent GoDormant with live actuators under it!")
                 if self.top_state != LocalControlTopState.Dormant:
-                    # TopGoDormant: Normal/InBackup -> Dormant
+                    # TopGoDormant: Normal/InBackup/ColdOverride/ScadaBlind -> Dormant
                     self.trigger_top_event(cause=LocalControlTopEvent.TopGoDormant)
                     self.normal_node_goes_dormant()
             case WakeUp():

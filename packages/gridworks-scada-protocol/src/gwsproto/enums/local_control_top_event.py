@@ -5,6 +5,7 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 class LocalControlTopEvent(SemaEnum):
 
     SystemCold = auto()
+    SystemColdNoBackup = auto()
     TopGoDormant = auto()
     TopWakeUp = auto()
     MissingData = auto()

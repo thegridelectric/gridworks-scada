@@ -111,8 +111,6 @@ class AllTanksLeafAlly(House0Hydronic):
         self.both_buffer_and_storage_full_since = 0
         self.defrost_detected_since = None
         self.time_started_charging_store = None
-        if CoreNodeNames.leaf_ally not in self.layout.nodes:
-            raise Exception(f"LeafAlly requires {CoreNodeNames.leaf_ally} node!!")
 
     @property
     def command_node(self) -> ShNode:
