@@ -61,10 +61,10 @@ def start_and_collect(actor) -> list:
 
 
 def announced(sent: list) -> SingleMachineState:
-    assert sent, "start() announced nothing"
-    dst, payload = sent[0]
+    states = [(dst, p) for dst, p in sent if isinstance(p, SingleMachineState)]
+    assert states, "start() announced nothing"
+    dst, payload = states[0]
     assert dst == CoreNodeNames.primary_scada
-    assert isinstance(payload, SingleMachineState)
     return payload
 
 

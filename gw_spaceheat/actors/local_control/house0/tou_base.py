@@ -42,20 +42,19 @@ class LocalControlTouBase(House0Hydronic):
     SYSTEM_COLD_MINUTES = 5  # Min time house+tanks cold before switching to UsingNonElectricBackup
 
 
-    top_states = LocalControlTopState.values()
+    top_states = [
+        state for state in LocalControlTopState.values()
+        if state != LocalControlTopState.Monitor
+    ]
     top_transitions = [
         {"trigger": "TopGoDormant", "source": "Normal", "dest": "Dormant"},
         {"trigger": "TopGoDormant", "source": "UsingNonElectricBackup", "dest": "Dormant"},
         {"trigger": "TopGoDormant", "source": "ScadaBlind", "dest": "Dormant"},
-        {"trigger": "TopGoDormant", "source": "Monitor", "dest": "Dormant"},
         {"trigger": "TopWakeUp", "source": "Dormant", "dest": "Normal"},
         {"trigger": "SystemCold", "source": "Normal", "dest": "UsingNonElectricBackup"},
         {"trigger": "CriticalZonesAtSetpointOffpeak", "source": "UsingNonElectricBackup", "dest": "Normal"},
         {"trigger": "MissingData", "source": "Normal", "dest": "ScadaBlind"},
         {"trigger": "DataAvailable", "source": "ScadaBlind", "dest": "Normal"},
-        {"trigger": "MonitorOnly", "source": "Normal", "dest": "Monitor"},
-        {"trigger": "MonitorOnly", "source": "Dormant", "dest": "Monitor"},
-        {"trigger": "MonitorAndControl", "source": "Monitor", "dest": "Normal"}
     ]
 
     def __init__(self, name: str, services: ScadaAppInterface):
@@ -159,10 +158,6 @@ class LocalControlTouBase(House0Hydronic):
             self.MissingData()
         elif cause == LocalControlTopEvent.DataAvailable:
             self.DataAvailable()
-        elif cause == LocalControlTopEvent.MonitorOnly:
-            self.MonitorOnly()
-        elif cause == LocalControlTopEvent.MonitorAndControl:
-            self.MonitorAndControl()
         elif cause == LocalControlTopEvent.CriticalZonesAtSetpointOffpeak:
             self.CriticalZonesAtSetpointOffpeak()
         else:
@@ -222,50 +217,48 @@ class LocalControlTouBase(House0Hydronic):
             if  self.just_before_onpeak() or self.setpoints_at_onpeak_start=={}:
                 self.refresh_setpoints_at_onpeak_start()
 
-            # No control of actuators when in Monitor
-            if not self.top_state == LocalControlTopState.Monitor:
-                # Verify distribution pump health; initiate recovery if needed
-                if self.dist_pump_recovery_enabled and self.dist_pump_monitor.needs_recovery():
-                    await self.dist_pump_doctor.run()
+            # Verify distribution pump health; initiate recovery if needed
+            if self.dist_pump_recovery_enabled and self.dist_pump_monitor.needs_recovery():
+                await self.dist_pump_doctor.run()
 
-                # Verify store pump health; initiate recovery if needed
-                if self.store_pump_recovery_enabled and self.store_pump_monitor.needs_recovery():
-                    await self.store_pump_doctor.run()
+            # Verify store pump health; initiate recovery if needed
+            if self.store_pump_recovery_enabled and self.store_pump_monitor.needs_recovery():
+                await self.store_pump_doctor.run()
 
-                self.get_temperatures()
+            self.get_temperatures()
 
-                # Update top state
-                if self.top_state == LocalControlTopState.Normal:
-                    if self.time_to_trigger_system_cold():
-                        now = time.time()
-                        if self.system_cold_since is None:
-                            self.system_cold_since = now
-                        elif now - self.system_cold_since >= self.SYSTEM_COLD_MINUTES * 60:
-                            self.trigger_system_cold_event()
-                            self.system_cold_since = None
-                    else:
+            # Update top state
+            if self.top_state == LocalControlTopState.Normal:
+                if self.time_to_trigger_system_cold():
+                    now = time.time()
+                    if self.system_cold_since is None:
+                        self.system_cold_since = now
+                    elif now - self.system_cold_since >= self.SYSTEM_COLD_MINUTES * 60:
+                        self.trigger_system_cold_event()
                         self.system_cold_since = None
-                elif self.top_state == LocalControlTopState.UsingNonElectricBackup and not self.is_system_cold() and not self.is_onpeak():
-                    self.trigger_zones_at_setpoint_offpeak()
-                elif self.top_state == LocalControlTopState.ScadaBlind:
-                    if self.heating_forecast and self.buffer_temps_available:
-                        self.log("Forecasts and temperatures are both available again!")
-                        self.trigger_data_available()
-                    elif self.is_onpeak() and self.ops.OilBoilerBackup:
-                        if not self.scadablind_boiler:
-                            self.aquastat_ctrl_switch_to_boiler(from_node=self.scada_blind_node)
-                            self.scadablind_boiler = True
-                            self.scadablind_scada = False
-                            self.log("ScadaBlind: switching to boiler onpeak")
-                    else:
-                        if not self.scadablind_scada:
-                            self.aquastat_ctrl_switch_to_scada(from_node=self.scada_blind_node)
-                            self.scadablind_boiler = False
-                            self.scadablind_scada = True
-                            self.log("ScadaBlind: switching to Aqaustatically controlled SCADA offpeak")
-                
-                if self.top_state == LocalControlTopState.Normal:
-                    self.engage_brain()
+                else:
+                    self.system_cold_since = None
+            elif self.top_state == LocalControlTopState.UsingNonElectricBackup and not self.is_system_cold() and not self.is_onpeak():
+                self.trigger_zones_at_setpoint_offpeak()
+            elif self.top_state == LocalControlTopState.ScadaBlind:
+                if self.heating_forecast and self.buffer_temps_available:
+                    self.log("Forecasts and temperatures are both available again!")
+                    self.trigger_data_available()
+                elif self.is_onpeak() and self.ops.OilBoilerBackup:
+                    if not self.scadablind_boiler:
+                        self.aquastat_ctrl_switch_to_boiler(from_node=self.scada_blind_node)
+                        self.scadablind_boiler = True
+                        self.scadablind_scada = False
+                        self.log("ScadaBlind: switching to boiler onpeak")
+                else:
+                    if not self.scadablind_scada:
+                        self.aquastat_ctrl_switch_to_scada(from_node=self.scada_blind_node)
+                        self.scadablind_boiler = False
+                        self.scadablind_scada = True
+                        self.log("ScadaBlind: switching to Aqaustatically controlled SCADA offpeak")
+
+            if self.top_state == LocalControlTopState.Normal:
+                self.engage_brain()
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     @property

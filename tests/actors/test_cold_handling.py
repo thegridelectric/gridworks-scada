@@ -585,6 +585,39 @@ def test_any_circuit_under_the_freeze_line_raises_one_glitch(nolan: ColdWatch) -
     assert "garage" in glitch.Details
 
 
+# --- the watch at a house in standby ------------------------------------------
+
+
+@pytest.fixture
+def standby_nolan(tmp_path: Path) -> ColdWatch:
+    """The Nolan house in standby, where it may be unheated on purpose."""
+    ops_path = heating_ops(
+        tmp_path,
+        NOLAN,
+        Standby=True,
+        AcceptsDispatch=False,
+        DispatchRefusalReason=DispatchRefusalReason.Standby.value,
+    )
+    return cold_watch(make_app(NOLAN, ops_path))
+
+
+def test_a_standby_house_cold_raises_no_critical_zone_cold_glitch(
+    standby_nolan: ColdWatch,
+) -> None:
+    make_cold(standby_nolan)
+    for elapsed in (0, cold.COLD_LATCH_S, 7200):
+        standby_nolan.cold_watch(T0 + elapsed)
+    assert standby_nolan.cold_critical_zones()
+    assert glitches(standby_nolan, cold.CRITICAL_ZONE_COLD) == []
+
+
+def test_a_standby_house_still_reports_a_freezing_circuit(standby_nolan: ColdWatch) -> None:
+    put_f(standby_nolan, N_TEMP, cold.FREEZE_F - 0.5)
+    standby_nolan.cold_watch(T0)
+    [glitch] = glitches(standby_nolan, cold.ZONE_FREEZING)
+    assert glitch.Type == LogLevel.Critical
+
+
 # --- the scada refuses dispatch in its own params file ------------------------
 
 

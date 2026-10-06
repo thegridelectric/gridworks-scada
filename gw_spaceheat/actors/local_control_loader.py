@@ -10,7 +10,8 @@ class LocalControl(ShNodeActor):
 
     No authored field names the machine. The loader derives it from the
     ops word's Standby, the layout family, the family's SeasonalStorageMode
-    and the ServiceMode; a row the table does not have raises. Standby
+    and the ServiceMode; a row the table does not have raises, and a Nolan
+    layout out of standby authoring Cooling raises NotImplementedError. Standby
     selects the shared standby machine whatever the family. The fields
     are read once at construction; a change is a restart."""
 
@@ -31,9 +32,12 @@ class LocalControl(ShNodeActor):
         if standby:
             module = importlib.import_module("actors.local_control.standby")
             impl_class = getattr(module, "StandbyLocalControl")
-        elif nolan and service_mode == ServiceMode.Cooling and seasonal_storage_mode == SeasonalStorageMode.BufferOnly:
-            module = importlib.import_module("actors.local_control.nolan.buffer_only_cooling_tou")
-            impl_class = getattr(module, "NolanBufferOnlyCoolingTou")
+        elif nolan and service_mode == ServiceMode.Cooling:
+            raise NotImplementedError(
+                "A Nolan layout has no cooling machine. The loop spruce ran in "
+                "the summer of 2026 is spruce_summer_hack.py in the "
+                "starter-scripts repo at commit 2c31bc1."
+            )
         elif nolan and service_mode == ServiceMode.Heating and seasonal_storage_mode == SeasonalStorageMode.BufferOnly:
             module = importlib.import_module("actors.local_control.nolan.buffer_only_tou")
             impl_class = getattr(module, "NolanBufferOnlyTou")

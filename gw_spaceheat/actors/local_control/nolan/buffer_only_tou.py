@@ -106,18 +106,11 @@ class NolanBufferOnlyTou(NolanHydronic):
         HSNN.hp_scada_ops_relay,
     )
 
-    top_states = LocalControlTopState.values()
+    top_states = [
+        state for state in LocalControlTopState.values()
+        if state != LocalControlTopState.Monitor
+    ]
     top_transitions = [
-        {
-            "trigger": LocalControlTopEvent.MonitorOnly,
-            "source": LocalControlTopState.Normal,
-            "dest": LocalControlTopState.Monitor,
-        },
-        {
-            "trigger": LocalControlTopEvent.MonitorAndControl,
-            "source": LocalControlTopState.Monitor,
-            "dest": LocalControlTopState.Normal,
-        },
         {
             "trigger": LocalControlTopEvent.MissingData,
             "source": LocalControlTopState.Normal,
@@ -131,11 +124,6 @@ class NolanBufferOnlyTou(NolanHydronic):
         {
             "trigger": LocalControlTopEvent.TopGoDormant,
             "source": LocalControlTopState.Normal,
-            "dest": LocalControlTopState.Dormant,
-        },
-        {
-            "trigger": LocalControlTopEvent.TopGoDormant,
-            "source": LocalControlTopState.Monitor,
             "dest": LocalControlTopState.Dormant,
         },
         {
@@ -381,10 +369,7 @@ class NolanBufferOnlyTou(NolanHydronic):
     # ---- the check, every TOU_CHECK_S ----
 
     def check(self, now: datetime) -> None:
-        if not self.actuators_ready or self.top_state in (
-            LocalControlTopState.Dormant,
-            LocalControlTopState.Monitor,
-        ):
+        if not self.actuators_ready or self.top_state == LocalControlTopState.Dormant:
             return
         fresh = self.buffer_fresh()
         if self.top_state == LocalControlTopState.Normal and not fresh:
@@ -439,10 +424,7 @@ class NolanBufferOnlyTou(NolanHydronic):
         """The pump follows the moment a state arrives, when this machine
         holds the tree."""
         self.hp_state = state
-        if not self.actuators_ready or self.top_state in (
-            LocalControlTopState.Dormant,
-            LocalControlTopState.Monitor,
-        ):
+        if not self.actuators_ready or self.top_state == LocalControlTopState.Dormant:
             return
         self.enforce_pump()
 

@@ -1,7 +1,7 @@
 """Instantiates a ScadaApp on the ASSEMBLED sim-spruce pair — the
 whole-artifact regression test the first spruce window lacked: every actor
 constructs through the ordinary boot path (LocalControl resolves to
-NolanBufferOnlyCoolingTou, the i2c relays and bus register), and the snapshot path
+NolanBufferOnlyTou, the i2c relays and bus register), and the snapshot path
 builds. The window #1 killer was scada_data.capture_seconds
 walking the DAC writer's i2c.dac.channel.config — a config shape the pinned
 Nolan fixture never exercises, which is why 189 green tests missed it.
@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from actors.local_control.nolan.buffer_only_cooling_tou import NolanBufferOnlyCoolingTou
+from actors.local_control.nolan.buffer_only_tou import NolanBufferOnlyTou
 from scada_app import ScadaApp
 
 SPRUCE_LAYOUT = Path(__file__).parent.parent / "config" / "gw.nolan.layout.json"
@@ -43,7 +43,7 @@ def test_spruce_artifact_boots(app: ScadaApp) -> None:
     assert "zone1-bedrooms-failsafe-relay" in names
     assert "secondary-pump-relay" in names
     lc = app.raw_proactor.get_communicator("lc")
-    assert isinstance(lc._impl, NolanBufferOnlyCoolingTou)
+    assert isinstance(lc._impl, NolanBufferOnlyTou)
 
 
 def test_spruce_snapshot_path_builds(app: ScadaApp) -> None:

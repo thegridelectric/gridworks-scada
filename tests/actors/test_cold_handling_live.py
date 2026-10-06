@@ -179,20 +179,11 @@ async def test_a_house0_house_cold_with_its_stores_empty_under_a_dispatch_contra
         assert isinstance(impl, LocalControlTouBase)
         watch = cold_watch(h.child1_app)
         seen = Recorder(monkeypatch, scada, watch)
-        contracts_initialized: list[bool] = []
-        initialize_contracts = scada.initialize_contracts
-
-        def initialize_then_note() -> None:
-            initialize_contracts()
-            contracts_initialized.append(True)
-
-        # An offer before the scada's startup contract load is swallowed by it.
-        monkeypatch.setattr(scada, "initialize_contracts", initialize_then_note)
         await h.await_for(
-            lambda: scada.auto_state == MainAutoState.LocalControl and bool(contracts_initialized),
-            "ERROR waiting for the startup contract load",
+            lambda: scada.auto_state == MainAutoState.LocalControl,
+            "ERROR waiting for auto to wake into LocalControl",
             timeout=30,
-            err_str_f=lambda: f"auto_state: {scada.auto_state}, loaded: {contracts_initialized}",
+            err_str_f=lambda: f"auto_state: {scada.auto_state}",
         )
 
         contract = SlowDispatchContract(

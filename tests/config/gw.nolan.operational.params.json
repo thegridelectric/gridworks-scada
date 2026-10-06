@@ -780,7 +780,7 @@
   "Standby": false,
   "StandbyPosture": "NoHeatingOrCooling",
   "EnergizedStandbyRelays": [],
-  "ServiceMode": "Cooling",
+  "ServiceMode": "Heating",
   "AcceptsDispatch": true,
   "CopCurve": {
     "TypeName": "cop.curve",

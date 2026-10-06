@@ -98,6 +98,8 @@ class ContractHandler:
         - Returns a new SlowDispatchContract with state CompletedUnknownOutcome
         if the passing of time mandates a state change.
         - If the hb doesn't exist, doesn't load anything and returns None
+        - If the hb is in a done state (terminated or completed), keeps it
+        as prev and returns None
         - If the hb exists and covered by current time, sets self.hb
         to this heartbeat and returns None
         """
@@ -114,6 +116,10 @@ class ContractHandler:
                                      SlowDispatchContractStatus.CompletedUnknownOutcome]:
                     return
                 self.prev = hb
+            elif hb.Status in self.DONE_STATES:
+                self.prev = hb
+                self.logger.info("Stored contract has ended; nothing to load")
+                return None
             else:
                 if time.time() > hb.Contract.contract_end_s():
                     if hb.Status not in self.DONE_STATES:

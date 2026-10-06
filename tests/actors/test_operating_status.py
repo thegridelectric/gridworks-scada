@@ -198,18 +198,6 @@ async def test_operating_status_emits_once_per_change(
             original_send(to_node, payload, from_node)
 
         monkeypatch.setattr(scada, "_send_to", record)
-        # The scada loads any persisted contract a few seconds into its run
-        # and completes it as a reboot leftover; an offer before that load
-        # is swallowed by it, so the walk waits for the load.
-        contracts_initialized: list[bool] = []
-        initialize_contracts = scada.initialize_contracts
-
-        def initialize_then_note() -> None:
-            initialize_contracts()
-            contracts_initialized.append(True)
-
-        monkeypatch.setattr(scada, "initialize_contracts", initialize_then_note)
-
         # Startup: one status, the ops word's six facts plus the runtime ones.
         scada.send_startup_announcements()
         assert len(statuses) == 1
@@ -245,8 +233,8 @@ async def test_operating_status_emits_once_per_change(
         assert len(statuses) == 3
         assert_only_changed(statuses[1], statuses[2], TopState=TopState.Auto)
         await h.await_for(
-            lambda: scada.auto_state == MainAutoState.LocalControl and bool(contracts_initialized),
-            "ERROR waiting for auto to wake into LocalControl and the contract load",
+            lambda: scada.auto_state == MainAutoState.LocalControl,
+            "ERROR waiting for auto to wake into LocalControl",
         )
 
         if ops.AcceptsDispatch:

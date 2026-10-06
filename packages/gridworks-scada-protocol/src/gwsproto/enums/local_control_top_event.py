@@ -10,8 +10,6 @@ class LocalControlTopEvent(SemaEnum):
     TopWakeUp = auto()
     MissingData = auto()
     DataAvailable = auto()
-    MonitorOnly = auto()
-    MonitorAndControl = auto()
     CriticalZonesAtSetpointOffpeak = auto()
 
     @classmethod

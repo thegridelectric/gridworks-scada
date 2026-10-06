@@ -273,6 +273,9 @@ class Scada(PrimeActor, ScadaInterface):
         # in-process tests) has no use for it and would leak the thread.
         if isinstance(self.services.clock, TimestepClock):
             self.services.clock.start()
+        # The stored contract is loaded before any message is processed, so
+        # an offer never meets a contract still waiting in the store.
+        loaded_contract_hb = self.contract_handler.initialize()
         return [
             asyncio.create_task(self.report_sending_task(), name="report_sender"),
             asyncio.create_task(self.snap_sending_task(), name="snap_sender"),
@@ -282,7 +285,9 @@ class Scada(PrimeActor, ScadaInterface):
             asyncio.create_task(
                 self.disabled_roster_task(), name="disabled_roster"
             ),
-            asyncio.create_task(self.state_tracker(), name="scada top_state_tracker"),
+            asyncio.create_task(
+                self.state_tracker(loaded_contract_hb), name="scada top_state_tracker"
+            ),
             asyncio.create_task(
                 self.announce_at_first_broker_link(), name="startup_announcer"
             ),
@@ -1304,13 +1309,10 @@ class Scada(PrimeActor, ScadaInterface):
         self.log("New Dispatch Contract!")
 
         if self.auto_state == MainAutoState.LocalControl:
+            # The transition sends the leaf ally the contract.
             self.auto_trigger(MainAutoEvent.DispatchContractLive)
-        # Regardless of auto state
-        if self.contract_handler.latest_scada_hb is None:
-            self.log("That's strange! There should be a latest_scada_hb!")
             return
-        self._send_to(self.leaf_ally, self.contract_handler.latest_scada_hb.Contract
-        )
+        self._send_to(self.leaf_ally, self.contract_handler.latest_scada_hb.Contract)
 
     def recv_activated(
         self, transition: Transition
@@ -1378,19 +1380,24 @@ class Scada(PrimeActor, ScadaInterface):
     # Contract management
     #######################################
 
-    def initialize_contracts(self) -> None:
-        """Called during Scada startup to load any persisted contracts"""
-
-        # loads state and contract from persistent store
-        hb = self.contract_handler.initialize()
-
-        # Re-establish Ltn mode if contract is live
-        if self.contract_handler.latest_scada_hb:
+    def resume_loaded_contract(self, loaded: Optional[SlowContractHeartbeat]) -> None:
+        """Speak of the heartbeat the contract handler loaded at start: a
+        live contract puts the leaf ally back in charge, and the LTN and
+        the leaf ally get the heartbeat. Nothing is sent when a contract
+        offered since the load has taken the loaded one's place, or when
+        the loaded contract is no longer the live one."""
+        if loaded is None:
+            return
+        latest = self.contract_handler.latest_scada_hb
+        if loaded.Status in ContractHandler.DONE_STATES:
+            if latest is not None:
+                return
+        elif latest is None or latest.Contract.ContractId != loaded.Contract.ContractId:
+            return
+        else:
             self.dispatch_contract_live()
-
-        if hb:
-            self._send_to(self.ltn, hb)
-            self._send_to(self.leaf_ally, hb)
+        self._send_to(self.ltn, loaded)
+        self._send_to(self.leaf_ally, loaded)
     
     def enforce_auto_state_consistency(self) -> None:
         """ Enforces that auto_state [LocalControl, LeafTransactiveNode, Dormant] is consistent
@@ -1517,11 +1524,10 @@ class Scada(PrimeActor, ScadaInterface):
             self.ltn_dispatching = dispatching
             self.report_operating_status()
 
-    async def state_tracker(self) -> None:
+    async def state_tracker(self, loaded_contract_hb: Optional[SlowContractHeartbeat]) -> None:
         loop_s = self.settings.seconds_per_report
         await asyncio.sleep(4)
-        self.log("About to initialize contracts")
-        self.initialize_contracts()
+        self.resume_loaded_contract(loaded_contract_hb)
         while True:
             hiccup = 1.5
             sleep_s = max(hiccup, loop_s - (time.time() % loop_s) - 1.2)

@@ -312,7 +312,8 @@ class ColdWatch(ColdJudgmentNode):
         """One look at the house.
 
         A critical zone cold for COLD_LATCH_S raises the critical-zone-cold
-        glitch, once per cold spell. Cold that long with the stores empty
+        glitch, once per cold spell, unless the house is in standby, where
+        it may be unheated on purpose. Cold that long with the stores empty
         asks the scada to break any dispatch contract, once per cold spell.
         A house still cold after STILL_COLD_IN_BACKUP_S in backup raises
         its own glitch, once per stay. A circuit reading under FREEZE_F
@@ -332,7 +333,7 @@ class ColdWatch(ColdJudgmentNode):
                 f"{'; '.join(zone.line() for zone in cold)}. "
                 f"Cold for {COLD_LATCH_S // 60} minutes"
             )
-            if not self.cold_reported:
+            if not self.cold_reported and not self.ops.Standby:
                 self.cold_reported = True
                 self.alert(CRITICAL_ZONE_COLD, f"{cause}.")
             if not self.break_sent and self.stores_empty():
