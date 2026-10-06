@@ -263,7 +263,7 @@ class ColdWatch(ColdJudgmentNode):
                     and payload.StateEnum == LocalControlTopState.enum_name()
                 ):
                     self.in_backup = (
-                        payload.State == LocalControlTopState.UsingNonElectricBackup
+                        payload.State == LocalControlTopState.InBackup
                     )
             case _:
                 self.log(f"{self.name} received unexpected message: {message.Header}")

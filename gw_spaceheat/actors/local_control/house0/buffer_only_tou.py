@@ -92,7 +92,7 @@ class BufferOnlyTouLocalControl(LocalControlTouBase):
 
     def time_to_trigger_system_cold(self) -> bool:
         """
-        Logic for triggering SystemCold (and moving to top state UsingNonElectricBackup).
+        Logic for triggering SystemCold (and moving to top state InBackup).
         In shoulder, this means: 1) house is cold 2) buffer is really empty
         """
         return self.is_system_cold() and self.is_buffer_empty()

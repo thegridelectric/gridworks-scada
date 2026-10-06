@@ -106,13 +106,13 @@ class NolanBufferOnlyTou(NolanHydronic):
         HSNN.hp_scada_ops_relay,
     )
 
-    # UsingNonElectricBackup is a state of the machine with no transition
+    # InBackup is a state of the machine with no transition
     # into it.
     top_states = [
         LocalControlTopState.Dormant,
         LocalControlTopState.Normal,
         LocalControlTopState.ScadaBlind,
-        LocalControlTopState.UsingNonElectricBackup,
+        LocalControlTopState.InBackup,
     ]
     top_transitions = [
         {

@@ -16,13 +16,13 @@ TOP_STATES = {
         LocalControlTopState.Dormant,
         LocalControlTopState.Normal,
         LocalControlTopState.ScadaBlind,
-        LocalControlTopState.UsingNonElectricBackup,
+        LocalControlTopState.InBackup,
     },
     NolanBufferOnlyTou: {
         LocalControlTopState.Dormant,
         LocalControlTopState.Normal,
         LocalControlTopState.ScadaBlind,
-        LocalControlTopState.UsingNonElectricBackup,
+        LocalControlTopState.InBackup,
     },
     StandbyLocalControl: {
         LocalControlTopState.Dormant,
@@ -45,14 +45,14 @@ def test_nolan_has_no_way_into_backup() -> None:
     assert not [
         t
         for t in NolanBufferOnlyTou.top_transitions
-        if t["dest"] == LocalControlTopState.UsingNonElectricBackup
+        if t["dest"] == LocalControlTopState.InBackup
     ]
 
 
 def test_every_commanding_top_state_has_its_state_node() -> None:
     state_nodes = {
         LocalControlTopState.Normal: CoreNodeNames.local_control_normal,
-        LocalControlTopState.UsingNonElectricBackup: CoreNodeNames.local_control_backup,
+        LocalControlTopState.InBackup: CoreNodeNames.local_control_backup,
         LocalControlTopState.ScadaBlind: CoreNodeNames.local_control_scada_blind,
         LocalControlTopState.Standby: CoreNodeNames.local_control_standby,
     }

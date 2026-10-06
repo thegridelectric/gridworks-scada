@@ -380,7 +380,7 @@ async def test_the_watch_subscribes_to_the_local_controls_top_state(nolan: ColdW
 
 def test_the_watch_learns_backup_from_the_local_controls_top_state(willow: ColdWatch) -> None:
     assert willow.in_backup is False
-    top_state(willow, LocalControlTopState.UsingNonElectricBackup)
+    top_state(willow, LocalControlTopState.InBackup)
     assert willow.in_backup is True
     top_state(willow, LocalControlTopState.Normal)
     assert willow.in_backup is False
@@ -553,7 +553,7 @@ def test_a_nolan_house_stays_in_its_top_state_when_cold(nolan: ColdWatch) -> Non
 
 def test_an_hour_cold_in_backup_raises_its_own_glitch_once(willow: ColdWatch) -> None:
     make_cold(willow)
-    top_state(willow, LocalControlTopState.UsingNonElectricBackup)
+    top_state(willow, LocalControlTopState.InBackup)
     willow.cold_watch(T0)
     willow.cold_watch(T0 + cold.STILL_COLD_IN_BACKUP_S)
     assert glitches(willow, cold.STILL_COLD_IN_BACKUP) == []
@@ -566,7 +566,7 @@ def test_an_hour_cold_in_backup_raises_its_own_glitch_once(willow: ColdWatch) ->
 def test_a_house_warm_in_backup_raises_no_still_cold_glitch(willow: ColdWatch) -> None:
     make_warm(willow)
     put_f(willow, f"{W_ZONE}-set", 70)
-    top_state(willow, LocalControlTopState.UsingNonElectricBackup)
+    top_state(willow, LocalControlTopState.InBackup)
     willow.cold_watch(T0)
     willow.cold_watch(T0 + 2 * cold.STILL_COLD_IN_BACKUP_S)
     assert glitches(willow, cold.STILL_COLD_IN_BACKUP) == []

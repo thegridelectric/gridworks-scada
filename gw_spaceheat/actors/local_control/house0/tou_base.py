@@ -39,22 +39,22 @@ class LocalControlTouBase(House0Hydronic):
     should inherit from this base class."""
     MAIN_LOOP_SLEEP_SECONDS = 60
     BLIND_MINUTES = 5
-    SYSTEM_COLD_MINUTES = 5  # Min time house+tanks cold before switching to UsingNonElectricBackup
+    SYSTEM_COLD_MINUTES = 5  # Min time house+tanks cold before switching to InBackup
 
 
     top_states = [
         LocalControlTopState.Dormant,
-        LocalControlTopState.UsingNonElectricBackup,
+        LocalControlTopState.InBackup,
         LocalControlTopState.Normal,
         LocalControlTopState.ScadaBlind,
     ]
     top_transitions = [
         {"trigger": "TopGoDormant", "source": "Normal", "dest": "Dormant"},
-        {"trigger": "TopGoDormant", "source": "UsingNonElectricBackup", "dest": "Dormant"},
+        {"trigger": "TopGoDormant", "source": "InBackup", "dest": "Dormant"},
         {"trigger": "TopGoDormant", "source": "ScadaBlind", "dest": "Dormant"},
         {"trigger": "TopWakeUp", "source": "Dormant", "dest": "Normal"},
-        {"trigger": "SystemCold", "source": "Normal", "dest": "UsingNonElectricBackup"},
-        {"trigger": "CriticalZonesAtSetpointOffpeak", "source": "UsingNonElectricBackup", "dest": "Normal"},
+        {"trigger": "SystemCold", "source": "Normal", "dest": "InBackup"},
+        {"trigger": "CriticalZonesAtSetpointOffpeak", "source": "InBackup", "dest": "Normal"},
         {"trigger": "MissingData", "source": "Normal", "dest": "ScadaBlind"},
         {"trigger": "DataAvailable", "source": "ScadaBlind", "dest": "Normal"},
     ]
@@ -124,24 +124,6 @@ class LocalControlTouBase(House0Hydronic):
     @property
     def params(self) -> Ha1Params:
         return self.data.ha1_params
-
-    def set_limited_command_tree(self, boss: ShNode) -> None:
-        """
-        ```
-        h                               
-        └─ BOSS                                                  
-            ├── relay1 (vdc)                 
-            ├── relay2 (tstat_common)
-            └── all other relays and 0-10s
-        ```
-        """
-        if boss is None:
-            raise ValueError("Cannot set limited command tree: boss node is None")
-        
-        for node in self.my_actuators():
-            node.Handle = f"{boss.Handle}.{node.Name}"
-        self.publish_command_tree()
-        self.log(f"Set ha command tree w all actuators reporting to {boss.handle}")
 
     def trigger_top_event(self, cause: LocalControlTopEvent) -> None:
         """
@@ -240,7 +222,7 @@ class LocalControlTouBase(House0Hydronic):
                         self.system_cold_since = None
                 else:
                     self.system_cold_since = None
-            elif self.top_state == LocalControlTopState.UsingNonElectricBackup and not self.is_system_cold() and not self.is_onpeak():
+            elif self.top_state == LocalControlTopState.InBackup and not self.is_system_cold() and not self.is_onpeak():
                 self.trigger_zones_at_setpoint_offpeak()
             elif self.top_state == LocalControlTopState.ScadaBlind:
                 if self.heating_forecast and self.buffer_temps_available:
@@ -274,7 +256,7 @@ class LocalControlTouBase(House0Hydronic):
         if self.top_state == LocalControlTopState.ScadaBlind:
             return self.scada_blind_node
 
-        if self.top_state == LocalControlTopState.UsingNonElectricBackup:
+        if self.top_state == LocalControlTopState.InBackup:
             return self.backup_node
 
         return self.normal_node
@@ -282,7 +264,7 @@ class LocalControlTouBase(House0Hydronic):
     @abstractmethod
     def time_to_trigger_system_cold(self) -> bool:
         """
-        Logic for triggering SystemCold (and moving to top state UsingNonElectricBackup)
+        Logic for triggering SystemCold (and moving to top state InBackup)
         """
         raise NotImplementedError
 
@@ -360,16 +342,16 @@ class LocalControlTouBase(House0Hydronic):
 
     def trigger_system_cold_event(self) -> None:
         """
-        Called to change top state from Normal to UsingNonElectricBackup. Only acts if
+        Called to change top state from Normal to InBackup. Only acts if
           (a) house is actually cold and (b) top state is Normal
         What it does: 
-          - changes command tree (all relays will be direct reports of auto.h.backup)
+          - changes command tree (the backup node is the boss)
           - triggers SystemCold
           - takes necessary actuator actions to go backup
           - updates the normal state to Dormant if needed
           - reports top state change
         """
-        self.set_limited_command_tree(boss=self.backup_node)
+        self.set_command_tree(boss_node=self.backup_node)
         if not self.top_state == LocalControlTopState.Dormant:
             self.normal_node_goes_dormant()
         self.backup_actuator_actions()
@@ -377,10 +359,10 @@ class LocalControlTouBase(House0Hydronic):
 
     def trigger_zones_at_setpoint_offpeak(self):
         """
-        Called to change top state from UsingNonElectricBackup to Normal
+        Called to change top state from InBackup to Normal
         """
-        if self.top_state != LocalControlTopState.UsingNonElectricBackup:
-            raise Exception("Should only call trigger_zones_at_setpoint_offpeak in transition from UsingNonElectricBackup to Normal!")
+        if self.top_state != LocalControlTopState.InBackup:
+            raise Exception("Should only call trigger_zones_at_setpoint_offpeak in transition from InBackup to Normal!")
         self.trigger_top_event(cause=LocalControlTopEvent.CriticalZonesAtSetpointOffpeak)
         self.set_command_tree(boss_node=self.normal_node)
         self.normal_node_wakes_up()
@@ -388,7 +370,7 @@ class LocalControlTouBase(House0Hydronic):
     def trigger_missing_data(self):
         if self.top_state != LocalControlTopState.Normal:
             raise Exception("Should only call trigger_missing_data in transition from Normal to ScadaBlind!")
-        self.set_limited_command_tree(boss=self.scada_blind_node)
+        self.set_command_tree(boss_node=self.scada_blind_node)
         self.normal_node_goes_dormant()
         self.scada_blind_actuator_actions()
         self.trigger_top_event(cause=LocalControlTopEvent.MissingData)
@@ -462,7 +444,7 @@ class LocalControlTouBase(House0Hydronic):
                 if len(self.my_actuators()) > 0:
                     raise Exception("LocalControl sent GoDormant with live actuators under it!")
                 if self.top_state != LocalControlTopState.Dormant:
-                    # TopGoDormant: Normal/UsingNonElectricBackup -> Dormant
+                    # TopGoDormant: Normal/InBackup -> Dormant
                     self.trigger_top_event(cause=LocalControlTopEvent.TopGoDormant)
                     self.normal_node_goes_dormant()
             case WakeUp():

@@ -595,7 +595,7 @@ class House0Layout(GwsprotoSemaType):
         c. Every NoActor ShNode directly under the LocalControl ShNode SHALL be
         one of local control's state nodes, named for the gw2.lc.top.state
         values in which local control holds the command tree: "n" (Normal),
-        "backup" (UsingNonElectricBackup), "scada-blind" (ScadaBlind) or
+        "backup" (InBackup), "scada-blind" (ScadaBlind) or
         "standby" (Standby).
         """
         check_actuator_leaves(self.ShNodes, "Axiom 14 (ActuatorLeaves)")
