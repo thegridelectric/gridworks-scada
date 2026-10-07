@@ -401,6 +401,20 @@ def test_get_temperatures_buffer_unavailable_when_a_layer_is_missing(
     assert (
         buffer.depth2 not in actor.data.latest_temperatures_f
     )  # the buffer is never filled in
+    assert actor.missing_buffer_temperatures() == [buffer.depth2, buffer.depth3]
+
+
+def test_missing_buffer_temperatures_names_each_absent_layer(actor: House0Hydronic) -> None:
+    """The ally's give-up names the buffer channels it cannot read."""
+    buffer = HCN.buffer
+    for name in buffer.effective:
+        actor.data.latest_channel_values[name] = None
+    actor.get_temperatures()
+    assert actor.missing_buffer_temperatures() == sorted(buffer.effective)
+    for name in buffer.effective:
+        actor.data.latest_channel_values[name] = f_x100(120.0)
+    actor.get_temperatures()
+    assert actor.missing_buffer_temperatures() == []
 
 
 def test_missing_store_layers_fill_from_the_layer_below(actor: House0Hydronic) -> None:

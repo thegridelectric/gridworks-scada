@@ -221,7 +221,7 @@ async def test_a_live_stored_contract_is_ended_by_a_scada_that_refuses_dispatch(
         assert ended.Contract.ContractId == contract.ContractId
         assert ended.Status == SlowDispatchContractStatus.TerminatedByScada
         assert ended.WattHoursUsed == 120
-        assert ended.Cause is not None and reason.value in ended.Cause
+        assert ended.Cause is not None and ended.Cause.startswith(reason.value)  # the scada's reason, as given
         assert scada.auto_state == MainAutoState.LocalControl
         assert scada.contract_handler.latest_scada_hb is None
         assert sends.to_leaf_ally(SlowDispatchContract) == []

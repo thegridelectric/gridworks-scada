@@ -243,4 +243,5 @@ async def test_a_house0_house_cold_with_its_stores_empty_under_a_dispatch_contra
             and p.Status == SlowDispatchContractStatus.TerminatedByScada
         ]
         assert [t.Contract.ContractId for t in terminations] == [contract.ContractId]
-        assert DispatchRefusalReason.ServiceContractBroken.value in terminations[0].Cause
+        assert terminations[0].Cause is not None
+        assert terminations[0].Cause.startswith(DispatchRefusalReason.ServiceContractBroken.value)

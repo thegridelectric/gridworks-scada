@@ -736,6 +736,11 @@ class House0Hydronic(ColdJudgmentNode):
 
         self.data.latest_temperatures_f = dict(sorted(self.data.latest_temperatures_f.items()))
 
+    def missing_buffer_temperatures(self) -> list[str]:
+        """The buffer channels the last get_temperatures could not read,
+        sorted; empty when the buffer is available."""
+        return sorted(set(HCN.buffer.effective) - set(self.data.latest_temperatures_f))
+
     def hp_idu_pwr_w(self) -> Optional[float]:
         """Returns the latest Heat Pump indoor unit power in Watts, or None
         if the channel is not live"""

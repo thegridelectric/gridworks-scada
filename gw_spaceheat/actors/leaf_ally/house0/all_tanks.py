@@ -300,10 +300,11 @@ class AllTanksLeafAlly(House0Hydronic):
                     if self.no_temps_since is None:
                         self.no_temps_since = int(time.time()) # start the clock
                     elif time.time() - self.no_temps_since > self.NO_TEMPS_BAIL_MINUTES * 60:
-                        self.log("Cannot suit up - missing temperatures!")
+                        missing = ", ".join(self.missing_buffer_temperatures())
+                        self.log(f"Cannot suit up - missing buffer temperatures: {missing}")
                         self._send_to(
                             self.primary_scada,
-                            AllyGivesUp(Reason="Missing temperatures required for operation"))
+                            AllyGivesUp(Reason=f"Missing buffer temperatures: {missing}"))
                         return
                     if self.hp_should_be_off():
                         self.turn_off_hp()

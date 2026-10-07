@@ -568,26 +568,29 @@ class Scada(PrimeActor, ScadaInterface):
             self.log("Admin Wakes Up")
 
     def process_ally_gives_up(self, from_node: ShNode, payload: AllyGivesUp) -> None:
-        """Handle LeafAlly relinquishing supervisory authority.
+        """The scada ends its part in dispatch, whoever decided it: the
+        leaf ally relinquishing the tree, the cold watch breaking the
+        contract, or the scada itself refusing dispatch at a restart. The
+        Reason is the decider's, carried to the LTN as given.
 
         Effects:
         - Transitions auto_state from LeafTransactiveNode -> LocalControl
+          when the ally held the tree
         - If an active contract exists, sends a terminating heartbeat to the Ltn
         - Cancels any outstanding contract timing task
 
         Note:
-        LeafAlly may give up authority even when no active contract heartbeat
-        exists (for example during grace period or after contract completion).
-        In that case we still transition to LocalControl but do not send a
-        terminating heartbeat.
+        A give-up may arrive with no active contract heartbeat (for example
+        during grace period or after contract completion). In that case the
+        auto state still moves but no terminating heartbeat is sent.
         """
         self.auto_trigger(MainAutoEvent.AllyGivesUp)
 
-        self.log(f"LeafAlly giving up: {payload.Reason}")
-    
+        self.log(f"Ending dispatch: {payload.Reason}")
+
         if self.contract_handler.latest_scada_hb:
-            self.log("Sending termination hb to Scada. State: LeafTransactiveNode -> LocalControl")
-            hb = self.contract_handler.scada_terminates_contract_hb(cause=f"Ally Gives up: {payload.Reason}")
+            self.log("Sending termination hb to the LTN")
+            hb = self.contract_handler.scada_terminates_contract_hb(cause=payload.Reason)
         
             self.contract_handler.latest_scada_hb = hb
             self.contract_handler.store_heartbeat()
