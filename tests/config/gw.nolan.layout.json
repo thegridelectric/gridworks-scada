@@ -4172,7 +4172,7 @@
         "buffer-top-elt-relay",
         "buffer-bottom-elt-relay"
       ],
-      "InService": false
+      "InService": true
     },
     "PrimaryFlowSource": "Measured",
     "PrimaryPumpOwner": "HeatPump",

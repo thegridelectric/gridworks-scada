@@ -46,10 +46,13 @@ def test_top_machine_states(machine: type) -> None:
 COLD_STATES = {LocalControlTopState.InBackup, LocalControlTopState.ColdOverride}
 
 
-def test_house0_system_cold_leaves_normal_for_the_cold_state_its_event_names() -> None:
+
+
+@pytest.mark.parametrize("machine", [LocalControlTouBase, NolanBufferOnlyTou], ids=lambda m: m.__name__)
+def test_system_cold_leaves_normal_for_the_cold_state_its_event_names(machine: type) -> None:
     assert {
         (t["trigger"], t["dest"])
-        for t in LocalControlTouBase.top_transitions
+        for t in machine.top_transitions
         if t["source"] == LocalControlTopState.Normal and t["dest"] in COLD_STATES
     } == {
         (LocalControlTopEvent.SystemCold, LocalControlTopState.InBackup),
@@ -57,43 +60,17 @@ def test_house0_system_cold_leaves_normal_for_the_cold_state_its_event_names() -
     }
 
 
+@pytest.mark.parametrize("machine", [LocalControlTouBase, NolanBufferOnlyTou], ids=lambda m: m.__name__)
 @pytest.mark.parametrize("state", sorted(COLD_STATES))
-def test_house0_leaves_a_cold_state_warm_offpeak_or_dormant(state: LocalControlTopState) -> None:
+def test_a_cold_state_leaves_warm_offpeak_or_dormant(machine: type, state: LocalControlTopState) -> None:
     assert {
         (t["trigger"], t["dest"])
-        for t in LocalControlTouBase.top_transitions
+        for t in machine.top_transitions
         if t["source"] == state
     } == {
         (LocalControlTopEvent.CriticalZonesAtSetpointOffpeak, LocalControlTopState.Normal),
         (LocalControlTopEvent.TopGoDormant, LocalControlTopState.Dormant),
     }
-
-
-def test_nolan_system_cold_leaves_normal_for_cold_override() -> None:
-    assert {
-        (t["trigger"], t["dest"])
-        for t in NolanBufferOnlyTou.top_transitions
-        if t["source"] == LocalControlTopState.Normal and t["dest"] in COLD_STATES
-    } == {(LocalControlTopEvent.SystemColdNoBackup, LocalControlTopState.ColdOverride)}
-
-
-def test_nolan_leaves_cold_override_warm_offpeak_or_dormant() -> None:
-    assert {
-        (t["trigger"], t["dest"])
-        for t in NolanBufferOnlyTou.top_transitions
-        if t["source"] == LocalControlTopState.ColdOverride
-    } == {
-        (LocalControlTopEvent.CriticalZonesAtSetpointOffpeak, LocalControlTopState.Normal),
-        (LocalControlTopEvent.TopGoDormant, LocalControlTopState.Dormant),
-    }
-
-
-def test_nolan_has_no_way_into_backup() -> None:
-    assert not [
-        t
-        for t in NolanBufferOnlyTou.top_transitions
-        if t["dest"] == LocalControlTopState.InBackup
-    ]
 
 
 def test_every_commanding_top_state_has_its_state_node() -> None:

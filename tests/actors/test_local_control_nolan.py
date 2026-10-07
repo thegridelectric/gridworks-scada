@@ -130,22 +130,22 @@ def test_layout_without_plant_nodes_fails_decode() -> None:
 # ---- NolanBufferOnlyTou: the heating machine, on the Nolan sim pair ----
 
 
-def heating_ops(tmp_path: Path) -> Path:
+def heating_ops(tmp_path: Path, **changes) -> Path:
     """The spruce ops word authored for the heating machine: Heating,
     BufferOnly, the band at 130/90 as the fixture carries it."""
     ops = json.loads(SPRUCE_OPS.read_text())
     ops["ServiceMode"] = ServiceMode.Heating.value
     ops["FamilyParams"]["SeasonalStorageMode"] = SeasonalStorageMode.BufferOnly.value
+    ops.update(changes)
     path = tmp_path / "gw.nolan.operational.params.json"
     path.write_text(json.dumps(ops))
     return path
 
 
-@pytest.fixture
-def heat(tmp_path: Path) -> NolanBufferOnlyTou:
+def heating_machine(layout_path: Path, ops_path: Path) -> NolanBufferOnlyTou:
     settings = ScadaApp.get_settings()
-    settings.paths.hardware_layout = SPRUCE_LAYOUT
-    settings.paths.operational_params = heating_ops(tmp_path)
+    settings.paths.hardware_layout = layout_path
+    settings.paths.operational_params = ops_path
     settings.paths.mkdirs()
     scada_app = ScadaApp(app_settings=settings)
     scada_app.instantiate()
@@ -157,6 +157,17 @@ def heat(tmp_path: Path) -> NolanBufferOnlyTou:
         (dst.name, payload)
     )
     return inner
+
+
+@pytest.fixture
+def heat(tmp_path: Path) -> NolanBufferOnlyTou:
+    return heating_machine(SPRUCE_LAYOUT, heating_ops(tmp_path))
+
+
+@pytest.fixture
+def heat_with_backup(tmp_path: Path) -> NolanBufferOnlyTou:
+    """Spruce using its buffer elements when cold."""
+    return heating_machine(SPRUCE_LAYOUT, heating_ops(tmp_path, UsesBackupWhenCold=True))
 
 
 def commands(actor: NolanBufferOnlyTou) -> list[tuple[str, str]]:
@@ -225,6 +236,14 @@ PUMP_OFF = [
     (NolanNodeNames.secondary_pump_relay, ChangeRelayState.OpenRelay.value),
     (NolanNodeNames.iso_valve_relay, ChangeValveState.CloseValve.value),
 ]
+ELEMENTS_OFF = [
+    (NolanNodeNames.buffer_top_elt_relay, ChangeRelayState.OpenRelay.value),
+    (NolanNodeNames.buffer_bottom_elt_relay, ChangeRelayState.OpenRelay.value),
+]
+ELEMENTS_ON = [
+    (NolanNodeNames.buffer_top_elt_relay, ChangeRelayState.CloseRelay.value),
+    (NolanNodeNames.buffer_bottom_elt_relay, ChangeRelayState.CloseRelay.value),
+]
 CALL_ON = [(HSNN.hp_boss, TurnHpOnOff.TurnOn.value)]
 CALL_OFF = [(HSNN.hp_boss, TurnHpOnOff.TurnOff.value)]
 
@@ -284,7 +303,7 @@ def test_heating_boot_posture(heat: NolanBufferOnlyTou) -> None:
     pump on with the iso valve open because no hp-watch state has
     arrived yet. The machine reports HpCallOff and nothing more."""
     heat.on_actuators_ready()
-    assert commands(heat) == ZONE_RELEASE + STORE_CLOSED + CALL_OFF + PUMP_ON
+    assert commands(heat) == ZONE_RELEASE + STORE_CLOSED + ELEMENTS_OFF + CALL_OFF + PUMP_ON
     assert call_states(heat) == [NolanLcBufferOnlyState.HpCallOff]
     assert all(e.FromHandle == heat.normal_node.handle for e in hp_boss_events(heat))
 
@@ -429,7 +448,7 @@ def test_heating_hp_watch_state_while_dormant_waits_for_the_wake(
     for node in heat.layout.actuators:  # the scada hands the tree back first
         node.Handle = f"{heat.node.handle}.{node.Name}"
     heat.wake_up()
-    assert commands(heat) == ZONE_RELEASE + STORE_CLOSED + CALL_OFF + PUMP_OFF
+    assert commands(heat) == ZONE_RELEASE + STORE_CLOSED + ELEMENTS_OFF + CALL_OFF + PUMP_OFF
 
 
 def test_heating_scada_blind(heat: NolanBufferOnlyTou) -> None:
@@ -460,7 +479,7 @@ def test_heating_scada_blind(heat: NolanBufferOnlyTou) -> None:
         NolanLcBufferOnlyState.Initializing,
         NolanLcBufferOnlyState.HpCallOff,
     ]
-    assert commands(heat) == ZONE_RELEASE + STORE_CLOSED + CALL_OFF + PUMP_ON
+    assert commands(heat) == ZONE_RELEASE + STORE_CLOSED + ELEMENTS_OFF + CALL_OFF + PUMP_ON
     assert all(e.FromHandle == heat.normal_node.handle for e in hp_boss_events(heat))
 
 
@@ -507,8 +526,115 @@ def test_heating_cold_override(heat: NolanBufferOnlyTou) -> None:
         NolanLcBufferOnlyState.Initializing,
         NolanLcBufferOnlyState.HpCallOff,
     ]
-    assert commands(heat) == ZONE_RELEASE + STORE_CLOSED + CALL_OFF + PUMP_ON
+    assert commands(heat) == ZONE_RELEASE + STORE_CLOSED + ELEMENTS_OFF + CALL_OFF + PUMP_ON
     assert all(e.FromHandle == heat.normal_node.handle for e in hp_boss_events(heat))
+
+
+def element_commands(actor: NolanBufferOnlyTou) -> list[tuple[str, str]]:
+    return [(dst, e) for dst, e in commands(actor) if dst.endswith("-elt-relay")]
+
+
+def test_heating_not_using_backup_never_touches_the_elements(heat: NolanBufferOnlyTou) -> None:
+    """UsesBackupWhenCold false: a cold house goes to ColdOverride and no
+    element relay is ever closed; boot and the return to Normal open them."""
+    heat.on_actuators_ready()
+    assert element_commands(heat) == ELEMENTS_OFF
+    buffer_at(heat, 80, 80)
+    heat.check(ONPEAK)
+    watch_says(heat, HouseCold(Cause="zone1-bedrooms cold"))
+    assert heat.top_state == LocalControlTopState.ColdOverride
+    heat.check(OFFPEAK)
+    heat.check(ONPEAK)
+    watch_says(heat, HouseWarm())
+    heat.check(OFFPEAK)
+    assert heat.top_state == LocalControlTopState.Normal
+    assert element_commands(heat) == ELEMENTS_OFF + ELEMENTS_OFF
+    assert not any(e == ChangeRelayState.CloseRelay.value for _, e in element_commands(heat))
+
+
+def test_heating_in_backup(heat_with_backup: NolanBufferOnlyTou) -> None:
+    """UsesBackupWhenCold true: the watch's cold message moves the tree
+    under backup, opens the call and closes both buffer elements from it;
+    the elements carry the house through the peak; the warm message
+    off-peak re-boots Normal with the elements opened from n."""
+    heat = heat_with_backup
+    heat.on_actuators_ready()
+    buffer_at(heat, 80, 80)
+    heat.check(OFFPEAK)
+    assert heat.call_state == NolanLcBufferOnlyState.HpCallOn
+    heat.sent.clear()
+    watch_says(heat, HouseCold(Cause="zone1-bedrooms cold"))
+    assert heat.top_state == LocalControlTopState.InBackup
+    assert call_states(heat) == [NolanLcBufferOnlyState.Dormant]
+    assert commands(heat) == CALL_OFF + ELEMENTS_ON
+    backup = heat.layout.local_control_backup_node
+    assert hp_boss_events(heat)[-1].FromHandle == backup.handle
+    assert heat.layout.hp_boss.handle == f"{backup.handle}.{heat.layout.hp_boss.name}"
+    heat.sent.clear()
+    heat.check(ONPEAK)
+    heat.check(OFFPEAK)
+    assert commands(heat) == []
+    hp_watch_says(heat, SpruceHackHpState.HpDetectedOff)
+    assert commands(heat) == PUMP_OFF
+    heat.sent.clear()
+    watch_says(heat, HouseWarm())
+    assert heat.top_state == LocalControlTopState.InBackup  # warm on-peak holds
+    heat.check(ONPEAK)
+    assert heat.top_state == LocalControlTopState.InBackup
+    buffer_at(heat, 120, 130)
+    heat.check(OFFPEAK)
+    assert heat.top_state == LocalControlTopState.Normal
+    assert call_states(heat) == [
+        NolanLcBufferOnlyState.Initializing,
+        NolanLcBufferOnlyState.HpCallOff,
+    ]
+    assert commands(heat) == ZONE_RELEASE + STORE_CLOSED + ELEMENTS_OFF + CALL_OFF + PUMP_OFF
+    assert all(e.FromHandle == heat.normal_node.handle for e in hp_boss_events(heat))
+
+
+def test_heating_in_backup_from_call_off_sends_no_call(heat_with_backup: NolanBufferOnlyTou) -> None:
+    heat = heat_with_backup
+    heat.on_actuators_ready()
+    buffer_at(heat, 80, 80)
+    heat.check(ONPEAK)
+    assert heat.call_state == NolanLcBufferOnlyState.HpCallOff
+    heat.sent.clear()
+    watch_says(heat, HouseCold(Cause="zone1-bedrooms cold"))
+    assert commands(heat) == ELEMENTS_ON
+
+
+def test_heating_admin_taking_the_tree_in_backup_leaves_the_elements_to_admin(
+    heat_with_backup: NolanBufferOnlyTou,
+) -> None:
+    """GoDormant arrives once admin holds the tree, so the machine commands
+    nothing; the wake re-boots and opens the elements from n."""
+    heat = heat_with_backup
+    heat.on_actuators_ready()
+    watch_says(heat, HouseCold(Cause="zone1-bedrooms cold"))
+    assert heat.top_state == LocalControlTopState.InBackup
+    heat.sent.clear()
+    for node in heat.my_actuators():  # admin has taken the tree
+        node.Handle = f"admin.{node.Name}"
+    heat.go_dormant()
+    assert heat.top_state == LocalControlTopState.Dormant
+    assert commands(heat) == []
+    for node in heat.layout.actuators:  # the scada hands the tree back first
+        node.Handle = f"{heat.node.handle}.{node.Name}"
+    heat.wake_up()
+    assert heat.top_state == LocalControlTopState.Normal
+    assert element_commands(heat) == ELEMENTS_OFF
+
+
+def test_heating_using_backup_needs_an_element_backup(tmp_path: Path) -> None:
+    layout = json.loads(SPRUCE_LAYOUT.read_text())
+    del layout["Hydronic"]["Backup"]
+    layout["ShNodes"] = [
+        n for n in layout["ShNodes"] if n["Name"] != CoreNodeNames.local_control_backup
+    ]
+    layout_path = tmp_path / "hardware-layout.json"
+    layout_path.write_text(json.dumps(layout))
+    with pytest.raises(ValueError, match="element backup"):
+        heating_machine(layout_path, heating_ops(tmp_path, UsesBackupWhenCold=True))
 
 
 def test_heating_warm_offpeak_leaves_cold_override_at_once(heat: NolanBufferOnlyTou) -> None:
@@ -553,4 +679,4 @@ def test_heating_dormant_and_wake(heat: NolanBufferOnlyTou) -> None:
         NolanLcBufferOnlyState.Initializing,
         NolanLcBufferOnlyState.HpCallOff,
     ]
-    assert commands(heat) == ZONE_RELEASE + STORE_CLOSED + CALL_OFF + PUMP_ON
+    assert commands(heat) == ZONE_RELEASE + STORE_CLOSED + ELEMENTS_OFF + CALL_OFF + PUMP_ON

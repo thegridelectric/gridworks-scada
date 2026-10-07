@@ -48,6 +48,7 @@ from gwsproto.enums import (
 from gwsproto.enums.gw_str_enum import SemaEnum
 from gwsproto.named_types import (
     ActuatorsReady,
+    ElementBackup,
     GoDormant,
     NolanFamilyParams,
     SingleMachineState,
@@ -106,8 +107,6 @@ class NolanBufferOnlyTou(NolanHydronic):
         HSNN.hp_scada_ops_relay,
     )
 
-    # InBackup is a state of the machine with no transition
-    # into it.
     top_states = [
         LocalControlTopState.Dormant,
         LocalControlTopState.Normal,
@@ -116,6 +115,21 @@ class NolanBufferOnlyTou(NolanHydronic):
         LocalControlTopState.InBackup,
     ]
     top_transitions = [
+        {
+            "trigger": LocalControlTopEvent.SystemCold,
+            "source": LocalControlTopState.Normal,
+            "dest": LocalControlTopState.InBackup,
+        },
+        {
+            "trigger": LocalControlTopEvent.CriticalZonesAtSetpointOffpeak,
+            "source": LocalControlTopState.InBackup,
+            "dest": LocalControlTopState.Normal,
+        },
+        {
+            "trigger": LocalControlTopEvent.TopGoDormant,
+            "source": LocalControlTopState.InBackup,
+            "dest": LocalControlTopState.Dormant,
+        },
         {
             "trigger": LocalControlTopEvent.SystemColdNoBackup,
             "source": LocalControlTopState.Normal,
@@ -198,6 +212,11 @@ class NolanBufferOnlyTou(NolanHydronic):
                 f"NolanBufferOnlyTou needs gw.nolan.family.params, got {family.TypeName}"
             )
         self.family: NolanFamilyParams = family
+        if self.ops.UsesBackupWhenCold and not self.element_relays:
+            raise ValueError(
+                "UsesBackupWhenCold needs an element backup in the layout: "
+                "a Nolan machine has no other backup to go to"
+            )
         hp_odu = self.required_node(HSNN.hp_odu).component
         if hp_odu is None:
             raise ValueError(f"{HSNN.hp_odu} has no component; cannot read its device type")
@@ -253,11 +272,23 @@ class NolanBufferOnlyTou(NolanHydronic):
         return self.required_node(CoreNodeNames.local_control_normal)
 
     @property
+    def element_relays(self) -> list[ShNode]:
+        """The relays of the element backup the layout declares; none
+        when it declares no backup or a boiler."""
+        backup = self.layout.sema_layout.Hydronic.Backup
+        if not isinstance(backup, ElementBackup):
+            return []
+        return [self.required_node(name) for name in backup.ElementRelayNames]
+
+    @property
     def boss(self) -> ShNode:
         """The node commanding the plant: scada-blind while the band is
-        blind, cold-override while the house is cold, normal otherwise."""
+        blind, backup or cold-override while the house is cold, normal
+        otherwise."""
         if self.top_state == LocalControlTopState.ScadaBlind:
             return self.layout.local_control_scada_blind_node
+        if self.top_state == LocalControlTopState.InBackup:
+            return self.layout.local_control_backup_node
         if self.top_state == LocalControlTopState.ColdOverride:
             return self.layout.local_control_cold_override_node
         return self.normal_node
@@ -363,8 +394,9 @@ class NolanBufferOnlyTou(NolanHydronic):
 
     def boot(self) -> None:
         """The boot posture, commanded once the actuators are ready: zones
-        on their thermostats, the store circuit closed, the call open, the
-        pump per the hp-watch state. Initializing -> HpCallOff."""
+        on their thermostats, the store circuit closed, the backup elements
+        open, the call open, the pump per the hp-watch state.
+        Initializing -> HpCallOff."""
         for failsafe, ops_relay in self.zone_relays:
             self.send_state_command(
                 failsafe,
@@ -384,6 +416,7 @@ class NolanBufferOnlyTou(NolanHydronic):
             ChangeRelayState.OpenRelay.value,
             from_node=self.boss,
         )
+        self.command_elements(ChangeRelayState.OpenRelay)
         self.command_call(False)
         self.pump_on = None
         self.enforce_pump()
@@ -404,8 +437,8 @@ class NolanBufferOnlyTou(NolanHydronic):
             self.set_command_tree(boss_node=self.boss)
             self.trigger_call_event(NolanLcBufferOnlyEvent.CallWakeUp)
             self.boot()
-        if self.top_state == LocalControlTopState.ColdOverride and not self.house_cold:
-            self.leave_cold_override(now)
+        if self.top_state in self.COLD_STATES and not self.house_cold:
+            self.leave_cold_state(now)
         if self.top_state == LocalControlTopState.Normal:
             self.update_band()
             wanted = self.offpeak(now) and not self.buffer_full
@@ -423,25 +456,42 @@ class NolanBufferOnlyTou(NolanHydronic):
 
     # ---- the cold house, on the watch's word ----
 
+    COLD_STATES = (LocalControlTopState.InBackup, LocalControlTopState.ColdOverride)
+
+    def command_elements(self, state: ChangeRelayState) -> None:
+        for relay in self.element_relays:
+            self.send_state_command(relay, state.value, from_node=self.boss)
+
     def on_house_cold(self) -> None:
-        """Normal -> ColdOverride: the tree moves under cold-override, the
-        call machine goes Dormant and the call is closed whatever the
-        tariff. The pump keeps following the hp-watch."""
+        """Normal -> InBackup when the house uses its backup when cold,
+        else ColdOverride. The tree moves under the state's node and the
+        call machine goes Dormant. In InBackup the call is open and the
+        backup elements are closed; in ColdOverride the call is closed
+        whatever the tariff. The pump keeps following the hp-watch."""
         self.house_cold = True
         if self.top_state != LocalControlTopState.Normal:
             return
-        self.trigger_top_event(LocalControlTopEvent.SystemColdNoBackup)
-        self.set_command_tree(boss_node=self.boss)
-        self.trigger_call_event(NolanLcBufferOnlyEvent.CallGoDormant)
-        self.command_call(True)
+        if self.ops.UsesBackupWhenCold:
+            self.trigger_top_event(LocalControlTopEvent.SystemCold)
+            self.set_command_tree(boss_node=self.boss)
+            self.trigger_call_event(NolanLcBufferOnlyEvent.CallGoDormant)
+            if self.call_closed:
+                self.command_call(False)
+            self.command_elements(ChangeRelayState.CloseRelay)
+        else:
+            self.trigger_top_event(LocalControlTopEvent.SystemColdNoBackup)
+            self.set_command_tree(boss_node=self.boss)
+            self.trigger_call_event(NolanLcBufferOnlyEvent.CallGoDormant)
+            self.command_call(True)
 
     def on_house_warm(self, now: datetime) -> None:
         self.house_cold = False
-        if self.top_state == LocalControlTopState.ColdOverride:
-            self.leave_cold_override(now)
+        if self.top_state in self.COLD_STATES:
+            self.leave_cold_state(now)
 
-    def leave_cold_override(self, now: datetime) -> None:
-        """ColdOverride -> Normal, off-peak only, through a boot."""
+    def leave_cold_state(self, now: datetime) -> None:
+        """InBackup or ColdOverride -> Normal, off-peak only, through a
+        boot, which opens the elements."""
         if not self.offpeak(now):
             return
         self.trigger_top_event(LocalControlTopEvent.CriticalZonesAtSetpointOffpeak)
