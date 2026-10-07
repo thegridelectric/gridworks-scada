@@ -115,6 +115,8 @@ class Scada2App(App, ScadaAppInterface):
             Path(self.settings.paths.config_dir),
             self.settings.weather_api_url,
             self.settings.weather_pull_timeout_s,
+            self._clock,
+            self.settings.logging.base_log_name,
         )
 
     @property

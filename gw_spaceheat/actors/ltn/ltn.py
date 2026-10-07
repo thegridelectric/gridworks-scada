@@ -40,6 +40,7 @@ from gwproactor import ProactorLogger
 from gwproactor import ProactorName
 from gwproactor import AppInterface
 from scada_app_interface import ScadaAppInterface
+from weather_source import FORECAST_HOURS, ForecastPair, HourlyForecast
 from gwproto import HardwareLayout
 
 
@@ -477,7 +478,7 @@ class Ltn(PrimeActor):
         self.sent_bid = False
         self.flo_params = None
         self.hp_is_off = False
-        self.weather_forecast = None
+        self.weather_forecast: Optional[ForecastPair] = None
         self.price_forecast: Optional[PriceForecast] = None
         self.data_channels: List
         self.tank_temp_channel_names = None
@@ -1012,15 +1013,20 @@ class Ltn(PrimeActor):
         if self.flo_horizon_hours > MAX_HORIZON_HOURS:
             self.log(f"Horizon hours is greater than max allowed {MAX_HORIZON_HOURS}!")
             self.flo_horizon_hours = MAX_HORIZON_HOURS
-        if self.flo_horizon_hours > len(self.weather_forecast["oat"]):
-            self.log(f"Horizon hours is greater than weather forecast length {len(self.weather_forecast['oat'])}!")
-            self.flo_horizon_hours = self.weather_forecast["oat"]
+        assert isinstance(self.services, ScadaAppInterface)
+        weather = self.weather_forecast.next_hours(FORECAST_HOURS, self.services.clock.now())
+        if self.flo_horizon_hours > len(weather.time):
+            self.log(f"Horizon hours is greater than weather forecast length {len(weather.time)}!")
+            self.flo_horizon_hours = len(weather.time)
         if self.flo_horizon_hours > len(self.price_forecast.lmp_usd_per_mwh):
             self.log(f"Horizon hours is greater than price forecast length {len(self.price_forecast.lmp_usd_per_mwh)}!")
             self.flo_horizon_hours = len(self.price_forecast.lmp_usd_per_mwh)
         self.log(f"Using a {self.flo_horizon_hours} hour horizon")
-        self.weather_forecast["oat"] = self.weather_forecast["oat"][:self.flo_horizon_hours]
-        self.weather_forecast["ws"] = self.weather_forecast["ws"][:self.flo_horizon_hours]
+        weather = HourlyForecast(
+            time=weather.time[:self.flo_horizon_hours],
+            oat_f=weather.oat_f[:self.flo_horizon_hours],
+            wind_speed_mph=weather.wind_speed_mph[:self.flo_horizon_hours],
+        )
         self.price_forecast.lmp_usd_per_mwh = self.price_forecast.lmp_usd_per_mwh[:self.flo_horizon_hours]
         self.price_forecast.dp_usd_per_mwh = self.price_forecast.dp_usd_per_mwh[:self.flo_horizon_hours]
         self.price_forecast.reg_usd_per_mwh = self.price_forecast.reg_usd_per_mwh[:self.flo_horizon_hours]
@@ -1051,8 +1057,8 @@ class Ltn(PrimeActor):
             LmpForecast=self.price_forecast.lmp_usd_per_mwh,
             DistPriceForecast=self.price_forecast.dp_usd_per_mwh,
             RegPriceForecast=self.price_forecast.reg_usd_per_mwh,
-            OatForecastF=self.weather_forecast["oat"],
-            WindSpeedForecastMph=self.weather_forecast["ws"],
+            OatForecastF=weather.oat_f,
+            WindSpeedForecastMph=weather.wind_speed_mph,
             AlphaTimes10=self.ha1_params.AlphaTimes10,
             BetaTimes100=self.ha1_params.BetaTimes100,
             GammaEx6=self.ha1_params.GammaEx6,
@@ -1286,8 +1292,10 @@ class Ltn(PrimeActor):
             alpha = self.ha1_params.AlphaTimes10 / 10
             beta = self.ha1_params.BetaTimes100 / 100
             gamma = self.ha1_params.GammaEx6 / 1e6
-            oat = float(self.weather_forecast["oat"][0])
-            ws = float(self.weather_forecast["ws"][0])
+            assert isinstance(self.services, ScadaAppInterface)
+            weather = self.weather_forecast.next_hours(1, self.services.clock.now())
+            oat = weather.oat_f[0]
+            ws = weather.wind_speed_mph[0]
             r = alpha + beta*oat + gamma*ws*(65-oat)
             rhp= r if r>0 else 0
             intermediate_rswt = self.ha1_params.IntermediateRswtF
@@ -1510,17 +1518,9 @@ class Ltn(PrimeActor):
         return min(0, house_availale_kwh) # TODO: TEMPORARY only consider negative values
 
     async def get_weather(self, session: aiohttp.ClientSession) -> None:
-        """The 48-hour forecast from the scada's weather source."""
+        """The forecast pair from the scada's weather source."""
         assert isinstance(self.services, ScadaAppInterface)
-        forecast = await self.services.weather_source.forecast(
-            session,
-            tz=self.timezone,
-            scada_g_node_alias=self.layout.scada_g_node_alias,
-        )
-        self.weather_forecast = {
-            "oat": forecast.OatF,
-            "ws": forecast.WindSpeedMph,
-        }
+        self.weather_forecast = await self.services.weather_source.forecast(session)
 
     async def get_real_time_price(self) -> float:
         '''Returns current 5min real-time price (LMP+Dist) in USD/MWh'''

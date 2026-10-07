@@ -44,7 +44,7 @@ class ScadaAppInterface(AppInterface, ABC):
     @property
     @abstractmethod
     def weather_source(self) -> WeatherSource:
-        """Where the derived generator's weather forecast comes from."""
+        """Where the derived generator and the LTN get their weather forecast."""
         raise NotImplementedError
 
     @property

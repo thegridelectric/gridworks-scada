@@ -115,8 +115,6 @@ KNOWN_UNTESTED_AXIOMS: set[str] = {
     "synced.readings/000:1",
     "ticklist.hall/101:1",
     "ticklist.reed/101:1",
-    "weather.forecast/000:1",
-    "weather.forecast/000:2",
 }
 
 

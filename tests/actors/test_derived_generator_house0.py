@@ -15,10 +15,11 @@ import pytest
 
 from actors import derived_generator
 from actors.derived_generator import DerivedGenerator
-from gwsproto.named_types import HeatingForecast, WeatherForecast
+from gwsproto.named_types import HeatingForecast
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from scada_app import ScadaApp
+from weather_source import ForecastPair, sim_forecast
 
 CONFIG = Path(__file__).parent.parent / "config"
 
@@ -40,18 +41,11 @@ def forecast_hours(now_s: float) -> list[int]:
     return [top + 3600 * i for i in range(48)]
 
 
-def a_weather_forecast(actor: DerivedGenerator, now_s: float | None = None) -> WeatherForecast:
+def a_weather_forecast(actor: DerivedGenerator, now_s: float | None = None) -> ForecastPair:
     """The weather forecast the generator holds whenever it holds a heating
-    forecast: the same 48 hours, a steady 30 F and no wind."""
+    forecast: the simulated bundle from the next hour, a steady 30 F and no wind."""
     now_s = time.time() if now_s is None else now_s
-    return WeatherForecast(
-        FromGNodeAlias=actor.layout.scada_g_node_alias,
-        WeatherChannelName="weather.gov.kmlt",
-        Time=forecast_hours(now_s),
-        OatF=[30.0] * 48,
-        WindSpeedMph=[0.0] * 48,
-        ForecastCreatedS=int(now_s),
-    )
+    return sim_forecast(now_s, oat_f=30.0, wind_speed_mph=0.0)
 
 
 def a_day_of_forecast(actor: DerivedGenerator, now_s: float | None = None) -> HeatingForecast:

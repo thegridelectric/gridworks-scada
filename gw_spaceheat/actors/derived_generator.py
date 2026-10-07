@@ -1,5 +1,6 @@
 import time
 import asyncio
+import uuid
 import aiohttp
 import numpy as np
 from dataclasses import dataclass
@@ -24,10 +25,11 @@ from gwsproto.named_types import (
     Ha1Params, HeatingForecast, LinearOneDimensionalCalibration,
     RequiredEnergyLayered, ScadaParams,
     ChannelReadings, SingleReading, SyncedReadings,
-    UsableEnergyLayered, WeatherForecast
+    UsableEnergyLayered
 )
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from scada_app_interface import ScadaAppInterface
+from weather_source import FORECAST_HOURS, ForecastPair
 
 
 class SetpointPhase(StrEnum):
@@ -85,7 +87,7 @@ class DerivedGenerator(ShNodeActor):
     
         self.log(f"self.timezone: {self.timezone}")
         self.log(f"Params: {self.params}")
-        self.weather_forecast: Optional[WeatherForecast] = None
+        self.weather_forecast: Optional[ForecastPair] = None
 
         self.strategy_handlers: dict[str, DerivedHandler] = {
             "identity": self.handle_identity,
@@ -1008,9 +1010,10 @@ class DerivedGenerator(ShNodeActor):
             simulated_layers = simulated_layers[1:] + [self.rwt_f(simulated_layers[0])]
         if (((time_now.weekday()<4 or time_now.weekday()==6) and time_now.hour>=20) or (time_now.weekday()<5 and time_now.hour<=6)):
             self.log('Preparing for a morning onpeak + afternoon onpeak')
-            weather_forecasts_times_tz = [datetime.fromtimestamp(x, tz=self.timezone) for x in self.weather_forecast.Time]
+            weather = self.weather_forecast.next_hours(FORECAST_HOURS, now_s=time_now.timestamp())
+            weather_forecasts_times_tz = [datetime.fromtimestamp(x, tz=self.timezone) for x in weather.time]
             midday_oat = min([
-                oat for t, oat in zip(weather_forecasts_times_tz, self.weather_forecast.OatF)
+                oat for t, oat in zip(weather_forecasts_times_tz, weather.oat_f)
                 if 12<=t.hour<=15
             ])
             midday_cop = self.params.CopMin if midday_oat<self.params.CopMinOatF else self.params.CopIntercept + self.params.CopOatCoeff*midday_oat
@@ -1051,9 +1054,7 @@ class DerivedGenerator(ShNodeActor):
         return round((-b + (b**2-4*a*c2)**0.5)/(2*a), 2)
     
     async def get_weather(self, session: aiohttp.ClientSession) -> None:
-        self.weather_forecast = await self.services.weather_source.forecast(
-            session, tz=self.timezone, scada_g_node_alias=self.layout.scada_g_node_alias
-        )
+        self.weather_forecast = await self.services.weather_source.forecast(session)
 
     async def get_forecasts(self, session: aiohttp.ClientSession):
     
@@ -1061,31 +1062,33 @@ class DerivedGenerator(ShNodeActor):
         if self.weather_forecast is None:
             self.log("No weather forecast available. Could not compute heating forecasts.")
             return
+        weather = self.weather_forecast.next_hours(FORECAST_HOURS, self.services.clock.now())
         
         forecasts = {}
-        forecasts['time'] = self.weather_forecast.Time
+        forecasts['time'] = weather.time
         forecasts['avg_power'] = [
             self.required_heating_power(oat, ws) 
-            for oat, ws in zip(self.weather_forecast.OatF, self.weather_forecast.WindSpeedMph)]
+            for oat, ws in zip(weather.oat_f, weather.wind_speed_mph)]
         forecasts['required_swt'] = [self.required_swt(x) for x in forecasts['avg_power']]
         forecasts['required_swt_delta_T'] = [round(self.delta_T(x),2) for x in forecasts['required_swt']]
 
-        # Send cropped 24-hour heating forecast to aa & ha for their own use
-        # and send both the 48-hour weather forecast and 24-hr heating forecast to Ltn for record-keeping
+        # The 24-hour heating forecast goes to the LTN for record-keeping.
+        # The weather word carries no id, so the WeatherUid heating.forecast
+        # requires is fresh per forecast; the next heating.forecast version
+        # retires the field.
         hf = HeatingForecast(
             FromGNodeAlias=self.layout.scada_g_node_alias,
             Time = forecasts['time'][:24],
             AvgPowerKw = forecasts['avg_power'][:24],
             RswtF = forecasts['required_swt'][:24],
             RswtDeltaTF = forecasts['required_swt_delta_T'][:24],
-            WeatherUid=self.weather_forecast.WeatherUid
+            WeatherUid=str(uuid.uuid4())
         )
 
         # Ensure energy state is up-to-date before publishing forecast;
         # downstream actors treat the forecast as a trigger, not as state.
         self.data.heating_forecast = hf
         self._send_to(self.ltn, hf)
-        self._send_to(self.ltn, self.weather_forecast)
 
         if not self.first_required_energy_update_done:
             self.log("Updating usable and required energy")
@@ -1093,8 +1096,11 @@ class DerivedGenerator(ShNodeActor):
             self.compute_required_energy_wh()
             self.first_required_energy_update_done = True
 
-        forecast_start = datetime.fromtimestamp(self.weather_forecast.Time[0], tz=self.timezone)
-        self.log(f"Got forecast starting {forecast_start.strftime('%Y-%m-%d %H:%M:%S')}")
+        forecast_start = datetime.fromtimestamp(weather.time[0], tz=self.timezone)
+        self.log(
+            f"Got a {self.weather_forecast.message.Fidelity.value} forecast starting "
+            f"{forecast_start.strftime('%Y-%m-%d %H:%M:%S')}"
+        )
 
     def rwt_f(self, swt_f: float) -> float:
         """
