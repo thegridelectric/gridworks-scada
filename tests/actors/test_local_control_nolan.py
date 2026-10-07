@@ -516,9 +516,11 @@ def test_heating_cold_override(heat: NolanBufferOnlyTou) -> None:
     buffer_at(heat, 80, 80, age_s=301)
     heat.check(ONPEAK)
     assert heat.top_state == LocalControlTopState.ColdOverride  # a blind band changes nothing here
+    heat.offpeak = lambda now: False
     watch_says(heat, HouseWarm())
     assert heat.top_state == LocalControlTopState.ColdOverride  # warm on-peak holds
     assert commands(heat) == []
+    del heat.offpeak
     buffer_at(heat, 120, 130)
     heat.check(OFFPEAK)
     assert heat.top_state == LocalControlTopState.Normal
@@ -577,8 +579,10 @@ def test_heating_in_backup(heat_with_backup: NolanBufferOnlyTou) -> None:
     hp_watch_says(heat, SpruceHackHpState.HpDetectedOff)
     assert commands(heat) == PUMP_OFF
     heat.sent.clear()
+    heat.offpeak = lambda now: False
     watch_says(heat, HouseWarm())
     assert heat.top_state == LocalControlTopState.InBackup  # warm on-peak holds
+    del heat.offpeak
     heat.check(ONPEAK)
     assert heat.top_state == LocalControlTopState.InBackup
     buffer_at(heat, 120, 130)
@@ -635,6 +639,43 @@ def test_heating_using_backup_needs_an_element_backup(tmp_path: Path) -> None:
     layout_path.write_text(json.dumps(layout))
     with pytest.raises(ValueError, match="element backup"):
         heating_machine(layout_path, heating_ops(tmp_path, UsesBackupWhenCold=True))
+
+
+def test_heating_cold_with_a_blind_band_goes_to_cold_override(heat: NolanBufferOnlyTou) -> None:
+    """The cold states need no band: HouseCold moves ScadaBlind to
+    ColdOverride as it moves Normal, a repeat moves nothing, and the warm
+    exit re-boots Normal, which goes blind again at its next check."""
+    heat.on_actuators_ready()
+    buffer_at(heat, 80, 80, age_s=301)
+    heat.sent.clear()
+    heat.check(ONPEAK)
+    assert heat.top_state == LocalControlTopState.ScadaBlind
+    assert call_states(heat) == [NolanLcBufferOnlyState.Dormant]
+    heat.sent.clear()
+    watch_says(heat, HouseCold(Cause="zone1-bedrooms cold"))
+    assert heat.top_state == LocalControlTopState.ColdOverride
+    assert call_states(heat) == []  # the call machine was already dormant
+    assert commands(heat) == CALL_ON
+    assert hp_boss_events(heat)[-1].FromHandle == heat.layout.local_control_cold_override_node.handle
+    heat.sent.clear()
+    watch_says(heat, HouseCold(Cause="zone1-bedrooms cold"))
+    assert heat.top_state == LocalControlTopState.ColdOverride
+    assert commands(heat) == []
+    heat.offpeak = lambda now: False
+    watch_says(heat, HouseWarm())
+    assert heat.top_state == LocalControlTopState.ColdOverride  # warm on-peak holds
+    del heat.offpeak
+    heat.sent.clear()
+    heat.check(OFFPEAK)
+    assert heat.top_state == LocalControlTopState.Normal  # the warm exit re-boots Normal
+    heat.check(OFFPEAK)
+    assert heat.top_state == LocalControlTopState.ScadaBlind  # still blind, at the next check
+    assert call_states(heat) == [
+        NolanLcBufferOnlyState.Initializing,
+        NolanLcBufferOnlyState.HpCallOff,
+        NolanLcBufferOnlyState.HpCallOn,  # one Normal pass on the stale band, off-peak
+        NolanLcBufferOnlyState.Dormant,
+    ]
 
 
 def test_heating_warm_offpeak_leaves_cold_override_at_once(heat: NolanBufferOnlyTou) -> None:

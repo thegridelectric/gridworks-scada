@@ -246,6 +246,23 @@ def test_the_watchs_cold_message_moves_a_nolan_tree_under_cold_override_and_its_
     assert_tree(scada, seen, state_node_handle(scada, CoreNodeNames.local_control_normal))
 
 
+def test_the_watchs_cold_message_moves_a_blind_house0_tree_under_backup(
+    house0: tuple[Scada, LocalControlTouBase, Seen], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    scada, impl, seen = house0
+    monkeypatch.setattr(impl, "is_onpeak", lambda: False)
+    impl.trigger_missing_data()
+    assert impl.top_state == LocalControlTopState.ScadaBlind
+    watch_tells(scada, impl, HouseCold(Cause="zone1 cold"))
+    assert impl.top_state == LocalControlTopState.InBackup
+    assert_tree(scada, seen, state_node_handle(scada, CoreNodeNames.local_control_backup))
+    watch_tells(scada, impl, HouseCold(Cause="zone1 cold"))
+    assert impl.top_state == LocalControlTopState.InBackup
+    watch_tells(scada, impl, HouseWarm())
+    assert impl.top_state == LocalControlTopState.Normal
+    assert_tree(scada, seen, state_node_handle(scada, CoreNodeNames.local_control_normal))
+
+
 def test_house0_missing_data_moves_the_tree_under_scada_blind_and_data_moves_it_back(
     house0: tuple[Scada, LocalControlTouBase, Seen],
 ) -> None:

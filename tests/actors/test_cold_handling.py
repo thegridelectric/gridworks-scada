@@ -456,9 +456,13 @@ def test_five_minutes_cold_with_the_stores_empty_asks_the_scada_once(
     assert len(breaks(house)) == 1
 
 
-def test_five_minutes_cold_with_the_stores_empty_tells_the_local_control_once(
+def test_five_minutes_cold_with_the_stores_empty_tells_the_local_control_on_every_pass(
     house: ColdWatch, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """The watch says what it sees: HouseCold on each pass the latch holds
+    with the stores empty, so a machine that could not move when the first
+    one came (blind, or dormant under the contract the same look ends)
+    moves on the next."""
     monkeypatch.setattr(house, "stores_empty", lambda: True)
     make_cold(house)
     for elapsed in (0, 60, 120, 180, 240, 299):
@@ -472,7 +476,8 @@ def test_five_minutes_cold_with_the_stores_empty_tells_the_local_control_once(
 
     for elapsed in (360, 420, 7200):
         house.cold_watch(T0 + elapsed)
-    assert len(to_local_control(house)) == 1
+    assert [type(p) for p in to_local_control(house)] == [HouseCold] * 4
+    assert len(breaks(house)) == 1
 
 
 def test_a_warm_pass_after_the_cold_message_tells_the_local_control(

@@ -38,7 +38,7 @@ def test_top_machine_states(machine: type) -> None:
     states = TOP_STATES[machine]
     assert set(machine.top_states) == states
     for transition in machine.top_transitions:
-        assert transition["source"] in states
+        assert set(sources(transition)) <= states
         assert transition["dest"] in states
         assert transition["trigger"] in LocalControlTopEvent.values()
 
@@ -48,12 +48,20 @@ COLD_STATES = {LocalControlTopState.InBackup, LocalControlTopState.ColdOverride}
 
 
 
+def sources(transition: dict) -> list:
+    source = transition["source"]
+    return list(source) if isinstance(source, list) else [source]
+
+
 @pytest.mark.parametrize("machine", [LocalControlTouBase, NolanBufferOnlyTou], ids=lambda m: m.__name__)
-def test_system_cold_leaves_normal_for_the_cold_state_its_event_names(machine: type) -> None:
+@pytest.mark.parametrize("state", [LocalControlTopState.Normal, LocalControlTopState.ScadaBlind])
+def test_system_cold_leaves_normal_or_scada_blind_for_the_cold_state_its_event_names(
+    machine: type, state: LocalControlTopState
+) -> None:
     assert {
         (t["trigger"], t["dest"])
         for t in machine.top_transitions
-        if t["source"] == LocalControlTopState.Normal and t["dest"] in COLD_STATES
+        if state in sources(t) and t["dest"] in COLD_STATES
     } == {
         (LocalControlTopEvent.SystemCold, LocalControlTopState.InBackup),
         (LocalControlTopEvent.SystemColdNoBackup, LocalControlTopState.ColdOverride),

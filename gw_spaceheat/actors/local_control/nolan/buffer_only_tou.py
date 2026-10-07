@@ -117,7 +117,7 @@ class NolanBufferOnlyTou(NolanHydronic):
     top_transitions = [
         {
             "trigger": LocalControlTopEvent.SystemCold,
-            "source": LocalControlTopState.Normal,
+            "source": [LocalControlTopState.Normal, LocalControlTopState.ScadaBlind],
             "dest": LocalControlTopState.InBackup,
         },
         {
@@ -132,7 +132,7 @@ class NolanBufferOnlyTou(NolanHydronic):
         },
         {
             "trigger": LocalControlTopEvent.SystemColdNoBackup,
-            "source": LocalControlTopState.Normal,
+            "source": [LocalControlTopState.Normal, LocalControlTopState.ScadaBlind],
             "dest": LocalControlTopState.ColdOverride,
         },
         {
@@ -463,25 +463,28 @@ class NolanBufferOnlyTou(NolanHydronic):
             self.send_state_command(relay, state.value, from_node=self.boss)
 
     def on_house_cold(self) -> None:
-        """Normal -> InBackup when the house uses its backup when cold,
-        else ColdOverride. The tree moves under the state's node and the
-        call machine goes Dormant. In InBackup the call is open and the
-        backup elements are closed; in ColdOverride the call is closed
-        whatever the tariff. The pump keeps following the hp-watch."""
+        """Normal or ScadaBlind -> InBackup when the house uses its backup
+        when cold, else ColdOverride; the cold states need no band. The
+        tree moves under the state's node and the call machine goes
+        Dormant. In InBackup the call is open and the backup elements are
+        closed; in ColdOverride the call is closed whatever the tariff.
+        The pump keeps following the hp-watch. In any other state the
+        message is noted and moves nothing."""
         self.house_cold = True
-        if self.top_state != LocalControlTopState.Normal:
+        if self.top_state not in (LocalControlTopState.Normal, LocalControlTopState.ScadaBlind):
             return
         if self.ops.UsesBackupWhenCold:
             self.trigger_top_event(LocalControlTopEvent.SystemCold)
-            self.set_command_tree(boss_node=self.boss)
+        else:
+            self.trigger_top_event(LocalControlTopEvent.SystemColdNoBackup)
+        self.set_command_tree(boss_node=self.boss)
+        if self.call_state != NolanLcBufferOnlyState.Dormant:
             self.trigger_call_event(NolanLcBufferOnlyEvent.CallGoDormant)
+        if self.top_state == LocalControlTopState.InBackup:
             if self.call_closed:
                 self.command_call(False)
             self.command_elements(ChangeRelayState.CloseRelay)
         else:
-            self.trigger_top_event(LocalControlTopEvent.SystemColdNoBackup)
-            self.set_command_tree(boss_node=self.boss)
-            self.trigger_call_event(NolanLcBufferOnlyEvent.CallGoDormant)
             self.command_call(True)
 
     def on_house_warm(self, now: datetime) -> None:

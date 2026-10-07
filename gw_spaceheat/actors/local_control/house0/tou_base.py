@@ -56,8 +56,8 @@ class LocalControlTouBase(House0Hydronic):
         {"trigger": "TopGoDormant", "source": "ColdOverride", "dest": "Dormant"},
         {"trigger": "TopGoDormant", "source": "ScadaBlind", "dest": "Dormant"},
         {"trigger": "TopWakeUp", "source": "Dormant", "dest": "Normal"},
-        {"trigger": "SystemCold", "source": "Normal", "dest": "InBackup"},
-        {"trigger": "SystemColdNoBackup", "source": "Normal", "dest": "ColdOverride"},
+        {"trigger": "SystemCold", "source": ["Normal", "ScadaBlind"], "dest": "InBackup"},
+        {"trigger": "SystemColdNoBackup", "source": ["Normal", "ScadaBlind"], "dest": "ColdOverride"},
         {"trigger": "CriticalZonesAtSetpointOffpeak", "source": "InBackup", "dest": "Normal"},
         {"trigger": "CriticalZonesAtSetpointOffpeak", "source": "ColdOverride", "dest": "Normal"},
         {"trigger": "MissingData", "source": "Normal", "dest": "ScadaBlind"},
@@ -348,8 +348,8 @@ class LocalControlTouBase(House0Hydronic):
     def trigger_system_cold_event(self) -> None:
         """
         Called on the cold watch's HouseCold to change top state from
-        Normal to InBackup or ColdOverride, by whether the house uses its
-        backup when cold.
+        Normal or ScadaBlind to InBackup or ColdOverride, by whether the
+        house uses its backup when cold; the cold states need no data.
         What it does:
           - changes command tree (the cold state's node is the boss)
           - updates the normal state to Dormant if needed
@@ -459,7 +459,7 @@ class LocalControlTouBase(House0Hydronic):
                 self.process_actuators_ready(from_node, message.Payload)
             case HouseCold():
                 self.house_cold = True
-                if self.top_state == LocalControlTopState.Normal:
+                if self.top_state in (LocalControlTopState.Normal, LocalControlTopState.ScadaBlind):
                     self.trigger_system_cold_event()
             case HouseWarm():
                 self.house_cold = False

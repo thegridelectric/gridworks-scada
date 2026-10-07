@@ -224,7 +224,7 @@ class ColdWatch(ColdJudgmentNode):
         self.in_backup = False
         self.cold_spell = ColdSpell()
         self.cold_reported = False
-        self.break_sent = False
+        self.cold_sent = False
         self.backup_since_s: Optional[float] = None
         self.still_cold_reported = False
         self.freeze_glitches = GlitchLimit(REPEAT_GLITCH_S)
@@ -314,9 +314,11 @@ class ColdWatch(ColdJudgmentNode):
         A critical zone cold for COLD_LATCH_S raises the critical-zone-cold
         glitch, once per cold spell, unless the house is in standby, where
         it may be unheated on purpose. Cold that long with the stores empty
-        tells the local control the house is cold and asks the scada to
-        break any dispatch contract, once per cold spell; the warm pass
-        that ends such a spell tells the local control the house is warm.
+        tells the local control the house is cold on every pass, so a
+        machine that cannot move at one pass moves at the next, and asks
+        the scada to break any dispatch contract, once per cold spell; the
+        warm pass that ends such a spell tells the local control the house
+        is warm.
         A house still cold after STILL_COLD_IN_BACKUP_S in backup raises
         its own glitch, once per stay. A circuit reading under FREEZE_F
         raises the zone-freezing glitch."""
@@ -329,8 +331,8 @@ class ColdWatch(ColdJudgmentNode):
         cold = self.cold_critical_zones()
         if not cold:
             self.cold_reported = False
-            if self.break_sent:
-                self.break_sent = False
+            if self.cold_sent:
+                self.cold_sent = False
                 self._send_to(self.layout.local_control, HouseWarm())
         if self.cold_spell.held(bool(cold), now_s):
             cause = (
@@ -340,16 +342,17 @@ class ColdWatch(ColdJudgmentNode):
             if not self.cold_reported and not self.ops.Standby:
                 self.cold_reported = True
                 self.alert(CRITICAL_ZONE_COLD, f"{cause}.")
-            if not self.break_sent and self.stores_empty():
-                self.break_sent = True
+            if self.stores_empty():
                 self._send_to(
                     self.layout.local_control,
                     HouseCold(Cause=f"{cause} with the stores empty"),
                 )
-                self._send_to(
-                    self.primary_scada,
-                    BreakServiceContract(Cause=f"{cause} with the stores empty"),
-                )
+                if not self.cold_sent:
+                    self.cold_sent = True
+                    self._send_to(
+                        self.primary_scada,
+                        BreakServiceContract(Cause=f"{cause} with the stores empty"),
+                    )
 
         if not self.in_backup:
             self.backup_since_s = None

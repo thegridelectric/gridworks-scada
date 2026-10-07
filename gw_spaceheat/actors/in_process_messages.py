@@ -40,9 +40,10 @@ class BreakServiceContract(BaseModel):
 
 
 class HouseCold(BaseModel):
-    """The cold watch's latch has fired with the stores empty, the same
-    look that breaks a dispatch contract: the local control leaves Normal
-    for its cold state. In-process, with no sema word."""
+    """The cold watch's latch holds with the stores empty, the same look
+    that breaks a dispatch contract, sent on every pass it holds: the
+    local control leaves Normal or ScadaBlind for its cold state, and a
+    repeat moves nothing. In-process, with no sema word."""
 
     Cause: str
     TypeName: Literal["house.cold"] = "house.cold"

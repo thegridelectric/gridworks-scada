@@ -226,6 +226,17 @@ async def test_a_house0_house_cold_with_its_stores_empty_under_a_dispatch_contra
         )
         assert_refused(scada, ops_path, seen)
         assert scada.contract_handler.latest_scada_hb is None
+
+        def cold_state_taken() -> bool:
+            hold_cold(watch, "zone1-main", "zone1-main-temp")
+            return impl.top_state in (LocalControlTopState.InBackup, LocalControlTopState.ColdOverride)
+
+        await h.await_for(
+            cold_state_taken,
+            "ERROR waiting for the woken local control to take its cold state",
+            timeout=10,
+            err_str_f=lambda: f"top state: {impl.top_state}",
+        )
         terminations = [
             p for p in seen.from_scada
             if isinstance(p, SlowContractHeartbeat)
