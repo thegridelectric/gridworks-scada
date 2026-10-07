@@ -1,14 +1,12 @@
 import time
-import json
 import asyncio
 import aiohttp
-import math
 import numpy as np
 from dataclasses import dataclass
 from enum import StrEnum, auto
 from typing import Callable, Optional, Protocol, Sequence
 from result import Ok, Result
-from datetime import datetime,  timezone
+from datetime import datetime
 from gwproto import Message
 
 from gwsproto.data_classes.sh_node import ShNode
@@ -81,20 +79,13 @@ class DerivedGenerator(ShNodeActor):
         self.last_evaluated_strategy = 0
         self.first_required_energy_update_done: bool = False
 
-        # House parameters in the .env file
-        self.latitude = self.settings.latitude
-        self.longitude = self.settings.longitude
-
         # used by the rswt quad params calculator
         self._cached_params: Optional[Ha1Params] = None 
         self._rswt_quadratic_params: Optional[np.ndarray] = None 
     
         self.log(f"self.timezone: {self.timezone}")
-        self.log(f"self.latitude: {self.latitude}")
-        self.log(f"self.longitude: {self.longitude}")
         self.log(f"Params: {self.params}")
         self.weather_forecast: Optional[WeatherForecast] = None
-        self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
 
         self.strategy_handlers: dict[str, DerivedHandler] = {
             "identity": self.handle_identity,
@@ -1060,103 +1051,8 @@ class DerivedGenerator(ShNodeActor):
         return round((-b + (b**2-4*a*c2)**0.5)/(2*a), 2)
     
     async def get_weather(self, session: aiohttp.ClientSession) -> None:
-        config_dir = self.settings.paths.config_dir
-        weather_file = config_dir / "weather.json"
-        try:
-            url = f"https://api.weather.gov/points/{self.latitude},{self.longitude}"
-            response = await session.get(url)
-            if response.status != 200:
-                self.log(f"Error fetching weather forecast url: {response.status}")
-                raise Exception()
-            
-            data = await response.json()
-            forecast_hourly_url = data['properties']['forecastHourly']
-            forecast_response = await session.get(forecast_hourly_url)
-            if forecast_response.status != 200:
-                self.log(f"Error fetching hourly weather forecast: {forecast_response.status}")
-                raise Exception()
-            
-            forecast_data = await forecast_response.json()
-            forecasts_all = {
-                datetime.fromisoformat(period['startTime']): 
-                period['temperature']
-                for period in forecast_data['properties']['periods']
-                if 'temperature' in period and 'startTime' in period 
-                and datetime.fromisoformat(period['startTime']) > datetime.now(tz=self.timezone)
-            }
-            ws_forecasts_all = {
-                datetime.fromisoformat(period['startTime']): 
-                int(period['windSpeed'].replace(' mph',''))
-                for period in forecast_data['properties']['periods']
-                if 'windSpeed' in period and 'startTime' in period 
-                and datetime.fromisoformat(period['startTime']) > datetime.now(tz=self.timezone)
-            }
-            forecasts_48h = dict(list(forecasts_all.items())[:48])
-            ws_forecasts_48h = dict(list(ws_forecasts_all.items())[:48])
-            weather = {
-                'time': [int(x.astimezone(timezone.utc).timestamp()) for x in list(forecasts_48h.keys())],
-                'oat': list(forecasts_48h.values()),
-                'ws': list(ws_forecasts_48h.values())
-                }
-            self.log(f"Obtained a {len(forecasts_all)}-hour weather forecast starting at {weather['time'][0]}")
-
-            # Save 96h weather forecast to a local file
-            forecasts_96h = dict(list(forecasts_all.items())[:96])
-            ws_forecasts_96h = dict(list(ws_forecasts_all.items())[:96])
-            weather_96h = {
-                'time': [int(x.astimezone(timezone.utc).timestamp()) for x in list(forecasts_96h.keys())],
-                'oat': list(forecasts_96h.values()),
-                'ws': list(ws_forecasts_96h.values()),
-                }
-            with open(weather_file, 'w') as f:
-                json.dump(weather_96h, f, indent=4) 
-        
-        except Exception as e:
-            self.log(f"[!] Unable to get weather forecast from API: {e}")
-            try:
-                # Try reading an old forecast from local file
-                with open(weather_file, 'r') as f:
-                    weather_96h = json.load(f)
-                    self.weather_96h = weather_96h
-                if weather_96h['time'][-1] >= time.time()+ 48*3600:
-                    self.log("A valid weather forecast is available locally.")
-                    seconds_late = time.time() - weather_96h['time'][0]
-                    hours_late = math.ceil(seconds_late/3600)
-                    weather = {}
-                    for key in weather_96h:
-                        weather[key] = weather_96h[key][hours_late:hours_late+48]
-                    self.first_time = weather['time'][0]
-                    if weather['oat'] == []:
-                        raise Exception()
-                    if weather['time'][0] < time.time():
-                        raise Exception(f"Weather forecast start of {weather['time'][0]} is in the past!! Check math")
-                else:
-                    self.log("No valid weather forecasts available locally. Using coldest of the current month.")
-                    current_month = datetime.now().month-1
-                    weather = {
-                        'time': [int(time.time()+(1+x)*3600) for x in range(48)],
-                        'oat': [self.coldest_oat_by_month[current_month]]*48,
-                        'ws': [0]*48,
-                        }
-            except Exception as e:
-                self.log(f"Issue getting local weather forecast! Using coldest of the current month.\n Issue: {e}")
-                current_month = datetime.now().month-1
-                weather = {
-                    'time': [int(time.time()+(1+x)*3600) for x in range(48)],
-                    'oat': [self.coldest_oat_by_month[current_month]]*48,
-                    'ws': [0]*48,
-                    }
-        # International Civil Aviation Organization: 4-char alphanumeric code
-        # assigned to airports and weather observation stations
-        ICAO_CODE = "KMLT"
-        WEATHER_CHANNEL = f"weather.gov.{ICAO_CODE}".lower()
-
-        self.weather_forecast = WeatherForecast(
-            FromGNodeAlias=self.layout.scada_g_node_alias,
-            WeatherChannelName=WEATHER_CHANNEL,
-            Time = weather['time'],
-            OatF = weather['oat'],
-            WindSpeedMph= weather['ws'],
+        self.weather_forecast = await self.services.weather_source.forecast(
+            session, tz=self.timezone, scada_g_node_alias=self.layout.scada_g_node_alias
         )
 
     async def get_forecasts(self, session: aiohttp.ClientSession):

@@ -11,6 +11,7 @@ from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.named_types import TaDeed
 from tests.conftest import TEST_HARDWARE_LAYOUT_PATH
 from ltn_app import LtnApp
+from weather_source import WeatherSourceKind
 from scada2_app import Scada2App
 from scada_app import ScadaApp
 
@@ -92,6 +93,8 @@ class ScadaLiveTest(TreeLiveTest):
         # terminal asset, copied over the seeded one. A test that removed
         # the seeded deed stays without one.
         primary_layout = child1_layout or child_layout or layout
+        # The suite never reaches a live weather API.
+        kwargs["child_app_settings"].weather_source = WeatherSourceKind.Sim
         seeded_deed = Path(kwargs["child_app_settings"].paths.tadeed)
         if primary_layout is not None and seeded_deed.exists():
             deed_path = fixture_deed_path(primary_layout)

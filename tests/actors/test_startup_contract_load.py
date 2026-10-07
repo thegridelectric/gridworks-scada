@@ -27,6 +27,7 @@ from sema_to_dc import load_layout
 from tests.actors.test_cold_handling import CONFIG, WILLOW, heating_ops
 from tests.actors.test_operating_status import ltn_hb
 from tests.utils.scada_live_test_helper import ScadaLiveTest
+from weather_source import SimWeatherSource
 
 # Longer than the scada's wait before it speaks of the contract it loaded.
 PAST_STARTUP_S = 6
@@ -155,6 +156,58 @@ async def test_a_live_stored_contract_is_taken_up_again_after_a_restart(
         assert scada.contract_handler.energy_used_wh == 120
         assert {hb.Contract.ContractId for hb in sends.heartbeats_to_ltn()} == {contract.ContractId}
         assert contract in sends.to_leaf_ally(SlowDispatchContract)
+
+
+@pytest.mark.asyncio
+async def test_a_slow_weather_fetch_does_not_end_a_resumed_contract(
+    request: pytest.FixtureRequest, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The leaf ally needs a forecast before it takes a contract. A restart
+    under a live contract must survive the forecast arriving after the
+    scada speaks of the contract it loaded."""
+    ops_path = heating_ops(tmp_path, WILLOW)
+    layout = load_layout(CONFIG / WILLOW[0], ops_path)
+    async with ScadaLiveTest(request=request, layout=layout, ops_path=ops_path) as h:
+        app = h.child1_app
+        weather = app.weather_source
+        assert isinstance(weather, SimWeatherSource)
+        weather.delay_s = PAST_STARTUP_S + 2
+        contract = SlowDispatchContract(
+            ScadaAlias=layout.scada_g_node_alias,
+            StartS=(int(time.time()) // 300) * 300,
+            DurationMinutes=60,
+            AvgPowerWatts=1000,
+            OilBoilerOn=False,
+            ContractId=str(uuid.uuid4()),
+        )
+        stored = SlowContractHeartbeat(
+            FromNode="s",
+            Contract=contract,
+            PreviousStatus=SlowDispatchContractStatus.Confirmed,
+            Status=SlowDispatchContractStatus.Active,
+            WattHoursUsed=120,
+            MessageCreatedMs=int(time.time() * 1000),
+            MyDigit=4,
+            YourLastDigit=5,
+        )
+        contract_file = Path(app.settings.paths.data_dir) / "slow_dispatch_contract.json"
+        contract_file.parent.mkdir(parents=True, exist_ok=True)
+        contract_file.write_text(stored.model_dump_json(indent=4))
+
+        h.start_child1()
+        scada = app.scada
+        sends = Sends(monkeypatch, scada)
+        started_s = time.time()
+        await h.await_for(
+            lambda: time.time() > started_s + weather.delay_s + 2,
+            "ERROR waiting for the forecast to arrive after the resume",
+            timeout=weather.delay_s + 10,
+        )
+        latest = scada.contract_handler.latest_scada_hb
+        assert latest is not None, "the resumed contract was given up"
+        assert latest.Contract.ContractId == contract.ContractId
+        assert scada.auto_state == MainAutoState.LeafTransactiveNode
+        assert {hb.Status for hb in sends.heartbeats_to_ltn()} == {SlowDispatchContractStatus.Active}
 
 
 def refusing_ops(tmp_path: Path, reason: DispatchRefusalReason) -> Path:

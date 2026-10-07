@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from gwsproto.names.core.node_names import CoreNodeNames
 from clock import ClockSource
+from weather_source import WeatherSourceKind
 from gwproactor.config import MQTTClient, Paths
 from pydantic_settings import SettingsConfigDict
 
@@ -129,6 +130,7 @@ class ScadaSettings(ScadaPathsSettings):
     local_mqtt: MQTTClient = MQTTClient(tls=TLSInfo(use_tls=False))
     gridworks_mqtt: MQTTClient = MQTTClient(tls=TLSInfo(use_tls=False))
     clock_source: ClockSource = ClockSource.Wall
+    weather_source: WeatherSourceKind = WeatherSourceKind.Nws
     seconds_per_report: int = 300
     seconds_per_snapshot: int = 30
     async_power_reporting_threshold: float = 0.02
