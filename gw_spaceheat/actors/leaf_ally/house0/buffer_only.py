@@ -164,12 +164,6 @@ class BufferOnlyLeafAlly(House0Hydronic):
         if self.declines_offer_for_cold():
             return
 
-        if not self.heating_forecast:
-            self.log("Cannot Wake up - missing forecasts!")
-            self._send_to(
-                self.primary_scada,
-                AllyGivesUp(Reason="Missing forecasts required for operation"))
-            return
         if self.state == LeafAllyBufferOnlyState.Dormant:
             self.log("Got a slow dispatch contract ... waking up")
             self.wake_up()
@@ -242,12 +236,25 @@ class BufferOnlyLeafAlly(House0Hydronic):
         if not self.buffer_temps_available:
             self.no_temps_since = int(time.time())
             self.log("Temperatures not available. Won't turn on hp until they are. Will bail in 5 if still not available")
+        if not self.heating_forecast:
+            self.no_temps_since = int(time.time())
+            self.log("No heating forecast yet. Waiting in Initializing; will bail in 5 if none arrives")
         
         self._send_to(self.primary_scada, SuitUp(ToNode=CoreNodeNames.primary_scada, FromNode=self.name))
 
         #  Dormant -> Initializing
         self.trigger_event(LeafAllyBufferOnlyEvent.WakeUp) # Dormant -> Initializing
         self.initialize_actuators()
+
+    def missing_inputs(self) -> list[str]:
+        """What Initializing is still waiting for: buffer temperatures,
+        the heating forecast, and the required energy derived from it."""
+        missing = [f"buffer temperature {name}" for name in self.missing_buffer_temperatures()]
+        if not self.heating_forecast:
+            missing.append("heating forecast")
+        elif not self.data.channel_has_value(HCN.required_energy):
+            missing.append("required energy")
+        return missing
 
     def engage_brain(self) -> None:
         self.log(f"State: {self.state}")
@@ -272,11 +279,11 @@ class BufferOnlyLeafAlly(House0Hydronic):
                     if self.no_temps_since is None:
                         self.no_temps_since = int(time.time()) # start the clock
                     elif time.time() - self.no_temps_since > self.NO_TEMPS_BAIL_MINUTES * 60:
-                        missing = ", ".join(self.missing_buffer_temperatures())
-                        self.log(f"Cannot suit up - missing buffer temperatures: {missing}")
+                        missing = ", ".join(self.missing_inputs())
+                        self.log(f"Cannot suit up - missing: {missing}")
                         self._send_to(
                             self.primary_scada,
-                            AllyGivesUp(Reason=f"Missing buffer temperatures: {missing}"))
+                            AllyGivesUp(Reason=f"Missing {missing}"))
                         return
                     if self.hp_should_be_off():
                         self.turn_off_hp() 

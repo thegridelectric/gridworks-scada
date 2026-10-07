@@ -53,8 +53,8 @@ async def test_auto_state_home_alone_to_ltn(
         print("Verifying initial state is LocalControl")
         assert scada.auto_state == MainAutoState.LocalControl, f"Expected LocalControl, got {scada.auto_state}"
         
-        # Leaf ally will reject contract if it doesn't have forecasts. 
-        # It gets forecasts during startup.
+        # The ally waits in Initializing for forecasts; the test wants it
+        # suited up at once, so it waits for them first.
         await tst.await_for(
             lambda: leaf_ally.heating_forecast is not None,
             "la never got forecasts!"
