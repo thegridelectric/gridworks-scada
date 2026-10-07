@@ -39,6 +39,7 @@ from gwproactor import PrimeActor
 from gwproactor import ProactorLogger
 from gwproactor import ProactorName
 from gwproactor import AppInterface
+from scada_app_interface import ScadaAppInterface
 from gwproto import HardwareLayout
 
 
@@ -472,14 +473,11 @@ class Ltn(PrimeActor):
         self.data = LtnData()
         self.latest_channel_values: Dict[str, int] = {}
         self.timezone = pytz.timezone(self.settings.timezone_str)
-        self.latitude = self.settings.latitude
-        self.longitude = self.settings.longitude
         self.flo_horizon_hours = self.settings.flo_horizon_hours
         self.sent_bid = False
         self.flo_params = None
         self.hp_is_off = False
         self.weather_forecast = None
-        self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
         self.price_forecast: Optional[PriceForecast] = None
         self.data_channels: List
         self.tank_temp_channel_names = None
@@ -1512,100 +1510,16 @@ class Ltn(PrimeActor):
         return min(0, house_availale_kwh) # TODO: TEMPORARY only consider negative values
 
     async def get_weather(self, session: aiohttp.ClientSession) -> None:
-        config_dir = self.settings.paths.config_dir
-        weather_file = Path(f"{config_dir}/weather.json")
-        try:
-            url = f"https://api.weather.gov/points/{self.latitude},{self.longitude}"
-            response =  await session.get(url)
-            if response.status != 200:
-                self.log(f"Error fetching weather data: {response.status}")
-                return None
-            data = await response.json()
-            forecast_hourly_url = data["properties"]["forecastHourly"]
-            forecast_response = await session.get(forecast_hourly_url)
-            if forecast_response.status != 200:
-                self.log(
-                    f"Error fetching hourly weather forecast: {forecast_response.status}"
-                )
-                return None
-            forecast_data = await forecast_response.json()
-            forecasts = {}
-            periods = forecast_data["properties"]["periods"]
-            for period in periods:
-                if (
-                    "temperature" in period
-                    and "startTime" in period
-                    and datetime.fromisoformat(period["startTime"])
-                    > datetime.now(tz=self.timezone)
-                ):
-                    forecasts[datetime.fromisoformat(period["startTime"])] = [
-                        float(period["temperature"]), float(period["windSpeed"].replace(' mph',''))
-                    ]
-            forecasts = dict(list(forecasts.items())[:96])
-            wf = {
-                "time": list(forecasts.keys()),
-                "oat": [x[0] for x in list(forecasts.values())],
-                "ws": [x[1] for x in list(forecasts.values())],
-            }
-            self.log(
-                f"Obtained a {len(forecasts)}-hour weather forecast starting at {wf['time'][0]}"
-            )
-            weather_long = {
-                "time": [x.timestamp() for x in list(forecasts.keys())],
-                "oat": [x[0] for x in list(forecasts.values())],
-                "ws": [x[1] for x in list(forecasts.values())],
-            }
-            with open(weather_file, "w") as f:
-                json.dump(weather_long, f, indent=4)
-
-        except Exception as e:
-            self.log(f"[!] Unable to get weather forecast from API: {e}")
-            try:
-                with open(weather_file, "r") as f:
-                    weather_long = json.load(f)
-                    weather_long["time"] = [
-                        datetime.fromtimestamp(x, tz=self.timezone)
-                        for x in weather_long["time"]
-                    ]
-                if weather_long["time"][-1] >= datetime.fromtimestamp(
-                    time.time(), tz=self.timezone
-                ) + timedelta(hours=48):
-                    self.log("A valid weather forecast is available locally.")
-                    time_late = weather_long["time"][0] - datetime.now(self.timezone)
-                    hours_late = int(time_late.total_seconds() / 3600)
-                    wf = weather_long
-                    for key in wf:
-                        wf[key] = wf[key][hours_late : hours_late + 48]
-                else:
-                    self.log(
-                        "No valid weather forecasts available locally. Using coldest of the current month."
-                    )
-                    current_month = datetime.now().month - 1
-                    wf = {
-                        "time": [
-                            datetime.now(tz=self.timezone) + timedelta(hours=1 + x)
-                            for x in range(48)
-                        ],
-                        "oat": [self.coldest_oat_by_month[current_month]] * 48,
-                        "ws": [0] * 48,
-                    }
-            except Exception as e:
-                self.log(
-                    "No valid weather forecasts available locally. Using coldest of the current month."
-                )
-                current_month = datetime.now().month - 1
-                wf = {
-                    "time": [
-                        datetime.now(tz=self.timezone) + timedelta(hours=1 + x)
-                        for x in range(48)
-                    ],
-                    "oat": [self.coldest_oat_by_month[current_month]] * 48,
-                    "ws": [0] * 48,
-                }
-
+        """The 48-hour forecast from the scada's weather source."""
+        assert isinstance(self.services, ScadaAppInterface)
+        forecast = await self.services.weather_source.forecast(
+            session,
+            tz=self.timezone,
+            scada_g_node_alias=self.layout.scada_g_node_alias,
+        )
         self.weather_forecast = {
-            "oat": wf["oat"],
-            "ws": wf["ws"],
+            "oat": forecast.OatF,
+            "ws": forecast.WindSpeedMph,
         }
 
     async def get_real_time_price(self) -> float:

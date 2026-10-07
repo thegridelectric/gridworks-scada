@@ -16,6 +16,7 @@ import actors
 from actors import SecondaryScada
 from actors import ScadaInterface
 from actors.config import ScadaSettings
+from actors.scada_data import load_operational_params
 from sema_to_dc import load_layout
 from actors.scada import ScadaCodecFactory
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
@@ -110,9 +111,10 @@ class Scada2App(App, ScadaAppInterface):
         )
         self._weather_source = weather_source if weather_source is not None else build_weather_source(
             self.settings.weather_source,
-            self.settings.latitude,
-            self.settings.longitude,
+            load_operational_params(self.settings),
             Path(self.settings.paths.config_dir),
+            self.settings.weather_api_url,
+            self.settings.weather_pull_timeout_s,
         )
 
     @property

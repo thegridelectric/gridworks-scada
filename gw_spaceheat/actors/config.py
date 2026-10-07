@@ -130,16 +130,17 @@ class ScadaSettings(ScadaPathsSettings):
     local_mqtt: MQTTClient = MQTTClient(tls=TLSInfo(use_tls=False))
     gridworks_mqtt: MQTTClient = MQTTClient(tls=TLSInfo(use_tls=False))
     clock_source: ClockSource = ClockSource.Wall
-    weather_source: WeatherSourceKind = WeatherSourceKind.Nws
+    weather_source: WeatherSourceKind = WeatherSourceKind.Gwwf
+    # The weather service read facade, party segment included; the bundle
+    # pulled from it is named by the operational params.
+    weather_api_url: str = "https://forecast.electricity.works/hw1-isone-weather"
+    weather_pull_timeout_s: float = 20
     seconds_per_report: int = 300
     seconds_per_snapshot: int = 30
     async_power_reporting_threshold: float = 0.02
     power_meter_lost_after_s: float = POWER_METER_LOST_AFTER_S
     persister: PersisterSettings = PersisterSettings()
     admin: AdminLinkSettings = AdminLinkSettings(tls=TLSInfo(use_tls=False))
-    # site facts, here until the TaValidator owns them
-    latitude: float = 45.6573
-    longitude: float = -68.7098
     # ⏳ Destined for operational-params, not the layout. A heat call is sensed
     # either by opto-coupler (Nolan: BinaryState, DigitalZeroIsActive) or by
     # metering the call wire (House0: PowerW, GreaterThanThreshold). WHICH of

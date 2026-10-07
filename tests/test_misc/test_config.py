@@ -64,7 +64,9 @@ def test_scada_settings_defaults(default_test_env, clean_test_env, clean_scada_e
         proactor=ProactorSettings().model_dump(),
         paho_logging=False,
         clock_source=ClockSource.Wall,
-        weather_source=WeatherSourceKind.Nws,
+        weather_source=WeatherSourceKind.Gwwf,
+        weather_api_url="https://forecast.electricity.works/hw1-isone-weather",
+        weather_pull_timeout_s=20,
         seconds_per_report=300,
         seconds_per_snapshot=30,
         async_power_reporting_threshold=0.02,
@@ -78,8 +80,6 @@ def test_scada_settings_defaults(default_test_env, clean_test_env, clean_scada_e
                 "admin"
             )
         ).model_dump(),
-        latitude=45.6573,
-        longitude=-68.7098,
         contract_rep_logging_level=20,
         airtable_pat="bogus_pat"
     )

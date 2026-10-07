@@ -176,7 +176,11 @@ from gwsproto.named_types.unit_quantity_projection import UnitQuantityProjection
 from gwsproto.named_types.usable_energy_layered import UsableEnergyLayered
 from gwsproto.named_types.wake_up import WakeUp
 from gwsproto.named_types.water_store import WaterStore
+from gwsproto.named_types.gw_weather_forecast import GwWeatherForecast
+from gwsproto.named_types.weather_channel_gt import WeatherChannelGt
 from gwsproto.named_types.weather_forecast import WeatherForecast
+from gwsproto.named_types.weather_forecast_bundle_gt import WeatherForecastBundleGt
+from gwsproto.named_types.weather_forecast_channel_gt import WeatherForecastChannelGt
 from gwsproto.named_types.web_server_component_gt import WebServerComponentGt
 from gwsproto.named_types.zero_ten_power_on import ZeroTenPowerOn
 from gwsproto.named_types.zone_call_circuit import ZoneCallCircuit
@@ -342,7 +346,11 @@ __all__ = [
     "UsableEnergyLayered",
     "WakeUp",
     "WaterStore",
+    "GwWeatherForecast",
+    "WeatherChannelGt",
     "WeatherForecast",
+    "WeatherForecastBundleGt",
+    "WeatherForecastChannelGt",
     "WebServerComponentGt",
     "ZeroTenPowerOn",
     "ZoneCallCircuit",
