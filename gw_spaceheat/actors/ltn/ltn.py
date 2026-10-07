@@ -118,13 +118,13 @@ def _flo_bid_worker(trimmed_graph_data: bytes, updated_flo_params_bytes: bytes, 
     try:
         graph: Graph = pickle.loads(trimmed_graph_data)
         updated_params = HeatPumpWaterTankParams.model_validate_json(updated_flo_params_bytes)
-        forecast_price_usd_mwh = updated_params.elec_usd_mwh[0]
+        forecast_price_mwh = updated_params.elec_price_mwh[0]
         pq_pairs = graph.generate_bid(
-            forecast_price_usd_mwh=forecast_price_usd_mwh,
+            forecast_price_mwh=forecast_price_mwh,
             updated_params=updated_params,
         )
         pq_payload = [
-            {"price_usd_mwh": p.price_usd_mwh, "quantity_kwh": p.quantity_kwh}
+            {"price_mwh": p.price_mwh, "quantity_kwh": p.quantity_kwh}
             for p in pq_pairs
         ]
         graph.logger = None
@@ -274,7 +274,7 @@ class BidRunner(threading.Thread):
                 market_slot_name = f"e.{mtn}.{Ltn.P_NODE}.{slot_start_s}"
                 gws_pq_pairs = [
                     PriceQuantityUnitless(
-                        PriceX1000=int(round(float(p["price_usd_mwh"]) * 1000)),
+                        PriceX1000=int(round(float(p["price_mwh"]) * 1000)),
                         QuantityX1000=int(round(float(p["quantity_kwh"]) * 1000)),
                     )
                     for p in pq_pairs
@@ -317,7 +317,7 @@ class BidRunner(threading.Thread):
 
                 # Send flo next hour plans through LTN's message processing
                 _, expected_storage_kwh_at_hour1, hourly_hp_kwh_el_plan = result
-                expected_elec_usd_mwh_at_hour1 = float(self.orig_flo_params.elec_usd_mwh[1])
+                expected_elec_usd_mwh_at_hour1 = float(self.orig_flo_params.elec_price_mwh[1])
                 flo_next_hour_plans = FloNextHourPlans(
                     ExpectedStorageKwhAtHour1=expected_storage_kwh_at_hour1,
                     ExpectedElecUsdMwhAtHour1=expected_elec_usd_mwh_at_hour1,
@@ -981,16 +981,16 @@ class Ltn(PrimeActor):
         if self.flo_next_hour_plans:
             previous_plan_hp_kwh_el_list = self.flo_next_hour_plans.HourlyHpKwhElPlan
             previous_estimate_storage_kwh_now = self.flo_next_hour_plans.ExpectedStorageKwhAtHour1
-            previous_estimate_elec_usd_mwh_now = self.flo_next_hour_plans.ExpectedElecUsdMwhAtHour1
+            previous_estimate_elec_price_mwh_now = self.flo_next_hour_plans.ExpectedElecUsdMwhAtHour1
         else:
             previous_plan_hp_kwh_el_list = None
             previous_estimate_storage_kwh_now = None
-            previous_estimate_elec_usd_mwh_now = None
+            previous_estimate_elec_price_mwh_now = None
 
         num_tanks = self.total_store_tanks if self.seasonal_storage_mode == SeasonalStorageMode.AllTanks else 1
         num_layers = int(9 * num_tanks)  # Model uses 9 layers per tank
         horizon = self.flo_horizon_hours
-        elec_usd_mwh = [
+        elec_price_mwh = [
             lmp + dist
             for lmp, dist in zip(
                 self.price_forecast.lmp_usd_per_mwh,
@@ -1016,7 +1016,7 @@ class Ltn(PrimeActor):
             initial_thermocline1=int(th1 * 3),
             initial_thermocline2=int(th2 * 3),
             hp_currently_on=not self.hp_is_off,
-            elec_usd_mwh=elec_usd_mwh,
+            elec_price_mwh=elec_price_mwh,
             oat_f=list(self.weather_forecast["oat"]),
             load_kwh=load_forecast_kwh,
             rswt_f=rswt_forecast_f,
@@ -1027,7 +1027,7 @@ class Ltn(PrimeActor):
             cop_min_oat_f=float(self.ha1_params.CopMinOatF),
             previous_plan_hp_kwh_el_list=previous_plan_hp_kwh_el_list,
             previous_estimate_storage_kwh_now=previous_estimate_storage_kwh_now,
-            previous_estimate_elec_usd_mwh_now=previous_estimate_elec_usd_mwh_now,
+            previous_estimate_elec_price_mwh_now=previous_estimate_elec_price_mwh_now,
         )
         self.bid_runner = BidRunner(
             params=self.flo_params,

@@ -157,7 +157,7 @@ _OAT_F = [
 def get_sample_heat_pump_water_tank_params():
     from bruce.graph_optimizer.assets.heat_pump_water_tank import HeatPumpWaterTankParams
 
-    elec_usd_mwh = [
+    elec_price_mwh = [
         lmp + dist for lmp, dist in zip(_LMP_USD_MWH, _DIST_USD_MWH, strict=True)
     ]
     return HeatPumpWaterTankParams(
@@ -175,7 +175,7 @@ def get_sample_heat_pump_water_tank_params():
         initial_thermocline1=8,
         initial_thermocline2=16,
         hp_currently_on=False,
-        elec_usd_mwh=elec_usd_mwh,
+        elec_price_mwh=elec_price_mwh,
         oat_f=list(_OAT_F),
         load_kwh=[5.0] * HORIZON,
         rswt_f=[140.0] * HORIZON,
@@ -198,11 +198,11 @@ def get_sample_heat_pump_water_tank_params():
 #     graph.find_shortest_path()
 #     graph.trim_graph_for_waiting()
 #     pq_pairs = graph.generate_bid(
-#         forecast_price_usd_mwh=params.elec_usd_mwh[0],
+#         forecast_price_mwh=params.elec_price_mwh[0],
 #         updated_params=params,
 #     )
 #     assert len(pq_pairs) >= 2
-#     assert pq_pairs[0].price_usd_mwh == -100
+#     assert pq_pairs[0].price_mwh == -100
 #     quantities = [p.quantity_kwh for p in pq_pairs]
 #     for i in range(len(quantities) - 1):
 #         assert quantities[i] <= quantities[i + 1] + 0.01
@@ -217,11 +217,11 @@ if __name__ == "__main__":
     graph.find_shortest_path()
     graph.trim_graph_for_waiting()
     pq_pairs = graph.generate_bid(
-        forecast_price_usd_mwh=params.elec_usd_mwh[0],
+        forecast_price_mwh=params.elec_price_mwh[0],
         updated_params=params,
     )
     assert len(pq_pairs) >= 2
-    assert pq_pairs[0].price_usd_mwh == -100
+    assert pq_pairs[0].price_mwh == -100
     quantities = [p.quantity_kwh for p in pq_pairs]
     for i in range(len(quantities) - 1):
         assert quantities[i] <= quantities[i + 1] + 0.01
