@@ -10,10 +10,10 @@ import pytest
 from gwproto.message import Header, Message
 
 from actors.hp_boss.sensing import HP_TRAITS
-from actors.hp_watch import HpWatch
+from actors.hp_watch import HELD_ON_S, HP_WATCH_HELD_ON, HpWatch
 from actors.in_process_messages import ChannelSubscribe
-from gwsproto.enums import SpruceHackHpState
-from gwsproto.named_types import ChannelFlatlined, SingleMachineState, SingleReading
+from gwsproto.enums import LogLevel, SpruceHackHpState
+from gwsproto.named_types import ChannelFlatlined, Glitch, SingleMachineState, SingleReading
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
@@ -55,14 +55,23 @@ def deliver(actor: HpWatch, src: str, payload) -> None:
     )
 
 
-def power(actor: HpWatch, watts: int, channel: str = HCN.hp_odu_pwr) -> None:
+def power(
+    actor: HpWatch, watts: int, channel: str = HCN.hp_odu_pwr, read_s: float | None = None
+) -> None:
+    """A reading, stamped now unless read_s says when it was read."""
     deliver(
         actor,
         CoreNodeNames.asset_power_meter,
         SingleReading(
-            ChannelName=channel, Value=watts, ScadaReadTimeUnixMs=int(time.time() * 1000)
+            ChannelName=channel,
+            Value=watts,
+            ScadaReadTimeUnixMs=int((time.time() if read_s is None else read_s) * 1000),
         ),
     )
+
+
+def held_on_glitches(sent: list) -> list[Glitch]:
+    return [p for _, p in sent if isinstance(p, Glitch) and p.Summary == HP_WATCH_HELD_ON]
 
 
 def flatline(actor: HpWatch, channel: str = HCN.hp_odu_pwr) -> None:
@@ -176,3 +185,54 @@ def test_other_channels_do_not_move_the_machine(app: ScadaApp) -> None:
     flatline(actor, channel="primary-pump-pwr")
     assert actor.state == SpruceHackHpState.HpDetectedOn
     assert reported_states(sent) == [SpruceHackHpState.HpDetectedOn]
+
+
+def test_held_on_between_the_lines_for_the_hold_warns_once_per_spell(app: ScadaApp) -> None:
+    """HpDetectedOn with every read between the lines for HELD_ON_S is a
+    stopped unit whose standby draw is above the off line: the pump is
+    running between cycles. One Warning glitch per such spell, the state
+    unchanged; a read above the on line starts a new spell."""
+    actor = hp_watch_actor(app)
+    traits = HP_TRAITS[actor.layout.node(HSNN.hp_odu).component.gt.DeviceType]
+    between = traits.off_below_w + 5
+    sent = capture(actor)
+    t0 = 1_800_000_000.0
+    power(actor, traits.on_above_w + 1, read_s=t0)
+
+    # The spell runs from the first between-read, 10 s after the On read.
+    for elapsed in (10, 60, 300, 10 + HELD_ON_S - 1):
+        power(actor, between, read_s=t0 + elapsed)
+    assert held_on_glitches(sent) == []
+
+    power(actor, between, read_s=t0 + 10 + HELD_ON_S)
+    [glitch] = held_on_glitches(sent)
+    assert glitch.Type == LogLevel.Warning
+    assert glitch.Node == HP_WATCH
+    assert f"{between} W" in glitch.Details
+    assert actor.state == SpruceHackHpState.HpDetectedOn
+
+    power(actor, between, read_s=t0 + 2 * HELD_ON_S)
+    assert len(held_on_glitches(sent)) == 1
+
+    power(actor, traits.on_above_w + 1, read_s=t0 + 3 * HELD_ON_S)
+    for elapsed in (10, 10 + HELD_ON_S):
+        power(actor, between, read_s=t0 + 3 * HELD_ON_S + elapsed)
+    assert len(held_on_glitches(sent)) == 2
+
+
+def test_a_stop_inside_the_hold_warns_nothing(app: ScadaApp) -> None:
+    """The wind-down after a stop passes between the lines and reaches the
+    off line within the hold, so a normal stop raises nothing, and a
+    between-read while HpDetectedOff is an idle pulse, not a held On."""
+    actor = hp_watch_actor(app)
+    traits = HP_TRAITS[actor.layout.node(HSNN.hp_odu).component.gt.DeviceType]
+    between = (traits.on_above_w + traits.off_below_w) // 2
+    sent = capture(actor)
+    t0 = 1_800_000_000.0
+    power(actor, traits.on_above_w + 1, read_s=t0)
+    power(actor, between, read_s=t0 + 30)
+    power(actor, traits.off_below_w - 1, read_s=t0 + 60)
+    for elapsed in (120, 600 + HELD_ON_S):
+        power(actor, between, read_s=t0 + elapsed)
+    assert held_on_glitches(sent) == []
+    assert actor.state == SpruceHackHpState.HpDetectedOff
