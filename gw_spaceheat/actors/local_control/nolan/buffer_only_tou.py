@@ -212,11 +212,6 @@ class NolanBufferOnlyTou(NolanHydronic):
                 f"NolanBufferOnlyTou needs gw.nolan.family.params, got {family.TypeName}"
             )
         self.family: NolanFamilyParams = family
-        if self.ops.UsesBackupWhenCold and not self.element_relays:
-            raise ValueError(
-                "UsesBackupWhenCold needs an element backup in the layout: "
-                "a Nolan machine has no other backup to go to"
-            )
         hp_odu = self.required_node(HSNN.hp_odu).component
         if hp_odu is None:
             raise ValueError(f"{HSNN.hp_odu} has no component; cannot read its device type")

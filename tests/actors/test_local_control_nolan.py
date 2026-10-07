@@ -629,18 +629,6 @@ def test_heating_admin_taking_the_tree_in_backup_leaves_the_elements_to_admin(
     assert element_commands(heat) == ELEMENTS_OFF
 
 
-def test_heating_using_backup_needs_an_element_backup(tmp_path: Path) -> None:
-    layout = json.loads(SPRUCE_LAYOUT.read_text())
-    del layout["Hydronic"]["Backup"]
-    layout["ShNodes"] = [
-        n for n in layout["ShNodes"] if n["Name"] != CoreNodeNames.local_control_backup
-    ]
-    layout_path = tmp_path / "hardware-layout.json"
-    layout_path.write_text(json.dumps(layout))
-    with pytest.raises(ValueError, match="element backup"):
-        heating_machine(layout_path, heating_ops(tmp_path, UsesBackupWhenCold=True))
-
-
 def test_heating_cold_with_a_blind_band_goes_to_cold_override(heat: NolanBufferOnlyTou) -> None:
     """The cold states need no band: HouseCold moves ScadaBlind to
     ColdOverride as it moves Normal, a repeat moves nothing, and the warm

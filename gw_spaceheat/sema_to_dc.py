@@ -25,6 +25,7 @@ from pydantic import TypeAdapter
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.enums import ActorClass, GNodeClass, SiegLoopStrategy
 from gwsproto.named_types import (
+    ElementBackup,
     House0FamilyParams,
     House0Layout,
     NolanFamilyParams,
@@ -135,6 +136,31 @@ def check_energized_standby_relays(ops_word: OperationalParams, static: dict[str
             )
 
 
+def check_backup_when_cold(word: House0Layout | NolanLayout, ops_word: OperationalParams) -> None:
+    """UsesBackupWhenCold true in the params requires a Backup in the
+    layout with InService true, and at a Nolan layout an element backup:
+    the Nolan machine has no boiler branch. Raises on a pair that would
+    send a cold house to a backup it does not have."""
+    if not ops_word.UsesBackupWhenCold:
+        return
+    backup = word.Hydronic.Backup
+    if backup is None:
+        raise ValueError(
+            "UsesBackupWhenCold is true in the operational params but the layout "
+            "declares no Hydronic.Backup"
+        )
+    if not backup.InService:
+        raise ValueError(
+            f"UsesBackupWhenCold is true in the operational params but the layout's "
+            f"{backup.TypeName} has InService false"
+        )
+    if isinstance(word, NolanLayout) and not isinstance(backup, ElementBackup):
+        raise ValueError(
+            f"UsesBackupWhenCold needs an element backup at a Nolan layout, not "
+            f"{backup.TypeName}: a Nolan machine has no other backup to go to"
+        )
+
+
 def check_hp_traits(word: House0Layout | NolanLayout) -> None:
     """A Nolan layout's hp-odu device type has an HP_TRAITS row: the
     heat-pump threshold machine runs on its lines whichever local control
@@ -234,6 +260,7 @@ def ops_and_sema_to_dc(
     check_sieg_loop_strategy(ops_word)
     check_energized_standby_relays(ops_word, static)
     check_hp_traits(word)
+    check_backup_when_cold(word, ops_word)
     return HydronicLayout.from_sema(
         word, capture_tuning=ops_word.CaptureTuningList, **load_kwargs
     )
