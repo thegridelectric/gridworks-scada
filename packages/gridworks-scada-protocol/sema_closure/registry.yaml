@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-10-06T18:10:00Z"
+  last_updated: "2026-10-07T15:05:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -1086,7 +1086,7 @@ types:
         schema_url: "https://schemas.electricity.works/types/gw.operational.params/000"
         created: "2026-09-30T18:35:00Z"
         status: "staging"
-        summary: "Initial version. ScadaAlias (the applying Scada's identity — stored/emitted instances self-identify; the layout holds the full GNodes) + FamilyParams (oneOf gw.house0.family.params / gw.nolan.family.params, discriminated by TypeName; the family TypeName pairs the instance with its layout family, so a mismatched pair fails at decode) + CaptureTuningList + ZeroTenPowerOnList + Standby x StandbyPosture x EnergizedStandbyRelays (the standby machine energizes the listed relays and nothing else; the posture names what the list achieves) + ServiceMode + AcceptsDispatch x DispatchRefusalReason (present iff refusing) + CopCurve + HeatingCurve + HpTurnOnMinutes + HpMaxKwEl + LoadOverestimationPercent + UsesBackupWhenCold + HorizonHours + Tariff (gw.tou.tariff). All required but the reason — no assumed defaults. Axioms 1-2: ChannelName unique across CaptureTuningList, NodeName unique across ZeroTenPowerOnList. Axiom 3: Standby refuses dispatch with reason Standby. Axiom 4: the reason is present iff AcceptsDispatch is false. Axiom 5: the posture fixes the relay list (MonitorOnly empty; House0 NoHeatingOrCooling = hp-failsafe-relay + aquastat-ctrl-relay; Nolan NoHeatingOrCooling empty)."
+        summary: "Initial version. ScadaAlias (the applying Scada's identity — stored/emitted instances self-identify; the layout holds the full GNodes) + FamilyParams (oneOf gw.house0.family.params / gw.nolan.family.params, discriminated by TypeName; the family TypeName pairs the instance with its layout family, so a mismatched pair fails at decode) + CaptureTuningList + ZeroTenPowerOnList + Standby x StandbyPosture x EnergizedStandbyRelays (the standby machine energizes the listed relays and nothing else; the posture names what the list achieves) + ServiceMode + AcceptsDispatch x DispatchRefusalReason (present iff refusing) + CopCurve + HeatingCurve + HpTurnOnMinutes + HpMaxKwEl + LoadOverestimationPercent + UsesBackupWhenCold + HorizonHours + WeatherBundleName (the gw.weather.forecast.bundle.gt the LTN relays and the scada pulls) + Tariff (gw.tou.tariff). All required but the reason — no assumed defaults. Axioms 1-2: ChannelName unique across CaptureTuningList, NodeName unique across ZeroTenPowerOnList. Axiom 3: Standby refuses dispatch with reason Standby. Axiom 4: the reason is present iff AcceptsDispatch is false. Axiom 5: the posture fixes the relay list (MonitorOnly empty; House0 NoHeatingOrCooling = hp-failsafe-relay + aquastat-ctrl-relay; Nolan NoHeatingOrCooling empty)."
         direct_dependencies:
           structural:
             - "capture.tuning:000"

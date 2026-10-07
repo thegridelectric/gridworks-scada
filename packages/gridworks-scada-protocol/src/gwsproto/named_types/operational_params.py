@@ -41,6 +41,7 @@ class OperationalParams(GwsprotoSemaType):
     LoadOverestimationPercent: NonNegativeInt
     UsesBackupWhenCold: bool
     HorizonHours: PositiveInt
+    WeatherBundleName: LeftRightDotStr
     Tariff: TouTariff
     TypeName: Literal["gw.operational.params"] = "gw.operational.params"
     Version: Literal["000"] = "000"

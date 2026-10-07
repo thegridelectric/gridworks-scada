@@ -501,6 +501,7 @@
   "LoadOverestimationPercent": 0,
   "UsesBackupWhenCold": true,
   "HorizonHours": 48,
+  "WeatherBundleName": "us.me.millinocket.forecast.nws.hourly96",
   "Tariff": {
     "TypeName": "gw.tou.tariff",
     "Version": "000",
