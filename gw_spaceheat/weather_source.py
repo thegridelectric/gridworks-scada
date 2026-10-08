@@ -6,12 +6,20 @@ operational params name from the GridWorks weather service and keeps the
 last forecast message and the bundle record beside it as sema instances,
 read before any network call so a restart never waits on the service; a
 test plant is given a simulated source whose forecast and response time
-the test sets, so the suite never depends on a live service. Plant time
-comes from the scada's clock; only the pull timeouts are on the wall.
+the test sets, so the suite never depends on a live service. Behind the
+forecast sits the location's seasonal template, laid on the bundle's grid
+when no forecast covers the horizon. The bundle record and the template
+are provisioning: the scada reads them from its config dir at boot, pulls
+whichever is missing, and does not start without both, so a box installed
+without the service is found out at its first boot rather than at its
+first outage. Plant time comes from the scada's clock; only the pull
+timeouts are on the wall.
 """
 
 import asyncio
+import json
 import logging
+import urllib.request
 import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
@@ -28,6 +36,7 @@ from gwsproto.named_types import (
     WeatherChannelGt,
     WeatherForecastBundleGt,
     WeatherForecastChannelGt,
+    WeatherSeasonalTemplateGt,
 )
 from gwsproto.property_format import LeftRightDotStr, UTCSeconds
 from pydantic import ValidationError
@@ -42,11 +51,6 @@ UNIT_DIVISOR: dict[Unit, float] = {
     Unit.FahrenheitX100: 100.0,
     Unit.MilesPerHourX1000: 1000.0,
 }
-
-# Millinocket's coldest outdoor temperature by month (F), the last resort
-# when no forecast is reachable or stored. Hand-kept until the weather
-# service's SeasonalTemplate record exists; that word retires this list.
-COLDEST_OAT_BY_MONTH = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
 
 
 class WeatherSourceKind(GwStrEnum):
@@ -143,18 +147,24 @@ def forecast_on(
     )
 
 
-def seasonal_fill(bundle: WeatherForecastBundleGt, now_s: float) -> ForecastPair:
+def seasonal_fill(
+    bundle: WeatherForecastBundleGt, template: WeatherSeasonalTemplateGt, now_s: float
+) -> ForecastPair:
     """The bundle's whole slice grid from the next whole hour after plant
-    time `now_s` at the month's coldest temperature and no wind, marked
-    SeasonalTemplate."""
-    slices = bundle.TempForecastChannel.TotalSlices
-    oat_f = float(COLDEST_OAT_BY_MONTH[datetime.fromtimestamp(now_s).month - 1])
+    time `now_s`, each slice at its month's template temperature and no
+    wind, marked SeasonalTemplate."""
+    start_s = next_whole_hour_s(now_s)
+    oat_f: list[float] = []
+    for duration_s in bundle.TempForecastChannel.SliceDurationSList:
+        month = datetime.fromtimestamp(start_s, tz=timezone.utc).month
+        oat_f.append(template.TempByMonth[month - 1] / 100)
+        start_s += duration_s
     message = forecast_on(
         bundle,
         WeatherForecastFidelity.SeasonalTemplate,
         next_whole_hour_s(now_s),
-        [oat_f] * slices,
-        [0.0] * slices,
+        oat_f,
+        [0.0] * len(oat_f),
         now_s,
     )
     return ForecastPair(message, bundle)
@@ -168,11 +178,19 @@ class WeatherSource(ABC):
         raise NotImplementedError
 
 
+class WeatherProvisioningError(RuntimeError):
+    """The scada cannot start: a provisioning record (the bundle record or
+    the seasonal template) is neither in the config dir nor obtainable
+    from the weather service."""
+
+
 class GwwfWeatherSource(WeatherSource):
     """The latest forecast for one bundle from the GridWorks weather
-    service's read facade, with the last message and the bundle record
-    kept in the config dir and read first; the coldest temperature of the
-    month behind both, and no forecast at all without a bundle record."""
+    service's read facade, with the last message, the bundle record and
+    the location's seasonal template kept in the config dir and read
+    first. The bundle record and the template are provisioning: boot
+    pulls whichever is missing and raises WeatherProvisioningError when
+    it cannot; the template fills behind the forecast."""
 
     def __init__(
         self,
@@ -185,13 +203,59 @@ class GwwfWeatherSource(WeatherSource):
     ) -> None:
         self.bundle_name = bundle_name
         self.api_url = api_url.rstrip("/")
+        self.timeout_s = timeout_s
         self.timeout = aiohttp.ClientTimeout(total=timeout_s)
         self.clock = clock
         self.logger = logger
+        self.config_dir = config_dir
         self.forecast_file = config_dir / f"{bundle_name}-gw.weather.forecast-000.json"
         self.bundle_file = config_dir / f"{bundle_name}-gw.weather.forecast.bundle.gt-000.json"
         self.bundle: Optional[WeatherForecastBundleGt] = self.stored_bundle()
+        if self.bundle is None:
+            self.bundle = self.provision_bundle()
+        self.template: Optional[WeatherSeasonalTemplateGt] = self.stored_template(self.bundle.LocationAlias)
+        if self.template is None:
+            self.template = self.provision_template(self.bundle.LocationAlias)
         self.message: Optional[GwWeatherForecast] = self.stored_forecast()
+
+    def template_file(self, location_alias: LeftRightDotStr) -> Path:
+        return self.config_dir / f"{location_alias}-gw.weather.seasonal.template.gt-000.json"
+
+    def provision_records(self, path: str, what: str) -> list[dict]:
+        """A read-facade listing pulled at boot, before the scada's loop
+        runs; failure to reach it is failure to start."""
+        url = f"{self.api_url}/{path}"
+        try:
+            with urllib.request.urlopen(url, timeout=self.timeout_s) as response:
+                return json.load(response)
+        except (OSError, ValueError) as e:
+            raise WeatherProvisioningError(
+                f"No {what} in {self.config_dir} and the weather service pull {url} failed: {e!r}"
+            ) from e
+
+    def provision_bundle(self) -> WeatherForecastBundleGt:
+        what = f"bundle record {self.bundle_name}"
+        records = [WeatherForecastBundleGt.model_validate(d) for d in self.provision_records("bundles", what)]
+        mine = [r for r in records if r.Name == self.bundle_name]
+        if not mine:
+            raise WeatherProvisioningError(f"No {what} in {self.config_dir} and the weather service has none")
+        self.bundle_file.write_text(mine[0].model_dump_json(by_alias=True, indent=2))
+        self.logger.info(f"Provisioned the {what} from the weather service")
+        return mine[0]
+
+    def provision_template(self, location_alias: LeftRightDotStr) -> WeatherSeasonalTemplateGt:
+        what = f"seasonal template for {location_alias}"
+        records = [
+            WeatherSeasonalTemplateGt.model_validate(d) for d in self.provision_records("seasonal-templates", what)
+        ]
+        now_s = self.clock.now()
+        mine = [r for r in records if r.LocationAlias == location_alias and utc_seconds(r.Start) <= now_s]
+        if not mine:
+            raise WeatherProvisioningError(f"No {what} in {self.config_dir} and the weather service has none")
+        template = max(mine, key=lambda r: r.Start)
+        self.template_file(location_alias).write_text(template.model_dump_json(by_alias=True, indent=2))
+        self.logger.info(f"Provisioned the {what} from the weather service")
+        return template
 
     async def forecast(self, session: aiohttp.ClientSession) -> Optional[ForecastPair]:
         pulled = await self.pull_forecast(session)
@@ -204,16 +268,21 @@ class GwwfWeatherSource(WeatherSource):
             return None
         now_s = self.clock.now()
         if self.message is None:
-            self.logger.warning("No forecast stored or reachable; filling from the coldest of the month")
-            return seasonal_fill(self.bundle, now_s)
-        pair = ForecastPair(self.message, self.bundle)
-        if not pair.covers_next(FORECAST_HOURS, now_s):
+            why = "No forecast stored or reachable"
+        else:
+            pair = ForecastPair(self.message, self.bundle)
+            if pair.covers_next(FORECAST_HOURS, now_s):
+                return pair
+            why = f"Forecast {self.message.FirstSliceStart} does not cover the next {FORECAST_HOURS} hours"
+        if self.template is None or self.template.LocationAlias != self.bundle.LocationAlias:
+            self.template = await self.pull_template(session, self.bundle.LocationAlias, now_s)
+        if self.template is None:
             self.logger.warning(
-                f"Forecast {self.message.FirstSliceStart} does not cover the next "
-                f"{FORECAST_HOURS} hours; filling from the coldest of the month"
+                f"{why}, and no seasonal template for {self.bundle.LocationAlias} stored or reachable; no forecast"
             )
-            return seasonal_fill(self.bundle, now_s)
-        return pair
+            return None
+        self.logger.warning(f"{why}; filling from the seasonal template")
+        return seasonal_fill(self.bundle, self.template, now_s)
 
     def bundle_matches(self, message: GwWeatherForecast) -> bool:
         return (
@@ -258,6 +327,39 @@ class GwwfWeatherSource(WeatherSource):
             return None
         self.bundle_file.write_text(mine[0].model_dump_json(by_alias=True, indent=2))
         return mine[0]
+
+    async def pull_template(
+        self, session: aiohttp.ClientSession, location_alias: LeftRightDotStr, now_s: float
+    ) -> Optional[WeatherSeasonalTemplateGt]:
+        """The location's template with the latest Start at or before plant
+        time `now_s`, kept in the config dir."""
+        url = f"{self.api_url}/seasonal-templates"
+        try:
+            async with session.get(url, timeout=self.timeout) as response:
+                if response.status != 200:
+                    self.logger.warning(f"Seasonal template pull {url} returned {response.status}")
+                    return None
+                records = [WeatherSeasonalTemplateGt.model_validate(d) for d in await response.json()]
+        except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as e:
+            self.logger.warning(f"Seasonal template pull {url} failed: {e!r}")
+            return None
+        mine = [r for r in records if r.LocationAlias == location_alias and utc_seconds(r.Start) <= now_s]
+        if not mine:
+            self.logger.warning(f"The weather service has no seasonal template for {location_alias}")
+            return None
+        template = max(mine, key=lambda r: r.Start)
+        self.template_file(location_alias).write_text(template.model_dump_json(by_alias=True, indent=2))
+        return template
+
+    def stored_template(self, location_alias: LeftRightDotStr) -> Optional[WeatherSeasonalTemplateGt]:
+        path = self.template_file(location_alias)
+        if not path.exists():
+            return None
+        try:
+            return WeatherSeasonalTemplateGt.model_validate_json(path.read_text())
+        except ValidationError as e:
+            self.logger.warning(f"Stored seasonal template {path} does not decode: {e!r}")
+            return None
 
     def stored_forecast(self) -> Optional[GwWeatherForecast]:
         if not self.forecast_file.exists():

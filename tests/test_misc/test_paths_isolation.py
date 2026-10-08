@@ -34,6 +34,7 @@ def env_file(tmp_path: Path) -> Path:
     env = tmp_path / "test.env"
     env.write_text(
         "SCADA_IS_SIMULATED=true\n"
+        "SCADA_WEATHER_SOURCE=Sim\n"
         f'SCADA_PATHS__HARDWARE_LAYOUT="{SPRUCE_LAYOUT}"\n'
         f'SCADA_OPERATIONAL_PARAMS_PATH="{SPRUCE_OPS}"\n'
         'SCADA_PATHS__NAME="somewhere-else"\n'

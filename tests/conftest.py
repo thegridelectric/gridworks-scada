@@ -51,6 +51,15 @@ TEST_OPS_PARAMS_PATH = (
     / "config"
     / "gw.nolan.operational.params.json"
 )
+# The weather provisioning records the test ops params name: the bundle record
+# and the location's seasonal template. A scada does not boot without both.
+TEST_WEATHER_RECORD_PATHS = tuple(
+    Path(__file__).parent / "config" / name
+    for name in (
+        "us.me.millinocket.forecast.nws.hourly96-gw.weather.forecast.bundle.gt-000.json",
+        "us.me.millinocket-gw.weather.seasonal.template.gt-000.json",
+    )
+)
 # A ValidatedSimulatedAsset deed for the test layout: without one the scada
 # is UnValidated and refuses every LTN contract offer.
 TEST_TA_DEED_PATH = Path(__file__).parent / "config" / "gw.nolan.ta.deed.json"
@@ -78,15 +87,18 @@ PATHS_NAMES = ("scada", "scada2", "ltn")
 
 @pytest.fixture(autouse=True)
 def copy_test_operational_params(default_test_env):  # noqa: F811
-    """Copy the operational-params fixture into each per-test config dir, beside
-    the layout upstream copied in, under the name the scada resolves to. Ordered
-    after default_test_env by depending on it. Nothing pins the path, so the boot
-    resolves it the way a deployment does — the default is under test."""
+    """Copy the operational-params fixture, the deed and the weather provisioning
+    records into each per-test config dir, beside the layout upstream copied in,
+    under the names the scada resolves to. Ordered after default_test_env by
+    depending on it. Nothing pins the paths, so the boot resolves them the way a
+    deployment does — the default is under test."""
     for name in PATHS_NAMES:
         dest = Path(Paths(name=name).hardware_layout).parent / DEFAULT_OPS_PARAMS_FILE
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(TEST_OPS_PARAMS_PATH, dest)
         shutil.copyfile(TEST_TA_DEED_PATH, dest.parent / DEFAULT_TA_DEED_FILE)
+        for record in TEST_WEATHER_RECORD_PATHS:
+            shutil.copyfile(record, dest.parent / record.name)
     yield
 
 @pytest.fixture(autouse=True)

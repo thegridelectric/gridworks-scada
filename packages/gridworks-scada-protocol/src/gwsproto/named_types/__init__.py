@@ -180,6 +180,7 @@ from gwsproto.named_types.gw_weather_forecast import GwWeatherForecast
 from gwsproto.named_types.weather_channel_gt import WeatherChannelGt
 from gwsproto.named_types.weather_forecast_bundle_gt import WeatherForecastBundleGt
 from gwsproto.named_types.weather_forecast_channel_gt import WeatherForecastChannelGt
+from gwsproto.named_types.weather_seasonal_template_gt import WeatherSeasonalTemplateGt
 from gwsproto.named_types.web_server_component_gt import WebServerComponentGt
 from gwsproto.named_types.zero_ten_power_on import ZeroTenPowerOn
 from gwsproto.named_types.zone_call_circuit import ZoneCallCircuit
@@ -349,6 +350,7 @@ __all__ = [
     "WeatherChannelGt",
     "WeatherForecastBundleGt",
     "WeatherForecastChannelGt",
+    "WeatherSeasonalTemplateGt",
     "WebServerComponentGt",
     "ZeroTenPowerOn",
     "ZoneCallCircuit",
