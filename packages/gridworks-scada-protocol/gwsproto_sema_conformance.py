@@ -58,6 +58,7 @@ DEFAULT_CLOSURE_REGISTRY = Path(__file__).resolve().parent / "sema_closure" / "r
 # sema format name -> gwsproto property_format Annotated type. Formats gwsproto
 # does not mirror are listed in UNMIRRORED_FORMATS below (checked-in record).
 FORMAT_MAP: dict[str, object] = {
+    "git.commit": pf.GitCommit,
     "handle.name": pf.HandleName,
     "hex.char": pf.HexChar,
     "hh.mm": pf.HhMm,

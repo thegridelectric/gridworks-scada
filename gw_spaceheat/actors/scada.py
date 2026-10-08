@@ -11,6 +11,8 @@ does not resolve through that registry, the proactor app will not be able to
 instantiate the expected actor at runtime.
 """
 import os
+import subprocess
+from pathlib import Path
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 import asyncio
@@ -35,7 +37,7 @@ from gwsproto.enums import ActorClass, DispatchRefusalReason
 
 from actors.scada_interface import ScadaInterface
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
-from gwsproto.named_types import FsmFullReport, HouseOperatingStatus, PowerWatts, SendSnap, ReportEvent
+from gwsproto.named_types import FsmFullReport, HouseOperatingStatus, PowerWatts, ScadaCommit, SendSnap, ReportEvent
 
 from actors import command_reply
 
@@ -86,6 +88,30 @@ from scada_app_interface import ScadaAppInterface
 
 UNKNOWN_CHANNEL_LOG_PERIOD_S = 15
 DISABLED_ROSTER_PERIOD_S = 24 * 3600
+
+
+# gw_spaceheat/actors/scada.py -> actors -> gw_spaceheat -> gridworks-scada
+SCADA_REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def git_commit_of(repo_root: Path) -> Optional[str]:
+    """The full HEAD hash of the checkout at repo_root, suffixed -dirty when
+    its tracked files differ from HEAD; None when repo_root is not a git
+    checkout or git is unavailable."""
+    if not (repo_root / ".git").exists():
+        return None
+    try:
+        head = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=repo_root, capture_output=True, text=True, check=True,
+        ).stdout.strip()
+        clean = subprocess.run(
+            ["git", "diff-index", "--quiet", "HEAD", "--"],
+            cwd=repo_root, capture_output=True,
+        ).returncode == 0
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
+    return head if clean else f"{head}-dirty"
 
 
 class Scada(PrimeActor, ScadaInterface):
@@ -1504,6 +1530,18 @@ class Scada(PrimeActor, ScadaInterface):
         else:
             self._send_to(self.ltn, deed)
         self.report_operating_status()
+        commit = git_commit_of(SCADA_REPO_ROOT)
+        if commit is None:
+            self.log(f"No gw.scada.commit: {SCADA_REPO_ROOT} is not a git checkout")
+        else:
+            self._send_to(
+                self.ltn,
+                ScadaCommit(
+                    ScadaAlias=self.layout.scada_g_node_alias,
+                    GitCommit=commit,
+                    MessageCreatedMs=int(time.time() * 1000),
+                ),
+            )
 
     @property
     def house_operating_status(self) -> HouseOperatingStatus:

@@ -25,6 +25,8 @@ SPACEHEAT_NAME_PATTERN = re.compile(
     r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
 )
 
+GIT_COMMIT_PATTERN = re.compile(r"^[0-9a-f]{40}(-dirty)?$")
+
 HANDLE_NAME_PATTERN = re.compile(
     r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*)*$"
 )
@@ -87,6 +89,17 @@ def check_is_log_style_date_with_millis(v: str) -> None:
             f"{v} is not in LogStyleDateWithMillis format."
             " Milliseconds must have exactly 3 digits"
         )
+
+
+def is_git_commit(v: str) -> str:
+    if not isinstance(v, str):
+        raise ValueError(f"<{v}>: git.commit must be a string.")
+    if not GIT_COMMIT_PATTERN.fullmatch(v):
+        raise ValueError(
+            f"<{v}>: Fails git.commit format (a 40-character lowercase git "
+            "hash, optionally suffixed -dirty)."
+        )
+    return v
 
 
 def is_handle_name(v: str) -> str:
@@ -347,6 +360,7 @@ def is_market_slot_name(v: str) -> str:
 
 
 Bit = Annotated[int, BeforeValidator(is_bit)]
+GitCommit = Annotated[str, BeforeValidator(is_git_commit)]
 HandleName = Annotated[str, BeforeValidator(is_handle_name)]
 HexChar = Annotated[str, BeforeValidator(is_hex_char)]
 HhMm = Annotated[str, BeforeValidator(is_hh_mm)]

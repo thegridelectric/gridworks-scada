@@ -126,6 +126,7 @@ from gwsproto.named_types.remaining_elec import RemainingElec
 from gwsproto.named_types.report import Report
 from gwsproto.named_types.required_energy_layered import RequiredEnergyLayered
 from gwsproto.named_types.reset_hp_keep_value import ResetHpKeepValue
+from gwsproto.named_types.scada_commit import ScadaCommit
 from gwsproto.named_types.scada_control_capabilities import ScadaControlCapabilities
 from gwsproto.named_types.scada_device_type_gt import ScadaDeviceTypeGt
 from gwsproto.named_types.scada_params import ScadaParams
@@ -306,6 +307,7 @@ __all__ = [
     "ReportEvent",
     "RequiredEnergyLayered",
     "ResetHpKeepValue",
+    "ScadaCommit",
     "ScadaControlCapabilities",
     "ScadaDeviceTypeGt",
     "ScadaParams",

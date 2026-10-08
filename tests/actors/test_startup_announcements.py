@@ -1,18 +1,21 @@
 """Once per run, when the upstream link can first carry a publish, a scada
-sends its layout.lite and the home's ta.deed, or a Warning when it holds no
-deed (no-ta-deed) or a deed for another terminal asset (ta-deed-wrong-asset).
-No LTN is needed for any of it."""
+sends its layout.lite, the home's ta.deed, or a Warning when it holds no
+deed (no-ta-deed) or a deed for another terminal asset (ta-deed-wrong-asset),
+its operating status, and the git commit it is running. No LTN is needed for
+any of it."""
 
 import asyncio
+import subprocess
 import uuid
 from pathlib import Path
 from typing import Any
 
 import pytest
-from actors.scada import Scada
+import actors.scada
+from actors.scada import SCADA_REPO_ROOT, Scada, git_commit_of
 from gwproactor.config import Paths
 from gwsproto.enums import LogLevel, TaValidationState
-from gwsproto.named_types import Glitch, HouseOperatingStatus, LayoutLite, TaDeed
+from gwsproto.named_types import Glitch, HouseOperatingStatus, LayoutLite, ScadaCommit, TaDeed
 from scada_app import ScadaApp
 from tests.utils.scada_live_test_helper import ScadaLiveTest
 
@@ -84,9 +87,64 @@ async def test_announcements_with_a_deed_are_the_layout_and_that_deed(
         scada = tst.child1_app.scada
         sent = record_sends(monkeypatch, scada)
         scada.send_startup_announcements()
-        assert [type(p) for p in sent] == [LayoutLite, TaDeed, HouseOperatingStatus]
+        assert [type(p) for p in sent] == [LayoutLite, TaDeed, HouseOperatingStatus, ScadaCommit]
         assert sent[0].FromGNodeAlias == scada.layout.scada_g_node_alias
         assert sent[1] == tst.child1_app.ta_deed
+
+
+@pytest.mark.asyncio
+async def test_the_commit_announced_is_the_checkouts_head(
+    request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(Scada, "announce_at_first_broker_link", no_announcer)
+    async with ScadaLiveTest(request=request) as tst:
+        tst.start_child1()
+        scada = tst.child1_app.scada
+        sent = record_sends(monkeypatch, scada)
+        scada.send_startup_announcements()
+        commit = sent[3]
+        assert isinstance(commit, ScadaCommit)
+        assert commit.ScadaAlias == scada.layout.scada_g_node_alias
+        head = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=SCADA_REPO_ROOT, capture_output=True, text=True
+        ).stdout.strip()
+        assert commit.GitCommit.removesuffix("-dirty") == head
+
+
+@pytest.mark.asyncio
+async def test_no_checkout_means_no_commit_announcement(
+    request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    assert git_commit_of(tmp_path) is None
+    monkeypatch.setattr(actors.scada, "SCADA_REPO_ROOT", tmp_path)
+    monkeypatch.setattr(Scada, "announce_at_first_broker_link", no_announcer)
+    async with ScadaLiveTest(request=request) as tst:
+        tst.start_child1()
+        scada = tst.child1_app.scada
+        sent = record_sends(monkeypatch, scada)
+        logged: list[str] = []
+        monkeypatch.setattr(scada, "log", logged.append)
+        scada.send_startup_announcements()
+        assert [type(p) for p in sent] == [LayoutLite, TaDeed, HouseOperatingStatus]
+        assert [note for note in logged if note.startswith("No gw.scada.commit")]
+
+
+def test_git_commit_of_reads_head_and_marks_a_dirty_tree(tmp_path: Path) -> None:
+    env = {
+        "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
+        "GIT_COMMITTER_EMAIL": "t@t", "HOME": str(tmp_path), "PATH": "/usr/bin:/bin",
+    }
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True, env=env)
+    (tmp_path / "a").write_text("1")
+    subprocess.run(["git", "add", "a"], cwd=tmp_path, check=True, env=env)
+    subprocess.run(["git", "-c", "commit.gpgsign=false", "commit", "-q", "-m", "a"],
+                   cwd=tmp_path, check=True, env=env)
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=tmp_path, capture_output=True, text=True
+    ).stdout.strip()
+    assert git_commit_of(tmp_path) == head
+    (tmp_path / "a").write_text("2")
+    assert git_commit_of(tmp_path) == f"{head}-dirty"
 
 
 @pytest.mark.asyncio
@@ -102,7 +160,7 @@ async def test_announcements_with_no_deed_are_the_layout_and_one_warning(
         logged: list[str] = []
         monkeypatch.setattr(scada, "log", logged.append)
         scada.send_startup_announcements()
-        assert [type(p) for p in sent] == [LayoutLite, Glitch, HouseOperatingStatus]
+        assert [type(p) for p in sent] == [LayoutLite, Glitch, HouseOperatingStatus, ScadaCommit]
         assert [note for note in logged if note.startswith("Warning Glitch: no-ta-deed")]
         glitch = sent[1]
         assert isinstance(glitch, Glitch)
@@ -124,7 +182,7 @@ async def test_announcements_with_another_assets_deed_are_the_layout_and_one_war
         logged: list[str] = []
         monkeypatch.setattr(scada, "log", logged.append)
         scada.send_startup_announcements()
-        assert [type(p) for p in sent] == [LayoutLite, Glitch, HouseOperatingStatus]
+        assert [type(p) for p in sent] == [LayoutLite, Glitch, HouseOperatingStatus, ScadaCommit]
         assert [note for note in logged if note.startswith("Warning Glitch: ta-deed-wrong-asset")]
         glitch = sent[1]
         assert isinstance(glitch, Glitch)
