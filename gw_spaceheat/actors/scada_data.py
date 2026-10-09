@@ -255,14 +255,28 @@ class ScadaData:
         )
 
     def capture_seconds(self, ch: Union[DataChannel, DerivedChannel]) -> int:
+        """The period a channel's value is fresh for: a data channel's capture
+        period; a derived channel's emit period, or for one that emits on a
+        trigger, the longest period among the inputs it is derived from."""
         if ch.Name not in self.seconds_by_channel:
             self.seconds_by_channel = {
                 name: tuning.CapturePeriodS
                 for name, tuning in self.layout.capture_tuning_by_channel.items()
             }
             for s in self.my_derived_channels:
-                self.seconds_by_channel[s.Name] = 60  # TODO: fix
+                self.seconds_by_channel[s.Name] = self.derived_seconds(s)
         return self.seconds_by_channel[ch.Name]
+
+    def derived_seconds(self, dc: DerivedChannel) -> int:
+        if dc.EmitPeriodS is not None:
+            return dc.EmitPeriodS
+        inputs = [
+            self.derived_seconds(self.layout.derived_channels[name])
+            if name in self.layout.derived_channels
+            else self.layout.capture_tuning_by_channel[name].CapturePeriodS
+            for name in dc.InputChannelNames
+        ]
+        return max(inputs)
 
     def flatlined(self, ch: Union[DataChannel, DerivedChannel]) -> bool:
         if self.latest_channel_unix_ms[ch.Name] is None:
