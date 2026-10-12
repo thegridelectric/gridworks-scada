@@ -4,7 +4,7 @@ from pydantic import Field, NonNegativeInt, PositiveFloat, PositiveInt, model_va
 from typing_extensions import Self
 
 from gwsproto import enums
-from gwsproto.enums import ServiceMode, StandbyPosture
+from gwsproto.enums import ServiceMode, SiegLoopStrategy, StandbyPosture
 from gwsproto.named_types.capture_tuning import CaptureTuning
 from gwsproto.named_types.cop_curve import CopCurve
 from gwsproto.named_types.heating_curve import HeatingCurve
@@ -132,5 +132,25 @@ class OperationalParams(GwsprotoSemaType):
                 "Axiom 5 (PostureRelaysPerFamily) failed: posture "
                 f"{self.StandbyPosture} on {self.FamilyParams.TypeName} requires "
                 f"EnergizedStandbyRelays {expected}; got {self.EnergizedStandbyRelays}"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_6(self) -> Self:
+        """
+        Axiom 6: StandbyHoldsFullSend.
+        If Standby is true and FamilyParams.TypeName is
+        gw.house0.family.params, FamilyParams.SiegLoopStrategy SHALL be
+        HoldFullSend.
+        """
+        if (
+            self.Standby
+            and isinstance(self.FamilyParams, House0FamilyParams)
+            and self.FamilyParams.SiegLoopStrategy is not SiegLoopStrategy.HoldFullSend
+        ):
+            raise ValueError(
+                "Axiom 6 (StandbyHoldsFullSend) failed: Standby on a House0 family "
+                "requires SiegLoopStrategy HoldFullSend; got "
+                f"{self.FamilyParams.SiegLoopStrategy}"
             )
         return self

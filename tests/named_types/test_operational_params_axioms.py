@@ -25,7 +25,9 @@ def ops(name: str) -> dict:
 def test_gw_operational_params_axiom_1_duplicate_channel(name: str) -> None:
     d = ops(name)
     d["CaptureTuningList"].append(dict(d["CaptureTuningList"][0]))
-    with pytest.raises(ValueError, match="Axiom 1 \\(CaptureTuningChannelUniqueness\\)"):
+    with pytest.raises(
+        ValueError, match="Axiom 1 \\(CaptureTuningChannelUniqueness\\)"
+    ):
         OperationalParams.model_validate(d)
 
 
@@ -47,10 +49,20 @@ def test_gw_operational_params_family_block_is_discriminated() -> None:
 def test_gw_tou_tariff_axiom_1_overlapping_windows() -> None:
     d = ops("gw.house0.orange.operational.params.json")["Tariff"]
     d["OnPeakWindows"] = [
-        {"Start": "07:00", "End": "12:00", "Days": ["Monday"],
-         "TypeName": "gw.tou.window", "Version": "000"},
-        {"Start": "11:00", "End": "13:00", "Days": ["Monday"],
-         "TypeName": "gw.tou.window", "Version": "000"},
+        {
+            "Start": "07:00",
+            "End": "12:00",
+            "Days": ["Monday"],
+            "TypeName": "gw.tou.window",
+            "Version": "000",
+        },
+        {
+            "Start": "11:00",
+            "End": "13:00",
+            "Days": ["Monday"],
+            "TypeName": "gw.tou.window",
+            "Version": "000",
+        },
     ]
     with pytest.raises(ValueError, match="Axiom 1 \\(PerDayWindowNonOverlap\\)"):
         TouTariff.model_validate(d)
@@ -70,7 +82,9 @@ def test_gw_operational_params_axiom_3_standby_accepts_dispatch(name: str) -> No
 
 
 @pytest.mark.parametrize("name", OPS_FIXTURES)
-def test_gw_operational_params_axiom_3_standby_refuses_for_another_reason(name: str) -> None:
+def test_gw_operational_params_axiom_3_standby_refuses_for_another_reason(
+    name: str,
+) -> None:
     d = ops(name)
     d["Standby"] = True
     d["AcceptsDispatch"] = False
@@ -96,7 +110,9 @@ def test_gw_operational_params_axiom_4_reason_while_accepting(name: str) -> None
 
 
 @pytest.mark.parametrize("name", OPS_FIXTURES)
-def test_gw_operational_params_axiom_5_a_monitor_only_energizes_nothing(name: str) -> None:
+def test_gw_operational_params_axiom_5_a_monitor_only_energizes_nothing(
+    name: str,
+) -> None:
     d = ops(name)
     d["StandbyPosture"] = "MonitorOnly"
     d["EnergizedStandbyRelays"] = ["hp-failsafe-relay"]
@@ -107,7 +123,11 @@ def test_gw_operational_params_axiom_5_a_monitor_only_energizes_nothing(name: st
 def test_gw_operational_params_axiom_5_b_house0_list_is_fixed() -> None:
     d = ops("gw.house0.orange.operational.params.json")
     assert d["EnergizedStandbyRelays"] == ["hp-failsafe-relay", "aquastat-ctrl-relay"]
-    for relays in ([], ["hp-failsafe-relay"], ["hp-failsafe-relay", "aquastat-ctrl-relay", "store-pump-relay"]):
+    for relays in (
+        [],
+        ["hp-failsafe-relay"],
+        ["hp-failsafe-relay", "aquastat-ctrl-relay", "store-pump-relay"],
+    ):
         d["EnergizedStandbyRelays"] = relays
         with pytest.raises(ValueError, match="Axiom 5 \\(PostureRelaysPerFamily\\)"):
             OperationalParams.model_validate(d)
@@ -119,6 +139,27 @@ def test_gw_operational_params_axiom_5_c_nolan_list_is_empty() -> None:
     d["EnergizedStandbyRelays"] = ["iso-valve-relay"]
     with pytest.raises(ValueError, match="Axiom 5 \\(PostureRelaysPerFamily\\)"):
         OperationalParams.model_validate(d)
+
+
+def test_gw_operational_params_axiom_6_house0_standby_holds_full_send() -> None:
+    d = ops("gw.house0.orange.operational.params.json")
+    d["Standby"] = True
+    d["AcceptsDispatch"] = False
+    d["DispatchRefusalReason"] = "Standby"
+    d["FamilyParams"]["SiegLoopStrategy"] = "HoldFullSend"
+    OperationalParams.model_validate(d)
+    for strategy in ("StratProtect", "LwtControl"):
+        d["FamilyParams"]["SiegLoopStrategy"] = strategy
+        with pytest.raises(ValueError, match="Axiom 6 \\(StandbyHoldsFullSend\\)"):
+            OperationalParams.model_validate(d)
+
+
+def test_gw_operational_params_axiom_6_nolan_has_no_loop() -> None:
+    d = ops("gw.nolan.operational.params.json")
+    d["Standby"] = True
+    d["AcceptsDispatch"] = False
+    d["DispatchRefusalReason"] = "Standby"
+    OperationalParams.model_validate(d)
 
 
 def test_gw_nolan_family_params_axiom_1_charge_not_below_full() -> None:
@@ -142,7 +183,13 @@ def test_standby_relays_are_relays_the_normal_node_claims() -> None:
     d["StandbyPosture"] = "MonitorOnly"
     d["EnergizedStandbyRelays"] = []
     check_energized_standby_relays(decode_operational_params(d), layout)
-    for bad in ("hp-scada-ops-relay", "hp-loop-on-off-relay", "vdc-relay", "hp-boss", "no-such-relay"):
+    for bad in (
+        "hp-scada-ops-relay",
+        "hp-loop-on-off-relay",
+        "vdc-relay",
+        "hp-boss",
+        "no-such-relay",
+    ):
         d["StandbyPosture"] = "NoHeatingOrCooling"
         d["EnergizedStandbyRelays"] = ["hp-failsafe-relay", "aquastat-ctrl-relay"]
         good = decode_operational_params(d)
