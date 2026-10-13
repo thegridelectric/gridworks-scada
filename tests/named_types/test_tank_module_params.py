@@ -48,5 +48,5 @@ def test_version_110_wire_shape_is_rejected() -> None:
         if k not in ("PicoBoardVariant", "MicropythonVersion")
     }
     d["Version"] = "110"
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValueError):  # twin-only: the scada decodes one version
         TankModuleParams.model_validate(d)

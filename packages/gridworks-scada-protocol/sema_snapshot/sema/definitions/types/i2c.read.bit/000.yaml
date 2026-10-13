@@ -1,0 +1,64 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/i2c.read.bit/000"
+
+title: "i2c.read.bit"
+type: object
+description: >
+  A request to read a single bit from a device register on a named I²C bus.
+
+properties:
+
+  Bus:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      The name of the I²C bus actor to route this operation through.
+
+  Address:
+    $ref: "https://schemas.electricity.works/types/i2c.bit.address/000"
+    description: >
+      The bit to read.
+
+  TriggerId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      Correlates this request with its i2c.result.
+
+  TypeName:
+    const: "i2c.read.bit"
+
+  Version:
+    const: "000"
+
+required:
+  - Bus
+  - Address
+  - TriggerId
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "Bus": "scada",
+      "Address": {
+        "I2cAddress": 33,
+        "RegisterIndex": 2,
+        "BitIndex": 1,
+        "TypeName": "i2c.bit.address",
+        "Version": "000"
+      },
+      "TriggerId": "6f74e8b9-4fc9-4b95-bd6f-2c150662b40e",
+      "TypeName": "i2c.read.bit",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  extended_description: >
+    Bus is the SpaceheatName of the I2cBus actor node that owns and serializes
+    the targeted physical I²C bus within a GridWorks SCADA ShNode hierarchy. It
+    corresponds to a bus declared in the board's gw1.scada.device.type.gt
+    BusList; the actor-name to hardware-bus-name bijection is a hardware-layout
+    concern.

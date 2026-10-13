@@ -1,0 +1,26 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/formats/decimal.digit"
+
+title: "decimal.digit"
+description: >
+  Single decimal digit validated non-coercively at the serialized boundary.
+  The serialized value must already be an integer from 0 through 9.
+  Strings such as "3" and numeric floats such as 3.0 are not accepted.
+
+type: integer
+minimum: 0
+maximum: 9
+
+examples:
+  - 0
+  - 3
+  - 9
+
+counterexamples:
+  - -1
+  - 10
+  - 3.0
+  - "3"
+
+x-gridworks:
+  owner: "gridworks-energy"

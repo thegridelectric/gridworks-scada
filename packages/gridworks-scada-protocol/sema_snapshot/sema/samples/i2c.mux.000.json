@@ -1,0 +1,9 @@
+{
+  "TypeName": "i2c.mux",
+  "Version": "000",
+  "MuxName": "DacMux",
+  "I2cBus": "DefaultBus",
+  "I2cAddress": 112,
+  "MuxType": "Tca9548a",
+  "Channels": 8
+}

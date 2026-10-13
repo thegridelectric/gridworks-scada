@@ -1,8 +1,8 @@
 """Tests i2c.multichannel.dt.relay.component.gt type, version 004"""
 
-import pytest
 
 from gwsproto.named_types import I2cMultichannelDtRelayComponentGt
+from tests.named_types.sema_oracle import assert_refused
 
 
 def base_relay_config(actor_name: str, relay_idx: int, channel_name: str) -> dict:
@@ -50,13 +50,11 @@ def test_i2c_multichannel_dt_relay_component_gt_actor_name_uniqueness() -> None:
     d = base_component()
     d["ConfigList"][1]["ActorName"] = "relay1"
 
-    with pytest.raises(ValueError, match="Duplicate ActorName\\(s\\)"):
-        I2cMultichannelDtRelayComponentGt.model_validate(d)
+    assert_refused(I2cMultichannelDtRelayComponentGt, d, match="Duplicate ActorName\\(s\\)")
 
 
 def test_i2c_multichannel_dt_relay_component_gt_relay_idx_uniqueness() -> None:
     d = base_component()
     d["ConfigList"][1]["RelayIdx"] = 1
 
-    with pytest.raises(ValueError, match="Duplicate RelayIdx\\(s\\)"):
-        I2cMultichannelDtRelayComponentGt.model_validate(d)
+    assert_refused(I2cMultichannelDtRelayComponentGt, d, match="Duplicate RelayIdx\\(s\\)")

@@ -1,0 +1,174 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw.hydronic/000"
+
+title: "gw.hydronic"
+type: object
+description: >
+  The hydronic / flow-topology configuration of a hydronic space-heating
+  layout (House0 and Nolan strategies alike): its zones, zone-call
+  circuits, water store, backup heat, how primary-loop flow is obtained,
+  who runs the primary pump, and the heat pump's refrigerant cycle. These are
+  physical facts of the installed house, carried here so the layout states
+  them rather than code inferring them from channel presence or from
+  device records.
+
+properties:
+  Zones:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/gw1.hvac.zone/000"
+    description: >
+      The heating zones. Each is served by one or more zone-call circuits
+      and names its primary circuit.
+
+  ZoneCallCircuits:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/gw1.zone.call.circuit/000"
+    description: >
+      The zone-call circuits, each binding a wall thermostat, call wire,
+      relay pair, and actuator to the zone it serves. A circuit's place in
+      this list is its CircuitPosition. The zones partition the circuits:
+      every circuit serves exactly one zone and every zone is served by at
+      least its primary circuit.
+
+  WaterStore:
+    $ref: "https://schemas.electricity.works/types/gw.water.store/000"
+    description: >
+      The water store tanks. Absent for a layout whose store is not water
+      tanks.
+
+  Backup:
+    oneOf:
+      - $ref: "https://schemas.electricity.works/types/gw.boiler.backup/000"
+      - $ref: "https://schemas.electricity.works/types/gw.element.backup/000"
+    description: >
+      The second source of heat the local control can run when the house
+      is cold, a boiler or resistive elements. Absent for a layout with no
+      backup.
+
+  PrimaryFlowSource:
+    $ref: "https://schemas.electricity.works/enums/gw.primary.flow.source/000"
+    description: >
+      Whether "primary-flow" is a measured DataChannel (a meter at the primary
+      pump) or a derived sum over the Siegenthaler loop sensors.
+
+  PrimaryPumpOwner:
+    $ref: "https://schemas.electricity.works/enums/gw.primary.pump.owner/000"
+    description: >
+      Who runs the primary pump: the heat pump under its own control, or the
+      scada through a failsafe relay, a scada-ops relay and a 0-10V output.
+      The layout word's PrimaryPumpActuators axiom ties the actuator nodes
+      to this value.
+
+  RefrigerantCycle:
+    $ref: "https://schemas.electricity.works/enums/gw.refrigerant.cycle/000"
+    description: >
+      Whether the heat pump is a single-compressor unit or a two-compressor
+      cascade. Stated once for the system; a cascade split carries a
+      compressor in each of its two units.
+
+  HpCommandNodeName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      The ShNode that takes heat-pump commands under hp-boss: hp-odu when
+      the outdoor unit speaks the wire protocol natively, hp-idu or
+      hp-ctrl-box when its box does. Absent when nothing commands the heat
+      pump (hp-boss dormant). Governed by the layout word's
+      CommandableHeatPump axiom.
+
+  TypeName:
+    const: "gw.hydronic"
+
+  Version:
+    const: "000"
+
+required:
+  - Zones
+  - ZoneCallCircuits
+  - PrimaryFlowSource
+  - PrimaryPumpOwner
+  - RefrigerantCycle
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "Zones": [
+        {"Name": "down", "Critical": true, "KwhPerDegF": 1, "PrimaryCircuitPosition": 1, "TypeName": "gw1.hvac.zone", "Version": "000"},
+        {"Name": "up", "Critical": true, "KwhPerDegF": 0, "PrimaryCircuitPosition": 2, "TypeName": "gw1.hvac.zone", "Version": "000"}
+      ],
+      "ZoneCallCircuits": [
+        {
+          "CircuitPosition": 1,
+          "Name": "down",
+          "ServesZone": "down",
+          "EmitterType": "RadiantSlab",
+          "CanCool": false,
+          "SetpointSource": "Learned",
+          "Thermostat": {"Kind": "MechanicalDial", "TypeName": "gw1.zone.thermostat", "Version": "000"},
+          "WhitewireChannelName": "zone1-down-opto-input",
+          "SetpointChannelName": "zone1-down-set",
+          "TempChannelName": "zone1-down-temp",
+          "FloorTempChannelName": "zone1-down-floor-temp",
+          "FailsafeRelayNode": "zone1-down-failsafe-relay",
+          "OpsRelayNode": "zone1-down-ops-relay",
+          "TypeName": "gw1.zone.call.circuit",
+          "Version": "000"
+        },
+        {
+          "CircuitPosition": 2,
+          "Name": "up",
+          "ServesZone": "up",
+          "EmitterType": "RadiantSlab",
+          "CanCool": false,
+          "SetpointSource": "Learned",
+          "Thermostat": {"Kind": "MechanicalDial", "TypeName": "gw1.zone.thermostat", "Version": "000"},
+          "WhitewireChannelName": "zone2-up-opto-input",
+          "SetpointChannelName": "zone2-up-set",
+          "TempChannelName": "zone2-up-temp",
+          "FailsafeRelayNode": "zone2-up-failsafe-relay",
+          "OpsRelayNode": "zone2-up-ops-relay",
+          "TypeName": "gw1.zone.call.circuit",
+          "Version": "000"
+        }
+      ],
+      "WaterStore": {"TotalStoreTanks": 3, "TypeName": "gw.water.store", "Version": "000"},
+      "PrimaryFlowSource": "Measured",
+      "PrimaryPumpOwner": "Scada",
+      "RefrigerantCycle": "Cascade",
+      "TypeName": "gw.hydronic",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "Cardinality"
+      statement: >
+        The number of Zones SHALL be between 1 and 6 inclusive.
+    - number: 2
+      name: "CircuitResolution"
+      statement: >
+        a. Every circuit's ServesZone SHALL equal the Name of a zone in
+        Zones. b. The circuit at 1-based place i in ZoneCallCircuits SHALL
+        have CircuitPosition i.
+        c. No two zones SHALL share a Name.
+    - number: 3
+      name: "PrimaryCircuit"
+      statement: >
+        a. Every zone's PrimaryCircuitPosition SHALL equal the
+        CircuitPosition of a circuit whose ServesZone equals the zone's
+        Name. b. That circuit SHALL carry SetpointChannelName.
+    - number: 4
+      name: "CircuitDistinctness"
+      statement: >
+        a. No two circuits SHALL share a Name. b. No two circuits SHALL
+        share a WhitewireChannelName. c. No two circuits SHALL share a
+        SetpointChannelName. d. No two circuits SHALL share a
+        TempChannelName. e. No two circuits SHALL share a FailsafeRelayNode.
+        f. No two circuits SHALL share an OpsRelayNode.

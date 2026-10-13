@@ -1,0 +1,86 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/hubitat.component.gt/000"
+
+title: "hubitat.component.gt"
+type: object
+description: >
+  A Hubitat hub component (one installed hub instance): the MakerAPI connection settings for
+  the hub. Flat — the shared component fields are spelled out here; Hubitat references the
+  hubitat.gt connection word by $ref.
+
+properties:
+
+  ComponentId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      Globally unique identifier for this installed component instance.
+
+  DeviceType:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The device category this component is built on, an open
+      pascal-case string.
+
+  Hubitat:
+    $ref: "https://schemas.electricity.works/types/hubitat.gt/000"
+    description: >
+      The MakerAPI connection settings for this hub.
+
+  DisplayName:
+    type: string
+
+  HwUid:
+    type: string
+    description: >
+      Hardware unique id of the installed device, when known.
+
+  TypeName:
+    const: "hubitat.component.gt"
+
+  Version:
+    const: "000"
+
+required:
+  - ComponentId
+  - DeviceType
+  - Hubitat
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ComponentId": "409bec56-deea-4dc4-b8f7-48a29c44713b",
+      "DeviceType": "HubitatC7Hub",
+      "Hubitat": {
+        "Host": "example",
+        "MakerApiId": 0,
+        "AccessToken": "example",
+        "MacAddress": "34:e1:d1:82:22:22",
+        "WebListenEnabled": false,
+        "TypeName": "hubitat.gt",
+        "Version": "000"
+      },
+      "TypeName": "hubitat.component.gt",
+      "Version": "000"
+    }
+x-gridworks:
+  owner: "gridworks-energy"
+
+  extended_description: >
+    The MakerAPI URL helpers on the hub (url_config / maker_api_url_config / refresh_url and
+    related) are NOT part of this serialized contract; see hubitat.gt. The Sema runtime
+    generates a plain data class and the SCADA application supplies those derived helpers in
+    app code.
+
+    This vocabulary serves the five legacy House0 production homes (beech, elm, oak, fir,
+    maple) and is not expected to expand going forward.
+
+    The `.gt` suffix declares that this type is coupled bijectively with a table in
+    a canonical seed database (here, the terminalasset registry): the table's rows are
+    instances of this type. Sema is the authority over what a row means; the seed
+    table is the authority over which instances are currently asserted.
+
+    DeviceType values come from the `gw1.device.type` vocabulary; the hardware layout enforces membership.

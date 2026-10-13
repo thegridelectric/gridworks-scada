@@ -14,6 +14,7 @@ import pytest
 from gwsproto.enums import SiegLoopStrategy
 from gwsproto.named_types import House0Layout, OperationalParams
 from sema_to_dc import assemble_runtime_layout, check_sieg_loop_strategy
+from tests.named_types.sema_oracle import assert_refused
 
 CONFIG = Path(__file__).parent.parent / "config"
 
@@ -41,8 +42,7 @@ def mutated(assembled: dict, mutate) -> dict:
 
 
 def reject(assembled: dict, mutate, axiom: str) -> None:
-    with pytest.raises(ValueError, match=axiom):
-        House0Layout.model_validate(mutated(assembled, mutate))
+    assert_refused(House0Layout, mutated(assembled, mutate), match=axiom)
 
 def sensor_off_the_meter(d: dict) -> str:
     """A node capturing channels that feed no transactive-power channel and

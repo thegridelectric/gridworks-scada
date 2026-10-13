@@ -1,0 +1,90 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/ha1.params/006"
+
+title: "ha1.params"
+type: object
+description: >
+  Parameter set used by Spaceheat SCADA and LTN runtime logic for the HA1
+  heating model.
+
+properties:
+  AlphaTimes10:
+    type: integer
+
+  BetaTimes100:
+    type: integer
+
+  GammaEx6:
+    type: integer
+
+  IntermediatePowerKw:
+    type: number
+
+  IntermediateRswtF:
+    type: integer
+
+  DdPowerKw:
+    type: number
+
+  DdRswtF:
+    type: integer
+
+  DdDeltaTF:
+    type: integer
+
+  HpMaxKwEl:
+    type: number
+
+  HpMaxKwTh:
+    type: number
+
+  MaxEwtF:
+    type: integer
+
+  LoadOverestimationPercent:
+    type: integer
+
+  CopIntercept:
+    type: number
+
+  CopOatCoeff:
+    type: number
+
+  CopLwtCoeff:
+    type: number
+
+  CopMin:
+    type: number
+
+  CopMinOatF:
+    type: number
+
+  HpTurnOnMinutes:
+    type: integer
+    default: 12
+
+  TypeName:
+    const: "ha1.params"
+
+  Version:
+    const: "006"
+
+required:
+  - AlphaTimes10
+  - BetaTimes100
+  - GammaEx6
+  - IntermediatePowerKw
+  - IntermediateRswtF
+  - DdPowerKw
+  - DdRswtF
+  - DdDeltaTF
+  - MaxEwtF
+  - LoadOverestimationPercent
+  - HpTurnOnMinutes
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+x-gridworks:
+  owner: "gridworks-energy"

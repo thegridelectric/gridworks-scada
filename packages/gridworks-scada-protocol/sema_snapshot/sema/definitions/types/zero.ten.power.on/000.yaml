@@ -1,0 +1,62 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/zero.ten.power.on/000"
+
+title: "zero.ten.power.on"
+type: object
+description: >
+  The power-on level of one 0-10V output: the terminal voltage the output
+  holds from power-up until the scada's first command, named by the output's
+  node. Authored in operational-params, not in the static hardware layout.
+
+properties:
+
+  NodeName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Name of the ShNode that drives this output.
+
+  PowerOnVoltsTimesTen:
+    $ref: "https://schemas.electricity.works/formats/non.negative.int"
+    description: >
+      The terminal voltage at power-up, in volts times ten.
+
+  TypeName:
+    const: "zero.ten.power.on"
+
+  Version:
+    const: "000"
+
+required:
+  - NodeName
+  - PowerOnVoltsTimesTen
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "NodeName": "dist-010v",
+      "PowerOnVoltsTimesTen": 20,
+      "TypeName": "zero.ten.power.on",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "TenVoltCeiling"
+      statement: >
+        PowerOnVoltsTimesTen SHALL be at most 100.
+
+  extended_description: >
+    The power-on level is what a pump does while the scada is down, a per-house
+    choice, so it is operational rather than wiring. Where the DAC chip can
+    store a power-on value (the MCP4728's EEPROM) the scada programs it to this
+    level at boot and reprograms only on a mismatch; where the chip cannot,
+    this is the level the scada asserts at boot and on every heartbeat, and
+    the output sits at the chip's own default until then. The unit matches
+    the AnalogDispatch command and the VoltsTimesTen reporting channel.

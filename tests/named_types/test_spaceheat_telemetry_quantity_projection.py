@@ -1,8 +1,8 @@
 """Tests spaceheat.telemetry.quantity.projection type, version 000"""
 
-import pytest
 
 from gwsproto.named_types import SpaceheatTelemetryQuantityProjection
+from tests.named_types.sema_oracle import assert_refused
 
 
 def test_spaceheat_telemetry_quantity_projection_generated() -> None:
@@ -28,5 +28,4 @@ def test_spaceheat_telemetry_quantity_projection_axiom() -> None:
         "Version": "000",
     }
 
-    with pytest.raises(ValueError, match="Axiom 1 violated!"):
-        SpaceheatTelemetryQuantityProjection.model_validate(d)
+    assert_refused(SpaceheatTelemetryQuantityProjection, d, match="Axiom 1 violated!")

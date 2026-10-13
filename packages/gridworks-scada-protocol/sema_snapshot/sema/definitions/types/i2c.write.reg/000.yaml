@@ -1,0 +1,87 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/i2c.write.reg/000"
+
+title: "i2c.write.reg"
+type: object
+description: >
+  A request to write a 1- or 2-byte register to a device on a named I²C bus.
+
+properties:
+
+  Bus:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      The name of the I²C bus actor to route this operation through.
+
+  Address:
+    $ref: "https://schemas.electricity.works/types/i2c.reg.address/000"
+    description: >
+      The register to write.
+
+  NumBytes:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Number of bytes to write (1 for a byte, 2 for a word).
+
+  Value:
+    $ref: "https://schemas.electricity.works/formats/non.negative.int"
+    description: >
+      The value to write into the register.
+
+  TriggerId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      Correlates this request with its i2c.result.
+
+  TypeName:
+    const: "i2c.write.reg"
+
+  Version:
+    const: "000"
+
+required:
+  - Bus
+  - Address
+  - NumBytes
+  - Value
+  - TriggerId
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "Bus": "scada",
+      "Address": {
+        "I2cAddress": 72,
+        "RegisterIndex": 0,
+        "TypeName": "i2c.reg.address",
+        "Version": "000"
+      },
+      "NumBytes": 2,
+      "Value": 65535,
+      "TriggerId": "6f74e8b9-4fc9-4b95-bd6f-2c150662b40e",
+      "TypeName": "i2c.write.reg",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "NumBytesRange"
+      statement: >
+        NumBytes SHALL be 1 or 2.
+    - number: 2
+      name: "ValueFitsNumBytes"
+      statement: >
+        Value SHALL fit in NumBytes bytes — 0 ≤ Value ≤ 256^NumBytes − 1
+        (≤ 255 for one byte, ≤ 65535 for two).
+  extended_description: >
+    Bus is the SpaceheatName of the I2cBus actor node that owns and serializes
+    the targeted physical I²C bus within a GridWorks SCADA ShNode hierarchy. It
+    corresponds to a bus declared in the board's gw1.scada.device.type.gt
+    BusList; the actor-name to hardware-bus-name bijection is a hardware-layout
+    concern.

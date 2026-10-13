@@ -1,0 +1,55 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/dac.output.config/000"
+
+title: "dac.output.config"
+type: object
+description: >
+  Control config for one 0-10V output: the channel it reports on, the actor
+  that commands it, and which DAC channel it drives. The analog of
+  relay.control.config for an analog actuator. The power-on level is
+  operational (zero.ten.power.on in operational-params), not wiring.
+
+properties:
+
+  ChannelName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Name of the telemetry channel carrying this output's commanded level.
+
+  ActorName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Canonical Spaceheat node name of the actor that drives this output.
+
+  DacChannel:
+    $ref: "https://schemas.electricity.works/enums/i2c.dac.channel/000"
+    description: >
+      The DAC output channel this config applies to.
+
+  TypeName:
+    const: "dac.output.config"
+
+  Version:
+    const: "000"
+
+required:
+  - ChannelName
+  - ActorName
+  - DacChannel
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ChannelName": "secondary-010v",
+      "ActorName": "secondary-010v",
+      "DacChannel": "C",
+      "TypeName": "dac.output.config",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

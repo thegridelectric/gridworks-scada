@@ -1,0 +1,66 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/synced.readings/000"
+
+title: "synced.readings"
+type: object
+description: >
+  Compact synchronized reading payload consisting of a single SCADA read time
+  and parallel channel and value lists.
+
+  Each value in ValueList is aligned by index with ChannelNameList, such that
+  ValueList[i] is the reading for ChannelNameList[i] captured at
+  ScadaReadTimeUnixMs.
+
+properties:
+  ChannelNameList:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Ordered list of channel names whose readings are included in this payload.
+
+  ValueList:
+    type: array
+    items:
+      type: integer
+    description: >
+      Ordered list of integer readings aligned by index with ChannelNameList.
+
+  ScadaReadTimeUnixMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+    description: >
+      UTC millisecond timestamp at which these synchronized readings were captured.
+
+  TypeName:
+    const: "synced.readings"
+
+  Version:
+    const: "000"
+
+required:
+  - ChannelNameList
+  - ValueList
+  - ScadaReadTimeUnixMs
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ChannelNameList": ["hp-odu-pwr", "buffer-depth1"],
+      "ValueList": [3215, 4973],
+      "ScadaReadTimeUnixMs": 1735689600123,
+      "TypeName": "synced.readings",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "ListLengthConsistency"
+      statement: >
+        len(ChannelNameList) SHALL equal len(ValueList).

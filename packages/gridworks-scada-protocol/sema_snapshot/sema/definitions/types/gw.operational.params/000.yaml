@@ -1,0 +1,300 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw.operational.params/000"
+
+title: "gw.operational.params"
+type: object
+description: >
+  Operational and optimization parameters for one home — the tunable state
+  that changes without rewiring hardware. The third SCADA artifact alongside
+  deployment config and the static hardware layout.
+
+  The fields every layout family tunes live here: the per-channel capture
+  tuning, the 0-10V power-on levels, whether the scada stands by and what
+  its standby does to the plant, the service mode, the hold the file
+  places on dispatch, the COP and heating curves, the heat-pump and load-estimation
+  knobs, the FLO horizon, and the tariff. The knobs that presume a feature of
+  the layout (a buffer, a store, a Siegenthaler loop) live in FamilyParams,
+  whose TypeName names the layout family; the consumer decodes FamilyParams
+  through the paired layout's family, so a mismatched pair fails at decode.
+
+properties:
+  ScadaAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      The alias of the Scada GNode that applies these params, making a stored
+      or emitted instance self-identifying. The layout is the registry of
+      record for the full GNode; the consumer checks this alias names the
+      paired layout's Scada.
+
+  FamilyParams:
+    oneOf:
+      - $ref: "https://schemas.electricity.works/types/gw.house0.family.params/000"
+      - $ref: "https://schemas.electricity.works/types/gw.nolan.family.params/000"
+    description: >
+      The layout-family block: the knobs that only mean something against a
+      layout of that family. Its TypeName is the family.
+
+  CaptureTuningList:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/capture.tuning/000"
+    description: >
+      Per-channel capture/report tuning, one entry per captured channel.
+
+  ZeroTenPowerOnList:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/zero.ten.power.on/000"
+    description: >
+      The power-on level of each 0-10V output, one entry per output node.
+
+  Standby:
+    type: boolean
+    description: >
+      When true the standby machine runs in place of the family's local
+      control: every relay directly under local control is de-energized
+      except EnergizedStandbyRelays, the heat pump is held off through
+      hp-boss, and the 0-10V outputs stay at their power-on levels.
+
+  StandbyPosture:
+    $ref: "https://schemas.electricity.works/enums/gw.standby.posture/000"
+    description: >
+      What the standby achieves at this house. Read whether or not Standby
+      is true, so a reader knows what standby would do here.
+
+  EnergizedStandbyRelays:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      The relay nodes the standby machine energizes; every other relay
+      directly under local control is de-energized. Each names a Relay
+      ShNode of the layout whose boot handle sits directly under local
+      control, which the assembly step checks against the layout.
+
+  ServiceMode:
+    $ref: "https://schemas.electricity.works/enums/gw1.service.mode/000"
+    description: >
+      The thermal service the house provides. On a plant that can do both
+      it selects the local control machine; inert while Standby is true.
+
+  DispatchHold:
+    $ref: "https://schemas.electricity.works/types/gw.dispatch.hold/000"
+    description: >
+      The hold this file places on dispatch. One of three authorities over
+      whether the scada takes a contract; the deed and the running scada
+      are the others.
+
+  CopCurve:
+    $ref: "https://schemas.electricity.works/types/cop.curve/000"
+    description: >
+      The heat pump's coefficient-of-performance model.
+
+  HeatingCurve:
+    $ref: "https://schemas.electricity.works/types/heating.curve/000"
+    description: >
+      The house's thermal / required-source-water-temperature model.
+
+  HpTurnOnMinutes:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Minutes the heat pump takes to reach steady output after turn-on.
+
+  HpMaxKwEl:
+    $ref: "https://schemas.electricity.works/formats/positive.float"
+    description: >
+      The heat pump's maximum electrical draw, in kW.
+
+  LoadOverestimationPercent:
+    $ref: "https://schemas.electricity.works/formats/non.negative.int"
+    description: >
+      Percentage by which forecast heat load is deliberately overestimated.
+
+  UsesBackupWhenCold:
+    type: boolean
+    description: >
+      Whether the local control goes to the layout's backup heat when the
+      house is cold. When false it runs the heat pump with the tariff set
+      aside.
+
+  HorizonHours:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      The FLO optimization horizon, in hours.
+
+  WeatherBundleName:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      The gw.weather.forecast.bundle.gt whose emissions are this home's
+      weather forecast. The LTN relays it and the scada falls back to
+      pulling it, so both read the same bundle.
+
+  Tariff:
+    $ref: "https://schemas.electricity.works/types/gw.tou.tariff/000"
+    description: >
+      The time-of-use tariff the home is billed on: its clock and the on-peak
+      windows during which the heat pump is held off.
+
+  TypeName:
+    const: "gw.operational.params"
+
+  Version:
+    const: "000"
+
+required:
+  - ScadaAlias
+  - FamilyParams
+  - CaptureTuningList
+  - ZeroTenPowerOnList
+  - Standby
+  - StandbyPosture
+  - EnergizedStandbyRelays
+  - ServiceMode
+  - DispatchHold
+  - CopCurve
+  - HeatingCurve
+  - HpTurnOnMinutes
+  - HpMaxKwEl
+  - LoadOverestimationPercent
+  - UsesBackupWhenCold
+  - HorizonHours
+  - WeatherBundleName
+  - Tariff
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ScadaAlias": "hw1.isone.me.versant.keene.beech.scada",
+      "FamilyParams": {
+        "SiegLoopStrategy": "StratProtect",
+        "KeepBufferFull": false,
+        "SeasonalStorageMode": "AllTanks",
+        "TypeName": "gw.house0.family.params",
+        "Version": "000"
+      },
+      "CaptureTuningList": [
+        {
+          "ChannelName": "dist-swt",
+          "CapturePeriodS": 300,
+          "AsyncCapture": true,
+          "AsyncCaptureDelta": 250,
+          "TypeName": "capture.tuning",
+          "Version": "000"
+        }
+      ],
+      "ZeroTenPowerOnList": [
+        {
+          "NodeName": "dist-010v",
+          "PowerOnVoltsTimesTen": 20,
+          "TypeName": "zero.ten.power.on",
+          "Version": "000"
+        }
+      ],
+      "Standby": false,
+      "StandbyPosture": "NoHeatingOrCooling",
+      "EnergizedStandbyRelays": ["hp-failsafe-relay", "aquastat-ctrl-relay"],
+      "ServiceMode": "Heating",
+      "DispatchHold": {
+        "OperatorHold": false,
+        "ServiceContractBroken": false,
+        "TypeName": "gw.dispatch.hold",
+        "Version": "000"
+      },
+      "CopCurve": {
+        "Intercept": 1.02,
+        "OatCoeff": 0.0257,
+        "LwtCoeff": 0,
+        "Min": 1.4,
+        "MinOatF": 15,
+        "TypeName": "cop.curve",
+        "Version": "000"
+      },
+      "HeatingCurve": {
+        "AlphaTimes10": 55,
+        "BetaTimes100": -10,
+        "GammaEx6": 0,
+        "IntermediatePowerKw": 1.5,
+        "IntermediateRswtF": 100,
+        "DdPowerKw": 5.5,
+        "DdRswtF": 150,
+        "DdDeltaTF": 20,
+        "MaxEwtF": 170,
+        "TypeName": "heating.curve",
+        "Version": "000"
+      },
+      "HpTurnOnMinutes": 12,
+      "HpMaxKwEl": 9.66,
+      "LoadOverestimationPercent": 0,
+      "UsesBackupWhenCold": true,
+      "HorizonHours": 48,
+      "WeatherBundleName": "us.me.millinocket.forecast.nws.hourly96",
+      "Tariff": {
+        "Alias": "versant.a1.home.eco.bonus",
+        "DisplayName": "Home Eco Rate with Bonus Meter",
+        "TimezoneStr": "America/New_York",
+        "OnPeakWindows": [
+            {
+              "Start": "07:00",
+              "End": "12:00",
+              "Days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+              "TypeName": "gw.tou.window",
+              "Version": "000"
+            }
+        ],
+        "TypeName": "gw.tou.tariff",
+        "Version": "000"
+      },
+      "TypeName": "gw.operational.params",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "CaptureTuningChannelUniqueness"
+      statement: >
+        ChannelName SHALL be unique across CaptureTuningList.
+
+    - number: 2
+      name: "ZeroTenPowerOnNodeUniqueness"
+      statement: >
+        NodeName SHALL be unique across ZeroTenPowerOnList.
+
+    - number: 3
+      name: "StandbyImpliesOperatorHold"
+      statement: >
+        If Standby is true, DispatchHold.OperatorHold SHALL be true.
+
+    - number: 4
+      name: "PostureRelaysPerFamily"
+      statement: >
+        StandbyPosture fixes EnergizedStandbyRelays for the family named by
+        FamilyParams.TypeName:
+        a. If StandbyPosture is MonitorOnly, EnergizedStandbyRelays SHALL
+           be empty.
+        b. If FamilyParams.TypeName is gw.house0.family.params and
+           StandbyPosture is NoHeatingOrCooling, EnergizedStandbyRelays
+           SHALL be exactly hp-failsafe-relay and aquastat-ctrl-relay.
+        c. If FamilyParams.TypeName is gw.nolan.family.params and
+           StandbyPosture is NoHeatingOrCooling, EnergizedStandbyRelays
+           SHALL be empty.
+
+    - number: 5
+      name: "StandbyHoldsFullSend"
+      statement: >
+        If Standby is true and FamilyParams.TypeName is
+        gw.house0.family.params, FamilyParams.SiegLoopStrategy SHALL be
+        HoldFullSend.
+
+  extended_description: >
+    operational-params is the authored home for the tunable state that left the
+    static hardware layout and the deployment config: what changes without
+    rewiring hardware. Home identity (the GNodes) lives in the layout. The
+    assembly step merges this artifact with the static layout to build the
+    runtime layout the device actors read, so the actors see one layout.

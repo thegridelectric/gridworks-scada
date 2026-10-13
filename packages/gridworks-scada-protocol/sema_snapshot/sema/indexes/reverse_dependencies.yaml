@@ -1,0 +1,1049 @@
+# GENERATED FILE - DO NOT EDIT
+# Generated from definitions/registry.yaml
+
+types:
+  ads.channel.config:
+    '000':
+      used_by:
+      - ads111x.based.component.gt:000
+  ads111x.based.component.gt:
+    '000':
+      used_by:
+      - gw.house0.layout:000
+  ads111x.based.device.type.gt:
+    '000':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+  capture.tuning:
+    '000':
+      used_by:
+      - gw.operational.params:000
+  channel.readings:
+    '002':
+      used_by:
+      - report:003
+  cop.curve:
+    '000':
+      used_by:
+      - gw.operational.params:000
+  dac.output.config:
+    '000':
+      used_by:
+      - i2c.dac.output.component.gt:000
+  data.channel.gt:
+    '003':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+      - layout.lite:013
+      - scada.control.capabilities:002
+  derived.channel.gt:
+    '001':
+      used_by:
+      - layout.lite:013
+    '002':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+  device.component.gt:
+    '000':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+  egauge.register.config:
+    '000':
+      used_by:
+      - electric.meter.channel.config:000
+  electric.meter.channel.config:
+    '000':
+      used_by:
+      - electric.meter.component.gt:001
+  electric.meter.component.gt:
+    '001':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+  electric.meter.device.type.gt:
+    '000':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+  fsm.atomic.report:
+    '001':
+      used_by:
+      - fsm.full.report:001
+  fsm.full.report:
+    '001':
+      used_by:
+      - report:003
+  g.node.gt:
+    '006':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+  gpio.relay.component.gt:
+    '000':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+  gpio.sensor.component.gt:
+    '000':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+  gw.boiler.backup:
+    '000':
+      used_by:
+      - gw.house0.layout:000
+      - gw.hydronic:000
+      - gw.nolan.layout:000
+  gw.command.interface:
+    '000':
+      used_by:
+      - scada.control.capabilities:002
+  gw.command.transition:
+    '000':
+      used_by:
+      - gw.command.interface:000
+  gw.dispatch.hold:
+    '000':
+      used_by:
+      - gw.operational.params:000
+  gw.element.backup:
+    '000':
+      used_by:
+      - gw.house0.layout:000
+      - gw.hydronic:000
+      - gw.nolan.layout:000
+  gw.house0.family.params:
+    '000':
+      used_by:
+      - gw.operational.params:000
+  gw.hydronic:
+    '000':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+  gw.native.gpio.pin:
+    '000':
+      used_by:
+      - gw1.scada.device.type.gt:000
+  gw.nolan.family.params:
+    '000':
+      used_by:
+      - gw.operational.params:000
+  gw.tou.tariff:
+    '000':
+      used_by:
+      - gw.operational.params:000
+  gw.tou.window:
+    '000':
+      used_by:
+      - gw.tou.tariff:000
+  gw.water.store:
+    '000':
+      used_by:
+      - gw.hydronic:000
+  gw.weather.channel.gt:
+    '000':
+      used_by:
+      - gw.weather.forecast.bundle.gt:000
+  gw.weather.forecast.channel.gt:
+    '000':
+      used_by:
+      - gw.weather.forecast.bundle.gt:000
+  gw0.required.energy.layered:
+    '000':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+  gw0.usable.energy.layered:
+    '000':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+  gw1.hvac.zone:
+    '000':
+      used_by:
+      - gw.hydronic:000
+  gw1.scada.device.type.gt:
+    '000':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+  gw1.tank.temp.calibration:
+    '000':
+      used_by:
+      - gw1.tank.temp.calibration.map:000
+    '001':
+      used_by:
+      - gw1.tank.temp.calibration.map:001
+  gw1.tank.temp.calibration.map:
+    '000':
+      used_by:
+      - layout.lite:013
+  gw1.unit.quantity.projection:
+    '000':
+      used_by:
+      - derived.channel.gt:002
+  gw1.zone.call.circuit:
+    '000':
+      used_by:
+      - gw.hydronic:000
+  gw1.zone.thermostat:
+    '000':
+      used_by:
+      - gw1.zone.call.circuit:000
+  ha1.params:
+    '006':
+      used_by:
+      - layout.lite:013
+      - scada.params:005
+  heating.curve:
+    '000':
+      used_by:
+      - gw.operational.params:000
+  hp.control.box.device.type.gt:
+    '000':
+      used_by:
+      - gw.nolan.layout:000
+  hp.device.type.gt:
+    '000':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+  hubitat.component.gt:
+    '000':
+      used_by:
+      - gw.house0.layout:000
+  hubitat.gt:
+    '000':
+      used_by:
+      - hubitat.component.gt:000
+  hubitat.poller.component.gt:
+    '000':
+      used_by:
+      - gw.house0.layout:000
+  hubitat.poller.gt:
+    '001':
+      used_by:
+      - hubitat.poller.component.gt:000
+  i2c.bit.address:
+    '000':
+      used_by:
+      - i2c.read.bit:000
+      - i2c.write.bit:000
+  i2c.bus:
+    '000':
+      used_by:
+      - gw1.scada.device.type.gt:000
+  i2c.ct.interface.capability:
+    '000':
+      used_by:
+      - gw1.scada.device.type.gt:000
+  i2c.dac.capability:
+    '000':
+      used_by:
+      - gw1.scada.device.type.gt:000
+  i2c.dac.output.component.gt:
+    '000':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+  i2c.expander:
+    '000':
+      used_by:
+      - gw1.scada.device.type.gt:000
+  i2c.multichannel.dt.relay.component.gt:
+    '004':
+      used_by:
+      - layout.lite:013
+  i2c.mux:
+    '000':
+      used_by:
+      - gw1.scada.device.type.gt:000
+  i2c.reg.address:
+    '000':
+      used_by:
+      - i2c.read.reg:000
+      - i2c.write.reg:000
+  i2c.relay.capability:
+    '000':
+      used_by:
+      - gw1.scada.device.type.gt:000
+  i2c.relay.component.gt:
+    '000':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+  i2c.thermistor.channel.config:
+    '000':
+      used_by:
+      - i2c.thermistor.reader.component.gt:000
+  i2c.thermistor.interface.capability:
+    '000':
+      used_by:
+      - gw1.scada.device.type.gt:000
+  i2c.thermistor.reader.component.gt:
+    '000':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+  machine.states:
+    '000':
+      used_by:
+      - report:003
+  maker.api.attribute.gt:
+    '001':
+      used_by:
+      - hubitat.poller.gt:001
+  pico.btu.meter.component.gt:
+    '000':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+  pico.flow.module.component.gt:
+    '001':
+      used_by:
+      - gw.house0.layout:000
+      - layout.lite:013
+  pico.tank.module.component.gt:
+    '012':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+      - layout.lite:013
+  price.quantity.unitless:
+    '001':
+      used_by:
+      - bid:000
+  relay.actor.config:
+    '003':
+      used_by:
+      - i2c.multichannel.dt.relay.component.gt:004
+  relay.control.config:
+    '000':
+      used_by:
+      - gpio.relay.component.gt:000
+      - i2c.relay.component.gt:000
+  report:
+    '003':
+      used_by:
+      - report.event:004
+  scada.board.component.gt:
+    '000':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+  sim.pico.btu.meter.component.gt:
+    '000':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+  sim.pico.flow.module.component.gt:
+    '000':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+  sim.pico.tank.module.component.gt:
+    '001':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+      - layout.lite:013
+  sim.sensor.component.gt:
+    '000':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+  single.machine.state:
+    '000':
+      used_by:
+      - snapshot.spaceheat:003
+  single.reading:
+    '000':
+      used_by:
+      - gw.recorded.setpoints:000
+      - snapshot.spaceheat:003
+  slow.dispatch.contract:
+    '000':
+      used_by:
+      - slow.contract.heartbeat:002
+  spaceheat.node.gt:
+    '303':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+      - layout.lite:013
+      - new.command.tree:003
+      - scada.control.capabilities:002
+  spaceheat.telemetry.quantity.projection:
+    '000':
+      used_by:
+      - data.channel.gt:003
+  ticklist.hall:
+    '101':
+      used_by:
+      - ticklist.hall.report:000
+  ticklist.reed:
+    '101':
+      used_by:
+      - ticklist.reed.report:000
+  web.server.component.gt:
+    '001':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+  zero.ten.power.on:
+    '000':
+      used_by:
+      - gw.operational.params:000
+enums:
+  base.g.node.class:
+    '000':
+      used_by:
+      - g.node.gt:006
+  change.relay.state:
+    '000':
+      used_by:
+      - gw.command.interface:000
+      - relay.actor.config:003
+      - relay.control.config:000
+  day.of.week:
+    '000':
+      used_by:
+      - gw.tou.window:000
+  fsm.report.type:
+    '000':
+      used_by:
+      - fsm.atomic.report:001
+  g.node.status:
+    '000':
+      used_by:
+      - g.node.gt:006
+  gpio.sense.mode:
+    '000':
+      used_by:
+      - gpio.sensor.component.gt:000
+  gpm.from.hz.method:
+    '000':
+      used_by:
+      - pico.btu.meter.component.gt:000
+      - pico.flow.module.component.gt:001
+      - sim.pico.btu.meter.component.gt:000
+      - sim.pico.flow.module.component.gt:000
+  gw.dispatch.refusal.reason:
+    '000':
+      used_by:
+      - gw.house.operating.status:000
+      - slow.contract.heartbeat:002
+      - slow.contract.rejection:000
+  gw.primary.flow.source:
+    '000':
+      used_by:
+      - gw.hydronic:000
+  gw.primary.pump.owner:
+    '000':
+      used_by:
+      - gw.hydronic:000
+  gw.refrigerant.cycle:
+    '000':
+      used_by:
+      - gw.hydronic:000
+  gw.scada.cmd.refusal.reason:
+    '000':
+      used_by:
+      - gw.dispatch.nack:000
+  gw.standby.posture:
+    '000':
+      used_by:
+      - gw.house.operating.status:000
+      - gw.operational.params:000
+  gw.top.state:
+    '000':
+      used_by:
+      - gw.house.operating.status:000
+  gw.weather.forecast.fidelity:
+    '000':
+      used_by:
+      - gw.weather.forecast:000
+  gw.zone.emitter.type:
+    '000':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+      - gw1.zone.call.circuit:000
+  gw1.actor.class:
+    '014':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+      - new.command.tree:003
+      - scada.control.capabilities:002
+      - spaceheat.node.gt:303
+  gw1.emission.method:
+    '000':
+      used_by:
+      - derived.channel.gt:001
+      - derived.channel.gt:002
+  gw1.quantity:
+    '000':
+      used_by:
+      - data.channel.gt:003
+      - spaceheat.telemetry.quantity.projection:000
+    '001':
+      used_by:
+      - derived.channel.gt:002
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+      - gw1.unit.quantity.projection:000
+    '002':
+      used_by:
+      - gw.weather.channel.gt:000
+      - gw.weather.forecast.bundle.gt:000
+  gw1.seasonal.storage.mode:
+    '000':
+      used_by:
+      - gw.house.operating.status:000
+      - gw.house0.family.params:000
+      - gw.nolan.family.params:000
+  gw1.service.mode:
+    '000':
+      used_by:
+      - gw.house.operating.status:000
+      - gw.operational.params:000
+  gw1.slow.dispatch.contract.status:
+    '000':
+      used_by:
+      - slow.contract.heartbeat:002
+  gw1.unit:
+    '000':
+      used_by:
+      - derived.channel.gt:001
+    '001':
+      used_by:
+      - derived.channel.gt:002
+      - gw1.unit.quantity.projection:000
+    '002':
+      used_by:
+      - gw.weather.channel.gt:000
+  gw2.lc.top.state:
+    '000':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+  hp.boss.state:
+    '000':
+      used_by:
+      - gw.command.interface:000
+  hz.calc.method:
+    '001':
+      used_by:
+      - pico.btu.meter.component.gt:000
+      - pico.flow.module.component.gt:001
+      - sim.pico.btu.meter.component.gt:000
+      - sim.pico.flow.module.component.gt:000
+  i2c.adc.channel:
+    '000':
+      used_by:
+      - i2c.thermistor.channel.config:000
+  i2c.adc.type:
+    '000':
+      used_by:
+      - i2c.ct.interface.capability:000
+      - i2c.thermistor.interface.capability:000
+  i2c.dac.channel:
+    '000':
+      used_by:
+      - dac.output.config:000
+  i2c.dac.type:
+    '000':
+      used_by:
+      - i2c.dac.capability:000
+  i2c.expander.type:
+    '000':
+      used_by:
+      - i2c.expander:000
+  i2c.mux.type:
+    '000':
+      used_by:
+      - i2c.mux:000
+  i2c.operation:
+    '001':
+      used_by:
+      - i2c.result:001
+  log.level:
+    '000':
+      used_by:
+      - glitch:000
+  market.price.unit:
+    '000':
+      used_by:
+      - bid:000
+      - flo.params.house0:007
+      - latest.price:000
+  market.quantity.unit:
+    '000':
+      used_by:
+      - bid:000
+  pico.board.variant:
+    '000':
+      used_by:
+      - async.btu.params:100
+      - flow.hall.params:200
+      - pico.btu.meter.component.gt:000
+      - pico.flow.module.component.gt:001
+      - pico.tank.module.component.gt:012
+      - tank.module.params:200
+  pico.cycler.state:
+    '000':
+      used_by:
+      - gw.command.interface:000
+  reboot.picos:
+    '000':
+      used_by:
+      - gw.command.interface:000
+  relay.closed.or.open:
+    '000':
+      used_by:
+      - gw.command.interface:000
+      - machine.states:000
+      - relay.actor.config:003
+      - relay.control.config:000
+      - single.machine.state:000
+  relay.energization.state:
+    '000':
+      used_by:
+      - fsm.atomic.report:001
+  relay.wiring.config:
+    '000':
+      used_by:
+      - i2c.relay.capability:000
+      - relay.actor.config:003
+      - relay.control.config:000
+  setpoint.phase:
+    '000':
+      used_by:
+      - setpoint.belief:000
+  sieg.loop.strategy:
+    '000':
+      used_by:
+      - gw.house0.family.params:000
+      - gw.operational.params:000
+  spaceheat.telemetry.name:
+    '007':
+      used_by:
+      - ads111x.based.device.type.gt:000
+      - data.channel.gt:003
+      - electric.meter.device.type.gt:000
+      - gw1.scada.device.type.gt:000
+      - maker.api.attribute.gt:001
+      - spaceheat.telemetry.quantity.projection:000
+  spaceheat.unit:
+    '001':
+      used_by:
+      - maker.api.attribute.gt:001
+  ta.validation.state:
+    '000':
+      used_by:
+      - gw.house.operating.status:000
+      - ta.deed:000
+  temp.calc.method:
+    '000':
+      used_by:
+      - i2c.thermistor.reader.component.gt:000
+      - pico.btu.meter.component.gt:000
+      - pico.tank.module.component.gt:012
+      - sim.pico.btu.meter.component.gt:000
+      - sim.pico.tank.module.component.gt:001
+  thermistor.data.method:
+    '000':
+      used_by:
+      - ads.channel.config:000
+  thermostat.kind:
+    '000':
+      used_by:
+      - gw1.zone.call.circuit:000
+      - gw1.zone.thermostat:000
+  turn.hp.on.off:
+    '000':
+      used_by:
+      - gw.command.interface:000
+  zone.circuit.governance.event:
+    '000':
+      used_by:
+      - zone.circuit.governance.cmd:000
+  zone.setpoint.source:
+    '000':
+      used_by:
+      - gw.house0.layout:000
+      - gw.nolan.layout:000
+      - gw1.zone.call.circuit:000
+formats:
+  decimal.digit:
+    used_by:
+    - slow.contract.heartbeat:002
+  firmware.commit:
+    used_by:
+    - pico.btu.meter.component.gt:000
+    - pico.flow.module.component.gt:001
+    - pico.tank.module.component.gt:012
+  git.commit:
+    used_by:
+    - gw.scada.commit:000
+  handle.name:
+    used_by:
+    - analog.dispatch:000
+    - fsm.atomic.report:001
+    - fsm.event:000
+    - gw.dispatch.ack:000
+    - gw.dispatch.nack:000
+    - machine.states:000
+    - single.machine.state:000
+    - spaceheat.node.gt:303
+    - zone.circuit.governance.cmd:000
+  hh.mm:
+    used_by:
+    - gw.tou.window:000
+  iana.timezone.str:
+    used_by:
+    - gw.tou.tariff:000
+  left.right.dot:
+    used_by:
+    - analog.dispatch:000
+    - bid:000
+    - data.channel.gt:003
+    - derived.channel.gt:001
+    - derived.channel.gt:002
+    - energy.instruction:000
+    - flo.params.house0:007
+    - fsm.atomic.report:001
+    - fsm.event:000
+    - g.node.gt:006
+    - glitch:000
+    - gw.command.interface:000
+    - gw.house.operating.status:000
+    - gw.operational.params:000
+    - gw.recorded.setpoints:000
+    - gw.scada.commit:000
+    - gw.tou.tariff:000
+    - gw.weather.channel.gt:000
+    - gw.weather.forecast.bundle.gt:000
+    - gw.weather.forecast.channel.gt:000
+    - gw.weather.forecast:000
+    - gw.weather.seasonal.template.gt:000
+    - heating.forecast:000
+    - latest.price:000
+    - layout.lite:013
+    - machine.states:000
+    - new.command.tree:003
+    - relay.actor.config:003
+    - relay.control.config:000
+    - report.event:004
+    - report:003
+    - scada.control.capabilities:002
+    - scada.params:005
+    - send.control.capabilities:000
+    - send.layout:001
+    - single.machine.state:000
+    - slow.contract.rejection:000
+    - slow.dispatch.contract:000
+    - snapshot.spaceheat:003
+    - ta.deed:000
+    - ticklist.hall.report:000
+    - ticklist.reed.report:000
+  mac.address:
+    used_by:
+    - hubitat.gt:000
+  market.slot.name:
+    used_by:
+    - bid:000
+    - latest.price:000
+  non.empty.string:
+    used_by:
+    - gw.command.transition:000
+    - gw.weather.channel.gt:000
+    - gw.weather.forecast.bundle.gt:000
+    - gw.weather.forecast.channel.gt:000
+    - hp.device.type.gt:000
+    - relay.actor.config:003
+    - relay.control.config:000
+  non.negative.int:
+    used_by:
+    - gw.native.gpio.pin:000
+    - gw.operational.params:000
+    - gw.weather.channel.gt:000
+    - gw.weather.forecast.bundle.gt:000
+    - gw1.scada.device.type.gt:000
+    - i2c.bit.address:000
+    - i2c.bus:000
+    - i2c.ct.interface.capability:000
+    - i2c.dac.capability:000
+    - i2c.expander:000
+    - i2c.mux:000
+    - i2c.read.bytes:000
+    - i2c.reg.address:000
+    - i2c.relay.capability:000
+    - i2c.result:001
+    - i2c.thermistor.interface.capability:000
+    - i2c.write.bit:000
+    - i2c.write.byte:000
+    - i2c.write.reg:000
+    - scada.board.component.gt:000
+    - zero.ten.power.on:000
+  pascal.case:
+    used_by:
+    - ads.channel.config:000
+    - ads111x.based.component.gt:000
+    - ads111x.based.device.type.gt:000
+    - device.component.gt:000
+    - electric.meter.component.gt:001
+    - electric.meter.device.type.gt:000
+    - gpio.relay.component.gt:000
+    - gpio.sensor.component.gt:000
+    - gw.native.gpio.pin:000
+    - gw1.scada.device.type.gt:000
+    - hp.control.box.device.type.gt:000
+    - hp.device.type.gt:000
+    - hubitat.component.gt:000
+    - hubitat.poller.component.gt:000
+    - i2c.bus:000
+    - i2c.ct.interface.capability:000
+    - i2c.dac.capability:000
+    - i2c.dac.output.component.gt:000
+    - i2c.expander:000
+    - i2c.multichannel.dt.relay.component.gt:004
+    - i2c.mux:000
+    - i2c.relay.capability:000
+    - i2c.relay.component.gt:000
+    - i2c.thermistor.interface.capability:000
+    - i2c.thermistor.reader.component.gt:000
+    - pico.btu.meter.component.gt:000
+    - pico.flow.module.component.gt:001
+    - pico.tank.module.component.gt:012
+    - scada.board.component.gt:000
+    - sim.pico.btu.meter.component.gt:000
+    - sim.pico.flow.module.component.gt:000
+    - sim.pico.tank.module.component.gt:001
+    - sim.sensor.component.gt:000
+    - web.server.component.gt:001
+  positive.float:
+    used_by:
+    - async.btu.params:100
+    - gw.operational.params:000
+    - heating.curve:000
+    - hp.control.box.device.type.gt:000
+    - hp.device.type.gt:000
+    - i2c.ct.interface.capability:000
+    - i2c.thermistor.interface.capability:000
+    - pico.btu.meter.component.gt:000
+    - sim.pico.btu.meter.component.gt:000
+  positive.int:
+    used_by:
+    - ads.channel.config:000
+    - ads111x.based.device.type.gt:000
+    - async.btu.params:100
+    - capture.tuning:000
+    - derived.channel.gt:001
+    - derived.channel.gt:002
+    - dfr.config:000
+    - electric.meter.component.gt:001
+    - electric.meter.device.type.gt:000
+    - energy.instruction:000
+    - flo.params.house0:007
+    - flow.hall.params:200
+    - gw.nolan.family.params:000
+    - gw.operational.params:000
+    - gw.water.store:000
+    - gw.weather.channel.gt:000
+    - gw.weather.forecast.bundle.gt:000
+    - gw.weather.forecast.channel.gt:000
+    - gw1.hvac.zone:000
+    - gw1.scada.device.type.gt:000
+    - gw1.zone.call.circuit:000
+    - heating.curve:000
+    - hp.device.type.gt:000
+    - hubitat.poller.gt:001
+    - i2c.ct.interface.capability:000
+    - i2c.dac.capability:000
+    - i2c.expander:000
+    - i2c.mux:000
+    - i2c.read.bytes:000
+    - i2c.read.reg:000
+    - i2c.relay.capability:000
+    - i2c.thermistor.channel.config:000
+    - i2c.thermistor.interface.capability:000
+    - i2c.thermistor.reader.component.gt:000
+    - i2c.write.reg:000
+    - layout.lite:013
+    - pico.tank.module.component.gt:012
+    - relay.actor.config:003
+    - report:003
+    - sim.pico.btu.meter.component.gt:000
+    - sim.pico.flow.module.component.gt:000
+    - sim.pico.tank.module.component.gt:001
+    - slow.dispatch.contract:000
+    - spaceheat.node.gt:303
+    - tank.module.params:200
+  positive.int.as.str:
+    used_by:
+    - gw1.tank.temp.calibration.map:000
+    - gw1.tank.temp.calibration.map:001
+  spaceheat.name:
+    used_by:
+    - ads.channel.config:000
+    - analog.dispatch:000
+    - async.btu.params:100
+    - baseurl.failure.alert:100
+    - capture.tuning:000
+    - channel.readings:002
+    - dac.output.config:000
+    - data.channel.gt:003
+    - derived.channel.gt:001
+    - derived.channel.gt:002
+    - dfr.config:000
+    - electric.meter.channel.config:000
+    - flow.hall.params:200
+    - fsm.full.report:001
+    - glitch:000
+    - gw.boiler.backup:000
+    - gw.command.interface:000
+    - gw.element.backup:000
+    - gw.house0.layout:000
+    - gw.hydronic:000
+    - gw.nolan.layout:000
+    - gw.operational.params:000
+    - gw1.hvac.zone:000
+    - gw1.zone.call.circuit:000
+    - i2c.multichannel.dt.relay.component.gt:004
+    - i2c.read.bit:000
+    - i2c.read.bytes:000
+    - i2c.read.reg:000
+    - i2c.result:001
+    - i2c.thermistor.channel.config:000
+    - i2c.write.bit:000
+    - i2c.write.byte:000
+    - i2c.write.reg:000
+    - maker.api.attribute.gt:001
+    - pico.btu.meter.component.gt:000
+    - pico.flow.module.component.gt:001
+    - relay.actor.config:003
+    - relay.control.config:000
+    - scada.params:005
+    - sim.pico.btu.meter.component.gt:000
+    - sim.pico.flow.module.component.gt:000
+    - single.reading:000
+    - slow.contract.heartbeat:002
+    - spaceheat.node.gt:303
+    - synced.readings:000
+    - tank.module.params:200
+    - ticklist.hall.report:000
+    - ticklist.reed.report:000
+    - zero.ten.power.on:000
+  utc.iso8601.seconds:
+    used_by:
+    - gw.weather.channel.gt:000
+    - gw.weather.forecast.bundle.gt:000
+    - gw.weather.forecast.channel.gt:000
+    - gw.weather.forecast:000
+    - gw.weather.seasonal.template.gt:000
+  utc.milliseconds:
+    used_by:
+    - analog.dispatch:000
+    - channel.readings:002
+    - energy.instruction:000
+    - fsm.atomic.report:001
+    - fsm.event:000
+    - glitch:000
+    - gw.dispatch.ack:000
+    - gw.dispatch.nack:000
+    - gw.house.operating.status:000
+    - gw.scada.commit:000
+    - gw.weather.forecast:000
+    - i2c.result:001
+    - layout.lite:013
+    - machine.states:000
+    - new.command.tree:003
+    - report.event:004
+    - report:003
+    - scada.control.capabilities:002
+    - scada.params:005
+    - send.control.capabilities:000
+    - send.layout:001
+    - single.machine.state:000
+    - single.reading:000
+    - slow.contract.heartbeat:002
+    - slow.contract.rejection:000
+    - snapshot.spaceheat:003
+    - synced.readings:000
+    - ticklist.hall.report:000
+    - ticklist.reed.report:000
+    - zone.circuit.governance.cmd:000
+  utc.seconds:
+    used_by:
+    - data.channel.gt:003
+    - energy.instruction:000
+    - flo.params.house0:007
+    - heating.forecast:000
+    - report:003
+    - slow.dispatch.contract:000
+    - ta.deed:000
+  uuid4.str:
+    used_by:
+    - ads111x.based.component.gt:000
+    - analog.dispatch:000
+    - data.channel.gt:003
+    - derived.channel.gt:001
+    - derived.channel.gt:002
+    - device.component.gt:000
+    - electric.meter.component.gt:001
+    - flo.params.house0:007
+    - fsm.atomic.report:001
+    - fsm.event:000
+    - fsm.full.report:001
+    - g.node.gt:006
+    - gpio.relay.component.gt:000
+    - gpio.sensor.component.gt:000
+    - gw.dispatch.ack:000
+    - gw.dispatch.nack:000
+    - gw.weather.channel.gt:000
+    - gw.weather.forecast.bundle.gt:000
+    - gw.weather.forecast.channel.gt:000
+    - gw.weather.seasonal.template.gt:000
+    - gw1.zone.thermostat:000
+    - heating.forecast:000
+    - hubitat.component.gt:000
+    - hubitat.poller.component.gt:000
+    - hubitat.poller.gt:001
+    - i2c.dac.output.component.gt:000
+    - i2c.multichannel.dt.relay.component.gt:004
+    - i2c.read.bit:000
+    - i2c.read.bytes:000
+    - i2c.read.reg:000
+    - i2c.relay.component.gt:000
+    - i2c.result:001
+    - i2c.thermistor.reader.component.gt:000
+    - i2c.write.bit:000
+    - i2c.write.byte:000
+    - i2c.write.reg:000
+    - latest.price:000
+    - layout.lite:013
+    - pico.btu.meter.component.gt:000
+    - pico.flow.module.component.gt:001
+    - pico.tank.module.component.gt:012
+    - report.event:004
+    - report:003
+    - scada.board.component.gt:000
+    - scada.params:005
+    - sim.pico.btu.meter.component.gt:000
+    - sim.pico.flow.module.component.gt:000
+    - sim.pico.tank.module.component.gt:001
+    - sim.sensor.component.gt:000
+    - slow.contract.rejection:000
+    - slow.dispatch.contract:000
+    - snapshot.spaceheat:003
+    - spaceheat.node.gt:303
+    - ta.deed:000
+    - web.server.component.gt:001
+    - zone.circuit.governance.cmd:000

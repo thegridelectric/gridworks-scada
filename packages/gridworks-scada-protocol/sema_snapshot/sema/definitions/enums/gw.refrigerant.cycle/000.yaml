@@ -1,0 +1,26 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gw.refrigerant.cycle/000"
+
+title: "gw.refrigerant.cycle"
+type: "string"
+description: >
+  The refrigerant-cycle topology of a hydronic layout's heat pump: one
+  compressor, or two compressors on two refrigerant circuits in series
+  (a cascade). Cascade systems show a markedly flatter COP curve across
+  outdoor temperature, which forward-looking optimization uses.
+
+enum:
+  - "Single"
+  - "Cascade"
+
+default: "Single"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "Single": >
+      One compressor on one refrigerant circuit.
+    "Cascade": >
+      Two compressors on two refrigerant circuits in series, the second
+      lifting the first's output to the water temperature.

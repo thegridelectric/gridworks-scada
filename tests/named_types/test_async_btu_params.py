@@ -53,5 +53,5 @@ def test_version_000_wire_shape_is_rejected() -> None:
         if k not in ("PicoBoardVariant", "MicropythonVersion")
     }
     d["Version"] = "000"
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValueError):  # twin-only: the scada decodes one version
         AsyncBtuParams.model_validate(d)

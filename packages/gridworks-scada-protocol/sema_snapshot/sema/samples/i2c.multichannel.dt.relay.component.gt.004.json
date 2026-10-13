@@ -1,0 +1,26 @@
+{
+  "TypeName": "i2c.multichannel.dt.relay.component.gt",
+  "Version": "004",
+  "ComponentId": "af037880-2e9c-41a8-890b-ff9e63ac8d90",
+  "DeviceType": "KridaDoubleRelayBoard16",
+  "ConfigList": [
+    {
+      "TypeName": "relay.actor.config",
+      "Version": "003",
+      "ChannelName": "scada",
+      "RelayIdx": 1,
+      "ActorName": "scada",
+      "WiringConfig": "NormallyClosed",
+      "EventType": "beech.1",
+      "DeEnergizingEvent": "a",
+      "EnergizingEvent": "a",
+      "StateType": "beech.1",
+      "DeEnergizedState": "a",
+      "EnergizedState": "a"
+    }
+  ],
+  "I2cBus": "scada",
+  "I2cAddressList": [
+    0
+  ]
+}

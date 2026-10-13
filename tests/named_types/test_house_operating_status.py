@@ -1,8 +1,8 @@
 """gw.house.operating.status round-trips, and its two axioms reject."""
 
-import pytest
 
 from gwsproto.named_types import HouseOperatingStatus
+from tests.named_types.sema_oracle import assert_refused
 
 STATUS = {
     "ScadaAlias": "d1.isone.me.versant.keene.beech.scada",
@@ -29,19 +29,13 @@ def test_gw_house_operating_status_generated() -> None:
 
 
 def test_gw_house_operating_status_axiom_1_refusal_reason_presence() -> None:
-    with pytest.raises(ValueError, match="Axiom 1 \\(RefusalReasonPresence\\)"):
-        HouseOperatingStatus.model_validate(dict(STATUS, AcceptsDispatch=False))
-    with pytest.raises(ValueError, match="Axiom 1 \\(RefusalReasonPresence\\)"):
-        HouseOperatingStatus.model_validate(dict(STATUS, DispatchRefusalReason="ScadaBlind"))
+    assert_refused(HouseOperatingStatus, dict(STATUS, AcceptsDispatch=False), match="Axiom 1 \\(RefusalReasonPresence\\)")
+    assert_refused(HouseOperatingStatus, dict(STATUS, DispatchRefusalReason="ScadaBlind"), match="Axiom 1 \\(RefusalReasonPresence\\)")
 
 
 def test_gw_house_operating_status_axiom_2_standby_refuses_dispatch() -> None:
-    with pytest.raises(ValueError, match="Axiom 2 \\(StandbyRefusesDispatch\\)"):
-        HouseOperatingStatus.model_validate(dict(STATUS, Standby=True))
-    with pytest.raises(ValueError, match="Axiom 2 \\(StandbyRefusesDispatch\\)"):
-        HouseOperatingStatus.model_validate(
-            dict(STATUS, Standby=True, AcceptsDispatch=False, DispatchRefusalReason="ScadaBlind")
-        )
+    assert_refused(HouseOperatingStatus, dict(STATUS, Standby=True), match="Axiom 2 \\(StandbyRefusesDispatch\\)")
+    assert_refused(HouseOperatingStatus, dict(STATUS, Standby=True, AcceptsDispatch=False, DispatchRefusalReason="ScadaBlind"), match="Axiom 2 \\(StandbyRefusesDispatch\\)")
     HouseOperatingStatus.model_validate(
         dict(STATUS, Standby=True, AcceptsDispatch=False, DispatchRefusalReason="OperatorHold")
     )

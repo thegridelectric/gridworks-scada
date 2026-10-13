@@ -1,0 +1,51 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/zone.call.circuit.state/000"
+
+title: "zone.call.circuit.state"
+type: "string"
+description: >
+  States of a zone-call-circuit actor's posture machine. Released is the
+  hardware failsafe posture: both relays de-energized, the wall thermostat
+  owning the circuit.
+
+enum:
+  - "Dormant"
+  - "Released"
+  - "TakingHold"
+  - "Held"
+  - "StartingCall"
+  - "Calling"
+  - "StoppingCall"
+  - "Releasing"
+
+default: "Released"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "Dormant": >
+      The actor is not acting on the circuit. Relay pins hold whatever
+      posture was last asserted.
+
+    "Released": >
+      The wall thermostat owns the circuit; no scada relay is energized.
+
+    "TakingHold": >
+      A ScadaHold actuation is in flight, awaiting confirmation.
+
+    "Held": >
+      The scada owns the circuit with no call asserted.
+
+    "StartingCall": >
+      A ScadaCall actuation is in flight, awaiting confirmation.
+
+    "Calling": >
+      The scada owns the circuit and the call is asserted.
+
+    "StoppingCall": >
+      A call-drop actuation (back to Held) is in flight, awaiting
+      confirmation.
+
+    "Releasing": >
+      A Release actuation is in flight, awaiting confirmation.

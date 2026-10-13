@@ -1,0 +1,13 @@
+{
+  "TypeName": "gw.tou.window",
+  "Version": "000",
+  "Start": "07:00",
+  "End": "12:00",
+  "Days": [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday"
+  ]
+}

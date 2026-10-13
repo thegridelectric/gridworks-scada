@@ -1,8 +1,8 @@
 """Tests channel.readings type, version 002"""
 
-import pytest
 
 from gwsproto.named_types import ChannelReadings
+from tests.named_types.sema_oracle import assert_refused
 
 
 def test_channel_readings_generated() -> None:
@@ -28,5 +28,4 @@ def test_channel_readings_list_length_axiom() -> None:
         "Version": "002",
     }
 
-    with pytest.raises(ValueError, match="Axiom 1 violated!"):
-        ChannelReadings.model_validate(d)
+    assert_refused(ChannelReadings, d, match="Axiom 1 violated!")

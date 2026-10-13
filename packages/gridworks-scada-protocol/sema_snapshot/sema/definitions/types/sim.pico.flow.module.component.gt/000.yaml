@@ -1,0 +1,172 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/sim.pico.flow.module.component.gt/000"
+
+title: "sim.pico.flow.module.component.gt"
+type: object
+description: >
+  A simulated pico flow-module component: mirrors pico.flow.module.component.gt
+  (SimulatesTypeName / SimulatesVersion) so a simulated layout drives the real
+  scada flow-module code path with simulated hardware input.
+
+properties:
+  ComponentId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+
+  DeviceType:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The device category this component is built on, an open
+      pascal-case string.
+
+  DisplayName:
+    type: string
+
+  HwUid:
+    type: string
+
+
+  SerialNumber:
+    type: string
+
+  FlowNodeName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+
+  FlowMeterType:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The configured flow meter, as an open `pascal.case` device-type string (a
+      `gw1.device.type` value, e.g. `SaierFlowSensor` / `GridworksPicoFlowHall` /
+      `GridworksPicoFlowReed`).
+
+  HzCalcMethod:
+    $ref: "https://schemas.electricity.works/enums/hz.calc.method/001"
+    description: >
+      Method used to compute frequency from captured pulse data.
+
+  GpmFromHzMethod:
+    $ref: "https://schemas.electricity.works/enums/gpm.from.hz.method/000"
+    description: >
+      Method used to convert computed frequency into flow rate.
+
+  ConstantGallonsPerTick:
+    type: number
+
+  SendHz:
+    type: boolean
+
+  SendGallons:
+    type: boolean
+
+  SendTickLists:
+    type: boolean
+
+  NoFlowMs:
+    type: integer
+
+  AsyncCaptureThresholdGpmTimes100:
+    type: integer
+
+  PublishEmptyTicklistAfterS:
+    type: integer
+
+  PublishAnyTicklistAfterS:
+    type: integer
+
+  PublishTicklistPeriodS:
+    type: integer
+
+  PublishTicklistLength:
+    type: integer
+
+  ExpAlpha:
+    type: number
+
+  CutoffFrequency:
+    type: number
+
+  SimLifeS:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Seconds the simulated pico posts readings after each boot before
+      it goes silent. Absent means it never dies on a schedule.
+
+  SimRebootS:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Seconds after the vdc relay closes, following an open, before the
+      simulated pico boots and posts again. Absent means a dead pico
+      stays dead.
+
+  SimulatesTypeName:
+    const: "pico.flow.module.component.gt"
+
+  SimulatesVersion:
+    const: "001"
+
+  TypeName:
+    const: "sim.pico.flow.module.component.gt"
+
+  Version:
+    const: "000"
+
+required:
+  - ComponentId
+  - DeviceType
+  - SerialNumber
+  - FlowNodeName
+  - FlowMeterType
+  - HzCalcMethod
+  - GpmFromHzMethod
+  - ConstantGallonsPerTick
+  - SendHz
+  - SendGallons
+  - SendTickLists
+  - NoFlowMs
+  - AsyncCaptureThresholdGpmTimes100
+  - SimulatesTypeName
+  - SimulatesVersion
+  - TypeName
+  - Version
+
+additionalProperties: true
+
+examples:
+  - |
+    {
+      "ComponentId": "3702ecf7-32a5-4582-a073-13b8edc1154f",
+      "DeviceType": "GridworksPicoFlowHall",
+      "SerialNumber": "example",
+      "FlowNodeName": "scada",
+      "FlowMeterType": "MakeModel",
+      "HzCalcMethod": "BasicExpWeightedAvg",
+      "GpmFromHzMethod": "Constant",
+      "ConstantGallonsPerTick": 0.0,
+      "SendHz": false,
+      "SendGallons": false,
+      "SendTickLists": false,
+      "NoFlowMs": 0,
+      "AsyncCaptureThresholdGpmTimes100": 0,
+      "SimulatesTypeName": "pico.flow.module.component.gt",
+      "SimulatesVersion": "001",
+      "TypeName": "sim.pico.flow.module.component.gt",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "HwUidPattern"
+      statement: >
+        If HwUid is present, it SHALL match the pattern pico_xxxxxx where
+        xxxxxx consists of six lowercase hexadecimal characters.
+
+  extended_description: >
+    The component-faithful facet of simulation: the field set of
+    `pico.flow.module.component.gt` plus the liveness script (SimLifeS,
+    SimRebootS), so a simulated layout drives the real scada pico code path with
+    simulated hardware input. DeviceType values come from the `gw1.device.type`
+    vocabulary; the hardware layout enforces membership.
+
+    Simulates `pico.flow.module.component.gt`. Kin: `sim.pico.tank.module.component.gt`.

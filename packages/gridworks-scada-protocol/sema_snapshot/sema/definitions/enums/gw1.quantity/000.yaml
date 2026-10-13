@@ -1,0 +1,51 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gw1.quantity/000"
+
+title: "gw1.quantity"
+type: "string"
+description: >
+  High-level physical or semantic quantity classification associated with a
+  telemetry value. Quantity expresses the physical dimension or logical
+  interpretation independent of unit scaling.
+
+enum:
+  - "Unknown"
+  - "Unitless"
+  - "Power"
+  - "Energy"
+  - "Temperature"
+  - "FlowRate"
+  - "Volume"
+  - "Voltage"
+  - "Current"
+  - "Percent"
+  - "Frequency"
+
+default: "Unknown"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "Unknown": >
+      Quantity classification has not been specified.
+    "Unitless": >
+      Dimensionless logical or numerical value.
+    "Power": >
+      Rate of energy transfer per unit time.
+    "Energy": >
+      Accumulated or stored energy.
+    "Temperature": >
+      Thermal state measurement.
+    "FlowRate": >
+      Volumetric or mass flow rate.
+    "Volume": >
+      Physical volume measurement.
+    "Voltage": >
+      Electrical potential difference.
+    "Current": >
+      Electrical current.
+    "Percent": >
+      Fractional ratio expressed as a percentage.
+    "Frequency": >
+      Cycles per unit time.

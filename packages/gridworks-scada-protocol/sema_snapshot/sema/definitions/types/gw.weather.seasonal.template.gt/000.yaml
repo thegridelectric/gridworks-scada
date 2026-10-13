@@ -1,0 +1,85 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw.weather.seasonal.template.gt/000"
+
+title: "gw.weather.seasonal.template.gt"
+type: object
+description: >
+  The design-cold temperature of each month at a weather location: the
+  values a forecast falls back to when neither the forecaster's live
+  product nor the stored horizon reaches the slice grid. One record per
+  location; a later record for the same place supersedes by Start.
+  `.gt`: coupled with the weather service's database, which is the
+  canonical seed.
+
+properties:
+  LocationAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      Alias of the gw.weather.location.gt this template fills for.
+
+  TempByMonth:
+    type: array
+    items:
+      type: integer
+    description: >
+      The coldest air temperature expected in each calendar month,
+      January first, in degrees Fahrenheit times 100.
+
+  Start:
+    $ref: "https://schemas.electricity.works/formats/utc.iso8601.seconds"
+    description: >
+      Validity start, so an archived fill resolves against the template
+      active at its time.
+
+  Id:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      Immutable identity of this template record. A changed value is a
+      new record, never a mutation.
+
+  TypeName:
+    const: "gw.weather.seasonal.template.gt"
+
+  Version:
+    const: "000"
+
+required:
+  - LocationAlias
+  - TempByMonth
+  - Start
+  - Id
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "LocationAlias": "us.me.millinocket",
+      "TempByMonth": [-300, -700, 100, 2100, 3000, 3100, 4600, 4700, 2800, 2400, 1600, 0],
+      "Start": "2026-10-07T00:00:00Z",
+      "Id": "3b7c1e52-8d4a-4f6e-9c2b-5a1d8e7f0c93",
+      "TypeName": "gw.weather.seasonal.template.gt",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "TwelveMonths"
+      statement: >
+        TempByMonth SHALL hold exactly twelve values.
+
+  extended_description: >
+    The template is the last rung of the forecast fidelity ladder
+    (gw.weather.forecast.fidelity SeasonalTemplate): a fill laid on the
+    bundle's slice grid at the month's value, carrying no wind, so a
+    consumer optimizing against it plans for the cold case rather than
+    for nothing. It is a record like the location and channel words,
+    minted once through gw.weather.create.cmd and read back from the
+    service's facade; the weather service builds the rung from it and
+    a consumer that caches a forecast keeps the template beside it for
+    the case where the service itself is unreachable.

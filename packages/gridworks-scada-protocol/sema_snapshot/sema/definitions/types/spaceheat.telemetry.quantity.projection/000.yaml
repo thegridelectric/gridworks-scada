@@ -1,0 +1,81 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/spaceheat.telemetry.quantity.projection/000"
+
+title: "spaceheat.telemetry.quantity.projection"
+type: object
+description: >
+  Canonical projection from spaceheat.telemetry.name to gw1.quantity.
+  This type defines the authoritative dimensional abstraction associated
+  with each telemetry semantic category in version 007 of
+  spaceheat.telemetry.name.
+
+  This projection exists to make dimensional semantics explicit at the
+  serialization boundary and to support safe evolution toward gw1.unit.
+
+properties:
+
+  TelemetryName:
+    $ref: "https://schemas.electricity.works/enums/spaceheat.telemetry.name/007"
+
+  Quantity:
+    $ref: "https://schemas.electricity.works/enums/gw1.quantity/000"
+
+  TypeName:
+    const: "spaceheat.telemetry.quantity.projection"
+
+  Version:
+    const: "000"
+
+required:
+  - TelemetryName
+  - Quantity
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  projection:
+    from: TelemetryName
+    to: Quantity
+    table:
+      Unknown: Unknown
+
+      PowerW: Power
+      WattHours: Energy
+      MilliWattHours: Energy
+
+      WaterTempCTimes1000: Temperature
+      WaterTempFTimes1000: Temperature
+      AirTempCTimes1000: Temperature
+      AirTempFTimes1000: Temperature
+      CelsiusTimes100: Temperature
+
+      GpmTimes100: FlowRate
+      GallonsTimes100: Volume
+
+      VoltageRmsMilliVolts: Voltage
+      VoltsTimesTen: Voltage
+      VoltsTimes100: Voltage
+      MicroVolts: Voltage
+
+      CurrentRmsMicroAmps: Current
+
+      HzTimes100: Frequency
+      MicroHz: Frequency
+
+      RelayState: Unitless
+      ThermostatState: Unitless
+      StorageLayer: Unitless
+      BinaryState: Unitless
+
+      PercentKeep: Percent
+
+  axioms:
+    - number: 1
+      name: "EnumeratedProjectionMapping"
+      statement: >
+        Every (TelemetryName, Quantity) pair SHALL match the mapping declared
+        in x-gridworks.projection.table. Any other combination is invalid.

@@ -1,0 +1,54 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw.scada.commit/000"
+
+title: "gw.scada.commit"
+type: object
+description: >
+  The git commit a scada is running, announced once per run at boot so
+  every message the run produces can be tied to the code that produced
+  it. A fact about the running code, not about the house or its layout.
+
+properties:
+  ScadaAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      GNodeAlias of the scada announcing.
+
+  GitCommit:
+    $ref: "https://schemas.electricity.works/formats/git.commit"
+    description: >
+      The commit of the scada code this run is executing, read from the
+      scada's own checkout.
+
+  MessageCreatedMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+    description: >
+      When the announcement was made.
+
+  TypeName:
+    const: "gw.scada.commit"
+
+  Version:
+    const: "000"
+
+required:
+  - ScadaAlias
+  - GitCommit
+  - MessageCreatedMs
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ScadaAlias": "hw1.isone.me.versant.keene.beech.scada",
+      "GitCommit": "109d44041c2b3d4e5f60718293a4b5c6d7e8f901",
+      "MessageCreatedMs": 1790000000000,
+      "TypeName": "gw.scada.commit",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

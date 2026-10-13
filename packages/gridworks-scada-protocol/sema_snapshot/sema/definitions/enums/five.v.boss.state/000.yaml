@@ -1,0 +1,35 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/five.v.boss.state/000"
+
+title: "five.v.boss.state"
+type: "string"
+description: >
+  States of the five-v-boss, the command node above the pico-cycler that
+  can hold the picos' 5 V supply off. Its state says who owns the vdc
+  relay: the pico-cycler, or five-v-boss itself while the hold is on.
+
+enum:
+  - "PicoCycler"
+  - "TurningOff"
+  - "FiveVOff"
+  - "TurningOn"
+
+default: "PicoCycler"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "PicoCycler": >
+      The pico-cycler owns the vdc relay and tends the picos.
+
+    "TurningOff": >
+      The pico-cycler is dormant and five-v-boss has told the vdc relay
+      to open; waiting for it to report open.
+
+    "FiveVOff": >
+      The vdc relay is held open; the picos are dark by design.
+
+    "TurningOn": >
+      five-v-boss has told the vdc relay to close; waiting for it to
+      report closed before handing it back to the pico-cycler.

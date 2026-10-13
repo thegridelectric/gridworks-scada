@@ -1,0 +1,15 @@
+{
+  "TypeName": "hubitat.component.gt",
+  "Version": "000",
+  "ComponentId": "409bec56-deea-4dc4-b8f7-48a29c44713b",
+  "DeviceType": "HubitatC7Hub",
+  "Hubitat": {
+    "TypeName": "hubitat.gt",
+    "Version": "000",
+    "Host": "example",
+    "MakerApiId": 0,
+    "AccessToken": "example",
+    "MacAddress": "34:e1:d1:82:22:22",
+    "WebListenEnabled": false
+  }
+}

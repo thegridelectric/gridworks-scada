@@ -1,0 +1,147 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw.weather.forecast/000"
+
+title: "gw.weather.forecast"
+type: object
+description: >
+  Air temperatures and wind speeds forecast over a shared sequence of
+  time slices for a location, intended for use in optimizing
+  electricity purchases by flexible loads. Produced by a GridWorks-run
+  weather forecast service that ingests external weather services;
+  values are scaled integers per the bundle's channel records. One
+  message per bundle per emission slot.
+
+properties:
+  BundleName:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      Name of the gw.weather.forecast.bundle.gt this emission belongs
+      to — the stream name consumers subscribe to for these broadcasts,
+      and the join key to the bundle record declaring structure, units,
+      and schedule.
+
+  SourceUpdatedTime:
+    $ref: "https://schemas.electricity.works/formats/utc.iso8601.seconds"
+    description: >
+      When the ingested external service last revised the underlying
+      forecast data (for NWS, the gridpoint updateTime). May hold
+      unchanged across many emissions while the source sits on a
+      package.
+
+  MessageCreatedMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+    description: >
+      When the weather forecast service created this message. Advances
+      with every emission.
+
+  Fidelity:
+    $ref: "https://schemas.electricity.works/enums/gw.weather.forecast.fidelity/000"
+    description: >
+      The degradation rung of this emission. Each downgrade transition
+      additionally raises a Glitch.
+
+  FirstSliceStart:
+    $ref: "https://schemas.electricity.works/formats/utc.iso8601.seconds"
+    description: >
+      Start of the first time slice. Slice boundaries derive from this
+      plus the bundle channels' shared SliceDurationSList.
+
+  TempChannelName:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      Name of the forecast channel whose values ride TempValues.
+
+  TempValues:
+    type: array
+    items:
+      type: integer
+    description: >
+      Forecast air temperatures, one per time slice, scaled per the
+      channel's Unit.
+
+  WindSpeedChannelName:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      Name of the forecast channel whose values ride WindSpeedValues.
+
+  WindSpeedValues:
+    type: array
+    items:
+      type: integer
+    description: >
+      Forecast wind speeds, one per time slice, scaled per the
+      channel's Unit.
+
+  TypeName:
+    const: "gw.weather.forecast"
+
+  Version:
+    const: "000"
+
+required:
+  - BundleName
+  - SourceUpdatedTime
+  - MessageCreatedMs
+  - Fidelity
+  - FirstSliceStart
+  - TempChannelName
+  - TempValues
+  - WindSpeedChannelName
+  - WindSpeedValues
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "BundleName": "us.me.millinocket.forecast.nws.hourly",
+      "SourceUpdatedTime": "2026-08-12T09:09:03Z",
+      "MessageCreatedMs": 1786280700033,
+      "Fidelity": "Live",
+      "FirstSliceStart": "2026-08-12T14:00:00Z",
+      "TempChannelName": "us.me.millinocket.temperature.forecast.nws.hourly",
+      "TempValues": [7000, 7012],
+      "WindSpeedChannelName": "us.me.millinocket.windspeed.forecast.nws.hourly",
+      "WindSpeedValues": [4000, 5000],
+      "TypeName": "gw.weather.forecast",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "NonEmptyValues"
+      statement: >
+        TempValues and WindSpeedValues SHALL be non-empty.
+    - number: 2
+      name: "EqualValueLengths"
+      statement: >
+        len(TempValues) SHALL equal len(WindSpeedValues).
+    - number: 3
+      name: "DistinctChannels"
+      statement: >
+        TempChannelName SHALL differ from WindSpeedChannelName.
+    - number: 4
+      name: "ForecastNaming"
+      statement: >
+        a. BundleName SHALL contain "forecast" as an interior segment.
+        b. TempChannelName SHALL contain "forecast" as an interior segment.
+        c. WindSpeedChannelName SHALL contain "forecast" as an interior
+        segment.
+
+  extended_description: >
+    Structure, units, and emission schedule live on the bundle's
+    channel records (gw.weather.forecast.bundle.gt embeds them); the
+    weather forecast service ensures their consistency, so consumers
+    derive every slice boundary from FirstSliceStart plus the shared
+    SliceDurationSList. Two clocks: SourceUpdatedTime may hold for
+    hours while the external source sits on a forecast package;
+    MessageCreatedMs advances with every emission, so re-emissions of
+    a held source revision are distinguishable sends of the same
+    claim. Emission is always on the bundle's schedule; Fidelity
+    declares the degradation rung (live source, stored horizon,
+    seasonal template) when the source is unavailable.

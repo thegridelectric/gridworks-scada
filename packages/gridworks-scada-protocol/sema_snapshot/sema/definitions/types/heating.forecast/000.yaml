@@ -1,0 +1,66 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/heating.forecast/000"
+
+title: "heating.forecast"
+type: object
+description: >
+  Heating demand forecast produced by an ATN, providing projected average power,
+  required source water temperature, and delta T for each forecast interval.
+
+properties:
+
+  FromGNodeAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+
+  Time:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/formats/utc.seconds"
+
+  AvgPowerKw:
+    type: array
+    items:
+      type: number
+
+  RswtF:
+    type: array
+    items:
+      type: number
+
+  RswtDeltaTF:
+    type: array
+    items:
+      type: number
+
+  WeatherUid:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+
+  ForecastCreatedS:
+    $ref: "https://schemas.electricity.works/formats/utc.seconds"
+
+  TypeName:
+    const: "heating.forecast"
+
+  Version:
+    const: "000"
+
+required:
+  - FromGNodeAlias
+  - Time
+  - AvgPowerKw
+  - RswtF
+  - RswtDeltaTF
+  - WeatherUid
+  - ForecastCreatedS
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "ListLengthConsistency"
+      statement: >
+        Time, AvgPowerKw, RswtF, and RswtDeltaTF SHALL all have the same length.

@@ -1,0 +1,59 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/zone.circuit.governance.cmd/000"
+
+title: "zone.circuit.governance.cmd"
+type: object
+description: >
+  Command from a boss to a zone-call-circuit actor's governance machine,
+  setting which authority rules the circuit.
+
+properties:
+  FromHandle:
+    $ref: "https://schemas.electricity.works/formats/handle.name"
+    description: >
+      Handle of the commanding boss.
+
+  ToHandle:
+    $ref: "https://schemas.electricity.works/formats/handle.name"
+    description: >
+      Handle of the zone-call-circuit actor.
+
+  Event:
+    $ref: "https://schemas.electricity.works/enums/zone.circuit.governance.event/000"
+
+  SetpointF:
+    type: number
+    description: >
+      The commanded setpoint in degrees Fahrenheit.
+
+  TriggerId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+
+  SendTimeUnixMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+
+  TypeName:
+    const: "zone.circuit.governance.cmd"
+
+  Version:
+    const: "000"
+
+required:
+  - FromHandle
+  - ToHandle
+  - Event
+  - TriggerId
+  - SendTimeUnixMs
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "SetpointIffThermostatic"
+      statement: >
+        a. If Event is SwitchToThermostatic, SetpointF SHALL be present.
+        b. If Event is not SwitchToThermostatic, SetpointF SHALL be absent.

@@ -1,0 +1,23 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/relay.closed.or.open/000"
+
+title: "relay.closed.or.open"
+type: "string"
+description: >
+  Canonical FSM states for a simple relay with two positions: closed (energized)
+  and open (de-energized). These states represent the logical relay condition,
+  not raw electrical readings.
+
+enum:
+  - "RelayClosed"
+  - "RelayOpen"
+
+default: RelayClosed
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+
+  value_descriptions:
+    RelayClosed: "Relay is closed; circuit is energized (power on)."
+    RelayOpen: "Relay is open; circuit is de-energized (power off)."

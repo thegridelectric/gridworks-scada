@@ -1,0 +1,10 @@
+{
+  "TypeName": "i2c.result",
+  "Version": "001",
+  "Bus": "scada",
+  "Operation": "ReadReg",
+  "Value": 7,
+  "Success": true,
+  "UnixTimeMs": 1700000000000,
+  "TriggerId": "6f74e8b9-4fc9-4b95-bd6f-2c150662b40e"
+}

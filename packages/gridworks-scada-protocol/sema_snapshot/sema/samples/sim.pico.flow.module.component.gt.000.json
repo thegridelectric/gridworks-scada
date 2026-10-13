@@ -1,0 +1,19 @@
+{
+  "TypeName": "sim.pico.flow.module.component.gt",
+  "Version": "000",
+  "ComponentId": "3702ecf7-32a5-4582-a073-13b8edc1154f",
+  "DeviceType": "GridworksPicoFlowHall",
+  "SerialNumber": "example",
+  "FlowNodeName": "scada",
+  "FlowMeterType": "MakeModel",
+  "HzCalcMethod": "BasicExpWeightedAvg",
+  "GpmFromHzMethod": "Constant",
+  "ConstantGallonsPerTick": 0.0,
+  "SendHz": false,
+  "SendGallons": false,
+  "SendTickLists": false,
+  "NoFlowMs": 0,
+  "AsyncCaptureThresholdGpmTimes100": 0,
+  "SimulatesTypeName": "pico.flow.module.component.gt",
+  "SimulatesVersion": "001"
+}

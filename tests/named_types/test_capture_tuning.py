@@ -1,8 +1,8 @@
 """Tests capture.tuning type, version 000"""
 
-import pytest
 
 from gwsproto.named_types import CaptureTuning
+from tests.named_types.sema_oracle import assert_refused
 
 
 def base_config() -> dict:
@@ -30,8 +30,7 @@ def test_capture_tuning_axiom_1() -> None:
     d["PollPeriodMs"] = 1000
     d["CapturePeriodS"] = 1
 
-    with pytest.raises(ValueError, match="Axiom 1 \\(CaptureAndPollingConsistency\\) failed"):
-        CaptureTuning.model_validate(d)
+    assert_refused(CaptureTuning, d, match="Axiom 1 \\(CaptureAndPollingConsistency\\) failed")
 
 
 def test_capture_tuning_axiom_1_multiple_when_close() -> None:
@@ -39,8 +38,7 @@ def test_capture_tuning_axiom_1_multiple_when_close() -> None:
     d["PollPeriodMs"] = 700
     d["CapturePeriodS"] = 2
 
-    with pytest.raises(ValueError, match="Axiom 1 \\(CaptureAndPollingConsistency\\) failed"):
-        CaptureTuning.model_validate(d)
+    assert_refused(CaptureTuning, d, match="Axiom 1 \\(CaptureAndPollingConsistency\\) failed")
 
 
 def test_capture_tuning_no_async_capture_delta_axiom() -> None:

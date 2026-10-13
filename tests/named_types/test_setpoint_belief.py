@@ -1,8 +1,8 @@
 """Tests setpoint.belief type, version 000"""
 
-import pytest
 
 from gwsproto.named_types import SetpointBelief
+from tests.named_types.sema_oracle import assert_refused
 
 
 def base_belief() -> dict:
@@ -26,13 +26,11 @@ def test_setpoint_belief_axiom_1_a() -> None:
     d = base_belief()
     d["Phase"] = "Unknown"
 
-    with pytest.raises(ValueError, match="Axiom 1 \\(UnknownIsValueless\\) failed"):
-        SetpointBelief.model_validate(d)
+    assert_refused(SetpointBelief, d, match="Axiom 1 \\(UnknownIsValueless\\) failed")
 
 
 def test_setpoint_belief_axiom_1_b() -> None:
     d = base_belief()
     del d["ValueF"]
 
-    with pytest.raises(ValueError, match="Axiom 1 \\(UnknownIsValueless\\) failed"):
-        SetpointBelief.model_validate(d)
+    assert_refused(SetpointBelief, d, match="Axiom 1 \\(UnknownIsValueless\\) failed")

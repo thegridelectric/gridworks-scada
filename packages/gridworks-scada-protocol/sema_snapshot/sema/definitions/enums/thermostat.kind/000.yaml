@@ -1,0 +1,25 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/thermostat.kind/000"
+
+title: "thermostat.kind"
+type: "string"
+description: >
+  Kind of wall thermostat driving a zone-call circuit.
+
+enum:
+  - "MechanicalDial"
+  - "HoneywellViaHubitat"
+
+default: "MechanicalDial"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "MechanicalDial": >
+      A dial thermostat with no communication path. Its setpoint can
+      only be learned from call behavior.
+
+    "HoneywellViaHubitat": >
+      A Honeywell thermostat reachable read-only through a Hubitat hub.
+      Comms-capable: its setpoint and zone temperature can be read.

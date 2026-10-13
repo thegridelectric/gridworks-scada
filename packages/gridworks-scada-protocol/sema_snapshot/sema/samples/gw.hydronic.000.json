@@ -1,0 +1,73 @@
+{
+  "TypeName": "gw.hydronic",
+  "Version": "000",
+  "Zones": [
+    {
+      "TypeName": "gw1.hvac.zone",
+      "Version": "000",
+      "Name": "down",
+      "Critical": true,
+      "KwhPerDegF": 1.0,
+      "PrimaryCircuitPosition": 1
+    },
+    {
+      "TypeName": "gw1.hvac.zone",
+      "Version": "000",
+      "Name": "up",
+      "Critical": true,
+      "KwhPerDegF": 0.0,
+      "PrimaryCircuitPosition": 2
+    }
+  ],
+  "ZoneCallCircuits": [
+    {
+      "TypeName": "gw1.zone.call.circuit",
+      "Version": "000",
+      "CircuitPosition": 1,
+      "Name": "down",
+      "ServesZone": "down",
+      "EmitterType": "RadiantSlab",
+      "CanCool": false,
+      "SetpointSource": "Learned",
+      "Thermostat": {
+        "TypeName": "gw1.zone.thermostat",
+        "Version": "000",
+        "Kind": "MechanicalDial"
+      },
+      "WhitewireChannelName": "zone1-down-opto-input",
+      "SetpointChannelName": "zone1-down-set",
+      "TempChannelName": "zone1-down-temp",
+      "FloorTempChannelName": "zone1-down-floor-temp",
+      "FailsafeRelayNode": "zone1-down-failsafe-relay",
+      "OpsRelayNode": "zone1-down-ops-relay"
+    },
+    {
+      "TypeName": "gw1.zone.call.circuit",
+      "Version": "000",
+      "CircuitPosition": 2,
+      "Name": "up",
+      "ServesZone": "up",
+      "EmitterType": "RadiantSlab",
+      "CanCool": false,
+      "SetpointSource": "Learned",
+      "Thermostat": {
+        "TypeName": "gw1.zone.thermostat",
+        "Version": "000",
+        "Kind": "MechanicalDial"
+      },
+      "WhitewireChannelName": "zone2-up-opto-input",
+      "SetpointChannelName": "zone2-up-set",
+      "TempChannelName": "zone2-up-temp",
+      "FailsafeRelayNode": "zone2-up-failsafe-relay",
+      "OpsRelayNode": "zone2-up-ops-relay"
+    }
+  ],
+  "WaterStore": {
+    "TypeName": "gw.water.store",
+    "Version": "000",
+    "TotalStoreTanks": 3
+  },
+  "PrimaryFlowSource": "Measured",
+  "PrimaryPumpOwner": "Scada",
+  "RefrigerantCycle": "Cascade"
+}

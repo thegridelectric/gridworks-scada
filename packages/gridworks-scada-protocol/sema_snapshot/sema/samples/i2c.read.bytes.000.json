@@ -1,0 +1,8 @@
+{
+  "TypeName": "i2c.read.bytes",
+  "Version": "000",
+  "Bus": "scada",
+  "I2cAddress": 96,
+  "NumBytes": 24,
+  "TriggerId": "6f74e8b9-4fc9-4b95-bd6f-2c150662b40e"
+}

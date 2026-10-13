@@ -1,0 +1,55 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/i2c.thermistor.channel.config/000"
+
+title: "i2c.thermistor.channel.config"
+type: object
+description: >
+  Channel configuration for one thermistor input read through an I2C ADC.
+
+  This type spells out the channel name together with the ADC pin selection, thermistor
+  beta parameter, and whether the channel should also be forwarded into derived-channel
+  processing. It carries only the per-channel hardware binding; capture/report tuning
+  lives in operational-params (capture.tuning), not in the static layout.
+
+properties:
+  ChannelName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+
+  AdcChannel:
+    $ref: "https://schemas.electricity.works/enums/i2c.adc.channel/000"
+    description: >
+      ADC input pin used for this thermistor channel.
+
+  ThermistorBeta:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Beta parameter of the thermistor used to convert resistance to
+      temperature.
+
+  TypeName:
+    const: "i2c.thermistor.channel.config"
+
+  Version:
+    const: "000"
+
+required:
+  - ChannelName
+  - AdcChannel
+  - ThermistorBeta
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ChannelName": "scada",
+      "AdcChannel": "P0",
+      "ThermistorBeta": 1,
+      "TypeName": "i2c.thermistor.channel.config",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

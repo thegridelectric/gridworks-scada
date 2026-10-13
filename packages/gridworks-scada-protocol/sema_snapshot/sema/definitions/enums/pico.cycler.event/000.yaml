@@ -1,0 +1,61 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/pico.cycler.event/000"
+
+title: "pico.cycler.event"
+type: "string"
+description: >
+  Events that move the scada's pico-cycler state machine. The entering
+  event of a cycle is what provoked it (a silent pico, a boss command, a
+  slow shake of given-up picos, or boot); which pico provoked it is read
+  off the journaled per-pico single.pico.state rows.
+
+enum:
+  - "WakeUp"
+  - "GoDormant"
+  - "PicoMissing"
+  - "ConfirmOpened"
+  - "StartClosing"
+  - "ConfirmClosed"
+  - "ConfirmRebooted"
+  - "ShakeZombies"
+  - "RebootDud"
+  - "Startup"
+
+default: "WakeUp"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "WakeUp": >
+      Leave Dormant and start tending the picos.
+
+    "GoDormant": >
+      Stop tending the picos; the cycler becomes a leaf that commands
+      nothing.
+
+    "PicoMissing": >
+      A pico has gone silent; open the vdc relay to start a power cycle.
+
+    "ConfirmOpened": >
+      The vdc relay reports open.
+
+    "StartClosing": >
+      The open hold has elapsed; close the vdc relay.
+
+    "ConfirmClosed": >
+      The vdc relay reports closed; the picos are rebooting.
+
+    "ConfirmRebooted": >
+      Every pico the cycle was for is posting again.
+
+    "ShakeZombies": >
+      A slow-cadence cycle for picos that earlier cycles did not bring
+      back, or the cycle a boss command asks for.
+
+    "RebootDud": >
+      The reboot window passed with a pico still silent; it is given up
+      on as a zombie.
+
+    "Startup": >
+      The cycle the cycler runs at boot, before any pico has been judged.

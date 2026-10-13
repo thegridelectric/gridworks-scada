@@ -1,0 +1,17 @@
+{
+  "TypeName": "hp.device.type.gt",
+  "Version": "000",
+  "DeviceType": "SamsungAE055FCYDCG",
+  "DisplayName": "Samsung AE055 EHS mono outdoor monobloc",
+  "MaxKwEl": 4.35,
+  "HeatingCapacityBtuHr": 54600,
+  "CoolingCapacityBtuHr": 54600,
+  "PrimaryPumpFactoryInstalled": false,
+  "PrimaryPumpOverridable": false,
+  "PrimaryPumpAlwaysOn": false,
+  "Refrigerant": "R32",
+  "CompressorRatedAmps": 18.9,
+  "Mca": 32.0,
+  "Mop": 40.0,
+  "ProductInfoUrl": "https://drive.google.com/drive/folders/1XV80QPgqpyYvMaoQIR9PpGWmu6dSY9kD"
+}

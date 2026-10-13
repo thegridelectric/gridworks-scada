@@ -1,0 +1,43 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gw1.unit/000"
+
+title: "gw1.unit"
+type: "string"
+description: >
+  Canonical measurement unit associated with a GridWorks telemetry value.
+  This enum defines the structural unit representation used at the serialization
+  boundary. Scaling conventions (e.g., X100) are encoded explicitly in the
+  unit name to preserve mechanical interpretability.
+
+enum:
+  - "Unknown"
+  - "Unitless"
+  - "FahrenheitX100"
+  - "Watts"
+  - "WattHours"
+  - "Gallons"
+  - "GpmX100"
+  
+
+default: "Unknown"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "Unknown": >
+      Unit has not been specified or is not known.
+    "Unitless": >
+      Dimensionless quantity (e.g., digital input state, normalized ratio).
+    "FahrenheitX100": >
+      Temperature in degrees Fahrenheit multiplied by 100
+      to preserve integer transport precision.
+    "Watts": >
+      Instantaneous power in watts.
+    "WattHours": >
+      Energy in watt-hours.
+    "Gallons": >
+      Volume in U.S. gallons.
+    "GpmX100": >
+      Flow rate in gallons per minute multiplied by 100
+      to preserve integer transport precision.

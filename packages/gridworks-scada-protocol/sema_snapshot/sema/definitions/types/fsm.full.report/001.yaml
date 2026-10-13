@@ -1,0 +1,38 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/fsm.full.report/001"
+
+title: "fsm.full.report"
+type: object
+description: >
+  Full FSM report emitted for a trigger, including the ordered list of atomic
+  report items produced by the state machine.
+
+properties:
+  FromName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+
+  TriggerId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+
+  AtomicList:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/fsm.atomic.report/001"
+
+  TypeName:
+    const: "fsm.full.report"
+
+  Version:
+    const: "001"
+
+required:
+  - FromName
+  - TriggerId
+  - AtomicList
+  - TypeName
+  - Version
+
+additionalProperties: true
+
+x-gridworks:
+  owner: "gridworks-energy"

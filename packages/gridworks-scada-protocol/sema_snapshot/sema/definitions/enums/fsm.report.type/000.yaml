@@ -1,0 +1,18 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/fsm.report.type/000"
+
+title: "fsm.report.type"
+type: string
+description: >
+  Enumeration of atomic FSM report categories.
+
+enum:
+  - "Other"
+  - "Event"
+  - "Action"
+
+default: "Other"
+  
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"

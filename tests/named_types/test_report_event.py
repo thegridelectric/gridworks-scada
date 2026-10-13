@@ -1,8 +1,8 @@
 """Tests report.event type, version 004"""
 
-import pytest
 
 from gwsproto.named_types import ReportEvent
+from tests.named_types.sema_oracle import assert_refused
 
 SCADA = "hw1.isone.me.versant.keene.spruce.scada"
 
@@ -44,19 +44,14 @@ def test_report_event_generated() -> None:
 
 def test_report_event_axiom_1() -> None:
     """MessageId SHALL equal Report.Id."""
-    with pytest.raises(ValueError, match="Axiom 1"):
-        ReportEvent.model_validate(
-            report_event(message_id="7c8a27f4-2bbd-4a6f-9d2c-1f0f4d6b7e21")
-        )
+    assert_refused(ReportEvent, report_event(message_id="7c8a27f4-2bbd-4a6f-9d2c-1f0f4d6b7e21"), match="Axiom 1")
 
 
 def test_report_event_axiom_2() -> None:
     """TimeCreatedMs SHALL equal Report.MessageCreatedMs."""
-    with pytest.raises(ValueError, match="Axiom 2"):
-        ReportEvent.model_validate(report_event(time_created_ms=CREATED_MS + 1))
+    assert_refused(ReportEvent, report_event(time_created_ms=CREATED_MS + 1), match="Axiom 2")
 
 
 def test_report_event_axiom_3() -> None:
     """Src SHALL equal Report.FromGNodeAlias."""
-    with pytest.raises(ValueError, match="Axiom 3"):
-        ReportEvent.model_validate(report_event(src="hw1.isone.me.versant.keene.oak.scada"))
+    assert_refused(ReportEvent, report_event(src="hw1.isone.me.versant.keene.oak.scada"), match="Axiom 3")

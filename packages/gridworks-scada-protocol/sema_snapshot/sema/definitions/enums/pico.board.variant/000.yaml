@@ -1,0 +1,40 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/pico.board.variant/000"
+
+title: "pico.board.variant"
+type: "string"
+description: >
+  The physical microcontroller board a pico-based sensor module is built
+  on: the chip generation and whether it reaches the LAN over wifi or
+  wired ethernet. A rewiring-grade fact about one board, distinct from the
+  device category (gw1.device.type) that stays the same when a board is
+  swapped.
+
+enum:
+  - "Unknown"
+  - "PicoWiznetEth2040"
+  - "PicoWiznetEth2350"
+  - "PicoRaspberryWifi2040"
+
+default: "Unknown"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "Unknown": >
+      The firmware could not tell which board it runs on. Also the
+      default, so an out-of-vocabulary value reads as unknown rather than
+      as a real board.
+
+    "PicoWiznetEth2040": >
+      WIZnet EVB-Pico on the RP2040 chip, wired ethernet through the
+      onboard WIZnet controller.
+
+    "PicoWiznetEth2350": >
+      WIZnet W5500-EVB-Pico2 on the RP2350 chip, wired ethernet through
+      the onboard W5500. Runs a hand-built MicroPython.
+
+    "PicoRaspberryWifi2040": >
+      Raspberry Pi Pico W: RP2040 chip, 2.4 GHz wifi through the onboard
+      CYW43.

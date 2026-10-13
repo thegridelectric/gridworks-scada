@@ -1,0 +1,52 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/base.g.node.class/000"
+
+title: "base.g.node.class"
+type: "string"
+description: >
+  Ontology classification for Grid Nodes (GNodes) used to describe their
+  structural relationship to the physical electric grid. Values identify
+  whether a node represents a physical metered boundary, a physical
+  topological structure, a market coordination constraint, or a purely
+  logical entity.
+
+  Every GNode SHALL declare exactly one base.g.node.class value.
+
+enum:
+  - "TerminalAsset"
+  - "LeafTransactiveNode"
+  - "ConnectivityNode"
+  - "MarketMaker"
+  - "Logical"
+
+default: "Logical"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "TerminalAsset": >
+      A physical transactive asset such as a heat pump, hot water heater, residential battery, 
+      electric vehicle, or any other end-use device located behind an atomic metered point.
+    
+    "LeafTransactiveNode": >
+      The atomic metered unit of the grid. Represents the smallest indivisible metering
+      boundary capable of participating in markets or entering Dispatch Contracts on
+      behalf of a TerminalAsset. Every TerminalAsset is associated with exactly one
+      LeafTransactiveNode.
+
+    "ConnectivityNode": >
+      A physical topological node in the electric power system where conductors join,
+      split, or change configuration. Conceptually aligned with the ConnectivityNode
+      in the IEC 61970/61968 CIM (Common Information Model), but simplified for
+      distribution-level modeling and OPF applications.
+
+    "MarketMaker": >
+      A physical constraint point in the conductor topology that requires localized market
+      coordination. Identified as a grid location (e.g., feeder constraint, transformer limit)
+      where a MarketMaker actor computes local prices for balancing and constraint compliance.
+      See [market-maker](https://gridworks.readthedocs.io/en/latest/market-maker.html).
+
+    "Logical": >
+      A non-physical Grid Node whose identity carries no inherent conductor-topology or
+      metering semantics. Used by GridWorks for SCADA and forecasting services.

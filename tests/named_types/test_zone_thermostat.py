@@ -1,8 +1,8 @@
 """Tests gw1.zone.thermostat type, version 000"""
 
-import pytest
 
 from gwsproto.named_types import ZoneThermostat
+from tests.named_types.sema_oracle import assert_refused
 
 
 def base_thermostat() -> dict:
@@ -26,5 +26,4 @@ def test_zone_thermostat_axiom_1() -> None:
     d = base_thermostat()
     d["Kind"] = "MechanicalDial"
 
-    with pytest.raises(ValueError, match="Axiom 1 \\(NoComponentOnDumbStat\\) failed"):
-        ZoneThermostat.model_validate(d)
+    assert_refused(ZoneThermostat, d, match="Axiom 1 \\(NoComponentOnDumbStat\\) failed")

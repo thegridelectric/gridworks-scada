@@ -1,0 +1,26 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/zone.setpoint.source/000"
+
+title: "zone.setpoint.source"
+type: "string"
+description: >
+  How the scada knows a zone-call circuit's setpoint: read from a
+  comms-capable thermostat, or learned from the circuit's call behavior
+  against the circuit's temperature channel.
+
+enum:
+  - "FromThermostat"
+  - "Learned"
+
+default: "Learned"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "FromThermostat": >
+      The setpoint is read from the circuit's comms-capable thermostat.
+
+    "Learned": >
+      The setpoint is a learned belief maintained from call edges and
+      the circuit's temperature channel.

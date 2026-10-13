@@ -1,0 +1,23 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/change.relay.pin/000"
+
+title: "change.relay.pin"
+type: "string"
+description: >
+  Canonical FSM events for actuating a single relay pin on a relay board:
+  energize or de-energize. These events are the atomic action of an i2c relay
+  multiplexer, independent of the relay's open/closed wiring.
+
+enum:
+  - "DeEnergize"
+  - "Energize"
+
+default: DeEnergize
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+
+  value_descriptions:
+    DeEnergize: "De-energize the relay pin."
+    Energize: "Energize the relay pin."

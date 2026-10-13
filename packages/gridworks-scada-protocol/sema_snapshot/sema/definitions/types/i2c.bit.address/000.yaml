@@ -1,0 +1,59 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/i2c.bit.address/000"
+
+title: "i2c.bit.address"
+type: object
+description: >
+  The address of a single bit on an I²C GPIO expander: the expander's I²C bus
+  address, the register within it, and the bit index within that register.
+
+properties:
+
+  I2cAddress:
+    $ref: "https://schemas.electricity.works/formats/non.negative.int"
+    description: >
+      The I²C bus address of the GPIO expander.
+
+  RegisterIndex:
+    $ref: "https://schemas.electricity.works/formats/non.negative.int"
+    description: >
+      The register within the expander.
+
+  BitIndex:
+    $ref: "https://schemas.electricity.works/formats/non.negative.int"
+    description: >
+      The bit index within the register.
+
+  TypeName:
+    const: "i2c.bit.address"
+
+  Version:
+    const: "000"
+
+required:
+  - I2cAddress
+  - RegisterIndex
+  - BitIndex
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "I2cAddress": 32,
+      "RegisterIndex": 2,
+      "BitIndex": 1,
+      "TypeName": "i2c.bit.address",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  extended_description: >
+    This address is bus-relative: it locates a bit on a device by I²C address,
+    register, and bit index, independent of which physical bus the device is on.
+    It carries no Bus — the bus is named by the operation that uses it (e.g.
+    i2c.read.bit / i2c.write.bit) or by the board configuration that references
+    it, which is what lets one address word serve both.

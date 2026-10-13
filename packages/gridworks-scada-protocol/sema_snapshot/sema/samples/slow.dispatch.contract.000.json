@@ -1,0 +1,10 @@
+{
+  "TypeName": "slow.dispatch.contract",
+  "Version": "000",
+  "ScadaAlias": "hw1.isone.me.versant.keene.beech.scada",
+  "StartS": 1757300400,
+  "DurationMinutes": 60,
+  "AvgPowerWatts": 3500,
+  "OilBoilerOn": false,
+  "ContractId": "9d3b2a1c-8e7f-4a6b-b5c4-d3e2f1a0b9c8"
+}

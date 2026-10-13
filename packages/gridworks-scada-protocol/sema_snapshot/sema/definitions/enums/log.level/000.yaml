@@ -1,0 +1,47 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/log.level/000"
+
+title: "log.level"
+type: "string"
+description: >
+  Logging severity level. Classifies how serious or how verbose a logged
+  event or message is, ordered from Critical (most severe) to Trace (most
+  verbose).
+
+enum:
+  - "Critical"
+  - "Error"
+  - "Warning"
+  - "Info"
+  - "Debug"
+  - "Trace"
+
+default: "Info"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "Critical": >
+      A failure that compromises the node's ability to operate and demands
+      immediate attention.
+    "Error": >
+      A failure of a specific operation that the node could not complete, but
+      from which it continues running.
+    "Warning": >
+      An unexpected or undesirable condition that did not stop an operation
+      but may indicate a developing problem.
+    "Info": >
+      A routine, noteworthy event reported for visibility under normal
+      operation.
+    "Debug": >
+      Detailed information useful when diagnosing behavior; not normally
+      emitted in production.
+    "Trace": >
+      The most verbose level: fine-grained, step-by-step detail used for deep
+      diagnosis.
+  extended_description: >
+    log.level is the severity vocabulary shared by GridWorks logging and event
+    reporting. It is the Type field of a glitch, classifying how serious the
+    reported event is, and is expected to serve the same role for the planned
+    glitch.event type.

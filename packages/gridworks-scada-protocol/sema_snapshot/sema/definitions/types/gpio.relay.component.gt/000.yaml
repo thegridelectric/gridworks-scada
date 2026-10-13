@@ -1,0 +1,108 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gpio.relay.component.gt/000"
+
+title: "gpio.relay.component.gt"
+type: object
+description: >
+  A single board-resident relay driven by a native (on-board) GPIO pin, as one Spaceheat
+  component. Board-generic: it works on any board that exposes native GPIO outputs (e.g. a
+  GW108), anchored to its board by BoardComponentId.
+
+  It is thin — it names its board (BoardComponentId, the scada board component this relay
+  is resident on), which GPIO output drives it (GpioName, resolved against that board's
+  NativeGpioOutputs), and carries one control config for the actor-level control
+  semantics. It does NOT
+  restate the physical pin (BCM number) — that is the board's single source of truth.
+
+properties:
+  ComponentId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+
+  BoardComponentId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      The component id of the scada board this device is resident on.
+
+  GpioName:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The name of the board GPIO output that drives this relay, intended to be
+      uniquely identifiable on the board.
+
+  ConfigList:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/relay.control.config/000"
+    description: >
+      The relay's control config. Exactly one entry (see axiom ExactlyOneConfig) — one relay
+      per component.
+
+  DisplayName:
+    type: string
+
+  HwUid:
+    type: string
+
+  TypeName:
+    const: "gpio.relay.component.gt"
+
+  Version:
+    const: "000"
+
+required:
+  - ComponentId
+  - BoardComponentId
+  - GpioName
+  - ConfigList
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ComponentId": "1c9f2b7e-4a3d-4e21-9c88-2b1a6f0e3d55",
+      "BoardComponentId": "9b1c5e2a-77d4-4f6e-8c3a-5f2e9d101b44",
+      "GpioName": "OilBoilerRelay",
+      "ConfigList": [
+        {
+          "ActorName": "relay-oil-boiler",
+          "ChannelName": "oil-boiler-relay",
+          "DeEnergizedState": "RelayClosed",
+          "DeEnergizingEvent": "CloseRelay",
+          "EnergizedState": "RelayOpen",
+          "EnergizingEvent": "OpenRelay",
+          "EventType": "change.relay.state",
+          "StateType": "relay.closed.or.open",
+          "TypeName": "relay.control.config",
+          "Version": "000",
+          "WiringConfig": "NormallyClosed"
+        }
+      ],
+      "TypeName": "gpio.relay.component.gt",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "ExactlyOneConfig"
+      statement: >
+        ConfigList SHALL contain exactly one relay.control.config (one relay per component).
+
+  extended_description: >
+    gpio.relay.component.gt is the native-GPIO sibling of i2c.relay.component.gt in the
+    board-resident model (bus / board / device). The board (gw1.scada.device.type.gt) is the
+    single source of physical truth (its NativeGpioOutputs list holds each pin's BCM number,
+    keyed by Name); this component is the thin per-relay device carried by at most one ShNode
+    via ComponentId. One relay per component, identified by GPIO name against the board.
+
+    The `.gt` suffix declares that this type is coupled bijectively with a table in
+    a canonical seed database (here, the terminalasset registry): the table's rows are
+    instances of this type. Sema is the authority over what a row means; the seed
+    table is the authority over which instances are currently asserted.
+
+    The control-config entries are `relay.control.config` records.

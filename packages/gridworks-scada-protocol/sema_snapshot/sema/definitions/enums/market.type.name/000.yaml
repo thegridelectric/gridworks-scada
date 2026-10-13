@@ -1,0 +1,31 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/market.type.name/000"
+
+title: "market.type.name"
+type: "string"
+description: "Categorizes different markets run by MarketMaker"
+
+enum:
+  - "unknown"
+  - "rt5gate5"
+  - "rt60gate5"
+  - "da60"
+  - "rt60gate30"
+  - "rt15gate5"
+  - "rt30gate5"
+  - "rt60gate30b"
+
+default: "unknown"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "unknown": "Default unknown"
+    "rt5gate5": "Real-time energy, 5 minute MarketSlots, gate closing 5 minutes prior to start"
+    "rt60gate5": "Real-time energy, 60 minute MarketSlots, gate closing 5 minutes prior to start"
+    "da60": "Day-ahead energy, 60 minute MarketSlots"
+    "rt60gate30": "Real-time energy, 60 minute MarketSlots, gate closing 30 minutes prior to start"
+    "rt15gate5": "Real-time energy, 15 minute MarketSlots, gate closing 5 minutes prior to start"
+    "rt30gate5": "Real-time energy, 30 minute MarketSlots, gate closing 5 minutes prior to start"
+    "rt60gate30b": "Real-time energy, 30 minute MarketSlots, gate closing 5 minutes prior to start, QuantityUnit AvgkW"

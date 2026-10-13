@@ -1,0 +1,80 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/scada.board.component.gt/000"
+
+title: "scada.board.component.gt"
+type: object
+description: >
+  One physical scada control board in a deployment, as a Spaceheat component: the
+  anchor that board-resident device components (gpio sensors and relays, thermistor
+  readers, CT readers) point at via their BoardComponentId. Its DeviceType names the
+  board kind, whose board device-type record in the layout carries the board's
+  physical facts (buses, native GPIO pins, expanders, relays, ADC interfaces).
+
+properties:
+
+  ComponentId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+
+  DeviceType:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The device category this component is built on, an open
+      pascal-case string.
+
+  I2cAddressList:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/formats/non.negative.int"
+    description: >
+      The field-chosen I²C addresses of the board's address-selectable parts,
+      in the board's expander order. Absent when the board has no
+      field-selectable addressing.
+
+  DisplayName:
+    type: string
+
+  HwUid:
+    type: string
+
+  TypeName:
+    const: "scada.board.component.gt"
+
+  Version:
+    const: "000"
+
+required:
+  - ComponentId
+  - DeviceType
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ComponentId": "9b1c5e2a-77d4-4f6e-8c3a-5f2e9d101b44",
+      "DeviceType": "Gw108RevB",
+      "DisplayName": "Spruce GW108 board",
+      "TypeName": "scada.board.component.gt",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  extended_description: >
+    The board instance in the board-resident model: the device-type record
+    (gw1.scada.device.type.gt) describes what a board KIND offers; this component
+    asserts that one such board is deployed here, carries its per-deployment facts
+    (serial number in HwUid, any field-selected addresses), and gives board-resident
+    device components a stable ComponentId to reference. Resolution chain: device
+    component → BoardComponentId → this component → DeviceType → the board record →
+    the named pin / ADC / relay.
+
+    The `.gt` suffix declares that this type is coupled bijectively with a table in
+    a canonical seed database (here, the terminalasset registry): the table's rows are
+    instances of this type. Sema is the authority over what a row means; the seed
+    table is the authority over which instances are currently asserted.
+
+    DeviceType values come from the `gw1.device.type` vocabulary; the hardware layout enforces membership.

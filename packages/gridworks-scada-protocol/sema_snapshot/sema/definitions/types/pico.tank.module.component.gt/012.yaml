@@ -1,0 +1,147 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/pico.tank.module.component.gt/012"
+
+title: "pico.tank.module.component.gt"
+type: object
+description: >
+  Configuration for a Pico-based tank temperature module component in a
+  Spaceheat SCADA deployment.
+
+properties:
+  ComponentId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+
+  DeviceType:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The device category this component is built on, an open
+      pascal-case string.
+
+  DisplayName:
+    type: string
+
+  HwUid:
+    type: string
+
+
+  PicoHwUid:
+    type: string
+
+  PicoAHwUid:
+    type: string
+
+  PicoBHwUid:
+    type: string
+
+  TempCalcMethod:
+    $ref: "https://schemas.electricity.works/enums/temp.calc.method/000"
+
+  ThermistorBeta:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+
+  SendMicroVolts:
+    type: boolean
+
+  Samples:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+
+  NumSampleAverages:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+
+  PicoKOhms:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+
+  SerialNumber:
+    type: string
+
+  AsyncCaptureDeltaMicroVolts:
+    type: integer
+
+  SensorOrder:
+    type: array
+    items:
+      type: integer
+
+  PicoBoardVariant:
+    $ref: "https://schemas.electricity.works/enums/pico.board.variant/000"
+    description: >
+      The physical board this pico was provisioned on.
+
+  MicropythonVersion:
+    type: string
+    description: >
+      The MicroPython release this pico was provisioned with, as
+      `os.uname().release` reports it.
+
+  FirmwareCommit:
+    $ref: "https://schemas.electricity.works/formats/firmware.commit"
+    description: >
+      The gridworks-pico commit this pico was provisioned from.
+
+  TypeName:
+    const: "pico.tank.module.component.gt"
+
+  Version:
+    const: "012"
+
+required:
+  - ComponentId
+  - DeviceType
+  - TempCalcMethod
+  - ThermistorBeta
+  - SendMicroVolts
+  - Samples
+  - NumSampleAverages
+  - SerialNumber
+  - AsyncCaptureDeltaMicroVolts
+  - PicoBoardVariant
+  - TypeName
+  - Version
+
+additionalProperties: true
+
+examples:
+  - |
+    {
+      "ComponentId": "b58df331-f649-4563-9e40-d3e500529679",
+      "DeviceType": "GridworksTankModule3",
+      "TempCalcMethod": "SimpleBeta",
+      "ThermistorBeta": 1,
+      "SendMicroVolts": false,
+      "Samples": 1,
+      "NumSampleAverages": 1,
+      "SerialNumber": "example",
+      "AsyncCaptureDeltaMicroVolts": 0,
+      "PicoBoardVariant": "PicoRaspberryWifi2040",
+      "TypeName": "pico.tank.module.component.gt",
+      "Version": "012",
+      "PicoHwUid": "pico_a1b2c3"
+    }
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "PicoHardwareIdentityXor"
+      statement: >
+        Exactly one of the following SHALL hold:
+          - PicoHwUid is present
+          - both PicoAHwUid and PicoBHwUid are present
+
+    - number: 2
+      name: "PicoKOhmsConsistency"
+      statement: >
+        PicoKOhms SHALL be present if and only if TempCalcMethod equals
+        SimpleBetaForPico.
+
+    - number: 3
+      name: "SensorOrderPermutation"
+      statement: >
+        If SensorOrder is present, it SHALL be a permutation of [1, 2, 3].
+  extended_description: >
+    The `.gt` suffix declares that this type is coupled bijectively with a table in
+    a canonical seed database (here, the terminalasset registry): the table's rows are
+    instances of this type. Sema is the authority over what a row means; the seed
+    table is the authority over which instances are currently asserted.
+
+    DeviceType values come from the `gw1.device.type` vocabulary; the hardware layout enforces membership.

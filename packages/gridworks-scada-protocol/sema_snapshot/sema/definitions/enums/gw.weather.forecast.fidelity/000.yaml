@@ -1,0 +1,37 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gw.weather.forecast.fidelity/000"
+
+title: "gw.weather.forecast.fidelity"
+type: "string"
+description: >
+  The degradation rung of a weather forecast emission. The emitting
+  service always publishes on the channel's schedule; Fidelity declares
+  per message whether the values are the forecaster's live product,
+  drawn down from the stored horizon during a source outage, or
+  seasonal-template fill — keeping the channel's Forecaster claim
+  honest when the source is unavailable.
+
+enum:
+  - "Unknown"
+  - "Live"
+  - "Stored"
+  - "SeasonalTemplate"
+
+default: "Unknown"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "Unknown": >
+      Fidelity has not been specified. Never legitimately emitted;
+      exists as the coercion target for out-of-vocabulary values.
+    "Live": >
+      The forecaster's current product, fetched fresh from the source.
+    "Stored": >
+      Drawn down from the service's stored horizon because the source
+      has not produced a new product; the values are genuinely the
+      forecaster's, aging as the outage continues.
+    "SeasonalTemplate": >
+      Seasonal-template fill; the source outage has outlasted the
+      stored horizon. Values are no longer the forecaster's product.

@@ -1,0 +1,67 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw1.tank.temp.calibration/000"
+
+title: "gw1.tank.temp.calibration"
+type: object
+description: >
+  Linear calibration coefficients for converting three raw tank probe readings
+  into calibrated temperatures.
+
+properties:
+  Depth1M:
+    type: number
+    default: 1.0
+
+  Depth1B:
+    type: number
+    default: 0.0
+
+  Depth2M:
+    type: number
+    default: 1.0
+
+  Depth2B:
+    type: number
+    default: 0.0
+
+  Depth3M:
+    type: number
+    default: 1.0
+
+  Depth3B:
+    type: number
+    default: 0.0
+
+  TypeName:
+    const: "gw1.tank.temp.calibration"
+
+  Version:
+    const: "000"
+
+required:
+  - Depth1M
+  - Depth1B
+  - Depth2M
+  - Depth2B
+  - Depth3M
+  - Depth3B
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+examples:
+  - |
+    {
+      "Depth1M": 1.069,
+      "Depth1B": -4.303,
+      "Depth2M": 1.0,
+      "Depth2B": 0.0,
+      "Depth3M": 1.069,
+      "Depth3B": -4.303,
+      "TypeName": "gw1.tank.temp.calibration",
+      "Version": "000"
+    }

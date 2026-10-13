@@ -1,0 +1,154 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/report/003"
+
+title: "report"
+type: object
+description: >
+  Historical telemetry and state report for a fixed reporting interval.
+  A Report contains all meaningful channel readings and machine state
+  transitions observed during a single SlotDurationS window.
+
+  Reports are the authoritative historical record of SCADA behavior.
+  They are emitted periodically (typically every 5 minutes) and contain
+  timestamped readings for each channel that changed or reported during
+  the interval.
+
+properties:
+
+  FromGNodeAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      Canonical alias of the GNode emitting this report.
+
+  FromGNodeInstanceId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      Unique identifier of the specific running instance of the GNode
+      that produced this report.
+
+  AboutGNodeAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      Canonical alias of the GNode whose behavior is being reported.
+      In most deployments this equals FromGNodeAlias, but may differ
+      in proxy or aggregation scenarios.
+
+  SlotStartUnixS:
+    $ref: "https://schemas.electricity.works/formats/utc.seconds"
+    description: >
+      Start timestamp (UTC seconds) of the reporting interval.
+
+  SlotDurationS:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Duration of the reporting interval in seconds.
+      Typical value is 300 (5 minutes).
+
+  ChannelReadingList:
+    type: array
+    description: >
+      All channel readings observed during the reporting interval.
+      Each ChannelReadings element may contain multiple timestamped
+      values for a single channel.
+    items:
+      $ref: "https://schemas.electricity.works/types/channel.readings/002"
+
+  StateList:
+    type: array
+    description: >
+      Machine state transitions observed during the reporting interval.
+    items:
+      $ref: "https://schemas.electricity.works/types/machine.states/000"
+
+  FsmReportList:
+    type: array
+    description: >
+      Full finite-state-machine reports emitted during this interval.
+    items:
+      $ref: "https://schemas.electricity.works/types/fsm.full.report/001"
+
+  MessageCreatedMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+    description: >
+      Timestamp (UTC milliseconds) at which this report message
+      was created by the SCADA process.
+
+  Id:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      Globally unique identifier for this report message.
+
+  TypeName:
+    const: "report"
+
+  Version:
+    const: "003"
+
+required:
+  - FromGNodeAlias
+  - FromGNodeInstanceId
+  - AboutGNodeAlias
+  - SlotStartUnixS
+  - SlotDurationS
+  - ChannelReadingList
+  - StateList
+  - FsmReportList
+  - MessageCreatedMs
+  - Id
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "FromGNodeAlias": "hw1.isone.me.versant.keene.beech.scada",
+      "FromGNodeInstanceId": "19ee09df-80ba-437b-b6c1-1eebe9d34801",
+      "AboutGNodeAlias": "hw1.isone.me.versant.keene.beech.ta",
+      "SlotStartUnixS": 1762633800,
+      "SlotDurationS": 300,
+      "ChannelReadingList": [{
+              "ChannelName": "hp-lwt",
+              "ValueList": [
+                  19900,
+                  19700
+              ],
+              "ScadaReadTimeUnixMsList": [
+                  1762633800195,
+                  1762634056082
+              ],
+              "TypeName": "channel.readings",
+              "Version": "002"
+          }],
+      "StateList": [{
+              "MachineHandle": "ltn.la.relay6",
+              "StateEnum": "relay.closed.or.open",
+              "StateList": [
+                  "RelayOpen"
+              ],
+              "UnixMsList": [
+                  1762634098098
+              ],
+              "TypeName": "machine.states",
+              "Version": "000"
+          }],
+      "FsmReportList": [],
+      "MessageCreatedMs": 1762634100033,
+      "Id": "7499defd-c54a-4061-a37a-17f3c84f88a2",
+      "TypeName": "report",
+      "Version": "003"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "003"
+
+  extended_description: >
+    Reports provide the durable historical record of SCADA telemetry.
+    They differ from snapshots in that they preserve all timestamped
+    readings within a fixed interval rather than only the most recent
+    value.
+
+    Reports are optimized for replay, auditing, debugging, and
+    analytics. Snapshots are optimized for real-time visualization.

@@ -1,0 +1,179 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/sim.pico.btu.meter.component.gt/000"
+
+title: "sim.pico.btu.meter.component.gt"
+type: object
+description: >
+  A simulated pico BTU-meter component: mirrors pico.btu.meter.component.gt
+  (SimulatesTypeName / SimulatesVersion) so a simulated layout drives the real
+  scada BTU-meter code path with simulated hardware input.
+
+properties:
+
+  ComponentId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+
+  DeviceType:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The device category this component is built on, an open
+      pascal-case string.
+
+
+  SerialNumber:
+    type: string
+
+  FlowChannelName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+
+  HotChannelName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+
+  ColdChannelName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+
+  CtChannelName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Channel name for the CT voltage reading, when ReadCtVoltage is true.
+
+  ReadCtVoltage:
+    type: boolean
+
+  SendHz:
+    type: boolean
+
+  FlowMeterType:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The flow meter, as an open `pascal.case` device-type string (a `gw1.device.type`
+      value, e.g. `SaierFlowSensor` / `GridworksPicoFlowHall` / `GridworksPicoFlowReed`).
+
+  HzCalcMethod:
+    $ref: "https://schemas.electricity.works/enums/hz.calc.method/001"
+
+  TempCalcMethod:
+    $ref: "https://schemas.electricity.works/enums/temp.calc.method/000"
+
+  GpmFromHzMethod:
+    $ref: "https://schemas.electricity.works/enums/gpm.from.hz.method/000"
+
+  ThermistorBeta:
+    type: integer
+
+  GallonsPerPulse:
+    $ref: "https://schemas.electricity.works/formats/positive.float"
+
+  AsyncCaptureDeltaGpmX100:
+    type: integer
+
+  AsyncCaptureDeltaCelsiusX100:
+    type: integer
+
+  AsyncCaptureDeltaCtVoltsX100:
+    type: integer
+    description: >
+      Async-capture threshold for the CT voltage channel; present when
+      ReadCtVoltage is true.
+
+  DisplayName:
+    type: string
+
+  HwUid:
+    type: string
+
+  SimLifeS:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Seconds the simulated pico posts readings after each boot before
+      it goes silent. Absent means it never dies on a schedule.
+
+  SimRebootS:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Seconds after the vdc relay closes, following an open, before the
+      simulated pico boots and posts again. Absent means a dead pico
+      stays dead.
+
+  SimulatesTypeName:
+    const: "pico.btu.meter.component.gt"
+
+  SimulatesVersion:
+    const: "000"
+
+  TypeName:
+    const: "sim.pico.btu.meter.component.gt"
+
+  Version:
+    const: "000"
+
+required:
+  - ComponentId
+  - DeviceType
+  - SerialNumber
+  - FlowChannelName
+  - HotChannelName
+  - ColdChannelName
+  - ReadCtVoltage
+  - SendHz
+  - FlowMeterType
+  - HzCalcMethod
+  - TempCalcMethod
+  - GpmFromHzMethod
+  - ThermistorBeta
+  - GallonsPerPulse
+  - AsyncCaptureDeltaGpmX100
+  - AsyncCaptureDeltaCelsiusX100
+  - SimulatesTypeName
+  - SimulatesVersion
+  - TypeName
+  - Version
+
+additionalProperties: true
+
+examples:
+  - |
+    {
+      "ComponentId": "7fc24a16-37e6-442b-83cb-9b5be5a3cce9",
+      "DeviceType": "Gw101",
+      "SerialNumber": "example",
+      "FlowChannelName": "scada",
+      "HotChannelName": "scada",
+      "ColdChannelName": "scada",
+      "ReadCtVoltage": false,
+      "SendHz": false,
+      "FlowMeterType": "MakeModel",
+      "HzCalcMethod": "BasicExpWeightedAvg",
+      "TempCalcMethod": "SimpleBeta",
+      "GpmFromHzMethod": "Constant",
+      "ThermistorBeta": 0,
+      "GallonsPerPulse": 1,
+      "AsyncCaptureDeltaGpmX100": 0,
+      "AsyncCaptureDeltaCelsiusX100": 0,
+      "SimulatesTypeName": "pico.btu.meter.component.gt",
+      "SimulatesVersion": "000",
+      "TypeName": "sim.pico.btu.meter.component.gt",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "ReadCtVoltageIffCtVoltsDelta"
+      statement: >
+        ReadCtVoltage SHALL be true iff AsyncCaptureDeltaCtVoltsX100 is present.
+    - number: 2
+      name: "ReadCtVoltageIffCtChannelName"
+      statement: >
+        ReadCtVoltage SHALL be true iff CtChannelName is present.
+
+  extended_description: >
+    The component-faithful facet of simulation: the field set of
+    `pico.btu.meter.component.gt` plus the liveness script (SimLifeS,
+    SimRebootS), so a simulated layout drives the real scada pico code path with
+    simulated hardware input. DeviceType values come from the `gw1.device.type`
+    vocabulary; the hardware layout enforces membership.
+
+    Simulates `pico.btu.meter.component.gt`. Kin: `sim.pico.tank.module.component.gt`.

@@ -1,0 +1,35 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/g.node.status/000"
+
+title: "g.node.status"
+type: string
+description: >
+  Lifecycle status of a Grid Node (GNode) within coordinated systems.
+
+enum:
+  - "Pending"
+  - "Active"
+  - "Suspended"
+  - "PermanentlyDeactivated"
+
+default: "Pending"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+
+  value_descriptions:
+    "Pending": >
+      The GNode has been created but is not yet authorized to participate
+      in system coordination.
+
+    "Active": >
+      The GNode is authorized to participate in system coordination.
+
+    "Suspended": >
+      The GNode is temporarily disabled. It retains identity but does not
+      participate in active coordination. A Suspended GNode MAY transition back to Active.
+
+    "PermanentlyDeactivated": >
+      The GNode has been permanently retired and does not participate
+      in active coordination. It may not change back to another state.

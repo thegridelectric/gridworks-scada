@@ -1,0 +1,104 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/heating.curve/000"
+
+title: "heating.curve"
+type: object
+description: >
+  A house's thermal / required-source-water-temperature model: the quadratic
+  heat-loss coefficients (alpha + beta * OatF + gamma * WindSpeedMph, carried
+  as scaled integers) plus the two (power, source water temperature) anchor
+  points — an intermediate operating point and the design-day point with its
+  design delta-T — and the maximum entering water temperature the emitters
+  tolerate.
+
+properties:
+
+  AlphaTimes10:
+    type: integer
+    description: >
+      Ten times the constant term of the heat-load model, in kW.
+
+  BetaTimes100:
+    type: integer
+    description: >
+      One hundred times the outdoor-air coefficient of the heat-load model,
+      in kW per degree F.
+
+  GammaEx6:
+    type: integer
+    description: >
+      One million times the wind-speed coefficient of the heat-load model,
+      in kW per mph.
+
+  IntermediatePowerKw:
+    $ref: "https://schemas.electricity.works/formats/positive.float"
+    description: >
+      Heat power, in kW, at the intermediate anchor point.
+
+  IntermediateRswtF:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Required source water temperature, in degrees F, at the intermediate
+      anchor point.
+
+  DdPowerKw:
+    $ref: "https://schemas.electricity.works/formats/positive.float"
+    description: >
+      Heat power, in kW, at the design-day anchor point.
+
+  DdRswtF:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Required source water temperature, in degrees F, on the design day.
+
+  DdDeltaTF:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Design delta-T, in degrees F, between source and return water on the
+      design day.
+
+  MaxEwtF:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      The maximum entering water temperature, in degrees F, the distribution
+      system tolerates.
+
+  TypeName:
+    const: "heating.curve"
+
+  Version:
+    const: "000"
+
+required:
+  - AlphaTimes10
+  - BetaTimes100
+  - GammaEx6
+  - IntermediatePowerKw
+  - IntermediateRswtF
+  - DdPowerKw
+  - DdRswtF
+  - DdDeltaTF
+  - MaxEwtF
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "AlphaTimes10": 55,
+      "BetaTimes100": -10,
+      "GammaEx6": 0,
+      "IntermediatePowerKw": 1.5,
+      "IntermediateRswtF": 100,
+      "DdPowerKw": 5.5,
+      "DdRswtF": 150,
+      "DdDeltaTF": 20,
+      "MaxEwtF": 170,
+      "TypeName": "heating.curve",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

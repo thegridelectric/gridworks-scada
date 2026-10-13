@@ -1,0 +1,31 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/formats/iana.timezone.str"
+
+title: "iana.timezone.str"
+description: |
+  Shape of an IANA time zone database ("tz database") identifier: one to
+  three slash-separated segments of letters, digits, underscores, plus, or
+  minus (e.g. America/New_York, America/Argentina/Buenos_Aires, Etc/GMT+5,
+  UTC). Validates shape only, not membership in the current tz database
+  (which changes over time and is not itself Sema vocabulary); an
+  implementation MAY additionally check the value against its runtime's
+  own tz database.
+
+type: string
+pattern: "^[A-Za-z_]+(/[A-Za-z0-9_+-]+){0,2}$"
+
+examples:
+  - "America/New_York"
+  - "America/Argentina/Buenos_Aires"
+  - "Etc/GMT+5"
+  - "UTC"
+
+counterexamples:
+  - ""
+  - "New York"
+  - "America/New York"
+  - "America//New_York"
+  - "America/New_York/Extra/Segment"
+
+x-gridworks:
+  owner: "gridworks-energy"

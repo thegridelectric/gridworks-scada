@@ -1,0 +1,7 @@
+{
+  "TypeName": "ads.channel.config",
+  "Version": "000",
+  "ChannelName": "scada",
+  "TerminalBlockIdx": 1,
+  "ThermistorDeviceType": "MakeModel"
+}

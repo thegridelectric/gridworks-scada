@@ -1,0 +1,37 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw1.simple.sim.layout/000"
+
+title: "gw1.simple.sim.layout"
+type: object
+description: >
+  A complete, self-contained configuration and topology snapshot for a simple
+  simulated hydronic space heating system — the simulated-test-environment
+  layout (1 storage tank, 360-gallon store).
+
+  Minimal baseline stub — carries only TypeName and Version for now. Built up
+  bit by bit toward the simulated plant's needs. Mutable in place while
+  unpublished.
+
+properties:
+
+  TypeName:
+    const: "gw1.simple.sim.layout"
+
+  Version:
+    const: "000"
+
+required:
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "TypeName": "gw1.simple.sim.layout",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

@@ -1,0 +1,67 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw.tou.window/000"
+
+title: "gw.tou.window"
+type: object
+description: >
+  One recurring time-of-use window: a same-day wall-clock interval bound to
+  an explicit set of weekdays. A schedule is a list of these; a day with no
+  window listing it is unconstrained by that schedule.
+
+properties:
+  Start:
+    $ref: "https://schemas.electricity.works/formats/hh.mm"
+    description: >
+      The wall-clock start of the window, inclusive.
+
+  End:
+    $ref: "https://schemas.electricity.works/formats/hh.mm"
+    description: >
+      The wall-clock end of the window, exclusive.
+
+  Days:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/enums/day.of.week/000"
+    description: >
+      The days of the week on which this window recurs.
+
+  TypeName:
+    const: "gw.tou.window"
+
+  Version:
+    const: "000"
+
+required:
+  - Start
+  - End
+  - Days
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "Start": "07:00",
+      "End": "12:00",
+      "Days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+      "TypeName": "gw.tou.window",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "WindowOrder"
+      statement: >
+        Start SHALL be strictly earlier than End. A window SHALL NOT wrap
+        midnight; a schedule needing one expresses it as two windows.
+    - number: 2
+      name: "DaysNonEmptyUnique"
+      statement: >
+        a. Days SHALL be non-empty.
+        b. Days SHALL NOT contain duplicate values.

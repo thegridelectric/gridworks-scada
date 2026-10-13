@@ -1,0 +1,85 @@
+{
+  "TypeName": "report.event",
+  "Version": "004",
+  "MessageId": "ad65b1f0-7423-4a49-bf18-d2139dbe87f0",
+  "TimeCreatedMs": 1775218866988,
+  "Src": "hw1.isone.me.versant.keene.spruce.scada",
+  "Report": {
+    "TypeName": "report",
+    "Version": "003",
+    "FromGNodeAlias": "hw1.isone.me.versant.keene.spruce.scada",
+    "FromGNodeInstanceId": "7f56f328-54bd-49eb-b90e-c3ac15501ff1",
+    "AboutGNodeAlias": "d1.isone.me.versant.keene.spruce",
+    "SlotStartUnixS": 1775218800,
+    "SlotDurationS": 300,
+    "ChannelReadingList": [
+      {
+        "TypeName": "channel.readings",
+        "Version": "002",
+        "ChannelName": "buffer-depth1-device",
+        "ValueList": [
+          74470,
+          74470,
+          74470,
+          74470,
+          74470
+        ],
+        "ScadaReadTimeUnixMsList": [
+          1774956603045,
+          1774956663058,
+          1774956723082,
+          1774956783160,
+          1774956843065
+        ]
+      },
+      {
+        "TypeName": "channel.readings",
+        "Version": "002",
+        "ChannelName": "buffer-depth2-device",
+        "ValueList": [
+          74420,
+          74420,
+          74420,
+          74400,
+          74390
+        ],
+        "ScadaReadTimeUnixMsList": [
+          1774956603045,
+          1774956663058,
+          1774956723082,
+          1774956783160,
+          1774956843065
+        ]
+      }
+    ],
+    "StateList": [
+      {
+        "TypeName": "machine.states",
+        "Version": "000",
+        "MachineHandle": "auto.pico-cycler.vdc-relay-gpio-23",
+        "StateEnum": "relay.closed.or.open",
+        "StateList": [
+          "RelayClosed"
+        ],
+        "UnixMsList": [
+          1774956898001
+        ]
+      },
+      {
+        "TypeName": "machine.states",
+        "Version": "000",
+        "MachineHandle": "auto.pico-cycler",
+        "StateEnum": "pico.cycler.state",
+        "StateList": [
+          "PicosLive"
+        ],
+        "UnixMsList": [
+          1774956898003
+        ]
+      }
+    ],
+    "FsmReportList": [],
+    "MessageCreatedMs": 1775218866988,
+    "Id": "ad65b1f0-7423-4a49-bf18-d2139dbe87f0"
+  }
+}

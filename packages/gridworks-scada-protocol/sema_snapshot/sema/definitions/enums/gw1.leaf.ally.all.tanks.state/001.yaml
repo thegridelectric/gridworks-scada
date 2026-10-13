@@ -1,0 +1,25 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gw1.leaf.ally.all.tanks.state/001"
+
+title: "gw1.leaf.ally.all.tanks.state"
+type: "string"
+description: >
+  LTN sub-state of a GridWorks spaceheat system while using storage tanks.
+
+enum:
+  - "Dormant"
+  - "Initializing"
+  - "HpOnStoreOff"
+  - "HpOnStoreCharge"
+  - "HpOffStoreOff"
+  - "HpOffStoreDischarge"
+  - "HpOffNonElectricBackup"
+
+default: "Dormant"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "001"
+  value_descriptions:   
+  extended_description:
+    

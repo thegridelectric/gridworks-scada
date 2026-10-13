@@ -1,0 +1,46 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/spruce.hack.hp.state/000"
+
+title: "spruce.hack.hp.state"
+type: "string"
+
+description: >
+  The heat pump's running state as the scada senses it from outdoor-unit
+  power, on spruce's starter-script thresholds: on above one watt line,
+  off below a lower one, held in between.
+
+enum:
+  - "Unknown"
+  - "HpDetectedOn"
+  - "HpDetectedOff"
+
+default: "Unknown"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+
+  value_descriptions:
+    "Unknown": >
+      No fresh power read, at boot or after power goes stale; a consumer
+      runs the secondary pump. The safe value and the decode fallback.
+
+    "HpDetectedOn": >
+      Power crossed above the on line.
+
+    "HpDetectedOff": >
+      Power crossed below the off line.
+
+  extended_description: >
+    Stands in for the heat-pump state machine and repeats spruce's
+    starter-script loop. Running is sensed, not assumed: the Samsung
+    AE055FCYDCG has run on its own programmed schedule and not listened
+    to the scada, so power metering showed when it turned on, and a
+    sensed start says more than an assumed response. A first, rough step
+    in driving the secondary pump to keep the buffer stratified. The on
+    line sits above the unit's unannounced, undispatched draws: a first
+    line at 300 W was crossed the very next night, the Samsung drawing
+    about 350 W for a minute every five minutes for hours, and four
+    times that night it ran its primary pump about seven minutes with no
+    lift. The watt lines are held by heat-pump device type in the code
+    that runs the machine.

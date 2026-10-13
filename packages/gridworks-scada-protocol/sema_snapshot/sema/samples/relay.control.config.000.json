@@ -1,0 +1,13 @@
+{
+  "TypeName": "relay.control.config",
+  "Version": "000",
+  "ChannelName": "zone1-down-failsafe-relay17",
+  "ActorName": "relay17",
+  "WiringConfig": "NormallyClosed",
+  "EventType": "change.relay.state",
+  "DeEnergizingEvent": "CloseRelay",
+  "EnergizingEvent": "OpenRelay",
+  "StateType": "relay.closed.or.open",
+  "DeEnergizedState": "RelayClosed",
+  "EnergizedState": "RelayOpen"
+}

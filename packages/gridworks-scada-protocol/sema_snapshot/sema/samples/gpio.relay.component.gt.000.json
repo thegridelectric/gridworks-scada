@@ -1,0 +1,22 @@
+{
+  "TypeName": "gpio.relay.component.gt",
+  "Version": "000",
+  "ComponentId": "1c9f2b7e-4a3d-4e21-9c88-2b1a6f0e3d55",
+  "BoardComponentId": "9b1c5e2a-77d4-4f6e-8c3a-5f2e9d101b44",
+  "GpioName": "OilBoilerRelay",
+  "ConfigList": [
+    {
+      "TypeName": "relay.control.config",
+      "Version": "000",
+      "ChannelName": "oil-boiler-relay",
+      "ActorName": "relay-oil-boiler",
+      "WiringConfig": "NormallyClosed",
+      "EventType": "change.relay.state",
+      "DeEnergizingEvent": "CloseRelay",
+      "EnergizingEvent": "OpenRelay",
+      "StateType": "relay.closed.or.open",
+      "DeEnergizedState": "RelayClosed",
+      "EnergizedState": "RelayOpen"
+    }
+  ]
+}

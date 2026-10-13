@@ -1,0 +1,89 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/scada.params/005"
+
+title: "scada.params"
+type: object
+description: >
+  Message used to read or change the HA1 control parameters held by a SCADA
+  node, exchanged between a LeafTransactiveNode and a SCADA node. A request
+  carries the proposed NewParams; the SCADA node's reply echoes the same
+  MessageId and reports the parameters in effect before and after the change.
+
+properties:
+
+  FromGNodeAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      GNode alias of the node that sent this message.
+
+  FromName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      SpaceheatNode name of the sending actor within its GNode.
+
+  ToName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      SpaceheatNode name of the intended recipient actor.
+
+  UnixTimeMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+    description: >
+      Time at which this message was created.
+
+  MessageId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      Identifier correlating a request with its reply. The SCADA node's
+      response carries the MessageId of the request it answers.
+
+  NewParams:
+    $ref: "https://schemas.electricity.works/types/ha1.params/006"
+    description: >
+      HA1 parameters being proposed or, in a reply, the parameters now in
+      effect on the SCADA node.
+
+  OldParams:
+    $ref: "https://schemas.electricity.works/types/ha1.params/006"
+    description: >
+      HA1 parameters that were in effect on the SCADA node before this
+      exchange. Populated by the SCADA node in its reply.
+
+  TypeName:
+    const: "scada.params"
+
+  Version:
+    const: "005"
+
+required:
+  - FromGNodeAlias
+  - FromName
+  - ToName
+  - UnixTimeMs
+  - MessageId
+  - TypeName
+  - Version
+
+additionalProperties: true
+
+x-gridworks:
+  owner: "gridworks-energy"
+  extended_description: >
+    HA1 is the home-heating control algorithm run by a GridWorks SCADA node.
+    scada.params is the boundary message for inspecting and updating the
+    algorithm's tuning parameters without redeploying the SCADA node.
+
+    The exchange is request/reply. A LeafTransactiveNode sends a scada.params
+    with NewParams set to the parameters it wants applied. The SCADA node
+    adopts them, then replies with a scada.params that echoes the request's
+    MessageId, sets OldParams to the values it had been running, and sets
+    NewParams to the values now in effect. A request with NewParams absent
+    reads the current parameters without changing them. NewParams and
+    OldParams are optional because not every message in the exchange carries
+    both.
+
+    Version 005 differs from version 004 only in the referenced ha1.params
+    version: version 004 carried ha1.params version 004 or 005, while version
+    005 carries ha1.params version 006. The commit that bumped scada.params to
+    005 is the same commit that introduced ha1.params version 006, so
+    scada.params version 005 has only ever carried ha1.params version 006.

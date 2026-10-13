@@ -1,0 +1,38 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/sieg.valve.state/000"
+
+title: "sieg.valve.state"
+type: "string"
+description: >
+  Where the Siegenthaler valve is and whether it is moving, as sieg-loop
+  reports it through single.machine.state. The valve is a slow motor
+  between two stops: at send the heat pump's whole flow leaves the loop
+  for the tank, at keep it all stays in the loop.
+
+enum:
+  - "FullySend"
+  - "FullyKeep"
+  - "KeepingMore"
+  - "KeepingLess"
+  - "SteadyBlend"
+
+default: "FullySend"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "FullySend": >
+      At rest on the send stop.
+
+    "FullyKeep": >
+      At rest on the keep stop.
+
+    "KeepingMore": >
+      The motor is running toward keep.
+
+    "KeepingLess": >
+      The motor is running toward send.
+
+    "SteadyBlend": >
+      At rest between the stops.

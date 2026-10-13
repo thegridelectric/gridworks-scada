@@ -1,0 +1,23 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gpio.sense.mode/000"
+
+title: "gpio.sense.mode"
+type: "string"
+description: >
+  How a GPIO sensor input is read — by periodic polling or by hardware
+  edge detection.
+
+enum:
+  - "Polling"
+  - "EdgeDetect"
+
+default: "Polling"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "Polling": >
+      Read the pin by periodic polling at the configured poll period.
+    "EdgeDetect": >
+      Read the pin via hardware edge-detection (interrupt on level change).

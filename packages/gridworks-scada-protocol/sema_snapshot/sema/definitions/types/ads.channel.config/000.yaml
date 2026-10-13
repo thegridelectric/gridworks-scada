@@ -1,0 +1,66 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/ads.channel.config/000"
+
+title: "ads.channel.config"
+type: object
+description: >
+  Channel configuration for one thermistor input read through an ADS111x ADC terminal block.
+
+  This type spells out the channel name together with the ADS terminal block index, the
+  thermistor device type, and an optional data-processing method. It carries only the
+  per-channel hardware binding; capture/report tuning lives in operational-params
+  (capture.tuning), not in the static layout.
+
+properties:
+  ChannelName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+
+  TerminalBlockIdx:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Which ADS terminal block this channel reads.
+
+  ThermistorDeviceType:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The thermistor device, an open `pascal.case` string (a `gw1.device.type` value,
+      e.g. `TewaThermistor` or `Amphenol10kThermistor`). The hardware layout enforces
+      membership in `gw1.device.type`.
+
+  DataProcessingMethod:
+    $ref: "https://schemas.electricity.works/enums/thermistor.data.method/000"
+    description: >
+      Optional method for converting raw voltage to temperature.
+
+  DataProcessingDescription:
+    type: string
+    description: >
+      Optional free-text note about the data-processing configuration.
+
+  TypeName:
+    const: "ads.channel.config"
+
+  Version:
+    const: "000"
+
+required:
+  - ChannelName
+  - TerminalBlockIdx
+  - ThermistorDeviceType
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ChannelName": "scada",
+      "TerminalBlockIdx": 1,
+      "ThermistorDeviceType": "MakeModel",
+      "TypeName": "ads.channel.config",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

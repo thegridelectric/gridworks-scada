@@ -1,0 +1,30 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/change.valve.state/000"
+
+title: "change.valve.state"
+type: "string"
+description: >
+  Canonical FSM events for transitioning a two-position valve between open and
+  closed. These events correspond to control actions applied to the valve.
+
+enum:
+  - "OpenValve"
+  - "CloseValve"
+
+default: OpenValve
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+
+  value_descriptions:
+    OpenValve: "Command to open the valve (permit flow)."
+    CloseValve: "Command to close the valve (block flow)."
+
+  extended_description: >
+    The event half of the two-position-valve vocabulary pair; the corresponding
+    state enum is valve.open.or.closed. Events speak the valve's position, not
+    the energization of whatever actuator drives it: how OpenValve maps onto
+    energizing or de-energizing a particular actuator is deployment wiring
+    data, carried by the actuator's configuration (e.g. a
+    relay.control.config's EnergizingEvent), never by this vocabulary.

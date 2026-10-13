@@ -1,0 +1,12 @@
+{
+  "TypeName": "fsm.atomic.report",
+  "Version": "001",
+  "MachineHandle": "auto.pico-cycler.vdc-relay-gpio-23",
+  "StateEnum": "relay.closed.or.open",
+  "ReportType": "Action",
+  "Action": {
+    "Value": 1
+  },
+  "UnixTimeMs": 1774956898001,
+  "TriggerId": "2f18a5a0-cdf9-4782-95a9-5fbb44d3512f"
+}

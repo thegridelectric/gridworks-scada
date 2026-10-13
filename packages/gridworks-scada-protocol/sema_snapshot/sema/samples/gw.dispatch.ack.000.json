@@ -1,0 +1,8 @@
+{
+  "TypeName": "gw.dispatch.ack",
+  "Version": "000",
+  "FromHandle": "admin.pico-cycler",
+  "ToHandle": "admin",
+  "TriggerId": "1c0d8f5e-3f4a-4b3c-9d2e-7a6b5c4d3e2f",
+  "UnixTimeMs": 1757282100250
+}

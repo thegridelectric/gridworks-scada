@@ -1,8 +1,8 @@
 """Tests new.command.tree type, version 003"""
 
-import pytest
 
 from gwsproto.named_types import NewCommandTree
+from tests.named_types.sema_oracle import assert_refused
 
 
 def node(name: str, handle: str | None, actor_class: str = "NoActor") -> dict:
@@ -82,8 +82,7 @@ def test_new_command_tree_axiom_1() -> None:
             node("vdc-relay", "auto.pico-cycler.vdc-relay", "Relay"),
         ]
     )
-    with pytest.raises(ValueError, match="Axiom 1"):
-        NewCommandTree.model_validate(orphan)
+    assert_refused(NewCommandTree, orphan, match="Axiom 1")
 
 
 def test_new_command_tree_axiom_1_handle_absent_root() -> None:
@@ -93,8 +92,7 @@ def test_new_command_tree_axiom_1_handle_absent_root() -> None:
     NewCommandTree.model_validate(d)
     # ... but a Handle-absent node anchors only under its own Name.
     d = tree([node("ltn", None), node("la", "ltn.x.la", "LeafAlly")])
-    with pytest.raises(ValueError, match="Axiom 1"):
-        NewCommandTree.model_validate(d)
+    assert_refused(NewCommandTree, d, match="Axiom 1")
 
 
 def test_new_command_tree_axiom_2_a_actuator_not_leaf() -> None:
@@ -108,15 +106,13 @@ def test_new_command_tree_axiom_2_a_actuator_not_leaf() -> None:
             node("x", "auto.five-v-boss.pico-cycler.vdc-relay.x", "Relay"),
         ]
     )
-    with pytest.raises(ValueError, match="Axiom 2"):
-        NewCommandTree.model_validate(d)
+    assert_refused(NewCommandTree, d, match="Axiom 2")
 
 
 def test_new_command_tree_axiom_2_a_actuator_undotted() -> None:
     """An actuator with a bare Name for a handle has no boss."""
     d = tree([node("auto", "auto"), node("vdc-relay", None, "Relay")])
-    with pytest.raises(ValueError, match="Axiom 2"):
-        NewCommandTree.model_validate(d)
+    assert_refused(NewCommandTree, d, match="Axiom 2")
 
 
 def test_new_command_tree_axiom_2_b_no_actor_leaf() -> None:
@@ -137,8 +133,7 @@ def test_new_command_tree_axiom_2_b_no_actor_leaf() -> None:
             node("hp-odu", "auto.lc.hp-boss.hp-odu"),
         ]
     )
-    with pytest.raises(ValueError, match="Axiom 2"):
-        NewCommandTree.model_validate(d)
+    assert_refused(NewCommandTree, d, match="Axiom 2")
 
 
 def test_new_command_tree_axiom_2_dormant_command_leaf_ok() -> None:

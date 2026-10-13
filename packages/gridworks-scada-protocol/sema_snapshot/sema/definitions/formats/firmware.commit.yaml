@@ -1,0 +1,26 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/formats/firmware.commit"
+
+title: "firmware.commit"
+description: |
+  The gridworks-pico commit a board's firmware was generated from: the
+  full 40-character lowercase git commit hash, suffixed `-dirty` when the
+  generator ran against a modified working tree. The literal `unstamped`
+  marks firmware that did not come through the provisioner generator.
+
+type: string
+pattern: "^([0-9a-f]{40}(-dirty)?|unstamped)$"
+
+examples:
+  - "9f4c1d2e7a8b0c3d5e6f70819a2b3c4d5e6f7081"
+  - "9f4c1d2e7a8b0c3d5e6f70819a2b3c4d5e6f7081-dirty"
+  - "unstamped"
+
+counterexamples:
+  - "9f4c1d2"                                          # short hash
+  - "9F4C1D2E7A8B0C3D5E6F70819A2B3C4D5E6F7081"         # uppercase hex
+  - "unstamped-dirty"
+  - ""
+
+x-gridworks:
+  owner: "gridworks-energy"

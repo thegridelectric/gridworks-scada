@@ -1,0 +1,60 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/sim.sensor.component.gt/000"
+
+title: "sim.sensor.component.gt"
+type: object
+description: >
+  A simulated sensor component — the component a SimSensorActor uses in a simulated
+  hardware layout. Structurally the generic component (id, DeviceType, ConfigList), but
+  a distinct `sim.*` type so a simulated layout is visibly simulated by construction:
+  simulated things MUST use `sim.*` component types rather than reusing real ones.
+  Flat — every field spelled out here.
+
+properties:
+
+  ComponentId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+
+  DeviceType:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The device category this component is built on, an open
+      pascal-case string.
+
+  DisplayName:
+    type: string
+
+  HwUid:
+    type: string
+
+  TypeName:
+    const: "sim.sensor.component.gt"
+
+  Version:
+    const: "000"
+
+required:
+  - ComponentId
+  - DeviceType
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ComponentId": "933106d7-d6d0-4044-8766-627fd8ecb71b",
+      "DeviceType": "SimSensor",
+      "TypeName": "sim.sensor.component.gt",
+      "Version": "000"
+    }
+x-gridworks:
+  owner: "gridworks-energy"
+  extended_description: >
+    The `.gt` suffix declares that this type is coupled bijectively with a table in
+    a canonical seed database (here, the terminalasset registry): the table's rows are
+    instances of this type. Sema is the authority over what a row means; the seed
+    table is the authority over which instances are currently asserted.
+
+    DeviceType values come from the `gw1.sim.device.type` vocabulary; the hardware layout enforces membership.

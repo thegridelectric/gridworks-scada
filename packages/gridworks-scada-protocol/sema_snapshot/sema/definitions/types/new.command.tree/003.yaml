@@ -1,0 +1,135 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/new.command.tree/003"
+
+title: "new.command.tree"
+type: object
+description: >
+  Full set of SpaceheatNodes describing a SCADA node's current actor command
+  hierarchy, sent by the SCADA node to its LeafTransactiveNode. Each node
+  carries the handle that locates it in the command tree; receiving a
+  new.command.tree replaces the recipient's prior view of that hierarchy in
+  its entirety.
+
+  An ShNode whose Handle is absent (null or missing) is interpreted as having
+  a handle equal to its Name. This convention lets root nodes of the command
+  tree omit Handle on the wire while still participating in prefix-closure of
+  the hierarchy.
+
+properties:
+
+  FromGNodeAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      GNode alias of the SCADA node whose command hierarchy this message
+      describes.
+
+  ShNodes:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/spaceheat.node.gt/303"
+    description: >
+      The complete set of SpaceheatNodes that make up the command tree. The
+      handle of each node encodes its position in the hierarchy: a node's
+      boss is found by dropping the last segment of its handle.
+
+  UnixMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+    description: >
+      Time at which the SCADA node generated this command tree.
+
+  TypeName:
+    const: "new.command.tree"
+
+  Version:
+    const: "003"
+
+required:
+  - FromGNodeAlias
+  - ShNodes
+  - UnixMs
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "FromGNodeAlias": "hw1.isone.me.versant.keene.spruce.scada",
+      "ShNodes": [
+        {"Name": "s", "ActorClass": "PrimaryScada", "ShNodeId": "8f3c27de-6a41-4bb0-9df2-51b7ac94e203", "TypeName": "spaceheat.node.gt", "Version": "303"}
+      ],
+      "UnixMs": 1757366400000,
+      "TypeName": "new.command.tree",
+      "Version": "003"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "PrefixClosedHandles"
+      statement: >
+        Let the effective handle of an ShNode be its Handle if present,
+        otherwise its Name. The set of effective handles SHALL be prefix-closed:
+        for every ShNode in ShNodes, each dot-separated prefix of its effective
+        handle SHALL also be the effective handle of some ShNode in ShNodes.
+    - number: 2
+      name: "ActuatorLeaves"
+      statement: >
+        Let the effective handle of an ShNode be its Handle if present, otherwise
+        its Name. A leaf is an ShNode whose effective handle contains a dot and is
+        the parent prefix of no other effective handle. An actuator is an ShNode
+        whose ActorClass is "Relay", "ZeroTenOutputer" or "HpTwin". A command node
+        is an ShNode whose ActorClass is "LocalControl", "LeafAlly", "FiveVBoss",
+        "PicoCycler", "HpBoss" or "SiegLoop", or whose ActorClass is "NoActor" and whose
+        effective handle's parent prefix is the effective handle of an ShNode with
+        ActorClass "LocalControl".
+        a. Every actuator SHALL have a dotted effective handle and SHALL be a leaf.
+        b. Every leaf SHALL be an actuator or a command node.
+
+  extended_description: >
+    Handle encodes the live command-authority chain. For an ShNode whose Handle
+    is "admin.hp-boss.relay6", the prefixes "admin.hp-boss" and "admin" name
+    its current boss and the boss above that. A node's current boss is the
+    unique ShNode whose effective handle equals the parent prefix; axiom 1's
+    prefix-closure guarantees that boss is present in the snapshot.
+
+    This authority chain is enforced at runtime by bossable actors. A relay,
+    for example, accepts an FsmEvent only when the message's FromHandle matches
+    the sender's current Handle AND its ToHandle matches the receiver's
+    current Handle; commands that fail either check are logged as a bad_boss
+    Glitch and ignored. Handles are reassigned dynamically as control passes
+    between bosses -- the SCADA hands control between automatic dispatch
+    ("auto.*") and administrative override ("admin.*") by rewriting handles
+    and emitting a fresh new.command.tree -- so a given physical actuator may
+    be reachable under different paths at different times.
+
+    An ShNode with Handle absent has effective handle equal to its Name, but
+    this enables participation only as the top of a command tree: a node
+    whose effective handle is a bare Name can serve as the root anchor for
+    children whose Handle starts with that Name (e.g., a node named "ltn"
+    anchors children whose Handle is "ltn.la"). A Handle-absent node that is
+    not such a root does not participate in the command-authority chain at
+    all; this is the typical case for passive sensor nodes, the SCADA
+    process-tree root, and actors whose hierarchical state is currently
+    dormant.
+
+    Together with the hierarchical state machine that drives the SCADA, this
+    command tree pattern makes after-the-fact debugging more tractable: any action
+     -- or refused action -- can be matched against the command tree in force at
+    that moment to determine who was authorized to command whom.
+
+    Axiom 2 is the wire-checkable half of the command-forest invariant: the
+    interior of every published tree is command nodes and its leaves are the
+    things they command. A leaf that is a command node rather than an actuator
+    (a LocalControl state waypoint such as "n", or hp-boss with no commandable
+    heat pump declared) is dormant: its handle stays in the tree, inert, and
+    the actor behind it performs no actuation and issues no commands. The tree
+    carries no state, so dormancy is enforced in scada code and asserted by
+    its tests, not by this word.
+
+    This version accepts ShNodes at spaceheat.node.gt:303 only. Earlier versions
+    accepted a oneOf of several node versions in one payload; that was an early
+    lenience accommodating back-dated production traffic, not a pattern to copy
+    (see the v000 note).

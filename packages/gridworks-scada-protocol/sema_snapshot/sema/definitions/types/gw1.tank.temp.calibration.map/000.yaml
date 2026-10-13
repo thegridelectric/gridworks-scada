@@ -1,0 +1,61 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw1.tank.temp.calibration.map/000"
+
+title: "gw1.tank.temp.calibration.map"
+type: object
+description: >
+  Buffer and per-tank calibration map for converting raw probe readings into
+  calibrated temperatures.
+
+properties:
+  Buffer:
+    $ref: "https://schemas.electricity.works/types/gw1.tank.temp.calibration/000"
+
+  Tank:
+    type: object
+    propertyNames:
+      $ref: "https://schemas.electricity.works/formats/positive.int.as.str"
+    additionalProperties:
+      $ref: "https://schemas.electricity.works/types/gw1.tank.temp.calibration/000"
+    description: >
+      Typed map of per-tank calibrations keyed by the string form of a
+      positive tank index ("1", "2", ...). See `sema/spec/authoring/types.md`
+      §Typed Maps.
+
+  TypeName:
+    const: "gw1.tank.temp.calibration.map"
+
+  Version:
+    const: "000"
+
+required:
+  - Buffer
+  - Tank
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+examples:
+  - |
+    {
+      "Buffer": {
+        "Depth1M": 1.069, "Depth1B": -4.303,
+        "Depth2M": 1.0, "Depth2B": 0.0,
+        "Depth3M": 1.069, "Depth3B": -4.303,
+        "TypeName": "gw1.tank.temp.calibration", "Version": "000"
+      },
+      "Tank": {
+        "1": {
+          "Depth1M": 1.045, "Depth1B": -5.427,
+          "Depth2M": 1.0, "Depth2B": 0.0,
+          "Depth3M": 1.045, "Depth3B": -5.427,
+          "TypeName": "gw1.tank.temp.calibration", "Version": "000"
+        }
+      },
+      "TypeName": "gw1.tank.temp.calibration.map",
+      "Version": "000"
+    }

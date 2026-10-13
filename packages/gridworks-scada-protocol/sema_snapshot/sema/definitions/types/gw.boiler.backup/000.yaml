@@ -1,0 +1,62 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw.boiler.backup/000"
+
+title: "gw.boiler.backup"
+type: object
+description: >
+  A boiler that heats the house as backup to the heat pump, held by its
+  aquastat. The fuel does not change the control: the local control hands
+  the heat pump to the aquastat and the aquastat to the boiler through two
+  relays.
+
+properties:
+  FailsafeRelayName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      The relay that gives control of the heat pump to the scada when
+      energized and to the aquastat when de-energized.
+
+  AquastatCtrlRelayName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      The relay that gives control of the aquastat to the scada when
+      energized and to the boiler when de-energized.
+
+  InService:
+    type: boolean
+    description: >
+      Whether the boiler can be run as backup. False for a boiler that is
+      installed and not wired to its relays, or out of service.
+
+  TypeName:
+    const: "gw.boiler.backup"
+
+  Version:
+    const: "000"
+
+required:
+  - FailsafeRelayName
+  - AquastatCtrlRelayName
+  - InService
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "FailsafeRelayName": "hp-failsafe-relay",
+      "AquastatCtrlRelayName": "aquastat-ctrl-relay",
+      "InService": true,
+      "TypeName": "gw.boiler.backup",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "DistinctRelays"
+      statement: >
+        FailsafeRelayName SHALL NOT equal AquastatCtrlRelayName.

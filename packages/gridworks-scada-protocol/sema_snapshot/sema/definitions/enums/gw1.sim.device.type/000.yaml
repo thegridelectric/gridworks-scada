@@ -1,0 +1,50 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gw1.sim.device.type/000"
+title: "gw1.sim.device.type"
+type: "string"
+description: >
+  The kind of simulated device a component in a simulated layout is built on. Disjoint
+  from gw1.device.type, which holds real devices: a component's open `DeviceType` string is
+  a member of exactly one of the two, so a consumer tells simulated from real by which
+  vocabulary the value belongs to, never by inspecting the name. A value exists here only
+  when a simulated actor speaks the real device's protocol; a simulated device nothing
+  talks to gets a non-descript value.
+enum:
+  - "SimSensor"
+  - "SimPowerMeter"
+  - "SimGw108"
+  - "SimSamsungAE055FEYMCG"
+  - "SimHpOdu"
+  - "SimHpIdu"
+  - "SimKridaDoubleRelayBoard16"
+default: "SimSensor"
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "SimSensor": >
+      GridWorks simulated sensor — the SimSensorActor's device type; fully configured from
+      its Component ConfigList. (was gw1.device.type GridworksSimSensor)
+    "SimPowerMeter": >
+      GridWorks simulated power meter. (was gw1.device.type GridworksSimPowerMeter;
+      originally MakeModel GRIDWORKS__SIMPM1)
+    "SimGw108": >
+      GridWorks simulated GW108 board — the register-level simulation twin of Gw108RevB.
+      Carries the same board record shape (gw1.scada.device.type.gt), so chip and relay
+      address resolution runs unchanged against simulated registers. (was
+      gw1.device.type GridworksSimGw108)
+    "SimSamsungAE055FEYMCG": >
+      Simulated Samsung AE055 EHS mono indoor control box behind its MIM-B19N modbus
+      bridge — the device a simulated hp twin practises the real box's modbus surface
+      against.
+    "SimHpOdu": >
+      A non-descript simulated heat-pump outdoor unit: inventory only, nothing talks to
+      it.
+    "SimHpIdu": >
+      A non-descript simulated heat-pump indoor unit (the refrigerant-to-water exchanger
+      of a split system): inventory only, nothing talks to it.
+    "SimKridaDoubleRelayBoard16": >
+      GridWorks simulated Krida relay panel — the register-level simulation twin of
+      KridaDoubleRelayBoard16. Carries the same board record shape
+      (gw1.scada.device.type.gt), so expander and relay address resolution runs
+      unchanged against simulated PCF8575 ports.

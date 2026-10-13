@@ -1,0 +1,22 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/reboot.picos/000"
+
+title: "reboot.picos"
+type: "string"
+description: >
+  The pico-cycler's command vocabulary: the one thing a boss can ask of
+  it, a power cycle of the picos it tends. Named by EventType on an
+  fsm.event addressed to the cycler.
+
+enum:
+  - "RebootPicos"
+
+default: "RebootPicos"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "RebootPicos": >
+      Open the vdc relay, hold, close it, and wait for the picos to post
+      again.

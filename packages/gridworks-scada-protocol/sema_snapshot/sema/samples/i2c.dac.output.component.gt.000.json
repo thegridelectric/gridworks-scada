@@ -1,0 +1,16 @@
+{
+  "TypeName": "i2c.dac.output.component.gt",
+  "Version": "000",
+  "ComponentId": "3f6d8a34-5f1e-4c9b-9a37-2e8d41f7c655",
+  "BoardComponentId": "9b1c5e2a-77d4-4f6e-8c3a-5f2e9d101b44",
+  "DacName": "Zones456",
+  "ConfigList": [
+    {
+      "TypeName": "dac.output.config",
+      "Version": "000",
+      "ChannelName": "secondary-010v",
+      "ActorName": "secondary-010v",
+      "DacChannel": "C"
+    }
+  ]
+}

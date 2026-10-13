@@ -1,0 +1,59 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw.dispatch.hold/000"
+
+title: "gw.dispatch.hold"
+type: object
+description: >
+  The hold a house's operational params place on dispatch: the operator
+  holding the house out, and the service contract standing broken. While
+  either is true the scada refuses every slow dispatch contract offer.
+  One of three authorities, not the answer: the terminal asset's deed and
+  the running scada's own state (an admin session, stale or disabled
+  sensing) each refuse a house that has no hold at all.
+
+properties:
+  OperatorHold:
+    type: boolean
+    description: >
+      Whether the operator holds the house out of dispatch. A person sets
+      and clears it.
+
+  ServiceContractBroken:
+    type: boolean
+    description: >
+      Whether the service contract between the homeowner and the
+      aggregator stands broken. The scada sets it when it finds the house
+      cold; a person clears it.
+
+  TypeName:
+    const: "gw.dispatch.hold"
+
+  Version:
+    const: "000"
+
+required:
+  - OperatorHold
+  - ServiceContractBroken
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "OperatorHold": false,
+      "ServiceContractBroken": false,
+      "TypeName": "gw.dispatch.hold",
+      "Version": "000"
+    }
+  - |
+    {
+      "OperatorHold": true,
+      "ServiceContractBroken": false,
+      "TypeName": "gw.dispatch.hold",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

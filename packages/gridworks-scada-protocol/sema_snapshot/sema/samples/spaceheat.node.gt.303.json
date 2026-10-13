@@ -1,0 +1,8 @@
+{
+  "TypeName": "spaceheat.node.gt",
+  "Version": "303",
+  "Name": "s",
+  "ActorClass": "PrimaryScada",
+  "DisplayName": "Spruce Scada",
+  "ShNodeId": "8f3c27de-6a41-4bb0-9df2-51b7ac94e203"
+}

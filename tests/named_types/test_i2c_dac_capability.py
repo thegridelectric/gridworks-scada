@@ -1,8 +1,8 @@
 """Tests i2c.dac.capability type, version 000"""
 
-import pytest
 
 from gwsproto.named_types import I2cDacCapability
+from tests.named_types.sema_oracle import assert_refused
 
 
 def base_capability() -> dict:
@@ -31,5 +31,4 @@ def test_i2c_dac_capability_mux_pairing() -> None:
     d = base_capability()
     del d["MuxChannel"]
 
-    with pytest.raises(ValueError, match="Axiom 1 \\(MuxPairing\\) failed"):
-        I2cDacCapability.model_validate(d)
+    assert_refused(I2cDacCapability, d, match="Axiom 1 \\(MuxPairing\\) failed")

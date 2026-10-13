@@ -1,8 +1,8 @@
 """The pico tank module word decodes its own shape and holds its sensor order to a permutation."""
 
-import pytest
 
 from gwsproto.named_types import PicoTankModuleComponentGt
+from tests.named_types.sema_oracle import assert_conforms, assert_refused
 
 
 def component() -> dict:
@@ -28,10 +28,10 @@ def test_pico_tank_module_component_gt_round_trip() -> None:
     d = component()
     word = PicoTankModuleComponentGt.model_validate(d)
     assert word.model_dump(by_alias=True, exclude_none=True) == d
+    assert_conforms(word)
 
 
 def test_pico_tank_module_component_gt_axiom_3_repeated_sensor() -> None:
     d = component()
     d["SensorOrder"] = [1, 1, 2]
-    with pytest.raises(ValueError, match="SensorOrder"):
-        PicoTankModuleComponentGt.model_validate(d)
+    assert_refused(PicoTankModuleComponentGt, d, match="SensorOrder")

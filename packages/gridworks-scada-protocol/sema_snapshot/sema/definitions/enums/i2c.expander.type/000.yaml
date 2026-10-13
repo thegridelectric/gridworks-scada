@@ -1,0 +1,29 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/i2c.expander.type/000"
+
+title: "i2c.expander.type"
+type: "string"
+description: >
+  The model of the I²C GPIO expander chipset used by a GridWorks SCADA board.
+  The chip fixes the bus protocol a relay actor drives it with: a register
+  file with separate output, input and configuration ports, or a single
+  quasi-bidirectional port written and read as one word.
+
+enum:
+  - "Tca9555"
+  - "Pcf8575"
+
+default: "Tca9555"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "Tca9555": >
+      Texas Instruments TCA9555, a 16-bit I²C expander with addressed input,
+      output, polarity and configuration registers per 8-bit port. The GW108
+      board's relay expander.
+    "Pcf8575": >
+      NXP PCF8575, a 16-bit quasi-bidirectional I²C expander with no register
+      addressing: one two-byte write sets all sixteen outputs, one two-byte read
+      returns the pin levels. The Krida relay boards' expander.

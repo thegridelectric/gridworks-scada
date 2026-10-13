@@ -1,9 +1,9 @@
 """Every sema axiom on a gwsproto type is a gwsproto obligation, twice over.
 
-gwsproto types are hand-written twins of sema words and cannot vendor the sema
-snapshot, so nothing regenerates their validators. This test closes the gap
-structurally: for every exported gwsproto type whose sema word declares
-axioms,
+gwsproto types are hand-written twins of sema words, so nothing regenerates
+their validators. This test closes the gap structurally, reading the scada's
+vendored sema snapshot: for every exported gwsproto type whose sema word
+declares axioms,
 
 1. the class carries `check_axiom_<n>` for exactly the axiom numbers sema
    declares (no missing port, no stale validator, no `# Implement Axiom`
@@ -16,7 +16,7 @@ The allowlists are the checked-in record of KNOWN debt, matched exactly so
 the record stays honest: fixing an item without removing it here fails, and
 new debt fails. They should shrink to empty.
 
-Requires the sibling sema checkout; skips if absent."""
+The snapshot is committed; a missing one is a failure, not a skip."""
 
 import inspect
 import re
@@ -31,7 +31,7 @@ if str(_PKG) not in sys.path:
 
 import gwsproto_sema_conformance as conformance  # noqa: E402
 
-SEMA_ROOT = conformance.DEFAULT_SEMA
+SNAPSHOT = conformance.DEFAULT_SNAPSHOT
 TESTS_DIR = Path(__file__).parent
 
 # --- KNOWN debt: sema axioms with no check_axiom_<n> on the gwsproto class ---
@@ -127,15 +127,16 @@ def sema_axioms() -> dict[str, tuple[type, str, list[int]]]:
     """TypeName -> (class, version, sorted sema axiom numbers) for every
     exported gwsproto type with a sema word (axiom list possibly empty, so a
     validator sema never declared is caught as stale)."""
-    if not (SEMA_ROOT / "definitions" / "registry.yaml").exists():
-        pytest.skip(f"sema checkout not found at {SEMA_ROOT}")
+    assert conformance.snapshot_present(SNAPSHOT), (
+        f"sema snapshot missing at {SNAPSHOT} (scripts/regen_sema_snapshot.sh)"
+    )
     classes = conformance.gwsproto_classes()
     wanted = {
-        f"type::{tn}": f"definitions/types/{tn}/{ver}.yaml"
+        f"type::{tn}": f"types/{tn}/{ver}.yaml"
         for tn, (_, ver) in classes.items()
         if ver
     }
-    schemas = conformance.load_sema(SEMA_ROOT, wanted)["schemas"]
+    schemas = conformance.load_definitions(SNAPSHOT, wanted)["schemas"]
     out = {}
     for tn, (cls, ver) in classes.items():
         schema = schemas.get(f"type::{tn}")

@@ -1,0 +1,14 @@
+{
+  "TypeName": "i2c.write.bit",
+  "Version": "000",
+  "Bus": "scada",
+  "Address": {
+    "TypeName": "i2c.bit.address",
+    "Version": "000",
+    "I2cAddress": 33,
+    "RegisterIndex": 2,
+    "BitIndex": 1
+  },
+  "Value": 1,
+  "TriggerId": "6f74e8b9-4fc9-4b95-bd6f-2c150662b40e"
+}

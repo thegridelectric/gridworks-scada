@@ -1,0 +1,26 @@
+from enum import auto
+
+from sema_snapshot.sema.enums.gw_str_enum import SemaEnum
+
+
+class ThermistorDataMethod(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/thermistor.data.method/000"""
+
+    SimpleBeta = auto()
+    BetaWithExponentialAveraging = auto()
+
+    @classmethod
+    def default(cls) -> "ThermistorDataMethod":
+        return cls.SimpleBeta
+
+    @classmethod
+    def values(cls) -> list[str]:
+        return [elt.value for elt in cls]
+
+    @classmethod
+    def enum_name(cls) -> str:
+        return "thermistor.data.method"
+
+    @classmethod
+    def enum_version(cls) -> str:
+        return "000"

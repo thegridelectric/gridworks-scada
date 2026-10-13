@@ -1,8 +1,8 @@
 """Tests zone.circuit.governance.cmd type, version 000"""
 
-import pytest
 
 from gwsproto.named_types import ZoneCircuitGovernanceCmd
+from tests.named_types.sema_oracle import assert_refused
 
 
 def base_cmd() -> dict:
@@ -32,17 +32,11 @@ def test_zone_circuit_governance_cmd_axiom_1_a() -> None:
     d = base_cmd()
     del d["SetpointF"]
 
-    with pytest.raises(
-        ValueError, match="Axiom 1 \\(SetpointIffThermostatic\\) failed"
-    ):
-        ZoneCircuitGovernanceCmd.model_validate(d)
+    assert_refused(ZoneCircuitGovernanceCmd, d, match="Axiom 1 \\(SetpointIffThermostatic\\) failed")
 
 
 def test_zone_circuit_governance_cmd_axiom_1_b() -> None:
     d = base_cmd()
     d["Event"] = "SwitchToOff"
 
-    with pytest.raises(
-        ValueError, match="Axiom 1 \\(SetpointIffThermostatic\\) failed"
-    ):
-        ZoneCircuitGovernanceCmd.model_validate(d)
+    assert_refused(ZoneCircuitGovernanceCmd, d, match="Axiom 1 \\(SetpointIffThermostatic\\) failed")

@@ -1,0 +1,66 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/channel.readings/002"
+
+title: "channel.readings"
+type: object
+description: >
+  Timestamped integer readings for one channel within a SCADA reporting context.
+
+properties:
+  ChannelName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+
+  ValueList:
+    type: array
+    items:
+      type: integer
+    description: "Reading values aligned with ScadaReadTimeUnixMsList."
+
+  ScadaReadTimeUnixMsList:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+    description: "SCADA read times (UTC ms) aligned with ValueList."
+
+  TypeName:
+    const: "channel.readings"
+
+  Version:
+    const: "002"
+
+required:
+  - ChannelName
+  - ValueList
+  - ScadaReadTimeUnixMsList
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ChannelName": "hp-odu-pwr",
+      "ValueList": [3215, 3315, 4200],
+      "ScadaReadTimeUnixMsList": [1735689600123, 1735689601123, 1735689602123],
+      "TypeName": "channel.readings",
+      "Version": "002"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "ListLengthConsistency"
+      statement: >
+        len(ValueList) SHALL equal len(ScadaReadTimeUnixMsList).
+  
+  extended_description: >
+    ChannelName SHALL reference a channel definition known to both the
+    reporting node and the receiving system. Channel definitions may be
+    declared using data.channel.gt (for raw telemetry) or
+    derived.channel.gt (for computed channels).
+
+    This type transmits timestamped values only. It does not encode
+    channel units, quantities, or derivation semantics. Those properties
+    are resolved by consulting the corresponding channel definition.

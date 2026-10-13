@@ -1,0 +1,26 @@
+{
+  "TypeName": "gw1.tank.temp.calibration.map",
+  "Version": "000",
+  "Buffer": {
+    "TypeName": "gw1.tank.temp.calibration",
+    "Version": "000",
+    "Depth1M": 1.069,
+    "Depth1B": -4.303,
+    "Depth2M": 1.0,
+    "Depth2B": 0.0,
+    "Depth3M": 1.069,
+    "Depth3B": -4.303
+  },
+  "Tank": {
+    "1": {
+      "TypeName": "gw1.tank.temp.calibration",
+      "Version": "000",
+      "Depth1M": 1.045,
+      "Depth1B": -5.427,
+      "Depth2M": 1.0,
+      "Depth2B": 0.0,
+      "Depth3M": 1.045,
+      "Depth3B": -5.427
+    }
+  }
+}

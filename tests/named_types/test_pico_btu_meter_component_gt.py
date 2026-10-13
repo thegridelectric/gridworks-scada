@@ -1,8 +1,8 @@
 """The pico BTU meter word decodes its own shape and holds the CT pairing."""
 
-import pytest
 
 from gwsproto.named_types import PicoBtuMeterComponentGt
+from tests.named_types.sema_oracle import assert_conforms, assert_refused
 
 
 def component() -> dict:
@@ -35,25 +35,23 @@ def test_pico_btu_meter_component_gt_round_trip() -> None:
     d = component()
     word = PicoBtuMeterComponentGt.model_validate(d)
     assert word.model_dump(by_alias=True, exclude_none=True) == d
+    assert_conforms(word)
 
 
 def test_pico_btu_meter_component_gt_axiom_1_ct_read_without_delta() -> None:
     d = component()
     del d["AsyncCaptureDeltaCtVoltsX100"]
-    with pytest.raises(ValueError, match="Axiom 1"):
-        PicoBtuMeterComponentGt.model_validate(d)
+    assert_refused(PicoBtuMeterComponentGt, d, match="Axiom 1")
 
 
 def test_pico_btu_meter_component_gt_axiom_1_delta_without_ct_read() -> None:
     d = component()
     d["ReadCtVoltage"] = False
     del d["CtChannelName"]
-    with pytest.raises(ValueError, match="Axiom 1"):
-        PicoBtuMeterComponentGt.model_validate(d)
+    assert_refused(PicoBtuMeterComponentGt, d, match="Axiom 1")
 
 
 def test_pico_btu_meter_component_gt_axiom_2_ct_read_without_channel() -> None:
     d = component()
     del d["CtChannelName"]
-    with pytest.raises(ValueError, match="Axiom 2"):
-        PicoBtuMeterComponentGt.model_validate(d)
+    assert_refused(PicoBtuMeterComponentGt, d, match="Axiom 2")

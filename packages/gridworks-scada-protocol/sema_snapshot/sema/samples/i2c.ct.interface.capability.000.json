@@ -1,0 +1,10 @@
+{
+  "TypeName": "i2c.ct.interface.capability",
+  "Version": "000",
+  "Name": "Ct",
+  "I2cBus": "DefaultBus",
+  "I2cAddress": 72,
+  "AdcType": "Ads1115",
+  "AdcReferenceVolts": 3.3,
+  "Channels": 4
+}

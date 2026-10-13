@@ -1,0 +1,73 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/device.component.gt/000"
+
+title: "device.component.gt"
+type: object
+description: >
+  A deployed device instance with identity but no channel configuration: the
+  generic component for plant equipment the scada tracks without driving
+  through a specialized component word — a heat pump outdoor unit, a control
+  box, a comms module. Its DeviceType names the device category; a category
+  that carries category-level data joins its specialized device-type record
+  in the layout by the shared DeviceType value.
+
+properties:
+
+  ComponentId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+
+  DeviceType:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The device category this component is an instance of, an open
+      pascal-case string.
+
+  DisplayName:
+    type: string
+
+  HwUid:
+    type: string
+    description: >
+      The deployed unit's serial number or other hardware identifier,
+      verbatim from the nameplate.
+
+  Description:
+    type: string
+    description: >
+      Free prose about this instance — what it connects, where it sits.
+
+  TypeName:
+    const: "device.component.gt"
+
+  Version:
+    const: "000"
+
+required:
+  - ComponentId
+  - DeviceType
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ComponentId": "e1f3a5c7-9b2d-4e68-8a0c-3d5f7b9e1a24",
+      "DeviceType": "SamsungAE055FCYDCG",
+      "DisplayName": "Spruce Samsung AE055 monobloc",
+      "HwUid": "1AW2PAFY600005K",
+      "TypeName": "device.component.gt",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  extended_description: >
+    The counterpart of the specialized component words for devices the scada
+    merely tracks: the specialized words (pico, i2c, gpio, board) exist
+    because an actor drives them through their ConfigList; this word exists
+    because the layout is the fleet's record of what is installed. When a
+    tracked device later gains a driving actor, it graduates to a
+    specialized component word.

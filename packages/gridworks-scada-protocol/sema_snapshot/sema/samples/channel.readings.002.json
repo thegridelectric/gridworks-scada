@@ -1,0 +1,15 @@
+{
+  "TypeName": "channel.readings",
+  "Version": "002",
+  "ChannelName": "hp-odu-pwr",
+  "ValueList": [
+    3215,
+    3315,
+    4200
+  ],
+  "ScadaReadTimeUnixMsList": [
+    1735689600123,
+    1735689601123,
+    1735689602123
+  ]
+}

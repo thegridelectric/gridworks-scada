@@ -1,0 +1,59 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw.element.backup/000"
+
+title: "gw.element.backup"
+type: object
+description: >
+  Resistive heating elements that heat the house as backup to the heat
+  pump, each switched by its own relay.
+
+properties:
+  ElementRelayNames:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      The relays of the elements that run as backup. Elements the layout
+      has for other purposes are not listed.
+
+  InService:
+    type: boolean
+    description: >
+      Whether the elements can be run as backup. False for elements that
+      are installed and not wired to their relays, out of service, or not
+      to be used as backup.
+
+  TypeName:
+    const: "gw.element.backup"
+
+  Version:
+    const: "000"
+
+required:
+  - ElementRelayNames
+  - InService
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ElementRelayNames": ["elt-buffer-top", "elt-buffer-bottom"],
+      "InService": false,
+      "TypeName": "gw.element.backup",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "NonEmptyElements"
+      statement: >
+        ElementRelayNames SHALL be non-empty.
+    - number: 2
+      name: "DistinctElements"
+      statement: >
+        No two entries of ElementRelayNames SHALL be equal.

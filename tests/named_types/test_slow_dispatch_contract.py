@@ -1,8 +1,8 @@
 """Tests slow.dispatch.contract type, version 000"""
 
-import pytest
 
 from gwsproto.named_types import SlowDispatchContract
+from tests.named_types.sema_oracle import assert_refused
 
 CONTRACT = {
     "ScadaAlias": "hw1.isone.me.versant.keene.beech.scada",
@@ -22,15 +22,11 @@ def test_slow_dispatch_contract_generated() -> None:
 
 
 def test_slow_dispatch_contract_axiom_1_start_off_five_minutes() -> None:
-    with pytest.raises(ValueError, match="Axiom 1 \\(StartOnFiveMinutes\\)"):
-        SlowDispatchContract.model_validate(
-            dict(CONTRACT, StartS=CONTRACT["StartS"] + 60)
-        )
+    assert_refused(SlowDispatchContract, dict(CONTRACT, StartS=CONTRACT["StartS"] + 60), match="Axiom 1 \\(StartOnFiveMinutes\\)")
 
 
 def test_slow_dispatch_contract_axiom_2_oil_boiler_with_power() -> None:
-    with pytest.raises(ValueError, match="Axiom 2 \\(OilBoilerDrawsNoPower\\)"):
-        SlowDispatchContract.model_validate(dict(CONTRACT, OilBoilerOn=True))
+    assert_refused(SlowDispatchContract, dict(CONTRACT, OilBoilerOn=True), match="Axiom 2 \\(OilBoilerDrawsNoPower\\)")
     SlowDispatchContract.model_validate(
         dict(CONTRACT, OilBoilerOn=True, AvgPowerWatts=0)
     )

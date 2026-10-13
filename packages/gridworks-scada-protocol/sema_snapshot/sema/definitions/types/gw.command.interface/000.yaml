@@ -1,0 +1,111 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw.command.interface/000"
+
+title: "gw.command.interface"
+type: object
+description: >
+  The commands one Spaceheat node takes and the states it reports back,
+  as a boss sees them: the event vocabulary, the state vocabulary, and the
+  transitions a command asks for. Declared per node so an operator or a
+  control state can command a node by its own vocabulary without knowing
+  what kind of actor executes it. A relay's interface is the two relay
+  events; an interior command node such as hp-boss or the pico-cycler
+  declares its own.
+
+properties:
+  ActorName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Name of the Spaceheat node that takes these commands.
+
+  EventType:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      Name of the enum the command events belong to; the EventType of an
+      fsm.event addressed to this node.
+
+  StateType:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      Name of the enum the reported states belong to; the StateType of the
+      node's single.machine.state.
+
+  Commands:
+    type: array
+    description: >
+      The commands the node takes, each with the state it leads to.
+    items:
+      $ref: "https://schemas.electricity.works/types/gw.command.transition/000"
+
+  TypeName:
+    const: "gw.command.interface"
+
+  Version:
+    const: "000"
+
+required:
+  - ActorName
+  - EventType
+  - StateType
+  - Commands
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ActorName": "hp-boss",
+      "Commands": [
+        {
+          "Event": "TurnOn",
+          "ToState": "HpOn",
+          "TypeName": "gw.command.transition",
+          "Version": "000"
+        },
+        {
+          "Event": "TurnOff",
+          "ToState": "HpOff",
+          "TypeName": "gw.command.transition",
+          "Version": "000"
+        }
+      ],
+      "EventType": "turn.hp.on.off",
+      "StateType": "hp.boss.state",
+      "TypeName": "gw.command.interface",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "NonEmptyCommands"
+      statement: >
+        Commands SHALL be non-empty.
+
+    - number: 2
+      name: "EventsAreVocabulary"
+      statement: >
+        If EventType equals "change.relay.state", "turn.hp.on.off" or
+        "reboot.picos", every Commands entry's Event SHALL be a value of
+        change.relay.state:000, turn.hp.on.off:000 or reboot.picos:000
+        respectively.
+
+    - number: 3
+      name: "StatesAreVocabulary"
+      statement: >
+        If StateType equals "relay.closed.or.open", "hp.boss.state" or
+        "pico.cycler.state", every Commands entry's ToState SHALL be a value
+        of relay.closed.or.open:000, hp.boss.state:000 or
+        pico.cycler.state:000 respectively.
+
+  extended_description: >
+    Authority is not declared here. Which boss may send a command is the
+    command tree's business (new.command.tree and each node's Handle);
+    the interface says only what the node understands. A relay's interface
+    carries the same two events and two states as its relay.control.config,
+    which also holds the relay's wiring facts; the interface is the
+    wiring-free projection a boss needs.

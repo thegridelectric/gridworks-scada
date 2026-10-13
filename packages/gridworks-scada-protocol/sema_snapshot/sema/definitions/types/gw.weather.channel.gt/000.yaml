@@ -1,0 +1,120 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw.weather.channel.gt/000"
+
+title: "gw.weather.channel.gt"
+type: object
+description: >
+  An observed weather series: one quantity at one place, the
+  ground-truth series forecasters are scored against. Acquisition path
+  is provenance, not identity — one channel's readings may arrive by
+  several methods over its life (live API, archive backfill), with
+  per-reading provenance via the reading-to-message link — so the
+  record carries no source or method. Coupled bijectively with a table
+  in the gridworks-weather DB. Changing a structural fact is a new
+  record (new Id); the Name persists, and Start scopes which record an
+  archived message resolves against.
+
+properties:
+  Name:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      The channel's fleet-scoped name, derived from LocationAlias and
+      Quantity (Axiom 1).
+
+  DisplayName:
+    $ref: "https://schemas.electricity.works/formats/non.empty.string"
+    description: >
+      Human-facing name for display tooling.
+
+  Quantity:
+    $ref: "https://schemas.electricity.works/enums/gw1.quantity/002"
+    description: >
+      The physical quantity this series observes.
+
+  Unit:
+    $ref: "https://schemas.electricity.works/enums/gw1.unit/002"
+    description: >
+      The scaled-integer unit of every reading on this channel.
+
+  LocationAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      Resolves to the gw.weather.location.gt anchoring this series.
+
+  EmitPeriodS:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Seconds between scheduled observation emissions. The schedule is
+      the contract that lets a consumer distinguish a drop from
+      silence.
+
+  EmitOffsetS:
+    $ref: "https://schemas.electricity.works/formats/non.negative.int"
+    description: >
+      Offset into the emission period of each scheduled emission
+      (0 with EmitPeriodS 3600 is top-of-hour).
+
+  Start:
+    $ref: "https://schemas.electricity.works/formats/utc.iso8601.seconds"
+    description: >
+      When this record became the active record for Name; an archived
+      message resolves against the record active at its time.
+
+  Id:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      Immutable identifier of this record. A structural change is a
+      new record with a new Id under the persisting Name.
+
+  TypeName:
+    const: "gw.weather.channel.gt"
+
+  Version:
+    const: "000"
+
+required:
+  - Name
+  - DisplayName
+  - Quantity
+  - Unit
+  - LocationAlias
+  - EmitPeriodS
+  - EmitOffsetS
+  - Start
+  - Id
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "Name": "us.me.millinocket.temperature",
+      "DisplayName": "Millinocket outdoor temperature",
+      "Quantity": "Temperature",
+      "Unit": "FahrenheitX100",
+      "LocationAlias": "us.me.millinocket",
+      "EmitPeriodS": 3600,
+      "EmitOffsetS": 0,
+      "Start": "2026-08-11T00:00:00Z",
+      "Id": "2e7c9a1f-6b4d-4f8e-b3a9-5c1e8d7f2a4c",
+      "TypeName": "gw.weather.channel.gt",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "NameDerivation"
+      statement: >
+        Name SHALL equal LocationAlias + "." + the lowercased Quantity
+        value, optionally followed by "." and one or more further
+        segments (a variant suffix for a semantically different
+        series, never acquisition detail).
+    - number: 2
+      name: "EmitOffsetBound"
+      statement: >
+        EmitOffsetS SHALL be strictly less than EmitPeriodS.

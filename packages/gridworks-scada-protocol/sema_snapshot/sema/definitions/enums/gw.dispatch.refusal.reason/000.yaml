@@ -1,0 +1,47 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gw.dispatch.refusal.reason/000"
+
+title: "gw.dispatch.refusal.reason"
+type: "string"
+
+description: >
+  The scada's one vocabulary for declining or ending dispatch: why it
+  refuses a slow dispatch contract offer, and why it ends a contract it
+  holds. Stated by the rejection and by the terminating heartbeat alike,
+  and shown beside AcceptsDispatch in the house's operating status.
+
+enum:
+  - "NoTaDeed"
+  - "OperatorHold"
+  - "ServiceContractBroken"
+  - "ScadaBlind"
+  - "InAdmin"
+
+default: "OperatorHold"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+
+  value_descriptions:
+    "NoTaDeed": >
+      The scada holds no ta.deed that gives this terminal asset standing
+      to trade.
+
+    "OperatorHold": >
+      The operator holds the house out of dispatch in its operational
+      params. The decode fallback: an unknown reason reads as the house
+      held out.
+
+    "ServiceContractBroken": >
+      The scada found the house cold and holds the refusal until a person
+      clears it in the operational params. The service contract between
+      the homeowner and the aggregator is treated as broken from the cold
+      event forward, whatever the house does afterwards.
+
+    "ScadaBlind": >
+      The scada's sensing is not good enough to act as a leaf ally: a
+      channel its control needs has no fresh reading.
+
+    "InAdmin": >
+      An admin session holds the house's command tree.

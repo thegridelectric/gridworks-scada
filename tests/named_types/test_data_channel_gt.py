@@ -1,8 +1,8 @@
 """Tests data.channel.gt type, version 003"""
 
-import pytest
 
 from gwsproto.named_types import DataChannelGt
+from tests.named_types.sema_oracle import assert_refused
 
 
 def test_data_channel_gt_generated() -> None:
@@ -40,5 +40,4 @@ def test_data_channel_gt_axiom_1() -> None:
         "Version": "003",
     }
 
-    with pytest.raises(ValueError, match="Axiom 1 violated!"):
-        DataChannelGt.model_validate(d)
+    assert_refused(DataChannelGt, d, match="Axiom 1 violated!")

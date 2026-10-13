@@ -1,8 +1,8 @@
 """Tests i2c.relay.component.gt type, version 000"""
 
-import pytest
 
 from gwsproto.named_types import I2cRelayComponentGt
+from tests.named_types.sema_oracle import assert_refused
 
 
 def base_component() -> dict:
@@ -45,10 +45,8 @@ def test_i2c_relay_component_gt_axiom_1() -> None:
     d = base_component()
     d["ConfigList"] = d["ConfigList"] * 2
 
-    with pytest.raises(ValueError, match="Axiom 1 \\(ExactlyOneConfig\\) failed"):
-        I2cRelayComponentGt.model_validate(d)
+    assert_refused(I2cRelayComponentGt, d, match="Axiom 1 \\(ExactlyOneConfig\\) failed")
 
     d["ConfigList"] = []
 
-    with pytest.raises(ValueError, match="Axiom 1 \\(ExactlyOneConfig\\) failed"):
-        I2cRelayComponentGt.model_validate(d)
+    assert_refused(I2cRelayComponentGt, d, match="Axiom 1 \\(ExactlyOneConfig\\) failed")

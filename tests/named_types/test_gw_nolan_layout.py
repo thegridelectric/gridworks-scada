@@ -14,6 +14,7 @@ from pydantic import ValidationError
 
 from gwsproto.named_types import NolanLayout, OperationalParams, WaterStore
 from sema_to_dc import assemble_runtime_layout
+from tests.named_types.sema_oracle import assert_refused
 
 CONFIG = Path(__file__).parent.parent / "config"
 
@@ -36,8 +37,7 @@ def mutated(assembled: dict, mutate) -> dict:
 
 
 def reject(assembled: dict, mutate, axiom: str) -> None:
-    with pytest.raises(ValueError, match=axiom):
-        NolanLayout.model_validate(mutated(assembled, mutate))
+    assert_refused(NolanLayout, mutated(assembled, mutate), match=axiom)
 
 def sensor_off_the_meter(d: dict) -> str:
     """A node capturing channels that feed no transactive-power channel and
@@ -317,8 +317,7 @@ def test_gw_hydronic_axiom_1_b_no_zones(assembled: dict) -> None:
     h = json.loads(json.dumps(assembled["Hydronic"]))
     h["Zones"] = []
     h["ZoneCallCircuits"] = []
-    with pytest.raises(ValueError, match="Axiom 1"):
-        Hydronic.model_validate(h)
+    assert_refused(Hydronic, h, match="Axiom 1")
 
 
 def test_gw_hydronic_zone_call_circuits_required(assembled: dict) -> None:
@@ -326,8 +325,7 @@ def test_gw_hydronic_zone_call_circuits_required(assembled: dict) -> None:
 
     h = json.loads(json.dumps(assembled["Hydronic"]))
     del h["ZoneCallCircuits"]
-    with pytest.raises(ValueError, match="ZoneCallCircuits"):
-        Hydronic.model_validate(h)
+    assert_refused(Hydronic, h, match="ZoneCallCircuits")
 
 
 def test_gw_hydronic_axiom_2(assembled: dict) -> None:
@@ -335,8 +333,7 @@ def test_gw_hydronic_axiom_2(assembled: dict) -> None:
 
     h = json.loads(json.dumps(assembled["Hydronic"]))
     h["ZoneCallCircuits"][0]["ServesZone"] = "no-such-zone"
-    with pytest.raises(ValueError, match="Axiom 2"):
-        Hydronic.model_validate(h)
+    assert_refused(Hydronic, h, match="Axiom 2")
 
 
 def reject_hydronic(assembled: dict, mutate, axiom: str) -> None:
@@ -344,8 +341,7 @@ def reject_hydronic(assembled: dict, mutate, axiom: str) -> None:
 
     h = json.loads(json.dumps(assembled["Hydronic"]))
     mutate(h)
-    with pytest.raises(ValueError, match=axiom):
-        Hydronic.model_validate(h)
+    assert_refused(Hydronic, h, match=axiom)
 
 
 def test_gw_hydronic_axiom_2_b_position_is_the_place_in_the_list(assembled: dict) -> None:

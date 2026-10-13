@@ -1,0 +1,77 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw.nolan.family.params/000"
+
+title: "gw.nolan.family.params"
+type: object
+description: >
+  The Nolan-family block of gw.operational.params: the operational knobs
+  that only mean something against a gw.nolan.layout — a monobloc home with
+  a buffer tank and one store tank.
+
+properties:
+  KeepBufferFull:
+    type: boolean
+    description: >
+      When true, the buffer is kept near full rather than used as storage.
+      The leaf ally cycles it on its bottom sensor, charging when depth3 is
+      below the required return-water temperature and stopping when it is
+      above, so only a small slice of the tank swings between heat pump
+      runs, and the LTN reports zero buffer-available kWh. The FLO then
+      plans on the store alone, at the cost of the buffer's volume and more
+      frequent heat pump cycling. When false, the buffer drains from its top
+      sensor before a recharge and its energy counts toward what the FLO can
+      use. Local control does not read this flag.
+
+  SeasonalStorageMode:
+    $ref: "https://schemas.electricity.works/enums/gw1.seasonal.storage.mode/000"
+    description: >
+      Which thermal stores participate in the current season's operation.
+
+  BufferFullF:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      The buffer band's full threshold in degrees Fahrenheit. Buffer-depth3,
+      the bottom sensor, at or above it says the buffer is full and the heat
+      pump call opens.
+
+  BufferChargeF:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      The buffer band's charge threshold in degrees Fahrenheit. Buffer-depth1,
+      the top sensor, below it says the buffer wants charge and the heat pump
+      call may close. Between the two thresholds the band holds its last
+      state.
+
+  TypeName:
+    const: "gw.nolan.family.params"
+
+  Version:
+    const: "000"
+
+required:
+  - KeepBufferFull
+  - SeasonalStorageMode
+  - BufferFullF
+  - BufferChargeF
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "KeepBufferFull": false,
+      "SeasonalStorageMode": "AllTanks",
+      "BufferFullF": 130,
+      "BufferChargeF": 90,
+      "TypeName": "gw.nolan.family.params",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "ChargeBelowFull"
+      statement: "BufferChargeF SHALL be less than BufferFullF."

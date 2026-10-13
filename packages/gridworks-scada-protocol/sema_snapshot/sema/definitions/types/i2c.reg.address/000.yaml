@@ -1,0 +1,52 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/i2c.reg.address/000"
+
+title: "i2c.reg.address"
+type: object
+description: >
+  The address of a register on an I²C device: the device's I²C bus address and
+  the register within it.
+
+properties:
+
+  I2cAddress:
+    $ref: "https://schemas.electricity.works/formats/non.negative.int"
+    description: >
+      The I²C bus address of the device.
+
+  RegisterIndex:
+    $ref: "https://schemas.electricity.works/formats/non.negative.int"
+    description: >
+      The register within the device.
+
+  TypeName:
+    const: "i2c.reg.address"
+
+  Version:
+    const: "000"
+
+required:
+  - I2cAddress
+  - RegisterIndex
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "I2cAddress": 72,
+      "RegisterIndex": 0,
+      "TypeName": "i2c.reg.address",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  extended_description: >
+    This address is bus-relative: it locates a register on a device by I²C
+    address and register index, independent of which physical bus the device is
+    on. It carries no Bus — the bus is named by the operation that uses it (e.g.
+    i2c.read.reg / i2c.write.reg) or by the board configuration that references
+    it, which is what lets one address word serve both.

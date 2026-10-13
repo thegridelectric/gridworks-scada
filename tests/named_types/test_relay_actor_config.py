@@ -1,8 +1,8 @@
 """Tests relay.actor.config type, version 003"""
 
-import pytest
 
 from gwsproto.named_types import RelayActorConfig
+from tests.named_types.sema_oracle import assert_refused
 
 
 def base_config() -> dict:
@@ -34,21 +34,18 @@ def test_relay_actor_config_axiom_1() -> None:
     d = base_config()
     d["EnergizingEvent"] = "NotARealRelayEvent"
 
-    with pytest.raises(ValueError, match="Axiom 1 \\(RelayEventEnumConsistency\\) failed"):
-        RelayActorConfig.model_validate(d)
+    assert_refused(RelayActorConfig, d, match="Axiom 1 \\(RelayEventEnumConsistency\\) failed")
 
 
 def test_relay_actor_config_axiom_2() -> None:
     d = base_config()
     d["EnergizedState"] = "NotARealRelayState"
 
-    with pytest.raises(ValueError, match="Axiom 2 \\(RelayStateEnumConsistency\\) failed"):
-        RelayActorConfig.model_validate(d)
+    assert_refused(RelayActorConfig, d, match="Axiom 2 \\(RelayStateEnumConsistency\\) failed")
 
 
 def test_relay_actor_config_axiom_3() -> None:
     d = base_config()
     d["EnergizedState"] = "RelayClosed"
 
-    with pytest.raises(ValueError, match="Axiom 3 \\(RelayEventStateMatch\\) failed"):
-        RelayActorConfig.model_validate(d)
+    assert_refused(RelayActorConfig, d, match="Axiom 3 \\(RelayEventStateMatch\\) failed")

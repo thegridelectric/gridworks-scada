@@ -1,0 +1,19 @@
+{
+  "TypeName": "gw.weather.forecast",
+  "Version": "000",
+  "BundleName": "us.me.millinocket.forecast.nws.hourly",
+  "SourceUpdatedTime": "2026-08-12T09:09:03Z",
+  "MessageCreatedMs": 1786280700033,
+  "Fidelity": "Live",
+  "FirstSliceStart": "2026-08-12T14:00:00Z",
+  "TempChannelName": "us.me.millinocket.temperature.forecast.nws.hourly",
+  "TempValues": [
+    7000,
+    7012
+  ],
+  "WindSpeedChannelName": "us.me.millinocket.windspeed.forecast.nws.hourly",
+  "WindSpeedValues": [
+    4000,
+    5000
+  ]
+}

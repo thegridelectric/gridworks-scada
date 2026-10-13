@@ -1,0 +1,73 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw1.unit.quantity.projection/000"
+
+title: "gw1.unit.quantity.projection"
+type: object
+description: >
+  Canonical projection from gw1.unit to gw1.quantity.
+  This type declares the deterministic semantic relationship by which
+  every gw1.unit maps to exactly one gw1.quantity.
+
+  The projection defines the physical dimension abstraction associated
+  with each unit and ensures consistent dimensional reasoning across
+  telemetry, derived channels, and market contracts.
+
+properties:
+  Unit:
+    $ref: "https://schemas.electricity.works/enums/gw1.unit/001"
+    description: >
+      The concrete measurement unit.
+
+  Quantity:
+    $ref: "https://schemas.electricity.works/enums/gw1.quantity/001"
+    description: >
+      The abstract physical quantity associated with Unit.
+
+  TypeName:
+    const: "gw1.unit.quantity.projection"
+
+  Version:
+    const: "000"
+
+required:
+  - Unit
+  - Quantity
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "Unit": "Watts",
+      "Quantity": "Power",
+      "TypeName": "gw1.unit.quantity.projection",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  projection:
+    from: Unit
+    to: Quantity
+    table:
+      Unknown: Unknown
+      Unitless: Unitless
+      FahrenheitX100: Temperature
+      Watts: Power
+      WattHours: Energy
+      Gallons: Volume
+      GpmX100: FlowRate
+      Seconds: Time
+      SecondsX10: Time
+      Milliseconds: Time
+
+  axioms:
+    - number: 1
+      name: "EnumeratedProjectionMapping"
+      statement: >
+        Every (Unit, Quantity) pair SHALL match the mapping declared in
+        x-gridworks.projection.table. Any combination not present in
+        the table is invalid.

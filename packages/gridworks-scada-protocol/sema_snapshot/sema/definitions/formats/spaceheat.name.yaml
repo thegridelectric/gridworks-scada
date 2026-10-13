@@ -1,0 +1,30 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/formats/spaceheat.name"
+
+title: "spaceheat.name"
+description: |
+  Single-segment identifier composed of lowercase alphanumeric
+  characters with optional internal hyphen-separated words.
+  Must begin with a lowercase alphabetic character.
+
+type: string
+pattern: "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+minLength: 1
+maxLength: 64
+
+examples:
+  - "scada"
+  - "tank1-depth2"
+
+counterexamples:
+  - "Tank1"        # uppercase not allowed
+  - "1st-tank"     # cannot start with digit
+  - "tank_depth"   # underscore not allowed
+  - "tank."        # dot not allowed
+  - "tank--depth"  # consecutive hyphens not allowed
+  - "-tank"        # cannot begin with hyphen
+  - "tank-"        # cannot end with hyphen
+  
+# GridWorks metadata
+x-gridworks:
+  owner: "gridworks-energy"

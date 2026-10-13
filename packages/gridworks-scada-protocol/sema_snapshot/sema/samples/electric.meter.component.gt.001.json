@@ -1,0 +1,27 @@
+{
+  "TypeName": "electric.meter.component.gt",
+  "Version": "001",
+  "ComponentId": "6f74e8b9-4fc9-4b95-bd6f-2c150662b40e",
+  "DeviceType": "EgaugePowerMeter",
+  "ConfigList": [
+    {
+      "TypeName": "electric.meter.channel.config",
+      "Version": "000",
+      "ChannelName": "hp-odu-pwr",
+      "EgaugeRegisterConfig": {
+        "TypeName": "egauge.register.config",
+        "Version": "000",
+        "Address": 9006,
+        "Name": "hp-odu",
+        "Description": "change in value",
+        "Type": "f32",
+        "Denominator": 1,
+        "Unit": "W"
+      }
+    }
+  ],
+  "ModbusHost": "eGauge6069.local",
+  "ModbusPort": 502,
+  "DisplayName": "EGauge Power Meter",
+  "HwUid": "BP01349"
+}

@@ -1,0 +1,29 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gw.top.state/000"
+
+title: "gw.top.state"
+type: "string"
+
+description: >
+  Who holds the scada's command tree: the scada's own automatic control,
+  or an admin session that has taken the tree by hand.
+
+enum:
+  - "Auto"
+  - "Admin"
+
+default: "Auto"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+
+  value_descriptions:
+    "Auto": >
+      The scada's automatic control holds the command tree: local control,
+      or the leaf ally while a dispatch contract is live.
+
+    "Admin": >
+      An admin session holds the command tree. Automatic control is
+      dormant and new dispatch contracts are not taken until the session
+      releases the tree.

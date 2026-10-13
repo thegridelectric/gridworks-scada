@@ -1,0 +1,926 @@
+metadata:
+  generated_from: indexes/public_registry.yaml
+  generated_at: '2026-10-13T23:20:10Z'
+  note: Transitive closure of initial_targets
+initial_targets:
+- ads.channel.config:000
+- ads111x.based.component.gt:000
+- ads111x.based.device.type.gt:000
+- analog.dispatch:000
+- async.btu.params:100
+- baseurl.failure.alert:100
+- bid:000
+- capture.tuning:000
+- channel.readings:002
+- cop.curve:000
+- dac.output.config:000
+- data.channel.gt:003
+- derived.channel.gt:002
+- device.component.gt:000
+- dfr.config:000
+- egauge.register.config:000
+- electric.meter.channel.config:000
+- electric.meter.component.gt:001
+- electric.meter.device.type.gt:000
+- energy.instruction:000
+- flo.params.house0:007
+- flow.hall.params:200
+- fsm.atomic.report:001
+- fsm.event:000
+- fsm.full.report:001
+- g.node.gt:006
+- glitch:000
+- gpio.relay.component.gt:000
+- gpio.sensor.component.gt:000
+- gw.boiler.backup:000
+- gw.command.interface:000
+- gw.command.transition:000
+- gw.dispatch.ack:000
+- gw.dispatch.hold:000
+- gw.dispatch.nack:000
+- gw.element.backup:000
+- gw.house.operating.status:000
+- gw.house0.family.params:000
+- gw.house0.layout:000
+- gw.hydronic:000
+- gw.native.gpio.pin:000
+- gw.nolan.family.params:000
+- gw.nolan.layout:000
+- gw.operational.params:000
+- gw.recorded.setpoints:000
+- gw.scada.commit:000
+- gw.tou.tariff:000
+- gw.tou.window:000
+- gw.water.store:000
+- gw.weather.channel.gt:000
+- gw.weather.forecast:000
+- gw.weather.forecast.bundle.gt:000
+- gw.weather.forecast.channel.gt:000
+- gw.weather.seasonal.template.gt:000
+- gw0.required.energy.layered:000
+- gw0.usable.energy.layered:000
+- gw1.hvac.zone:000
+- gw1.scada.device.type.gt:000
+- gw1.simple.sim.layout:000
+- gw1.tank.temp.calibration:001
+- gw1.tank.temp.calibration.map:001
+- gw1.unit.quantity.projection:000
+- gw1.zone.call.circuit:000
+- gw1.zone.thermostat:000
+- ha1.params:006
+- heating.curve:000
+- heating.forecast:000
+- hp.control.box.device.type.gt:000
+- hp.device.type.gt:000
+- hubitat.component.gt:000
+- hubitat.gt:000
+- hubitat.poller.component.gt:000
+- hubitat.poller.gt:001
+- i2c.bit.address:000
+- i2c.bus:000
+- i2c.ct.interface.capability:000
+- i2c.dac.capability:000
+- i2c.dac.output.component.gt:000
+- i2c.expander:000
+- i2c.multichannel.dt.relay.component.gt:004
+- i2c.mux:000
+- i2c.read.bit:000
+- i2c.read.bytes:000
+- i2c.read.reg:000
+- i2c.reg.address:000
+- i2c.relay.capability:000
+- i2c.relay.component.gt:000
+- i2c.result:001
+- i2c.thermistor.channel.config:000
+- i2c.thermistor.interface.capability:000
+- i2c.thermistor.reader.component.gt:000
+- i2c.write.bit:000
+- i2c.write.byte:000
+- i2c.write.reg:000
+- latest.price:000
+- layout.lite:013
+- linear.one.dimensional.calibration:000
+- machine.states:000
+- maker.api.attribute.gt:001
+- new.command.tree:003
+- pico.btu.meter.component.gt:000
+- pico.flow.module.component.gt:001
+- pico.tank.module.component.gt:012
+- power.watts:000
+- price.quantity.unitless:001
+- relay.actor.config:003
+- relay.control.config:000
+- report:003
+- report.event:004
+- scada.board.component.gt:000
+- scada.control.capabilities:002
+- scada.params:005
+- send.control.capabilities:000
+- send.layout:001
+- setpoint.belief:000
+- sim.pico.btu.meter.component.gt:000
+- sim.pico.flow.module.component.gt:000
+- sim.pico.tank.module.component.gt:001
+- sim.sensor.component.gt:000
+- single.machine.state:000
+- single.reading:000
+- slow.contract.heartbeat:002
+- slow.contract.rejection:000
+- slow.dispatch.contract:000
+- snapshot.spaceheat:003
+- spaceheat.node.gt:303
+- spaceheat.telemetry.quantity.projection:000
+- synced.readings:000
+- ta.deed:000
+- tank.module.params:200
+- ticklist.hall:101
+- ticklist.hall.report:000
+- ticklist.reed:101
+- ticklist.reed.report:000
+- web.server.component.gt:001
+- zero.ten.power.on:000
+- zone.circuit.governance.cmd:000
+- base.g.node.class:000
+- change.relay.pin:000
+- change.relay.state:000
+- change.valve.state:000
+- change.zone.call.source:000
+- day.of.week:000
+- five.v.boss.state:000
+- fsm.report.type:000
+- g.node.status:000
+- gpio.sense.mode:000
+- gpm.from.hz.method:000
+- gw.dispatch.refusal.reason:000
+- gw.g.node.class:000
+- gw.primary.flow.source:000
+- gw.primary.pump.owner:000
+- gw.refrigerant.cycle:000
+- gw.scada.cmd.refusal.reason:000
+- gw.standby.posture:000
+- gw.top.state:000
+- gw.weather.forecast.fidelity:000
+- gw.zone.emitter.type:000
+- gw1.actor.class:014
+- gw1.device.type:000
+- gw1.emission.method:000
+- gw1.heat.call.interpretation:000
+- gw1.leaf.ally.all.tanks.state:001
+- gw1.leaf.ally.buffer.only.state:001
+- gw1.local.control.all.tanks.state:001
+- gw1.local.control.buffer.only.state:001
+- gw1.main.auto.state:001
+- gw1.nolan.lc.buffer.only.state:000
+- gw1.quantity:002
+- gw1.seasonal.storage.mode:000
+- gw1.service.mode:000
+- gw1.sim.device.type:000
+- gw1.slow.dispatch.contract.status:000
+- gw1.unit:002
+- gw2.lc.top.state:000
+- hp.boss.state:000
+- hz.calc.method:001
+- i2c.adc.channel:000
+- i2c.adc.type:000
+- i2c.dac.channel:000
+- i2c.dac.type:000
+- i2c.expander.type:000
+- i2c.mux.type:000
+- i2c.operation:001
+- log.level:000
+- market.price.unit:000
+- market.quantity.unit:000
+- market.type.name:000
+- move.sieg.valve:001
+- pico.board.variant:000
+- pico.cycler.event:000
+- pico.cycler.state:000
+- reboot.picos:000
+- relay.closed.or.open:000
+- relay.wiring.config:000
+- setpoint.phase:000
+- sieg.loop.strategy:000
+- sieg.valve.state:000
+- single.pico.state:000
+- spaceheat.telemetry.name:007
+- spaceheat.unit:001
+- spruce.hack.hp.state:000
+- ta.validation.state:000
+- temp.calc.method:000
+- thermistor.data.method:000
+- thermostat.kind:000
+- turn.5v.on.off:000
+- turn.hp.on.off:000
+- valve.open.or.closed:000
+- zone.call.circuit.event:000
+- zone.call.circuit.state:000
+- zone.call.source:000
+- zone.circuit.governance.event:000
+- zone.circuit.governance.state:000
+- zone.setpoint.source:000
+worklist:
+  formats:
+    decimal.digit:
+      path: definitions/formats/decimal.digit.yaml
+    firmware.commit:
+      path: definitions/formats/firmware.commit.yaml
+    git.commit:
+      path: definitions/formats/git.commit.yaml
+    handle.name:
+      path: definitions/formats/handle.name.yaml
+    hh.mm:
+      path: definitions/formats/hh.mm.yaml
+    iana.timezone.str:
+      path: definitions/formats/iana.timezone.str.yaml
+    left.right.dot:
+      path: definitions/formats/left.right.dot.yaml
+    mac.address:
+      path: definitions/formats/mac.address.yaml
+    market.slot.name:
+      path: definitions/formats/market.slot.name.yaml
+    non.empty.string:
+      path: definitions/formats/non.empty.string.yaml
+    non.negative.int:
+      path: definitions/formats/non.negative.int.yaml
+    pascal.case:
+      path: definitions/formats/pascal.case.yaml
+    positive.float:
+      path: definitions/formats/positive.float.yaml
+    positive.int:
+      path: definitions/formats/positive.int.yaml
+    positive.int.as.str:
+      path: definitions/formats/positive.int.as.str.yaml
+    spaceheat.name:
+      path: definitions/formats/spaceheat.name.yaml
+    utc.iso8601.seconds:
+      path: definitions/formats/utc.iso8601.seconds.yaml
+    utc.milliseconds:
+      path: definitions/formats/utc.milliseconds.yaml
+    utc.seconds:
+      path: definitions/formats/utc.seconds.yaml
+    uuid4.str:
+      path: definitions/formats/uuid4.str.yaml
+  enums:
+    base.g.node.class:
+      '000':
+        path: definitions/enums/base.g.node.class/000.yaml
+    change.relay.pin:
+      '000':
+        path: definitions/enums/change.relay.pin/000.yaml
+    change.relay.state:
+      '000':
+        path: definitions/enums/change.relay.state/000.yaml
+    change.valve.state:
+      '000':
+        path: definitions/enums/change.valve.state/000.yaml
+    change.zone.call.source:
+      '000':
+        path: definitions/enums/change.zone.call.source/000.yaml
+    day.of.week:
+      '000':
+        path: definitions/enums/day.of.week/000.yaml
+    five.v.boss.state:
+      '000':
+        path: definitions/enums/five.v.boss.state/000.yaml
+    fsm.report.type:
+      '000':
+        path: definitions/enums/fsm.report.type/000.yaml
+    g.node.status:
+      '000':
+        path: definitions/enums/g.node.status/000.yaml
+    gpio.sense.mode:
+      '000':
+        path: definitions/enums/gpio.sense.mode/000.yaml
+    gpm.from.hz.method:
+      '000':
+        path: definitions/enums/gpm.from.hz.method/000.yaml
+    gw.dispatch.refusal.reason:
+      '000':
+        path: definitions/enums/gw.dispatch.refusal.reason/000.yaml
+    gw.g.node.class:
+      '000':
+        path: definitions/enums/gw.g.node.class/000.yaml
+    gw.primary.flow.source:
+      '000':
+        path: definitions/enums/gw.primary.flow.source/000.yaml
+    gw.primary.pump.owner:
+      '000':
+        path: definitions/enums/gw.primary.pump.owner/000.yaml
+    gw.refrigerant.cycle:
+      '000':
+        path: definitions/enums/gw.refrigerant.cycle/000.yaml
+    gw.scada.cmd.refusal.reason:
+      '000':
+        path: definitions/enums/gw.scada.cmd.refusal.reason/000.yaml
+    gw.standby.posture:
+      '000':
+        path: definitions/enums/gw.standby.posture/000.yaml
+    gw.top.state:
+      '000':
+        path: definitions/enums/gw.top.state/000.yaml
+    gw.weather.forecast.fidelity:
+      '000':
+        path: definitions/enums/gw.weather.forecast.fidelity/000.yaml
+    gw.zone.emitter.type:
+      '000':
+        path: definitions/enums/gw.zone.emitter.type/000.yaml
+    gw1.actor.class:
+      '014':
+        path: definitions/enums/gw1.actor.class/014.yaml
+    gw1.device.type:
+      '000':
+        path: definitions/enums/gw1.device.type/000.yaml
+    gw1.emission.method:
+      '000':
+        path: definitions/enums/gw1.emission.method/000.yaml
+    gw1.heat.call.interpretation:
+      '000':
+        path: definitions/enums/gw1.heat.call.interpretation/000.yaml
+    gw1.leaf.ally.all.tanks.state:
+      '001':
+        path: definitions/enums/gw1.leaf.ally.all.tanks.state/001.yaml
+    gw1.leaf.ally.buffer.only.state:
+      '001':
+        path: definitions/enums/gw1.leaf.ally.buffer.only.state/001.yaml
+    gw1.local.control.all.tanks.state:
+      '001':
+        path: definitions/enums/gw1.local.control.all.tanks.state/001.yaml
+    gw1.local.control.buffer.only.state:
+      '001':
+        path: definitions/enums/gw1.local.control.buffer.only.state/001.yaml
+    gw1.main.auto.state:
+      '001':
+        path: definitions/enums/gw1.main.auto.state/001.yaml
+    gw1.nolan.lc.buffer.only.state:
+      '000':
+        path: definitions/enums/gw1.nolan.lc.buffer.only.state/000.yaml
+    gw1.quantity:
+      '000':
+        path: definitions/enums/gw1.quantity/000.yaml
+      '001':
+        path: definitions/enums/gw1.quantity/001.yaml
+      '002':
+        path: definitions/enums/gw1.quantity/002.yaml
+    gw1.seasonal.storage.mode:
+      '000':
+        path: definitions/enums/gw1.seasonal.storage.mode/000.yaml
+    gw1.service.mode:
+      '000':
+        path: definitions/enums/gw1.service.mode/000.yaml
+    gw1.sim.device.type:
+      '000':
+        path: definitions/enums/gw1.sim.device.type/000.yaml
+    gw1.slow.dispatch.contract.status:
+      '000':
+        path: definitions/enums/gw1.slow.dispatch.contract.status/000.yaml
+    gw1.unit:
+      '000':
+        path: definitions/enums/gw1.unit/000.yaml
+      '001':
+        path: definitions/enums/gw1.unit/001.yaml
+      '002':
+        path: definitions/enums/gw1.unit/002.yaml
+    gw2.lc.top.state:
+      '000':
+        path: definitions/enums/gw2.lc.top.state/000.yaml
+    hp.boss.state:
+      '000':
+        path: definitions/enums/hp.boss.state/000.yaml
+    hz.calc.method:
+      '001':
+        path: definitions/enums/hz.calc.method/001.yaml
+    i2c.adc.channel:
+      '000':
+        path: definitions/enums/i2c.adc.channel/000.yaml
+    i2c.adc.type:
+      '000':
+        path: definitions/enums/i2c.adc.type/000.yaml
+    i2c.dac.channel:
+      '000':
+        path: definitions/enums/i2c.dac.channel/000.yaml
+    i2c.dac.type:
+      '000':
+        path: definitions/enums/i2c.dac.type/000.yaml
+    i2c.expander.type:
+      '000':
+        path: definitions/enums/i2c.expander.type/000.yaml
+    i2c.mux.type:
+      '000':
+        path: definitions/enums/i2c.mux.type/000.yaml
+    i2c.operation:
+      '001':
+        path: definitions/enums/i2c.operation/001.yaml
+    log.level:
+      '000':
+        path: definitions/enums/log.level/000.yaml
+    market.price.unit:
+      '000':
+        path: definitions/enums/market.price.unit/000.yaml
+    market.quantity.unit:
+      '000':
+        path: definitions/enums/market.quantity.unit/000.yaml
+    market.type.name:
+      '000':
+        path: definitions/enums/market.type.name/000.yaml
+    move.sieg.valve:
+      '001':
+        path: definitions/enums/move.sieg.valve/001.yaml
+    pico.board.variant:
+      '000':
+        path: definitions/enums/pico.board.variant/000.yaml
+    pico.cycler.event:
+      '000':
+        path: definitions/enums/pico.cycler.event/000.yaml
+    pico.cycler.state:
+      '000':
+        path: definitions/enums/pico.cycler.state/000.yaml
+    reboot.picos:
+      '000':
+        path: definitions/enums/reboot.picos/000.yaml
+    relay.closed.or.open:
+      '000':
+        path: definitions/enums/relay.closed.or.open/000.yaml
+    relay.energization.state:
+      '000':
+        path: definitions/enums/relay.energization.state/000.yaml
+    relay.wiring.config:
+      '000':
+        path: definitions/enums/relay.wiring.config/000.yaml
+    setpoint.phase:
+      '000':
+        path: definitions/enums/setpoint.phase/000.yaml
+    sieg.loop.strategy:
+      '000':
+        path: definitions/enums/sieg.loop.strategy/000.yaml
+    sieg.valve.state:
+      '000':
+        path: definitions/enums/sieg.valve.state/000.yaml
+    single.pico.state:
+      '000':
+        path: definitions/enums/single.pico.state/000.yaml
+    spaceheat.telemetry.name:
+      '007':
+        path: definitions/enums/spaceheat.telemetry.name/007.yaml
+    spaceheat.unit:
+      '001':
+        path: definitions/enums/spaceheat.unit/001.yaml
+    spruce.hack.hp.state:
+      '000':
+        path: definitions/enums/spruce.hack.hp.state/000.yaml
+    ta.validation.state:
+      '000':
+        path: definitions/enums/ta.validation.state/000.yaml
+    temp.calc.method:
+      '000':
+        path: definitions/enums/temp.calc.method/000.yaml
+    thermistor.data.method:
+      '000':
+        path: definitions/enums/thermistor.data.method/000.yaml
+    thermostat.kind:
+      '000':
+        path: definitions/enums/thermostat.kind/000.yaml
+    turn.5v.on.off:
+      '000':
+        path: definitions/enums/turn.5v.on.off/000.yaml
+    turn.hp.on.off:
+      '000':
+        path: definitions/enums/turn.hp.on.off/000.yaml
+    valve.open.or.closed:
+      '000':
+        path: definitions/enums/valve.open.or.closed/000.yaml
+    zone.call.circuit.event:
+      '000':
+        path: definitions/enums/zone.call.circuit.event/000.yaml
+    zone.call.circuit.state:
+      '000':
+        path: definitions/enums/zone.call.circuit.state/000.yaml
+    zone.call.source:
+      '000':
+        path: definitions/enums/zone.call.source/000.yaml
+    zone.circuit.governance.event:
+      '000':
+        path: definitions/enums/zone.circuit.governance.event/000.yaml
+    zone.circuit.governance.state:
+      '000':
+        path: definitions/enums/zone.circuit.governance.state/000.yaml
+    zone.setpoint.source:
+      '000':
+        path: definitions/enums/zone.setpoint.source/000.yaml
+  types:
+    ads.channel.config:
+      '000':
+        path: definitions/types/ads.channel.config/000.yaml
+    ads111x.based.component.gt:
+      '000':
+        path: definitions/types/ads111x.based.component.gt/000.yaml
+    ads111x.based.device.type.gt:
+      '000':
+        path: definitions/types/ads111x.based.device.type.gt/000.yaml
+    analog.dispatch:
+      '000':
+        path: definitions/types/analog.dispatch/000.yaml
+    async.btu.params:
+      '100':
+        path: definitions/types/async.btu.params/100.yaml
+    baseurl.failure.alert:
+      '100':
+        path: definitions/types/baseurl.failure.alert/100.yaml
+    bid:
+      '000':
+        path: definitions/types/bid/000.yaml
+    capture.tuning:
+      '000':
+        path: definitions/types/capture.tuning/000.yaml
+    channel.readings:
+      '002':
+        path: definitions/types/channel.readings/002.yaml
+    cop.curve:
+      '000':
+        path: definitions/types/cop.curve/000.yaml
+    dac.output.config:
+      '000':
+        path: definitions/types/dac.output.config/000.yaml
+    data.channel.gt:
+      '003':
+        path: definitions/types/data.channel.gt/003.yaml
+    derived.channel.gt:
+      '001':
+        path: definitions/types/derived.channel.gt/001.yaml
+      '002':
+        path: definitions/types/derived.channel.gt/002.yaml
+    device.component.gt:
+      '000':
+        path: definitions/types/device.component.gt/000.yaml
+    dfr.config:
+      '000':
+        path: definitions/types/dfr.config/000.yaml
+    egauge.register.config:
+      '000':
+        path: definitions/types/egauge.register.config/000.yaml
+    electric.meter.channel.config:
+      '000':
+        path: definitions/types/electric.meter.channel.config/000.yaml
+    electric.meter.component.gt:
+      '001':
+        path: definitions/types/electric.meter.component.gt/001.yaml
+    electric.meter.device.type.gt:
+      '000':
+        path: definitions/types/electric.meter.device.type.gt/000.yaml
+    energy.instruction:
+      '000':
+        path: definitions/types/energy.instruction/000.yaml
+    flo.params.house0:
+      '007':
+        path: definitions/types/flo.params.house0/007.yaml
+    flow.hall.params:
+      '200':
+        path: definitions/types/flow.hall.params/200.yaml
+    fsm.atomic.report:
+      '001':
+        path: definitions/types/fsm.atomic.report/001.yaml
+    fsm.event:
+      '000':
+        path: definitions/types/fsm.event/000.yaml
+    fsm.full.report:
+      '001':
+        path: definitions/types/fsm.full.report/001.yaml
+    g.node.gt:
+      '006':
+        path: definitions/types/g.node.gt/006.yaml
+    glitch:
+      '000':
+        path: definitions/types/glitch/000.yaml
+    gpio.relay.component.gt:
+      '000':
+        path: definitions/types/gpio.relay.component.gt/000.yaml
+    gpio.sensor.component.gt:
+      '000':
+        path: definitions/types/gpio.sensor.component.gt/000.yaml
+    gw.boiler.backup:
+      '000':
+        path: definitions/types/gw.boiler.backup/000.yaml
+    gw.command.interface:
+      '000':
+        path: definitions/types/gw.command.interface/000.yaml
+    gw.command.transition:
+      '000':
+        path: definitions/types/gw.command.transition/000.yaml
+    gw.dispatch.ack:
+      '000':
+        path: definitions/types/gw.dispatch.ack/000.yaml
+    gw.dispatch.hold:
+      '000':
+        path: definitions/types/gw.dispatch.hold/000.yaml
+    gw.dispatch.nack:
+      '000':
+        path: definitions/types/gw.dispatch.nack/000.yaml
+    gw.element.backup:
+      '000':
+        path: definitions/types/gw.element.backup/000.yaml
+    gw.house.operating.status:
+      '000':
+        path: definitions/types/gw.house.operating.status/000.yaml
+    gw.house0.family.params:
+      '000':
+        path: definitions/types/gw.house0.family.params/000.yaml
+    gw.house0.layout:
+      '000':
+        path: definitions/types/gw.house0.layout/000.yaml
+    gw.hydronic:
+      '000':
+        path: definitions/types/gw.hydronic/000.yaml
+    gw.native.gpio.pin:
+      '000':
+        path: definitions/types/gw.native.gpio.pin/000.yaml
+    gw.nolan.family.params:
+      '000':
+        path: definitions/types/gw.nolan.family.params/000.yaml
+    gw.nolan.layout:
+      '000':
+        path: definitions/types/gw.nolan.layout/000.yaml
+    gw.operational.params:
+      '000':
+        path: definitions/types/gw.operational.params/000.yaml
+    gw.recorded.setpoints:
+      '000':
+        path: definitions/types/gw.recorded.setpoints/000.yaml
+    gw.scada.commit:
+      '000':
+        path: definitions/types/gw.scada.commit/000.yaml
+    gw.tou.tariff:
+      '000':
+        path: definitions/types/gw.tou.tariff/000.yaml
+    gw.tou.window:
+      '000':
+        path: definitions/types/gw.tou.window/000.yaml
+    gw.water.store:
+      '000':
+        path: definitions/types/gw.water.store/000.yaml
+    gw.weather.channel.gt:
+      '000':
+        path: definitions/types/gw.weather.channel.gt/000.yaml
+    gw.weather.forecast:
+      '000':
+        path: definitions/types/gw.weather.forecast/000.yaml
+    gw.weather.forecast.bundle.gt:
+      '000':
+        path: definitions/types/gw.weather.forecast.bundle.gt/000.yaml
+    gw.weather.forecast.channel.gt:
+      '000':
+        path: definitions/types/gw.weather.forecast.channel.gt/000.yaml
+    gw.weather.seasonal.template.gt:
+      '000':
+        path: definitions/types/gw.weather.seasonal.template.gt/000.yaml
+    gw0.required.energy.layered:
+      '000':
+        path: definitions/types/gw0.required.energy.layered/000.yaml
+    gw0.usable.energy.layered:
+      '000':
+        path: definitions/types/gw0.usable.energy.layered/000.yaml
+    gw1.hvac.zone:
+      '000':
+        path: definitions/types/gw1.hvac.zone/000.yaml
+    gw1.scada.device.type.gt:
+      '000':
+        path: definitions/types/gw1.scada.device.type.gt/000.yaml
+    gw1.simple.sim.layout:
+      '000':
+        path: definitions/types/gw1.simple.sim.layout/000.yaml
+    gw1.tank.temp.calibration:
+      '000':
+        path: definitions/types/gw1.tank.temp.calibration/000.yaml
+      '001':
+        path: definitions/types/gw1.tank.temp.calibration/001.yaml
+    gw1.tank.temp.calibration.map:
+      '000':
+        path: definitions/types/gw1.tank.temp.calibration.map/000.yaml
+      '001':
+        path: definitions/types/gw1.tank.temp.calibration.map/001.yaml
+    gw1.unit.quantity.projection:
+      '000':
+        path: definitions/types/gw1.unit.quantity.projection/000.yaml
+    gw1.zone.call.circuit:
+      '000':
+        path: definitions/types/gw1.zone.call.circuit/000.yaml
+    gw1.zone.thermostat:
+      '000':
+        path: definitions/types/gw1.zone.thermostat/000.yaml
+    ha1.params:
+      '006':
+        path: definitions/types/ha1.params/006.yaml
+    heating.curve:
+      '000':
+        path: definitions/types/heating.curve/000.yaml
+    heating.forecast:
+      '000':
+        path: definitions/types/heating.forecast/000.yaml
+    hp.control.box.device.type.gt:
+      '000':
+        path: definitions/types/hp.control.box.device.type.gt/000.yaml
+    hp.device.type.gt:
+      '000':
+        path: definitions/types/hp.device.type.gt/000.yaml
+    hubitat.component.gt:
+      '000':
+        path: definitions/types/hubitat.component.gt/000.yaml
+    hubitat.gt:
+      '000':
+        path: definitions/types/hubitat.gt/000.yaml
+    hubitat.poller.component.gt:
+      '000':
+        path: definitions/types/hubitat.poller.component.gt/000.yaml
+    hubitat.poller.gt:
+      '001':
+        path: definitions/types/hubitat.poller.gt/001.yaml
+    i2c.bit.address:
+      '000':
+        path: definitions/types/i2c.bit.address/000.yaml
+    i2c.bus:
+      '000':
+        path: definitions/types/i2c.bus/000.yaml
+    i2c.ct.interface.capability:
+      '000':
+        path: definitions/types/i2c.ct.interface.capability/000.yaml
+    i2c.dac.capability:
+      '000':
+        path: definitions/types/i2c.dac.capability/000.yaml
+    i2c.dac.output.component.gt:
+      '000':
+        path: definitions/types/i2c.dac.output.component.gt/000.yaml
+    i2c.expander:
+      '000':
+        path: definitions/types/i2c.expander/000.yaml
+    i2c.multichannel.dt.relay.component.gt:
+      '004':
+        path: definitions/types/i2c.multichannel.dt.relay.component.gt/004.yaml
+    i2c.mux:
+      '000':
+        path: definitions/types/i2c.mux/000.yaml
+    i2c.read.bit:
+      '000':
+        path: definitions/types/i2c.read.bit/000.yaml
+    i2c.read.bytes:
+      '000':
+        path: definitions/types/i2c.read.bytes/000.yaml
+    i2c.read.reg:
+      '000':
+        path: definitions/types/i2c.read.reg/000.yaml
+    i2c.reg.address:
+      '000':
+        path: definitions/types/i2c.reg.address/000.yaml
+    i2c.relay.capability:
+      '000':
+        path: definitions/types/i2c.relay.capability/000.yaml
+    i2c.relay.component.gt:
+      '000':
+        path: definitions/types/i2c.relay.component.gt/000.yaml
+    i2c.result:
+      '001':
+        path: definitions/types/i2c.result/001.yaml
+    i2c.thermistor.channel.config:
+      '000':
+        path: definitions/types/i2c.thermistor.channel.config/000.yaml
+    i2c.thermistor.interface.capability:
+      '000':
+        path: definitions/types/i2c.thermistor.interface.capability/000.yaml
+    i2c.thermistor.reader.component.gt:
+      '000':
+        path: definitions/types/i2c.thermistor.reader.component.gt/000.yaml
+    i2c.write.bit:
+      '000':
+        path: definitions/types/i2c.write.bit/000.yaml
+    i2c.write.byte:
+      '000':
+        path: definitions/types/i2c.write.byte/000.yaml
+    i2c.write.reg:
+      '000':
+        path: definitions/types/i2c.write.reg/000.yaml
+    latest.price:
+      '000':
+        path: definitions/types/latest.price/000.yaml
+    layout.lite:
+      '013':
+        path: definitions/types/layout.lite/013.yaml
+    linear.one.dimensional.calibration:
+      '000':
+        path: definitions/types/linear.one.dimensional.calibration/000.yaml
+    machine.states:
+      '000':
+        path: definitions/types/machine.states/000.yaml
+    maker.api.attribute.gt:
+      '001':
+        path: definitions/types/maker.api.attribute.gt/001.yaml
+    new.command.tree:
+      '003':
+        path: definitions/types/new.command.tree/003.yaml
+    pico.btu.meter.component.gt:
+      '000':
+        path: definitions/types/pico.btu.meter.component.gt/000.yaml
+    pico.flow.module.component.gt:
+      '001':
+        path: definitions/types/pico.flow.module.component.gt/001.yaml
+    pico.tank.module.component.gt:
+      '012':
+        path: definitions/types/pico.tank.module.component.gt/012.yaml
+    power.watts:
+      '000':
+        path: definitions/types/power.watts/000.yaml
+    price.quantity.unitless:
+      '001':
+        path: definitions/types/price.quantity.unitless/001.yaml
+    relay.actor.config:
+      '003':
+        path: definitions/types/relay.actor.config/003.yaml
+    relay.control.config:
+      '000':
+        path: definitions/types/relay.control.config/000.yaml
+    report:
+      '003':
+        path: definitions/types/report/003.yaml
+    report.event:
+      '004':
+        path: definitions/types/report.event/004.yaml
+    scada.board.component.gt:
+      '000':
+        path: definitions/types/scada.board.component.gt/000.yaml
+    scada.control.capabilities:
+      '002':
+        path: definitions/types/scada.control.capabilities/002.yaml
+    scada.params:
+      '005':
+        path: definitions/types/scada.params/005.yaml
+    send.control.capabilities:
+      '000':
+        path: definitions/types/send.control.capabilities/000.yaml
+    send.layout:
+      '001':
+        path: definitions/types/send.layout/001.yaml
+    setpoint.belief:
+      '000':
+        path: definitions/types/setpoint.belief/000.yaml
+    sim.pico.btu.meter.component.gt:
+      '000':
+        path: definitions/types/sim.pico.btu.meter.component.gt/000.yaml
+    sim.pico.flow.module.component.gt:
+      '000':
+        path: definitions/types/sim.pico.flow.module.component.gt/000.yaml
+    sim.pico.tank.module.component.gt:
+      '001':
+        path: definitions/types/sim.pico.tank.module.component.gt/001.yaml
+    sim.sensor.component.gt:
+      '000':
+        path: definitions/types/sim.sensor.component.gt/000.yaml
+    single.machine.state:
+      '000':
+        path: definitions/types/single.machine.state/000.yaml
+    single.reading:
+      '000':
+        path: definitions/types/single.reading/000.yaml
+    slow.contract.heartbeat:
+      '002':
+        path: definitions/types/slow.contract.heartbeat/002.yaml
+    slow.contract.rejection:
+      '000':
+        path: definitions/types/slow.contract.rejection/000.yaml
+    slow.dispatch.contract:
+      '000':
+        path: definitions/types/slow.dispatch.contract/000.yaml
+    snapshot.spaceheat:
+      '003':
+        path: definitions/types/snapshot.spaceheat/003.yaml
+    spaceheat.node.gt:
+      '303':
+        path: definitions/types/spaceheat.node.gt/303.yaml
+    spaceheat.telemetry.quantity.projection:
+      '000':
+        path: definitions/types/spaceheat.telemetry.quantity.projection/000.yaml
+    synced.readings:
+      '000':
+        path: definitions/types/synced.readings/000.yaml
+    ta.deed:
+      '000':
+        path: definitions/types/ta.deed/000.yaml
+    tank.module.params:
+      '200':
+        path: definitions/types/tank.module.params/200.yaml
+    ticklist.hall:
+      '101':
+        path: definitions/types/ticklist.hall/101.yaml
+    ticklist.hall.report:
+      '000':
+        path: definitions/types/ticklist.hall.report/000.yaml
+    ticklist.reed:
+      '101':
+        path: definitions/types/ticklist.reed/101.yaml
+    ticklist.reed.report:
+      '000':
+        path: definitions/types/ticklist.reed.report/000.yaml
+    web.server.component.gt:
+      '001':
+        path: definitions/types/web.server.component.gt/001.yaml
+    zero.ten.power.on:
+      '000':
+        path: definitions/types/zero.ten.power.on/000.yaml
+    zone.circuit.governance.cmd:
+      '000':
+        path: definitions/types/zone.circuit.governance.cmd/000.yaml

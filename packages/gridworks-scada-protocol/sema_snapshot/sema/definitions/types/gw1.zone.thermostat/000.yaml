@@ -1,0 +1,38 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw1.zone.thermostat/000"
+
+title: "gw1.zone.thermostat"
+type: object
+description: >
+  A wall thermostat: its kind, and for a comms-capable kind, the
+  component it is read through.
+
+properties:
+  Kind:
+    $ref: "https://schemas.electricity.works/enums/thermostat.kind/000"
+
+  ComponentId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      Id of the component this thermostat is read through.
+
+  TypeName:
+    const: "gw1.zone.thermostat"
+
+  Version:
+    const: "000"
+
+required:
+  - Kind
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "NoComponentOnDumbStat"
+      statement: >
+        If Kind is MechanicalDial, ComponentId SHALL be absent.

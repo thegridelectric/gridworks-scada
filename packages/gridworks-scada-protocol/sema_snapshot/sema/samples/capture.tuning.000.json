@@ -1,0 +1,7 @@
+{
+  "TypeName": "capture.tuning",
+  "Version": "000",
+  "ChannelName": "scada",
+  "CapturePeriodS": 1,
+  "AsyncCapture": false
+}

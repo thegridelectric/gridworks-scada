@@ -1,0 +1,290 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/scada.control.capabilities/002"
+
+title: "scada.control.capabilities"
+type: object
+description: >
+  Projection of the control surface exposed by a SCADA node: the relay,
+  0-10V and interior command nodes an operator may address, the telemetry
+  channels that carry the relay and 0-10V nodes' observed state, and the
+  command interface of every node that takes event commands.
+
+  This is the cover of the live command tree, not the tree: each entry
+  binds a command vocabulary to the node that executes it. A relay owned
+  by an interior command node (the vdc relay under five-v-boss, hp-boss's
+  ops relay) is listed for its state but is commanded through its owner. It
+  is a control-focused projection and does not represent the full system
+  topology.
+
+properties:
+
+  FromGNodeAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      GNode alias of the SCADA actor publishing this capability projection.
+
+  MessageCreatedMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+    description: >
+      Timestamp at which this projection was created.
+
+  RelayNodes:
+    type: array
+    description: >
+      List of Spaceheat nodes representing controllable relays exposed by
+      this SCADA. Each node is dispatch-addressable by Name.
+    items:
+      $ref: "https://schemas.electricity.works/types/spaceheat.node.gt/303"
+
+  DacNodes:
+    type: array
+    description: >
+      List of Spaceheat nodes representing controllable 0-10V outputs exposed
+      by this SCADA. Each node is dispatch-addressable by Name.
+    items:
+      $ref: "https://schemas.electricity.works/types/spaceheat.node.gt/303"
+
+  CommandNodes:
+    type: array
+    description: >
+      Interior nodes that take event commands and command actuators of
+      their own, such as hp-boss and five-v-boss. A node with two command
+      vocabularies (five-v-boss: turn.5v.on.off and reboot.picos) has one
+      interface entry per vocabulary. Each node is
+      dispatch-addressable by Name; its state reaches the operator through
+      single.machine.state rather than a control channel.
+    items:
+      $ref: "https://schemas.electricity.works/types/spaceheat.node.gt/303"
+
+  ControlChannels:
+    type: array
+    description: >
+      Data channels corresponding to controllable nodes. Each channel's
+      AboutNodeName identifies the RelayNodes or DacNodes entry whose observed
+      state is represented by the channel.
+    items:
+      $ref: "https://schemas.electricity.works/types/data.channel.gt/003"
+
+  CommandInterfaces:
+    type: array
+    description: >
+      The command interface of every node the current tree root commands
+      directly: the event vocabulary, the state vocabulary and the
+      transitions a command asks for.
+    items:
+      $ref: "https://schemas.electricity.works/types/gw.command.interface/000"
+
+  TypeName:
+    const: "scada.control.capabilities"
+
+  Version:
+    const: "002"
+
+required:
+  - FromGNodeAlias
+  - MessageCreatedMs
+  - RelayNodes
+  - DacNodes
+  - CommandNodes
+  - ControlChannels
+  - CommandInterfaces
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "FromGNodeAlias": "hw1.isone.me.versant.keene.beech.scada",
+      "MessageCreatedMs": 1757286000000,
+      "RelayNodes": [
+        {
+          "Name": "zone1-bedrooms-ops-relay",
+          "ActorHierarchyName": "s.zone1-bedrooms-ops-relay",
+          "Handle": "admin.zone1-bedrooms-ops-relay",
+          "ActorClass": "Relay",
+          "DisplayName": "Zone 1 Bedrooms Ops Relay",
+          "ComponentId": "25f344ee-39ea-4904-bff9-54f2022337af",
+          "ShNodeId": "a7f4becc-8e35-4118-a3e9-ab6ad13f5a67",
+          "TypeName": "spaceheat.node.gt",
+          "Version": "303"
+        },
+        {
+          "Name": "vdc-relay",
+          "ActorHierarchyName": "s.vdc-relay",
+          "Handle": "admin.five-v-boss.pico-cycler.vdc-relay",
+          "ActorClass": "Relay",
+          "DisplayName": "5VDC Relay",
+          "ComponentId": "6d1c8a1e-2f4b-4c7a-9e3d-0b5a7c2e4f61",
+          "ShNodeId": "c2e7b9d4-8a1f-4e6b-b3c5-7d9e1f0a2b4c",
+          "TypeName": "spaceheat.node.gt",
+          "Version": "303"
+        }
+      ],
+      "DacNodes": [
+        {
+          "Name": "secondary-010v",
+          "ActorHierarchyName": "s.secondary-010v",
+          "Handle": "admin.secondary-010v",
+          "ActorClass": "ZeroTenOutputer",
+          "DisplayName": "Secondary Pump 0-10V",
+          "ComponentId": "3b9f2c7d-5e1a-4d8b-a6c3-9f0e2d4b6a8c",
+          "ShNodeId": "e4a1c6b8-3d2f-4b9a-8c7e-1f5d3a9b0c2e",
+          "TypeName": "spaceheat.node.gt",
+          "Version": "303"
+        }
+      ],
+      "CommandNodes": [
+        {
+          "Name": "five-v-boss",
+          "ActorHierarchyName": "s.five-v-boss",
+          "Handle": "admin.five-v-boss",
+          "ActorClass": "FiveVBoss",
+          "DisplayName": "Five V Boss",
+          "ShNodeId": "f7d2e5a9-1b4c-4a8e-9d3f-6c0b2e8a4d1f",
+          "TypeName": "spaceheat.node.gt",
+          "Version": "303"
+        },
+        {
+          "Name": "hp-boss",
+          "ActorHierarchyName": "s.hp-boss",
+          "Handle": "admin.hp-boss",
+          "ActorClass": "HpBoss",
+          "DisplayName": "Heat Pump Boss",
+          "ShNodeId": "0a3c5e7f-9b1d-4f2a-8e6c-4d7b9a1c3e5f",
+          "TypeName": "spaceheat.node.gt",
+          "Version": "303"
+        }
+      ],
+      "ControlChannels": [
+        {
+          "Name": "zone1-bedrooms-ops-relay",
+          "DisplayName": "Zone 1 Bedrooms Ops Relay State",
+          "AboutNodeName": "zone1-bedrooms-ops-relay",
+          "CapturedByNodeName": "zone1-bedrooms-ops-relay",
+          "TelemetryName": "RelayState",
+          "Quantity": "Unitless",
+          "TerminalAssetAlias": "hw1.isone.me.versant.keene.beech.ta",
+          "Id": "9c33d7af-59e0-415b-8208-ecf64916a64b",
+          "TypeName": "data.channel.gt",
+          "Version": "003"
+        },
+        {
+          "Name": "vdc-relay",
+          "DisplayName": "5VDC Relay State",
+          "AboutNodeName": "vdc-relay",
+          "CapturedByNodeName": "vdc-relay",
+          "TelemetryName": "RelayState",
+          "Quantity": "Unitless",
+          "TerminalAssetAlias": "hw1.isone.me.versant.keene.beech.ta",
+          "Id": "2b8e4d6f-7a1c-4e9b-8d3f-5c0a2e4b6d8f",
+          "TypeName": "data.channel.gt",
+          "Version": "003"
+        },
+        {
+          "Name": "secondary-010v",
+          "DisplayName": "Secondary Pump 0-10V",
+          "AboutNodeName": "secondary-010v",
+          "CapturedByNodeName": "secondary-010v",
+          "TelemetryName": "VoltsTimesTen",
+          "Quantity": "Voltage",
+          "TerminalAssetAlias": "hw1.isone.me.versant.keene.beech.ta",
+          "Id": "4d0f6a8c-9b2e-4c1d-a7f5-3e8b0d2c4a6e",
+          "TypeName": "data.channel.gt",
+          "Version": "003"
+        }
+      ],
+      "CommandInterfaces": [
+        {
+          "ActorName": "zone1-bedrooms-ops-relay",
+          "Commands": [
+            {"Event": "CloseRelay", "ToState": "RelayClosed", "TypeName": "gw.command.transition", "Version": "000"},
+            {"Event": "OpenRelay", "ToState": "RelayOpen", "TypeName": "gw.command.transition", "Version": "000"}
+          ],
+          "EventType": "change.relay.state",
+          "StateType": "relay.closed.or.open",
+          "TypeName": "gw.command.interface",
+          "Version": "000"
+        },
+        {
+          "ActorName": "five-v-boss",
+          "Commands": [
+            {"Event": "TurnOff", "ToState": "FiveVOff", "TypeName": "gw.command.transition", "Version": "000"},
+            {"Event": "TurnOn", "ToState": "PicoCycler", "TypeName": "gw.command.transition", "Version": "000"}
+          ],
+          "EventType": "turn.5v.on.off",
+          "StateType": "five.v.boss.state",
+          "TypeName": "gw.command.interface",
+          "Version": "000"
+        },
+        {
+          "ActorName": "five-v-boss",
+          "Commands": [
+            {"Event": "RebootPicos", "ToState": "PicoCycler", "TypeName": "gw.command.transition", "Version": "000"}
+          ],
+          "EventType": "reboot.picos",
+          "StateType": "five.v.boss.state",
+          "TypeName": "gw.command.interface",
+          "Version": "000"
+        },
+        {
+          "ActorName": "hp-boss",
+          "Commands": [
+            {"Event": "TurnOn", "ToState": "HpOn", "TypeName": "gw.command.transition", "Version": "000"},
+            {"Event": "TurnOff", "ToState": "HpOff", "TypeName": "gw.command.transition", "Version": "000"}
+          ],
+          "EventType": "turn.hp.on.off",
+          "StateType": "hp.boss.state",
+          "TypeName": "gw.command.interface",
+          "Version": "000"
+        }
+      ],
+      "TypeName": "scada.control.capabilities",
+      "Version": "002"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "ActorClassConsistency"
+      statement: >
+        a. All nodes in RelayNodes SHALL have ActorClass equal to Relay.
+        b. All nodes in DacNodes SHALL have ActorClass equal to ZeroTenOutputer.
+        c. No node in CommandNodes SHALL have ActorClass equal to Relay or
+        ZeroTenOutputer.
+
+    - number: 2
+      name: "HandleTerminalMatchesName"
+      statement: >
+        For every node in RelayNodes, DacNodes and CommandNodes, Handle SHALL
+        be present and its final dot-separated token SHALL equal Name.
+
+    - number: 3
+      name: "AboutNodesAreControlNodes"
+      statement: >
+        The set of ControlChannels.AboutNodeName values SHALL equal the set of
+        RelayNodes.Name and DacNodes.Name values.
+
+    - number: 4
+      name: "CommandInterfacesCoverTheTree"
+      statement: >
+        a. The set of CommandInterfaces.ActorName values SHALL equal the set of
+        Name values of the nodes in RelayNodes and CommandNodes whose Handle
+        does not extend the Handle of any CommandNodes entry (a Handle extends
+        another when it equals that Handle followed by a dot and further
+        tokens).
+        b. No two CommandInterfaces entries SHALL share both an ActorName and an
+        EventType; a node with more than one command vocabulary carries one
+        entry per vocabulary.
+
+  extended_description: >
+    Axiom 4 is what makes the message the cover of the tree. A node that
+    sits under no interior command node is commanded by the tree's
+    authority directly and gets an interface; a relay under an interior
+    node belongs to it and is commanded through that node's interface.
+    The rule reads the same whichever authority holds the tree, since
+    Handles carry the live tree. DacNodes take an analog value rather
+    than an event and so carry no interface.

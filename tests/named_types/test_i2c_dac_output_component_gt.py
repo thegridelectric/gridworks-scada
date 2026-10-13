@@ -1,9 +1,9 @@
 """Tests i2c.dac.output.component.gt type, version 000, and its
 dac.output.config."""
 
-import pytest
 
 from gwsproto.named_types import I2cDacOutputComponentGt
+from tests.named_types.sema_oracle import assert_refused
 
 
 def base_config(dac_channel: str) -> dict:
@@ -36,8 +36,6 @@ def test_i2c_dac_output_component_gt_generated() -> None:
 def test_i2c_dac_output_component_gt_axiom_1() -> None:
     d = base_component()
     d["ConfigList"].append(base_config("A"))
-    with pytest.raises(ValueError, match="Axiom 1 \\(ExactlyOneConfig\\) failed"):
-        I2cDacOutputComponentGt.model_validate(d)
+    assert_refused(I2cDacOutputComponentGt, d, match="Axiom 1 \\(ExactlyOneConfig\\) failed")
     d["ConfigList"] = []
-    with pytest.raises(ValueError, match="Axiom 1 \\(ExactlyOneConfig\\) failed"):
-        I2cDacOutputComponentGt.model_validate(d)
+    assert_refused(I2cDacOutputComponentGt, d, match="Axiom 1 \\(ExactlyOneConfig\\) failed")

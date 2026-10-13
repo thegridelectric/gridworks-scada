@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from gwsproto.named_types import OperationalParams, TouTariff, ZeroTenPowerOn
+from tests.named_types.sema_oracle import assert_refused
 
 CONFIG = Path(__file__).parent.parent / "config"
 
@@ -25,25 +26,20 @@ def ops(name: str) -> dict:
 def test_gw_operational_params_axiom_1_duplicate_channel(name: str) -> None:
     d = ops(name)
     d["CaptureTuningList"].append(dict(d["CaptureTuningList"][0]))
-    with pytest.raises(
-        ValueError, match="Axiom 1 \\(CaptureTuningChannelUniqueness\\)"
-    ):
-        OperationalParams.model_validate(d)
+    assert_refused(OperationalParams, d, match="Axiom 1 \\(CaptureTuningChannelUniqueness\\)")
 
 
 @pytest.mark.parametrize("name", OPS_FIXTURES)
 def test_gw_operational_params_axiom_2_duplicate_node(name: str) -> None:
     d = ops(name)
     d["ZeroTenPowerOnList"].append(dict(d["ZeroTenPowerOnList"][0]))
-    with pytest.raises(ValueError, match="Axiom 2 \\(ZeroTenPowerOnNodeUniqueness\\)"):
-        OperationalParams.model_validate(d)
+    assert_refused(OperationalParams, d, match="Axiom 2 \\(ZeroTenPowerOnNodeUniqueness\\)")
 
 
 def test_gw_operational_params_family_block_is_discriminated() -> None:
     d = ops("gw.nolan.operational.params.json")
     d["FamilyParams"]["TypeName"] = "gw.house0.family.params"
-    with pytest.raises(ValueError, match="SiegLoopStrategy"):
-        OperationalParams.model_validate(d)
+    assert_refused(OperationalParams, d, match="SiegLoopStrategy")
 
 
 def test_gw_tou_tariff_axiom_1_overlapping_windows() -> None:
@@ -64,8 +60,7 @@ def test_gw_tou_tariff_axiom_1_overlapping_windows() -> None:
             "Version": "000",
         },
     ]
-    with pytest.raises(ValueError, match="Axiom 1 \\(PerDayWindowNonOverlap\\)"):
-        TouTariff.model_validate(d)
+    assert_refused(TouTariff, d, match="Axiom 1 \\(PerDayWindowNonOverlap\\)")
 
 
 def test_zero_ten_power_on_axiom_1_above_ten_volts() -> None:
@@ -78,8 +73,7 @@ def test_gw_operational_params_axiom_3_standby_without_operator_hold(name: str) 
     d = ops(name)
     d["Standby"] = True
     d["DispatchHold"]["OperatorHold"] = False
-    with pytest.raises(ValueError, match="Axiom 3 \\(StandbyImpliesOperatorHold\\)"):
-        OperationalParams.model_validate(d)
+    assert_refused(OperationalParams, d, match="Axiom 3 \\(StandbyImpliesOperatorHold\\)")
 
 
 @pytest.mark.parametrize("name", OPS_FIXTURES)
@@ -89,8 +83,7 @@ def test_gw_operational_params_axiom_4_a_monitor_only_energizes_nothing(
     d = ops(name)
     d["StandbyPosture"] = "MonitorOnly"
     d["EnergizedStandbyRelays"] = ["hp-failsafe-relay"]
-    with pytest.raises(ValueError, match="Axiom 4 \\(PostureRelaysPerFamily\\)"):
-        OperationalParams.model_validate(d)
+    assert_refused(OperationalParams, d, match="Axiom 4 \\(PostureRelaysPerFamily\\)")
 
 
 def test_gw_operational_params_axiom_4_b_house0_list_is_fixed() -> None:
@@ -102,16 +95,14 @@ def test_gw_operational_params_axiom_4_b_house0_list_is_fixed() -> None:
         ["hp-failsafe-relay", "aquastat-ctrl-relay", "store-pump-relay"],
     ):
         d["EnergizedStandbyRelays"] = relays
-        with pytest.raises(ValueError, match="Axiom 4 \\(PostureRelaysPerFamily\\)"):
-            OperationalParams.model_validate(d)
+        assert_refused(OperationalParams, d, match="Axiom 4 \\(PostureRelaysPerFamily\\)")
 
 
 def test_gw_operational_params_axiom_4_c_nolan_list_is_empty() -> None:
     d = ops("gw.nolan.operational.params.json")
     assert d["EnergizedStandbyRelays"] == []
     d["EnergizedStandbyRelays"] = ["iso-valve-relay"]
-    with pytest.raises(ValueError, match="Axiom 4 \\(PostureRelaysPerFamily\\)"):
-        OperationalParams.model_validate(d)
+    assert_refused(OperationalParams, d, match="Axiom 4 \\(PostureRelaysPerFamily\\)")
 
 
 def test_gw_operational_params_axiom_5_house0_standby_holds_full_send() -> None:
@@ -122,8 +113,7 @@ def test_gw_operational_params_axiom_5_house0_standby_holds_full_send() -> None:
     OperationalParams.model_validate(d)
     for strategy in ("StratProtect", "LwtControl"):
         d["FamilyParams"]["SiegLoopStrategy"] = strategy
-        with pytest.raises(ValueError, match="Axiom 5 \\(StandbyHoldsFullSend\\)"):
-            OperationalParams.model_validate(d)
+        assert_refused(OperationalParams, d, match="Axiom 5 \\(StandbyHoldsFullSend\\)")
 
 
 def test_gw_operational_params_axiom_5_nolan_has_no_loop() -> None:
@@ -138,8 +128,7 @@ def test_gw_nolan_family_params_axiom_1_charge_not_below_full() -> None:
     family = d["FamilyParams"]
     assert family["BufferChargeF"] < family["BufferFullF"]
     family["BufferChargeF"] = family["BufferFullF"]
-    with pytest.raises(ValueError, match="Axiom 1 \\(ChargeBelowFull\\)"):
-        OperationalParams.model_validate(d)
+    assert_refused(OperationalParams, d, match="Axiom 1 \\(ChargeBelowFull\\)")
 
 
 def test_standby_relays_are_relays_the_normal_node_claims() -> None:

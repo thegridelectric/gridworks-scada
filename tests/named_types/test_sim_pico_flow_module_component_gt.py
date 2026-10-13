@@ -1,8 +1,8 @@
 """The sim pico flow word decodes its own shape and rejects a malformed HwUid."""
 
-import pytest
 
 from gwsproto.named_types import SimPicoFlowModuleComponentGt
+from tests.named_types.sema_oracle import assert_conforms, assert_refused
 
 
 def component() -> dict:
@@ -33,10 +33,10 @@ def test_sim_pico_flow_module_component_gt_round_trip() -> None:
     d = component()
     word = SimPicoFlowModuleComponentGt.model_validate(d)
     assert word.model_dump(by_alias=True, exclude_none=True) == d
+    assert_conforms(word)
 
 
 def test_sim_pico_flow_module_component_gt_axiom_1_bad_hw_uid() -> None:
     d = component()
     d["HwUid"] = "pico_60E352"
-    with pytest.raises(ValueError, match="HwUid"):
-        SimPicoFlowModuleComponentGt.model_validate(d)
+    assert_refused(SimPicoFlowModuleComponentGt, d, match="HwUid")

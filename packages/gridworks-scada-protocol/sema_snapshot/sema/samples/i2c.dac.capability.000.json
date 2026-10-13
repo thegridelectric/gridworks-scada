@@ -1,0 +1,9 @@
+{
+  "TypeName": "i2c.dac.capability",
+  "Version": "000",
+  "DacName": "Zones",
+  "I2cBus": "DefaultBus",
+  "I2cAddress": 96,
+  "DacType": "Mcp4728",
+  "Channels": 4
+}

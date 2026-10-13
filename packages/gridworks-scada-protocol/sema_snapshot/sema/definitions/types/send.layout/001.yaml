@@ -1,0 +1,44 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/send.layout/001"
+
+title: "send.layout"
+type: object
+description: >
+  Request message asking a SCADA actor to send its current layout.lite.
+
+properties:
+  FromGNodeAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      GNode alias of the actor issuing the request.
+
+  MessageCreatedMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+    description: >
+      Timestamp at which this request was created by the requesting node.
+
+  TypeName:
+    const: "send.layout"
+
+  Version:
+    const: "001"
+
+required:
+  - FromGNodeAlias
+  - MessageCreatedMs
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "FromGNodeAlias": "d1.isone.me.versant.keene.beech.admin",
+      "MessageCreatedMs": 1762634100033,
+      "TypeName": "send.layout",
+      "Version": "001"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

@@ -1,0 +1,81 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/hubitat.gt/000"
+
+title: "hubitat.gt"
+type: object
+description: >
+  Connection settings for one Hubitat hub reached through its MakerAPI: the host, the
+  MakerAPI app id and access token, the hub MAC address, and whether the web-listen (push)
+  path is enabled.
+
+properties:
+
+  Host:
+    type: string
+    description: >
+      The Hubitat hub host (IP address or hostname).
+
+  MakerApiId:
+    type: integer
+    description: >
+      The MakerAPI app id on the hub. A sentinel of -1 marks an unconfigured stub, so this
+      is a plain integer rather than a positive-int format.
+
+  AccessToken:
+    type: string
+    description: >
+      The MakerAPI access token. Often a UUID in practice, but carried as an open string
+      (an empty token marks an unconfigured stub).
+
+  MacAddress:
+    $ref: "https://schemas.electricity.works/formats/mac.address"
+    description: >
+      The hub MAC address. Six lowercase hexadecimal octet pairs, colon-separated
+      (e.g. `34:e1:d1:82:22:22`) — the normalized form the SCADA boundary emits.
+
+  WebListenEnabled:
+    type: boolean
+    description: >
+      Whether SCADA registers for MakerAPI web-listen (push) updates from this hub.
+
+  TypeName:
+    const: "hubitat.gt"
+
+  Version:
+    const: "000"
+
+required:
+  - Host
+  - MakerApiId
+  - AccessToken
+  - MacAddress
+  - WebListenEnabled
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "Host": "example",
+      "MakerApiId": 0,
+      "AccessToken": "example",
+      "MacAddress": "34:e1:d1:82:22:22",
+      "WebListenEnabled": false,
+      "TypeName": "hubitat.gt",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  extended_description: >
+    The MakerAPI URL machinery (base / maker-api / devices / refresh URL construction) is
+    NOT part of this serialized contract. In the SCADA application those are derived
+    helpers computed from these fields; the Sema runtime generates a plain data class and
+    does not emit them. Code that needs the URLs builds them in app code from Host,
+    MakerApiId, AccessToken, and MacAddress.
+
+    This vocabulary serves the five legacy House0 production homes (beech, elm, oak, fir,
+    maple) and is not expected to expand going forward.

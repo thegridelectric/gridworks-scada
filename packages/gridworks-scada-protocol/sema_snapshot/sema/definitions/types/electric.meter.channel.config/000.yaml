@@ -1,0 +1,46 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/electric.meter.channel.config/000"
+
+title: "electric.meter.channel.config"
+type: object
+description: >
+  Per-channel configuration for one telemetry channel read from an electric meter.
+  Flat — it spells out the channel name and the optional EGauge modbus register mapping
+  for meters read over modbus. It carries only the per-channel hardware binding;
+  capture/report tuning lives in operational-params (capture.tuning), not in the static
+  layout.
+
+properties:
+
+  ChannelName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+
+  EgaugeRegisterConfig:
+    $ref: "https://schemas.electricity.works/types/egauge.register.config/000"
+    description: >
+      EGauge modbus register mapping for this channel, when the meter is read over
+      modbus. Absent for non-modbus meters.
+
+  TypeName:
+    const: "electric.meter.channel.config"
+
+  Version:
+    const: "000"
+
+required:
+  - ChannelName
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ChannelName": "scada",
+      "TypeName": "electric.meter.channel.config",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

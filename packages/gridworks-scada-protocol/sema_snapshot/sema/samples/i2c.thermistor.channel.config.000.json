@@ -1,0 +1,7 @@
+{
+  "TypeName": "i2c.thermistor.channel.config",
+  "Version": "000",
+  "ChannelName": "scada",
+  "AdcChannel": "P0",
+  "ThermistorBeta": 1
+}

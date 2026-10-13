@@ -1,0 +1,51 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw1.hvac.zone/000"
+
+title: "gw1.hvac.zone"
+type: object
+description: >
+  One thermal zone: its label, whether it is a critical (must-keep-warm)
+  zone, its thermal weight (kWh per degree F), and its primary circuit,
+  the zone-call circuit whose thermostat stands for the zone.
+
+properties:
+  Name:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      The zone label (e.g. "down", "up").
+
+  Critical:
+    type: boolean
+    description: >
+      True if this is a critical zone (one the controller must keep warm).
+
+  KwhPerDegF:
+    type: number
+    description: >
+      The zone's thermal weight: kilowatt-hours required to raise the zone one
+      degree Fahrenheit. May be 0 for an untracked zone.
+
+  PrimaryCircuitPosition:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      CircuitPosition of the zone's primary circuit. The zone's air
+      temperature and setpoint are that circuit's.
+
+  TypeName:
+    const: "gw1.hvac.zone"
+
+  Version:
+    const: "000"
+
+required:
+  - Name
+  - Critical
+  - KwhPerDegF
+  - PrimaryCircuitPosition
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+x-gridworks:
+  owner: "gridworks-energy"

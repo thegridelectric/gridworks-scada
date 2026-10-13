@@ -1,0 +1,8 @@
+{
+  "TypeName": "single.machine.state",
+  "Version": "000",
+  "MachineHandle": "auto.local-control.local-control-normal.relay6",
+  "StateEnum": "relay.closed.or.open",
+  "State": "RelayClosed",
+  "UnixMs": 1764873285123
+}

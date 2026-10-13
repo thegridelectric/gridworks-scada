@@ -1,0 +1,27 @@
+from enum import auto
+
+from sema_snapshot.sema.enums.gw_str_enum import SemaEnum
+
+
+class HpBossState(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/hp.boss.state/000"""
+
+    PreparingToTurnOn = auto()
+    HpOn = auto()
+    HpOff = auto()
+
+    @classmethod
+    def default(cls) -> "HpBossState":
+        return cls.HpOff
+
+    @classmethod
+    def values(cls) -> list[str]:
+        return [elt.value for elt in cls]
+
+    @classmethod
+    def enum_name(cls) -> str:
+        return "hp.boss.state"
+
+    @classmethod
+    def enum_version(cls) -> str:
+        return "000"

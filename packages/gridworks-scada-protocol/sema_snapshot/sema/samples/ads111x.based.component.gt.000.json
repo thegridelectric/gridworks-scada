@@ -1,0 +1,18 @@
+{
+  "TypeName": "ads111x.based.component.gt",
+  "Version": "000",
+  "ComponentId": "335cc56a-165a-4400-a550-387c2d744680",
+  "DeviceType": "GridworksTsnap1ScadaBoard",
+  "ConfigList": [
+    {
+      "TypeName": "ads.channel.config",
+      "Version": "000",
+      "ChannelName": "scada",
+      "TerminalBlockIdx": 1,
+      "ThermistorDeviceType": "MakeModel"
+    }
+  ],
+  "OpenVoltageByAds": [
+    4.95
+  ]
+}

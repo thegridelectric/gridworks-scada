@@ -1,0 +1,18 @@
+{
+  "TypeName": "i2c.thermistor.reader.component.gt",
+  "Version": "000",
+  "ComponentId": "8879f861-add7-4b45-a200-1c2e29c49fdf",
+  "BoardComponentId": "9b1c5e2a-77d4-4f6e-8c3a-5f2e9d101b44",
+  "ConfigList": [
+    {
+      "TypeName": "i2c.thermistor.channel.config",
+      "Version": "000",
+      "ChannelName": "scada",
+      "AdcChannel": "P0",
+      "ThermistorBeta": 1
+    }
+  ],
+  "AdcName": "Thermistors",
+  "DataRateSps": 16,
+  "TempCalcMethod": "SimpleBeta"
+}

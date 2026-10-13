@@ -1,0 +1,27 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/zone.call.source/000"
+
+title: "zone.call.source"
+type: "string"
+description: >
+  Authority currently issuing a zone-call circuit's call signal: the
+  wall thermostat or the scada. The circuit's failsafe relay selects
+  between exactly these two sources. A call is demand; whether it
+  heats or cools is plant state.
+
+enum:
+  - "WallThermostat"
+  - "Scada"
+
+default: "WallThermostat"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "WallThermostat": >
+      The wall thermostat's call passes to the actuator (failsafe relay
+      de-energized).
+
+    "Scada": >
+      The scada's ops relay drives the call (failsafe relay energized).

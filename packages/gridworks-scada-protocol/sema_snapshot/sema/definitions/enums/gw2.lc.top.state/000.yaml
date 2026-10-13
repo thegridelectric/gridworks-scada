@@ -1,0 +1,41 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gw2.lc.top.state/000"
+
+title: "gw2.lc.top.state"
+type: "string"
+description: >
+  Top state of the local control node of a GridWorks spaceheat system,
+  reported by whichever local control machine the scada runs.
+
+enum:
+  - "Dormant"
+  - "Normal"
+  - "ScadaBlind"
+  - "Standby"
+  - "InBackup"
+  - "ColdOverride"
+
+default: "Dormant"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "Dormant": >
+      Another node holds the command tree (admin, or the leaf ally under a
+      dispatch contract); the local control commands nothing.
+    "Normal": >
+      The local control runs its heating machine and holds the command tree.
+    "ScadaBlind": >
+      The local control lacks the data its heating machine needs and holds
+      the plant in its blind posture.
+    "Standby": >
+      The scada runs the standby machine: the claimed relays sit in the
+      authored standby posture and the heat pump is told off. The house may
+      be unheated on purpose.
+    "InBackup": >
+      The house has been cold and the local control runs the backup heat
+      its layout has.
+    "ColdOverride": >
+      The house has been cold and the local control runs the heat pump
+      with the tariff set aside.

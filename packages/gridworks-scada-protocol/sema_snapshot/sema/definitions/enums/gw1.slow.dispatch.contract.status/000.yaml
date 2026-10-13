@@ -1,0 +1,67 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gw1.slow.dispatch.contract.status/000"
+
+title: "gw1.slow.dispatch.contract.status"
+type: "string"
+
+description: >
+  The lifecycle status of a slow dispatch contract between an LTN and a
+  scada, as stated on a slow.contract.heartbeat. The LTN and the scada
+  each own the statuses they can assert; the completion outcomes are
+  claims until an umpire settles them.
+
+enum:
+  - "Unknown"
+  - "Created"
+  - "Received"
+  - "Confirmed"
+  - "Active"
+  - "TerminatedByLtn"
+  - "TerminatedByScada"
+  - "CompletedUnknownOutcome"
+  - "CompletedSuccess"
+  - "CompletedFailureByScada"
+  - "CompletedFailureByLtn"
+
+default: "Unknown"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+
+  value_descriptions:
+    "Unknown": >
+      The decode fallback for a status this version does not know. A
+      reader does not act on it.
+
+    "Created": >
+      The LTN has offered the contract.
+
+    "Received": >
+      The scada has received the offer and will run the contract.
+
+    "Confirmed": >
+      The LTN has seen the scada's receipt; the contract is binding on
+      both.
+
+    "Active": >
+      The contract's start has passed and it is running.
+
+    "TerminatedByLtn": >
+      The LTN ended the contract before its end.
+
+    "TerminatedByScada": >
+      The scada ended the contract before its end.
+
+    "CompletedUnknownOutcome": >
+      The contract ran to its end and neither party can say whether it
+      was met.
+
+    "CompletedSuccess": >
+      The contract ran to its end and was met.
+
+    "CompletedFailureByScada": >
+      The contract ran to its end and the scada failed to meet it.
+
+    "CompletedFailureByLtn": >
+      The contract ran to its end and the LTN failed to meet it.

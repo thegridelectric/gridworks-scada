@@ -1,0 +1,144 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/data.channel.gt/003"
+
+title: "data.channel.gt"
+type: object
+description: >
+  Canonical definition of a telemetry channel representing directly
+  captured measurements within a GridWorks system.
+
+  A data.channel.gt declares the semantic identity of a telemetry stream,
+  including what is measured, which node it describes, and which node
+  captures the measurement. To interpret a channel.readings instance,
+  consumers SHALL resolve ChannelName against the channel definitions
+  for the relevant terminal asset / SCADA context (typically by matching
+  data.channel.gt.Name).
+
+properties:
+
+  Name:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Short identifier of the channel within the context of a SCADA or
+      terminal asset configuration.
+
+  DisplayName:
+    type: string
+    description: >
+      Human-readable name for display and UI purposes.
+
+  AboutNodeName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Name of the node whose state or behavior this channel describes.
+
+  CapturedByNodeName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Name of the node responsible for observing and reporting this telemetry.
+
+  TelemetryName:
+    $ref: "https://schemas.electricity.works/enums/spaceheat.telemetry.name/007"
+    description: >
+      Legacy semantic identifier describing what is measured and how it is
+      encoded. TelemetryName values may include unit conventions and scaling
+      semantics (e.g., Times100, Times1000) inherited from earlier system
+      implementations.
+
+      TelemetryName determines the canonical gw1.quantity via the
+      spaceheat.telemetry.quantity.projection/000 type.
+
+  Quantity:
+    $ref: "https://schemas.electricity.works/enums/gw1.quantity/000"
+    description: >
+      Canonical physical dimension of the telemetry stream
+      (e.g., Power, Temperature, FlowRate).
+
+      Quantity SHALL equal the value defined by the
+      spaceheat.telemetry.quantity.projection/000 for the given TelemetryName.
+
+  TerminalAssetAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      Canonical alias of the terminal asset within which this channel exists.
+
+  StartS:
+    $ref: "https://schemas.electricity.works/formats/utc.seconds"
+    description: >
+      Optional timestamp indicating when this channel became active or valid.
+      Interpretation of this value is implementation-specific.
+
+  Id:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      Globally unique identifier for this channel definition.
+
+  TypeName:
+    const: "data.channel.gt"
+
+  Version:
+    const: "003"
+
+required:
+  - Name
+  - DisplayName
+  - AboutNodeName
+  - CapturedByNodeName
+  - TelemetryName
+  - Quantity
+  - TerminalAssetAlias
+  - Id
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "Name": "vdc-relay",
+      "DisplayName": "5V DC Bus Relay State",
+      "AboutNodeName": "vdc-relay-gpio-23",
+      "CapturedByNodeName": "vdc-relay-gpio-23",
+      "TelemetryName": "RelayState",
+      "Quantity": "Unitless",
+      "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
+      "Id": "57d123f9-8bc5-4667-9668-4529235b224c",
+      "TypeName": "data.channel.gt",
+      "Version": "003"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "TelemetryQuantityConsistency"
+      statement: >
+        Quantity SHALL equal the Quantity defined by the canonical
+        spaceheat.telemetry.quantity.projection/000 instance
+        for the specified TelemetryName.
+
+  extended_description: >
+    data.channel.gt defines primary telemetry channels corresponding to
+    directly observed measurements from physical devices or sensors.
+
+    In contrast, derived.channel.gt defines computed channels whose values
+    are produced from one or more input channels according to a declared
+    strategy.
+
+    Telemetry is transported using channel.readings, which includes a
+    ChannelName and aligned lists of values and timestamps. channel.readings
+    does not carry the full channel definition; consumers interpret
+    channel.readings by resolving ChannelName against the channel definition
+    set for the relevant SCADA / terminal asset context (data.channel.gt and
+    derived.channel.gt), typically by Name equality.
+
+    report messages aggregate channel.readings (ChannelReadingList) along
+    with state transitions and FSM outputs for transmission from SCADA nodes
+    associated with terminal assets.
+
+    The `.gt` suffix declares that this type is coupled bijectively with a table in
+    a canonical seed database (here, the terminalasset registry): the table's rows are
+    instances of this type. Sema is the authority over what a row means; the seed
+    table is the authority over which instances are currently asserted.

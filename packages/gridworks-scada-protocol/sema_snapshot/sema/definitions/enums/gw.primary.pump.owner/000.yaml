@@ -1,0 +1,28 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gw.primary.pump.owner/000"
+
+title: "gw.primary.pump.owner"
+type: "string"
+description: >
+  Who owns a hydronic layout's primary pump: the heat pump itself, or the
+  scada through its own actuators. An install fact of the house, not of the
+  heat-pump model: a unit that ships with a pump may still hand it to the
+  scada through its pump-override terminals. Distinct from the relay state
+  primary.pump.control, which says which side has the pump at this moment.
+
+enum:
+  - "HeatPump"
+  - "Scada"
+
+default: "HeatPump"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "HeatPump": >
+      The heat pump runs the primary pump under its own control; the scada
+      has no actuator on it.
+    "Scada": >
+      The primary pump runs under scada actuators: a failsafe relay, a
+      scada-ops relay and a 0-10V speed output.

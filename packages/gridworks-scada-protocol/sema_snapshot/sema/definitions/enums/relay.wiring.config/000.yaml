@@ -1,0 +1,30 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/relay.wiring.config/000"
+
+title: "relay.wiring.config"
+type: "string"
+description: >
+  Wiring configuration of a relay contact set. Defines how the relay's
+  common (COM), normally open (NO), and normally closed (NC) terminals
+  are used within a circuit.
+
+enum:
+  - "NormallyClosed"
+  - "NormallyOpen"
+  - "DoubleThrow"
+
+default: "NormallyClosed"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "NormallyClosed": >
+      Circuit is closed when the relay is de-energized. Wiring uses COM and NC.
+
+    "NormallyOpen": >
+      Circuit is open when the relay is de-energized. Wiring uses COM and NO.
+
+    "DoubleThrow": >
+      Both NC and NO are used. Energizing the relay switches the circuit
+      between two distinct paths (e.g., SCADA vs wall thermostat control).

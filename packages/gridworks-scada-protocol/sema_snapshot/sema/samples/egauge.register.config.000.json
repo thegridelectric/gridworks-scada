@@ -1,0 +1,10 @@
+{
+  "TypeName": "egauge.register.config",
+  "Version": "000",
+  "Address": 0,
+  "Name": "example",
+  "Description": "example",
+  "Type": "example",
+  "Denominator": 0,
+  "Unit": "example"
+}

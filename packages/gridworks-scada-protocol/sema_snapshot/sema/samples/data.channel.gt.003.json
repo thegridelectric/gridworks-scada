@@ -1,0 +1,12 @@
+{
+  "TypeName": "data.channel.gt",
+  "Version": "003",
+  "Name": "vdc-relay",
+  "DisplayName": "5V DC Bus Relay State",
+  "AboutNodeName": "vdc-relay-gpio-23",
+  "CapturedByNodeName": "vdc-relay-gpio-23",
+  "TelemetryName": "RelayState",
+  "Quantity": "Unitless",
+  "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
+  "Id": "57d123f9-8bc5-4667-9668-4529235b224c"
+}

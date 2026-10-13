@@ -1,9 +1,8 @@
 """Tests gw1.hvac.zone type, version 000"""
 
-import pytest
-from pydantic import ValidationError
 
 from gwsproto.named_types import HvacZone
+from tests.named_types.sema_oracle import assert_refused
 
 
 def base_zone() -> dict:
@@ -29,5 +28,4 @@ def test_hvac_zone_primary_circuit_required() -> None:
     d = base_zone()
     del d["PrimaryCircuitPosition"]
 
-    with pytest.raises(ValidationError):
-        HvacZone.model_validate(d)
+    assert_refused(HvacZone, d)

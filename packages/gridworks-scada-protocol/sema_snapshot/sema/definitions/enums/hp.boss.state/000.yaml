@@ -1,0 +1,27 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/hp.boss.state/000"
+
+title: "hp.boss.state"
+type: "string"
+description: >
+  States of the heat pump command node's state machine, reported through
+  single.machine.state.
+
+enum:
+  - "PreparingToTurnOn"
+  - "HpOn"
+  - "HpOff"
+
+default: "HpOff"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "PreparingToTurnOn": >
+      TurnOn received; waiting for the loop the strategy needs to be ready
+      before the heat pump is allowed to run.
+    "HpOn": >
+      The heat pump is allowed to run.
+    "HpOff": >
+      The heat pump is held off.

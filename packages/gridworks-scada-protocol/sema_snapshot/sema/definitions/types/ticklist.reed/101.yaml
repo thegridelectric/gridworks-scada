@@ -1,0 +1,76 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/ticklist.reed/101"
+
+title: "ticklist.reed"
+type: object
+description: >
+  A batch of tick timestamps captured from a reed-switch flow meter by its
+  pico flow module, as posted by the pico to a SCADA node. Each tick marks one
+  revolution-equivalent pulse of the meter. Tick times are given as
+  millisecond offsets from an absolute first-tick timestamp.
+
+properties:
+
+  HwUid:
+    type: string
+    description: >
+      Hardware identifier of the pico flow module that captured this batch.
+
+  FirstTickTimestampNanoSecond:
+    type: integer
+    description: >
+      Absolute nanosecond timestamp of the first tick. Absent when no ticks
+      were captured.
+
+  RelativeMillisecondList:
+    type: array
+    items:
+      type: integer
+    description: >
+      Millisecond offset of each tick relative to FirstTickTimestampNanoSecond.
+      Millisecond resolution is used because reed-switch meters tick slowly.
+
+  PicoBeforePostTimestampNanoSecond:
+    type: integer
+    description: >
+      The pico's own clock, in nanoseconds, read immediately before it posted
+      this batch. The receiving SCADA node compares it against its own receive
+      time to estimate and correct the pico-to-SCADA clock offset.
+
+  TypeName:
+    const: "ticklist.reed"
+
+  Version:
+    const: "101"
+
+required:
+  - HwUid
+  - RelativeMillisecondList
+  - PicoBeforePostTimestampNanoSecond
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "FirstTickTimestampConsistency"
+      statement: >
+        FirstTickTimestampNanoSecond SHALL be absent if and only if
+        RelativeMillisecondList is empty.
+
+  extended_description: >
+    ticklist.reed is the raw pico-to-SCADA payload in GridWorks' experiments
+    with reed-switch flow meters. A pico flow module attached to the meter
+    accumulates ticks and HTTP-posts them in batches to the SCADA node's flow
+    module actor, which reconstructs absolute tick times by adding each
+    RelativeMillisecondList offset to FirstTickTimestampNanoSecond and applying
+    the clock-offset correction derived from PicoBeforePostTimestampNanoSecond.
+
+    The SCADA node wraps this payload, together with channel and terminal
+    asset context, in a ticklist.reed.report for forwarding to the
+    LeafTransactiveNode. The hall-effect counterpart is ticklist.hall, which
+    uses microsecond rather than millisecond tick-offset resolution because
+    hall sensors tick far more rapidly than reed switches.

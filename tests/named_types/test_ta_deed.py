@@ -1,8 +1,8 @@
 """Tests ta.deed type, version 000"""
 
-import pytest
 from gwsproto.enums import TaValidationState
 from gwsproto.named_types import TaDeed
+from tests.named_types.sema_oracle import assert_refused
 
 
 def test_ta_deed_generated() -> None:
@@ -34,6 +34,5 @@ def test_ta_deed_axiom_1() -> None:
         "TypeName": "ta.deed",
         "Version": "000",
     }
-    with pytest.raises(ValueError, match="Axiom 1"):
-        TaDeed.model_validate(d)
+    assert_refused(TaDeed, d, match="Axiom 1")
     TaDeed.model_validate({**d, "TaAlias": "d1.isone.me.versant.keene.simbeech.ta"})

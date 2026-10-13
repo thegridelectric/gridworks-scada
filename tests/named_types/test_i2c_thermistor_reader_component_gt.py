@@ -1,9 +1,9 @@
 """Tests i2c.thermistor.reader.component.gt type, version 000"""
 
-import pytest
 
 from gwsproto.enums import TempCalcMethod
 from gwsproto.named_types import I2cThermistorReaderComponentGt
+from tests.named_types.sema_oracle import assert_refused
 
 
 def base_config(channel_name: str, adc_channel: str) -> dict:
@@ -44,5 +44,4 @@ def test_i2c_thermistor_reader_component_gt_channel_name_uniqueness() -> None:
     d = base_component()
     d["ConfigList"][1]["ChannelName"] = "tank1-depth1-device"
 
-    with pytest.raises(ValueError, match="Axiom 1 \\(ChannelNameUniqueness\\) failed"):
-        I2cThermistorReaderComponentGt.model_validate(d)
+    assert_refused(I2cThermistorReaderComponentGt, d, match="Axiom 1 \\(ChannelNameUniqueness\\) failed")

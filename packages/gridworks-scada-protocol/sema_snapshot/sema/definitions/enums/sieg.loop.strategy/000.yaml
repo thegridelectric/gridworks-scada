@@ -1,0 +1,36 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/sieg.loop.strategy/000"
+
+title: "sieg.loop.strategy"
+type: "string"
+description: >
+  How the sieg-loop drives the Siegenthaler valve while the tree is in
+  automatic hands. The loop always exists in a gw.house0.layout plant and
+  always runs one of these strategies; the strategy is an operational
+  choice carried in gw.house0.family.params.
+
+enum:
+  - "HoldFullSend"
+  - "StratProtect"
+  - "LwtControl"
+
+default: "HoldFullSend"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "HoldFullSend": >
+      The valve rests at its send stop, so all of the heat pump's flow
+      leaves the loop for the tank, and the loop does not move it on its
+      own. The launch posture, and the fallback for a value this version
+      does not know.
+
+    "StratProtect": >
+      The loop moves the valve only to protect the store's stratification:
+      it keeps flow in the loop until the heat pump's leaving water is warm
+      enough to send, and returns to send when it is.
+
+    "LwtControl": >
+      The loop moves the valve continuously to hold the heat pump's leaving
+      water temperature at a target.

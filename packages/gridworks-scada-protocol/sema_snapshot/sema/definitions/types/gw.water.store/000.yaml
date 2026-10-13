@@ -1,0 +1,44 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw.water.store/000"
+
+title: "gw.water.store"
+type: object
+description: >
+  The water thermal store of a hydronic space-heating layout: the tanks
+  the plant charges and draws down, apart from any buffer tank. A layout
+  whose store is not water tanks carries no gw.water.store.
+
+properties:
+  TotalStoreTanks:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Number of water thermal-storage tanks (buffer excluded).
+
+  TypeName:
+    const: "gw.water.store"
+
+  Version:
+    const: "000"
+
+required:
+  - TotalStoreTanks
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "TotalStoreTanks": 3,
+      "TypeName": "gw.water.store",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "TankCount"
+      statement: >
+        TotalStoreTanks SHALL be at most 6.

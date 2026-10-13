@@ -1,0 +1,62 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/single.machine.state/000"
+
+title: "single.machine.state"
+type: object
+description: >
+  Latest known state for a single state machine at a specific timestamp.
+
+properties:
+  MachineHandle:
+    $ref: "https://schemas.electricity.works/formats/handle.name"
+
+  StateEnum:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+
+  State:
+    type: string
+
+  UnixMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+
+  Cause:
+    type: string
+
+  TypeName:
+    const: "single.machine.state"
+
+  Version:
+    const: "000"
+
+required:
+  - MachineHandle
+  - StateEnum
+  - State
+  - UnixMs
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "MachineHandle": "auto.local-control.local-control-normal.relay6",
+      "StateEnum": "relay.closed.or.open",
+      "State": "RelayClosed",
+      "UnixMs": 1764873285123,
+      "TypeName": "single.machine.state",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "RecognizedStateEnumConsistency"
+      statement: >
+        If StateEnum equals "relay.closed.or.open", then State SHALL equal
+        "RelayClosed" or "RelayOpen". More generally, if StateEnum is a
+        recognized GridWorks enum, then State SHALL be a valid value of
+        that enum.

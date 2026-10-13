@@ -1,0 +1,156 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/derived.channel.gt/001"
+
+title: "derived.channel.gt"
+type: object
+description: >
+  Canonical definition of a derived telemetry channel within a GridWorks system.
+
+  A derived.channel.gt declares a computed telemetry stream whose values are
+  produced from one or more input channels according to a declared strategy.
+  Derived channels do not represent directly captured measurements; instead,
+  they represent transformations, aggregations, or computations over other
+  telemetry streams.
+
+properties:
+
+  Id:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      Globally unique identifier for this derived channel definition.
+
+  Name:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Short identifier of the derived channel within the terminal asset
+      or SCADA context.
+
+  CreatedByNodeName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Name of the node responsible for computing this derived channel.
+
+  Strategy:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Identifier of the computation strategy used to produce this channel.
+
+  InputChannelNames:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Names of input channels consumed by the computation strategy.
+
+  OutputUnit:
+    $ref: "https://schemas.electricity.works/enums/gw1.unit/000"
+    description: >
+      Measurement unit of the derived output values.
+
+  EmissionMethod:
+    $ref: "https://schemas.electricity.works/enums/gw1.emission.method/000"
+    description: >
+      Defines how and when derived values are emitted
+      (e.g., OnTrigger, Periodic, AsyncAndPeriodic).
+
+  AsyncEmitDelta:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Minimum delta required to emit asynchronously.
+      Required for AsyncAndPeriodic.
+      Must not be present for OnTrigger or Periodic.
+
+  EmitPeriodS:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Periodic emission interval in seconds.
+      Required for Periodic and AsyncAndPeriodic.
+      Must not be present for OnTrigger.
+
+  Parameters:
+    type: object
+    additionalProperties: false
+    description: >
+      Optional strategy-specific configuration parameters.
+
+  DisplayName:
+    type: string
+    description: >
+      Human-readable name for display and UI purposes.
+
+  TerminalAssetAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      Canonical alias of the terminal asset within which this derived channel exists.
+
+  TypeName:
+    const: "derived.channel.gt"
+
+  Version:
+    const: "001"
+
+required:
+  - Id
+  - Name
+  - CreatedByNodeName
+  - Strategy
+  - InputChannelNames
+  - EmissionMethod
+  - DisplayName
+  - TerminalAssetAlias
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "CreatedByNodeName": "derived-generator",
+      "DisplayName": "Required Energy Wh",
+      "Id": "26c5f643-96cc-4ede-b958-75d626790c01",
+      "Name": "required-energy",
+      "OutputUnit": "WattHours",
+      "Strategy": "system-model",
+      "EmissionMethod": "Periodic",
+      "EmitPeriodS": 60,
+      "InputChannelNames": [],
+      "Parameters": {
+        "EnergyModel": {
+          "TypeName": "gw0.required.energy.layered",
+          "Version": "000"
+        }
+      },
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "derived.channel.gt",
+      "Version": "001"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "EmissionSemanticsConsistency"
+      statement: >
+        EmissionMethod SHALL determine the presence of EmitPeriodS and
+        AsyncEmitDelta as follows:
+
+          OnTrigger → neither EmitPeriodS nor AsyncEmitDelta present
+          Periodic → EmitPeriodS present, AsyncEmitDelta absent
+          AsyncAndPeriodic → both EmitPeriodS and AsyncEmitDelta present
+
+
+  extended_description: >
+    derived.channel.gt defines computed telemetry channels produced from
+    other telemetry streams. These channels represent transformations,
+    aggregations, or model-based computations rather than directly observed
+    measurements.
+
+    Instances of channel.readings referencing a derived channel SHALL be
+    interpreted by resolving ChannelName against derived.channel.gt.Name
+    within the relevant terminal asset / SCADA context.
+
+    Together, data.channel.gt and derived.channel.gt form the semantic
+    backbone for telemetry reporting. channel.readings transports values,
+    and report aggregates those readings for transmission from SCADA nodes.

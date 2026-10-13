@@ -7,6 +7,7 @@ from gwsproto.data_classes.device_types.scada_krida import (
     krida_double_relay_board_16_device_type,
 )
 from gwsproto.named_types import ScadaDeviceTypeGt
+from tests.named_types.sema_oracle import assert_refused
 
 
 def test_scada_device_type_gt_generated() -> None:
@@ -28,8 +29,7 @@ def test_scada_device_type_gt_supports_pin_readback_required() -> None:
     )
     del d["SupportsPinReadback"]
 
-    with pytest.raises(ValidationError):
-        ScadaDeviceTypeGt.model_validate(d)
+    assert_refused(ScadaDeviceTypeGt, d)
 
 
 def test_gw1_scada_device_type_gt_axiom_5_energized_level_range() -> None:

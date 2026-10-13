@@ -1,0 +1,24 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/market.quantity.unit/000"
+
+title: "market.quantity.unit"
+type: "string"
+description: >
+  Unit of the quantity axis for a MarketType. This unit defines the
+  dimensional meaning of quantities submitted in bids and cleared in
+  the associated MarketSlot.
+
+  Quantity units represent average power over the market settlement
+  interval unless otherwise specified by the MarketType definition.
+  All bids and clearing results for a given MarketSlot SHALL use the
+  QuantityUnit declared by its MarketType.
+
+enum:
+  - "AvgMW"
+  - "AvgkW"
+
+default: "AvgMW"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"

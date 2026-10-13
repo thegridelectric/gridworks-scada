@@ -1,0 +1,61 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/slow.contract.rejection/000"
+
+title: "slow.contract.rejection"
+type: object
+description: >
+  A scada's answer to an LTN's slow dispatch contract offer that it will
+  not take: the offered ContractId and the reason, so the LTN learns why
+  rather than timing out. Sent by the
+  scada direct to its LTN. It is not a heartbeat: a heartbeat presumes a
+  contract the scada has started.
+
+properties:
+
+  FromGNodeAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      GNode alias of the scada refusing the offer.
+
+  ContractId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      The ContractId of the offered slow dispatch contract.
+
+  Reason:
+    $ref: "https://schemas.electricity.works/enums/gw.dispatch.refusal.reason/000"
+    description: >
+      Why the scada refuses the offer.
+
+  MessageCreatedMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+
+  TypeName:
+    const: "slow.contract.rejection"
+
+  Version:
+    const: "000"
+
+required:
+  - FromGNodeAlias
+  - ContractId
+  - Reason
+  - MessageCreatedMs
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "FromGNodeAlias": "hw1.isone.me.versant.keene.beech.scada",
+      "ContractId": "9d3b2a1c-8e7f-4a6b-b5c4-d3e2f1a0b9c8",
+      "Reason": "NoTaDeed",
+      "MessageCreatedMs": 1757300400250,
+      "TypeName": "slow.contract.rejection",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

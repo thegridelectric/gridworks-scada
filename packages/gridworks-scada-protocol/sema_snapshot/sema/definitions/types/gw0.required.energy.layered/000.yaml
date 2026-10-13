@@ -1,0 +1,45 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw0.required.energy.layered/000"
+
+title: "gw0.required.energy.layered"
+type: object
+description: >
+  Names the layered-storage model for computing required thermal energy. The
+  word carries no parameters: it is an identifier for a named computation,
+  carried where a consumer must state which model produced a value rather
+  than agreeing on one out of band.
+
+properties:
+
+  TypeName:
+    const: "gw0.required.energy.layered"
+
+  Version:
+    const: "000"
+
+required:
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "TypeName": "gw0.required.energy.layered",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  extended_description: >
+    Required thermal energy is the minimum that must be in storage now to
+    carry the house through the coming on-peak period without buying energy
+    at peak prices. This model computes it from a weather-driven heating
+    forecast, simulating discharge of storage as discrete layers against the
+    forecast load.
+
+    The model assumes ideal stratification within each layer and no thermal
+    losses. Which tanks count as active storage is a runtime decision of the
+    consumer, not part of this specification — the same model applies
+    whether the buffer alone or every tank is in play.

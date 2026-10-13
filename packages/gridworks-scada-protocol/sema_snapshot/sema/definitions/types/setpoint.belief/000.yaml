@@ -1,0 +1,39 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/setpoint.belief/000"
+
+title: "setpoint.belief"
+type: object
+description: >
+  A belief about a thermostat's setpoint: an epistemic phase and a
+  value in degrees Fahrenheit.
+
+properties:
+  Phase:
+    $ref: "https://schemas.electricity.works/enums/setpoint.phase/000"
+
+  ValueF:
+    type: number
+    description: >
+      The believed setpoint in degrees Fahrenheit.
+
+  TypeName:
+    const: "setpoint.belief"
+
+  Version:
+    const: "000"
+
+required:
+  - Phase
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "UnknownIsValueless"
+      statement: >
+        a. If Phase is Unknown, ValueF SHALL be absent.
+        b. If Phase is not Unknown, ValueF SHALL be present.

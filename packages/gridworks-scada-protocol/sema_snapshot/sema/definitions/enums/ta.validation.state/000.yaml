@@ -1,0 +1,40 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/ta.validation.state/000"
+
+title: "ta.validation.state"
+type: "string"
+description: >
+  What a TaValidator has vouched for about a terminal asset. Carried by
+  the asset's ta.deed and consulted by every reader; a deed's existence
+  alone says nothing. UnValidated is the scada's own default before any
+  deed exists.
+
+enum:
+  - "UnValidated"
+  - "ValidatedRealAssetAndGps"
+  - "ValidatedRealAssetIncorrectGps"
+  - "ValidatedSimulatedAsset"
+
+default: "UnValidated"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "UnValidated": >
+      No deed. Nothing has been attested; the asset may telemeter but
+      holds no standing in any market.
+
+    "ValidatedRealAssetAndGps": >
+      A physical load drawing electricity where its alias and GPS say
+      it is.
+
+    "ValidatedRealAssetIncorrectGps": >
+      A physical load drawing real electricity, but not at the location
+      its alias declares: a bench elsewhere running against a real
+      universe's prices.
+
+    "ValidatedSimulatedAsset": >
+      No electricity drawn anywhere. The identity declares itself
+      simulated and the layout carries simulated devices; admitted to
+      dev and hybrid universes, never the world universe.

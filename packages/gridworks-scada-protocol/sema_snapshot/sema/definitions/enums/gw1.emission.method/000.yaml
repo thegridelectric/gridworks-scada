@@ -1,0 +1,25 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gw1.emission.method/000"
+
+title: "gw1.emission.method"
+type: "string"
+description: >
+  Method by which a derived or computed channel emits values.
+
+enum:
+  - "OnTrigger"
+  - "Periodic"
+  - "AsyncAndPeriodic"
+
+default: "OnTrigger"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "OnTrigger": >
+      Emit values only when triggered by the governing event or computation.
+    "Periodic": >
+      Emit values on a periodic schedule.
+    "AsyncAndPeriodic": >
+      Emit values both asynchronously on trigger and on a periodic schedule.

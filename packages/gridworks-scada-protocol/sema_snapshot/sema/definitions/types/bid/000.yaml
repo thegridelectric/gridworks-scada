@@ -1,0 +1,142 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/bid/000"
+
+title: "bid"
+type: object
+description: >
+  A market-normalized, slot-specific price–quantity schedule submitted by a
+  market participant. A bid expresses willingness to inject or withdraw a
+  quantity of a market-defined commodity as a function of price, subject to
+  the rules of the MarketType associated with the specified MarketSlot.
+
+  Bids are economically admissible, cryptographically anchored messages that
+  serve as the primary input to market aggregation and clearing. Differences
+  between participant classes (e.g. leaf nodes, aggregators, fleets, generators)
+  are expressed through MarketType rules and bidder authorization registries,
+  not through differences in bid structure.
+
+properties:
+  BidderAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      Canonical alias of the market participant submitting this bid. This alias
+      is used to associate the bid with authorization, fee-payment credentials,
+      and market participation rules defined outside this message.
+
+  MarketSlotName:
+    $ref: "https://schemas.electricity.works/formats/market.slot.name"
+    description: >
+      Identifier of the market slot for which this bid applies. The MarketSlot
+      determines the applicable MarketType, settlement interval, and market
+      rules used to validate and clear the bid.
+
+  PqPairs:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/price.quantity.unitless/001"
+    description: >
+      Ordered list of price–quantity pairs defining the bid curve. Prices SHALL
+      be ordered according to MarketType rules and normalized to the market’s
+      declared price domain. Quantities represent willingness to inject or
+      withdraw at the corresponding prices.
+    minItems: 1
+
+  InjectionIsPositive:
+    type: boolean
+    description: >
+      Sign convention for quantities in this bid. If true, positive quantities
+      represent injection into the market; if false, positive quantities
+      represent withdrawal. The interpretation of this convention is governed
+      by the associated MarketType.
+
+  PriceUnit:
+    $ref: "https://schemas.electricity.works/enums/market.price.unit/000"
+    description: >
+      Unit of the price axis for this bid. MUST match the PriceUnit declared by
+      the MarketType associated with the MarketSlot.
+
+  QuantityUnit:
+    $ref: "https://schemas.electricity.works/enums/market.quantity.unit/000"
+    description: >
+      Unit of the quantity axis for this bid. MUST match the QuantityUnit
+      declared by the MarketType associated with the MarketSlot.
+
+  SignedMarketFeeTxn:
+    type: string
+    description: >
+      Cryptographic proof of payment of the market-defined bid submission fee.
+      This value SHALL reference a signed transaction that satisfies the
+      market’s fee and admission rules for the specified MarketSlot.
+
+      The SignedMarketFeeTxn proves economic admissibility of the bid. It does
+      NOT, by itself, prove physical feasibility, delivery capability,
+      portfolio composition, or settlement commitment. Those guarantees, if
+      any, are established by clearing, dispatch, and settlement processes
+      external to this message.
+
+  # Identity Fields
+  TypeName:
+    const: "bid"
+
+  Version:
+    const: "000"
+
+required:
+  - BidderAlias
+  - MarketSlotName
+  - PqPairs
+  - InjectionIsPositive
+  - PriceUnit
+  - QuantityUnit
+  - SignedMarketFeeTxn
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "MarketNormalizationAnchor"
+      statement: >
+        The price of the first element in PqPairs SHALL equal the PriceMax
+        defined by the MarketType associated with MarketSlotName.
+
+    - number: 2
+      name: "UnitConsistency"
+      statement: >
+        PriceUnit and QuantityUnit SHALL match the units declared by the
+        MarketType associated with MarketSlotName.
+
+    - number: 3
+      name: "CurveAdmissibility"
+      statement: >
+        The structure, ordering, and cardinality of PqPairs SHALL conform to
+        the admissibility rules of the MarketType associated with MarketSlotName
+        (including any constraints on price ordering, monotonicity, tick size,
+        or maximum number of segments).
+
+    - number: 4
+      name: "EconomicAdmission"
+      description: >
+        SignedMarketFeeTxn MUST be verifiable under the market’s fee and
+        admission policy for the specified MarketSlot.
+
+  extended_description: >
+    The bid type is the foundational economic message of the GridWorks market
+    architecture. By enforcing strict normalization against MarketType-defined
+    price and quantity domains, bids enable a self-scaling market maker
+    strategy in which aggregation, clearing, and dispatch logic can be applied
+    uniformly across participant classes and market layers.
+
+    All bids share a common structure and validation contract. Differences in
+    physical assets, aggregation scope, or operational responsibility are
+    expressed through external registries, MarketType definitions, and
+    settlement processes rather than through specialized bid schemas.
+
+    This design supports permissioned or permissionless participation,
+    economic rate-limiting via fees, and bounded computational complexity,
+    while preserving extensibility for future market products and clearing
+    mechanisms.

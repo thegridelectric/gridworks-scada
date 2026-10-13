@@ -1,8 +1,8 @@
 """Tests gw1.zone.call.circuit type, version 000"""
 
-import pytest
 
 from gwsproto.named_types import ZoneCallCircuit
+from tests.named_types.sema_oracle import assert_refused
 
 
 def base_circuit() -> dict:
@@ -38,8 +38,7 @@ def test_zone_call_circuit_axiom_1() -> None:
     d = base_circuit()
     d["CanCool"] = True
 
-    with pytest.raises(ValueError, match="Axiom 1 \\(OnlyFanCoilsCool\\) failed"):
-        ZoneCallCircuit.model_validate(d)
+    assert_refused(ZoneCallCircuit, d, match="Axiom 1 \\(OnlyFanCoilsCool\\) failed")
 
 
 def test_zone_call_circuit_axiom_1_fan_coil_may_cool() -> None:
@@ -64,26 +63,21 @@ def test_zone_call_circuit_axiom_2() -> None:
     d = base_circuit()
     d["SetpointSource"] = "FromThermostat"
 
-    with pytest.raises(
-        ValueError, match="Axiom 2 \\(ReadSetpointNeedsCommsStat\\) failed"
-    ):
-        ZoneCallCircuit.model_validate(d)
+    assert_refused(ZoneCallCircuit, d, match="Axiom 2 \\(ReadSetpointNeedsCommsStat\\) failed")
 
 
 def test_zone_call_circuit_name_required() -> None:
     d = base_circuit()
     del d["Name"]
 
-    with pytest.raises(ValueError, match="Name"):
-        ZoneCallCircuit.model_validate(d)
+    assert_refused(ZoneCallCircuit, d, match="Name")
 
 
 def test_gw1_zone_call_circuit_axiom_3() -> None:
     d = base_circuit()
     d["SetpointChannelName"] = "zone1-down-set"
 
-    with pytest.raises(ValueError, match="Axiom 3 \\(SetpointNeedsTemp\\) failed"):
-        ZoneCallCircuit.model_validate(d)
+    assert_refused(ZoneCallCircuit, d, match="Axiom 3 \\(SetpointNeedsTemp\\) failed")
 
 
 def test_gw1_zone_call_circuit_axiom_3_setpoint_with_temp() -> None:

@@ -1,0 +1,13 @@
+{
+  "TypeName": "gw.weather.channel.gt",
+  "Version": "000",
+  "Name": "us.me.millinocket.temperature",
+  "DisplayName": "Millinocket outdoor temperature",
+  "Quantity": "Temperature",
+  "Unit": "FahrenheitX100",
+  "LocationAlias": "us.me.millinocket",
+  "EmitPeriodS": 3600,
+  "EmitOffsetS": 0,
+  "Start": "2026-08-11T00:00:00Z",
+  "Id": "2e7c9a1f-6b4d-4f8e-b3a9-5c1e8d7f2a4c"
+}

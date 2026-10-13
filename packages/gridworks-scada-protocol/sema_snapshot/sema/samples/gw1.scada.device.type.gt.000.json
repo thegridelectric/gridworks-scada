@@ -1,0 +1,89 @@
+{
+  "TypeName": "gw1.scada.device.type.gt",
+  "Version": "000",
+  "DeviceType": "KridaDoubleRelayBoard16",
+  "DisplayName": "GridWorks relay panel: two 16-channel Krida boards, markings Relay1-Relay32",
+  "MinPollPeriodMs": 200,
+  "BusList": [
+    {
+      "TypeName": "i2c.bus",
+      "Version": "000",
+      "Name": "DefaultBus",
+      "BusNumber": 1
+    }
+  ],
+  "TelemetryNameList": [
+    "RelayState"
+  ],
+  "NativeGpioInputs": [],
+  "NativeGpioOutputs": [],
+  "Expanders": [
+    {
+      "TypeName": "i2c.expander",
+      "Version": "000",
+      "ExpanderIdx": 1,
+      "I2cBus": "DefaultBus",
+      "ExpanderType": "Pcf8575",
+      "AllowedI2cAddressList": [
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39
+      ]
+    },
+    {
+      "TypeName": "i2c.expander",
+      "Version": "000",
+      "ExpanderIdx": 2,
+      "I2cBus": "DefaultBus",
+      "ExpanderType": "Pcf8575",
+      "AllowedI2cAddressList": [
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39
+      ]
+    }
+  ],
+  "Muxes": [],
+  "I2cRelays": [
+    {
+      "TypeName": "i2c.relay.capability",
+      "Version": "000",
+      "RelayName": "Relay1",
+      "ExpanderIdx": 1,
+      "RegisterIndex": 0,
+      "BitIndex": 7,
+      "SupportedWiringConfigs": [
+        "NormallyClosed",
+        "NormallyOpen",
+        "DoubleThrow"
+      ]
+    },
+    {
+      "TypeName": "i2c.relay.capability",
+      "Version": "000",
+      "RelayName": "Relay17",
+      "ExpanderIdx": 2,
+      "RegisterIndex": 0,
+      "BitIndex": 7,
+      "SupportedWiringConfigs": [
+        "NormallyClosed",
+        "NormallyOpen",
+        "DoubleThrow"
+      ]
+    }
+  ],
+  "SupportsPinReadback": false,
+  "RelayEnergizedLevel": 0,
+  "ThermistorAdcs": [],
+  "Dacs": []
+}

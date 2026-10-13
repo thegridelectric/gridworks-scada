@@ -1,0 +1,38 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/valve.open.or.closed/000"
+
+title: "valve.open.or.closed"
+type: "string"
+description: >
+  Binary position of a two-position valve: open (flow permitted) or closed
+  (flow blocked). Describes the valve's position, not the energization state
+  of any actuator driving it.
+
+  Note: this enum is specifically for two-position (shutoff) valves. Valves
+  with proportional or multi-position behavior require their own state
+  enumerations that capture their specific positions.
+
+enum:
+  - "ValveOpen"
+  - "ValveClosed"
+
+default: ValveOpen
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+
+  value_descriptions:
+    ValveOpen: "Valve is open; flow is permitted."
+    ValveClosed: "Valve is closed; flow is blocked."
+
+  extended_description: >
+    The state half of the two-position-valve vocabulary pair; the
+    corresponding event enum is change.valve.state. Used as the state
+    vocabulary wherever a relay-driven actuator's semantic states are valve
+    positions (e.g. as a relay.control.config's StateType), so state channels
+    and FSM reports speak ValveOpen/ValveClosed rather than the position of
+    the relay contact behind them. Whether the valve sits open or closed when
+    its actuator is de-energized is deployment wiring data, carried by the
+    actuator's configuration (e.g. DeEnergizedState), never by this
+    vocabulary.

@@ -1,0 +1,20 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/thermistor.data.method/000"
+
+title: "thermistor.data.method"
+type: "string"
+description: >
+  Method used to convert raw thermistor voltage readings into captured temperature readings.
+
+enum:
+  - "SimpleBeta"
+  - "BetaWithExponentialAveraging"
+
+default: "SimpleBeta"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "SimpleBeta": "Convert resistance to temperature directly via the thermistor beta parameter."
+    "BetaWithExponentialAveraging": "Beta conversion with exponential averaging applied to smooth the reading."

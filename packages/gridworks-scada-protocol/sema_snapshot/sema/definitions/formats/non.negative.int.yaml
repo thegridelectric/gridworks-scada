@@ -1,0 +1,25 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/formats/non.negative.int"
+
+title: "non.negative.int"
+description: >
+  Non-negative integer validated non-coercively at the serialized boundary.
+  The serialized value must already be an integer greater than or equal to 0.
+  Strings such as "0" and numeric floats such as 0.0 are not accepted.
+
+type: integer
+minimum: 0
+
+examples:
+  - 0
+  - 1
+  - 17
+
+counterexamples:
+  - -1
+  - 0.0
+  - 1.0
+  - "0"
+
+x-gridworks:
+  owner: "gridworks-energy"

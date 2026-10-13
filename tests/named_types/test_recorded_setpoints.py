@@ -1,8 +1,8 @@
 """Tests gw.recorded.setpoints type, version 000"""
 
-import pytest
 
 from gwsproto.named_types import RecordedSetpoints
+from tests.named_types.sema_oracle import assert_refused
 
 
 def base_record() -> dict:
@@ -34,5 +34,4 @@ def test_gw_recorded_setpoints_axiom_1() -> None:
     d = base_record()
     d["SetpointList"].append(dict(d["SetpointList"][0], Value=6800))
 
-    with pytest.raises(ValueError, match="Axiom 1 \\(SetpointChannelUniqueness\\) failed"):
-        RecordedSetpoints.model_validate(d)
+    assert_refused(RecordedSetpoints, d, match="Axiom 1 \\(SetpointChannelUniqueness\\) failed")

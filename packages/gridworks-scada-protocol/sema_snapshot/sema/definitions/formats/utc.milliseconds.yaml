@@ -1,0 +1,26 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/formats/utc.milliseconds"
+
+title: "utc.milliseconds"
+description: |
+  UTC timestamp expressed as whole milliseconds since the Unix epoch
+  (1970-01-01T00:00:00Z). Value is restricted to the range
+  2000-01-01T00:00:00Z through 3000-01-01T00:00:00Z.
+  
+type: integer
+minimum: 946684800000    # 2000-01-01T00:00:00.000Z
+maximum: 32503680000000  # 3000-01-01T00:00:00.000Z
+
+examples:
+  - 1609459200000      # 2021-01-01T00:00:00.000Z
+  - 1609459200500      # 2021-01-01T00:00:00.500Z
+  - 1735689600123      # 2025-01-01T00:00:00.123Z
+
+counterexamples:
+  - 0                  # too early (1970)
+  - 946684799999       # before year 2000
+  - 32503680000001     # after year 3000
+  - 1609459200000.5    # must be integer, not float
+
+x-gridworks:
+  owner: "gridworks-energy"

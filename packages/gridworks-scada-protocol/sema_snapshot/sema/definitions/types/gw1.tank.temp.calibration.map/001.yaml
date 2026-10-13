@@ -1,0 +1,41 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw1.tank.temp.calibration.map/001"
+
+title: "gw1.tank.temp.calibration.map"
+type: object
+description: >
+  Buffer and per-tank calibration map for converting raw probe readings into
+  calibrated temperatures. References `gw1.tank.temp.calibration/001` (integer B
+  in OutputUnit/FahrenheitX100 scaling).
+
+properties:
+  Buffer:
+    $ref: "https://schemas.electricity.works/types/gw1.tank.temp.calibration/001"
+
+  Tank:
+    type: object
+    propertyNames:
+      $ref: "https://schemas.electricity.works/formats/positive.int.as.str"
+    additionalProperties:
+      $ref: "https://schemas.electricity.works/types/gw1.tank.temp.calibration/001"
+    description: >
+      Typed map of per-tank calibrations keyed by the string form of a
+      positive tank index ("1", "2", ...). See `sema/spec/authoring/types.md`
+      §Typed Maps.
+
+  TypeName:
+    const: "gw1.tank.temp.calibration.map"
+
+  Version:
+    const: "001"
+
+required:
+  - Buffer
+  - Tank
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+x-gridworks:
+  owner: "gridworks-energy"

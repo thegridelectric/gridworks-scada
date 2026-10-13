@@ -1,0 +1,18 @@
+{
+  "TypeName": "async.btu.params",
+  "Version": "100",
+  "HwUid": "pico_3a202a",
+  "ActorNodeName": "primary-btu",
+  "FlowChannelName": "primary-flow",
+  "SendHz": false,
+  "ReadCtVoltage": false,
+  "HotChannelName": "hp-lwt",
+  "ColdChannelName": "hp-ewt",
+  "CapturePeriodS": 60,
+  "GallonsPerPulse": 0.0009,
+  "AsyncCaptureDeltaGpmX100": 10,
+  "AsyncCaptureDeltaCelsiusX100": 20,
+  "AsyncCaptureDeltaCtVoltsX100": 20,
+  "PicoBoardVariant": "PicoRaspberryWifi2040",
+  "MicropythonVersion": "1.24.1"
+}

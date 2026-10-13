@@ -1,0 +1,65 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/electric.meter.device.type.gt/000"
+
+title: "electric.meter.device.type.gt"
+type: object
+description: >
+  DRAFT. The specialized device-type record for an electric-meter device category
+  — the per-family successor to the retired cac record. Keyed by `DeviceType` (a device-category value) instead of a make/model + cac UUID, it carries the
+  category-level data an electric-meter component does not: the telemetry names the
+  meter type can report, its shortest poll period, and its default serial baud. A
+  component joins this record by the shared `DeviceType` value. Flat.
+
+properties:
+
+  DeviceType:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The device category this component is built on, an open
+      pascal-case string.
+
+  DisplayName:
+    type: string
+
+  MinPollPeriodMs:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Shortest polling period, in milliseconds, that this meter type supports.
+
+  TelemetryNameList:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/enums/spaceheat.telemetry.name/007"
+    description: >
+      The telemetry names this meter device type is able to report.
+
+  DefaultBaud:
+    type: integer
+    description: >
+      Default serial baud rate for this meter type, when read over a serial link.
+
+  TypeName:
+    const: "electric.meter.device.type.gt"
+
+  Version:
+    const: "000"
+
+required:
+  - DeviceType
+  - TelemetryNameList
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+x-gridworks:
+  owner: "gridworks-energy"
+  extended_description: >
+    The `.gt` suffix declares that this type is coupled bijectively with a table in
+    a canonical seed database (here, the terminalasset registry): the table's rows are
+    instances of this type. Sema is the authority over what a row means; the seed
+    table is the authority over which instances are currently asserted.
+
+    DeviceType values come from the `gw1.device.type` vocabulary; the hardware layout enforces membership.
+
+    Replaces the retired `electric.meter.cac.gt`.

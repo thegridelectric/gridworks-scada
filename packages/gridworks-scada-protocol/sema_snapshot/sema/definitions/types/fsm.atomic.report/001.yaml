@@ -1,0 +1,109 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/fsm.atomic.report/001"
+
+title: "fsm.atomic.report"
+type: object
+description: >
+  Single atomic FSM report item representing either an event or an action
+  emitted by a state machine transition. An action represents a side-effect
+  applied to the physical or logical system.
+
+properties:
+
+  MachineHandle:
+    $ref: "https://schemas.electricity.works/formats/handle.name"
+    description: >
+      Identifier of the state machine instance emitting this report.
+
+  StateEnum:
+    type: string
+    description: >
+      Name of the state machine enum defining the current state space.
+
+  ReportType:
+    $ref: "https://schemas.electricity.works/enums/fsm.report.type/000"
+    description: >
+      Indicates whether this report represents an Event, an Action, or Other.
+
+  Action:
+    type: object
+    description: >
+      Structured payload describing a side-effect produced by the state
+      machine. Version 001 does not constrain the structure of this payload.
+
+  EventEnum:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      Identifier describing the type of event.
+
+  Event:
+    type: string
+    description: >
+      Event payload or label emitted by the state machine.
+
+  FromState:
+    type: string
+    description: >
+      State prior to the transition.
+
+  ToState:
+    type: string
+    description: >
+      State after the transition.
+
+  UnixTimeMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+    description: >
+      Timestamp of the report in milliseconds since Unix epoch.
+
+  TriggerId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      Unique identifier for the triggering event or transition.
+
+  TypeName:
+    const: "fsm.atomic.report"
+
+  Version:
+    const: "001"
+
+required:
+  - MachineHandle
+  - StateEnum
+  - ReportType
+  - UnixTimeMs
+  - TriggerId
+  - TypeName
+  - Version
+
+additionalProperties: true
+
+examples:
+  - |
+    {
+      "MachineHandle": "auto.pico-cycler.vdc-relay-gpio-23",
+      "StateEnum": "relay.closed.or.open",
+      "ReportType": "Action",
+      "Action": {
+        "Value": 1
+      },
+      "UnixTimeMs": 1774956898001,
+      "TriggerId": "2f18a5a0-cdf9-4782-95a9-5fbb44d3512f",
+      "TypeName": "fsm.atomic.report",
+      "Version": "001"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "ActionPresenceConsistency"
+      statement: >
+        Action SHALL be present if and only if ReportType equals Action.
+
+    - number: 2
+      name: "EventPresenceConsistency"
+      statement: >
+        EventEnum, Event, FromState, and ToState SHALL be present if and only
+        if ReportType equals Event.
