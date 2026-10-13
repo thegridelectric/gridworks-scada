@@ -1740,9 +1740,25 @@ class Scada(PrimeActor, ScadaInterface):
         # if its meant for an actor spawned by primary_scada (aka communicator)
         # call its process_message
         elif communicator_by_name[to_node.Name] in self.services.get_communicator_names():
-            self.get_communicator(communicator_by_name[to_node.Name]).process_message(
-                Message(Src=from_node.Name, Dst=to_node.Name, Payload=payload)
-            )
+            # An actor that raises on a message must not take the scada's
+            # own handler down with it: log it, report it, and continue.
+            try:
+                self.get_communicator(communicator_by_name[to_node.Name]).process_message(
+                    Message(Src=from_node.Name, Dst=to_node.Name, Payload=payload)
+                )
+            except Exception as e:  # noqa: BLE001
+                summary = f"{to_node.Name} raised on {type(payload).__name__}"
+                self.log(f"{summary}: {e!r}")
+                self._send_to(
+                    self.ltn,
+                    Glitch(
+                        FromGNodeAlias=self.layout.scada_g_node_alias,
+                        Node=to_node.Name,
+                        Type=LogLevel.Error,
+                        Summary="actor-raised",
+                        Details=f"{summary}: {e!r}",
+                    ),
+                )
         elif to_node.Name == CoreNodeNames.admin:
             self.services.publish_message(
                 link_name=self.ADMIN_MQTT,

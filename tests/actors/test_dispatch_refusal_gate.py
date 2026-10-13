@@ -32,6 +32,8 @@ def refusing_ops(tmp_path: Path, ops_file: str, reason: DispatchRefusalReason) -
     ops["DispatchRefusalReason"] = reason.value
     if reason is DispatchRefusalReason.Standby:
         ops["Standby"] = True
+        if ops["FamilyParams"]["TypeName"] == "gw.house0.family.params":
+            ops["FamilyParams"]["SiegLoopStrategy"] = "HoldFullSend"
     path = tmp_path / ops_file
     path.write_text(json.dumps(ops))
     return path

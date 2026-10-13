@@ -7,13 +7,15 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 class DispatchRefusalReason(SemaEnum):
     """Sema: https://schemas.electricity.works/enums/gw.dispatch.refusal.reason/000"""
 
-    Standby = auto()
-    NoAggregator = auto()
+    NoTaDeed = auto()
+    OperatorHold = auto()
     ServiceContractBroken = auto()
+    ScadaBlind = auto()
+    InAdmin = auto()
 
     @classmethod
     def default(cls) -> "DispatchRefusalReason":
-        return cls.Standby
+        return cls.OperatorHold
 
     @classmethod
     def values(cls) -> List[str]:

@@ -1,12 +1,12 @@
-from typing import Annotated, List, Literal, Optional, Union
+from typing import Annotated, List, Literal, Union
 
 from pydantic import Field, NonNegativeInt, PositiveFloat, PositiveInt, model_validator
 from typing_extensions import Self
 
-from gwsproto import enums
 from gwsproto.enums import ServiceMode, SiegLoopStrategy, StandbyPosture
 from gwsproto.named_types.capture_tuning import CaptureTuning
 from gwsproto.named_types.cop_curve import CopCurve
+from gwsproto.named_types.dispatch_hold import DispatchHold
 from gwsproto.named_types.heating_curve import HeatingCurve
 from gwsproto.named_types.house0_family_params import House0FamilyParams
 from gwsproto.named_types.nolan_family_params import NolanFamilyParams
@@ -30,10 +30,7 @@ class OperationalParams(GwsprotoSemaType):
     StandbyPosture: StandbyPosture
     EnergizedStandbyRelays: List[SpaceheatName]
     ServiceMode: ServiceMode
-    AcceptsDispatch: bool
-    # The class attribute shadows the enum name inside the class body, so the
-    # annotation goes through the module.
-    DispatchRefusalReason: Optional[enums.DispatchRefusalReason] = None
+    DispatchHold: DispatchHold
     CopCurve: CopCurve
     HeatingCurve: HeatingCurve
     HpTurnOnMinutes: PositiveInt
@@ -81,41 +78,20 @@ class OperationalParams(GwsprotoSemaType):
     @model_validator(mode="after")
     def check_axiom_3(self) -> Self:
         """
-        Axiom 3: StandbyRefusesDispatch.
-        If Standby is true, AcceptsDispatch SHALL be false and
-        DispatchRefusalReason SHALL be Standby.
+        Axiom 3: StandbyImpliesOperatorHold.
+        If Standby is true, DispatchHold.OperatorHold SHALL be true.
         """
-        if self.Standby and (
-            self.AcceptsDispatch
-            or self.DispatchRefusalReason is not enums.DispatchRefusalReason.Standby
-        ):
+        if self.Standby and not self.DispatchHold.OperatorHold:
             raise ValueError(
-                "Axiom 3 (StandbyRefusesDispatch) failed: Standby requires "
-                "AcceptsDispatch false and DispatchRefusalReason Standby; got "
-                f"AcceptsDispatch {self.AcceptsDispatch}, "
-                f"DispatchRefusalReason {self.DispatchRefusalReason}"
+                "Axiom 3 (StandbyImpliesOperatorHold) failed: Standby requires "
+                "DispatchHold.OperatorHold true"
             )
         return self
 
     @model_validator(mode="after")
     def check_axiom_4(self) -> Self:
         """
-        Axiom 4: RefusalReasonPresence.
-        DispatchRefusalReason SHALL be present if and only if
-        AcceptsDispatch is false.
-        """
-        if self.AcceptsDispatch == (self.DispatchRefusalReason is not None):
-            raise ValueError(
-                "Axiom 4 (RefusalReasonPresence) failed: DispatchRefusalReason is "
-                "present iff AcceptsDispatch is false; got AcceptsDispatch "
-                f"{self.AcceptsDispatch}, DispatchRefusalReason {self.DispatchRefusalReason}"
-            )
-        return self
-
-    @model_validator(mode="after")
-    def check_axiom_5(self) -> Self:
-        """
-        Axiom 5: PostureRelaysPerFamily.
+        Axiom 4: PostureRelaysPerFamily.
         StandbyPosture fixes EnergizedStandbyRelays for the family named by
         FamilyParams.TypeName: MonitorOnly means an empty list; House0
         NoHeatingOrCooling means exactly hp-failsafe-relay and
@@ -129,16 +105,16 @@ class OperationalParams(GwsprotoSemaType):
             expected = []
         if sorted(self.EnergizedStandbyRelays) != sorted(expected):
             raise ValueError(
-                "Axiom 5 (PostureRelaysPerFamily) failed: posture "
+                "Axiom 4 (PostureRelaysPerFamily) failed: posture "
                 f"{self.StandbyPosture} on {self.FamilyParams.TypeName} requires "
                 f"EnergizedStandbyRelays {expected}; got {self.EnergizedStandbyRelays}"
             )
         return self
 
     @model_validator(mode="after")
-    def check_axiom_6(self) -> Self:
+    def check_axiom_5(self) -> Self:
         """
-        Axiom 6: StandbyHoldsFullSend.
+        Axiom 5: StandbyHoldsFullSend.
         If Standby is true and FamilyParams.TypeName is
         gw.house0.family.params, FamilyParams.SiegLoopStrategy SHALL be
         HoldFullSend.
@@ -149,7 +125,7 @@ class OperationalParams(GwsprotoSemaType):
             and self.FamilyParams.SiegLoopStrategy is not SiegLoopStrategy.HoldFullSend
         ):
             raise ValueError(
-                "Axiom 6 (StandbyHoldsFullSend) failed: Standby on a House0 family "
+                "Axiom 5 (StandbyHoldsFullSend) failed: Standby on a House0 family "
                 "requires SiegLoopStrategy HoldFullSend; got "
                 f"{self.FamilyParams.SiegLoopStrategy}"
             )

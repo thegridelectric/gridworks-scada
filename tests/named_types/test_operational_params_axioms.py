@@ -74,53 +74,26 @@ def test_zero_ten_power_on_axiom_1_above_ten_volts() -> None:
 
 
 @pytest.mark.parametrize("name", OPS_FIXTURES)
-def test_gw_operational_params_axiom_3_standby_accepts_dispatch(name: str) -> None:
+def test_gw_operational_params_axiom_3_standby_without_operator_hold(name: str) -> None:
     d = ops(name)
     d["Standby"] = True
-    with pytest.raises(ValueError, match="Axiom 3 \\(StandbyRefusesDispatch\\)"):
+    d["DispatchHold"]["OperatorHold"] = False
+    with pytest.raises(ValueError, match="Axiom 3 \\(StandbyImpliesOperatorHold\\)"):
         OperationalParams.model_validate(d)
 
 
 @pytest.mark.parametrize("name", OPS_FIXTURES)
-def test_gw_operational_params_axiom_3_standby_refuses_for_another_reason(
-    name: str,
-) -> None:
-    d = ops(name)
-    d["Standby"] = True
-    d["AcceptsDispatch"] = False
-    d["DispatchRefusalReason"] = "NoAggregator"
-    with pytest.raises(ValueError, match="Axiom 3 \\(StandbyRefusesDispatch\\)"):
-        OperationalParams.model_validate(d)
-
-
-@pytest.mark.parametrize("name", OPS_FIXTURES)
-def test_gw_operational_params_axiom_4_refusal_without_reason(name: str) -> None:
-    d = ops(name)
-    d["AcceptsDispatch"] = False
-    with pytest.raises(ValueError, match="Axiom 4 \\(RefusalReasonPresence\\)"):
-        OperationalParams.model_validate(d)
-
-
-@pytest.mark.parametrize("name", OPS_FIXTURES)
-def test_gw_operational_params_axiom_4_reason_while_accepting(name: str) -> None:
-    d = ops(name)
-    d["DispatchRefusalReason"] = "NoAggregator"
-    with pytest.raises(ValueError, match="Axiom 4 \\(RefusalReasonPresence\\)"):
-        OperationalParams.model_validate(d)
-
-
-@pytest.mark.parametrize("name", OPS_FIXTURES)
-def test_gw_operational_params_axiom_5_a_monitor_only_energizes_nothing(
+def test_gw_operational_params_axiom_4_a_monitor_only_energizes_nothing(
     name: str,
 ) -> None:
     d = ops(name)
     d["StandbyPosture"] = "MonitorOnly"
     d["EnergizedStandbyRelays"] = ["hp-failsafe-relay"]
-    with pytest.raises(ValueError, match="Axiom 5 \\(PostureRelaysPerFamily\\)"):
+    with pytest.raises(ValueError, match="Axiom 4 \\(PostureRelaysPerFamily\\)"):
         OperationalParams.model_validate(d)
 
 
-def test_gw_operational_params_axiom_5_b_house0_list_is_fixed() -> None:
+def test_gw_operational_params_axiom_4_b_house0_list_is_fixed() -> None:
     d = ops("gw.house0.orange.operational.params.json")
     assert d["EnergizedStandbyRelays"] == ["hp-failsafe-relay", "aquastat-ctrl-relay"]
     for relays in (
@@ -129,36 +102,34 @@ def test_gw_operational_params_axiom_5_b_house0_list_is_fixed() -> None:
         ["hp-failsafe-relay", "aquastat-ctrl-relay", "store-pump-relay"],
     ):
         d["EnergizedStandbyRelays"] = relays
-        with pytest.raises(ValueError, match="Axiom 5 \\(PostureRelaysPerFamily\\)"):
+        with pytest.raises(ValueError, match="Axiom 4 \\(PostureRelaysPerFamily\\)"):
             OperationalParams.model_validate(d)
 
 
-def test_gw_operational_params_axiom_5_c_nolan_list_is_empty() -> None:
+def test_gw_operational_params_axiom_4_c_nolan_list_is_empty() -> None:
     d = ops("gw.nolan.operational.params.json")
     assert d["EnergizedStandbyRelays"] == []
     d["EnergizedStandbyRelays"] = ["iso-valve-relay"]
-    with pytest.raises(ValueError, match="Axiom 5 \\(PostureRelaysPerFamily\\)"):
+    with pytest.raises(ValueError, match="Axiom 4 \\(PostureRelaysPerFamily\\)"):
         OperationalParams.model_validate(d)
 
 
-def test_gw_operational_params_axiom_6_house0_standby_holds_full_send() -> None:
+def test_gw_operational_params_axiom_5_house0_standby_holds_full_send() -> None:
     d = ops("gw.house0.orange.operational.params.json")
     d["Standby"] = True
-    d["AcceptsDispatch"] = False
-    d["DispatchRefusalReason"] = "Standby"
+    d["DispatchHold"]["OperatorHold"] = True
     d["FamilyParams"]["SiegLoopStrategy"] = "HoldFullSend"
     OperationalParams.model_validate(d)
     for strategy in ("StratProtect", "LwtControl"):
         d["FamilyParams"]["SiegLoopStrategy"] = strategy
-        with pytest.raises(ValueError, match="Axiom 6 \\(StandbyHoldsFullSend\\)"):
+        with pytest.raises(ValueError, match="Axiom 5 \\(StandbyHoldsFullSend\\)"):
             OperationalParams.model_validate(d)
 
 
-def test_gw_operational_params_axiom_6_nolan_has_no_loop() -> None:
+def test_gw_operational_params_axiom_5_nolan_has_no_loop() -> None:
     d = ops("gw.nolan.operational.params.json")
     d["Standby"] = True
-    d["AcceptsDispatch"] = False
-    d["DispatchRefusalReason"] = "Standby"
+    d["DispatchHold"]["OperatorHold"] = True
     OperationalParams.model_validate(d)
 
 

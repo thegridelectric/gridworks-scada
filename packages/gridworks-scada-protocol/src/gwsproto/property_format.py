@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import Annotated
 
 from gwsproto.enums import MarketTypeName
-from pydantic import BeforeValidator, Field
+from pydantic import BeforeValidator, Field, StrictInt
 
 UTC_2000_01_01_TIMESTAMP = datetime(2000, 1, 1, tzinfo=timezone.utc).timestamp()
 UTC_3000_01_01_TIMESTAMP = datetime(3000, 1, 1, tzinfo=timezone.utc).timestamp()
@@ -360,6 +360,7 @@ def is_market_slot_name(v: str) -> str:
 
 
 Bit = Annotated[int, BeforeValidator(is_bit)]
+DecimalDigit = Annotated[StrictInt, Field(ge=0, le=9)]
 GitCommit = Annotated[str, BeforeValidator(is_git_commit)]
 HandleName = Annotated[str, BeforeValidator(is_handle_name)]
 HexChar = Annotated[str, BeforeValidator(is_hex_char)]

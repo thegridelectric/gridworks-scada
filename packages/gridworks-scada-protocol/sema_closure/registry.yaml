@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-10-10T09:55:00Z"
+  last_updated: "2026-10-13T12:00:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -166,18 +166,6 @@ enums:
         schema_url: "https://schemas.electricity.works/enums/gpm.from.hz.method/000"
         created: "2024-10-23T19:32:00Z"
         status: "published"
-
-  gw.dispatch.refusal.reason:
-    latest_version: "000"
-    owner: gridworks-energy
-    enum_type: "versioned"
-    description: "Why a scada refuses dispatch contracts: Standby, NoAggregator, or ServiceContractBroken. Default Standby so an unknown reason still reads as a refusal."
-
-    versions:
-      "000":
-        schema_url: "https://schemas.electricity.works/enums/gw.dispatch.refusal.reason/000"
-        created: "2026-09-30T18:35:00Z"
-        status: "staging"
 
   gw.primary.flow.source:
     latest_version: "000"
@@ -879,6 +867,21 @@ types:
           structural:
             - "spaceheat.name"
 
+  gw.dispatch.hold:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "The hold a house's operational params place on dispatch: OperatorHold (a person) and ServiceContractBroken (the cold latch). One of three authorities over dispatch, beside the deed and the running scada."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.dispatch.hold/000"
+        created: "2026-10-13T12:00:00Z"
+        status: "staging"
+        summary: "Initial version. OperatorHold + ServiceContractBroken, both required."
+        direct_dependencies:
+          structural: []
+
   gw.element.backup:
     latest_version: "000"
     owner: gridworks-energy
@@ -1084,14 +1087,14 @@ types:
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw.operational.params/000"
-        created: "2026-09-30T18:35:00Z"
+        created: "2026-10-13T12:00:00Z"
         status: "staging"
-        summary: "Initial version. ScadaAlias (the applying Scada's identity — stored/emitted instances self-identify; the layout holds the full GNodes) + FamilyParams (oneOf gw.house0.family.params / gw.nolan.family.params, discriminated by TypeName; the family TypeName pairs the instance with its layout family, so a mismatched pair fails at decode) + CaptureTuningList + ZeroTenPowerOnList + Standby x StandbyPosture x EnergizedStandbyRelays (the standby machine energizes the listed relays and nothing else; the posture names what the list achieves) + ServiceMode + AcceptsDispatch x DispatchRefusalReason (present iff refusing) + CopCurve + HeatingCurve + HpTurnOnMinutes + HpMaxKwEl + LoadOverestimationPercent + UsesBackupWhenCold + HorizonHours + WeatherBundleName (the gw.weather.forecast.bundle.gt the LTN relays and the scada pulls) + Tariff (gw.tou.tariff). All required but the reason — no assumed defaults. Axioms 1-2: ChannelName unique across CaptureTuningList, NodeName unique across ZeroTenPowerOnList. Axiom 3: Standby refuses dispatch with reason Standby. Axiom 4: the reason is present iff AcceptsDispatch is false. Axiom 5: the posture fixes the relay list (MonitorOnly empty; House0 NoHeatingOrCooling = hp-failsafe-relay + aquastat-ctrl-relay; Nolan NoHeatingOrCooling empty). Axiom 6: Standby holds a House0 loop at full send (SiegLoopStrategy HoldFullSend)."
+        summary: "Initial version. ScadaAlias (the applying Scada's identity — stored/emitted instances self-identify; the layout holds the full GNodes) + FamilyParams (oneOf gw.house0.family.params / gw.nolan.family.params, discriminated by TypeName; the family TypeName pairs the instance with its layout family, so a mismatched pair fails at decode) + CaptureTuningList + ZeroTenPowerOnList + Standby x StandbyPosture x EnergizedStandbyRelays (the standby machine energizes the listed relays and nothing else; the posture names what the list achieves) + ServiceMode + DispatchHold (gw.dispatch.hold: the operator's hold and the cold latch; one of three authorities over dispatch) + CopCurve + HeatingCurve + HpTurnOnMinutes + HpMaxKwEl + LoadOverestimationPercent + UsesBackupWhenCold + HorizonHours + WeatherBundleName (the gw.weather.forecast.bundle.gt the LTN relays and the scada pulls) + Tariff (gw.tou.tariff). All required — no assumed defaults. Axioms 1-2: ChannelName unique across CaptureTuningList, NodeName unique across ZeroTenPowerOnList. Axiom 3: Standby implies DispatchHold.OperatorHold. Axiom 4: the posture fixes the relay list (MonitorOnly empty; House0 NoHeatingOrCooling = hp-failsafe-relay + aquastat-ctrl-relay; Nolan NoHeatingOrCooling empty). Axiom 5: Standby holds a House0 loop at full send (SiegLoopStrategy HoldFullSend)."
         direct_dependencies:
           structural:
             - "capture.tuning:000"
             - "cop.curve:000"
-            - "gw.dispatch.refusal.reason:000"
+            - "gw.dispatch.hold:000"
             - "gw.house0.family.params:000"
             - "gw.nolan.family.params:000"
             - "gw.standby.posture:000"

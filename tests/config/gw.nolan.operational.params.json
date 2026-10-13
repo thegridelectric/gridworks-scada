@@ -781,7 +781,12 @@
   "StandbyPosture": "NoHeatingOrCooling",
   "EnergizedStandbyRelays": [],
   "ServiceMode": "Heating",
-  "AcceptsDispatch": true,
+  "DispatchHold": {
+    "TypeName": "gw.dispatch.hold",
+    "Version": "000",
+    "OperatorHold": false,
+    "ServiceContractBroken": false
+  },
   "CopCurve": {
     "TypeName": "cop.curve",
     "Version": "000",

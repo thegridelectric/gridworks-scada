@@ -85,8 +85,6 @@ NO_WORD_TYPES = {
     "set.target.lwt",
     "sieg.loop.endpoint.valve.adjustment",
     "sieg.target.too.low",
-    "slow.contract.heartbeat",
-    "slow.dispatch.contract",
     "suit.up",
     "wake.up",
 }
@@ -98,7 +96,6 @@ NO_WORD_ENUMS = {
     "change.keep.send",
     "change.primary.pump.control",
     "change.store.flow.relay",
-    "gw1.contract.status",
     "gw1.leaf.ally.all.tanks.event",
     "gw1.leaf.ally.buffer.only.event",
     "gw1.local.control.all.tanks.event",

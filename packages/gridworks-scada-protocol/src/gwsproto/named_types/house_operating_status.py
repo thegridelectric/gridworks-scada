@@ -29,6 +29,7 @@ class HouseOperatingStatus(GwsprotoSemaType):
     # annotation goes through the module.
     DispatchRefusalReason: Optional[enums.DispatchRefusalReason] = None
     TopState: TopState
+    ScadaBlind: bool
     LtnDispatching: bool
     UnixMs: UTCMilliseconds
     TypeName: Literal["gw.house.operating.status"] = "gw.house.operating.status"
@@ -54,15 +55,16 @@ class HouseOperatingStatus(GwsprotoSemaType):
         """
         Axiom 2: StandbyRefusesDispatch.
         If Standby is true, AcceptsDispatch SHALL be false and
-        DispatchRefusalReason SHALL be Standby.
+        DispatchRefusalReason SHALL be OperatorHold.
         """
         if self.Standby and (
             self.AcceptsDispatch
-            or self.DispatchRefusalReason is not enums.DispatchRefusalReason.Standby
+            or self.DispatchRefusalReason
+            is not enums.DispatchRefusalReason.OperatorHold
         ):
             raise ValueError(
                 "Axiom 2 (StandbyRefusesDispatch) failed: Standby requires "
-                "AcceptsDispatch false and DispatchRefusalReason Standby; got "
+                "AcceptsDispatch false and DispatchRefusalReason OperatorHold; got "
                 f"AcceptsDispatch {self.AcceptsDispatch}, "
                 f"DispatchRefusalReason {self.DispatchRefusalReason}"
             )

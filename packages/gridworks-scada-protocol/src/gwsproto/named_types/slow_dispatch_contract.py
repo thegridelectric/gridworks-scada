@@ -1,43 +1,49 @@
 from typing import Literal
 
-from pydantic import field_validator, model_validator, PositiveInt, StrictInt
-from gwsproto.property_format import UUID4Str, UTCSeconds,  LeftRightDotStr
-from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
+from pydantic import PositiveInt, StrictInt, model_validator
 from typing_extensions import Self
+
+from gwsproto.property_format import LeftRightDotStr, UTCSeconds, UUID4Str
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
 class SlowDispatchContract(GwsprotoSemaType):
-    """Represents a dispatch contract between Ltn and Scada"""
+    """Sema: https://schemas.electricity.works/types/slow.dispatch.contract/000"""
+
     ScadaAlias: LeftRightDotStr
     StartS: UTCSeconds
     DurationMinutes: PositiveInt
-    AvgPowerWatts:StrictInt
+    AvgPowerWatts: StrictInt
     OilBoilerOn: bool
     ContractId: UUID4Str
     TypeName: Literal["slow.dispatch.contract"] = "slow.dispatch.contract"
     Version: Literal["000"] = "000"
 
-    @field_validator("StartS")
-    @classmethod
-    def check_start_s(cls, v: int) -> int:
-        """
-        Axiom 1: StartS should fall on the top of 5 minutes
-        """
-        if v % 300 != 0:
-            raise ValueError(
-                f"Axiom 1: SlotStartS should fall on the top of 5 minutes. But got {v % 300} seconds out"
-            )
-        return v
-
-    @model_validator(mode="after")
-    def _check_axiom_1(self) -> Self:
-        """OilBoilerOn -> AvgPowerWatts is 0
-        """
-        if self.OilBoilerOn:
-            if self.AvgPowerWatts > 0:
-                raise ValueError("OilBoilerOn -> AvgPowerWatts is 0")
-        return self
-
     def contract_end_s(self) -> int:
         return self.StartS + self.DurationMinutes * 60
 
+    @model_validator(mode="after")
+    def check_axiom_1(self) -> Self:
+        """
+        Axiom 1: StartOnFiveMinutes.
+        StartS SHALL be a multiple of 300.
+        """
+        if self.StartS % 300 != 0:
+            raise ValueError(
+                "Axiom 1 (StartOnFiveMinutes) failed: StartS must be a multiple "
+                f"of 300; got {self.StartS % 300} seconds past"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_2(self) -> Self:
+        """
+        Axiom 2: OilBoilerDrawsNoPower.
+        If OilBoilerOn is true, AvgPowerWatts SHALL be 0.
+        """
+        if self.OilBoilerOn and self.AvgPowerWatts != 0:
+            raise ValueError(
+                "Axiom 2 (OilBoilerDrawsNoPower) failed: OilBoilerOn requires "
+                f"AvgPowerWatts 0; got {self.AvgPowerWatts}"
+            )
+        return self

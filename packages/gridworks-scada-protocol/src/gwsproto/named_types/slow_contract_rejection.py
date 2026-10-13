@@ -1,6 +1,6 @@
 from typing import Literal
 
-from gwsproto.enums import TaValidationState
+from gwsproto.enums import DispatchRefusalReason
 from gwsproto.property_format import LeftRightDotStr, UTCMilliseconds, UUID4Str
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
@@ -10,7 +10,7 @@ class SlowContractRejection(GwsprotoSemaType):
 
     FromGNodeAlias: LeftRightDotStr
     ContractId: UUID4Str
-    ValidationState: TaValidationState
+    Reason: DispatchRefusalReason
     MessageCreatedMs: UTCMilliseconds
     TypeName: Literal["slow.contract.rejection"] = "slow.contract.rejection"
     Version: Literal["000"] = "000"
