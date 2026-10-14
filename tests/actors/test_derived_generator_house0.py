@@ -6,6 +6,7 @@ every boot and its watchdog stopped the scada. The required-energy pass
 runs at every hour of every weekday on a pinned clock, since which branch
 it takes depends on the hour and the day."""
 
+import asyncio
 import datetime
 import time
 import uuid
@@ -19,6 +20,7 @@ from gwsproto.named_types import HeatingForecast
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from scada_app import ScadaApp
+from clock import ManualClock
 from weather_source import ForecastPair, sim_forecast
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -33,6 +35,19 @@ def app(request: pytest.FixtureRequest) -> ScadaApp:
     scada_app = ScadaApp(app_settings=settings)
     scada_app.instantiate()
     return scada_app
+
+
+@pytest.fixture
+def clocked_app() -> tuple[ScadaApp, ManualClock]:
+    """The willow app on a manual clock the test moves."""
+    settings = ScadaApp.get_settings()
+    settings.paths.hardware_layout = CONFIG / "gw.house0.willow.layout.json"
+    settings.paths.operational_params = CONFIG / "gw.house0.willow.operational.params.json"
+    settings.paths.mkdirs()
+    clock = ManualClock(start_s=1_767_625_200)  # 2026-01-05 10:00 EST
+    scada_app = ScadaApp(app_settings=settings, clock=clock)
+    scada_app.instantiate()
+    return scada_app, clock
 
 
 def forecast_hours(now_s: float) -> list[int]:
@@ -91,6 +106,62 @@ def test_main_loop_pass_survives_the_first_forecast(app: ScadaApp) -> None:
     for dc in actor.system_models:
         actor.handle_system_model(dc)
     assert sent, "the pass emits its derived readings"
+
+
+def test_a_forecast_is_due_when_none_is_held_or_the_held_one_starts_in_the_past(
+    clocked_app: tuple[ScadaApp, ManualClock],
+) -> None:
+    """The forecast covers the hours after the one it was made in. Once the
+    clock passes its first hour, a new one is due; new ScadaParams make one
+    due at once."""
+    app, clock = clocked_app
+    actor = app.get_communicator_as_type(CoreNodeNames.derived_generator, DerivedGenerator)
+    assert actor is not None
+    assert actor.forecast_is_due()
+    actor.data.heating_forecast = a_day_of_forecast(actor, clock.now())
+    actor.weather_forecast = a_weather_forecast(actor, clock.now())
+    assert not actor.forecast_is_due()
+    clock.advance(2 * 3600)
+    assert actor.forecast_is_due()
+    actor.data.heating_forecast = a_day_of_forecast(actor, clock.now())
+    assert not actor.forecast_is_due()
+    actor.received_new_params = True
+    assert actor.forecast_is_due()
+
+
+@pytest.mark.asyncio
+async def test_the_main_loop_fetches_again_when_the_forecast_is_due(
+    clocked_app: tuple[ScadaApp, ManualClock], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The loop fetches once at start and again when the held forecast's
+    first hour is behind the clock."""
+    app, clock = clocked_app
+    actor = app.get_communicator_as_type(CoreNodeNames.derived_generator, DerivedGenerator)
+    assert actor is not None
+    fetches = 0
+
+    async def fetch(session) -> None:
+        nonlocal fetches
+        fetches += 1
+        actor.data.heating_forecast = a_day_of_forecast(actor, clock.now())
+        actor.weather_forecast = a_weather_forecast(actor, clock.now())
+
+    monkeypatch.setattr(actor, "get_forecasts", fetch)
+    monkeypatch.setattr(actor, "MAIN_LOOP_SLEEP_SECONDS", 0.01)
+    monkeypatch.setattr(actor, "_send", lambda message: None)
+    monkeypatch.setattr(actor, "_send_to", lambda dst, payload, src=None: None)
+    task = asyncio.create_task(actor.main_loop(None))
+    try:
+        await asyncio.sleep(2.3)  # the loop's fixed 2 s pause after the first fetch
+        assert fetches == 1
+        clock.advance(2 * 3600)
+        await asyncio.sleep(0.1)
+        assert fetches == 2
+        await asyncio.sleep(0.1)
+        assert fetches == 2, "no fetch while the held forecast is current"
+    finally:
+        actor._stop_requested = True
+        await task
 
 
 MONDAY = datetime.datetime(2026, 1, 5)

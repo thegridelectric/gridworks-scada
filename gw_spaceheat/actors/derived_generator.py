@@ -756,10 +756,21 @@ class DerivedGenerator(ShNodeActor):
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
 
+            if self.forecast_is_due():
+                await self.get_forecasts(session)
+                self.received_new_params = False
+
             for dc in self.system_models:
                 self.handle_system_model(dc)
 
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
+
+    def forecast_is_due(self) -> bool:
+        """A heating forecast is due when none is held, when the held one's
+        first hour is behind the clock, or when new ScadaParams arrived."""
+        if self.heating_forecast is None or self.received_new_params:
+            return True
+        return self.services.clock.now() > self.heating_forecast.Time[0]
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         from_node = self.layout.node(message.Header.Src)
