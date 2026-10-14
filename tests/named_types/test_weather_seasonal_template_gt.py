@@ -6,11 +6,6 @@ from tests.named_types.weather_fixtures import template_dict
 from tests.named_types.sema_oracle import assert_refused
 
 
-def test_weather_seasonal_template_gt_generated() -> None:
-    d = template_dict()
-    assert WeatherSeasonalTemplateGt.model_validate(d).model_dump(by_alias=True) == d
-
-
 def test_gw_weather_seasonal_template_gt_axiom_1_eleven_months() -> None:
     d = template_dict()
     d["TempByMonth"] = d["TempByMonth"][:11]

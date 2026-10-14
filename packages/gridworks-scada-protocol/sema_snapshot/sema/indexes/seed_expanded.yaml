@@ -1,6 +1,6 @@
 metadata:
   generated_from: indexes/public_registry.yaml
-  generated_at: '2026-10-14T12:24:06Z'
+  generated_at: '2026-10-14T15:29:58Z'
   note: Transitive closure of initial_targets
 initial_targets:
 - ads.channel.config:000

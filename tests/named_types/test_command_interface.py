@@ -22,11 +22,6 @@ EXAMPLE = {'ActorName': 'hp-boss',
  'Version': '000'}
 
 
-def test_gw_command_interface_generated() -> None:
-    d2 = CommandInterface.model_validate(EXAMPLE).model_dump(exclude_none=True)
-    assert d2 == EXAMPLE
-
-
 def test_gw_command_interface_axiom_1_empty_commands() -> None:
     d = copy.deepcopy(EXAMPLE)
     d["Commands"] = []

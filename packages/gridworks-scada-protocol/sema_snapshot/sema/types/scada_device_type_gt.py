@@ -115,8 +115,9 @@ class ScadaDeviceTypeGt(SemaType):
         """
         Axiom 4: MuxConsistency
         a. Every MuxName referenced by an entry in Dacs SHALL appear as a
-        MuxName in Muxes. b. Every Dacs entry carrying MuxChannel SHALL satisfy
-        MuxChannel less than the Channels of the mux named by its MuxName.
+        MuxName in Muxes.
+        b. Every Dacs entry carrying MuxChannel SHALL satisfy MuxChannel less
+        than the Channels of the mux named by its MuxName.
         c. Every Dacs entry carrying MuxName SHALL have an I2cBus equal to
         that mux's I2cBus.
         """
@@ -127,20 +128,20 @@ class ScadaDeviceTypeGt(SemaType):
             mux = muxes.get(dac.mux_name)
             if mux is None:
                 raise ValueError(
-                    "Axiom 4 (MuxConsistency) failed: Dacs entry "
+                    "Axiom 4 (MuxConsistency, clause a) failed: Dacs entry "
                     f"{dac.dac_name} references MuxName {dac.mux_name}, "
                     "which is not declared in Muxes."
                 )
             if dac.mux_channel is not None and dac.mux_channel >= mux.channels:
                 raise ValueError(
-                    "Axiom 4 (MuxConsistency) failed: Dacs entry "
+                    "Axiom 4 (MuxConsistency, clause b) failed: Dacs entry "
                     f"{dac.dac_name} has MuxChannel {dac.mux_channel}, not "
                     f"less than the {mux.channels} Channels of mux "
                     f"{dac.mux_name}."
                 )
             if dac.i2c_bus != mux.i2c_bus:
                 raise ValueError(
-                    "Axiom 4 (MuxConsistency) failed: Dacs entry "
+                    "Axiom 4 (MuxConsistency, clause c) failed: Dacs entry "
                     f"{dac.dac_name} has I2cBus {dac.i2c_bus} but its mux "
                     f"{dac.mux_name} is on {mux.i2c_bus}."
                 )

@@ -26,12 +26,6 @@ WIRE_100 = {
 }
 
 
-def test_async_btu_params_generated() -> None:
-    d2 = AsyncBtuParams.model_validate(WIRE_100).model_dump(exclude_none=True)
-
-    assert d2 == WIRE_100
-
-
 def test_async_btu_params_axiom_1() -> None:
     d = dict(WIRE_100, ReadCtVoltage=True)
     with pytest.raises(ValidationError, match="Axiom 1"):

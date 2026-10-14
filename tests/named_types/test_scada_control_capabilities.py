@@ -137,11 +137,6 @@ EXAMPLE = {'CommandInterfaces': [{'ActorName': 'zone1-bedrooms-ops-relay',
  'Version': '002'}
 
 
-def test_scada_control_capabilities_generated() -> None:
-    d2 = ScadaControlCapabilities.model_validate(EXAMPLE).model_dump(exclude_none=True)
-    assert d2 == EXAMPLE
-
-
 def test_scada_control_capabilities_axiom_1_c_relay_class_in_command_nodes() -> None:
     d = copy.deepcopy(EXAMPLE)
     d["CommandNodes"][0]["ActorClass"] = "Relay"

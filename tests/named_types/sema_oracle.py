@@ -93,11 +93,11 @@ def assert_refused(cls: type[BaseModel], payload: dict, match: str | None = None
     name = re.search(r"\\\((\w+)\\\)", match)
     wants = []
     if number:
-        wants.append(f"Axiom {number.group(1)}")
-        wants.extend(axiom_names(payload)[int(number.group(1))])
+        wants.append(rf"Axiom {number.group(1)}\b")
+        wants.extend(re.escape(n) for n in axiom_names(payload)[int(number.group(1))])
     if name:
-        wants.append(name.group(1))
-    if wants and not any(w in said for w in wants):
+        wants.append(re.escape(name.group(1)))
+    if wants and not any(re.search(w, said) for w in wants):
         raise AssertionError(
             f"twin refused on {match!r}; snapshot refused on another axiom: {said[:300]}"
         )
