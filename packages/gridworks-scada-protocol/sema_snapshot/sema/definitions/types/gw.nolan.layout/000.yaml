@@ -369,13 +369,6 @@ x-gridworks:
         For each tank index N in 1..Hydronic.WaterStore.TotalStoreTanks and each depth i in
         1..3, a channel named "tank{N}-depth{i}" SHALL exist in DataChannels or in
         DerivedChannels.
-    - number: 22
-      name: "SystemModelEnergyChannels"
-      statement: >
-        DerivedChannels SHALL include channels named "usable-energy" and "required-energy", each
-        with CreatedByNodeName "derived-generator" and Strategy "system-model".
-        Parameters.EnergyModel.TypeName SHALL be gw0.usable.energy.layered on "usable-energy" and
-        gw0.required.energy.layered on "required-energy".
     - number: 23
       name: "WebServerNode"
       statement: >

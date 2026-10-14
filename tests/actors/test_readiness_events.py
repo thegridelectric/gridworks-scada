@@ -130,29 +130,20 @@ def test_the_energy_passes_wait_for_a_fresh_buffer() -> None:
     assert isinstance(actor.compute_required_energy_wh(), int)
 
 
-def test_a_nolan_generator_never_evaluates_an_energy_model(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The layered energy models are House0's. A Nolan layout that declares
-    one has it registered, so nothing is silently unhandled, and never
-    evaluated: neither the main-loop pass nor the first-forecast update
-    reaches the computation."""
+def test_a_nolan_generator_has_no_energy_model() -> None:
+    """The layered energy models are House0's. A Nolan layout declares no
+    system-model channel, so the generator registers none and the first
+    forecast runs no energy update; a House0 layout declares both."""
     app = make_app(NOLAN)
     actor = app.get_communicator_as_type(CoreNodeNames.derived_generator, DerivedGenerator)
     assert actor is not None
-    assert not actor.energy_models_apply
-    assert actor.system_models, "the Nolan fixture declares required-energy"
-
-    def never(*args, **kwargs):
-        raise AssertionError("evaluated an energy model on a Nolan layout")
-
-    monkeypatch.setattr(actor, "compute_usable_energy_wh", never)
-    monkeypatch.setattr(actor, "compute_required_energy_wh", never)
-    sent: list = []
-    monkeypatch.setattr(actor, "_send", lambda message: sent.append(message))
-    monkeypatch.setattr(actor, "_send_to", lambda dst, payload, src=None: sent.append(payload))
-    for dc in actor.system_models:
-        actor.handle_system_model(dc)
-    assert sent == []
+    assert actor.system_models == []
+    mine = {
+        dc.Name for dc in actor.layout.derived_channels.values()
+        if dc.CreatedByNodeName == actor.name
+    }
+    assert not mine & {"usable-energy", "required-energy"}
 
     house0 = make_app(WILLOW).get_communicator_as_type(CoreNodeNames.derived_generator, DerivedGenerator)
     assert house0 is not None
-    assert house0.energy_models_apply
+    assert {dc.Name for dc in house0.system_models} == {"usable-energy", "required-energy"}

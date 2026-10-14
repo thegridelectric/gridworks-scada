@@ -635,13 +635,6 @@ def test_gw_nolan_layout_axiom_21_missing_tank_depth(assembled: dict) -> None:
     reject(assembled, mutate, r"Axiom 21 \(")
 
 
-def test_gw_nolan_layout_axiom_22_missing_usable_energy(assembled: dict) -> None:
-    def mutate(d: dict) -> None:
-        drop_channel(d, "usable-energy")
-
-    reject(assembled, mutate, r"Axiom 22 \(")
-
-
 def test_gw_nolan_layout_axiom_23_web_server_node_absent(assembled: dict) -> None:
     def mutate(d: dict) -> None:
         for node in d["ShNodes"]:

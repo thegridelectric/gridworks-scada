@@ -891,52 +891,6 @@ class NolanLayout(SemaType):
         return self
 
     @model_validator(mode="after")
-    def check_axiom_22(self) -> "NolanLayout":
-        """
-        Axiom 22: SystemModelEnergyChannels DerivedChannels SHALL include channels named
-        "usable-energy" and "required-energy", each with CreatedByNodeName
-        "derived-generator" and Strategy "system-model". Parameters.EnergyModel.TypeName
-        SHALL be gw0.usable.energy.layered on "usable-energy" and
-        gw0.required.energy.layered on "required-energy".
-        """
-        expected_models = {
-            "usable-energy": "gw0.usable.energy.layered",
-            "required-energy": "gw0.required.energy.layered",
-        }
-        derived_by_name = {d.name: d for d in (self.derived_channels or [])}
-        for name, expected in expected_models.items():
-            channel = derived_by_name.get(name)
-            if channel is None:
-                raise ValueError(
-                    "Axiom 22 (SystemModelEnergyChannels) failed: DerivedChannel "
-                    f"'{name}' is absent."
-                )
-            if channel.created_by_node_name != "derived-generator":
-                raise ValueError(
-                    f"Axiom 22 (SystemModelEnergyChannels) failed: '{name}' must be "
-                    "created by 'derived-generator', got "
-                    f"'{channel.created_by_node_name}'."
-                )
-            if channel.strategy != "system-model":
-                raise ValueError(
-                    f"Axiom 22 (SystemModelEnergyChannels) failed: '{name}' must use "
-                    f"Strategy 'system-model', got '{channel.strategy}'."
-                )
-            model = (channel.parameters or {}).get("EnergyModel") or {}
-            type_name = model.get("TypeName")
-            if not type_name:
-                raise ValueError(
-                    f"Axiom 22 (SystemModelEnergyChannels) failed: '{name}' has no "
-                    "Parameters.EnergyModel.TypeName."
-                )
-            if type_name != expected:
-                raise ValueError(
-                    f"Axiom 22 (SystemModelEnergyChannels) failed: '{name}' must name "
-                    f"EnergyModel '{expected}', got '{type_name}'."
-                )
-        return self
-
-    @model_validator(mode="after")
     def check_axiom_23(self) -> "NolanLayout":
         """
         Axiom 23: WebServerNode ShNodes SHALL contain exactly one node named

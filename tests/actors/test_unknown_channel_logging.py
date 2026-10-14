@@ -38,26 +38,16 @@ def test_unknown_channels_separates_no_value_from_stale() -> None:
     )
 
 
-def nolan_app() -> ScadaApp:
-    settings = ScadaApp.get_settings()
-    settings.paths.hardware_layout = CONFIG / "gw.nolan.layout.json"
-    settings.paths.operational_params = CONFIG / "gw.nolan.operational.params.json"
-    settings.paths.mkdirs()
-    app = ScadaApp(app_settings=settings)
-    app.instantiate()
-    return app
-
-
 def test_a_derived_channel_ages_on_its_own_emit_period() -> None:
     """A periodic derived channel is fresh for its emit period, not for a
     bound shared by every derived channel; an on-trigger one ages with the
     slowest input it is derived from."""
-    data = nolan_app().scada.data
+    data = willow_app().scada.data
     now_ms = int(time.time() * 1000)
     for ch in data.my_channels:
         data.latest_channel_values[ch.Name] = 1
         data.latest_channel_unix_ms[ch.Name] = now_ms
-    heat_call = data.layout.derived_channels["zone1-bedrooms-heat-call"]
+    heat_call = data.layout.derived_channels["zone1-main-heat-call"]
     usable = data.layout.derived_channels["usable-energy"]
     depth1 = data.layout.derived_channels["buffer-depth1"]
     assert heat_call.EmitPeriodS == 300

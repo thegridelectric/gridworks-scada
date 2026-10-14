@@ -23,7 +23,6 @@ from gwsproto.enums import (
     SeasonalStorageMode, ServiceMode
 )
 from gwsproto.named_types import (
-    House0Layout,
     Ha1Params, HeatingForecast, LinearOneDimensionalCalibration,
     RequiredEnergyLayered, ScadaParams,
     ChannelReadings, SingleReading, SyncedReadings,
@@ -82,13 +81,6 @@ class DerivedGenerator(ShNodeActor):
         self.received_new_params: bool = False
         self.last_evaluated_strategy = 0
         self.first_required_energy_update_done: bool = False
-        # The layered energy models are House0's: their store and on-peak
-        # assumptions say nothing about another family's plant, so on any
-        # other layout a system-model channel is registered (the layout
-        # declares it) and never evaluated.
-        self.energy_models_apply: bool = (
-            self.layout.layout_type_name == House0Layout.type_name_value()
-        )
 
         # used by the rswt quad params calculator
         self._cached_params: Optional[Ha1Params] = None 
@@ -681,8 +673,6 @@ class DerivedGenerator(ShNodeActor):
         it encounters a system-model DerivedChannel whose model it does not
         recognize or cannot handle.
         """
-        if not self.energy_models_apply:
-            return
         params = dc.Parameters
         assert params is not None
 
@@ -1121,7 +1111,7 @@ class DerivedGenerator(ShNodeActor):
         self.data.first_forecast.set()
         self._send_to(self.ltn, hf)
 
-        if self.energy_models_apply and not self.first_required_energy_update_done:
+        if self.system_models and not self.first_required_energy_update_done:
             self.log("Updating usable and required energy")
             self.compute_usable_energy_wh()
             self.compute_required_energy_wh()

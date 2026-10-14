@@ -160,10 +160,7 @@ class AllTanksLeafAlly(House0Hydronic):
                     self.trigger_event(LeafAllyAllTanksEvent.GoDormant)
                     self.log("Going dormant")
             case SlowDispatchContract(): # WakeUp
-                try:
-                    self.process_slow_dispatch_contract(from_node, message.Payload)
-                except Exception as e:
-                    self.log(f"Trouble with process_slow_dispatch_contract: {e}")
+                self.process_slow_dispatch_contract(from_node, message.Payload)
         return Ok(True)
     
     def process_slow_dispatch_contract(self, from_node, contract: SlowDispatchContract) -> None:

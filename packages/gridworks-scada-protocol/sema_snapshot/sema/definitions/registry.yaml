@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-10-14T12:00:00Z"
+  last_updated: "2026-10-14T21:10:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -1944,8 +1944,6 @@ types:
             - "gw.boiler.backup:000"
             - "gw.element.backup:000"
             - "gw.zone.emitter.type:000"
-            - "gw0.required.energy.layered:000"
-            - "gw0.usable.energy.layered:000"
             - "gw1.actor.class:014"
             - "gw1.quantity:001"
             - "gw2.lc.top.state:000"

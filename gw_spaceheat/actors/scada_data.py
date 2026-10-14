@@ -26,7 +26,6 @@ from gwsproto.named_types import (
     HeatingForecast,
     SnapshotSpaceheat,
 )
-from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from gwsproto.property_format import LeftRightDotStr, SpaceheatName
 
 
@@ -147,8 +146,6 @@ class ScadaData:
         self.first_forecast = asyncio.Event()
         self.buffer_fresh_once = asyncio.Event()
 
-        self.latest_channel_values[HCN.usable_energy] = 0
-        self.latest_channel_unix_ms[HCN.usable_energy] = int(time.time() * 1000)
         self.recent_channel_values: Dict[str, List] = {
             ch.Name: [] for ch in self.my_channels
         }

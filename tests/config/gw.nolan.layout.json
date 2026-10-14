@@ -2120,48 +2120,6 @@
     {
       "TypeName": "derived.channel.gt",
       "Version": "002",
-      "Id": "b802a494-d0ab-412f-90f8-858e76b3835c",
-      "Name": "usable-energy",
-      "CreatedByNodeName": "derived-generator",
-      "Strategy": "system-model",
-      "InputChannelNames": [],
-      "OutputUnit": "WattHours",
-      "OutputQuantity": "Energy",
-      "EmissionMethod": "Periodic",
-      "EmitPeriodS": 60,
-      "Parameters": {
-        "EnergyModel": {
-          "TypeName": "gw0.usable.energy.layered",
-          "Version": "000"
-        }
-      },
-      "DisplayName": "Usable Energy Wh",
-      "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta"
-    },
-    {
-      "TypeName": "derived.channel.gt",
-      "Version": "002",
-      "Id": "2d36d128-2faa-4cb9-9db5-f1ce4a10f14c",
-      "Name": "required-energy",
-      "CreatedByNodeName": "derived-generator",
-      "Strategy": "system-model",
-      "InputChannelNames": [],
-      "OutputUnit": "WattHours",
-      "OutputQuantity": "Energy",
-      "EmissionMethod": "Periodic",
-      "EmitPeriodS": 60,
-      "Parameters": {
-        "EnergyModel": {
-          "TypeName": "gw0.required.energy.layered",
-          "Version": "000"
-        }
-      },
-      "DisplayName": "Required Energy Wh",
-      "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta"
-    },
-    {
-      "TypeName": "derived.channel.gt",
-      "Version": "002",
       "Id": "621a3ff0-f0b9-476b-92df-5bf56529a42c",
       "Name": "zone1-bedrooms-heat-call",
       "CreatedByNodeName": "derived-generator",

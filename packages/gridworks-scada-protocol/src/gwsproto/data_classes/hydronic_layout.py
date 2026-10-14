@@ -30,10 +30,8 @@ from gwsproto.named_types import (
     DerivedChannelGt,
     ElectricMeterDeviceTypeGt,
     GNodeGt,
-    RequiredEnergyLayered,
     ScadaBoardComponentGt,
     SpaceheatNodeGt,
-    UsableEnergyLayered,
     ZoneCallCircuit,
 )
 from gwsproto.property_format import LeftRightDotStr, SpaceheatName, UUID4Str
@@ -679,7 +677,6 @@ class HydronicLayout:
             )
 
         self.validate_tank_temp_calibration_consistency()
-        self.validate_house0_system_models()
 
     def validate_api_tank_module_wiring(self) -> None:
         errors: list[str] = []
@@ -1219,83 +1216,6 @@ class HydronicLayout:
                 "Tank temperature calibration:\n"
                 + "\n".join(f"  - {e}" for e in errors)
             )
-
-    def validate_house0_system_models(self) -> None:
-        """
-        Enforce that the House0 layout defines exactly two valid system-model
-        derived channels: usable energy and required energy.
-        """
-
-        required_channels = {
-            HCN.usable_energy,
-            HCN.required_energy,
-        }
-
-        # --- 1. Required channels exist ---
-        missing = [
-            name for name in required_channels
-            if name not in self.derived_channels
-        ]
-        if missing:
-            raise ValueError(
-                "House0 layout is missing required system-model derived channels:\n"
-                + "\n".join(missing)
-            )
-
-        allowed_models = {
-            UsableEnergyLayered.type_name_value(),
-            RequiredEnergyLayered.type_name_value(),
-        }
-
-        seen_models: set[str] = set()
-
-        # --- 2. Validate each required channel ---
-        for name in required_channels:
-            dc = self.derived_channels[name]
-
-            if dc.CreatedByNodeName != "derived-generator":
-                raise ValueError(
-                    f"{name} must be created by derived-generator "
-                    f"(got {dc.CreatedByNodeName})"
-                )
-
-            if dc.Strategy != "system-model":
-                raise ValueError(
-                    f"{name} must use Strategy 'system-model' "
-                    f"(got {dc.Strategy})"
-                )
-
-            if not dc.Parameters:
-                raise ValueError(
-                    f"{name} is missing Parameters"
-                )
-
-            model = dc.Parameters.get("EnergyModel")
-            if not model:
-                raise ValueError(
-                    f"{name} is missing Parameters.EnergyModel"
-                )
-
-            type_name = model.get("TypeName")
-            if not type_name:
-                raise ValueError(
-                    f"{name} EnergyModel is missing TypeName"
-                )
-
-            if type_name not in allowed_models:
-                raise ValueError(
-                    f"{name} has unsupported EnergyModel TypeName '{type_name}'"
-                )
-
-            seen_models.add(type_name)
-
-        # --- 3. Exactly one of each model ---
-        if seen_models != allowed_models:
-            raise ValueError(
-                "House0 layout must include exactly one usable-energy model "
-                "and one required-energy model"
-            )
-
 
     @property
     def unreported_channels(self) -> set[str]:
