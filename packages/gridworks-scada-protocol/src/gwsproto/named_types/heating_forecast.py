@@ -1,23 +1,33 @@
-"""Type heating.forecast, version 000"""
 import time
-from typing import List, Literal
+from typing import Any, List, Literal
 
 from gwsproto.property_format import LeftRightDotStr, UTCSeconds, UUID4Str
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
-from pydantic import Field, model_validator
+from pydantic import model_validator
 from typing_extensions import Self
 
 
 class HeatingForecast(GwsprotoSemaType):
+    """Sema: https://schemas.electricity.works/types/heating.forecast/000"""
+
     FromGNodeAlias: LeftRightDotStr
     Time: List[UTCSeconds]
     AvgPowerKw: List[float]
     RswtF: List[float]
     RswtDeltaTF: List[float]
     WeatherUid: UUID4Str
-    ForecastCreatedS: UTCSeconds = Field(default_factory=lambda: int(time.time()))
+    ForecastCreatedS: UTCSeconds
     TypeName: Literal["heating.forecast"] = "heating.forecast"
     Version: Literal["000"] = "000"
+
+    def __init__(self, **data: Any) -> None:
+        # Construction stamps the clock; decoding requires the field on the wire.
+        data.setdefault("ForecastCreatedS", int(time.time()))
+        super().__init__(**data)
+
+    # Pydantic routes validation through a custom __init__ unless it carries
+    # this marker; with it, only direct construction runs the defaulting.
+    __init__.__pydantic_base_init__ = True  # type: ignore[attr-defined]
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

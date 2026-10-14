@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-10-13T12:00:00Z"
+  last_updated: "2026-10-14T12:00:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -10,13 +10,6 @@ formats:
     created: "2025-03-03T20:40:00Z"
     status: "published"
     description: "Single decimal digit (integer 0 through 9) with non-coercive serialized validation"
-
-  firmware.commit:
-    owner: gridworks-energy
-    schema_url: "https://schemas.electricity.works/formats/firmware.commit"
-    created: "2026-09-21T19:50:00Z"
-    status: "published"
-    description: "The gridworks-pico commit a board's firmware was generated from: a 40-character lowercase git hash, optionally suffixed -dirty, or the literal unstamped"
 
   git.commit:
     owner: gridworks-energy
@@ -1481,20 +1474,19 @@ types:
             - "uuid4.str"
 
   flow.hall.params:
-    latest_version: "200"
+    latest_version: "101"
     owner: gridworks-energy
     versioning_strategy: "literal"
     description: "The params handshake between a hall-effect flow pico and its scada: the pico posts its parameters at boot and the scada answers with the values to run with."
 
     versions:
-      "200":
-        schema_url: "https://schemas.electricity.works/types/flow.hall.params/200"
-        created: "2026-09-21T19:50:00Z"
+      "101":
+        schema_url: "https://schemas.electricity.works/types/flow.hall.params/101"
+        created: "2026-09-18T00:30:00Z"
         status: "published"
-        summary: "- PicoBoardVariant: add - MicropythonVersion: add"
+        summary: "Initial Sema version (registered from the shipped gwsproto FlowHallParams wire shape, version 101)."
         direct_dependencies:
           structural:
-            - "pico.board.variant:000"
             - "positive.int"
             - "spaceheat.name"
 
@@ -2387,7 +2379,7 @@ types:
         schema_url: "https://schemas.electricity.works/types/ha1.params/006"
         created: "2026-02-25T14:23:00Z"
         status: "published"
-        summary: "- HpMaxKwEl: add as optional - HpMaxKwTh: required -> optional - HpTurnOnMinutes: add"
+        summary: "HpMaxKwEl replaces HpMaxKwTh, required; the five Cop fields required; HpTurnOnMinutes added, required (the shape every scada has published at this version)"
         direct_dependencies:
           structural: []
 
@@ -3060,7 +3052,6 @@ types:
         summary: "Initial Sema version (flattened from the scada PicoBtuMeterComponentGt runtime). ComponentAttributeClassId (cac UUID) -> DeviceType (gw1.device.type value, pascal.case): the device type lived on the referenced cac, not the component. FlowMeterType: spaceheat.make.model enum value -> gw1.device.type value (pascal.case); the device-type enum is articulated by the hardware layout. ConfigList dropped."
         direct_dependencies:
           structural:
-            - "firmware.commit"
             - "gpm.from.hz.method:000"
             - "hz.calc.method:001"
             - "pascal.case"
@@ -3084,7 +3075,6 @@ types:
         summary: "- ComponentAttributeClassId (cac UUID) -> DeviceType (gw1.device.type value, pascal.case). Context-dependent: the device type lived on the referenced cac, not the component. - FlowMeterType: spaceheat.make.model enum value -> gw1.device.type value (pascal.case); the device-type enum is articulated by the hardware layout."
         direct_dependencies:
           structural:
-            - "firmware.commit"
             - "gpm.from.hz.method:000"
             - "hz.calc.method:001"
             - "pascal.case"
@@ -3106,7 +3096,6 @@ types:
         summary: "- ComponentAttributeClassId (cac UUID) -> DeviceType (gw1.device.type value, pascal.case). Context-dependent: the device type lived on the referenced cac, not the component."
         direct_dependencies:
           structural:
-            - "firmware.commit"
             - "pascal.case"
             - "pico.board.variant:000"
             - "positive.int"

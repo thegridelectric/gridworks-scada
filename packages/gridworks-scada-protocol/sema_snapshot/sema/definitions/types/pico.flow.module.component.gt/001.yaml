@@ -110,11 +110,6 @@ properties:
       The MicroPython release this pico was provisioned with, as
       `os.uname().release` reports it.
 
-  FirmwareCommit:
-    $ref: "https://schemas.electricity.works/formats/firmware.commit"
-    description: >
-      The gridworks-pico commit this pico was provisioned from.
-
   TypeName:
     const: "pico.flow.module.component.gt"
 

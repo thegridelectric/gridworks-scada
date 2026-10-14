@@ -1,0 +1,21 @@
+{
+  "TypeName": "ha1.params",
+  "Version": "006",
+  "AlphaTimes10": 120,
+  "BetaTimes100": -22,
+  "GammaEx6": 0,
+  "IntermediatePowerKw": 1.5,
+  "IntermediateRswtF": 100,
+  "DdPowerKw": 12.0,
+  "DdRswtF": 160,
+  "DdDeltaTF": 20,
+  "HpMaxKwEl": 6.0,
+  "MaxEwtF": 170,
+  "LoadOverestimationPercent": 10,
+  "CopIntercept": 1.02,
+  "CopOatCoeff": 0.0257,
+  "CopLwtCoeff": 0.0,
+  "CopMin": 1.4,
+  "CopMinOatF": 15.0,
+  "HpTurnOnMinutes": 12
+}

@@ -8,7 +8,7 @@
 #   scripts/regen_sema_snapshot.sh
 #
 # Targets are the gwsproto twins that have a sema word, at the version the
-# scada speaks: a word pinned below sema's latest (the picos post 100 / 200
+# scada speaks: a word pinned below sema's latest (the picos post 100 / 101
 # / 200 until firmware stamps a commit) is seeded at that version, so the
 # snapshot never names a version the scada does not decode. The dependency
 # closure brings the rest. A twin with no sema word is on the conformance
@@ -46,7 +46,7 @@ initial_targets:
     energy.instruction: {}
     flo.params.house0: {}
     flow.hall.params:
-      versions: ["200"]
+      versions: ["101"]
     fsm.atomic.report: {}
     fsm.event: {}
     fsm.full.report: {}

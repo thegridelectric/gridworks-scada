@@ -1,6 +1,6 @@
 metadata:
   generated_from: indexes/public_registry.yaml
-  generated_at: '2026-10-13T23:20:10Z'
+  generated_at: '2026-10-14T12:24:06Z'
   note: Transitive closure of initial_targets
 initial_targets:
 - ads.channel.config:000
@@ -24,7 +24,7 @@ initial_targets:
 - electric.meter.device.type.gt:000
 - energy.instruction:000
 - flo.params.house0:007
-- flow.hall.params:200
+- flow.hall.params:101
 - fsm.atomic.report:001
 - fsm.event:000
 - fsm.full.report:001
@@ -222,8 +222,6 @@ worklist:
   formats:
     decimal.digit:
       path: definitions/formats/decimal.digit.yaml
-    firmware.commit:
-      path: definitions/formats/firmware.commit.yaml
     git.commit:
       path: definitions/formats/git.commit.yaml
     handle.name:
@@ -573,8 +571,8 @@ worklist:
       '007':
         path: definitions/types/flo.params.house0/007.yaml
     flow.hall.params:
-      '200':
-        path: definitions/types/flow.hall.params/200.yaml
+      '101':
+        path: definitions/types/flow.hall.params/101.yaml
     fsm.atomic.report:
       '001':
         path: definitions/types/fsm.atomic.report/001.yaml

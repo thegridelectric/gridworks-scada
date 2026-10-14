@@ -185,7 +185,7 @@ def test_flow_module_warns_once_on_a_pico_the_layout_does_not_name(
 ) -> None:
     actor = flow_actor(tmp_path, pair_name)
     queued = capture_threadsafe(actor)
-    stranger = flow_params(LAYOUT_BOARD).model_copy(update={"HwUid": "pico_ffffff"})
+    stranger = flow_params().model_copy(update={"HwUid": "pico_ffffff"})
 
     for _ in range(2):
         asyncio.run(actor._handle_hall_params_post(Post(stranger.model_dump(mode="json"))))

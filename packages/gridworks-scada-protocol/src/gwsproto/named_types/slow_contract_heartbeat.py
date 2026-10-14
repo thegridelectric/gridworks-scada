@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import model_validator
 from typing_extensions import Self
@@ -10,6 +10,7 @@ from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 SCADA_SH_NODE_NAME = "s"
 LTN_SH_NODE_NAME = "ltn"
+SIGNED_PROOF_STUB = "signed_proof_stub"
 
 
 class SlowContractHeartbeat(GwsprotoSemaType):
@@ -22,13 +23,24 @@ class SlowContractHeartbeat(GwsprotoSemaType):
     MessageCreatedMs: UTCMilliseconds
     Cause: Optional[str] = None
     Reason: Optional[DispatchRefusalReason] = None
-    IsAuthoritative: bool = True
+    IsAuthoritative: bool
     WattHoursUsed: Optional[int] = None
     MyDigit: DecimalDigit
     YourLastDigit: Optional[DecimalDigit] = None
-    SignedProof: str = "signed_proof_stub"
+    SignedProof: str
     TypeName: Literal["slow.contract.heartbeat"] = "slow.contract.heartbeat"
     Version: Literal["002"] = "002"
+
+    def __init__(self, **data: Any) -> None:
+        # Construction claims authority and signs with the stub until signing
+        # is live; decoding requires both on the wire.
+        data.setdefault("IsAuthoritative", True)
+        data.setdefault("SignedProof", SIGNED_PROOF_STUB)
+        super().__init__(**data)
+
+    # Pydantic routes validation through a custom __init__ unless it carries
+    # this marker; with it, only direct construction runs the defaulting.
+    __init__.__pydantic_base_init__ = True  # type: ignore[attr-defined]
 
     def contract_grace_period_minutes(self) -> Literal[5]:
         return 5

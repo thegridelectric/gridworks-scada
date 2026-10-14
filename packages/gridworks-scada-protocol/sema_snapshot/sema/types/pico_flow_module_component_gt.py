@@ -4,7 +4,6 @@ from sema_snapshot.sema.base import SemaType
 from sema_snapshot.sema.enums import GpmFromHzMethod
 from sema_snapshot.sema.enums import HzCalcMethod
 from sema_snapshot.sema.enums import PicoBoardVariant
-from sema_snapshot.sema.property_format import FirmwareCommit
 from sema_snapshot.sema.property_format import PascalCase
 from sema_snapshot.sema.property_format import SpaceheatName
 from sema_snapshot.sema.property_format import UUID4Str
@@ -36,7 +35,6 @@ class PicoFlowModuleComponentGt(SemaType):
     cutoff_frequency: StrictFloat | None = None
     pico_board_variant: PicoBoardVariant
     micropython_version: str | None = None
-    firmware_commit: FirmwareCommit | None = None
     type_name: Literal["pico.flow.module.component.gt"] = (
         "pico.flow.module.component.gt"
     )

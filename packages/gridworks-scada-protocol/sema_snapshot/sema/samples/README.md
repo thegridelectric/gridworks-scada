@@ -5,7 +5,7 @@ an `examples:` block. Generated from the authored examples (never edited
 by hand) and consumed by `roundtrip.py`. A type version without a sample
 is silently untested by the round-trip, so its absence is recorded here.
 
-Coverage: **107 of 140** seeded type versions have a sample.
+Coverage: **108 of 140** seeded type versions have a sample.
 
 Seeded type versions lacking a sample (no `examples:`):
 
@@ -26,7 +26,6 @@ Seeded type versions lacking a sample (no `examples:`):
 - `gw1.tank.temp.calibration.map.001`
 - `gw1.zone.call.circuit.000`
 - `gw1.zone.thermostat.000`
-- `ha1.params.006`
 - `heating.forecast.000`
 - `i2c.bus.000`
 - `latest.price.000`

@@ -1,10 +1,11 @@
-from typing import Literal, Self
+from typing import Any, Literal, Self
 
 from gwproto.messages.event import EventBase
 from pydantic import model_validator
 
 from gwsproto.named_types.remaining_elec import RemainingElec
 from gwsproto.named_types.report import Report
+from gwsproto.property_format import LeftRightDotStr, UTCMilliseconds, UUID4Str
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
@@ -16,9 +17,26 @@ class RemainingElecEvent(EventBase, GwsprotoSemaType):
 class ReportEvent(EventBase, GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/report.event/004"""
 
+    MessageId: UUID4Str
+    TimeCreatedMs: UTCMilliseconds
+    Src: LeftRightDotStr
     Report: Report
     TypeName: Literal["report.event"] = "report.event"
     Version: Literal["004"] = "004"
+
+    def __init__(self, **data: Any) -> None:
+        # Construction derives the envelope from the Report (axioms 1-3 make
+        # them equal); decoding requires all three on the wire.
+        report = data.get("Report")
+        if isinstance(report, Report):
+            data.setdefault("MessageId", report.Id)
+            data.setdefault("TimeCreatedMs", report.MessageCreatedMs)
+            data.setdefault("Src", report.FromGNodeAlias)
+        super().__init__(**data)
+
+    # Pydantic routes validation through a custom __init__ unless it carries
+    # this marker; with it, only direct construction runs the defaulting.
+    __init__.__pydantic_base_init__ = True  # type: ignore[attr-defined]
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

@@ -17,7 +17,13 @@ from actors.derived_generator import DerivedGenerator
 from actors.hubitat_poller import HubitatPoller
 from drivers.driver_result import DriverOutcome
 from gwsproto.enums import LogLevel, TelemetryName
-from gwsproto.named_types import Glitch, MicroVolts, MultichannelSnapshot, SingleReading, SyncedReadings
+from gwsproto.named_types import (
+    Glitch,
+    MicroVolts,
+    MultichannelSnapshot,
+    SingleReading,
+    SyncedReadings,
+)
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.type_helpers import MakerAPIAttributeGt
 from result import Ok
@@ -29,7 +35,9 @@ NOLAN = ("gw.nolan.layout.json", "gw.nolan.operational.params.json")
 CELSIUS_ENCODINGS = [TelemetryName.WaterTempCTimes1000, TelemetryName.CelsiusTimes100]
 
 
-def declared(pair: tuple[str, str], channel_names: list[str], encoding: TelemetryName) -> dict:
+def declared(
+    pair: tuple[str, str], channel_names: list[str], encoding: TelemetryName
+) -> dict:
     """The pair's sim layout with `channel_names` declared in `encoding`."""
     layout = json.loads((CONFIG / pair[0]).read_text())
     for ch in layout["DataChannels"]:
@@ -51,7 +59,9 @@ def boot(tmp_path: Path, pair: tuple[str, str], layout: dict) -> ScadaApp:
 
 
 @pytest.mark.parametrize("encoding", CELSIUS_ENCODINGS)
-def test_tank_module_emits_by_the_device_channel_encoding(tmp_path: Path, encoding: TelemetryName) -> None:
+def test_tank_module_emits_by_the_device_channel_encoding(
+    tmp_path: Path, encoding: TelemetryName
+) -> None:
     channel_names = [f"buffer-depth{i}-device" for i in (1, 2, 3)]
     app = boot(tmp_path, WILLOW, declared(WILLOW, channel_names, encoding))
     tank = app.get_communicator_as_type("buffer", ApiTankModule)
@@ -73,7 +83,9 @@ def test_tank_module_emits_by_the_device_channel_encoding(tmp_path: Path, encodi
     expected_f = tank.simple_beta(volts, fahrenheit=True)
     for name in channel_names:
         raw = readings.ValueList[readings.ChannelNameList.index(name)]
-        assert tank.layout.channel_registry.temperature(name, raw).f == pytest.approx(expected_f, abs=0.02)
+        assert tank.layout.channel_registry.temperature(name, raw).f == pytest.approx(
+            expected_f, abs=0.02
+        )
 
 
 def test_open_thermistor_is_one_warning_glitch_a_day_and_no_temperature(
@@ -99,7 +111,9 @@ def test_open_thermistor_is_one_warning_glitch_a_day_and_no_temperature(
     post(PICO_VOLTS)
     post(PICO_VOLTS)
     glitches = [p for p in sent if isinstance(p, Glitch)]
-    assert [(g.Type, g.Summary) for g in glitches] == [(LogLevel.Warning, "open-thermistor")]
+    assert [(g.Type, g.Summary) for g in glitches] == [
+        (LogLevel.Warning, "open-thermistor")
+    ]
     assert about[2] in glitches[0].Details
     for readings in (p for p in sent if isinstance(p, SyncedReadings)):
         assert f"{about[2]}-device" not in readings.ChannelNameList
@@ -119,7 +133,9 @@ def test_open_thermistor_is_one_warning_glitch_a_day_and_no_temperature(
 
 
 @pytest.mark.parametrize("encoding", CELSIUS_ENCODINGS)
-def test_btu_meter_emits_by_the_temperature_channel_encoding(tmp_path: Path, encoding: TelemetryName) -> None:
+def test_btu_meter_emits_by_the_temperature_channel_encoding(
+    tmp_path: Path, encoding: TelemetryName
+) -> None:
     channel_names = ["hp-lwt", "hp-ewt"]
     app = boot(tmp_path, NOLAN, declared(NOLAN, channel_names, encoding))
     btu = app.get_communicator_as_type("primary-btu", ApiBtuMeter)
@@ -139,8 +155,12 @@ def test_btu_meter_emits_by_the_temperature_channel_encoding(tmp_path: Path, enc
     readings = sent[0]
     registry = btu.layout.channel_registry
     assert readings.ValueList[0] == 350
-    assert registry.temperature("hp-lwt", readings.ValueList[1]).f == pytest.approx(45.12 * 9 / 5 + 32)
-    assert registry.temperature("hp-ewt", readings.ValueList[2]).f == pytest.approx(39.87 * 9 / 5 + 32)
+    assert registry.temperature("hp-lwt", readings.ValueList[1]).f == pytest.approx(
+        45.12 * 9 / 5 + 32
+    )
+    assert registry.temperature("hp-ewt", readings.ValueList[2]).f == pytest.approx(
+        39.87 * 9 / 5 + 32
+    )
 
 
 @pytest.mark.parametrize("encoding", CELSIUS_ENCODINGS)
@@ -150,7 +170,9 @@ def test_derived_generator_takes_an_affine_input_in_either_celsius_encoding(
     """The Nolan pair's `buffer-depth1` is affine (M 1, B 0) over
     `buffer-depth1-device`."""
     app = boot(tmp_path, NOLAN, declared(NOLAN, ["buffer-depth1-device"], encoding))
-    generator = app.get_communicator_as_type(CoreNodeNames.derived_generator, DerivedGenerator)
+    generator = app.get_communicator_as_type(
+        CoreNodeNames.derived_generator, DerivedGenerator
+    )
     assert generator is not None
     sent: list[SingleReading] = []
     generator._send_to = lambda dst, payload, src=None: sent.append(payload)
@@ -165,7 +187,9 @@ def test_derived_generator_takes_an_affine_input_in_either_celsius_encoding(
         ),
     )
 
-    assert registry.temperature("buffer-depth1", sent[0].Value).f == pytest.approx(122.0, abs=0.01)
+    assert registry.temperature("buffer-depth1", sent[0].Value).f == pytest.approx(
+        122.0, abs=0.01
+    )
 
 
 @pytest.mark.parametrize("encoding", CELSIUS_ENCODINGS)
@@ -174,11 +198,19 @@ def test_tsnap_driver_emits_by_the_channel_encoding(
 ) -> None:
     """The driver imports the ADS1115 hardware libraries, absent off a pi, so
     they are stubbed and the voltage read is supplied."""
-    for name in ("adafruit_ads1x15", "adafruit_ads1x15.ads1115", "adafruit_ads1x15.analog_in", "board", "busio"):
+    for name in (
+        "adafruit_ads1x15",
+        "adafruit_ads1x15.ads1115",
+        "adafruit_ads1x15.analog_in",
+        "board",
+        "busio",
+    ):
         monkeypatch.setitem(sys.modules, name, ModuleType(name))
     sys.modules["adafruit_ads1x15.analog_in"].AnalogIn = object  # type: ignore[attr-defined]
     sys.modules["busio"].I2C = object  # type: ignore[attr-defined]
-    module = importlib.import_module("drivers.multipurpose_sensor.gridworks_tsnap1__multipurpose_sensor_driver")
+    module = importlib.import_module(
+        "drivers.multipurpose_sensor.gridworks_tsnap1__multipurpose_sensor_driver"
+    )
     monkeypatch.delitem(sys.modules, module.__name__)
     driver_class = module.GridworksTsnap1_MultipurposeSensorDriver
     app = boot(tmp_path, WILLOW, declared(WILLOW, ["buffer-depth1-device"], encoding))
@@ -192,12 +224,14 @@ def test_tsnap_driver_emits_by_the_channel_encoding(
     expected_c = driver_class.voltage_to_c(volts).unwrap()
     raw = outcome.value[channel.Name]
     assert raw is not None
-    assert app.hardware_layout.channel_registry.temperature(channel.Name, raw).f == pytest.approx(
-        expected_c * 9 / 5 + 32, abs=0.02
-    )
+    assert app.hardware_layout.channel_registry.temperature(
+        channel.Name, raw
+    ).f == pytest.approx(expected_c * 9 / 5 + 32, abs=0.02)
 
 
-@pytest.mark.parametrize("encoding", [TelemetryName.AirTempFTimes1000, TelemetryName.CelsiusTimes100])
+@pytest.mark.parametrize(
+    "encoding", [TelemetryName.AirTempFTimes1000, TelemetryName.CelsiusTimes100]
+)
 def test_hubitat_poller_emits_a_fahrenheit_reading_by_the_channel_encoding(
     tmp_path: Path, encoding: TelemetryName
 ) -> None:
@@ -211,18 +245,30 @@ def test_hubitat_poller_emits_a_fahrenheit_reading_by_the_channel_encoding(
         NodeName="zone1-main",
         TelemetryName=encoding,
         Unit="Fahrenheit",
+        Exponent=3,
+        InterpretAsNumber=True,
+        WebPollEnabled=True,
+        WebListenEnabled=True,
+        ReportMissing=True,
+        ReportParseError=True,
     )
 
-    converter = HubitatPoller._make_value_converter(SimpleNamespace(_services=app), attribute)
+    converter = HubitatPoller._make_value_converter(
+        SimpleNamespace(_services=app), attribute
+    )
 
     assert converter is not None
     raw = converter("69.0")
     assert raw is not None
-    assert app.hardware_layout.channel_registry.temperature(channel_name, raw).f == pytest.approx(69.0, abs=0.01)
+    assert app.hardware_layout.channel_registry.temperature(
+        channel_name, raw
+    ).f == pytest.approx(69.0, abs=0.01)
     assert converter("not a number") is None
 
 
-def test_hubitat_poller_refuses_a_temperature_attribute_over_a_non_temperature_channel(tmp_path: Path) -> None:
+def test_hubitat_poller_refuses_a_temperature_attribute_over_a_non_temperature_channel(
+    tmp_path: Path,
+) -> None:
     app = boot(tmp_path, WILLOW, declared(WILLOW, [], TelemetryName.CelsiusTimes100))
     attribute = MakerAPIAttributeGt(
         AttributeName="temperature",
@@ -230,6 +276,12 @@ def test_hubitat_poller_refuses_a_temperature_attribute_over_a_non_temperature_c
         NodeName="zone1-main",
         TelemetryName=TelemetryName.PowerW,
         Unit="Fahrenheit",
+        Exponent=3,
+        InterpretAsNumber=True,
+        WebPollEnabled=True,
+        WebListenEnabled=True,
+        ReportMissing=True,
+        ReportParseError=True,
     )
 
     with pytest.raises(ValueError):

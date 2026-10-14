@@ -7,20 +7,10 @@ from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
 class LinearOneDimensionalCalibration(GwsprotoSemaType):
-    """Sema: https://schemas.electricity.works/types/linear.one.dimensional.calibration/000
+    """Sema: https://schemas.electricity.works/types/linear.one.dimensional.calibration/000"""
 
-    Linear calibration applied to a measurement expressed in the consuming
-    derived channel's OutputUnit scaling domain.
-
-    Interpreted as:
-        calibrated = M * x + B
-
-    where x is the input first converted into the OutputUnit scaling (e.g.
-    FahrenheitX100), M is dimensionless, and B is an integer offset in that same
-    OutputUnit scaling (e.g. B = -430 is a -4.30 F offset).
-    """
-    M: float = 1.0
-    B: int = 0
+    M: float
+    B: int
     TypeName: Literal["linear.one.dimensional.calibration"] = "linear.one.dimensional.calibration"
     Version: Literal["000"] = "000"
 

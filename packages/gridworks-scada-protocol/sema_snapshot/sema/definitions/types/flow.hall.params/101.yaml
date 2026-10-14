@@ -1,5 +1,5 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
-$id: "https://schemas.electricity.works/types/flow.hall.params/200"
+$id: "https://schemas.electricity.works/types/flow.hall.params/101"
 
 title: "flow.hall.params"
 type: object
@@ -35,23 +35,11 @@ properties:
       Seconds of no ticks after which the pico posts an empty ticklist,
       so the scada can tell no flow from a silent pico.
 
-  PicoBoardVariant:
-    $ref: "https://schemas.electricity.works/enums/pico.board.variant/000"
-    description: >
-      The physical board this pico runs on, as the firmware determines it
-      at boot.
-
-  MicropythonVersion:
-    type: string
-    description: >
-      The MicroPython release the firmware is running on, read live from
-      the interpreter at each post.
-
   TypeName:
     const: "flow.hall.params"
 
   Version:
-    const: "200"
+    const: "101"
 
 required:
   - HwUid
@@ -59,8 +47,6 @@ required:
   - FlowNodeName
   - PublishTicklistPeriodS
   - PublishEmptyTicklistAfterS
-  - PicoBoardVariant
-  - MicropythonVersion
   - TypeName
   - Version
 
@@ -74,10 +60,8 @@ examples:
       "FlowNodeName": "dist-flow",
       "PublishTicklistPeriodS": 10,
       "PublishEmptyTicklistAfterS": 60,
-      "PicoBoardVariant": "PicoRaspberryWifi2040",
-      "MicropythonVersion": "1.24.1",
       "TypeName": "flow.hall.params",
-      "Version": "200"
+      "Version": "101"
     }
 
 x-gridworks:

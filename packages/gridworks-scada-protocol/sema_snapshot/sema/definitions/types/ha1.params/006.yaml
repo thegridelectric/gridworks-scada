@@ -35,9 +35,6 @@ properties:
   HpMaxKwEl:
     type: number
 
-  HpMaxKwTh:
-    type: number
-
   MaxEwtF:
     type: integer
 
@@ -61,7 +58,6 @@ properties:
 
   HpTurnOnMinutes:
     type: integer
-    default: 12
 
   TypeName:
     const: "ha1.params"
@@ -78,13 +74,43 @@ required:
   - DdPowerKw
   - DdRswtF
   - DdDeltaTF
+  - HpMaxKwEl
   - MaxEwtF
   - LoadOverestimationPercent
+  - CopIntercept
+  - CopOatCoeff
+  - CopLwtCoeff
+  - CopMin
+  - CopMinOatF
   - HpTurnOnMinutes
   - TypeName
   - Version
 
 additionalProperties: false
+
+examples:
+  - |
+    {
+      "AlphaTimes10": 120,
+      "BetaTimes100": -22,
+      "GammaEx6": 0,
+      "IntermediatePowerKw": 1.5,
+      "IntermediateRswtF": 100,
+      "DdPowerKw": 12,
+      "DdRswtF": 160,
+      "DdDeltaTF": 20,
+      "HpMaxKwEl": 6.0,
+      "MaxEwtF": 170,
+      "LoadOverestimationPercent": 10,
+      "CopIntercept": 1.02,
+      "CopOatCoeff": 0.0257,
+      "CopLwtCoeff": 0.0,
+      "CopMin": 1.4,
+      "CopMinOatF": 15.0,
+      "HpTurnOnMinutes": 12,
+      "TypeName": "ha1.params",
+      "Version": "006"
+    }
 
 x-gridworks:
   owner: "gridworks-energy"

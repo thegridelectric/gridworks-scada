@@ -14,15 +14,14 @@ class Ha1Params(SemaType):
     dd_power_kw: StrictFloat
     dd_rswt_f: StrictInt
     dd_delta_t_f: StrictInt
-    hp_max_kw_el: StrictFloat | None = None
-    hp_max_kw_th: StrictFloat | None = None
+    hp_max_kw_el: StrictFloat
     max_ewt_f: StrictInt
     load_overestimation_percent: StrictInt
-    cop_intercept: StrictFloat | None = None
-    cop_oat_coeff: StrictFloat | None = None
-    cop_lwt_coeff: StrictFloat | None = None
-    cop_min: StrictFloat | None = None
-    cop_min_oat_f: StrictFloat | None = None
-    hp_turn_on_minutes: StrictInt = 12
+    cop_intercept: StrictFloat
+    cop_oat_coeff: StrictFloat
+    cop_lwt_coeff: StrictFloat
+    cop_min: StrictFloat
+    cop_min_oat_f: StrictFloat
+    hp_turn_on_minutes: StrictInt
     type_name: Literal["ha1.params"] = "ha1.params"
     version: Literal["006"] = "006"

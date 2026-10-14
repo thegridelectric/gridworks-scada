@@ -90,6 +90,7 @@ from pydantic import BaseModel
 from actors.ltn.config import LtnSettings, DashboardSettings
 from actors.ltn.dashboard.dashboard import Dashboard
 from actors.ltn.data import LtnData
+from actors.ltn import flo_tuning
 
 TANK_GALLONS = 120
 MAX_HORIZON_HOURS = 48
@@ -149,7 +150,7 @@ def _flo_plans_worker(
 
 
 def _get_flo_git_commit() -> str:
-    """Get gridworks-innovations HEAD commit when available; else FloParamsHouse0 default."""
+    """Get gridworks-innovations HEAD commit when available; else the Unknown marker."""
     candidates: list[Path] = []
     # Prefer: gridflo package location (editable install)
     try:
@@ -172,7 +173,7 @@ def _get_flo_git_commit() -> str:
             )
             if r.returncode == 0 and r.stdout.strip():
                 return r.stdout.strip()
-    return FloParamsHouse0.model_fields["FloGitCommit"].default
+    return flo_tuning.FLO_GIT_COMMIT_UNKNOWN
 
 
 class PriceForecast(BaseModel):
@@ -1045,6 +1046,8 @@ class Ltn(PrimeActor):
 
         self.flo_params = FloParamsHouse0(
             GNodeAlias=self.layout.scada_g_node_alias,
+            FloParamsUid=str(uuid.uuid4()),
+            TimezoneStr=self.settings.timezone_str,
             StartUnixS=dijkstra_start_time,
             HorizonHours=self.flo_horizon_hours,
             NumLayers=int(3*num_tanks*3), # 3 sensors per tank, 3 layers per sensor
@@ -1054,11 +1057,19 @@ class Ltn(PrimeActor):
             InitialThermocline1= int(th1*3),
             InitialThermocline2= int(th2*3),
             StorageVolumeGallons = TANK_GALLONS*num_tanks,
+            StorageLossesPercent=flo_tuning.STORAGE_LOSSES_PERCENT,
+            HpMinElecKw=flo_tuning.HP_MIN_ELEC_KW,
+            HpMaxElecKw=self.ha1_params.HpMaxKwEl,
+            HpTurnOnMinutes=self.ha1_params.HpTurnOnMinutes,
+            MaxHpKwhTh=flo_tuning.MAX_HP_KWH_TH,
+            MaxLoadKwhTh=flo_tuning.MAX_LOAD_KWH_TH,
             LmpForecast=self.price_forecast.lmp_usd_per_mwh,
             DistPriceForecast=self.price_forecast.dp_usd_per_mwh,
             RegPriceForecast=self.price_forecast.reg_usd_per_mwh,
+            PriceForecastUid=str(uuid.uuid4()),
             OatForecastF=weather.oat_f,
             WindSpeedForecastMph=weather.wind_speed_mph,
+            WeatherUid=str(uuid.uuid4()),
             AlphaTimes10=self.ha1_params.AlphaTimes10,
             BetaTimes100=self.ha1_params.BetaTimes100,
             GammaEx6=self.ha1_params.GammaEx6,
@@ -1078,6 +1089,19 @@ class Ltn(PrimeActor):
             HouseAvailableKwh=house_available_kwh,
             PreviousPlanHpKwhElList=previous_plan_hp_kwh_el_list,
             PreviousEstimateStorageKwhNow=previous_estimate_storage_kwh_now,
+            RswtPenaltyEnabled=flo_tuning.RSWT_PENALTY_ENABLED,
+            RswtPenaltyWeight=flo_tuning.RSWT_PENALTY_WEIGHT,
+            RswtPenaltyDecay=flo_tuning.RSWT_PENALTY_DECAY,
+            RswtPenaltyExponentRate=flo_tuning.RSWT_PENALTY_EXPONENT_RATE,
+            RswtPenaltyDecayMaxHour=flo_tuning.RSWT_PENALTY_DECAY_MAX_HOUR,
+            StabilityPenaltyEnabled=flo_tuning.STABILITY_PENALTY_ENABLED,
+            StabilityPenaltyWeight=flo_tuning.STABILITY_PENALTY_WEIGHT,
+            StabilityPenaltyDecay=flo_tuning.STABILITY_PENALTY_DECAY,
+            StabilityPenaltyThresholdKwh=flo_tuning.STABILITY_PENALTY_THRESHOLD_KWH,
+            StabilityPenaltyHorizonHours=flo_tuning.STABILITY_PENALTY_HORIZON_HOURS,
+            PriceUnit=flo_tuning.PRICE_UNIT,
+            ParamsGeneratedS=int(time.time()),
+            ConstantDeltaT=flo_tuning.CONSTANT_DELTA_T,
             FloGitCommit=flo_git_commit,
         )
         self.services.publish_message(

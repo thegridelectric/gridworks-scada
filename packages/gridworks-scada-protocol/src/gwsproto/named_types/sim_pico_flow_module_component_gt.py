@@ -13,13 +13,13 @@ class SimPicoFlowModuleComponentGt(DeviceComponentBase):
 
     SerialNumber: str
     FlowNodeName: SpaceheatName
-    FlowMeterType: str = "SaierFlowSensor"
+    FlowMeterType: str
     HzCalcMethod: HzCalcMethod
     GpmFromHzMethod: GpmFromHzMethod
     ConstantGallonsPerTick: float
-    SendHz: bool = True
-    SendGallons: bool = False
-    SendTickLists: bool = False
+    SendHz: bool
+    SendGallons: bool
+    SendTickLists: bool
     NoFlowMs: int
     AsyncCaptureThresholdGpmTimes100: int
     PublishEmptyTicklistAfterS: Optional[int] = None  # Hall Params

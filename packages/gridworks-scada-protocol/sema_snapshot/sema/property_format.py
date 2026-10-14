@@ -7,8 +7,6 @@ from pydantic import BeforeValidator, Field, StrictFloat, StrictInt
 
 
 # --- patterns ---
-FIRMWARE_COMMIT_PATTERN = re.compile(r"^([0-9a-f]{40}(-dirty)?|unstamped)$")
-
 GIT_COMMIT_PATTERN = re.compile(r"^[0-9a-f]{40}(-dirty)?$")
 
 HANDLE_NAME_PATTERN = re.compile(
@@ -48,19 +46,6 @@ def is_decimal_digit(v: int) -> int:
         raise TypeError("Not an int!")
     if v < 0 or v > 9:
         raise ValueError(f"{v} must be a single decimal digit, 0 through 9")
-    return v
-
-
-def is_firmware_commit(v: str) -> str:
-    if not isinstance(v, str):
-        raise ValueError(f"<{v}>: firmware.commit must be a string.")
-
-    if not FIRMWARE_COMMIT_PATTERN.fullmatch(v):
-        raise ValueError(
-            f"<{v}>: Fails firmware.commit format (a 40-character lowercase "
-            "git hash, optionally suffixed -dirty, or the literal unstamped)."
-        )
-
     return v
 
 
@@ -257,11 +242,6 @@ def is_uuid4_str(v: str) -> str:
 DecimalDigit = Annotated[
     StrictInt,
     Field(ge=0, le=9),
-]
-
-FirmwareCommit = Annotated[
-    str,
-    BeforeValidator(is_firmware_commit),
 ]
 
 GitCommit = Annotated[

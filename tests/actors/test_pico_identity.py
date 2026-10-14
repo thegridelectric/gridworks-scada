@@ -276,39 +276,14 @@ def with_hall_flow_pico(pair: tuple[str, str]) -> dict:
     return layout
 
 
-def flow_params(board: PicoBoardVariant) -> FlowHallParams:
+def flow_params() -> FlowHallParams:
     return FlowHallParams(
         HwUid="pico_1a2b3c",
         ActorNodeName="dist-flow",
         FlowNodeName="dist-flow",
         PublishTicklistPeriodS=10,
         PublishEmptyTicklistAfterS=7,
-        PicoBoardVariant=board,
-        MicropythonVersion="1.24.1",
     )
-
-
-@pytest.mark.parametrize("pair_name", HOUSE0_PAIRS)
-def test_flow_module_warns_once_on_a_board_the_layout_does_not_say(
-    tmp_path: Path, pair_name: str
-) -> None:
-    pair = PAIRS[pair_name]
-    app = boot(tmp_path, pair, with_hall_flow_pico(pair))
-    actor = app.get_communicator_as_type("dist-flow", ApiFlowModule)
-    assert actor is not None
-    sent = capture_sends(actor)
-
-    actor.process_message(
-        Message(Src="dist-flow", Dst="dist-flow", Payload=flow_params(LAYOUT_BOARD))
-    )
-    assert warnings(sent) == []
-
-    for _ in range(2):
-        actor.process_message(
-            Message(Src="dist-flow", Dst="dist-flow", Payload=flow_params(OTHER_BOARD))
-        )
-    [glitch] = warnings(sent)
-    assert "PicoBoardVariant" in glitch.Summary
 
 
 class Post:
@@ -328,27 +303,7 @@ def capture_threadsafe(actor: Any) -> list[Message]:
 
 
 @pytest.mark.parametrize("pair_name", HOUSE0_PAIRS)
-def test_flow_module_answers_a_200_post_in_200_and_queues_it_for_the_identity_check(
-    tmp_path: Path, pair_name: str
-) -> None:
-    pair = PAIRS[pair_name]
-    app = boot(tmp_path, pair, with_hall_flow_pico(pair))
-    actor = app.get_communicator_as_type("dist-flow", ApiFlowModule)
-    assert actor is not None
-    queued = capture_threadsafe(actor)
-    posted = flow_params(OTHER_BOARD)
-
-    response = asyncio.run(
-        actor._handle_hall_params_post(Post(posted.model_dump(mode="json")))
-    )
-
-    answer = FlowHallParams.model_validate_json(response.text)
-    assert answer.PicoBoardVariant == OTHER_BOARD
-    assert [m.Payload for m in queued] == [posted]
-
-
-@pytest.mark.parametrize("pair_name", HOUSE0_PAIRS)
-def test_flow_module_answers_a_101_post_in_101_with_no_identity_check(
+def test_flow_module_answers_a_params_post_with_the_layout_cadence_and_no_identity_check(
     tmp_path: Path, pair_name: str
 ) -> None:
     pair = PAIRS[pair_name]

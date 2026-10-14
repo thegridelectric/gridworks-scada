@@ -167,13 +167,11 @@ types:
         summary: "- FloGitCommit: add"
 
   flow.hall.params:
-    latest_version: "200"
+    latest_version: "101"
     versioning_strategy: "literal"
     versions:
-      "200":
-        summary: >
-          - PicoBoardVariant: add
-          - MicropythonVersion: add
+      "101":
+        summary: "Initial Sema version (registered from the shipped gwsproto FlowHallParams wire shape, version 101)."
 
   fsm.atomic.report:
     latest_version: "001"
@@ -491,10 +489,7 @@ types:
     versioning_strategy: "literal"
     versions:
       "006":
-        summary: >
-          - HpMaxKwEl: add as optional
-          - HpMaxKwTh: required -> optional
-          - HpTurnOnMinutes: add
+        summary: "HpMaxKwEl replaces HpMaxKwTh, required; the five Cop fields required; HpTurnOnMinutes added, required (the shape every scada has published at this version)"
 
   heating.curve:
     latest_version: "000"

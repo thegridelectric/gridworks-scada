@@ -25,17 +25,17 @@ class ScadaDeviceTypeGt(GwsprotoSemaType):
     DisplayName: Optional[str] = None
     MinPollPeriodMs: Optional[PositiveInt] = None
     BusList: list[I2cBus]
-    TelemetryNameList: list[TelemetryName] = []
-    NativeGpioInputs: list[NativeGpioPin] = []
-    NativeGpioOutputs: list[NativeGpioPin] = []
-    Expanders: list[I2cExpander] = []
-    Muxes: list[I2cMux] = []
-    I2cRelays: list[I2cRelayCapability] = []
+    TelemetryNameList: list[TelemetryName]
+    NativeGpioInputs: list[NativeGpioPin]
+    NativeGpioOutputs: list[NativeGpioPin]
+    Expanders: list[I2cExpander]
+    Muxes: list[I2cMux]
+    I2cRelays: list[I2cRelayCapability]
     SupportsPinReadback: bool
     RelayEnergizedLevel: NonNegativeInt
     CtAdc: Optional[I2cCtInterfaceCapability] = None
-    ThermistorAdcs: list[I2cThermistorInterfaceCapability] = []
-    Dacs: list[I2cDacCapability] = []
+    ThermistorAdcs: list[I2cThermistorInterfaceCapability]
+    Dacs: list[I2cDacCapability]
     TypeName: Literal["gw1.scada.device.type.gt"] = "gw1.scada.device.type.gt"
     Version: Literal["000"] = "000"
 

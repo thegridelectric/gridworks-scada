@@ -116,10 +116,10 @@ types:
     versions:
       '007': definitions/types/flo.params.house0/007.yaml
   flow.hall.params:
-    latest_version: '200'
+    latest_version: '101'
     versioning_strategy: literal
     versions:
-      '200': definitions/types/flow.hall.params/200.yaml
+      '101': definitions/types/flow.hall.params/101.yaml
   fsm.atomic.report:
     latest_version: '001'
     versioning_strategy: literal
@@ -1071,7 +1071,6 @@ enums:
       '000': definitions/enums/zone.setpoint.source/000.yaml
 formats:
   decimal.digit: definitions/formats/decimal.digit.yaml
-  firmware.commit: definitions/formats/firmware.commit.yaml
   git.commit: definitions/formats/git.commit.yaml
   handle.name: definitions/formats/handle.name.yaml
   hh.mm: definitions/formats/hh.mm.yaml

@@ -24,6 +24,14 @@ def scada_device_type(device_type: str) -> ScadaDeviceTypeGt:
     return ScadaDeviceTypeGt(
         DeviceType=device_type,
         BusList=[I2cBus(Name="DefaultBus", BusNumber=1)],
+        TelemetryNameList=[],
+        NativeGpioInputs=[],
+        NativeGpioOutputs=[],
+        Expanders=[],
+        Muxes=[],
+        I2cRelays=[],
+        ThermistorAdcs=[],
+        Dacs=[],
         SupportsPinReadback=True,
         RelayEnergizedLevel=0,
     )
@@ -46,9 +54,7 @@ def test_unknown_value_raises_on_the_enum() -> None:
 
 @pytest.mark.parametrize("device_type", ["Gw108RevB", "SimGw108"])
 def test_component_twin_round_trips(device_type: str) -> None:
-    component = ScadaBoardComponentGt(
-        ComponentId=COMPONENT_ID, DeviceType=device_type
-    )
+    component = ScadaBoardComponentGt(ComponentId=COMPONENT_ID, DeviceType=device_type)
     assert component.model_dump(by_alias=True)["DeviceType"] == device_type
     assert f'"DeviceType":"{device_type}"' in component.model_dump_json()
 

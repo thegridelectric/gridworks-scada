@@ -27,6 +27,6 @@ class Ha1Params(GwsprotoSemaType):
     CopLwtCoeff: float
     CopMin: float
     CopMinOatF: float
-    HpTurnOnMinutes: StrictInt = 12
+    HpTurnOnMinutes: StrictInt
     TypeName: Literal["ha1.params"] = "ha1.params"
-    Version: str = "006"
+    Version: Literal["006"] = "006"

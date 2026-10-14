@@ -591,7 +591,6 @@ enums:
     '000':
       used_by:
       - async.btu.params:100
-      - flow.hall.params:200
       - pico.btu.meter.component.gt:000
       - pico.flow.module.component.gt:001
       - pico.tank.module.component.gt:012
@@ -684,11 +683,6 @@ formats:
   decimal.digit:
     used_by:
     - slow.contract.heartbeat:002
-  firmware.commit:
-    used_by:
-    - pico.btu.meter.component.gt:000
-    - pico.flow.module.component.gt:001
-    - pico.tank.module.component.gt:012
   git.commit:
     used_by:
     - gw.scada.commit:000
@@ -852,7 +846,7 @@ formats:
     - electric.meter.device.type.gt:000
     - energy.instruction:000
     - flo.params.house0:007
-    - flow.hall.params:200
+    - flow.hall.params:101
     - gw.nolan.family.params:000
     - gw.operational.params:000
     - gw.water.store:000
@@ -904,7 +898,7 @@ formats:
     - derived.channel.gt:002
     - dfr.config:000
     - electric.meter.channel.config:000
-    - flow.hall.params:200
+    - flow.hall.params:101
     - fsm.full.report:001
     - glitch:000
     - gw.boiler.backup:000

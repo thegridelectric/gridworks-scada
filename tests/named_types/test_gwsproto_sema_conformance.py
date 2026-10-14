@@ -111,28 +111,8 @@ KNOWN_ENUM_VERSION_DRIFT: set[str] = set()
 
 # Twins whose serialized fields or required set differ from the snapshot
 # class at the pinned version, keyed type/version, with the EXACT drift: a
-# listed twin that drifts in any other way fails. Most default a field sema
-# requires, so the twin accepts a payload sema refuses; the pico component
-# words lack the optional FirmwareCommit until the picos post it; ha1.params
-# lacks HpMaxKwTh and requires the COP fields sema leaves optional.
-KNOWN_SHAPE_DRIFT: dict[str, conformance.ShapeDrift] = {
-    "flo.params.house0/007": conformance.ShapeDrift(required_only_in_snapshot=('BufferAvailableKwh', 'ConstantDeltaT', 'FloGitCommit', 'FloParamsUid', 'HorizonHours', 'HouseAvailableKwh', 'HpIsOff', 'HpMaxElecKw', 'HpMinElecKw', 'HpTurnOnMinutes', 'MaxHpKwhTh', 'MaxLoadKwhTh', 'NumLayers', 'ParamsGeneratedS', 'PriceForecastUid', 'PriceUnit', 'RswtPenaltyDecay', 'RswtPenaltyDecayMaxHour', 'RswtPenaltyEnabled', 'RswtPenaltyExponentRate', 'RswtPenaltyWeight', 'StabilityPenaltyDecay', 'StabilityPenaltyEnabled', 'StabilityPenaltyHorizonHours', 'StabilityPenaltyThresholdKwh', 'StabilityPenaltyWeight', 'StorageLossesPercent', 'StorageVolumeGallons', 'TimezoneStr', 'WeatherUid')),
-    "glitch/000": conformance.ShapeDrift(required_only_in_snapshot=('CreatedMs',)),
-    "gw1.scada.device.type.gt/000": conformance.ShapeDrift(required_only_in_snapshot=('Dacs', 'Expanders', 'I2cRelays', 'Muxes', 'NativeGpioInputs', 'NativeGpioOutputs', 'TelemetryNameList', 'ThermistorAdcs')),
-    "ha1.params/006": conformance.ShapeDrift(snapshot_only=('HpMaxKwTh',), required_only_in_gwsproto=('CopIntercept', 'CopLwtCoeff', 'CopMin', 'CopMinOatF', 'CopOatCoeff', 'HpMaxKwEl')),
-    "heating.forecast/000": conformance.ShapeDrift(required_only_in_snapshot=('ForecastCreatedS',)),
-    "hubitat.gt/000": conformance.ShapeDrift(required_only_in_snapshot=('WebListenEnabled',)),
-    "hubitat.poller.gt/001": conformance.ShapeDrift(required_only_in_snapshot=('Attributes', 'PollPeriodSeconds', 'WebListenEnabled')),
-    "linear.one.dimensional.calibration/000": conformance.ShapeDrift(required_only_in_snapshot=('B', 'M')),
-    "maker.api.attribute.gt/001": conformance.ShapeDrift(required_only_in_snapshot=('Exponent', 'InterpretAsNumber', 'ReportMissing', 'ReportParseError', 'TelemetryName', 'Unit', 'WebListenEnabled', 'WebPollEnabled')),
-    "pico.btu.meter.component.gt/000": conformance.ShapeDrift(snapshot_only=('FirmwareCommit',)),
-    "pico.flow.module.component.gt/001": conformance.ShapeDrift(snapshot_only=('FirmwareCommit',), required_only_in_snapshot=('FlowMeterType', 'SendGallons', 'SendHz', 'SendTickLists')),
-    "pico.tank.module.component.gt/012": conformance.ShapeDrift(snapshot_only=('FirmwareCommit',), required_only_in_snapshot=('SerialNumber',)),
-    "report.event/004": conformance.ShapeDrift(required_only_in_snapshot=('MessageId', 'Src', 'TimeCreatedMs')),
-    "sim.pico.flow.module.component.gt/000": conformance.ShapeDrift(required_only_in_snapshot=('FlowMeterType', 'SendGallons', 'SendHz', 'SendTickLists')),
-    "sim.pico.tank.module.component.gt/001": conformance.ShapeDrift(required_only_in_snapshot=('SerialNumber',)),
-    "slow.contract.heartbeat/002": conformance.ShapeDrift(required_only_in_snapshot=('IsAuthoritative', 'SignedProof')),
-}
+# listed twin that drifts in any other way fails.
+KNOWN_SHAPE_DRIFT: dict[str, conformance.ShapeDrift] = {}
 
 KNOWN_FORMAT_ISSUES: set[str] = set()
 

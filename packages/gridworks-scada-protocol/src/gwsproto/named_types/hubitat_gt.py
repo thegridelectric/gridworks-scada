@@ -43,7 +43,7 @@ class HubitatGt(GwsprotoSemaType):
     MakerApiId: int
     AccessToken: str
     MacAddress: MacAddress
-    WebListenEnabled: bool = True
+    WebListenEnabled: bool
     TypeName: Literal["hubitat.gt"] = "hubitat.gt"
     Version: Literal["000"] = "000"
     model_config = ConfigDict(extra="allow", populate_by_name=True)

@@ -2,6 +2,7 @@
 
 from gwsproto.enums import DispatchRefusalReason
 from gwsproto.named_types import SlowContractHeartbeat
+from gwsproto.named_types.slow_contract_heartbeat import SIGNED_PROOF_STUB
 
 from tests.named_types.sema_oracle import assert_conforms, assert_refused
 
@@ -53,17 +54,6 @@ def test_slow_contract_heartbeat_generated() -> None:
         assert_conforms(hb)
     hb = SlowContractHeartbeat.model_validate(TERMINATED_BY_SCADA)
     assert hb.Reason is DispatchRefusalReason.ServiceContractBroken
-
-
-def test_slow_contract_heartbeat_required_defaults_serialize() -> None:
-    d = {
-        k: v for k, v in CREATED.items() if k not in ("IsAuthoritative", "SignedProof")
-    }
-    hb = SlowContractHeartbeat.model_validate(d)
-    out = hb.model_dump(by_alias=True)
-    assert out["IsAuthoritative"] is True
-    assert out["SignedProof"] == "signed_proof_stub"
-    assert_conforms(hb)
 
 
 def test_slow_contract_heartbeat_digits_are_decimal_digits() -> None:
@@ -151,3 +141,19 @@ def test_slow_contract_heartbeat_axiom_6_reason_presence() -> None:
         dict(CREATED, Reason="OperatorHold"),
         match="Axiom 6 \\(ReasonOnScadaTermination\\)",
     )
+
+
+def test_authority_and_proof_required_on_decode_defaulted_on_construction() -> None:
+    for field in ("IsAuthoritative", "SignedProof"):
+        assert_refused(
+            SlowContractHeartbeat,
+            {k: v for k, v in CREATED.items() if k != field},
+            match=field,
+        )
+    kwargs = {
+        k: v for k, v in CREATED.items() if k not in ("IsAuthoritative", "SignedProof")
+    }
+    hb = SlowContractHeartbeat(**kwargs)
+    assert hb.IsAuthoritative is True
+    assert hb.SignedProof == SIGNED_PROOF_STUB
+    assert_conforms(hb)
