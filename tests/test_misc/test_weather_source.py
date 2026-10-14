@@ -15,7 +15,7 @@ import aiohttp
 import pytest
 from aiohttp import web
 
-from gwsproto.named_types import GwWeatherForecast, WeatherForecastBundleGt
+from gwsproto.named_types import GwWeatherForecast, WeatherForecastBundleGt, WeatherSeasonalTemplateGt
 from tests.named_types.weather_fixtures import BUNDLE_NAME, LOCATION_ALIAS, bundle_dict, forecast_dict, template_dict
 from clock import ManualClock, WallClock
 from gwsproto.enums import WeatherForecastFidelity
@@ -129,7 +129,8 @@ def persist(
 def template_oat_f(at_s: float) -> float:
     """The template temperature of the UTC month at `at_s`."""
     month = datetime.fromtimestamp(at_s, tz=timezone.utc).month
-    return template_dict()["TempByMonth"][month - 1] / 100
+    template = WeatherSeasonalTemplateGt.model_validate(template_dict())
+    return template.TempByMonth[month - 1] / 100
 
 
 @pytest.mark.asyncio
@@ -337,3 +338,31 @@ def test_sim_forecast_takes_the_values_and_moment_a_test_sets() -> None:
     assert hourly.time[0] == (int(now_s) // 3600 + 1) * 3600
     assert hourly.oat_f == [-7.5] * FORECAST_HOURS
     assert pair.message.TempValues[0] == -750
+
+
+@pytest.mark.asyncio
+async def test_the_sim_source_holds_a_fetch_while_release_is_clear() -> None:
+    """A cleared `release` keeps the fetch open; setting it lets the pair
+    through. The pin stands in for a service that has not answered yet."""
+    src = SimWeatherSource(ManualClock(1_830_000_000.0))
+    src.release.clear()
+    async with aiohttp.ClientSession() as session:
+        fetch = asyncio.create_task(src.forecast(session))
+        await asyncio.sleep(0.2)
+        assert not fetch.done()
+        assert src.fetches == 0
+        src.release.set()
+        pair = await asyncio.wait_for(fetch, timeout=2)
+    assert pair is not None
+    assert src.fetches == 1
+
+
+@pytest.mark.asyncio
+async def test_the_sim_source_answers_none_for_each_miss_then_the_pair() -> None:
+    src = SimWeatherSource(ManualClock(1_830_000_000.0))
+    src.misses_left = 2
+    async with aiohttp.ClientSession() as session:
+        answers = [await src.forecast(session) for _ in range(4)]
+    assert [a is None for a in answers] == [True, True, False, False]
+    assert src.fetches == 4
+    assert src.misses_left == 0

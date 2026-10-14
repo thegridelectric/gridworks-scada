@@ -461,16 +461,29 @@ def sim_forecast(
 
 class SimWeatherSource(WeatherSource):
     """A steady 30 F and 5 mph on the simulated bundle from the plant's
-    next whole hour, returned after a wall-clock delay the test sets (the
-    delay stands in for a slow service, so it is IO time)."""
+    next whole hour. Three pins stand in for the service's ways of being
+    slow or absent, all IO time: `release` holds every fetch open while
+    clear (a test clears it, then sets it to let the fetch through);
+    `delay_s` is a wall-clock delay per fetch; `misses_left` is how many
+    fetches answer None before the pair is served. `fetches` counts
+    calls."""
 
     def __init__(self, clock: Clock) -> None:
         self.clock = clock
         self.delay_s: float = 0
+        self.release = asyncio.Event()
+        self.release.set()
+        self.misses_left: int = 0
+        self.fetches: int = 0
         self.bundle = sim_bundle(clock.now())
 
     async def forecast(self, session: aiohttp.ClientSession) -> Optional[ForecastPair]:
+        await self.release.wait()
         await asyncio.sleep(self.delay_s)
+        self.fetches += 1
+        if self.misses_left > 0:
+            self.misses_left -= 1
+            return None
         return sim_forecast(self.clock.now(), bundle=self.bundle)
 
 

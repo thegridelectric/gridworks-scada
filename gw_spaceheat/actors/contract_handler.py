@@ -16,6 +16,9 @@ from gwsproto.names.core.node_names import CoreNodeNames
 from actors.config import ScadaSettings
 
 
+# The scada's contract store, one file in its data dir.
+CONTRACT_FILE_NAME = "slow_dispatch_contract.json"
+
 class ContractHandler:
     """Handles SCADA's representation contract and dispatch contracts w Ltn"""
 
@@ -44,9 +47,7 @@ class ContractHandler:
         self.node = node
         self.timezone = timezone
         self.logger = logger
-        self.contract_file = Path(
-            f"{self.settings.paths.data_dir}/slow_dispatch_contract.json"
-        )
+        self.contract_file = Path(self.settings.paths.data_dir) / CONTRACT_FILE_NAME
         self.latest_scada_hb: Optional[SlowContractHeartbeat] = None
         self.prev: Optional[SlowContractHeartbeat] = None
         self.latest_power_w: int = 0

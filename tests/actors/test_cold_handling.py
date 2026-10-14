@@ -9,7 +9,6 @@ The local controls make no watch, and a House0 leaf ally declines an offer
 only when the house is cold with the stores empty."""
 
 import json
-import time
 from pathlib import Path
 
 import pytest
@@ -40,11 +39,10 @@ from gwsproto.named_types import (
     OperationalParams,
     RecordedSetpoints,
     SingleMachineState,
-    SlowDispatchContract,
 )
 from gwsproto.names.core.node_names import CoreNodeNames
 from scada_app import ScadaApp
-from tests.utils.scada_live_test_helper import fresh_buffer, seed_deed
+from tests.utils.scada_live_test_helper import fixture_config_dir, fresh_buffer
 
 LC_NAME = CoreNodeNames.local_control
 WATCH_NAME = CoreNodeNames.cold_watch
@@ -81,13 +79,14 @@ def heating_ops(tmp_path: Path, pair: tuple[str, str], **changes) -> Path:
 
 
 def make_app(pair: tuple[str, str], ops_path: Path) -> ScadaApp:
+    """The pair's scada booted off the ops word's directory as its config
+    dir, with the layout and deed laid out there from the fixtures."""
     settings = ScadaApp.get_settings()
-    settings.paths.hardware_layout = CONFIG / pair[0]
+    settings.paths.hardware_layout = fixture_config_dir(ops_path, pair[0])
     settings.paths.operational_params = ops_path
     settings.paths.mkdirs()
     app = ScadaApp(app_settings=settings)
     app.instantiate()
-    seed_deed(app)
     return app
 
 

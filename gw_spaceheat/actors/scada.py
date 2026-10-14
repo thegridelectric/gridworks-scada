@@ -75,7 +75,7 @@ from gwsproto.named_types import ( ActuatorsReady,
     Glitch, GoDormant, CommandInterface, CommandTransition, LayoutLite, NoNewContractWarning,
     ResetHpKeepValue, ScadaControlCapabilities,
     ScadaParams, SendControlCapabilities, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment,
-    SiegTargetTooLow, SingleMachineState, SlowContractHeartbeat, SlowContractRejection, SuitUp, WakeUp,
+    SiegTargetTooLow, SingleMachineState, SlowContractHeartbeat, SlowContractRejection, SlowDispatchContract, SuitUp, WakeUp,
 )
 from gwsproto.names.core.node_names import CoreNodeNames, ScadaWeb
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
@@ -84,7 +84,7 @@ from gwsproto.type_helpers.command_tree_axioms import LOCAL_CONTROL_STATE_NODES
 
 
 from sema_to_dc import OperationalParams, deed_grants_dispatch
-from actors.hydronic.shared import buffer_fresh
+from actors.hydronic.shared import buffer_fresh, dispatch_channels
 from scada_app_interface import ScadaAppInterface
 
 UNKNOWN_CHANNEL_LOG_PERIOD_S = 15
@@ -128,6 +128,7 @@ class Scada(PrimeActor, ScadaInterface):
     _last_snap_s: int
     _channels_reported: bool
     _admin_timeout_task: Optional[asyncio.Task] = None
+    resume_task: Optional[asyncio.Task] = None
     _stop_requested: bool = False
     _contract_handler: ContractHandler
 
@@ -306,6 +307,9 @@ class Scada(PrimeActor, ScadaInterface):
         # The stored contract is loaded before any message is processed, so
         # an offer never meets a contract still waiting in the store.
         loaded_contract_hb = self.contract_handler.initialize()
+        self.resume_task = asyncio.create_task(
+            self.resume_at_first_forecast(loaded_contract_hb), name="contract_resumer"
+        )
         return [
             asyncio.create_task(self.report_sending_task(), name="report_sender"),
             asyncio.create_task(self.snap_sending_task(), name="snap_sender"),
@@ -316,11 +320,12 @@ class Scada(PrimeActor, ScadaInterface):
                 self.disabled_roster_task(), name="disabled_roster"
             ),
             asyncio.create_task(
-                self.state_tracker(loaded_contract_hb), name="scada top_state_tracker"
+                self.state_tracker(), name="scada top_state_tracker"
             ),
             asyncio.create_task(
                 self.announce_at_first_broker_link(), name="startup_announcer"
             ),
+            self.resume_task,
         ]
 
     @classmethod
@@ -1013,10 +1018,7 @@ class Scada(PrimeActor, ScadaInterface):
         # Hack for moving out of Initializing rapidly when restarting Scada
         if from_node.Name ==HSNN.buffer.reader and not self.got_first_buffer_reading:
             self.got_first_buffer_reading = True
-            if self.auto_state == MainAutoState.LeafTransactiveNode:
-                self.log("First Buffer temps arrived! Sending to LeafAlly")
-                self._send_to(self.leaf_ally, payload)
-            else:
+            if self.auto_state != MainAutoState.LeafTransactiveNode:
                 self.log("First Buffer temps arrived! Sending to LocalControl")
                 self._send_to(self.local_control, payload)
 
@@ -1092,7 +1094,7 @@ class Scada(PrimeActor, ScadaInterface):
             self.log("DispatchContractLive: LocalControl -> Ltn")
             self.set_command_tree(self.leaf_ally)
             # Wake up ltn, tell home alone to go dormant
-            self._send_to(self.leaf_ally, contract)
+            self.send_contract_to_ally(contract, "refusing dispatch as the contract goes live")
             self._send_to(self.local_control, GoDormant(ToName=self.local_control.name)
             )
         elif trigger == MainAutoEvent.ContractGracePeriodEnds:
@@ -1194,7 +1196,9 @@ class Scada(PrimeActor, ScadaInterface):
                 if self.auto_state == MainAutoState.LocalControl:
                     self.dispatch_contract_live() # sets up the trees, changes state, let's aa and h know
                 elif self.auto_state == MainAutoState.LeafTransactiveNode:
-                    self._send_to(self.leaf_ally, self.contract_handler.latest_scada_hb.Contract)
+                    self.send_contract_to_ally(
+                        self.contract_handler.latest_scada_hb.Contract, "refusing dispatch at the offer"
+                    )
             elif self.contract_handler.active_contract_has_expired(): # wrap up existing
                 completion_hb = self.contract_handler.scada_contract_completion_hb(
                     "Wrapping up existing contract"
@@ -1208,7 +1212,9 @@ class Scada(PrimeActor, ScadaInterface):
                 self.contract_handler.start_new_contract_hb(ltn_hb)
                 self.process_new_contract()
 
-                self._send_to(self.leaf_ally, self.contract_handler.latest_scada_hb.Contract)
+                self.send_contract_to_ally(
+                    self.contract_handler.latest_scada_hb.Contract, "refusing dispatch at the offer"
+                )
                 # will send hb in process_suit_up, after leaf ally acknowledges
         elif ltn_hb.Status == SlowDispatchContractStatus.TerminatedByLtn:
             raise Exception("Ack! Haven't thought through termination by Ltn ...")
@@ -1219,6 +1225,9 @@ class Scada(PrimeActor, ScadaInterface):
             if self.contract_handler.latest_scada_hb.Contract.ContractId != ltn_hb.Contract.ContractId:
                 self.log(f"Got inbound hb with contract mismatch! \n inbound: {ltn_hb}"
                 f"existing: {self.contract_handler.latest_scada_hb}")
+                return
+            if self.resume_task is not None and not self.resume_task.done():
+                self.log("Dropping continuation hb: the loaded contract is not resumed yet")
                 return
             refusal = self.dispatch_refusal
             if refusal is not None:
@@ -1335,6 +1344,18 @@ class Scada(PrimeActor, ScadaInterface):
             self.auto_trigger(MainAutoEvent.ContractGracePeriodEnds)
             self.note_ltn_dispatching(False)
 
+    def send_contract_to_ally(self, contract: SlowDispatchContract, cause: str) -> bool:
+        """Every contract the ally gets goes through here, the refusal
+        checked first: a scada that refuses dispatch gives the contract up
+        for the reason instead of sending it. Returns whether it was
+        sent."""
+        refusal = self.dispatch_refusal
+        if refusal is not None:
+            self.process_ally_gives_up(self.node, AllyGivesUp(Reason=refusal, Cause=cause))
+            return False
+        self._send_to(self.leaf_ally, contract)
+        return True
+
     def dispatch_contract_live(self) -> None:
         """ DispatchContractLive: LeafAlly -> LeafTransactiveNode
         Includes a new (or existing) latest_scada_hb
@@ -1354,7 +1375,9 @@ class Scada(PrimeActor, ScadaInterface):
             # The transition sends the leaf ally the contract.
             self.auto_trigger(MainAutoEvent.DispatchContractLive)
             return
-        self._send_to(self.leaf_ally, self.contract_handler.latest_scada_hb.Contract)
+        self.send_contract_to_ally(
+            self.contract_handler.latest_scada_hb.Contract, "refusing dispatch as the contract goes live"
+        )
 
     def recv_activated(
         self, transition: Transition
@@ -1481,7 +1504,7 @@ class Scada(PrimeActor, ScadaInterface):
                 self.log("Noticed auto_state Ltn but LeafAlly Dormant!")
                 if self.contract_handler.latest_scada_hb:
                     contract = self.contract_handler.latest_scada_hb.Contract
-                    self._send_to(self.leaf_ally, contract)  # This is how the Ltn wakes up
+                    self.send_contract_to_ally(contract, "refusing dispatch with the ally found Dormant")
                 else: # we might be in the grace period of an expired contract ... this check will 
                     self.log("No contract but in grace period. This will correct in 5 minutes")
             if local_control_state != LocalControlTopState.Dormant:
@@ -1497,10 +1520,26 @@ class Scada(PrimeActor, ScadaInterface):
 
     async def announce_at_first_broker_link(self) -> None:
         """Once per scada run: wait until the upstream link can carry a
-        publish, then send the startup announcements."""
+        publish and the first heating forecast is held, then send the
+        startup announcements. The LTN cannot offer before it has the
+        layout.lite, so the order keeps an offer from reaching a scada
+        whose ally has no forecast to judge with."""
         while not self.services.upstream_is_send_capable():
             await asyncio.sleep(self.STARTUP_ANNOUNCE_POLL_S)
+        await self._data.first_forecast.wait()
         self.send_startup_announcements()
+
+    async def resume_at_first_forecast(self, loaded: Optional[SlowContractHeartbeat]) -> None:
+        """The stored-contract resume, its own task: a few seconds in (an
+        offer in the first seconds takes the loaded contract's place; the
+        buffer readings arrive) and once the first heating forecast is
+        held. Until it has run, LTN continuation heartbeats for the loaded
+        contract are dropped."""
+        if loaded is None:
+            return
+        await asyncio.sleep(4)
+        await self._data.first_forecast.wait()
+        self.resume_loaded_contract(loaded)
 
     def send_startup_announcements(self) -> None:
         """What the scada says about itself once per run: its layout.lite,
@@ -1614,10 +1653,9 @@ class Scada(PrimeActor, ScadaInterface):
             self.ltn_dispatching = dispatching
             self.report_operating_status()
 
-    async def state_tracker(self, loaded_contract_hb: Optional[SlowContractHeartbeat]) -> None:
+    async def state_tracker(self) -> None:
         loop_s = self.settings.seconds_per_report
         await asyncio.sleep(4)
-        self.resume_loaded_contract(loaded_contract_hb)
         while True:
             hiccup = 1.5
             sleep_s = max(hiccup, loop_s - (time.time() % loop_s) - 1.2)
@@ -1726,6 +1764,11 @@ class Scada(PrimeActor, ScadaInterface):
         channels = sorted(self.layout.disabled_channel_names)
         if not nodes and not channels:
             return None
+        needed = sorted(set(channels) & set(dispatch_channels(self.layout)))
+        dispatch_clause = (
+            f" | {', '.join(needed)} are required for dispatch: the scada refuses every offer"
+            if needed else ""
+        )
         return Glitch(
             FromGNodeAlias=self.layout.scada_g_node_alias,
             Node=self.node.name,
@@ -1733,6 +1776,7 @@ class Scada(PrimeActor, ScadaInterface):
             Summary="disabled-roster",
             Details=(
                 f"nodes: {', '.join(nodes) or '-'} | channels: {', '.join(channels) or '-'}"
+                + dispatch_clause
             ),
         )
 

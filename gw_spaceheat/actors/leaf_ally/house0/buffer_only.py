@@ -13,10 +13,7 @@ from gwsproto.enums import (
     FsmReportType, RelayClosedOrOpen
 )
 
-from gwsproto.named_types import (
-    FsmAtomicReport, FsmFullReport,
-    SyncedReadings,
-)
+from gwsproto.named_types import FsmAtomicReport, FsmFullReport
 from result import Ok, Result
 from transitions import Machine
 
@@ -74,6 +71,7 @@ class BufferOnlyLeafAlly(House0Hydronic):
             send_event=True,
         )     
         self.state: LeafAllyBufferOnlyState = LeafAllyBufferOnlyState.Dormant
+        self.initialize_task: Optional[asyncio.Task] = None
         self.prev_state: LeafAllyBufferOnlyState = LeafAllyBufferOnlyState.Dormant 
         self.dist_pump_doctor = DistPumpDoctor(host=self)
         self.dist_pump_monitor = DistPumpMonitor(
@@ -135,6 +133,7 @@ class BufferOnlyLeafAlly(House0Hydronic):
         match message.Payload:
             case GoDormant():
                 if self.state != LeafAllyBufferOnlyState.Dormant:
+                    self.cancel_initialize()
                     # GoDormant: AnyOther -> Dormant ...
                     self.trigger_event(LeafAllyBufferOnlyEvent.GoDormant)
                     self.log("Going dormant")
@@ -143,13 +142,6 @@ class BufferOnlyLeafAlly(House0Hydronic):
                     self.process_slow_dispatch_contract(from_node, message.Payload)
                 except Exception as e:
                     self.log(f"Trouble with process_slow_dispatch_contract: {e}")
-            case SyncedReadings():
-                self.log("Received buffer readings")
-                # buffer temps are in data.latest_channel_values but not
-                # yet in self.latest_temperatures_f
-                if self.state == LeafAllyBufferOnlyState.Initializing:
-                    self.get_temperatures()
-                    self.engage_brain()
         return Ok(True)
     
     def process_slow_dispatch_contract(self, from_node, contract: SlowDispatchContract) -> None:
@@ -168,7 +160,10 @@ class BufferOnlyLeafAlly(House0Hydronic):
                 self.log(f"Received contract w OilBoilerOn. Already in {self.state} so ignoring")
         else:
             if self.state == LeafAllyBufferOnlyState.HpOffNonElectricBackup:
-                self.trigger_event(LeafAllyBufferOnlyEvent.StopNonElectricBackup) # will go to initializing
+                self.trigger_event(LeafAllyBufferOnlyEvent.StopNonElectricBackup)  # back to Initializing
+                self.spawn_initialize()
+            if self.state == LeafAllyBufferOnlyState.Initializing:
+                return  # initialize judges once the inputs are in
             self.engage_brain()
     
     def trigger_event(self, event: LeafAllyBufferOnlyEvent) -> None:
@@ -226,6 +221,40 @@ class BufferOnlyLeafAlly(House0Hydronic):
         #  Dormant -> Initializing
         self.trigger_event(LeafAllyBufferOnlyEvent.WakeUp) # Dormant -> Initializing
         self.initialize_actuators()
+        self.spawn_initialize()
+
+    def spawn_initialize(self) -> None:
+        """One judgment task per entry into Initializing, kept on the ally
+        and cancelled before it is replaced. Not services.add_task: the
+        proactor joins only the tasks it holds at start, so a task added
+        later would never be joined and its exception would be lost."""
+        self.cancel_initialize()
+        self.initialize_task = asyncio.create_task(self.initialize(), name="leaf ally initialize")
+        self.initialize_task.add_done_callback(self.initialize_done)
+
+    def cancel_initialize(self) -> None:
+        if self.initialize_task is not None and not self.initialize_task.done():
+            self.initialize_task.cancel()
+        self.initialize_task = None
+
+    def initialize_done(self, task: asyncio.Task) -> None:
+        if task.cancelled():
+            return
+        exc = task.exception()
+        if exc is not None:
+            self.log(f"initialize failed: {exc!r}")
+            self.send_error("leaf-ally-initialize-failed", repr(exc))
+
+    async def initialize(self) -> None:
+        """The ally's only Initializing judgment: once the first heating
+        forecast and the first fresh buffer are in, and the ally is still
+        Initializing, read the temperatures and judge."""
+        await self.data.first_forecast.wait()
+        await self.data.buffer_fresh_once.wait()
+        if self.state != LeafAllyBufferOnlyState.Initializing:
+            return
+        self.get_temperatures()
+        self.engage_brain()
 
     def engage_brain(self) -> None:
         self.log(f"State: {self.state}")
@@ -234,6 +263,12 @@ class BufferOnlyLeafAlly(House0Hydronic):
             self.get_temperatures()
 
             if self.state == LeafAllyBufferOnlyState.Initializing:
+                if self.data.heating_forecast is None:
+                    self.send_warning(
+                        "judged-without-forecast",
+                        f"engage_brain in {self.state} with no heating forecast; initialize awaits it",
+                    )
+                    return
                 if self.buffer_fresh():
                     if self.hp_should_be_off():
                         self.trigger_event(LeafAllyBufferOnlyEvent.NoMoreElec)
@@ -283,7 +318,8 @@ class BufferOnlyLeafAlly(House0Hydronic):
             if self.store_pump_monitor.needs_recovery():
                 await self.store_pump_doctor.run()
 
-            self.engage_brain()
+            if self.state != LeafAllyBufferOnlyState.Initializing:  # initialize judges there
+                self.engage_brain()
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     def update_relays(self) -> None:

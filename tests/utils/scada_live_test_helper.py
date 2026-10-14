@@ -5,6 +5,7 @@ from typing import Optional
 
 from pathlib import Path
 
+from gwproactor.config import Paths
 from gwproactor_test.instrumented_proactor import MinRangeTuple
 from gwproactor_test.tree_live_test_helper import TreeLiveTest
 
@@ -18,8 +19,10 @@ from weather_source import WeatherSourceKind
 from scada2_app import Scada2App
 from scada_app import ScadaApp
 
+from actors.config import DEFAULT_TA_DEED_FILE
 from actors.hydronic.shared import dispatch_channels
 from actors.scada import Scada
+from sema_to_dc import load_layout
 
 
 def fixture_deed_path(layout: HydronicLayout) -> Optional[Path]:
@@ -42,6 +45,7 @@ def ops_word_with(
     sieg_loop_strategy: Optional[SiegLoopStrategy] = None,
     uses_backup_when_cold: Optional[bool] = None,
     scada_alias: Optional[LeftRightDotStr] = None,
+    service_contract_broken: Optional[bool] = None,
 ) -> Path:
     """The fixture ops word at `source`, authored with the named selections
     and written to `dest` for a scada to read. Standby brings the operator
@@ -49,37 +53,56 @@ def ops_word_with(
     states it. The word is rebuilt through OperationalParams, so a selection
     the word refuses fails here, not at boot."""
     word = OperationalParams.model_validate_json(source.read_text())
-    fields = word.model_dump(by_alias=True)
-    family = word.FamilyParams.model_dump(by_alias=True)
+    changes: dict[str, object] = {}
     if standby is not None:
-        fields["Standby"] = standby
-        fields["DispatchHold"] = DispatchHold(
-            OperatorHold=word.DispatchHold.OperatorHold or standby,
-            ServiceContractBroken=word.DispatchHold.ServiceContractBroken,
-        ).model_dump(by_alias=True)
+        changes["Standby"] = standby
+    if standby is not None or service_contract_broken is not None:
+        changes["DispatchHold"] = DispatchHold(
+            OperatorHold=word.DispatchHold.OperatorHold or bool(standby),
+            ServiceContractBroken=(
+                word.DispatchHold.ServiceContractBroken
+                if service_contract_broken is None
+                else service_contract_broken
+            ),
+        )
     if service_mode is not None:
-        fields["ServiceMode"] = service_mode
-    if seasonal_storage_mode is not None:
-        family["SeasonalStorageMode"] = seasonal_storage_mode
-    if sieg_loop_strategy is not None:
-        family["SiegLoopStrategy"] = sieg_loop_strategy
+        changes["ServiceMode"] = service_mode
     if uses_backup_when_cold is not None:
-        fields["UsesBackupWhenCold"] = uses_backup_when_cold
+        changes["UsesBackupWhenCold"] = uses_backup_when_cold
     if scada_alias is not None:
-        fields["ScadaAlias"] = scada_alias
-    fields["FamilyParams"] = family
-    authored = OperationalParams.model_validate(fields)
+        changes["ScadaAlias"] = scada_alias
+    family_changes: dict[str, object] = {}
+    if seasonal_storage_mode is not None:
+        family_changes["SeasonalStorageMode"] = seasonal_storage_mode
+    if sieg_loop_strategy is not None:
+        family_changes["SiegLoopStrategy"] = sieg_loop_strategy
+    if family_changes:
+        changes["FamilyParams"] = word.FamilyParams.model_copy(update=family_changes)
+    # model_copy does not validate; the round trip through the wire form does.
+    authored = OperationalParams.model_validate_json(
+        word.model_copy(update=changes).model_dump_json(by_alias=True, exclude_none=True)
+    )
     dest.write_text(authored.model_dump_json(by_alias=True, exclude_none=True))
     return dest
 
 
-def seed_deed(app: ScadaApp) -> None:
-    """The fixture deed issued to the app's terminal asset, placed where the
-    scada reads it. The conftest seeds the Nolan deed in every config dir;
-    a scada on another layout refuses with NoTaDeed until this runs."""
-    deed_path = fixture_deed_path(app.hardware_layout)
+def fixture_config_dir(ops_path: Path, layout_name: str) -> Path:
+    """A scada config dir laid out in the authored ops word's directory:
+    the layout (a fixture name, or the path of a layout a test authored)
+    and the fixture deed issued to its terminal asset, under the names a
+    scada resolves. Returns the layout path. The fixture dir itself is
+    never written: a boot off it would resolve its deed there and write
+    one."""
+    config_dir = ops_path.parent
+    layout_path = config_dir / Path(Paths(name="scada").hardware_layout).name
+    source = TEST_HARDWARE_LAYOUT_PATH.parent / layout_name
+    if source.resolve() != layout_path.resolve():
+        shutil.copyfile(source, layout_path)
+    layout = load_layout(layout_path, ops_path)
+    deed_path = fixture_deed_path(layout)
     assert deed_path is not None, "no fixture deed binds this layout's terminal asset"
-    shutil.copyfile(deed_path, Path(app.settings.paths.tadeed))
+    shutil.copyfile(deed_path, config_dir / DEFAULT_TA_DEED_FILE)
+    return layout_path
 
 
 def fresh_buffer(scada: Scada, for_s: int = 3600) -> None:
@@ -91,6 +114,7 @@ def fresh_buffer(scada: Scada, for_s: int = 3600) -> None:
     stamp = int((time.time() + for_s) * 1000)
     for name in channels:
         scada._data.latest_channel_unix_ms[name] = stamp
+    scada.note_reading_for_buffer_fresh_once()  # as the reading path would
 
 
 class ScadaLiveTest(TreeLiveTest):

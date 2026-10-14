@@ -1083,7 +1083,14 @@ class DerivedGenerator(ShNodeActor):
     
         await self.get_weather(session)
         if self.weather_forecast is None:
-            self.log("No weather forecast available. Could not compute heating forecasts.")
+            if self.data.heating_forecast is None:
+                # No first forecast yet: the loop fetches again next pass.
+                self.send_warning(
+                    "no-weather-forecast",
+                    "The weather source answered with no forecast and no heating forecast is held yet",
+                )
+            else:
+                self.log("No weather forecast available. Could not compute heating forecasts.")
             return
         weather = self.weather_forecast.next_hours(FORECAST_HOURS, self.services.clock.now())
         
