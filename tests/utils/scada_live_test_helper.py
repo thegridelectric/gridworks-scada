@@ -1,14 +1,19 @@
 import shutil
+import socket
 import time
 import typing
-from typing import Optional
+from typing import Any, Optional
 
 from pathlib import Path
 
+from gwproactor import App, AppSettings
 from gwproactor.config import Paths
-from gwproactor_test.instrumented_proactor import MinRangeTuple
+from gwproactor_test.instrumented_proactor import InstrumentedProactor, MinRangeTuple
 from gwproactor_test.tree_live_test_helper import TreeLiveTest
+from gwproto.messages import EventT, ProblemEvent, ShutdownEvent
+from result import Result
 
+from gwsproto.data_classes.components.web_server_component import WebServerComponent
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.enums import SeasonalStorageMode, ServiceMode, SiegLoopStrategy
 from gwsproto.named_types import DispatchHold, OperationalParams, TaDeed
@@ -117,8 +122,41 @@ def fresh_buffer(scada: Scada, for_s: int = 3600) -> None:
     scada.note_reading_for_buffer_fresh_once()  # as the reading path would
 
 
+def free_port() -> int:
+    """A TCP port nothing listens on right now."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("0.0.0.0", 0))
+        return s.getsockname()[1]
+
+
+class RecordingProactor(InstrumentedProactor):
+    """An instrumented proactor that keeps the shutdown and problem events
+    it generates, and names them in its summary, so a scada that stopped
+    says why in the failure dump."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.recorded_events: list[ShutdownEvent | ProblemEvent] = []
+
+    def generate_event(self, event: EventT) -> Result[bool, Exception]:
+        if isinstance(event, (ShutdownEvent, ProblemEvent)):
+            self.recorded_events.append(event)
+        return super().generate_event(event)
+
+    def summary_str(self, *, ack_tracking: bool = False) -> str:
+        s = super().summary_str(ack_tracking=ack_tracking)
+        s += "Shutdown and problem events:\n"
+        for event in self.recorded_events:
+            if isinstance(event, ShutdownEvent):
+                s += f"  {event.TypeName}: {event.Reason}\n"
+            else:
+                s += f"  {event.TypeName}: {event.Summary}: {event.Details}\n"
+        return s
+
+
 class ScadaLiveTest(TreeLiveTest):
     UPLOADER_LONG_NAME = "test_uploader"
+    reassigned_web_servers: set[int]
 
     @classmethod
     def parent_app_type(cls) -> type[LtnApp]:
@@ -164,6 +202,7 @@ class ScadaLiveTest(TreeLiveTest):
         ops_path: Optional[Path] = None,
         **kwargs: typing.Any
     ) -> None:
+        self.reassigned_web_servers = set()
 
         kwargs["child_app_settings"] = kwargs.get(
             "child_app_settings",
@@ -207,6 +246,20 @@ class ScadaLiveTest(TreeLiveTest):
             parent_layout=parent_layout,
             **kwargs
         )
+
+    def _make_app(self, app_type: type[App], app_settings: Optional[AppSettings], **kwargs: Any) -> App:
+        """Every app runs a RecordingProactor, and every web server its
+        layout declares serves on a port nothing else holds: a fixed web
+        port is a deployed-box fact, and a test never depends on what
+        listens on the laptop. The base class instantiates and starts the
+        apps inside its constructor, so this is the one place before that."""
+        app = super()._make_app(app_type, app_settings, **kwargs)
+        app.sub_types.proactor_type = RecordingProactor
+        for ws in app.config.layout.get_components_by_type(WebServerComponent):
+            if id(ws.web_server_gt) not in self.reassigned_web_servers:
+                self.reassigned_web_servers.add(id(ws.web_server_gt))
+                ws.web_server_gt.Port = free_port()
+        return app
 
     # noinspection PyMethodMayBeStatic
     def default_quiescent_total_children_events(self) -> int:
