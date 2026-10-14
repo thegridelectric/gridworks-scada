@@ -22,7 +22,6 @@ from gwsproto.enums import (
     ChangeValveState,
     ChangeZoneCallSource,
     DeviceType,
-    DispatchRefusalReason,
     LocalControlTopState,
     NolanLcBufferOnlyState,
     SeasonalStorageMode,
@@ -47,6 +46,7 @@ from gwsproto.names.hydronic_spaceheat.node_names import (
 from gwsproto.names.nolan.node_names import NolanNodeNames
 from scada_app import ScadaApp
 from sema_to_dc import assemble_runtime_layout
+from tests.utils.scada_live_test_helper import ops_word_with
 
 LC_NAME = CoreNodeNames.local_control
 SPRUCE_LAYOUT = Path(__file__).parent.parent / "config" / "gw.nolan.layout.json"
@@ -59,11 +59,12 @@ ET = pytz.timezone("America/New_York")
 
 
 def app_with(tmp_path: Path, service: ServiceMode, storage: SeasonalStorageMode) -> ScadaApp:
-    ops = json.loads(SPRUCE_OPS.read_text())
-    ops["ServiceMode"] = service.value
-    ops["FamilyParams"]["SeasonalStorageMode"] = storage.value
-    path = tmp_path / "gw.nolan.operational.params.json"
-    path.write_text(json.dumps(ops))
+    path = ops_word_with(
+        SPRUCE_OPS,
+        tmp_path / SPRUCE_OPS.name,
+        service_mode=service,
+        seasonal_storage_mode=storage,
+    )
     settings = ScadaApp.get_settings()
     settings.paths.hardware_layout = SPRUCE_LAYOUT
     settings.paths.operational_params = path
@@ -130,16 +131,16 @@ def test_layout_without_plant_nodes_fails_decode() -> None:
 # ---- NolanBufferOnlyTou: the heating machine, on the Nolan sim pair ----
 
 
-def heating_ops(tmp_path: Path, **changes) -> Path:
+def heating_ops(tmp_path: Path, uses_backup_when_cold: bool | None = None) -> Path:
     """The spruce ops word authored for the heating machine: Heating,
-    BufferOnly, the band at 130/90 as the fixture carries it."""
-    ops = json.loads(SPRUCE_OPS.read_text())
-    ops["ServiceMode"] = ServiceMode.Heating.value
-    ops["FamilyParams"]["SeasonalStorageMode"] = SeasonalStorageMode.BufferOnly.value
-    ops.update(changes)
-    path = tmp_path / "gw.nolan.operational.params.json"
-    path.write_text(json.dumps(ops))
-    return path
+    BufferOnly, the band at 130/90 as the fixture states it."""
+    return ops_word_with(
+        SPRUCE_OPS,
+        tmp_path / SPRUCE_OPS.name,
+        service_mode=ServiceMode.Heating,
+        seasonal_storage_mode=SeasonalStorageMode.BufferOnly,
+        uses_backup_when_cold=uses_backup_when_cold,
+    )
 
 
 def heating_machine(layout_path: Path, ops_path: Path) -> NolanBufferOnlyTou:
@@ -167,7 +168,7 @@ def heat(tmp_path: Path) -> NolanBufferOnlyTou:
 @pytest.fixture
 def heat_with_backup(tmp_path: Path) -> NolanBufferOnlyTou:
     """Spruce using its buffer elements when cold."""
-    return heating_machine(SPRUCE_LAYOUT, heating_ops(tmp_path, UsesBackupWhenCold=True))
+    return heating_machine(SPRUCE_LAYOUT, heating_ops(tmp_path, uses_backup_when_cold=True))
 
 
 def commands(actor: NolanBufferOnlyTou) -> list[tuple[str, str]]:
@@ -264,15 +265,13 @@ def test_unknown_heat_pump_stops_the_scada_at_load(
     scada at load in every local-control selection, naming the device type,
     the supported heat pumps and where the row goes."""
     monkeypatch.delitem(HP_TRAITS, SimDeviceType.SimHpOdu)
-    ops = json.loads(SPRUCE_OPS.read_text())
-    ops["ServiceMode"] = service.value
-    ops["Standby"] = standby
-    if standby:
-        ops["AcceptsDispatch"] = False
-        ops["DispatchRefusalReason"] = DispatchRefusalReason.Standby.value
-    ops["FamilyParams"]["SeasonalStorageMode"] = SeasonalStorageMode.BufferOnly.value
-    ops_path = tmp_path / "gw.nolan.operational.params.json"
-    ops_path.write_text(json.dumps(ops))
+    ops_path = ops_word_with(
+        SPRUCE_OPS,
+        tmp_path / SPRUCE_OPS.name,
+        standby=standby,
+        service_mode=service,
+        seasonal_storage_mode=SeasonalStorageMode.BufferOnly,
+    )
     settings = ScadaApp.get_settings()
     settings.paths.hardware_layout = SPRUCE_LAYOUT
     settings.paths.operational_params = ops_path

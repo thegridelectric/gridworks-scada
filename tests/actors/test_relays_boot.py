@@ -63,7 +63,7 @@ from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNa
 from gwsproto.type_helpers.command_tree_axioms import LOCAL_CONTROL_STATE_NODES
 from scada_app import ScadaApp
 from sema_to_dc import load_layout
-from tests.utils.scada_live_test_helper import ScadaLiveTest
+from tests.utils.scada_live_test_helper import ScadaLiveTest, ops_word_with
 
 CONFIG = Path(__file__).parent.parent / "config"
 WILLOW = ("gw.house0.willow.layout.json", "gw.house0.willow.operational.params.json")
@@ -127,18 +127,14 @@ def test_rows_cover_every_axis_value() -> None:
 
 def row_ops(tmp_path: Path, ops_file: str, row: Row) -> Path:
     """The layout's ops artifact with the row's selection."""
-    ops = json.loads((CONFIG / ops_file).read_text())
-    ops["Standby"] = row.local_control.standby
-    ops["ServiceMode"] = row.local_control.service.value
-    if row.local_control.standby:
-        ops["AcceptsDispatch"] = False
-        ops["DispatchRefusalReason"] = "Standby"
-    ops["FamilyParams"]["SeasonalStorageMode"] = row.local_control.storage.value
-    if row.loop_strategy is not None:
-        ops["FamilyParams"]["SiegLoopStrategy"] = row.loop_strategy.value
-    path = tmp_path / ops_file
-    path.write_text(json.dumps(ops))
-    return path
+    return ops_word_with(
+        CONFIG / ops_file,
+        tmp_path / ops_file,
+        standby=row.local_control.standby,
+        service_mode=row.local_control.service,
+        seasonal_storage_mode=row.local_control.storage,
+        sieg_loop_strategy=row.loop_strategy,
+    )
 
 
 def assert_standby_posture(h: ScadaLiveTest, relays: dict[str, Relay], energized: list[str]) -> None:

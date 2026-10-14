@@ -23,7 +23,7 @@ from typing import Any
 from pydantic import TypeAdapter
 
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
-from gwsproto.enums import ActorClass, GNodeClass, SiegLoopStrategy
+from gwsproto.enums import ActorClass, GNodeClass, SiegLoopStrategy, TaValidationState
 from gwsproto.named_types import (
     ElementBackup,
     House0FamilyParams,
@@ -31,6 +31,7 @@ from gwsproto.named_types import (
     NolanFamilyParams,
     NolanLayout,
     OperationalParams,
+    TaDeed,
 )
 from gwsproto.names.hydronic_spaceheat.node_names import (
     HydronicSpaceheatNodeNames as HSNN,
@@ -88,6 +89,19 @@ def check_scada_alias(
             f"{ops_word.ScadaAlias!r} is not the layout's Scada GNode alias "
             f"{layout_aliases}. Scada will not start."
         )
+
+
+def deed_grants_dispatch(deed: TaDeed | None, layout: HydronicLayout) -> bool:
+    """A deed on file grants this terminal asset standing to trade when its
+    TaId and TaAlias both name the layout's terminal asset and a TaValidator
+    has attested something about it (ValidationState not UnValidated)."""
+    if deed is None:
+        return False
+    if deed.TaId != layout.terminal_asset_g_node_id:
+        return False
+    if deed.TaAlias != layout.terminal_asset_g_node_alias:
+        return False
+    return deed.ValidationState != TaValidationState.UnValidated
 
 
 def zero_ten_power_on_volts_times_ten(ops: OperationalParams, node_name: str) -> int:

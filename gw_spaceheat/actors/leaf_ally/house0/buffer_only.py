@@ -23,11 +23,10 @@ from transitions import Machine
 from actors.hydronic.house0 import House0Hydronic
 from scada_app_interface import ScadaAppInterface
 from gwsproto.named_types import (
-    AllyGivesUp, GoDormant, Ha1Params,
+    GoDormant, Ha1Params,
     SingleMachineState, SlowContractHeartbeat, SlowDispatchContract, SuitUp
 )
 from gwsproto.names.core.node_names import CoreNodeNames
-from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from actors.procedural.dist_pump_doctor import DistPumpDoctor
 from actors.procedural.dist_pump_monitor import DistPumpMonitor
 from actors.procedural.store_pump_doctor import StorePumpDoctor
@@ -35,7 +34,6 @@ from actors.procedural.store_pump_monitor import StorePumpMonitor
 
 class BufferOnlyLeafAlly(House0Hydronic):
     MAIN_LOOP_SLEEP_SECONDS = 60
-    NO_TEMPS_BAIL_MINUTES = 5
     states = LeafAllyBufferOnlyState.values()
     # Uses AaBufferOnlyEvent as transitions
     transitions = (
@@ -67,7 +65,6 @@ class BufferOnlyLeafAlly(House0Hydronic):
         super().__init__(name, services)
         self._stop_requested: bool = False
 
-        self.no_temps_since: Optional[int] = None
         # State machine
         self.machine = Machine(
             model=self,
@@ -150,7 +147,7 @@ class BufferOnlyLeafAlly(House0Hydronic):
                 self.log("Received buffer readings")
                 # buffer temps are in data.latest_channel_values but not
                 # yet in self.latest_temperatures_f
-                if self.state == LeafAllyBufferOnlyState.Initializing and self.heating_forecast:
+                if self.state == LeafAllyBufferOnlyState.Initializing:
                     self.get_temperatures()
                     self.engage_brain()
         return Ok(True)
@@ -160,10 +157,6 @@ class BufferOnlyLeafAlly(House0Hydronic):
         self.log("Processing SlowDispatchContract!")
         if from_node != self.primary_scada:
             raise Exception("contract should come from scada!")
-
-        if self.declines_offer_for_cold():
-            return
-
         if self.state == LeafAllyBufferOnlyState.Dormant:
             self.log("Got a slow dispatch contract ... waking up")
             self.wake_up()
@@ -223,38 +216,16 @@ class BufferOnlyLeafAlly(House0Hydronic):
         return [MonitoredName(self.name, self.MAIN_LOOP_SLEEP_SECONDS * 2.1)]
 
     def wake_up(self) -> None:
-        """
-          - If temperatures are not available, logs no_temp_since (to kick out in 5 minutes)
-          - Sends SuitUp back to Scada (so Scada knows it is taking control)
-          - Sets state (and then initializes actuators and sets command tree if needed)
-           - WakeUpDormant -> Initializing (wake_up)
-
-        """
+        """SuitUp to the scada (it is taking control), Dormant -> Initializing,
+        then the actuators. The scada answered the offer; the ally has
+        nothing to decide about data."""
         self.log("Waking up")
-
         self.get_temperatures()
-        if not self.buffer_temps_available:
-            self.no_temps_since = int(time.time())
-            self.log("Temperatures not available. Won't turn on hp until they are. Will bail in 5 if still not available")
-        if not self.heating_forecast:
-            self.no_temps_since = int(time.time())
-            self.log("No heating forecast yet. Waiting in Initializing; will bail in 5 if none arrives")
-        
         self._send_to(self.primary_scada, SuitUp(ToNode=CoreNodeNames.primary_scada, FromNode=self.name))
 
         #  Dormant -> Initializing
         self.trigger_event(LeafAllyBufferOnlyEvent.WakeUp) # Dormant -> Initializing
         self.initialize_actuators()
-
-    def missing_inputs(self) -> list[str]:
-        """What Initializing is still waiting for: buffer temperatures,
-        the heating forecast, and the required energy derived from it."""
-        missing = [f"buffer temperature {name}" for name in self.missing_buffer_temperatures()]
-        if not self.heating_forecast:
-            missing.append("heating forecast")
-        elif not self.data.channel_has_value(HCN.required_energy):
-            missing.append("required energy")
-        return missing
 
     def engage_brain(self) -> None:
         self.log(f"State: {self.state}")
@@ -263,8 +234,7 @@ class BufferOnlyLeafAlly(House0Hydronic):
             self.get_temperatures()
 
             if self.state == LeafAllyBufferOnlyState.Initializing:
-                if self.buffer_temps_available  and self.data.channel_has_value(HCN.required_energy):
-                    self.no_temps_since = None
+                if self.buffer_temps_available:
                     if self.hp_should_be_off():
                         self.trigger_event(LeafAllyBufferOnlyEvent.NoMoreElec)
                     elif self.is_buffer_charge_limited():
@@ -275,16 +245,8 @@ class BufferOnlyLeafAlly(House0Hydronic):
                     else:
                         self.trigger_event(LeafAllyBufferOnlyEvent.ChargeBuffer)
                             
-                else: # temperatures not avalable
-                    if self.no_temps_since is None:
-                        self.no_temps_since = int(time.time()) # start the clock
-                    elif time.time() - self.no_temps_since > self.NO_TEMPS_BAIL_MINUTES * 60:
-                        missing = ", ".join(self.missing_inputs())
-                        self.log(f"Cannot suit up - missing: {missing}")
-                        self._send_to(
-                            self.primary_scada,
-                            AllyGivesUp(Reason=f"Missing {missing}"))
-                        return
+                else:
+                    self.log("Buffer temperatures not available; staying in Initializing")
                     if self.hp_should_be_off():
                         self.turn_off_hp() 
 

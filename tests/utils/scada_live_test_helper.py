@@ -1,4 +1,5 @@
 import shutil
+import time
 import typing
 from typing import Optional
 
@@ -8,12 +9,19 @@ from gwproactor_test.instrumented_proactor import MinRangeTuple
 from gwproactor_test.tree_live_test_helper import TreeLiveTest
 
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
-from gwsproto.named_types import TaDeed
+from gwsproto.enums import SeasonalStorageMode, ServiceMode, SiegLoopStrategy
+from gwsproto.named_types import DispatchHold, OperationalParams, TaDeed
+from gwsproto.property_format import LeftRightDotStr
 from tests.conftest import TEST_HARDWARE_LAYOUT_PATH
 from ltn_app import LtnApp
 from weather_source import WeatherSourceKind
 from scada2_app import Scada2App
 from scada_app import ScadaApp
+
+from actors.hydronic import house0 as house0_hydronic
+from actors.hydronic import nolan as nolan_hydronic
+from actors.scada import Scada
+from gwsproto.named_types import House0Layout
 
 
 def fixture_deed_path(layout: HydronicLayout) -> Optional[Path]:
@@ -24,6 +32,71 @@ def fixture_deed_path(layout: HydronicLayout) -> Optional[Path]:
         if deed.TaId == layout.terminal_asset_g_node_id:
             return path
     return None
+
+
+def ops_word_with(
+    source: Path,
+    dest: Path,
+    *,
+    standby: Optional[bool] = None,
+    service_mode: Optional[ServiceMode] = None,
+    seasonal_storage_mode: Optional[SeasonalStorageMode] = None,
+    sieg_loop_strategy: Optional[SiegLoopStrategy] = None,
+    uses_backup_when_cold: Optional[bool] = None,
+    scada_alias: Optional[LeftRightDotStr] = None,
+) -> Path:
+    """The fixture ops word at `source`, authored with the named selections
+    and written to `dest` for a scada to read. Standby brings the operator
+    hold with it (axiom 3); every field not named stays as the fixture
+    states it. The word is rebuilt through OperationalParams, so a selection
+    the word refuses fails here, not at boot."""
+    word = OperationalParams.model_validate_json(source.read_text())
+    fields = word.model_dump(by_alias=True)
+    family = word.FamilyParams.model_dump(by_alias=True)
+    if standby is not None:
+        fields["Standby"] = standby
+        fields["DispatchHold"] = DispatchHold(
+            OperatorHold=word.DispatchHold.OperatorHold or standby,
+            ServiceContractBroken=word.DispatchHold.ServiceContractBroken,
+        ).model_dump(by_alias=True)
+    if service_mode is not None:
+        fields["ServiceMode"] = service_mode
+    if seasonal_storage_mode is not None:
+        family["SeasonalStorageMode"] = seasonal_storage_mode
+    if sieg_loop_strategy is not None:
+        family["SiegLoopStrategy"] = sieg_loop_strategy
+    if uses_backup_when_cold is not None:
+        fields["UsesBackupWhenCold"] = uses_backup_when_cold
+    if scada_alias is not None:
+        fields["ScadaAlias"] = scada_alias
+    fields["FamilyParams"] = family
+    authored = OperationalParams.model_validate(fields)
+    dest.write_text(authored.model_dump_json(by_alias=True, exclude_none=True))
+    return dest
+
+
+def seed_deed(app: ScadaApp) -> None:
+    """The fixture deed issued to the app's terminal asset, placed where the
+    scada reads it. The conftest seeds the Nolan deed in every config dir;
+    a scada on another layout refuses with NoTaDeed until this runs."""
+    deed_path = fixture_deed_path(app.hardware_layout)
+    assert deed_path is not None, "no fixture deed binds this layout's terminal asset"
+    shutil.copyfile(deed_path, Path(app.settings.paths.tadeed))
+
+
+def fresh_buffer(scada: Scada, for_s: int = 3600) -> None:
+    """Stamp the family's dispatch channels as read now, so the scada is not
+    blind for the test's duration. The suite simulates no tank module, so
+    nothing posts buffer temperatures; this stands in for that sensor. A
+    simulated tank module retires it."""
+    channels = (
+        house0_hydronic.DISPATCH_CHANNELS
+        if scada.layout.layout_type_name == House0Layout.model_fields["TypeName"].default
+        else nolan_hydronic.DISPATCH_CHANNELS
+    )
+    stamp = int((time.time() + for_s) * 1000)
+    for name in channels:
+        scada._data.latest_channel_unix_ms[name] = stamp
 
 
 class ScadaLiveTest(TreeLiveTest):

@@ -7,7 +7,7 @@ sh_node_actor partition; see the partition spoke)."""
 import time
 import uuid
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Iterable, Optional
 from pydantic import ValidationError
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
@@ -19,6 +19,21 @@ from gwsproto.named_types import FsmEvent, ZoneCallCircuit
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 
 from actors.command_node import CommandNode
+from actors.scada_data import ScadaData
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
+
+
+def channels_fresh(data: ScadaData, layout: HydronicLayout, names: Iterable[str]) -> bool:
+    """Every named channel is enabled in the layout and was read inside its
+    nyquist bound. A channel never read, or flushed by ChannelFlatlined, is
+    stale; a disabled one never arrives, so it is stale for the run."""
+    for name in names:
+        if layout.channel_disabled(name):
+            return False
+        ch = layout.data_channels.get(name) or layout.derived_channels.get(name)
+        if ch is None or data.flatlined(ch):
+            return False
+    return True
 
 class HydronicNode(CommandNode):
     """CommandNode + the family-neutral hydronic surface."""

@@ -1,11 +1,10 @@
 import importlib
 
 from gwproto import Message
-from result import Ok, Result
+from result import Result
 
 from actors.sh_node_actor import ShNodeActor
 from gwsproto.enums import SeasonalStorageMode
-from gwsproto.named_types import AllyGivesUp, SlowDispatchContract
 from scada_app_interface import ScadaAppInterface
 
 class LeafAlly(ShNodeActor):
@@ -38,17 +37,6 @@ class LeafAlly(ShNodeActor):
         return self._impl.prev_state
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
-        """The dispatch refusal gate: while the ops word says the scada does
-        not accept dispatch, every contract offer gets AllyGivesUp with the
-        reason and never reaches the family's ally."""
-        if isinstance(message.Payload, SlowDispatchContract) and not self.ops.AcceptsDispatch:
-            reason = self.ops.DispatchRefusalReason
-            self.log(f"Refusing dispatch contract: {reason}")
-            self._send_to(
-                self.primary_scada,
-                AllyGivesUp(Reason=f"{reason}: not entering DispatchContracts"),
-            )
-            return Ok(True)
         return self._impl.process_message(message)
 
     def start(self):

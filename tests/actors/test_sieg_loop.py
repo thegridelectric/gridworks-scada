@@ -277,8 +277,7 @@ def manual_app(
         ops_dict["FamilyParams"]["SiegLoopStrategy"] = strategy.value
     if standby:
         ops_dict["Standby"] = True
-        ops_dict["AcceptsDispatch"] = False
-        ops_dict["DispatchRefusalReason"] = "Standby"
+        ops_dict["DispatchHold"]["OperatorHold"] = True
     ops_path = tmp_path / ops
     ops_path.write_text(json.dumps(ops_dict))
     settings = ScadaApp.get_settings()
@@ -342,9 +341,10 @@ def test_the_fixtures_run_strat_protect(app: ScadaApp) -> None:
     assert isinstance(sieg_loop_actor(app).strategy, StratProtect)
 
 
-def test_standby_runs_hold_full_send_whatever_the_field_says(tmp_path: Path) -> None:
-    app, _ = manual_app(tmp_path, strategy=SiegLoopStrategy.StratProtect, standby=True)
-    assert isinstance(sieg_loop_actor(app).strategy, HoldFullSend)
+def test_a_standby_file_naming_another_strategy_is_refused_at_load(tmp_path: Path) -> None:
+    """The ops word's axiom: Standby on a House0 family says HoldFullSend."""
+    with pytest.raises(ValueError, match="Axiom 5"):
+        manual_app(tmp_path, strategy=SiegLoopStrategy.StratProtect, standby=True)
 
 
 def test_lwt_control_is_refused(tmp_path: Path) -> None:

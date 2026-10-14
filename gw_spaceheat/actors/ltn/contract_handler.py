@@ -191,7 +191,7 @@ class LtnContractHandler:
             self.logger.info(f"Rejection for a contract we are not offering ... ignoring: {rejection}")
             return
         self.logger.warning(
-            f"Scada refused contract {rejection.ContractId}: {rejection.ValidationState.value}"
+            f"Scada refused contract {rejection.ContractId}: {rejection.Reason.value}"
         )
         self.latest_hb = None
         self.contract_file.unlink(missing_ok=True)

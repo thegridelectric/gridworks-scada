@@ -3,7 +3,6 @@ meter's hp-odu readings reach hp-watch through its subscription, hp-watch
 reports its state, the state reaches the heating machine through its
 subscription, and the secondary pump relay follows."""
 
-import json
 import typing
 from pathlib import Path
 
@@ -22,7 +21,7 @@ from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatCha
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from gwsproto.names.nolan.node_names import NolanNodeNames
 from scada_app import ScadaApp
-from tests.utils.scada_live_test_helper import ScadaLiveTest
+from tests.utils.scada_live_test_helper import ScadaLiveTest, ops_word_with
 
 CONFIG = Path(__file__).parent.parent / "config"
 NOLAN_LAYOUT = CONFIG / "gw.nolan.layout.json"
@@ -32,12 +31,13 @@ NOLAN_OPS = CONFIG / "gw.nolan.operational.params.json"
 def heating_settings(tmp_path: Path, lost_after_s: float) -> ScadaSettings:
     """The sim Nolan pair with the heating machine selected and a power
     meter that calls a channel lost after lost_after_s."""
-    ops = json.loads(NOLAN_OPS.read_text())
-    ops["Standby"] = False
-    ops["ServiceMode"] = ServiceMode.Heating.value
-    ops["FamilyParams"]["SeasonalStorageMode"] = SeasonalStorageMode.BufferOnly.value
-    ops_path = tmp_path / NOLAN_OPS.name
-    ops_path.write_text(json.dumps(ops))
+    ops_path = ops_word_with(
+        NOLAN_OPS,
+        tmp_path / NOLAN_OPS.name,
+        standby=False,
+        service_mode=ServiceMode.Heating,
+        seasonal_storage_mode=SeasonalStorageMode.BufferOnly,
+    )
     settings = ScadaApp.get_settings()
     settings.paths.hardware_layout = NOLAN_LAYOUT
     settings.paths.operational_params = ops_path

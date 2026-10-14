@@ -67,7 +67,7 @@ from gwsproto.data_classes.components.web_server_component import WebServerCompo
 from gwsproto.enums import (FiveVBossState, HpBossState, LeafAllyBufferOnlyState,  LeafAllyAllTanksState,
                             LogLevel,
                             MoveSiegValve, RebootPicos, SiegValveState, Turn5VOnOff,
-                            SlowDispatchContractStatus, TaValidationState, LocalControlTopState,
+                            SlowDispatchContractStatus, LocalControlTopState,
                    MainAutoEvent, MainAutoState, SeasonalStorageMode,  TopState, TurnHpOnOff)
 
 from gwsproto.named_types import ( ActuatorsReady,
@@ -83,7 +83,9 @@ from gwsproto.names.house0.node_names import House0NodeNames
 from gwsproto.type_helpers.command_tree_axioms import LOCAL_CONTROL_STATE_NODES
 
 
-from sema_to_dc import OperationalParams
+from sema_to_dc import House0Layout, OperationalParams, deed_grants_dispatch
+from actors.hydronic import house0 as house0_hydronic
+from actors.hydronic import nolan as nolan_hydronic
 from scada_app_interface import ScadaAppInterface
 
 UNKNOWN_CHANNEL_LOG_PERIOD_S = 15
@@ -612,11 +614,13 @@ class Scada(PrimeActor, ScadaInterface):
         """
         self.auto_trigger(MainAutoEvent.AllyGivesUp)
 
-        self.log(f"Ending dispatch: {payload.Reason}")
+        self.log(f"Ending dispatch: {payload.Reason}: {payload.Cause}")
 
         if self.contract_handler.latest_scada_hb:
             self.log("Sending termination hb to the LTN")
-            hb = self.contract_handler.scada_terminates_contract_hb(cause=payload.Reason)
+            hb = self.contract_handler.scada_terminates_contract_hb(
+                reason=payload.Reason, cause=payload.Cause
+            )
         
             self.contract_handler.latest_scada_hb = hb
             self.contract_handler.store_heartbeat()
@@ -670,27 +674,24 @@ class Scada(PrimeActor, ScadaInterface):
         ):
             self.log(f"Cold house ({payload.Cause}); no dispatch contract to break")
             return
-        if not self.ops.AcceptsDispatch:
-            self.log(
-                f"Cold house ({payload.Cause}); already refusing dispatch: "
-                f"{self.ops.DispatchRefusalReason}"
-            )
+        if self.ops.DispatchHold.OperatorHold or self.ops.DispatchHold.ServiceContractBroken:
+            self.log(f"Cold house ({payload.Cause}); the ops word already holds dispatch")
             return
         self.log(f"Cold house ({payload.Cause}): refusing dispatch, ServiceContractBroken")
         self._data.ops = OperationalParams.model_validate(
             {
                 **self.ops.model_dump(by_alias=True, exclude_none=True),
-                "AcceptsDispatch": False,
-                "DispatchRefusalReason": DispatchRefusalReason.ServiceContractBroken,
+                "DispatchHold": {
+                    **self.ops.DispatchHold.model_dump(by_alias=True),
+                    "ServiceContractBroken": True,
+                },
             }
         )
         save_operational_params(self.settings, self.ops)
         self.report_operating_status()
         self.process_ally_gives_up(
             from_node,
-            AllyGivesUp(
-                Reason=f"{DispatchRefusalReason.ServiceContractBroken}: {payload.Cause}"
-            ),
+            AllyGivesUp(Reason=DispatchRefusalReason.ServiceContractBroken, Cause=payload.Cause),
         )
 
     def process_channel_subscribe(
@@ -1169,16 +1170,16 @@ class Scada(PrimeActor, ScadaInterface):
         self.log(f"{self.contract_handler.formatted_contract(ltn_hb)}")
         return_hb = None
         if ltn_hb.Status == SlowDispatchContractStatus.Created:
-            if self.services.validation_state == TaValidationState.UnValidated:
-                # No TaDeed: nothing has been attested about this asset, so
-                # it holds no standing in any market. Tell the LTN why.
-                self.log(f"Refusing contract {ltn_hb.Contract.ContractId}: UnValidated")
+            refusal = self.dispatch_refusal
+            if refusal is not None:
+                # Answered at the offer: nothing else moves.
+                self.log(f"Refusing contract {ltn_hb.Contract.ContractId}: {refusal}")
                 self._send_to(
                     self.ltn,
                     SlowContractRejection(
                         FromGNodeAlias=self.layout.scada_g_node_alias,
                         ContractId=ltn_hb.Contract.ContractId,
-                        ValidationState=TaValidationState.UnValidated,
+                        Reason=refusal,
                         MessageCreatedMs=int(time.time() * 1000),
                     ),
                 )
@@ -1217,6 +1218,14 @@ class Scada(PrimeActor, ScadaInterface):
             if self.contract_handler.latest_scada_hb.Contract.ContractId != ltn_hb.Contract.ContractId:
                 self.log(f"Got inbound hb with contract mismatch! \n inbound: {ltn_hb}"
                 f"existing: {self.contract_handler.latest_scada_hb}")
+                return
+            refusal = self.dispatch_refusal
+            if refusal is not None:
+                # The deed and the sensing are re-read at each heartbeat.
+                self.process_ally_gives_up(
+                    self.node,
+                    AllyGivesUp(Reason=refusal, Cause="refusing dispatch under a held contract"),
+                )
                 return
             return_hb = self.contract_handler.update_existing_contract_hb(ltn_hb)
 
@@ -1428,12 +1437,10 @@ class Scada(PrimeActor, ScadaInterface):
                 return
         elif latest is None or latest.Contract.ContractId != loaded.Contract.ContractId:
             return
-        elif not self.ops.AcceptsDispatch:
+        elif (refusal := self.dispatch_refusal) is not None:
             self.process_ally_gives_up(
                 self.node,
-                AllyGivesUp(
-                    Reason=f"{self.ops.DispatchRefusalReason}: not resuming the stored contract"
-                ),
+                AllyGivesUp(Reason=refusal, Cause="not resuming the stored contract"),
             )
             return
         else:
@@ -1543,10 +1550,34 @@ class Scada(PrimeActor, ScadaInterface):
                 ),
             )
 
+    def buffer_fresh(self) -> bool:
+        """The channels the family's control needs to judge the buffer are
+        enabled and fresh; false blinds the scada to dispatch."""
+        if self.layout.layout_type_name == House0Layout.model_fields["TypeName"].default:
+            return house0_hydronic.buffer_fresh(self._data, self.layout)
+        return nolan_hydronic.buffer_fresh(self._data, self.layout)
+
+    @property
+    def dispatch_refusal(self) -> Optional[DispatchRefusalReason]:
+        """Why this scada will not take or keep a dispatch contract, asked
+        now, or None when it takes one. Ordered by permanence: the deed on
+        file, the ops word's hold (the operator's, then the broken service
+        contract), then the sensing."""
+        if not deed_grants_dispatch(self.services.deed_on_file, self.layout):
+            return DispatchRefusalReason.NoTaDeed
+        if self.ops.DispatchHold.OperatorHold:
+            return DispatchRefusalReason.OperatorHold
+        if self.ops.DispatchHold.ServiceContractBroken:
+            return DispatchRefusalReason.ServiceContractBroken
+        if not self.buffer_fresh():
+            return DispatchRefusalReason.ScadaBlind
+        return None
+
     @property
     def house_operating_status(self) -> HouseOperatingStatus:
-        """The slow facts of the LTN-scada agreement: six authored on the ops
-        word and copied from it, the rest runtime facts."""
+        """The slow facts of the LTN-scada agreement: the authored facts
+        copied from the ops word, the rest derived now."""
+        refusal = self.dispatch_refusal
         return HouseOperatingStatus(
             ScadaAlias=self.layout.scada_g_node_alias,
             ValidationState=self.services.validation_state,
@@ -1554,9 +1585,10 @@ class Scada(PrimeActor, ScadaInterface):
             StandbyPosture=self.ops.StandbyPosture,
             SeasonalStorageMode=self.ops.FamilyParams.SeasonalStorageMode,
             ServiceMode=self.ops.ServiceMode,
-            AcceptsDispatch=self.ops.AcceptsDispatch,
-            DispatchRefusalReason=self.ops.DispatchRefusalReason,
+            AcceptsDispatch=refusal is None,
+            DispatchRefusalReason=refusal,
             TopState=self.top_state,
+            ScadaBlind=not self.buffer_fresh(),
             LtnDispatching=self.ltn_dispatching,
             UnixMs=int(time.time() * 1000),
         )
@@ -1587,6 +1619,7 @@ class Scada(PrimeActor, ScadaInterface):
             sleep_s = max(hiccup, loop_s - (time.time() % loop_s) - 1.2)
             await asyncio.sleep(sleep_s)
             self.enforce_auto_state_consistency() # e.g. if self.auto_state is Ltn, then LeafAlly is NOT Dormant
+            self.report_operating_status()  # derived facts (ScadaBlind) move with the sensing
             # report the state
             if sleep_s != hiccup:
                 self._send_to(

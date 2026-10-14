@@ -15,7 +15,7 @@ from gwproactor.message import PatInternalWatchdogMessage
 from gwproto.message import Message
 from gwsproto.conversions.temperature import Temperature
 from gwsproto.enums import LocalControlTopState, SeasonalStorageMode, ZoneSetpointSource
-from gwsproto.named_types import AllyGivesUp, SingleMachineState, SingleReading
+from gwsproto.named_types import SingleMachineState, SingleReading
 from gwsproto.named_types.hvac_zone import HvacZone
 from gwsproto.named_types.zone_call_circuit import ZoneCallCircuit
 from gwsproto.names.core.node_names import CoreNodeNames
@@ -192,19 +192,6 @@ class ColdJudgmentNode(HydronicNode):
             return False
         if self.ops.FamilyParams.SeasonalStorageMode == SeasonalStorageMode.AllTanks:
             return self.is_storage_empty()
-        return True
-
-    def declines_offer_for_cold(self) -> bool:
-        """At a dispatch offer: a critical zone cold now, with the stores
-        empty, declines the offer and the ally gives up. No contract was
-        broken, so nothing is latched."""
-        if not (self.is_system_cold() and self.stores_empty()):
-            return False
-        self.log("Cannot wake up - system is cold and the stores are empty")
-        self._send_to(
-            self.primary_scada,
-            AllyGivesUp(Reason="System is cold, not entering DispatchContracts"),
-        )
         return True
 
 

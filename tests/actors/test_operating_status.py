@@ -16,9 +16,9 @@ from typing import Any
 import pytest
 
 from actors.contract_handler import ContractHandler
-from actors.leaf_ally_loader import LeafAlly
 from actors.scada import Scada
 from gwsproto.enums import (
+    DispatchRefusalReason,
     MainAutoState,
     SlowDispatchContractStatus,
     TaValidationState,
@@ -28,17 +28,17 @@ from gwsproto.enums import (
 from gwsproto.named_types import (
     AdminDispatch,
     AdminReleaseControl,
-    AllyGivesUp,
     FsmEvent,
     HouseOperatingStatus,
     SlowContractHeartbeat,
+    SlowContractRejection,
     SlowDispatchContract,
 )
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from sema_to_dc import load_layout
 from tests.actors.test_relays_boot import CONFIG, LAYOUTS, ROWS, Row, row_ops
-from tests.utils.scada_live_test_helper import ScadaLiveTest
+from tests.utils.scada_live_test_helper import ScadaLiveTest, fresh_buffer
 
 # One row per (Standby, ServiceMode) cell of the selection table.
 CELLS: dict[tuple[bool, str], Row] = {}
@@ -205,7 +205,9 @@ async def test_operating_status_emits_once_per_change(
             original_send(to_node, payload, from_node)
 
         monkeypatch.setattr(scada, "_send_to", record)
-        # Startup: one status, the ops word's six facts plus the runtime ones.
+        fresh_buffer(scada)
+        held = scada.ops.DispatchHold.OperatorHold
+        # Startup: one status, the ops word's facts plus the derived ones.
         scada.send_startup_announcements()
         assert len(statuses) == 1
         first = statuses[0]
@@ -217,9 +219,10 @@ async def test_operating_status_emits_once_per_change(
             "StandbyPosture": ops.StandbyPosture,
             "SeasonalStorageMode": ops.FamilyParams.SeasonalStorageMode,
             "ServiceMode": ops.ServiceMode,
-            "AcceptsDispatch": ops.AcceptsDispatch,
-            "DispatchRefusalReason": ops.DispatchRefusalReason,
+            "AcceptsDispatch": not held,
+            "DispatchRefusalReason": DispatchRefusalReason.OperatorHold if held else None,
             "TopState": TopState.Auto,
+            "ScadaBlind": False,
             "LtnDispatching": False,
             "TypeName": "gw.house.operating.status",
             "Version": "000",
@@ -232,7 +235,7 @@ async def test_operating_status_emits_once_per_change(
             scada.report_operating_status()
         assert len(statuses) == 1
 
-        # Admin takes the tree and releases it: TopState alone moves.
+        # Admin takes the tree and releases it: TopState moves, nothing else.
         scada.process_scada_message(scada.admin, admin_turn_on())
         assert len(statuses) == 2
         assert_only_changed(statuses[0], statuses[1], TopState=TopState.Admin)
@@ -244,7 +247,7 @@ async def test_operating_status_emits_once_per_change(
             "ERROR waiting for auto to wake into LocalControl",
         )
 
-        if ops.AcceptsDispatch:
+        if not held:
             # Two contracts back to back: LtnDispatching rises on the first
             # Active heartbeat, holds through the completion and the second
             # contract, and falls once the second has ended with no new one
@@ -262,25 +265,15 @@ async def test_operating_status_emits_once_per_change(
             )
             assert_only_changed(statuses[3], statuses[4], LtnDispatching=False)
         else:
-            # Standby refuses the offer: the wrapper gives up, nothing is sent.
-            la = scada.services.get_communicator_as_type(CoreNodeNames.leaf_ally, LeafAlly)
-            assert la is not None
-            given_up: list[AllyGivesUp] = []
-            ally_send = la._send_to
-
-            def record_ally(dst, payload, src=None):
-                if isinstance(payload, AllyGivesUp):
-                    given_up.append(payload)
-                ally_send(dst, payload, src)
-
-            monkeypatch.setattr(la, "_send_to", record_ally)
+            # The held house refuses the offer at the offer: a rejection to
+            # the LTN, no status change, nothing else moves.
             contract = new_contract(scada)
             scada.process_scada_message(scada.ltn, ltn_hb(scada, contract, SlowDispatchContractStatus.Created))
-            await h.await_for(
-                lambda: bool(given_up) and scada.auto_state == MainAutoState.LocalControl,
-                "ERROR waiting for the wrapper's AllyGivesUp and the fall back to LocalControl",
-            )
+            rejections = [p for p in to_ltn if isinstance(p, SlowContractRejection)]
+            assert [r.ContractId for r in rejections] == [contract.ContractId]
+            assert rejections[0].Reason == DispatchRefusalReason.OperatorHold
             assert scada.contract_handler.latest_scada_hb is None
+            assert scada.auto_state == MainAutoState.LocalControl
             assert len(statuses) == 3
 
         # The deed changes: the next report carries the new validation state.

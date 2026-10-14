@@ -833,7 +833,8 @@ class DerivedGenerator(ShNodeActor):
         - Assumes stratified storage
         """
         if (
-            not self.ops.AcceptsDispatch
+            self.ops.DispatchHold.OperatorHold
+            or self.ops.DispatchHold.ServiceContractBroken
             or self.ops.ServiceMode != ServiceMode.Heating
         ):
             return None

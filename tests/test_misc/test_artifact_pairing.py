@@ -5,7 +5,9 @@ from pathlib import Path
 
 import pytest
 
+from gwsproto.named_types import OperationalParams
 from sema_to_dc import ops_and_sema_to_dc
+from tests.utils.scada_live_test_helper import ops_word_with
 
 CONFIG = Path(__file__).parent.parent / "config"
 NOLAN = ("gw.nolan.layout.json", "gw.nolan.operational.params.json")
@@ -25,10 +27,10 @@ def test_crossed_families_refused() -> None:
 
 def test_another_scadas_ops_refused(tmp_path: Path) -> None:
     """Same family, right shape, another Scada's alias."""
-    ops = json.loads((CONFIG / ORANGE[1]).read_text())
-    ops["ScadaAlias"] = json.loads((CONFIG / WILLOW[1]).read_text())["ScadaAlias"]
-    path = tmp_path / "ops.json"
-    path.write_text(json.dumps(ops))
+    willow = OperationalParams.model_validate_json((CONFIG / WILLOW[1]).read_text())
+    path = ops_word_with(
+        CONFIG / ORANGE[1], tmp_path / "ops.json", scada_alias=willow.ScadaAlias
+    )
     with pytest.raises(ValueError, match="ScadaAlias"):
         ops_and_sema_to_dc(CONFIG / ORANGE[0], path)
 

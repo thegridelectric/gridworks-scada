@@ -97,7 +97,6 @@ class NolanLcBufferOnlyEvent(SemaEnum):
 class NolanBufferOnlyTou(NolanHydronic):
     MAIN_LOOP_SLEEP_SECONDS = 300
     TOU_CHECK_S = 60.0
-    BLIND_S = 300.0
 
     REQUIRED_NODES = (
         NolanNodeNames.iso_valve_relay,
@@ -321,15 +320,6 @@ class NolanBufferOnlyTou(NolanHydronic):
         self.log(f"{event.value}: {orig_state} -> {self.call_state}")
 
     # ---- the band ----
-
-    def buffer_fresh(self) -> bool:
-        """Both band channels read within BLIND_S."""
-        now_ms = time.time() * 1000
-        for name in (HCN.buffer.depth1, HCN.buffer.depth3):
-            read_ms = self.data.latest_channel_unix_ms.get(name)
-            if read_ms is None or now_ms - read_ms > self.BLIND_S * 1000:
-                return False
-        return True
 
     def update_band(self) -> None:
         """Set the latch when depth3 reaches the full threshold, clear it

@@ -18,14 +18,14 @@ from actors.local_control.standby import StandbyLocalControl
 from actors.in_process_messages import HouseCold, HouseWarm
 from actors.local_control_loader import LocalControl
 from actors.scada import Scada
-from gwsproto.enums import DispatchRefusalReason, LocalControlTopState, MainAutoEvent
+from gwsproto.enums import LocalControlTopState, MainAutoEvent
 from gwsproto.named_types import GoDormant, NewCommandTree, WakeUp
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.house0.node_names import House0NodeNames
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from scada_app import ScadaApp
-from tests.actors.test_cold_handling import CONFIG, NOLAN, WILLOW, heating_ops, make_app, put_f
+from tests.actors.test_cold_handling import CONFIG, NOLAN, WILLOW, heating_ops, hold, make_app, put_f
 
 ORANGE = ("gw.house0.orange.layout.json", "gw.house0.orange.operational.params.json")
 HOUSE0 = {"willow": WILLOW, "orange": ORANGE}
@@ -149,8 +149,7 @@ def standby(request: pytest.FixtureRequest, tmp_path: Path) -> tuple[Scada, Impl
         tmp_path,
         pair,
         Standby=True,
-        AcceptsDispatch=False,
-        DispatchRefusalReason=DispatchRefusalReason.Standby.value,
+        DispatchHold=hold(operator=True),
     )
     app = make_app(pair, ops_path)
     impl = impl_of(app)

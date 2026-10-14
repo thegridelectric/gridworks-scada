@@ -64,7 +64,6 @@ async def test_unvalidated_scada_rejects_contract_offer(
             FromNode=ltn.node.name,
             Contract=contract,
             Status=SlowDispatchContractStatus.Created,
-            WattHoursUsed=0,
             MessageCreatedMs=int(time.time() * 1000),
             MyDigit=5,
             YourLastDigit=None,

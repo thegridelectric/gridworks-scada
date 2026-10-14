@@ -10,7 +10,6 @@ only when the house is cold with the stores empty."""
 
 import json
 import time
-import uuid
 from pathlib import Path
 
 import pytest
@@ -19,7 +18,6 @@ from gwproto.message import Header, Message
 import actors.hydronic.cold as cold
 from actors.hydronic.cold import ColdJudgmentNode, ColdWatch
 from actors.in_process_messages import BreakServiceContract, HouseCold, HouseWarm, MachineStateSubscribe
-from actors.leaf_ally_loader import LeafAlly
 from actors.local_control.house0.tou_base import LocalControlTouBase
 from actors.local_control.nolan.buffer_only_tou import NolanBufferOnlyTou
 from actors.local_control_loader import LocalControl
@@ -31,12 +29,12 @@ from gwsproto.enums import (
     LogLevel,
     MainAutoState,
     SeasonalStorageMode,
+    SiegLoopStrategy,
     ServiceMode,
     Unit,
     ZoneSetpointSource,
 )
 from gwsproto.named_types import (
-    AllyGivesUp,
     Glitch,
     HouseOperatingStatus,
     OperationalParams,
@@ -46,6 +44,7 @@ from gwsproto.named_types import (
 )
 from gwsproto.names.core.node_names import CoreNodeNames
 from scada_app import ScadaApp
+from tests.utils.scada_live_test_helper import fresh_buffer, seed_deed
 
 LC_NAME = CoreNodeNames.local_control
 WATCH_NAME = CoreNodeNames.cold_watch
@@ -55,6 +54,16 @@ NOLAN = ("gw.nolan.layout.json", "gw.nolan.operational.params.json")
 T0 = 1_760_000_000.0  # a wall-clock second in 2025; the watch takes its time as an argument
 
 
+def hold(operator: bool = False, broken: bool = False) -> dict:
+    """A gw.dispatch.hold as the ops file writes it."""
+    return {
+        "TypeName": "gw.dispatch.hold",
+        "Version": "000",
+        "OperatorHold": operator,
+        "ServiceContractBroken": broken,
+    }
+
+
 def heating_ops(tmp_path: Path, pair: tuple[str, str], **changes) -> Path:
     """The pair's ops word authored for a heating machine that accepts
     dispatch, in a file the scada may write."""
@@ -62,9 +71,10 @@ def heating_ops(tmp_path: Path, pair: tuple[str, str], **changes) -> Path:
     ops["Standby"] = False
     ops["ServiceMode"] = ServiceMode.Heating.value
     ops["FamilyParams"]["SeasonalStorageMode"] = SeasonalStorageMode.BufferOnly.value
-    ops["AcceptsDispatch"] = True
-    ops.pop("DispatchRefusalReason", None)
+    ops["DispatchHold"] = hold()
     ops.update(changes)
+    if ops["Standby"] and ops["FamilyParams"]["TypeName"] == "gw.house0.family.params":
+        ops["FamilyParams"]["SiegLoopStrategy"] = SiegLoopStrategy.HoldFullSend.value
     path = tmp_path / "operational-params.json"
     path.write_text(json.dumps(ops, indent=2))
     return path
@@ -77,6 +87,7 @@ def make_app(pair: tuple[str, str], ops_path: Path) -> ScadaApp:
     settings.paths.mkdirs()
     app = ScadaApp(app_settings=settings)
     app.instantiate()
+    seed_deed(app)
     return app
 
 
@@ -647,8 +658,7 @@ def standby_nolan(tmp_path: Path) -> ColdWatch:
         tmp_path,
         NOLAN,
         Standby=True,
-        AcceptsDispatch=False,
-        DispatchRefusalReason=DispatchRefusalReason.Standby.value,
+        DispatchHold=hold(operator=True),
     )
     return cold_watch(make_app(NOLAN, ops_path))
 
@@ -690,7 +700,7 @@ def test_a_scada_holding_no_contract_breaks_none(tmp_path: Path) -> None:
     scada = make_app(WILLOW, ops_path).scada
     sent = capture_sends(scada)
     scada.process_scada_message(scada.layout.node(WATCH_NAME), BreakServiceContract(Cause="cold"))
-    assert scada.ops.AcceptsDispatch is True
+    assert scada.ops.DispatchHold.ServiceContractBroken is False
     assert ops_path.read_text() == written
     assert not [p for _, p in sent if isinstance(p, HouseOperatingStatus)]
 
@@ -699,15 +709,16 @@ def test_a_scada_holding_no_contract_breaks_none(tmp_path: Path) -> None:
 def test_the_scada_writes_the_refusal_and_reports_it(tmp_path: Path, pair: tuple[str, str]) -> None:
     ops_path = heating_ops(tmp_path, pair)
     scada = make_app(pair, ops_path).scada
+    fresh_buffer(scada)
     sent = capture_sends(scada)
     under_contract(scada)
     watch_node = scada.layout.node(WATCH_NAME)
     scada.report_operating_status()
-    assert scada.ops.AcceptsDispatch is True
+    assert scada.dispatch_refusal is None
 
     scada.process_scada_message(watch_node, BreakServiceContract(Cause="zone1 is cold"))
-    assert scada.ops.AcceptsDispatch is False
-    assert scada.ops.DispatchRefusalReason == DispatchRefusalReason.ServiceContractBroken
+    assert scada.ops.DispatchHold.ServiceContractBroken is True
+    assert scada.dispatch_refusal == DispatchRefusalReason.ServiceContractBroken
     on_disk = OperationalParams.model_validate_json(ops_path.read_text())
     assert on_disk == scada.ops
     statuses = [p for _, p in sent if isinstance(p, HouseOperatingStatus)]
@@ -731,23 +742,20 @@ def test_the_refusal_changes_nothing_else_in_the_params_file(tmp_path: Path) -> 
     under_contract(scada)
     scada.process_scada_message(scada.layout.node(WATCH_NAME), BreakServiceContract(Cause="cold"))
     after = json.loads(ops_path.read_text())
-    assert after.pop("DispatchRefusalReason") == DispatchRefusalReason.ServiceContractBroken.value
-    assert after.pop("AcceptsDispatch") is False
-    assert before.pop("AcceptsDispatch") is True
+    assert after.pop("DispatchHold") == hold(broken=True)
+    assert before.pop("DispatchHold") == hold()
     assert after == before
 
 
-def test_a_house_already_refusing_dispatch_keeps_its_own_reason(tmp_path: Path) -> None:
-    ops_path = heating_ops(
-        tmp_path, NOLAN, AcceptsDispatch=False,
-        DispatchRefusalReason=DispatchRefusalReason.NoAggregator.value,
-    )
+def test_a_house_already_held_keeps_its_file(tmp_path: Path) -> None:
+    ops_path = heating_ops(tmp_path, NOLAN, DispatchHold=hold(operator=True))
     written = ops_path.read_text()
     scada = make_app(NOLAN, ops_path).scada
     capture_sends(scada)
     under_contract(scada)
     scada.process_scada_message(scada.layout.node(WATCH_NAME), BreakServiceContract(Cause="cold"))
-    assert scada.ops.DispatchRefusalReason == DispatchRefusalReason.NoAggregator
+    assert scada.ops.DispatchHold.ServiceContractBroken is False
+    assert scada.dispatch_refusal == DispatchRefusalReason.OperatorHold
     assert ops_path.read_text() == written
 
 
@@ -760,43 +768,11 @@ def test_the_refusal_holds_across_a_restart_until_the_file_accepts_dispatch(tmp_
     scada.process_scada_message(scada.layout.node(WATCH_NAME), BreakServiceContract(Cause="cold"))
 
     restarted = make_app(NOLAN, ops_path).scada
-    assert restarted.ops.AcceptsDispatch is False
-    assert restarted.ops.DispatchRefusalReason == DispatchRefusalReason.ServiceContractBroken
+    assert restarted.ops.DispatchHold.ServiceContractBroken is True
+    assert restarted.dispatch_refusal == DispatchRefusalReason.ServiceContractBroken
 
     cleared = json.loads(ops_path.read_text())
-    cleared["AcceptsDispatch"] = True
-    del cleared["DispatchRefusalReason"]
+    cleared["DispatchHold"] = hold()
     ops_path.write_text(json.dumps(cleared, indent=2))
-    assert make_app(NOLAN, ops_path).scada.ops.AcceptsDispatch is True
+    assert make_app(NOLAN, ops_path).scada.ops.DispatchHold.ServiceContractBroken is False
 
-
-# --- the leaf allies decline an offer when cold with the stores empty -------
-
-
-@pytest.mark.parametrize("mode", [SeasonalStorageMode.BufferOnly, SeasonalStorageMode.AllTanks])
-@pytest.mark.parametrize("empty", [True, False])
-def test_a_house0_leaf_ally_declines_an_offer_only_when_cold_with_the_stores_empty(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mode: SeasonalStorageMode, empty: bool
-) -> None:
-    ops_path = heating_ops(tmp_path, WILLOW)
-    ops = json.loads(ops_path.read_text())
-    ops["FamilyParams"]["SeasonalStorageMode"] = mode.value
-    ops_path.write_text(json.dumps(ops, indent=2))
-    ally = LeafAlly(CoreNodeNames.leaf_ally, make_app(WILLOW, ops_path))._impl
-    sent: list = []
-    monkeypatch.setattr(ally, "_send_to", lambda dst, payload, src=None: sent.append(payload))
-    monkeypatch.setattr(ally, "is_system_cold", lambda: True)
-    monkeypatch.setattr(ally, "stores_empty", lambda: empty)
-    ally.process_slow_dispatch_contract(
-        ally.primary_scada,
-        SlowDispatchContract(
-            ScadaAlias=ally.layout.scada_g_node_alias,
-            StartS=(int(time.time()) // 300) * 300 + 300,
-            DurationMinutes=60,
-            AvgPowerWatts=1000,
-            OilBoilerOn=False,
-            ContractId=str(uuid.uuid4()),
-        ),
-    )
-    declined = [p for p in sent if isinstance(p, AllyGivesUp) and "cold" in p.Reason.lower()]
-    assert bool(declined) is empty

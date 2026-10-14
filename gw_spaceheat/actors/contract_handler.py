@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
-from gwsproto.enums import SlowDispatchContractStatus
+from gwsproto.enums import DispatchRefusalReason, SlowDispatchContractStatus
 from gwproactor.logger import LoggerOrAdapter
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.named_types import  SlowContractHeartbeat
@@ -301,7 +301,9 @@ class ContractHandler:
         else:
             raise ValueError(f"Unexpected status from ltn_hb: {ltn_hb.Status}")
 
-    def scada_terminates_contract_hb(self, cause: str = "") -> SlowContractHeartbeat:
+    def scada_terminates_contract_hb(
+        self, reason: DispatchRefusalReason, cause: str
+    ) -> SlowContractHeartbeat:
         """Creates a heartbeat declaring scada termination of contract
 
         - Can only call if self.latest_scada_hb exists
@@ -317,6 +319,7 @@ class ContractHandler:
             PreviousStatus=self.latest_scada_hb.Status,
             Status=SlowDispatchContractStatus.TerminatedByScada,
             Cause=cause,
+            Reason=reason,
             WattHoursUsed=round(self.energy_used_wh),
             MessageCreatedMs=int(time.time() * 1000),
             MyDigit=random.choice(range(10)),

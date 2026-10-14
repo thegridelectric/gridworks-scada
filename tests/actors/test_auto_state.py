@@ -9,7 +9,7 @@ from gwsproto.enums import MainAutoState, SlowDispatchContractStatus
 from gwsproto.named_types import SlowDispatchContract, SlowContractHeartbeat
 from gwsproto.names.core.node_names import CoreNodeNames
 from sema_to_dc import load_layout
-from tests.utils.scada_live_test_helper import ScadaLiveTest
+from tests.utils.scada_live_test_helper import ScadaLiveTest, fresh_buffer
 
 CONFIG = Path(__file__).parent.parent / "config"
 PAIRS = {
@@ -79,12 +79,12 @@ async def test_auto_state_home_alone_to_ltn(
             FromNode=ltn.node.name,
             Contract=contract,
             Status=SlowDispatchContractStatus.Created,
-            WattHoursUsed=0,
             MessageCreatedMs=int(time.time() * 1000),
             MyDigit=5,
             YourLastDigit=None # First message in chain
         )
         
+        fresh_buffer(scada)
         ltn.contract_handler.latest_hb = ltn_hb
         ltn.services.send_threadsafe(
                 Message(

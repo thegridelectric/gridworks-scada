@@ -15,8 +15,6 @@ from typing import Any
 
 import pytest
 
-from actors.leaf_ally.house0.all_tanks import AllTanksLeafAlly
-from actors.leaf_ally.house0.buffer_only import BufferOnlyLeafAlly
 from actors.scada import Scada
 from gwsproto.enums import (
     DispatchRefusalReason,
@@ -26,9 +24,9 @@ from gwsproto.enums import (
 )
 from gwsproto.named_types import SlowContractHeartbeat, SlowDispatchContract
 from sema_to_dc import load_layout
-from tests.actors.test_cold_handling import CONFIG, WILLOW, heating_ops
+from tests.actors.test_cold_handling import CONFIG, WILLOW, heating_ops, hold
 from tests.actors.test_operating_status import ltn_hb
-from tests.utils.scada_live_test_helper import ScadaLiveTest
+from tests.utils.scada_live_test_helper import ScadaLiveTest, fresh_buffer
 from weather_source import SimWeatherSource
 
 # Longer than the scada's wait before it speaks of the contract it loaded.
@@ -141,6 +139,7 @@ async def test_a_live_stored_contract_is_taken_up_again_after_a_restart(
 
         h.start_child1()
         scada = app.scada
+        fresh_buffer(scada)  # ahead of the resume, which runs seconds after start
         sends = Sends(monkeypatch, scada)
         await h.await_for(
             lambda: scada.auto_state == MainAutoState.LeafTransactiveNode
@@ -161,65 +160,12 @@ async def test_a_live_stored_contract_is_taken_up_again_after_a_restart(
 
 
 @pytest.mark.asyncio
-async def test_a_slow_weather_fetch_does_not_end_a_resumed_contract(
+async def test_a_resumed_contract_with_no_forecast_stays_live(
     request: pytest.FixtureRequest, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """The leaf ally needs a forecast before it takes a contract. A restart
-    under a live contract must survive the forecast arriving after the
-    scada speaks of the contract it loaded."""
-    ops_path = heating_ops(tmp_path, WILLOW)
-    layout = load_layout(CONFIG / WILLOW[0], ops_path)
-    async with ScadaLiveTest(request=request, layout=layout, ops_path=ops_path) as h:
-        app = h.child1_app
-        weather = app.weather_source
-        assert isinstance(weather, SimWeatherSource)
-        weather.delay_s = PAST_STARTUP_S + 2
-        contract = SlowDispatchContract(
-            ScadaAlias=layout.scada_g_node_alias,
-            StartS=(int(time.time()) // 300) * 300,
-            DurationMinutes=60,
-            AvgPowerWatts=1000,
-            OilBoilerOn=False,
-            ContractId=str(uuid.uuid4()),
-        )
-        stored = SlowContractHeartbeat(
-            FromNode="s",
-            Contract=contract,
-            PreviousStatus=SlowDispatchContractStatus.Confirmed,
-            Status=SlowDispatchContractStatus.Active,
-            WattHoursUsed=120,
-            MessageCreatedMs=int(time.time() * 1000),
-            MyDigit=4,
-            YourLastDigit=5,
-        )
-        contract_file = Path(app.settings.paths.data_dir) / "slow_dispatch_contract.json"
-        contract_file.parent.mkdir(parents=True, exist_ok=True)
-        contract_file.write_text(stored.model_dump_json(indent=4))
-
-        h.start_child1()
-        scada = app.scada
-        sends = Sends(monkeypatch, scada)
-        started_s = time.time()
-        await h.await_for(
-            lambda: time.time() > started_s + weather.delay_s + 2,
-            "ERROR waiting for the forecast to arrive after the resume",
-            timeout=weather.delay_s + 10,
-        )
-        latest = scada.contract_handler.latest_scada_hb
-        assert latest is not None, "the resumed contract was given up"
-        assert latest.Contract.ContractId == contract.ContractId
-        assert scada.auto_state == MainAutoState.LeafTransactiveNode
-        assert {hb.Status for hb in sends.heartbeats_to_ltn()} == {SlowDispatchContractStatus.Active}
-
-
-@pytest.mark.asyncio
-async def test_a_resumed_contract_with_no_forecast_at_all_is_given_up_after_the_wait(
-    request: pytest.FixtureRequest, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """The ally's wait for a forecast is bounded: with none arriving, it
-    gives the contract up and says what was missing."""
-    monkeypatch.setattr(AllTanksLeafAlly, "NO_TEMPS_BAIL_MINUTES", 0.1)
-    monkeypatch.setattr(BufferOnlyLeafAlly, "NO_TEMPS_BAIL_MINUTES", 0.1)
+    """The ally has nothing to decide about data: the scada answered. A
+    restart under a live contract with no forecast at all keeps the
+    contract, the ally suited up and waiting on its readings."""
     ops_path = heating_ops(tmp_path, WILLOW)
     layout = load_layout(CONFIG / WILLOW[0], ops_path)
     async with ScadaLiveTest(request=request, layout=layout, ops_path=ops_path) as h:
@@ -251,41 +197,44 @@ async def test_a_resumed_contract_with_no_forecast_at_all_is_given_up_after_the_
 
         h.start_child1()
         scada = app.scada
+        fresh_buffer(scada)  # ahead of the resume, which runs seconds after start
         sends = Sends(monkeypatch, scada)
         await h.await_for(
-            lambda: scada.auto_state == MainAutoState.LeafTransactiveNode,
-            "ERROR waiting for the resume",
+            lambda: bool(sends.heartbeats_to_ltn()),
+            "ERROR waiting for the scada to speak of the stored contract",
             timeout=30,
         )
+        started_s = time.time()
         await h.await_for(
-            lambda: scada.auto_state == MainAutoState.LocalControl
-            and scada.contract_handler.latest_scada_hb is None,
-            "ERROR waiting for the ally to give the contract up",
-            timeout=90,
+            lambda: time.time() > started_s + PAST_STARTUP_S,
+            "ERROR waiting out the startup seconds",
+            timeout=PAST_STARTUP_S + 5,
         )
-        terminated = [
-            hb for hb in sends.heartbeats_to_ltn()
-            if hb.Status == SlowDispatchContractStatus.TerminatedByScada
-        ]
-        assert len(terminated) == 1
-        assert "heating forecast" in (terminated[0].Cause or "")
+        latest = scada.contract_handler.latest_scada_hb
+        assert latest is not None, "the resumed contract was given up"
+        assert latest.Contract.ContractId == contract.ContractId
+        assert scada.auto_state == MainAutoState.LeafTransactiveNode
+        assert {hb.Status for hb in sends.heartbeats_to_ltn()} == {SlowDispatchContractStatus.Active}
+        assert scada.leaf_ally is not None
+        assert contract in sends.to_leaf_ally(SlowDispatchContract)
 
 
 def refusing_ops(tmp_path: Path, reason: DispatchRefusalReason) -> Path:
-    """Willow's ops word refusing dispatch for the reason; Standby also
-    selects the standby local control."""
-    ops_path = heating_ops(tmp_path, WILLOW, AcceptsDispatch=False, DispatchRefusalReason=reason.value)
-    if reason == DispatchRefusalReason.Standby:
+    """Willow's ops word holding dispatch for the reason; the operator's hold
+    also puts the house in standby."""
+    if reason == DispatchRefusalReason.OperatorHold:
+        ops_path = heating_ops(tmp_path, WILLOW, DispatchHold=hold(operator=True))
         ops = json.loads(ops_path.read_text())
         ops["Standby"] = True
         ops["FamilyParams"]["SiegLoopStrategy"] = SiegLoopStrategy.HoldFullSend.value
         ops_path.write_text(json.dumps(ops, indent=2))
-    return ops_path
+        return ops_path
+    return heating_ops(tmp_path, WILLOW, DispatchHold=hold(broken=True))
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "reason", [DispatchRefusalReason.Standby, DispatchRefusalReason.ServiceContractBroken]
+    "reason", [DispatchRefusalReason.OperatorHold, DispatchRefusalReason.ServiceContractBroken]
 )
 async def test_a_live_stored_contract_is_ended_by_a_scada_that_refuses_dispatch(
     request: pytest.FixtureRequest,
@@ -335,7 +284,7 @@ async def test_a_live_stored_contract_is_ended_by_a_scada_that_refuses_dispatch(
         assert ended.Contract.ContractId == contract.ContractId
         assert ended.Status == SlowDispatchContractStatus.TerminatedByScada
         assert ended.WattHoursUsed == 120
-        assert ended.Cause is not None and ended.Cause.startswith(reason.value)  # the scada's reason, as given
+        assert ended.Reason == reason
         assert scada.auto_state == MainAutoState.LocalControl
         assert scada.contract_handler.latest_scada_hb is None
         assert sends.to_leaf_ally(SlowDispatchContract) == []
@@ -366,6 +315,7 @@ async def test_a_stored_contract_that_ended_is_not_taken_up_after_a_restart(
             PreviousStatus=SlowDispatchContractStatus.Active,
             Status=SlowDispatchContractStatus.TerminatedByScada,
             Cause="Ally Gives up: test",
+            Reason=DispatchRefusalReason.ScadaBlind,
             WattHoursUsed=120,
             MessageCreatedMs=int(time.time() * 1000),
             MyDigit=4,
@@ -410,6 +360,7 @@ async def test_an_offer_in_local_control_sends_the_leaf_ally_the_contract_once(
             timeout=30,
         )
         sends = Sends(monkeypatch, scada)
+        fresh_buffer(scada)
         contract = live_contract(scada)
         scada.process_scada_message(scada.ltn, ltn_hb(scada, contract, SlowDispatchContractStatus.Created))
         assert scada.auto_state == MainAutoState.LeafTransactiveNode

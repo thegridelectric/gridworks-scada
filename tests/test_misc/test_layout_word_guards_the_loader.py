@@ -9,6 +9,7 @@ from typing import Callable
 import pytest
 
 from sema_to_dc import ops_and_sema_to_dc
+from tests.utils.scada_live_test_helper import ops_word_with
 
 CONFIG = Path(__file__).parent.parent / "config"
 # (layout, ops, number of DerivedChannelInputsAcyclic in that layout word);
@@ -89,25 +90,16 @@ def load_pair(
     layout: str,
     ops: str,
     mutate_layout: Callable[[dict], None],
-    mutate_ops: Callable[[dict], None],
+    uses_backup_when_cold: bool,
 ) -> None:
-    """Load a copy of the fixture pair with each side changed."""
+    """Load a copy of the fixture pair: the layout changed, the ops word
+    authored with the backup selection."""
     layout_d = json.loads((CONFIG / layout).read_text())
     mutate_layout(layout_d)
     layout_path = tmp_path / layout
     layout_path.write_text(json.dumps(layout_d))
-    ops_d = json.loads((CONFIG / ops).read_text())
-    mutate_ops(ops_d)
-    ops_path = tmp_path / ops
-    ops_path.write_text(json.dumps(ops_d))
+    ops_path = ops_word_with(CONFIG / ops, tmp_path / ops, uses_backup_when_cold=uses_backup_when_cold)
     ops_and_sema_to_dc(layout_path, ops_path)
-
-
-def uses_backup(value: bool) -> Callable[[dict], None]:
-    def mutate(ops: dict) -> None:
-        ops["UsesBackupWhenCold"] = value
-
-    return mutate
 
 
 def no_backup(layout: dict) -> None:
@@ -125,14 +117,14 @@ def test_using_backup_when_cold_needs_a_backup_in_the_layout(tmp_path: Path, pai
     with no Backup does not boot, whichever family."""
     layout, ops = BACKUP_PAIRS[pair]
     with pytest.raises(ValueError, match="UsesBackupWhenCold"):
-        load_pair(tmp_path, layout, ops, no_backup, uses_backup(True))
+        load_pair(tmp_path, layout, ops, no_backup, True)
 
 
 @pytest.mark.parametrize("pair", sorted(BACKUP_PAIRS))
 def test_using_backup_when_cold_needs_the_backup_in_service(tmp_path: Path, pair: str) -> None:
     layout, ops = BACKUP_PAIRS[pair]
     with pytest.raises(ValueError, match="InService"):
-        load_pair(tmp_path, layout, ops, backup_out_of_service, uses_backup(True))
+        load_pair(tmp_path, layout, ops, backup_out_of_service, True)
 
 
 @pytest.mark.parametrize("pair", sorted(BACKUP_PAIRS))
@@ -140,8 +132,8 @@ def test_not_using_backup_when_cold_needs_no_backup(tmp_path: Path, pair: str) -
     """A layout with no backup, or one out of service, boots with
     UsesBackupWhenCold false; the backup is simply never used."""
     layout, ops = BACKUP_PAIRS[pair]
-    load_pair(tmp_path, layout, ops, no_backup, uses_backup(False))
-    load_pair(tmp_path, layout, ops, backup_out_of_service, uses_backup(False))
+    load_pair(tmp_path, layout, ops, no_backup, False)
+    load_pair(tmp_path, layout, ops, backup_out_of_service, False)
 
 
 def test_a_nolan_house_using_backup_when_cold_needs_an_element_backup(tmp_path: Path) -> None:
@@ -159,4 +151,4 @@ def test_a_nolan_house_using_backup_when_cold_needs_an_element_backup(tmp_path: 
         }
 
     with pytest.raises(ValueError, match="element backup"):
-        load_pair(tmp_path, layout, ops, boiler_backup, uses_backup(True))
+        load_pair(tmp_path, layout, ops, boiler_backup, True)

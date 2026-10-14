@@ -37,7 +37,7 @@ from gwsproto.names.core.node_names import CoreNodeNames
 from scada_app import ScadaApp
 from sema_to_dc import load_layout
 from tests.actors.test_cold_handling import CONFIG, NOLAN, WILLOW, calling, heating_ops, put_f
-from tests.utils.scada_live_test_helper import ScadaLiveTest
+from tests.utils.scada_live_test_helper import ScadaLiveTest, fresh_buffer
 
 LATCH_S = 2
 
@@ -112,8 +112,8 @@ def hold_cold(impl: ColdWatch, zone: str, temp_channel: str) -> None:
 
 
 def assert_refused(scada: Scada, ops_path: Path, seen: Recorder) -> None:
-    assert scada.ops.AcceptsDispatch is False
-    assert scada.ops.DispatchRefusalReason == DispatchRefusalReason.ServiceContractBroken
+    assert scada.ops.DispatchHold.ServiceContractBroken is True
+    assert scada.dispatch_refusal == DispatchRefusalReason.ServiceContractBroken
     assert OperationalParams.model_validate_json(ops_path.read_text()) == scada.ops
     assert len(seen.refusals()) == 1
     assert len(seen.cold_glitches()) == 1
@@ -150,7 +150,7 @@ async def test_a_cold_nolan_house_holding_no_contract_raises_the_glitch_and_goes
         )
         assert len(seen.cold_glitches()) == 1
         assert seen.refusals() == []
-        assert scada.ops.AcceptsDispatch is True
+        assert scada.ops.DispatchHold.ServiceContractBroken is False
         await h.await_for(
             lambda: impl.top_state == LocalControlTopState.ColdOverride,
             "ERROR waiting for the local control to react to the watch",
@@ -201,6 +201,7 @@ async def test_a_house0_house_cold_with_its_stores_empty_under_a_dispatch_contra
             OilBoilerOn=False,
             ContractId=str(uuid.uuid4()),
         )
+        fresh_buffer(scada)
         scada.process_scada_message(scada.ltn, ltn_hb(scada, contract, SlowDispatchContractStatus.Created))
         await h.await_for(
             lambda: scada.auto_state == MainAutoState.LeafTransactiveNode
@@ -243,5 +244,4 @@ async def test_a_house0_house_cold_with_its_stores_empty_under_a_dispatch_contra
             and p.Status == SlowDispatchContractStatus.TerminatedByScada
         ]
         assert [t.Contract.ContractId for t in terminations] == [contract.ContractId]
-        assert terminations[0].Cause is not None
-        assert terminations[0].Cause.startswith(DispatchRefusalReason.ServiceContractBroken.value)
+        assert terminations[0].Reason == DispatchRefusalReason.ServiceContractBroken
