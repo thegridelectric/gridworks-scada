@@ -21,6 +21,25 @@ from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatCha
 from actors.command_node import CommandNode
 from actors.scada_data import ScadaData
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
+from gwsproto.named_types import House0Layout, NolanLayout
+
+# The channels each family's control needs to judge the buffer, by the
+# layout word: House0 the effective buffer depths, Nolan the band.
+DISPATCH_CHANNELS_BY_LAYOUT: dict[str, tuple[str, ...]] = {
+    House0Layout.type_name_value(): tuple(sorted(HCN.buffer.effective)),
+    NolanLayout.type_name_value(): (HCN.buffer.depth1, HCN.buffer.depth3),
+}
+
+
+def dispatch_channels(layout: HydronicLayout) -> tuple[str, ...]:
+    """The channels this layout's family needs to judge the buffer."""
+    return DISPATCH_CHANNELS_BY_LAYOUT[layout.layout_type_name]
+
+
+def buffer_fresh(data: ScadaData, layout: HydronicLayout) -> bool:
+    """The family's dispatch channels are enabled and fresh; false blinds
+    the scada to dispatch (ScadaBlind)."""
+    return channels_fresh(data, layout, dispatch_channels(layout))
 
 
 def channels_fresh(data: ScadaData, layout: HydronicLayout, names: Iterable[str]) -> bool:

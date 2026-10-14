@@ -259,7 +259,7 @@ class AllTanksLeafAlly(House0Hydronic):
             self.get_temperatures()
 
             if self.state == LeafAllyAllTanksState.Initializing:
-                if self.buffer_temps_available:
+                if self.buffer_fresh():
                     if self.hp_should_be_off():
                         if (
                             self.is_buffer_empty(all_tanks_leaf_ally=True)
@@ -294,7 +294,7 @@ class AllTanksLeafAlly(House0Hydronic):
                             if self.defrost_detected_since is None:
                                 self.defrost_detected_since = int(time.time())
                             if time.time() - self.defrost_detected_since < self.DEFROST_TIMEOUT_MINUTES*60:
-                                self.log(f"In defrost, waiting before charging store")
+                                self.log("In defrost, waiting before charging store")
                             else:
                                 self.log("In defrost but timeout reached, switch to charging store")
                                 self.defrost_detected_since = None
@@ -443,7 +443,7 @@ class AllTanksLeafAlly(House0Hydronic):
             try:
                 self.de_energize(relay)
             except Exception as e:
-                self.log(f"Trouble de energizing {relay}")
+                self.log(f"Trouble de energizing {relay}: {e}")
 
         self.log("Taking care of relays with default energized positions")
         self.hp_failsafe_switch_to_scada()

@@ -164,7 +164,7 @@ class AllTanksTouLocalControl(LocalControlTouBase):
         if self.just_before_onpeak() or self.setpoints_at_onpeak_start=={}:
             self.refresh_setpoints_at_onpeak_start()
         
-        if not (self.heating_forecast and self.buffer_temps_available):
+        if not (self.heating_forecast and self.buffer_fresh()):
             self.fill_missing_store_temps()
             if self.time_since_blind is None:
                 self.time_since_blind = time.time()
@@ -178,7 +178,7 @@ class AllTanksTouLocalControl(LocalControlTouBase):
             if self.time_since_blind is not None:
                 self.time_since_blind = None
             if self.state==LocalControlAllTanksState.Initializing:
-                if self.buffer_temps_available and self.data.channel_has_value(HCN.required_energy):
+                if self.buffer_fresh() and self.data.channel_has_value(HCN.required_energy):
                     if self.is_onpeak():
                         if self.is_buffer_empty():
                             if self.is_storage_colder_than_buffer():
@@ -217,7 +217,7 @@ class AllTanksTouLocalControl(LocalControlTouBase):
                                     if self.defrost_detected_since is None:
                                         self.defrost_detected_since = int(time.time())
                                     if time.time() - self.defrost_detected_since < self.DEFROST_TIMEOUT_MINUTES*60:
-                                        self.log(f"In defrost, waiting before charging store")
+                                        self.log("In defrost, waiting before charging store")
                                     else:
                                         self.log("Defrost timeout reached, charging store")
                                         self.defrost_detected_since = None

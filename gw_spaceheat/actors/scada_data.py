@@ -3,6 +3,7 @@ not necessarily re-use. """
 
 import json
 import os
+import asyncio
 import time
 import uuid
 from pathlib import Path
@@ -139,7 +140,12 @@ class ScadaData:
         # name; read through last_real_value.
         self.last_real_channel_values: Dict[str, int] = {}
         self.latest_temperatures_f: Dict[str, float] = {}
-        self.buffer_temps_available: bool = False # change to buffer_available
+        # Two one-shot readiness facts the leaf ally awaits before its first
+        # judgment: the derived generator sets first_forecast when it stores
+        # its first heating forecast; the scada sets buffer_fresh_once the
+        # first time the family's dispatch channels are all fresh.
+        self.first_forecast = asyncio.Event()
+        self.buffer_fresh_once = asyncio.Event()
 
         self.latest_channel_values[HCN.usable_energy] = 0
         self.latest_channel_unix_ms[HCN.usable_energy] = int(time.time() * 1000)

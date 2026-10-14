@@ -18,10 +18,8 @@ from weather_source import WeatherSourceKind
 from scada2_app import Scada2App
 from scada_app import ScadaApp
 
-from actors.hydronic import house0 as house0_hydronic
-from actors.hydronic import nolan as nolan_hydronic
+from actors.hydronic.shared import dispatch_channels
 from actors.scada import Scada
-from gwsproto.named_types import House0Layout
 
 
 def fixture_deed_path(layout: HydronicLayout) -> Optional[Path]:
@@ -89,11 +87,7 @@ def fresh_buffer(scada: Scada, for_s: int = 3600) -> None:
     blind for the test's duration. The suite simulates no tank module, so
     nothing posts buffer temperatures; this stands in for that sensor. A
     simulated tank module retires it."""
-    channels = (
-        house0_hydronic.DISPATCH_CHANNELS
-        if scada.layout.layout_type_name == House0Layout.model_fields["TypeName"].default
-        else nolan_hydronic.DISPATCH_CHANNELS
-    )
+    channels = dispatch_channels(scada.layout)
     stamp = int((time.time() + for_s) * 1000)
     for name in channels:
         scada._data.latest_channel_unix_ms[name] = stamp

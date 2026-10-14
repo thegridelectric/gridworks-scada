@@ -27,22 +27,9 @@ from gwsproto.names.hydronic_spaceheat.node_names import (
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from actors.hp_boss.sensing import DEFROST_SIGNATURES
 from actors.hydronic.cold import ColdJudgmentNode
-from actors.hydronic.shared import channels_fresh
-from actors.scada_data import ScadaData
-from gwsproto.data_classes.hydronic_layout import HydronicLayout
+from actors.hydronic.shared import buffer_fresh
 from actors.hydronic.store_temps import scrub_and_fill_store_temps
 from sema_to_dc import zero_ten_power_on_volts_times_ten
-
-
-
-# The channels House0 control needs to judge the buffer: the effective
-# buffer depths.
-DISPATCH_CHANNELS = tuple(sorted(HCN.buffer.effective))
-
-
-def buffer_fresh(data: ScadaData, layout: HydronicLayout) -> bool:
-    """House0's effective buffer channels are enabled and fresh."""
-    return channels_fresh(data, layout, DISPATCH_CHANNELS)
 
 
 class House0Hydronic(ColdJudgmentNode):
@@ -740,11 +727,6 @@ class House0Hydronic(ColdJudgmentNode):
 
         self.data.latest_temperatures_f = temps
 
-        # Update buffer_available
-        self.data.buffer_temps_available = (
-            HCN.buffer.effective <= self.data.latest_temperatures_f.keys()
-        )
-
         self.fill_missing_store_temps()
 
         self.data.latest_temperatures_f = dict(sorted(self.data.latest_temperatures_f.items()))
@@ -779,7 +761,3 @@ class House0Hydronic(ColdJudgmentNode):
 
     def buffer_fresh(self) -> bool:
         return buffer_fresh(self.data, self.layout)
-
-    @property
-    def buffer_temps_available(self):
-        return self.data.buffer_temps_available

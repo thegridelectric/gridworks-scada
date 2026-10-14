@@ -130,7 +130,7 @@ class BufferOnlyTouLocalControl(LocalControlTouBase):
             self.buffer_declared_ready = False
             self.full_buffer_energy = None
 
-        if not (self.heating_forecast and self.buffer_temps_available):
+        if not (self.heating_forecast and self.buffer_fresh()):
             if self.time_since_blind is None:
                 self.time_since_blind = time.time()
             elif time.time() - self.time_since_blind > self.BLIND_MINUTES * 60:
@@ -146,7 +146,7 @@ class BufferOnlyTouLocalControl(LocalControlTouBase):
                 self.time_since_blind = None
 
             if self.state == LocalControlBufferOnlyState.Initializing:
-                if self.buffer_temps_available and self.data.channel_has_value(HCN.required_energy):
+                if self.buffer_fresh() and self.data.channel_has_value(HCN.required_energy):
                     if self.is_onpeak():
                         self.trigger_normal_event(LocalControlBufferOnlyEvent.OnPeakStart)
                     else:

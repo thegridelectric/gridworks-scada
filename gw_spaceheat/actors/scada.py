@@ -83,9 +83,8 @@ from gwsproto.names.house0.node_names import House0NodeNames
 from gwsproto.type_helpers.command_tree_axioms import LOCAL_CONTROL_STATE_NODES
 
 
-from sema_to_dc import House0Layout, OperationalParams, deed_grants_dispatch
-from actors.hydronic import house0 as house0_hydronic
-from actors.hydronic import nolan as nolan_hydronic
+from sema_to_dc import OperationalParams, deed_grants_dispatch
+from actors.hydronic.shared import buffer_fresh
 from scada_app_interface import ScadaAppInterface
 
 UNKNOWN_CHANNEL_LOG_PERIOD_S = 15
@@ -965,6 +964,7 @@ class Scada(PrimeActor, ScadaInterface):
         self._data.recent_channel_unix_ms[ch.Name].append(payload.ScadaReadTimeUnixMs)
         self._data.latest_channel_values[ch.Name] = payload.Value
         self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMs
+        self.note_reading_for_buffer_fresh_once()
         self._forward_single_reading(payload)
         self.forward_to_channel_subscribers(from_node, ch.Name, payload)
 
@@ -1008,6 +1008,7 @@ class Scada(PrimeActor, ScadaInterface):
                         ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs,
                     ),
                 )
+        self.note_reading_for_buffer_fresh_once()
 
         # Hack for moving out of Initializing rapidly when restarting Scada
         if from_node.Name ==HSNN.buffer.reader and not self.got_first_buffer_reading:
@@ -1553,9 +1554,12 @@ class Scada(PrimeActor, ScadaInterface):
     def buffer_fresh(self) -> bool:
         """The channels the family's control needs to judge the buffer are
         enabled and fresh; false blinds the scada to dispatch."""
-        if self.layout.layout_type_name == House0Layout.model_fields["TypeName"].default:
-            return house0_hydronic.buffer_fresh(self._data, self.layout)
-        return nolan_hydronic.buffer_fresh(self._data, self.layout)
+        return buffer_fresh(self._data, self.layout)
+
+    def note_reading_for_buffer_fresh_once(self) -> None:
+        """Set the one-shot the first time the buffer is fresh; nothing after."""
+        if not self._data.buffer_fresh_once.is_set() and self.buffer_fresh():
+            self._data.buffer_fresh_once.set()
 
     @property
     def dispatch_refusal(self) -> Optional[DispatchRefusalReason]:

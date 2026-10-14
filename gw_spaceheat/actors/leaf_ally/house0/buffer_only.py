@@ -234,7 +234,7 @@ class BufferOnlyLeafAlly(House0Hydronic):
             self.get_temperatures()
 
             if self.state == LeafAllyBufferOnlyState.Initializing:
-                if self.buffer_temps_available:
+                if self.buffer_fresh():
                     if self.hp_should_be_off():
                         self.trigger_event(LeafAllyBufferOnlyEvent.NoMoreElec)
                     elif self.is_buffer_charge_limited():
@@ -335,7 +335,7 @@ class BufferOnlyLeafAlly(House0Hydronic):
             try:
                 self.de_energize(relay)
             except Exception as e:
-                self.log(f"Trouble de energizing {relay}")
+                self.log(f"Trouble de energizing {relay}: {e}")
 
         self.log("Taking care of relays with default energized positions")
         self.hp_failsafe_switch_to_scada()

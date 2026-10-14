@@ -16,6 +16,7 @@ import pytest
 
 from actors import derived_generator
 from actors.derived_generator import DerivedGenerator
+from actors.hydronic.shared import dispatch_channels
 from gwsproto.named_types import HeatingForecast
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
@@ -80,8 +81,11 @@ def a_day_of_forecast(actor: DerivedGenerator, now_s: float | None = None) -> He
 
 
 def hot_tanks(actor: DerivedGenerator) -> None:
+    """Every store and buffer layer at 150 F, the buffer read just now."""
     data = actor.data
-    data.buffer_temps_available = True
+    stamp = int(time.time() * 1000)
+    for ch in dispatch_channels(actor.layout):
+        data.latest_channel_unix_ms[ch] = stamp
     for tank in actor.layout.store_tanks.values():
         for ch in (tank.depth1, tank.depth2, tank.depth3):
             data.latest_temperatures_f[ch] = 150.0

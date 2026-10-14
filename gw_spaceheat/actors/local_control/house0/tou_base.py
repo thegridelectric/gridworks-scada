@@ -21,7 +21,6 @@ from gwsproto.enums import (
 from gwsproto.named_types import (ActuatorsReady,
             GoDormant,  Ha1Params,
             SingleMachineState, WakeUp)
-from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.house0.node_names import House0NodeNames
 
 from actors.procedural.dist_pump_doctor import DistPumpDoctor
@@ -169,7 +168,7 @@ class LocalControlTouBase(House0Hydronic):
         self.log(f"Top State {cause.value}: {orig_state} -> {self.top_state}")
         if self.top_state == LocalControlTopState.Normal:
             self.actuators_initialized = False
-            self.log(f"need to initialize actuators again")
+            self.log("need to initialize actuators again")
 
         self._send_to(
             self.primary_scada,
@@ -234,7 +233,7 @@ class LocalControlTouBase(House0Hydronic):
             if self.top_state in self.COLD_STATES and not self.house_cold and not self.is_onpeak():
                 self.trigger_zones_at_setpoint_offpeak()
             elif self.top_state == LocalControlTopState.ScadaBlind:
-                if self.heating_forecast and self.buffer_temps_available:
+                if self.heating_forecast and self.buffer_fresh():
                     self.log("Forecasts and temperatures are both available again!")
                     self.trigger_data_available()
                 elif self.is_onpeak() and self.ops.UsesBackupWhenCold:
@@ -482,7 +481,7 @@ class LocalControlTouBase(House0Hydronic):
                     # buffer temps are in data.latest_channel_values but not
                     # yet in self.latest_temperatures_f
                     self.get_temperatures()
-                    self.log(f"Buffer Temps Available: {self.buffer_temps_available}")
+                    self.log(f"Buffer fresh: {self.buffer_fresh()}")
                     self.engage_brain()
         return Ok(True)
 

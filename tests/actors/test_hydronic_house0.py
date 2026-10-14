@@ -368,7 +368,7 @@ def f_x100(f: float) -> int:
     return round(f * 100)
 
 
-def test_get_temperatures_converts_and_marks_the_buffer_available(
+def test_get_temperatures_converts_every_layer(
     actor: House0Hydronic,
 ) -> None:
     buffer = HCN.buffer
@@ -386,18 +386,19 @@ def test_get_temperatures_converts_and_marks_the_buffer_available(
     temps = actor.data.latest_temperatures_f
     assert temps[buffer.depth1] == 150.0 and temps[buffer.depth3] == 130.0
     assert temps[tank.depth1] == 160.0 and temps[tank.depth3] == 150.0
-    assert actor.buffer_temps_available is True
     assert list(temps) == sorted(temps)
 
 
-def test_get_temperatures_buffer_unavailable_when_a_layer_is_missing(
+def test_get_temperatures_leaves_a_missing_buffer_layer_out(
     actor: House0Hydronic,
 ) -> None:
+    """A layer with no value is left out of the temperatures, never filled
+    in; whether the scada can judge the buffer is `buffer_fresh`'s question,
+    asked of the read times, not of the values."""
     buffer = HCN.buffer
     actor.data.latest_channel_values[buffer.depth1] = f_x100(150.0)
     actor.data.latest_channel_values[buffer.depth2] = None
     actor.get_temperatures()
-    assert actor.buffer_temps_available is False
     assert (
         buffer.depth2 not in actor.data.latest_temperatures_f
     )  # the buffer is never filled in
