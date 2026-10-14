@@ -13,9 +13,14 @@ import pytest
 from gwproto import Message
 
 from actors.scada import Scada
-from gwsproto.enums import DispatchRefusalReason, MainAutoState, SlowDispatchContractStatus
-from gwsproto.named_types import SlowContractHeartbeat, SlowContractRejection, SlowDispatchContract
+from gwsproto.enums import (
+    DispatchRefusalReason, MainAutoState, SlowDispatchContractStatus, TopState, TurnHpOnOff,
+)
+from gwsproto.named_types import (
+    AdminDispatch, FsmEvent, SlowContractHeartbeat, SlowContractRejection, SlowDispatchContract,
+)
 from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from sema_to_dc import load_layout
 from tests.actors.test_cold_handling import heating_ops, hold, make_app
 from tests.utils.scada_live_test_helper import ScadaLiveTest, fresh_buffer
@@ -40,6 +45,10 @@ def nothing(scada: Scada) -> None:
     ...
 
 
+def in_admin(scada: Scada) -> None:
+    scada.AdminWakesUp()
+
+
 ROWS: list[tuple[str, dict, Prepare, bool, DispatchRefusalReason | None]] = [
     # (id, ops changes, prepare, buffer fresh, reason)
     ("clean", {}, nothing, True, None),
@@ -47,9 +56,11 @@ ROWS: list[tuple[str, dict, Prepare, bool, DispatchRefusalReason | None]] = [
     ("operator-hold", {"DispatchHold": hold(operator=True)}, nothing, True, DispatchRefusalReason.OperatorHold),
     ("broken", {"DispatchHold": hold(broken=True)}, nothing, True, DispatchRefusalReason.ServiceContractBroken),
     ("blind", {}, nothing, False, DispatchRefusalReason.ScadaBlind),
-    # permanence wins: the deed over the hold, the hold over the sensing
+    ("in-admin", {}, in_admin, True, DispatchRefusalReason.InAdmin),
+    # permanence wins: the deed over the hold, the hold over the sensing, the sensing over admin
     ("no-deed-over-hold", {"DispatchHold": hold(operator=True)}, no_deed, True, DispatchRefusalReason.NoTaDeed),
     ("hold-over-blind", {"DispatchHold": hold(broken=True)}, nothing, False, DispatchRefusalReason.ServiceContractBroken),
+    ("blind-over-admin", {}, in_admin, False, DispatchRefusalReason.ScadaBlind),
 ]
 
 
@@ -208,3 +219,127 @@ async def test_an_accepted_offer_reaches_the_ally(
             "ERROR waiting for the scada to take the offer",
         )
         assert scada.auto_state == MainAutoState.LeafTransactiveNode
+
+
+# --- admin mid-contract ---------------------------------------------------------
+
+
+def admin_dispatch(timeout_seconds: int) -> AdminDispatch:
+    return AdminDispatch(
+        DispatchTrigger=FsmEvent(
+            FromHandle=CoreNodeNames.admin,
+            ToHandle=f"{CoreNodeNames.admin}.{HSNN.hp_boss}",
+            EventType=TurnHpOnOff.enum_name(),
+            EventName=TurnHpOnOff.TurnOn,
+            SendTimeUnixMs=int(time.time() * 1000),
+            TriggerId=str(uuid.uuid4()),
+        ),
+        TimeoutSeconds=timeout_seconds,
+    )
+
+
+@pytest.mark.asyncio
+async def test_admin_ends_the_contract_and_the_scada_takes_the_next_offer_after(
+    request: pytest.FixtureRequest, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Admin takes a House0 house mid-contract: the LTN receives
+    TerminatedByScada with InAdmin and holds no contract; an offer during
+    Admin is rejected with InAdmin; after Admin times out the scada is in
+    LocalControl with no contract, reports that it accepts dispatch, and
+    takes the next offer."""
+    layout_file, ops_file = PAIRS["house0-orange"]
+    ops_path = heating_ops(tmp_path, (layout_file, ops_file))
+    layout = load_layout(CONFIG / layout_file, ops_path)
+    async with ScadaLiveTest(request=request, layout=layout, ops_path=ops_path) as tst:
+        tst.start_child1()
+        scada = tst.child1_app.scada
+        tst.start_parent()
+        await tst.await_for(
+            lambda: tst.child_to_parent_link.active(),
+            "ERROR waiting for scada to ltn link",
+        )
+        ltn = tst.parent_app.ltn
+        await tst.await_for(
+            lambda: ltn.operating_status is not None and ltn.accepts_dispatch,
+            "ERROR waiting for the LTN to see the scada accepting dispatch",
+        )
+
+        heartbeats: list[SlowContractHeartbeat] = []
+        rejections: list[SlowContractRejection] = []
+        ltn_hb = ltn.contract_handler.process_slow_contract_heartbeat
+        ltn_rejection = ltn.contract_handler.process_slow_contract_rejection
+
+        def record_hb(hb: SlowContractHeartbeat) -> None:
+            heartbeats.append(hb)
+            ltn_hb(hb)
+
+        def record_rejection(rejection: SlowContractRejection) -> None:
+            rejections.append(rejection)
+            ltn_rejection(rejection)
+
+        monkeypatch.setattr(ltn.contract_handler, "process_slow_contract_heartbeat", record_hb)
+        monkeypatch.setattr(ltn.contract_handler, "process_slow_contract_rejection", record_rejection)
+
+        first = send_offer(ltn)
+        await tst.await_for(
+            lambda: scada.auto_state == MainAutoState.LeafTransactiveNode
+            and scada.contract_handler.latest_scada_hb is not None
+            and scada.contract_handler.latest_scada_hb.Contract.ContractId == first.Contract.ContractId,
+            "ERROR waiting for the scada to take the first offer",
+        )
+
+        # Admin takes the house, with a short timeout so the exit is the timeout path.
+        scada.process_scada_message(scada.admin, admin_dispatch(timeout_seconds=2))
+        assert scada.top_state == TopState.Admin
+        assert scada.auto_state == MainAutoState.Dormant
+        assert scada.dispatch_refusal == DispatchRefusalReason.InAdmin
+        assert scada.contract_handler.latest_scada_hb is None
+        await tst.await_for(
+            lambda: any(
+                hb.Contract.ContractId == first.Contract.ContractId
+                and hb.Status == SlowDispatchContractStatus.TerminatedByScada
+                for hb in heartbeats
+            ),
+            "ERROR waiting for the LTN to receive the termination",
+        )
+        [ended] = [hb for hb in heartbeats if hb.Status == SlowDispatchContractStatus.TerminatedByScada]
+        assert ended.Reason == DispatchRefusalReason.InAdmin
+        assert ltn.contract_handler.latest_hb is None
+        await tst.await_for(
+            lambda: ltn.operating_status is not None
+            and ltn.operating_status.DispatchRefusalReason == DispatchRefusalReason.InAdmin,
+            "ERROR waiting for the LTN to see InAdmin on the operating status",
+        )
+
+        # An offer during Admin is answered with a rejection.
+        during = send_offer(ltn)
+        await tst.await_for(
+            lambda: any(r.ContractId == during.Contract.ContractId for r in rejections),
+            "ERROR waiting for the LTN to receive the rejection during Admin",
+        )
+        [rejection] = [r for r in rejections if r.ContractId == during.Contract.ContractId]
+        assert rejection.Reason == DispatchRefusalReason.InAdmin
+        assert scada.contract_handler.latest_scada_hb is None
+        assert scada.auto_state == MainAutoState.Dormant
+
+        # Admin times out: local control, no contract, dispatch accepted again.
+        await tst.await_for(
+            lambda: scada.top_state == TopState.Auto,
+            "ERROR waiting for Admin to time out",
+        )
+        assert scada.auto_state == MainAutoState.LocalControl
+        assert scada.contract_handler.latest_scada_hb is None
+        assert scada.dispatch_refusal is None
+        await tst.await_for(
+            lambda: ltn.operating_status is not None and ltn.accepts_dispatch,
+            "ERROR waiting for the LTN to see the scada accepting dispatch after Admin",
+        )
+
+        after = send_offer(ltn)
+        await tst.await_for(
+            lambda: scada.auto_state == MainAutoState.LeafTransactiveNode
+            and scada.contract_handler.latest_scada_hb is not None
+            and scada.contract_handler.latest_scada_hb.Contract.ContractId == after.Contract.ContractId,
+            "ERROR waiting for the scada to take the offer after Admin",
+        )
+        assert not any(r.ContractId == after.Contract.ContractId for r in rejections)

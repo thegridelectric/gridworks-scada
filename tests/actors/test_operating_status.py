@@ -235,13 +235,18 @@ async def test_operating_status_emits_once_per_change(
             scada.report_operating_status()
         assert len(statuses) == 1
 
-        # Admin takes the tree and releases it: TopState moves, nothing else.
+        # Admin takes the tree and releases it: TopState moves, and dispatch
+        # with it, unless a more permanent reason already refuses.
+        in_admin = {} if held else {
+            "AcceptsDispatch": False, "DispatchRefusalReason": DispatchRefusalReason.InAdmin,
+        }
+        back = {} if held else {"AcceptsDispatch": True, "DispatchRefusalReason": None}
         scada.process_scada_message(scada.admin, admin_turn_on())
         assert len(statuses) == 2
-        assert_only_changed(statuses[0], statuses[1], TopState=TopState.Admin)
+        assert_only_changed(statuses[0], statuses[1], TopState=TopState.Admin, **in_admin)
         scada.process_scada_message(scada.admin, AdminReleaseControl())
         assert len(statuses) == 3
-        assert_only_changed(statuses[1], statuses[2], TopState=TopState.Auto)
+        assert_only_changed(statuses[1], statuses[2], TopState=TopState.Auto, **back)
         await h.await_for(
             lambda: scada.auto_state == MainAutoState.LocalControl,
             "ERROR waiting for auto to wake into LocalControl",

@@ -617,25 +617,25 @@ class Scada(PrimeActor, ScadaInterface):
         auto state still moves but no terminating heartbeat is sent.
         """
         self.auto_trigger(MainAutoEvent.AllyGivesUp)
-
         self.log(f"Ending dispatch: {payload.Reason}: {payload.Cause}")
+        self.end_contract(payload.Reason, payload.Cause)
 
+    def end_contract(self, reason: DispatchRefusalReason, cause: str) -> None:
+        """End the held contract, whoever decided it: the terminating
+        heartbeat with the reason goes to the LTN, is stored so a restart
+        finds a finished contract, and is flushed so the scada holds none;
+        the contract timing task is cancelled. Does nothing to the auto
+        state. A call with no held contract (a give-up in the grace period,
+        or after completion) only logs."""
         if self.contract_handler.latest_scada_hb:
             self.log("Sending termination hb to the LTN")
-            hb = self.contract_handler.scada_terminates_contract_hb(
-                reason=payload.Reason, cause=payload.Cause
-            )
-        
+            hb = self.contract_handler.scada_terminates_contract_hb(reason=reason, cause=cause)
             self.contract_handler.latest_scada_hb = hb
             self.contract_handler.store_heartbeat()
             self.contract_handler.flush_latest_scada_hb()
-    
             self._send_to(self.ltn, hb)
         else:
-            self.log(
-                "No active contract heartbeat while processing AllyGivesUp"
-            )
-
+            self.log("No held contract to end")
         if hasattr(self, 'contract_task'):
             self.contract_task.cancel()
 
@@ -1055,6 +1055,9 @@ class Scada(PrimeActor, ScadaInterface):
         if self.auto_state == MainAutoState.Dormant:
             self.log("AdminWakesUp called when auto state was dormant!!")
             return
+        # A held contract ends here: the LTN never believes it holds
+        # dispatch while admin runs the house.
+        self.end_contract(DispatchRefusalReason.InAdmin, "admin took the house")
         # This will set auto_state and update the actuator forest to Admin
         self.auto_trigger(MainAutoEvent.AutoGoesDormant)
 
@@ -1157,16 +1160,13 @@ class Scada(PrimeActor, ScadaInterface):
                 self._send_to(five_v_boss, WakeUp(ToName=five_v_boss.Name))
 
     def auto_wakes_up(self) -> None:
-        """
-        Goes to LeafTransactiveNode. Then if in grace period, triggers DispatchContractLive
-        """
+        """Dormant -> LocalControl. The scada holds no contract here: admin
+        ended it on the way in."""
         if self.auto_state != MainAutoState.Dormant:
             self.log(f"STRANGE!! auto state is already{self.auto_state}")
             return
         # Trigger AutoWakesUp for auto state: Dormant -> LocalControl
         self.auto_trigger(MainAutoEvent.AutoWakesUp)
-        if self.contract_handler.latest_scada_hb:
-            self.auto_trigger(MainAutoEvent.DispatchContractLive)
 
     def process_slow_contract_heartbeat(self, from_node: ShNode, ltn_hb: SlowContractHeartbeat) -> None:
 
@@ -1186,9 +1186,6 @@ class Scada(PrimeActor, ScadaInterface):
                         MessageCreatedMs=int(time.time() * 1000),
                     ),
                 )
-                return
-            if self.top_state == TopState.Admin:
-                self.log("Ignoring new contract, in Admin")
                 return
             if self.contract_handler.latest_scada_hb is None: # contract already wrapped up
                 return_hb = self.contract_handler.start_new_contract_hb(ltn_hb) #sets up matching latest_scada_hb
@@ -1605,7 +1602,7 @@ class Scada(PrimeActor, ScadaInterface):
         """Why this scada will not take or keep a dispatch contract, asked
         now, or None when it takes one. Ordered by permanence: the deed on
         file, the ops word's hold (the operator's, then the broken service
-        contract), then the sensing."""
+        contract), the sensing, then an admin session."""
         if not deed_grants_dispatch(self.services.deed_on_file, self.layout):
             return DispatchRefusalReason.NoTaDeed
         if self.ops.DispatchHold.OperatorHold:
@@ -1614,6 +1611,8 @@ class Scada(PrimeActor, ScadaInterface):
             return DispatchRefusalReason.ServiceContractBroken
         if not self.buffer_fresh():
             return DispatchRefusalReason.ScadaBlind
+        if self.top_state == TopState.Admin:
+            return DispatchRefusalReason.InAdmin
         return None
 
     @property
