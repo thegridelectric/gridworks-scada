@@ -108,6 +108,13 @@ NO_WORD_ENUMS = {
 # snapshot's version is a seed or twin mistake, never recorded debt.
 KNOWN_TYPE_VERSION_DRIFT: set[str] = set()
 KNOWN_ENUM_VERSION_DRIFT: set[str] = set()
+# A twin whose default() is not the snapshot enum's `default`. The two with
+# no default at all inherit SemaEnum's None.
+KNOWN_ENUM_DEFAULT_DRIFT: set[str] = {
+    "gw1.device.type: gwsproto default None vs snapshot 'EgaugePowerMeter'",
+    "gw1.sim.device.type: gwsproto default None vs snapshot 'SimSensor'",
+    "pico.cycler.event: gwsproto default 'ConfirmRebooted' vs snapshot 'WakeUp'",
+}
 
 # Twins whose serialized fields or required set differ from the snapshot
 # class at the pinned version, keyed type/version, with the EXACT drift: a
@@ -140,6 +147,20 @@ def test_type_version_drift_only_known(report: conformance.Report) -> None:
     assert actual == KNOWN_TYPE_VERSION_DRIFT, (
         f"new type version drift: {sorted(actual - KNOWN_TYPE_VERSION_DRIFT)}; "
         f"fixed (remove from KNOWN list): {sorted(KNOWN_TYPE_VERSION_DRIFT - actual)}"
+    )
+
+
+def test_snapshot_holds_one_version_per_word(report: conformance.Report) -> None:
+    """A scada speaks exactly one version of each word; a second version in
+    the snapshot is a sema-side dependent bound off the pin."""
+    assert report.multi_version == [], report.multi_version
+
+
+def test_enum_default_drift_only_known(report: conformance.Report) -> None:
+    actual = set(report.enum_default_drift)
+    assert actual == KNOWN_ENUM_DEFAULT_DRIFT, (
+        f"new={sorted(actual - KNOWN_ENUM_DEFAULT_DRIFT)} "
+        f"fixed={sorted(KNOWN_ENUM_DEFAULT_DRIFT - actual)}"
     )
 
 

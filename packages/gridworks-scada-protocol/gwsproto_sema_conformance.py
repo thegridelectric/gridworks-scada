@@ -14,8 +14,13 @@ both a CLI (human sweep) and the engine behind the pytest conformance tests
 Per TYPE it reports:
 - **no-word** — TypeName not in the snapshot registry: either gwsproto-only
   (no sema word) or a word sema has that the seed does not name;
-- **version-drift** — the gwsproto `Version` literal is not the snapshot's
-  `latest_version`;
+- **version-drift** — the gwsproto `Version` literal is not the version the
+  seed pins (`indexes/seed_request.yaml`; the snapshot's `latest_version`
+  for a word the seed does not name);
+- **multi-version** — the snapshot holds the word at more than one version.
+  A scada speaks exactly one version of each word, so a second version is a
+  dependent in the closure bound to another version than the pin; the report
+  names each version's users (`indexes/reverse_dependencies.yaml`);
 - **no-oracle** — the snapshot has no class at the twin's pinned version, so
   nothing checks its shape (seed that version);
 - **shape-drift** — the twin's serialized field names, or its required set,
@@ -27,8 +32,9 @@ Per TYPE it reports:
   serialization);
 - **no-sample** — nothing to decode (informational).
 
-Per ENUM it reports no-word, version-drift, and value-drift (the gwsproto value
-set is not the snapshot enum's value set). Per FORMAT it runs the snapshot
+Per ENUM it reports no-word, version-drift, multi-version, value-drift (the
+gwsproto value set is not the snapshot enum's value set) and default-drift
+(the gwsproto `default()` is not the snapshot enum's `default`). Per FORMAT it runs the snapshot
 `examples` (must accept) and `counterexamples` (must reject) through the
 gwsproto validator.
 
@@ -102,6 +108,38 @@ def snapshot_present(snapshot_root: Path = DEFAULT_SNAPSHOT) -> bool:
 def load_yaml(path: Path) -> dict | None:
     """One parse per file per process; the snapshot is read-only data."""
     return yaml.safe_load(path.read_text()) if path.exists() else None
+
+
+def seed_pins(snapshot_root: Path) -> dict[str, dict[str, str]]:
+    """{"types": {name: version}, "enums": {name: version}} for every word the
+    seed pins to exactly one version (`versions: ["NNN"]`)."""
+    seed = load_yaml(snapshot_root / "indexes" / "seed_request.yaml") or {}
+    out: dict[str, dict[str, str]] = {"types": {}, "enums": {}}
+    for category in out:
+        for name, opts in (seed.get("initial_targets") or {}).get(category, {}).items():
+            versions = (opts or {}).get("versions")
+            if isinstance(versions, list) and len(versions) == 1:
+                out[category][name] = str(versions[0])
+    return out
+
+
+def multi_version_words(snapshot_root: Path) -> list[str]:
+    """Every type and versioned enum the snapshot holds at more than one
+    version, each version with the words that bind to it."""
+    versions = load_yaml(snapshot_root / "indexes" / "versions.yaml") or {}
+    reverse = load_yaml(snapshot_root / "indexes" / "reverse_dependencies.yaml") or {}
+    out: list[str] = []
+    for category in ("types", "enums"):
+        for name, entry in sorted((versions.get(category) or {}).items()):
+            held = sorted(entry.get("versions") or {})
+            if len(held) < 2:
+                continue
+            users = (reverse.get(category) or {}).get(name) or {}
+            by_version = ", ".join(
+                f"{v}<-{sorted((users.get(v) or {}).get('used_by') or [])}" for v in held
+            )
+            out.append(f"{category[:-1]} {name}: {by_version}")
+    return out
 
 
 def load_definitions(snapshot_root: Path, wanted: dict[str, str]) -> dict:
@@ -225,6 +263,8 @@ class Report:
     # types
     no_word: list[str] = field(default_factory=list)
     version_drift: list[str] = field(default_factory=list)
+    # snapshot words held at more than one version (types and enums)
+    multi_version: list[str] = field(default_factory=list)
     no_oracle: list[str] = field(default_factory=list)
     # "type/version" -> the exact drift: the four sorted field lists.
     shape_drift: dict[str, "ShapeDrift"] = field(default_factory=dict)
@@ -236,6 +276,7 @@ class Report:
     enum_no_word: list[str] = field(default_factory=list)
     enum_version_drift: list[str] = field(default_factory=list)
     enum_value_drift: list[str] = field(default_factory=list)
+    enum_default_drift: list[str] = field(default_factory=list)
     # formats
     format_reject: list[str] = field(default_factory=list)
     format_no_word: list[str] = field(default_factory=list)
@@ -289,6 +330,8 @@ def run(  # noqa: C901
     snap_enums = registry.get("enums", {})
     r.n_snapshot_types = len(snap_types)
     r.n_gwsproto_types = len(classes)
+    pins = seed_pins(snapshot_root)
+    r.multi_version = multi_version_words(snapshot_root)
 
     # ---- types ----
     samples_dir = snapshot_root / "samples"
@@ -298,10 +341,10 @@ def run(  # noqa: C901
         if entry is None:
             r.no_word.append(type_name)
             continue
-        latest = entry.get("latest_version")
-        if version != latest:
+        pinned = pins["types"].get(type_name, entry.get("latest_version"))
+        if version != pinned:
             r.version_drift.append(
-                f"{type_name}: gwsproto {version} vs snapshot {latest}"
+                f"{type_name}: gwsproto {version} vs snapshot {pinned}"
             )
         snap_cls = oracle.get(type_name, {}).get(version)
         if snap_cls is None:
@@ -372,18 +415,27 @@ def run(  # noqa: C901
         except (NotImplementedError, AttributeError):
             version = None
         if entry.get("enum_type") == "versioned":
-            latest = entry.get("latest_version")
-            if version != latest:
+            pinned = pins["enums"].get(enum_name, entry.get("latest_version"))
+            if version != pinned:
                 r.enum_version_drift.append(
-                    f"{enum_name}: gwsproto {version} vs snapshot {latest}"
+                    f"{enum_name}: gwsproto {version} vs snapshot {pinned}"
                 )
-        snap_vals = _enum_values(schemas.get(f"enum::{enum_name}"))
+        schema = schemas.get(f"enum::{enum_name}")
+        snap_vals = _enum_values(schema)
         gws_vals = set(ecls.values())
         if snap_vals is not None and gws_vals != snap_vals:
             r.enum_value_drift.append(
                 f"{enum_name}: gwsproto-only={sorted(gws_vals - snap_vals)} "
                 f"snapshot-only={sorted(snap_vals - gws_vals)}"
             )
+        snap_default = schema.get("default") if schema else None
+        if snap_default is not None:
+            gws_default = getattr(ecls.default(), "value", ecls.default())
+            if gws_default != snap_default:
+                r.enum_default_drift.append(
+                    f"{enum_name}: gwsproto default {gws_default!r} "
+                    f"vs snapshot {snap_default!r}"
+                )
 
     # ---- formats ----
     for fmt, gws_type in FORMAT_MAP.items():
@@ -436,6 +488,7 @@ def main(argv: list[str] | None = None) -> int:
 
     section("TYPE — no snapshot word", r.no_word)
     section("TYPE — version drift", r.version_drift)
+    section("SNAPSHOT — word held at more than one version", r.multi_version)
     section("TYPE — no snapshot class at pinned version", r.no_oracle)
     section("TYPE — shape drift", [f"{k}: {v}" for k, v in r.shape_drift.items()])
     section("TYPE — sample reject", r.sample_reject)
@@ -446,6 +499,7 @@ def main(argv: list[str] | None = None) -> int:
     section("ENUM — no snapshot word", r.enum_no_word)
     section("ENUM — version drift", r.enum_version_drift)
     section("ENUM — value drift", r.enum_value_drift)
+    section("ENUM — default drift", r.enum_default_drift)
     section("FORMAT — reject", r.format_reject)
     section("FORMAT — no snapshot word (unmirrored)", r.format_no_word)
     section("SNAPSHOT — type with no gwsproto twin", r.snapshot_unmirrored_types)
@@ -453,6 +507,7 @@ def main(argv: list[str] | None = None) -> int:
 
     failures = (
         r.version_drift
+        + r.multi_version
         + r.no_oracle
         + r.shape_drift
         + r.sample_reject
@@ -460,6 +515,7 @@ def main(argv: list[str] | None = None) -> int:
         + r.cli_reject
         + r.enum_version_drift
         + r.enum_value_drift
+        + r.enum_default_drift
         + r.format_reject
         + r.snapshot_unmirrored_types
         + r.snapshot_unmirrored_enums
