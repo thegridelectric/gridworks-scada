@@ -11,7 +11,7 @@ from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
 class WeatherForecastBundleGt(GwsprotoSemaType):
-    """Sema: https://schemas.electricity.works/types/gw.weather.forecast.bundle.gt/000"""
+    """Sema: https://schemas.electricity.works/types/gw.weather.forecast.bundle.gt/001"""
 
     Name: LeftRightDotStr
     DisplayName: Annotated[str, Field(min_length=1)]
@@ -25,7 +25,7 @@ class WeatherForecastBundleGt(GwsprotoSemaType):
     Start: UtcIso8601Seconds
     Id: UUID4Str
     TypeName: Literal["gw.weather.forecast.bundle.gt"] = "gw.weather.forecast.bundle.gt"
-    Version: Literal["000"] = "000"
+    Version: Literal["001"] = "001"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

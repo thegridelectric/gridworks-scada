@@ -9,7 +9,7 @@ from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
 class WeatherChannelGt(GwsprotoSemaType):
-    """Sema: https://schemas.electricity.works/types/gw.weather.channel.gt/000"""
+    """Sema: https://schemas.electricity.works/types/gw.weather.channel.gt/001"""
 
     Name: LeftRightDotStr
     DisplayName: Annotated[str, Field(min_length=1)]
@@ -21,7 +21,7 @@ class WeatherChannelGt(GwsprotoSemaType):
     Start: UtcIso8601Seconds
     Id: UUID4Str
     TypeName: Literal["gw.weather.channel.gt"] = "gw.weather.channel.gt"
-    Version: Literal["000"] = "000"
+    Version: Literal["001"] = "001"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

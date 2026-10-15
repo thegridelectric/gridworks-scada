@@ -1028,7 +1028,7 @@
   "DataChannels": [
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "buffer-top-elt-pwr",
       "DisplayName": "BUFFER TOP ELT PWR",
       "AboutNodeName": "buffer-top-elt",
@@ -1040,7 +1040,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "buffer-bottom-elt-pwr",
       "DisplayName": "BUFFER BOTTOM ELT PWR",
       "AboutNodeName": "buffer-bottom-elt",
@@ -1052,7 +1052,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "tank1-top-elt-pwr",
       "DisplayName": "TANK1 TOP ELT PWR",
       "AboutNodeName": "tank1-top-elt",
@@ -1064,7 +1064,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "tank1-bottom-elt-pwr",
       "DisplayName": "TANK1 BOTTOM ELT PWR",
       "AboutNodeName": "tank1-bottom-elt",
@@ -1076,7 +1076,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "secondary-pump-pwr",
       "DisplayName": "SECONDARY PUMP PWR",
       "AboutNodeName": "secondary-pump",
@@ -1088,7 +1088,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "hp-ctrl-box-pwr",
       "DisplayName": "HP CTRL BOX PWR",
       "AboutNodeName": "hp-ctrl-box",
@@ -1100,7 +1100,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "hp-odu-pwr",
       "DisplayName": "HP ODU PWR",
       "AboutNodeName": "hp-odu",
@@ -1112,7 +1112,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "primary-pump-pwr",
       "DisplayName": "PRIMARY PUMP PWR",
       "AboutNodeName": "primary-pump",
@@ -1124,7 +1124,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "store-pump-pwr",
       "DisplayName": "STORE PUMP PWR",
       "AboutNodeName": "store-pump",
@@ -1136,7 +1136,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "dist-pump-pwr",
       "DisplayName": "DIST PUMP PWR",
       "AboutNodeName": "dist-pump",
@@ -1148,7 +1148,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "economy-energy-l1-pwr",
       "DisplayName": "ECONOMY ENERGY L1 PWR",
       "AboutNodeName": "economy-energy-l1",
@@ -1160,7 +1160,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "economy-energy-l2-pwr",
       "DisplayName": "ECONOMY ENERGY L2 PWR",
       "AboutNodeName": "economy-energy-l2",
@@ -1172,7 +1172,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "vdc-relay",
       "DisplayName": "5V DC Bus Relay State",
       "AboutNodeName": "vdc-relay",
@@ -1184,7 +1184,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone1-bedrooms-failsafe-relay",
       "DisplayName": "Zone 1 Bedrooms Failsafe Relay State",
       "AboutNodeName": "zone1-bedrooms-failsafe-relay",
@@ -1196,7 +1196,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone1-bedrooms-ops-relay",
       "DisplayName": "Zone 1 Bedrooms Ops Relay State",
       "AboutNodeName": "zone1-bedrooms-ops-relay",
@@ -1208,7 +1208,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone2-living-rm-failsafe-relay",
       "DisplayName": "Zone 2 Living Rm Failsafe Relay State",
       "AboutNodeName": "zone2-living-rm-failsafe-relay",
@@ -1220,7 +1220,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone2-living-rm-ops-relay",
       "DisplayName": "Zone 2 Living Rm Ops Relay State",
       "AboutNodeName": "zone2-living-rm-ops-relay",
@@ -1232,7 +1232,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone3-upstairs-failsafe-relay",
       "DisplayName": "Zone 3 Upstairs Failsafe Relay State",
       "AboutNodeName": "zone3-upstairs-failsafe-relay",
@@ -1244,7 +1244,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone3-upstairs-ops-relay",
       "DisplayName": "Zone 3 Upstairs Ops Relay State",
       "AboutNodeName": "zone3-upstairs-ops-relay",
@@ -1256,7 +1256,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone4-garage-failsafe-relay",
       "DisplayName": "Zone 4 Garage Failsafe Relay State",
       "AboutNodeName": "zone4-garage-failsafe-relay",
@@ -1268,7 +1268,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone4-garage-ops-relay",
       "DisplayName": "Zone 4 Garage Ops Relay State",
       "AboutNodeName": "zone4-garage-ops-relay",
@@ -1280,7 +1280,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone5-living-rm-fancoil-failsafe-relay",
       "DisplayName": "Zone 5 Living Rm Fancoil Failsafe Relay State",
       "AboutNodeName": "zone5-living-rm-fancoil-failsafe-relay",
@@ -1292,7 +1292,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone5-living-rm-fancoil-ops-relay",
       "DisplayName": "Zone 5 Living Rm Fancoil Ops Relay State",
       "AboutNodeName": "zone5-living-rm-fancoil-ops-relay",
@@ -1304,7 +1304,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "hp-scada-ops-relay",
       "DisplayName": "Hp Scada Ops Relay State",
       "AboutNodeName": "hp-scada-ops-relay",
@@ -1316,7 +1316,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "secondary-pump-relay",
       "DisplayName": "Secondary Pump Relay State",
       "AboutNodeName": "secondary-pump-relay",
@@ -1328,7 +1328,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "iso-valve-relay",
       "DisplayName": "Iso Valve Relay State",
       "AboutNodeName": "iso-valve-relay",
@@ -1340,7 +1340,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "charge-valve-relay",
       "DisplayName": "Charge Valve Relay State",
       "AboutNodeName": "charge-valve-relay",
@@ -1352,7 +1352,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "store-pump-relay",
       "DisplayName": "Store Pump Relay State",
       "AboutNodeName": "store-pump-relay",
@@ -1364,7 +1364,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "buffer-top-elt-relay",
       "DisplayName": "Buffer Top Elt Relay State",
       "AboutNodeName": "buffer-top-elt-relay",
@@ -1376,7 +1376,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "buffer-bottom-elt-relay",
       "DisplayName": "Buffer Bottom Elt Relay State",
       "AboutNodeName": "buffer-bottom-elt-relay",
@@ -1388,7 +1388,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "tank1-top-elt-relay",
       "DisplayName": "Tank1 Top Elt Relay State",
       "AboutNodeName": "tank1-top-elt-relay",
@@ -1400,7 +1400,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "tank1-bottom-elt-relay",
       "DisplayName": "Tank1 Bottom Elt Relay State",
       "AboutNodeName": "tank1-bottom-elt-relay",
@@ -1412,7 +1412,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "secondary-010v",
       "DisplayName": "Secondary Pump 010V Level",
       "AboutNodeName": "secondary-010v",
@@ -1424,7 +1424,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone1-bedrooms-gw-temp",
       "DisplayName": "Zone 1 Bedrooms GW Temp",
       "AboutNodeName": "zone1-bedrooms",
@@ -1436,7 +1436,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone1-bedrooms-gw-microvolts",
       "DisplayName": "Zone 1 Bedrooms GW Microvolts",
       "AboutNodeName": "zone1-bedrooms",
@@ -1448,7 +1448,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone2-living-rm-gw-temp",
       "DisplayName": "Zone 2 Living Rm GW Temp",
       "AboutNodeName": "zone2-living-rm",
@@ -1460,7 +1460,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone2-living-rm-gw-microvolts",
       "DisplayName": "Zone 2 Living Rm GW Microvolts",
       "AboutNodeName": "zone2-living-rm",
@@ -1472,7 +1472,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone3-upstairs-gw-temp",
       "DisplayName": "Zone 3 Upstairs GW Temp",
       "AboutNodeName": "zone3-upstairs",
@@ -1484,7 +1484,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone3-upstairs-gw-microvolts",
       "DisplayName": "Zone 3 Upstairs GW Microvolts",
       "AboutNodeName": "zone3-upstairs",
@@ -1496,7 +1496,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone4-garage-gw-temp",
       "DisplayName": "Zone 4 Garage GW Temp",
       "AboutNodeName": "zone4-garage",
@@ -1508,7 +1508,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone4-garage-gw-microvolts",
       "DisplayName": "Zone 4 Garage GW Microvolts",
       "AboutNodeName": "zone4-garage",
@@ -1520,7 +1520,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone1-bedrooms-opto-input",
       "DisplayName": "Zone 1 Bedrooms Opto Input",
       "AboutNodeName": "zone1-bedrooms-whitewire",
@@ -1532,7 +1532,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone2-living-rm-opto-input",
       "DisplayName": "Zone 2 Living Rm Opto Input",
       "AboutNodeName": "zone2-living-rm-whitewire",
@@ -1544,7 +1544,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone3-upstairs-opto-input",
       "DisplayName": "Zone 3 Upstairs Opto Input",
       "AboutNodeName": "zone3-upstairs-whitewire",
@@ -1556,7 +1556,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone4-garage-opto-input",
       "DisplayName": "Zone 4 Garage Opto Input",
       "AboutNodeName": "zone4-garage-whitewire",
@@ -1568,7 +1568,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone5-living-rm-fancoil-opto-input",
       "DisplayName": "Zone 5 Living Rm Fancoil Opto Input",
       "AboutNodeName": "zone5-living-rm-fancoil-whitewire",
@@ -1580,7 +1580,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "buffer-depth1-device",
       "DisplayName": "Buffer Depth 1 Device Temp",
       "AboutNodeName": "buffer-depth1",
@@ -1592,7 +1592,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "buffer-depth2-device",
       "DisplayName": "Buffer Depth 2 Device Temp",
       "AboutNodeName": "buffer-depth2",
@@ -1604,7 +1604,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "buffer-depth3-device",
       "DisplayName": "Buffer Depth 3 Device Temp",
       "AboutNodeName": "buffer-depth3",
@@ -1616,7 +1616,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "buffer-depth1-micro-v",
       "DisplayName": "Buffer Depth 1 MicroVolts",
       "AboutNodeName": "buffer-depth1",
@@ -1628,7 +1628,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "buffer-depth2-micro-v",
       "DisplayName": "Buffer Depth 2 MicroVolts",
       "AboutNodeName": "buffer-depth2",
@@ -1640,7 +1640,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "buffer-depth3-micro-v",
       "DisplayName": "Buffer Depth 3 MicroVolts",
       "AboutNodeName": "buffer-depth3",
@@ -1652,7 +1652,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "tank1-depth1-device",
       "DisplayName": "Tank1 Depth 1 Device Temp",
       "AboutNodeName": "tank1-depth1",
@@ -1664,7 +1664,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "tank1-depth2-device",
       "DisplayName": "Tank1 Depth 2 Device Temp",
       "AboutNodeName": "tank1-depth2",
@@ -1676,7 +1676,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "tank1-depth3-device",
       "DisplayName": "Tank1 Depth 3 Device Temp",
       "AboutNodeName": "tank1-depth3",
@@ -1688,7 +1688,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "tank1-depth1-micro-v",
       "DisplayName": "Tank1 Depth 1 MicroVolts",
       "AboutNodeName": "tank1-depth1",
@@ -1700,7 +1700,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "tank1-depth2-micro-v",
       "DisplayName": "Tank1 Depth 2 MicroVolts",
       "AboutNodeName": "tank1-depth2",
@@ -1712,7 +1712,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "tank1-depth3-micro-v",
       "DisplayName": "Tank1 Depth 3 MicroVolts",
       "AboutNodeName": "tank1-depth3",
@@ -1724,7 +1724,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "fancoil-depth1-device",
       "DisplayName": "Fancoil Depth 1 Device Temp",
       "AboutNodeName": "fancoil-depth1",
@@ -1736,7 +1736,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "fancoil-depth2-device",
       "DisplayName": "Fancoil Depth 2 Device Temp",
       "AboutNodeName": "fancoil-depth2",
@@ -1748,7 +1748,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "fancoil-depth3-device",
       "DisplayName": "Fancoil Depth 3 Device Temp",
       "AboutNodeName": "fancoil-depth3",
@@ -1760,7 +1760,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "fancoil-depth1-micro-v",
       "DisplayName": "Fancoil Depth 1 MicroVolts",
       "AboutNodeName": "fancoil-depth1",
@@ -1772,7 +1772,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "fancoil-depth2-micro-v",
       "DisplayName": "Fancoil Depth 2 MicroVolts",
       "AboutNodeName": "fancoil-depth2",
@@ -1784,7 +1784,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "fancoil-depth3-micro-v",
       "DisplayName": "Fancoil Depth 3 MicroVolts",
       "AboutNodeName": "fancoil-depth3",
@@ -1796,7 +1796,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "floor1-depth1-device",
       "DisplayName": "Floor1 Depth 1 Device Temp",
       "AboutNodeName": "floor1-depth1",
@@ -1808,7 +1808,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "floor1-depth2-device",
       "DisplayName": "Floor1 Depth 2 Device Temp",
       "AboutNodeName": "floor1-depth2",
@@ -1820,7 +1820,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "floor1-depth3-device",
       "DisplayName": "Floor1 Depth 3 Device Temp",
       "AboutNodeName": "floor1-depth3",
@@ -1832,7 +1832,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "floor1-depth1-micro-v",
       "DisplayName": "Floor1 Depth 1 MicroVolts",
       "AboutNodeName": "floor1-depth1",
@@ -1844,7 +1844,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "floor1-depth2-micro-v",
       "DisplayName": "Floor1 Depth 2 MicroVolts",
       "AboutNodeName": "floor1-depth2",
@@ -1856,7 +1856,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "floor1-depth3-micro-v",
       "DisplayName": "Floor1 Depth 3 MicroVolts",
       "AboutNodeName": "floor1-depth3",
@@ -1868,7 +1868,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "pipes1-depth1-device",
       "DisplayName": "Pipes1 Depth 1 Device Temp",
       "AboutNodeName": "pipes1-depth1",
@@ -1880,7 +1880,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "pipes1-depth2-device",
       "DisplayName": "Pipes1 Depth 2 Device Temp",
       "AboutNodeName": "pipes1-depth2",
@@ -1892,7 +1892,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "pipes1-depth3-device",
       "DisplayName": "Pipes1 Depth 3 Device Temp",
       "AboutNodeName": "pipes1-depth3",
@@ -1904,7 +1904,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "pipes1-depth1-micro-v",
       "DisplayName": "Pipes1 Depth 1 MicroVolts",
       "AboutNodeName": "pipes1-depth1",
@@ -1916,7 +1916,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "pipes1-depth2-micro-v",
       "DisplayName": "Pipes1 Depth 2 MicroVolts",
       "AboutNodeName": "pipes1-depth2",
@@ -1928,7 +1928,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "pipes1-depth3-micro-v",
       "DisplayName": "Pipes1 Depth 3 MicroVolts",
       "AboutNodeName": "pipes1-depth3",
@@ -1940,7 +1940,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "primary-flow",
       "DisplayName": "Primary Flow Gpm X 100",
       "AboutNodeName": "primary-flow",
@@ -1952,7 +1952,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "hp-lwt",
       "DisplayName": "Hp Lwt Celsius X 100",
       "AboutNodeName": "hp-lwt",
@@ -1964,7 +1964,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "hp-ewt",
       "DisplayName": "Hp Ewt Celsius X 100",
       "AboutNodeName": "hp-ewt",
@@ -1976,7 +1976,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "secondary-flow",
       "DisplayName": "Secondary Flow Gpm X 100",
       "AboutNodeName": "secondary-flow",
@@ -1988,7 +1988,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "secondary-lwt",
       "DisplayName": "Secondary Lwt Celsius X 100",
       "AboutNodeName": "secondary-lwt",
@@ -2000,7 +2000,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "secondary-ewt",
       "DisplayName": "Secondary Ewt Celsius X 100",
       "AboutNodeName": "secondary-ewt",
@@ -2012,7 +2012,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "secondary-pump-ct",
       "DisplayName": "Secondary Pump Ct Volts X 100",
       "AboutNodeName": "secondary-pump-ct",
@@ -2024,7 +2024,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "store-flow",
       "DisplayName": "Store Flow Gpm X 100",
       "AboutNodeName": "store-flow",
@@ -2036,7 +2036,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "store-hot-pipe",
       "DisplayName": "Store Hot Pipe Celsius X 100",
       "AboutNodeName": "store-hot-pipe",
@@ -2048,7 +2048,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "store-cold-pipe",
       "DisplayName": "Store Cold Pipe Celsius X 100",
       "AboutNodeName": "store-cold-pipe",
@@ -2060,7 +2060,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "dist-flow",
       "DisplayName": "Dist Flow Gpm X 100",
       "AboutNodeName": "dist-flow",
@@ -2072,7 +2072,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "dist-swt",
       "DisplayName": "Dist Swt Celsius X 100",
       "AboutNodeName": "dist-swt",
@@ -2084,7 +2084,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "dist-rwt",
       "DisplayName": "Dist Rwt Celsius X 100",
       "AboutNodeName": "dist-rwt",
@@ -2098,7 +2098,7 @@
   "DerivedChannels": [
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "12bedc94-96c2-4523-af81-f283748ee501",
       "Name": "transactive-power",
       "CreatedByNodeName": "power-meter",
@@ -2119,7 +2119,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "621a3ff0-f0b9-476b-92df-5bf56529a42c",
       "Name": "zone1-bedrooms-heat-call",
       "CreatedByNodeName": "derived-generator",
@@ -2140,7 +2140,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "551007e2-2cfe-45e3-949e-98cbcbaf3aab",
       "Name": "zone2-living-rm-heat-call",
       "CreatedByNodeName": "derived-generator",
@@ -2161,7 +2161,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "1ce13259-7dec-4dcf-ab14-deb0ef3bc1c6",
       "Name": "zone3-upstairs-heat-call",
       "CreatedByNodeName": "derived-generator",
@@ -2182,7 +2182,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "6926ff94-ab56-4c6a-b774-810995a0fe96",
       "Name": "zone4-garage-heat-call",
       "CreatedByNodeName": "derived-generator",
@@ -2203,7 +2203,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "0ffd5292-9df6-4610-b066-50680852906a",
       "Name": "zone5-living-rm-fancoil-heat-call",
       "CreatedByNodeName": "derived-generator",
@@ -2224,7 +2224,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "396bbdb3-f376-4f07-90d1-bfa754dfa6e7",
       "Name": "buffer-depth1",
       "CreatedByNodeName": "derived-generator",
@@ -2248,7 +2248,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "f4dfac21-26bb-44df-8d2c-e1047aba0896",
       "Name": "buffer-depth2",
       "CreatedByNodeName": "derived-generator",
@@ -2264,7 +2264,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "01eb3f0c-e18b-46f0-85f0-e9839b2becee",
       "Name": "buffer-depth3",
       "CreatedByNodeName": "derived-generator",
@@ -2288,7 +2288,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "a3c75832-3045-4c19-bd85-a6f81374a3ba",
       "Name": "tank1-depth1",
       "CreatedByNodeName": "derived-generator",
@@ -2312,7 +2312,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "86be75af-3c6f-4b8f-b678-7d62c1e84607",
       "Name": "tank1-depth2",
       "CreatedByNodeName": "derived-generator",
@@ -2328,7 +2328,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "483f826d-d15b-4f5b-a9fb-fcbce79d52d3",
       "Name": "tank1-depth3",
       "CreatedByNodeName": "derived-generator",
@@ -2352,7 +2352,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "a30a8493-ef95-402a-9a01-fbe021a125d2",
       "Name": "fancoil-swt",
       "CreatedByNodeName": "derived-generator",
@@ -2368,7 +2368,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "75e70762-3a76-49cd-88ff-604098e6c656",
       "Name": "fancoil-rwt",
       "CreatedByNodeName": "derived-generator",
@@ -2384,7 +2384,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "7182c4b7-fcd4-430b-af31-f198abfa369c",
       "Name": "floor-swt",
       "CreatedByNodeName": "derived-generator",
@@ -2400,7 +2400,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "eac048e8-4418-4540-85c6-883c77158c8b",
       "Name": "floor-rwt",
       "CreatedByNodeName": "derived-generator",
@@ -2416,7 +2416,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "aa800c77-0d4e-4359-bc59-26bad2ea3c20",
       "Name": "buffer-cold-pipe",
       "CreatedByNodeName": "derived-generator",
@@ -2432,7 +2432,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "50f6ce22-4891-407e-832c-850ed4f285a6",
       "Name": "zone1-bedrooms-floor-temp",
       "CreatedByNodeName": "derived-generator",
@@ -2448,7 +2448,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "abf43b34-85ed-40aa-a512-a828c51a7c9b",
       "Name": "zone2-living-rm-floor-temp",
       "CreatedByNodeName": "derived-generator",
@@ -2464,7 +2464,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "b329edad-81c7-450a-b5b3-621927105421",
       "Name": "zone4-garage-floor-temp",
       "CreatedByNodeName": "derived-generator",
@@ -2480,7 +2480,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "d53cba37-323e-4603-9857-89a704f47a24",
       "Name": "zone1-bedrooms-set",
       "CreatedByNodeName": "derived-generator",
@@ -2502,7 +2502,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "96a38649-fa67-42ae-9842-04681d507773",
       "Name": "zone2-living-rm-set",
       "CreatedByNodeName": "derived-generator",
@@ -2524,7 +2524,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "fceb17cd-e096-4dee-b275-69f6003bce5b",
       "Name": "zone3-upstairs-set",
       "CreatedByNodeName": "derived-generator",
@@ -2546,7 +2546,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "3b951f7d-4235-4181-831f-3fc875578d5c",
       "Name": "zone4-garage-set",
       "CreatedByNodeName": "derived-generator",

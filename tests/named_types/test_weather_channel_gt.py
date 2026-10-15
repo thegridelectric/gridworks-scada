@@ -1,4 +1,4 @@
-"""Tests gw.weather.channel.gt type, version 000"""
+"""Tests gw.weather.channel.gt type, version 001"""
 
 from gwsproto.named_types import WeatherChannelGt
 

@@ -121,7 +121,7 @@ def persist(
     if forecast is not None:
         (config_dir / f"{BUNDLE_NAME}-gw.weather.forecast-000.json").write_text(json.dumps(forecast))
     if bundle is not None:
-        (config_dir / f"{BUNDLE_NAME}-gw.weather.forecast.bundle.gt-000.json").write_text(json.dumps(bundle))
+        (config_dir / f"{BUNDLE_NAME}-gw.weather.forecast.bundle.gt-001.json").write_text(json.dumps(bundle))
     if template is not None:
         (config_dir / f"{LOCATION_ALIAS}-gw.weather.seasonal.template.gt-000.json").write_text(json.dumps(template))
 
@@ -148,7 +148,7 @@ async def test_a_pull_yields_the_served_pair_and_48_future_hourly_slices_unscale
     assert hourly.wind_speed_mph == [v / 1000 for v in d["WindSpeedValues"][1 : FORECAST_HOURS + 1]]
     stored = json.loads((tmp_path / f"{BUNDLE_NAME}-gw.weather.forecast-000.json").read_text())
     assert stored == d
-    bundle = json.loads((tmp_path / f"{BUNDLE_NAME}-gw.weather.forecast.bundle.gt-000.json").read_text())
+    bundle = json.loads((tmp_path / f"{BUNDLE_NAME}-gw.weather.forecast.bundle.gt-001.json").read_text())
     assert bundle["Name"] == BUNDLE_NAME
 
 
@@ -178,7 +178,7 @@ async def test_the_bundle_record_and_template_are_provisioned_at_boot_and_kept(t
         src = await source(tmp_path, facade.url)
         assert facade.bundle_hits == 1
         assert facade.template_hits == 1
-        assert json.loads((tmp_path / f"{BUNDLE_NAME}-gw.weather.forecast.bundle.gt-000.json").read_text()) == bundle_dict()
+        assert json.loads((tmp_path / f"{BUNDLE_NAME}-gw.weather.forecast.bundle.gt-001.json").read_text()) == bundle_dict()
         assert json.loads((tmp_path / f"{LOCATION_ALIAS}-gw.weather.seasonal.template.gt-000.json").read_text()) == template_dict()
         await pull(src)
         await pull(src)

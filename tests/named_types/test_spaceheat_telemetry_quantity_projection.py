@@ -10,7 +10,7 @@ def test_spaceheat_telemetry_quantity_projection_generated() -> None:
         "TelemetryName": "PowerW",
         "Quantity": "Power",
         "TypeName": "spaceheat.telemetry.quantity.projection",
-        "Version": "000",
+        "Version": "001",
     }
 
     d2 = SpaceheatTelemetryQuantityProjection.model_validate(d).model_dump(
@@ -25,7 +25,7 @@ def test_spaceheat_telemetry_quantity_projection_axiom() -> None:
         "TelemetryName": "PowerW",
         "Quantity": "Temperature",
         "TypeName": "spaceheat.telemetry.quantity.projection",
-        "Version": "000",
+        "Version": "001",
     }
 
     assert_refused(SpaceheatTelemetryQuantityProjection, d, match="Axiom 1 violated!")

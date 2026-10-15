@@ -75,7 +75,7 @@ def test_layout_lite_generated() -> None:
                 "StartS": 1721405699,
                 "Id": "50cf426b-ff3f-4a30-8415-8d3fba5e0ab7",
                 "TypeName": "data.channel.gt",
-                "Version": "003",
+                "Version": "004",
             }
         ],
         "TankModuleComponents": [

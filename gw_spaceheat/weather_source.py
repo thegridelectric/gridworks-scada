@@ -209,7 +209,7 @@ class GwwfWeatherSource(WeatherSource):
         self.logger = logger
         self.config_dir = config_dir
         self.forecast_file = config_dir / f"{bundle_name}-gw.weather.forecast-000.json"
-        self.bundle_file = config_dir / f"{bundle_name}-gw.weather.forecast.bundle.gt-000.json"
+        self.bundle_file = config_dir / f"{bundle_name}-gw.weather.forecast.bundle.gt-001.json"
         self.bundle: Optional[WeatherForecastBundleGt] = self.stored_bundle()
         if self.bundle is None:
             self.bundle = self.provision_bundle()

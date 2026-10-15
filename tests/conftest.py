@@ -56,7 +56,7 @@ TEST_OPS_PARAMS_PATH = (
 TEST_WEATHER_RECORD_PATHS = tuple(
     Path(__file__).parent / "config" / name
     for name in (
-        "us.me.millinocket.forecast.nws.hourly96-gw.weather.forecast.bundle.gt-000.json",
+        "us.me.millinocket.forecast.nws.hourly96-gw.weather.forecast.bundle.gt-001.json",
         "us.me.millinocket-gw.weather.seasonal.template.gt-000.json",
     )
 )

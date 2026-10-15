@@ -687,7 +687,7 @@
   "DataChannels": [
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "hp-odu-pwr",
       "DisplayName": "HP ODU PWR",
       "AboutNodeName": "hp-odu",
@@ -699,7 +699,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "hp-idu-pwr",
       "DisplayName": "HP IDU PWR",
       "AboutNodeName": "hp-idu",
@@ -711,7 +711,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "primary-pump-pwr",
       "DisplayName": "PRIMARY PUMP PWR",
       "AboutNodeName": "primary-pump",
@@ -723,7 +723,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "store-pump-pwr",
       "DisplayName": "STORE PUMP PWR",
       "AboutNodeName": "store-pump",
@@ -735,7 +735,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "dist-pump-pwr",
       "DisplayName": "DIST PUMP PWR",
       "AboutNodeName": "dist-pump",
@@ -747,7 +747,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone1-main-whitewire-pwr",
       "DisplayName": "ZONE1 MAIN WHITEWIRE PWR",
       "AboutNodeName": "zone1-main-whitewire",
@@ -759,7 +759,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone1-main-temp",
       "DisplayName": "Zone1 Main Temp",
       "AboutNodeName": "zone1-main",
@@ -771,7 +771,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "vdc-relay",
       "DisplayName": "5V DC Bus Relay State",
       "AboutNodeName": "vdc-relay",
@@ -783,7 +783,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "tstat-common-relay",
       "DisplayName": "TStat Common Relay State",
       "AboutNodeName": "tstat-common-relay",
@@ -795,7 +795,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "charge-discharge-relay",
       "DisplayName": "Charge/Discharge Relay State",
       "AboutNodeName": "charge-discharge-relay",
@@ -807,7 +807,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "hp-failsafe-relay",
       "DisplayName": "Hp Failsafe Relay State",
       "AboutNodeName": "hp-failsafe-relay",
@@ -819,7 +819,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "hp-scada-ops-relay",
       "DisplayName": "Hp Scada Ops Relay State",
       "AboutNodeName": "hp-scada-ops-relay",
@@ -831,7 +831,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "aquastat-ctrl-relay",
       "DisplayName": "Aquastat Control Relay State",
       "AboutNodeName": "aquastat-ctrl-relay",
@@ -843,7 +843,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "store-pump-relay",
       "DisplayName": "Store Pump Relay State",
       "AboutNodeName": "store-pump-relay",
@@ -855,7 +855,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "primary-pump-failsafe-relay",
       "DisplayName": "Primary Pump Failsafe Relay State",
       "AboutNodeName": "primary-pump-failsafe-relay",
@@ -867,7 +867,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "primary-pump-scada-ops-relay",
       "DisplayName": "Primary Pump SCADA Ops Relay State",
       "AboutNodeName": "primary-pump-scada-ops-relay",
@@ -879,7 +879,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "hp-loop-on-off-relay",
       "DisplayName": "Hp Loop On Off Relay State",
       "AboutNodeName": "hp-loop-on-off-relay",
@@ -891,7 +891,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "hp-loop-keep-send-relay",
       "DisplayName": "Hp Loop Keep/Send Relay State",
       "AboutNodeName": "hp-loop-keep-send-relay",
@@ -903,7 +903,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone1-main-failsafe-relay",
       "DisplayName": "Main Zone 1 Failsf Relay State",
       "AboutNodeName": "zone1-main-failsafe-relay",
@@ -915,7 +915,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone1-main-ops-relay",
       "DisplayName": "Main Zone 1 Scada Ops Relay State",
       "AboutNodeName": "zone1-main-ops-relay",
@@ -927,7 +927,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "buffer-depth1-device",
       "DisplayName": "Buffer Depth 1 Device Temp",
       "AboutNodeName": "buffer-depth1",
@@ -939,7 +939,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "buffer-depth2-device",
       "DisplayName": "Buffer Depth 2 Device Temp",
       "AboutNodeName": "buffer-depth2",
@@ -951,7 +951,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "buffer-depth3-device",
       "DisplayName": "Buffer Depth 3 Device Temp",
       "AboutNodeName": "buffer-depth3",
@@ -963,7 +963,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "buffer-depth1-micro-v",
       "DisplayName": "Buffer Depth 1 MicroVolts",
       "AboutNodeName": "buffer-depth1",
@@ -975,7 +975,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "buffer-depth2-micro-v",
       "DisplayName": "Buffer Depth 2 MicroVolts",
       "AboutNodeName": "buffer-depth2",
@@ -987,7 +987,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "buffer-depth3-micro-v",
       "DisplayName": "Buffer Depth 3 MicroVolts",
       "AboutNodeName": "buffer-depth3",
@@ -999,7 +999,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "tank1-depth1-device",
       "DisplayName": "Tank1 Depth 1 Device Temp",
       "AboutNodeName": "tank1-depth1",
@@ -1011,7 +1011,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "tank1-depth2-device",
       "DisplayName": "Tank1 Depth 2 Device Temp",
       "AboutNodeName": "tank1-depth2",
@@ -1023,7 +1023,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "tank1-depth3-device",
       "DisplayName": "Tank1 Depth 3 Device Temp",
       "AboutNodeName": "tank1-depth3",
@@ -1035,7 +1035,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "tank1-depth1-micro-v",
       "DisplayName": "Tank1 Depth 1 MicroVolts",
       "AboutNodeName": "tank1-depth1",
@@ -1047,7 +1047,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "tank1-depth2-micro-v",
       "DisplayName": "Tank1 Depth 2 MicroVolts",
       "AboutNodeName": "tank1-depth2",
@@ -1059,7 +1059,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "tank1-depth3-micro-v",
       "DisplayName": "Tank1 Depth 3 MicroVolts",
       "AboutNodeName": "tank1-depth3",
@@ -1071,7 +1071,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "dist-010v",
       "DisplayName": "Dist Pump 010V Level",
       "AboutNodeName": "dist-010v",
@@ -1083,7 +1083,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "primary-010v",
       "DisplayName": "Primary Pump 010V Level",
       "AboutNodeName": "primary-010v",
@@ -1095,7 +1095,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "store-010v",
       "DisplayName": "Store Pump 010V Level",
       "AboutNodeName": "store-010v",
@@ -1107,7 +1107,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "dist-flow",
       "DisplayName": "Dist Flow Gpm X 100",
       "AboutNodeName": "dist-flow",
@@ -1119,7 +1119,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "dist-flow-hz",
       "DisplayName": "Dist Flow MicroHz",
       "AboutNodeName": "dist-flow",
@@ -1131,7 +1131,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "store-flow",
       "DisplayName": "Store Flow Gpm X 100",
       "AboutNodeName": "store-flow",
@@ -1143,7 +1143,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "store-flow-hz",
       "DisplayName": "Store Flow MicroHz",
       "AboutNodeName": "store-flow",
@@ -1155,7 +1155,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "sieg-flow",
       "DisplayName": "Sieg Flow Gpm X 100",
       "AboutNodeName": "sieg-flow",
@@ -1167,7 +1167,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "sieg-flow-hz",
       "DisplayName": "Sieg Flow MicroHz",
       "AboutNodeName": "sieg-flow",
@@ -1179,7 +1179,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "sieg-send-flow",
       "DisplayName": "Sieg Send Flow Gpm X 100",
       "AboutNodeName": "sieg-send-flow",
@@ -1191,7 +1191,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "sieg-send-flow-hz",
       "DisplayName": "Sieg Send Flow MicroHz",
       "AboutNodeName": "sieg-send-flow",
@@ -1203,7 +1203,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "hp-lwt",
       "DisplayName": "Hp Lwt Temp",
       "AboutNodeName": "hp-lwt",
@@ -1215,7 +1215,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "hp-ewt",
       "DisplayName": "Hp Ewt Temp",
       "AboutNodeName": "hp-ewt",
@@ -1227,7 +1227,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "dist-swt",
       "DisplayName": "Dist Swt Temp",
       "AboutNodeName": "dist-swt",
@@ -1239,7 +1239,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "dist-rwt",
       "DisplayName": "Dist Rwt Temp",
       "AboutNodeName": "dist-rwt",
@@ -1251,7 +1251,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "store-hot-pipe",
       "DisplayName": "Store Hot Pipe Temp",
       "AboutNodeName": "store-hot-pipe",
@@ -1263,7 +1263,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "store-cold-pipe",
       "DisplayName": "Store Cold Pipe Temp",
       "AboutNodeName": "store-cold-pipe",
@@ -1275,7 +1275,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "buffer-hot-pipe",
       "DisplayName": "Buffer Hot Pipe Temp",
       "AboutNodeName": "buffer-hot-pipe",
@@ -1287,7 +1287,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "sieg-cold",
       "DisplayName": "Sieg Cold Temp",
       "AboutNodeName": "sieg-cold",
@@ -1299,7 +1299,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "sieg-hot",
       "DisplayName": "Sieg Hot Temp",
       "AboutNodeName": "sieg-hot",
@@ -1313,7 +1313,7 @@
   "DerivedChannels": [
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "d54c7407-a656-467c-a8e3-a9b905bac55a",
       "Name": "transactive-power",
       "CreatedByNodeName": "power-meter",
@@ -1330,7 +1330,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "ba555804-0886-4ba2-9f78-745a70365afe",
       "Name": "primary-flow",
       "CreatedByNodeName": "derived-generator",
@@ -1347,7 +1347,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "c9223514-f908-4485-be7e-4fae058176c3",
       "Name": "usable-energy",
       "CreatedByNodeName": "derived-generator",
@@ -1368,7 +1368,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "70bbe801-6e34-4a31-84d1-5a0ec92e4da4",
       "Name": "required-energy",
       "CreatedByNodeName": "derived-generator",
@@ -1389,7 +1389,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "8efe529b-53c4-41bc-9421-a5e209a9f009",
       "Name": "zone1-main-heat-call",
       "CreatedByNodeName": "derived-generator",
@@ -1411,7 +1411,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "2dcfb96b-53ed-4af8-9e99-459d9e344b8d",
       "Name": "buffer-depth1",
       "CreatedByNodeName": "derived-generator",
@@ -1427,7 +1427,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "7bc2713d-c1e7-4bcf-9be9-97cb732ffe50",
       "Name": "buffer-depth2",
       "CreatedByNodeName": "derived-generator",
@@ -1443,7 +1443,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "5f74a316-7ef0-47a7-a518-f17205a3303e",
       "Name": "buffer-depth3",
       "CreatedByNodeName": "derived-generator",
@@ -1459,7 +1459,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "9e49bae5-8e3c-458b-a35d-7b5d6a133464",
       "Name": "tank1-depth1",
       "CreatedByNodeName": "derived-generator",
@@ -1475,7 +1475,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "0fe4ce29-3503-4410-9471-83cb2833619f",
       "Name": "tank1-depth2",
       "CreatedByNodeName": "derived-generator",
@@ -1491,7 +1491,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "e3c300ce-0108-43a7-81c3-49db07dc756e",
       "Name": "tank1-depth3",
       "CreatedByNodeName": "derived-generator",
@@ -1507,7 +1507,7 @@
     },
     {
       "TypeName": "derived.channel.gt",
-      "Version": "002",
+      "Version": "003",
       "Id": "0a5dd487-3739-4e7d-bd6c-ed6e81305f30",
       "Name": "zone1-main-set",
       "CreatedByNodeName": "derived-generator",

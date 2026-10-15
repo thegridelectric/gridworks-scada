@@ -28,7 +28,7 @@ class DerivedChannelGt(GwsprotoSemaType):
     DisplayName: str
     TerminalAssetAlias: LeftRightDotStr
     TypeName: Literal["derived.channel.gt"] = "derived.channel.gt"
-    Version: Literal["002"] = "002"
+    Version: Literal["003"] = "003"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> "DerivedChannelGt":
@@ -63,7 +63,7 @@ class DerivedChannelGt(GwsprotoSemaType):
         """
         Axiom 2: OutputUnitQuantityConsistency
         OutputQuantity SHALL equal the Quantity defined by the canonical
-        gw1.unit.quantity.projection:000 instance for the specified OutputUnit.
+        gw1.unit.quantity.projection:001 instance for the specified OutputUnit.
         """
         expected = UnitQuantityProjection.project(Unit(self.OutputUnit))
         if self.OutputQuantity != expected:

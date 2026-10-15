@@ -14,7 +14,7 @@ LOCATION_ALIAS = "us.me.millinocket"
 
 def bundle_dict() -> dict[str, Any]:
     return copy.deepcopy(
-        json.loads((CONFIG / f"{BUNDLE_NAME}-gw.weather.forecast.bundle.gt-000.json").read_text())
+        json.loads((CONFIG / f"{BUNDLE_NAME}-gw.weather.forecast.bundle.gt-001.json").read_text())
     )
 
 

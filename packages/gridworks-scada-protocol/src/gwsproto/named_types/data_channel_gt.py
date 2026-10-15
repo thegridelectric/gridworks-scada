@@ -18,7 +18,7 @@ from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 class DataChannelGt(GwsprotoSemaType):
     """
-    Sema: https://schemas.electricity.works/types/data.channel.gt/003
+    Sema: https://schemas.electricity.works/types/data.channel.gt/004
     """
 
     Name: SpaceheatName
@@ -31,7 +31,7 @@ class DataChannelGt(GwsprotoSemaType):
     StartS: UTCSeconds | None = None
     Id: UUID4Str
     TypeName: Literal["data.channel.gt"] = "data.channel.gt"
-    Version: Literal["003"] = "003"
+    Version: Literal["004"] = "004"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
@@ -39,7 +39,7 @@ class DataChannelGt(GwsprotoSemaType):
         Axiom 1: TelemetryQuantityConsistency
 
         Quantity SHALL equal the Quantity defined by the canonical
-        spaceheat.telemetry.quantity.projection/000 instance
+        spaceheat.telemetry.quantity.projection/001 instance
         for the specified TelemetryName.
         """
         expected_quantity = SpaceheatTelemetryQuantityProjection.canonical(

@@ -30,6 +30,12 @@ UNIT_TO_QUANTITY: dict[Unit | TelemetryName, Quantity] = {
     Unit.Seconds: Quantity.Time,
     Unit.SecondsX10: Quantity.Time,
     Unit.Milliseconds: Quantity.Time,
+    Unit.DollarsX1000: Quantity.Currency,
+    Unit.MilesPerHourX1000: Quantity.WindSpeed,
+    Unit.KilowattHoursX1000: Quantity.Energy,
+    Unit.WattsPerSquareMeter: Quantity.Irradiance,
+    Unit.MilesPerHourX10: Quantity.WindSpeed,
+    Unit.FahrenheitX10: Quantity.Temperature,
 
     TelemetryName.Unknown: Quantity.Unknown,
 

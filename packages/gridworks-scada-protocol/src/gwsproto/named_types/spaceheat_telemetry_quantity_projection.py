@@ -10,7 +10,7 @@ from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 class SpaceheatTelemetryQuantityProjection(GwsprotoSemaType):
     """
-    Sema: https://schemas.electricity.works/types/spaceheat.telemetry.quantity.projection/000
+    Sema: https://schemas.electricity.works/types/spaceheat.telemetry.quantity.projection/001
     """
 
     TelemetryName: TelemetryNameEnum
@@ -18,7 +18,7 @@ class SpaceheatTelemetryQuantityProjection(GwsprotoSemaType):
     TypeName: Literal[
         "spaceheat.telemetry.quantity.projection"
     ] = "spaceheat.telemetry.quantity.projection"
-    Version: Literal["000"] = "000"
+    Version: Literal["001"] = "001"
 
     model_config = ConfigDict(use_enum_values=True)
 

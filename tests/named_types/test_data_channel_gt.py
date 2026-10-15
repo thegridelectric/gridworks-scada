@@ -16,7 +16,7 @@ def test_data_channel_gt_generated() -> None:
         "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
         "Id": "b0ab5bc7-7b9f-4ed2-8e93-1f8ca5f5f2d0",
         "TypeName": "data.channel.gt",
-        "Version": "003",
+        "Version": "004",
     }
 
     d2 = DataChannelGt.model_validate(d).model_dump(exclude_none=True)
@@ -37,7 +37,7 @@ def test_data_channel_gt_axiom_1() -> None:
         "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
         "Id": "b0ab5bc7-7b9f-4ed2-8e93-1f8ca5f5f2d0",
         "TypeName": "data.channel.gt",
-        "Version": "003",
+        "Version": "004",
     }
 
     assert_refused(DataChannelGt, d, match="Axiom 1 violated!")

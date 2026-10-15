@@ -10,7 +10,7 @@ from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 class UnitQuantityProjection(GwsprotoSemaType):
     """
-    Sema: https://schemas.electricity.works/types/gw1.unit.quantity.projection/000
+    Sema: https://schemas.electricity.works/types/gw1.unit.quantity.projection/001
     """
 
     Unit: GwUnit
@@ -18,7 +18,7 @@ class UnitQuantityProjection(GwsprotoSemaType):
     TypeName: Literal[
         "gw1.unit.quantity.projection"
     ] = "gw1.unit.quantity.projection"
-    Version: Literal["000"] = "000"
+    Version: Literal["001"] = "001"
 
     model_config = ConfigDict(use_enum_values=True)
 
