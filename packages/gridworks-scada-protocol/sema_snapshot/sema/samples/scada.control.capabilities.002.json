@@ -65,7 +65,7 @@
   "ControlChannels": [
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "zone1-bedrooms-ops-relay",
       "DisplayName": "Zone 1 Bedrooms Ops Relay State",
       "AboutNodeName": "zone1-bedrooms-ops-relay",
@@ -77,7 +77,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "vdc-relay",
       "DisplayName": "5VDC Relay State",
       "AboutNodeName": "vdc-relay",
@@ -89,7 +89,7 @@
     },
     {
       "TypeName": "data.channel.gt",
-      "Version": "003",
+      "Version": "004",
       "Name": "secondary-010v",
       "DisplayName": "Secondary Pump 0-10V",
       "AboutNodeName": "secondary-010v",

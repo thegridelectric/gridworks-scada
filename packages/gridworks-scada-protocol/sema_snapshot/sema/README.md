@@ -51,6 +51,8 @@ Staging words in this snapshot:
 - type capture.tuning:000
 - type cop.curve:000
 - type dac.output.config:000
+- type data.channel.gt:004
+- type derived.channel.gt:003
 - type device.component.gt:000
 - type dfr.config:000
 - type egauge.register.config:000
@@ -75,12 +77,12 @@ Staging words in this snapshot:
 - type gw.tou.tariff:000
 - type gw.tou.window:000
 - type gw.water.store:000
-- type gw.weather.seasonal.template.gt:000
 - type gw1.hvac.zone:000
 - type gw1.scada.device.type.gt:000
 - type gw1.simple.sim.layout:000
 - type gw1.tank.temp.calibration.map:001
 - type gw1.tank.temp.calibration:001
+- type gw1.unit.quantity.projection:001
 - type gw1.zone.call.circuit:000
 - type gw1.zone.thermostat:000
 - type heating.curve:000
@@ -123,6 +125,7 @@ Staging words in this snapshot:
 - type slow.contract.heartbeat:002
 - type slow.contract.rejection:000
 - type spaceheat.node.gt:303
+- type spaceheat.telemetry.quantity.projection:001
 - type ta.deed:000
 - type web.server.component.gt:001
 - type zero.ten.power.on:000

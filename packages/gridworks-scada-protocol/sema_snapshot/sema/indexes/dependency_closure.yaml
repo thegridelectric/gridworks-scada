@@ -103,9 +103,9 @@ types:
       types: []
       versionless_types: []
   data.channel.gt:
-    '003':
+    '004':
       enums:
-      - gw1.quantity:000
+      - gw1.quantity:003
       - spaceheat.telemetry.name:007
       formats:
       - left.right.dot
@@ -113,32 +113,21 @@ types:
       - utc.seconds
       - uuid4.str
       types:
-      - spaceheat.telemetry.quantity.projection:000
+      - spaceheat.telemetry.quantity.projection:001
       versionless_types: []
   derived.channel.gt:
-    '001':
+    '003':
       enums:
       - gw1.emission.method:000
-      - gw1.unit:000
-      formats:
-      - left.right.dot
-      - positive.int
-      - spaceheat.name
-      - uuid4.str
-      types: []
-      versionless_types: []
-    '002':
-      enums:
-      - gw1.emission.method:000
-      - gw1.quantity:001
-      - gw1.unit:001
+      - gw1.quantity:003
+      - gw1.unit:003
       formats:
       - left.right.dot
       - positive.int
       - spaceheat.name
       - uuid4.str
       types:
-      - gw1.unit.quantity.projection:000
+      - gw1.unit.quantity.projection:001
       versionless_types: []
   device.component.gt:
     '000':
@@ -398,9 +387,8 @@ types:
       - gw.zone.emitter.type:000
       - gw1.actor.class:014
       - gw1.emission.method:000
-      - gw1.quantity:000
-      - gw1.quantity:001
-      - gw1.unit:001
+      - gw1.quantity:003
+      - gw1.unit:003
       - gw2.lc.top.state:000
       - hz.calc.method:001
       - i2c.adc.channel:000
@@ -435,8 +423,8 @@ types:
       - ads111x.based.component.gt:000
       - ads111x.based.device.type.gt:000
       - dac.output.config:000
-      - data.channel.gt:003
-      - derived.channel.gt:002
+      - data.channel.gt:004
+      - derived.channel.gt:003
       - device.component.gt:000
       - egauge.register.config:000
       - electric.meter.channel.config:000
@@ -454,7 +442,7 @@ types:
       - gw0.usable.energy.layered:000
       - gw1.hvac.zone:000
       - gw1.scada.device.type.gt:000
-      - gw1.unit.quantity.projection:000
+      - gw1.unit.quantity.projection:001
       - gw1.zone.call.circuit:000
       - gw1.zone.thermostat:000
       - hp.device.type.gt:000
@@ -484,7 +472,7 @@ types:
       - sim.pico.tank.module.component.gt:001
       - sim.sensor.component.gt:000
       - spaceheat.node.gt:303
-      - spaceheat.telemetry.quantity.projection:000
+      - spaceheat.telemetry.quantity.projection:001
       - web.server.component.gt:001
       versionless_types: []
   gw.hydronic:
@@ -538,9 +526,8 @@ types:
       - gw.zone.emitter.type:000
       - gw1.actor.class:014
       - gw1.emission.method:000
-      - gw1.quantity:000
-      - gw1.quantity:001
-      - gw1.unit:001
+      - gw1.quantity:003
+      - gw1.unit:003
       - gw2.lc.top.state:000
       - hz.calc.method:001
       - i2c.adc.channel:000
@@ -570,8 +557,8 @@ types:
       types:
       - ads111x.based.device.type.gt:000
       - dac.output.config:000
-      - data.channel.gt:003
-      - derived.channel.gt:002
+      - data.channel.gt:004
+      - derived.channel.gt:003
       - device.component.gt:000
       - egauge.register.config:000
       - electric.meter.channel.config:000
@@ -587,7 +574,7 @@ types:
       - gw.water.store:000
       - gw1.hvac.zone:000
       - gw1.scada.device.type.gt:000
-      - gw1.unit.quantity.projection:000
+      - gw1.unit.quantity.projection:001
       - gw1.zone.call.circuit:000
       - gw1.zone.thermostat:000
       - hp.control.box.device.type.gt:000
@@ -612,7 +599,7 @@ types:
       - sim.pico.tank.module.component.gt:001
       - sim.sensor.component.gt:000
       - spaceheat.node.gt:303
-      - spaceheat.telemetry.quantity.projection:000
+      - spaceheat.telemetry.quantity.projection:001
       - web.server.component.gt:001
       versionless_types: []
   gw.operational.params:
@@ -688,10 +675,10 @@ types:
       types: []
       versionless_types: []
   gw.weather.channel.gt:
-    '000':
+    '001':
       enums:
-      - gw1.quantity:002
-      - gw1.unit:002
+      - gw1.quantity:003
+      - gw1.unit:003
       formats:
       - left.right.dot
       - non.empty.string
@@ -712,10 +699,10 @@ types:
       types: []
       versionless_types: []
   gw.weather.forecast.bundle.gt:
-    '000':
+    '001':
       enums:
-      - gw1.quantity:002
-      - gw1.unit:002
+      - gw1.quantity:003
+      - gw1.unit:003
       formats:
       - left.right.dot
       - non.empty.string
@@ -724,7 +711,7 @@ types:
       - utc.iso8601.seconds
       - uuid4.str
       types:
-      - gw.weather.channel.gt:000
+      - gw.weather.channel.gt:001
       - gw.weather.forecast.channel.gt:000
       versionless_types: []
   gw.weather.forecast.channel.gt:
@@ -798,24 +785,12 @@ types:
       types: []
       versionless_types: []
   gw1.tank.temp.calibration:
-    '000':
-      enums: []
-      formats: []
-      types: []
-      versionless_types: []
     '001':
       enums: []
       formats: []
       types: []
       versionless_types: []
   gw1.tank.temp.calibration.map:
-    '000':
-      enums: []
-      formats:
-      - positive.int.as.str
-      types:
-      - gw1.tank.temp.calibration:000
-      versionless_types: []
     '001':
       enums: []
       formats:
@@ -824,10 +799,10 @@ types:
       - gw1.tank.temp.calibration:001
       versionless_types: []
   gw1.unit.quantity.projection:
-    '000':
+    '001':
       enums:
-      - gw1.quantity:001
-      - gw1.unit:001
+      - gw1.quantity:003
+      - gw1.unit:003
       formats: []
       types: []
       versionless_types: []
@@ -1173,8 +1148,8 @@ types:
       - gpm.from.hz.method:000
       - gw1.actor.class:014
       - gw1.emission.method:000
-      - gw1.quantity:000
-      - gw1.unit:000
+      - gw1.quantity:003
+      - gw1.unit:003
       - hz.calc.method:001
       - pico.board.variant:000
       - relay.closed.or.open:000
@@ -1193,10 +1168,11 @@ types:
       - utc.seconds
       - uuid4.str
       types:
-      - data.channel.gt:003
-      - derived.channel.gt:001
-      - gw1.tank.temp.calibration.map:000
-      - gw1.tank.temp.calibration:000
+      - data.channel.gt:004
+      - derived.channel.gt:003
+      - gw1.tank.temp.calibration.map:001
+      - gw1.tank.temp.calibration:001
+      - gw1.unit.quantity.projection:001
       - ha1.params:006
       - i2c.multichannel.dt.relay.component.gt:004
       - pico.flow.module.component.gt:001
@@ -1204,7 +1180,7 @@ types:
       - relay.actor.config:003
       - sim.pico.tank.module.component.gt:001
       - spaceheat.node.gt:303
-      - spaceheat.telemetry.quantity.projection:000
+      - spaceheat.telemetry.quantity.projection:001
       versionless_types: []
   linear.one.dimensional.calibration:
     '000':
@@ -1374,7 +1350,7 @@ types:
       enums:
       - change.relay.state:000
       - gw1.actor.class:014
-      - gw1.quantity:000
+      - gw1.quantity:003
       - hp.boss.state:000
       - pico.cycler.state:000
       - reboot.picos:000
@@ -1391,11 +1367,11 @@ types:
       - utc.seconds
       - uuid4.str
       types:
-      - data.channel.gt:003
+      - data.channel.gt:004
       - gw.command.interface:000
       - gw.command.transition:000
       - spaceheat.node.gt:303
-      - spaceheat.telemetry.quantity.projection:000
+      - spaceheat.telemetry.quantity.projection:001
       versionless_types: []
   scada.params:
     '005':
@@ -1555,9 +1531,9 @@ types:
       types: []
       versionless_types: []
   spaceheat.telemetry.quantity.projection:
-    '000':
+    '001':
       enums:
-      - gw1.quantity:000
+      - gw1.quantity:003
       - spaceheat.telemetry.name:007
       formats: []
       types: []

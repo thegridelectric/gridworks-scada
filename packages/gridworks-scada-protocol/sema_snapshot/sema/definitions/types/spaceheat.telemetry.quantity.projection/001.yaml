@@ -1,5 +1,5 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
-$id: "https://schemas.electricity.works/types/spaceheat.telemetry.quantity.projection/000"
+$id: "https://schemas.electricity.works/types/spaceheat.telemetry.quantity.projection/001"
 
 title: "spaceheat.telemetry.quantity.projection"
 type: object
@@ -18,13 +18,13 @@ properties:
     $ref: "https://schemas.electricity.works/enums/spaceheat.telemetry.name/007"
 
   Quantity:
-    $ref: "https://schemas.electricity.works/enums/gw1.quantity/000"
+    $ref: "https://schemas.electricity.works/enums/gw1.quantity/003"
 
   TypeName:
     const: "spaceheat.telemetry.quantity.projection"
 
   Version:
-    const: "000"
+    const: "001"
 
 required:
   - TelemetryName
@@ -33,6 +33,15 @@ required:
   - Version
 
 additionalProperties: false
+
+examples:
+  - |
+    {
+      "TelemetryName": "WaterTempCTimes1000",
+      "Quantity": "Temperature",
+      "TypeName": "spaceheat.telemetry.quantity.projection",
+      "Version": "001"
+    }
 
 x-gridworks:
   owner: "gridworks-energy"

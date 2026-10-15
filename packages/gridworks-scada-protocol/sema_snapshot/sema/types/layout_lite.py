@@ -6,15 +6,10 @@ from sema_snapshot.sema.property_format import PositiveInt
 from sema_snapshot.sema.property_format import UTCMilliseconds
 from sema_snapshot.sema.property_format import UUID4Str
 from sema_snapshot.sema.types.data_channel_gt import DataChannelGt
+from sema_snapshot.sema.types.derived_channel_gt import DerivedChannelGt
 from sema_snapshot.sema.types.ha1_params import Ha1Params
 from sema_snapshot.sema.types.i2c_multichannel_dt_relay_component_gt import (
     I2cMultichannelDtRelayComponentGt,
-)
-from sema_snapshot.sema.types.old_versions.derived_channel_gt_001 import (
-    DerivedChannelGt001,
-)
-from sema_snapshot.sema.types.old_versions.tank_temp_calibration_map_000 import (
-    TankTempCalibrationMap000,
 )
 from sema_snapshot.sema.types.pico_flow_module_component_gt import (
     PicoFlowModuleComponentGt,
@@ -26,6 +21,7 @@ from sema_snapshot.sema.types.sim_pico_tank_module_component_gt import (
     SimPicoTankModuleComponentGt,
 )
 from sema_snapshot.sema.types.spaceheat_node_gt import SpaceheatNodeGt
+from sema_snapshot.sema.types.tank_temp_calibration_map import TankTempCalibrationMap
 
 
 class LayoutLite(SemaType):
@@ -41,14 +37,14 @@ class LayoutLite(SemaType):
     total_store_tanks: PositiveInt
     sh_nodes: list[SpaceheatNodeGt]
     data_channels: list[DataChannelGt]
-    derived_channels: list[DerivedChannelGt001]
+    derived_channels: list[DerivedChannelGt]
     tank_module_components: list[
         PicoTankModuleComponentGt | SimPicoTankModuleComponentGt
     ]
     flow_module_components: list[PicoFlowModuleComponentGt]
     ha1_params: Ha1Params
     i2c_relay_component: I2cMultichannelDtRelayComponentGt | None = None
-    t_map: TankTempCalibrationMap000 | None = None
+    t_map: TankTempCalibrationMap | None = None
     type_name: Literal["layout.lite"] = "layout.lite"
     version: Literal["013"] = "013"
 

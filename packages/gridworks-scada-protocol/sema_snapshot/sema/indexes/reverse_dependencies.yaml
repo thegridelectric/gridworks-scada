@@ -32,20 +32,18 @@ types:
       used_by:
       - i2c.dac.output.component.gt:000
   data.channel.gt:
-    '003':
+    '004':
       used_by:
       - gw.house0.layout:000
       - gw.nolan.layout:000
       - layout.lite:013
       - scada.control.capabilities:002
   derived.channel.gt:
-    '001':
-      used_by:
-      - layout.lite:013
-    '002':
+    '003':
       used_by:
       - gw.house0.layout:000
       - gw.nolan.layout:000
+      - layout.lite:013
   device.component.gt:
     '000':
       used_by:
@@ -146,13 +144,13 @@ types:
       used_by:
       - gw.hydronic:000
   gw.weather.channel.gt:
-    '000':
+    '001':
       used_by:
-      - gw.weather.forecast.bundle.gt:000
+      - gw.weather.forecast.bundle.gt:001
   gw.weather.forecast.channel.gt:
     '000':
       used_by:
-      - gw.weather.forecast.bundle.gt:000
+      - gw.weather.forecast.bundle.gt:001
   gw0.required.energy.layered:
     '000':
       used_by:
@@ -171,20 +169,17 @@ types:
       - gw.house0.layout:000
       - gw.nolan.layout:000
   gw1.tank.temp.calibration:
-    '000':
-      used_by:
-      - gw1.tank.temp.calibration.map:000
     '001':
       used_by:
       - gw1.tank.temp.calibration.map:001
   gw1.tank.temp.calibration.map:
-    '000':
+    '001':
       used_by:
       - layout.lite:013
   gw1.unit.quantity.projection:
-    '000':
+    '001':
       used_by:
-      - derived.channel.gt:002
+      - derived.channel.gt:003
   gw1.zone.call.circuit:
     '000':
       used_by:
@@ -377,9 +372,9 @@ types:
       - new.command.tree:003
       - scada.control.capabilities:002
   spaceheat.telemetry.quantity.projection:
-    '000':
+    '001':
       used_by:
-      - data.channel.gt:003
+      - data.channel.gt:004
   ticklist.hall:
     '101':
       used_by:
@@ -483,23 +478,17 @@ enums:
   gw1.emission.method:
     '000':
       used_by:
-      - derived.channel.gt:001
-      - derived.channel.gt:002
+      - derived.channel.gt:003
   gw1.quantity:
-    '000':
+    '003':
       used_by:
-      - data.channel.gt:003
-      - spaceheat.telemetry.quantity.projection:000
-    '001':
-      used_by:
-      - derived.channel.gt:002
+      - data.channel.gt:004
+      - derived.channel.gt:003
       - gw.house0.layout:000
       - gw.nolan.layout:000
-      - gw1.unit.quantity.projection:000
-    '002':
-      used_by:
-      - gw.weather.channel.gt:000
-      - gw.weather.forecast.bundle.gt:000
+      - gw.weather.channel.gt:001
+      - gw1.unit.quantity.projection:001
+      - spaceheat.telemetry.quantity.projection:001
   gw1.seasonal.storage.mode:
     '000':
       used_by:
@@ -516,16 +505,11 @@ enums:
       used_by:
       - slow.contract.heartbeat:002
   gw1.unit:
-    '000':
+    '003':
       used_by:
-      - derived.channel.gt:001
-    '001':
-      used_by:
-      - derived.channel.gt:002
-      - gw1.unit.quantity.projection:000
-    '002':
-      used_by:
-      - gw.weather.channel.gt:000
+      - derived.channel.gt:003
+      - gw.weather.channel.gt:001
+      - gw1.unit.quantity.projection:001
   gw2.lc.top.state:
     '000':
       used_by:
@@ -632,11 +616,11 @@ enums:
     '007':
       used_by:
       - ads111x.based.device.type.gt:000
-      - data.channel.gt:003
+      - data.channel.gt:004
       - electric.meter.device.type.gt:000
       - gw1.scada.device.type.gt:000
       - maker.api.attribute.gt:001
-      - spaceheat.telemetry.quantity.projection:000
+      - spaceheat.telemetry.quantity.projection:001
   spaceheat.unit:
     '001':
       used_by:
@@ -705,9 +689,8 @@ formats:
     used_by:
     - analog.dispatch:000
     - bid:000
-    - data.channel.gt:003
-    - derived.channel.gt:001
-    - derived.channel.gt:002
+    - data.channel.gt:004
+    - derived.channel.gt:003
     - energy.instruction:000
     - flo.params.house0:007
     - fsm.atomic.report:001
@@ -720,8 +703,8 @@ formats:
     - gw.recorded.setpoints:000
     - gw.scada.commit:000
     - gw.tou.tariff:000
-    - gw.weather.channel.gt:000
-    - gw.weather.forecast.bundle.gt:000
+    - gw.weather.channel.gt:001
+    - gw.weather.forecast.bundle.gt:001
     - gw.weather.forecast.channel.gt:000
     - gw.weather.forecast:000
     - gw.weather.seasonal.template.gt:000
@@ -755,8 +738,8 @@ formats:
   non.empty.string:
     used_by:
     - gw.command.transition:000
-    - gw.weather.channel.gt:000
-    - gw.weather.forecast.bundle.gt:000
+    - gw.weather.channel.gt:001
+    - gw.weather.forecast.bundle.gt:001
     - gw.weather.forecast.channel.gt:000
     - hp.device.type.gt:000
     - relay.actor.config:003
@@ -765,8 +748,8 @@ formats:
     used_by:
     - gw.native.gpio.pin:000
     - gw.operational.params:000
-    - gw.weather.channel.gt:000
-    - gw.weather.forecast.bundle.gt:000
+    - gw.weather.channel.gt:001
+    - gw.weather.forecast.bundle.gt:001
     - gw1.scada.device.type.gt:000
     - i2c.bit.address:000
     - i2c.bus:000
@@ -837,8 +820,7 @@ formats:
     - ads111x.based.device.type.gt:000
     - async.btu.params:100
     - capture.tuning:000
-    - derived.channel.gt:001
-    - derived.channel.gt:002
+    - derived.channel.gt:003
     - dfr.config:000
     - electric.meter.component.gt:001
     - electric.meter.device.type.gt:000
@@ -848,8 +830,8 @@ formats:
     - gw.nolan.family.params:000
     - gw.operational.params:000
     - gw.water.store:000
-    - gw.weather.channel.gt:000
-    - gw.weather.forecast.bundle.gt:000
+    - gw.weather.channel.gt:001
+    - gw.weather.forecast.bundle.gt:001
     - gw.weather.forecast.channel.gt:000
     - gw1.hvac.zone:000
     - gw1.scada.device.type.gt:000
@@ -880,7 +862,6 @@ formats:
     - tank.module.params:200
   positive.int.as.str:
     used_by:
-    - gw1.tank.temp.calibration.map:000
     - gw1.tank.temp.calibration.map:001
   spaceheat.name:
     used_by:
@@ -891,9 +872,8 @@ formats:
     - capture.tuning:000
     - channel.readings:002
     - dac.output.config:000
-    - data.channel.gt:003
-    - derived.channel.gt:001
-    - derived.channel.gt:002
+    - data.channel.gt:004
+    - derived.channel.gt:003
     - dfr.config:000
     - electric.meter.channel.config:000
     - flow.hall.params:101
@@ -935,8 +915,8 @@ formats:
     - zero.ten.power.on:000
   utc.iso8601.seconds:
     used_by:
-    - gw.weather.channel.gt:000
-    - gw.weather.forecast.bundle.gt:000
+    - gw.weather.channel.gt:001
+    - gw.weather.forecast.bundle.gt:001
     - gw.weather.forecast.channel.gt:000
     - gw.weather.forecast:000
     - gw.weather.seasonal.template.gt:000
@@ -974,7 +954,7 @@ formats:
     - zone.circuit.governance.cmd:000
   utc.seconds:
     used_by:
-    - data.channel.gt:003
+    - data.channel.gt:004
     - energy.instruction:000
     - flo.params.house0:007
     - heating.forecast:000
@@ -985,9 +965,8 @@ formats:
     used_by:
     - ads111x.based.component.gt:000
     - analog.dispatch:000
-    - data.channel.gt:003
-    - derived.channel.gt:001
-    - derived.channel.gt:002
+    - data.channel.gt:004
+    - derived.channel.gt:003
     - device.component.gt:000
     - electric.meter.component.gt:001
     - flo.params.house0:007
@@ -999,8 +978,8 @@ formats:
     - gpio.sensor.component.gt:000
     - gw.dispatch.ack:000
     - gw.dispatch.nack:000
-    - gw.weather.channel.gt:000
-    - gw.weather.forecast.bundle.gt:000
+    - gw.weather.channel.gt:001
+    - gw.weather.forecast.bundle.gt:001
     - gw.weather.forecast.channel.gt:000
     - gw.weather.seasonal.template.gt:000
     - gw1.zone.thermostat:000

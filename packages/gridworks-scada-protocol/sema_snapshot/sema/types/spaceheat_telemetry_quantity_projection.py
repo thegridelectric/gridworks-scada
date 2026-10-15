@@ -1,49 +1,49 @@
 from typing import Literal
 from pydantic import model_validator
 from sema_snapshot.sema.base import SemaType
+from sema_snapshot.sema.enums import Quantity
 from sema_snapshot.sema.enums import TelemetryName
-from sema_snapshot.sema.enums.old_versions.quantity_000 import Quantity000
 
 
 _PROJECTION = {
-    TelemetryName.Unknown: Quantity000.Unknown,
-    TelemetryName.PowerW: Quantity000.Power,
-    TelemetryName.WattHours: Quantity000.Energy,
-    TelemetryName.MilliWattHours: Quantity000.Energy,
-    TelemetryName.WaterTempCTimes1000: Quantity000.Temperature,
-    TelemetryName.WaterTempFTimes1000: Quantity000.Temperature,
-    TelemetryName.AirTempCTimes1000: Quantity000.Temperature,
-    TelemetryName.AirTempFTimes1000: Quantity000.Temperature,
-    TelemetryName.CelsiusTimes100: Quantity000.Temperature,
-    TelemetryName.GpmTimes100: Quantity000.FlowRate,
-    TelemetryName.GallonsTimes100: Quantity000.Volume,
-    TelemetryName.VoltageRmsMilliVolts: Quantity000.Voltage,
-    TelemetryName.VoltsTimesTen: Quantity000.Voltage,
-    TelemetryName.VoltsTimes100: Quantity000.Voltage,
-    TelemetryName.MicroVolts: Quantity000.Voltage,
-    TelemetryName.CurrentRmsMicroAmps: Quantity000.Current,
-    TelemetryName.HzTimes100: Quantity000.Frequency,
-    TelemetryName.MicroHz: Quantity000.Frequency,
-    TelemetryName.RelayState: Quantity000.Unitless,
-    TelemetryName.ThermostatState: Quantity000.Unitless,
-    TelemetryName.StorageLayer: Quantity000.Unitless,
-    TelemetryName.BinaryState: Quantity000.Unitless,
-    TelemetryName.PercentKeep: Quantity000.Percent,
+    TelemetryName.Unknown: Quantity.Unknown,
+    TelemetryName.PowerW: Quantity.Power,
+    TelemetryName.WattHours: Quantity.Energy,
+    TelemetryName.MilliWattHours: Quantity.Energy,
+    TelemetryName.WaterTempCTimes1000: Quantity.Temperature,
+    TelemetryName.WaterTempFTimes1000: Quantity.Temperature,
+    TelemetryName.AirTempCTimes1000: Quantity.Temperature,
+    TelemetryName.AirTempFTimes1000: Quantity.Temperature,
+    TelemetryName.CelsiusTimes100: Quantity.Temperature,
+    TelemetryName.GpmTimes100: Quantity.FlowRate,
+    TelemetryName.GallonsTimes100: Quantity.Volume,
+    TelemetryName.VoltageRmsMilliVolts: Quantity.Voltage,
+    TelemetryName.VoltsTimesTen: Quantity.Voltage,
+    TelemetryName.VoltsTimes100: Quantity.Voltage,
+    TelemetryName.MicroVolts: Quantity.Voltage,
+    TelemetryName.CurrentRmsMicroAmps: Quantity.Current,
+    TelemetryName.HzTimes100: Quantity.Frequency,
+    TelemetryName.MicroHz: Quantity.Frequency,
+    TelemetryName.RelayState: Quantity.Unitless,
+    TelemetryName.ThermostatState: Quantity.Unitless,
+    TelemetryName.StorageLayer: Quantity.Unitless,
+    TelemetryName.BinaryState: Quantity.Unitless,
+    TelemetryName.PercentKeep: Quantity.Percent,
 }
 
 
 class SpaceheatTelemetryQuantityProjection(SemaType):
-    """Sema: https://schemas.electricity.works/types/spaceheat.telemetry.quantity.projection/000"""
+    """Sema: https://schemas.electricity.works/types/spaceheat.telemetry.quantity.projection/001"""
 
     telemetry_name: TelemetryName
-    quantity: Quantity000
+    quantity: Quantity
     type_name: Literal["spaceheat.telemetry.quantity.projection"] = (
         "spaceheat.telemetry.quantity.projection"
     )
-    version: Literal["000"] = "000"
+    version: Literal["001"] = "001"
 
     @classmethod
-    def project(cls, telemetry_name: TelemetryName) -> Quantity000:
+    def project(cls, telemetry_name: TelemetryName) -> Quantity:
         expected = _PROJECTION.get(telemetry_name)
         if expected is None:
             raise ValueError(

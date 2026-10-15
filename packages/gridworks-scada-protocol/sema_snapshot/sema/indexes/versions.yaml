@@ -85,30 +85,23 @@ types:
         summary: "Initial version (ChannelName, ActorName, DacChannel). The EEPROM power-on fields and their axiom left in place for zero.ten.power.on in operational-params; chip and board facts are scada driver tables."
 
   data.channel.gt:
+    latest_version: "004"
+    versioning_strategy: "literal"
+    versions:
+      "004":
+        summary: >
+          - Quantity: gw1.quantity 000 -> 003
+          - TelemetryQuantityConsistency axiom: spaceheat.telemetry.quantity.projection 000 -> 001
+
+  derived.channel.gt:
     latest_version: "003"
     versioning_strategy: "literal"
     versions:
       "003":
         summary: >
-          - InPowerMetering: drop (metering is declared by the consuming transactive channel, not here)
-          - PowerMeteringConstraint axiom: drop
-
-  derived.channel.gt:
-    latest_version: "002"
-    versioning_strategy: "literal"
-    versions:
-      "002":
-        summary: >
-          - OutputUnit: gw1.unit 000 -> 001
-          - OutputUnit: required
-          - OutputQuantity: gw1.quantity 000 -> 001
-          - OutputQuantity: add
-          - OutputUnitQuantityConsistency axiom: add
-      "001":
-        summary: >
-          - InputChannelNames[]: add
-          - EmissionMethod: add
-          - Parameters: add (Optional)
+          - OutputUnit: gw1.unit 001 -> 003
+          - OutputQuantity: gw1.quantity 001 -> 003
+          - OutputUnitQuantityConsistency axiom: gw1.unit.quantity.projection 000 -> 001
 
   device.component.gt:
     latest_version: "000"
@@ -372,11 +365,13 @@ types:
         summary: "TotalStoreTanks (positive.int), at most 6 (axiom TankCount). Carried by gw.hydronic as the optional WaterStore."
 
   gw.weather.channel.gt:
-    latest_version: "000"
+    latest_version: "001"
     versioning_strategy: "literal"
     versions:
-      "000":
-        summary: "Initial version."
+      "001":
+        summary: >
+          - Quantity: gw1.quantity 002 -> 003
+          - Unit: gw1.unit 002 -> 003
 
   gw.weather.forecast:
     latest_version: "000"
@@ -386,11 +381,11 @@ types:
         summary: "Initial version."
 
   gw.weather.forecast.bundle.gt:
-    latest_version: "000"
+    latest_version: "001"
     versioning_strategy: "literal"
     versions:
-      "000":
-        summary: "Initial version."
+      "001":
+        summary: "- TempObservationChannel, WindSpeedObservationChannel: gw.weather.channel.gt 000 -> 001"
 
   gw.weather.forecast.channel.gt:
     latest_version: "000"
@@ -451,8 +446,6 @@ types:
         summary: >
           - Depth{1,2,3}B: number -> integer (offset in the OutputUnit/FahrenheitX100 scaling
             domain, mirroring linear.one.dimensional.calibration/000)
-      "000":
-        summary: "Initial Sema version"
 
   gw1.tank.temp.calibration.map:
     latest_version: "001"
@@ -460,15 +453,16 @@ types:
     versions:
       "001":
         summary: "- Buffer/Tank now reference gw1.tank.temp.calibration:001 (integer B)"
-      "000":
-        summary: "Initial Sema version"
 
   gw1.unit.quantity.projection:
-    latest_version: "000"
+    latest_version: "001"
     versioning_strategy: "literal"
     versions:
-      "000":
-        summary: "Initial Sema version"
+      "001":
+        summary: >
+          - Unit: gw1.unit 001 -> 003
+          - Quantity: gw1.quantity 001 -> 003
+          - projection.table: add DollarsX1000 -> Currency, MilesPerHourX1000 -> WindSpeed, KilowattHoursX1000 -> Energy, WattsPerSquareMeter -> Irradiance
 
   gw1.zone.call.circuit:
     latest_version: "000"
@@ -712,7 +706,7 @@ types:
       "013":
         summary: >
           - ShNodes: spaceheat.node.gt:301 -> 303
-          - DataChannels: data.channel.gt:002 -> 003
+          - DataChannels: data.channel.gt:002 -> 004
           - TankModuleComponents / FlowModuleComponents / I2cRelayComponent: cac-carrying component versions -> cac-free DeviceType versions (pico.tank.module 011->012, sim.pico.tank.module 000->001, pico.flow.module 000->001, i2c.multichannel.dt.relay 003->004). Context-dependent: the embedded components' DeviceType lives on their cac, not the component.
           - SystemMode and SeasonalStorageMode leave: the posture facts (Standby, StandbyPosture, SeasonalStorageMode, ServiceMode, AcceptsDispatch, DispatchRefusalReason) ride gw.house.operating.status, sent after the startup announcements and on change, so the LTN has one source for them.
           - Strategy (free manifold-variant string) -> HardwareLayoutTypeName (left.right.dot): the loaded layout word's TypeName is the family; a format, not an enum of layout words, so this word publishes independently of the layout words' status.
@@ -829,6 +823,7 @@ types:
     versions:
       "002":
         summary: >
+          - ControlChannels[]: data.channel.gt 003 -> 004
           - RelayNodes[], DacNodes[], CommandNodes[]: spaceheat.node.gt:302 -> 303
           - A node may carry more than one CommandInterfaces entry, one per
             command vocabulary (five-v-boss: turn.5v.on.off and reboot.picos)
@@ -944,11 +939,11 @@ types:
         summary: "- ActorClass: gw1.actor.class:013 -> 014 (adds FiveVBoss)"
 
   spaceheat.telemetry.quantity.projection:
-    latest_version: "000"
+    latest_version: "001"
     versioning_strategy: "literal"
     versions:
-      "000":
-        summary: "Initial Sema version"
+      "001":
+        summary: "- Quantity: gw1.quantity 000 -> 003"
 
   synced.readings:
     latest_version: "000"
@@ -1217,13 +1212,10 @@ enums:
     enum_type: "versioned"
     note: "This enum is versioned; new versions are additive only."
     versions:
-      "002":
+      "003":
         added_values:
-          - "WindSpeed"
-      "001":
-        added_values:
-          - "Time"
-      "000": {}
+          - "Irradiance"
+          - "Currency"
 
   gw1.seasonal.storage.mode:
     enum_type: "versioned"
@@ -1253,16 +1245,11 @@ enums:
     enum_type: "versioned"
     note: "This enum is versioned; new versions are additive only."
     versions:
-      "002":
+      "003":
         added_values:
-          - "DollarsX1000"
-          - "MilesPerHourX1000"
-          - "KilowattHoursX1000"
-      "001":
-        added_values:
-          - "Seconds"
-          - "SecondsX10"
-      "000": {}
+          - "WattsPerSquareMeter"
+          - "MilesPerHourX10"
+          - "FahrenheitX10"
 
   gw2.lc.top.state:
     enum_type: "versioned"

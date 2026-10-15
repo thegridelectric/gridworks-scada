@@ -7,12 +7,17 @@
 #
 #   scripts/regen_sema_snapshot.sh
 #
-# Targets are the gwsproto twins that have a sema word, at the version the
-# scada speaks: a word pinned below sema's latest (the picos post 100 / 101
-# / 200 until firmware stamps a commit) is seeded at that version, so the
-# snapshot never names a version the scada does not decode. The dependency
-# closure brings the rest. A twin with no sema word is on the conformance
-# test's NO_WORD allowlist; a snapshot word with no twin fails that test.
+# EVERY type and every versioned enum is pinned to ONE version: the version
+# the scada speaks. A scada (the proactor) speaks exactly one version of
+# each word, so the snapshot must hold exactly one; `{}` (registry latest)
+# is never used, because the dependency closure can then bring in a second
+# version of a word behind the pinned one, and the twins would be checked
+# against a snapshot the scada cannot be. A closure that still reaches a
+# second version is a sema-side inconsistency (a dependent bound to an old
+# version); the conformance check reports it as multi-version, and the fix
+# is in sema, not here. Versionless enums take `{}` (nothing to pin).
+# A twin with no sema word is on the conformance test's NO_WORD allowlist;
+# a snapshot word with no twin fails that test.
 
 # Local class names mirror gwsproto's conventions: strip a leading
 # gw1./gw2./gw. segment, plus per-word overrides where gwsproto diverges.
@@ -23,222 +28,421 @@ local_names:
 
 initial_targets:
   types:
-    ads.channel.config: {}
-    ads111x.based.component.gt: {}
-    ads111x.based.device.type.gt: {}
-    analog.dispatch: {}
+    ads.channel.config:
+      versions: ["000"]
+    ads111x.based.component.gt:
+      versions: ["000"]
+    ads111x.based.device.type.gt:
+      versions: ["000"]
+    analog.dispatch:
+      versions: ["000"]
     async.btu.params:
       versions: ["100"]
-    baseurl.failure.alert: {}
-    bid: {}
-    capture.tuning: {}
-    channel.readings: {}
-    cop.curve: {}
-    dac.output.config: {}
-    data.channel.gt: {}
-    derived.channel.gt: {}
-    device.component.gt: {}
-    dfr.config: {}
-    egauge.register.config: {}
-    electric.meter.channel.config: {}
-    electric.meter.component.gt: {}
-    electric.meter.device.type.gt: {}
-    energy.instruction: {}
-    flo.params.house0: {}
+    baseurl.failure.alert:
+      versions: ["100"]
+    bid:
+      versions: ["000"]
+    capture.tuning:
+      versions: ["000"]
+    channel.readings:
+      versions: ["002"]
+    cop.curve:
+      versions: ["000"]
+    dac.output.config:
+      versions: ["000"]
+    data.channel.gt:
+      versions: ["004"]
+    derived.channel.gt:
+      versions: ["003"]
+    device.component.gt:
+      versions: ["000"]
+    dfr.config:
+      versions: ["000"]
+    egauge.register.config:
+      versions: ["000"]
+    electric.meter.channel.config:
+      versions: ["000"]
+    electric.meter.component.gt:
+      versions: ["001"]
+    electric.meter.device.type.gt:
+      versions: ["000"]
+    energy.instruction:
+      versions: ["000"]
+    flo.params.house0:
+      versions: ["007"]
     flow.hall.params:
       versions: ["101"]
-    fsm.atomic.report: {}
-    fsm.event: {}
-    fsm.full.report: {}
-    g.node.gt: {}
-    glitch: {}
-    gpio.relay.component.gt: {}
-    gpio.sensor.component.gt: {}
-    gw.boiler.backup: {}
-    gw.command.interface: {}
-    gw.command.transition: {}
-    gw.dispatch.ack: {}
-    gw.dispatch.hold: {}
-    gw.dispatch.nack: {}
-    gw.element.backup: {}
-    gw.house.operating.status: {}
-    gw.house0.family.params: {}
-    gw.house0.layout: {}
-    gw.hydronic: {}
-    gw.native.gpio.pin: {}
-    gw.nolan.family.params: {}
-    gw.nolan.layout: {}
-    gw.operational.params: {}
-    gw.recorded.setpoints: {}
-    gw.scada.commit: {}
-    gw.tou.tariff: {}
-    gw.tou.window: {}
-    gw.water.store: {}
-    gw.weather.channel.gt: {}
-    gw.weather.forecast: {}
-    gw.weather.forecast.bundle.gt: {}
-    gw.weather.forecast.channel.gt: {}
-    gw.weather.seasonal.template.gt: {}
-    gw0.required.energy.layered: {}
-    gw0.usable.energy.layered: {}
-    gw1.hvac.zone: {}
-    gw1.scada.device.type.gt: {}
-    gw1.simple.sim.layout: {}
-    gw1.tank.temp.calibration: {}
-    gw1.tank.temp.calibration.map: {}
-    gw1.unit.quantity.projection: {}
-    gw1.zone.call.circuit: {}
-    gw1.zone.thermostat: {}
-    ha1.params: {}
-    heating.curve: {}
-    heating.forecast: {}
-    hp.control.box.device.type.gt: {}
-    hp.device.type.gt: {}
-    hubitat.component.gt: {}
-    hubitat.gt: {}
-    hubitat.poller.component.gt: {}
-    hubitat.poller.gt: {}
-    i2c.bit.address: {}
-    i2c.bus: {}
-    i2c.ct.interface.capability: {}
-    i2c.dac.capability: {}
-    i2c.dac.output.component.gt: {}
-    i2c.expander: {}
-    i2c.multichannel.dt.relay.component.gt: {}
-    i2c.mux: {}
-    i2c.read.bit: {}
-    i2c.read.bytes: {}
-    i2c.read.reg: {}
-    i2c.reg.address: {}
-    i2c.relay.capability: {}
-    i2c.relay.component.gt: {}
-    i2c.result: {}
-    i2c.thermistor.channel.config: {}
-    i2c.thermistor.interface.capability: {}
-    i2c.thermistor.reader.component.gt: {}
-    i2c.write.bit: {}
-    i2c.write.byte: {}
-    i2c.write.reg: {}
-    latest.price: {}
-    layout.lite: {}
-    linear.one.dimensional.calibration: {}
-    machine.states: {}
-    maker.api.attribute.gt: {}
-    new.command.tree: {}
-    pico.btu.meter.component.gt: {}
-    pico.flow.module.component.gt: {}
-    pico.tank.module.component.gt: {}
-    power.watts: {}
-    price.quantity.unitless: {}
-    relay.actor.config: {}
-    relay.control.config: {}
-    report: {}
-    report.event: {}
-    scada.board.component.gt: {}
-    scada.control.capabilities: {}
-    scada.params: {}
-    send.control.capabilities: {}
-    send.layout: {}
-    setpoint.belief: {}
-    sim.pico.btu.meter.component.gt: {}
-    sim.pico.flow.module.component.gt: {}
-    sim.pico.tank.module.component.gt: {}
-    sim.sensor.component.gt: {}
-    single.machine.state: {}
-    single.reading: {}
-    slow.contract.heartbeat: {}
-    slow.contract.rejection: {}
-    slow.dispatch.contract: {}
-    snapshot.spaceheat: {}
-    spaceheat.node.gt: {}
-    spaceheat.telemetry.quantity.projection: {}
-    synced.readings: {}
-    ta.deed: {}
+    fsm.atomic.report:
+      versions: ["001"]
+    fsm.event:
+      versions: ["000"]
+    fsm.full.report:
+      versions: ["001"]
+    g.node.gt:
+      versions: ["006"]
+    glitch:
+      versions: ["000"]
+    gpio.relay.component.gt:
+      versions: ["000"]
+    gpio.sensor.component.gt:
+      versions: ["000"]
+    gw.boiler.backup:
+      versions: ["000"]
+    gw.command.interface:
+      versions: ["000"]
+    gw.command.transition:
+      versions: ["000"]
+    gw.dispatch.ack:
+      versions: ["000"]
+    gw.dispatch.hold:
+      versions: ["000"]
+    gw.dispatch.nack:
+      versions: ["000"]
+    gw.element.backup:
+      versions: ["000"]
+    gw.house.operating.status:
+      versions: ["000"]
+    gw.house0.family.params:
+      versions: ["000"]
+    gw.house0.layout:
+      versions: ["000"]
+    gw.hydronic:
+      versions: ["000"]
+    gw.native.gpio.pin:
+      versions: ["000"]
+    gw.nolan.family.params:
+      versions: ["000"]
+    gw.nolan.layout:
+      versions: ["000"]
+    gw.operational.params:
+      versions: ["000"]
+    gw.recorded.setpoints:
+      versions: ["000"]
+    gw.scada.commit:
+      versions: ["000"]
+    gw.tou.tariff:
+      versions: ["000"]
+    gw.tou.window:
+      versions: ["000"]
+    gw.water.store:
+      versions: ["000"]
+    gw.weather.channel.gt:
+      versions: ["001"]
+    gw.weather.forecast:
+      versions: ["000"]
+    gw.weather.forecast.bundle.gt:
+      versions: ["001"]
+    gw.weather.forecast.channel.gt:
+      versions: ["000"]
+    gw.weather.seasonal.template.gt:
+      versions: ["000"]
+    gw0.required.energy.layered:
+      versions: ["000"]
+    gw0.usable.energy.layered:
+      versions: ["000"]
+    gw1.hvac.zone:
+      versions: ["000"]
+    gw1.scada.device.type.gt:
+      versions: ["000"]
+    gw1.simple.sim.layout:
+      versions: ["000"]
+    gw1.tank.temp.calibration:
+      versions: ["001"]
+    gw1.tank.temp.calibration.map:
+      versions: ["001"]
+    gw1.unit.quantity.projection:
+      versions: ["001"]
+    gw1.zone.call.circuit:
+      versions: ["000"]
+    gw1.zone.thermostat:
+      versions: ["000"]
+    ha1.params:
+      versions: ["006"]
+    heating.curve:
+      versions: ["000"]
+    heating.forecast:
+      versions: ["000"]
+    hp.control.box.device.type.gt:
+      versions: ["000"]
+    hp.device.type.gt:
+      versions: ["000"]
+    hubitat.component.gt:
+      versions: ["000"]
+    hubitat.gt:
+      versions: ["000"]
+    hubitat.poller.component.gt:
+      versions: ["000"]
+    hubitat.poller.gt:
+      versions: ["001"]
+    i2c.bit.address:
+      versions: ["000"]
+    i2c.bus:
+      versions: ["000"]
+    i2c.ct.interface.capability:
+      versions: ["000"]
+    i2c.dac.capability:
+      versions: ["000"]
+    i2c.dac.output.component.gt:
+      versions: ["000"]
+    i2c.expander:
+      versions: ["000"]
+    i2c.multichannel.dt.relay.component.gt:
+      versions: ["004"]
+    i2c.mux:
+      versions: ["000"]
+    i2c.read.bit:
+      versions: ["000"]
+    i2c.read.bytes:
+      versions: ["000"]
+    i2c.read.reg:
+      versions: ["000"]
+    i2c.reg.address:
+      versions: ["000"]
+    i2c.relay.capability:
+      versions: ["000"]
+    i2c.relay.component.gt:
+      versions: ["000"]
+    i2c.result:
+      versions: ["001"]
+    i2c.thermistor.channel.config:
+      versions: ["000"]
+    i2c.thermistor.interface.capability:
+      versions: ["000"]
+    i2c.thermistor.reader.component.gt:
+      versions: ["000"]
+    i2c.write.bit:
+      versions: ["000"]
+    i2c.write.byte:
+      versions: ["000"]
+    i2c.write.reg:
+      versions: ["000"]
+    latest.price:
+      versions: ["000"]
+    layout.lite:
+      versions: ["013"]
+    linear.one.dimensional.calibration:
+      versions: ["000"]
+    machine.states:
+      versions: ["000"]
+    maker.api.attribute.gt:
+      versions: ["001"]
+    new.command.tree:
+      versions: ["003"]
+    pico.btu.meter.component.gt:
+      versions: ["000"]
+    pico.flow.module.component.gt:
+      versions: ["001"]
+    pico.tank.module.component.gt:
+      versions: ["012"]
+    power.watts:
+      versions: ["000"]
+    price.quantity.unitless:
+      versions: ["001"]
+    relay.actor.config:
+      versions: ["003"]
+    relay.control.config:
+      versions: ["000"]
+    report:
+      versions: ["003"]
+    report.event:
+      versions: ["004"]
+    scada.board.component.gt:
+      versions: ["000"]
+    scada.control.capabilities:
+      versions: ["002"]
+    scada.params:
+      versions: ["005"]
+    send.control.capabilities:
+      versions: ["000"]
+    send.layout:
+      versions: ["001"]
+    setpoint.belief:
+      versions: ["000"]
+    sim.pico.btu.meter.component.gt:
+      versions: ["000"]
+    sim.pico.flow.module.component.gt:
+      versions: ["000"]
+    sim.pico.tank.module.component.gt:
+      versions: ["001"]
+    sim.sensor.component.gt:
+      versions: ["000"]
+    single.machine.state:
+      versions: ["000"]
+    single.reading:
+      versions: ["000"]
+    slow.contract.heartbeat:
+      versions: ["002"]
+    slow.contract.rejection:
+      versions: ["000"]
+    slow.dispatch.contract:
+      versions: ["000"]
+    snapshot.spaceheat:
+      versions: ["003"]
+    spaceheat.node.gt:
+      versions: ["303"]
+    spaceheat.telemetry.quantity.projection:
+      versions: ["001"]
+    synced.readings:
+      versions: ["000"]
+    ta.deed:
+      versions: ["000"]
     tank.module.params:
       versions: ["200"]
-    ticklist.hall: {}
-    ticklist.hall.report: {}
-    ticklist.reed: {}
-    ticklist.reed.report: {}
-    web.server.component.gt: {}
-    zero.ten.power.on: {}
-    zone.circuit.governance.cmd: {}
+    ticklist.hall:
+      versions: ["101"]
+    ticklist.hall.report:
+      versions: ["000"]
+    ticklist.reed:
+      versions: ["101"]
+    ticklist.reed.report:
+      versions: ["000"]
+    web.server.component.gt:
+      versions: ["001"]
+    zero.ten.power.on:
+      versions: ["000"]
+    zone.circuit.governance.cmd:
+      versions: ["000"]
   enums:
-    base.g.node.class: {}
+    base.g.node.class:
+      versions: ["000"]
     change.relay.pin: {}
     change.relay.state: {}
     change.valve.state: {}
     change.zone.call.source: {}
     day.of.week: {}
-    five.v.boss.state: {}
+    five.v.boss.state:
+      versions: ["000"]
     fsm.report.type: {}
-    g.node.status: {}
-    gpio.sense.mode: {}
-    gpm.from.hz.method: {}
-    gw.dispatch.refusal.reason: {}
-    gw.g.node.class: {}
-    gw.primary.flow.source: {}
-    gw.primary.pump.owner: {}
-    gw.refrigerant.cycle: {}
-    gw.scada.cmd.refusal.reason: {}
-    gw.standby.posture: {}
-    gw.top.state: {}
-    gw.weather.forecast.fidelity: {}
-    gw.zone.emitter.type: {}
-    gw1.actor.class: {}
-    gw1.device.type: {}
-    gw1.emission.method: {}
-    gw1.heat.call.interpretation: {}
-    gw1.leaf.ally.all.tanks.state: {}
-    gw1.leaf.ally.buffer.only.state: {}
-    gw1.local.control.all.tanks.state: {}
-    gw1.local.control.buffer.only.state: {}
-    gw1.main.auto.state: {}
-    gw1.nolan.lc.buffer.only.state: {}
-    gw1.quantity: {}
-    gw1.seasonal.storage.mode: {}
-    gw1.service.mode: {}
-    gw1.sim.device.type: {}
-    gw1.slow.dispatch.contract.status: {}
-    gw1.unit: {}
-    gw2.lc.top.state: {}
-    hp.boss.state: {}
-    hz.calc.method: {}
+    g.node.status:
+      versions: ["000"]
+    gpio.sense.mode:
+      versions: ["000"]
+    gpm.from.hz.method:
+      versions: ["000"]
+    gw.dispatch.refusal.reason:
+      versions: ["000"]
+    gw.g.node.class:
+      versions: ["000"]
+    gw.primary.flow.source:
+      versions: ["000"]
+    gw.primary.pump.owner:
+      versions: ["000"]
+    gw.refrigerant.cycle:
+      versions: ["000"]
+    gw.scada.cmd.refusal.reason:
+      versions: ["000"]
+    gw.standby.posture:
+      versions: ["000"]
+    gw.top.state:
+      versions: ["000"]
+    gw.weather.forecast.fidelity:
+      versions: ["000"]
+    gw.zone.emitter.type:
+      versions: ["000"]
+    gw1.actor.class:
+      versions: ["014"]
+    gw1.device.type:
+      versions: ["000"]
+    gw1.emission.method:
+      versions: ["000"]
+    gw1.heat.call.interpretation:
+      versions: ["000"]
+    gw1.leaf.ally.all.tanks.state:
+      versions: ["001"]
+    gw1.leaf.ally.buffer.only.state:
+      versions: ["001"]
+    gw1.local.control.all.tanks.state:
+      versions: ["001"]
+    gw1.local.control.buffer.only.state:
+      versions: ["001"]
+    gw1.main.auto.state:
+      versions: ["001"]
+    gw1.nolan.lc.buffer.only.state:
+      versions: ["000"]
+    gw1.quantity:
+      versions: ["003"]
+    gw1.seasonal.storage.mode:
+      versions: ["000"]
+    gw1.service.mode:
+      versions: ["000"]
+    gw1.sim.device.type:
+      versions: ["000"]
+    gw1.slow.dispatch.contract.status:
+      versions: ["000"]
+    gw1.unit:
+      versions: ["003"]
+    gw2.lc.top.state:
+      versions: ["000"]
+    hp.boss.state:
+      versions: ["000"]
+    hz.calc.method:
+      versions: ["001"]
     i2c.adc.channel: {}
-    i2c.adc.type: {}
-    i2c.dac.channel: {}
-    i2c.dac.type: {}
-    i2c.expander.type: {}
-    i2c.mux.type: {}
-    i2c.operation: {}
+    i2c.adc.type:
+      versions: ["000"]
+    i2c.dac.channel:
+      versions: ["000"]
+    i2c.dac.type:
+      versions: ["000"]
+    i2c.expander.type:
+      versions: ["000"]
+    i2c.mux.type:
+      versions: ["000"]
+    i2c.operation:
+      versions: ["001"]
     log.level: {}
-    market.price.unit: {}
-    market.quantity.unit: {}
-    market.type.name: {}
-    move.sieg.valve: {}
-    pico.board.variant: {}
-    pico.cycler.event: {}
-    pico.cycler.state: {}
+    market.price.unit:
+      versions: ["000"]
+    market.quantity.unit:
+      versions: ["000"]
+    market.type.name:
+      versions: ["000"]
+    move.sieg.valve:
+      versions: ["001"]
+    pico.board.variant:
+      versions: ["000"]
+    pico.cycler.event:
+      versions: ["000"]
+    pico.cycler.state:
+      versions: ["000"]
     reboot.picos: {}
     relay.closed.or.open: {}
-    relay.wiring.config: {}
-    setpoint.phase: {}
-    sieg.loop.strategy: {}
-    sieg.valve.state: {}
-    single.pico.state: {}
-    spaceheat.telemetry.name: {}
-    spaceheat.unit: {}
-    spruce.hack.hp.state: {}
-    ta.validation.state: {}
-    temp.calc.method: {}
-    thermistor.data.method: {}
-    thermostat.kind: {}
-    turn.5v.on.off: {}
+    relay.wiring.config:
+      versions: ["000"]
+    setpoint.phase:
+      versions: ["000"]
+    sieg.loop.strategy:
+      versions: ["000"]
+    sieg.valve.state:
+      versions: ["000"]
+    single.pico.state:
+      versions: ["000"]
+    spaceheat.telemetry.name:
+      versions: ["007"]
+    spaceheat.unit:
+      versions: ["001"]
+    spruce.hack.hp.state:
+      versions: ["000"]
+    ta.validation.state:
+      versions: ["000"]
+    temp.calc.method:
+      versions: ["000"]
+    thermistor.data.method:
+      versions: ["000"]
+    thermostat.kind:
+      versions: ["000"]
+    turn.5v.on.off:
+      versions: ["000"]
     turn.hp.on.off: {}
     valve.open.or.closed: {}
-    zone.call.circuit.event: {}
-    zone.call.circuit.state: {}
+    zone.call.circuit.event:
+      versions: ["000"]
+    zone.call.circuit.state:
+      versions: ["000"]
     zone.call.source: {}
-    zone.circuit.governance.event: {}
-    zone.circuit.governance.state: {}
-    zone.setpoint.source: {}
+    zone.circuit.governance.event:
+      versions: ["000"]
+    zone.circuit.governance.state:
+      versions: ["000"]
+    zone.setpoint.source:
+      versions: ["000"]

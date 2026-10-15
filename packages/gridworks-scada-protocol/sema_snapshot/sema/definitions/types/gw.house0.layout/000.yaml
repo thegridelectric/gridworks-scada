@@ -41,13 +41,13 @@ properties:
   DataChannels:
     type: array
     items:
-      $ref: "https://schemas.electricity.works/types/data.channel.gt/003"
+      $ref: "https://schemas.electricity.works/types/data.channel.gt/004"
     description: "Raw telemetry channels produced by the SCADA system."
 
   DerivedChannels:
     type: array
     items:
-      $ref: "https://schemas.electricity.works/types/derived.channel.gt/002"
+      $ref: "https://schemas.electricity.works/types/derived.channel.gt/003"
     description: >
       Computed telemetry channels (calibrated tank depths, zone heat-call +
       predicted setpoint, usable/required energy, ...).

@@ -65,16 +65,15 @@ types:
     versions:
       '000': definitions/types/dac.output.config/000.yaml
   data.channel.gt:
+    latest_version: '004'
+    versioning_strategy: literal
+    versions:
+      '004': definitions/types/data.channel.gt/004.yaml
+  derived.channel.gt:
     latest_version: '003'
     versioning_strategy: literal
     versions:
-      '003': definitions/types/data.channel.gt/003.yaml
-  derived.channel.gt:
-    latest_version: '002'
-    versioning_strategy: literal
-    versions:
-      '002': definitions/types/derived.channel.gt/002.yaml
-      '001': definitions/types/derived.channel.gt/001.yaml
+      '003': definitions/types/derived.channel.gt/003.yaml
   device.component.gt:
     latest_version: '000'
     versioning_strategy: literal
@@ -256,20 +255,20 @@ types:
     versions:
       '000': definitions/types/gw.water.store/000.yaml
   gw.weather.channel.gt:
-    latest_version: '000'
+    latest_version: '001'
     versioning_strategy: literal
     versions:
-      '000': definitions/types/gw.weather.channel.gt/000.yaml
+      '001': definitions/types/gw.weather.channel.gt/001.yaml
   gw.weather.forecast:
     latest_version: '000'
     versioning_strategy: literal
     versions:
       '000': definitions/types/gw.weather.forecast/000.yaml
   gw.weather.forecast.bundle.gt:
-    latest_version: '000'
+    latest_version: '001'
     versioning_strategy: literal
     versions:
-      '000': definitions/types/gw.weather.forecast.bundle.gt/000.yaml
+      '001': definitions/types/gw.weather.forecast.bundle.gt/001.yaml
   gw.weather.forecast.channel.gt:
     latest_version: '000'
     versioning_strategy: literal
@@ -310,18 +309,16 @@ types:
     versioning_strategy: literal
     versions:
       '001': definitions/types/gw1.tank.temp.calibration/001.yaml
-      '000': definitions/types/gw1.tank.temp.calibration/000.yaml
   gw1.tank.temp.calibration.map:
     latest_version: '001'
     versioning_strategy: literal
     versions:
       '001': definitions/types/gw1.tank.temp.calibration.map/001.yaml
-      '000': definitions/types/gw1.tank.temp.calibration.map/000.yaml
   gw1.unit.quantity.projection:
-    latest_version: '000'
+    latest_version: '001'
     versioning_strategy: literal
     versions:
-      '000': definitions/types/gw1.unit.quantity.projection/000.yaml
+      '001': definitions/types/gw1.unit.quantity.projection/001.yaml
   gw1.zone.call.circuit:
     latest_version: '000'
     versioning_strategy: literal
@@ -643,10 +640,10 @@ types:
     versions:
       '303': definitions/types/spaceheat.node.gt/303.yaml
   spaceheat.telemetry.quantity.projection:
-    latest_version: '000'
+    latest_version: '001'
     versioning_strategy: literal
     versions:
-      '000': definitions/types/spaceheat.telemetry.quantity.projection/000.yaml
+      '001': definitions/types/spaceheat.telemetry.quantity.projection/001.yaml
   synced.readings:
     latest_version: '000'
     versioning_strategy: literal
@@ -843,11 +840,9 @@ enums:
       '000': definitions/enums/gw1.nolan.lc.buffer.only.state/000.yaml
   gw1.quantity:
     enum_type: versioned
-    latest_version: '002'
+    latest_version: '003'
     versions:
-      '002': definitions/enums/gw1.quantity/002.yaml
-      '001': definitions/enums/gw1.quantity/001.yaml
-      '000': definitions/enums/gw1.quantity/000.yaml
+      '003': definitions/enums/gw1.quantity/003.yaml
   gw1.seasonal.storage.mode:
     enum_type: versioned
     latest_version: '000'
@@ -870,11 +865,9 @@ enums:
       '000': definitions/enums/gw1.slow.dispatch.contract.status/000.yaml
   gw1.unit:
     enum_type: versioned
-    latest_version: '002'
+    latest_version: '003'
     versions:
-      '002': definitions/enums/gw1.unit/002.yaml
-      '001': definitions/enums/gw1.unit/001.yaml
-      '000': definitions/enums/gw1.unit/000.yaml
+      '003': definitions/enums/gw1.unit/003.yaml
   gw2.lc.top.state:
     enum_type: versioned
     latest_version: '000'

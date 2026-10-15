@@ -63,7 +63,7 @@ properties:
       AboutNodeName identifies the RelayNodes or DacNodes entry whose observed
       state is represented by the channel.
     items:
-      $ref: "https://schemas.electricity.works/types/data.channel.gt/003"
+      $ref: "https://schemas.electricity.works/types/data.channel.gt/004"
 
   CommandInterfaces:
     type: array
@@ -168,7 +168,7 @@ examples:
           "TerminalAssetAlias": "hw1.isone.me.versant.keene.beech.ta",
           "Id": "9c33d7af-59e0-415b-8208-ecf64916a64b",
           "TypeName": "data.channel.gt",
-          "Version": "003"
+          "Version": "004"
         },
         {
           "Name": "vdc-relay",
@@ -180,7 +180,7 @@ examples:
           "TerminalAssetAlias": "hw1.isone.me.versant.keene.beech.ta",
           "Id": "2b8e4d6f-7a1c-4e9b-8d3f-5c0a2e4b6d8f",
           "TypeName": "data.channel.gt",
-          "Version": "003"
+          "Version": "004"
         },
         {
           "Name": "secondary-010v",
@@ -192,7 +192,7 @@ examples:
           "TerminalAssetAlias": "hw1.isone.me.versant.keene.beech.ta",
           "Id": "4d0f6a8c-9b2e-4c1d-a7f5-3e8b0d2c4a6e",
           "TypeName": "data.channel.gt",
-          "Version": "003"
+          "Version": "004"
         }
       ],
       "CommandInterfaces": [

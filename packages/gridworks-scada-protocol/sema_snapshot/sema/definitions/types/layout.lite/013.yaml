@@ -73,7 +73,7 @@ properties:
   DataChannels:
     type: array
     items:
-      $ref: "https://schemas.electricity.works/types/data.channel.gt/003"
+      $ref: "https://schemas.electricity.works/types/data.channel.gt/004"
     description: >
       Raw telemetry channel definitions used to interpret channel names appearing
       in reports and snapshots.
@@ -81,7 +81,7 @@ properties:
   DerivedChannels:
     type: array
     items:
-      $ref: "https://schemas.electricity.works/types/derived.channel.gt/001"
+      $ref: "https://schemas.electricity.works/types/derived.channel.gt/003"
     description: >
       Derived telemetry channel definitions used to interpret derived channel
       names appearing in reports and snapshots.
@@ -113,7 +113,7 @@ properties:
       Optional relay component configuration used by the running deployment.
 
   TMap:
-    $ref: "https://schemas.electricity.works/types/gw1.tank.temp.calibration.map/000"
+    $ref: "https://schemas.electricity.works/types/gw1.tank.temp.calibration.map/001"
     description: >
       Optional tank temperature calibration map emitted with the runtime context.
 

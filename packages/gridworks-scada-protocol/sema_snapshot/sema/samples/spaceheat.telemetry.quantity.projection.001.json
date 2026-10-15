@@ -1,0 +1,6 @@
+{
+  "TypeName": "spaceheat.telemetry.quantity.projection",
+  "Version": "001",
+  "TelemetryName": "WaterTempCTimes1000",
+  "Quantity": "Temperature"
+}

@@ -1,5 +1,5 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
-$id: "https://schemas.electricity.works/types/data.channel.gt/003"
+$id: "https://schemas.electricity.works/types/data.channel.gt/004"
 
 title: "data.channel.gt"
 type: object
@@ -46,16 +46,16 @@ properties:
       implementations.
 
       TelemetryName determines the canonical gw1.quantity via the
-      spaceheat.telemetry.quantity.projection/000 type.
+      spaceheat.telemetry.quantity.projection/001 type.
 
   Quantity:
-    $ref: "https://schemas.electricity.works/enums/gw1.quantity/000"
+    $ref: "https://schemas.electricity.works/enums/gw1.quantity/003"
     description: >
       Canonical physical dimension of the telemetry stream
       (e.g., Power, Temperature, FlowRate).
 
       Quantity SHALL equal the value defined by the
-      spaceheat.telemetry.quantity.projection/000 for the given TelemetryName.
+      spaceheat.telemetry.quantity.projection/001 for the given TelemetryName.
 
   TerminalAssetAlias:
     $ref: "https://schemas.electricity.works/formats/left.right.dot"
@@ -77,7 +77,7 @@ properties:
     const: "data.channel.gt"
 
   Version:
-    const: "003"
+    const: "004"
 
 required:
   - Name
@@ -105,7 +105,7 @@ examples:
       "TerminalAssetAlias": "hw1.isone.me.versant.keene.spruce.ta",
       "Id": "57d123f9-8bc5-4667-9668-4529235b224c",
       "TypeName": "data.channel.gt",
-      "Version": "003"
+      "Version": "004"
     }
 
 x-gridworks:
@@ -116,7 +116,7 @@ x-gridworks:
       name: "TelemetryQuantityConsistency"
       statement: >
         Quantity SHALL equal the Quantity defined by the canonical
-        spaceheat.telemetry.quantity.projection/000 instance
+        spaceheat.telemetry.quantity.projection/001 instance
         for the specified TelemetryName.
 
   extended_description: >

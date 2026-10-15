@@ -1,6 +1,6 @@
 {
   "TypeName": "data.channel.gt",
-  "Version": "003",
+  "Version": "004",
   "Name": "vdc-relay",
   "DisplayName": "5V DC Bus Relay State",
   "AboutNodeName": "vdc-relay-gpio-23",

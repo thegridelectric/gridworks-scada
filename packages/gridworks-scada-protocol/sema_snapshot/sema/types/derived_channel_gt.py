@@ -2,8 +2,8 @@ from typing import Any, Literal
 from pydantic import model_validator
 from sema_snapshot.sema.base import SemaType
 from sema_snapshot.sema.enums import EmissionMethod
-from sema_snapshot.sema.enums.old_versions.quantity_001 import Quantity001
-from sema_snapshot.sema.enums.old_versions.unit_001 import Unit001
+from sema_snapshot.sema.enums import Quantity
+from sema_snapshot.sema.enums import Unit
 from sema_snapshot.sema.property_format import LeftRightDot
 from sema_snapshot.sema.property_format import PositiveInt
 from sema_snapshot.sema.property_format import SpaceheatName
@@ -12,15 +12,15 @@ from sema_snapshot.sema.types.unit_quantity_projection import UnitQuantityProjec
 
 
 class DerivedChannelGt(SemaType):
-    """Sema: https://schemas.electricity.works/types/derived.channel.gt/002"""
+    """Sema: https://schemas.electricity.works/types/derived.channel.gt/003"""
 
     id: UUID4Str
     name: SpaceheatName
     created_by_node_name: SpaceheatName
     strategy: SpaceheatName
     input_channel_names: list[SpaceheatName]
-    output_unit: Unit001
-    output_quantity: Quantity001
+    output_unit: Unit
+    output_quantity: Quantity
     emission_method: EmissionMethod
     async_emit_delta: PositiveInt | None = None
     emit_period_s: PositiveInt | None = None
@@ -28,7 +28,7 @@ class DerivedChannelGt(SemaType):
     display_name: str
     terminal_asset_alias: LeftRightDot
     type_name: Literal["derived.channel.gt"] = "derived.channel.gt"
-    version: Literal["002"] = "002"
+    version: Literal["003"] = "003"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> "DerivedChannelGt":
@@ -63,9 +63,9 @@ class DerivedChannelGt(SemaType):
         """
         Axiom 2: OutputUnitQuantityConsistency
         OutputQuantity SHALL equal the Quantity defined by the canonical
-        gw1.unit.quantity.projection:000 instance for the specified OutputUnit.
+        gw1.unit.quantity.projection:001 instance for the specified OutputUnit.
         """
-        expected = UnitQuantityProjection.project(Unit001(self.output_unit.value))
+        expected = UnitQuantityProjection.project(Unit(self.output_unit.value))
         if self.output_quantity != expected:
             raise ValueError(
                 "Axiom 2 failed: output_quantity must match the canonical quantity "

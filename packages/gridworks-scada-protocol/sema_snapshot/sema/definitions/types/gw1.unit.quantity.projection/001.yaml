@@ -1,5 +1,5 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
-$id: "https://schemas.electricity.works/types/gw1.unit.quantity.projection/000"
+$id: "https://schemas.electricity.works/types/gw1.unit.quantity.projection/001"
 
 title: "gw1.unit.quantity.projection"
 type: object
@@ -14,12 +14,12 @@ description: >
 
 properties:
   Unit:
-    $ref: "https://schemas.electricity.works/enums/gw1.unit/001"
+    $ref: "https://schemas.electricity.works/enums/gw1.unit/003"
     description: >
       The concrete measurement unit.
 
   Quantity:
-    $ref: "https://schemas.electricity.works/enums/gw1.quantity/001"
+    $ref: "https://schemas.electricity.works/enums/gw1.quantity/003"
     description: >
       The abstract physical quantity associated with Unit.
 
@@ -27,7 +27,7 @@ properties:
     const: "gw1.unit.quantity.projection"
 
   Version:
-    const: "000"
+    const: "001"
 
 required:
   - Unit
@@ -43,7 +43,7 @@ examples:
       "Unit": "Watts",
       "Quantity": "Power",
       "TypeName": "gw1.unit.quantity.projection",
-      "Version": "000"
+      "Version": "001"
     }
 
 x-gridworks:
@@ -63,6 +63,12 @@ x-gridworks:
       Seconds: Time
       SecondsX10: Time
       Milliseconds: Time
+      DollarsX1000: Currency
+      MilesPerHourX1000: WindSpeed
+      KilowattHoursX1000: Energy
+      WattsPerSquareMeter: Irradiance
+      MilesPerHourX10: WindSpeed
+      FahrenheitX10: Temperature
 
   axioms:
     - number: 1

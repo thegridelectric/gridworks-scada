@@ -12,7 +12,7 @@ from sema_snapshot.sema.property_format import UtcIso8601Seconds
 
 
 class WeatherChannelGt(SemaType):
-    """Sema: https://schemas.electricity.works/types/gw.weather.channel.gt/000"""
+    """Sema: https://schemas.electricity.works/types/gw.weather.channel.gt/001"""
 
     name: LeftRightDot
     display_name: NonEmptyString
@@ -24,7 +24,7 @@ class WeatherChannelGt(SemaType):
     start: UtcIso8601Seconds
     id: UUID4Str
     type_name: Literal["gw.weather.channel.gt"] = "gw.weather.channel.gt"
-    version: Literal["000"] = "000"
+    version: Literal["001"] = "001"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> "WeatherChannelGt":

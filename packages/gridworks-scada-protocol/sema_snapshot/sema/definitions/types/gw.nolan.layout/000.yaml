@@ -38,14 +38,14 @@ properties:
   DataChannels:
     type: array
     items:
-      $ref: "https://schemas.electricity.works/types/data.channel.gt/003"
+      $ref: "https://schemas.electricity.works/types/data.channel.gt/004"
     description: >
       List of raw telemetry channels produced by the SCADA system.
       
   DerivedChannels:
     type: array
     items:
-      $ref: "https://schemas.electricity.works/types/derived.channel.gt/002"
+      $ref: "https://schemas.electricity.works/types/derived.channel.gt/003"
     description: >
       List of computed telemetry channels derived from other sources,
       including raw data channels.

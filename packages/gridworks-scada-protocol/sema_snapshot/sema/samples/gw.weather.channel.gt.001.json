@@ -1,6 +1,6 @@
 {
   "TypeName": "gw.weather.channel.gt",
-  "Version": "000",
+  "Version": "001",
   "Name": "us.me.millinocket.temperature",
   "DisplayName": "Millinocket outdoor temperature",
   "Quantity": "Temperature",

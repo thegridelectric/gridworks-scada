@@ -1,6 +1,6 @@
 {
   "TypeName": "gw.weather.forecast.bundle.gt",
-  "Version": "000",
+  "Version": "001",
   "Name": "us.me.millinocket.forecast.nws.hourly",
   "DisplayName": "Millinocket NWS hourly forecast bundle",
   "LocationAlias": "us.me.millinocket",
@@ -69,7 +69,7 @@
   },
   "TempObservationChannel": {
     "TypeName": "gw.weather.channel.gt",
-    "Version": "000",
+    "Version": "001",
     "Name": "us.me.millinocket.temperature",
     "DisplayName": "Millinocket temperature",
     "Quantity": "Temperature",
@@ -145,7 +145,7 @@
   },
   "WindSpeedObservationChannel": {
     "TypeName": "gw.weather.channel.gt",
-    "Version": "000",
+    "Version": "001",
     "Name": "us.me.millinocket.windspeed",
     "DisplayName": "Millinocket windspeed",
     "Quantity": "WindSpeed",
