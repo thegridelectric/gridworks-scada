@@ -15,6 +15,10 @@ on these ideas:
   - [ASLs](https://gridwork-type-registry.readthedocs.io/en/latest/asls.html)
  """
 
+from typing import Annotated
+
+from pydantic import BeforeValidator
+
 from gwsproto.enums.actor_class import ActorClass
 from gwsproto.enums.aquastat_control import AquastatControl
 from gwsproto.enums.base_g_node_class import BaseGNodeClass
@@ -114,7 +118,26 @@ from gwsproto.enums.zone_circuit_governance_event import ZoneCircuitGovernanceEv
 from gwsproto.enums.zone_circuit_governance_state import ZoneCircuitGovernanceState
 from gwsproto.enums.zone_setpoint_source import ZoneSetpointSource
 
-AnyDeviceType = DeviceType | SimDeviceType
+
+
+def device_type_by_membership(value: object) -> DeviceType | SimDeviceType:
+    """Resolve a device category by exact membership in one of the two
+    vocabularies. Each enum decodes an unknown name to its default, so
+    constructing either enum directly cannot tell a stale name from a name
+    in the other vocabulary; the membership test refuses a name outside
+    both at the field."""
+    if isinstance(value, (DeviceType, SimDeviceType)):
+        return value
+    if value in DeviceType.values():
+        return DeviceType(value)
+    if value in SimDeviceType.values():
+        return SimDeviceType(value)
+    raise ValueError(f"'{value}' is not a gw1.device.type or gw1.sim.device.type value")
+
+
+AnyDeviceType = Annotated[
+    DeviceType | SimDeviceType, BeforeValidator(device_type_by_membership)
+]
 """The device category a component is built on: a real device (gw1.device.type)
 or a simulated one (gw1.sim.device.type). The two vocabularies are disjoint, so
 the value's membership says which it is."""

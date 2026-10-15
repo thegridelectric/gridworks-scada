@@ -3,9 +3,8 @@ each axiom rejects its counterexample."""
 
 import copy
 
-import pytest
 from gwsproto.named_types import CommandInterface
-from pydantic import ValidationError
+from tests.named_types.sema_oracle import assert_refused
 
 EXAMPLE = {'ActorName': 'hp-boss',
  'Commands': [{'Event': 'TurnOn',
@@ -25,19 +24,16 @@ EXAMPLE = {'ActorName': 'hp-boss',
 def test_gw_command_interface_axiom_1_empty_commands() -> None:
     d = copy.deepcopy(EXAMPLE)
     d["Commands"] = []
-    with pytest.raises(ValidationError, match="Axiom 1"):
-        CommandInterface.model_validate(d)
+    assert_refused(CommandInterface, d, "Axiom 1")
 
 
 def test_gw_command_interface_axiom_2_event_outside_vocabulary() -> None:
     d = copy.deepcopy(EXAMPLE)
     d["Commands"][0]["Event"] = "TurnSideways"
-    with pytest.raises(ValidationError, match="Axiom 2"):
-        CommandInterface.model_validate(d)
+    assert_refused(CommandInterface, d, "Axiom 2")
 
 
 def test_gw_command_interface_axiom_3_state_outside_vocabulary() -> None:
     d = copy.deepcopy(EXAMPLE)
     d["Commands"][0]["ToState"] = "HpSideways"
-    with pytest.raises(ValidationError, match="Axiom 3"):
-        CommandInterface.model_validate(d)
+    assert_refused(CommandInterface, d, "Axiom 3")

@@ -509,7 +509,7 @@ def main(argv: list[str] | None = None) -> int:
         r.version_drift
         + r.multi_version
         + r.no_oracle
-        + r.shape_drift
+        + list(r.shape_drift)
         + r.sample_reject
         + r.dump_drift
         + r.cli_reject

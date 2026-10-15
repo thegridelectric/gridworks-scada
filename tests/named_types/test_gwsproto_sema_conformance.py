@@ -108,13 +108,7 @@ NO_WORD_ENUMS = {
 # snapshot's version is a seed or twin mistake, never recorded debt.
 KNOWN_TYPE_VERSION_DRIFT: set[str] = set()
 KNOWN_ENUM_VERSION_DRIFT: set[str] = set()
-# A twin whose default() is not the snapshot enum's `default`. The two with
-# no default at all inherit SemaEnum's None.
-KNOWN_ENUM_DEFAULT_DRIFT: set[str] = {
-    "gw1.device.type: gwsproto default None vs snapshot 'EgaugePowerMeter'",
-    "gw1.sim.device.type: gwsproto default None vs snapshot 'SimSensor'",
-    "pico.cycler.event: gwsproto default 'ConfirmRebooted' vs snapshot 'WakeUp'",
-}
+KNOWN_ENUM_DEFAULT_DRIFT: set[str] = set()
 
 # Twins whose serialized fields or required set differ from the snapshot
 # class at the pinned version, keyed type/version, with the EXACT drift: a
@@ -162,6 +156,21 @@ def test_enum_default_drift_only_known(report: conformance.Report) -> None:
         f"new={sorted(actual - KNOWN_ENUM_DEFAULT_DRIFT)} "
         f"fixed={sorted(KNOWN_ENUM_DEFAULT_DRIFT - actual)}"
     )
+
+
+def test_every_enum_has_a_default() -> None:
+    """Every gwsproto enum declares a default, and it is one of its own values.
+    The default is the forward-compatibility fallback: an unknown value on the
+    wire decodes to it. A twin with no default refuses instead, which the sema
+    enum rule does not allow."""
+    missing = []
+    for name, cls in sorted(conformance.gwsproto_enum_classes().items()):
+        default = cls.default()
+        if default is None:
+            missing.append(f"{name}: no default")
+        elif default not in list(cls):
+            missing.append(f"{name}: default {default!r} is not one of its values")
+    assert missing == [], "\n".join(missing)
 
 
 def test_every_pinned_version_has_an_oracle(report: conformance.Report) -> None:

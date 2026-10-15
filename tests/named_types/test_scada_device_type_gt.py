@@ -1,7 +1,5 @@
 """Tests gw1.scada.device.type.gt type, version 000"""
 
-import pytest
-from pydantic import ValidationError
 
 from gwsproto.data_classes.device_types.scada_krida import (
     krida_double_relay_board_16_device_type,
@@ -38,8 +36,7 @@ def test_gw1_scada_device_type_gt_axiom_5_energized_level_range() -> None:
     )
     d["RelayEnergizedLevel"] = 2
 
-    with pytest.raises(ValidationError, match="Axiom 5"):
-        ScadaDeviceTypeGt.model_validate(d)
+    assert_refused(ScadaDeviceTypeGt, d, "Axiom 5")
 
 
 def test_gw1_scada_device_type_gt_axiom_6_rejects_two_buses() -> None:
@@ -49,5 +46,4 @@ def test_gw1_scada_device_type_gt_axiom_6_rejects_two_buses() -> None:
     d["BusList"] = d["BusList"] + [
         {"Name": "SecondBus", "BusNumber": 3, "TypeName": "i2c.bus", "Version": "000"}
     ]
-    with pytest.raises(ValidationError, match="Axiom 6 \\(SingleBus\\)"):
-        ScadaDeviceTypeGt.model_validate(d)
+    assert_refused(ScadaDeviceTypeGt, d, "Axiom 6 \\(SingleBus\\)")

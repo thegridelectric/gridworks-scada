@@ -6,9 +6,8 @@ the cycler under five-v-boss, a DAC, and the two interior command nodes
 
 import copy
 
-import pytest
 from gwsproto.named_types import ScadaControlCapabilities
-from pydantic import ValidationError
+from tests.named_types.sema_oracle import assert_refused
 
 EXAMPLE = {'CommandInterfaces': [{'ActorName': 'zone1-bedrooms-ops-relay',
                         'Commands': [{'Event': 'CloseRelay',
@@ -140,29 +139,25 @@ EXAMPLE = {'CommandInterfaces': [{'ActorName': 'zone1-bedrooms-ops-relay',
 def test_scada_control_capabilities_axiom_1_c_relay_class_in_command_nodes() -> None:
     d = copy.deepcopy(EXAMPLE)
     d["CommandNodes"][0]["ActorClass"] = "Relay"
-    with pytest.raises(ValidationError, match="Axiom 1"):
-        ScadaControlCapabilities.model_validate(d)
+    assert_refused(ScadaControlCapabilities, d, "Axiom 1")
 
 
 def test_scada_control_capabilities_axiom_2_command_node_handle_terminal() -> None:
     d = copy.deepcopy(EXAMPLE)
     d["CommandNodes"][0]["Handle"] = "admin.cycler"
-    with pytest.raises(ValidationError, match="Axiom 2"):
-        ScadaControlCapabilities.model_validate(d)
+    assert_refused(ScadaControlCapabilities, d, "Axiom 2")
 
 
 def test_scada_control_capabilities_axiom_3_channel_about_unknown_node() -> None:
     d = copy.deepcopy(EXAMPLE)
     d["ControlChannels"][0]["AboutNodeName"] = "hp-boss"
-    with pytest.raises(ValidationError, match="Axiom 3"):
-        ScadaControlCapabilities.model_validate(d)
+    assert_refused(ScadaControlCapabilities, d, "Axiom 3")
 
 
 def test_scada_control_capabilities_axiom_4_a_directly_commanded_without_interface() -> None:
     d = copy.deepcopy(EXAMPLE)
     d["CommandInterfaces"] = [i for i in d["CommandInterfaces"] if i["ActorName"] != "hp-boss"]
-    with pytest.raises(ValidationError, match="Axiom 4"):
-        ScadaControlCapabilities.model_validate(d)
+    assert_refused(ScadaControlCapabilities, d, "Axiom 4")
 
 
 def test_scada_control_capabilities_axiom_4_a_owned_relay_with_interface() -> None:
@@ -171,12 +166,10 @@ def test_scada_control_capabilities_axiom_4_a_owned_relay_with_interface() -> No
     relay = copy.deepcopy(d["CommandInterfaces"][0])
     relay["ActorName"] = "vdc-relay"
     d["CommandInterfaces"].append(relay)
-    with pytest.raises(ValidationError, match="Axiom 4"):
-        ScadaControlCapabilities.model_validate(d)
+    assert_refused(ScadaControlCapabilities, d, "Axiom 4")
 
 
 def test_scada_control_capabilities_axiom_4_b_duplicate_actor_name() -> None:
     d = copy.deepcopy(EXAMPLE)
     d["CommandInterfaces"].append(copy.deepcopy(d["CommandInterfaces"][0]))
-    with pytest.raises(ValidationError, match="Axiom 4"):
-        ScadaControlCapabilities.model_validate(d)
+    assert_refused(ScadaControlCapabilities, d, "Axiom 4")

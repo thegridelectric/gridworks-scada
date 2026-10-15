@@ -20,7 +20,7 @@ class PicoCyclerEvent(SemaEnum):
 
     @classmethod
     def default(cls) -> "PicoCyclerEvent":
-        return cls.ConfirmRebooted
+        return cls.WakeUp
 
     @classmethod
     def values(cls) -> List[str]:

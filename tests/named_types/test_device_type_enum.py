@@ -44,12 +44,18 @@ def electric_meter_device_type(device_type: str) -> ElectricMeterDeviceTypeGt:
     )
 
 
-def test_unknown_value_raises_on_the_enum() -> None:
-    """No silent fallback to a default member: the enum itself rejects."""
-    with pytest.raises(ValueError, match="not valid DeviceType"):
-        DeviceType("Gw108RevC")
-    with pytest.raises(ValueError, match="not valid SimDeviceType"):
-        SimDeviceType("SimGw109")
+def test_unknown_value_decodes_to_the_default_on_the_enum() -> None:
+    """Each enum alone decodes an unknown name to its sema default; the
+    refusal of a stale name belongs to the AnyDeviceType field."""
+    assert DeviceType("Gw108RevC") is DeviceType.EgaugePowerMeter
+    assert SimDeviceType("SimGw109") is SimDeviceType.SimSensor
+
+
+def test_field_refuses_a_name_outside_both_vocabularies() -> None:
+    with pytest.raises(ValidationError, match="not a gw1.device.type"):
+        ScadaBoardComponentGt(ComponentId=COMPONENT_ID, DeviceType="Gw108RevC")
+    with pytest.raises(ValidationError, match="not a gw1.device.type"):
+        ScadaBoardComponentGt(ComponentId=COMPONENT_ID, DeviceType="SimGw109")
 
 
 @pytest.mark.parametrize("device_type", ["Gw108RevB", "SimGw108"])

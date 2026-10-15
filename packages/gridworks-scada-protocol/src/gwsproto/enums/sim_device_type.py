@@ -15,6 +15,10 @@ class SimDeviceType(SemaEnum):
     SimKridaDoubleRelayBoard16 = auto()
 
     @classmethod
+    def default(cls) -> "SimDeviceType":
+        return cls.SimSensor
+
+    @classmethod
     def values(cls) -> list[str]:
         return [elt.value for elt in cls]
 

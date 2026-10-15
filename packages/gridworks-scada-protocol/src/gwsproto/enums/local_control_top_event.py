@@ -13,6 +13,10 @@ class LocalControlTopEvent(SemaEnum):
     CriticalZonesAtSetpointOffpeak = auto()
 
     @classmethod
+    def default(cls) -> "LocalControlTopEvent":
+        return cls.TopGoDormant
+
+    @classmethod
     def values(cls) -> list[str]:
         return [elt.value for elt in cls]
 
