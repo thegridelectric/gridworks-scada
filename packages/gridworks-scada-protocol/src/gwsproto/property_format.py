@@ -21,6 +21,8 @@ UTC_ISO_8601_MILLIS_PATTERN = re.compile(
     r"[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z$"
 )
 
+LOWERCASE_TOKEN_PATTERN = re.compile(r"^[a-z][a-z0-9]*$")
+
 SPACEHEAT_NAME_PATTERN = re.compile(
     r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
 )
@@ -215,6 +217,16 @@ def has_mac_address_format(mac_str: str) -> bool:
     return bool(MAC_REGEX.match(mac_str.lower()))
 
 
+def is_lowercase_token(v: str) -> str:
+    """One lowercase alphanumeric segment starting with a letter: exactly one
+    segment of a dotted identifier, with no separator of any kind."""
+    if not isinstance(v, str):
+        raise ValueError(f"<{v}>: LowercaseToken must be a string.")
+    if not LOWERCASE_TOKEN_PATTERN.fullmatch(v):
+        raise ValueError(f"<{v}>: Fails LowercaseToken format.")
+    return v
+
+
 def is_spaceheat_name(v: str) -> str:
     """
     Validate the SpaceheatName format.
@@ -367,6 +379,7 @@ HexChar = Annotated[str, BeforeValidator(is_hex_char)]
 HhMm = Annotated[str, BeforeValidator(is_hh_mm)]
 IanaTimezoneStr = Annotated[str, BeforeValidator(is_iana_timezone_str)]
 LeftRightDotStr = Annotated[str, BeforeValidator(is_left_right_dot)]
+LowercaseTokenStr = Annotated[str, BeforeValidator(is_lowercase_token)]
 MarketName = Annotated[str, BeforeValidator(is_market_name)]
 MarketSlotName = Annotated[str, BeforeValidator(is_market_slot_name)]
 NonNegativeInt = Annotated[int, BeforeValidator(is_non_negative_int)]

@@ -1,37 +1,31 @@
 from typing import Literal
-from pydantic import StrictInt, model_validator
+from pydantic import model_validator
 from sema_snapshot.sema.base import SemaType
-from sema_snapshot.sema.enums import WeatherForecastFidelity
 from sema_snapshot.sema.property_format import LeftRightDot
 from sema_snapshot.sema.property_format import UTCMilliseconds
 from sema_snapshot.sema.property_format import UtcIso8601Seconds
+from sema_snapshot.sema.types.weather_forecast_series import WeatherForecastSeries
 
 
 class WeatherForecast(SemaType):
-    """Sema: https://schemas.electricity.works/types/gw.weather.forecast/000"""
+    """Sema: https://schemas.electricity.works/types/gw.weather.forecast/001"""
 
     bundle_name: LeftRightDot
-    source_updated_time: UtcIso8601Seconds
     message_created_ms: UTCMilliseconds
-    fidelity: WeatherForecastFidelity
     first_slice_start: UtcIso8601Seconds
-    temp_channel_name: LeftRightDot
-    temp_values: list[StrictInt]
-    wind_speed_channel_name: LeftRightDot
-    wind_speed_values: list[StrictInt]
+    series_list: list[WeatherForecastSeries]
     type_name: Literal["gw.weather.forecast"] = "gw.weather.forecast"
-    version: Literal["000"] = "000"
+    version: Literal["001"] = "001"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> "WeatherForecast":
         """
-        Axiom 1: NonEmptyValues
-        TempValues and WindSpeedValues SHALL be non-empty.
+        Axiom 1: NonEmptySeriesList
+        SeriesList SHALL be non-empty.
         """
-        if len(self.temp_values) == 0 or len(self.wind_speed_values) == 0:
+        if len(self.series_list) == 0:
             raise ValueError(
-                "Axiom 1 (NonEmptyValues) failed: TempValues and "
-                "WindSpeedValues must be non-empty."
+                "Axiom 1 (NonEmptySeriesList) failed: SeriesList must be non-empty."
             )
         return self
 
@@ -39,13 +33,13 @@ class WeatherForecast(SemaType):
     def check_axiom_2(self) -> "WeatherForecast":
         """
         Axiom 2: EqualValueLengths
-        len(TempValues) SHALL equal len(WindSpeedValues).
+        Every series in SeriesList SHALL have the same len(Values).
         """
-        if len(self.temp_values) != len(self.wind_speed_values):
+        lengths = {s.channel_name: len(s.values) for s in self.series_list}
+        if len(set(lengths.values())) > 1:
             raise ValueError(
-                "Axiom 2 (EqualValueLengths) failed: "
-                f"len(TempValues)={len(self.temp_values)} must equal "
-                f"len(WindSpeedValues)={len(self.wind_speed_values)}."
+                "Axiom 2 (EqualValueLengths) failed: every series must have the "
+                f"same len(Values); got {lengths!r}."
             )
         return self
 
@@ -53,32 +47,26 @@ class WeatherForecast(SemaType):
     def check_axiom_3(self) -> "WeatherForecast":
         """
         Axiom 3: DistinctChannels
-        TempChannelName SHALL differ from WindSpeedChannelName.
+        ChannelName SHALL be distinct across SeriesList.
         """
-        if self.temp_channel_name == self.wind_speed_channel_name:
+        names = [s.channel_name for s in self.series_list]
+        if len(set(names)) != len(names):
             raise ValueError(
-                "Axiom 3 (DistinctChannels) failed: TempChannelName and "
-                f"WindSpeedChannelName are both {self.temp_channel_name!r}."
+                "Axiom 3 (DistinctChannels) failed: ChannelName must be distinct "
+                f"across SeriesList; got {names!r}."
             )
         return self
 
     @model_validator(mode="after")
     def check_axiom_4(self) -> "WeatherForecast":
         """
-        Axiom 4: ForecastNaming
-        a. BundleName SHALL contain "forecast" as an interior segment.
-        b. TempChannelName SHALL contain "forecast" as an interior segment.
-        c. WindSpeedChannelName SHALL contain "forecast" as an interior segment.
+        Axiom 4: DistinctQuantities
+        Quantity SHALL be distinct across SeriesList.
         """
-        for label, value in (
-            ("a", self.bundle_name),
-            ("b", self.temp_channel_name),
-            ("c", self.wind_speed_channel_name),
-        ):
-            if "forecast" not in value.split(".")[1:-1]:
-                raise ValueError(
-                    f"Axiom 4 (ForecastNaming, clause {label}) failed: "
-                    f"{value!r} must contain 'forecast' as an interior "
-                    "segment."
-                )
+        quantities = [s.quantity for s in self.series_list]
+        if len(set(quantities)) != len(quantities):
+            raise ValueError(
+                "Axiom 4 (DistinctQuantities) failed: Quantity must be distinct "
+                f"across SeriesList; got {[q.value for q in quantities]!r}."
+            )
         return self

@@ -1,71 +1,59 @@
 from typing import List, Literal
 
-from pydantic import StrictInt, model_validator
+from pydantic import model_validator
 from typing_extensions import Self
 
-from gwsproto.enums import WeatherForecastFidelity
+from gwsproto.named_types.gw_weather_forecast_series import GwWeatherForecastSeries
 from gwsproto.property_format import LeftRightDotStr, UTCMilliseconds, UtcIso8601Seconds
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
 class GwWeatherForecast(GwsprotoSemaType):
-    """Sema: https://schemas.electricity.works/types/gw.weather.forecast/000"""
+    """Sema: https://schemas.electricity.works/types/gw.weather.forecast/001"""
 
     BundleName: LeftRightDotStr
-    SourceUpdatedTime: UtcIso8601Seconds
     MessageCreatedMs: UTCMilliseconds
-    Fidelity: WeatherForecastFidelity
     FirstSliceStart: UtcIso8601Seconds
-    TempChannelName: LeftRightDotStr
-    TempValues: List[StrictInt]
-    WindSpeedChannelName: LeftRightDotStr
-    WindSpeedValues: List[StrictInt]
+    SeriesList: List[GwWeatherForecastSeries]
     TypeName: Literal["gw.weather.forecast"] = "gw.weather.forecast"
-    Version: Literal["000"] = "000"
+    Version: Literal["001"] = "001"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
-        """Axiom 1: NonEmptyValues. TempValues and WindSpeedValues are non-empty."""
-        if len(self.TempValues) == 0 or len(self.WindSpeedValues) == 0:
-            raise ValueError(
-                "Axiom 1 (NonEmptyValues) failed: TempValues and WindSpeedValues "
-                "must be non-empty"
-            )
+        """Axiom 1: NonEmptySeriesList. SeriesList is non-empty."""
+        if len(self.SeriesList) == 0:
+            raise ValueError("Axiom 1 (NonEmptySeriesList) failed: SeriesList must be non-empty")
         return self
 
     @model_validator(mode="after")
     def check_axiom_2(self) -> Self:
-        """Axiom 2: EqualValueLengths. len(TempValues) equals len(WindSpeedValues)."""
-        if len(self.TempValues) != len(self.WindSpeedValues):
+        """Axiom 2: EqualValueLengths. Every series has the same len(Values)."""
+        lengths = {s.ChannelName: len(s.Values) for s in self.SeriesList}
+        if len(set(lengths.values())) > 1:
             raise ValueError(
-                f"Axiom 2 (EqualValueLengths) failed: len(TempValues)="
-                f"{len(self.TempValues)} must equal len(WindSpeedValues)="
-                f"{len(self.WindSpeedValues)}"
+                "Axiom 2 (EqualValueLengths) failed: every series must have the "
+                f"same len(Values); got {lengths!r}"
             )
         return self
 
     @model_validator(mode="after")
     def check_axiom_3(self) -> Self:
-        """Axiom 3: DistinctChannels. TempChannelName differs from WindSpeedChannelName."""
-        if self.TempChannelName == self.WindSpeedChannelName:
+        """Axiom 3: DistinctChannels. ChannelName is distinct across SeriesList."""
+        names = [s.ChannelName for s in self.SeriesList]
+        if len(set(names)) != len(names):
             raise ValueError(
-                "Axiom 3 (DistinctChannels) failed: TempChannelName and "
-                f"WindSpeedChannelName are both {self.TempChannelName!r}"
+                "Axiom 3 (DistinctChannels) failed: ChannelName must be distinct "
+                f"across SeriesList; got {names!r}"
             )
         return self
 
     @model_validator(mode="after")
     def check_axiom_4(self) -> Self:
-        """Axiom 4: ForecastNaming. BundleName (a), TempChannelName (b) and
-        WindSpeedChannelName (c) each contain "forecast" as an interior segment."""
-        for clause, value in (
-            ("a", self.BundleName),
-            ("b", self.TempChannelName),
-            ("c", self.WindSpeedChannelName),
-        ):
-            if "forecast" not in value.split(".")[1:-1]:
-                raise ValueError(
-                    f"Axiom 4 (ForecastNaming, clause {clause}) failed: {value!r} must "
-                    "contain 'forecast' as an interior segment"
-                )
+        """Axiom 4: DistinctQuantities. Quantity is distinct across SeriesList."""
+        quantities = [s.Quantity for s in self.SeriesList]
+        if len(set(quantities)) != len(quantities):
+            raise ValueError(
+                "Axiom 4 (DistinctQuantities) failed: Quantity must be distinct "
+                f"across SeriesList; got {[q.value for q in quantities]!r}"
+            )
         return self

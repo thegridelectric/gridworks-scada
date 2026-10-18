@@ -1082,8 +1082,15 @@ class DerivedGenerator(ShNodeActor):
             else:
                 self.log("No weather forecast available. Could not compute heating forecasts.")
             return
+        missing = self.services.weather_source.missing_quantities
+        if missing:
+            self.send_warning(
+                "weather-series-missing",
+                f"The forecast on {self.weather_forecast.bundle.Name} has no "
+                f"{', '.join(q.value for q in missing)} series; the heating forecast runs on the seasonal template",
+            )
         weather = self.weather_forecast.next_hours(FORECAST_HOURS, self.services.clock.now())
-        
+
         forecasts = {}
         forecasts['time'] = weather.time
         forecasts['avg_power'] = [
@@ -1119,7 +1126,7 @@ class DerivedGenerator(ShNodeActor):
 
         forecast_start = datetime.fromtimestamp(weather.time[0], tz=self.timezone)
         self.log(
-            f"Got a {self.weather_forecast.message.Fidelity.value} forecast starting "
+            f"Got a {self.weather_forecast.fidelity_label()} forecast starting "
             f"{forecast_start.strftime('%Y-%m-%d %H:%M:%S')}"
         )
 

@@ -814,7 +814,7 @@
   "LoadOverestimationPercent": 0,
   "UsesBackupWhenCold": false,
   "HorizonHours": 48,
-  "WeatherBundleName": "us.me.millinocket.forecast.nws.hourly96",
+  "WeatherBundleName": "us.me.millinocket.moose",
   "Tariff": {
     "TypeName": "gw.tou.tariff",
     "Version": "000",

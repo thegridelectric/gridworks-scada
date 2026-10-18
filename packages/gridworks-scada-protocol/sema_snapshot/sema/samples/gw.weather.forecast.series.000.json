@@ -1,0 +1,12 @@
+{
+  "TypeName": "gw.weather.forecast.series",
+  "Version": "000",
+  "ChannelName": "us.me.millinocket.temperature.forecast.nws.hourly",
+  "Quantity": "Temperature",
+  "Values": [
+    512,
+    498
+  ],
+  "Fidelity": "Live",
+  "SourceUpdatedTime": "2026-10-15T20:01:57Z"
+}

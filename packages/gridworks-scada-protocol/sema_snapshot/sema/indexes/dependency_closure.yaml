@@ -675,12 +675,13 @@ types:
       types: []
       versionless_types: []
   gw.weather.channel.gt:
-    '001':
+    '002':
       enums:
       - gw1.quantity:003
       - gw1.unit:003
       formats:
       - left.right.dot
+      - lowercase.token
       - non.empty.string
       - non.negative.int
       - positive.int
@@ -689,29 +690,50 @@ types:
       types: []
       versionless_types: []
   gw.weather.forecast:
-    '000':
+    '001':
       enums:
       - gw.weather.forecast.fidelity:000
+      - gw1.quantity:003
       formats:
       - left.right.dot
       - utc.iso8601.seconds
       - utc.milliseconds
-      types: []
+      types:
+      - gw.weather.forecast.series:000
       versionless_types: []
-  gw.weather.forecast.bundle.gt:
-    '001':
+  gw.weather.forecast.binding:
+    '000':
       enums:
       - gw1.quantity:003
       - gw1.unit:003
       formats:
       - left.right.dot
+      - lowercase.token
       - non.empty.string
       - non.negative.int
       - positive.int
       - utc.iso8601.seconds
       - uuid4.str
       types:
-      - gw.weather.channel.gt:001
+      - gw.weather.channel.gt:002
+      - gw.weather.forecast.channel.gt:000
+      versionless_types: []
+  gw.weather.forecast.bundle.gt:
+    '002':
+      enums:
+      - gw1.quantity:003
+      - gw1.unit:003
+      formats:
+      - left.right.dot
+      - lowercase.token
+      - non.empty.string
+      - non.negative.int
+      - positive.int
+      - utc.iso8601.seconds
+      - uuid4.str
+      types:
+      - gw.weather.channel.gt:002
+      - gw.weather.forecast.binding:000
       - gw.weather.forecast.channel.gt:000
       versionless_types: []
   gw.weather.forecast.channel.gt:
@@ -723,6 +745,16 @@ types:
       - positive.int
       - utc.iso8601.seconds
       - uuid4.str
+      types: []
+      versionless_types: []
+  gw.weather.forecast.series:
+    '000':
+      enums:
+      - gw.weather.forecast.fidelity:000
+      - gw1.quantity:003
+      formats:
+      - left.right.dot
+      - utc.iso8601.seconds
       types: []
       versionless_types: []
   gw.weather.seasonal.template.gt:

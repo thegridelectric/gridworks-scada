@@ -4,30 +4,30 @@ from pydantic import Field, NonNegativeInt, PositiveInt, model_validator
 from typing_extensions import Self
 
 from gwsproto.enums import Quantity, Unit
-from gwsproto.property_format import LeftRightDotStr, UtcIso8601Seconds, UUID4Str
+from gwsproto.property_format import LeftRightDotStr, LowercaseTokenStr, UtcIso8601Seconds, UUID4Str
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
 class WeatherChannelGt(GwsprotoSemaType):
-    """Sema: https://schemas.electricity.works/types/gw.weather.channel.gt/001"""
+    """Sema: https://schemas.electricity.works/types/gw.weather.channel.gt/002"""
 
     Name: LeftRightDotStr
     DisplayName: Annotated[str, Field(min_length=1)]
     Quantity: Quantity
     Unit: Unit
-    LocationAlias: LeftRightDotStr
+    StationAlias: LowercaseTokenStr
     EmitPeriodS: PositiveInt
     EmitOffsetS: NonNegativeInt
     Start: UtcIso8601Seconds
     Id: UUID4Str
     TypeName: Literal["gw.weather.channel.gt"] = "gw.weather.channel.gt"
-    Version: Literal["001"] = "001"
+    Version: Literal["002"] = "002"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
-        """Axiom 1: NameDerivation. Name equals LocationAlias + "." + the
+        """Axiom 1: NameDerivation. Name equals StationAlias + "." + the
         lowercased Quantity, optionally followed by further segments."""
-        derived = f"{self.LocationAlias}.{self.Quantity.value.lower()}"
+        derived = f"{self.StationAlias}.{self.Quantity.value.lower()}"
         if not (self.Name == derived or self.Name.startswith(derived + ".")):
             raise ValueError(
                 f"Axiom 1 (NameDerivation) failed: Name must equal {derived!r} "

@@ -1,0 +1,45 @@
+{
+  "TypeName": "gw.weather.forecast",
+  "Version": "001",
+  "BundleName": "us.me.millinocket.raccoon",
+  "MessageCreatedMs": 1792094460033,
+  "FirstSliceStart": "2026-10-15T21:00:00Z",
+  "SeriesList": [
+    {
+      "TypeName": "gw.weather.forecast.series",
+      "Version": "000",
+      "ChannelName": "kmlt.temperature.forecast.nws.hourly",
+      "Quantity": "Temperature",
+      "Values": [
+        512,
+        498
+      ],
+      "Fidelity": "Live",
+      "SourceUpdatedTime": "2026-10-15T20:01:57Z"
+    },
+    {
+      "TypeName": "gw.weather.forecast.series",
+      "Version": "000",
+      "ChannelName": "kmlt.windspeed.forecast.nws.hourly",
+      "Quantity": "WindSpeed",
+      "Values": [
+        60,
+        70
+      ],
+      "Fidelity": "Live",
+      "SourceUpdatedTime": "2026-10-15T20:01:57Z"
+    },
+    {
+      "TypeName": "gw.weather.forecast.series",
+      "Version": "000",
+      "ChannelName": "kmlt.irradiance.forecast.openmeteo.hourly",
+      "Quantity": "Irradiance",
+      "Values": [
+        120,
+        35
+      ],
+      "Fidelity": "Stored",
+      "SourceUpdatedTime": "2026-10-15T20:00:00Z"
+    }
+  ]
+}

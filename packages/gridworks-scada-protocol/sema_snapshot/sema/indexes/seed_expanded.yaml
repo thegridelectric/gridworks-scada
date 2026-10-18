@@ -1,6 +1,6 @@
 metadata:
   generated_from: indexes/public_registry.yaml
-  generated_at: '2026-10-15T16:15:04Z'
+  generated_at: '2026-10-18T19:19:38Z'
   note: Transitive closure of initial_targets
 initial_targets:
 - ads.channel.config:000
@@ -52,10 +52,12 @@ initial_targets:
 - gw.tou.tariff:000
 - gw.tou.window:000
 - gw.water.store:000
-- gw.weather.channel.gt:001
-- gw.weather.forecast:000
-- gw.weather.forecast.bundle.gt:001
+- gw.weather.channel.gt:002
+- gw.weather.forecast:001
+- gw.weather.forecast.binding:000
+- gw.weather.forecast.bundle.gt:002
 - gw.weather.forecast.channel.gt:000
+- gw.weather.forecast.series:000
 - gw.weather.seasonal.template.gt:000
 - gw0.required.energy.layered:000
 - gw0.usable.energy.layered:000
@@ -232,6 +234,8 @@ worklist:
       path: definitions/formats/iana.timezone.str.yaml
     left.right.dot:
       path: definitions/formats/left.right.dot.yaml
+    lowercase.token:
+      path: definitions/formats/lowercase.token.yaml
     mac.address:
       path: definitions/formats/mac.address.yaml
     market.slot.name:
@@ -645,17 +649,23 @@ worklist:
       '000':
         path: definitions/types/gw.water.store/000.yaml
     gw.weather.channel.gt:
-      '001':
-        path: definitions/types/gw.weather.channel.gt/001.yaml
+      '002':
+        path: definitions/types/gw.weather.channel.gt/002.yaml
     gw.weather.forecast:
-      '000':
-        path: definitions/types/gw.weather.forecast/000.yaml
-    gw.weather.forecast.bundle.gt:
       '001':
-        path: definitions/types/gw.weather.forecast.bundle.gt/001.yaml
+        path: definitions/types/gw.weather.forecast/001.yaml
+    gw.weather.forecast.binding:
+      '000':
+        path: definitions/types/gw.weather.forecast.binding/000.yaml
+    gw.weather.forecast.bundle.gt:
+      '002':
+        path: definitions/types/gw.weather.forecast.bundle.gt/002.yaml
     gw.weather.forecast.channel.gt:
       '000':
         path: definitions/types/gw.weather.forecast.channel.gt/000.yaml
+    gw.weather.forecast.series:
+      '000':
+        path: definitions/types/gw.weather.forecast.series/000.yaml
     gw.weather.seasonal.template.gt:
       '000':
         path: definitions/types/gw.weather.seasonal.template.gt/000.yaml

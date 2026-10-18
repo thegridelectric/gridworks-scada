@@ -127,12 +127,16 @@ initial_targets:
     gw.water.store:
       versions: ["000"]
     gw.weather.channel.gt:
-      versions: ["001"]
+      versions: ["002"]
     gw.weather.forecast:
+      versions: ["001"]
+    gw.weather.forecast.binding:
       versions: ["000"]
     gw.weather.forecast.bundle.gt:
-      versions: ["001"]
+      versions: ["002"]
     gw.weather.forecast.channel.gt:
+      versions: ["000"]
+    gw.weather.forecast.series:
       versions: ["000"]
     gw.weather.seasonal.template.gt:
       versions: ["000"]

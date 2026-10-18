@@ -255,25 +255,35 @@ types:
     versions:
       '000': definitions/types/gw.water.store/000.yaml
   gw.weather.channel.gt:
+    latest_version: '002'
+    versioning_strategy: literal
+    versions:
+      '002': definitions/types/gw.weather.channel.gt/002.yaml
+  gw.weather.forecast:
     latest_version: '001'
     versioning_strategy: literal
     versions:
-      '001': definitions/types/gw.weather.channel.gt/001.yaml
-  gw.weather.forecast:
+      '001': definitions/types/gw.weather.forecast/001.yaml
+  gw.weather.forecast.binding:
     latest_version: '000'
     versioning_strategy: literal
     versions:
-      '000': definitions/types/gw.weather.forecast/000.yaml
+      '000': definitions/types/gw.weather.forecast.binding/000.yaml
   gw.weather.forecast.bundle.gt:
-    latest_version: '001'
+    latest_version: '002'
     versioning_strategy: literal
     versions:
-      '001': definitions/types/gw.weather.forecast.bundle.gt/001.yaml
+      '002': definitions/types/gw.weather.forecast.bundle.gt/002.yaml
   gw.weather.forecast.channel.gt:
     latest_version: '000'
     versioning_strategy: literal
     versions:
       '000': definitions/types/gw.weather.forecast.channel.gt/000.yaml
+  gw.weather.forecast.series:
+    latest_version: '000'
+    versioning_strategy: literal
+    versions:
+      '000': definitions/types/gw.weather.forecast.series/000.yaml
   gw.weather.seasonal.template.gt:
     latest_version: '000'
     versioning_strategy: literal
@@ -1069,6 +1079,7 @@ formats:
   hh.mm: definitions/formats/hh.mm.yaml
   iana.timezone.str: definitions/formats/iana.timezone.str.yaml
   left.right.dot: definitions/formats/left.right.dot.yaml
+  lowercase.token: definitions/formats/lowercase.token.yaml
   mac.address: definitions/formats/mac.address.yaml
   market.slot.name: definitions/formats/market.slot.name.yaml
   non.empty.string: definitions/formats/non.empty.string.yaml

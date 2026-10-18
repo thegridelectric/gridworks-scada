@@ -179,7 +179,9 @@ from gwsproto.named_types.usable_energy_layered import UsableEnergyLayered
 from gwsproto.named_types.wake_up import WakeUp
 from gwsproto.named_types.water_store import WaterStore
 from gwsproto.named_types.gw_weather_forecast import GwWeatherForecast
+from gwsproto.named_types.gw_weather_forecast_series import GwWeatherForecastSeries
 from gwsproto.named_types.weather_channel_gt import WeatherChannelGt
+from gwsproto.named_types.weather_forecast_binding import WeatherForecastBinding
 from gwsproto.named_types.weather_forecast_bundle_gt import WeatherForecastBundleGt
 from gwsproto.named_types.weather_forecast_channel_gt import WeatherForecastChannelGt
 from gwsproto.named_types.weather_seasonal_template_gt import WeatherSeasonalTemplateGt
@@ -351,7 +353,9 @@ __all__ = [
     "WakeUp",
     "WaterStore",
     "GwWeatherForecast",
+    "GwWeatherForecastSeries",
     "WeatherChannelGt",
+    "WeatherForecastBinding",
     "WeatherForecastBundleGt",
     "WeatherForecastChannelGt",
     "WeatherSeasonalTemplateGt",

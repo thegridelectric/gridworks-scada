@@ -1,13 +1,13 @@
-"""Tests gw.weather.channel.gt type, version 001"""
+"""Tests gw.weather.channel.gt type, version 002"""
 
 from gwsproto.named_types import WeatherChannelGt
 
-from tests.named_types.weather_fixtures import bundle_dict
+from tests.named_types.weather_fixtures import binding_dict
 from tests.named_types.sema_oracle import assert_refused
 
 
 def channel_dict() -> dict:
-    return bundle_dict()["TempObservationChannel"]
+    return binding_dict("Temperature")["ObservationChannel"]
 
 
 def test_weather_channel_gt_generated() -> None:
@@ -17,7 +17,7 @@ def test_weather_channel_gt_generated() -> None:
 
 def test_gw_weather_channel_gt_axiom_1_name_not_derived() -> None:
     d = channel_dict()
-    d["Name"] = "us.me.millinocket.windspeed"
+    d["Name"] = "kmlt.windspeed"
     assert_refused(WeatherChannelGt, d, match="Axiom 1")
 
 

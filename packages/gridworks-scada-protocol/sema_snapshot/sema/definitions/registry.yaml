@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-10-15T16:00:00Z"
+  last_updated: "2026-10-18T18:50:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -45,6 +45,13 @@ formats:
     created: "2022-01-01T00:00:00Z"
     status: "published"
     description: "Dot-separated hierarchical identifier composed of lowercase alphanumeric segments"
+
+  lowercase.token:
+    owner: gridworks-energy
+    schema_url: "https://schemas.electricity.works/formats/lowercase.token"
+    created: "2026-10-18T15:30:00Z"
+    status: "published"
+    description: "One lowercase alphanumeric segment starting with a letter; exactly one segment of a dotted identifier, no separators"
 
   mac.address:
     owner: gridworks-energy
@@ -2035,22 +2042,23 @@ types:
             - "positive.int"
 
   gw.weather.channel.gt:
-    latest_version: "001"
+    latest_version: "002"
     owner: gridworks-energy
     versioning_strategy: "literal"
-    description: "An observed weather series: one quantity at one place, the ground-truth series forecasters are scored against."
+    description: "An observed weather series: one quantity measured by one station, the ground-truth series forecasters are scored against."
 
     versions:
-      "001":
-        schema_url: "https://schemas.electricity.works/types/gw.weather.channel.gt/001"
-        created: "2026-10-15T14:55:00Z"
+      "002":
+        schema_url: "https://schemas.electricity.works/types/gw.weather.channel.gt/002"
+        created: "2026-10-18T15:30:00Z"
         status: "published"
-        summary: "- Quantity: gw1.quantity 002 -> 003 - Unit: gw1.unit 002 -> 003"
+        summary: "- LocationAlias: removed; StationAlias: add (the gw.weather.station.gt whose readings this series is) - Name: derived from StationAlias and Quantity"
         direct_dependencies:
           structural:
             - "gw1.quantity:003"
             - "gw1.unit:003"
             - "left.right.dot"
+            - "lowercase.token"
             - "non.empty.string"
             - "non.negative.int"
             - "positive.int"
@@ -2058,40 +2066,56 @@ types:
             - "uuid4.str"
 
   gw.weather.forecast:
-    latest_version: "000"
+    latest_version: "001"
     owner: gridworks-energy
     versioning_strategy: "literal"
-    description: "Temperatures and wind speeds over a shared slice grid for a location, emitted per bundle by the GridWorks weather forecast service for flexible-load optimization."
+    description: "Weather series over a shared slice grid for a location, emitted per bundle by the GridWorks weather forecast service for flexible-load optimization; the bundle declares which series, each with its own fidelity."
 
     versions:
-      "000":
-        schema_url: "https://schemas.electricity.works/types/gw.weather.forecast/000"
-        created: "2026-08-11T14:20:00Z"
+      "001":
+        schema_url: "https://schemas.electricity.works/types/gw.weather.forecast/001"
+        created: "2026-10-17T16:00:00Z"
         status: "published"
-        summary: "Initial version."
+        summary: "- SourceUpdatedTime, Fidelity, TempChannelName, TempValues, WindSpeedChannelName, WindSpeedValues: removed - SeriesList: add (gw.weather.forecast.series 000, one per bound channel)"
         direct_dependencies:
           structural:
-            - "gw.weather.forecast.fidelity:000"
+            - "gw.weather.forecast.series:000"
             - "left.right.dot"
             - "utc.iso8601.seconds"
             - "utc.milliseconds"
 
-  gw.weather.forecast.bundle.gt:
-    latest_version: "001"
+  gw.weather.forecast.binding:
+    latest_version: "000"
     owner: gridworks-energy
     versioning_strategy: "literal"
-    description: "The subscribable curated set of forecast channels sharing one slice grid and emission schedule; embeds the forecast channels and their observed targets."
+    description: "One forecast channel with the observed channel it targets, as a bundle embeds it; the bundle's membership, not a record of its own."
 
     versions:
-      "001":
-        schema_url: "https://schemas.electricity.works/types/gw.weather.forecast.bundle.gt/001"
-        created: "2026-10-15T14:55:00Z"
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.weather.forecast.binding/000"
+        created: "2026-10-18T15:30:00Z"
         status: "published"
-        summary: "- TempObservationChannel, WindSpeedObservationChannel: gw.weather.channel.gt 000 -> 001"
+        summary: "Initial version."
         direct_dependencies:
           structural:
-            - "gw.weather.channel.gt:001"
+            - "gw.weather.channel.gt:002"
             - "gw.weather.forecast.channel.gt:000"
+
+  gw.weather.forecast.bundle.gt:
+    latest_version: "002"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "The subscribable curated set of forecast channels sharing one slice grid and emission schedule; embeds each forecast channel with its observed target and declares which series its broadcasts hold."
+
+    versions:
+      "002":
+        schema_url: "https://schemas.electricity.works/types/gw.weather.forecast.bundle.gt/002"
+        created: "2026-10-18T15:30:00Z"
+        status: "published"
+        summary: "- TempForecastChannel, TempObservationChannel, WindSpeedForecastChannel, WindSpeedObservationChannel: removed - BindingList: add (gw.weather.forecast.binding 000, one per quantity)"
+        direct_dependencies:
+          structural:
+            - "gw.weather.forecast.binding:000"
             - "left.right.dot"
             - "non.empty.string"
             - "non.negative.int"
@@ -2118,6 +2142,25 @@ types:
             - "positive.int"
             - "utc.iso8601.seconds"
             - "uuid4.str"
+
+  gw.weather.forecast.series:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "One forecast series inside a gw.weather.forecast: a channel's values over the message's slice grid with its own fidelity and source revision time."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.weather.forecast.series/000"
+        created: "2026-10-17T16:00:00Z"
+        status: "published"
+        summary: "Initial version."
+        direct_dependencies:
+          structural:
+            - "gw.weather.forecast.fidelity:000"
+            - "gw1.quantity:003"
+            - "left.right.dot"
+            - "utc.iso8601.seconds"
 
   gw.weather.seasonal.template.gt:
     latest_version: "000"

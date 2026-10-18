@@ -1,0 +1,144 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw.weather.forecast/001"
+
+title: "gw.weather.forecast"
+type: object
+description: >
+  Weather series forecast over a shared sequence of time slices for a
+  location, intended for use in optimizing electricity purchases by
+  flexible loads. Produced by a GridWorks-run weather forecast service
+  that ingests external weather services; values are scaled integers
+  per the bundle's channel records. One message per bundle per
+  emission slot. Which series the message holds is declared by the
+  bundle it names, one series per quantity; each series declares its
+  own fidelity and source revision time, since the series come from
+  forecasters that fail independently.
+
+properties:
+  BundleName:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      Name of the gw.weather.forecast.bundle.gt this emission belongs
+      to — the stream name consumers subscribe to for these broadcasts,
+      and the join key to the bundle record declaring structure, units,
+      and schedule.
+
+  MessageCreatedMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+    description: >
+      When the weather forecast service created this message. Advances
+      with every emission.
+
+  FirstSliceStart:
+    $ref: "https://schemas.electricity.works/formats/utc.iso8601.seconds"
+    description: >
+      Start of the first time slice. Slice boundaries derive from this
+      plus the bundle channels' shared SliceDurationSList.
+
+  SeriesList:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/gw.weather.forecast.series/000"
+    description: >
+      The forecast series of this emission, one per forecast channel
+      of the bundle, each over the same slices.
+
+  TypeName:
+    const: "gw.weather.forecast"
+
+  Version:
+    const: "001"
+
+required:
+  - BundleName
+  - MessageCreatedMs
+  - FirstSliceStart
+  - SeriesList
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "BundleName": "us.me.millinocket.raccoon",
+      "MessageCreatedMs": 1792094460033,
+      "FirstSliceStart": "2026-10-15T21:00:00Z",
+      "SeriesList": [
+        {
+          "ChannelName": "kmlt.temperature.forecast.nws.hourly",
+          "Quantity": "Temperature",
+          "Values": [
+            512,
+            498
+          ],
+          "Fidelity": "Live",
+          "SourceUpdatedTime": "2026-10-15T20:01:57Z",
+          "TypeName": "gw.weather.forecast.series",
+          "Version": "000"
+        },
+        {
+          "ChannelName": "kmlt.windspeed.forecast.nws.hourly",
+          "Quantity": "WindSpeed",
+          "Values": [
+            60,
+            70
+          ],
+          "Fidelity": "Live",
+          "SourceUpdatedTime": "2026-10-15T20:01:57Z",
+          "TypeName": "gw.weather.forecast.series",
+          "Version": "000"
+        },
+        {
+          "ChannelName": "kmlt.irradiance.forecast.openmeteo.hourly",
+          "Quantity": "Irradiance",
+          "Values": [
+            120,
+            35
+          ],
+          "Fidelity": "Stored",
+          "SourceUpdatedTime": "2026-10-15T20:00:00Z",
+          "TypeName": "gw.weather.forecast.series",
+          "Version": "000"
+        }
+      ],
+      "TypeName": "gw.weather.forecast",
+      "Version": "001"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "NonEmptySeriesList"
+      statement: >
+        SeriesList SHALL be non-empty.
+    - number: 2
+      name: "EqualValueLengths"
+      statement: >
+        Every series in SeriesList SHALL have the same len(Values).
+    - number: 3
+      name: "DistinctChannels"
+      statement: >
+        ChannelName SHALL be distinct across SeriesList.
+    - number: 4
+      name: "DistinctQuantities"
+      statement: >
+        Quantity SHALL be distinct across SeriesList.
+
+  extended_description: >
+    Structure, units, and emission schedule live on the bundle's
+    channel records (gw.weather.forecast.bundle.gt embeds them); the
+    weather forecast service ensures their consistency, so consumers
+    derive every slice boundary from FirstSliceStart plus the shared
+    SliceDurationSList, and the service emits exactly the series the
+    bundle binds. Two clocks per series: SourceUpdatedTime may hold
+    for hours while an external source sits on a forecast package;
+    MessageCreatedMs advances with every emission, so re-emissions of
+    a held source revision are distinguishable sends of the same
+    claim. Emission is always on the bundle's schedule; each series'
+    Fidelity declares its degradation rung (live source, stored
+    horizon, seasonal template) when its source is unavailable,
+    independently of the other series.

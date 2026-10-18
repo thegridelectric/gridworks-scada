@@ -365,15 +365,24 @@ types:
         summary: "TotalStoreTanks (positive.int), at most 6 (axiom TankCount). Carried by gw.hydronic as the optional WaterStore."
 
   gw.weather.channel.gt:
+    latest_version: "002"
+    versioning_strategy: "literal"
+    versions:
+      "002":
+        summary: >
+          - LocationAlias: removed; StationAlias: add (the gw.weather.station.gt whose readings this series is)
+          - Name: derived from StationAlias and Quantity
+
+  gw.weather.forecast:
     latest_version: "001"
     versioning_strategy: "literal"
     versions:
       "001":
         summary: >
-          - Quantity: gw1.quantity 002 -> 003
-          - Unit: gw1.unit 002 -> 003
+          - SourceUpdatedTime, Fidelity, TempChannelName, TempValues, WindSpeedChannelName, WindSpeedValues: removed
+          - SeriesList: add (gw.weather.forecast.series 000, one per bound channel)
 
-  gw.weather.forecast:
+  gw.weather.forecast.binding:
     latest_version: "000"
     versioning_strategy: "literal"
     versions:
@@ -381,13 +390,22 @@ types:
         summary: "Initial version."
 
   gw.weather.forecast.bundle.gt:
-    latest_version: "001"
+    latest_version: "002"
     versioning_strategy: "literal"
     versions:
-      "001":
-        summary: "- TempObservationChannel, WindSpeedObservationChannel: gw.weather.channel.gt 000 -> 001"
+      "002":
+        summary: >
+          - TempForecastChannel, TempObservationChannel, WindSpeedForecastChannel, WindSpeedObservationChannel: removed
+          - BindingList: add (gw.weather.forecast.binding 000, one per quantity)
 
   gw.weather.forecast.channel.gt:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version."
+
+  gw.weather.forecast.series:
     latest_version: "000"
     versioning_strategy: "literal"
     versions:

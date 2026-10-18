@@ -165,10 +165,12 @@ from sema_snapshot.sema.types.unit_quantity_projection import UnitQuantityProjec
 from sema_snapshot.sema.types.water_store import WaterStore
 from sema_snapshot.sema.types.weather_channel_gt import WeatherChannelGt
 from sema_snapshot.sema.types.weather_forecast import WeatherForecast
+from sema_snapshot.sema.types.weather_forecast_binding import WeatherForecastBinding
 from sema_snapshot.sema.types.weather_forecast_bundle_gt import WeatherForecastBundleGt
 from sema_snapshot.sema.types.weather_forecast_channel_gt import (
     WeatherForecastChannelGt,
 )
+from sema_snapshot.sema.types.weather_forecast_series import WeatherForecastSeries
 from sema_snapshot.sema.types.weather_seasonal_template_gt import (
     WeatherSeasonalTemplateGt,
 )
@@ -310,8 +312,10 @@ __all__ = [
     "WaterStore",
     "WeatherChannelGt",
     "WeatherForecast",
+    "WeatherForecastBinding",
     "WeatherForecastBundleGt",
     "WeatherForecastChannelGt",
+    "WeatherForecastSeries",
     "WeatherSeasonalTemplateGt",
     "WebServerComponentGt",
     "ZeroTenPowerOn",

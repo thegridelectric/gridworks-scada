@@ -130,8 +130,10 @@ types:
   gw.water.store: water.store
   gw.weather.channel.gt: weather.channel.gt
   gw.weather.forecast: weather.forecast
+  gw.weather.forecast.binding: weather.forecast.binding
   gw.weather.forecast.bundle.gt: weather.forecast.bundle.gt
   gw.weather.forecast.channel.gt: weather.forecast.channel.gt
+  gw.weather.forecast.series: weather.forecast.series
   gw.weather.seasonal.template.gt: weather.seasonal.template.gt
   gw0.required.energy.layered: gw0.required.energy.layered
   gw0.usable.energy.layered: gw0.usable.energy.layered

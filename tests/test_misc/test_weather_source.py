@@ -15,19 +15,31 @@ import aiohttp
 import pytest
 from aiohttp import web
 
+from gwsproto.enums import Quantity, WeatherForecastFidelity
 from gwsproto.named_types import GwWeatherForecast, WeatherForecastBundleGt, WeatherSeasonalTemplateGt
-from tests.named_types.weather_fixtures import BUNDLE_NAME, LOCATION_ALIAS, bundle_dict, forecast_dict, template_dict
+from tests.named_types.weather_fixtures import (
+    BUNDLE_NAME,
+    LOCATION_ALIAS,
+    bundle_dict,
+    forecast_dict,
+    series_dict,
+    template_dict,
+)
 from clock import ManualClock, WallClock
-from gwsproto.enums import WeatherForecastFidelity
 from weather_source import (
     FORECAST_HOURS,
     ForecastPair,
     GwwfWeatherSource,
     SimWeatherSource,
     WeatherProvisioningError,
+    record_file,
     sim_forecast,
     utc_seconds,
 )
+
+# The fixture bundle's slice count; the pull tests need it to cover
+# FORECAST_HOURS after the hour the message is issued in.
+SLICES = len(series_dict("Temperature")["Values"])
 
 
 
@@ -35,19 +47,32 @@ def last_whole_hour_s() -> int:
     return (int(time.time()) // 3600) * 3600
 
 
-def forecast_from(start_s: int) -> dict:
+def forecast_from(start_s: int, without: tuple[str, ...] = ()) -> dict:
+    """The fixture message issued at `start_s`, less the series named in `without`."""
     d = forecast_dict()
     d["FirstSliceStart"] = datetime.fromtimestamp(start_s, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     d["MessageCreatedMs"] = int(time.time() * 1000)
+    d["SeriesList"] = [s for s in d["SeriesList"] if s["Quantity"] not in without]
+    return d
+
+
+def values_of(d: dict, quantity: str) -> list[int]:
+    return next(s["Values"] for s in d["SeriesList"] if s["Quantity"] == quantity)
+
+
+def bundle_without(quantity: str) -> dict:
+    d = bundle_dict()
+    d["BindingList"] = [b for b in d["BindingList"] if b["ObservationChannel"]["Quantity"] != quantity]
     return d
 
 
 class Facade:
     """A read facade on a free port, counting its hits."""
 
-    def __init__(self, forecast: Optional[dict], delay_s: float = 0) -> None:
+    def __init__(self, forecast: Optional[dict], delay_s: float = 0, bundle: Optional[dict] = None) -> None:
         self.forecast = forecast
         self.delay_s = delay_s
+        self.bundle = bundle_dict() if bundle is None else bundle
         self.bundle_hits = 0
         self.template_hits = 0
         self.templates: list[dict] = [template_dict()]
@@ -57,7 +82,7 @@ class Facade:
 
     async def bundles(self, request: web.Request) -> web.Response:
         self.bundle_hits += 1
-        return web.json_response([bundle_dict()])
+        return web.json_response([self.bundle])
 
     async def seasonal_templates(self, request: web.Request) -> web.Response:
         self.template_hits += 1
@@ -119,11 +144,11 @@ def persist(
     config_dir: Path, forecast: Optional[dict], bundle: Optional[dict], template: Optional[dict] = None
 ) -> None:
     if forecast is not None:
-        (config_dir / f"{BUNDLE_NAME}-gw.weather.forecast-000.json").write_text(json.dumps(forecast))
+        record_file(config_dir, BUNDLE_NAME, GwWeatherForecast).write_text(json.dumps(forecast))
     if bundle is not None:
-        (config_dir / f"{BUNDLE_NAME}-gw.weather.forecast.bundle.gt-001.json").write_text(json.dumps(bundle))
+        record_file(config_dir, BUNDLE_NAME, WeatherForecastBundleGt).write_text(json.dumps(bundle))
     if template is not None:
-        (config_dir / f"{LOCATION_ALIAS}-gw.weather.seasonal.template.gt-000.json").write_text(json.dumps(template))
+        record_file(config_dir, LOCATION_ALIAS, WeatherSeasonalTemplateGt).write_text(json.dumps(template))
 
 
 def template_oat_f(at_s: float) -> float:
@@ -144,11 +169,11 @@ async def test_a_pull_yields_the_served_pair_and_48_future_hourly_slices_unscale
     assert pair.bundle.model_dump(by_alias=True) == bundle_dict()
     hourly = pair.next_hours(FORECAST_HOURS, time.time())
     assert hourly.time == [start_s + 3600 * h for h in range(1, FORECAST_HOURS + 1)]
-    assert hourly.oat_f == [v / 100 for v in d["TempValues"][1 : FORECAST_HOURS + 1]]
-    assert hourly.wind_speed_mph == [v / 1000 for v in d["WindSpeedValues"][1 : FORECAST_HOURS + 1]]
-    stored = json.loads((tmp_path / f"{BUNDLE_NAME}-gw.weather.forecast-000.json").read_text())
+    assert hourly.oat_f == [v / 10 for v in values_of(d, "Temperature")[1 : FORECAST_HOURS + 1]]
+    assert hourly.wind_speed_mph == [v / 10 for v in values_of(d, "WindSpeed")[1 : FORECAST_HOURS + 1]]
+    stored = json.loads(record_file(tmp_path, BUNDLE_NAME, GwWeatherForecast).read_text())
     assert stored == d
-    bundle = json.loads((tmp_path / f"{BUNDLE_NAME}-gw.weather.forecast.bundle.gt-001.json").read_text())
+    bundle = json.loads(record_file(tmp_path, BUNDLE_NAME, WeatherForecastBundleGt).read_text())
     assert bundle["Name"] == BUNDLE_NAME
 
 
@@ -161,11 +186,11 @@ def test_next_hours_walks_the_bundles_slice_grid_from_first_slice_start() -> Non
     starts = pair.slice_starts()
     assert starts[0] == start_s
     assert [b - a for a, b in zip(starts, starts[1:])] == [3600] * (len(starts) - 1)
-    assert len(starts) == len(pair.message.TempValues)
+    assert len(starts) == SLICES
     # Slices are counted from a chosen moment, not the wall clock.
     later = pair.next_hours(3, now_s=start_s + 10 * 3600)
     assert later.time == [start_s + 3600 * h for h in (11, 12, 13)]
-    assert len(pair.next_hours(FORECAST_HOURS, now_s=start_s + 90 * 3600).time) == 5
+    assert len(pair.next_hours(FORECAST_HOURS, now_s=start_s + (SLICES - 6) * 3600).time) == 5
 
 
 @pytest.mark.asyncio
@@ -178,8 +203,8 @@ async def test_the_bundle_record_and_template_are_provisioned_at_boot_and_kept(t
         src = await source(tmp_path, facade.url)
         assert facade.bundle_hits == 1
         assert facade.template_hits == 1
-        assert json.loads((tmp_path / f"{BUNDLE_NAME}-gw.weather.forecast.bundle.gt-001.json").read_text()) == bundle_dict()
-        assert json.loads((tmp_path / f"{LOCATION_ALIAS}-gw.weather.seasonal.template.gt-000.json").read_text()) == template_dict()
+        assert json.loads(record_file(tmp_path, BUNDLE_NAME, WeatherForecastBundleGt).read_text()) == bundle_dict()
+        assert json.loads(record_file(tmp_path, LOCATION_ALIAS, WeatherSeasonalTemplateGt).read_text()) == template_dict()
         await pull(src)
         await pull(src)
         assert facade.bundle_hits == 1
@@ -197,10 +222,10 @@ async def test_the_persisted_pair_serves_when_the_service_is_unreachable(tmp_pat
     persist(tmp_path, d, bundle_dict(), template_dict())
     pair = await pull(await source(tmp_path, unreachable_url()))
     assert pair is not None
-    assert pair.message.Fidelity == WeatherForecastFidelity.Live
+    assert pair.fidelity_label() == WeatherForecastFidelity.Live.value
     hourly = pair.next_hours(FORECAST_HOURS, time.time())
     assert hourly.time[0] == start_s + 3600
-    assert hourly.oat_f[0] == d["TempValues"][1] / 100
+    assert hourly.oat_f[0] == values_of(d, "Temperature")[1] / 10
 
 
 @pytest.mark.asyncio
@@ -225,7 +250,7 @@ async def test_a_slow_service_is_bounded_by_the_timeout(tmp_path: Path) -> None:
         pair = await pull(await source(tmp_path, facade.url, timeout_s=0.5))
         assert time.time() - started < 3
     assert pair is not None
-    assert pair.next_hours(1, time.time()).oat_f[0] == d["TempValues"][1] / 100
+    assert pair.next_hours(1, time.time()).oat_f[0] == values_of(d, "Temperature")[1] / 10
 
 
 @pytest.mark.asyncio
@@ -234,10 +259,11 @@ async def test_a_stale_persisted_forecast_is_filled_from_the_seasonal_template(t
     persist(tmp_path, d, bundle_dict(), template_dict())
     pair = await pull(await source(tmp_path, unreachable_url()))
     assert pair is not None
-    assert pair.message.Fidelity == WeatherForecastFidelity.SeasonalTemplate
+    assert pair.fidelity_label() == WeatherForecastFidelity.SeasonalTemplate.value
     assert pair.message.BundleName == BUNDLE_NAME
     assert pair.bundle.model_dump(by_alias=True) == bundle_dict()
-    assert len(pair.message.TempValues) == pair.bundle.TempForecastChannel.TotalSlices
+    assert [s.Quantity for s in pair.message.SeriesList] == [Quantity.Temperature, Quantity.WindSpeed]
+    assert len(pair.message.SeriesList[0].Values) == SLICES
     hourly = pair.next_hours(FORECAST_HOURS, time.time())
     assert hourly.oat_f == [template_oat_f(t) for t in hourly.time]
     assert hourly.wind_speed_mph == [0.0] * FORECAST_HOURS
@@ -249,9 +275,55 @@ async def test_a_bundle_record_and_template_alone_are_filled_from_the_template(t
     persist(tmp_path, None, bundle_dict(), template_dict())
     pair = await pull(await source(tmp_path, unreachable_url()))
     assert pair is not None
-    assert pair.message.Fidelity == WeatherForecastFidelity.SeasonalTemplate
+    assert pair.fidelity_label() == WeatherForecastFidelity.SeasonalTemplate.value
     hourly = pair.next_hours(FORECAST_HOURS, time.time())
     assert hourly.oat_f == [template_oat_f(t) for t in hourly.time]
+
+
+@pytest.mark.asyncio
+async def test_a_forecast_without_a_wind_series_is_filled_and_names_the_missing_series(tmp_path: Path) -> None:
+    """The consumers read temperature and wind. A message with no wind
+    series is filled from the template, wind calm, and the source names
+    what was missing so the generator can raise its glitch; the next
+    complete message clears it."""
+    start_s = last_whole_hour_s()
+    async with Facade(forecast_from(start_s, without=("WindSpeed",))) as facade:
+        src = await source(tmp_path, facade.url)
+        pair = await pull(src)
+        assert pair is not None
+        assert src.missing_quantities == [Quantity.WindSpeed]
+        assert pair.fidelity_label() == WeatherForecastFidelity.SeasonalTemplate.value
+        hourly = pair.next_hours(FORECAST_HOURS, time.time())
+        assert hourly.oat_f == [template_oat_f(t) for t in hourly.time]
+        assert hourly.wind_speed_mph == [0.0] * FORECAST_HOURS
+        facade.forecast = forecast_from(start_s)
+        pair = await pull(src)
+        assert pair is not None
+        assert src.missing_quantities == []
+        assert pair.fidelity_label() == WeatherForecastFidelity.Live.value
+
+
+@pytest.mark.asyncio
+async def test_a_bundle_that_binds_no_wind_channel_fills_with_calm_wind(tmp_path: Path) -> None:
+    """A bundle with temperature only serves its template fill with no
+    wind series at all; the consumers read calm."""
+    bundle = bundle_without("WindSpeed")
+    async with Facade(forecast_from(last_whole_hour_s(), without=("WindSpeed", "Irradiance")), bundle=bundle) as facade:
+        src = await source(tmp_path, facade.url)
+        pair = await pull(src)
+    assert pair is not None
+    assert src.missing_quantities == [Quantity.WindSpeed]
+    assert [s.Quantity for s in pair.message.SeriesList] == [Quantity.Temperature]
+    hourly = pair.next_hours(FORECAST_HOURS, time.time())
+    assert hourly.wind_speed_mph == [0.0] * FORECAST_HOURS
+    assert hourly.oat_f == [template_oat_f(t) for t in hourly.time]
+
+
+@pytest.mark.asyncio
+async def test_a_bundle_that_binds_no_temperature_channel_does_not_boot(tmp_path: Path) -> None:
+    persist(tmp_path, None, bundle_without("Temperature"), template_dict())
+    with pytest.raises(WeatherProvisioningError, match="binds no Temperature channel"):
+        await source(tmp_path, unreachable_url())
 
 
 @pytest.mark.asyncio
@@ -290,7 +362,8 @@ async def test_a_pull_is_logged_under_the_scadas_base_logger(tmp_path: Path, cap
     pulled = [r for r in caplog.records if r.name == LOGGER_NAME and r.getMessage().startswith("Pulled a ")]
     assert len(pulled) == 1
     assert pulled[0].levelno == logging.INFO
-    assert "96-slice Live forecast" in pulled[0].getMessage()
+    assert f"{SLICES}-slice forecast" in pulled[0].getMessage()
+    assert "Temperature Live" in pulled[0].getMessage()
 
 
 @pytest.mark.asyncio
@@ -309,7 +382,7 @@ async def test_the_sim_source_returns_a_steady_pair_from_the_plants_next_hour() 
     assert hourly.oat_f == [30.0] * FORECAST_HOURS
     assert hourly.wind_speed_mph == [5.0] * FORECAST_HOURS
     assert hourly.time[0] == (int(plant_s) // 3600 + 1) * 3600
-    assert utc_seconds(pair.message.SourceUpdatedTime) == int(plant_s)
+    assert all(utc_seconds(s.SourceUpdatedTime) == int(plant_s) for s in pair.message.SeriesList)
 
 
 @pytest.mark.asyncio
@@ -322,12 +395,12 @@ async def test_the_gwwf_source_judges_coverage_and_fills_on_the_plant_clock(tmp_
     inside = ManualClock(start_s + 10 * 3600)
     pair = await pull(await source(tmp_path, unreachable_url(), clock=inside))
     assert pair is not None
-    assert pair.message.Fidelity == WeatherForecastFidelity.Live
+    assert pair.fidelity_label() == WeatherForecastFidelity.Live.value
     assert pair.next_hours(1, inside.now()).time[0] == start_s + 11 * 3600
     beyond = ManualClock(start_s + 200 * 3600)
     pair = await pull(await source(tmp_path, unreachable_url(), clock=beyond))
     assert pair is not None
-    assert pair.message.Fidelity == WeatherForecastFidelity.SeasonalTemplate
+    assert pair.fidelity_label() == WeatherForecastFidelity.SeasonalTemplate.value
     assert pair.next_hours(1, beyond.now()).time[0] == (int(beyond.now()) // 3600 + 1) * 3600
 
 
@@ -337,7 +410,7 @@ def test_sim_forecast_takes_the_values_and_moment_a_test_sets() -> None:
     hourly = pair.next_hours(FORECAST_HOURS, now_s)
     assert hourly.time[0] == (int(now_s) // 3600 + 1) * 3600
     assert hourly.oat_f == [-7.5] * FORECAST_HOURS
-    assert pair.message.TempValues[0] == -750
+    assert pair.message.SeriesList[0].Values[0] == -75
 
 
 @pytest.mark.asyncio

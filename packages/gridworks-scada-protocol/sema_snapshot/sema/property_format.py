@@ -19,6 +19,8 @@ IANA_TIMEZONE_STR_PATTERN = re.compile(r"^[A-Za-z_]+(/[A-Za-z0-9_+-]+){0,2}$")
 
 LEFT_RIGHT_DOT_PATTERN = re.compile(r"^[a-z][a-z0-9]*(\.[a-z0-9]+)*$")
 
+LOWERCASE_TOKEN_PATTERN = re.compile(r"^[a-z][a-z0-9]*$")
+
 MAC_ADDRESS_PATTERN = re.compile(r"^([0-9a-f]{2}:){5}[0-9a-f]{2}$")
 
 MARKET_SLOT_NAME_PATTERN = re.compile(
@@ -98,6 +100,16 @@ def is_left_right_dot(v: str) -> str:
 
     if not LEFT_RIGHT_DOT_PATTERN.fullmatch(v):
         raise ValueError(f"<{v}>: Fails LeftRightDot format.")
+
+    return v
+
+
+def is_lowercase_token(v: str) -> str:
+    if not isinstance(v, str):
+        raise ValueError(f"<{v}>: LowercaseToken must be a string.")
+
+    if not LOWERCASE_TOKEN_PATTERN.fullmatch(v):
+        raise ValueError(f"<{v}>: Fails LowercaseToken format.")
 
     return v
 
@@ -267,6 +279,11 @@ IanaTimezoneStr = Annotated[
 LeftRightDot = Annotated[
     str,
     BeforeValidator(is_left_right_dot),
+]
+
+LowercaseToken = Annotated[
+    str,
+    BeforeValidator(is_lowercase_token),
 ]
 
 MacAddress = Annotated[

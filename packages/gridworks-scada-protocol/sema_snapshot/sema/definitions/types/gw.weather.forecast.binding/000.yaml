@@ -1,0 +1,131 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw.weather.forecast.binding/000"
+
+title: "gw.weather.forecast.binding"
+type: object
+description: >
+  One forecast channel together with the observed channel it targets,
+  as a gw.weather.forecast.bundle.gt embeds it. Embedding the pair
+  makes the target binding checkable from the instance alone and
+  hands a consumer the quantity, unit and location of each series
+  the bundle serves in one fetch. Not a record of its own: the
+  bundle's membership in the weather DB, read with its channels.
+
+properties:
+  ForecastChannel:
+    $ref: "https://schemas.electricity.works/types/gw.weather.forecast.channel.gt/000"
+    description: >
+      The forecast channel serving one series of the bundle.
+
+  ObservationChannel:
+    $ref: "https://schemas.electricity.works/types/gw.weather.channel.gt/002"
+    description: >
+      The observed channel ForecastChannel targets — the series its
+      skill is scored against.
+
+  TypeName:
+    const: "gw.weather.forecast.binding"
+
+  Version:
+    const: "000"
+
+required:
+  - ForecastChannel
+  - ObservationChannel
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ForecastChannel": {
+        "Name": "kmlt.temperature.forecast.nws.hourly",
+        "TargetChannelName": "kmlt.temperature",
+        "Forecaster": "us.nws.gridpoint",
+        "Method": "api.weather.gov.gridpoint.hourly",
+        "SourceLocator": "car.60.114",
+        "TotalSlices": 48,
+        "SliceDurationSList": [
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600,
+          3600
+        ],
+        "ForecastDurationMinutes": 2880,
+        "Start": "2026-10-18T00:00:00Z",
+        "Id": "dc3d3844-6c8c-466b-8140-eb06900b4bf8",
+        "TypeName": "gw.weather.forecast.channel.gt",
+        "Version": "000"
+      },
+      "ObservationChannel": {
+        "Name": "kmlt.temperature",
+        "DisplayName": "Millinocket temperature",
+        "Quantity": "Temperature",
+        "Unit": "FahrenheitX10",
+        "EmitPeriodS": 3600,
+        "EmitOffsetS": 0,
+        "Start": "2026-10-18T00:00:00Z",
+        "Id": "0f8c2a6e-5b1d-4e7a-9c3f-2d6b8a4e1c57",
+        "TypeName": "gw.weather.channel.gt",
+        "Version": "002",
+        "StationAlias": "kmlt"
+      },
+      "TypeName": "gw.weather.forecast.binding",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "TargetBinding"
+      statement: >
+        ForecastChannel.TargetChannelName SHALL equal
+        ObservationChannel.Name.

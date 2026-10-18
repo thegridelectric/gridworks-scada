@@ -2,12 +2,12 @@
 
 from gwsproto.named_types import WeatherForecastChannelGt
 
-from tests.named_types.weather_fixtures import bundle_dict
+from tests.named_types.weather_fixtures import binding_dict
 from tests.named_types.sema_oracle import assert_refused
 
 
 def channel_dict() -> dict:
-    return bundle_dict()["TempForecastChannel"]
+    return binding_dict("Temperature")["ForecastChannel"]
 
 
 def test_weather_forecast_channel_gt_generated() -> None:
@@ -36,5 +36,5 @@ def test_gw_weather_forecast_channel_gt_axiom_3_slice_quantum() -> None:
 
 def test_gw_weather_forecast_channel_gt_axiom_4_name_shape() -> None:
     d = channel_dict()
-    d["Name"] = d["TargetChannelName"] + ".nws.hourly96"
+    d["Name"] = d["TargetChannelName"] + ".nws.hourly"
     assert_refused(WeatherForecastChannelGt, d, match="Axiom 4")

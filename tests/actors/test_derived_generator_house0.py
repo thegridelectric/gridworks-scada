@@ -12,17 +12,20 @@ import time
 import uuid
 from pathlib import Path
 
+import aiohttp
 import pytest
 
 from actors import derived_generator
 from actors.derived_generator import DerivedGenerator
 from actors.hydronic.shared import dispatch_channels
-from gwsproto.named_types import HeatingForecast
+from gwsproto.named_types import HeatingForecast, WeatherSeasonalTemplateGt
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from scada_app import ScadaApp
 from clock import ManualClock
-from weather_source import ForecastPair, sim_forecast
+from gwsproto.enums import LogLevel, Quantity
+from gwsproto.named_types import Glitch
+from weather_source import ForecastPair, SimWeatherSource, WeatherSourceKind, seasonal_fill, sim_forecast
 
 CONFIG = Path(__file__).parent.parent / "config"
 
@@ -33,6 +36,19 @@ def app(request: pytest.FixtureRequest) -> ScadaApp:
     settings.paths.hardware_layout = CONFIG / f"gw.house0.{request.param}.layout.json"
     settings.paths.operational_params = CONFIG / f"gw.house0.{request.param}.operational.params.json"
     settings.paths.mkdirs()
+    scada_app = ScadaApp(app_settings=settings)
+    scada_app.instantiate()
+    return scada_app
+
+
+@pytest.fixture
+def sim_weather_app() -> ScadaApp:
+    """The willow app on the simulated weather source."""
+    settings = ScadaApp.get_settings()
+    settings.paths.hardware_layout = CONFIG / "gw.house0.willow.layout.json"
+    settings.paths.operational_params = CONFIG / "gw.house0.willow.operational.params.json"
+    settings.paths.mkdirs()
+    settings.weather_source = WeatherSourceKind.Sim
     scada_app = ScadaApp(app_settings=settings)
     scada_app.instantiate()
     return scada_app
@@ -300,3 +316,40 @@ def test_rwt_f_follows_a_changed_window(app: ScadaApp, monkeypatch: pytest.Monke
     tariff = actor.ops.Tariff.model_copy(update={"OnPeakWindows": afternoon_only})
     monkeypatch.setattr(actor.data, "ops", actor.ops.model_copy(update={"Tariff": tariff}))
     assert actor.rwt_f(150.0) == 140.0
+
+
+@pytest.mark.asyncio
+async def test_a_forecast_filled_for_want_of_a_wind_series_raises_a_warning_glitch(sim_weather_app: ScadaApp) -> None:
+    """The weather source answers a seasonal fill and names the wind series
+    it was missing: the generator still makes its heating forecast, on the
+    template, and sends one Warning glitch naming the series."""
+    app = sim_weather_app
+    actor = app.get_communicator_as_type(CoreNodeNames.derived_generator, DerivedGenerator)
+    assert actor is not None
+    weather = app.weather_source
+    assert isinstance(weather, SimWeatherSource)
+    now_s = time.time()
+    template = WeatherSeasonalTemplateGt(
+        LocationAlias=weather.bundle.LocationAlias,
+        TempByMonth=[2000] * 12,
+        Start="2026-01-01T00:00:00Z",
+        Id=str(uuid.uuid4()),
+    )
+    fill = seasonal_fill(weather.bundle, template, now_s)
+
+    async def filled(session):
+        weather.missing_quantities = [Quantity.WindSpeed]
+        return fill
+
+    weather.forecast = filled  # type: ignore[method-assign]
+    actor.first_required_energy_update_done = True
+    sent: list = []
+    actor._send_to = lambda dst, payload, src=None: sent.append(payload)
+    async with aiohttp.ClientSession() as session:
+        await actor.get_forecasts(session)
+    glitches = [(g.Type, g.Summary) for g in sent if isinstance(g, Glitch)]
+    assert glitches == [(LogLevel.Warning, "weather-series-missing")]
+    details = next(g.Details for g in sent if isinstance(g, Glitch))
+    assert "WindSpeed" in details and weather.bundle.Name in details
+    assert actor.data.heating_forecast is not None
+    assert actor.weather_forecast is fill

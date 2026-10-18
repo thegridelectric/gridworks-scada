@@ -1,24 +1,24 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
-$id: "https://schemas.electricity.works/types/gw.weather.channel.gt/001"
+$id: "https://schemas.electricity.works/types/gw.weather.channel.gt/002"
 
 title: "gw.weather.channel.gt"
 type: object
 description: >
-  An observed weather series: one quantity at one place, the
-  ground-truth series forecasters are scored against. Acquisition path
-  is provenance, not identity — one channel's readings may arrive by
-  several methods over its life (live API, archive backfill), with
-  per-reading provenance via the reading-to-message link — so the
-  record carries no source or method. Coupled bijectively with a table
-  in the gridworks-weather DB. Changing a structural fact is a new
-  record (new Id); the Name persists, and Start scopes which record an
-  archived message resolves against.
+  An observed weather series: one quantity measured by one station,
+  the ground-truth series forecasters are scored against. The station
+  is identity — a different instrument at the same place is a different
+  channel — while the path readings arrive by (live API, archive
+  backfill) is provenance recorded per reading, so the record names no
+  source or method. Coupled bijectively with a table in the
+  gridworks-weather DB. Changing a structural fact is a new record (new
+  Id); the Name persists, and Start scopes which record an archived
+  message resolves against.
 
 properties:
   Name:
     $ref: "https://schemas.electricity.works/formats/left.right.dot"
     description: >
-      The channel's fleet-scoped name, derived from LocationAlias and
+      The channel's fleet-scoped name, derived from StationAlias and
       Quantity (Axiom 1).
 
   DisplayName:
@@ -36,10 +36,10 @@ properties:
     description: >
       The scaled-integer unit of every reading on this channel.
 
-  LocationAlias:
-    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+  StationAlias:
+    $ref: "https://schemas.electricity.works/formats/lowercase.token"
     description: >
-      Resolves to the gw.weather.location.gt anchoring this series.
+      Alias of the gw.weather.station.gt whose readings this series is.
 
   EmitPeriodS:
     $ref: "https://schemas.electricity.works/formats/positive.int"
@@ -70,14 +70,14 @@ properties:
     const: "gw.weather.channel.gt"
 
   Version:
-    const: "001"
+    const: "002"
 
 required:
   - Name
   - DisplayName
   - Quantity
   - Unit
-  - LocationAlias
+  - StationAlias
   - EmitPeriodS
   - EmitOffsetS
   - Start
@@ -90,17 +90,17 @@ additionalProperties: false
 examples:
   - |
     {
-      "Name": "us.me.millinocket.temperature",
+      "Name": "kmlt.temperature",
       "DisplayName": "Millinocket outdoor temperature",
       "Quantity": "Temperature",
-      "Unit": "FahrenheitX100",
-      "LocationAlias": "us.me.millinocket",
+      "Unit": "FahrenheitX10",
+      "StationAlias": "kmlt",
       "EmitPeriodS": 3600,
       "EmitOffsetS": 0,
-      "Start": "2026-08-11T00:00:00Z",
+      "Start": "2026-10-18T00:00:00Z",
       "Id": "2e7c9a1f-6b4d-4f8e-b3a9-5c1e8d7f2a4c",
       "TypeName": "gw.weather.channel.gt",
-      "Version": "001"
+      "Version": "002"
     }
 
 x-gridworks:
@@ -110,10 +110,10 @@ x-gridworks:
     - number: 1
       name: "NameDerivation"
       statement: >
-        Name SHALL equal LocationAlias + "." + the lowercased Quantity
+        Name SHALL equal StationAlias + "." + the lowercased Quantity
         value, optionally followed by "." and one or more further
-        segments (a variant suffix for a semantically different
-        series, never acquisition detail).
+        segments (a variant suffix for a semantically different series
+        from the same station, never acquisition detail).
     - number: 2
       name: "EmitOffsetBound"
       statement: >
