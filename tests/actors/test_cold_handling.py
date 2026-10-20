@@ -127,15 +127,26 @@ def top_state(watch: ColdWatch, state: LocalControlTopState) -> None:
     )
 
 
-@pytest.fixture
-def willow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> ColdWatch:
-    """Willow with its one circuit reading its setpoint from the
-    thermostat, as a House0 house with a Honeywell does. The fixture
-    authors a mechanical dial, whose setpoint is learned."""
+def thermostat_willow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> ColdWatch:
+    """Willow freshly booted with its one circuit reading its setpoint
+    from the thermostat, as a House0 house with a Honeywell does. The
+    fixture file authors a mechanical dial, whose setpoint is learned."""
     watch = cold_watch(make_app(WILLOW, heating_ops(tmp_path, WILLOW)))
     [circuit] = watch.layout.hydronic.ZoneCallCircuits
     circuit.SetpointSource = ZoneSetpointSource.FromThermostat
     monkeypatch.setattr(watch, "is_onpeak", lambda: False)
+    return watch
+
+
+@pytest.fixture
+def willow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> ColdWatch:
+    """The thermostat willow after a first pass that sees its zone a
+    degree above its setpoint, so the boot allowance is spent and the
+    thermostat setpoint is known; the warm-up tests boot their own."""
+    watch = thermostat_willow(tmp_path, monkeypatch)
+    put_f(watch, f"{W_ZONE}-set", 70)
+    put_f(watch, f"{W_ZONE}-temp", 71)
+    watch.cold_watch(T0)
     return watch
 
 
@@ -185,7 +196,7 @@ def test_a_thermostat_zone_is_cold_two_degrees_under_its_setpoint(
     sit a little either side of the 2 F line."""
     put_f(willow, f"{W_ZONE}-set", 70)
     put_f(willow, f"{W_ZONE}-temp", temp_f)
-    assert willow.is_system_cold() is is_cold
+    assert willow.is_system_cold(T0) is is_cold
 
 
 @pytest.mark.parametrize(
@@ -207,13 +218,13 @@ def test_a_thermostat_zone_is_judged_against_the_lower_of_onpeak_start_and_now(
     }
     put_f(willow, f"{W_ZONE}-set", current_setpoint_f)
     put_f(willow, f"{W_ZONE}-temp", temp_f)
-    assert willow.is_system_cold() is is_cold
+    assert willow.is_system_cold(T0) is is_cold
 
 
 def test_a_zone_with_no_temperature_is_not_judged_cold(willow: ColdWatch) -> None:
     put_f(willow, f"{W_ZONE}-set", 70)
     put_f(willow, f"{W_ZONE}-temp", None)
-    assert willow.is_system_cold() is False
+    assert willow.is_system_cold(T0) is False
 
 
 def test_a_thermostat_zone_needs_no_heat_call_to_be_cold(willow: ColdWatch) -> None:
@@ -222,7 +233,7 @@ def test_a_thermostat_zone_needs_no_heat_call_to_be_cold(willow: ColdWatch) -> N
     put_f(willow, f"{W_ZONE}-set", 70)
     put_f(willow, f"{W_ZONE}-temp", 60)
     calling(willow, W_ZONE, False)
-    assert willow.is_system_cold() is True
+    assert willow.is_system_cold(T0) is True
 
 
 def test_setpoints_at_onpeak_start_come_from_the_layout_circuits_only(willow: ColdWatch) -> None:
@@ -242,9 +253,9 @@ def test_each_channel_is_read_in_its_own_encoding(
     monkeypatch.setattr(willow, "is_onpeak", lambda: True)
     willow.setpoints_at_onpeak_start = {f"{W_ZONE}-set": Temperature(7000, Unit.FahrenheitX100)}
     willow.data.latest_channel_values[f"{W_ZONE}-temp"] = 2050
-    assert willow.is_system_cold() is False
+    assert willow.is_system_cold(T0) is False
     willow.data.latest_channel_values[f"{W_ZONE}-temp"] = 1940
-    assert willow.is_system_cold() is True
+    assert willow.is_system_cold(T0) is True
 
 
 def test_willow_as_authored_is_judged_as_a_learned_zone(tmp_path: Path) -> None:
@@ -255,9 +266,92 @@ def test_willow_as_authored_is_judged_as_a_learned_zone(tmp_path: Path) -> None:
     put_f(impl, f"{W_ZONE}-temp", 60)
     impl.cold_watch(T0)
     calling(impl, W_ZONE, False)
-    assert impl.is_system_cold() is False
+    assert impl.is_system_cold(T0) is False
     calling(impl, W_ZONE, True)
-    assert impl.is_system_cold() is True
+    assert impl.is_system_cold(T0) is True
+
+
+# --- the warm-up allowance (FromThermostat) ----------------------------------
+
+H = 3600  # the allowance is judged a watch pass (a minute) either side of its end
+
+
+def test_a_boot_into_a_cold_house_is_not_cold_for_its_deficit_over_four_degrees_an_hour(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """8 F under at the first pass is two hours of allowance; the latch
+    runs after it as it does in steady state."""
+    watch = thermostat_willow(tmp_path, monkeypatch)
+    put_f(watch, f"{W_ZONE}-set", 70)
+    put_f(watch, f"{W_ZONE}-temp", 62)
+    assert watch.is_system_cold(T0) is False
+    assert watch.is_system_cold(T0 + 2 * H - 60) is False
+    assert watch.is_system_cold(T0 + 2 * H + 60) is True
+    for elapsed in range(2 * H + 60, 2 * H + 60 + cold.COLD_LATCH_S, 60):
+        watch.cold_watch(T0 + elapsed)
+    assert glitches(watch, cold.CRITICAL_ZONE_COLD) == []
+    watch.cold_watch(T0 + 2 * H + 60 + cold.COLD_LATCH_S)
+    assert len(glitches(watch, cold.CRITICAL_ZONE_COLD)) == 1
+
+
+def test_the_boot_allowance_starts_at_the_zones_first_reading(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    watch = thermostat_willow(tmp_path, monkeypatch)
+    put_f(watch, f"{W_ZONE}-set", 70)
+    put_f(watch, f"{W_ZONE}-temp", None)
+    assert watch.is_system_cold(T0) is False
+    put_f(watch, f"{W_ZONE}-temp", 62)
+    assert watch.is_system_cold(T0 + 600) is False
+    assert watch.is_system_cold(T0 + 600 + 2 * H - 60) is False
+    assert watch.is_system_cold(T0 + 600 + 2 * H + 60) is True
+
+
+def test_the_deficit_is_capped_at_ten_degrees(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """15 F under gets two and a half hours, not three and three quarters."""
+    watch = thermostat_willow(tmp_path, monkeypatch)
+    put_f(watch, f"{W_ZONE}-set", 70)
+    put_f(watch, f"{W_ZONE}-temp", 55)
+    assert watch.is_system_cold(T0) is False
+    assert watch.is_system_cold(T0 + 2.5 * H - 60) is False
+    assert watch.is_system_cold(T0 + 2.5 * H + 60) is True
+
+
+def test_a_setpoint_raise_is_not_cold_for_the_raise_over_four_degrees_an_hour(
+    willow: ColdWatch,
+) -> None:
+    """Four degrees up from a zone at its setpoint is an hour."""
+    put_f(willow, f"{W_ZONE}-temp", 70)
+    put_f(willow, f"{W_ZONE}-set", 74)
+    assert willow.is_system_cold(T0 + 60) is False
+    assert willow.is_system_cold(T0 + 60 + H - 60) is False
+    assert willow.is_system_cold(T0 + 60 + H + 60) is True
+
+
+def test_a_thermostat_lowered_gets_no_allowance(willow: ColdWatch) -> None:
+    put_f(willow, f"{W_ZONE}-set", 68)
+    put_f(willow, f"{W_ZONE}-temp", 65)
+    assert willow.is_system_cold(T0 + 60) is True
+
+
+@pytest.mark.parametrize(
+    "cold_state", [LocalControlTopState.InBackup, LocalControlTopState.ColdOverride]
+)
+def test_leaving_a_cold_state_starts_a_warm_up(
+    willow: ColdWatch, cold_state: LocalControlTopState
+) -> None:
+    """The zone is judged through the cold state; the pass after the
+    local control leaves it gets the allowance."""
+    put_f(willow, f"{W_ZONE}-temp", 62)
+    assert willow.is_system_cold(T0 + 60) is True
+    top_state(willow, cold_state)
+    assert willow.is_system_cold(T0 + 120) is True
+    top_state(willow, LocalControlTopState.Normal)
+    assert willow.is_system_cold(T0 + 180) is False
+    assert willow.is_system_cold(T0 + 180 + 2 * H - 60) is False
+    assert willow.is_system_cold(T0 + 180 + 2 * H + 60) is True
 
 
 # --- the judgment at a learned setpoint (Nolan) -----------------------------
@@ -271,7 +365,7 @@ def test_a_learned_zone_with_no_recorded_setpoint_is_not_judged(nolan: ColdWatch
     calling(nolan, N_ZONE, True)
     put_f(nolan, N_TEMP, 50)
     nolan.cold_watch(T0)
-    assert nolan.is_system_cold() is False
+    assert nolan.is_system_cold(T0) is False
 
 
 @pytest.mark.parametrize(
@@ -290,7 +384,7 @@ def test_a_learned_zone_is_cold_when_calling_two_degrees_under_its_record(
     nolan.cold_watch(T0)  # the watch records the setpoint
     calling(nolan, N_ZONE, is_calling)
     put_f(nolan, N_TEMP, temp_f)
-    assert nolan.is_system_cold() is is_cold
+    assert nolan.is_system_cold(T0) is is_cold
 
 
 def test_the_record_outlives_the_generator_withdrawing_its_setpoint(nolan: ColdWatch) -> None:
@@ -302,7 +396,7 @@ def test_the_record_outlives_the_generator_withdrawing_its_setpoint(nolan: ColdW
     calling(nolan, N_ZONE, True)
     put_f(nolan, N_TEMP, 67)
     nolan.cold_watch(T0 + 60)
-    assert nolan.is_system_cold() is True
+    assert nolan.is_system_cold(T0) is True
 
 
 def test_the_record_outlives_a_restart_inside_a_long_heat_call(tmp_path: Path) -> None:
@@ -318,7 +412,7 @@ def test_the_record_outlives_a_restart_inside_a_long_heat_call(tmp_path: Path) -
     assert restarted.data.latest_channel_values[N_SET] is None
     calling(restarted, N_ZONE, True)
     put_f(restarted, N_TEMP, 67)
-    assert restarted.is_system_cold() is True
+    assert restarted.is_system_cold(T0) is True
 
 
 def test_a_new_setpoint_replaces_the_record(nolan: ColdWatch) -> None:
@@ -328,9 +422,9 @@ def test_a_new_setpoint_replaces_the_record(nolan: ColdWatch) -> None:
     nolan.cold_watch(T0 + 60)
     calling(nolan, N_ZONE, True)
     put_f(nolan, N_TEMP, 63)
-    assert nolan.is_system_cold() is False
+    assert nolan.is_system_cold(T0) is False
     put_f(nolan, N_TEMP, 61)
-    assert nolan.is_system_cold() is True
+    assert nolan.is_system_cold(T0) is True
 
 
 def test_only_critical_zones_are_judged(nolan: ColdWatch) -> None:
@@ -338,7 +432,7 @@ def test_only_critical_zones_are_judged(nolan: ColdWatch) -> None:
     nolan.cold_watch(T0)
     calling(nolan, "zone4-garage", True)
     put_f(nolan, "zone4-garage-gw-temp", 50)
-    assert nolan.is_system_cold() is False
+    assert nolan.is_system_cold(T0) is False
 
 
 # --- a zone is judged through its primary circuit ----------------------------
@@ -356,9 +450,9 @@ def test_a_two_circuit_zone_is_judged_on_its_primary_circuit(nolan: ColdWatch) -
     put_f(nolan, f"{LIVING}-gw-temp", 66)
     calling(nolan, FANCOIL, True)
     calling(nolan, LIVING, False)
-    assert nolan.is_system_cold() is False
+    assert nolan.is_system_cold(T0) is False
     calling(nolan, LIVING, True)
-    [zone] = nolan.cold_critical_zones()
+    [zone] = nolan.cold_critical_zones(T0)
     assert zone.zone == "living-rm"
 
 
@@ -370,7 +464,7 @@ def test_the_judgment_follows_the_circuit_and_not_the_zones_place(nolan: ColdWat
     nolan.cold_watch(T0)
     calling(nolan, N_ZONE, True)
     put_f(nolan, N_TEMP, 66)
-    [zone] = nolan.cold_critical_zones()
+    [zone] = nolan.cold_critical_zones(T0)
     assert zone.zone == "bedrooms"
     assert [r.ChannelName for r in nolan.data.recorded_setpoints.values()] == [N_SET]
 
@@ -380,9 +474,9 @@ def test_the_local_control_judges_against_the_watchs_record(nolan: ColdWatch) ->
     put_f(nolan, N_SET, 70)
     calling(nolan, N_ZONE, True)
     put_f(nolan, N_TEMP, 66)
-    assert lc.is_system_cold() is False  # no record yet
+    assert lc.is_system_cold(T0) is False  # no record yet
     nolan.cold_watch(T0)
-    assert lc.is_system_cold() is True
+    assert lc.is_system_cold(T0) is True
 
 
 # --- the watch is its own actor ----------------------------------------------
@@ -668,7 +762,7 @@ def test_a_standby_house_cold_raises_no_critical_zone_cold_glitch(
     make_cold(standby_nolan)
     for elapsed in (0, cold.COLD_LATCH_S, 7200):
         standby_nolan.cold_watch(T0 + elapsed)
-    assert standby_nolan.cold_critical_zones()
+    assert standby_nolan.cold_critical_zones(T0)
     assert glitches(standby_nolan, cold.CRITICAL_ZONE_COLD) == []
 
 

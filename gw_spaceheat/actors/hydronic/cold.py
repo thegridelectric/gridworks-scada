@@ -32,6 +32,8 @@ COLD_DELTA_F = 2.0  # a critical zone this far under its setpoint is cold
 FREEZE_F = 40.0  # any circuit reading under this is freezing
 COLD_LATCH_S = 5 * 60  # how long the house is cold before the latch fires
 STILL_COLD_IN_BACKUP_S = 60 * 60  # how long cold in backup before saying so
+WARM_UP_F_PER_H = 4.0  # what a called zone warms at; sets the warm-up allowance
+WARM_UP_DEFICIT_CAP_F = 10.0  # the largest deficit an allowance is computed from
 
 # Glitch summaries, one per condition
 CRITICAL_ZONE_COLD = "critical-zone-cold"
@@ -91,6 +93,47 @@ class ColdSpell:
 class ColdJudgmentNode(HydronicNode):
     """HydronicNode + the cold-house judgment."""
 
+    def __init__(self, name: str, services: ScadaAppInterface):
+        super().__init__(name, services)
+        self.warm_up_due: set[SpaceheatName] = set()
+        self.warm_up_until_s: dict[SpaceheatName, float] = {}
+        self.last_thermostat_setpoints: dict[SpaceheatName, Temperature] = {}
+        self.start_warm_up()
+
+    def start_warm_up(self) -> None:
+        """Every critical zone gets a warm-up allowance at its next judged
+        pass: at a boot, and when the local control leaves a cold state."""
+        self.warm_up_due = {zone.Name for zone, _ in self.critical_primary_circuits()}
+
+    def warming_up(
+        self,
+        zone: SpaceheatName,
+        setpoint_channel_name: SpaceheatName,
+        setpoint: Temperature,
+        temperature: Temperature,
+        now_s: float,
+    ) -> bool:
+        """True while a FromThermostat zone is inside its warm-up
+        allowance: its deficit at the first pass after a warm-up starts,
+        capped at WARM_UP_DEFICIT_CAP_F, over WARM_UP_F_PER_H. A warm-up
+        starts at a boot, when the thermostat setpoint rises above its
+        last reading, and when the local control leaves a cold state
+        (start_warm_up). A thermostat lowered starts nothing."""
+        current = self.channel_temperature(setpoint_channel_name)
+        last = self.last_thermostat_setpoints.get(setpoint_channel_name)
+        raised = last is not None and current is not None and current.f > last.f
+        if current is not None:
+            self.last_thermostat_setpoints[setpoint_channel_name] = current
+        if zone in self.warm_up_due or raised:
+            self.warm_up_due.discard(zone)
+            deficit_f = min(setpoint.f - temperature.f, WARM_UP_DEFICIT_CAP_F)
+            self.warm_up_until_s[zone] = now_s + max(deficit_f, 0.0) / WARM_UP_F_PER_H * 3600
+        until_s = self.warm_up_until_s.get(zone)
+        if until_s is None or now_s >= until_s:
+            return False
+        self.log(f"{zone} warming up: {(until_s - now_s) / 60:.0f} minutes of allowance left")
+        return True
+
     def refresh_setpoints_at_onpeak_start(self) -> None:
         """Take the current reading of each circuit's setpoint channel,
         keyed by the channel's name, as the setpoint the circuit had when
@@ -135,14 +178,15 @@ class ColdJudgmentNode(HydronicNode):
         value = self.data.latest_channel_values.get(self.layout.heat_call_channel(circuit))
         return value is not None and value >= 1
 
-    def cold_critical_zones(self) -> list[ColdZone]:
-        """Each critical zone judged cold, with its temperature and the
-        setpoint it was judged against. A zone is judged through its
-        primary circuit: that circuit's temperature channel, setpoint
+    def cold_critical_zones(self, now_s: float) -> list[ColdZone]:
+        """Each critical zone judged cold at now_s, with its temperature
+        and the setpoint it was judged against. A zone is judged through
+        its primary circuit: that circuit's temperature channel, setpoint
         channel, heat call and SetpointSource.
 
         A circuit whose thermostat reports its setpoint is cold
-        COLD_DELTA_F or more under the thermostat setpoint. A circuit whose
+        COLD_DELTA_F or more under the thermostat setpoint, once outside
+        its warm-up allowance (warming_up). A circuit whose
         setpoint is learned is cold when it is calling for heat and
         COLD_DELTA_F or more under its recorded setpoint: the call is the
         thermostat saying the zone is under its setpoint, the record says
@@ -172,13 +216,17 @@ class ColdJudgmentNode(HydronicNode):
                 if setpoint is None:
                     self.log(f"Could not find setpoint for {zone.Name}!")
                     continue
+                if self.warming_up(
+                    zone.Name, circuit.SetpointChannelName, setpoint, temperature, now_s
+                ):
+                    continue
             if temperature.f <= setpoint.f - COLD_DELTA_F:
                 cold.append(ColdZone(zone.Name, temperature, setpoint))
         return cold
 
-    def is_system_cold(self) -> bool:
-        """True if at least one critical zone is cold."""
-        cold = self.cold_critical_zones()
+    def is_system_cold(self, now_s: float) -> bool:
+        """True if at least one critical zone is cold at now_s."""
+        cold = self.cold_critical_zones(now_s)
         if cold:
             self.log(f"Cold: {'; '.join(zone.line() for zone in cold)}")
         else:
@@ -200,8 +248,9 @@ class ColdWatch(ColdJudgmentNode):
     state of the local control, it looks at the house: it keeps the
     recorded setpoints, raises the critical-zone-cold,
     still-cold-in-backup and zone-freezing glitches, and breaks a dispatch
-    contract the house cannot keep. It learns whether the
-    house is in backup from the local control's top state."""
+    contract the house cannot keep. From the local control's top state it
+    learns whether the house is in backup and when it leaves a cold state,
+    which starts a warm-up."""
 
     WATCH_S = 60
 
@@ -209,6 +258,7 @@ class ColdWatch(ColdJudgmentNode):
         super().__init__(name, services)
         self._stop_requested = False
         self.in_backup = False
+        self.in_cold_state = False
         self.cold_spell = ColdSpell()
         self.cold_reported = False
         self.cold_sent = False
@@ -249,9 +299,14 @@ class ColdWatch(ColdJudgmentNode):
                     payload.MachineHandle.split(".")[-1] == CoreNodeNames.local_control
                     and payload.StateEnum == LocalControlTopState.enum_name()
                 ):
-                    self.in_backup = (
-                        payload.State == LocalControlTopState.InBackup
+                    in_cold_state = payload.State in (
+                        LocalControlTopState.InBackup,
+                        LocalControlTopState.ColdOverride,
                     )
+                    if self.in_cold_state and not in_cold_state:
+                        self.start_warm_up()
+                    self.in_cold_state = in_cold_state
+                    self.in_backup = payload.State == LocalControlTopState.InBackup
             case _:
                 self.log(f"{self.name} received unexpected message: {message.Header}")
         return Ok(True)
@@ -315,7 +370,7 @@ class ColdWatch(ColdJudgmentNode):
             if self.freeze_glitches.due(freezing.circuit):
                 self.alert(ZONE_FREEZING, f"{freezing.line()}, under {FREEZE_F:.0f} F")
 
-        cold = self.cold_critical_zones()
+        cold = self.cold_critical_zones(now_s)
         if not cold:
             self.cold_reported = False
             if self.cold_sent:
