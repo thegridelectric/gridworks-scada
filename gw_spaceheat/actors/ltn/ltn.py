@@ -1016,6 +1016,8 @@ class Ltn(PrimeActor):
             initial_thermocline1=int(th1 * 3),
             initial_thermocline2=int(th2 * 3),
             hp_currently_on=not self.hp_is_off,
+            hp_max_kw_elec=self.ha1_params.HpMaxKwEl,
+            hp_turn_on_minutes=self.ha1_params.HpTurnOnMinutes,
             elec_price_mwh=elec_price_mwh,
             oat_f=list(self.weather_forecast["oat"]),
             load_kwh=load_forecast_kwh,
