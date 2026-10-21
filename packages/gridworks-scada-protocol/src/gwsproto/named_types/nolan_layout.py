@@ -924,6 +924,7 @@ class NolanLayout(GwsprotoSemaType):
             "standby": "auto.lc.standby",
             "hp-boss": "auto.hp-boss",
             "hp-scada-ops-relay": "auto.hp-boss.hp-scada-ops-relay",
+            "secondary-pump-relay": "auto.hp-boss.secondary-pump-relay",
         }
         for n in self.ShNodes:
             effective = n.Handle if n.Handle is not None else n.Name

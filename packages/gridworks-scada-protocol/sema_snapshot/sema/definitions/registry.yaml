@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-10-18T18:50:00Z"
+  last_updated: "2026-10-21T18:25:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -1733,7 +1733,7 @@ types:
         status: "staging"
         schema_url: "https://schemas.electricity.works/types/gw.house.operating.status/000"
         created: "2026-09-30T18:35:00Z"
-        summary: "Initial version. ScadaAlias + ValidationState (from the deed) + Standby x StandbyPosture + SeasonalStorageMode + ServiceMode + AcceptsDispatch x DispatchRefusalReason (the derived answer, present iff refusing, axiom 1; Standby refuses as OperatorHold, axiom 2) + TopState + ScadaBlind + LtnDispatching + UnixMs. The slow facts of the LTN-scada agreement; nothing that cycles inside a healthy hour."
+        summary: "Initial version. ScadaAlias + ValidationState (from the deed) + Standby x StandbyPosture + SeasonalStorageMode + ServiceMode + AcceptsDispatch x DispatchRefusalReason (the derived answer, present iff refusing, axiom 1; Standby refuses as OperatorHold, axiom 2) + TopState + ScadaBlind + LtnDispatching + CreatedMs. The slow facts of the LTN-scada agreement; nothing that cycles inside a healthy hour."
         direct_dependencies:
           structural:
             - "gw.dispatch.refusal.reason:000"

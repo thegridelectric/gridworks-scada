@@ -434,8 +434,11 @@ x-gridworks:
           "cold-override"      → "auto.lc.cold-override"
           "scada-blind"        → "auto.lc.scada-blind"
           "standby"            → "auto.lc.standby"
-          "hp-boss"            → "auto.hp-boss"
-          "hp-scada-ops-relay" → "auto.hp-boss.hp-scada-ops-relay"
+          "hp-boss"              → "auto.hp-boss"
+          "hp-scada-ops-relay"   → "auto.hp-boss.hp-scada-ops-relay"
+          "secondary-pump-relay" → "auto.hp-boss.secondary-pump-relay"
+        (hp-boss owns the secondary pump as it owns the call: the pump runs whenever the
+        heat pump is called or sensed running, whoever holds the tree.)
         Every other ShNode whose ActorClass is Relay or ZeroTenOutputer SHALL have the
         effective handle "auto.<Name>".
     - number: 31

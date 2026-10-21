@@ -74,10 +74,10 @@ properties:
       settling window after a completion, so back-to-back hourly contracts
       read as one continuous true.
 
-  UnixMs:
+  CreatedMs:
     $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
     description: >
-      When this record was produced.
+      The scada's clock when this record was produced.
 
   TypeName:
     const: "gw.house.operating.status"
@@ -96,7 +96,7 @@ required:
   - TopState
   - ScadaBlind
   - LtnDispatching
-  - UnixMs
+  - CreatedMs
   - TypeName
   - Version
 
@@ -115,7 +115,7 @@ examples:
       "TopState": "Auto",
       "ScadaBlind": false,
       "LtnDispatching": true,
-      "UnixMs": 1790000000000,
+      "CreatedMs": 1790000000000,
       "TypeName": "gw.house.operating.status",
       "Version": "000"
     }
@@ -132,7 +132,7 @@ examples:
       "TopState": "Auto",
       "ScadaBlind": false,
       "LtnDispatching": false,
-      "UnixMs": 1790000000000,
+      "CreatedMs": 1790000000000,
       "TypeName": "gw.house.operating.status",
       "Version": "000"
     }

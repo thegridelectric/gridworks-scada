@@ -1480,6 +1480,31 @@ class HydronicLayout:
         if n is None:
             raise DcError(f"{HSNN.hp_boss} is known to exist")
         return n
+
+    @property
+    def has_secondary_pump(self) -> bool:
+        """A plant with a heat exchanger between the heat pump and the
+        house has a secondary pump on the house side (Nolan); House0 has
+        none."""
+        return self.node(NolanNodeNames.secondary_pump_relay, None) is not None
+
+    @property
+    def fixed_subtrees(self) -> list[tuple[ShNode, list[ShNode]]]:
+        """The interior nodes that own relays whoever holds the tree, each
+        with the relays under it: hp-boss owns the call relay in every
+        layout and the secondary pump where the plant has one; sieg-loop
+        owns the loop pair where the layout has the loop. A tree rewrite
+        reparents the owner and keeps its relays under it. five-v-boss is
+        not here: it hangs under the tree's root and its subtree takes
+        its shape from its state."""
+        hp_boss_relays = [self.hp_scada_ops_relay]
+        if self.has_secondary_pump:
+            hp_boss_relays.append(self.secondary_pump_relay)
+        subtrees = [(self.hp_boss, hp_boss_relays)]
+        sieg_loop = self.node(House0NodeNames.sieg_loop, None)
+        if sieg_loop is not None:
+            subtrees.append((sieg_loop, [self.hp_loop_on_off, self.hp_loop_keep_send]))
+        return subtrees
     
     @property
     def leaf_ally(self) -> ShNode:

@@ -1139,9 +1139,12 @@ class NolanLayout(SemaType):
         "auto.five-v-boss.pico-cycler.vdc-relay" "lc" → "auto.lc" "n" → "auto.lc.n"
         "backup" → "auto.lc.backup" "cold-override" → "auto.lc.cold-override"
         "scada-blind" → "auto.lc.scada-blind" "standby" → "auto.lc.standby" "hp-boss" →
-        "auto.hp-boss" "hp-scada-ops-relay" → "auto.hp-boss.hp-scada-ops-relay" Every
-        other ShNode whose ActorClass is Relay or ZeroTenOutputer SHALL have the
-        effective handle "auto.<Name>".
+        "auto.hp-boss" "hp-scada-ops-relay" → "auto.hp-boss.hp-scada-ops-relay"
+        "secondary-pump-relay" → "auto.hp-boss.secondary-pump-relay" (hp-boss owns the
+        secondary pump as it owns the call: the pump runs whenever the heat pump is
+        called or sensed running, whoever holds the tree.) Every other ShNode whose
+        ActorClass is Relay or ZeroTenOutputer SHALL have the effective handle
+        "auto.<Name>".
         """
         expected = {
             "five-v-boss": "auto.five-v-boss",
@@ -1155,6 +1158,7 @@ class NolanLayout(SemaType):
             "standby": "auto.lc.standby",
             "hp-boss": "auto.hp-boss",
             "hp-scada-ops-relay": "auto.hp-boss.hp-scada-ops-relay",
+            "secondary-pump-relay": "auto.hp-boss.secondary-pump-relay",
         }
         for n in self.sh_nodes or []:
             effective = n.handle if n.handle is not None else n.name

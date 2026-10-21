@@ -74,14 +74,15 @@ class CommandNode(ShNodeActor):
         ```
         boss
         ├── hp-boss
-        │     └── hp-scada-ops-relay
+        │     ├── hp-scada-ops-relay
+        │     └── secondary-pump-relay   (where the plant has one)
         ├── sieg-loop                 (only when the scada runs the loop)
         │     ├── hp-loop-on-off
         │     └── hp-loop-keep-send
         └── every other actuator
         ```
-        hp-boss is the heat pump's command node in every layout; the loop
-        pair rides only when the ops word says the loop is used.
+        The owners and their relays are the layout's `fixed_subtrees`: an
+        interior node keeps its subtree whoever is on top.
         Throws exception if boss_node is not in my chain of command
         """
 
@@ -90,18 +91,12 @@ class CommandNode(ShNodeActor):
             raise Exception(f"{self.node.handle} cannot set command tree for boss_node {boss_node.handle}!")
 
         mine = self.my_actuators()
-        hp_boss = self.layout.hp_boss
-        hp_boss.Handle = f"{boss_node.handle}.{hp_boss.Name}"
-        ops_relay = self.layout.hp_scada_ops_relay
-        ops_relay.Handle = f"{hp_boss.Handle}.{ops_relay.Name}"
-        under_fsm = {ops_relay.Name}
-        sieg_loop = self.layout.node(House0NodeNames.sieg_loop)
-        if sieg_loop is not None:
-            sieg_loop.Handle = f"{boss_node.handle}.{sieg_loop.Name}"
-            for name in (House0NodeNames.hp_loop_on_off, House0NodeNames.hp_loop_keep_send):
-                node = self.layout.node(name)
-                node.Handle = f"{sieg_loop.Handle}.{node.Name}"
-                under_fsm.add(node.Name)
+        under_fsm: set[str] = set()
+        for owner, relays in self.layout.fixed_subtrees:
+            owner.Handle = f"{boss_node.handle}.{owner.Name}"
+            for relay in relays:
+                relay.Handle = f"{owner.Handle}.{relay.Name}"
+                under_fsm.add(relay.Name)
         for node in mine:
             if node.Name not in under_fsm:
                 node.Handle = f"{boss_node.handle}.{node.Name}"

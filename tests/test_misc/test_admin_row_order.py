@@ -10,6 +10,7 @@ from gwadmin.watch.clients.relay_client import RelayWatchClient
 from gwadmin.watch.widgets.relay_widget_info import RelayWidgetConfig
 from gwadmin.watch.widgets.relays import Relays
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
+from gwsproto.names.nolan.node_names import NolanNodeNames
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -33,12 +34,14 @@ def test_owned_relays_sit_under_their_owner(app: ScadaApp) -> None:
         HSNN.pico_cycler: HSNN.five_v_boss,
         HSNN.vdc_relay: HSNN.pico_cycler,
         HSNN.hp_scada_ops_relay: HSNN.hp_boss,
+        NolanNodeNames.secondary_pump_relay: HSNN.hp_boss,
     }
     ordered = sorted(configs.values(), key=lambda c: Relays.row_order_key(c, configs))
     names = [c.about_node_name for c in ordered]
     assert names.index(HSNN.pico_cycler) == names.index(HSNN.five_v_boss) + 1
     assert names.index(HSNN.vdc_relay) == names.index(HSNN.pico_cycler) + 1
     assert names.index(HSNN.hp_scada_ops_relay) == names.index(HSNN.hp_boss) + 1
+    assert names.index(NolanNodeNames.secondary_pump_relay) == names.index(HSNN.hp_boss) + 2
     unowned = [n for n in names if configs[n].owner is None]
     assert unowned == sorted(unowned)
 

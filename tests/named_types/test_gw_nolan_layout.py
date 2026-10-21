@@ -150,16 +150,22 @@ def set_handle(name: str, handle: str):
 
 
 def test_gw_nolan_layout_axiom_30_command_node_declared_under_lc(assembled: dict) -> None:
-    """hp-boss and its relay move together so the tree stays prefix-closed
+    """hp-boss and its relays move together so the tree stays prefix-closed
     and the handle axiom is the one that rejects."""
     def mutate(d: dict) -> None:
         set_handle("hp-boss", "auto.lc.n.hp-boss")(d)
         set_handle("hp-scada-ops-relay", "auto.lc.n.hp-boss.hp-scada-ops-relay")(d)
+        set_handle("secondary-pump-relay", "auto.lc.n.hp-boss.secondary-pump-relay")(d)
     reject(assembled, mutate, "Axiom 30")
 
 
 def test_gw_nolan_layout_axiom_30_fixed_relay_declared_flat(assembled: dict) -> None:
     reject(assembled, set_handle("hp-scada-ops-relay", "auto.hp-scada-ops-relay"), "Axiom 30")
+
+
+def test_gw_nolan_layout_axiom_30_secondary_pump_declared_flat(assembled: dict) -> None:
+    """The secondary pump is hp-boss's fixed relay, as the call relay is."""
+    reject(assembled, set_handle("secondary-pump-relay", "auto.secondary-pump-relay"), "Axiom 30")
 
 
 def test_gw_nolan_layout_axiom_30_floating_actuator_under_a_boss(assembled: dict) -> None:

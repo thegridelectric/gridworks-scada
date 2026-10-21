@@ -229,14 +229,8 @@ STORE_CLOSED = [
     (NolanNodeNames.charge_valve_relay, ChangeValveState.CloseValve.value),
     (HSNN.store_pump_relay, ChangeRelayState.OpenRelay.value),
 ]
-PUMP_ON = [
-    (NolanNodeNames.secondary_pump_relay, ChangeRelayState.CloseRelay.value),
-    (NolanNodeNames.iso_valve_relay, ChangeValveState.OpenValve.value),
-]
-PUMP_OFF = [
-    (NolanNodeNames.secondary_pump_relay, ChangeRelayState.OpenRelay.value),
-    (NolanNodeNames.iso_valve_relay, ChangeValveState.CloseValve.value),
-]
+ISO_OPEN = [(NolanNodeNames.iso_valve_relay, ChangeValveState.OpenValve.value)]
+ISO_CLOSED = [(NolanNodeNames.iso_valve_relay, ChangeValveState.CloseValve.value)]
 ELEMENTS_OFF = [
     (NolanNodeNames.buffer_top_elt_relay, ChangeRelayState.OpenRelay.value),
     (NolanNodeNames.buffer_bottom_elt_relay, ChangeRelayState.OpenRelay.value),
@@ -302,7 +296,7 @@ def test_heating_boot_posture(heat: NolanBufferOnlyTou) -> None:
     pump on with the iso valve open because no hp-watch state has
     arrived yet. The machine reports HpCallOff and nothing more."""
     heat.on_actuators_ready()
-    assert commands(heat) == ZONE_RELEASE + STORE_CLOSED + ELEMENTS_OFF + CALL_OFF + PUMP_ON
+    assert commands(heat) == ZONE_RELEASE + STORE_CLOSED + ELEMENTS_OFF + CALL_OFF + ISO_OPEN
     assert call_states(heat) == [NolanLcBufferOnlyState.HpCallOff]
     assert all(e.FromHandle == heat.normal_node.handle for e in hp_boss_events(heat))
 
@@ -402,34 +396,49 @@ async def test_heating_subscribes_to_hp_watch_at_start(heat: NolanBufferOnlyTou)
     ] == [(CoreNodeNames.primary_scada, HSNN.hp_watch)]
 
 
-def test_heating_pump_follows_hp_watch(heat: NolanBufferOnlyTou) -> None:
-    """Secondary pump and iso valve follow the hp-watch state the moment
-    it arrives, with no check in between: off in HpDetectedOff, on in
-    HpDetectedOn and in Unknown, and on before any state has arrived. Not
-    a function of the call, and the watts are not read."""
+def test_heating_iso_valve_follows_the_call_and_hp_watch(heat: NolanBufferOnlyTou) -> None:
+    """The iso valve follows the moment the call or the hp-watch state
+    changes, with no check in between: closed only with the call open and
+    HpDetectedOff; open while the call is closed, in HpDetectedOn, in
+    Unknown and before any state has arrived. The watts are not read, and
+    the secondary pump is never commanded here: it is hp-boss's."""
     heat.on_actuators_ready()
-    assert commands(heat)[-2:] == PUMP_ON
-    buffer_at(heat, 120, 130)  # full, so the call stays off throughout
+    assert commands(heat)[-1:] == ISO_OPEN
+    assert NolanNodeNames.secondary_pump_relay not in [dst for dst, _ in commands(heat)]
+    buffer_at(heat, 120, 130)  # full, so the call stays off
     heat.sent.clear()
     hp_watch_says(heat, SpruceHackHpState.HpDetectedOff)
-    assert commands(heat) == PUMP_OFF
+    assert commands(heat) == ISO_CLOSED
     heat.sent.clear()
     read_at(heat, HCN.hp_odu_pwr, 600)
     heat.check(ONPEAK)
     hp_watch_says(heat, SpruceHackHpState.HpDetectedOff)
     assert commands(heat) == []
     hp_watch_says(heat, SpruceHackHpState.HpDetectedOn)
-    assert commands(heat) == PUMP_ON
+    assert commands(heat) == ISO_OPEN
     heat.sent.clear()
     hp_watch_says(heat, SpruceHackHpState.Unknown)
     read_at(heat, HCN.hp_odu_pwr, 50)
     heat.check(ONPEAK)
     assert commands(heat) == []
     hp_watch_says(heat, SpruceHackHpState.HpDetectedOff)
-    assert commands(heat) == PUMP_OFF
+    assert commands(heat) == ISO_CLOSED
     heat.sent.clear()
     hp_watch_says(heat, SpruceHackHpState.Unknown)
-    assert commands(heat) == PUMP_ON
+    assert commands(heat) == ISO_OPEN
+    heat.sent.clear()
+    # The call closing opens the valve with the unit still sensed off, in
+    # the same step as the call, so the pump hp-boss starts has a sink.
+    hp_watch_says(heat, SpruceHackHpState.HpDetectedOff)
+    buffer_at(heat, 80, 80)
+    heat.check(OFFPEAK)
+    assert commands(heat) == ISO_CLOSED + CALL_ON + ISO_OPEN
+    heat.sent.clear()
+    hp_watch_says(heat, SpruceHackHpState.HpDetectedOff)  # called: stays open
+    assert commands(heat) == []
+    buffer_at(heat, 120, 130)
+    heat.check(OFFPEAK)
+    assert commands(heat) == CALL_OFF + ISO_CLOSED
 
 
 def test_heating_hp_watch_state_while_dormant_waits_for_the_wake(
@@ -447,7 +456,7 @@ def test_heating_hp_watch_state_while_dormant_waits_for_the_wake(
     for node in heat.layout.actuators:  # the scada hands the tree back first
         node.Handle = f"{heat.node.handle}.{node.Name}"
     heat.wake_up()
-    assert commands(heat) == ZONE_RELEASE + STORE_CLOSED + ELEMENTS_OFF + CALL_OFF + PUMP_OFF
+    assert commands(heat) == ZONE_RELEASE + STORE_CLOSED + ELEMENTS_OFF + CALL_OFF + ISO_CLOSED
 
 
 def test_heating_scada_blind(heat: NolanBufferOnlyTou) -> None:
@@ -478,7 +487,7 @@ def test_heating_scada_blind(heat: NolanBufferOnlyTou) -> None:
         NolanLcBufferOnlyState.Initializing,
         NolanLcBufferOnlyState.HpCallOff,
     ]
-    assert commands(heat) == ZONE_RELEASE + STORE_CLOSED + ELEMENTS_OFF + CALL_OFF + PUMP_ON
+    assert commands(heat) == ZONE_RELEASE + STORE_CLOSED + ELEMENTS_OFF + CALL_OFF + ISO_OPEN
     assert all(e.FromHandle == heat.normal_node.handle for e in hp_boss_events(heat))
 
 
@@ -490,8 +499,8 @@ def watch_says(actor: NolanBufferOnlyTou, payload: HouseCold | HouseWarm) -> Non
 
 def test_heating_cold_override(heat: NolanBufferOnlyTou) -> None:
     """The watch's cold message moves the tree under cold-override, where
-    the call is closed whatever the tariff and the pump still follows the
-    hp-watch; its warm message holds through the peak and re-boots Normal
+    the call is closed whatever the tariff and the iso valve stays open
+    with it; its warm message holds through the peak and re-boots Normal
     off-peak."""
     heat.on_actuators_ready()
     buffer_at(heat, 80, 80)
@@ -508,9 +517,8 @@ def test_heating_cold_override(heat: NolanBufferOnlyTou) -> None:
     heat.check(OFFPEAK)
     assert commands(heat) == []  # the call stays closed, blind to the tariff
     hp_watch_says(heat, SpruceHackHpState.HpDetectedOff)
-    assert commands(heat) == PUMP_OFF
     hp_watch_says(heat, SpruceHackHpState.HpDetectedOn)
-    assert commands(heat) == PUMP_OFF + PUMP_ON
+    assert commands(heat) == []  # the call is closed: the iso stays open
     heat.sent.clear()
     buffer_at(heat, 80, 80, age_s=301)
     heat.check(ONPEAK)
@@ -527,7 +535,7 @@ def test_heating_cold_override(heat: NolanBufferOnlyTou) -> None:
         NolanLcBufferOnlyState.Initializing,
         NolanLcBufferOnlyState.HpCallOff,
     ]
-    assert commands(heat) == ZONE_RELEASE + STORE_CLOSED + ELEMENTS_OFF + CALL_OFF + PUMP_ON
+    assert commands(heat) == ZONE_RELEASE + STORE_CLOSED + ELEMENTS_OFF + CALL_OFF + ISO_OPEN
     assert all(e.FromHandle == heat.normal_node.handle for e in hp_boss_events(heat))
 
 
@@ -576,7 +584,7 @@ def test_heating_in_backup(heat_with_backup: NolanBufferOnlyTou) -> None:
     heat.check(OFFPEAK)
     assert commands(heat) == []
     hp_watch_says(heat, SpruceHackHpState.HpDetectedOff)
-    assert commands(heat) == PUMP_OFF
+    assert commands(heat) == ISO_CLOSED  # the call is open in backup
     heat.sent.clear()
     heat.offpeak = lambda now: False
     watch_says(heat, HouseWarm())
@@ -591,7 +599,7 @@ def test_heating_in_backup(heat_with_backup: NolanBufferOnlyTou) -> None:
         NolanLcBufferOnlyState.Initializing,
         NolanLcBufferOnlyState.HpCallOff,
     ]
-    assert commands(heat) == ZONE_RELEASE + STORE_CLOSED + ELEMENTS_OFF + CALL_OFF + PUMP_OFF
+    assert commands(heat) == ZONE_RELEASE + STORE_CLOSED + ELEMENTS_OFF + CALL_OFF + ISO_CLOSED
     assert all(e.FromHandle == heat.normal_node.handle for e in hp_boss_events(heat))
 
 
@@ -707,4 +715,4 @@ def test_heating_dormant_and_wake(heat: NolanBufferOnlyTou) -> None:
         NolanLcBufferOnlyState.Initializing,
         NolanLcBufferOnlyState.HpCallOff,
     ]
-    assert commands(heat) == ZONE_RELEASE + STORE_CLOSED + ELEMENTS_OFF + CALL_OFF + PUMP_ON
+    assert commands(heat) == ZONE_RELEASE + STORE_CLOSED + ELEMENTS_OFF + CALL_OFF + ISO_OPEN

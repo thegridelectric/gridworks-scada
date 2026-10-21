@@ -1397,41 +1397,36 @@ class Scada(PrimeActor, ScadaInterface):
         │           └── vdc-relay
         └── boss (admin, or an auto node: local-control, leaf-ally)
               ├── hp-boss
-              │     └── hp-scada-ops-relay
+              │     ├── hp-scada-ops-relay
+              │     └── secondary-pump-relay   (where the plant has one)
               ├── sieg-loop        (only when the scada runs the loop)
               │     ├── hp-loop-on-off
               │     └── hp-loop-keep-send
               └── every other relay and 0-10V output
         ```
-        An interior node keeps its subtree: a rewrite reparents hp-boss,
-        sieg-loop and five-v-boss and never reaches through them to their
-        relays. five-v-boss hangs under the tree's root, not the boss: no
-        auto node commands it, and it runs in every top state, so admin
-        taking the tree moves it to `admin.five-v-boss` with its subtree.
-        Its subtree's shape is its own (while it holds the 5 V off it owns
+        An interior node keeps its subtree: a rewrite reparents each owner
+        the layout's `fixed_subtrees` names (hp-boss with the call relay
+        and, where the plant has one, the secondary pump; sieg-loop with
+        the loop pair) and never reaches through it to its relays.
+        five-v-boss hangs under the tree's root, not the boss: no auto
+        node commands it, and it runs in every top state, so admin taking
+        the tree moves it to `admin.five-v-boss` with its subtree. Its
+        subtree's shape is its own (while it holds the 5 V off it owns
         vdc-relay directly and the cycler is a leaf), read off its last
         reported state.
-        hp-boss is the heat pump's command node in every layout; the loop
-        pair rides only when the ops word says the loop is used.
         """
-        hp_boss = self.layout.hp_boss
-        hp_boss.Handle = f"{boss.handle}.{hp_boss.Name}"
-        ops_relay = self.layout.hp_scada_ops_relay
-        ops_relay.Handle = f"{hp_boss.Handle}.{ops_relay.Name}"
-        under_fsm = {ops_relay.Name}
+        under_fsm: set[str] = set()
+        for owner, relays in self.layout.fixed_subtrees:
+            owner.Handle = f"{boss.handle}.{owner.Name}"
+            for relay in relays:
+                relay.Handle = f"{owner.Handle}.{relay.Name}"
+                under_fsm.add(relay.Name)
         five_v_boss = self.layout.node(HSNN.five_v_boss)
         if five_v_boss is not None:
             root = boss.handle.split(".")[0]
             five_v_boss.Handle = f"{root}.{five_v_boss.Name}"
             shape_five_v_subtree(self.layout, self.five_v_boss_state)
             under_fsm.add(self.layout.vdc_relay.Name)
-        sieg_loop = self.layout.node(House0NodeNames.sieg_loop)
-        if sieg_loop is not None:
-            sieg_loop.Handle = f"{boss.handle}.{sieg_loop.Name}"
-            for name in (House0NodeNames.hp_loop_on_off, House0NodeNames.hp_loop_keep_send):
-                node = self.layout.node(name)
-                node.Handle = f"{sieg_loop.Handle}.{node.Name}"
-                under_fsm.add(node.Name)
         for node in self.layout.actuators:
             if node.Name not in under_fsm:
                 node.Handle = f"{boss.handle}.{node.Name}"
@@ -1632,7 +1627,7 @@ class Scada(PrimeActor, ScadaInterface):
             TopState=self.top_state,
             ScadaBlind=not self.buffer_fresh(),
             LtnDispatching=self.ltn_dispatching,
-            UnixMs=int(time.time() * 1000),
+            CreatedMs=int(time.time() * 1000),
         )
 
     def report_operating_status(self) -> None:
@@ -1640,8 +1635,8 @@ class Scada(PrimeActor, ScadaInterface):
         since the last one sent (the first send always goes)."""
         status = self.house_operating_status
         if self.last_operating_status is not None and (
-            status.model_dump(exclude={"UnixMs"})
-            == self.last_operating_status.model_dump(exclude={"UnixMs"})
+            status.model_dump(exclude={"CreatedMs"})
+            == self.last_operating_status.model_dump(exclude={"CreatedMs"})
         ):
             return
         self.last_operating_status = status

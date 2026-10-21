@@ -115,13 +115,16 @@ def test_boot_puts_every_actuator_under_local_control_normal(app: ScadaApp) -> N
     boot-time rewrite (`Scada.__init__` → `set_command_tree(n)`) is what
     hangs them under `auto.lc.n`. Every relay and 0-10V output is a direct
     report of `n` after boot, except the ones an interior node owns:
-    hp-scada-ops-relay under hp-boss, vdc-relay under the five-v-boss
-    subtree, and the sieg-loop pair in a layout with the loop."""
+    hp-scada-ops-relay and, where the plant has one, the secondary pump
+    under hp-boss, vdc-relay under the five-v-boss subtree, and the
+    sieg-loop pair in a layout with the loop."""
     scada = app.scada
     layout = scada.layout
     n = layout.node(CoreNodeNames.local_control_normal)
     assert n.handle == "auto.lc.n"
     owned = {layout.hp_scada_ops_relay.Name: layout.hp_boss.handle}
+    if layout.has_secondary_pump:
+        owned[layout.secondary_pump_relay.Name] = layout.hp_boss.handle
     if layout.node(HSNN.five_v_boss) is not None:
         owned[layout.vdc_relay.Name] = scada.pico_cycler.handle
     if layout.node(House0NodeNames.sieg_loop) is not None:

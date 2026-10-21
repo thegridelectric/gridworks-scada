@@ -38,6 +38,7 @@ from gwsproto.named_types import (
 )
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
+from gwsproto.names.nolan.node_names import NolanNodeNames
 from scada_app import ScadaApp
 from tests.utils.scada_live_test_helper import ScadaLiveTest
 
@@ -62,8 +63,9 @@ def test_control_capabilities_on_nolan(app: ScadaApp) -> None:
     tree: every relay and the 0-10V output are in the projection, hp-boss
     and five-v-boss are command-node rows with their own vocabulary
     (five-v-boss with two: the hold and the forwarded reboot),
-    and the two relays they own (hp-scada-ops-relay, vdc-relay) carry no
-    interface of their own."""
+    and the relays they own (hp-scada-ops-relay and the secondary pump
+    under hp-boss, vdc-relay under the cycler) carry no interface of
+    their own."""
     scada = app.scada
     layout = scada.layout
     capabilities = scada.control_capabilities
@@ -77,7 +79,7 @@ def test_control_capabilities_on_nolan(app: ScadaApp) -> None:
         DAC_NODE
     }
     interfaces = {i.ActorName: i for i in capabilities.CommandInterfaces}
-    owned = {HSNN.hp_scada_ops_relay, HSNN.vdc_relay}
+    owned = {HSNN.hp_scada_ops_relay, NolanNodeNames.secondary_pump_relay, HSNN.vdc_relay}
     assert set(interfaces) == (relay_names - owned) | {HSNN.hp_boss, HSNN.five_v_boss}
     hp_boss = interfaces[HSNN.hp_boss]
     assert hp_boss.EventType == TurnHpOnOff.enum_name()

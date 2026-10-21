@@ -1,6 +1,6 @@
 """HpBoss: the heat pump's command node in every layout, owning the call
-relay and the turn-on strategy. The sensing side of the heat pump is
-`sensing.py` beside this file."""
+relay, the turn-on strategy and, where the plant has one, the secondary
+pump. The sensing side of the heat pump is `sensing.py` beside this file."""
 
 import asyncio
 import time
@@ -15,6 +15,7 @@ from gwsproto.enums import (
     HpBossState,
     ScadaCmdRefusalReason,
     SiegLoopStrategy,
+    SpruceHackHpState,
     TurnHpOnOff,
 )
 from gwsproto.named_types import (
@@ -25,9 +26,11 @@ from gwsproto.named_types import (
     FsmFullReport,
     SingleMachineState,
 )
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from result import Ok, Result
 
 from actors import command_reply
+from actors.in_process_messages import MachineStateSubscribe
 from actors.sh_node_actor import ShNodeActor
 from actors.sieg_loop.strategy import SiegLoopReady, selected_strategy
 from scada_app_interface import ScadaAppInterface
@@ -38,13 +41,21 @@ class HpBoss(ShNodeActor):
     Direct Reports:
     HpBoss
         ├── HpScadaOps
-        └── SiegLoop
+        └── SecondaryPump   (where the plant has one)
 
     Every command to the call relay rides under one TriggerId: the boss's
     when a TurnHpOnOff command drives it, one hp-boss mints when it acts on
     its own (boot, the start timeout). hp-boss keeps its own transitions
     under that id as atomics, folds the relay's full report in when it
     arrives, and sends the one full report to the scada.
+
+    The secondary pump is the heat pump's, whoever holds the tree, and it
+    follows the heat pump's measured power through hp-watch alone, never
+    the call: on while the watch senses the unit running and while it does
+    not know, off while it senses the unit off. The call says what the
+    scada asked for; the pump runs on what the unit is doing. Each pump
+    command is its own minted id, and the pump relay's full report goes on
+    to the scada as it is.
     """
     TURN_ON_ANYWAY_S = 120 # turn on the heat pump after 2 minutes without strat-boss
     def __init__(self, name: str, services: ScadaAppInterface):
@@ -59,14 +70,26 @@ class HpBoss(ShNodeActor):
         # it, reported in full once the relay's report folds in.
         self.trigger_id: Optional[str] = None
         self.fsm_reports: list[FsmAtomicReport] = []
+        # The secondary pump relay, where the plant has one.
+        self.pump: Optional[ShNode] = (
+            self.layout.secondary_pump_relay if self.layout.has_secondary_pump else None
+        )
+        # The heat pump as hp-watch last reported it; Unknown until a state arrives.
+        self.hp_sensed: SpruceHackHpState = SpruceHackHpState.Unknown
+        # The commanded pump state; None until the first command.
+        self.pump_on: Optional[bool] = None
 
     def start(self) -> None:
         """Boots the call relay open and reports HpOff, so the relay holds
         the posture the boss believes and the scada's latest-state list
-        carries hp-boss from the first snapshot."""
+        carries hp-boss from the first snapshot; subscribes to hp-watch and
+        commands the pump where the plant has one."""
         self.begin(str(uuid.uuid4()))
         self.open_hp_scada_ops_relay()
         self.report_state()
+        if self.pump is not None:
+            self._send_to(self.primary_scada, MachineStateSubscribe(NodeName=HSNN.hp_watch))
+            self.enforce_pump()
 
     def stop(self) -> None:
         """ Required method, used for stopping tasks. Noop"""
@@ -101,6 +124,13 @@ class HpBoss(ShNodeActor):
                     self.process_sieg_loop_ready(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with process_sieg_loop_ready: {e}")
+            case SingleMachineState():
+                if (
+                    from_node.name == HSNN.hp_watch
+                    and payload.StateEnum == SpruceHackHpState.enum_name()
+                ):
+                    self.hp_sensed = SpruceHackHpState(payload.State)
+                    self.enforce_pump()
             case _:
                 self.log(f"{self.name} received unexpected message: {message.Header}"
             )
@@ -197,8 +227,12 @@ class HpBoss(ShNodeActor):
         self.report_state()
 
     def process_fsm_full_report(self, from_node: ShNode, payload: FsmFullReport) -> None:
-        """The relay's report under the command in flight folds into
-        hp-boss's own, which then goes to the scada."""
+        """The call relay's report under the command in flight folds into
+        hp-boss's own, which then goes to the scada; the pump relay's goes
+        to the scada as it is."""
+        if self.pump is not None and from_node.Name == self.pump.Name:
+            self._send_to(self.primary_scada, payload)
+            return
         if from_node.Name != self.layout.hp_scada_ops_relay.Name:
             self.log(f"Ignoring fsm.full.report from {from_node.name}")
             return
@@ -269,3 +303,32 @@ class HpBoss(ShNodeActor):
 
     def close_hp_scada_ops_relay(self) -> None:
         self.command_relay(ChangeRelayState.CloseRelay)
+
+    def pump_wanted(self) -> bool:
+        """Off while hp-watch senses the heat pump off; on while it senses
+        it running and while it does not know. The call plays no part."""
+        return self.hp_sensed != SpruceHackHpState.HpDetectedOff
+
+    def enforce_pump(self) -> None:
+        """Command the pump when what is wanted differs from what was last
+        commanded; each command under its own minted id."""
+        if self.pump is None:
+            return
+        wanted = self.pump_wanted()
+        if wanted == self.pump_on:
+            return
+        event_name = ChangeRelayState.CloseRelay if wanted else ChangeRelayState.OpenRelay
+        event = FsmEvent(
+            FromHandle=self.node.handle,
+            ToHandle=self.pump.handle,
+            EventType=ChangeRelayState.enum_name(),
+            EventName=event_name,
+            SendTimeUnixMs=int(time.time() * 1000),
+            TriggerId=str(uuid.uuid4()),
+        )
+        self._send_to(self.pump, event)
+        self.pump_on = wanted
+        self.log(
+            f"{self.node.handle} sending {event_name} to {self.pump.handle} "
+            f"(call {self.state}, sensed {self.hp_sensed})"
+        )

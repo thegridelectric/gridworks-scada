@@ -31,7 +31,7 @@ class HouseOperatingStatus(GwsprotoSemaType):
     TopState: TopState
     ScadaBlind: bool
     LtnDispatching: bool
-    UnixMs: UTCMilliseconds
+    CreatedMs: UTCMilliseconds
     TypeName: Literal["gw.house.operating.status"] = "gw.house.operating.status"
     Version: Literal["000"] = "000"
 

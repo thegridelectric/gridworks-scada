@@ -37,6 +37,8 @@ enum:
 - MitsubishiERSFNM6E
 - LGARUM048GSS5
 - LGARNH423K3A4
+- SamsungAM048TXMDCH
+- SamsungAM048CNBFCB
 default: EgaugePowerMeter
 x-gridworks:
   owner: gridworks-energy
@@ -93,3 +95,9 @@ x-gridworks:
     LGARNH423K3A4: >
       LG Hydro Kit High Temperature ARNH423K3A4 — the indoor unit that does the
       refrigerant-to-water exchange (no glycol, no plate exchanger). Beech and oak.
+    SamsungAM048TXMDCH: >
+      Samsung AM048TXMDCH outdoor unit — compressor-bearing, refrigerant out to the Hydro
+      Kit; full nameplate designation verbatim after the make prefix. Fir.
+    SamsungAM048CNBFCB: >
+      Samsung Hydro Kit AM048CNBFCB — the indoor unit that does the refrigerant-to-water
+      exchange (no glycol, no plate exchanger). Fir.

@@ -53,7 +53,7 @@ async def no_announcer(self: Scada) -> None:
 
 
 def fields(status: HouseOperatingStatus) -> dict[str, Any]:
-    return status.model_dump(exclude={"UnixMs"})
+    return status.model_dump(exclude={"CreatedMs"})
 
 
 def assert_only_changed(before: HouseOperatingStatus, after: HouseOperatingStatus, **changed: Any) -> None:

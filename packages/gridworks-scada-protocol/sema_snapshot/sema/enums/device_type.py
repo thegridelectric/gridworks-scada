@@ -32,6 +32,8 @@ class DeviceType(SemaEnum):
     MitsubishiERSFNM6E = auto()
     LGARUM048GSS5 = auto()
     LGARNH423K3A4 = auto()
+    SamsungAM048TXMDCH = auto()
+    SamsungAM048CNBFCB = auto()
 
     @classmethod
     def default(cls) -> "DeviceType":
