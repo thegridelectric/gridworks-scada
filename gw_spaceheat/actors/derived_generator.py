@@ -844,11 +844,7 @@ class DerivedGenerator(ShNodeActor):
         - Simulates layer-by-layer discharge of tanks or buffer
         - Assumes stratified storage
         """
-        if (
-            self.ops.DispatchHold.OperatorHold
-            or self.ops.DispatchHold.ServiceContractBroken
-            or self.ops.ServiceMode != ServiceMode.Heating
-        ):
+        if self.ops.ServiceMode != ServiceMode.Heating:
             return None
 
         if not buffer_fresh(self.data, self.layout):

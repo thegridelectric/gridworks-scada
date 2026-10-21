@@ -18,7 +18,7 @@ import pytest
 from actors import derived_generator
 from actors.derived_generator import DerivedGenerator
 from actors.hydronic.shared import dispatch_channels
-from gwsproto.named_types import HeatingForecast, WeatherSeasonalTemplateGt
+from gwsproto.named_types import DispatchHold, HeatingForecast, SingleReading, WeatherSeasonalTemplateGt
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from scada_app import ScadaApp
@@ -126,6 +126,31 @@ def test_main_loop_pass_survives_the_first_forecast(app: ScadaApp) -> None:
     for dc in actor.system_models:
         actor.handle_system_model(dc)
     assert sent, "the pass emits its derived readings"
+
+
+def test_usable_energy_does_not_depend_on_the_dispatch_hold(app: ScadaApp) -> None:
+    """A held house still has a buffer and a forecast; the estimate is a
+    fact about the plant and the hold is a fact about dispatch."""
+    actor = app.get_communicator_as_type(CoreNodeNames.derived_generator, DerivedGenerator)
+    assert actor is not None
+    actor.data.heating_forecast = a_day_of_forecast(actor)
+    actor.weather_forecast = a_weather_forecast(actor)
+    hot_tanks(actor)
+    actor.data.ops = actor.ops.model_copy(
+        update={"DispatchHold": DispatchHold(OperatorHold=True, ServiceContractBroken=True)}
+    )
+
+    usable_wh = actor.compute_usable_energy_wh()
+    assert isinstance(usable_wh, int) and usable_wh > 0
+
+    sent: list = []
+    actor._send = lambda message: sent.append(message)
+    actor._send_to = lambda dst, payload, src=None: sent.append((dst.name, payload))
+    for dc in actor.system_models:
+        actor.handle_system_model(dc)
+    assert any(
+        isinstance(p, SingleReading) and p.ChannelName == HCN.usable_energy for _, p in sent
+    ), sent
 
 
 def test_a_forecast_is_due_when_none_is_held_or_the_held_one_starts_in_the_past(
