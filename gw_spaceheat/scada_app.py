@@ -20,8 +20,9 @@ from actors.scada import Scada
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
 from actors.scada_data import load_operational_params
+from actors.unserved_post import UNSERVED_POST_PATH, UnservedPosts
 from sema_to_dc import load_layout
-from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.names.core.node_names import CoreNodeNames, ScadaWeb
 from clock import Clock, build_clock
 from weather_source import WeatherSource, build_weather_source
 from scada_app_interface import ScadaAppInterface
@@ -76,6 +77,19 @@ class ScadaApp(App, ScadaAppInterface):
     def instantiate(self) -> "ScadaApp":
         super().instantiate()
         self.assert_derived_creators()
+        self.unserved_posts = UnservedPosts(
+            proactor=self.proactor,
+            node_name=self.prime_actor.name,
+            scada_g_node_alias=self.hardware_layout.scada_g_node_alias,
+            logger=self.proactor.logger,
+        )
+        # last, after every actor's routes: a POST nothing else serves
+        self.add_web_route(
+            server_name=ScadaWeb.DEFAULT_SERVER_NAME,
+            method="POST",
+            path=UNSERVED_POST_PATH,
+            handler=self.unserved_posts.handle,
+        )
         return self
 
     def assert_derived_creators(self) -> None:
