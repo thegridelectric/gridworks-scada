@@ -1,6 +1,6 @@
 metadata:
   generated_from: indexes/public_registry.yaml
-  generated_at: '2026-10-21T18:47:29Z'
+  generated_at: '2026-10-22T15:16:52Z'
   note: Transitive closure of initial_targets
 initial_targets:
 - ads.channel.config:000
@@ -116,7 +116,6 @@ initial_targets:
 - report.event:004
 - scada.board.component.gt:000
 - scada.control.capabilities:002
-- scada.params:005
 - send.control.capabilities:000
 - send.layout:001
 - setpoint.belief:000
@@ -840,9 +839,6 @@ worklist:
     scada.control.capabilities:
       '002':
         path: definitions/types/scada.control.capabilities/002.yaml
-    scada.params:
-      '005':
-        path: definitions/types/scada.params/005.yaml
     send.control.capabilities:
       '000':
         path: definitions/types/send.control.capabilities/000.yaml

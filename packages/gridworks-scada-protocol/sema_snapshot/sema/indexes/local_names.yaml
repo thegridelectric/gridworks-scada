@@ -192,7 +192,6 @@ types:
   report.event: report.event
   scada.board.component.gt: scada.board.component.gt
   scada.control.capabilities: scada.control.capabilities
-  scada.params: scada.params
   send.control.capabilities: send.control.capabilities
   send.layout: send.layout
   setpoint.belief: setpoint.belief

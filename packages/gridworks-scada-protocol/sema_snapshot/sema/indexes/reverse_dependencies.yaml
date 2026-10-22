@@ -200,7 +200,6 @@ types:
     '006':
       used_by:
       - layout.lite:013
-      - scada.params:005
   heating.curve:
     '000':
       used_by:
@@ -728,7 +727,6 @@ formats:
     - report.event:004
     - report:003
     - scada.control.capabilities:002
-    - scada.params:005
     - send.control.capabilities:000
     - send.layout:001
     - single.machine.state:000
@@ -915,7 +913,6 @@ formats:
     - pico.flow.module.component.gt:001
     - relay.actor.config:003
     - relay.control.config:000
-    - scada.params:005
     - sim.pico.btu.meter.component.gt:000
     - sim.pico.flow.module.component.gt:000
     - single.reading:000
@@ -954,7 +951,6 @@ formats:
     - report.event:004
     - report:003
     - scada.control.capabilities:002
-    - scada.params:005
     - send.control.capabilities:000
     - send.layout:001
     - single.machine.state:000
@@ -1020,7 +1016,6 @@ formats:
     - report.event:004
     - report:003
     - scada.board.component.gt:000
-    - scada.params:005
     - sim.pico.btu.meter.component.gt:000
     - sim.pico.flow.module.component.gt:000
     - sim.pico.tank.module.component.gt:001

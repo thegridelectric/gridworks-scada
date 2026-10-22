@@ -75,7 +75,7 @@ from actors.ltn.contract_handler import LtnContractHandler
  
 from gwsproto.named_types import (
     Bid, BidRecommendation, FloParamsHouse0, FloNextHourPlans, Glitch, Ha1Params, HouseOperatingStatus, LatestPrice,
-    LayoutLite, NoNewContractWarning, ScadaParams, SendLayout,
+    LayoutLite, NoNewContractWarning, SendLayout,
     SlowContractHeartbeat, SlowContractRejection,
     SnapshotSpaceheat,
 )
@@ -674,9 +674,6 @@ class Ltn(PrimeActor):
             case Report():
                 path_dbg |= 0x00000008
                 self.process_report(decoded.Payload)
-            case ScadaParams():
-                path_dbg |= 0x00000010
-                self.process_scada_params(decoded.Payload)
             case SnapshotSpaceheat():
                 path_dbg |= 0x00000020
                 self.process_snapshot(decoded.Payload)
@@ -747,12 +744,6 @@ class Ltn(PrimeActor):
                     extra = f"{temperature.c:5.2f} C"
             s += f"  {channel.AboutNodeName}: {extra}\n"
         return s
-
-    def process_scada_params(self, params: ScadaParams) -> None:
-        if params.NewParams:
-            print(f"Old: {self.ha1_params}")
-            print(f"New: {params.NewParams}")
-            self.ha1_params = params.NewParams
 
     def process_snapshot(self, snapshot: SnapshotSpaceheat) -> None:
         self.data.latest_snapshot = snapshot
@@ -828,22 +819,6 @@ class Ltn(PrimeActor):
                 Dst=self.scada.name,
                 Payload=SendSnap(
                     FromGNodeAlias=self.layout.ltn_g_node_alias,
-                ),
-            )
-        )
-
-    def send_new_params(self, new: Ha1Params) -> None:
-        self.services.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.scada.name,
-                Payload=ScadaParams(
-                    FromGNodeAlias=self.layout.ltn_g_node_alias,
-                    FromName=CoreNodeNames.ltn,
-                    ToName=CoreNodeNames.local_control,
-                    UnixTimeMs=int(time.time() * 1000),
-                    MessageId=str(uuid.uuid4()),
-                    NewParams=new,
                 ),
             )
         )
@@ -1743,123 +1718,6 @@ class Ltn(PrimeActor):
     def log(self, note: str) -> None:
         log_str = f"[ltn] {note}"
         self.services.logger.error(log_str)
-
-    def set_alpha(self, alpha: float) -> None:
-        if self.ha1_params is None:
-            self.send_layout()
-        else:
-            try:
-                new = Ha1Params.model_validate(
-                    {**self.ha1_params.model_dump(), "AlphaTimes10": int(alpha * 10)}
-                )
-                self.send_new_params(new)
-            except Exception as e:
-                self.logger.error(f"Failed to set alpha! {e}")
-
-    def set_beta(self, beta: float) -> None:
-        if self.ha1_params is None:
-            self.send_layout()
-        else:
-            try:
-                new = Ha1Params.model_validate(
-                    {**self.ha1_params.model_dump(), "BetaTimes100": int(beta * 100)}
-                )
-                self.send_new_params(new)
-            except Exception as e:
-                self.logger.error(f"Failed to set beta! {e}")
-
-    def set_gamma(self, gamma: float) -> None:
-        if self.ha1_params is None:
-            self.send_layout()
-        else:
-            try:
-                new = Ha1Params.model_validate(
-                    {**self.ha1_params.model_dump(), "GammaEx6": int(gamma * 1e6)}
-                )
-                self.send_new_params(new)
-            except Exception as e:
-                self.logger.error(f"Failed to set gamma! {e}")
-
-    def set_intermediate_power(self, intermediate_power: float) -> None:
-        if self.ha1_params is None:
-            self.send_layout()
-        else:
-            try:
-                new = Ha1Params.model_validate(
-                    {
-                        **self.ha1_params.model_dump(),
-                        "IntermediatePowerKw": intermediate_power,
-                    }
-                )
-                self.send_new_params(new)
-            except Exception as e:
-                self.logger.error(f"Failed to set intermediate power! {e}")
-
-    def set_intermediate_rswt(self, intermediate_rswt: float) -> None:
-        if self.ha1_params is None:
-            self.send_layout()
-        else:
-            try:
-                new = Ha1Params.model_validate(
-                    {
-                        **self.ha1_params.model_dump(),
-                        "IntermediateRswtF": int(intermediate_rswt),
-                    }
-                )
-                self.send_new_params(new)
-            except Exception as e:
-                self.logger.error(f"Failed to set intermediate rswt! {e}")
-
-    def set_dd_power(self, dd_power: float) -> None:
-        if self.ha1_params is None:
-            self.send_layout()
-        else:
-            try:
-                new = Ha1Params.model_validate(
-                    {**self.ha1_params.model_dump(), "DdPowerKw": dd_power}
-                )
-                self.send_new_params(new)
-            except Exception as e:
-                self.logger.error(f"Failed to set DdPowerKw! {e}")
-
-    def set_dd_rswt(self, dd_rswt: float) -> None:
-        if self.ha1_params is None:
-            self.send_layout()
-        else:
-            try:
-                new = Ha1Params.model_validate(
-                    {**self.ha1_params.model_dump(), "DdRswtF": dd_rswt}
-                )
-                self.send_new_params(new)
-            except Exception as e:
-                self.logger.error(f"Failed to set DdRswt! {e}")
-
-    def set_dd_delta_t(self, dd_delta_t: float) -> None:
-        if self.ha1_params is None:
-            self.send_layout()
-        else:
-            try:
-                new = Ha1Params.model_validate(
-                    {**self.ha1_params.model_dump(), "DdDeltaTF": dd_delta_t}
-                )
-                self.send_new_params(new)
-            except Exception as e:
-                self.logger.error(f"Failed to set DdDeltaTF! {e}")
-    
-    def set_load_overestimation_percent(self, load_overestimation_percent: float) -> None:
-        if load_overestimation_percent < 0 or load_overestimation_percent > 100:
-            self.log("Invalid entry, load_overestimation_percent should be a value between 0 and 100")
-            return
-        if self.ha1_params is None:
-            self.send_layout()
-        else:
-            try:
-                new = Ha1Params.model_validate(
-                    {**self.ha1_params.model_dump(), "LoadOverestimationPercent": load_overestimation_percent}
-                )
-                self.send_new_params(new)
-            except Exception as e:
-                self.logger.error(f"Failed to set LoadOverestimationPercent! {e}")
 
     def dbg(
         self,

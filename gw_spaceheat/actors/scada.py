@@ -10,7 +10,6 @@ gw_spaceheat/actors/__init__.py. If an ActorClass is present in the layout but
 does not resolve through that registry, the proactor app will not be able to
 instantiate the expected actor at runtime.
 """
-import os
 import subprocess
 from pathlib import Path
 from aiohttp.web_request import Request
@@ -21,7 +20,6 @@ import uuid
 import time
 import pytz
 from typing import Any, Optional
-import dotenv
 from gwproactor import CommunicatorInterface
 from gwproactor import ProactorLogger
 
@@ -74,7 +72,7 @@ from gwsproto.named_types import ( ActuatorsReady,
     AdminDispatch, AdminAnalogDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
     Glitch, GoDormant, CommandInterface, CommandTransition, LayoutLite, NoNewContractWarning,
     ResetHpKeepValue, ScadaControlCapabilities,
-    ScadaParams, SendControlCapabilities, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment,
+    SendControlCapabilities, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment,
     SiegTargetTooLow, SingleMachineState, SlowContractHeartbeat, SlowContractRejection, SlowDispatchContract, SuitUp, WakeUp,
 )
 from gwsproto.names.core.node_names import CoreNodeNames, ScadaWeb
@@ -418,12 +416,6 @@ class Scada(PrimeActor, ScadaInterface):
                     self.process_reset_hp_keep_value(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with process_reset_hp_keep_value: \n {e}")
-            case ScadaParams():
-                try:
-                    self.process_scada_params(from_node, payload)
-                    self._send_to(self.derived_generator, payload)
-                except Exception as e:
-                    self.log(f"Trouble with process_scada_params: \n {e}")
             case SendControlCapabilities():
                 try:
                     self._send_to(from_node, self.control_capabilities)
@@ -810,60 +802,6 @@ class Scada(PrimeActor, ScadaInterface):
         # Update contract energy tracking if contract is active
         if self.contract_handler.latest_scada_hb:
             self.contract_handler.update_energy_usage(payload.Watts)
-
-    def process_scada_params(
-        self, from_node: ShNode, payload: ScadaParams, testing: bool = False
-    ) -> None:
-        if from_node != self.ltn:
-            self.log(f"ScadaParams from {from_node.Name}; expect Ltn!")
-            return
-        if payload.FromGNodeAlias != self.hardware_layout.ltn_g_node_alias:
-            self.log(
-                f"ScadaParams from {payload.FromGNodeAlias}; expect {self.hardware_layout.ltn_g_node_alias}!"
-            )
-            return
-        new = payload.NewParams
-        if new:
-            old = self.data.ha1_params
-            self.data.ha1_params = new
-            if new.AlphaTimes10 != old.AlphaTimes10:
-                self.update_env_variable("SCADA_ALPHA", new.AlphaTimes10 / 10)
-            if new.BetaTimes100 != old.BetaTimes100:
-                self.update_env_variable("SCADA_BETA", new.BetaTimes100 / 100)
-            if new.GammaEx6 != old.GammaEx6:
-                self.update_env_variable("SCADA_GAMMA", new.GammaEx6 / 1e6)
-            if new.IntermediatePowerKw != old.IntermediatePowerKw:
-                self.update_env_variable(
-                    "SCADA_INTERMEDIATE_POWER", new.IntermediatePowerKw
-                )
-            if new.IntermediateRswtF != old.IntermediateRswtF:
-                self.update_env_variable(
-                    "SCADA_INTERMEDIATE_RSWT", new.IntermediateRswtF
-                )
-            if new.DdPowerKw != old.DdPowerKw:
-                self.update_env_variable(
-                    "SCADA_DD_POWER", new.DdPowerKw, testing=testing
-                )
-            if new.DdRswtF != old.DdRswtF:
-                self.update_env_variable("SCADA_DD_RSWT", new.DdRswtF)
-            if new.DdDeltaTF != old.DdDeltaTF:
-                self.update_env_variable("SCADA_DD_DELTA_T", new.DdDeltaTF)
-            if new.LoadOverestimationPercent != old.LoadOverestimationPercent:
-                self.update_env_variable(
-                    "SCADA_LOAD_OVERESTIMATION_PERCENT", new.LoadOverestimationPercent
-                )
-
-            response = ScadaParams(
-                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-                FromName=self.name,
-                ToName=payload.FromName,
-                UnixTimeMs=int(time.time() * 1000),
-                MessageId=payload.MessageId,
-                NewParams=self.data.ha1_params,
-                OldParams=old,
-            )
-            self.logger.error(f"Sending back {response}")
-            self._send_to(self.ltn, response)
 
     def process_set_lwt_control_params(
             self, from_node: ShNode, payload: SetLwtControlParams
@@ -2181,38 +2119,6 @@ class Scada(PrimeActor, ScadaInterface):
             MessageCreatedMs=int(time.time() * 1000),
             MessageId=str(uuid.uuid4()),
         )
-
-    ################################################
-    # Hacky stuff
-    ###############################################
-
-    def update_env_variable(self, variable, new_value, testing: bool = False) -> None:
-        """
-        Updates .env with new Scada Params.
-        TODO: move this somewhere else, like a local sqlite db
-        """
-        if testing:
-            dotenv_filepath = dotenv.find_dotenv(usecwd=True)
-            if not dotenv_filepath:
-                self.logger.error("Couldn't find a .env file - perhaps because in CI?")
-                return
-        else:
-            dotenv_filepath = "/home/pi/gridworks-scada/.env"
-            if not os.path.isfile(dotenv_filepath):
-                self.log("Did not find .env file")
-                return
-        with open(dotenv_filepath, "r") as file:
-            lines = file.readlines()
-        with open(dotenv_filepath, "w") as file:
-            line_exists = False
-            for line in lines:
-                if line.replace(" ", "").startswith(f"{variable}="):
-                    file.write(f"{variable}={new_value}\n")
-                    line_exists = True
-                else:
-                    file.write(line)
-            if not line_exists:
-                file.write(f"\n{variable}={new_value}\n")
 
     def log(self, note: str) -> None:
         log_str = f"[scada] {note}"

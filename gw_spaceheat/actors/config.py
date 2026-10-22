@@ -141,17 +141,4 @@ class ScadaSettings(ScadaPathsSettings):
     power_meter_lost_after_s: float = POWER_METER_LOST_AFTER_S
     persister: PersisterSettings = PersisterSettings()
     admin: AdminLinkSettings = AdminLinkSettings(tls=TLSInfo(use_tls=False))
-    # ⏳ Destined for operational-params, not the layout. A heat call is sensed
-    # either by opto-coupler (Nolan: BinaryState, DigitalZeroIsActive) or by
-    # metering the call wire (House0: PowerW, GreaterThanThreshold). WHICH of
-    # the two a circuit uses is a wiring fact the layout owns —
-    # ⏳ Destined for the layout as a component + device-type record, not for a
-    # bare enum here. The layout is the fleet's record of what is installed at
-    # each house, so heat-pump type is tracked there whether or not control
-    # code branches on it. Target: an hp-odu component pointing at an
-    # hp.device.type.gt record, and an hp-ctrl-box component pointing at
-    # hp.control.box.device.type.gt (both words exist in sema; the Nolan layout
-    # today has neither, and carries an hp-idu node that should be
-    # hp-ctrl-box). Nothing reads it today.
-    airtable_pat: str = "bogus_pat"
     model_config = SettingsConfigDict(env_prefix="SCADA_", extra="ignore")

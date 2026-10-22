@@ -574,11 +574,6 @@ types:
     versioning_strategy: literal
     versions:
       '002': definitions/types/scada.control.capabilities/002.yaml
-  scada.params:
-    latest_version: '005'
-    versioning_strategy: literal
-    versions:
-      '005': definitions/types/scada.params/005.yaml
   send.control.capabilities:
     latest_version: '000'
     versioning_strategy: literal

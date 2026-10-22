@@ -3252,26 +3252,6 @@ types:
           axiom:
             - "gw1.actor.class:014"
 
-  scada.params:
-    latest_version: "005"
-    owner: gridworks-energy
-    versioning_strategy: "literal"
-    description: "Message to read or change a SCADA node's HA1 control parameters, exchanged with its LeafTransactiveNode."
-
-    versions:
-      "005":
-        schema_url: "https://schemas.electricity.works/types/scada.params/005"
-        created: "2026-02-25T19:23:45Z"
-        status: "published"
-        summary: "- NewParams: ha1.params:004 | ha1.params:005 -> ha1.params:006 - OldParams: ha1.params:004 | ha1.params:005 -> ha1.params:006"
-        direct_dependencies:
-          structural:
-            - "ha1.params:006"
-            - "left.right.dot"
-            - "spaceheat.name"
-            - "utc.milliseconds"
-            - "uuid4.str"
-
   send.control.capabilities:
     latest_version: "000"
     owner: gridworks-energy

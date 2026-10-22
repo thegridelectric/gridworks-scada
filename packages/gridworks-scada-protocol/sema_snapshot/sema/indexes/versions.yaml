@@ -846,15 +846,6 @@ types:
           - A node may carry more than one CommandInterfaces entry, one per
             command vocabulary (five-v-boss: turn.5v.on.off and reboot.picos)
 
-  scada.params:
-    latest_version: "005"
-    versioning_strategy: "literal"
-    versions:
-      "005":
-        summary: >
-          - NewParams: ha1.params:004 | ha1.params:005 -> ha1.params:006
-          - OldParams: ha1.params:004 | ha1.params:005 -> ha1.params:006
-
   send.control.capabilities:
     latest_version: "000"
     versioning_strategy: "literal"

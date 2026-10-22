@@ -125,7 +125,6 @@ from sema_snapshot.sema.types.scada_board_component_gt import ScadaBoardComponen
 from sema_snapshot.sema.types.scada_commit import ScadaCommit
 from sema_snapshot.sema.types.scada_control_capabilities import ScadaControlCapabilities
 from sema_snapshot.sema.types.scada_device_type_gt import ScadaDeviceTypeGt
-from sema_snapshot.sema.types.scada_params import ScadaParams
 from sema_snapshot.sema.types.send_control_capabilities import SendControlCapabilities
 from sema_snapshot.sema.types.send_layout import SendLayout
 from sema_snapshot.sema.types.setpoint_belief import SetpointBelief
@@ -280,7 +279,6 @@ __all__ = [
     "ScadaCommit",
     "ScadaControlCapabilities",
     "ScadaDeviceTypeGt",
-    "ScadaParams",
     "SendControlCapabilities",
     "SendLayout",
     "SetpointBelief",

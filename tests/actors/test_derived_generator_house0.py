@@ -157,8 +157,7 @@ def test_a_forecast_is_due_when_none_is_held_or_the_held_one_starts_in_the_past(
     clocked_app: tuple[ScadaApp, ManualClock],
 ) -> None:
     """The forecast covers the hours after the one it was made in. Once the
-    clock passes its first hour, a new one is due; new ScadaParams make one
-    due at once."""
+    clock passes its first hour, a new one is due."""
     app, clock = clocked_app
     actor = app.get_communicator_as_type(CoreNodeNames.derived_generator, DerivedGenerator)
     assert actor is not None
@@ -170,8 +169,6 @@ def test_a_forecast_is_due_when_none_is_held_or_the_held_one_starts_in_the_past(
     assert actor.forecast_is_due()
     actor.data.heating_forecast = a_day_of_forecast(actor, clock.now())
     assert not actor.forecast_is_due()
-    actor.received_new_params = True
-    assert actor.forecast_is_due()
 
 
 @pytest.mark.asyncio

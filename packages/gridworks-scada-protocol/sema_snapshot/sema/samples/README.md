@@ -5,7 +5,7 @@ an `examples:` block. Generated from the authored examples (never edited
 by hand) and consumed by `roundtrip.py`. A type version without a sample
 is silently untested by the round-trip, so its absence is recorded here.
 
-Coverage: **108 of 139** seeded type versions have a sample.
+Coverage: **108 of 138** seeded type versions have a sample.
 
 Seeded type versions lacking a sample (no `examples:`):
 
@@ -32,7 +32,6 @@ Seeded type versions lacking a sample (no `examples:`):
 - `layout.lite.013`
 - `machine.states.000`
 - `power.watts.000`
-- `scada.params.005`
 - `setpoint.belief.000`
 - `single.reading.000`
 - `ticklist.hall.101`

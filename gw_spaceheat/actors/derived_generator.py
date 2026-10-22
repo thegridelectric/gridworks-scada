@@ -24,7 +24,7 @@ from gwsproto.enums import (
 )
 from gwsproto.named_types import (
     Ha1Params, HeatingForecast, LinearOneDimensionalCalibration,
-    RequiredEnergyLayered, ScadaParams,
+    RequiredEnergyLayered,
     ChannelReadings, SingleReading, SyncedReadings,
     UsableEnergyLayered
 )
@@ -78,7 +78,6 @@ class DerivedGenerator(ShNodeActor):
         self._stop_requested: bool = False
         self.elec_assigned_amount = None
         self.previous_time = None
-        self.received_new_params: bool = False
         self.last_evaluated_strategy = 0
         self.first_required_energy_update_done: bool = False
 
@@ -759,7 +758,6 @@ class DerivedGenerator(ShNodeActor):
 
             if self.forecast_is_due():
                 await self.get_forecasts(session)
-                self.received_new_params = False
 
             for dc in self.system_models:
                 self.handle_system_model(dc)
@@ -767,9 +765,9 @@ class DerivedGenerator(ShNodeActor):
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     def forecast_is_due(self) -> bool:
-        """A heating forecast is due when none is held, when the held one's
-        first hour is behind the clock, or when new ScadaParams arrived."""
-        if self.heating_forecast is None or self.received_new_params:
+        """A heating forecast is due when none is held or when the held
+        one's first hour is behind the clock."""
+        if self.heating_forecast is None:
             return True
         return self.services.clock.now() > self.heating_forecast.Time[0]
 
@@ -778,10 +776,6 @@ class DerivedGenerator(ShNodeActor):
         if not from_node:
             return Ok(True) # or not?
         match message.Payload:
-            case ScadaParams():
-                self.log("Received new parameters, time to recompute forecasts!")
-                self.received_new_params = True
-
             case SingleReading():
                 self.handle_input_reading(from_node, message.Payload)
 

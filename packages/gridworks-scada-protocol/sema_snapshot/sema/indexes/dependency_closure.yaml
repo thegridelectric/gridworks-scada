@@ -1405,17 +1405,6 @@ types:
       - spaceheat.node.gt:303
       - spaceheat.telemetry.quantity.projection:001
       versionless_types: []
-  scada.params:
-    '005':
-      enums: []
-      formats:
-      - left.right.dot
-      - spaceheat.name
-      - utc.milliseconds
-      - uuid4.str
-      types:
-      - ha1.params:006
-      versionless_types: []
   send.control.capabilities:
     '000':
       enums: []

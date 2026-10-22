@@ -254,8 +254,6 @@ initial_targets:
       versions: ["000"]
     scada.control.capabilities:
       versions: ["002"]
-    scada.params:
-      versions: ["005"]
     send.control.capabilities:
       versions: ["000"]
     send.layout:

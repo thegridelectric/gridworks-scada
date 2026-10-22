@@ -130,7 +130,6 @@ from gwsproto.named_types.reset_hp_keep_value import ResetHpKeepValue
 from gwsproto.named_types.scada_commit import ScadaCommit
 from gwsproto.named_types.scada_control_capabilities import ScadaControlCapabilities
 from gwsproto.named_types.scada_device_type_gt import ScadaDeviceTypeGt
-from gwsproto.named_types.scada_params import ScadaParams
 from gwsproto.named_types.send_control_capabilities import SendControlCapabilities
 from gwsproto.named_types.send_layout import SendLayout
 from gwsproto.named_types.send_snap import SendSnap
@@ -314,7 +313,6 @@ __all__ = [
     "ScadaCommit",
     "ScadaControlCapabilities",
     "ScadaDeviceTypeGt",
-    "ScadaParams",
     "SendControlCapabilities",
     "SendLayout",
     "SendSnap",
