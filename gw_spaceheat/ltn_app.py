@@ -9,6 +9,7 @@ from gwproactor import Proactor
 from gwproactor import ProactorName
 from gwproactor.config import MQTTClient
 from gwproactor.config import Paths
+from gwproactor.links.mqtt import QOS
 from gwsproto.data_classes.hardware_layout import HardwareLayout
 
 import actors
@@ -106,6 +107,16 @@ class LtnApp(App):
         #       in the hardware layout
         proactor._web_manager.disable()  # noqa
         return proactor
+
+    def _connect_links(self, proactor: Proactor) -> None:
+        super()._connect_links(proactor)
+        # The maker's latest.price broadcast reaches the scada broker over the
+        # rjb bridge; the link's own subscription hears only the scada.
+        proactor.links.subscribe(
+            client=self.SCADA_MQTT,
+            topic=Ltn.latest_price_topic(self.settings.market_maker_alias),
+            qos=QOS.AtMostOnce,
+        )
 
     @classmethod
     def get_repl_app(

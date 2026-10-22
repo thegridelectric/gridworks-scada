@@ -19,6 +19,7 @@ import aiohttp
 import rich
 import httpx
 
+from gwproto.topic import MQTTTopic
 from gwproto.messages import (
     Ack,
     Ping,
@@ -289,7 +290,7 @@ class BidRunner(threading.Thread):
 
                 slot_start_s = self.updated_flo_params.start_unix_s
                 mtn = MarketTypeName.rt60gate5.value  # TODO: send in optimizer params
-                market_slot_name = f"e.{mtn}.{Ltn.P_NODE}.{slot_start_s}"
+                market_slot_name = f"e.{mtn}.{self.settings.market_maker_alias}.{slot_start_s}"
                 gws_pq_pairs = [
                     PriceQuantityUnitless(
                         PriceX1000=int(round(float(p["price_mwh"]) * 1000)),
@@ -424,6 +425,21 @@ class LtnMQTTCodec(MQTTCodec):
                 f"  got: {src} -> {dst}"
             )
 
+    def decode(self, topic: str, payload: bytes) -> Message[Any]:
+        """A message on the maker's rjb broadcast topic is the bare
+        latest.price word; everything else is a gw-wrapped message from
+        the scada."""
+        if topic.split("/")[0] == Ltn.RJB:
+            decoded_topic = MQTTTopic.decode(topic)
+            if decoded_topic.remainder != ["mm", LatestPrice.model_fields["TypeName"].default]:
+                raise ValueError(f"Unexpected rjb topic [{topic}]")
+            return Message(
+                Src=decoded_topic.src,
+                Dst=self.exp_dst,
+                Payload=LatestPrice.model_validate_json(payload),
+            )
+        return super().decode(topic, payload)
+
 class LtnCodecFactory(CodecFactory):
     def get_codec(
         self,
@@ -444,8 +460,14 @@ class LtnCodecFactory(CodecFactory):
 class Ltn(PrimeActor):
     MAIN_LOOP_SLEEP_SECONDS = 61
     HEARTBEAT_INTERVAL_S = 60
-    P_NODE = "hw1.isone.ver.keene"
     SCADA_MQTT = "scada_mqtt"
+    RJB = "rjb"
+
+    @classmethod
+    def latest_price_topic(cls, market_maker_alias: str) -> str:
+        """The MQTT topic the maker's latest.price broadcast arrives on: its
+        rjb routing key with dots as slashes."""
+        return f"{cls.RJB}/{market_maker_alias.replace('.', '-')}/mm/latest-price"
     data: LtnData
     event_loop_thread: Optional[threading.Thread] = None
     dashboard: Optional[Dashboard]
@@ -621,10 +643,6 @@ class Ltn(PrimeActor):
                     # (it leaves the scada lexicon); OPS-387.
                     Message(Src=self.publication_name, Dst=self.scada.name, Payload=message.Payload)
                 )
-            case LatestPrice():
-                path_dbg |= 0x00000004
-                self.process_latest_price(message.Payload)
-                # self._publish_to_scada(message.Payload) # so we can record in database
             case _:
                 path_dbg |= 0x00000008
         self.logger.path("--Ltn._derived_process_message  path:0x%08X", path_dbg)
@@ -662,6 +680,15 @@ class Ltn(PrimeActor):
                 self.process_snapshot(decoded.Payload)
             case SlowContractHeartbeat():
                 self.contract_handler.process_slow_contract_heartbeat(decoded.Payload)
+            case LatestPrice():
+                path_dbg |= 0x00000400
+                if decoded.Header.Src == self.settings.market_maker_alias:
+                    self.process_latest_price(decoded.Payload)
+                else:
+                    self.log(
+                        f"Ignoring latest.price from {decoded.Header.Src}: "
+                        f"the market maker is {self.settings.market_maker_alias}"
+                    )
             case EventBase():
                 path_dbg |= 0x00000040
                 self._process_event(decoded.Payload)
@@ -843,7 +870,6 @@ class Ltn(PrimeActor):
                 self.contract_handler.contract_heartbeat_task(),
                 name="contract_heartbeat"
             ),
-            asyncio.create_task(self.fake_market_maker(), name="fake market maker")
         ]
 
     async def main(self):
@@ -1621,44 +1647,6 @@ class Ltn(PrimeActor):
             "ws": wf["ws"],
         }
 
-    async def get_real_time_price(self) -> float:
-        '''Returns current 5min real-time price (LMP+Dist) in USD/MWh'''
-        try:
-            url = "https://price-service.electricity.works/hw1-isone-me-versant-keene-ps/gw0-realtime-price"
-            async with httpx.AsyncClient() as client:
-                response = await client.get(url)
-                if response.status_code == 200:
-                    self.log("Successfully received prices from API")
-                    data = response.json()
-                    price = float(data['Energy'])
-                    return price
-                else:
-                    raise Exception(f"Failed to receive prices from API, status code: {response.status_code}")
-        except Exception as e:
-            self.log(f"Error getting real-time price: {e}")
-            try:
-                self.log("Attempt to use the forecast price instead of current price")
-                price = await self.read_forecasted_price_for_now()
-                return price
-            except Exception as e:
-                self.log(f"Error getting forecast price: {e}")
-                return 0 #TODO: define a better default price or even LTN doesn't send contract?
-        
-        # Use the code below instead to use perfect forecasted price instead of real-time price
-        # try:
-        #     if datetime.now().minute < 55:
-        #         price = await self.read_forecasted_price_for_now()
-        #         return price
-        #     else:
-        #         top_of_hour_timestamp = int(time.time()//3600) * 3600 + 3600
-        #         time_until_top_of_hour = int(top_of_hour_timestamp - time.time())
-        #         await asyncio.sleep(min(time_until_top_of_hour, 5))
-        #         price = await self.read_forecasted_price_for_now()
-        #         return price
-        # except Exception as e:
-        #     self.log(f"Error getting real-time price: {e}")
-        #     return 0
-
     async def get_price_forecast(self) -> None:
         '''Updates self.price_forecast for the start of next hour. All in USD/MWh'''
         try:
@@ -1742,64 +1730,6 @@ class Ltn(PrimeActor):
             except Exception as e:
                 self.log(f"Could not get a price forecast from the local CSV file: {e}.")
                 await self.send_glitch(f"Failed to read price forecast from local CSV file: {e}", log_level=LogLevel.Error)
-
-    async def read_forecasted_price_for_now(self) -> float:
-        """Returns the forecasted price for this hour (LMP + Dist) in USD/MWh"""
-        try:
-            prices_file = Path(f"{self.settings.paths.data_dir}/price_forecast.csv")
-            if prices_file.exists():
-                start_of_hour_timestamp = int(time.time()//3600) * 3600
-                with open(prices_file, 'r', newline='') as f:
-                    reader = csv.reader(f)
-                    next(reader)
-                    rows = list(reader)
-                # Find the row with matching timestamp
-                for row in rows:
-                    if float(row[0]) == start_of_hour_timestamp:
-                        self.log("A valid price forecast for this hour was available locally.")
-                        price = float(row[1]) + float(row[2])  # dist + lmp
-                        return price
-                raise Exception(f"{prices_file} does not have a price forecast for this hour.")
-            else:
-                raise Exception(f"{prices_file} does not exist.")
-        except Exception as e:
-            self.log(f"Failed: {e}")
-            await self.send_glitch(f"Error in read_forecasted_price_for_now: {e}", log_level=LogLevel.Error)
-            return 0
-
-    async def fake_market_maker(self):
-        while True:
-            # Calculate the time to the next top of the hour
-            now = time.time()
-            next_top_of_hour = (
-                int(now // 3600) + 1
-            ) * 3600  # next top of the hour in seconds
-            sleep_time = next_top_of_hour - now
-
-            # Sleep until the top of the hour
-            await asyncio.sleep(sleep_time)
-            await self.send_latest_price()
-
-    async def send_latest_price(self) -> None:
-        now = time.time()
-        slot_start_s = int(now) - int(now) % 3600
-        mtn = MarketTypeName.rt60gate5.value
-        market_slot_name = f"e.{mtn}.{Ltn.P_NODE}.{slot_start_s}"
-        usd_per_mwh = await self.get_real_time_price()
-        price = LatestPrice(
-                FromGNodeAlias=Ltn.P_NODE,
-                PriceTimes1000=int(usd_per_mwh * 1000),
-                PriceUnit=MarketPriceUnit.USDPerMWh,
-                MarketSlotName=market_slot_name,
-                MessageId=str(uuid.uuid4()),
-            )
-        self.log(f"Trying to Broadcasting price(x1000) {usd_per_mwh} at the top of the hour.")
-        try:
-            self.services.send_threadsafe(
-                Message(Src=self.name, Dst=self.name, Payload=price)
-            )
-        except Exception as e:
-            self.log(f"Problem generating or sending a LatestPrice: {e}")
 
     async def send_glitch(self, summary, details="", log_level=LogLevel.Info):
         glitch = Glitch(
