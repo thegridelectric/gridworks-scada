@@ -1,8 +1,9 @@
 """Actor-level tests: the relay i2c choreography against the sim register
 backend — the GRI-11 failure catalog in code (POR boot-adopt, warm-takeover
 latched holds, confirmed actuation, transient-EIO heal via the held command,
-permanent-EIO glitch-per-streak, mid-run reset detect/repair/re-assert, and
-the garbled-read false-positive guard).
+permanent-EIO glitch-per-streak, mid-run reset detect/repair/re-assert,
+the garbled-read false-positive guard, the check a failed actuation asks
+of the bus, and the short backoff retry).
 
 The pinned artifact pair is decoded through the sema words (NolanLayout on
 the boot assembly path + OperationalParams), and the fixture asserts
@@ -23,7 +24,7 @@ from pathlib import Path
 
 import pytest
 
-from actors.i2c_bus import ExpanderReinitialized, I2cBus
+from actors.i2c_bus import ExpanderCheckRequested, ExpanderReinitialized, I2cBus
 from actors.relay import I2cCommand, Relay, UNKNOWN_STATE
 from drivers import tca9555
 from gwsproto.enums import ChangeRelayPin, LogLevel, SimDeviceType, ZoneCallSource
@@ -271,7 +272,7 @@ async def test_garbled_read_does_not_false_positive(rig) -> None:
 
     # relay side: a garbled pin read is confirmed by the re-read
     bus.i2c.inject_read_garble(relay._i2c.i2c_address, count=1)
-    assert await relay._read_pin_confirmed(1) == 1
+    assert await relay._read_pin_confirmed(1) == (1, None)
 
     # bus side: a garbled config read must not fire a reset repair
     bus.sent.clear()
@@ -279,3 +280,129 @@ async def test_garbled_read_does_not_false_positive(rig) -> None:
     await bus._check_expanders()
     assert not glitches(bus, "i2c-expander-reset")
     assert pin(relay, bus) == 1  # nothing was re-initialized
+
+    # nor on a check a relay requested
+    bus.i2c.inject_read_garble(relay._i2c.i2c_address, count=1)
+    bus.process_message(
+        Message(
+            Src=relay.name,
+            Dst=bus.name,
+            Payload=ExpanderCheckRequested(I2cAddress=relay._i2c.i2c_address),
+        )
+    )
+    await asyncio.sleep(0.7)
+    assert not glitches(bus, "i2c-expander-reset")
+    assert pin(relay, bus) == 1
+
+
+@pytest.mark.asyncio
+async def test_actuation_failure_triggers_expander_check(rig) -> None:
+    """A reset met by an actuation is found, repaired and re-asserted
+    inside a second, with no heartbeat and no verify pass."""
+    relay, bus = rig
+    relay.RETRY_BACKOFF_S = ()
+    await boot(relay, bus)
+    bus.sent.clear()
+    relay.sent.clear()
+
+    bus.i2c.power_on_reset(relay._i2c.i2c_address)
+    cmd = command(relay, energize=True)
+    relay._i2c_command = cmd
+    await relay._attempt_command(cmd)  # the write lands on floating pins
+    assert len(glitches(relay, "i2c-relay-actuation-failed")) == 1
+    assert "config[" in glitches(relay, "i2c-relay-actuation-failed")[0].Details
+
+    await asyncio.sleep(0.7)  # the requested check: read, 0.5 s, confirm
+    assert len(glitches(bus, "i2c-expander-reset")) == 1
+    expander = bus.i2c.expanders[relay._i2c.i2c_address]
+    assert expander.read(tca9555.CONFIG_PORT_0) == 0x00
+    assert pin(relay, bus) == 1  # re-asserted on ExpanderReinitialized
+    assert relay.state == ZoneCallSource.Scada
+    assert relay._i2c_command is None
+
+
+@pytest.mark.asyncio
+async def test_failed_attempt_retries_on_backoff(rig) -> None:
+    relay, bus = rig
+    relay.RETRY_BACKOFF_S = (0.1, 0.2)
+    await boot(relay, bus)
+    relay.sent.clear()
+    cmd = command(relay, energize=True)
+    bus.i2c.inject_fault(relay._i2c.i2c_address, count=1)
+    relay._i2c_command = cmd
+    await relay._attempt_command(cmd)
+    assert relay._i2c_command is cmd
+    assert pin(relay, bus) == 0
+
+    await asyncio.sleep(0.15)  # the first retry
+    assert relay.state == ZoneCallSource.Scada
+    assert pin(relay, bus) == 1
+    assert relay._i2c_command is None
+    assert len(full_reports(relay)) == 1
+    criticals = [
+        p
+        for _, p in relay.sent
+        if isinstance(p, Glitch) and p.Type == LogLevel.Critical
+    ]
+    assert len(criticals) == 1
+
+
+@pytest.mark.asyncio
+async def test_newer_command_ends_the_retries(rig) -> None:
+    relay, bus = rig
+    relay.RETRY_BACKOFF_S = (0.1,)
+    await boot(relay, bus)
+    first = command(relay, energize=True)
+    bus.i2c.inject_fault(relay._i2c.i2c_address, count=1)
+    relay._i2c_command = first
+    await relay._attempt_command(first)
+    second = command(relay, energize=False)
+    relay._i2c_command = second
+    await relay._attempt_command(second)
+    await asyncio.sleep(0.15)
+    assert pin(relay, bus) == 0  # the superseded retry did not fire
+    assert relay._i2c_command is None
+
+
+@pytest.mark.asyncio
+async def test_readback_failure_keeps_error_and_forensics(rig) -> None:
+    relay, bus = rig
+    relay.RETRY_BACKOFF_S = ()
+    await boot(relay, bus)
+    relay.sent.clear()
+    a = relay._i2c
+    real_read = bus.i2c.read_byte_data
+    failed = []
+
+    def read_byte_data(address: int, register: int) -> int:
+        if address == a.i2c_address and register == a.input_register and not failed:
+            failed.append(register)
+            raise OSError("simulated input-port read failure")
+        return real_read(address, register)
+
+    bus.i2c.read_byte_data = read_byte_data
+    cmd = command(relay, energize=True)
+    relay._i2c_command = cmd
+    await relay._attempt_command(cmd)
+    [glitch] = glitches(relay, "i2c-relay-actuation-failed")
+    assert "confirming readback failed: " in glitch.Details
+    assert "simulated input-port read failure" in glitch.Details
+    assert "output[" in glitch.Details and "config[" in glitch.Details
+
+
+@pytest.mark.asyncio
+async def test_check_request_is_debounced(rig) -> None:
+    relay, bus = rig
+    await boot(relay, bus)
+    bus.sent.clear()
+    bus.i2c.power_on_reset(relay._i2c.i2c_address)
+    request = Message(
+        Src=relay.name,
+        Dst=bus.name,
+        Payload=ExpanderCheckRequested(I2cAddress=relay._i2c.i2c_address),
+    )
+    for _ in range(8):  # eight relays failing in one pass
+        assert bus.process_message(request).is_ok()
+    await asyncio.sleep(0.7)
+    assert len(glitches(bus, "i2c-expander-reset")) == 1
+    assert not bus._checks_in_flight

@@ -1,8 +1,8 @@
 """The heat-pump sensing chain on a running sim Nolan scada: the power
 meter's hp-odu readings reach hp-watch through its subscription, hp-watch
-reports its state, the state reaches the heating machine and hp-boss
-through their subscriptions, and the secondary pump relay follows under
-hp-boss (the call open throughout: the sim buffer reads full)."""
+reports its state, the state reaches hp-boss through its subscription,
+and the secondary pump relay follows under hp-boss (the call open
+throughout: the sim buffer reads full)."""
 
 import time
 import typing
@@ -14,8 +14,6 @@ import pytest
 from actors.config import ScadaSettings
 from actors.hp_boss import HpBoss
 from actors.hp_watch import HpWatch
-from actors.local_control.nolan.buffer_only_tou import NolanBufferOnlyTou
-from actors.local_control_loader import LocalControl
 from actors.power_meter import PowerMeter, PowerMeterDriverThread
 from actors.relay import Relay
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import GridworksSimPm1_PowerMeterDriver
@@ -58,7 +56,7 @@ def heating_settings(tmp_path: Path, lost_after_s: float) -> ScadaSettings:
 
 
 @pytest.mark.asyncio
-async def test_the_pump_follows_the_heat_pump_through_both_subscriptions(
+async def test_the_pump_follows_the_heat_pump_through_the_subscriptions(
     request: pytest.FixtureRequest, tmp_path: Path
 ) -> None:
     settings = heating_settings(tmp_path, lost_after_s=1.0)
@@ -70,10 +68,6 @@ async def test_the_pump_follows_the_heat_pump_through_both_subscriptions(
         h.start_child1()
         app = h.child1_app
         scada = app.scada
-        lc = app.get_communicator_as_type(CoreNodeNames.local_control, LocalControl)
-        assert lc is not None
-        heat = lc._impl
-        assert isinstance(heat, NolanBufferOnlyTou)
         hp_watch = app.get_communicator_as_type(HSNN.hp_watch, HpWatch)
         pump = app.get_communicator_as_type(NolanNodeNames.secondary_pump_relay, Relay)
         meter = app.get_communicator_as_type(CoreNodeNames.asset_power_meter, PowerMeter)
@@ -89,7 +83,6 @@ async def test_the_pump_follows_the_heat_pump_through_both_subscriptions(
                 hp_watch.state == state
                 and latest is not None
                 and latest.State == state
-                and heat.hp_state == state
                 and pump.state == pump_state
             )
 
@@ -97,7 +90,7 @@ async def test_the_pump_follows_the_heat_pump_through_both_subscriptions(
             latest = scada.data.latest_machine_state.get(HSNN.hp_watch)
             return (
                 f"hp-watch {hp_watch.state}, scada holds {latest.State if latest else None}, "
-                f"heating machine {heat.hp_state}, pump {pump.state}, "
+                f"pump {pump.state}, "
                 f"hp-odu-pwr {scada.data.latest_channel_values.get(HCN.hp_odu_pwr)}"
             )
 
@@ -109,9 +102,7 @@ async def test_the_pump_follows_the_heat_pump_through_both_subscriptions(
             err_str_f=where,
         )
         assert scada.channel_subscribers[HCN.hp_odu_pwr] == [HSNN.hp_watch]
-        assert sorted(scada.machine_state_subscribers[HSNN.hp_watch]) == sorted(
-            [CoreNodeNames.local_control, HSNN.hp_boss]
-        )
+        assert scada.machine_state_subscribers[HSNN.hp_watch] == [HSNN.hp_boss]
         assert pump.node.handle == f"{scada.layout.hp_boss.handle}.{NolanNodeNames.secondary_pump_relay}"
 
         driver.fake_power_w = 700

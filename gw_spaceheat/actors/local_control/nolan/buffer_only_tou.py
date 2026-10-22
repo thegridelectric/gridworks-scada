@@ -11,14 +11,11 @@ scada-blind node drives the call on the schedule alone and the heat
 pump's own limits stop it when the buffer is hot.
 
 The postures are not states. Every zone is on its thermostat with the
-scada relay open; the store circuit is closed; the iso valve is open
-while the call is closed and while the hp-watch machine, to which this
-machine subscribes, detects the heat pump on or does not know, and
-closed only with the call open and the heat pump detected off. The
-secondary pump is hp-boss's, not this machine's: it follows the heat
-pump whoever holds the tree. The valve is commanded the moment the call
-or the state changes; the relay layer's assert-then-verify holds the
-pins between commands.
+scada relay open; the store circuit is closed; the iso valve is open.
+All of it is commanded once, in the boot pass; the relay layer's
+assert-then-verify holds the pins between commands. The secondary pump
+is hp-boss's, not this machine's: it follows the heat pump whoever
+holds the tree.
 """
 
 import asyncio
@@ -35,7 +32,7 @@ from transitions import Machine
 
 from actors.hp_boss.sensing import HP_TRAITS, HpTraits
 from actors.hydronic.nolan import NolanHydronic
-from actors.in_process_messages import HouseCold, HouseWarm, MachineStateSubscribe
+from actors.in_process_messages import HouseCold, HouseWarm
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
     ChangeRelayState,
@@ -44,7 +41,6 @@ from gwsproto.enums import (
     LocalControlTopEvent,
     LocalControlTopState,
     NolanLcBufferOnlyState,
-    SpruceHackHpState,
 )
 from gwsproto.enums.gw_str_enum import SemaEnum
 from gwsproto.named_types import (
@@ -227,11 +223,6 @@ class NolanBufferOnlyTou(NolanHydronic):
             )
         ]
         self.buffer_full: bool = False
-        # The heat pump as hp-watch last reported it; Unknown until a
-        # state arrives.
-        self.hp_state: SpruceHackHpState = SpruceHackHpState.Unknown
-        # The commanded iso valve state; None until the first decision.
-        self.iso_open: Optional[bool] = None
         # Whether the hp-boss was last commanded to a closed call.
         self.call_closed: Optional[bool] = None
         self.house_cold = False
@@ -349,38 +340,17 @@ class NolanBufferOnlyTou(NolanHydronic):
 
     # ---- the postures ----
 
-    def iso_wanted(self) -> bool:
-        """Open while the call is closed, while hp-watch says the heat pump
-        is on and while it does not know; closed only with the call open
-        and the heat pump detected off, against the convection loop off
-        the buffer top. The secondary pump, hp-boss's, runs on the same
-        rule, so the pump never runs against a closed iso."""
-        return bool(self.call_closed) or self.hp_state != SpruceHackHpState.HpDetectedOff
-
-    def enforce_iso(self) -> None:
-        wanted = self.iso_wanted()
-        if wanted == self.iso_open:
-            return
-        self.send_state_command(
-            self.layout.iso_valve,
-            ChangeValveState.OpenValve.value if wanted else ChangeValveState.CloseValve.value,
-            from_node=self.boss,
-        )
-        self.iso_open = wanted
-
     def command_call(self, closed: bool) -> None:
         if closed:
             self.turn_on_hp(from_node=self.boss)
         else:
             self.turn_off_hp(from_node=self.boss)
         self.call_closed = closed
-        self.enforce_iso()
 
     def boot(self) -> None:
         """The boot posture, commanded once the actuators are ready: zones
         on their thermostats, the store circuit closed, the backup elements
-        open, the call open, the iso valve per the hp-watch state.
-        Initializing -> HpCallOff."""
+        open, the call open, the iso valve open. Initializing -> HpCallOff."""
         for failsafe, ops_relay in self.zone_relays:
             self.send_state_command(
                 failsafe,
@@ -401,8 +371,12 @@ class NolanBufferOnlyTou(NolanHydronic):
             from_node=self.boss,
         )
         self.command_elements(ChangeRelayState.OpenRelay)
-        self.iso_open = None
         self.command_call(False)
+        self.send_state_command(
+            self.layout.iso_valve,
+            ChangeValveState.OpenValve.value,
+            from_node=self.boss,
+        )
         self.trigger_call_event(NolanLcBufferOnlyEvent.Boot)
 
     # ---- the check, every TOU_CHECK_S ----
@@ -507,14 +481,6 @@ class NolanBufferOnlyTou(NolanHydronic):
         self.trigger_call_event(NolanLcBufferOnlyEvent.CallWakeUp)
         self.boot()
 
-    def on_hp_watch_state(self, state: SpruceHackHpState) -> None:
-        """The iso valve follows the moment a state arrives, when this
-        machine holds the tree."""
-        self.hp_state = state
-        if not self.actuators_ready or self.top_state == LocalControlTopState.Dormant:
-            return
-        self.enforce_iso()
-
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         from_node = self.layout.node(message.Header.Src, None)
         if from_node is None:
@@ -524,12 +490,6 @@ class NolanBufferOnlyTou(NolanHydronic):
         match payload:
             case ActuatorsReady():
                 self.on_actuators_ready()
-            case SingleMachineState():
-                if (
-                    from_node.name == HSNN.hp_watch
-                    and payload.StateEnum == SpruceHackHpState.enum_name()
-                ):
-                    self.on_hp_watch_state(SpruceHackHpState(payload.State))
             case GoDormant():
                 self.go_dormant()
             case WakeUp():
@@ -543,7 +503,6 @@ class NolanBufferOnlyTou(NolanHydronic):
     # ---- lifecycle ----
 
     def start(self) -> None:
-        self._send_to(self.primary_scada, MachineStateSubscribe(NodeName=HSNN.hp_watch))
         self._send_to(
             self.primary_scada,
             SingleMachineState(

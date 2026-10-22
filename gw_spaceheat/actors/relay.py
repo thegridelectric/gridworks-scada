@@ -53,7 +53,7 @@ from gwsproto.named_types import (
 from gwsproto.property_format import NonNegativeInt, UTCMilliseconds, UUID4Str
 from result import Err, Ok, Result
 from transitions import Machine
-from actors.i2c_bus import ExpanderReinitialized
+from actors.i2c_bus import ExpanderCheckRequested, ExpanderReinitialized
 from actors.sh_node_actor import ShNodeActor
 from scada_app_interface import ScadaAppInterface
 from gwsproto.enums import LogLevel, ChangeKeepSend, HpLoopKeepSend
@@ -144,6 +144,9 @@ class Relay(ShNodeActor):
     STATE_REPORT_S = 300
     BUS_OP_TIMEOUT_S = 1.0
     READY_TIMEOUT_S = 10.0
+    # A failed attempt retries on its own at these delays before the verify
+    # pass takes over.
+    RETRY_BACKOFF_S: tuple[float, ...] = (2.0, 10.0)
     node: ShNode
     wiring_config: RelayWiringConfig
     reports_by_trigger: Dict[str, List[FsmAtomicReport]]
@@ -518,19 +521,28 @@ class Relay(ShNodeActor):
             self._pending_results.pop(payload.TriggerId, None)
             return None
 
-    async def _read_pin_confirmed(self, expected_pin: int) -> int | None:
+    async def _read_pin_confirmed(
+        self, expected_pin: int
+    ) -> tuple[int | None, str | None]:
         """A single garbled i2c read must not be believed: a reading that
         disagrees with expectation is confirmed by a second read 0.5 s later
-        (the OPS-452 false-positive guard) before anyone acts on it."""
-        pin = await self._read_pin()
+        (the OPS-452 false-positive guard) before anyone acts on it. The
+        pair is the level (None on a failed read) and the bus error text."""
+        pin, error = await self._read_pin_with_error()
         if pin is None or pin == expected_pin:
-            return pin
+            return pin, error
         await asyncio.sleep(0.5)
-        return await self._read_pin()
+        return await self._read_pin_with_error()
 
     async def _read_pin(self) -> int | None:
         """The actual level at the relay's pin, via the expander's input-port
         register. None on bus failure."""
+        pin, _error = await self._read_pin_with_error()
+        return pin
+
+    async def _read_pin_with_error(self) -> tuple[int | None, str | None]:
+        """The pin level with the bus error text kept: (level, None) on a
+        good read, (None, error) on a failed one."""
         a = self._i2c
         assert a is not None
         result = await self._bus_op(
@@ -544,9 +556,11 @@ class Relay(ShNodeActor):
                 TriggerId=str(uuid.uuid4()),
             )
         )
-        if result is None or not result.Success:
-            return None
-        return self._level(result.Value)
+        if result is None:
+            return None, "bus op timeout"
+        if not result.Success:
+            return None, result.Error or "bus op failed"
+        return self._level(result.Value), None
 
     async def _write_pin(self, pin_value: int) -> str | None:
         """Drive the relay's output bit to the level for a logical pin value.
@@ -641,15 +655,24 @@ class Relay(ShNodeActor):
         if error is not None:
             return f"write failed: {error}"
         if a.supports_readback:
-            pin = await self._read_pin_confirmed(pin_value)
+            pin, read_error = await self._read_pin_confirmed(pin_value)
             if pin is None:
-                return "confirming readback failed"
+                forensics = await self._register_forensics()
+                return f"confirming readback failed: {read_error}; {forensics}"
             if pin != pin_value:
                 forensics = await self._register_forensics()
                 return (
                     f"commanded pin {pin_value}, pin reads {pin}; {forensics}"
                 )
         return None
+
+    def _request_expander_check(self) -> None:
+        """A failed assert asks the bus actor to check this relay's expander
+        for a reset now; a reset found there comes back as
+        ExpanderReinitialized and the re-assert."""
+        a = self._i2c
+        assert a is not None
+        self._send_to(a.bus_node, ExpanderCheckRequested(I2cAddress=a.i2c_address))
 
     def _commit_command(self, command: I2cCommand) -> None:
         """Confirmation succeeded: commit the FSM, report to the boss, and
@@ -737,11 +760,36 @@ class Relay(ShNodeActor):
             self._send_glitch(
                 "i2c-relay-actuation-failed",
                 f"{command.event_name}: {error}; holding as enforcement "
-                "target — retrying every verify pass",
+                f"target — retrying at {self.RETRY_BACKOFF_S} s, then every "
+                "verify pass",
                 LogLevel.Critical,
+            )
+            self._request_expander_check()
+            self.services.add_task(
+                asyncio.create_task(
+                    self._retry_command(command),
+                    name=f"{self.name}-retry-{command.trigger_id}",
+                )
             )
             return
         self._commit_command(command)
+
+    async def _retry_command(self, command: I2cCommand) -> None:
+        """The short backoff after a failed attempt. Each retry re-asserts
+        the target; a success commits it, a failure asks the bus for a check
+        again (debounced there). A newer command ends the retries, and the
+        verify pass owns the target after the last one."""
+        for delay in self.RETRY_BACKOFF_S:
+            await asyncio.sleep(delay)
+            if self._i2c_command is not command:
+                return
+            error = await self._assert_pin(command.pin_value)
+            if error is None:
+                self.log(f"{command.event_name} confirmed on retry")
+                self._commit_command(command)
+                return
+            self.log(f"retry of {command.event_name} still failing: {error}")
+            self._request_expander_check()
 
     async def _boot_adopt(self) -> None:
         """Readback boards adopt state from the pins at boot — a latched hold
@@ -798,6 +846,7 @@ class Relay(ShNodeActor):
                     self.log(
                         f"retry of {command.event_name} still failing: {error}"
                     )
+                self._request_expander_check()
                 return
             self.log(f"{command.event_name} confirmed on verify-pass retry")
             self._commit_command(command)
@@ -829,6 +878,7 @@ class Relay(ShNodeActor):
                 )
             else:
                 self.log(f"enforce still failing: {error}")
+            self._request_expander_check()
             return
         self._enforce_failing = False
         self.send_state()

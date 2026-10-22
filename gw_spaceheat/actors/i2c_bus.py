@@ -42,6 +42,17 @@ class ExpanderReinitialized(BaseModel):
     TypeName: Literal["expander.reinitialized"] = "expander.reinitialized"
 
 
+class ExpanderCheckRequested(BaseModel):
+    """Process-internal request from an i2c relay actor to the bus actor:
+    an actuation on the expander at I2cAddress just failed (write error,
+    readback error or readback mismatch), so run the config-register reset
+    check for that expander now rather than at the next heartbeat. The
+    mirror of ExpanderReinitialized; never crosses the broker."""
+
+    I2cAddress: NonNegativeInt
+    TypeName: Literal["expander.check.requested"] = "expander.check.requested"
+
+
 class I2cBus(ShNodeActor):
     """
     Exclusive serialized executor for a single named I2C bus.
@@ -50,8 +61,9 @@ class I2cBus(ShNodeActor):
     each `I2cResult` returns to the requesting node (`Header.Src`).
 
     Owns the OPS-452 expander guard: adopt-or-init at boot (ops error
-    "initializing" until it completes) and a config-register reset check
-    each heartbeat, with clear-then-configure repair.
+    "initializing" until it completes), a config-register reset check each
+    heartbeat and on a relay's request after a failed actuation, with
+    clear-then-configure repair.
 
     2-byte register operations are big-endian (register devices like the
     ADS1115 present their 16-bit registers high byte first), NOT SMBus
@@ -83,6 +95,9 @@ class I2cBus(ShNodeActor):
             if expander_type == I2cExpanderType.Tca9555
         )
         self._guard_pending = False
+        # Expander addresses with a requested reset check in flight; a
+        # burst of failing relays on one expander produces one check.
+        self._checks_in_flight: set[int] = set()
 
         # The relays to poke for immediate re-assert after a reset repair.
         # Each filters by its own expander address.
@@ -171,6 +186,9 @@ class I2cBus(ShNodeActor):
 
         if isinstance(payload, I2cReadBytes):
             return self._handle_read_bytes(payload, reply_to)
+
+        if isinstance(payload, ExpanderCheckRequested):
+            return self._handle_check_request(payload, reply_to)
 
         return Err(
             ValueError(
@@ -454,58 +472,93 @@ class I2cBus(ShNodeActor):
         finally:
             self._guard_pending = False
 
+    def _handle_check_request(
+        self, request: ExpanderCheckRequested, requester: ShNode
+    ) -> Result[bool, BaseException]:
+        """A relay met a failed actuation: check its expander now. One check
+        per expander at a time; a burst of failing relays joins the one in
+        flight. Declined while the boot guard runs (the guard is the check)
+        and for an address with no configuration register to read."""
+        address = request.I2cAddress
+        if self.i2c is None or self._guard_pending:
+            return Ok(False)
+        if address not in self._expander_addresses:
+            self.log(
+                f"check requested by {requester.name} for 0x{address:02x}, "
+                "not a TCA9555 on this bus"
+            )
+            return Ok(False)
+        if address in self._checks_in_flight:
+            return Ok(True)
+        self._checks_in_flight.add(address)
+        task = asyncio.create_task(
+            self._check_expander(address),
+            name=f"i2c-bus-check-0x{address:02x}",
+        )
+        task.add_done_callback(
+            lambda _t, a=address: self._checks_in_flight.discard(a)
+        )
+        self.services.add_task(task)
+        return Ok(True)
+
     async def _check_expanders(self) -> None:
-        """The heartbeat reset guard: any nonzero config bit means our
-        outputs are not driving. Confirm with a second read 0.5 s later so a
-        single garbled read cannot fire a false Critical or a repair."""
+        """The heartbeat reset guard over every expander on the bus."""
         for address in self._expander_addresses:
-            try:
-                cfg0, cfg1 = self._read_config_regs(address)
-            except Exception as e:
-                self._send_glitch(
-                    "i2c-expander-check-failed",
-                    f"0x{address:02x}: config-register read failed: {e}",
-                    LogLevel.Warning,
-                )
-                continue
-            if cfg0 == 0 and cfg1 == 0:
-                continue
-            await asyncio.sleep(0.5)
-            try:
-                cfg0, cfg1 = self._read_config_regs(address)
-            except Exception as e:
-                self._send_glitch(
-                    "i2c-expander-check-failed",
-                    f"0x{address:02x}: confirm re-read failed: {e}",
-                    LogLevel.Warning,
-                )
-                continue
-            if cfg0 == 0 and cfg1 == 0:
-                self.log(
-                    f"expander 0x{address:02x}: config-register read glitch "
-                    "— nonzero once, clean on confirm re-read (not a reset)"
-                )
-                continue
+            await self._check_expander(address)
+
+    async def _check_expander(self, address: int) -> None:
+        """The reset check for one expander: any nonzero config bit means
+        our outputs are not driving. Confirm with a second read 0.5 s later
+        so a single garbled read cannot fire a false Critical or a repair.
+        A reset is repaired and every relay on the expander is told to
+        re-assert."""
+        try:
+            cfg0, cfg1 = self._read_config_regs(address)
+        except Exception as e:
             self._send_glitch(
-                "i2c-expander-reset",
-                f"0x{address:02x} config regs 0x{cfg0:02x}/0x{cfg1:02x} — "
-                "pins floating (the OPS-452 signature). Re-initializing; "
-                "relays re-assert on their verify loops. Registers at "
-                f"detection: {self._register_snapshot()}",
+                "i2c-expander-check-failed",
+                f"0x{address:02x}: config-register read failed: {e}",
+                LogLevel.Warning,
+            )
+            return
+        if cfg0 == 0 and cfg1 == 0:
+            return
+        await asyncio.sleep(0.5)
+        try:
+            cfg0, cfg1 = self._read_config_regs(address)
+        except Exception as e:
+            self._send_glitch(
+                "i2c-expander-check-failed",
+                f"0x{address:02x}: confirm re-read failed: {e}",
+                LogLevel.Warning,
+            )
+            return
+        if cfg0 == 0 and cfg1 == 0:
+            self.log(
+                f"expander 0x{address:02x}: config-register read glitch "
+                "— nonzero once, clean on confirm re-read (not a reset)"
+            )
+            return
+        self._send_glitch(
+            "i2c-expander-reset",
+            f"0x{address:02x} config regs 0x{cfg0:02x}/0x{cfg1:02x} — "
+            "pins floating (the OPS-452 signature). Re-initializing; "
+            "relays on the expander re-assert now. Registers at "
+            f"detection: {self._register_snapshot()}",
+            LogLevel.Critical,
+        )
+        try:
+            self._clear_then_configure(address)
+            self.log(f"expander 0x{address:02x} re-initialized")
+        except Exception as e:
+            self._send_glitch(
+                "i2c-expander-reinit-failed",
+                f"0x{address:02x}: {e}",
                 LogLevel.Critical,
             )
-            try:
-                self._clear_then_configure(address)
-                self.log(f"expander 0x{address:02x} re-initialized")
-            except Exception as e:
-                self._send_glitch(
-                    "i2c-expander-reinit-failed",
-                    f"0x{address:02x}: {e}",
-                    LogLevel.Critical,
-                )
-                continue
-            for node in self._i2c_relay_nodes:
-                self._send_to(node, ExpanderReinitialized(I2cAddress=address))
+            return
+        for node in self._i2c_relay_nodes:
+            self._send_to(node, ExpanderReinitialized(I2cAddress=address))
 
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:
