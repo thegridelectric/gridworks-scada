@@ -116,3 +116,15 @@ class Flo():
         del self.edges
         gc.collect()
         self.logger.info(f"Trimmed graph in {round(time.time()-start_time, 1)} seconds.")
+
+# Fallback when bruce is not installed (CI / dev without optimizer package).
+try:
+    from bruce.graph_optimizer.assets.heat_pump_water_tank import (
+        HeatPumpWaterTankAsset,
+        HeatPumpWaterTankParams,
+    )
+    from bruce.graph_optimizer.graph import Graph
+except ImportError:
+    HeatPumpWaterTankAsset = None  # type: ignore[misc, assignment]
+    HeatPumpWaterTankParams = None  # type: ignore[misc, assignment]
+    Graph = None  # type: ignore[misc, assignment]

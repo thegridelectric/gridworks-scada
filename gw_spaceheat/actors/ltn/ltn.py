@@ -40,11 +40,20 @@ from gwproactor import ProactorName
 from gwproactor import AppInterface
 from gwproto import HardwareLayout
 
-from bruce.graph_optimizer.assets.heat_pump_water_tank import (
-    HeatPumpWaterTankAsset,
-    HeatPumpWaterTankParams,
-)
-from bruce.graph_optimizer.graph import Graph
+try:
+    from bruce.graph_optimizer.assets.heat_pump_water_tank import (
+        HeatPumpWaterTankAsset,
+        HeatPumpWaterTankParams,
+    )
+    from bruce.graph_optimizer.graph import Graph
+except ImportError:
+    from actors.ltn.flo import (
+        Graph,
+        HeatPumpWaterTankAsset,
+        HeatPumpWaterTankParams,
+    )
+
+BRUCE_FLO_AVAILABLE = HeatPumpWaterTankParams is not None
 
 from gwproto import Message, MQTTCodec, create_message_model
 from gwproto.messages import EventBase
@@ -100,6 +109,9 @@ class PriceForecast(BaseModel):
 
 def _flo_build_worker(flo_params_bytes: bytes, result_queue: multiprocessing.Queue) -> None:
     """Child process: build graph, find shortest path, trim, pickle, exit."""
+    if not BRUCE_FLO_AVAILABLE:
+        result_queue.put(("error", "bruce graph optimizer package is not installed"))
+        return
     try:
         params = HeatPumpWaterTankParams.model_validate_json(flo_params_bytes)
         asset = HeatPumpWaterTankAsset(params)
@@ -115,6 +127,9 @@ def _flo_build_worker(flo_params_bytes: bytes, result_queue: multiprocessing.Que
 
 def _flo_bid_worker(trimmed_graph_data: bytes, updated_flo_params_bytes: bytes, result_queue: multiprocessing.Queue) -> None:
     """Child process: unpickle graph, generate PQ pairs, pickle graph with updated params, exit."""
+    if not BRUCE_FLO_AVAILABLE:
+        result_queue.put(("error", "bruce graph optimizer package is not installed"))
+        return
     try:
         graph: Graph = pickle.loads(trimmed_graph_data)
         updated_params = HeatPumpWaterTankParams.model_validate_json(updated_flo_params_bytes)
@@ -136,6 +151,9 @@ def _flo_bid_worker(trimmed_graph_data: bytes, updated_flo_params_bytes: bytes, 
 
 def _flo_plans_worker(trimmed_graph_data: bytes, price_usd_mwh: float, result_queue: multiprocessing.Queue) -> None:
     """Child process: clearing-price plan from trimmed graph."""
+    if not BRUCE_FLO_AVAILABLE:
+        result_queue.put(("error", "bruce graph optimizer package is not installed"))
+        return
     try:
         graph: Graph = pickle.loads(trimmed_graph_data)
         graph.get_next_node_at_price(price_usd_mwh)
@@ -907,6 +925,10 @@ class Ltn(PrimeActor):
         gracefully handle high CPU use. The additional thread handles
         the CPU-intensive graph computation.
         """
+        if not BRUCE_FLO_AVAILABLE:
+            self.log("bruce graph optimizer not installed — skipping FLO bid run")
+            return
+
         if self.flo_params:
             self.log("NOT RUNNING Dijsktra! Already created graph")
             return
