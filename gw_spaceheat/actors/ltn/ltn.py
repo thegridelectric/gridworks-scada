@@ -184,7 +184,7 @@ class PriceForecast(BaseModel):
 
     @property
     def total_energy(self) -> List[float]:
-        """Calculate the total price forecast by summing dp, lmp, and reg components."""
+        """Calculate the total price forecast by summing dp and lmp components."""
         return [dp + lmp for dp, lmp in zip(self.dp_usd_per_mwh, self.lmp_usd_per_mwh)]
 
 
