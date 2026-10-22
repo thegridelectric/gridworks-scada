@@ -50,6 +50,9 @@ class LtnSettings(ScadaPathsSettings):
     monitor_only: bool = False
     seasonal_storage_mode: SeasonalStorageMode = SeasonalStorageMode.AllTanks
     create_graph_minute: int = 40
+    # The MarketMaker whose latest.price the LTN clears against; its
+    # alias names the slot the LTN bids on.
+    market_maker_alias: str = "hw1.isone.me.versant.keene"
 
     model_config = SettingsConfigDict(env_prefix="LTN_", extra="ignore")
 
