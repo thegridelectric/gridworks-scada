@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
-# Roll a house's scada between lines, from the laptop, with the layout pair
-# verified against the committed tlayouts JSON both ways.
+# Roll a house between lines, from the laptop: its scada on the pi and its
+# LTN on the ltn box move together, with the layout pair verified against the
+# committed tlayouts JSON both ways.
 #
-#   scripts/roll.sh <house> check                 what each pi runs, and whether
-#                                                 its pair matches the committed
-#                                                 JSON of the line it is on
+#   scripts/roll.sh <house> check                 what each pi and the LTN run,
+#                                                 whether they are on one line,
+#                                                 and whether the pair matches
+#                                                 the committed JSON of that line
 #   scripts/roll.sh <house> to <scada-branch>     check out the branch on each pi
-#                                                 at its pushed SHA, verify (and
-#                                                 on a y, install) the committed
-#                                                 pair, restart the service
+#                                                 and on the LTN at its pushed
+#                                                 SHA, verify (and on a y,
+#                                                 install) the committed pair,
+#                                                 restart the LTN, then the
+#                                                 service
 #   scripts/roll.sh <house> back                  `to` the house's roll-back line:
 #                                                 actual-spruce for spruce,
 #                                                 td/generalized-flo for the
@@ -17,6 +21,14 @@
 #
 # <house> is spruce, beech, maple, oak, fir or elm; every house but spruce has
 # a second pi, <house>2, whose scada2 reads ~/.config/gridworks/scada2/.
+#
+# A house's LTN and scada run on exactly the same branch at the same pushed
+# SHA. The LTN is the checkout ~/ltn-<house>/gridworks-scada on the ltn box,
+# run by the systemd unit gwltn@<house> (service/gwltn@.service). `check`
+# reports the LTN beside the pis and fails when the two are on different
+# lines; `to` moves the LTN checkout under the same guards as a pi's and
+# restarts its unit before the pi's service restarts, so the scada's first
+# Report after the roll meets an LTN on its own line.
 #
 # Each scada branch has its tlayouts branch, and the committed JSON of that
 # branch is the record of what the house runs:
@@ -65,6 +77,9 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 TLAYOUTS="${TLAYOUTS_DIR:-$HERE/../../tlayouts}"
 COMPARE="$HERE/roll_compare.py"
 BOX_REPO='~/gridworks-scada'
+LTN_BOX="${LTN_BOX:-ltn}"
+LTN_REPO="~/ltn-$HOUSE/gridworks-scada"
+LTN_UNIT="gwltn@$HOUSE"
 EVENT_DIR='~/.local/share/gridworks/scada/event'
 STAMP="$(date +%Y-%m-%d)"
 
@@ -120,6 +135,9 @@ committed_path() { # <tlayouts-branch> <layout|ops>
 
 box_branch() { ssh -n "$1" "git -C $BOX_REPO branch --show-current"; }
 box_sha()    { ssh -n "$1" "git -C $BOX_REPO rev-parse --short HEAD"; }
+ltn_branch() { ssh -n "$LTN_BOX" "git -C $LTN_REPO branch --show-current"; }
+ltn_sha()    { ssh -n "$LTN_BOX" "git -C $LTN_REPO rev-parse --short HEAD"; }
+ltn_line()   { echo "ltn: $LTN_REPO on $(ltn_branch) @ $(ltn_sha); $LTN_UNIT $(ssh -n "$LTN_BOX" "systemctl is-active $LTN_UNIT")"; }
 
 # Verify one pi's pair against a scada branch's committed JSON. Prints a line
 # per file; returns 1 if anything differs. With INSTALL=1 offers to install.
@@ -170,11 +188,25 @@ if [ "$VERB" = check ]; then
     verify_pi "$pi" "$b" || rc=1
   done
   [ "$HOUSE" != spruce ] || echo "spruce: spruce-winter-hack $(ssh -n spruce 'systemctl is-active spruce-winter-hack; systemctl is-enabled spruce-winter-hack' | tr '\n' ' ')"
+  ltn_line
+  lb="$(ltn_branch)"; pb="$(box_branch "$HOUSE")"
+  [ "$lb" = "$pb" ] || { echo "$HOUSE: LTN on $lb, scada on $pb; a house's LTN and scada run on one line"; rc=1; }
   exit $rc
 fi
 
 # ---- to <scada-branch> ----
 tl_branch "$TARGET" > /dev/null || { echo "no tlayouts branch for scada branch $TARGET"; exit 1; }
+echo "== ltn ($HOUSE)"
+ssh -n "$LTN_BOX" "systemctl cat -q $LTN_UNIT" > /dev/null 2>&1 || { echo "ltn: no unit $LTN_UNIT on $LTN_BOX; install service/gwltn@.service first"; exit 1; }
+ssh -n "$LTN_BOX" "git -C $LTN_REPO fetch -q origin"
+[ -z "$(ssh -n "$LTN_BOX" "git -C $LTN_REPO status --porcelain")" ] || { echo "ltn: $LTN_REPO is dirty; refusing"; exit 1; }
+ssh -n "$LTN_BOX" "git -C $LTN_REPO rev-parse --verify -q origin/$TARGET" > /dev/null || { echo "ltn: origin/$TARGET not on the box's remote; refusing"; exit 1; }
+[ "$(ssh -n "$LTN_BOX" "git -C $LTN_REPO rev-list --count origin/$TARGET..$TARGET 2>/dev/null || echo 0")" = 0 ] || { echo "ltn: local $TARGET is ahead of origin/$TARGET; refusing"; exit 1; }
+ltn_cur="$(ltn_sha)"
+if [ -n "$(ssh -n "$LTN_BOX" "git -C $LTN_REPO diff --stat $ltn_cur origin/$TARGET -- gw_spaceheat/requirements packages/*/pyproject.toml")" ]; then
+  echo "ltn: requirements differ between $ltn_cur and origin/$TARGET; rebuild the venv in $LTN_REPO (tools/mkenv.sh) after the checkout, by hand, then re-run"
+  exit 1
+fi
 for pi in $PIS; do
   echo "== $pi"
   if [ "$pi" != "${pi%2}" ]; then
@@ -198,6 +230,11 @@ for pi in $PIS; do
   echo "$pi: $BOX_REPO on $TARGET @ $(box_sha "$pi") (was $cur)"
   INSTALL=1 verify_pi "$pi" "$TARGET" || { echo "$pi: pair not verified; service NOT restarted. Fix the pair and re-run."; exit 1; }
 done
+
+ssh -n "$LTN_BOX" "git -C $LTN_REPO checkout -q $TARGET && git -C $LTN_REPO merge -q --ff-only origin/$TARGET" || { echo "ltn: checkout or fast-forward failed; refusing. The pis are on $TARGET; fix the LTN checkout by hand and re-run."; exit 1; }
+echo "ltn: $LTN_REPO on $TARGET @ $(ltn_sha) (was $ltn_cur)"
+ssh -n "$LTN_BOX" "sudo systemctl restart $LTN_UNIT"; sleep 3
+ltn_line
 
 if [ "$HOUSE" = spruce ]; then
   if [ "$TARGET" = actual-spruce ]; then ssh -n spruce 'sudo systemctl enable -q --now spruce-winter-hack'; echo "spruce: winter hack enabled and started"

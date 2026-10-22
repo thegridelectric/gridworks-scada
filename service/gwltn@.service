@@ -1,0 +1,19 @@
+[Unit]
+Description=GridWorks LTN for %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+User=ubuntu
+WorkingDirectory=/home/ubuntu/ltn-%i/gridworks-scada
+Environment=VIRTUAL_ENV=/home/ubuntu/ltn-%i/gridworks-scada/gw_spaceheat/venv
+Environment=PYTHONPATH=/home/ubuntu/ltn-%i/gridworks-scada/gw_spaceheat
+Environment=LTN_DASHBOARD__PRINT_GUI=false
+ExecStart=/home/ubuntu/ltn-%i/gridworks-scada/gw_spaceheat/venv/bin/python -c \
+    "import sys; from ltn_app import LtnApp; sys.exit(LtnApp.main(env_file='/home/ubuntu/ltn-%i/gridworks-scada/.env', return_int=True))"
+
+[Install]
+WantedBy=multi-user.target
