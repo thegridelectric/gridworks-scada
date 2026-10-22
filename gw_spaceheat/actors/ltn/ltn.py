@@ -104,7 +104,7 @@ class PriceForecast(BaseModel):
 
     @property
     def total_energy(self) -> List[float]:
-        """Calculate the total price forecast by summing dp, lmp, and reg components."""
+        """Calculate the total price forecast by summing dist and lmp components."""
         return [dp + lmp for dp, lmp in zip(self.dist_usd_per_mwh, self.lmp_usd_per_mwh)]
 
 
@@ -1702,7 +1702,6 @@ class Ltn(PrimeActor):
                 timestamps = [float(row[0]) for row in rows]
                 dist_usd_mwh = [float(row[1]) for row in rows]
                 lmp_usd_mwh = [float(row[2]) for row in rows]
-                reg_usd_mwh = [0.0] * len(rows)
 
                 # Crop the beginning of the CSV and extend the end to get a forecast for the next 48 hours
                 time_now = time.time()
@@ -1712,11 +1711,9 @@ class Ltn(PrimeActor):
                     raise Exception("No forecasts available for the next hours!")
                 dp_forecast_usd_per_mwh = [p for p,t in zip(dist_usd_mwh, timestamps) if t > time_now]
                 lmp_forecast_usd_per_mwh = [p for p,t in zip(lmp_usd_mwh, timestamps) if t > time_now]
-                reg_forecast_usd_per_mwh = [p for p,t in zip(reg_usd_mwh, timestamps) if t > time_now]
                 if hours_available < 48:
                     dp_forecast_usd_per_mwh = dp_forecast_usd_per_mwh + [dp_forecast_usd_per_mwh[-1]] * (48-len(dp_forecast_usd_per_mwh))
                     lmp_forecast_usd_per_mwh = lmp_forecast_usd_per_mwh + [lmp_forecast_usd_per_mwh[-1]] * (48-len(lmp_forecast_usd_per_mwh))
-                    reg_forecast_usd_per_mwh = reg_forecast_usd_per_mwh + [reg_forecast_usd_per_mwh[-1]] * (48-len(reg_forecast_usd_per_mwh))
 
                 # Update the price forecast
                 self.price_forecast = PriceForecast(
