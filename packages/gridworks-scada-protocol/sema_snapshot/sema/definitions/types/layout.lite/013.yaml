@@ -10,9 +10,7 @@ description: >
   `layout.lite` is emitted by SCADA on request (and on boot). It is not intended to
   be a lossless copy of the source layout artifact on disk. Some fields are projected
   directly from the loaded hardware layout, while others reflect active runtime
-  settings. As of `/013` the embedded component types are the cac-free `DeviceType`
-  shapes (hardware-layout pass one) — a layout.lite is coherent with the components a
-  migrated SCADA actually loads.
+  settings.
 
 properties:
 
@@ -21,10 +19,10 @@ properties:
     description: >
       GNode alias of the SCADA actor publishing this runtime context.
 
-  MessageCreatedMs:
+  CreatedMs:
     $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
     description: >
-      Timestamp at which this layout projection was created.
+      The sender's clock when this projection came to be.
 
   MessageId:
     $ref: "https://schemas.electricity.works/formats/uuid4.str"
@@ -37,12 +35,6 @@ properties:
       TypeName of the layout word the running SCADA loaded (for example
       gw.house0.layout or gw.nolan.layout): the layout family every consumer
       of this projection branches on.
-
-  KeepBufferFull:
-    type: boolean
-    description: >
-      The running scada's KeepBufferFull setting; the LTN counts no buffer
-      energy when true.
 
   ZoneList:
     type: array
@@ -57,11 +49,6 @@ properties:
       type: string
     description: >
       Ordered list of critical zones. SHALL be a subset of ZoneList.
-
-  TotalStoreTanks:
-    $ref: "https://schemas.electricity.works/formats/positive.int"
-    description: >
-      Number of store tanks configured for this deployment.
 
   ShNodes:
     type: array
@@ -86,36 +73,15 @@ properties:
       Derived telemetry channel definitions used to interpret derived channel
       names appearing in reports and snapshots.
 
-  TankModuleComponents:
+  StateMachines:
     type: array
     items:
-      oneOf:
-        - $ref: "https://schemas.electricity.works/types/pico.tank.module.component.gt/012"
-        - $ref: "https://schemas.electricity.works/types/sim.pico.tank.module.component.gt/001"
+      $ref: "https://schemas.electricity.works/types/gw.state.machine/000"
     description: >
-      Tank module components present in the running deployment.
-
-  FlowModuleComponents:
-    type: array
-    items:
-      $ref: "https://schemas.electricity.works/types/pico.flow.module.component.gt/001"
-    description: >
-      Flow module components present in the running deployment.
-
-  Ha1Params:
-    $ref: "https://schemas.electricity.works/types/ha1.params/006"
-    description: >
-      Active HA1 parameter set used by the running deployment.
-
-  I2cRelayComponent:
-    $ref: "https://schemas.electricity.works/types/i2c.multichannel.dt.relay.component.gt/004"
-    description: >
-      Optional relay component configuration used by the running deployment.
-
-  TMap:
-    $ref: "https://schemas.electricity.works/types/gw1.tank.temp.calibration.map/001"
-    description: >
-      Optional tank temperature calibration map emitted with the runtime context.
+      The state machines the running SCADA hosts, one per hosting node, each
+      with the enum and version its states are values of. A report's
+      MachineHandle resolves to the entry whose NodeName is the handle's last
+      dotted segment.
 
   TypeName:
     const: "layout.lite"
@@ -125,19 +91,15 @@ properties:
 
 required:
   - FromGNodeAlias
-  - MessageCreatedMs
+  - CreatedMs
   - MessageId
   - HardwareLayoutTypeName
-  - KeepBufferFull
   - ZoneList
   - CriticalZoneList
-  - TotalStoreTanks
   - ShNodes
   - DataChannels
   - DerivedChannels
-  - TankModuleComponents
-  - FlowModuleComponents
-  - Ha1Params
+  - StateMachines
   - TypeName
   - Version
 
@@ -171,6 +133,12 @@ x-gridworks:
         Every DerivedChannels.CreatedByNodeName SHALL reference an existing
         ShNodes.Name whose ActorClass is active.
 
+    - number: 5
+      name: "StateMachineNodeConsistency"
+      statement: >
+        Every StateMachines.NodeName SHALL reference an existing ShNodes.Name,
+        and no two StateMachines entries SHALL share a NodeName.
+
   extended_description: >
     `layout.lite` is the SCADA-emitted semantic context for a running
     deployment. It exists so consumers can interpret compact runtime payloads
@@ -181,3 +149,7 @@ x-gridworks:
     `layout.lite` for channel interpretation. `ChannelName` references inside
     those messages SHALL be resolved against `DataChannels` and
     `DerivedChannels` in the relevant `layout.lite` context.
+    A `MachineHandle` in a `single.machine.state` or `machine.states` entry
+    SHALL be resolved to the `StateMachines` entry whose `NodeName` equals the
+    handle's last dotted segment; that entry names the enum, at a version,
+    the machine's `State` values belong to.

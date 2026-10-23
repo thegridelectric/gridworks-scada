@@ -32,7 +32,7 @@ class LayoutLiteDc(LayoutLite):
 
     @property
     def total_store_tanks(self) -> int:
-        return self._gt.TotalStoreTanks
+        return len(self.store_tanks)
 
     @cached_property
     def sh_node_by_name(self) -> dict[str, ShNode]:

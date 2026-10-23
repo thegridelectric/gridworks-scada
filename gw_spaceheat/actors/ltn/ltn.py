@@ -505,7 +505,7 @@ class Ltn(PrimeActor):
         self.price_forecast: Optional[PriceForecast] = None
         self.data_channels: List
         self.tank_temp_channel_names = None
-        self.ha1_params: Optional[Ha1Params] = None
+        self.ha1_params: Optional[Ha1Params] = self.settings.ha1_params
         self.latest_report: Optional[Report] = None
         self.report_output_dir = Path(f"{self.settings.paths.data_dir}/report")
         self.report_output_dir.mkdir(parents=True, exist_ok=True)
@@ -542,7 +542,7 @@ class Ltn(PrimeActor):
         self.create_graph_minute: int = self.settings.create_graph_minute
         # Gets strategy from scada sending LayoutLite
         self.layout_lite: Optional[LayoutLite] = None # Add this as a way of tracking if we've gotten the layout lite yet
-        self.total_store_tanks = 3 # will also get updated when LayoutLite arrives
+        self.total_store_tanks = len(self.layout.store_tanks)
         # TODO: read strategy from hardware layout: node = hardware_layout.node(...)
         self.buffer_flo = False
         # The posture facts ride gw.house.operating.status, the LTN's one source;
@@ -551,7 +551,7 @@ class Ltn(PrimeActor):
         self.accepts_dispatch: bool = False
         self.service_mode: ServiceMode = ServiceMode.Heating
         self.seasonal_storage_mode: SeasonalStorageMode = SeasonalStorageMode.AllTanks
-        self.keep_buffer_full: bool = False # will get updated when LayoutLite arrives from Scada
+        self.keep_buffer_full: bool = self.settings.keep_buffer_full
 
     @classmethod
     def get_codec_factory(cls) -> LtnCodecFactory:
@@ -799,9 +799,6 @@ class Ltn(PrimeActor):
         self.log("Processing layout lite")
         self.logger.info(f"Processing layout lite: {layout}")
         self.layout_lite = layout
-        self.ha1_params = layout.Ha1Params
-        self.total_store_tanks = layout.TotalStoreTanks
-        self.keep_buffer_full = layout.KeepBufferFull
 
         self.tank_temp_channel_names = list(HCN.buffer.effective)
         for tank_idx in sorted(self.layout.store_tanks):

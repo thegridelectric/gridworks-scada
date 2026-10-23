@@ -8,6 +8,7 @@ from gwproactor.config import MQTTClient
 
 from actors.config import ScadaPathsSettings
 from gwsproto.enums import SeasonalStorageMode
+from gwsproto.named_types import Ha1Params
 
 
 class HackHpSettings(BaseModel):
@@ -53,6 +54,11 @@ class LtnSettings(ScadaPathsSettings):
     # The MarketMaker whose latest.price the LTN clears against; its
     # alias names the slot the LTN bids on.
     market_maker_alias: str = "hw1.isone.me.versant.keene"
+    # The house's HA1 parameter set, the ha1.params word as JSON
+    # (LTN_HA1_PARAMS). No FLO runs without it.
+    ha1_params: Ha1Params | None = None
+    # Count no buffer energy when true.
+    keep_buffer_full: bool = False
 
     model_config = SettingsConfigDict(env_prefix="LTN_", extra="ignore")
 

@@ -1,37 +1,15 @@
 from gwsproto.named_types import LayoutLite
+from tests.named_types.sema_oracle import assert_refused
 
 
-def test_layout_lite_generated() -> None:
-    d = {
+def layout_lite_dict() -> dict:
+    return {
         "FromGNodeAlias": "hw1.isone.me.versant.keene.beech.scada",
-        "MessageCreatedMs": 1728651445746,
+        "CreatedMs": 1728651445746,
         "MessageId": "1302c0f8-1983-43b2-90d2-61678d731db3",
         "HardwareLayoutTypeName": "gw.house0.layout",
         "ZoneList": ["Down", "Up"],
-        "KeepBufferFull": False,
         "CriticalZoneList": ["Down"],
-        "TotalStoreTanks": 3,
-        "Ha1Params": {
-            "AlphaTimes10": 120,
-            "BetaTimes100": -22,
-            "GammaEx6": 0,
-            "IntermediatePowerKw": 1.5,
-            "IntermediateRswtF": 100,
-            "DdPowerKw": 12,
-            "DdRswtF": 160,
-            "DdDeltaTF": 20,
-            "HpMaxKwEl": 6.0,
-            "MaxEwtF": 170,
-            "LoadOverestimationPercent": 10,
-            "CopIntercept": 1.02,
-            "CopOatCoeff": 0.0257,
-            "CopLwtCoeff": 0.0,
-            "CopMin": 1.4,
-            "CopMinOatF": 15.0,
-            "HpTurnOnMinutes": 12,
-            "TypeName": "ha1.params",
-            "Version": "006",
-        },
         "ShNodes": [
             {
                 "ActorClass": "PrimaryScada",
@@ -63,6 +41,15 @@ def test_layout_lite_generated() -> None:
         ],
         "DerivedChannels": [
         ],
+        "StateMachines": [
+            {
+                "NodeName": "s",
+                "StateEnum": "gw.top.state",
+                "StateEnumVersion": "000",
+                "TypeName": "gw.state.machine",
+                "Version": "000",
+            }
+        ],
         "DataChannels": [
             {
                 "Name": "hp-idu-pwr",
@@ -78,106 +65,36 @@ def test_layout_lite_generated() -> None:
                 "Version": "004",
             }
         ],
-        "TankModuleComponents": [
-            {
-                "DeviceType": "GridworksTankModule3",
-                "ComponentId": "8aef0b11-5a1c-415e-b40e-d277e0ff4403",
-                "DisplayName": "buffer PicoTankModule",
-                "SerialNumber": "1030",
-                "NumSampleAverages": 10,
-                "PicoHwUid": "pico_aaaaaa",
-                "Samples": 1000,
-                "SendMicroVolts": True,
-                "TempCalcMethod": "SimpleBeta",
-                "ThermistorBeta": 3977,
-                "AsyncCaptureDeltaMicroVolts": 2000,
-                "PicoBoardVariant": "PicoRaspberryWifi2040",
-                "TypeName": "pico.tank.module.component.gt",
-                "Version": "012",
-            }
-        ],
-        "FlowModuleComponents": [
-            {
-                "AsyncCaptureThresholdGpmTimes100": 5,
-                "DeviceType": "GridworksPicoFlowReed",
-                "ComponentId": "b505a781-1671-467f-af8f-6d0ad7aca172",
-                "ConstantGallonsPerTick": 0.0748,
-                "CutoffFrequency": 1.25,
-                "DisplayName": "Primary Flow ReedFlowModule",
-                "FlowMeterType": "EKM__HOTSPWM075HD",
-                "FlowNodeName": "primary-flow",
-                "GpmFromHzMethod": "Constant",
-                "HwUid": "pico_1b5636",
-                "HzCalcMethod": "BasicExpWeightedAvg",
-                "NoFlowMs": 5000,
-                "PublishAnyTicklistAfterS": 10,
-                "PublishTicklistLength": 10,
-                "SendGallons": False,
-                "SendHz": True,
-                "SendTickLists": False,
-                "SerialNumber": "NA",
-                "PicoBoardVariant": "PicoRaspberryWifi2040",
-                "TypeName": "pico.flow.module.component.gt",
-                "Version": "001",
-            }
-        ],
-        "I2cRelayComponent": {
-            "DeviceType": "KridaDoubleRelayBoard16",
-            "ComponentId": "b95e75a3-1483-484f-954f-65d202d50e6d",
-            "ConfigList": [
-                    {
-                        "ActorName": "relay1",
-                    "ChannelName": "vdc-relay1",
-                    "DeEnergizedState": "RelayClosed",
-                    "DeEnergizingEvent": "CloseRelay",
-                    "EnergizedState": "RelayOpen",
-                    "EnergizingEvent": "OpenRelay",
-                    "EventType": "change.relay.state",
-                    "RelayIdx": 1,
-                    "StateType": "relay.closed.or.open",
-                    "TypeName": "relay.actor.config",
-                    "Version": "003",
-                    "WiringConfig": "NormallyClosed",
-                },
-                    {
-                        "ActorName": "relay2",
-                    "ChannelName": "tstat-common-relay2",
-                    "DeEnergizedState": "RelayClosed",
-                    "DeEnergizingEvent": "CloseRelay",
-                    "EnergizedState": "RelayOpen",
-                    "EnergizingEvent": "OpenRelay",
-                    "EventType": "change.relay.state",
-                    "RelayIdx": 2,
-                    "StateType": "relay.closed.or.open",
-                    "TypeName": "relay.actor.config",
-                    "Version": "003",
-                    "WiringConfig": "NormallyClosed",
-                },
-                    {
-                        "ActorName": "relay3",
-                    "ChannelName": "charge-discharge-relay3",
-                    "DeEnergizedState": "DischargingStore",
-                    "DeEnergizingEvent": "DischargeStore",
-                    "EnergizedState": "ChargingStore",
-                    "EnergizingEvent": "ChargeStore",
-                    "EventType": "change.store.flow.relay",
-                    "RelayIdx": 3,
-                    "StateType": "store.flow.relay",
-                    "TypeName": "relay.actor.config",
-                    "Version": "003",
-                    "WiringConfig": "NormallyOpen",
-                },
-            ],
-            "I2cBus": "bus-1",
-            "DisplayName": "i2c krida relay boards",
-            "I2cAddressList": [32, 33],
-            "TypeName": "i2c.multichannel.dt.relay.component.gt",
-            "Version": "004",
-            },
             "TypeName": "layout.lite",
             "Version": "013",
         }
 
+
+
+def test_layout_lite_generated() -> None:
+    d = layout_lite_dict()
     d2 = LayoutLite.model_validate(d).model_dump(exclude_none=True)
 
     assert d2 == d
+
+
+def machine(node_name: str) -> dict:
+    return {
+        "NodeName": node_name,
+        "StateEnum": "gw.top.state",
+        "StateEnumVersion": "000",
+        "TypeName": "gw.state.machine",
+        "Version": "000",
+    }
+
+
+def test_layout_lite_axiom_5_unknown_node() -> None:
+    d = layout_lite_dict()
+    d["StateMachines"] = [machine("hp-boss")]
+    assert_refused(LayoutLite, d, match="Axiom 5")
+
+
+def test_layout_lite_axiom_5_two_machines_on_one_node() -> None:
+    d = layout_lite_dict()
+    d["StateMachines"] = [machine("s"), machine("s")]
+    assert_refused(LayoutLite, d, match="Axiom 5")

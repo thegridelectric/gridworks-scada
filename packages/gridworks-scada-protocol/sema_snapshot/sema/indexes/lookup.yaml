@@ -239,6 +239,11 @@ types:
     versioning_strategy: literal
     versions:
       '000': definitions/types/gw.scada.commit/000.yaml
+  gw.state.machine:
+    latest_version: '000'
+    versioning_strategy: literal
+    versions:
+      '000': definitions/types/gw.state.machine/000.yaml
   gw.tou.tariff:
     latest_version: '000'
     versioning_strategy: literal
@@ -414,11 +419,6 @@ types:
     versioning_strategy: literal
     versions:
       '000': definitions/types/i2c.expander/000.yaml
-  i2c.multichannel.dt.relay.component.gt:
-    latest_version: '004'
-    versioning_strategy: literal
-    versions:
-      '004': definitions/types/i2c.multichannel.dt.relay.component.gt/004.yaml
   i2c.mux:
     latest_version: '000'
     versioning_strategy: literal
@@ -544,11 +544,6 @@ types:
     versioning_strategy: literal
     versions:
       '001': definitions/types/price.quantity.unitless/001.yaml
-  relay.actor.config:
-    latest_version: '003'
-    versioning_strategy: literal
-    versions:
-      '003': definitions/types/relay.actor.config/003.yaml
   relay.control.config:
     latest_version: '000'
     versioning_strategy: literal
@@ -1083,6 +1078,7 @@ formats:
   positive.float: definitions/formats/positive.float.yaml
   positive.int: definitions/formats/positive.int.yaml
   positive.int.as.str: definitions/formats/positive.int.as.str.yaml
+  sema.version: definitions/formats/sema.version.yaml
   spaceheat.name: definitions/formats/spaceheat.name.yaml
   utc.iso8601.seconds: definitions/formats/utc.iso8601.seconds.yaml
   utc.milliseconds: definitions/formats/utc.milliseconds.yaml

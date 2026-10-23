@@ -71,11 +71,9 @@ from gwsproto.named_types.hvac_zone import HvacZone
 from gwsproto.named_types.i2c_ct_interface_capability import I2cCtInterfaceCapability
 from gwsproto.named_types.i2c_bit_address import I2cBitAddress
 from gwsproto.named_types.i2c_bus import I2cBus
+from gwsproto.named_types.gw_state_machine import GwStateMachine
 from gwsproto.named_types.i2c_dac_capability import I2cDacCapability
 from gwsproto.named_types.i2c_dac_output_component_gt import I2cDacOutputComponentGt
-from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
-    I2cMultichannelDtRelayComponentGt,
-)
 from gwsproto.named_types.i2c_mux import I2cMux
 from gwsproto.named_types.i2c_read_bit import I2cReadBit
 from gwsproto.named_types.i2c_read_bytes import I2cReadBytes
@@ -120,7 +118,6 @@ from gwsproto.named_types.pico_tank_module_component_gt import PicoTankModuleCom
 from gwsproto.named_types.power_watts import PowerWatts
 from gwsproto.named_types.price_quantity_unitless import PriceQuantityUnitless
 from gwsproto.named_types.recorded_setpoints import RecordedSetpoints
-from gwsproto.named_types.relay_actor_config import RelayActorConfig
 from gwsproto.named_types.relay_control_config import RelayControlConfig
 from gwsproto.named_types.scada_board_component_gt import ScadaBoardComponentGt
 from gwsproto.named_types.remaining_elec import RemainingElec
@@ -260,9 +257,9 @@ __all__ = [
     "I2cCtInterfaceCapability",
     "I2cBitAddress",
     "I2cBus",
+    "GwStateMachine",
     "I2cDacCapability",
     "I2cDacOutputComponentGt",
-    "I2cMultichannelDtRelayComponentGt",
     "I2cMux",
     "I2cReadBit",
     "I2cReadBytes",
@@ -300,7 +297,6 @@ __all__ = [
     "PowerWatts",
     "PriceQuantityUnitless",
     "RecordedSetpoints",
-    "RelayActorConfig",
     "RelayControlConfig",
     "ScadaBoardComponentGt",
     "RemainingElec",

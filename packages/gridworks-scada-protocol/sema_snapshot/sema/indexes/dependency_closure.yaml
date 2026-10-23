@@ -648,6 +648,15 @@ types:
       - utc.milliseconds
       types: []
       versionless_types: []
+  gw.state.machine:
+    '000':
+      enums: []
+      formats:
+      - left.right.dot
+      - sema.version
+      - spaceheat.name
+      types: []
+      versionless_types: []
   gw.tou.tariff:
     '000':
       enums:
@@ -1000,22 +1009,6 @@ types:
       - positive.int
       types: []
       versionless_types: []
-  i2c.multichannel.dt.relay.component.gt:
-    '004':
-      enums:
-      - change.relay.state:000
-      - relay.closed.or.open:000
-      - relay.wiring.config:000
-      formats:
-      - left.right.dot
-      - non.empty.string
-      - pascal.case
-      - positive.int
-      - spaceheat.name
-      - uuid4.str
-      types:
-      - relay.actor.config:003
-      versionless_types: []
   i2c.mux:
     '000':
       enums:
@@ -1176,25 +1169,16 @@ types:
   layout.lite:
     '013':
       enums:
-      - change.relay.state:000
-      - gpm.from.hz.method:000
       - gw1.actor.class:014
       - gw1.emission.method:000
       - gw1.quantity:003
       - gw1.unit:003
-      - hz.calc.method:001
-      - pico.board.variant:000
-      - relay.closed.or.open:000
-      - relay.wiring.config:000
       - spaceheat.telemetry.name:007
-      - temp.calc.method:000
       formats:
       - handle.name
       - left.right.dot
-      - non.empty.string
-      - pascal.case
       - positive.int
-      - positive.int.as.str
+      - sema.version
       - spaceheat.name
       - utc.milliseconds
       - utc.seconds
@@ -1202,15 +1186,8 @@ types:
       types:
       - data.channel.gt:004
       - derived.channel.gt:003
-      - gw1.tank.temp.calibration.map:001
-      - gw1.tank.temp.calibration:001
+      - gw.state.machine:000
       - gw1.unit.quantity.projection:001
-      - ha1.params:006
-      - i2c.multichannel.dt.relay.component.gt:004
-      - pico.flow.module.component.gt:001
-      - pico.tank.module.component.gt:012
-      - relay.actor.config:003
-      - sim.pico.tank.module.component.gt:001
       - spaceheat.node.gt:303
       - spaceheat.telemetry.quantity.projection:001
       versionless_types: []
@@ -1300,19 +1277,6 @@ types:
     '001':
       enums: []
       formats: []
-      types: []
-      versionless_types: []
-  relay.actor.config:
-    '003':
-      enums:
-      - change.relay.state:000
-      - relay.closed.or.open:000
-      - relay.wiring.config:000
-      formats:
-      - left.right.dot
-      - non.empty.string
-      - positive.int
-      - spaceheat.name
       types: []
       versionless_types: []
   relay.control.config:

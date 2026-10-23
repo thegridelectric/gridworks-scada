@@ -1,0 +1,57 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw.state.machine/000"
+
+title: "gw.state.machine"
+type: object
+description: >
+  Declaration of one state machine a running SCADA hosts: the spaceheat node
+  that hosts it and the enum, at a version, that its states are values of.
+  A machine's states reach the wire as single.machine.state and machine.states
+  entries that name the machine by its MachineHandle; the last dotted segment
+  of that handle is the hosting node's Name, and this declaration is what a
+  reader resolves it to.
+
+properties:
+
+  NodeName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Name of the spaceheat node that hosts the machine.
+
+  StateEnum:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      Name of the Sema enum whose values are the machine's states.
+
+  StateEnumVersion:
+    $ref: "https://schemas.electricity.works/formats/sema.version"
+    description: >
+      Version of StateEnum the running SCADA speaks.
+
+  TypeName:
+    const: "gw.state.machine"
+
+  Version:
+    const: "000"
+
+required:
+  - NodeName
+  - StateEnum
+  - StateEnumVersion
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "NodeName": "hp-boss",
+      "StateEnum": "hp.boss.state",
+      "StateEnumVersion": "000",
+      "TypeName": "gw.state.machine",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

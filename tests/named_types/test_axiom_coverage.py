@@ -85,8 +85,6 @@ KNOWN_UNTESTED_AXIOMS: set[str] = {
     "heating.forecast/000:1",
     "i2c.dac.capability/000:1",
     "i2c.expander/000:1",
-    "i2c.multichannel.dt.relay.component.gt/004:1",
-    "i2c.multichannel.dt.relay.component.gt/004:2",
     "i2c.read.reg/000:1",
     "i2c.result/001:1",
     "i2c.thermistor.reader.component.gt/000:1",

@@ -1,0 +1,7 @@
+{
+  "TypeName": "gw.state.machine",
+  "Version": "000",
+  "NodeName": "hp-boss",
+  "StateEnum": "hp.boss.state",
+  "StateEnumVersion": "000"
+}

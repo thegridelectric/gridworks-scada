@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-10-21T18:25:00Z"
+  last_updated: "2026-10-22T21:20:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -108,6 +108,13 @@ formats:
     created: "2024-12-31T15:00:00Z"
     status: "published"
     description: "Canonical decimal string form of a positive integer; used as the propertyNames $ref for int-keyed Typed Maps"
+
+  sema.version:
+    owner: gridworks-energy
+    schema_url: "https://schemas.electricity.works/formats/sema.version"
+    created: "2026-10-22T20:00:00Z"
+    status: "published"
+    description: "Three-digit version string of a versioned Sema vocabulary word"
 
   spaceheat.name:
     owner: gridworks-energy
@@ -1990,6 +1997,24 @@ types:
             - "left.right.dot"
             - "utc.milliseconds"
 
+  gw.state.machine:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Declaration of one state machine a running SCADA hosts: hosting node Name, state enum and its version."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.state.machine/000"
+        created: "2026-10-22T20:00:00Z"
+        status: "staging"
+        summary: "Initial version."
+        direct_dependencies:
+          structural:
+            - "left.right.dot"
+            - "sema.version"
+            - "spaceheat.name"
+
   gw.tou.tariff:
     latest_version: "000"
     owner: gridworks-energy
@@ -2623,28 +2648,6 @@ types:
             - "pascal.case"
             - "positive.int"
 
-  i2c.multichannel.dt.relay.component.gt:
-    latest_version: "004"
-    owner: gridworks-energy
-    versioning_strategy: "literal"
-    description: "Configuration for a multi-channel I2C relay board component."
-
-    versions:
-      "004":
-        schema_url: "https://schemas.electricity.works/types/i2c.multichannel.dt.relay.component.gt/004"
-        created: "2026-08-13T16:30:00Z"
-        status: "staging"
-        summary: "- AsyncCaptureDelta: ConfigList[0] example now sets it explicitly (the
-  relay.actor.config dependency itself is unchanged from 003: :002)
-- ComponentAttributeClassId (cac UUID) -> DeviceType (gw1.device.type value, pascal.case).
-  Context-dependent: the device type lived on the referenced cac, not the component."
-        direct_dependencies:
-          structural:
-            - "pascal.case"
-            - "relay.actor.config:003"
-            - "spaceheat.name"
-            - "uuid4.str"
-
   i2c.mux:
     latest_version: "000"
     owner: gridworks-energy
@@ -2936,21 +2939,15 @@ types:
     versions:
       "013":
         schema_url: "https://schemas.electricity.works/types/layout.lite/013"
-        created: "2026-10-15T16:00:00Z"
+        created: "2026-10-22T20:10:00Z"
         status: "staging"
-        summary: "- ShNodes: spaceheat.node.gt:301 -> 303 - DataChannels: data.channel.gt:002 -> 004 - TankModuleComponents / FlowModuleComponents / I2cRelayComponent: cac-carrying component versions -> cac-free DeviceType versions (pico.tank.module 011->012, sim.pico.tank.module 000->001, pico.flow.module 000->001, i2c.multichannel.dt.relay 003->004). Context-dependent: the embedded components' DeviceType lives on their cac, not the component. - SystemMode and SeasonalStorageMode leave: the posture facts (Standby, StandbyPosture, SeasonalStorageMode, ServiceMode, AcceptsDispatch, DispatchRefusalReason) ride gw.house.operating.status, sent after the startup announcements and on change, so the LTN has one source for them. - Strategy (free manifold-variant string) -> HardwareLayoutTypeName (left.right.dot): the loaded layout word's TypeName is the family; a format, not an enum of layout words, so this word publishes independently of the layout words' status. - BufferShortCycling -> KeepBufferFull: the running scada's KeepBufferFull setting, named for what the flag does."
+        summary: "- ShNodes: spaceheat.node.gt:301 -> 303 - DataChannels: data.channel.gt:002 -> 004 - TankModuleComponents, FlowModuleComponents and TMap leave: no consumer reads the pico components or the calibration map off the projection; the hardware layout is their source. - I2cRelayComponent leaves: the relay component is read off the hardware layout, and the projection has no reader for it. - SystemMode and SeasonalStorageMode leave: the posture facts (Standby, StandbyPosture, SeasonalStorageMode, ServiceMode, AcceptsDispatch, DispatchRefusalReason) ride gw.house.operating.status, sent after the startup announcements and on change, so the LTN has one source for them. - Strategy (free manifold-variant string) -> HardwareLayoutTypeName (left.right.dot): the loaded layout word's TypeName is the family; a format, not an enum of layout words, so this word publishes independently of the layout words' status. - BufferShortCycling, Ha1Params and TotalStoreTanks leave: operational parameters are not layout; the LTN gets them from its own settings and its own hardware layout until it holds the ops word, and a layout with no store tanks cannot fill a positive tank count. - MessageCreatedMs -> CreatedMs: the sender-clock name every word takes by default. - StateMachines: one gw.state.machine per machine the running scada hosts (hosting node Name, state enum, enum version), so a report's MachineHandle resolves by its last dotted segment to a declared, versioned enum."
         direct_dependencies:
           structural:
             - "data.channel.gt:004"
             - "derived.channel.gt:003"
-            - "gw1.tank.temp.calibration.map:001"
-            - "ha1.params:006"
-            - "i2c.multichannel.dt.relay.component.gt:004"
+            - "gw.state.machine:000"
             - "left.right.dot"
-            - "pico.flow.module.component.gt:001"
-            - "pico.tank.module.component.gt:012"
-            - "positive.int"
-            - "sim.pico.tank.module.component.gt:001"
             - "spaceheat.node.gt:303"
             - "utc.milliseconds"
             - "uuid4.str"
@@ -3121,31 +3118,6 @@ types:
         summary: "Rename PriceTimes1000/QuantityTimes1000 to PriceX1000/QuantityX1000."
         direct_dependencies:
           structural: []
-
-  relay.actor.config:
-    latest_version: "003"
-    owner: gridworks-energy
-    versioning_strategy: "literal"
-    description: "Configuration for a relay-backed actor controlling a physical or logical switching device."
-    replaced_by:
-      - "relay.control.config"
-
-    versions:
-      "003":
-        schema_url: "https://schemas.electricity.works/types/relay.actor.config/003"
-        created: "2026-08-13T16:14:00Z"
-        status: "staging"
-        summary: "- Unit: drop (redundant; unit and scaling are carried by channel identity) - Exponent: drop (redundant; unit and scaling are carried by channel identity) - CapturePeriodS / AsyncCapture / AsyncCaptureDelta / PollPeriodMs: drop (capture/report tuning moved to operational-params capture.tuning)"
-        direct_dependencies:
-          structural:
-            - "left.right.dot"
-            - "non.empty.string"
-            - "positive.int"
-            - "relay.wiring.config:000"
-            - "spaceheat.name"
-          axiom:
-            - "change.relay.state:000"
-            - "relay.closed.or.open:000"
 
   relay.control.config:
     latest_version: "000"

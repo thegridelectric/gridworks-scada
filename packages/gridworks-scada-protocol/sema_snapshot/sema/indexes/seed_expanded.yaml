@@ -1,6 +1,6 @@
 metadata:
   generated_from: indexes/public_registry.yaml
-  generated_at: '2026-10-22T15:16:52Z'
+  generated_at: '2026-10-22T23:31:41Z'
   note: Transitive closure of initial_targets
 initial_targets:
 - ads.channel.config:000
@@ -84,7 +84,6 @@ initial_targets:
 - i2c.dac.capability:000
 - i2c.dac.output.component.gt:000
 - i2c.expander:000
-- i2c.multichannel.dt.relay.component.gt:004
 - i2c.mux:000
 - i2c.read.bit:000
 - i2c.read.bytes:000
@@ -110,7 +109,6 @@ initial_targets:
 - pico.tank.module.component.gt:012
 - power.watts:000
 - price.quantity.unitless:001
-- relay.actor.config:003
 - relay.control.config:000
 - report:003
 - report.event:004
@@ -251,6 +249,8 @@ worklist:
       path: definitions/formats/positive.int.yaml
     positive.int.as.str:
       path: definitions/formats/positive.int.as.str.yaml
+    sema.version:
+      path: definitions/formats/sema.version.yaml
     spaceheat.name:
       path: definitions/formats/spaceheat.name.yaml
     utc.iso8601.seconds:
@@ -638,6 +638,9 @@ worklist:
     gw.scada.commit:
       '000':
         path: definitions/types/gw.scada.commit/000.yaml
+    gw.state.machine:
+      '000':
+        path: definitions/types/gw.state.machine/000.yaml
     gw.tou.tariff:
       '000':
         path: definitions/types/gw.tou.tariff/000.yaml
@@ -743,9 +746,6 @@ worklist:
     i2c.expander:
       '000':
         path: definitions/types/i2c.expander/000.yaml
-    i2c.multichannel.dt.relay.component.gt:
-      '004':
-        path: definitions/types/i2c.multichannel.dt.relay.component.gt/004.yaml
     i2c.mux:
       '000':
         path: definitions/types/i2c.mux/000.yaml
@@ -821,9 +821,6 @@ worklist:
     price.quantity.unitless:
       '001':
         path: definitions/types/price.quantity.unitless/001.yaml
-    relay.actor.config:
-      '003':
-        path: definitions/types/relay.actor.config/003.yaml
     relay.control.config:
       '000':
         path: definitions/types/relay.control.config/000.yaml

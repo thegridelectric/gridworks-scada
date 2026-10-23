@@ -190,8 +190,6 @@ initial_targets:
       versions: ["000"]
     i2c.expander:
       versions: ["000"]
-    i2c.multichannel.dt.relay.component.gt:
-      versions: ["004"]
     i2c.mux:
       versions: ["000"]
     i2c.read.bit:
@@ -242,8 +240,6 @@ initial_targets:
       versions: ["000"]
     price.quantity.unitless:
       versions: ["001"]
-    relay.actor.config:
-      versions: ["003"]
     relay.control.config:
       versions: ["000"]
     report:
@@ -305,6 +301,7 @@ initial_targets:
     zone.circuit.governance.cmd:
       versions: ["000"]
   enums:
+    aquastat.control.state: {}
     base.g.node.class:
       versions: ["000"]
     change.relay.pin: {}
@@ -375,8 +372,10 @@ initial_targets:
       versions: ["003"]
     gw2.lc.top.state:
       versions: ["000"]
+    heat.pump.control: {}
     hp.boss.state:
       versions: ["000"]
+    hp.loop.keep.send: {}
     hz.calc.method:
       versions: ["001"]
     i2c.adc.channel: {}
@@ -407,6 +406,7 @@ initial_targets:
       versions: ["000"]
     pico.cycler.state:
       versions: ["000"]
+    primary.pump.control: {}
     reboot.picos: {}
     relay.closed.or.open: {}
     relay.wiring.config:
@@ -425,6 +425,7 @@ initial_targets:
       versions: ["001"]
     spruce.hack.hp.state:
       versions: ["000"]
+    store.flow.relay: {}
     ta.validation.state:
       versions: ["000"]
     temp.calc.method:

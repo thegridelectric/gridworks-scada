@@ -74,6 +74,7 @@ Staging words in this snapshot:
 - type gw.operational.params:000
 - type gw.recorded.setpoints:000
 - type gw.scada.commit:000
+- type gw.state.machine:000
 - type gw.tou.tariff:000
 - type gw.tou.window:000
 - type gw.water.store:000
@@ -96,7 +97,6 @@ Staging words in this snapshot:
 - type i2c.dac.capability:000
 - type i2c.dac.output.component.gt:000
 - type i2c.expander:000
-- type i2c.multichannel.dt.relay.component.gt:004
 - type i2c.mux:000
 - type i2c.read.bytes:000
 - type i2c.relay.capability:000
@@ -113,7 +113,6 @@ Staging words in this snapshot:
 - type pico.btu.meter.component.gt:000
 - type pico.flow.module.component.gt:001
 - type pico.tank.module.component.gt:012
-- type relay.actor.config:003
 - type relay.control.config:000
 - type scada.board.component.gt:000
 - type scada.control.capabilities:002

@@ -87,6 +87,7 @@ FORMAT_MAP: dict[str, object] = {
     "market.slot.name": pf.MarketSlotName,
     "non.negative.int": pf.NonNegativeInt,
     "pascal.case": pf.PascalCase,
+    "sema.version": pf.SemaVersion,
     "spaceheat.name": pf.SpaceheatName,
     "utc.iso8601.millis": pf.UtcIso8601Millis,
     "utc.iso8601.seconds": pf.UtcIso8601Seconds,

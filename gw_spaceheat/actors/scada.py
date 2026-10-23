@@ -48,6 +48,7 @@ from gwsproto.named_types import (
 from actors.command_node import build_command_tree
 from actors.five_v_boss import shape_five_v_subtree
 from actors.scada_data import ScadaData, load_operational_params, save_operational_params
+from actors.state_machines import declared_state_machines
 from actors.config import ScadaSettings
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.property_format import SpaceheatName
@@ -2093,30 +2094,16 @@ class Scada(PrimeActor, ScadaInterface):
 
     @property
     def layout_lite(self) -> LayoutLite:
-        tank_nodes = [
-            node
-            for node in self.layout.nodes.values()
-            if node.ActorClass == ActorClass.ApiTankModule
-        ]
-        flow_nodes = [
-            node
-            for node in self.layout.nodes.values()
-            if node.ActorClass == ActorClass.ApiFlowModule
-        ]
         return LayoutLite(
             FromGNodeAlias=self.layout.scada_g_node_alias,
             HardwareLayoutTypeName=self.layout.layout_type_name,
-            KeepBufferFull=self.ops.FamilyParams.KeepBufferFull,
             ZoneList=self.layout.zone_list,
             CriticalZoneList=self.layout.critical_zone_list,
-            TotalStoreTanks=self.layout.total_store_tanks,
-            TankModuleComponents=[node.component.gt for node in tank_nodes],
-            FlowModuleComponents=[node.component.gt for node in flow_nodes],
             ShNodes=[node.to_gt() for node in self.layout.nodes.values()],
             DataChannels=[ch.to_gt() for ch in self.layout.data_channels.values()],
             DerivedChannels=[ch.to_gt() for ch in self.layout.derived_channels.values()],
-            Ha1Params=self.data.ha1_params,
-            MessageCreatedMs=int(time.time() * 1000),
+            StateMachines=declared_state_machines(self.layout, self.ops),
+            CreatedMs=int(time.time() * 1000),
             MessageId=str(uuid.uuid4()),
         )
 

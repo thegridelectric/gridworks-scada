@@ -28,6 +28,7 @@ SPACEHEAT_NAME_PATTERN = re.compile(
 )
 
 GIT_COMMIT_PATTERN = re.compile(r"^[0-9a-f]{40}(-dirty)?$")
+SEMA_VERSION_PATTERN = re.compile(r"^[0-9]{3}$")
 
 HANDLE_NAME_PATTERN = re.compile(
     r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*)*$"
@@ -227,6 +228,14 @@ def is_lowercase_token(v: str) -> str:
     return v
 
 
+def is_sema_version(v: str) -> str:
+    if not isinstance(v, str):
+        raise ValueError(f"<{v}>: sema.version must be a string.")
+    if not SEMA_VERSION_PATTERN.fullmatch(v):
+        raise ValueError(f"<{v}>: Fails sema.version format (exactly three digits).")
+    return v
+
+
 def is_spaceheat_name(v: str) -> str:
     """
     Validate the SpaceheatName format.
@@ -384,6 +393,7 @@ MarketName = Annotated[str, BeforeValidator(is_market_name)]
 MarketSlotName = Annotated[str, BeforeValidator(is_market_slot_name)]
 NonNegativeInt = Annotated[int, BeforeValidator(is_non_negative_int)]
 PascalCase = Annotated[str, BeforeValidator(is_pascal_case)]
+SemaVersion = Annotated[str, BeforeValidator(is_sema_version)]
 SpaceheatName = Annotated[str, BeforeValidator(is_spaceheat_name)]
 UUID4Str = Annotated[str, BeforeValidator(is_uuid4_str)]
 UTCSeconds = Annotated[

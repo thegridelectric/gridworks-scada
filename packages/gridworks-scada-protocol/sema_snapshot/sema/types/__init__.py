@@ -72,9 +72,6 @@ from sema_snapshot.sema.types.i2c_ct_interface_capability import (
 from sema_snapshot.sema.types.i2c_dac_capability import I2cDacCapability
 from sema_snapshot.sema.types.i2c_dac_output_component_gt import I2cDacOutputComponentGt
 from sema_snapshot.sema.types.i2c_expander import I2cExpander
-from sema_snapshot.sema.types.i2c_multichannel_dt_relay_component_gt import (
-    I2cMultichannelDtRelayComponentGt,
-)
 from sema_snapshot.sema.types.i2c_mux import I2cMux
 from sema_snapshot.sema.types.i2c_read_bit import I2cReadBit
 from sema_snapshot.sema.types.i2c_read_bytes import I2cReadBytes
@@ -117,7 +114,6 @@ from sema_snapshot.sema.types.pico_tank_module_component_gt import (
 from sema_snapshot.sema.types.power_watts import PowerWatts
 from sema_snapshot.sema.types.price_quantity_unitless import PriceQuantityUnitless
 from sema_snapshot.sema.types.recorded_setpoints import RecordedSetpoints
-from sema_snapshot.sema.types.relay_actor_config import RelayActorConfig
 from sema_snapshot.sema.types.relay_control_config import RelayControlConfig
 from sema_snapshot.sema.types.report import Report
 from sema_snapshot.sema.types.report_event import ReportEvent
@@ -149,6 +145,7 @@ from sema_snapshot.sema.types.spaceheat_node_gt import SpaceheatNodeGt
 from sema_snapshot.sema.types.spaceheat_telemetry_quantity_projection import (
     SpaceheatTelemetryQuantityProjection,
 )
+from sema_snapshot.sema.types.state_machine import StateMachine
 from sema_snapshot.sema.types.synced_readings import SyncedReadings
 from sema_snapshot.sema.types.ta_deed import TaDeed
 from sema_snapshot.sema.types.tank_module_params import TankModuleParams
@@ -240,7 +237,6 @@ __all__ = [
     "I2cDacCapability",
     "I2cDacOutputComponentGt",
     "I2cExpander",
-    "I2cMultichannelDtRelayComponentGt",
     "I2cMux",
     "I2cReadBit",
     "I2cReadBytes",
@@ -271,7 +267,6 @@ __all__ = [
     "PowerWatts",
     "PriceQuantityUnitless",
     "RecordedSetpoints",
-    "RelayActorConfig",
     "RelayControlConfig",
     "Report",
     "ReportEvent",
@@ -295,6 +290,7 @@ __all__ = [
     "SnapshotSpaceheat",
     "SpaceheatNodeGt",
     "SpaceheatTelemetryQuantityProjection",
+    "StateMachine",
     "SyncedReadings",
     "TaDeed",
     "TankModuleParams",

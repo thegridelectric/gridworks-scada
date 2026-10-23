@@ -2,19 +2,12 @@ from typing import List, Literal
 
 from gwsproto.enums import ActorClass
 from gwsproto.named_types.data_channel_gt import DataChannelGt
-from gwsproto.named_types.i2c_multichannel_dt_relay_component_gt import (
-    I2cMultichannelDtRelayComponentGt,
-)
-from gwsproto.named_types.pico_flow_module_component_gt import PicoFlowModuleComponentGt
-from gwsproto.named_types.pico_tank_module_component_gt import PicoTankModuleComponentGt
-from gwsproto.named_types.sim_pico_tank_module_component_gt import SimPicoTankModuleComponentGt
-from gwsproto.named_types.tank_temp_calibration_map import TankTempCalibrationMap
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwsproto.named_types.derived_channel_gt import DerivedChannelGt
+from gwsproto.named_types.gw_state_machine import GwStateMachine
 from gwsproto.property_format import LeftRightDotStr, UTCMilliseconds, UUID4Str
-from gwsproto.named_types.ha1_params import Ha1Params
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
-from pydantic import PositiveInt, model_validator
+from pydantic import model_validator
 from typing_extensions import Self
 
 
@@ -24,21 +17,15 @@ class LayoutLite(GwsprotoSemaType):
     """
 
     FromGNodeAlias: LeftRightDotStr
-    MessageCreatedMs: UTCMilliseconds
+    CreatedMs: UTCMilliseconds
     MessageId: UUID4Str
     HardwareLayoutTypeName: LeftRightDotStr
-    KeepBufferFull: bool
     ZoneList: List[str]
     CriticalZoneList: List[str]
-    TotalStoreTanks: PositiveInt
     ShNodes: List[SpaceheatNodeGt]
     DataChannels: List[DataChannelGt]
     DerivedChannels: List[DerivedChannelGt]
-    TankModuleComponents: List[PicoTankModuleComponentGt | SimPicoTankModuleComponentGt]
-    FlowModuleComponents: List[PicoFlowModuleComponentGt]
-    Ha1Params: Ha1Params
-    I2cRelayComponent: I2cMultichannelDtRelayComponentGt | None = None
-    TMap: TankTempCalibrationMap | None = None
+    StateMachines: List[GwStateMachine]
     TypeName: Literal["layout.lite"] = "layout.lite"
     Version: Literal["013"] = "013"
 
@@ -119,6 +106,26 @@ class LayoutLite(GwsprotoSemaType):
                 raise ValueError(
                     f"Axiom 4 (DerivedNodeConsistency) failed: dc {dc.Name}'s CreatedByNode cannot have ActorClass NoActor!"
                 )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_5(self) -> Self:
+        """
+        Axiom 5: State Machine Node Consistency. Every StateMachines.NodeName
+        belongs to an ShNode, and no two StateMachines entries share a NodeName.
+        """
+        node_names = {n.Name for n in self.ShNodes}
+        seen: set[str] = set()
+        for machine in self.StateMachines:
+            if machine.NodeName not in node_names:
+                raise ValueError(
+                    f"Axiom 5 (StateMachineNodeConsistency) failed: machine on {machine.NodeName} not in ShNodes!"
+                )
+            if machine.NodeName in seen:
+                raise ValueError(
+                    f"Axiom 5 (StateMachineNodeConsistency) failed: two machines declared on {machine.NodeName}!"
+                )
+            seen.add(machine.NodeName)
         return self
 
 def get_handle(node: SpaceheatNodeGt) -> str:

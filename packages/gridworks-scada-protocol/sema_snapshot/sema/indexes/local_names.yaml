@@ -125,6 +125,7 @@ types:
   gw.operational.params: operational.params
   gw.recorded.setpoints: recorded.setpoints
   gw.scada.commit: scada.commit
+  gw.state.machine: state.machine
   gw.tou.tariff: tou.tariff
   gw.tou.window: tou.window
   gw.water.store: water.store
@@ -160,7 +161,6 @@ types:
   i2c.dac.capability: i2c.dac.capability
   i2c.dac.output.component.gt: i2c.dac.output.component.gt
   i2c.expander: i2c.expander
-  i2c.multichannel.dt.relay.component.gt: i2c.multichannel.dt.relay.component.gt
   i2c.mux: i2c.mux
   i2c.read.bit: i2c.read.bit
   i2c.read.bytes: i2c.read.bytes
@@ -186,7 +186,6 @@ types:
   pico.tank.module.component.gt: pico.tank.module.component.gt
   power.watts: power.watts
   price.quantity.unitless: price.quantity.unitless
-  relay.actor.config: relay.actor.config
   relay.control.config: relay.control.config
   report: report
   report.event: report.event

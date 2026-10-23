@@ -131,6 +131,10 @@ types:
     '000':
       used_by:
       - gw.operational.params:000
+  gw.state.machine:
+    '000':
+      used_by:
+      - layout.lite:013
   gw.tou.tariff:
     '000':
       used_by:
@@ -180,10 +184,6 @@ types:
     '001':
       used_by:
       - gw1.tank.temp.calibration.map:001
-  gw1.tank.temp.calibration.map:
-    '001':
-      used_by:
-      - layout.lite:013
   gw1.unit.quantity.projection:
     '001':
       used_by:
@@ -196,10 +196,6 @@ types:
     '000':
       used_by:
       - gw1.zone.call.circuit:000
-  ha1.params:
-    '006':
-      used_by:
-      - layout.lite:013
   heating.curve:
     '000':
       used_by:
@@ -255,10 +251,6 @@ types:
     '000':
       used_by:
       - gw1.scada.device.type.gt:000
-  i2c.multichannel.dt.relay.component.gt:
-    '004':
-      used_by:
-      - layout.lite:013
   i2c.mux:
     '000':
       used_by:
@@ -307,21 +299,15 @@ types:
     '001':
       used_by:
       - gw.house0.layout:000
-      - layout.lite:013
   pico.tank.module.component.gt:
     '012':
       used_by:
       - gw.house0.layout:000
       - gw.nolan.layout:000
-      - layout.lite:013
   price.quantity.unitless:
     '001':
       used_by:
       - bid:000
-  relay.actor.config:
-    '003':
-      used_by:
-      - i2c.multichannel.dt.relay.component.gt:004
   relay.control.config:
     '000':
       used_by:
@@ -351,7 +337,6 @@ types:
       used_by:
       - gw.house0.layout:000
       - gw.nolan.layout:000
-      - layout.lite:013
   sim.sensor.component.gt:
     '000':
       used_by:
@@ -408,7 +393,6 @@ enums:
     '000':
       used_by:
       - gw.command.interface:000
-      - relay.actor.config:003
       - relay.control.config:000
   day.of.week:
     '000':
@@ -598,7 +582,6 @@ enums:
       used_by:
       - gw.command.interface:000
       - machine.states:000
-      - relay.actor.config:003
       - relay.control.config:000
       - single.machine.state:000
   relay.energization.state:
@@ -609,7 +592,6 @@ enums:
     '000':
       used_by:
       - i2c.relay.capability:000
-      - relay.actor.config:003
       - relay.control.config:000
   setpoint.phase:
     '000':
@@ -710,6 +692,7 @@ formats:
     - gw.operational.params:000
     - gw.recorded.setpoints:000
     - gw.scada.commit:000
+    - gw.state.machine:000
     - gw.tou.tariff:000
     - gw.weather.channel.gt:002
     - gw.weather.forecast.bundle.gt:002
@@ -722,7 +705,6 @@ formats:
     - layout.lite:013
     - machine.states:000
     - new.command.tree:003
-    - relay.actor.config:003
     - relay.control.config:000
     - report.event:004
     - report:003
@@ -753,7 +735,6 @@ formats:
     - gw.weather.forecast.bundle.gt:002
     - gw.weather.forecast.channel.gt:000
     - hp.device.type.gt:000
-    - relay.actor.config:003
     - relay.control.config:000
   non.negative.int:
     used_by:
@@ -799,7 +780,6 @@ formats:
     - i2c.dac.capability:000
     - i2c.dac.output.component.gt:000
     - i2c.expander:000
-    - i2c.multichannel.dt.relay.component.gt:004
     - i2c.mux:000
     - i2c.relay.capability:000
     - i2c.relay.component.gt:000
@@ -861,9 +841,7 @@ formats:
     - i2c.thermistor.interface.capability:000
     - i2c.thermistor.reader.component.gt:000
     - i2c.write.reg:000
-    - layout.lite:013
     - pico.tank.module.component.gt:012
-    - relay.actor.config:003
     - report:003
     - sim.pico.btu.meter.component.gt:000
     - sim.pico.flow.module.component.gt:000
@@ -874,6 +852,9 @@ formats:
   positive.int.as.str:
     used_by:
     - gw1.tank.temp.calibration.map:001
+  sema.version:
+    used_by:
+    - gw.state.machine:000
   spaceheat.name:
     used_by:
     - ads.channel.config:000
@@ -897,9 +878,9 @@ formats:
     - gw.hydronic:000
     - gw.nolan.layout:000
     - gw.operational.params:000
+    - gw.state.machine:000
     - gw1.hvac.zone:000
     - gw1.zone.call.circuit:000
-    - i2c.multichannel.dt.relay.component.gt:004
     - i2c.read.bit:000
     - i2c.read.bytes:000
     - i2c.read.reg:000
@@ -911,7 +892,6 @@ formats:
     - maker.api.attribute.gt:001
     - pico.btu.meter.component.gt:000
     - pico.flow.module.component.gt:001
-    - relay.actor.config:003
     - relay.control.config:000
     - sim.pico.btu.meter.component.gt:000
     - sim.pico.flow.module.component.gt:000
@@ -998,7 +978,6 @@ formats:
     - hubitat.poller.component.gt:000
     - hubitat.poller.gt:001
     - i2c.dac.output.component.gt:000
-    - i2c.multichannel.dt.relay.component.gt:004
     - i2c.read.bit:000
     - i2c.read.bytes:000
     - i2c.read.reg:000

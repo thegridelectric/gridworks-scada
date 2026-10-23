@@ -1,0 +1,25 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/formats/sema.version"
+
+title: "sema.version"
+description: |
+  The version of a versioned Sema vocabulary word: a numeric string of
+  exactly three digits, as the word's registry entry and its `Version`
+  field spell it.
+
+type: string
+pattern: "^[0-9]{3}$"
+
+examples:
+  - "000"
+  - "013"
+
+counterexamples:
+  - "13"        # three digits exactly
+  - "0013"      # three digits exactly
+  - "v013"      # digits only
+  - "01a"       # digits only
+
+# GridWorks metadata
+x-gridworks:
+  owner: "gridworks-energy"

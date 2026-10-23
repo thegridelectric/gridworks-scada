@@ -343,6 +343,13 @@ types:
       "000":
         summary: "Initial version. ScadaAlias + GitCommit + MessageCreatedMs."
 
+  gw.state.machine:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version."
+
   gw.tou.tariff:
     latest_version: "000"
     versioning_strategy: "literal"
@@ -601,17 +608,6 @@ types:
       "000":
         summary: "Initial version (ExpanderIdx, I2cBus, ExpanderType, I2cAddress, AllowedI2cAddressList; Axiom 1 AddressSpecification: exactly one of the two address fields)."
 
-  i2c.multichannel.dt.relay.component.gt:
-    latest_version: "004"
-    versioning_strategy: "literal"
-    versions:
-      "004":
-        summary: >
-          - AsyncCaptureDelta: ConfigList[0] example now sets it explicitly (the
-            relay.actor.config dependency itself is unchanged from 003: :002)
-          - ComponentAttributeClassId (cac UUID) -> DeviceType (gw1.device.type value, pascal.case).
-            Context-dependent: the device type lived on the referenced cac, not the component.
-
   i2c.mux:
     latest_version: "000"
     versioning_strategy: "literal"
@@ -725,10 +721,13 @@ types:
         summary: >
           - ShNodes: spaceheat.node.gt:301 -> 303
           - DataChannels: data.channel.gt:002 -> 004
-          - TankModuleComponents / FlowModuleComponents / I2cRelayComponent: cac-carrying component versions -> cac-free DeviceType versions (pico.tank.module 011->012, sim.pico.tank.module 000->001, pico.flow.module 000->001, i2c.multichannel.dt.relay 003->004). Context-dependent: the embedded components' DeviceType lives on their cac, not the component.
+          - TankModuleComponents, FlowModuleComponents and TMap leave: no consumer reads the pico components or the calibration map off the projection; the hardware layout is their source.
+          - I2cRelayComponent leaves: the relay component is read off the hardware layout, and the projection has no reader for it.
           - SystemMode and SeasonalStorageMode leave: the posture facts (Standby, StandbyPosture, SeasonalStorageMode, ServiceMode, AcceptsDispatch, DispatchRefusalReason) ride gw.house.operating.status, sent after the startup announcements and on change, so the LTN has one source for them.
           - Strategy (free manifold-variant string) -> HardwareLayoutTypeName (left.right.dot): the loaded layout word's TypeName is the family; a format, not an enum of layout words, so this word publishes independently of the layout words' status.
-          - BufferShortCycling -> KeepBufferFull: the running scada's KeepBufferFull setting, named for what the flag does.
+          - BufferShortCycling, Ha1Params and TotalStoreTanks leave: operational parameters are not layout; the LTN gets them from its own settings and its own hardware layout until it holds the ops word, and a layout with no store tanks cannot fill a positive tank count.
+          - MessageCreatedMs -> CreatedMs: the sender-clock name every word takes by default.
+          - StateMachines: one gw.state.machine per machine the running scada hosts (hosting node Name, state enum, enum version), so a report's MachineHandle resolves by its last dotted segment to a declared, versioned enum.
 
   linear.one.dimensional.calibration:
     latest_version: "000"
@@ -796,16 +795,6 @@ types:
     versions:
       "001":
         summary: "Rename PriceTimes1000/QuantityTimes1000 to PriceX1000/QuantityX1000."
-
-  relay.actor.config:
-    latest_version: "003"
-    versioning_strategy: "literal"
-    versions:
-      "003":
-        summary: >
-          - Unit: drop (redundant; unit and scaling are carried by channel identity)
-          - Exponent: drop (redundant; unit and scaling are carried by channel identity)
-          - CapturePeriodS / AsyncCapture / AsyncCaptureDelta / PollPeriodMs: drop (capture/report tuning moved to operational-params capture.tuning)
 
   relay.control.config:
     latest_version: "000"
