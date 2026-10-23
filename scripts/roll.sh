@@ -10,31 +10,42 @@
 #                                                 of that line on both
 #   scripts/roll.sh <house> forward               `to` jm/spruce-unlimbo, the
 #                                                 one line a house rolls forward to
-#   scripts/roll.sh <house> to <scada-branch>     check out the branch on the pi
+#   scripts/roll.sh <house> to <scada-branch>     check out the branch on each pi
 #                                                 and on the LTN at its pushed
 #                                                 SHA, verify (and on a y,
 #                                                 install) the committed pair on
-#                                                 the pi and on the LTN, restart
-#                                                 the LTN, then the service
+#                                                 each pi and on the LTN, restart
+#                                                 the LTN, then the services
 #   scripts/roll.sh <house> back                  `to` the house's roll-back line:
 #                                                 actual-spruce for spruce,
 #                                                 td/generalized-flo for the
 #                                                 THOMAS_LTN houses (oak today),
 #                                                 main for the rest
 #
-# <house> is spruce, beech, maple, oak, fir or elm. A house's second pi
-# (<house>2, running scada2) is outside the roll.
+# <house> is spruce, beech, maple, oak, fir or elm. Every house but spruce
+# has a second pi, <house>2, whose scada2 runs from the same checkout
+# (~/gridworks-scada) as the unit gwspaceheat2 (service2/, symlinked into
+# systemd like service/ on the first pi), reads its pair from
+# ~/.config/gridworks/scada2/ and keeps its events in
+# ~/.local/share/gridworks/scada2/event/. The second pi is in the roll on
+# the same footing as the first: same branch at the same pushed SHA, the
+# same venv rule, the same committed pair byte for byte. The second pi
+# reads the ops word on jm/spruce-unlimbo as the first does; the ta.deed is
+# the first pi's alone. scada2 reports its readings to the first pi by
+# channel name with no encoding, so a second pi on another line's code or
+# layout is reported by the first pi under the wrong units with nothing to
+# catch it.
 #
-# A house's LTN and scada run on exactly the same branch at the same pushed
+# A house's LTN and scadas run on exactly the same branch at the same pushed
 # SHA. The LTN is the checkout ~/ltn-<house>/gridworks-scada on the ltn box,
 # run by the systemd unit gwltn@<house> (service/gwltn@.service), and it
 # loads the same layout pair as the scada from ~/ltn-<house>/.config/gridworks/ltn/.
-# `check` reports the LTN beside the pi and fails when the two are on
-# different lines, when either is behind the pushed tip of its line, when
-# their SHAs differ, or when either's pair differs from the committed JSON;
+# `check` reports the LTN beside the pis and fails when any two are on
+# different lines, when any is behind the pushed tip of its line, when
+# their SHAs differ, or when any pair differs from the committed JSON;
 # `to` moves the LTN checkout under the same guards as a pi's, verifies (and
-# on a y, installs) its pair, and restarts its unit before the pi's service
-# restarts, so the scada's first Report after the roll meets an LTN on its
+# on a y, installs) its pair, and restarts its unit before the pis' services
+# restart, so the scada's first Report after the roll meets an LTN on its
 # own line.
 #
 # Each scada branch has its tlayouts branch, and the committed JSON of that
@@ -69,10 +80,11 @@
 # on actual-spruce and is disabled when the box moves off that line, enabled
 # again when it moves back, so a reboot never runs two controllers.
 #
-# Requirements and units: if gw_spaceheat/requirements/ or service/ unit files
-# differ between the box's current SHA and the target, the roll stops before
-# the checkout and says so; the venv is rebuilt (tools/mkenv.sh) or the units
-# reinstalled (service/install) by hand on the box, and the roll re-run.
+# Requirements and units: if gw_spaceheat/requirements/ or the pi's unit
+# files (service/ on the first pi, service2/ on the second) differ between the
+# box's current SHA and the target, the roll stops before the checkout and
+# says so; the venv is rebuilt (tools/mkenv.sh) or the units reinstalled
+# (service/install, service2/install) by hand on the box, and the roll re-run.
 set -euo pipefail
 
 HOUSE="${1:-}"; VERB="${2:-}"; TARGET="${3:-}"
@@ -85,9 +97,10 @@ LTN_REPO="~/ltn-$HOUSE/gridworks-scada"
 LTN_UNIT="gwltn@$HOUSE"
 LTN_CONFIG="~/ltn-$HOUSE/.config/gridworks/ltn"
 FORWARD_LINE=jm/spruce-unlimbo
-EVENT_DIR='~/.local/share/gridworks/scada/event'
-# The unit files a pi installs (service/install); gwltn@.service is the ltn box's.
+# The unit files a pi installs (service/install, service2/install);
+# gwltn@.service is the ltn box's.
 PI_UNITS='service/gwspaceheat.service service/gwspaceheat-restart.service service/gwspaceheat-restart.timer'
+PI2_UNITS='service2/gwspaceheat2.service service2/gwspaceheat2-restart.service service2/gwspaceheat2-restart.timer'
 STAMP="$(date +%Y-%m-%d)"
 
 usage() { sed -n '2,20p' "$0"; exit 1; }
@@ -108,12 +121,16 @@ case "$VERB" in
 esac
 
 case "$HOUSE" in
-  spruce|beech|maple|oak|fir|elm) ;;
+  spruce)                  PIS="spruce" ;;
+  beech|maple|oak|fir|elm) PIS="$HOUSE ${HOUSE}2" ;;
   *) echo "unknown house $HOUSE"; exit 1 ;;
 esac
-PI="$HOUSE"
-CONFIG_DIR='~/.config/gridworks/scada'
-SERVICE=gwspaceheat
+# A pi named <house>2 is the second pi: scada2 config dir, unit, unit files, event dir.
+is_second()  { [ "$1" != "${1%2}" ]; }
+config_dir() { if is_second "$1"; then echo '~/.config/gridworks/scada2'; else echo '~/.config/gridworks/scada'; fi; }
+service_of() { if is_second "$1"; then echo gwspaceheat2; else echo gwspaceheat; fi; }
+units_of()   { if is_second "$1"; then echo "$PI2_UNITS"; else echo "$PI_UNITS"; fi; }
+event_dir()  { if is_second "$1"; then echo '~/.local/share/gridworks/scada2/event'; else echo '~/.local/share/gridworks/scada/event'; fi; }
 
 tl_branch() {
   case "$1" in
@@ -173,14 +190,18 @@ verify_file() { # <host> <label> <config-dir> <tlayouts-branch> <layout|ops>
   return 1
 }
 
-# Verify the pi's pair against a scada branch's committed JSON.
-verify_pi() { # <scada-branch>
-  local branch="$1" tlb rc=0
-  tlb="$(tl_branch "$branch")" || { echo "  $PI: no tlayouts branch for scada branch $branch"; return 1; }
-  verify_file "$PI" "$PI" "$CONFIG_DIR" "$tlb" layout || rc=1
+# Verify a pi's pair against a scada branch's committed JSON: the same
+# committed files on both pis, the ta.deed on the first pi only.
+verify_pi() { # <pi> <scada-branch>
+  local pi="$1" branch="$2" tlb cdir rc=0
+  tlb="$(tl_branch "$branch")" || { echo "  $pi: no tlayouts branch for scada branch $branch"; return 1; }
+  cdir="$(config_dir "$pi")"
+  verify_file "$pi" "$pi" "$cdir" "$tlb" layout || rc=1
   if reads_ops "$branch"; then
-    verify_file "$PI" "$PI" "$CONFIG_DIR" "$tlb" ops || rc=1
-    ssh -n "$PI" "[ -f $CONFIG_DIR/ta-deed.json ]" || { echo "  $PI: no $CONFIG_DIR/ta-deed.json; the branch needs it"; rc=1; }
+    verify_file "$pi" "$pi" "$cdir" "$tlb" ops || rc=1
+    if ! is_second "$pi"; then
+      ssh -n "$pi" "[ -f $cdir/ta-deed.json ]" || { echo "  $pi: no $cdir/ta-deed.json; the branch needs it"; rc=1; }
+    fi
   fi
   return $rc
 }
@@ -214,10 +235,17 @@ git -C "$TLAYOUTS" fetch -q origin
 
 if [ "$VERB" = check ]; then
   rc=0
-  pb="$(box_branch "$PI")"; n="$(behind "$PI" "$BOX_REPO" "$pb")"
-  echo "$PI: $BOX_REPO on $pb @ $(box_sha "$PI") (behind origin/$pb by $n); $SERVICE $(ssh -n "$PI" "systemctl is-active $SERVICE")"
-  [ "$n" = 0 ] || { echo "$PI: not at the pushed tip of $pb"; rc=1; }
-  verify_pi "$pb" || rc=1
+  pb="$(box_branch "$HOUSE")"
+  for pi in $PIS; do
+    b="$(box_branch "$pi")"; n="$(behind "$pi" "$BOX_REPO" "$b")"
+    echo "$pi: $BOX_REPO on $b @ $(box_sha "$pi") (behind origin/$b by $n); $(service_of "$pi") $(ssh -n "$pi" "systemctl is-active $(service_of "$pi")")"
+    [ "$n" = 0 ] || { echo "$pi: not at the pushed tip of $b"; rc=1; }
+    verify_pi "$pi" "$b" || rc=1
+    if is_second "$pi"; then
+      [ "$b" = "$pb" ] || { echo "$HOUSE: $pi on $b, $HOUSE on $pb; a house's pis run on one line"; rc=1; }
+      [ "$(box_sha "$pi")" = "$(box_sha "$HOUSE")" ] || { echo "$HOUSE: $pi @ $(box_sha "$pi"), $HOUSE @ $(box_sha "$HOUSE"); a house's pis run at one SHA"; rc=1; }
+    fi
+  done
   [ "$HOUSE" != spruce ] || echo "spruce: spruce-winter-hack $(ssh -n spruce 'systemctl is-active spruce-winter-hack; systemctl is-enabled spruce-winter-hack' | tr '\n' ' ')"
   lb="$(ltn_branch)"; n="$(behind "$LTN_BOX" "$LTN_REPO" "$lb")"
   echo "ltn: $LTN_REPO on $lb @ $(ltn_sha) (behind origin/$lb by $n); $LTN_UNIT $(ssh -n "$LTN_BOX" "systemctl is-active $LTN_UNIT")"
@@ -241,25 +269,29 @@ if [ -n "$(ssh -n "$LTN_BOX" "git -C $LTN_REPO diff --stat $ltn_cur origin/$TARG
   echo "ltn: requirements differ between $ltn_cur and origin/$TARGET; rebuild the venv in $LTN_REPO (tools/mkenv.sh) after the checkout, by hand, then re-run"
   exit 1
 fi
-echo "== $PI"
-ssh -n "$PI" "git -C $BOX_REPO fetch -q origin"
-[ -z "$(ssh -n "$PI" "git -C $BOX_REPO status --porcelain")" ] || { echo "$PI: $BOX_REPO is dirty; refusing"; exit 1; }
-ssh -n "$PI" "git -C $BOX_REPO rev-parse --verify -q origin/$TARGET" > /dev/null || { echo "$PI: origin/$TARGET not on the box's remote; refusing"; exit 1; }
-cur="$(box_sha "$PI")"
-if [ -n "$(ssh -n "$PI" "git -C $BOX_REPO diff --name-only $cur origin/$TARGET -- $PI_UNITS")" ]; then
-  echo "$PI: service unit files differ between $cur and origin/$TARGET; root must reinstall them (service/install) after the checkout, by hand, then re-run"
-  exit 1
-fi
-if [ -n "$(ssh -n "$PI" "git -C $BOX_REPO diff --stat $cur origin/$TARGET -- gw_spaceheat/requirements packages/*/pyproject.toml")" ]; then
-  echo "$PI: requirements differ between $cur and origin/$TARGET; rebuild the venv on the box (tools/mkenv.sh) after the checkout, by hand, then re-run"
-  ssh -n "$PI" "git -C $BOX_REPO diff --stat $cur origin/$TARGET -- gw_spaceheat/requirements packages/*/pyproject.toml"
-  exit 1
-fi
-ssh -n "$PI" "git -C $BOX_REPO checkout -q $TARGET && git -C $BOX_REPO merge -q --ff-only origin/$TARGET" || { echo "$PI: checkout or fast-forward failed (local branch ahead of origin?); refusing"; exit 1; }
-echo "$PI: $BOX_REPO on $TARGET @ $(box_sha "$PI") (was $cur)"
-INSTALL=1 verify_pi "$TARGET" || { echo "$PI: pair not verified; service NOT restarted. Fix the pair and re-run."; exit 1; }
+for pi in $PIS; do
+  echo "== $pi"
+  svc="$(service_of "$pi")"
+  ssh -n "$pi" "systemctl cat -q $svc" > /dev/null 2>&1 || { echo "$pi: no unit $svc; install it first"; exit 1; }
+  ssh -n "$pi" "git -C $BOX_REPO fetch -q origin"
+  [ -z "$(ssh -n "$pi" "git -C $BOX_REPO status --porcelain")" ] || { echo "$pi: $BOX_REPO is dirty; refusing"; exit 1; }
+  ssh -n "$pi" "git -C $BOX_REPO rev-parse --verify -q origin/$TARGET" > /dev/null || { echo "$pi: origin/$TARGET not on the box's remote; refusing"; exit 1; }
+  cur="$(box_sha "$pi")"
+  if [ -n "$(ssh -n "$pi" "git -C $BOX_REPO diff --name-only $cur origin/$TARGET -- $(units_of "$pi")")" ]; then
+    echo "$pi: service unit files differ between $cur and origin/$TARGET; root must reinstall them after the checkout, by hand, then re-run"
+    exit 1
+  fi
+  if [ -n "$(ssh -n "$pi" "git -C $BOX_REPO diff --stat $cur origin/$TARGET -- gw_spaceheat/requirements packages/*/pyproject.toml")" ]; then
+    echo "$pi: requirements differ between $cur and origin/$TARGET; rebuild the venv on the box (tools/mkenv.sh) after the checkout, by hand, then re-run"
+    ssh -n "$pi" "git -C $BOX_REPO diff --stat $cur origin/$TARGET -- gw_spaceheat/requirements packages/*/pyproject.toml"
+    exit 1
+  fi
+  ssh -n "$pi" "git -C $BOX_REPO checkout -q $TARGET && git -C $BOX_REPO merge -q --ff-only origin/$TARGET" || { echo "$pi: checkout or fast-forward failed (local branch ahead of origin?); refusing"; exit 1; }
+  echo "$pi: $BOX_REPO on $TARGET @ $(box_sha "$pi") (was $cur)"
+  INSTALL=1 verify_pi "$pi" "$TARGET" || { echo "$pi: pair not verified; service NOT restarted. Fix the pair and re-run."; exit 1; }
+done
 
-ssh -n "$LTN_BOX" "git -C $LTN_REPO checkout -q $TARGET && git -C $LTN_REPO merge -q --ff-only origin/$TARGET" || { echo "ltn: checkout or fast-forward failed; refusing. The pi is on $TARGET; fix the LTN checkout by hand and re-run."; exit 1; }
+ssh -n "$LTN_BOX" "git -C $LTN_REPO checkout -q $TARGET && git -C $LTN_REPO merge -q --ff-only origin/$TARGET" || { echo "ltn: checkout or fast-forward failed; refusing. The pis are on $TARGET; fix the LTN checkout by hand and re-run."; exit 1; }
 echo "ltn: $LTN_REPO on $TARGET @ $(ltn_sha) (was $ltn_cur)"
 INSTALL=1 verify_ltn "$TARGET" || { echo "ltn: pair not verified; unit NOT restarted. Fix the pair and re-run."; exit 1; }
 ssh -n "$LTN_BOX" "sudo systemctl restart $LTN_UNIT"; sleep 3
@@ -269,9 +301,12 @@ if [ "$HOUSE" = spruce ]; then
   if [ "$TARGET" = actual-spruce ]; then ssh -n spruce 'sudo systemctl enable -q --now spruce-winter-hack'; echo "spruce: winter hack enabled and started"
   else ssh -n spruce 'sudo systemctl disable -q --now spruce-winter-hack'; echo "spruce: winter hack stopped and disabled"; fi
 fi
-ssh -n "$PI" "sudo systemctl stop $SERVICE"
-n="$(ssh -n "$PI" "E=$EVENT_DIR; Q=$EVENT_DIR.$STAMP-pre-roll-to-${TARGET//\//-}; n=\$(find \$E -type f 2>/dev/null | wc -l | tr -d ' '); if [ \"\$n\" != 0 ]; then mkdir -p \$Q && find \$E -mindepth 1 -maxdepth 1 -exec mv {} \$Q/ \; ; fi; echo \$n")"
-echo "$PI: $n stored events set aside in $EVENT_DIR.$STAMP-pre-roll-to-${TARGET//\//-}"
-ssh -n "$PI" "sudo systemctl start $SERVICE"; sleep 3
-echo "$PI: $SERVICE $(ssh -n "$PI" "systemctl is-active $SERVICE") on $(box_branch "$PI") @ $(box_sha "$PI")"
+for pi in $PIS; do
+  svc="$(service_of "$pi")"; edir="$(event_dir "$pi")"
+  ssh -n "$pi" "sudo systemctl stop $svc"
+  n="$(ssh -n "$pi" "E=$edir; Q=$edir.$STAMP-pre-roll-to-${TARGET//\//-}; n=\$(find \$E -type f 2>/dev/null | wc -l | tr -d ' '); if [ \"\$n\" != 0 ]; then mkdir -p \$Q && find \$E -mindepth 1 -maxdepth 1 -exec mv {} \$Q/ \; ; fi; echo \$n")"
+  echo "$pi: $n stored events set aside in $edir.$STAMP-pre-roll-to-${TARGET//\//-}"
+  ssh -n "$pi" "sudo systemctl start $svc"; sleep 3
+  echo "$pi: $svc $(ssh -n "$pi" "systemctl is-active $svc") on $(box_branch "$pi") @ $(box_sha "$pi")"
+done
 echo "watch with: gwa watch $HOUSE"

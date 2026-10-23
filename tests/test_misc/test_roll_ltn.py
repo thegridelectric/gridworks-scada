@@ -1,9 +1,10 @@
-"""The roll script's ltn leg: a house's LTN and scada run on one line.
+"""The roll script's legs: a house's LTN and its pis run on one line.
 
 `scripts/roll.sh` reaches boxes only through `ssh`, so a stub `ssh` on PATH
-answers for the pi and the ltn box from environment variables and logs
-every command it is given. A throwaway tlayouts clone, with `output/spruce/`
-committed on `actual-spruce` and pushed to a bare origin, is the record.
+answers for the pis and the ltn box from environment variables and logs
+every command it is given. A throwaway tlayouts clone, with the house's
+`output/<house>/` committed on its line and pushed to a bare origin, is the
+record. spruce has one pi; maple has a second pi, maple2, running scada2.
 """
 
 import os
@@ -23,9 +24,9 @@ SSH_STUB = r"""#!/usr/bin/env bash
 host="$1"; shift; cmd="$*"
 echo "$host: $cmd" >> "$ROLL_STUB_LOG"
 case "$cmd" in
-  *ltn-spruce*"branch --show-current"*) echo "$ROLL_STUB_LTN_BRANCH" ;;
-  *"branch --show-current"*)            echo "$ROLL_STUB_PI_BRANCH" ;;
-  *"rev-parse --short HEAD"*)           echo abc1234 ;;
+  *ltn-*"branch --show-current"*)       echo "$ROLL_STUB_LTN_BRANCH" ;;
+  *"branch --show-current"*)            if [ "$host" = "${host%2}" ]; then echo "$ROLL_STUB_PI_BRANCH"; else echo "$ROLL_STUB_PI2_BRANCH"; fi ;;
+  *"rev-parse --short HEAD"*)           if [ "$host" = "${host%2}" ]; then echo abc1234; else echo "$ROLL_STUB_PI2_SHA"; fi ;;
   *"rev-parse --verify"*)               echo abc1234abc1234 ;;
   *"rev-list --count"*)                 echo 0 ;;
   *"status --porcelain"*|*"diff --"*|*"fetch"*) ;;
@@ -33,7 +34,8 @@ case "$cmd" in
   *"is-active spruce-winter-hack"*)     printf 'active\nenabled\n' ;;
   *"is-active"*)                        echo active ;;
   *"cat ~/.config/gridworks/scada/hardware-layout.json"*) printf '%s' "$ROLL_STUB_LAYOUT" ;;
-  *"cat ~/ltn-spruce/.config/gridworks/ltn/hardware-layout.json"*) printf '%s' "$ROLL_STUB_LAYOUT" ;;
+  *"cat ~/.config/gridworks/scada2/hardware-layout.json"*) printf '%s' "$ROLL_STUB_PI2_LAYOUT" ;;
+  *"cat ~/ltn-"*"/.config/gridworks/ltn/hardware-layout.json"*) printf '%s' "$ROLL_STUB_LAYOUT" ;;
   *"find"*)                             echo 0 ;;
   *) ;;
 esac
@@ -44,20 +46,22 @@ def git(cwd: Path, *args: str) -> None:
     subprocess.run(["git", "-C", str(cwd), *args], check=True, capture_output=True)
 
 
-@pytest.fixture
-def roll_env(tmp_path: Path) -> dict[str, str]:
+def make_env(tmp_path: Path, house: str, line: str) -> dict[str, str]:
+    """A record with `output/<house>/` committed on tlayouts `line`, the ssh
+    stub on PATH, and every box of the house on `line` with the committed
+    layout."""
     origin = tmp_path / "tlayouts-origin.git"
     subprocess.run(["git", "init", "-q", "--bare", str(origin)], check=True)
     work = tmp_path / "tlayouts"
     subprocess.run(["git", "clone", "-q", str(origin), str(work)], check=True, capture_output=True)
     git(work, "config", "user.email", "t@t")
     git(work, "config", "user.name", "t")
-    git(work, "checkout", "-q", "-b", "actual-spruce")
-    (work / "output" / "spruce").mkdir(parents=True)
-    (work / "output" / "spruce" / "hardware-layout.json").write_text(LAYOUT)
+    git(work, "checkout", "-q", "-b", line)
+    (work / "output" / house).mkdir(parents=True)
+    (work / "output" / house / "hardware-layout.json").write_text(LAYOUT)
     git(work, "add", ".")
-    git(work, "commit", "-q", "-m", "spruce record")
-    git(work, "push", "-q", "origin", "actual-spruce")
+    git(work, "commit", "-q", "-m", f"{house} record")
+    git(work, "push", "-q", "origin", line)
 
     bindir = tmp_path / "bin"
     bindir.mkdir()
@@ -73,15 +77,29 @@ def roll_env(tmp_path: Path) -> dict[str, str]:
         TLAYOUTS_DIR=str(work),
         ROLL_STUB_LOG=str(tmp_path / "ssh.log"),
         ROLL_STUB_LAYOUT=LAYOUT,
-        ROLL_STUB_PI_BRANCH="actual-spruce",
-        ROLL_STUB_LTN_BRANCH="actual-spruce",
+        ROLL_STUB_PI2_LAYOUT=LAYOUT,
+        ROLL_STUB_PI_BRANCH=line,
+        ROLL_STUB_PI2_BRANCH=line,
+        ROLL_STUB_PI2_SHA="abc1234",
+        ROLL_STUB_LTN_BRANCH=line,
         ROLL_STUB_LTN_UNIT="present",
+        ROLL_HOUSE=house,
     )
     return env
 
 
+@pytest.fixture
+def roll_env(tmp_path: Path) -> dict[str, str]:
+    return make_env(tmp_path, "spruce", "actual-spruce")
+
+
+@pytest.fixture
+def maple_env(tmp_path: Path) -> dict[str, str]:
+    return make_env(tmp_path, "maple", "main")
+
+
 def run_roll(env: dict[str, str], *args: str, answers: str = "") -> subprocess.CompletedProcess[str]:
-    return subprocess.run(["bash", str(ROLL), "spruce", *args], env=env, capture_output=True, text=True, input=answers)
+    return subprocess.run(["bash", str(ROLL), env["ROLL_HOUSE"], *args], env=env, capture_output=True, text=True, input=answers)
 
 
 @pytest.mark.skipif(shutil.which("git") is None, reason="needs git")
@@ -134,3 +152,38 @@ def test_back_removes_the_pre_roll_copies_and_keeps_none(roll_env: dict[str, str
     assert "spruce: rm -f ~/.config/gridworks/scada/hardware-layout.*-pre-roll.json" in log
     assert "ltn: rm -f ~/ltn-spruce/.config/gridworks/ltn/hardware-layout.*-pre-roll.json" in log
     assert "cp ~/" not in log
+
+
+def test_check_reports_the_second_pi_beside_the_first(maple_env: dict[str, str]) -> None:
+    r = run_roll(maple_env, "check")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "maple2: ~/gridworks-scada on main @ abc1234 (behind origin/main by 0); gwspaceheat2 active" in r.stdout
+    assert "maple2 hardware-layout: matches tlayouts main output/maple/hardware-layout.json" in r.stdout
+
+
+def test_check_fails_when_the_pis_are_on_different_lines_or_shas(maple_env: dict[str, str]) -> None:
+    maple_env["ROLL_STUB_PI2_BRANCH"] = "jm/spruce-unlimbo"
+    r = run_roll(maple_env, "check")
+    assert r.returncode == 1
+    assert "maple: maple2 on jm/spruce-unlimbo, maple on main; a house's pis run on one line" in r.stdout
+    maple_env["ROLL_STUB_PI2_BRANCH"] = "main"
+    maple_env["ROLL_STUB_PI2_SHA"] = "def5678"
+    r = run_roll(maple_env, "check")
+    assert r.returncode == 1
+    assert "maple: maple2 @ def5678, maple @ abc1234; a house's pis run at one SHA" in r.stdout
+
+
+def test_to_moves_both_pis_and_installs_the_second_pi_s_pair_in_its_own_dir(maple_env: dict[str, str]) -> None:
+    maple_env["ROLL_STUB_PI2_LAYOUT"] = '{"LayoutId": "maple-stale"}\n'
+    r = run_roll(maple_env, "to", "main", answers="y\n")
+    assert r.returncode == 0, r.stdout + r.stderr
+    log = Path(maple_env["ROLL_STUB_LOG"]).read_text().splitlines()
+    assert "maple: git -C ~/gridworks-scada checkout -q main && git -C ~/gridworks-scada merge -q --ff-only origin/main" in log
+    assert "maple2: git -C ~/gridworks-scada checkout -q main && git -C ~/gridworks-scada merge -q --ff-only origin/main" in log
+    assert any(line.startswith("maple2: git -C ~/gridworks-scada diff --name-only abc1234 origin/main -- service2/gwspaceheat2.service") for line in log)
+    assert any(line.startswith("maple2: [ ! -f ~/.config/gridworks/scada2/hardware-layout.json ] || cp ~/.config/gridworks/scada2/hardware-layout.json ~/.config/gridworks/scada2/hardware-layout.") for line in log)
+    ltn_restart = log.index("ltn: sudo systemctl restart gwltn@maple")
+    first = log.index("maple: sudo systemctl start gwspaceheat")
+    second = log.index("maple2: sudo systemctl start gwspaceheat2")
+    assert ltn_restart < first < second
+    assert any("maple2: E=~/.local/share/gridworks/scada2/event;" in line for line in log)
