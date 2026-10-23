@@ -80,8 +80,8 @@ def roll_env(tmp_path: Path) -> dict[str, str]:
     return env
 
 
-def run_roll(env: dict[str, str], *args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(["bash", str(ROLL), "spruce", *args], env=env, capture_output=True, text=True, stdin=subprocess.DEVNULL)
+def run_roll(env: dict[str, str], *args: str, answers: str = "") -> subprocess.CompletedProcess[str]:
+    return subprocess.run(["bash", str(ROLL), "spruce", *args], env=env, capture_output=True, text=True, input=answers)
 
 
 @pytest.mark.skipif(shutil.which("git") is None, reason="needs git")
@@ -115,3 +115,22 @@ def test_to_moves_the_ltn_and_restarts_it_before_the_scada(roll_env: dict[str, s
     ltn_restart = next(i for i, l in enumerate(log) if l == "ltn: sudo systemctl restart gwltn@spruce")
     scada_start = next(i for i, l in enumerate(log) if l == "spruce: sudo systemctl start gwspaceheat")
     assert ltn_checkout < ltn_restart < scada_start
+
+
+def test_to_keeps_the_box_file_as_a_pre_roll_copy(roll_env: dict[str, str]) -> None:
+    roll_env["ROLL_STUB_LAYOUT"] = '{"LayoutId": "spruce-other"}\n'
+    r = run_roll(roll_env, "to", "actual-spruce", answers="y\ny\n")
+    assert r.returncode == 0, r.stdout + r.stderr
+    log = Path(roll_env["ROLL_STUB_LOG"]).read_text()
+    assert "cp ~/.config/gridworks/scada/hardware-layout.json ~/.config/gridworks/scada/hardware-layout." in log
+    assert "pre-roll.json" in log and "rm -f" not in log
+
+
+def test_back_removes_the_pre_roll_copies_and_keeps_none(roll_env: dict[str, str]) -> None:
+    roll_env["ROLL_STUB_LAYOUT"] = '{"LayoutId": "spruce-other"}\n'
+    r = run_roll(roll_env, "back", answers="y\ny\n")
+    assert r.returncode == 0, r.stdout + r.stderr
+    log = Path(roll_env["ROLL_STUB_LOG"]).read_text()
+    assert "spruce: rm -f ~/.config/gridworks/scada/hardware-layout.*-pre-roll.json" in log
+    assert "ltn: rm -f ~/ltn-spruce/.config/gridworks/ltn/hardware-layout.*-pre-roll.json" in log
+    assert "cp ~/" not in log

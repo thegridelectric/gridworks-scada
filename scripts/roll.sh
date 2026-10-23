@@ -54,7 +54,9 @@
 # (scripts/roll_compare.py). On the other lines the scada does not read the
 # ops word and the file is left alone. A pi whose file differs shows the
 # differing paths and installs the committed file only on a y, keeping the
-# box's file as <stem>.<date>-pre-roll.json.
+# box's file as <stem>.<date>-pre-roll.json. `back` keeps no copy, since the
+# file it replaces is the committed file of the line rolled forward to, and
+# removes the pre-roll copies the forward roll left.
 #
 # Stored events do not cross lines. The scada persists every event it has not
 # had acked (~/.local/share/gridworks/scada/event/) and re-sends them on each
@@ -194,9 +196,15 @@ verify_ltn() { # <scada-branch>
 
 offer_install() { # <host> <config-dir> <stem> <committed-file>
   local pi="$1" cdir="$2" stem="$3" committed="$4"
-  read -r -p "  install the committed $stem on $pi (box file kept as $stem.$STAMP-pre-roll.json)? [y/N] " ans
-  [ "$ans" = y ] || return 1
-  ssh -n "$pi" "[ ! -f $cdir/$stem.json ] || cp $cdir/$stem.json $cdir/$stem.$STAMP-pre-roll.json"
+  if [ "$VERB" = back ]; then
+    read -r -p "  install the committed $stem on $pi (its pre-roll copies removed)? [y/N] " ans
+    [ "$ans" = y ] || return 1
+    ssh -n "$pi" "rm -f $cdir/$stem.*-pre-roll.json"
+  else
+    read -r -p "  install the committed $stem on $pi (box file kept as $stem.$STAMP-pre-roll.json)? [y/N] " ans
+    [ "$ans" = y ] || return 1
+    ssh -n "$pi" "[ ! -f $cdir/$stem.json ] || cp $cdir/$stem.json $cdir/$stem.$STAMP-pre-roll.json"
+  fi
   scp -q "$committed" "$pi:$cdir/$stem.json"
   echo "  $pi $stem: installed"
 }

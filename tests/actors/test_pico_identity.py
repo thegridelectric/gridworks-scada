@@ -146,6 +146,8 @@ def test_tank_module_warns_once_on_a_board_the_layout_does_not_say(
         )
     [glitch] = warnings(sent)
     assert "PicoBoardVariant" in glitch.Summary
+    assert OTHER_BOARD.value in glitch.Summary
+    assert LAYOUT_BOARD.value in glitch.Summary
     assert OTHER_BOARD.value in glitch.Details
     assert LAYOUT_BOARD.value in glitch.Details
 
@@ -235,6 +237,8 @@ def test_btu_meter_warns_once_on_a_board_the_layout_does_not_say(tmp_path: Path)
         )
     [glitch] = warnings(sent)
     assert "PicoBoardVariant" in glitch.Summary
+    assert OTHER_BOARD.value in glitch.Summary
+    assert LAYOUT_BOARD.value in glitch.Summary
 
 
 HOUSE0_PAIRS = ["orange", "willow"]

@@ -23,7 +23,10 @@ class PicoIdentityDifference(NamedTuple):
     posted_value: str
 
     def summary(self, actor_name: str) -> str:
-        return f"{actor_name} pico {self.field} differs from the layout"
+        return (
+            f"{actor_name} pico {self.field} is {self.posted_value}; "
+            f"the layout says {self.layout_value}"
+        )
 
     def details(self, hw_uid: str) -> str:
         return (
