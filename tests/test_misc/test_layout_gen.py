@@ -125,3 +125,17 @@ def test_flow_module_keeps_its_reference_component_id():
 
     assert db.component_id_by_alias(hall.component_display_name()) == "30e25b97-60bf-40e3-870a-1ba80bf3b164"
     assert db.component_id_by_alias(reed.component_display_name()) == "30d6a861-baa7-49fd-8033-771c0704469a"
+
+
+def test_sieg_loop_stubs_build_and_load(tmp_path):
+    """A layout with the sieg loop on builds its stub nodes and derived
+    channel through the named types, writes, and loads."""
+    db = LayoutDb(
+        add_stubs=True,
+        stub_config=StubConfig(use_sieg_loop=True),
+    )
+    add_simulated_tanks(db)
+    layout_path = tmp_path / "hardware-layout.json"
+    db.write(layout_path)
+    layout = HardwareLayout.load(layout_path, raise_errors=True, errors=[])
+    assert "hp-keep-seconds-x-10" in layout.derived_channels

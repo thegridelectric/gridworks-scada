@@ -26,6 +26,7 @@ THERMISTOR_T0 = 298  # i.e. 25 degrees
 THERMISTOR_R0_KOHMS = 10  # The R0 of the NTC thermistor - an industry standard
 PICO_VOLTS = 3.3
 FLATLINE_REPORT_S = 60
+NYQUIST_MULTIPLE = 2.1
 
 
 class ApiTankModule(PicoActorBase):
@@ -315,33 +316,40 @@ class ApiTankModule(PicoActorBase):
 
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:
-        return [MonitoredName(self.name, self.flatline_seconds() * 2.1)]
+        return [MonitoredName(self.name, self.flatline_seconds() * NYQUIST_MULTIPLE)]
 
     def missing(self) -> bool:
-        return time.time() - self.last_heard > self.flatline_seconds()
+        return time.time() - self.last_heard > NYQUIST_MULTIPLE * self.flatline_seconds()
+
+    def report_missing_if_due(self) -> bool:
+        """Report a missing pico to the cycler and flatline its channels,
+        at most once per FLATLINE_REPORT_S. Returns whether a report went out."""
+        if time.time() - self.last_error_report > FLATLINE_REPORT_S:
+            if self.missing():
+                assert self.pico_uid
+                self._send_to(
+                    self.pico_cycler,
+                    PicoMissing(ActorName=self.name, PicoHwUid=self.pico_uid),
+                )
+                for ch in self.device_channels.values():
+                    self._send_to(
+                        self.primary_scada,
+                        ChannelFlatlined(FromName=self.name, Channel=self.layout.data_channels[ch]),
+                    )
+                for ch in self.electrical_channels.values():
+                    self._send_to(
+                        self.primary_scada,
+                        ChannelFlatlined(FromName=self.name, Channel=self.layout.data_channels[ch]),
+                    )
+
+                self.last_error_report = time.time()
+                return True
+        return False
 
     async def main(self):
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
-            if self.last_error_report > FLATLINE_REPORT_S:
-                if self.missing():
-                    assert self.pico_uid
-                    self._send_to(
-                        self.pico_cycler,
-                        PicoMissing(ActorName=self.name, PicoHwUid=self.pico_uid),
-                    )
-                    for ch in self.device_channels.values():
-                        self._send_to(
-                            self.primary_scada,
-                            ChannelFlatlined(FromName=self.name, Channel=self.layout.data_channels[ch]),
-                        )
-                    for ch in self.electrical_channels.values():
-                        self._send_to(
-                            self.primary_scada,
-                            ChannelFlatlined(FromName=self.name, Channel=self.layout.data_channels[ch]),
-                        )
-
-                    self.last_error_report = time.time()
+            self.report_missing_if_due()
             await asyncio.sleep(10)
 
     def simple_beta(self, volts: float, fahrenheit=False) -> float:

@@ -676,7 +676,7 @@ class LayoutDb:
                 Name = H0CN.hp_keep_seconds_x_10,
                 CreatedByNodeName = H0N.sieg_loop,
                 TerminalAssetAlias = self.terminal_asset_alias,
-                Strategy = "Integrate relay motion",
+                Strategy = "integrate-relay-motion",
                 DisplayName = "Percent keep in the Siegenthaler loop",
                 )
             ]
