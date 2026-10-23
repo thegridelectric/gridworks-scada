@@ -83,7 +83,6 @@ NO_WORD_TYPES = {
 }
 
 NO_WORD_ENUMS = {
-    "aquastat.control.state",
     "change.aquastat.control",
     "change.heat.pump.control",
     "change.keep.send",
@@ -95,11 +94,7 @@ NO_WORD_ENUMS = {
     "gw1.local.control.buffer.only.event",
     "gw1.local.control.top.event",
     "gw1.main.auto.event",
-    "heat.pump.control",
-    "hp.loop.keep.send",
-    "primary.pump.control",
     "relay.pin.state",
-    "store.flow.relay",
     "top.event",
 }
 

@@ -865,30 +865,30 @@ class Scada(PrimeActor, ScadaInterface):
     def process_single_machine_state(
         self, from_node: ShNode, payload: SingleMachineState
     ) -> None:
-        # TODO: compare MachineHandle last word with from_node.Name
-        if payload.MachineHandle in self._data.recent_machine_states:
-            prev: MachineStates = self._data.recent_machine_states[
-                payload.MachineHandle
-            ]
+        # Keyed by the hosting node, the handle's last segment: a command-tree
+        # change rewrites the handle, and the states before and after it are
+        # one machine, one row per report.
+        node_name = payload.MachineHandle.split('.')[-1]
+        if node_name in self._data.recent_machine_states:
+            prev: MachineStates = self._data.recent_machine_states[node_name]
             if payload.StateEnum != prev.StateEnum:
                 raise Exception(
                     f"{payload.MachineHandle} has conflicting state machines!"
                     f"{payload.StateEnum} and {prev.StateEnum}"
                 )
-            self._data.recent_machine_states[payload.MachineHandle] = MachineStates(
+            self._data.recent_machine_states[node_name] = MachineStates(
                 MachineHandle=payload.MachineHandle,
                 StateEnum=payload.StateEnum,
                 UnixMsList=prev.UnixMsList + [payload.UnixMs],
                 StateList=prev.StateList + [payload.State],
             )
         else:
-            self._data.recent_machine_states[payload.MachineHandle] = MachineStates(
+            self._data.recent_machine_states[node_name] = MachineStates(
                 MachineHandle=payload.MachineHandle,
                 StateEnum=payload.StateEnum,
                 StateList=[payload.State],
                 UnixMsList=[payload.UnixMs],
             )
-        node_name = payload.MachineHandle.split('.')[-1]
         self._data.latest_machine_state[node_name] = payload
         for subscriber in self.machine_state_subscribers.get(node_name, []):
             self._send_to(self._layout.node(subscriber), payload, from_node)

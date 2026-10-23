@@ -1,0 +1,26 @@
+from enum import auto
+
+from sema_snapshot.sema.enums.gw_str_enum import SemaEnum
+
+
+class HeatPumpControl(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/heat.pump.control/000"""
+
+    BufferTankAquastat = auto()
+    Scada = auto()
+
+    @classmethod
+    def default(cls) -> "HeatPumpControl":
+        return cls.BufferTankAquastat
+
+    @classmethod
+    def values(cls) -> list[str]:
+        return [elt.value for elt in cls]
+
+    @classmethod
+    def enum_name(cls) -> str:
+        return "heat.pump.control"
+
+    @classmethod
+    def enum_version(cls) -> str:
+        return "000"

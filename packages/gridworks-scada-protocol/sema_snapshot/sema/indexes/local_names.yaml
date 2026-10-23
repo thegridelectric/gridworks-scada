@@ -1,4 +1,5 @@
 enums:
+  aquastat.control.state: aquastat.control.state
   base.g.node.class: base.g.node.class
   change.relay.pin: change.relay.pin
   change.relay.state: change.relay.state
@@ -37,7 +38,9 @@ enums:
   gw1.slow.dispatch.contract.status: slow.dispatch.contract.status
   gw1.unit: unit
   gw2.lc.top.state: lc.top.state
+  heat.pump.control: heat.pump.control
   hp.boss.state: hp.boss.state
+  hp.loop.keep.send: hp.loop.keep.send
   hz.calc.method: hz.calc.method
   i2c.adc.channel: i2c.adc.channel
   i2c.adc.type: i2c.adc.type
@@ -54,6 +57,7 @@ enums:
   pico.board.variant: pico.board.variant
   pico.cycler.event: pico.cycler.event
   pico.cycler.state: pico.cycler.state
+  primary.pump.control: primary.pump.control
   reboot.picos: reboot.picos
   relay.closed.or.open: relay.closed.or.open
   relay.energization.state: relay.energization.state
@@ -65,6 +69,7 @@ enums:
   spaceheat.telemetry.name: telemetry.name
   spaceheat.unit: spaceheat.unit
   spruce.hack.hp.state: spruce.hack.hp.state
+  store.flow.relay: store.flow.relay
   ta.validation.state: ta.validation.state
   temp.calc.method: temp.calc.method
   thermistor.data.method: thermistor.data.method

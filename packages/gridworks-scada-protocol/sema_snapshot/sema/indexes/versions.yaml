@@ -1016,6 +1016,12 @@ types:
         summary: "Governance command (FromHandle, ToHandle, Event, optional SetpointF, TriggerId, SendTimeUnixMs); SetpointIffThermostatic axiom."
 
 enums:
+  aquastat.control.state:
+    enum_type: "literal"
+    note: "This enum is literal; version 000 is immutable and exclusive."
+    versions:
+      "000": {}
+
   base.g.node.class:
     enum_type: "versioned"
     note: "This enum is versioned; new versions are additive only."
@@ -1255,9 +1261,21 @@ enums:
     versions:
       "000": {}
 
+  heat.pump.control:
+    enum_type: "literal"
+    note: "This enum is literal; version 000 is immutable and exclusive."
+    versions:
+      "000": {}
+
   hp.boss.state:
     enum_type: "versioned"
     note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  hp.loop.keep.send:
+    enum_type: "literal"
+    note: "This enum is literal; version 000 is immutable and exclusive."
     versions:
       "000": {}
 
@@ -1362,6 +1380,12 @@ enums:
     versions:
       "000": {}
 
+  primary.pump.control:
+    enum_type: "literal"
+    note: "This enum is literal; version 000 is immutable and exclusive."
+    versions:
+      "000": {}
+
   reboot.picos:
     enum_type: "literal"
     note: "This enum is literal; version 000 is immutable and exclusive."
@@ -1427,6 +1451,12 @@ enums:
   spruce.hack.hp.state:
     enum_type: "versioned"
     note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  store.flow.relay:
+    enum_type: "literal"
+    note: "This enum is literal; version 000 is immutable and exclusive."
     versions:
       "000": {}
 

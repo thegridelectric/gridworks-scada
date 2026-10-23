@@ -1,6 +1,6 @@
 metadata:
   generated_from: indexes/public_registry.yaml
-  generated_at: '2026-10-22T23:31:41Z'
+  generated_at: '2026-10-23T01:29:40Z'
   note: Transitive closure of initial_targets
 initial_targets:
 - ads.channel.config:000
@@ -139,6 +139,7 @@ initial_targets:
 - web.server.component.gt:001
 - zero.ten.power.on:000
 - zone.circuit.governance.cmd:000
+- aquastat.control.state:000
 - base.g.node.class:000
 - change.relay.pin:000
 - change.relay.state:000
@@ -177,7 +178,9 @@ initial_targets:
 - gw1.slow.dispatch.contract.status:000
 - gw1.unit:003
 - gw2.lc.top.state:000
+- heat.pump.control:000
 - hp.boss.state:000
+- hp.loop.keep.send:000
 - hz.calc.method:001
 - i2c.adc.channel:000
 - i2c.adc.type:000
@@ -194,6 +197,7 @@ initial_targets:
 - pico.board.variant:000
 - pico.cycler.event:000
 - pico.cycler.state:000
+- primary.pump.control:000
 - reboot.picos:000
 - relay.closed.or.open:000
 - relay.wiring.config:000
@@ -204,6 +208,7 @@ initial_targets:
 - spaceheat.telemetry.name:007
 - spaceheat.unit:001
 - spruce.hack.hp.state:000
+- store.flow.relay:000
 - ta.validation.state:000
 - temp.calc.method:000
 - thermistor.data.method:000
@@ -262,6 +267,9 @@ worklist:
     uuid4.str:
       path: definitions/formats/uuid4.str.yaml
   enums:
+    aquastat.control.state:
+      '000':
+        path: definitions/enums/aquastat.control.state/000.yaml
     base.g.node.class:
       '000':
         path: definitions/enums/base.g.node.class/000.yaml
@@ -376,9 +384,15 @@ worklist:
     gw2.lc.top.state:
       '000':
         path: definitions/enums/gw2.lc.top.state/000.yaml
+    heat.pump.control:
+      '000':
+        path: definitions/enums/heat.pump.control/000.yaml
     hp.boss.state:
       '000':
         path: definitions/enums/hp.boss.state/000.yaml
+    hp.loop.keep.send:
+      '000':
+        path: definitions/enums/hp.loop.keep.send/000.yaml
     hz.calc.method:
       '001':
         path: definitions/enums/hz.calc.method/001.yaml
@@ -427,6 +441,9 @@ worklist:
     pico.cycler.state:
       '000':
         path: definitions/enums/pico.cycler.state/000.yaml
+    primary.pump.control:
+      '000':
+        path: definitions/enums/primary.pump.control/000.yaml
     reboot.picos:
       '000':
         path: definitions/enums/reboot.picos/000.yaml
@@ -460,6 +477,9 @@ worklist:
     spruce.hack.hp.state:
       '000':
         path: definitions/enums/spruce.hack.hp.state/000.yaml
+    store.flow.relay:
+      '000':
+        path: definitions/enums/store.flow.relay/000.yaml
     ta.validation.state:
       '000':
         path: definitions/enums/ta.validation.state/000.yaml

@@ -695,6 +695,9 @@ types:
     versions:
       '000': definitions/types/zone.circuit.governance.cmd/000.yaml
 enums:
+  aquastat.control.state:
+    enum_type: literal
+    schema: definitions/enums/aquastat.control.state/000.yaml
   base.g.node.class:
     enum_type: versioned
     latest_version: '000'
@@ -873,11 +876,17 @@ enums:
     latest_version: '000'
     versions:
       '000': definitions/enums/gw2.lc.top.state/000.yaml
+  heat.pump.control:
+    enum_type: literal
+    schema: definitions/enums/heat.pump.control/000.yaml
   hp.boss.state:
     enum_type: versioned
     latest_version: '000'
     versions:
       '000': definitions/enums/hp.boss.state/000.yaml
+  hp.loop.keep.send:
+    enum_type: literal
+    schema: definitions/enums/hp.loop.keep.send/000.yaml
   hz.calc.method:
     enum_type: versioned
     latest_version: '001'
@@ -954,6 +963,9 @@ enums:
     latest_version: '000'
     versions:
       '000': definitions/enums/pico.cycler.state/000.yaml
+  primary.pump.control:
+    enum_type: literal
+    schema: definitions/enums/primary.pump.control/000.yaml
   reboot.picos:
     enum_type: literal
     schema: definitions/enums/reboot.picos/000.yaml
@@ -1003,6 +1015,9 @@ enums:
     latest_version: '000'
     versions:
       '000': definitions/enums/spruce.hack.hp.state/000.yaml
+  store.flow.relay:
+    enum_type: literal
+    schema: definitions/enums/store.flow.relay/000.yaml
   ta.validation.state:
     enum_type: versioned
     latest_version: '000'

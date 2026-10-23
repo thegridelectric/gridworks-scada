@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-10-22T21:20:00Z"
+  last_updated: "2026-10-23T01:25:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -152,6 +152,14 @@ formats:
     description: "Canonical lowercase UUIDv4 string (RFC 4122) in 8-4-4-4-12 format"
 
 enums:
+  aquastat.control.state:
+    owner: gridworks-energy
+    enum_type: "literal"
+    description: "Controller the aquastat relay hands the aquastat circuit to."
+    schema_url: "https://schemas.electricity.works/enums/aquastat.control.state/000"
+    created: "2026-10-23T00:15:00Z"
+    status: "published"
+
   base.g.node.class:
     latest_version: "000"
     owner: gridworks-energy
@@ -270,7 +278,7 @@ enums:
       "000":
         schema_url: "https://schemas.electricity.works/enums/gw.dispatch.refusal.reason/000"
         created: "2026-09-30T18:35:00Z"
-        status: "staging"
+        status: "published"
 
   gw.g.node.class:
     latest_version: "000"
@@ -342,7 +350,7 @@ enums:
       "000":
         schema_url: "https://schemas.electricity.works/enums/gw.standby.posture/000"
         created: "2026-09-30T18:35:00Z"
-        status: "staging"
+        status: "published"
 
   gw.top.state:
     latest_version: "000"
@@ -354,7 +362,7 @@ enums:
       "000":
         schema_url: "https://schemas.electricity.works/enums/gw.top.state/000"
         created: "2026-09-29T22:05:00Z"
-        status: "staging"
+        status: "published"
 
   gw.weather.forecast.fidelity:
     latest_version: "000"
@@ -390,7 +398,7 @@ enums:
       "014":
         schema_url: "https://schemas.electricity.works/enums/gw1.actor.class/014"
         created: "2026-09-08T21:20:00Z"
-        status: "staging"
+        status: "published"
         added_values:
           - "FiveVBoss"
           - "HpWatch"
@@ -502,7 +510,7 @@ enums:
       "000":
         schema_url: "https://schemas.electricity.works/enums/gw1.nolan.lc.buffer.only.state/000"
         created: "2026-09-30T18:35:00Z"
-        status: "staging"
+        status: "published"
 
   gw1.quantity:
     latest_version: "003"
@@ -541,7 +549,7 @@ enums:
       "000":
         schema_url: "https://schemas.electricity.works/enums/gw1.service.mode/000"
         created: "2026-08-13T11:55:00Z"
-        status: "staging"
+        status: "published"
 
   gw1.sim.device.type:
     latest_version: "000"
@@ -593,7 +601,15 @@ enums:
       "000":
         schema_url: "https://schemas.electricity.works/enums/gw2.lc.top.state/000"
         created: "2026-10-06T11:35:00Z"
-        status: "staging"
+        status: "published"
+
+  heat.pump.control:
+    owner: gridworks-energy
+    enum_type: "literal"
+    description: "Controller the heat pump relay hands the heat pump call to."
+    schema_url: "https://schemas.electricity.works/enums/heat.pump.control/000"
+    created: "2026-10-23T00:15:00Z"
+    status: "published"
 
   hp.boss.state:
     latest_version: "000"
@@ -606,6 +622,14 @@ enums:
         schema_url: "https://schemas.electricity.works/enums/hp.boss.state/000"
         created: "2026-09-07T23:30:00Z"
         status: "published"
+
+  hp.loop.keep.send:
+    owner: gridworks-energy
+    enum_type: "literal"
+    description: "Position of the heat pump loop keep/send relay."
+    schema_url: "https://schemas.electricity.works/enums/hp.loop.keep.send/000"
+    created: "2026-10-23T00:15:00Z"
+    status: "published"
 
   hz.calc.method:
     latest_version: "001"
@@ -799,6 +823,14 @@ enums:
         created: "2026-09-07T23:30:00Z"
         status: "published"
 
+  primary.pump.control:
+    owner: gridworks-energy
+    enum_type: "literal"
+    description: "Controller the primary pump relay hands the primary pump to."
+    schema_url: "https://schemas.electricity.works/enums/primary.pump.control/000"
+    created: "2026-10-23T00:15:00Z"
+    status: "published"
+
   reboot.picos:
     owner: gridworks-energy
     enum_type: "literal"
@@ -920,7 +952,15 @@ enums:
       "000":
         schema_url: "https://schemas.electricity.works/enums/spruce.hack.hp.state/000"
         created: "2026-10-04T18:40:00Z"
-        status: "staging"
+        status: "published"
+
+  store.flow.relay:
+    owner: gridworks-energy
+    enum_type: "literal"
+    description: "Direction the store flow relay sets for water through the thermal store."
+    schema_url: "https://schemas.electricity.works/enums/store.flow.relay/000"
+    created: "2026-10-23T00:15:00Z"
+    status: "published"
 
   ta.validation.state:
     latest_version: "000"
@@ -932,7 +972,7 @@ enums:
       "000":
         schema_url: "https://schemas.electricity.works/enums/ta.validation.state/000"
         created: "2026-09-09T02:05:00Z"
-        status: "staging"
+        status: "published"
 
   temp.calc.method:
     latest_version: "000"
@@ -996,7 +1036,7 @@ enums:
     description: "Binary position of a two-position valve: open (flow permitted) or closed (flow blocked)."
     schema_url: "https://schemas.electricity.works/enums/valve.open.or.closed/000"
     created: "2026-08-11T21:05:00Z"
-    status: "staging"
+    status: "published"
 
   zone.call.circuit.event:
     latest_version: "000"
@@ -1028,7 +1068,7 @@ enums:
     description: "Authority currently issuing a zone-call circuit's call signal: the wall thermostat or the scada."
     schema_url: "https://schemas.electricity.works/enums/zone.call.source/000"
     created: "2026-08-11T15:55:00Z"
-    status: "staging"
+    status: "published"
 
   zone.circuit.governance.event:
     latest_version: "000"
@@ -1273,7 +1313,7 @@ types:
       "004":
         schema_url: "https://schemas.electricity.works/types/data.channel.gt/004"
         created: "2026-10-15T16:00:00Z"
-        status: "staging"
+        status: "published"
         summary: "- Quantity: gw1.quantity 000 -> 003 - TelemetryQuantityConsistency axiom: spaceheat.telemetry.quantity.projection 000 -> 001"
         direct_dependencies:
           structural:
@@ -1296,7 +1336,7 @@ types:
       "003":
         schema_url: "https://schemas.electricity.works/types/derived.channel.gt/003"
         created: "2026-10-15T11:35:00Z"
-        status: "staging"
+        status: "published"
         summary: "- OutputUnit: gw1.unit 001 -> 003 - OutputQuantity: gw1.quantity 001 -> 003 - OutputUnitQuantityConsistency axiom: gw1.unit.quantity.projection 000 -> 001"
         direct_dependencies:
           structural:
@@ -1737,7 +1777,7 @@ types:
 
     versions:
       "000":
-        status: "staging"
+        status: "published"
         schema_url: "https://schemas.electricity.works/types/gw.house.operating.status/000"
         created: "2026-09-30T18:35:00Z"
         summary: "Initial version. ScadaAlias + ValidationState (from the deed) + Standby x StandbyPosture + SeasonalStorageMode + ServiceMode + AcceptsDispatch x DispatchRefusalReason (the derived answer, present iff refusing, axiom 1; Standby refuses as OperatorHold, axiom 2) + TopState + ScadaBlind + LtnDispatching + CreatedMs. The slow facts of the LTN-scada agreement; nothing that cycles inside a healthy hour."
@@ -1987,7 +2027,7 @@ types:
 
     versions:
       "000":
-        status: "staging"
+        status: "published"
         schema_url: "https://schemas.electricity.works/types/gw.scada.commit/000"
         created: "2026-10-08T21:00:00Z"
         summary: "Initial version. ScadaAlias + GitCommit + MessageCreatedMs."
@@ -2007,7 +2047,7 @@ types:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw.state.machine/000"
         created: "2026-10-22T20:00:00Z"
-        status: "staging"
+        status: "published"
         summary: "Initial version."
         direct_dependencies:
           structural:
@@ -2337,7 +2377,7 @@ types:
       "001":
         schema_url: "https://schemas.electricity.works/types/gw1.unit.quantity.projection/001"
         created: "2026-10-15T11:35:00Z"
-        status: "staging"
+        status: "published"
         summary: "- Unit: gw1.unit 001 -> 003 - Quantity: gw1.quantity 001 -> 003 - projection.table: add DollarsX1000 -> Currency, MilesPerHourX1000 -> WindSpeed, KilowattHoursX1000 -> Energy, WattsPerSquareMeter -> Irradiance"
         direct_dependencies:
           structural:
@@ -2940,7 +2980,7 @@ types:
       "013":
         schema_url: "https://schemas.electricity.works/types/layout.lite/013"
         created: "2026-10-22T20:10:00Z"
-        status: "staging"
+        status: "published"
         summary: "- ShNodes: spaceheat.node.gt:301 -> 303 - DataChannels: data.channel.gt:002 -> 004 - TankModuleComponents, FlowModuleComponents and TMap leave: no consumer reads the pico components or the calibration map off the projection; the hardware layout is their source. - I2cRelayComponent leaves: the relay component is read off the hardware layout, and the projection has no reader for it. - SystemMode and SeasonalStorageMode leave: the posture facts (Standby, StandbyPosture, SeasonalStorageMode, ServiceMode, AcceptsDispatch, DispatchRefusalReason) ride gw.house.operating.status, sent after the startup announcements and on change, so the LTN has one source for them. - Strategy (free manifold-variant string) -> HardwareLayoutTypeName (left.right.dot): the loaded layout word's TypeName is the family; a format, not an enum of layout words, so this word publishes independently of the layout words' status. - BufferShortCycling, Ha1Params and TotalStoreTanks leave: operational parameters are not layout; the LTN gets them from its own settings and its own hardware layout until it holds the ops word, and a layout with no store tanks cannot fill a positive tank count. - MessageCreatedMs -> CreatedMs: the sender-clock name every word takes by default. - StateMachines: one gw.state.machine per machine the running scada hosts (hosting node Name, state enum, enum version), so a report's MachineHandle resolves by its last dotted segment to a declared, versioned enum."
         direct_dependencies:
           structural:
@@ -3015,7 +3055,7 @@ types:
       "003":
         schema_url: "https://schemas.electricity.works/types/new.command.tree/003"
         created: "2026-09-08T21:20:00Z"
-        status: "staging"
+        status: "published"
         summary: "- ShNodes: spaceheat.node.gt:302 -> 303 - Axiom 2 ActuatorLeaves: FiveVBoss joins the command-node classes"
         direct_dependencies:
           structural:
@@ -3211,7 +3251,7 @@ types:
       "002":
         schema_url: "https://schemas.electricity.works/types/scada.control.capabilities/002"
         created: "2026-10-15T16:00:00Z"
-        status: "staging"
+        status: "published"
         summary: "- ControlChannels[]: data.channel.gt 003 -> 004 - RelayNodes[], DacNodes[], CommandNodes[]: spaceheat.node.gt:302 -> 303 - A node may carry more than one CommandInterfaces entry, one per
   command vocabulary (five-v-boss: turn.5v.on.off and reboot.picos)"
         direct_dependencies:
@@ -3401,7 +3441,7 @@ types:
       "002":
         schema_url: "https://schemas.electricity.works/types/slow.contract.heartbeat/002"
         created: "2026-10-13T11:00:00Z"
-        status: "staging"
+        status: "published"
         summary: "Reason (gw.dispatch.refusal.reason) beside the free Cause, present iff Status is TerminatedByScada (axiom 6), so a terminating heartbeat names why in the scada's one refusal vocabulary."
         direct_dependencies:
           structural:
@@ -3480,7 +3520,7 @@ types:
       "303":
         schema_url: "https://schemas.electricity.works/types/spaceheat.node.gt/303"
         created: "2026-09-08T21:20:00Z"
-        status: "staging"
+        status: "published"
         summary: "- ActorClass: gw1.actor.class:013 -> 014 (adds FiveVBoss)"
         direct_dependencies:
           structural:
@@ -3500,7 +3540,7 @@ types:
       "001":
         schema_url: "https://schemas.electricity.works/types/spaceheat.telemetry.quantity.projection/001"
         created: "2026-10-15T16:00:00Z"
-        status: "staging"
+        status: "published"
         summary: "- Quantity: gw1.quantity 000 -> 003"
         direct_dependencies:
           structural:
@@ -3534,7 +3574,7 @@ types:
       "000":
         schema_url: "https://schemas.electricity.works/types/ta.deed/000"
         created: "2026-09-09T02:05:00Z"
-        status: "staging"
+        status: "published"
         summary: "Initial Sema version"
         direct_dependencies:
           structural:

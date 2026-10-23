@@ -1,4 +1,5 @@
 from sema_snapshot.sema.enums.actor_class import ActorClass
+from sema_snapshot.sema.enums.aquastat_control_state import AquastatControlState
 from sema_snapshot.sema.enums.base_g_node_class import BaseGNodeClass
 from sema_snapshot.sema.enums.change_relay_pin import ChangeRelayPin
 from sema_snapshot.sema.enums.change_relay_state import ChangeRelayState
@@ -15,7 +16,9 @@ from sema_snapshot.sema.enums.g_node_status import GNodeStatus
 from sema_snapshot.sema.enums.gpio_sense_mode import GpioSenseMode
 from sema_snapshot.sema.enums.gpm_from_hz_method import GpmFromHzMethod
 from sema_snapshot.sema.enums.heat_call_interpretation import HeatCallInterpretation
+from sema_snapshot.sema.enums.heat_pump_control import HeatPumpControl
 from sema_snapshot.sema.enums.hp_boss_state import HpBossState
+from sema_snapshot.sema.enums.hp_loop_keep_send import HpLoopKeepSend
 from sema_snapshot.sema.enums.hz_calc_method import HzCalcMethod
 from sema_snapshot.sema.enums.i2c_adc_channel import I2cAdcChannel
 from sema_snapshot.sema.enums.i2c_adc_type import I2cAdcType
@@ -44,6 +47,7 @@ from sema_snapshot.sema.enums.pico_board_variant import PicoBoardVariant
 from sema_snapshot.sema.enums.pico_cycler_event import PicoCyclerEvent
 from sema_snapshot.sema.enums.pico_cycler_state import PicoCyclerState
 from sema_snapshot.sema.enums.primary_flow_source import PrimaryFlowSource
+from sema_snapshot.sema.enums.primary_pump_control import PrimaryPumpControl
 from sema_snapshot.sema.enums.primary_pump_owner import PrimaryPumpOwner
 from sema_snapshot.sema.enums.quantity import Quantity
 from sema_snapshot.sema.enums.reboot_picos import RebootPicos
@@ -65,6 +69,7 @@ from sema_snapshot.sema.enums.slow_dispatch_contract_status import (
 from sema_snapshot.sema.enums.spaceheat_unit import SpaceheatUnit
 from sema_snapshot.sema.enums.spruce_hack_hp_state import SpruceHackHpState
 from sema_snapshot.sema.enums.standby_posture import StandbyPosture
+from sema_snapshot.sema.enums.store_flow_relay import StoreFlowRelay
 from sema_snapshot.sema.enums.ta_validation_state import TaValidationState
 from sema_snapshot.sema.enums.telemetry_name import TelemetryName
 from sema_snapshot.sema.enums.temp_calc_method import TempCalcMethod
@@ -90,6 +95,7 @@ from sema_snapshot.sema.enums.zone_setpoint_source import ZoneSetpointSource
 
 __all__ = [
     "ActorClass",
+    "AquastatControlState",
     "BaseGNodeClass",
     "ChangeRelayPin",
     "ChangeRelayState",
@@ -106,7 +112,9 @@ __all__ = [
     "GpioSenseMode",
     "GpmFromHzMethod",
     "HeatCallInterpretation",
+    "HeatPumpControl",
     "HpBossState",
+    "HpLoopKeepSend",
     "HzCalcMethod",
     "I2cAdcChannel",
     "I2cAdcType",
@@ -131,6 +139,7 @@ __all__ = [
     "PicoCyclerEvent",
     "PicoCyclerState",
     "PrimaryFlowSource",
+    "PrimaryPumpControl",
     "PrimaryPumpOwner",
     "Quantity",
     "RebootPicos",
@@ -150,6 +159,7 @@ __all__ = [
     "SpaceheatUnit",
     "SpruceHackHpState",
     "StandbyPosture",
+    "StoreFlowRelay",
     "TaValidationState",
     "TelemetryName",
     "TempCalcMethod",
