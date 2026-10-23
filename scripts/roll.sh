@@ -3,16 +3,19 @@
 # LTN on the ltn box move together, with the layout pair verified against the
 # committed tlayouts JSON both ways.
 #
-#   scripts/roll.sh <house> check                 what each pi and the LTN run,
-#                                                 whether they are on one line,
-#                                                 and whether the pair matches
-#                                                 the committed JSON of that line
+#   scripts/roll.sh <house> check                 what each pi and the LTN run:
+#                                                 one line, the pushed tip of
+#                                                 it, the same SHA on the pi and
+#                                                 the LTN, and the committed pair
+#                                                 of that line on both
+#   scripts/roll.sh <house> forward               `to` jm/spruce-unlimbo, the
+#                                                 one line a house rolls forward to
 #   scripts/roll.sh <house> to <scada-branch>     check out the branch on each pi
 #                                                 and on the LTN at its pushed
 #                                                 SHA, verify (and on a y,
-#                                                 install) the committed pair,
-#                                                 restart the LTN, then the
-#                                                 service
+#                                                 install) the committed pair on
+#                                                 the pi and on the LTN, restart
+#                                                 the LTN, then the service
 #   scripts/roll.sh <house> back                  `to` the house's roll-back line:
 #                                                 actual-spruce for spruce,
 #                                                 td/generalized-flo for the
@@ -24,11 +27,15 @@
 #
 # A house's LTN and scada run on exactly the same branch at the same pushed
 # SHA. The LTN is the checkout ~/ltn-<house>/gridworks-scada on the ltn box,
-# run by the systemd unit gwltn@<house> (service/gwltn@.service). `check`
-# reports the LTN beside the pis and fails when the two are on different
-# lines; `to` moves the LTN checkout under the same guards as a pi's and
-# restarts its unit before the pi's service restarts, so the scada's first
-# Report after the roll meets an LTN on its own line.
+# run by the systemd unit gwltn@<house> (service/gwltn@.service), and it
+# loads the same layout pair as the scada from ~/ltn-<house>/.config/gridworks/ltn/.
+# `check` reports the LTN beside the pis and fails when the two are on
+# different lines, when either is behind the pushed tip of its line, when
+# their SHAs differ, or when either's pair differs from the committed JSON;
+# `to` moves the LTN checkout under the same guards as a pi's, verifies (and
+# on a y, installs) its pair, and restarts its unit before the pi's service
+# restarts, so the scada's first Report after the roll meets an LTN on its
+# own line.
 #
 # Each scada branch has its tlayouts branch, and the committed JSON of that
 # branch is the record of what the house runs:
@@ -80,6 +87,8 @@ BOX_REPO='~/gridworks-scada'
 LTN_BOX="${LTN_BOX:-ltn}"
 LTN_REPO="~/ltn-$HOUSE/gridworks-scada"
 LTN_UNIT="gwltn@$HOUSE"
+LTN_CONFIG="~/ltn-$HOUSE/.config/gridworks/ltn"
+FORWARD_LINE=jm/spruce-unlimbo
 EVENT_DIR='~/.local/share/gridworks/scada/event'
 # The unit files a pi installs (service/install); gwltn@.service is the ltn box's.
 PI_UNITS='service/gwspaceheat.service service/gwspaceheat-restart.service service/gwspaceheat-restart.timer'
@@ -95,8 +104,9 @@ rollback_line() {
   case "$1" in spruce) echo actual-spruce ;; *) echo main ;; esac
 }
 case "$VERB" in
-  check) [ -z "$TARGET" ] || usage ;;
-  to)    [ -n "$TARGET" ] || usage ;;
+  check)   [ -z "$TARGET" ] || usage ;;
+  forward) [ -z "$TARGET" ] || usage; TARGET="$FORWARD_LINE"; echo "$HOUSE: rolling forward to $TARGET" ;;
+  to)      [ -n "$TARGET" ] || usage ;;
   back)  [ -z "$TARGET" ] || usage; TARGET="$(rollback_line "$HOUSE")"; echo "$HOUSE: rolling back to $TARGET" ;;
   *) usage ;;
 esac
@@ -140,38 +150,58 @@ box_sha()    { ssh -n "$1" "git -C $BOX_REPO rev-parse --short HEAD"; }
 ltn_branch() { ssh -n "$LTN_BOX" "git -C $LTN_REPO branch --show-current"; }
 ltn_sha()    { ssh -n "$LTN_BOX" "git -C $LTN_REPO rev-parse --short HEAD"; }
 ltn_line()   { echo "ltn: $LTN_REPO on $(ltn_branch) @ $(ltn_sha); $LTN_UNIT $(ssh -n "$LTN_BOX" "systemctl is-active $LTN_UNIT")"; }
+# Commits the box's checkout is behind the pushed tip of its own branch.
+behind() { ssh -n "$1" "git -C $2 fetch -q origin && git -C $2 rev-list --count HEAD..origin/$3 2>/dev/null || echo ?"; }
 
-# Verify one pi's pair against a scada branch's committed JSON. Prints a line
-# per file; returns 1 if anything differs. With INSTALL=1 offers to install.
+# Verify one file of a box's pair against the committed JSON of a scada
+# branch. Prints one line; returns 1 if it differs or is missing. With
+# INSTALL=1 and offer=1 offers to install the committed file.
+verify_file() { # <host> <label> <config-dir> <tlayouts-branch> <layout|ops> <layout|ops|sensed> <offer 0|1>
+  local host="$1" label="$2" cdir="$3" tlb="$4" kind="$5" compare="$6" offer="$7"
+  local stem; [ "$kind" = layout ] && stem=hardware-layout || stem=operational-params
+  local path; path="$(committed_path "$tlb" "$kind")" || { echo "  $label $stem: nothing committed under output/$HOUSE/ on tlayouts $tlb"; return 1; }
+  local committed="$WORK/$label.$stem.committed.json" boxfile="$WORK/$label.$stem.box.json"
+  git -C "$TLAYOUTS" show "origin/$tlb:$path" > "$committed"
+  if ! ssh -n "$host" "cat $cdir/$stem.json" > "$boxfile" 2>/dev/null; then
+    echo "  $label $stem: no $cdir/$stem.json on the box"
+    [ "${INSTALL:-0}" = 1 ] && [ "$offer" = 1 ] && offer_install "$host" "$cdir" "$stem" "$committed" && return 0
+    return 1
+  fi
+  if python3 "$COMPARE" "$compare" "$committed" "$boxfile" > "$WORK/$label.$stem.diff"; then
+    [ "$compare" = sensed ] && echo "  $label $stem: sensed part matches tlayouts $tlb $path" || echo "  $label $stem: matches tlayouts $tlb $path"
+    return 0
+  fi
+  [ "$compare" = sensed ] && echo "  $label $stem: sensed part DIFFERS from tlayouts $tlb $path" || echo "  $label $stem: DIFFERS from tlayouts $tlb $path"
+  sed 's/^/      /' "$WORK/$label.$stem.diff"
+  [ "${INSTALL:-0}" = 1 ] && [ "$offer" = 1 ] && offer_install "$host" "$cdir" "$stem" "$committed" && return 0
+  return 1
+}
+
+# Verify one pi's pair against a scada branch's committed JSON; a second pi
+# on the sensed part of its layout only, never installed.
 verify_pi() { # <pi> <scada-branch>
   local pi="$1" branch="$2" tlb cdir rc=0
   tlb="$(tl_branch "$branch")" || { echo "  $pi: no tlayouts branch for scada branch $branch"; return 1; }
   cdir="$(config_dir "$pi")"
-  local kinds="layout"; reads_ops "$branch" && kinds="layout ops"
-  for kind in $kinds; do
-    local stem compare="$kind"; [ "$kind" = layout ] && stem=hardware-layout || stem=operational-params
-    local offer=1; if [ "$kind" = layout ] && [ "$pi" != "${pi%2}" ]; then compare=sensed; offer=0; fi
-    local path; path="$(committed_path "$tlb" "$kind")" || { echo "  $pi $stem: nothing committed under output/$HOUSE/ on tlayouts $tlb"; rc=1; continue; }
-    local committed="$WORK/$pi.$stem.committed.json" boxfile="$WORK/$pi.$stem.box.json"
-    git -C "$TLAYOUTS" show "origin/$tlb:$path" > "$committed"
-    if ! ssh -n "$pi" "cat $cdir/$stem.json" > "$boxfile" 2>/dev/null; then
-      echo "  $pi $stem: no $cdir/$stem.json on the box"
-      [ "$kind" = ops ] && [ "${INSTALL:-0}" = 1 ] && offer_install "$pi" "$cdir" "$stem" "$committed" || rc=1
-      continue
-    fi
-    if python3 "$COMPARE" "$compare" "$committed" "$boxfile" > "$WORK/$pi.$stem.diff"; then
-      [ "$compare" = sensed ] && echo "  $pi $stem: sensed part matches tlayouts $tlb $path" || echo "  $pi $stem: matches tlayouts $tlb $path"
-    else
-      [ "$compare" = sensed ] && echo "  $pi $stem: sensed part DIFFERS from tlayouts $tlb $path" || echo "  $pi $stem: DIFFERS from tlayouts $tlb $path"
-      sed 's/^/      /' "$WORK/$pi.$stem.diff"
-      if [ "${INSTALL:-0}" = 1 ] && [ "$offer" = 1 ]; then offer_install "$pi" "$cdir" "$stem" "$committed" || rc=1; else rc=1; fi
-    fi
-  done
-  if reads_ops "$branch" && ! ssh -n "$pi" "[ -f $cdir/ta-deed.json ]"; then echo "  $pi: no $cdir/ta-deed.json; the branch needs it"; rc=1; fi
+  local compare=layout offer=1; [ "$pi" = "${pi%2}" ] || { compare=sensed; offer=0; }
+  verify_file "$pi" "$pi" "$cdir" "$tlb" layout "$compare" "$offer" || rc=1
+  if reads_ops "$branch"; then
+    verify_file "$pi" "$pi" "$cdir" "$tlb" ops ops 1 || rc=1
+    ssh -n "$pi" "[ -f $cdir/ta-deed.json ]" || { echo "  $pi: no $cdir/ta-deed.json; the branch needs it"; rc=1; }
+  fi
   return $rc
 }
 
-offer_install() { # <pi> <config-dir> <stem> <committed-file>
+# Verify the LTN's pair, the same committed JSON the pi runs.
+verify_ltn() { # <scada-branch>
+  local branch="$1" tlb rc=0
+  tlb="$(tl_branch "$branch")" || { echo "  ltn: no tlayouts branch for scada branch $branch"; return 1; }
+  verify_file "$LTN_BOX" ltn "$LTN_CONFIG" "$tlb" layout layout 1 || rc=1
+  if reads_ops "$branch"; then verify_file "$LTN_BOX" ltn "$LTN_CONFIG" "$tlb" ops ops 1 || rc=1; fi
+  return $rc
+}
+
+offer_install() { # <host> <config-dir> <stem> <committed-file>
   local pi="$1" cdir="$2" stem="$3" committed="$4"
   read -r -p "  install the committed $stem on $pi (box file kept as $stem.$STAMP-pre-roll.json)? [y/N] " ans
   [ "$ans" = y ] || return 1
@@ -186,13 +216,19 @@ git -C "$TLAYOUTS" fetch -q origin
 if [ "$VERB" = check ]; then
   rc=0
   for pi in $PIS; do
-    b="$(box_branch "$pi")"; echo "$pi: $BOX_REPO on $b @ $(box_sha "$pi"); $(service_of "$pi") $(ssh -n "$pi" "systemctl is-active $(service_of "$pi")")"
+    b="$(box_branch "$pi")"; n="$(behind "$pi" "$BOX_REPO" "$b")"
+    echo "$pi: $BOX_REPO on $b @ $(box_sha "$pi") (behind origin/$b by $n); $(service_of "$pi") $(ssh -n "$pi" "systemctl is-active $(service_of "$pi")")"
+    [ "$n" = 0 ] || { echo "$pi: not at the pushed tip of $b"; rc=1; }
     verify_pi "$pi" "$b" || rc=1
   done
   [ "$HOUSE" != spruce ] || echo "spruce: spruce-winter-hack $(ssh -n spruce 'systemctl is-active spruce-winter-hack; systemctl is-enabled spruce-winter-hack' | tr '\n' ' ')"
-  ltn_line
-  lb="$(ltn_branch)"; pb="$(box_branch "$HOUSE")"
+  lb="$(ltn_branch)"; n="$(behind "$LTN_BOX" "$LTN_REPO" "$lb")"
+  echo "ltn: $LTN_REPO on $lb @ $(ltn_sha) (behind origin/$lb by $n); $LTN_UNIT $(ssh -n "$LTN_BOX" "systemctl is-active $LTN_UNIT")"
+  [ "$n" = 0 ] || { echo "ltn: not at the pushed tip of $lb"; rc=1; }
+  verify_ltn "$lb" || rc=1
+  pb="$(box_branch "$HOUSE")"
   [ "$lb" = "$pb" ] || { echo "$HOUSE: LTN on $lb, scada on $pb; a house's LTN and scada run on one line"; rc=1; }
+  [ "$(ltn_sha)" = "$(box_sha "$HOUSE")" ] || { echo "$HOUSE: LTN @ $(ltn_sha), scada @ $(box_sha "$HOUSE"); a house's LTN and scada run at one SHA"; rc=1; }
   exit $rc
 fi
 
@@ -235,6 +271,7 @@ done
 
 ssh -n "$LTN_BOX" "git -C $LTN_REPO checkout -q $TARGET && git -C $LTN_REPO merge -q --ff-only origin/$TARGET" || { echo "ltn: checkout or fast-forward failed; refusing. The pis are on $TARGET; fix the LTN checkout by hand and re-run."; exit 1; }
 echo "ltn: $LTN_REPO on $TARGET @ $(ltn_sha) (was $ltn_cur)"
+INSTALL=1 verify_ltn "$TARGET" || { echo "ltn: pair not verified; unit NOT restarted. Fix the pair and re-run."; exit 1; }
 ssh -n "$LTN_BOX" "sudo systemctl restart $LTN_UNIT"; sleep 3
 ltn_line
 

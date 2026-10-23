@@ -33,6 +33,7 @@ case "$cmd" in
   *"is-active spruce-winter-hack"*)     printf 'active\nenabled\n' ;;
   *"is-active"*)                        echo active ;;
   *"cat ~/.config/gridworks/scada/hardware-layout.json"*) printf '%s' "$ROLL_STUB_LAYOUT" ;;
+  *"cat ~/ltn-spruce/.config/gridworks/ltn/hardware-layout.json"*) printf '%s' "$ROLL_STUB_LAYOUT" ;;
   *"find"*)                             echo 0 ;;
   *) ;;
 esac
@@ -87,7 +88,7 @@ def run_roll(env: dict[str, str], *args: str) -> subprocess.CompletedProcess[str
 def test_check_reports_ltn_beside_the_pi(roll_env: dict[str, str]) -> None:
     r = run_roll(roll_env, "check")
     assert r.returncode == 0, r.stdout + r.stderr
-    assert "ltn: ~/ltn-spruce/gridworks-scada on actual-spruce @ abc1234; gwltn@spruce active" in r.stdout
+    assert "ltn: ~/ltn-spruce/gridworks-scada on actual-spruce @ abc1234 (behind origin/actual-spruce by 0); gwltn@spruce active" in r.stdout
 
 
 def test_check_fails_when_ltn_and_scada_are_on_different_lines(roll_env: dict[str, str]) -> None:
