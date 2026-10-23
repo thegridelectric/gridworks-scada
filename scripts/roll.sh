@@ -81,6 +81,8 @@ LTN_BOX="${LTN_BOX:-ltn}"
 LTN_REPO="~/ltn-$HOUSE/gridworks-scada"
 LTN_UNIT="gwltn@$HOUSE"
 EVENT_DIR='~/.local/share/gridworks/scada/event'
+# The unit files a pi installs (service/install); gwltn@.service is the ltn box's.
+PI_UNITS='service/gwspaceheat.service service/gwspaceheat-restart.service service/gwspaceheat-restart.timer'
 STAMP="$(date +%Y-%m-%d)"
 
 usage() { sed -n '2,20p' "$0"; exit 1; }
@@ -217,7 +219,7 @@ for pi in $PIS; do
   [ -z "$(ssh -n "$pi" "git -C $BOX_REPO status --porcelain")" ] || { echo "$pi: $BOX_REPO is dirty; refusing"; exit 1; }
   ssh -n "$pi" "git -C $BOX_REPO rev-parse --verify -q origin/$TARGET" > /dev/null || { echo "$pi: origin/$TARGET not on the box's remote; refusing"; exit 1; }
   cur="$(box_sha "$pi")"
-  if [ -n "$(ssh -n "$pi" "git -C $BOX_REPO diff --name-only $cur origin/$TARGET -- 'service/*.service' 'service/*.timer'")" ]; then
+  if [ -n "$(ssh -n "$pi" "git -C $BOX_REPO diff --name-only $cur origin/$TARGET -- $PI_UNITS")" ]; then
     echo "$pi: service unit files differ between $cur and origin/$TARGET; root must reinstall them (service/install) after the checkout, by hand, then re-run"
     exit 1
   fi
