@@ -131,7 +131,7 @@ def test_to_moves_the_ltn_and_restarts_it_before_the_scada(roll_env: dict[str, s
     log = Path(roll_env["ROLL_STUB_LOG"]).read_text().splitlines()
     ltn_checkout = next(i for i, l in enumerate(log) if l.startswith("ltn: git -C ~/ltn-spruce/gridworks-scada checkout -q actual-spruce"))
     ltn_restart = next(i for i, l in enumerate(log) if l == "ltn: sudo systemctl restart gwltn@spruce")
-    scada_start = next(i for i, l in enumerate(log) if l == "spruce: sudo systemctl start gwspaceheat")
+    scada_start = next(i for i, l in enumerate(log) if l == "spruce: sudo systemctl start gwspaceheat && sudo systemctl start gwspaceheat-restart.timer")
     assert ltn_checkout < ltn_restart < scada_start
 
 
@@ -183,7 +183,8 @@ def test_to_moves_both_pis_and_installs_the_second_pi_s_pair_in_its_own_dir(mapl
     assert any(line.startswith("maple2: git -C ~/gridworks-scada diff --name-only abc1234 origin/main -- service2/gwspaceheat2.service") for line in log)
     assert any(line.startswith("maple2: [ ! -f ~/.config/gridworks/scada2/hardware-layout.json ] || cp ~/.config/gridworks/scada2/hardware-layout.json ~/.config/gridworks/scada2/hardware-layout.") for line in log)
     ltn_restart = log.index("ltn: sudo systemctl restart gwltn@maple")
-    first = log.index("maple: sudo systemctl start gwspaceheat")
-    second = log.index("maple2: sudo systemctl start gwspaceheat2")
+    first = log.index("maple: sudo systemctl start gwspaceheat && sudo systemctl start gwspaceheat-restart.timer")
+    second = log.index("maple2: sudo systemctl start gwspaceheat2 && sudo systemctl start gwspaceheat2-restart.timer")
+    assert "maple2: sudo systemctl stop gwspaceheat2-restart.timer gwspaceheat2" in log
     assert ltn_restart < first < second
     assert any("maple2: E=~/.local/share/gridworks/scada2/event;" in line for line in log)

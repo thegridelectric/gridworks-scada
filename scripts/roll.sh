@@ -73,8 +73,10 @@
 # had acked (~/.local/share/gridworks/scada/event/) and re-sends them on each
 # link-up; an event written by one line's scada is not acked by the other
 # line's LTN, and the link flaps on it every ack timeout for good. So the
-# service is stopped, the event folder's contents are set aside as
-# event.<date>-pre-roll-to-<branch>/, and the service started.
+# restart timer and the service are stopped (as gwstop and gw2stop do; the
+# timer alone would start the service at the next quarter hour), the event
+# folder's contents are set aside as event.<date>-pre-roll-to-<branch>/, and
+# the service and then the timer started.
 #
 # spruce: the winter hack (spruce-winter-hack.service) is the plant controller
 # on actual-spruce and is disabled when the box moves off that line, enabled
@@ -303,10 +305,10 @@ if [ "$HOUSE" = spruce ]; then
 fi
 for pi in $PIS; do
   svc="$(service_of "$pi")"; edir="$(event_dir "$pi")"
-  ssh -n "$pi" "sudo systemctl stop $svc"
+  ssh -n "$pi" "sudo systemctl stop $svc-restart.timer $svc"
   n="$(ssh -n "$pi" "E=$edir; Q=$edir.$STAMP-pre-roll-to-${TARGET//\//-}; n=\$(find \$E -type f 2>/dev/null | wc -l | tr -d ' '); if [ \"\$n\" != 0 ]; then mkdir -p \$Q && find \$E -mindepth 1 -maxdepth 1 -exec mv {} \$Q/ \; ; fi; echo \$n")"
   echo "$pi: $n stored events set aside in $edir.$STAMP-pre-roll-to-${TARGET//\//-}"
-  ssh -n "$pi" "sudo systemctl start $svc"; sleep 3
+  ssh -n "$pi" "sudo systemctl start $svc && sudo systemctl start $svc-restart.timer"; sleep 3
   echo "$pi: $svc $(ssh -n "$pi" "systemctl is-active $svc") on $(box_branch "$pi") @ $(box_sha "$pi")"
 done
 echo "watch with: gwa watch $HOUSE"
