@@ -95,7 +95,7 @@ def roll_env(tmp_path: Path) -> dict[str, str]:
 
 @pytest.fixture
 def maple_env(tmp_path: Path) -> dict[str, str]:
-    return make_env(tmp_path, "maple", "main")
+    return make_env(tmp_path, "maple", "legacy")
 
 
 def run_roll(env: dict[str, str], *args: str, answers: str = "") -> subprocess.CompletedProcess[str]:
@@ -157,16 +157,16 @@ def test_back_removes_the_pre_roll_copies_and_keeps_none(roll_env: dict[str, str
 def test_check_reports_the_second_pi_beside_the_first(maple_env: dict[str, str]) -> None:
     r = run_roll(maple_env, "check")
     assert r.returncode == 0, r.stdout + r.stderr
-    assert "maple2: ~/gridworks-scada on main @ abc1234 (behind origin/main by 0); gwspaceheat2 active" in r.stdout
-    assert "maple2 hardware-layout: matches tlayouts main output/maple/hardware-layout.json" in r.stdout
+    assert "maple2: ~/gridworks-scada on legacy @ abc1234 (behind origin/legacy by 0); gwspaceheat2 active" in r.stdout
+    assert "maple2 hardware-layout: matches tlayouts legacy output/maple/hardware-layout.json" in r.stdout
 
 
 def test_check_fails_when_the_pis_are_on_different_lines_or_shas(maple_env: dict[str, str]) -> None:
-    maple_env["ROLL_STUB_PI2_BRANCH"] = "jm/spruce-unlimbo"
+    maple_env["ROLL_STUB_PI2_BRANCH"] = "main"
     r = run_roll(maple_env, "check")
     assert r.returncode == 1
-    assert "maple: maple2 on jm/spruce-unlimbo, maple on main; a house's pis run on one line" in r.stdout
-    maple_env["ROLL_STUB_PI2_BRANCH"] = "main"
+    assert "maple: maple2 on main, maple on legacy; a house's pis run on one line" in r.stdout
+    maple_env["ROLL_STUB_PI2_BRANCH"] = "legacy"
     maple_env["ROLL_STUB_PI2_SHA"] = "def5678"
     r = run_roll(maple_env, "check")
     assert r.returncode == 1
@@ -175,12 +175,12 @@ def test_check_fails_when_the_pis_are_on_different_lines_or_shas(maple_env: dict
 
 def test_to_moves_both_pis_and_installs_the_second_pi_s_pair_in_its_own_dir(maple_env: dict[str, str]) -> None:
     maple_env["ROLL_STUB_PI2_LAYOUT"] = '{"LayoutId": "maple-stale"}\n'
-    r = run_roll(maple_env, "to", "main", answers="y\n")
+    r = run_roll(maple_env, "to", "legacy", answers="y\n")
     assert r.returncode == 0, r.stdout + r.stderr
     log = Path(maple_env["ROLL_STUB_LOG"]).read_text().splitlines()
-    assert "maple: git -C ~/gridworks-scada checkout -q main && git -C ~/gridworks-scada merge -q --ff-only origin/main" in log
-    assert "maple2: git -C ~/gridworks-scada checkout -q main && git -C ~/gridworks-scada merge -q --ff-only origin/main" in log
-    assert any(line.startswith("maple2: git -C ~/gridworks-scada diff --name-only abc1234 origin/main -- service2/gwspaceheat2.service") for line in log)
+    assert "maple: git -C ~/gridworks-scada checkout -q legacy && git -C ~/gridworks-scada merge -q --ff-only origin/legacy" in log
+    assert "maple2: git -C ~/gridworks-scada checkout -q legacy && git -C ~/gridworks-scada merge -q --ff-only origin/legacy" in log
+    assert any(line.startswith("maple2: git -C ~/gridworks-scada diff --name-only abc1234 origin/legacy -- service2/gwspaceheat2.service") for line in log)
     assert any(line.startswith("maple2: [ ! -f ~/.config/gridworks/scada2/hardware-layout.json ] || cp ~/.config/gridworks/scada2/hardware-layout.json ~/.config/gridworks/scada2/hardware-layout.") for line in log)
     ltn_restart = log.index("ltn: sudo systemctl restart gwltn@maple")
     first = log.index("maple: sudo systemctl start gwspaceheat && sudo systemctl start gwspaceheat-restart.timer")
@@ -188,3 +188,16 @@ def test_to_moves_both_pis_and_installs_the_second_pi_s_pair_in_its_own_dir(mapl
     assert "maple2: sudo systemctl stop gwspaceheat2-restart.timer gwspaceheat2" in log
     assert ltn_restart < first < second
     assert any("maple2: E=~/.local/share/gridworks/scada2/event;" in line for line in log)
+
+
+def test_back_sends_a_house0_house_to_legacy(maple_env: dict[str, str]) -> None:
+    r = run_roll(maple_env, "back", answers="y\n")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "maple: rolling back to legacy" in r.stdout
+    log = Path(maple_env["ROLL_STUB_LOG"]).read_text().splitlines()
+    assert "maple: git -C ~/gridworks-scada checkout -q legacy && git -C ~/gridworks-scada merge -q --ff-only origin/legacy" in log
+
+
+def test_forward_sends_a_house_to_main(maple_env: dict[str, str]) -> None:
+    r = run_roll(maple_env, "forward", answers="y\n")
+    assert "maple: rolling forward to main" in r.stdout

@@ -8,8 +8,8 @@
 #                                                 it, the same SHA on the pi and
 #                                                 the LTN, and the committed pair
 #                                                 of that line on both
-#   scripts/roll.sh <house> forward               `to` jm/spruce-unlimbo, the
-#                                                 one line a house rolls forward to
+#   scripts/roll.sh <house> forward               `to` main, the one line a
+#                                                 house rolls forward to
 #   scripts/roll.sh <house> to <scada-branch>     check out the branch on each pi
 #                                                 and on the LTN at its pushed
 #                                                 SHA, verify (and on a y,
@@ -20,7 +20,7 @@
 #                                                 actual-spruce for spruce,
 #                                                 td/generalized-flo for the
 #                                                 THOMAS_LTN houses (oak today),
-#                                                 main for the rest
+#                                                 legacy for the rest
 #
 # <house> is spruce, beech, maple, oak, fir or elm. Every house but spruce
 # has a second pi, <house>2, whose scada2 runs from the same checkout
@@ -30,7 +30,7 @@
 # ~/.local/share/gridworks/scada2/event/. The second pi is in the roll on
 # the same footing as the first: same branch at the same pushed SHA, the
 # same venv rule, the same committed pair byte for byte. The second pi
-# reads the ops word on jm/spruce-unlimbo as the first does; the ta.deed is
+# reads the ops word on main as the first does; the ta.deed is
 # the first pi's alone. scada2 reports its readings to the first pi by
 # channel name with no encoding, so a second pi on another line's code or
 # layout is reported by the first pi under the wrong units with nothing to
@@ -51,16 +51,16 @@
 # Each scada branch has its tlayouts branch, and the committed JSON of that
 # branch is the record of what the house runs:
 #   main              -> tlayouts main
+#   legacy            -> tlayouts legacy
 #   actual-spruce     -> tlayouts actual-spruce
-#   jm/spruce-unlimbo -> tlayouts jm/spruce
-#   td/generalized-flo -> tlayouts main   (the FLO work on oak: main's layout,
+#   td/generalized-flo -> tlayouts legacy (the FLO work on oak: legacy's layout,
 #                                          an LTN that differs)
 # The source is the tlayouts REMOTE (git show origin/<branch>:<path> after a
 # fetch), so only pushed JSON can reach a box, whatever the laptop's tlayouts
 # checkout is doing. The box's scada checkout likewise moves only to a pushed
 # SHA (fast-forward to origin/<branch>); a box ahead of its remote refuses.
 #
-# A layout matches byte for byte. On jm/spruce-unlimbo the operational params
+# A layout matches byte for byte. On main the operational params
 # match except for the DispatchHold block, which the scada writes itself
 # (scripts/roll_compare.py). On the other lines the scada does not read the
 # ops word and the file is left alone. A pi whose file differs shows the
@@ -98,7 +98,7 @@ LTN_BOX="${LTN_BOX:-ltn}"
 LTN_REPO="~/ltn-$HOUSE/gridworks-scada"
 LTN_UNIT="gwltn@$HOUSE"
 LTN_CONFIG="~/ltn-$HOUSE/.config/gridworks/ltn"
-FORWARD_LINE=jm/spruce-unlimbo
+FORWARD_LINE=main
 # The unit files a pi installs (service/install, service2/install);
 # gwltn@.service is the ltn box's.
 PI_UNITS='service/gwspaceheat.service service/gwspaceheat-restart.service service/gwspaceheat-restart.timer'
@@ -112,7 +112,7 @@ usage() { sed -n '2,20p' "$0"; exit 1; }
 THOMAS_LTN="oak"
 rollback_line() {
   case " $THOMAS_LTN " in *" $1 "*) echo td/generalized-flo; return ;; esac
-  case "$1" in spruce) echo actual-spruce ;; *) echo main ;; esac
+  case "$1" in spruce) echo actual-spruce ;; *) echo legacy ;; esac
 }
 case "$VERB" in
   check)   [ -z "$TARGET" ] || usage ;;
@@ -137,16 +137,16 @@ event_dir()  { if is_second "$1"; then echo '~/.local/share/gridworks/scada2/eve
 tl_branch() {
   case "$1" in
     main) echo main ;;
+    legacy) echo legacy ;;
     actual-spruce) echo actual-spruce ;;
-    jm/spruce-unlimbo) echo jm/spruce ;;
-    td/generalized-flo) echo main ;;
+    td/generalized-flo) echo legacy ;;
     *) return 1 ;;
   esac
 }
-reads_ops() { [ "$1" = jm/spruce-unlimbo ]; }
+reads_ops() { [ "$1" = main ]; }
 
 # The committed path of a file on a tlayouts branch: the deployed name first,
-# then the names the jm/spruce gens emit.
+# then the names the tlayouts gens emit.
 committed_path() { # <tlayouts-branch> <layout|ops>
   local b="$1" kind="$2" candidates
   if [ "$kind" = layout ]; then
